@@ -8,11 +8,12 @@
 Then open http://127.0.0.1:8765/. Stdlib only, no engine: replay needs only the JSONL (and the console log beside it
 for the [TALLY] line). Card images come from the demo_cards.py cache (filled by `python3 eval/demo_cards.py prefetch
 <run>`); only with --fetch-images does the server send a missing card's name to api.scryfall.com and write the image
-into that cache. A live pane re-reads its file on every request, so the
-page follows a game a JVM is writing (EVAL_OUT rows are autoflushed per line). The server never writes into a run
-and never talks to the JVM, so it cannot change what the seat sees or decides.
+into that cache. A live pane re-reads its file on every request, so the page follows a game a JVM is writing
+(EVAL_OUT rows are autoflushed per line). The server writes nothing the seat reads, so it cannot change what the seat
+sees or decides; with --highlight-file it writes one display-only file that the Forge window's DemoHighlight polls.
 
-What it cannot show: what the JSONL does not hold (the system prompt, the opponent's hidden hand, library order).
+What it cannot show: what the JSONL does not hold (the system prompt, library order, and the opponent's hidden hand
+unless the game was played with the audience feed, DEMO_FEED=1).
 """
 import argparse
 import json
@@ -24,6 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 import demo_cards
+import demo_eval
 import demo_events
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo", "web")
@@ -34,9 +36,10 @@ WAIT_S = 20.0
 class Pane:
     """One game: a run directory or .jsonl (replay), or a directory a JVM is writing into (live)."""
 
-    def __init__(self, path, live=False):
+    def __init__(self, path, live=False, highlight_file=None):
         self.path = path
         self.live = live
+        self.highlight_file = highlight_file  # live: where the Forge window's highlights are written
         self.reader = None
         self.log = None
         self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
@@ -58,7 +61,8 @@ class Pane:
                     self.log = log
             if self.reader is not None:
                 was_done = self.done
-                self.reader.poll()
+                if self.reader.poll() and self.highlight_file:
+                    write_highlights(self.highlight_file, self.reader.events)
                 if self.done and not was_done:
                     self._summary = None
 
@@ -82,13 +86,32 @@ class Pane:
             cached, key = self._summary, (self.gen, self.done)
         if cached is not None:
             return cached
-        built = build_summary(self)
+        built = dict(build_summary(self), gen=key[0])  # the page drops a summary of a game it no longer shows
         with self.lock:
             # Kept only if the game it describes is still this pane's, in the same state (no newer file, no game row
             # landed meanwhile); otherwise it is returned once and rebuilt on the next request.
             if (self.gen, self.done) == key:
                 self._summary = built
         return built
+
+
+def highlight_ids(ev):
+    """Engine card ids of the objects a decision highlights (not the engine's own frame), through the feed's handle
+    map. Without the audience feed there is no map, and no id."""
+    by_handle = ev.get("feed_handles") or {}
+    return sorted({by_handle[h] for h, v in (ev.get("highlights") or {}).items()
+                   if v.get("kind") != "engine" and h in by_handle})
+
+
+def write_highlights(path, events):
+    """The latest decision's highlights for DemoHighlight (the Forge window). Written whole, then renamed."""
+    ev = next((e for e in reversed(events) if e.get("kind") == "decision"), None)
+    if ev is None:
+        return
+    tmp = path + ".part"
+    with open(tmp, "w") as f:
+        json.dump({"decision": ev["n"], "seat": ev["seat"], "turn": ev["turn"], "ids": highlight_ids(ev)}, f)
+    os.replace(tmp, path)
 
 
 def build_summary(pane):
@@ -113,6 +136,21 @@ def build_summary(pane):
     return out
 
 
+class EvalReport:
+    """demo_eval.report for one acceptance dir, built once on first ask (the PUZ bootstraps take a few seconds)."""
+
+    def __init__(self, acceptance_dir=None):
+        self.acceptance_dir = acceptance_dir
+        self.lock = threading.Lock()
+        self.value = None
+
+    def get(self):
+        with self.lock:
+            if self.value is None:
+                self.value = demo_eval.report(self.acceptance_dir)
+            return self.value
+
+
 class Handler(BaseHTTPRequestHandler):
     panes = []
     cards = None
@@ -120,12 +158,14 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
-    def _send(self, code, body, ctype="application/json", cache=False):
+    def _send(self, code, body, ctype="application/json", cache=False, headers=()):
         data = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "max-age=86400" if cache else "no-store")
+        for k, v in headers:
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(data)
 
@@ -139,8 +179,10 @@ class Handler(BaseHTTPRequestHandler):
             name = unquote(parts[1])
             p = self.cards.get(name) if self.cards else None
             if not p:
-                # Only a name Scryfall lacks is cacheable; offline, a failed or an in-flight fetch may succeed later.
-                return self._send(404, {"error": "no image"}, cache=bool(self.cards and self.cards.is_miss(name)))
+                # Only a name Scryfall lacks is cacheable, and says so (X-Image-Miss: the page stops asking for it);
+                # offline, a failed or an in-flight fetch may succeed later.
+                miss = bool(self.cards and self.cards.is_miss(name))
+                return self._send(404, {"error": "no image"}, cache=miss, headers=[("X-Image-Miss", "1")] if miss else [])
             with open(p, "rb") as f:
                 return self._send(200, f.read(), "image/jpeg", cache=True)
         if parts[0] != "api":
@@ -152,6 +194,17 @@ class Handler(BaseHTTPRequestHandler):
                 out.append({"i": i, "path": p.path, "live": p.live, "events": len(p.events), "done": p.done,
                             "summary": p.summary()})
             return self._send(200, out)
+        if parts[1:] == ["eval"]:
+            return self._send(200, self.eval_report.get())
+        if parts[1:] == ["divergence"]:
+            # Two panes of one seed: where the games part (demo_events.divergence). None for one pane.
+            if len(self.panes) != 2:
+                return self._send(200, None)
+            for p in self.panes:
+                p.refresh()
+            with self.panes[0].lock, self.panes[1].lock:
+                a, b = list(self.panes[0].events), list(self.panes[1].events)
+            return self._send(200, demo_events.divergence(a, b))
         if len(parts) == 4 and parts[1] == "game" and parts[3] in ("events", "summary"):
             try:
                 pane = self.panes[int(parts[2])]
@@ -188,8 +241,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, f.read(), TYPES.get(os.path.splitext(path)[1], "application/octet-stream"))
 
 
-def make_server(panes, port=8765, host="127.0.0.1", cards=None):
-    handler = type("DemoHandler", (Handler,), {"panes": panes, "cards": cards})
+def make_server(panes, port=8765, host="127.0.0.1", cards=None, eval_report=None):
+    handler = type("DemoHandler", (Handler,), {"panes": panes, "cards": cards,
+                                               "eval_report": eval_report or EvalReport()})
     return ThreadingHTTPServer((host, port), handler)
 
 
@@ -200,16 +254,29 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--image-cache", default=demo_cards.DEFAULT_CACHE, help="card images (demo_cards.py prefetch fills it)")
+    ap.add_argument("--highlight-file", help="live: write the latest decision's highlighted card ids here for the "
+                    "Forge window (the JVM reads it with DEMO_HIGHLIGHT_FILE set to the same path)")
     ap.add_argument("--fetch-images", action="store_true",
                     help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
+    ap.add_argument("--acceptance", help="the eval page's gate: an OUT dir of eval/harness_acceptance.sh (/eval.html)")
     a = ap.parse_args(argv)
-    panes = [Pane(p) for p in a.game] + [Pane(p, live=True) for p in a.live]
-    if not panes:
-        ap.error("give at least one --game or --live")
+    panes = [Pane(p) for p in a.game] + [Pane(p, live=True, highlight_file=a.highlight_file) for p in a.live]
+    if not panes and not a.acceptance:
+        ap.error("give at least one --game or --live (or --acceptance for the eval page alone)")
     for p in panes:
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
-    srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images))
+    srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images),
+                      EvalReport(a.acceptance))
+    if a.highlight_file:
+        # The Forge window's highlights follow the game whether or not a browser is polling.
+        def follow():
+            while True:
+                for p in panes:
+                    if p.highlight_file:
+                        p.refresh()
+                time.sleep(0.25)
+        threading.Thread(target=follow, daemon=True).start()
     print("DEMO http://%s:%d/  (%s)" % (a.host, srv.server_address[1], ", ".join(p.path for p in panes)), flush=True)
     try:
         srv.serve_forever()

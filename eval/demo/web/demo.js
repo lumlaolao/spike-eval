@@ -33,12 +33,47 @@ const cardImg = name => "card/" + encodeURIComponent(name);
 // Names whose image failed once are drawn as text tiles at once: a live re-render must not lay out an image box
 // and then fall back.
 const NO_IMAGE = new Set();
-// Only a permanent miss (the server's cacheable 404) is remembered; an offline or failed answer is asked again.
+// Only a permanent miss (the server's X-Image-Miss 404, cacheable, so this GET is usually answered by the browser
+// cache) is remembered; an offline or failed answer is asked again on the next render.
 window.noImage = img => {
   const c = img.closest(".card"), name = c.getAttribute("data-name");
   c.classList.add("noimg");
-  fetch(img.src, {method: "HEAD"}).then(r => { if (/max-age/.test(r.headers.get("Cache-Control") || "")) NO_IMAGE.add(name); });
+  fetch(img.src).then(r => { if (r.headers.get("X-Image-Miss") === "1") NO_IMAGE.add(name); }).catch(() => {});
 };
+
+// With the audience feed, the board is drawn from engine truth (DemoFeed): every zone of both players with what Forge's
+// own card panel shows (current and printed P/T, damage, counters, tapped, sick, attacking, blocking). The seat's
+// counters it alone knows (mana pool, land drop) still come from its prompt; its @handles are mapped onto the cards.
+function feedPlayers(d, st) {
+  const f = d.feed, combat = f.combat || [], hl = d.highlights || {};
+  // engine id -> the seat's handles for it (a new timestamp gives a card a new one); the card shows a highlighted
+  // handle if any, else its newest.
+  const ids = {};
+  for (const [h, eid] of Object.entries(d.feed_handles || {})) (ids[eid] = ids[eid] || []).push(+h);
+  const handleOf = id => { const hs = ids[id] || []; return hs.length ? (hs.find(h => hl[h]) ?? Math.max(...hs)) : null; };
+  const attacking = new Set(combat.map(a => a.id)), blocking = new Set(combat.flatMap(a => a.blockers));
+  const card = (c, zone) => ({
+    name: c.name, handle: handleOf(c.id), pt: c.pt || null, base_pt: c.base_pt || null,
+    damage: c.damage || 0, counters: c.counters || null, zone,
+    tags: [c.tapped ? "tapped" : null, c.sick ? "sick" : null, attacking.has(c.id) ? "attacking" : null,
+      blocking.has(c.id) ? "blocking" : null, c.token ? "token" : null, c.face_down ? "face down" : null].filter(Boolean),
+    notes: [], feed: true,
+  });
+  return (f.players || []).map(fp => {
+    const mine = fp.name === d.seat;
+    const fromPrompt = ((st && st.players) || []).find(p => p.name === fp.name) || {};
+    const bf = fp.battlefield || [];
+    return {
+      kind: mine ? "YOU" : "OPP", name: fp.name, audienceHand: !mine,
+      counters: Object.assign({}, fromPrompt.counters || {}, {life: fp.life, poison: fp.poison + "/10", library: fp.library,
+        graveyard: (fp.graveyard || []).length, exile: (fp.exile || []).length}),
+      hand_hidden: fromPrompt.hand_hidden, lines: fromPrompt.lines || {},
+      zones: {hand: (fp.hand || []).map(c => card(c, "hand")), board: bf.filter(c => !c.land).map(c => card(c, "board")),
+        lands: bf.filter(c => c.land).map(c => card(c, "lands")), graveyard: (fp.graveyard || []).map(c => card(c, "graveyard")),
+        exile: (fp.exile || []).map(c => card(c, "exile"))},
+    };
+  });
+}
 
 class Pane {
   constructor(i, info, root) {
@@ -78,6 +113,7 @@ class Pane {
         const same = this.absorb(r);
         if (!same) { this.render(); continue; }
         if (r.events.length || r.done !== wasDone) { this.render(); if (r.done) this.refreshSummary(); }
+        if (r.events.length && app.panes.length === 2) app.loadDivergence().then(() => app.panes.forEach(p => p.renderTimeline()));
         if (r.done) await new Promise(res => setTimeout(res, 2000));
       } catch (e) { await new Promise(res => setTimeout(res, 1000)); }
     }
@@ -85,7 +121,7 @@ class Pane {
   async refreshSummary() {
     const gen = this.gen;
     const s = await fetch(`api/game/${this.i}/summary`).then(x => x.json());
-    if (gen !== this.gen) return;  // a newer game replaced this one while the summary was built
+    if (gen !== this.gen || (s.gen != null && s.gen !== this.gen)) return;  // a summary of another game
     this.info.summary = s;
     this.renderSummary(); this.renderHead();
   }
@@ -146,6 +182,13 @@ class Pane {
     if (!st) { el.innerHTML = `<p class="engine-note">${this.waitingForFile ? "No game file yet." : "No board yet (no prompt recorded before this decision)."}</p>`; return; }
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
     const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
+    if (d.feed) {
+      const fps = feedPlayers(d, st);
+      el.innerHTML = `<p class="engine-note">board: engine truth from the audience feed; the seat's own view is its prompt (below the trace)</p>` +
+        fps.filter(p => p.kind === "OPP").map(p => this.playerHtml(p, hl)).join("") + this.middleHtml(st, hl) +
+        fps.filter(p => p.kind === "YOU").map(p => this.playerHtml(p, hl)).join("") + this.legendHtml(hl);
+      return;
+    }
     el.innerHTML = stale + opp.map(p => this.playerHtml(p, hl)).join("") + this.middleHtml(st, hl) +
       you.map(p => this.playerHtml(p, hl)).join("") + this.legendHtml(hl);
   }
@@ -155,22 +198,29 @@ class Pane {
     const ctr = ["poison", "library", "graveyard", "exile", "mana_pool", "lands_played_this_turn", "spells_cast_this_turn"]
       .filter(k => c[k] != null).map(k => `${k.replace(/_/g, " ")} ${esc(c[k])}`).join(" · ");
     const zones = [];
-    if (p.kind === "OPP" && p.hand_hidden != null) {
+    // With the audience feed (DEMO_FEED), the opponent's real hand: engine truth the seat never sees, drawn in a
+    // style of its own and labelled so, never as the seat's knowledge.
+    if (p.audienceHand) {
+      const hand = p.zones.hand;
+      zones.push(`<div class="zone z-hand audience"><span class="zlabel">hand</span>` +
+        (hand.length ? hand.map(c => this.cardHtml(c, {})).join("") : `<span class="empty">empty</span>`) +
+        `<span class="aud-note">audience view (engine truth): the seat sees only "${esc(p.hand_hidden || hand.length + " cards")}"</span></div>`);
+    } else if (p.kind === "OPP" && p.hand_hidden != null) {
       const n = parseInt(p.hand_hidden, 10) || 0;
       zones.push(this.zoneHtml("hand", Array.from({length: Math.min(n, 12)}, () => `<div class="card back" title="hidden from the seat"></div>`).join("") +
         `<span class="empty">${esc(p.hand_hidden)}</span>`));
     }
     for (const z of ["hand", "board", "lands", "graveyard", "exile"]) {
       const objs = (p.zones || {})[z] || [];
-      if (z === "hand" && p.kind === "OPP" && !objs.length) continue;
-      zones.push(this.zoneHtml(z, objs.length ? objs.map(o => this.cardHtml(o, hl)).join("") : `<span class="empty">none</span>`, z));
+      if (z === "hand" && p.kind === "OPP" && (!objs.length || p.audienceHand)) continue;
+      zones.push(this.zoneHtml(z, objs.length ? objs.map(o => this.cardHtml(o, hl)).join("") : `<span class="empty">none</span>`));
     }
     const mana = (p.lines || {})["mana available"];
     return `<div class="player ${esc(p.kind)}"><div class="who"><span class="name">${p.kind === "YOU" ? "seat: " : "opponent: "}${esc(p.name)}</span>` +
       `<span class="life">${esc(c.life)} life</span><span class="ctr">${ctr}</span></div>${zones.join("")}` +
       (mana ? `<div class="mana">mana available: ${esc(mana.split(" (")[0])}</div>` : "") + `</div>`;
   }
-  zoneHtml(label, inner, zone) { return `<div class="zone z-${esc(zone || label)}"><span class="zlabel">${esc(label)}</span>${inner}</div>`; }
+  zoneHtml(label, inner) { return `<div class="zone z-${esc(label)}"><span class="zlabel">${esc(label)}</span>${inner}</div>`; }
   cardHtml(o, hl) {
     const h = o.handle != null ? hl[o.handle] : null;
     const tags = (o.tags || []).filter(t => t !== "untapped" && t !== "tapped");
@@ -179,9 +229,22 @@ class Pane {
     const title = [o.name, o.was != null ? `@${o.handle} (was @${o.was}: a zone change made a new object)` : o.handle != null ? `@${o.handle}` : "",
       (o.notes || []).join("; "), h ? `${KIND_LABEL[h.kind] || h.kind}: ${h.evidence || ""}` : "",
       h && h.engine && h.kind !== "engine" ? `engine: ${h.engine}` : ""].filter(Boolean).join("\n");
-    // The image is Scryfall's printed card; everything the game changed (P/T, tags, counters) is in the caption
-    // under it, never drawn over the card (its credit line stays visible). No image: the text tile.
+    // The image is Scryfall's printed card. With the audience feed, Forge-style chips (P/T, damage, counters, combat,
+    // sickness) sit on its corners; everything else the game changed is in the caption under it. No image: the text tile.
+    // Forge's own panel puts the current P/T over the printed box: green above the printed value, red below or damaged.
+    let ptChip = "";
+    if (o.pt && o.base_pt) {
+      const [p, t] = o.pt.split("/").map(Number), [bp, bt] = o.base_pt.split("/").map(Number);
+      const mood = o.damage || p < bp || t < bt ? "down" : p > bp || t > bt ? "up" : "";
+      ptChip = `<span class="ptchip ${mood}" title="printed ${esc(o.base_pt)}${o.damage ? ", " + o.damage + " damage" : ""}">${esc(o.pt)}</span>`;
+    }
+    const chips = [o.damage ? `<span class="chip dmg">${esc(o.damage)} dmg</span>` : "",
+      o.counters ? `<span class="chip ctr">${esc(o.counters)}</span>` : "",
+      tags.includes("attacking") ? `<span class="chip atk">attacking</span>` : "",
+      tags.includes("blocking") ? `<span class="chip blk">blocking</span>` : "",
+      tags.includes("sick") ? `<span class="chip sick">summoning sick</span>` : ""].join("");
     return `<div class="${cls}" title="${esc(title)}" data-name="${esc(o.name)}">${h ? `<span class="badge">${esc(KIND_LABEL[h.kind] || h.kind)}</span>` : ""}` +
+      ptChip + (chips ? `<span class="chips">${chips}</span>` : "") +
       `<span class="art"><img src="${cardImg(o.name)}" alt="" loading="lazy" onerror="noImage(this)"></span>` +
       `<div class="nm">${esc(o.name)}</div><div class="meta">${o.cost ? `<span class="cost">${esc(o.cost)}</span>` : ""}${o.pt ? `<b>${esc(o.pt)}</b>` : ""}` +
       `${o.handle != null ? `<span class="h">@${esc(o.handle)}</span>` : ""}</div>` +
@@ -234,7 +297,7 @@ class Pane {
         if (!pass(e)) continue;
         const tools = e.calls.flatMap(c => c.tools.map(t => t.name)).filter(t => t !== "answer");
         const flag = isBreach(e) || e.answer_invalid ? " !" : "";
-        rows.push(`<li data-n="${n}" class="${n === this.cur ? "cur" : ""}"><span class="t">T${esc(e.turn)} ${esc((e.phase || "").slice(0, 6))}</span>` +
+        rows.push(`<li data-n="${n}" class="${n === this.cur ? "cur" : ""}${n === this.divergeAt ? " diverge" : ""}"${n === this.divergeAt ? ' title="first divergence between the two harnesses"' : ""}><span class="t">T${esc(e.turn)} ${esc((e.phase || "").slice(0, 6))}</span>` +
           `<span>${esc(e.type)}${e.tier === "ai" ? " (FORGE AI)" : e.tier === "auto" ? ` (${esc(e.auto_class === "forced" ? "forced" : e.auto_class || "not asked")})` : ""}${tools.length ? " · " + esc(tools.join(", ")) : ""}<span class="flag">${flag}</span></span>` +
           `<span class="t">${fmtMs(e.latency_ms)}</span></li>`);
       } else if (e.kind === "window" && this.filter === "all") {
@@ -329,12 +392,28 @@ const app = {
     root.classList.toggle("two", games.length > 1);
     this.panes = games.map(g => new Pane(g.i, g, root));
     await Promise.all(this.panes.map(p => p.load()));
+    if (this.panes.length === 2) await this.loadDivergence();
     this.fromHash();
-    this.renderAll();
+    if (this.panes[0]) this.seek(this.panes[0], this.panes[0].cur);  // a bookmark aligns the other pane too
     this.bind();
     setInterval(() => this.panes.forEach(p => { if (p.info.live && !p.done) p.renderStatus(); }), 500);
   },
   renderAll() { this.panes.forEach(p => p.render()); this.toHash(); },
+  // Side by side (same seed and decks, two harnesses): the first decision where the games part, marked in both
+  // timelines; the button seeks both panes there without lockstep, since the two games' clocks may differ.
+  async loadDivergence() {
+    const dv = await fetch("api/divergence").then(x => x.json()).catch(() => null);
+    const b = $("#diverge");
+    this.panes.forEach((p, k) => { p.divergeAt = dv && !dv.unpaired ? dv[k ? "b" : "a"] : null; });
+    if (!dv) { b.hidden = false; b.disabled = true; b.textContent = "no divergence yet"; return; }
+    if (dv.unpaired) { b.hidden = false; b.disabled = true; b.textContent = "seeds or decks differ: not a side by side"; return; }
+    const d = this.panes[0].decisions[dv.a] || {};
+    b.hidden = false; b.disabled = false;
+    b.textContent = `first divergence: T${d.turn} ${d.phase || ""}`;
+    const m = dv.menus_differ_from != null ? this.panes[0].decisions[dv.menus_differ_from] : null;
+    b.title = dv.reason + (m ? `; the menus first differ at T${m.turn} ${m.phase || ""} (decision ${dv.menus_differ_from + 1})` : "");
+    b.onclick = () => { this.panes.forEach((p, k) => { p.cur = k ? dv.b : dv.a; }); this.renderAll(); };
+  },
   seek(pane, n) {
     pane.cur = Math.max(0, Math.min(n, pane.decisions.length - 1));
     if ($("#lockstep").checked && this.panes.length > 1) {
@@ -357,6 +436,7 @@ const app = {
     $("#prev").onclick = () => this.step(-1);
     $("#next").onclick = () => this.step(1);
     $("#play").onclick = () => this.toggle();
+    $("#logonly").onclick = () => { document.body.classList.toggle("logonly"); this.toHash(); };
     $("#turn").onchange = ev => {
       const t = +ev.target.value, p = this.panes[0];
       const n = p.decisions.findIndex(d => d.turn >= t);
@@ -387,9 +467,11 @@ const app = {
   },
   toHash() {
     const p = this.panes[0];
-    if (p) history.replaceState(null, "", `#d=${p.cur + 1}`);
+    if (p) history.replaceState(null, "", `#d=${p.cur + 1}${document.body.classList.contains("logonly") ? "&log" : ""}`);
   },
   fromHash() {
+    // &log: the log-only layout, for a browser beside Forge's own match window (which draws the board).
+    document.body.classList.toggle("logonly", /(^|[#&])log(&|$)/.test(location.hash));
     const m = /d=(\d+)/.exec(location.hash);
     if (m && this.panes[0]) this.panes[0].cur = Math.max(0, Math.min(+m[1] - 1, this.panes[0].decisions.length - 1));
   },

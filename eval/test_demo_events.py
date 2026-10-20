@@ -175,6 +175,132 @@ class FindGameTest(unittest.TestCase):
                 os.chdir(cwd)
 
 
+class FeedTest(unittest.TestCase):
+    def test_each_decision_gets_the_feed_snapshot_written_before_its_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            game, feed = os.path.join(d, "game-7-1.jsonl"), os.path.join(d, "feed-7-1.jsonl")
+            rows = [{"t": "decision", "seat": "A", "turn": t, "type": "play", "choice": 0, "options": ["x"]}
+                    for t in (1, 2)]
+            lines = [json.dumps(r) + "\n" for r in rows]
+            with open(game, "w") as f:
+                f.write("".join(lines))
+            second = len(lines[0])  # the byte offset where the second decision row starts
+            snaps = [{"t": "feed", "seq": 0, "jsonl_offset": 0, "players": [{"name": "B", "hand": [{"name": "Bolt"}]}],
+                      "handles": {"A": {"1": 40}}},
+                     {"t": "feed", "seq": 1, "jsonl_offset": second, "players": [{"name": "B", "hand": []}]},
+                     {"t": "feed", "seq": 2, "jsonl_offset": second + 5, "players": []}]
+            with open(feed, "w") as f:
+                f.write("".join(json.dumps(s) + "\n" for s in snaps))
+            d1, d2 = [e for e in de.load(game).events if e["kind"] == "decision"]
+            self.assertEqual((d1["feed"]["seq"], d2["feed"]["seq"]), (0, 1))
+            self.assertEqual(d1["feed"]["players"][0]["hand"], [{"name": "Bolt"}])
+            self.assertEqual(d2["feed_handles"], {"1": 40})  # carried from the last row that wrote A's map
+
+    def test_the_handles_row_written_at_a_decision_maps_its_new_cards_and_carries_no_board(self):
+        with tempfile.TemporaryDirectory() as d:
+            game, feed = os.path.join(d, "game-7-1.jsonl"), os.path.join(d, "feed-7-1.jsonl")
+            with open(game, "w") as f:
+                f.write(json.dumps({"t": "decision", "seat": "A", "turn": 1, "type": "play", "choice": 0,
+                                    "options": ["x"]}) + "\n")
+            snaps = [{"t": "feed", "seq": 0, "jsonl_offset": 0, "players": [{"name": "B"}], "handles": {"A": {"1": 40}}},
+                     {"t": "feed_handles", "seq": 1, "jsonl_offset": 0, "handles": {"A": {"1": 40, "2": 41}}}]
+            with open(feed, "w") as f:
+                f.write("".join(json.dumps(s) + "\n" for s in snaps))
+            (ev,) = [e for e in de.load(game).events if e["kind"] == "decision"]
+            self.assertEqual(ev["feed"]["seq"], 0)                   # the board, not the handles-only row
+            self.assertEqual(ev["feed_handles"], {"1": 40, "2": 41})  # the card first shown in this prompt
+
+    def test_a_live_poll_never_gives_a_decision_a_board_older_than_its_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            game, feed = os.path.join(d, "game-7-1.jsonl"), os.path.join(d, "feed-7-1.jsonl")
+            open(game, "w").close()
+            with open(feed, "w") as f:
+                f.write(json.dumps({"t": "feed", "seq": 0, "jsonl_offset": 0, "players": []}) + "\n")
+            r = de.Reader(game)
+            real = r.feed.poll
+
+            def late_rows():  # a feed row and its decision row land just after the feed was read
+                real()
+                with open(feed, "a") as f:
+                    f.write(json.dumps({"t": "feed", "seq": 1, "jsonl_offset": 0, "players": []}) + "\n")
+                with open(game, "a") as f:
+                    f.write(json.dumps({"t": "decision", "seat": "A", "turn": 1, "type": "play", "choice": 0,
+                                        "options": ["x"]}) + "\n")
+            r.feed.poll = late_rows
+            r.poll()
+            r.feed.poll = real
+            r.poll()
+            (ev,) = [e for e in r.events if e["kind"] == "decision"]
+            self.assertEqual(ev["feed"]["seq"], 1)
+
+    def test_without_a_feed_file_a_decision_has_no_feed(self):
+        (ev,) = decisions(events("g33-simulate.jsonl"))
+        self.assertIsNone(ev["feed"])
+
+
+def dec(turn, options, chosen, phase="MAIN1", type_="play"):
+    return {"kind": "decision", "seat": "Seat", "turn": turn, "phase": phase, "type": type_, "options": options,
+            "chosen": chosen}
+
+
+class DivergenceTest(unittest.TestCase):
+    MENU = ["CAST Brainstorm @12", "PLAY Tundra @7", "PASS"]
+
+    def test_the_first_different_answer_to_the_same_question_is_the_divergence(self):
+        a = [dec(1, self.MENU, [1]), {"kind": "window"}, dec(1, self.MENU, [0]), dec(2, ["PASS"], [0])]
+        b = [dec(1, self.MENU, [1]), dec(1, self.MENU, [2]), dec(3, ["PASS"], [0])]
+        self.assertEqual(de.divergence(a, b),
+                         {"a": 1, "b": 1, "reason": "same question, different answer"})
+
+    def test_handles_and_notes_rendered_differently_by_two_harnesses_are_the_same_option(self):
+        older = ["CAST Brainstorm @3 [Hand]", "PLAY Tundra @1 [Hand, yours]", "PASS"]
+        self.assertIsNone(de.divergence([dec(1, self.MENU, [1])], [dec(1, older, [1])]))
+
+    def test_two_games_of_different_seeds_are_not_called_a_divergence(self):
+        a = [dec(1, self.MENU, [1]), {"kind": "game", "seed": 1, "deck_a": "x", "deck_b": "y"}]
+        b = [dec(1, self.MENU, [1]), {"kind": "game", "seed": 2, "deck_a": "x", "deck_b": "y"}]
+        self.assertTrue(de.divergence(a, b)["unpaired"])
+
+    def test_two_picks_that_differ_only_in_a_note_are_different_answers(self):
+        menu = ["Grizzly Bears @3 [Battlefield, yours]", "Grizzly Bears @7 [Battlefield, opponent's]"]
+        dv = de.divergence([dec(1, menu, [0])], [dec(1, menu, [1])])
+        self.assertEqual(dv["reason"], "same question, different answer")
+
+    def test_a_menu_only_difference_is_noted_and_the_first_different_answer_is_the_divergence(self):
+        newer = ["ACTIVATE Mox Ruby @11 [{T}: Add {R}.]", "PLAY LAND Urza's Saga @8", "PASS (do nothing)"]
+        older = ["PLAY LAND Urza's Saga @5", "PASS (do nothing)"]
+        a = [dec(1, newer, [1]), dec(2, self.MENU, [0])]
+        b = [dec(1, older, [0]), dec(2, self.MENU, [1])]
+        self.assertEqual(de.divergence(a, b), {"a": 1, "b": 1, "menus_differ_from": 0,
+                                               "reason": "same question, different answer"})
+        dv = de.divergence([dec(1, newer, [0])], [dec(1, older, [0])])  # Mox Ruby against Urza's Saga
+        self.assertEqual(dv["reason"], "same spot, different menus, different answer")
+        dv = de.divergence([dec(1, newer, [1])], [dec(1, older, [0])])  # the same play: only the menus differ
+        self.assertEqual((dv["a"], dv["menus_differ_from"]), (0, 0))
+        self.assertIn("same answers throughout", dv["reason"])
+
+    def test_two_abilities_of_one_card_across_different_menus_are_different_answers(self):
+        newer = ["ACTIVATE Mutavault @9 [{T}: Add {C}.]", "ACTIVATE Mutavault @9 [{1}: Mutavault becomes a 2/2]", "PASS"]
+        older = ["ACTIVATE Mutavault @4 [{1}: Mutavault becomes a 2/2]", "PASS"]
+        dv = de.divergence([dec(1, newer, [0])], [dec(1, older, [0])])  # tap for mana against animate
+        self.assertEqual(dv["reason"], "same spot, different menus, different answer")
+        both_animate = de.divergence([dec(1, newer, [1]), dec(2, self.MENU, [0])],
+                                     [dec(1, older, [0]), dec(2, self.MENU, [1])])
+        self.assertEqual((both_animate["a"], both_animate["menus_differ_from"]), (1, 0))
+
+    def test_one_of_two_identical_copies_is_the_same_answer_across_different_menus(self):
+        # The two versions word the copies' notes differently, so only the name, unambiguous in each menu, matches.
+        newer = ["ACTIVATE Mountain @2 [{T}: Add {R}.]", "PLAY LAND Mountain @5 [Hand, yours]",
+                 "PLAY LAND Mountain @6 [Hand, yours]", "PASS"]
+        older = ["PLAY LAND Mountain @3 [Hand]", "PLAY LAND Mountain @4 [Hand]", "PASS"]
+        dv = de.divergence([dec(1, newer, [2]), dec(2, self.MENU, [0])], [dec(1, older, [0]), dec(2, self.MENU, [1])])
+        self.assertEqual((dv["a"], dv["menus_differ_from"]), (1, 0))  # the scan went on to the real divergence
+
+    def test_a_different_spot_is_reported_as_already_parted(self):
+        dv = de.divergence([dec(1, self.MENU, [2])], [dec(2, self.MENU, [2])])
+        self.assertIn("already parted", dv["reason"])
+
+
 class ReaderTest(unittest.TestCase):
     def test_a_live_tail_parses_new_complete_lines_only(self):
         with tempfile.TemporaryDirectory() as d:

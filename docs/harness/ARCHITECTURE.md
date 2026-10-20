@@ -565,6 +565,24 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   into a run. Card images come from a local cache (`demo_cards.py prefetch` fetches them from Scryfall by card name;
   the server fetches a miss only with `--fetch-images`). *Why read-only:* it can then never change what the seat
   sees or decides, needs no engine and no model, and works on every recorded game.
+- **The audience feed (`DemoFeed.java`, `DEMO_FEED=1`)** is the one engine-side piece of the demo: on each game
+  event it writes engine truth (both hands, every zone, the stack, combat, each llm seat's `@handle -> engine id`
+  map) to `feed-<seed>-<ms>.jsonl` beside the game JSONL, with the JSONL's length at that moment so the viewer can
+  put each snapshot between the decision rows it fell between. It renders no prompt and calls no seat, so the seat's
+  prompts are byte-identical with it on and off (`DemoFeedTest`); no version stamp covers it for that reason. It is
+  off unless set; `run_batch.py` passes it as `--env DEMO_FEED=1`, recorded in the manifest (not a condition key). The seat hands out `@handles`
+  while it renders a prompt, with no game event before the decision row, so `EvalLog.write` also calls
+  `DemoFeed.beforeDecisionRow()`, which writes a board-less `feed_handles` row at that row's offset: a card first shown
+  in a prompt is mapped by its own decision.
+  *Why:* the audience should see both hands; the seat never may, and the JSONL holds only what the seat saw.
+- **The Forge window's highlights (`DemoHighlight.java`, `DEMO_HIGHLIGHT_FILE`)** give the cards of the latest
+  decision's highlights (written by `demo_server.py --highlight-file`) Forge's own highlight frame in the spectator
+  window. A daemon thread reads the file; nothing the seat reads is touched. *Why:* Forge already draws the board.
+- **The side by side (`demo_compare.py`)** builds this harness and an older commit of it (same engine pin, the feed
+  ported in) in isolation and plays both on one seed and deck pair from the fixed sets in `eval/demo/decks.json`; the
+  viewer marks the first decision where the games part (`demo_events.divergence`).
+- **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
+  via `puzzle_score.score`, and the STR scores as not yet run with their cost.
 
 ## 13. How a change is checked
 
