@@ -2,7 +2,7 @@
 
 Read on 2026-10-20 by the author's session (no subagents, owner's rule), after benchmark sample v1 showed
 GPT-6 Luna solving 90% of the rules puzzles with and without tools. The 2026-10-18 note
-([2026-10-18-benchmark-research.md](2026-10-18-benchmark-research.md)) already covers Anthropic's
+([eval/research/2026-10-18-benchmark-research.md](../../../eval/research/2026-10-18-benchmark-research.md)) already covers Anthropic's
 "Demystifying evals", Miller's error bars, Prime Intellect's `verifiers`, METR, BALROG, Lichess and the prior
 MTG work; this note adds what is new, what those sources say that v1 did not act on, and what our own data
 says. Marked [secondary] where only coverage was readable.
