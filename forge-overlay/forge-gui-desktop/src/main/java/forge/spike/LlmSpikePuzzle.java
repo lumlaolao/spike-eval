@@ -164,6 +164,16 @@ public final class LlmSpikePuzzle {
                 + sectionValue(meta, "Description", "").replace("\\n", "\n");
     }
 
+    /** Forge writes its whole goal description on the Puzzle Goal card, which `inspect` reads: a rules puzzle's
+     *  card gets the same brief as its <puzzle> block (seatBrief), so the name and "Goal: Survive" stay hidden. */
+    static void tellGoalCard(Game game, Map<String, List<String>> sections) {
+        if (sections.get("acceptance") == null) return;
+        String brief = seatBrief(sections, "");
+        for (forge.game.player.Player p : game.getPlayers())
+            for (Card c : p.getZone(ZoneType.Command))
+                if ("Puzzle Goal".equals(c.getName())) c.setOracleText(brief);
+    }
+
     /** Read `key=value` out of a FileSection body, case-insensitively, or `def`. */
     static String sectionValue(List<String> lines, String key, String def) {
         if (lines == null) return def;
@@ -565,6 +575,7 @@ public final class LlmSpikePuzzle {
                     PuzzleArms.SETUP = true;
                     try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
                     restoreNamedCards(puzzle);
+                    tellGoalCard(game, sections);
                     // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
                     PuzzleArms.Line setupLine = PuzzleArms.searchLine;
                     if (setupLine != null) setupLine.clearChoices();

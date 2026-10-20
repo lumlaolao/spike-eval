@@ -89,6 +89,24 @@ public class PuzzleSetupTest {
         return game;
     }
 
+    /** The Puzzle Goal card's text is Forge's whole header, so `inspect` on it read RP_443's "Goal: Survive" and its
+     *  name, "Bolster picks the least toughness", that the <puzzle> block no longer shows (epoch 67). */
+    @Test
+    public void aRulesPuzzlesGoalCardReadsAsItsBrief() throws Exception {
+        Game game = boardOf("RP_443.pzl");
+        Map<String, List<String>> sections = FileSection.parseSections(FileUtil.readFile(
+                new File(REPO, "eval/puzzles/rules-pilot/RP_443.pzl")));
+        LlmSpikePuzzle.tellGoalCard(game, sections);
+        Card goal = null;
+        for (Player p : game.getPlayers())
+            for (Card c : p.getZone(ZoneType.Command)) if ("Puzzle Goal".equals(c.getName())) goal = c;
+        Assert.assertNotNull(goal, "the goal card is installed with the board");
+        String text = goal.getOracleText();
+        Assert.assertTrue(text.contains("Reduce the opponent to 0 life this turn."), text);
+        for (String hidden : new String[] {"Survive", "Difficulty", "Bolster picks"})
+            Assert.assertFalse(text.contains(hidden), hidden + " is on the goal card: " + text);
+    }
+
     private static Card onBattlefield(Player p, String name) {
         for (Card c : p.getZone(ZoneType.Battlefield)) if (name.equals(c.getName())) return c;
         throw new AssertionError(name + " is not on " + p.getName() + "'s battlefield");
