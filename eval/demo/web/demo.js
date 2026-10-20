@@ -13,14 +13,27 @@ const FILTERS = [
   ["combat", "combat", e => /attack|block|damage/.test(e.type || "")],
   ["tools", "tool calls", e => e.calls.some(c => c.tools.some(t => t.name !== "answer"))],
   ["plans", "plans", e => !!e.plan],
-  ["model", "model asked", e => e.tier !== "auto"],
-  ["forced", "forced (auto)", e => e.tier === "auto"],
-  ["flags", "flags", e => !!(e.fallback || e.answer_invalid || (e.attempts || 0) > 2 || e.first_failed_reply)],
+  ["model", "model asked", e => e.tier === "smart" || e.tier === "fast"],
+  ["auto", "not asked", e => e.tier !== "smart" && e.tier !== "fast"],
+  ["flags", "flags", e => !!(e.fallback || e.answer_invalid || e.first_failed_reply || isBreach(e))],
 ];
+
+// An auto row is forced only when match_review says so; LOST and TAKEN are the harness deciding, and a tier "ai" row
+// is Forge's AI choosing for the seat (the ai=0 invariant broken).
+const AUTO_TEXT = {
+  forced: "Forced: only one legal choice, so the harness did not ask (recorded, never hidden).",
+  TAKEN: "TAKEN: the harness chose without asking although the choice was not forced (a defect the review sheet lists).",
+  LOST: "LOST: the model was asked and its answer could not be used; the harness took a fixed legal option.",
+  other: "Not asked: the harness recorded this choice without a model call; see the fallback reason.",
+};
+const isBreach = e => e.tier === "ai" || e.auto_class === "LOST" || e.auto_class === "TAKEN";
+const autoLabel = e => e.tier === "ai" ? "Forge AI chose for the seat: an ai=0 invariant breach."
+  : AUTO_TEXT[e.auto_class] || AUTO_TEXT.other;
+const cardImg = name => "card/" + encodeURIComponent(name);
 
 class Pane {
   constructor(i, info, root) {
-    this.i = i; this.info = info; this.events = []; this.cur = 0; this.filter = "all"; this.done = false;
+    this.i = i; this.info = info; this.events = []; this.cur = 0; this.filter = "all"; this.done = false; this.gen = null;
     this.el = $("#pane-tpl").content.firstElementChild.cloneNode(true);
     root.appendChild(this.el);
     this.renderFilters();
@@ -35,18 +48,24 @@ class Pane {
     if (this.info.live) this.tail();
   }
   absorb(r) {
+    if (this.gen !== null && r.gen !== this.gen) { this.events = []; this.cur = 0; this.gen = r.gen; return false; }
+    this.gen = r.gen;
     const atEnd = this.cur >= this.decisions.length - 1;
     this.events.push(...r.events);
     this.done = r.done; this.ageMs = r.age_ms; this.waitingForFile = r.waiting_for_file; this.seenAt = Date.now();
     if (this.info.live && atEnd) this.cur = Math.max(0, this.decisions.length - 1);
+    return true;
   }
+  // A live pane polls for ever: after a game ends, the next game written into the same directory replaces it.
   async tail() {
-    while (!this.done) {
+    for (;;) {
       try {
-        const r = await fetch(`api/game/${this.i}/events?from=${this.events.length}&wait=1`).then(x => x.json());
-        const grew = r.events.length > 0;
-        this.absorb(r);
-        if (grew || r.done) { this.render(); if (r.done) this.refreshSummary(); }
+        const wasDone = this.done;
+        const r = await fetch(`api/game/${this.i}/events?from=${this.events.length}&wait=${this.done ? 0 : 1}`).then(x => x.json());
+        const same = this.absorb(r);
+        if (!same) { this.render(); continue; }
+        if (r.events.length || r.done !== wasDone) { this.render(); if (r.done) this.refreshSummary(); }
+        if (r.done) await new Promise(res => setTimeout(res, 2000));
       } catch (e) { await new Promise(res => setTimeout(res, 1000)); }
     }
   }
@@ -123,20 +142,20 @@ class Pane {
     const zones = [];
     if (p.kind === "OPP" && p.hand_hidden != null) {
       const n = parseInt(p.hand_hidden, 10) || 0;
-      zones.push(this.zoneHtml("hand", Array.from({length: Math.min(n, 12)}, () => `<div class="card hidden" title="hidden from the seat"></div>`).join("") +
+      zones.push(this.zoneHtml("hand", Array.from({length: Math.min(n, 12)}, () => `<div class="card back" title="hidden from the seat"></div>`).join("") +
         `<span class="empty">${esc(p.hand_hidden)}</span>`));
     }
     for (const z of ["hand", "board", "lands", "graveyard", "exile"]) {
       const objs = (p.zones || {})[z] || [];
       if (z === "hand" && p.kind === "OPP" && !objs.length) continue;
-      zones.push(this.zoneHtml(z, objs.length ? objs.map(o => this.cardHtml(o, hl)).join("") : `<span class="empty">none</span>`));
+      zones.push(this.zoneHtml(z, objs.length ? objs.map(o => this.cardHtml(o, hl)).join("") : `<span class="empty">none</span>`, z));
     }
     const mana = (p.lines || {})["mana available"];
     return `<div class="player ${esc(p.kind)}"><div class="who"><span class="name">${p.kind === "YOU" ? "seat: " : "opponent: "}${esc(p.name)}</span>` +
       `<span class="life">${esc(c.life)} life</span><span class="ctr">${ctr}</span></div>${zones.join("")}` +
       (mana ? `<div class="mana">mana available: ${esc(mana.split(" (")[0])}</div>` : "") + `</div>`;
   }
-  zoneHtml(label, inner) { return `<div class="zone"><span class="zlabel">${esc(label)}</span>${inner}</div>`; }
+  zoneHtml(label, inner, zone) { return `<div class="zone z-${esc(zone || label)}"><span class="zlabel">${esc(label)}</span>${inner}</div>`; }
   cardHtml(o, hl) {
     const h = o.handle != null ? hl[o.handle] || hl["@" + o.handle] : null;
     const tags = (o.tags || []).filter(t => t !== "untapped" && t !== "tapped");
@@ -145,8 +164,11 @@ class Pane {
     const title = [o.name, o.was != null ? `@${o.handle} (was @${o.was}: a zone change made a new object)` : o.handle != null ? `@${o.handle}` : "",
       (o.notes || []).join("; "), h ? `${KIND_LABEL[h.kind] || h.kind}: ${h.evidence || ""}` : "",
       h && h.engine && h.kind !== "engine" ? `engine: ${h.engine}` : ""].filter(Boolean).join("\n");
-    return `<div class="${cls}" title="${esc(title)}">${h ? `<span class="badge">${esc(KIND_LABEL[h.kind] || h.kind)}</span>` : ""}` +
-      `<div class="nm">${esc(o.name)}</div><div class="meta">${o.cost ? `<span>${esc(o.cost)}</span>` : ""}${o.pt ? `<b>${esc(o.pt)}</b>` : ""}` +
+    // The image is Scryfall's printed card; everything the game changed (P/T, tags, counters) is in the caption
+    // under it, never drawn over the card (its credit line stays visible). No image: the text tile.
+    return `<div class="${cls}" title="${esc(title)}" data-name="${esc(o.name)}">${h ? `<span class="badge">${esc(KIND_LABEL[h.kind] || h.kind)}</span>` : ""}` +
+      `<span class="art"><img src="${cardImg(o.name)}" alt="" loading="lazy" onerror="this.closest('.card').classList.add('noimg')"></span>` +
+      `<div class="nm">${esc(o.name)}</div><div class="meta">${o.cost ? `<span class="cost">${esc(o.cost)}</span>` : ""}${o.pt ? `<b>${esc(o.pt)}</b>` : ""}` +
       `${o.handle != null ? `<span class="h">@${esc(o.handle)}</span>` : ""}</div>` +
       `${tags.length || (o.notes || []).length ? `<div class="tags">${esc(tags.concat(o.notes || []).join(", "))}</div>` : ""}</div>`;
   }
@@ -196,13 +218,20 @@ class Pane {
         n++;
         if (!pass(e)) continue;
         const tools = e.calls.flatMap(c => c.tools.map(t => t.name)).filter(t => t !== "answer");
-        const flag = e.fallback || e.answer_invalid ? " !" : "";
+        const flag = isBreach(e) || e.answer_invalid ? " !" : "";
         rows.push(`<li data-n="${n}" class="${n === this.cur ? "cur" : ""}"><span class="t">T${esc(e.turn)} ${esc((e.phase || "").slice(0, 6))}</span>` +
-          `<span>${esc(e.type)}${e.tier === "auto" ? " (forced)" : ""}${tools.length ? " · " + esc(tools.join(", ")) : ""}<span class="flag">${flag}</span></span>` +
+          `<span>${esc(e.type)}${e.tier === "ai" ? " (FORGE AI)" : e.tier === "auto" ? ` (${esc(e.auto_class === "forced" ? "forced" : e.auto_class || "not asked")})` : ""}${tools.length ? " · " + esc(tools.join(", ")) : ""}<span class="flag">${flag}</span></span>` +
           `<span class="t">${fmtMs(e.latency_ms)}</span></li>`);
-      } else if (e.kind === "windows" && this.filter === "all") {
-        rows.push(`<li class="win"><span class="t">T${esc(e.turn)}</span><span>passed ${e.count} priority window${e.count > 1 ? "s" : ""} without asking (${esc(e.reason)})</span><span></span></li>`);
+      } else if (e.kind === "window" && this.filter === "all") {
+        // Consecutive windows of one turn collapse into one row.
+        const prev = rows.length ? rows[rows.length - 1] : null;
+        if (prev && prev.win && prev.turn === e.turn) { prev.count++; prev.reasons.add(e.reason); }
+        else rows.push({win: true, turn: e.turn, count: 1, reasons: new Set([e.reason])});
       }
+    }
+    for (let k = 0; k < rows.length; k++) if (rows[k].win) {
+      const w = rows[k];
+      rows[k] = `<li class="win"><span class="t">T${esc(w.turn)}</span><span>passed ${w.count} priority window${w.count > 1 ? "s" : ""} without asking (${esc([...w.reasons].join(", "))})</span><span></span></li>`;
     }
     const tl = $(".timeline", this.el);
     tl.innerHTML = rows.join("") || `<li class="win"><span></span><span>no decisions yet</span><span></span></li>`;
@@ -231,7 +260,7 @@ class Pane {
       .map(k => `<div><b>${esc(k)}</b>: ${esc(typeof a[k] === "string" ? a[k] : JSON.stringify(a[k]))}</div>`).join("");
     el.innerHTML = `<h3>${esc(d.seat)} · T${esc(d.turn)} ${esc(d.phase)} · ${esc(d.type)}</h3>` +
       `<div class="engine-note">tier ${esc(d.tier)} · ${fmtMs(d.latency_ms)} · ${esc(d.prompt_tokens || 0)} prompt tokens (${esc(d.cached_tokens || 0)} cached) · ${esc(d.completion_tokens || 0)} completion · answered via ${esc(d.answer_via || "-")}</div>` +
-      (q ? `<div class="q">${esc(q)}</div>` : d.tier === "auto" ? `<div class="q">Forced: only one legal choice, so the harness did not ask (recorded, never hidden).</div>` : "") +
+      (q ? `<div class="q">${esc(q)}</div>` : d.tier !== "smart" && d.tier !== "fast" ? `<div class="q">${esc(autoLabel(d))}</div>` : "") +
       flags.map(f => `<div class="flagbox">${esc(f)}</div>`).join("") + opts +
       (a.why ? `<div class="why"><b>why</b> (the model's own words in its answer): ${esc(a.why)}</div>` : "") +
       (extras ? `<div class="step tool-answer">${extras}</div>` : "") +
@@ -257,7 +286,7 @@ class Pane {
       `<span>${esc(seat)}: <b>smart ${esc(t.smart)}</b> · auto ${esc(t.auto)} · ` +
       `<span class="${t.ai === "0" ? "ok" : "bad"}">ai=${esc(t.ai)}</span> · <span class="${t.textParses === "0" ? "ok" : "bad"}">textParses=${esc(t.textParses)}</span> · avg ${esc(t.avgSmart)}</span>`).join("");
     const rv = s.review || {};
-    const review = Object.keys(rv).length ? `<span>review sheet: ${["TAKEN", "LOST", "SKIP", "TOOL", "SLOW", "LEAK", "REPORT"].map(k => `${k} <b>${esc(rv[k] || 0)}</b>`).join(" · ")}</span>` : "";
+    const review = Object.keys(rv).length ? `<span>review sheet: ${["TAKEN", "LOST", "SKIP", "TOOL", "SLOW", "LEAK", "REPORT", "LOG", "LINE"].map(k => `${k} <b>${esc(rv[k] || 0)}</b>`).join(" · ")}</span>` : "";
     const cost = s.cost ? `<span>run cost <b>$${s.cost.usd.toFixed(2)}</b> (${esc(s.cost.calls)} calls; prices checked ${esc((s.cost.prices_checked || []).join(","))})</span>` : "";
     const stamps = ["harness_epoch", "observation_version", "answer_tool_version", "native_tools_version", "lookahead_version", "context_profile", "context_sha", "overlay_sha", "deck_sha", "engine_sha"]
       .filter(k => g[k] != null).map(k => `${k}=${esc(g[k])}`).join(" · ");
@@ -302,6 +331,13 @@ const app = {
   },
   step(k) { this.seek(this.panes[0], this.panes[0].cur + k); },
   bind() {
+    const pv = $("#preview");
+    document.addEventListener("mouseover", ev => {
+      const c = ev.target.closest(".card[data-name]");
+      if (!c || c.classList.contains("noimg")) { pv.hidden = true; return; }
+      pv.innerHTML = `<img src="${cardImg(c.getAttribute("data-name"))}" alt="">`;
+      pv.hidden = false;
+    });
     $("#first").onclick = () => this.seek(this.panes[0], 0);
     $("#last").onclick = () => this.seek(this.panes[0], 1e9);
     $("#prev").onclick = () => this.step(-1);

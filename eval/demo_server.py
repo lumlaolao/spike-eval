@@ -5,8 +5,9 @@
   python3 eval/demo_server.py --game runs/demo/now --game runs/demo/then # two panes side by side
   python3 eval/demo_server.py --live runs/demo/live                      # tail the newest game-*.jsonl there
 
-Then open http://127.0.0.1:8765/. Stdlib only, no network beyond the loopback socket, no engine: replay needs only the
-JSONL (and the console log beside it for the [TALLY] line). A live pane re-reads its file on every request, so the
+Then open http://127.0.0.1:8765/. Stdlib only, no engine: replay needs only the JSONL (and the console log beside it
+for the [TALLY] line). The one outbound request is a card image missing from the cache (demo_cards.py; none with
+--offline, after `python3 eval/demo_cards.py prefetch <run>`). A live pane re-reads its file on every request, so the
 page follows a game a JVM is writing (EVAL_OUT rows are autoflushed per line). The server never writes anything and
 never talks to the JVM, so it cannot change what the seat sees or decides.
 
@@ -19,8 +20,9 @@ import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
+import demo_cards
 import demo_events
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo", "web")
@@ -36,21 +38,27 @@ class Pane:
         self.live = live
         self.reader = None
         self.log = None
+        self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
         self.lock = threading.Lock()
         self._summary = None
         self.refresh()
 
     def refresh(self):
         with self.lock:
-            if self.reader is None or (self.live and not self.done):
+            # A live directory is re-scanned even after a game ends: the rehearsal game and then the real one are
+            # written into the same EVAL_OUT, and the newest file is the one being played.
+            if self.reader is None or self.live:
                 jsonl, log = demo_events.find_game(self.path) if os.path.exists(self.path) else (None, None)
                 if jsonl and (self.reader is None or self.reader.path != jsonl):
                     self.reader = demo_events.Reader(jsonl)
+                    self.gen += 1
                     self._summary = None
-                self.log = log
+                if jsonl:
+                    self.log = log
             if self.reader is not None:
+                was_done = self.done
                 self.reader.poll()
-                if self.done:
+                if self.done and not was_done:
                     self._summary = None
 
     @property
@@ -98,16 +106,17 @@ def build_summary(pane):
 
 class Handler(BaseHTTPRequestHandler):
     panes = []
+    cards = None
 
     def log_message(self, fmt, *args):
         pass
 
-    def _send(self, code, body, ctype="application/json"):
+    def _send(self, code, body, ctype="application/json", cache=False):
         data = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", "max-age=86400" if cache else "no-store")
         self.end_headers()
         self.wfile.write(data)
 
@@ -117,6 +126,12 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(url.query)
         if not parts:
             return self._static("index.html")
+        if parts[0] == "card" and len(parts) == 2:
+            p = self.cards.get(unquote(parts[1])) if self.cards else None
+            if not p:
+                return self._send(404, {"error": "no image"})
+            with open(p, "rb") as f:
+                return self._send(200, f.read(), "image/jpeg", cache=True)
         if parts[0] != "api":
             return self._static("/".join(parts))
         if parts[1:] == ["games"]:
@@ -134,15 +149,21 @@ class Handler(BaseHTTPRequestHandler):
             if parts[3] == "summary":
                 pane.refresh()
                 return self._send(200, pane.summary())
-            start = int(q.get("from", ["0"])[0])
+            try:
+                start = max(0, int(q.get("from", ["0"])[0]))
+            except ValueError:
+                return self._send(400, {"error": "from must be an integer"})
             wait = q.get("wait", ["0"])[0] == "1"
             deadline = time.time() + WAIT_S
             pane.refresh()
-            # A long poll: a live pane holds the request until a new event or the game row arrives.
-            while wait and pane.live and not pane.done and len(pane.events) <= start and time.time() < deadline:
+            gen = pane.gen
+            # A long poll: a live pane holds the request until a new event, the game row, or a newer game file.
+            while (wait and pane.live and not pane.done and pane.gen == gen and len(pane.events) <= start
+                   and time.time() < deadline):
                 time.sleep(0.25)
                 pane.refresh()
-            return self._send(200, {"from": start, "events": pane.events[start:], "total": len(pane.events),
+            return self._send(200, {"from": start, "gen": pane.gen, "jsonl": pane.reader.path if pane.reader else None,
+                                    "events": pane.events[start:], "total": len(pane.events),
                                     "done": pane.done, "live": pane.live, "age_ms": pane.age_ms(),
                                     "waiting_for_file": pane.reader is None})
         return self._send(404, {"error": "unknown endpoint"})
@@ -155,8 +176,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, f.read(), TYPES.get(os.path.splitext(path)[1], "application/octet-stream"))
 
 
-def make_server(panes, port=8765, host="127.0.0.1"):
-    handler = type("DemoHandler", (Handler,), {"panes": panes})
+def make_server(panes, port=8765, host="127.0.0.1", cards=None):
+    handler = type("DemoHandler", (Handler,), {"panes": panes, "cards": cards})
     return ThreadingHTTPServer((host, port), handler)
 
 
@@ -166,6 +187,8 @@ def main(argv=None):
     ap.add_argument("--live", action="append", default=[], help="an EVAL_OUT directory a running game writes into")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--image-cache", default=demo_cards.DEFAULT_CACHE, help="card images (demo_cards.py prefetch fills it)")
+    ap.add_argument("--offline", action="store_true", help="serve cached card images only; never fetch a miss")
     a = ap.parse_args(argv)
     panes = [Pane(p) for p in a.game] + [Pane(p, live=True) for p in a.live]
     if not panes:
@@ -173,7 +196,7 @@ def main(argv=None):
     for p in panes:
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
-    srv = make_server(panes, a.port, a.host)
+    srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=a.offline))
     print("DEMO http://%s:%d/  (%s)" % (a.host, srv.server_address[1], ", ".join(p.path for p in panes)), flush=True)
     try:
         srv.serve_forever()

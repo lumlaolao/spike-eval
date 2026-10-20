@@ -67,9 +67,27 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--code); pa
 .card .meta { color: var(--muted); font-size: 11px; display: flex; gap: 6px; flex-wrap: wrap; }
 .card .h { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 .card .tags { font-size: 10px; color: var(--muted); }
-.card.tapped { opacity: .62; transform: rotate(-3deg); }
-.card.hidden { background: repeating-linear-gradient(45deg, var(--tile), var(--tile) 6px, var(--line) 6px, var(--line) 8px);
-  min-width: 34px; height: 44px; }
+/* Image cards: the printed card, with the game's own facts (P/T, tags, handle) in the caption under it. */
+.card .art { display: none; }
+.card:not(.noimg):not(.back) { --w: 112px; width: var(--w); min-width: 0; padding: 0; background: none; border: 0; }
+.card:not(.noimg):not(.back) .art { display: block; position: relative; width: var(--w); height: calc(var(--w) * 680 / 488); }
+.card:not(.noimg):not(.back) img { position: absolute; left: 0; top: 0; width: var(--w); height: calc(var(--w) * 680 / 488);
+  border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); background: var(--line); }
+.card:not(.noimg):not(.back) .nm, .card:not(.noimg):not(.back) .cost { display: none; }
+.card:not(.noimg):not(.back) .meta, .card:not(.noimg):not(.back) .tags { padding: 1px 2px; }
+.z-graveyard .card:not(.noimg), .z-exile .card:not(.noimg) { --w: 72px; }
+/* A tapped card lies sideways in a landscape slot, as on a table. */
+.card.tapped:not(.noimg):not(.back) { width: calc(var(--w) * 680 / 488); }
+.card.tapped:not(.noimg):not(.back) .art { width: calc(var(--w) * 680 / 488); height: var(--w); }
+.card.tapped:not(.noimg):not(.back) img { left: calc((var(--w) * 680 / 488 - var(--w)) / 2);
+  top: calc((var(--w) - var(--w) * 680 / 488) / 2); transform: rotate(90deg); }
+.card.tapped { opacity: .85; }
+.card.noimg.tapped { transform: rotate(-3deg); }
+.card.back { width: 64px; min-width: 0; height: 89px; padding: 0; border: 3px solid #3a2a1a; border-radius: 6px;
+  background: radial-gradient(ellipse at center, #b5793a 0 28%, #6b3f1c 29% 52%, #2d1c10 53%); }
+#preview { position: fixed; right: 16px; bottom: 16px; z-index: 10; pointer-events: none; }
+#preview img { width: 300px; border-radius: 14px; box-shadow: 0 8px 30px rgba(0, 0, 0, .45); display: block; }
+@media (max-width: 900px) { #preview { display: none; } }
 .card.hl-chosen { outline: 3px solid var(--chosen); }
 .card.hl-planned { outline: 2px solid var(--planned); }
 .card.hl-looked { outline: 2px solid var(--looked); }

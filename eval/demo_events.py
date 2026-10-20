@@ -19,6 +19,7 @@ import sys
 
 import demo_highlights
 import demo_state
+import match_review
 
 TOOL_CALL = re.compile(r"^TOOL CALL (\w+) (.*)$", re.S)
 
@@ -36,8 +37,11 @@ def parse_tool_request(request):
     return ("_".join(words[:2]).lower() if words else "?"), {"_raw": request}
 
 
-def chosen_indexes(row, answer):
-    """The 0-based options the answer selected, as the row records them; [] for a decline or no blocks."""
+def chosen_indexes(row):
+    """The 0-based options the answer selected, as the row records them; [] for a decline or no blocks, and for a
+    number ask (`n_options` -1), whose `choice` is the number chosen, not an option."""
+    if (row.get("n_options") or 0) < 0:
+        return []
     picks = row.get("picks")
     if isinstance(picks, list):
         return [p for p in picks if isinstance(p, int)]
@@ -90,16 +94,10 @@ class Builder:
         elif t == "decision":
             self._decision(row)
         elif t == "window":
-            last = self.events[-1] if self.events else None
-            # One marker per unbroken run in a turn, both seats together: a mirror alternates seats window by window.
-            if last and last["kind"] == "windows" and last["turn"] == row.get("turn"):
-                last["count"] += 1
-                last["phases"].append(row.get("phase"))
-                if seat not in last["seats"]:
-                    last["seats"].append(seat)
-            else:
-                self.events.append({"kind": "windows", "i": len(self.events), "seats": [seat], "turn": row.get("turn"),
-                                    "phases": [row.get("phase")], "count": 1, "reason": row.get("reason")})
+            # One event per row, never changed after it is sent: a live client fetches only new events, so a merged
+            # marker would keep its first count. The viewer collapses runs of them for display.
+            self.events.append({"kind": "window", "i": len(self.events), "seat": seat, "turn": row.get("turn"),
+                                "phase": row.get("phase"), "reason": row.get("reason")})
         elif t == "game":
             self.game = summarize_game(row)
             self.events.append(dict(self.game, kind="game", i=len(self.events)))
@@ -118,7 +116,9 @@ class Builder:
             "kind": "decision", "i": len(self.events), "n": self.decisions, "seat": seat,
             "turn": row.get("turn"), "phase": row.get("phase"), "type": row.get("type"), "tier": row.get("tier"),
             "choice": row.get("choice"), "picks": row.get("picks"), "options": row.get("options") or [],
-            "chosen": chosen_indexes(row, answer), "latency_ms": row.get("latency_ms"),
+            "chosen": chosen_indexes(row), "latency_ms": row.get("latency_ms"),
+            # forced / TAKEN / LOST / other: an auto row is not always forced (bridge-down, unparsed, no budget).
+            "auto_class": match_review.classify_auto(row) if row.get("tier") == "auto" else None,
             "prompt_tokens": row.get("prompt_tokens"), "completion_tokens": row.get("completion_tokens"),
             "cached_tokens": row.get("cached_tokens"), "fallback": row.get("fallback"),
             "attempts": row.get("attempts"), "answer_invalid": row.get("answer_invalid"),
@@ -206,8 +206,23 @@ def tally(log_path):
     return out
 
 
+def _last_row(path):
+    """The last complete JSON line of a file (the game row of a finished game), or None."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 65536))
+            lines = [x for x in f.read().split(b"\n") if x.strip()]
+        return json.loads(lines[-1].decode("utf-8")) if lines else None
+    except (OSError, ValueError, IndexError):
+        return None
+
+
 def find_game(path):
-    """A run directory or a .jsonl -> (jsonl path, console log path or None). The newest game-*.jsonl in a directory."""
+    """A run directory or a .jsonl -> (jsonl path, console log path or None). The newest game-*.jsonl in a directory.
+
+    run_batch.py names the console log game-<seed>-<0|1>.log by seat swap: the game row's `swap` picks it (as
+    match_review does); before the game row exists, the log written closest in time to the jsonl."""
     if os.path.isdir(path):
         files = sorted((f for f in os.listdir(path) if f.startswith("game-") and f.endswith(".jsonl")),
                        key=lambda f: os.path.getmtime(os.path.join(path, f)))
@@ -216,10 +231,17 @@ def find_game(path):
         jsonl = os.path.join(path, files[-1])
     else:
         jsonl = path
-    d = os.path.dirname(jsonl)
+    d = os.path.dirname(jsonl) or "."
     seed = os.path.basename(jsonl).split("-")[1] if os.path.basename(jsonl).count("-") >= 2 else None
-    logs = sorted(f for f in os.listdir(d) if f.endswith(".log") and seed and f.startswith("game-%s-" % seed))
-    return jsonl, (os.path.join(d, logs[0]) if logs else None)
+    logs = [f for f in os.listdir(d) if f.endswith(".log") and seed and f.startswith("game-%s-" % seed)]
+    if not logs:
+        return jsonl, None
+    game = _last_row(jsonl)
+    if game and game.get("t") == "game" and "swap" in game:
+        want = "game-%s-%d.log" % (seed, 1 if game.get("swap") else 0)
+        return jsonl, (os.path.join(d, want) if want in logs else None)
+    t = os.path.getmtime(jsonl)
+    return jsonl, os.path.join(d, min(logs, key=lambda f: abs(os.path.getmtime(os.path.join(d, f)) - t)))
 
 
 if __name__ == "__main__":

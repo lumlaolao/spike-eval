@@ -8,13 +8,14 @@ engine, no model and no network, and it cannot change what the seat sees or deci
 ## Replay a recorded game (free, offline)
 
 ```bash
-python3 eval/demo_server.py --game runs/loop/g33        # a run directory or a game-*.jsonl
+python3 eval/demo_cards.py prefetch runs/loop/g33       # once, with network: cache the card images it shows
+python3 eval/demo_server.py --game runs/loop/g33 --offline   # a run directory or a game-*.jsonl
 # open http://127.0.0.1:8765/   (#d=37 opens decision 37; the URL follows the cursor, so a moment can be bookmarked)
 ```
 
 Keys: left and right arrows step one decision, Home and End jump, space plays at the chosen speed ("real time"
 waits each decision's recorded latency). The filter chips narrow the decision list (plays, combat, tool calls, plans,
-model asked, forced, flags). Any run directory with a `game-*.jsonl` works, at any epoch: a prompt from before the
+model asked, not asked, flags). Any run directory with a `game-*.jsonl` works, at any epoch: a prompt from before the
 faithful observation draws with fewer fields, and a block the parser does not know stays readable in the full prompt.
 
 ## Follow a running game
@@ -26,7 +27,8 @@ python3 eval/demo_server.py --live runs/demo/live &
 ```
 
 The page waits for the file, follows it row by row (the JVM flushes every row), shows how long the model has been
-thinking since the last row, and stops on the game row. A loopback fake-model game (`eval/fake_model_server.py
+thinking since the last row, and ends on the game row. A newer game written into the same directory (the real game
+after the rehearsal) replaces it on screen. A loopback fake-model game (`eval/fake_model_server.py
 --policy random --answer-tool`, no egress, no cost) is the rehearsal; a paid game needs the owner's go-ahead, a stated
 cost and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell.
 
@@ -34,7 +36,9 @@ cost and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell.
 
 | Pane | Source |
 |---|---|
-| board, life, counters, stack, combat, FACTS | the decision row's `prompt` (`demo_state.parse_prompt`); a forced pick (`tier: auto`, no prompt) shows the seat's last prompt and says so |
+| board, life, counters, stack, combat, FACTS | the decision row's `prompt` (`demo_state.parse_prompt`); a row with no prompt (`tier: auto`) shows the seat's last prompt and says so |
+| card images | Scryfall's printed card by exact name (`demo_cards.py`, cached in `~/.cache/mtg-forge-demo/cards`); what the game changed (P/T, tags, counters, `@handle`) is in the caption under the image, never drawn on it; a token or unknown name keeps its text tile |
+| a row the model was not asked | labelled by `match_review.classify_auto`: forced (one legal choice), TAKEN or LOST (the harness decided: a defect), or other; a `tier: ai` row is Forge's AI choosing for the seat, an `ai=0` breach |
 | opponent's hand | a count of face-down tiles: the seat never sees it, and neither does the viewer |
 | decision text and options, the chosen one marked | the decision row (`options`, `choice`, `picks`) and the `answer` call |
 | what the model did, in order | the `context_call` rows (latency, provider, tokens, reasoning) and their `context_tool` rows (each tool's arguments and result) |

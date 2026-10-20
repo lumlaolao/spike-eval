@@ -12,5 +12,11 @@ Each slice starts on the row after a decision row of the same seat, so the rows 
 | g33-blockers.jsonl | same, rows 446-462 | harness-epoch-64 | T11 blockers, answered "BLOCKS: NONE" |
 | g33-damage-assign.jsonl | same, rows 647-649 | harness-epoch-64 | T14 damage-assign, `tier: auto`, `prompt: null` |
 | g33-game.jsonl | same, last row | harness-epoch-64 | the game row (won by A on T14) |
-| mirror-42-start.jsonl | runs/demo/fake-mirror-42 (loopback fake model, policy random, both seats llm), first 60 rows | harness-epoch-70 | two llm seats' asks in one file |
+| mirror-42-start.jsonl | a loopback mirror, first 60 rows (command below) | harness-epoch-70 | two llm seats' asks in one file |
 | tournament-2026-07-play.jsonl | runs/tournament-1/match-F-1/game-264-1784515705553.jsonl | before epochs | a July 2026 prompt ("yard(5):", "Name(0/1)[T]") |
+
+`mirror-42-start.jsonl` was made with `python3 eval/fake_model_server.py --port 0 --policy random --seed 7 --answer-tool
+--native-calls 30` and, from `/root/forge`, `GAME_SEED=42 DECK_A=eval/decks/grixis-reanimator.txt
+DECK_B=eval/decks/mardu-energy.txt CONTROLLER_A=llm CONTROLLER_B=llm` with both seats' models
+`openrouter:fake/m`, `OPENROUTER_BASE_URL=http://127.0.0.1:<port>/v1 ANSWER_TOOL=1 MEMORY_TOOLS=1 LOOKAHEAD=1
+CONTEXT_PROFILE=v4-faithful EVAL_OUT=<dir> bash run-llm-headless.sh` (no egress, no cost; Mardu won on T20).

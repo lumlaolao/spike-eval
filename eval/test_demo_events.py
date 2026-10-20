@@ -43,17 +43,18 @@ class OneSeatTest(unittest.TestCase):
         self.assertTrue(ev["options"][5].startswith("ACTIVATE Black Lotus"))
         self.assertEqual([bool(c["reasoning"]) for c in ev["calls"]], [True, True, True])
 
-    def test_set_plan_is_the_decisions_plan_and_windows_before_it_collapse(self):
+    def test_set_plan_is_the_decisions_plan_and_each_window_row_is_one_event(self):
         b = events("g33-set-plan.jsonl")
         (ev,) = decisions(b)
         self.assertEqual(tool_names(ev), ["set_plan", "answer"])
         self.assertTrue(ev["plan"]["goal"])
         self.assertIn("next", ev["plan"])
-        windows = [e for e in b.events if e["kind"] == "windows"]
-        self.assertTrue(windows)
+        windows = [e for e in b.events if e["kind"] == "window"]
         with open(os.path.join(FIX, "g33-set-plan.jsonl")) as f:
             rows = [json.loads(line) for line in f if line.strip()]
-        self.assertEqual(sum(w["count"] for w in windows), sum(1 for r in rows if r["t"] == "window"))
+        # One event per row and never changed later: a live client that fetched one already has it whole.
+        self.assertEqual(len(windows), sum(1 for r in rows if r["t"] == "window"))
+        self.assertTrue(windows)
 
     def test_the_inspect_and_the_providers_reasoning_are_on_the_mulligan_bottom(self):
         (ev,) = decisions(events("g33-inspect.jsonl"))
@@ -73,6 +74,21 @@ class OneSeatTest(unittest.TestCase):
         ev = decisions(events("g33-t5-upkeep.jsonl"))[-1]
         self.assertEqual(ev["choice"], -1)
         self.assertEqual([ev["options"][i] for i in ev["chosen"]], ["PASS (do nothing)"])
+
+    def test_an_auto_row_is_classed_forced_taken_or_lost_and_never_called_forced_blindly(self):
+        b = de.Builder()
+        b.add({"t": "decision", "seat": "A", "turn": 1, "type": "target", "tier": "auto", "choice": 0,
+               "options": ["x"], "fallback": "target(forced-only-legal)"})
+        b.add({"t": "decision", "seat": "A", "turn": 1, "type": "play", "tier": "auto", "choice": 0,
+               "options": ["x", "y"], "fallback": "ability-to-play(bridge-down)->first"})
+        b.add({"t": "decision", "seat": "A", "turn": 1, "type": "play", "tier": "smart", "choice": 0, "options": ["x"]})
+        self.assertEqual([e["auto_class"] for e in decisions(b)], ["forced", "LOST", None])
+
+    def test_a_number_ask_selects_no_option(self):
+        b = de.Builder()
+        b.add({"t": "decision", "seat": "A", "turn": 1, "type": "number-value", "tier": "smart", "choice": 0,
+               "n_options": -1, "options": ["integer range [0..3]"]})
+        self.assertEqual(decisions(b)[0]["chosen"], [])
 
     def test_an_auto_row_has_no_prompt_and_borrows_the_last_state(self):
         b = events("g33-t5-upkeep.jsonl", "g33-damage-assign.jsonl")
@@ -115,6 +131,29 @@ class TwoSeatTest(unittest.TestCase):
         self.assertEqual((tool_names(a), a["answer"], a["chosen"]), (["answer"], {"option": 2}, [1]))
         self.assertEqual(tool_names(bb), ["inspect"])
         self.assertIsNone(bb["answer"])
+
+
+class FindGameTest(unittest.TestCase):
+    def test_the_swapped_games_log_is_the_one_named_for_its_swap(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name in ("game-7-0.log", "game-7-1.log"):
+                with open(os.path.join(d, name), "w") as f:
+                    f.write("x\n")
+            path = os.path.join(d, "game-7-123.jsonl")
+            with open(path, "w") as f:
+                f.write(json.dumps({"t": "game", "seed": 7, "swap": True}) + "\n")
+            self.assertEqual(de.find_game(path), (path, os.path.join(d, "game-7-1.log")))
+
+    def test_a_bare_file_name_resolves_in_the_current_directory(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = os.getcwd()
+            try:
+                os.chdir(d)
+                with open("game-7-123.jsonl", "w") as f:
+                    f.write("{}\n")
+                self.assertEqual(de.find_game("game-7-123.jsonl"), ("game-7-123.jsonl", None))
+            finally:
+                os.chdir(cwd)
 
 
 class ReaderTest(unittest.TestCase):

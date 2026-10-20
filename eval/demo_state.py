@@ -220,7 +220,7 @@ def parse_prompt(prompt):
             st["blocks"][block]["lines"].append(line.strip())
             continue
         if line.startswith("stack: "):
-            # July 2026 grammar: "stack: 1 pending; top=Emrakul, the Aeons Torn (claude-fable-5)".
+            # July 2026 grammar: "stack: 1 pending; top=Emrakul, the Aeons Torn (<player>)".
             st["stack_raw"] = line[len("stack: "):]
             st["stack"] = [{"text": st["stack_raw"], "handles": []}]
             continue

@@ -1,5 +1,6 @@
 """demo_server: the viewer's API serves every decision of the file, pages by `from`, and follows a file a JVM is still
 writing (a live pane survives the file not existing yet and ends on the game row)."""
+import http.client
 import json
 import os
 import shutil
@@ -67,9 +68,26 @@ class ReplayTest(unittest.TestCase):
         self.assertIn("model decisions", s["review"])
 
     def test_a_path_outside_the_web_directory_is_refused(self):
+        # A raw request line: a client library might normalise the dots away. Without the guard this serves
+        # eval/demo_server.py (checked by removing it once).
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_address[1], timeout=10)
+        conn.request("GET", "/../../demo_server.py")
+        r = conn.getresponse()
+        r.read()
+        conn.close()
+        self.assertEqual(r.status, 404)
+
+    def test_a_bad_from_is_a_400_not_a_traceback(self):
         with self.assertRaises(urllib.error.HTTPError) as cm:
-            get(self.url + "/..%2f..%2fdemo_server.py")
-        self.assertEqual(cm.exception.code, 404)
+            get(self.url + "/api/game/0/events?from=abc")
+        self.assertEqual(cm.exception.code, 400)
+
+    def test_a_card_image_comes_from_the_cache_and_a_miss_is_404(self):
+        _, games = get(self.url + "/api/games")
+        self.assertEqual(games[0]["path"], self.dir)
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            get(self.url + "/card/Black%20Lotus")
+        self.assertEqual(cm.exception.code, 404)  # this server has no image cache
 
 
 class LiveTest(unittest.TestCase):
@@ -101,6 +119,29 @@ class LiveTest(unittest.TestCase):
             self.assertTrue(r["done"])
             server.shutdown()
             server.server_close()
+        finally:
+            shutil.rmtree(d)
+
+    def test_a_live_pane_moves_to_a_newer_game_written_into_the_same_directory(self):
+        d = tempfile.mkdtemp()
+        try:
+            with open(os.path.join(FIX, "g33-simulate.jsonl")) as f:
+                sim = f.read()
+            with open(os.path.join(FIX, "g33-game.jsonl")) as f:
+                game = f.read()
+            with open(os.path.join(d, "game-1-100.jsonl"), "w") as f:
+                f.write(sim + game)  # the finished rehearsal
+            pane = srv.Pane(d, live=True)
+            self.assertTrue(pane.done)
+            gen = pane.gen
+            later = os.path.join(d, "game-2-200.jsonl")
+            with open(later, "w") as f:
+                f.write(sim)  # the real game, started after
+            os.utime(later, (time.time() + 5, time.time() + 5))
+            pane.refresh()
+            self.assertEqual(pane.reader.path, later)
+            self.assertFalse(pane.done)
+            self.assertEqual(pane.gen, gen + 1)  # the client sees the generation move and starts over
         finally:
             shutil.rmtree(d)
 
