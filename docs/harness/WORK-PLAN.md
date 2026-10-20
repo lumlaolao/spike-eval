@@ -12,13 +12,13 @@ a new one is agreed, so the next session can pick up from it.
    `eval/puzzles/rules-pilot/manifest.jsonl`; RP_300, RP_402, RP_454 and RP_521 are near-duplicates kept but not
    counted), landed with harness-epoch-66 (PR #270). How they were made and the gate's lessons:
    [HANDOFF-PUZZLES.md](HANDOFF-PUZZLES.md).
-2. **Now: the benchmark on a sample.** GPT-6 Luna about 10 times on each puzzle of a sample, with the tools on and
-   with them off (the rules lookup above all): solve rate, which tools it calls (does it look up the rules?), and
-   time per puzzle, for each condition (for example: 60% solved with the rules lookup, 20% without). That
-   comparison is the point of the benchmark. Steps:
+2. **Now: the benchmark on a sample.** GPT-6 Luna 5 times on each puzzle of a sample (owner, 2026-10-20; was about
+   10), with the tools on and with them off (the rules lookup above all): solve rate, which tools it calls (does it
+   look up the rules?), and time per puzzle, for each condition (for example: 60% solved with the rules lookup, 20%
+   without). That comparison is the point of the benchmark. Steps:
    - the sample: `eval/puzzles/rules-pilot/benchmark-sample-v1.tsv` (36 open-split puzzles, seed 2026);
    - free baselines on it (`eval/puzzle_baselines.py run --ids ...`), then freeze it as a suite;
-   - the paid run (`eval/puzzle_solve.py ... --k 10 --budget-usd X`, with and without `--rules-tool`): state the
+   - the paid run (`eval/puzzle_solve.py ... --k 5 --budget-usd X`, with and without `--rules-tool`): state the
      cost first; the owner sets `OPENROUTER_ALLOW_EGRESS=1`.
 
 ## Open work, after the benchmark
