@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 361 - Persist brings the Redcap back
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Murderous Redcap (2/2, no counters) and have Fling in hand, with two red mana floating. The opponent is at 3 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-persist-new-etb | Persist returns the creature as a new object with a -1/-1 counter (CR 702.79a, 400.7), and its enters trigger deals damage equal to its power as it resolves (CR 608.2h): Fling the Redcap for 2, and the returned 1/1 Redcap deals 1 more
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling
+p0battlefield=Murderous Redcap
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
