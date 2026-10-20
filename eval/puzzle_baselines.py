@@ -367,14 +367,14 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms, b
 
 def apply_difficulty(rec):
     """The record's measured difficulty, its v2 tier and its skill tags (BENCHMARK-V2.md section 4), recomputed from
-    its proof and its Forge AI rate; all three null without a proven proof. Additive: `tier` (v1) is untouched. A pzl
-    that cannot be read leaves the record as it was: an empty board would read as T=None and board_objects=0."""
+    its proof and its Forge AI rate; all three null without a proven proof or a readable pzl (an empty board would
+    read as board_objects=0, and an old tier would stand beside a new proof). Additive: `tier` (v1) is untouched."""
     proof = rec.get("proof") or {}
     try:
         text = pf.pzl_path(rec).read_text(encoding="utf-8")
     except OSError:
-        print("%s: pzl unreadable (%s); difficulty not recomputed" % (rec.get("id"), pf.pzl_path(rec)), file=sys.stderr)
-        return rec
+        print("%s: pzl unreadable (%s); no difficulty" % (rec.get("id"), pf.pzl_path(rec)), file=sys.stderr)
+        return dict(rec, difficulty=None, tier_v2=None, skills=None)
     d = pf.difficulty(proof, text)
     ai = ((rec.get("baselines") or {}).get("ai") or {}).get("rate")
     return dict(rec, difficulty=d, tier_v2=pf.tier_v2(d, ai),
@@ -710,9 +710,12 @@ def cmd_retier(a):
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; re-tiering changes its records. Write to a new manifest with --write")
-    unread = [r["id"] for r in manifest["puzzles"] if not pf.pzl_path(r).is_file()]
-    if unread:   # FORGE_HOME at another checkout would re-tier every forge: record from nothing
-        raise SystemExit("%d pzl file(s) unreadable, nothing written: %s" % (len(unread), ", ".join(unread[:5])))
+    # FORGE_HOME at another checkout would re-tier every forge: record from nothing, or from a different file
+    unread = [r["id"] for r in manifest["puzzles"] if not pf.pzl_path(r).is_file()
+              or (r.get("pzl_sha256") and pf.sha256_file(pf.pzl_path(r)) != r["pzl_sha256"])]
+    if unread:
+        raise SystemExit("%d pzl file(s) unreadable or not the one proven, nothing written: %s"
+                         % (len(unread), ", ".join(unread[:5])))
     puzzles = [apply_difficulty(r) for r in manifest["puzzles"]]
     Path(a.write or a.suite).write_text(json.dumps(dict(manifest, puzzles=puzzles, frozen=False, suite_sha256=None),
                                                    indent=2) + "\n", encoding="utf-8")
