@@ -514,7 +514,7 @@ def action_groups(n, action_lines):
 def removal_verdict(row):
     """What one removal shows (a relaxed replay, ScriptBridge.relaxed): "fails" when the game was played to its end and
     not solved, "played" when it solved anyway (the action is not needed), else "inconclusive: <why>" (no row, the cap,
-    a deck-out, a drift, a play that did not happen). Only "fails" shows the action is needed (pr-review of #278)."""
+    a deck-out, a drift, a play that did not happen). Only "fails" shows the action is needed (pr-review of #278: a drift read as necessary)."""
     if not row:
         return "inconclusive: no result row"
     if row.get("tainted_by_deckout"):

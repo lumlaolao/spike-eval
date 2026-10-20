@@ -160,6 +160,8 @@ class MinimalityTest(unittest.TestCase):
         self.assertTrue(pb.removal_verdict(dict(ok, tainted_by_deckout=True)).startswith("inconclusive"))
         self.assertTrue(pb.removal_verdict(dict(ok, plays_not_made=1)).startswith("inconclusive"))
         self.assertTrue(pb.removal_verdict(None).startswith("inconclusive"))
+        self.assertEqual(pb.removal_verdict(dict(ok, status="solved", script_unconsumed=3)), "played",
+                         "a replay that won before its last line still shows the action is not needed")
         stalled = dict(ok, script_unconsumed=8)
         self.assertEqual(pb.removal_verdict(stalled), "inconclusive: stalled, 8 lines unplayed",
                          "lost without playing the rest: nothing shown about the removed action")
