@@ -44,8 +44,10 @@ public class PuzzleSetupTest {
         return new File(rules).getAbsoluteFile().getParentFile().getParentFile().getParentFile();
     }
 
+    /** Both statics the runner sets: a brief left behind turns every later test's system prompt into a puzzle's
+     *  (SeatObservationTest's non-puzzle framing failed after this class, pr-review of PR #273). */
     @AfterMethod
-    public void clearSolverSeat() { LlmSpikeGui.puzzleSolverSeat = null; }
+    public void clearSolverSeat() { LlmSpikeGui.puzzleSolverSeat = null; LlmSpikeGui.puzzleBrief = null; }
 
     @BeforeClass
     public void initializeModel() {
@@ -59,8 +61,8 @@ public class PuzzleSetupTest {
         }
     }
 
-    /** The board applied on a thread named "Game..." (GameState.applyToGame runs inline only there), then the
-     *  runner's NamedCard restore. */
+    /** The board applied on a thread named "Game..." (GameState.applyToGame runs inline only there) by the runner's
+     *  own start-hook method: the board, the NamedCard restore and the goal card's brief. */
     private static Game boardOf(String pzl) throws Exception {
         File f = new File(REPO,
                 "eval/puzzles/rules-pilot/" + pzl);
@@ -76,9 +78,8 @@ public class PuzzleSetupTest {
         Throwable[] thrown = {null};
         Thread t = new Thread(() -> {
             try {
-                PuzzleArms.SETUP = true;
-                try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
-                LlmSpikePuzzle.restoreNamedCards(puzzle);
+                LlmSpikePuzzle.briefSolver(sections, puzzle);
+                LlmSpikePuzzle.applyBoard(game, puzzle);
             } catch (Throwable e) {
                 thrown[0] = e;
             }
@@ -87,6 +88,38 @@ public class PuzzleSetupTest {
         t.join(60000);
         if (thrown[0] != null) throw new AssertionError("board did not apply", thrown[0]);
         return game;
+    }
+
+    /** The Puzzle Goal card's text is Forge's whole header, so `inspect` on it read RP_443's "Goal: Survive" and its
+     *  name, "Bolster picks the least toughness", that the <puzzle> block no longer shows (epoch 67). */
+    @Test
+    public void aRulesPuzzlesGoalCardReadsAsItsBrief() throws Exception {
+        Game game = boardOf("RP_443.pzl");
+        Card goal = null;
+        for (Player p : game.getPlayers())
+            for (Card c : p.getZone(ZoneType.Command)) if ("Puzzle Goal".equals(c.getName())) goal = c;
+        Assert.assertNotNull(goal, "the goal card is installed with the board");
+        String text = goal.getOracleText();
+        Assert.assertTrue(text.contains("Reduce the opponent to 0 life this turn."), text);
+        for (String hidden : new String[] {"Survive", "Difficulty", "Bolster picks"})
+            Assert.assertFalse(text.contains(hidden), hidden + " is on the goal card: " + text);
+        Assert.assertEquals(LlmSpikeGui.puzzleBrief, text, "the <puzzle> block and the card say one thing");
+    }
+
+    /** Forge's HumanControl warning is the one line of its header a rules puzzle keeps: the solver then decides for
+     *  the opponent too, and must be told (pr-review of PR #273). Forge's own text, so a change to it shows here. */
+    @Test
+    public void aHumanControlledRulesPuzzleKeepsForgesWarning() throws Exception {
+        Map<String, List<String>> s = FileSection.parseSections(FileUtil.readFile(new File(REPO,
+                "eval/puzzles/rules-pilot/RP_443.pzl")));
+        s.get("metadata").add("HumanControl:True");
+        String forge = new Puzzle(s, "RP_443", false).getGoalDescription();
+        String brief = LlmSpikePuzzle.seatBrief(s, forge);
+        Assert.assertTrue(forge.contains("making all decisions for your opponent"), forge);
+        Assert.assertTrue(brief.startsWith(forge.substring(0, forge.indexOf("Rules pilot 443"))), brief);
+        Assert.assertTrue(brief.contains("Reduce the opponent to 0 life this turn."), brief);
+        for (String hidden : new String[] {"Survive", "Difficulty", "Bolster picks"})
+            Assert.assertFalse(brief.contains(hidden), hidden + " reached the seat: " + brief);
     }
 
     private static Card onBattlefield(Player p, String name) {

@@ -322,8 +322,11 @@ public final class LlmSpikeGui {
      *  Epoch 66 (2026-10-20, authored rules puzzles): an attack the engine refuses (Silent Arbiter) is asked once more
      *  with the reason, then made legal; the engine re-asked forever. The puzzle prover targets a copy that may take
      *  new targets (Twincast), as the model seat does; Forge's AI picked it.
+     *  Epoch 67 (2026-10-20, benchmark sample v1): a rules puzzle's <puzzle> block, and the Puzzle Goal card
+     *  `inspect` reads, are its author's description and turn limit only; Forge's header said "Goal: Survive" on 148
+     *  of 526 whose acceptance is `life p1 <= 0`, and its Name and Difficulty lines named the rule being tested.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-66";
+    static final String HARNESS_EPOCH = "harness-epoch-67";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -505,9 +508,9 @@ public final class LlmSpikeGui {
      *  Null outside puzzle mode, so every non-puzzle run is byte-identical to before. */
     static volatile LobbyPlayer puzzleSolverSeat = null;
 
-    /** PZL axis: the puzzle's goal as its author wrote it (Forge's goal description: goal, turn limit,
-     *  and what the solver is told, such as the top cards of the library), stated in the solver's system
-     *  prompt in place of "win the game". Null outside puzzle mode. */
+    /** PZL axis: the solver's brief ({@link LlmSpikePuzzle#seatBrief}: a Forge puzzle's goal description, a rules
+     *  puzzle's turn limit and description), stated in the solver's system prompt in place of "win the game". Null
+     *  outside puzzle mode. */
     static volatile String puzzleBrief = null;
 
     /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name
@@ -3704,7 +3707,7 @@ public final class LlmSpikeGui {
                         // ...but a TRIGGER of ours is not something we "just cast": it is the engine handing
                         // us a window. "Sacrifice the tokens at the beginning of the end step" on the stack
                         // is exactly when a sacrifice outlet should be used on them, and the seat was never
-                        // asked (ARCHITECTURE-REVIEW.md problem 3). The windows below still apply: no
+                        // asked (history/ARCHITECTURE-REVIEW.md problem 3). The windows below still apply: no
                         // instant-speed option -> pass; nothing that interacts -> pass; and an identical
                         // situation already declined this turn is not asked twice (passedReactSigs).
                         if (top != null && top.getActivatingPlayer() == me && !top.isTrigger())

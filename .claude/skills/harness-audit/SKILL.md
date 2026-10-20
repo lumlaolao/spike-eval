@@ -60,7 +60,7 @@ row (`file:line` is printed by the detectors) and answer, from the `prompt` fiel
 4. Only if 1-3 hold: MODEL. State the better line in one sentence and why, from the prompt.
 
 Ground every claim in a `file:line` and in the engine source when a rule is involved
-(`~/code/forge`, pinned commit in `FORGE_COMMIT`). No claim from memory of how a card works: read
+(`$FORGE_HOME`, pinned commit in `FORGE_COMMIT`). No claim from memory of how a card works: read
 the card script under `forge-gui/res/cardsfolder/`.
 
 ## 4. Write the findings
@@ -87,5 +87,5 @@ unverified: they become puzzles only after the fork verifier replays the positio
 (`eval/EVAL-DESIGN.md` section 3). Do not write an answer key by hand.
 
 A HARNESS finding is never a puzzle. It is a ticket: add it to
-`docs/harness/ARCHITECTURE-REVIEW.md` with its evidence, or fix it and add the test that would have
+`docs/harness/history/ARCHITECTURE-REVIEW.md` with its evidence, or fix it and add the test that would have
 caught it.

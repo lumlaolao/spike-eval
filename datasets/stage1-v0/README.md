@@ -1,5 +1,9 @@
 # stage1-v0 — winning-trajectory SFT data
 
+> **2026-10-20:** the training examples (`train.jsonl`, `valid.jsonl`) were removed with the rest of the training
+> setup; the repository is a benchmark now. This `meta.jsonl` stays: it records which seeds the corpus used, and
+> the held-out seed guard (`eval/seed_registry.py`, `eval/check_holdouts.py`) refuses them for evaluation.
+
 MLX chat-format SFT set built by `eval/make_sft_data.py` from winning
 MTG Forge harness trajectories. One example per model-answered decision
 from a seat the LLM piloted **and won**.
