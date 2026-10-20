@@ -30,6 +30,10 @@ const isBreach = e => e.tier === "ai" || e.auto_class === "LOST" || e.auto_class
 const autoLabel = e => e.tier === "ai" ? "Forge AI chose for the seat: an ai=0 invariant breach."
   : AUTO_TEXT[e.auto_class] || AUTO_TEXT.other;
 const cardImg = name => "card/" + encodeURIComponent(name);
+// Names whose image failed once are drawn as text tiles at once: a live re-render must not lay out an image box
+// and then fall back.
+const NO_IMAGE = new Set();
+window.noImage = img => { const c = img.closest(".card"); c.classList.add("noimg"); NO_IMAGE.add(c.getAttribute("data-name")); };
 
 class Pane {
   constructor(i, info, root) {
@@ -50,7 +54,7 @@ class Pane {
   absorb(r) {
     if (this.gen !== null && r.gen !== this.gen) {
       // A newer game replaced this one: forget its events and its summary (header, tally, cost) too.
-      this.events = []; this.cur = 0; this.gen = r.gen; this.info.summary = null; this.refreshSummary();
+      this.events = []; this.cur = 0; this.gen = r.gen; this.done = false; this.info.summary = null; this.refreshSummary();
       return false;
     }
     this.gen = r.gen;
@@ -164,14 +168,14 @@ class Pane {
     const h = o.handle != null ? hl[o.handle] || hl["@" + o.handle] : null;
     const tags = (o.tags || []).filter(t => t !== "untapped" && t !== "tapped");
     const tapped = (o.tags || []).includes("tapped");
-    const cls = ["card", tapped ? "tapped" : "", h ? "hl-" + h.kind : "", h && h.engine ? "hl-engine" : ""].join(" ");
+    const cls = ["card", NO_IMAGE.has(o.name) ? "noimg" : "", tapped ? "tapped" : "", h ? "hl-" + h.kind : "", h && h.engine ? "hl-engine" : ""].join(" ");
     const title = [o.name, o.was != null ? `@${o.handle} (was @${o.was}: a zone change made a new object)` : o.handle != null ? `@${o.handle}` : "",
       (o.notes || []).join("; "), h ? `${KIND_LABEL[h.kind] || h.kind}: ${h.evidence || ""}` : "",
       h && h.engine && h.kind !== "engine" ? `engine: ${h.engine}` : ""].filter(Boolean).join("\n");
     // The image is Scryfall's printed card; everything the game changed (P/T, tags, counters) is in the caption
     // under it, never drawn over the card (its credit line stays visible). No image: the text tile.
     return `<div class="${cls}" title="${esc(title)}" data-name="${esc(o.name)}">${h ? `<span class="badge">${esc(KIND_LABEL[h.kind] || h.kind)}</span>` : ""}` +
-      `<span class="art"><img src="${cardImg(o.name)}" alt="" loading="lazy" onerror="this.closest('.card').classList.add('noimg')"></span>` +
+      `<span class="art"><img src="${cardImg(o.name)}" alt="" loading="lazy" onerror="noImage(this)"></span>` +
       `<div class="nm">${esc(o.name)}</div><div class="meta">${o.cost ? `<span class="cost">${esc(o.cost)}</span>` : ""}${o.pt ? `<b>${esc(o.pt)}</b>` : ""}` +
       `${o.handle != null ? `<span class="h">@${esc(o.handle)}</span>` : ""}</div>` +
       `${tags.length || (o.notes || []).length ? `<div class="tags">${esc(tags.concat(o.notes || []).join(", "))}</div>` : ""}</div>`;

@@ -78,9 +78,16 @@ class Pane:
             return None
 
     def summary(self):
-        if self._summary is None:
-            self._summary = build_summary(self)
-        return self._summary
+        with self.lock:
+            cached, gen = self._summary, self.gen
+        if cached is not None:
+            return cached
+        built = build_summary(self)
+        with self.lock:
+            # Kept only if no newer game replaced this one while it was being built (match_review is slow).
+            if self.gen == gen:
+                self._summary = built
+        return built
 
 
 def build_summary(pane):
@@ -128,10 +135,11 @@ class Handler(BaseHTTPRequestHandler):
         if not parts:
             return self._static("index.html")
         if parts[0] == "card" and len(parts) == 2:
-            p = self.cards.get(unquote(parts[1])) if self.cards else None
+            name = unquote(parts[1])
+            p = self.cards.get(name) if self.cards else None
             if not p:
-                # Cacheable: the page re-renders on every live event and must not ask again for a token's image.
-                return self._send(404, {"error": "no image"}, cache=True)
+                # Only a name Scryfall lacks is cacheable; offline, a failed or an in-flight fetch may succeed later.
+                return self._send(404, {"error": "no image"}, cache=bool(self.cards and self.cards.is_miss(name)))
             with open(p, "rb") as f:
                 return self._send(200, f.read(), "image/jpeg", cache=True)
         if parts[0] != "api":

@@ -28,7 +28,9 @@ python3 eval/demo_server.py --live runs/demo/live &
 # then start any game with EVAL_OUT=runs/demo/live (run-llm-headless.sh, run-llm-spike.sh, or run_batch.py --out)
 ```
 
-The page waits for the file, follows it row by row (the JVM flushes every row), shows how long the model has been
+Card images: a game in progress cannot be prefetched, so either prefetch an earlier game with the same decks
+(`demo_cards.py prefetch <run>`) or start the server with `--fetch-images`, which sends each new card's name to
+api.scryfall.com. The page waits for the file, follows it row by row (the JVM flushes every row), shows how long the model has been
 thinking since the last row, and ends on the game row. A newer game written into the same directory (the real game
 after the rehearsal) replaces it on screen. A loopback fake-model game (`eval/fake_model_server.py
 --policy random --answer-tool`, no egress, no cost) is the rehearsal; a paid game needs the owner's go-ahead, a stated

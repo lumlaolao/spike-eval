@@ -3,6 +3,8 @@ offline cache never touches the network. The fetcher is faked: no test reaches t
 import os
 import shutil
 import tempfile
+import threading
+import time
 import unittest
 
 import demo_cards as dc
@@ -54,6 +56,25 @@ class CacheTest(unittest.TestCase):
         self.assertEqual(self.asked, [])
         c.failed["mox ruby"] -= dc.RETRY_AFTER_S
         self.assertIsNotNone(c.get("Mox Ruby"))
+
+    def test_a_slow_fetch_holds_up_only_its_own_name(self):
+        release = threading.Event()
+
+        def slow(name):
+            if name == "Black Lotus":
+                release.wait(10)
+            return b"\xff\xd8" + name.encode()
+        c = dc.Cache(self.dir, fetch=slow)
+        t = threading.Thread(target=c.get, args=("Black Lotus",))
+        t.start()
+        time.sleep(0.3)
+        t0 = time.time()
+        self.assertIsNone(c.get("Black Lotus"))      # already being fetched: no second request, no wait
+        self.assertIsNotNone(c.get("Tundra"))        # another name is not held up by the slow one
+        self.assertLess(time.time() - t0, 2)
+        release.set()
+        t.join(10)
+        self.assertIsNotNone(c.get("Black Lotus"))
 
     def test_a_reply_that_is_not_a_jpeg_is_never_cached(self):
         c = dc.Cache(self.dir, fetch=lambda name: b"<html>proxy login</html>")

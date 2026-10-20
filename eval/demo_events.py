@@ -219,7 +219,7 @@ def _last_row(path):
 
 
 def _started(name):
-    m = re.match(r"game-\d+-(\d+)\.jsonl$", name)
+    m = re.match(r"game--?\d+-(\d+)\.jsonl$", name)
     return int(m.group(1)) if m else 0
 
 

@@ -70,6 +70,10 @@ class Cache:
         key = hashlib.sha1(name.strip().lower().encode("utf-8")).hexdigest()[:16]
         return os.path.join(self.root, key + ".jpg")
 
+    def is_miss(self, name):
+        """True for a name Scryfall answered 404 (a token, an effect): it will never have an image."""
+        return (name or "").strip().lower() in self.misses
+
     def get(self, name):
         """The cached file for a name, fetching it once if allowed; None for a miss, when offline, or on a network
         failure (retried after RETRY_AFTER_S). A slow request holds up only its own name."""
