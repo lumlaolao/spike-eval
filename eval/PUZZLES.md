@@ -50,6 +50,17 @@ Forge enforces ("Win" or "Survive" by turn N).
   - 2: it does not, and the line takes three or fewer solver actions;
   - 3: four or more.
 
+- `difficulty`, `tier_v2` and `skills` (additive, `docs/harness/BENCHMARK-V2.md` section 4), computed from the
+  proof, never typed in (`puzzle_format.difficulty`, `tier_v2`, `skill_tags`; `puzzle_baselines.py retier`):
+  - `L` solver actions, `D` solver choice points with two or more options, `O` opponent choice points, `T` turns
+    played, `B` the product of the solver's menu sizes along the proof line (capped at 10^12), `board_objects`
+    the cards in both players' battlefield, hand, graveyard and exile;
+  - `tier_v2`: 3 when `L >= 6`, `O >= 2` or `B >= 10^4`; else 2 when `L >= 3`, `O >= 1` or `T >= 2`; else 1 when
+    Forge's AI solves at least half, 2 when it does not; null without a proof or (for a short line) the AI's rate.
+    The thresholds are the proposed ones, to be refit after the first full run;
+  - `skills`: the tags that can be read off the source and the proof (rules application, sequencing, combat
+    arithmetic, long lines, adversarial, multi-turn, restraint). Hidden information is not tagged.
+
 An active puzzle needs the three floor baselines (random, pass, first), a verified line and a tier.
 Random must solve it at most 20% of the time; anything easier measures luck and is dropped.
 

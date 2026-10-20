@@ -310,7 +310,7 @@ def decide_status(rec):
 
 # ------------------------------------------------------------------ workflows
 
-def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms):
+def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms, baselines_only=False):
     pzl = pf.pzl_path(rec)
     pid = rec["id"]
     base = dict(rec.get("baselines") or {})
@@ -325,6 +325,8 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms):
         s = summarize(rows, seeds)
         base[arm] = {k: v for k, v in s.items() if v or k in ("solved", "n", "rate", "seeds")}
     rec = dict(rec, baselines=base)
+    if baselines_only:  # the floors and the AI's rate for a suite already proven (re-tiering): no line, no replay
+        return apply_difficulty(rec)
     if not pf.has_line(rec.get("reference_line")):
         line = choose_line(random_rows)
         if line is None and search > 0:
@@ -342,7 +344,21 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms):
     ai = base.get("ai", {}).get("rate")
     rec["tier"] = tier_for(ai, line.get("solver_actions")) if rec["verification"]["status"] == "verified" else None
     rec["status"], rec["flags"] = decide_status(rec)
-    return rec
+    return apply_difficulty(rec)
+
+
+def apply_difficulty(rec):
+    """The record's measured difficulty, its v2 tier and its skill tags (BENCHMARK-V2.md section 4), recomputed from
+    its proof and its Forge AI rate; all three null without a proven proof. Additive: `tier` (v1) is untouched."""
+    proof = rec.get("proof") or {}
+    try:
+        text = pf.pzl_path(rec).read_text(encoding="utf-8")
+    except OSError:
+        text = ""
+    d = pf.difficulty(proof, text)
+    ai = ((rec.get("baselines") or {}).get("ai") or {}).get("rate")
+    return dict(rec, difficulty=d, tier_v2=pf.tier_v2(d, ai),
+                skills=pf.skill_tags(d, proof.get("actions"), (rec.get("source") or {}).get("kind")) if d else None)
 
 
 def verify_puzzle(build, rec, out_root):
@@ -377,23 +393,26 @@ def proof_from_row(row, opponent, engine_sha, date):
     keep = ("search_replays", "search_budget", "search_lines_per_point", "opponent_choice_points",
             "opponent_branches_beaten", "search_drift", "line", "solver_actions", "actions", "log_sha256",
             "duration_ms", "seed", "refutation_line", "refutation_opponent_log", "search_exhausted",
-            "acceptance", "acceptance_failed")
+            "acceptance", "acceptance_failed", "turns")
     proof = {"status": row.get("status"), "opponent": opponent, "engine_sha": engine_sha, "date": date}
     proof.update({k: row[k] for k in row
                   if (k in keep or k.startswith("uniqueness")) and row[k] not in (None, "")})
     return proof
 
 
-def prove_puzzle(build, rec, out_root, budget, opponent, seed=1):
+def prove_puzzle(build, rec, out_root, budget, opponent, seed=1, unique_budget=None):
     out = Path(out_root) / rec["id"] / ("prove-%s" % opponent)
     env = {"PUZZLE": str(pf.pzl_path(rec).resolve()), "CONTROLLER_A": "search", "CONTROLLER_B": opponent,
            "PZL_SEEDS": str(seed), "GAME_CAP_MS": "60000", "PZL_SEARCH_BUDGET": str(budget)}
+    if unique_budget is not None:
+        env["PZL_UNIQUE_BUDGET"] = str(unique_budget)
     (out / "puzzle-results.jsonl").unlink(missing_ok=True)
     build.run(env, out, timeout_s=max(3600, budget * 10))
     rows = read_results(out)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
     proof = proof_from_row(rows[-1] if rows else None, opponent, engine, datetime.date.today().isoformat())
-    return dict(rec, proof=proof or {"status": "not_found", "opponent": opponent, "error": "no result row"})
+    return apply_difficulty(dict(rec, proof=proof or {"status": "not_found", "opponent": opponent,
+                                                      "error": "no result row"}))
 
 
 def cmd_prove(a):
@@ -408,16 +427,16 @@ def cmd_prove(a):
     target = Path(a.write or a.suite)
     done = {}
     with ThreadPoolExecutor(max(1, a.jobs)) as ex:
-        futs = [ex.submit(prove_puzzle, build, r, out_root, a.budget, a.opponent) for r in todo]
+        futs = [ex.submit(prove_puzzle, build, r, out_root, a.budget, a.opponent, 1, a.unique_budget) for r in todo]
         for f in as_completed(futs):
             r = f.result()
             done[r["id"]] = r
             m = dict(manifest, puzzles=[done.get(x["id"], x) for x in manifest["puzzles"]])
             target.write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
             p = r["proof"]
-            print("%-24s %-10s rollouts=%s opponent_points=%s replies_beaten=%s actions=%s" % (
+            print("%-24s %-10s rollouts=%s opponent_points=%s replies_beaten=%s actions=%s tier_v2=%s" % (
                 r["id"], p.get("status"), p.get("search_replays"), p.get("opponent_choice_points"),
-                p.get("opponent_branches_beaten"), p.get("solver_actions")), flush=True)
+                p.get("opponent_branches_beaten"), p.get("solver_actions"), r.get("tier_v2")), flush=True)
     return 0
 
 
@@ -486,7 +505,7 @@ def cmd_run(a):
 
     def work(rec):
         try:
-            return baseline_puzzle(build, rec, out_root, a.rollouts, a.random_base, a.search, arms)
+            return baseline_puzzle(build, rec, out_root, a.rollouts, a.random_base, a.search, arms, a.baselines_only)
         except Exception as e:  # one broken puzzle must not lose the others' results
             return dict(rec, status="candidate", flags=sorted(set(rec.get("flags", []) + ["runner_error"])),
                         runner_error=str(e))
@@ -515,6 +534,21 @@ def cmd_run(a):
                 r["id"], r["status"], r.get("tier"),
                 *[("%d/%d" % (b[x]["solved"], b[x]["n"])) if x in b else "-" for x in pf.BASELINE_ARMS],
                 (r.get("reference_line") or {}).get("solver_actions"), ",".join(r.get("flags", []))))
+    return 0
+
+
+def cmd_retier(a):
+    """Difficulty, tier_v2 and skills recomputed for every record from what it already holds (no game is played)."""
+    manifest = pf.load_suite(a.suite)
+    if manifest.get("frozen") and not a.write:
+        raise SystemExit("suite is frozen; re-tiering changes its records. Write to a new manifest with --write")
+    puzzles = [apply_difficulty(r) for r in manifest["puzzles"]]
+    Path(a.write or a.suite).write_text(json.dumps(dict(manifest, puzzles=puzzles, frozen=False, suite_sha256=None),
+                                                   indent=2) + "\n", encoding="utf-8")
+    counts = {}
+    for r in puzzles:
+        counts[r.get("tier_v2")] = counts.get(r.get("tier_v2"), 0) + 1
+    print("tier_v2: " + ", ".join("%s=%d" % (k, counts[k]) for k in sorted(counts, key=str)))
     return 0
 
 
@@ -551,6 +585,8 @@ def main(argv=None):
     r.add_argument("-j", "--jobs", type=int, default=4)
     r.add_argument("--out-dir", default=None)
     r.add_argument("--write", default=None, help="manifest to write (default: --suite in place)")
+    r.add_argument("--baselines-only", action="store_true",
+                   help="measure the arms only (no line search, no verification), then recompute tier_v2")
     r.add_argument("--resume", action="store_true",
                    help="reuse an arm's rows when this build already ran exactly its seeds in --out-dir")
     v = sub.add_parser("verify")
@@ -563,6 +599,8 @@ def main(argv=None):
     pr.add_argument("--budget", type=int, default=2000, help="rollouts the search may play per puzzle")
     pr.add_argument("--opponent", choices=("search", "ai"), default="search",
                     help="search: beat every opponent choice; ai: beat the Forge AI's")
+    pr.add_argument("--unique-budget", type=int, default=None,
+                    help="rollouts for the uniqueness search (default: the runner's, the proof budget; 0 skips it)")
     pr.add_argument("-j", "--jobs", type=int, default=4)
     pr.add_argument("--out-dir", default=None)
     pr.add_argument("--write", default=None, help="manifest to write (default: --suite in place)")
@@ -574,8 +612,11 @@ def main(argv=None):
     ln.add_argument("--budget", type=int, default=200, help="--opponent search: rollouts the prover may play")
     ln.add_argument("--seeds", default="1")
     ln.add_argument("--out-dir", default=None)
+    rt = sub.add_parser("retier", help="recompute difficulty, tier_v2 and skills from stored proofs and baselines")
+    rt.add_argument("--suite", required=True)
+    rt.add_argument("--write", default=None)
     a = ap.parse_args(argv)
-    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line}[a.cmd](a)
+    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line, "retier": cmd_retier}[a.cmd](a)
 
 
 if __name__ == "__main__":
