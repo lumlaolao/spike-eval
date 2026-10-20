@@ -200,7 +200,8 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   in the opponent AI's and the engine's random choices.
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
-  - no lookup tools unless `--memory-tools` or `--rules-tool` is given;
+  - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`
+    (`--rules-tool` alone is refused: the seat would not offer it);
   - no harness shortcuts;
   - every setting pinned explicitly and written to each puzzle's `batch-manifest.json`.
 - The system prompt states the puzzle's brief (`LlmSpikePuzzle.seatBrief`: goal, turn limit and anything the
@@ -226,6 +227,11 @@ puzzle a coin flip solves earns almost nothing. Every aggregate is printed with:
   bootstrap reports 0 of 21 solved as [0, 0], a certainty it does not have (Wilson: 0 to 3.2);
 - per tier, the solved count beside the count each trivial arm would be expected to solve;
 - where the AI baseline exists, a normalized score (random = 0, Forge AI = 1).
+
+Two runs on the same puzzles (two solvers, or two conditions) are compared puzzle by puzzle with
+`--paired-with RESULTS`: the mean per-puzzle pass@1 difference, its bootstrap interval over puzzles (ids sorted,
+seed 7) and its clustered interval. `--against C D` gives the difference of differences, (B - A) - (D - C).
+Runs of other puzzles, suites, splits or k are refused. Lookups per condition: `eval/puzzle_tool_use.py`.
 
 `puzzle_score.py` refuses (exit 2) to:
 - pool the open and held-out splits;
