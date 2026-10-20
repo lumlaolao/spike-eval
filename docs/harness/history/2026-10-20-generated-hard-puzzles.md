@@ -46,7 +46,7 @@ Nothing paid is run; no model is called.
 
 ## Where it stands (paused 2026-10-20, owner asked to wrap up)
 
-Kept so far: **116** (59 at first count; boards in `eval/puzzles/hard/gen/kept/` ping 24, splice 29, storm 6, fling 5, drain 46, elf 6), each passed both gate
+Kept so far: **116** boards in `eval/puzzles/hard/gen/kept/` (ping 24, splice 29, storm 6, fling 5, drain 46, elf 6), each passed both gate
 steps above; the gate's rows are in `eval/puzzles/hard/gen/gate/<family>.json`.
 
 | Batch | Kept | Main drop reason |
