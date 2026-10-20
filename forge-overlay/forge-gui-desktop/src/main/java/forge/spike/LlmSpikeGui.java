@@ -5004,8 +5004,8 @@ public final class LlmSpikeGui {
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
                 return true;
             }
-            // Same recovery as the engine routine, but SAID: a play that did not happen must never read
-            // as "casts X" in the log (the audited game recorded a failed activation as a cast).
+            // A play that did not happen must never read as "casts X" in the log (the audited game
+            // recorded a failed activation as a cast).
             dropModes(sa);   // cancelled or unpaid, the play did not happen; its modes go with it
             if (decision.cancelled()) {
                 cancels++;
