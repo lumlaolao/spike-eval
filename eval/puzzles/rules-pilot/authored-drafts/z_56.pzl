@@ -3,17 +3,17 @@ Name:Rules pilot NNN - The Sword untaps your lands
 Goal:Win
 Turns:1
 Difficulty:Hard
-Description:It is your first main phase. You control Grizzly Bears, an unattached Sword of Feast and Famine (+2/+2, protection from black and green; whenever equipped creature deals combat damage to a player, that player discards a card and you untap all lands you control; equip {2}) and five untapped Mountains. You have Lava Axe (5 damage to target player) in hand. The opponent is at 9 life and controls no creatures. Reduce the opponent to 0 life this turn.
-Rule:authored-untap-lands-second-main | Each main phase is a fresh chance to use untapped lands (CR 505.1): equip the Sword with two Mountains, attack for 4, the trigger untaps all five Mountains, and Lava Axe in the second main phase deals 5; Lava Axe before combat leaves no mana to equip, and without the untap only three Mountains remain
+Description:It is your first main phase. You control Grizzly Bears, an unattached Sword of Feast and Famine (+2/+2, protection from black and green; whenever equipped creature deals combat damage to a player, that player discards a card and you untap all lands you control; equip {2}) and three untapped Mountains. You have Sizzle ({2}{R}: 3 damage to each opponent) in hand. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-untap-lands-second-main | Each main phase is a fresh chance to use untapped lands (CR 505.1): equip the Sword with two Mountains, attack for 4, the trigger untaps all three Mountains, and Sizzle in the second main phase deals 3; Sizzle before combat leaves no mana to equip, and without the untap only one Mountain remains
 [state]
 turn=1
 activeplayer=p0
 activephase=MAIN1
 p0life=20
-p0hand=Lava Axe
-p0battlefield=Grizzly Bears;Sword of Feast and Famine;Mountain;Mountain;Mountain;Mountain;Mountain
+p0hand=Sizzle
+p0battlefield=Grizzly Bears;Sword of Feast and Famine;Mountain;Mountain;Mountain
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
-p1life=9
+p1life=7
 p1library=Plains;Plains;Plains
 [acceptance]
 life p1 <= 0
