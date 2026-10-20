@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Don't target the Bonecrusher
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You are at 2 life. You control Bonecrusher Giant (4/3; whenever it becomes the target of a spell, it deals 2 damage to that spell's controller) and two untapped Mountains, and have Brute Force and Fling in hand. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-becomes-target-trigger-self | Bonecrusher Giant's trigger resolves before the spell that targeted it (CR 603.3, 405.5), even your own: Brute Force on the Giant kills you at 2 life before the pump resolves; Fling only targets the opponent, so attack for 4 and then Fling the Giant for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=2
+p0hand=Brute Force;Fling
+p0battlefield=Bonecrusher Giant;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

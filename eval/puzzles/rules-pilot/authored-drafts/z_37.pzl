@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Blast before the Frogmite goes
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Ornithopter, Memnite and Frogmite (three artifacts) and have Galvanic Blast (2 damage; metalcraft - 4 instead if you control three or more artifacts) and Fling in hand, with three red mana floating. The opponent is at 6 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-metalcraft-on-resolution | Metalcraft is checked as Galvanic Blast resolves (CR 608.2h): let the Blast resolve with three artifacts for 4, then Fling the 2/2 Frogmite for 2; Fling first, or in response to the Blast, leaves two artifacts and the Blast deals 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Galvanic Blast;Fling
+p0battlefield=Ornithopter;Memnite;Frogmite
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

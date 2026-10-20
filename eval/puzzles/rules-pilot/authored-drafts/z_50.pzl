@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Cursed Totem stops abilities, not Fling
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your second main phase. You control Mogg Fanatic and have Fling in hand with two red mana floating. The opponent is at 1 life and controls Cursed Totem (activated abilities of creatures can't be activated). Reduce the opponent to 0 life this turn.
+Rule:authored-cursed-totem-spell-cost | Cursed Totem stops only activated abilities of creatures (CR 602.5); sacrificing a creature to pay a spell's cost is not activating its ability (CR 601.2h): Mogg Fanatic's own ability can't be activated, but Fling can sacrifice it for 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling
+p0battlefield=Mogg Fanatic
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=1
+p1battlefield=Cursed Totem
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

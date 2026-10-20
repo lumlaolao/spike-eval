@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Stamina brings the Merchant back
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Gray Merchant of Asphodel (2/4) and have Supernatural Stamina (target creature gets +2/+0 and gains "when this creature dies, return it to the battlefield tapped") and Fling in hand, with one black and two red mana floating. The opponent is at 6 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-granted-dies-trigger-return | A granted dies trigger looks back at the creature as it left (CR 603.10a), and the returned card is a new object whose enters trigger fires (CR 400.7): Supernatural Stamina the Merchant, Fling it for 4, and it returns to drain 2 more; Fling first deals 2 and nothing returns
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Supernatural Stamina;Fling
+p0battlefield=Gray Merchant of Asphodel
+p0manapool=B R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

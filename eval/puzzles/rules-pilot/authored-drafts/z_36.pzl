@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Tarmogoyf counts the graveyard now
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Tarmogoyf; your graveyard holds Grizzly Bears and a Mountain (Goyf is 2/3). You have Flame Slash (sorcery: 4 damage to target creature) and Fling in hand, with three red mana floating. The opponent is at 3 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-cda-last-known-power | Tarmogoyf's power is computed continuously (CR 604.3, 613.4a) and Fling uses its power as it was sacrificed (CR 608.2h), while Fling itself is on the stack, not in a graveyard (CR 601.2a): Flame Slash the Arbiter first so a sorcery reaches the graveyard and Goyf is 3/4, then Fling it for 3; Fling first deals 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flame Slash;Fling
+p0battlefield=Tarmogoyf
+p0graveyard=Grizzly Bears;Mountain
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Pay for the second combat
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Hellkite Charger (5/5 flying haste; whenever it attacks, you may pay {5}{R}{R} to untap all attacking creatures and get an additional combat phase) and seven untapped Mountains. The opponent is at 10 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-additional-combat-phase | An additional combat phase has its own declare attackers step, and untapped creatures may attack again (CR 500.8, 506.1): pay the seven Mountains when the Charger attacks, deal 5, then attack again for 5; the Mountains' mana can be produced when the trigger resolves, since lands keep their mana until tapped (CR 106.4)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Hellkite Charger;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=10
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
