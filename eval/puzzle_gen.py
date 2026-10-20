@@ -121,6 +121,9 @@ def ping_board(rng):
             solution.append("opponent")
         elif kind == "creature" and len(creatures) > 1:
             solution.append(growth_on or "Thermo-Alchemist")
+        if kiln:
+            # Two triggers at once are put in order by the seat (red_062a1ef04a5d): either order is the same here.
+            solution.append("; ".join(["Thermo-Alchemist"] * alchemists + ["Kiln Fiend"]))
     solution += ["activate Thermo-Alchemist"] * alchemists
     if attackers:
         solution.append("; ".join(attackers))
@@ -318,7 +321,223 @@ def splice_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
 
 
-FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board}
+# The red engine: (generic, red, mana added, damage, arcane, target, splice (generic, red) or None, splice mana,
+# splice damage). Special cards are handled by name: Rite of Flame (+1 per Rite in the graveyard), Grapeshot (one
+# more copy per spell before it), Fireblast (two Mountains instead of mana), Lava Dart (flashback: a Mountain).
+RED = {
+    "Desperate Ritual": (1, 1, 3, 0, True, "none", (1, 1), 3, 0),
+    "Pyretic Ritual": (1, 1, 3, 0, False, "none", None, 0, 0),
+    "Rite of Flame": (0, 1, 2, 0, False, "none", None, 0, 0),
+    "Seething Song": (2, 1, 5, 0, False, "none", None, 0, 0),
+    "Lightning Bolt": (0, 1, 0, 3, False, "any", None, 0, 0),
+    "Shock": (0, 1, 0, 2, False, "any", None, 0, 0),
+    "Lava Spike": (0, 1, 0, 3, True, "player", None, 0, 0),
+    "Glacial Ray": (1, 1, 0, 2, True, "any", (1, 1), 0, 2),
+    "Grapeshot": (1, 1, 0, 1, False, "any", None, 0, 0),
+    "Fireblast": (0, 0, 0, 4, False, "any", None, 0, 0),
+    "Lava Dart": (0, 1, 0, 1, False, "any", None, 0, 0),
+    "Gitaxian Probe": (0, 0, 0, 0, False, "player", None, 0, 0),
+}
+
+
+def red_search(hand, mountains, alchemist, reducer, splice=True):
+    """The most damage the hand can deal and one line that deals it, by exhaustive search. Mana is all red and is
+    paid from the pool first, then from untapped Mountains; a Mountain is sacrificed (Fireblast, Lava Dart's
+    flashback) only once every Mountain is tapped, so no mana is lost to it; Goblin Electromancer takes {1} off each
+    spell. Line items: "ping", ("cast", card, splices) or ("flashback", "Lava Dart"). Returns (damage, steps, line)
+    without the attack, plus the number of instants and sorceries cast (for Kiln Fiend)."""
+    from functools import lru_cache
+
+    def better(a, b):
+        return a if (a[0], -a[1]) >= (b[0], -b[1]) else b
+
+    @lru_cache(maxsize=None)
+    def go(hand, darts, rites, pool, untapped, mtns, alch, storm):
+        best = (0, 0, (), 0)
+        if alch:
+            d, st, ln, n = go(hand, darts, rites, pool, untapped, mtns, False, storm)
+            best = better((d + 1, st + 1, ("ping",) + ln, n), best)
+        moves = [("cast", c) for c in sorted(set(hand))] + ([("flashback", "Lava Dart")] if darts else [])
+        for kind, c in moves:
+            g, r, add, dmg, arcane, _, _, _, _ = RED[c]
+            rest = list(hand)
+            if kind == "cast":
+                rest.remove(c)
+            sac = 0
+            if c == "Fireblast":
+                sac, g, r = 2, 0, 0
+            if kind == "flashback":
+                sac, g, r = 1, 0, 0
+            if sac and (untapped or mtns < sac):
+                continue
+            options = [()]
+            if arcane and splice:
+                sp = sorted(set(x for x in rest if RED[x][6]))
+                options = [tuple(x for j, x in enumerate(sp) if m >> j & 1) for m in range(1 << len(sp))]
+            for chosen in options:
+                cg = g + sum(RED[x][6][0] for x in chosen)
+                cr = r + sum(RED[x][6][1] for x in chosen)
+                if reducer and sac == 0 and c != "Gitaxian Probe":
+                    cg = max(0, cg - 1)
+                cost = cg + cr
+                if cost > pool + untapped:
+                    continue
+                from_pool = min(pool, cost)
+                npool, nun = pool - from_pool, untapped - (cost - from_pool)
+                gain = add + sum(RED[x][7] for x in chosen)
+                hit = dmg + sum(RED[x][8] for x in chosen)
+                nrites = rites
+                if c == "Rite of Flame":
+                    gain += rites
+                    nrites += 1
+                if c == "Grapeshot":
+                    hit += storm
+                ndarts = darts + (1 if c == "Lava Dart" and kind == "cast" else 0) - (1 if kind == "flashback" else 0)
+                d, st, ln, n = go(tuple(sorted(rest)), ndarts, nrites, npool + gain, nun, mtns - sac, bool(alchemist),
+                                  storm + 1)
+                best = better((d + hit, st + 1, ((kind, c, chosen),) + ln, n + 1), best)
+        return best
+    return go(tuple(sorted(hand)), 0, 0, 0, mountains, mountains, bool(alchemist), 0)
+
+
+def red_naive(hand, mountains, alchemist, reducer):
+    """A plain player: ping whenever it can, cast the affordable spell that deals the most now (rituals when
+    nothing else is affordable), never splice, Grapeshot only as the last spell, Fireblast and Lava Dart's
+    flashback once the Mountains are tapped."""
+    hand, pool, untapped, mtns, dmg, storm, darts, rites, casts = list(hand), 0, mountains, mountains, 0, 0, 0, 0, 0
+    alch = bool(alchemist)
+    while True:
+        if alch:
+            dmg, alch = dmg + 1, False
+            continue
+        choices = []
+        for c in set(hand) | ({"Lava Dart*"} if darts else set()):
+            name = c.rstrip("*")
+            g, r, add, d = RED[name][:4]
+            sac = 2 if name == "Fireblast" else 1 if c.endswith("*") else 0
+            if sac:
+                g = r = 0
+            if reducer and not sac and name != "Gitaxian Probe":
+                g = max(0, g - 1)
+            if sac and (untapped or mtns < sac):
+                continue
+            if g + r > pool + untapped:
+                continue
+            if name == "Grapeshot" and len(hand) > 1:
+                continue
+            choices.append((d + (storm if name == "Grapeshot" else 0), add, c, g + r, sac))
+        if not choices:
+            return dmg, casts
+        d, add, c, cost, sac = max(choices)
+        name = c.rstrip("*")
+        if c.endswith("*"):
+            darts -= 1
+        else:
+            hand.remove(c)
+            darts += name == "Lava Dart"
+        from_pool = min(pool, cost)
+        pool, untapped = pool - from_pool, untapped - (cost - from_pool)
+        if name == "Rite of Flame":
+            add += rites
+            rites += 1
+        pool += add
+        mtns -= sac
+        dmg += d
+        storm += 1
+        casts += 1
+        alch = bool(alchemist)
+
+
+def red_board(rng):
+    """The red engine: rituals, burn, Grapeshot, Fireblast, Lava Dart's flashback and the two splices, with
+    Thermo-Alchemist pinging, Goblin Electromancer reducing and Kiln Fiend attacking. The line is the searched best;
+    a board is kept only when a plain player (red_naive) falls short of it, so the board hides something."""
+    mountains = rng.choice([1, 2, 2, 3])
+    alchemist = rng.random() < 0.6
+    reducer = rng.random() < 0.3
+    kiln = rng.random() < 0.3
+    pool = sorted(RED)
+    hand = [rng.choice(pool) for _ in range(rng.choice([5, 6, 6, 7]))]
+    if len(set(hand)) < 4:
+        return None
+    dmg, steps, line, casts = red_search(hand, mountains, alchemist, reducer)
+    attackers = (["Kiln Fiend"] if kiln else []) + (["Goblin Electromancer"] if reducer else [])
+    attack = (1 + 3 * casts if kiln else 0) + (2 if reducer else 0)
+    naive, naive_casts = red_naive(hand, mountains, alchemist, reducer)
+    naive += (1 + 3 * naive_casts if kiln else 0) + (2 if reducer else 0)
+    total = dmg + attack
+    steps += 1 if attackers else 0
+    if naive >= total or not MIN_ACTIONS <= steps <= MAX_ACTIONS:
+        return None
+    solution = ["# steps: %d" % steps]
+    held, pool_m, untapped, mtns, storm = list(hand), 0, mountains, mountains, 0
+    for item in line:
+        if item == "ping":
+            solution.append("activate Thermo-Alchemist")
+            continue
+        kind, c, chosen = item
+        g, r = RED[c][0], RED[c][1]
+        if c == "Fireblast" or kind == "flashback":
+            g = r = 0
+        if kind == "cast":
+            held.remove(c)
+        solution.append("cast " + c)
+        tgt = RED[c][5]
+        if tgt in ("any", "player"):
+            solution.append("opponent")
+        free = pool_m + untapped - max(0, g - (1 if reducer and c != "Gitaxian Probe" and g else 0)) - r
+        offered = [x for x in set(held) if RED[x][4] is not None and RED[x][6]
+                   and sum(RED[x][6]) <= free] if RED[c][4] else []
+        if offered:
+            solution.append("; ".join(chosen) if chosen else "none")
+            if chosen:
+                solution += ["opponent"] * ((tgt in ("any", "player")) + sum(RED[x][5] == "any" for x in chosen))
+        if c == "Fireblast" and mtns > 2:
+            solution.append("Mountain; Mountain")
+        if kind == "flashback" and mtns > 1:
+            solution.append("Mountain")
+        # Two or more of the seat's triggers at once are ordered by the seat: Thermo-Alchemist's untap, Kiln Fiend's
+        # pump, Grapeshot's storm (red_062a1ef04a5d). Any order deals the same here.
+        triggers = (["Thermo-Alchemist"] if alchemist else []) + (["Kiln Fiend"] if kiln else []) \
+            + (["Grapeshot"] if c == "Grapeshot" else [])
+        if len(triggers) > 1:
+            solution.append("; ".join(triggers))
+        if c == "Grapeshot":
+            solution += ["opponent"] * storm
+        # track mana the way the search pays it
+        cg = g + sum(RED[x][6][0] for x in chosen)
+        cr = r + sum(RED[x][6][1] for x in chosen)
+        if reducer and c != "Gitaxian Probe" and not (c == "Fireblast" or kind == "flashback"):
+            cg = max(0, cg - 1)
+        cost = cg + cr
+        from_pool = min(pool_m, cost)
+        pool_m, untapped = pool_m - from_pool, untapped - (cost - from_pool)
+        pool_m += RED[c][2] + sum(RED[x][7] for x in chosen)
+        if c == "Rite of Flame":
+            pool_m += sum(1 for s_ in solution if s_ == "cast Rite of Flame") - 1
+        mtns -= 2 if c == "Fireblast" else 1 if kind == "flashback" else 0
+        storm += 1
+    if attackers:
+        solution.append("; ".join(attackers))
+    creatures = (["Thermo-Alchemist"] if alchemist else []) + attackers
+    battlefield = creatures + ["Mountain"] * mountains
+    phase = "MAIN1" if attackers else "MAIN2"
+    rng.shuffle(hand)
+    desc = ("It is your %s main phase. You are at 20 life and control %s%s untapped Mountain%s. Your hand is %s. "
+            "The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
+            % ("first" if attackers else "second", (_join(creatures) + " and ") if creatures else "",
+               ["", "one", "two", "three"][mountains], "" if mountains == 1 else "s", _join(hand), total))
+    rule = "generated-red | the searched best line deals %d; a plain player deals %d" % (total, naive)
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", phase), ("p0life", 20),
+             ("p0hand", ";".join(hand)), ("p0battlefield", ";".join(battlefield)),
+             ("p0library", "Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw"),
+             ("p1life", total), ("p1library", "Plains;Plains;Plains")]
+    return {"family": "red", "actions": steps, "life": total, "naive": naive, "hand": sorted(hand),
+            "battlefield": sorted(battlefield), "phase": phase,
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "red": red_board}
 
 
 def board_key(b):
