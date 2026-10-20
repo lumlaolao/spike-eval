@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 447 - Threshold from the Looting
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Werebear (1/1; threshold: +3/+3 with seven or more cards in your graveyard). Six cards are in your graveyard, and you have Faithless Looting in hand with one red mana floating. Your library is all Colossal Dreadmaws. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-threshold-count-graveyard | Threshold is a static check of the graveyard count (CR 207.2c): Looting itself and its two discards bring the graveyard to nine and Werebear attacks as a 4/4; tapping it for mana would keep it home
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Faithless Looting
+p0graveyard=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p0battlefield=Werebear
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

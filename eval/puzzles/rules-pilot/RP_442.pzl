@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 442 - Amass grows the Army you have
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control a Zombie Army token with one +1/+1 counter and have Callous Dismissal (return target nonland permanent to its owner's hand; amass Zombies 1) in hand with two blue mana floating. The opponent is at 2 life and controls an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-amass-existing-army | Amass puts the counters on an Army you already control and creates a new one only if you have none (CR 701.47a): bounce the Wall and the Army you have grows to 2/2 and attacks for 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Callous Dismissal
+p0battlefield=T:b_0_0_zombie_army|Counters:P1P1=1
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
