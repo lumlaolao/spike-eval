@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Burn your own Spitemare
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Spitemare (3/3) and have Flame Slash in hand, with one red mana floating. The opponent is at 4 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-dealt-damage-trigger-overkill | Spitemare's trigger copies the full damage dealt to it, not the damage needed to kill it, and resolves after it has died using its last-known information (CR 603.2, 608.2h): Flame Slash your own Spitemare for 4 and it deals 4 to the opponent; Flame Slash can't hit a player, and the 1/5 Arbiter doesn't help
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flame Slash
+p0battlefield=Spitemare
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

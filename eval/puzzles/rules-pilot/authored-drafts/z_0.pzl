@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Sacrificed before prowess sees the spell
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Monastery Swiftspear and have Shock and Fling in hand, with three red mana floating. The opponent is at 4 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-sacrifice-cost-no-prowess | Fling's sacrifice is a cost paid before Fling becomes cast (CR 601.2h-i), so the sacrificed Swiftspear is gone when the prowess trigger would trigger, and Fling uses its power as it last existed (CR 608.2h): Shock the opponent first (prowess makes Swiftspear 2/3), then Fling it for 2; Fling first deals only 1, then Shock 2, leaving the opponent at 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock;Fling
+p0battlefield=Monastery Swiftspear
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

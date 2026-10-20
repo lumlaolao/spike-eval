@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The Clone copies the mana cost
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Gray Merchant of Asphodel and have Clone in hand, with four blue mana floating. The opponent is at 4 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-copy-mana-cost-devotion | A copy takes the copied object's mana cost (CR 707.2), and devotion counts the mana symbols in the mana costs of permanents you control (CR 700.5): Clone entering as Gray Merchant has {3}{B}{B}, so its own enters trigger counts devotion 4 (both Merchants) and drains 4; Clone copying the Arbiter does nothing, and the first Merchant alone counted only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Clone
+p0battlefield=Gray Merchant of Asphodel
+p0manapool=U U U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

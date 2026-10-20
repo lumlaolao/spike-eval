@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The copy steals the other Giant
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control no creatures and have Act of Treason and Twincast in hand, with three red and two blue mana floating. The opponent is at 6 life and controls two untapped Hill Giants. Reduce the opponent to 0 life this turn.
+Rule:authored-copy-new-targets | A copy of a spell may be given new targets when the copying effect says so (CR 707.10c): cast Act of Treason on one Hill Giant, Twincast it and point the copy at the other Giant, then attack with both for 6 and nothing left to block; a copy keeping the original target steals only one Giant, and the other blocks
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Act of Treason;Twincast
+p0manapool=R R R U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Hill Giant;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

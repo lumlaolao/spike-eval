@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The copied Fling needs no sacrifice
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Hill Giant (3/3) and have Fling and Twincast in hand, with two red and two blue mana floating. The opponent is at 6 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-copy-uses-paid-cost | A copy of a spell copies the choices and costs paid for the original (CR 707.10): Fling the Hill Giant and Twincast the Fling, and the copy also deals damage equal to the sacrificed Giant's power, 3 + 3; Fling alone deals 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling;Twincast
+p0battlefield=Hill Giant
+p0manapool=R R U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - X can be zero
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your second main phase. You control Blood Artist and have Endless One and Walking Ballista in hand, with no mana available. The opponent is at 2 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-x-zero-dies | A spell with {X} in its cost may be cast with X = 0 (CR 107.3, 601.2b): Endless One and Walking Ballista cost nothing that way and enter with no counters as 0/0s, which die as a state-based action (CR 704.5f); each death triggers Blood Artist, draining 1 twice
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Endless One;Walking Ballista
+p0battlefield=Blood Artist
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

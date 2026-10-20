@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Channel, don't play
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Sokenzan, Crucible of Defiance in hand with four red mana floating and control no permanents. You have not played a land this turn. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-channel-not-land | Channel is an activated ability that works from your hand (CR 602.1, 113.6), not a land play: discard Sokenzan for {3}{R} to make two 1/1 Spirits that gain haste and attack for 2; played as a land it only taps for one red mana
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Sokenzan, Crucible of Defiance
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

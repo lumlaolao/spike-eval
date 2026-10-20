@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Burn first, then fly in
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Chandra's Spitfire (1/3 flying) and have Shock in hand with one red mana floating (it empties when the phase ends). The opponent is at 6 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-noncombat-damage-pump-order | Chandra's Spitfire gets +3/+0 until end of turn whenever an opponent is dealt noncombat damage, not combat damage (CR 603.2, 510.2): Shock the opponent before combat (2) and the 4/3 Spitfire attacks for 4; attacking first deals 1 and the floating mana is gone by then (CR 106.4)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock
+p0battlefield=Chandra's Spitfire
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

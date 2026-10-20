@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Stifle your own Dreadnought
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Fervor (creatures you control have haste) and have Phyrexian Dreadnought and Stifle in hand, with two blue mana floating. You control no other creatures. The opponent is at 12 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-counter-own-trigger | Phyrexian Dreadnought's sacrifice is an enters triggered ability, and Stifle counters a triggered ability (CR 603.2, 701.6b): cast the Dreadnought, Stifle its own trigger and it stays, then attack with the hasty 12/12 trampler; without Stifle the trigger makes you sacrifice it since you have no other creatures to sacrifice
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Phyrexian Dreadnought;Stifle
+p0battlefield=Fervor
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=12
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

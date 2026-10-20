@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Empty your hand for double strike
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Rakdos Pit Dragon (3/3; {R}: +1/+0; hellbent - double strike while you have no cards in hand) and have Shock in hand with one red mana floating. The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-hellbent-static | Hellbent is a static condition checked continuously (CR 604.2, 702.4): Shock the opponent (2) to empty your hand, and the Dragon has double strike when combat damage is dealt, 3 + 3; spending the mana on firebreathing instead keeps Shock in hand and deals only 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock
+p0battlefield=Rakdos Pit Dragon
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

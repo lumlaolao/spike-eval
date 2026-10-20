@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Repay first, then Shock
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You are at 2 life. You have Repay in Kind and Shock in hand, with two black and six red mana floating. The opponent is at 20 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-life-total-becomes-order | A "life total becomes N" effect makes the player gain or lose the difference (CR 119.5): Repay in Kind first sets the opponent to your 2 life, then Shock finishes them; Shock first only takes them to 18 before Repay sets both players to 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=2
+p0hand=Repay in Kind;Shock
+p0manapool=B B R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
