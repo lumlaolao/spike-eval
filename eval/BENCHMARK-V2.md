@@ -93,6 +93,10 @@ not occur"); hidden information (play around an unknown card; acceptance by expe
 
 ## 5. Where the hard puzzles come from
 
+**The detailed plan for puzzles of 10 to 15 actions, found online and built by us, is
+[HARD-PUZZLES.md](HARD-PUZZLES.md)** (the bar and its checks, the sources, the generator families, the gate
+work the prover needs first). The table below is the summary.
+
 | Source | How | Yield expected | Cost |
 |---|---|---|---|
 | Forge built-ins (282 Possibility Storm, 49 PC, 29 PP, 8 MTGP) | baselines running now (`forge-mine-e67`); then the prover at budget 3000+ on the unsolved, with two prover improvements below | tens of T3 puzzles; v1's prove-v1 got 9 of 34 at budget 1500 | free, CPU-bound |
