@@ -17,7 +17,7 @@ tools off and on, to see whether the rules lookup changes the solve rate.
   (3163 rules, 741 terms, effective September 25, 2026)`.
 - Results: `results/off/` and `results/on/` here (each puzzle's `puzzle-results.jsonl` and `batch-manifest.json`);
   the game JSONL was in `runs/puzzles/bench-v1/` (git-ignored). Tool counts: `tool-use.txt`, written by
-  `python3 eval/puzzles/rules-pilot/benchmark-v1/tool_use.py runs/puzzles/bench-v1`.
+  `python3 eval/puzzle_tool_use.py runs/puzzles/bench-v1`.
 
 ## Results
 
@@ -61,7 +61,7 @@ harness-epoch-67 (PR #273) tells a rules puzzle's solver only its author's descr
 outlives its source"), Difficulty and "Goal: Survive" lines are gone; each result row's `goal_oracle` shows the
 brief the seat got. Everything else is as above: same suite, model, k=5, seeds 1-5, `-j 2` a condition, both at
 once, isolated build `runs/puzzles/builds/e67`. Results: `results-e67/off/` and `results-e67/on/`; game JSONL in
-`runs/puzzles/bench-v1-e67/` (git-ignored); tool counts `tool-use-e67.txt`.
+`runs/puzzles/bench-v1-e67/` (git-ignored); tool counts `tool-use-e67.txt` (`eval/puzzle_tool_use.py`).
 
 | | Off, epoch 66 | Off, epoch 67 | On, epoch 66 | On, epoch 67 |
 |---|---|---|---|---|
@@ -74,7 +74,9 @@ once, isolated build `runs/puzzles/builds/e67`. Results: `results-e67/off/` and 
 | cost | $0.18 | $0.17 | $0.20 | $0.20 |
 
 Paired by puzzle (10,000 bootstrap resamples of the 29 puzzles, 95% interval), change in pass@1; written by
-`python3 eval/puzzles/rules-pilot/benchmark-v1/paired.py eval/puzzles/rules-pilot/benchmark-v1`:
+`puzzle_score.py --paired-with` (puzzle ids sorted, seed 7; the last row with `--against`), for example, from the
+repository root with `D=eval/puzzles/rules-pilot/benchmark-v1`, `python3 eval/puzzle_score.py --suite
+eval/suites/puzzles-rules-sample-v1.json --split open --k 5 $D/results/off --paired-with $D/results-e67/off`:
 
 | comparison | mean | interval |
 |---|---|---|

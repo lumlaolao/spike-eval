@@ -18,7 +18,7 @@ a new one is agreed, so the next session can pick up from it.
    without). That comparison is the point of the benchmark. Steps:
    - the sample: `eval/puzzles/rules-pilot/benchmark-sample-v1.tsv` (36 open-split puzzles, seed 2026);
    - free baselines on it (`eval/puzzle_baselines.py run --ids ...`), then freeze it as a suite;
-   - the paid run (`eval/puzzle_solve.py ... --k 5 --budget-usd X`, with and without `--rules-tool`): state the
+   - the paid run (`eval/puzzle_solve.py ... --k 5 --budget-usd X`, with and without `--memory-tools --rules-tool`): state the
      cost first; the owner sets `OPENROUTER_ALLOW_EGRESS=1`.
 
 **Proposed next (2026-10-20, awaiting the owner): [BENCHMARK-V2.md](BENCHMARK-V2.md).** Sample v1

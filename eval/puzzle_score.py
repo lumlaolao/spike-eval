@@ -280,6 +280,41 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     }
 
 
+def clustered_ci(values):
+    """The normal-approximation 95% interval of a mean over puzzles, attempts clustered within each puzzle
+    (Miller 2024: the standard error of the per-puzzle means). None for fewer than two puzzles."""
+    n = len(values)
+    if n < 2:
+        return None
+    m = sum(values) / n
+    se = (sum((v - m) ** 2 for v in values) / (n - 1)) ** 0.5 / n ** 0.5
+    return [m - 1.96 * se, m + 1.96 * se]
+
+
+def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
+    """B minus A, puzzle by puzzle: the mean per-puzzle pass@1 difference, its bootstrap interval over puzzles (ids
+    sorted, so the resample does not depend on the order results were read) and its clustered interval. With
+    base=(C, D), the difference of differences (B - A) - (D - C). Refuses runs of other puzzles, suites or k."""
+    reps = [rep_a, rep_b] + list(base or ())
+    first = reps[0]
+    for r in reps[1:]:
+        for key in ("suite_sha256", "split"):
+            if r.get(key) != first.get(key):
+                raise Refused("paired runs differ in %s (%s vs %s)" % (key, first.get(key), r.get(key)))
+        if r["aggregate"]["k"] != first["aggregate"]["k"]:
+            raise Refused("paired runs differ in k")
+    rates = [{p["id"]: p["pass@1"] for p in r["puzzles"]} for r in reps]
+    if any(set(x) != set(rates[0]) for x in rates):
+        raise Refused("paired runs cover different puzzles")
+    ids = sorted(rates[0])
+    diffs = [rates[1][p] - rates[0][p] for p in ids]
+    if base:
+        diffs = [d - (rates[3][p] - rates[2][p]) for d, p in zip(diffs, ids)]
+    return {"n_puzzles": len(ids), "mean": _mean(diffs), "ci95": bootstrap_ci(diffs, _mean, n_boot, seed),
+            "ci95_clustered": clustered_ci(diffs), "solvers": [r.get("solver") for r in reps],
+            "difference_of_differences": bool(base)}
+
+
 def _fmt(x):
     return "-" if x is None else ("%.3f" % x if isinstance(x, float) else str(x))
 
@@ -327,6 +362,10 @@ def main(argv=None):
     ap.add_argument("--json", default=None, help="write the full report here")
     ap.add_argument("--ids", default=None,
                     help="score only these puzzle ids (comma-separated): a PILOT that proves the chain, not a score")
+    ap.add_argument("--paired-with", nargs="+", default=None, metavar="RESULTS",
+                    help="also score these results (same suite, split, k) and print B minus A, puzzle by puzzle")
+    ap.add_argument("--against", nargs=2, default=None, metavar=("C", "D"),
+                    help="with --paired-with: the difference of differences (B - A) - (D - C); C and D are dirs")
     ap.add_argument("results", nargs="+")
     a = ap.parse_args(argv)
     if a.k < 1:
@@ -342,6 +381,18 @@ def main(argv=None):
         print("REFUSED: %s" % e, file=sys.stderr)
         return 2
     print(render(rep))
+    if a.paired_with:
+        try:
+            other = lambda paths: score(manifest, load_rows(paths), a.split, a.k, a.solver, a.bootstrap, a.seed, ids)  # noqa: E731
+            base = (other([a.against[0]]), other([a.against[1]])) if a.against else None
+            rep["paired"] = paired(rep, other(a.paired_with), base, n_boot=10000, seed=7)
+        except Refused as e:
+            print("REFUSED: %s" % e, file=sys.stderr)
+            return 2
+        c = rep["paired"]
+        print("  paired %-30s %+.3f  95%% CI %s  clustered %s  (%d puzzles, ids sorted, 10000 resamples, seed 7)"
+              % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", c["mean"] + 0.0, _ci(c["ci95"]),
+                 _ci(c["ci95_clustered"]), c["n_puzzles"]))
     if a.json:
         Path(a.json).write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

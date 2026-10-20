@@ -191,6 +191,11 @@ puzzle a coin flip solves earns almost nothing. Every aggregate is printed with:
 - per tier, the solved count beside the count each trivial arm would be expected to solve;
 - where the AI baseline exists, a normalized score (random = 0, Forge AI = 1).
 
+Two runs on the same puzzles (two solvers, or two conditions) are compared puzzle by puzzle with
+`--paired-with RESULTS`: the mean per-puzzle pass@1 difference, its bootstrap interval over puzzles (ids sorted,
+seed 7) and its clustered interval. `--against C D` gives the difference of differences, (B - A) - (D - C).
+Runs of other puzzles, suites, splits or k are refused. Lookups per condition: `eval/puzzle_tool_use.py`.
+
 `puzzle_score.py` refuses (exit 2) to:
 - pool the open and held-out splits;
 - score an unfrozen or edited suite;
