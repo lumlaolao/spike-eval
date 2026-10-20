@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 436 - Dryad Arbor is summoning sick
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Grizzly Bears and have Dryad Arbor, a Forest and Giant Growth in hand; you have not played a land this turn and have no mana. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-land-creature-summoning-sick | Dryad Arbor is a land creature, so it is summoning sick the turn it comes under your control and can't use its {T} mana ability (CR 302.6, 305.9): play the Forest instead, tap it for Giant Growth and the 5/5 Bears attack for 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Dryad Arbor;Forest;Giant Growth
+p0battlefield=Grizzly Bears
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
