@@ -6,10 +6,11 @@
   python3 eval/demo_server.py --live runs/demo/live                      # tail the newest game-*.jsonl there
 
 Then open http://127.0.0.1:8765/. Stdlib only, no engine: replay needs only the JSONL (and the console log beside it
-for the [TALLY] line). The one outbound request is a card image missing from the cache (demo_cards.py; none with
---offline, after `python3 eval/demo_cards.py prefetch <run>`). A live pane re-reads its file on every request, so the
-page follows a game a JVM is writing (EVAL_OUT rows are autoflushed per line). The server never writes anything and
-never talks to the JVM, so it cannot change what the seat sees or decides.
+for the [TALLY] line). Card images come from the demo_cards.py cache (filled by `python3 eval/demo_cards.py prefetch
+<run>`); only with --fetch-images does the server send a missing card's name to api.scryfall.com and write the image
+into that cache. A live pane re-reads its file on every request, so the
+page follows a game a JVM is writing (EVAL_OUT rows are autoflushed per line). The server never writes into a run
+and never talks to the JVM, so it cannot change what the seat sees or decides.
 
 What it cannot show: what the JSONL does not hold (the system prompt, the opponent's hidden hand, library order).
 """
@@ -129,7 +130,8 @@ class Handler(BaseHTTPRequestHandler):
         if parts[0] == "card" and len(parts) == 2:
             p = self.cards.get(unquote(parts[1])) if self.cards else None
             if not p:
-                return self._send(404, {"error": "no image"})
+                # Cacheable: the page re-renders on every live event and must not ask again for a token's image.
+                return self._send(404, {"error": "no image"}, cache=True)
             with open(p, "rb") as f:
                 return self._send(200, f.read(), "image/jpeg", cache=True)
         if parts[0] != "api":
@@ -162,10 +164,11 @@ class Handler(BaseHTTPRequestHandler):
                    and time.time() < deadline):
                 time.sleep(0.25)
                 pane.refresh()
-            return self._send(200, {"from": start, "gen": pane.gen, "jsonl": pane.reader.path if pane.reader else None,
-                                    "events": pane.events[start:], "total": len(pane.events),
-                                    "done": pane.done, "live": pane.live, "age_ms": pane.age_ms(),
-                                    "waiting_for_file": pane.reader is None})
+            with pane.lock:  # one generation's events: a file switch between reads would mix two games
+                body = {"from": start, "gen": pane.gen, "jsonl": pane.reader.path if pane.reader else None,
+                        "events": pane.events[start:], "total": len(pane.events), "done": pane.done,
+                        "live": pane.live, "age_ms": pane.age_ms(), "waiting_for_file": pane.reader is None}
+            return self._send(200, body)
         return self._send(404, {"error": "unknown endpoint"})
 
     def _static(self, rel):
@@ -188,7 +191,8 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--image-cache", default=demo_cards.DEFAULT_CACHE, help="card images (demo_cards.py prefetch fills it)")
-    ap.add_argument("--offline", action="store_true", help="serve cached card images only; never fetch a miss")
+    ap.add_argument("--fetch-images", action="store_true",
+                    help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
     a = ap.parse_args(argv)
     panes = [Pane(p) for p in a.game] + [Pane(p, live=True) for p in a.live]
     if not panes:
@@ -196,7 +200,7 @@ def main(argv=None):
     for p in panes:
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
-    srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=a.offline))
+    srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images))
     print("DEMO http://%s:%d/  (%s)" % (a.host, srv.server_address[1], ", ".join(p.path for p in panes)), flush=True)
     try:
         srv.serve_forever()

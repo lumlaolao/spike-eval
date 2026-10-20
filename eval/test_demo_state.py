@@ -126,7 +126,7 @@ class OlderGrammarTest(unittest.TestCase):
         st = ds.parse_prompt(decision("tournament-2026-07-play.jsonl")["prompt"])
         self.assertEqual(st["header"]["turn"], 8)
         you, opp = st["players"]
-        self.assertEqual(you["name"], "deepseek-v4-pro")
+        self.assertEqual(you["name"], decision("tournament-2026-07-play.jsonl")["seat"])
         self.assertEqual(you["counters"]["life"], 19)
         board = [(o["name"], o["pt"], o["tags"]) for o in you["zones"]["board"]]
         self.assertIn(("Noble Hierarch", "0/1", ["tapped"]), board)

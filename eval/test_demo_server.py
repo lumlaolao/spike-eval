@@ -18,8 +18,8 @@ import demo_server as srv
 FIX = os.path.join(HERE, "testdata", "demo")
 
 
-def serve(panes):
-    s = srv.make_server(panes, port=0)
+def serve(panes, cards=None):
+    s = srv.make_server(panes, port=0, cards=cards)
     threading.Thread(target=s.serve_forever, daemon=True).start()
     return s, "http://127.0.0.1:%d" % s.server_address[1]
 
@@ -83,11 +83,26 @@ class ReplayTest(unittest.TestCase):
         self.assertEqual(cm.exception.code, 400)
 
     def test_a_card_image_comes_from_the_cache_and_a_miss_is_404(self):
-        _, games = get(self.url + "/api/games")
-        self.assertEqual(games[0]["path"], self.dir)
-        with self.assertRaises(urllib.error.HTTPError) as cm:
-            get(self.url + "/card/Black%20Lotus")
-        self.assertEqual(cm.exception.code, 404)  # this server has no image cache
+        asked = []
+
+        def fake(name):
+            asked.append(name)
+            return None if "Token" in name else b"\xff\xd8" + name.encode()
+        cache_dir = tempfile.mkdtemp()
+        try:
+            server, url = serve([srv.Pane(self.dir)], cards=srv.demo_cards.Cache(cache_dir, fetch=fake))
+            with urllib.request.urlopen(url + "/card/Fire%20%2F%2F%20Ice", timeout=10) as r:
+                self.assertEqual((r.status, r.headers["Content-Type"]), (200, "image/jpeg"))
+                self.assertEqual(r.read(), b"\xff\xd8Fire // Ice")
+            for _ in range(2):
+                with self.assertRaises(urllib.error.HTTPError) as cm:
+                    get(url + "/card/Construct%20Token")
+                self.assertEqual(cm.exception.code, 404)
+            self.assertEqual(asked, ["Fire // Ice", "Construct Token"])  # a miss is asked for once
+            server.shutdown()
+            server.server_close()
+        finally:
+            shutil.rmtree(cache_dir)
 
 
 class LiveTest(unittest.TestCase):

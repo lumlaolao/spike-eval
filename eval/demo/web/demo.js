@@ -48,7 +48,11 @@ class Pane {
     if (this.info.live) this.tail();
   }
   absorb(r) {
-    if (this.gen !== null && r.gen !== this.gen) { this.events = []; this.cur = 0; this.gen = r.gen; return false; }
+    if (this.gen !== null && r.gen !== this.gen) {
+      // A newer game replaced this one: forget its events and its summary (header, tally, cost) too.
+      this.events = []; this.cur = 0; this.gen = r.gen; this.info.summary = null; this.refreshSummary();
+      return false;
+    }
     this.gen = r.gen;
     const atEnd = this.cur >= this.decisions.length - 1;
     this.events.push(...r.events);

@@ -3,13 +3,15 @@
 A browser viewer for one game, recorded or running: both players' zones as the seat's prompt showed them, every
 decision with what the model was asked, what it looked up, what it planned, the reasoning its provider returned,
 what it answered, and the game objects it named. It reads the game's `EVAL_OUT` JSONL and nothing else, so it needs no
-engine, no model and no network, and it cannot change what the seat sees or decides.
+engine and no model, and it cannot change what the seat sees or decides. Card images come from a local cache that
+`demo_cards.py prefetch` fills once from Scryfall; the server itself sends nothing out unless started with
+`--fetch-images`, which sends each missing card's name to api.scryfall.com.
 
 ## Replay a recorded game (free, offline)
 
 ```bash
 python3 eval/demo_cards.py prefetch runs/loop/g33       # once, with network: cache the card images it shows
-python3 eval/demo_server.py --game runs/loop/g33 --offline   # a run directory or a game-*.jsonl
+python3 eval/demo_server.py --game runs/loop/g33        # a run directory or a game-*.jsonl
 # open http://127.0.0.1:8765/   (#d=37 opens decision 37; the URL follows the cursor, so a moment can be bookmarked)
 ```
 

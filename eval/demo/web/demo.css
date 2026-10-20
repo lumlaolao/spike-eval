@@ -92,8 +92,10 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--code); pa
 .card.hl-planned { outline: 2px solid var(--planned); }
 .card.hl-looked { outline: 2px solid var(--looked); }
 .card.hl-mentioned { outline: 2px dashed var(--mentioned); }
-.card.hl-engine { box-shadow: 0 0 0 2px var(--engine) inset; }
-.card .badge { position: absolute; top: -8px; right: -6px; font-size: 9px; padding: 0 4px; border-radius: 4px;
+/* Drawn above the card image (an inset shadow would be painted under it). */
+.card.hl-engine::after { content: ""; position: absolute; inset: 0; border: 2px solid var(--engine); border-radius: 6px;
+  pointer-events: none; z-index: 1; }
+.card .badge { z-index: 2; position: absolute; top: -8px; right: -6px; font-size: 9px; padding: 0 4px; border-radius: 4px;
   color: #fff; background: var(--muted); }
 .card.hl-chosen .badge { background: var(--chosen); }
 .card.hl-planned .badge { background: var(--planned); }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Turn one game's EVAL_OUT JSONL into the event list the demo viewer plays: one event per decision with the model
-calls, tool requests, provider reasoning and answer that produced it, plus collapsed runs of passed priority windows
+calls, tool requests, provider reasoning and answer that produced it, one per priority window passed without asking,
 and the game summary.
 
 Joining: decision rows carry no call id. The harness writes every `context_call` / `context_tool` row of an ask
@@ -218,14 +218,21 @@ def _last_row(path):
         return None
 
 
+def _started(name):
+    m = re.match(r"game-\d+-(\d+)\.jsonl$", name)
+    return int(m.group(1)) if m else 0
+
+
 def find_game(path):
     """A run directory or a .jsonl -> (jsonl path, console log path or None). The newest game-*.jsonl in a directory.
 
     run_batch.py names the console log game-<seed>-<0|1>.log by seat swap: the game row's `swap` picks it (as
     match_review does); before the game row exists, the log written closest in time to the jsonl."""
     if os.path.isdir(path):
+        # Newest by the start time in the name (game-<seed>-<epoch ms>.jsonl), not by the last write: two games
+        # written at once would otherwise swap places on every write.
         files = sorted((f for f in os.listdir(path) if f.startswith("game-") and f.endswith(".jsonl")),
-                       key=lambda f: os.path.getmtime(os.path.join(path, f)))
+                       key=lambda f: (_started(f), os.path.getmtime(os.path.join(path, f))))
         if not files:
             return None, None
         jsonl = os.path.join(path, files[-1])

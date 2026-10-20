@@ -49,6 +49,16 @@ class CacheTest(unittest.TestCase):
         c = dc.Cache(self.dir, fetch=broken)
         self.assertIsNone(c.get("Mox Ruby"))
         self.assertNotIn("mox ruby", c.misses)
+        c.fetch = self.fetch
+        self.assertIsNone(c.get("Mox Ruby"))  # not retried at once: a dead network costs one wait per name
+        self.assertEqual(self.asked, [])
+        c.failed["mox ruby"] -= dc.RETRY_AFTER_S
+        self.assertIsNotNone(c.get("Mox Ruby"))
+
+    def test_a_reply_that_is_not_a_jpeg_is_never_cached(self):
+        c = dc.Cache(self.dir, fetch=lambda name: b"<html>proxy login</html>")
+        self.assertIsNone(c.get("Tundra"))
+        self.assertFalse(os.path.exists(c.path("Tundra")))
 
     def test_prefetch_names_are_the_objects_the_prompts_showed(self):
         names = dc.names_in_game(os.path.join(HERE, "testdata", "demo", "g33-t5-upkeep.jsonl"))

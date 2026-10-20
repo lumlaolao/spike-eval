@@ -144,6 +144,15 @@ class FindGameTest(unittest.TestCase):
                 f.write(json.dumps({"t": "game", "seed": 7, "swap": True}) + "\n")
             self.assertEqual(de.find_game(path), (path, os.path.join(d, "game-7-1.log")))
 
+    def test_the_newest_game_is_the_one_started_last_not_the_one_written_last(self):
+        with tempfile.TemporaryDirectory() as d:
+            early, late = os.path.join(d, "game-1-100.jsonl"), os.path.join(d, "game-2-200.jsonl")
+            for p in (late, early):  # the earlier game is written last
+                with open(p, "w") as f:
+                    f.write("{}\n")
+            os.utime(early, (2e9, 2e9))
+            self.assertEqual(de.find_game(d)[0], late)
+
     def test_a_bare_file_name_resolves_in_the_current_directory(self):
         with tempfile.TemporaryDirectory() as d:
             cwd = os.getcwd()
