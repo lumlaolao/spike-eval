@@ -340,8 +340,9 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms, b
     if baselines_only:  # the floors and the AI's rate for a suite already proven (re-tiering): no line, no replay
         # The v1 tier and the status follow the new rates (pr-review of #280: an active record kept a status its new
         # random rate contradicted).
-        if (rec.get("verification") or {}).get("status") == "verified":
-            rec["tier"] = tier_for(base.get("ai", {}).get("rate"), (rec.get("reference_line") or {}).get("solver_actions"))
+        verified = (rec.get("verification") or {}).get("status") == "verified"
+        rec["tier"] = tier_for(base.get("ai", {}).get("rate"),
+                               (rec.get("reference_line") or {}).get("solver_actions")) if verified else None
         rec["status"], rec["flags"] = decide_status(rec)
         return apply_difficulty(rec)
     if not pf.has_line(rec.get("reference_line")):
@@ -366,12 +367,14 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms, b
 
 def apply_difficulty(rec):
     """The record's measured difficulty, its v2 tier and its skill tags (BENCHMARK-V2.md section 4), recomputed from
-    its proof and its Forge AI rate; all three null without a proven proof. Additive: `tier` (v1) is untouched."""
+    its proof and its Forge AI rate; all three null without a proven proof or a readable pzl (an empty board would
+    read as board_objects=0, and an old tier would stand beside a new proof). Additive: `tier` (v1) is untouched."""
     proof = rec.get("proof") or {}
     try:
         text = pf.pzl_path(rec).read_text(encoding="utf-8")
     except OSError:
-        text = ""
+        print("%s: pzl unreadable (%s); no difficulty" % (rec.get("id"), pf.pzl_path(rec)), file=sys.stderr)
+        return dict(rec, difficulty=None, tier_v2=None, skills=None)
     d = pf.difficulty(proof, text)
     ai = ((rec.get("baselines") or {}).get("ai") or {}).get("rate")
     return dict(rec, difficulty=d, tier_v2=pf.tier_v2(d, ai),
@@ -707,6 +710,12 @@ def cmd_retier(a):
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; re-tiering changes its records. Write to a new manifest with --write")
+    # FORGE_HOME at another checkout would re-tier every forge: record from nothing, or from a different file
+    unread = [r["id"] for r in manifest["puzzles"] if not pf.pzl_path(r).is_file()
+              or (r.get("pzl_sha256") and pf.sha256_file(pf.pzl_path(r)) != r["pzl_sha256"])]
+    if unread:
+        raise SystemExit("%d pzl file(s) unreadable or not the one proven, nothing written: %s"
+                         % (len(unread), ", ".join(unread[:5])))
     puzzles = [apply_difficulty(r) for r in manifest["puzzles"]]
     Path(a.write or a.suite).write_text(json.dumps(dict(manifest, puzzles=puzzles, frozen=False, suite_sha256=None),
                                                    indent=2) + "\n", encoding="utf-8")

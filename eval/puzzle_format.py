@@ -286,7 +286,7 @@ def tier_v2(d, ai_rate):
     """T3 hard (L >= 6 or O >= 2), T2 capability (L 3-5, O >= 1, T >= 2, or a short line Forge's AI fails), T1
     regression (L <= 2, O = 0, the AI solves half or more). None when the evidence is missing. B is recorded but is
     not a T3 trigger: it counts the search's draws, not the menus the seat is shown, so one cast with a large
-    target space (RP_035, which Forge's AI always solves) read as T3 (pr-review of #280)."""
+    target space (RP_035, which Forge's AI solves 4/4; PR #280's evidence) read as T3 (pr-review of #280)."""
     if not d or d.get("L") is None or d.get("O") is None or d.get("T") is None:
         return None
     L, O, T = d["L"], d["O"], d["T"]
@@ -329,7 +329,7 @@ def difficulty_problems(pid, d, tier, skills=None):
     p = []
     if d is None and tier is not None:
         return ["%s: tier_v2 without its difficulty" % pid]
-    if d is not None and (not isinstance(d, dict) or set(d) - set(DIFFICULTY_KEYS)):
+    if d is not None and (not isinstance(d, dict) or set(d) != set(DIFFICULTY_KEYS)):
         return ["%s: difficulty is not {%s}" % (pid, ", ".join(DIFFICULTY_KEYS))]
     for k, v in (d or {}).items():
         if v is not None and (not isinstance(v, int) or isinstance(v, bool) or v < 0):
