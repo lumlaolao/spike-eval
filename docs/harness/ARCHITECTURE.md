@@ -77,6 +77,10 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
   the seat may give fails the cast (harness-epoch-43).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
+- An attack the engine refuses (Silent Arbiter's one attacker, a creature that must attack) is asked once more with the
+  reason ("at most 1 creature can attack this combat"), then replaced by the engine's legal declaration
+  (`AttackConstraints.getLegalAttackers`, a constraint solve), recorded as taken. The engine re-asks until the
+  declaration is legal, so a seat that kept its answer looped (epoch 66; authored puzzles x_0, x_15, x_18).
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
   tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
   harness seats), but last, after every safe source (epoch 65). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
@@ -153,7 +157,8 @@ so LED can be cracked in response to the seat's own Infernal Tutor; Doomsday's f
 every repeat, and each storm copy's target are asked. Golden checks play each line out (`GoldenChecksTest`:
 `doomsdaysPileAndItsOrderAreTheSeats`, `adNauseamRepeatsAsOftenAsTheSeatSays`,
 `tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`, `lionsEyeDiamondCanBeCrackedInResponseToInfernalTutor`,
-`ritualThenPetalThenAdNauseamIsPaid`).
+`ritualThenPetalThenAdNauseamIsPaid`). The puzzle prover targets a copy that may take new targets (Twincast, storm) the
+same way; under the search arm Forge's AI picked it, so the prover never tried another target (epoch 66, authored z_4).
 The stack says what each item is and does: a spell or ability "not yet resolved", a copy effect with the number of
 copies the engine will make ("trigger of Tendrils of Agony: Storm (...) -> makes 9 copies"), and none of Forge's debug
 notes. Identical items (a batch of storm copies, whose targets come after) have no order to choose and are not asked

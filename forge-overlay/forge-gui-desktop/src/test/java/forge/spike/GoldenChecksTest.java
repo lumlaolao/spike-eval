@@ -22,6 +22,7 @@ import forge.game.GameLogEntryType;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
 import forge.game.combat.Combat;
+import forge.game.combat.CombatUtil;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
@@ -2050,6 +2051,37 @@ public class GoldenChecksTest {
         seat(g, model, model).declareAttackers(me, combat);
         Assert.assertNotSame(combat.getBandOfAttacker(bears), combat.getBandOfAttacker(hero), "an invalid band is not formed");
         Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("BANDS:")).count(), 2L, "asked once more with the reason");
+    }
+
+    /** An attack the engine refuses (Silent Arbiter: one attacker at most) was carried out as picked, and the engine
+     *  asked again, forever for a seat that kept the same answer: authored puzzles x_0, x_15 and x_18 (2026-10-20) spent
+     *  hours in that loop. The seat is told why and asked once more; a second refused set takes the engine's legal set. */
+    @Test
+    public void anAttackTheEngineRefusesIsAskedAgainThenMadeLegal() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("declare attackers", p -> p.contains("not a legal attack")
+                ? picks("Hill Giant").apply(p) : picks("Grizzly Bears", "Hill Giant").apply(p));
+        Combat combat = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat);
+        Assert.assertEquals(combat.getAttackers(), java.util.Collections.singletonList(giant), "the second answer is used");
+        Assert.assertTrue(CombatUtil.validateAttackers(combat));
+        String again = model.prompts.stream().filter(q -> q.contains("not a legal attack")).findFirst().orElse("");
+        Assert.assertTrue(again.contains("at most 1"), "the seat is told the limit: " + again);
+        // The same refused set twice: a legal declaration, not a third ask.
+        g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        me = g.getPlayers().get(0);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", g.getPlayers().get(1), ZoneType.Battlefield);
+        model = new Script("CHOICE: 1").on("declare attackers", picks("Grizzly Bears", "Hill Giant"));
+        combat = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat);
+        Assert.assertTrue(CombatUtil.validateAttackers(combat), "a refused set twice ends legal: " + combat.getAttackers());
+        Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("declare attackers")).count(), 2L, "asked twice");
     }
 
     /** Exert and enlist (Forge's AI chose both until 2026-10-17): which attackers, the seat's. */

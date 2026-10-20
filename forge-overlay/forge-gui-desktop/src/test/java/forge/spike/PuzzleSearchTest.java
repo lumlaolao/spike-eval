@@ -200,6 +200,17 @@ public class PuzzleSearchTest {
             Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.faithfulMenu(false, PuzzleArms.forMode(arm, 1L, "Solver")), arm);
     }
 
+    /** Authored puzzle z_4 (2026-10-20): Twincast's copy of Act of Treason "may choose new targets", but under the
+     *  search arm the copy went down the engine path and Forge's AI picked its target, so the prover never tried the
+     *  second Hill Giant. The prover, like the model seat, targets its own copies; the canary arms keep the old path. */
+    @Test
+    public void theProverChoosesACopysNewTargetsAndTheCanaryArmsKeepTheirs() {
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.seatTargetsCopies(false, PuzzleArms.forMode("search", 1L, "Solver")));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.seatTargetsCopies(true, null));
+        for (String arm : new String[] {"random", "pass", "first"})
+            Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.seatTargetsCopies(false, PuzzleArms.forMode(arm, 1L, "Solver")), arm);
+    }
+
     /** Rules pilot RP_002 / RP_020: the search arm answered every order ask (trigger order, cards to a zone) in the
      *  given order, so a puzzle decided by trigger order was "proven" only because Forge's default was right. */
     @Test
