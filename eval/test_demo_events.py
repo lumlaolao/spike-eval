@@ -194,7 +194,7 @@ class FeedTest(unittest.TestCase):
             d1, d2 = [e for e in de.load(game).events if e["kind"] == "decision"]
             self.assertEqual((d1["feed"]["seq"], d2["feed"]["seq"]), (0, 1))
             self.assertEqual(d1["feed"]["players"][0]["hand"], [{"name": "Bolt"}])
-            self.assertEqual(d2["feed_handles"], {"40": 1})  # carried from the last row that wrote A's map
+            self.assertEqual(d2["feed_handles"], {"1": 40})  # carried from the last row that wrote A's map
 
     def test_the_handles_row_written_at_a_decision_maps_its_new_cards_and_carries_no_board(self):
         with tempfile.TemporaryDirectory() as d:
@@ -208,7 +208,7 @@ class FeedTest(unittest.TestCase):
                 f.write("".join(json.dumps(s) + "\n" for s in snaps))
             (ev,) = [e for e in de.load(game).events if e["kind"] == "decision"]
             self.assertEqual(ev["feed"]["seq"], 0)                   # the board, not the handles-only row
-            self.assertEqual(ev["feed_handles"], {"40": 1, "41": 2})  # the card first shown in this prompt
+            self.assertEqual(ev["feed_handles"], {"1": 40, "2": 41})  # the card first shown in this prompt
 
     def test_a_live_poll_never_gives_a_decision_a_board_older_than_its_row(self):
         with tempfile.TemporaryDirectory() as d:
@@ -252,8 +252,8 @@ class DivergenceTest(unittest.TestCase):
         self.assertEqual(de.divergence(a, b),
                          {"a": 1, "b": 1, "reason": "same question, different answer"})
 
-    def test_handles_numbered_differently_by_two_harnesses_are_the_same_option(self):
-        older = ["CAST Brainstorm @3", "PLAY Tundra @1", "PASS"]
+    def test_handles_and_notes_rendered_differently_by_two_harnesses_are_the_same_option(self):
+        older = ["CAST Brainstorm @3 [Hand]", "PLAY Tundra @1 [Hand, yours]", "PASS"]
         self.assertIsNone(de.divergence([dec(1, self.MENU, [1])], [dec(1, older, [1])]))
 
     def test_two_games_of_different_seeds_are_not_called_a_divergence(self):
@@ -264,7 +264,9 @@ class DivergenceTest(unittest.TestCase):
     def test_a_different_menu_is_reported_as_already_parted(self):
         dv = de.divergence([dec(1, self.MENU, [2])], [dec(1, ["PASS"], [0])])
         self.assertEqual((dv["a"], dv["b"]), (0, 0))
-        self.assertIn("different questions", dv["reason"])
+        self.assertIn("different menus", dv["reason"])
+        dv = de.divergence([dec(1, self.MENU, [2])], [dec(2, self.MENU, [2])])
+        self.assertIn("already parted", dv["reason"])
 
 
 class ReaderTest(unittest.TestCase):

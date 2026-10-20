@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 import demo_compare as dc
 
@@ -79,38 +80,55 @@ class EnginePinTest(unittest.TestCase):
                             "forge-gui-desktop/src/test/java/x/T.java": "", "forge-gui/res/a.png": ""})
         self.assertEqual(dc.engine_patches(t), ["forge-game/src/main/java/x/A.java"])
 
-    def test_each_file_is_the_trees_overlay_copy_or_the_stock_source_and_a_missing_stock_is_refused(self):
-        a, b = "forge-game/src/main/java/x/A.java", "forge-ai/src/main/java/x/B.java"
-        tree = self.tree("then", {a: "class A { /* then */ }"})
+    A, B = "forge-game/src/main/java/x/A.java", "forge-ai/src/main/java/x/B.java"
+
+    def forge_with_stock_b(self):
         forge = os.path.join(self.d, "forge")
-        self.write(os.path.join(forge, b), "class B { /* stock */ }")
+        self.write(os.path.join(forge, self.B), "class B { /* stock */ }")
         for cmd in (["init", "-q"], ["add", "."], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "s"]):
             subprocess.run(["git", "-C", forge] + cmd, check=True)
-        build = os.path.join(self.d, "build")
-        self.write(os.path.join(build, "classpath.txt"), "/cp")
-        compiled = []
+        return forge
+
+    def pin(self, tree, build, forge, paths, compiled=None):
         real = dc.subprocess.run
 
         def fake_run(cmd, **kw):  # javac stubbed: record what it would compile
             if cmd[0] == "javac":
-                compiled.extend(cmd)
+                (compiled if compiled is not None else []).extend(cmd)
                 return subprocess.CompletedProcess(cmd, 0, "", "")
             return real(cmd, **kw)
-        dc.subprocess.run = fake_run
-        try:
-            dc.pin_engine(tree, build, forge, [a, b])
-        finally:
-            dc.subprocess.run = real
+        self.write(os.path.join(build, "classpath.txt"), "/cp")
+        with mock.patch.object(dc.subprocess, "run", fake_run):
+            dc.pin_engine(tree, build, forge, paths)
+
+    def test_each_file_is_the_trees_overlay_copy_or_the_stock_source_and_a_missing_stock_is_refused(self):
+        tree, forge = self.tree("then", {self.A: "class A { /* then */ }"}), self.forge_with_stock_b()
+        build, compiled = os.path.join(self.d, "build"), []
+        self.pin(tree, build, forge, [self.A, self.B], compiled)
         with open(os.path.join(build, "engine-patches.txt")) as f:
-            self.assertEqual(f.read(), "stock\t%s\noverlay\t%s\n" % (b, a))
-        with open(os.path.join(build, "engine-src", b)) as f:
+            lines = [line.split("\t") for line in f.read().splitlines()]
+        self.assertEqual([(o, p) for o, _, p in lines], [("stock", self.B), ("overlay", self.A)])
+        with open(os.path.join(build, "engine-src", self.B)) as f:
             self.assertIn("stock", f.read())
-        with open(os.path.join(build, "engine-src", a)) as f:
+        with open(os.path.join(build, "engine-src", self.A)) as f:
             self.assertIn("then", f.read())
         self.assertIn("--release", compiled)
         self.assertIn(os.path.join(build, "classes"), compiled)
         with self.assertRaises(SystemExit):  # neither an overlay copy nor a stock source: refused, never guessed
             dc.pin_engine(tree, build, forge, ["forge-game/src/main/java/x/Gone.java"])
+
+    def test_run_refuses_a_build_whose_engine_files_changed_or_were_never_recorded(self):
+        tree, forge = self.tree("then", {self.A: "class A { /* then */ }"}), self.forge_with_stock_b()
+        build = os.path.join(self.d, "build")
+        with mock.patch.object(dc, "REPO", self.tree("now", {})):  # the current tree patches nothing here
+            with self.assertRaises(SystemExit):  # no engine-patches.txt yet
+                dc.check_pins({"then": (tree, build)}, forge, tree)
+            self.pin(tree, build, forge, dc.pinned_paths(tree))
+            dc.check_pins({"then": (tree, build)}, forge, tree)  # as built: accepted
+            self.write(os.path.join(tree, "forge-overlay", self.A), "class A { /* edited after the build */ }")
+            with self.assertRaises(SystemExit) as cm:
+                dc.check_pins({"then": (tree, build)}, forge, tree)
+        self.assertIn("run build-then again", str(cm.exception))
 
 
 class ArmTest(unittest.TestCase):

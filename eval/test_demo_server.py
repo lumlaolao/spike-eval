@@ -142,10 +142,12 @@ class DivergenceEndpointTest(unittest.TestCase):
 
 class HighlightFileTest(unittest.TestCase):
     def test_the_forge_window_gets_the_latest_decisions_highlighted_engine_ids(self):
-        ev = {"kind": "decision", "n": 3, "seat": "A", "turn": 2, "feed_handles": {"101": 17, "102": 20, "103": 25},
-              "highlights": {"17": {"kind": "looked"}, "20": {"kind": "chosen"}, "25": {"kind": "engine"},
+        ev = {"kind": "decision", "n": 3, "seat": "A", "turn": 2, "feed_handles": {"17": 101, "20": 102, "25": 103, "4": 101},
+              "highlights": {"4": {"kind": "planned"}, "20": {"kind": "chosen"}, "25": {"kind": "engine"},
                              "99": {"kind": "planned"}}}
-        self.assertEqual(srv.highlight_ids(ev), [101, 102])  # not the engine frame; a handle with no card is skipped
+        # @4 is card 101's older handle (a new timestamp gave it @17): still framed. Not the engine frame; a handle
+        # with no card is skipped.
+        self.assertEqual(srv.highlight_ids(ev), [101, 102])
         d = tempfile.mkdtemp()
         try:
             path = os.path.join(d, "hl.json")

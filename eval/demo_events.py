@@ -133,7 +133,7 @@ class Builder:
         # The engine-truth snapshot (DemoFeed) written before this row: what was really in both hands when the seat
         # was asked. Audience only: nothing of it reaches the seat or the highlights.
         ev["feed"] = self.feed_at(start) if self.feed_at and start is not None else None
-        # engine id -> this seat's @handle at that moment, so the seat's highlights land on the true cards.
+        # this seat's @handle -> engine id at that moment, so the seat's highlights land on the true cards.
         ev["feed_handles"] = self.handles_at(start, seat) if self.handles_at and start is not None else None
         if state:
             self.last_state[seat] = len(self.events)
@@ -190,11 +190,12 @@ class Reader:
         return None
 
     def handles_at(self, offset, seat):
-        """engine id -> @handle for `seat` as of that snapshot. The feed writes a seat's map only when it grows."""
+        """@handle -> engine id for `seat` as of that snapshot, as the feed wrote it (one card can hold two handles: a
+        new timestamp gives it a new one). The feed writes a seat's map only when it grows."""
         for i in range(self._index_at(offset), -1, -1):
             m = (self.feed.rows[i].get("handles") or {}).get(seat)
             if m is not None:
-                return {str(eid): int(h) for h, eid in m.items()}
+                return {str(h): int(eid) for h, eid in m.items()}
         return None
 
     def poll(self):
@@ -286,11 +287,13 @@ def _last_row(path):
 
 
 HANDLE = re.compile(r"\s*@\d+")
+NOTE = re.compile(r"\s*\[[^\]]*\]")
 
 
 def _norm(option):
-    """An option without its viewer-local @handles, which two harness versions number differently."""
-    return HANDLE.sub("", str(option)).strip()
+    """An option as the engine offered it, without what each harness version adds when it renders one: viewer-local
+    @handles (numbered differently) and bracketed notes (zone, owner, rules text: worded differently)."""
+    return " ".join(NOTE.sub("", HANDLE.sub("", str(option))).split())
 
 
 def divergence(a, b):
@@ -304,12 +307,14 @@ def divergence(a, b):
         return {"a": 0, "b": 0, "reason": "not a side by side: the seeds or decks differ", "unpaired": True}
     da = [e for e in a if e.get("kind") == "decision"]
     db = [e for e in b if e.get("kind") == "decision"]
+    spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
+    pick = lambda d: sorted(_norm((d.get("options") or [])[c]) for c in d.get("chosen") or []
+                            if 0 <= c < len(d.get("options") or []))
     for n, (x, y) in enumerate(zip(da, db)):
-        spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
-        if spot(x) != spot(y) or [_norm(o) for o in x.get("options") or []] != [_norm(o) for o in y.get("options") or []]:
-            return {"a": n, "b": n, "reason": "the engine asked different questions (the games had already parted)"}
-        pick = lambda d: sorted(_norm((d.get("options") or [])[c]) for c in d.get("chosen") or []
-                                if 0 <= c < len(d.get("options") or []))
+        if spot(x) != spot(y):
+            return {"a": n, "b": n, "reason": "different spots: the games had already parted"}
+        if [_norm(o) for o in x.get("options") or []] != [_norm(o) for o in y.get("options") or []]:
+            return {"a": n, "b": n, "reason": "same spot, different menus: the harnesses offer different options here"}
         if pick(x) != pick(y):
             return {"a": n, "b": n, "reason": "same question, different answer"}
     return None

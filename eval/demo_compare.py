@@ -22,6 +22,7 @@ Every run passes --budget-usd; --fake plays both arms on the loopback fake model
 Stdlib only.
 """
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -111,41 +112,72 @@ def engine_patches(tree):
     return sorted(out)
 
 
-def pin_engine(tree, build, forge, paths):
-    """Compile, into this arm's classes (first on its classpath), its own version of every engine file either arm
-    patches: the tree's overlay copy, or the pinned engine's stock source when the tree has no patch for it. The
-    checkout holds whatever install.sh last installed, so neither arm may inherit it. Records each file's origin in engine-patches.txt."""
-    src = os.path.join(build, "engine-src")
-    shutil.rmtree(src, ignore_errors=True)
-    origin, files = {}, []
+def pinned_paths(worktree):
+    """The engine files both arms pin: every file this checkout or the older worktree patches."""
+    return sorted(set(engine_patches(REPO)) | set(engine_patches(os.path.abspath(worktree))))
+
+
+def engine_sources(tree, forge, paths):
+    """{path: (origin, source bytes)}: the tree's overlay copy, or the pinned engine's stock source when the tree has
+    no patch for it. A path with neither is refused, never guessed."""
+    out = {}
     for rel in paths:
-        dest = os.path.join(src, rel)
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
         mine = os.path.join(tree, "forge-overlay", rel)
         if os.path.isfile(mine):
-            shutil.copyfile(mine, dest)
-            origin[rel] = "overlay"
-        else:
-            stock = subprocess.run(["git", "-C", forge, "show", "HEAD:" + rel], capture_output=True)
-            if stock.returncode != 0:
-                raise SystemExit("no stock source for %s in %s" % (rel, forge))
-            with open(dest, "wb") as f:
-                f.write(stock.stdout)
-            origin[rel] = "stock"
+            with open(mine, "rb") as f:
+                out[rel] = ("overlay", f.read())
+            continue
+        stock = subprocess.run(["git", "-C", forge, "show", "HEAD:" + rel], capture_output=True)
+        if stock.returncode != 0:
+            raise SystemExit("no stock source for %s in %s" % (rel, forge))
+        out[rel] = ("stock", stock.stdout)
+    return out
+
+
+def pin_record(sources):
+    """engine-patches.txt: one `origin<TAB>sha12<TAB>path` line a file; run compares it with what the trees hold now."""
+    return "".join("%s\t%s\t%s\n" % (o, hashlib.sha256(b).hexdigest()[:12], p) for p, (o, b) in sorted(sources.items()))
+
+
+def pin_engine(tree, build, forge, paths):
+    """Compile, into this arm's classes (first on its classpath), its own version of every engine file either arm
+    patches (engine_sources). The checkout holds whatever install.sh last installed, so neither arm may inherit it.
+    Records each file's origin and hash in engine-patches.txt."""
+    sources = engine_sources(tree, forge, paths)
+    src = os.path.join(build, "engine-src")
+    shutil.rmtree(src, ignore_errors=True)
+    files = []
+    for rel, (_, data) in sorted(sources.items()):
+        dest = os.path.join(src, rel)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, "wb") as f:
+            f.write(data)
         files.append(dest)
     if files:
         with open(os.path.join(build, "classpath.txt")) as f:
             cp = os.path.join(build, "classes") + ":" + f.read().strip()
-        r = subprocess.run(["javac", "--release", "17", "-proc:none", "-nowarn", "-encoding", "UTF-8", "-cp", cp, "-d", os.path.join(build, "classes")]
-                           + files, capture_output=True, text=True)
+        r = subprocess.run(["javac", "--release", "17", "-proc:none", "-nowarn", "-encoding", "UTF-8", "-cp", cp,
+                            "-d", os.path.join(build, "classes")] + files, capture_output=True, text=True)
         if r.returncode != 0:
             raise SystemExit("engine files did not compile:\n" + r.stderr[-2000:])
     with open(os.path.join(build, "engine-patches.txt"), "w") as f:
-        f.write("".join("%s\t%s\n" % (origin[p], p) for p in sorted(origin)))
-    print("engine files:", ", ".join("%s (%s)" % (os.path.basename(p), origin[p]) for p in sorted(origin)) or "none")
+        f.write(pin_record(sources))
+    print("engine files:", ", ".join("%s (%s)" % (os.path.basename(p), o) for p, (o, _) in sorted(sources.items()))
+          or "none")
 
 
-def compile_arm(tree, build, forge):
+def check_pins(arms, forge, worktree):
+    """Refuse a build whose pinned engine files (list or content) differ from what its tree would pin now."""
+    paths = pinned_paths(worktree)
+    for name, (tree, build) in arms.items():
+        path = os.path.join(build, "engine-patches.txt")
+        have = open(path).read() if os.path.isfile(path) else None
+        if have != pin_record(engine_sources(tree, forge, paths)):
+            raise SystemExit("the %s build's engine files are not what its tree pins now: run build-%s again"
+                             % (name, name))
+
+
+def compile_arm(tree, build, forge, worktree):
     """That tree's own acceptance script compiles its overlay into build/classes; then both arms' engine patches,
     in this tree's version (pin_engine); then a stand-in Forge home."""
     os.makedirs(build, exist_ok=True)
@@ -154,13 +186,13 @@ def compile_arm(tree, build, forge):
     print("\n".join(line for line in r.stdout.splitlines() if line.startswith(("PASS", "FAIL"))))
     if not os.path.isfile(os.path.join(build, "classes", "forge", "spike", "DemoFeed.class")):
         raise SystemExit("%s did not compile (see %s/javac.log)" % (tree, build))
-    pin_engine(tree, build, forge, sorted(set(engine_patches(REPO)) | set(engine_patches(tree))))
+    pin_engine(tree, build, forge, pinned_paths(worktree))
     print("stand-in home:", standin_home(os.path.join(build, "forge-home"), os.path.join(build, "classes"),
                                          os.path.join(build, "classpath.txt"), forge))
 
 
 def build_now(a):
-    compile_arm(REPO, os.path.abspath(a.now_build), a.forge)
+    compile_arm(REPO, os.path.abspath(a.now_build), a.forge, a.worktree)
     return 0
 
 
@@ -175,7 +207,7 @@ def build_then(a):
     if not os.path.isdir(tree):
         subprocess.run(["git", "-C", REPO, "worktree", "add", "--detach", tree, a.commit], check=True)
     print("ported:", ", ".join(port_feed(tree)))
-    compile_arm(tree, build, a.forge)
+    compile_arm(tree, build, a.forge, a.worktree)
     return 0
 
 
@@ -225,13 +257,8 @@ def run(a):
     for name, home in homes.items():
         if not os.path.isfile(os.path.join(home, "run-llm-headless.sh")):
             raise SystemExit("no %s build at %s: run build-%s first" % (name, home, name))
-    want = sorted(set(engine_patches(REPO)) | set(engine_patches(os.path.abspath(a.worktree))))
-    for name, home in homes.items():
-        with open(os.path.join(os.path.dirname(home), "engine-patches.txt")) as f:
-            have = sorted(line.split("\t", 1)[1].strip() for line in f if "\t" in line)
-        if have != want:
-            raise SystemExit("the %s build pinned other engine files than the trees patch now: run build-%s again"
-                             % (name, name))
+    arms = {"now": (REPO, os.path.abspath(a.now_build)), "then": (os.path.abspath(a.worktree), os.path.abspath(a.build))}
+    check_pins(arms, a.forge, a.worktree)
     env = dict(os.environ)
     model = a.model
     fake = None

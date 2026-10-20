@@ -98,9 +98,9 @@ class Pane:
 def highlight_ids(ev):
     """Engine card ids of the objects a decision highlights (not the engine's own frame), through the feed's handle
     map. Without the audience feed there is no map, and no id."""
-    by_handle = {str(h): int(eid) for eid, h in (ev.get("feed_handles") or {}).items()}
-    return sorted(by_handle[h] for h, v in (ev.get("highlights") or {}).items()
-                  if v.get("kind") != "engine" and h in by_handle)
+    by_handle = ev.get("feed_handles") or {}
+    return sorted({by_handle[h] for h, v in (ev.get("highlights") or {}).items()
+                   if v.get("kind") != "engine" and h in by_handle})
 
 
 def write_highlights(path, events):

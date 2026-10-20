@@ -45,10 +45,15 @@ window.noImage = img => {
 // own card panel shows (current and printed P/T, damage, counters, tapped, sick, attacking, blocking). The seat's
 // counters it alone knows (mana pool, land drop) still come from its prompt; its @handles are mapped onto the cards.
 function feedPlayers(d, st) {
-  const f = d.feed, ids = d.feed_handles || {}, combat = f.combat || [];
+  const f = d.feed, combat = f.combat || [], hl = d.highlights || {};
+  // engine id -> the seat's handles for it (a new timestamp gives a card a new one); the card shows a highlighted
+  // handle if any, else its newest.
+  const ids = {};
+  for (const [h, eid] of Object.entries(d.feed_handles || {})) (ids[eid] = ids[eid] || []).push(+h);
+  const handleOf = id => { const hs = ids[id] || []; return hs.length ? (hs.find(h => hl[h]) ?? Math.max(...hs)) : null; };
   const attacking = new Set(combat.map(a => a.id)), blocking = new Set(combat.flatMap(a => a.blockers));
   const card = (c, zone) => ({
-    name: c.name, handle: ids[c.id] != null ? ids[c.id] : null, pt: c.pt || null, base_pt: c.base_pt || null,
+    name: c.name, handle: handleOf(c.id), pt: c.pt || null, base_pt: c.base_pt || null,
     damage: c.damage || 0, counters: c.counters || null, zone,
     tags: [c.tapped ? "tapped" : null, c.sick ? "sick" : null, attacking.has(c.id) ? "attacking" : null,
       blocking.has(c.id) ? "blocking" : null, c.token ? "token" : null, c.face_down ? "face down" : null].filter(Boolean),

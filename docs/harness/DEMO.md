@@ -68,7 +68,7 @@ older commit of the harness on the same engine pin (refused otherwise). Each arm
 compile, into each arm's isolated classes, that tree's overlay copy of every engine Java source either tree patches, or
 the stock source when it has none (listed in the build's `engine-patches.txt`), so neither inherits what `install.sh`
 last put in the checkout. Resource patches (`forge-overlay/forge-gui/res`) are not pinned: both arms read the checkout's.
-`run` refuses a build whose pinned file list no longer matches the trees. Both arms play the faithful profile (`--context-profile v4-faithful`). The decks come from the fixed sets in
+`run` refuses a build whose pinned engine files (list or content) no longer match the trees. Both arms play the faithful profile (`--context-profile v4-faithful`). The decks come from the fixed sets in
 `eval/demo/decks.json` (`demo_compare.py decks` lists them): control and storm decks for the model, aggro decks for
 Forge's AI.
 
@@ -82,9 +82,10 @@ python3 eval/demo_server.py --game runs/demo/pair-4201/now --game runs/demo/pair
 
 A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, split between the two arms; two one-tier games at CLAUDE.md's $0.02 to $0.05 each) needs the owner's
 egress consent. In the viewer, the two panes step in lockstep by turn and phase, and the **first divergence** button
-jumps both to the first decision where the games part: the same question answered differently, or (if the
-engine asked different questions) the point where they had already parted. Viewer-local `@handles` are ignored when
-comparing, since the two harnesses number them differently. Two games of different seeds or decks are flagged as
+jumps both to the first decision where the games part: the same menu answered differently, the same spot with
+different menus (the harnesses offer different options: the 2026-10-14 harness did not list mana abilities, for
+example), or different spots (the games had already parted). Options are compared without what each harness adds
+when it renders one (`@handles`, bracketed notes), since the two versions number and word those differently. Two games of different seeds or decks are flagged as
 "not a side by side". One pair illustrates; it measures nothing.
 
 ## The benchmark and the gate (`/eval.html`)
