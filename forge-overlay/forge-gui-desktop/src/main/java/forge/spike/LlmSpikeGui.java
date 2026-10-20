@@ -2955,8 +2955,7 @@ public final class LlmSpikeGui {
                 // baseline. Never the engine AI.
                 if (!smartOk()) {
                     for (Card c : legal) combat.addAttacker(c, defender);
-                    auto("attackers(no-model)->all-in x" + legal.size());
-                    makeAttackLegal(combat, "no-model");
+                    if (!makeAttackLegal(combat, "no-model")) auto("attackers(no-model)->all-in x" + legal.size());
                     return;
                 }
                 // Numbered subset pick, same PICKS router as discard: robust to duplicate creature names
@@ -3005,8 +3004,8 @@ public final class LlmSpikeGui {
                     // when no attack is not legal. Reading attackers out of the plan's prose, the prior-turn set and
                     // the all-in default were each the harness attacking for a seat that did not answer (acceptance
                     // `gaming`; 2026-10-16 review M2).
-                    auto(refused ? "attackers(refused twice)->none" : "attackers(bridge-down)->none");
-                    makeAttackLegal(combat, refused ? "refused twice" : "bridge-down");
+                    String why = refused ? "refused twice" : "bridge-down";
+                    if (!makeAttackLegal(combat, why)) auto("attackers(" + why + ")->none");
                     return;
                 }
                 StringBuilder chosen = new StringBuilder();
@@ -3039,13 +3038,14 @@ public final class LlmSpikeGui {
 
         /** A declaration the engine would refuse is replaced by the engine's legal one ({@code AttackConstraints}: the
          *  set with the fewest requirements broken, a constraint solve, not a strategy), so the engine never re-asks
-         *  a seat that cannot answer. */
-        private void makeAttackLegal(Combat combat, String why) {
-            if (CombatUtil.validateAttackers(combat)) return;
+         *  a seat that cannot answer. True when it replaced the declaration (and recorded that as the one taken). */
+        private boolean makeAttackLegal(Combat combat, String why) {
+            if (CombatUtil.validateAttackers(combat)) return false;
             for (Card c : new ArrayList<>(combat.getAttackers())) combat.removeFromCombat(c);
             for (Map.Entry<Card, GameEntity> e : combat.getAttackConstraints().getLegalAttackers().getLeft().entrySet())
                 combat.addAttacker(e.getKey(), e.getValue());
             auto("attackers(" + why + ", refused)->engine legal x" + combat.getAttackers().size());
+            return true;
         }
 
         /** Bands (CR 702.22): an attacker with banding, or bands with other, may attack together with others
