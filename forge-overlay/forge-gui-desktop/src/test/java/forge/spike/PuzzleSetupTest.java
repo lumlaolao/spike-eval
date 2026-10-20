@@ -59,8 +59,8 @@ public class PuzzleSetupTest {
         }
     }
 
-    /** The board applied on a thread named "Game..." (GameState.applyToGame runs inline only there), then the
-     *  runner's NamedCard restore. */
+    /** The board applied on a thread named "Game..." (GameState.applyToGame runs inline only there) by the runner's
+     *  own start-hook method: the board, the NamedCard restore and the goal card's brief. */
     private static Game boardOf(String pzl) throws Exception {
         File f = new File(REPO,
                 "eval/puzzles/rules-pilot/" + pzl);
@@ -76,9 +76,7 @@ public class PuzzleSetupTest {
         Throwable[] thrown = {null};
         Thread t = new Thread(() -> {
             try {
-                PuzzleArms.SETUP = true;
-                try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
-                LlmSpikePuzzle.restoreNamedCards(puzzle);
+                LlmSpikePuzzle.applyBoard(game, puzzle, LlmSpikePuzzle.briefSolver(sections, puzzle));
             } catch (Throwable e) {
                 thrown[0] = e;
             }
@@ -94,9 +92,6 @@ public class PuzzleSetupTest {
     @Test
     public void aRulesPuzzlesGoalCardReadsAsItsBrief() throws Exception {
         Game game = boardOf("RP_443.pzl");
-        Map<String, List<String>> sections = FileSection.parseSections(FileUtil.readFile(
-                new File(REPO, "eval/puzzles/rules-pilot/RP_443.pzl")));
-        LlmSpikePuzzle.tellGoalCard(game, sections);
         Card goal = null;
         for (Player p : game.getPlayers())
             for (Card c : p.getZone(ZoneType.Command)) if ("Puzzle Goal".equals(c.getName())) goal = c;
@@ -105,6 +100,7 @@ public class PuzzleSetupTest {
         Assert.assertTrue(text.contains("Reduce the opponent to 0 life this turn."), text);
         for (String hidden : new String[] {"Survive", "Difficulty", "Bolster picks"})
             Assert.assertFalse(text.contains(hidden), hidden + " is on the goal card: " + text);
+        Assert.assertEquals(LlmSpikeGui.puzzleBrief, text, "the <puzzle> block and the card say one thing");
     }
 
     private static Card onBattlefield(Player p, String name) {

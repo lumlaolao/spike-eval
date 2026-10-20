@@ -26,9 +26,9 @@ public class LlmSpikePuzzleTest {
         return m;
     }
 
-    /** A rules puzzle (an [acceptance] section) is told its author's description and turn limit only: Forge's
-     *  header put "Goal: Survive" (the turn bound) above "Reduce the opponent to 0 life" on 148 of the 526, and
-     *  its Name and Difficulty lines named the trick ("Bolster picks the least toughness", benchmark-v1 RP_443). */
+    /** A rules puzzle (an [acceptance] section) is told its author's description and turn limit only, never
+     *  Forge's Goal/Name/Difficulty header (benchmark-v1 RP_443: "Goal: Survive", "Bolster picks the least
+     *  toughness"). */
     @Test
     public void aRulesPuzzleIsToldItsDescriptionNotForgesGoalLine() {
         Map<String, List<String>> s = sections(
@@ -43,6 +43,25 @@ public class LlmSpikePuzzleTest {
         Assert.assertTrue(brief.contains("Turns Limit: 1"), brief);
         for (String hidden : new String[] {"Goal:", "Survive", "Difficulty", "Hard", "Bolster", "least toughness"})
             Assert.assertFalse(brief.contains(hidden), hidden + " reached the seat: " + brief);
+    }
+
+    /** Forge's HumanControl warning is the one line of its header a rules puzzle keeps: the solver then decides for
+     *  the opponent too, and must be told (pr-review of PR #273). */
+    @Test
+    public void aHumanControlledRulesPuzzleKeepsForgesWarning() {
+        Map<String, List<String>> s = sections(
+                new String[] {"Name:Rules pilot 9 - secret", "Goal:Survive", "Turns:1", "HumanControl:True",
+                        "Description:Win this turn."},
+                new String[] {"turn=1"});
+        s.put("acceptance", Arrays.asList("life p1 <= 0"));
+        String warning = "\nWARNING: This puzzle is human-controlled (it does not have an active AI player). This means"
+                + " you will be making all decisions for your opponent. Make sure your solution works for all possible"
+                + " opponent's decisions.\n\n";
+        String brief = LlmSpikePuzzle.seatBrief(s, warning + "Rules pilot 9 - secret\nDifficulty: (Unspecified)\n\n"
+                + "Goal: Survive\nTurns Limit: 1\n\nWin this turn.");
+        Assert.assertTrue(brief.startsWith(warning), brief);
+        Assert.assertTrue(brief.endsWith("Turns Limit: 1\n\nWin this turn."), brief);
+        Assert.assertFalse(brief.contains("secret"), brief);
     }
 
     /** A Forge puzzle has no acceptance state: its goal line is the goal Forge enforces, so the header stays. */
