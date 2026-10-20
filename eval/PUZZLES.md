@@ -66,8 +66,11 @@ Forge enforces ("Win" or "Survive" by turn N).
     Forge's AI solves at least half, 2 when it does not; null without a proof, its turns, its opponent count or
     (for a short line) the AI's rate.
     `B` is recorded but is not a tier-3 trigger until it counts the menus the seat is shown, not the search's
-    draws (RP_035, one cast Forge's AI always solves, read `B = 92160`). The thresholds are the proposed ones,
-    to be refit after the first full run;
+    draws (RP_035, one cast Forge's AI solves 4/4, read `B = 92160` from `puzzle_baselines.py prove --suite
+    eval/suites/greedy-check-v0.json --ids rules-RP_035 --budget 600 --unique-budget 0 --write <copy>`, then
+    `run --arms ai --baselines-only` and `retier` on the copy). The AI's rate that splits a short line between
+    tiers 1 and 2 rests on its default seeds `1..4`, so 2/4 and 1/4 land in different tiers within one wide
+    interval. The thresholds are the proposed ones, to be refit after the first full run;
   - `skills`: the tags that can be read off the source and the proof (rules application, sequencing, combat
     arithmetic, long lines, adversarial, multi-turn, restraint). Hidden information is not tagged.
 

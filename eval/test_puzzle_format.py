@@ -93,6 +93,8 @@ class DifficultyV2Test(unittest.TestCase):
         self.assertEqual(pf.difficulty_problems("x", good, 1), [])
         self.assertTrue(pf.difficulty_problems("x", dict(good, L=-1), 1))
         self.assertTrue(pf.difficulty_problems("x", dict(good, Q=1), 1))
+        partial = {k: v for k, v in good.items() if k != "B"}
+        self.assertTrue(pf.difficulty_problems("x", partial, 1), "a difficulty missing a key")
         self.assertTrue(pf.difficulty_problems("x", good, 4))
         self.assertTrue(pf.difficulty_problems("x", None, 1), "a tier without its difficulty")
         self.assertTrue(pf.difficulty_problems("x", good, True), "True is not a tier")

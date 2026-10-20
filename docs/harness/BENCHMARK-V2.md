@@ -66,8 +66,8 @@ Every puzzle gets four kinds of difficulty evidence; the tier is computed, never
 **Structural** (from the proof line, free): `L` solver actions, `D` solver decision points with two or more
 options, `O` opponent choice points, `T` turns to the acceptance check, `B` the product of menu sizes along the
 line. All exist in the prover's output today except `D` and `B`, which the replay can count. As built (#280),
-`B` is the product of the search's draw sizes, which is not the menus the seat sees (an order over n items is
-n-1 draws), so it is recorded and is not a tier-3 trigger until it counts menus.
+`D` and `B` count the search's draws, not the menus the seat sees (an order over n items is n-1 draws; RP_035
+is one action with `D = 11`), so `B` is recorded and is not a tier-3 trigger until it counts menus.
 
 **Floors** (free, already run): random, PASS, first-option, Forge AI solve rates on 50 rollouts.
 

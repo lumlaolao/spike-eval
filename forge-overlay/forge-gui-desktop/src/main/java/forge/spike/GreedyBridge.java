@@ -135,14 +135,15 @@ final class GreedyBridge implements LLMBridge {
         return a;
     }
 
+    private static final int OPPONENT = 0, UNSHOWN = 1, DECLINE = 2, OWN = 3, NEVER = Integer.MAX_VALUE;
+
     /** How much an option suits a play aimed at the opponent: the opponent or the opponent's card first, then a card
      *  with no side shown, then declining ("No target"), the seat's own last; CANCEL never (pr-review of #279: the
      *  engine lists the seat's own cards first, and the first one took a removal spell). */
-    private static final int OPPONENT = 0, UNSHOWN = 1, DECLINE = 2, OWN = 3, NEVER = Integer.MAX_VALUE;
-
     private static int side(String label) {
         String l = ScriptBridge.norm(label);
-        if (l.startsWith("cancel:")) return NEVER;   // the menu's own row; a card named Cancel can still be a target
+        // the menu's own rows (CANCEL and a cost ask's CANCEL this play); a card named Cancel can still be a target
+        if (l.startsWith("cancel:") || l.startsWith("cancel this play:")) return NEVER;
         if (l.startsWith("opponent") || l.contains(", opponent's]")) return OPPONENT;
         if (l.startsWith("no target")) return DECLINE;
         if (l.startsWith("you ") || l.contains(", yours]")) return OWN;

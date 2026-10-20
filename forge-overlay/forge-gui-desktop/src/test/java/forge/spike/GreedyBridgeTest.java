@@ -192,6 +192,15 @@ public class GreedyBridgeTest {
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 2);
     }
 
+    /** The cost ask's "CANCEL this play:" row is the menu's own too, and the old {@code startsWith("cancel")} kept it
+     *  out (pr-review of #280): here it is the only unshown row beside the seat's own card. */
+    @Test
+    public void theCostAsksCancelRowIsNeverTaken() {
+        String ask = targetAsk("Ashes to Ashes", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
+                "CANCEL this play: pick this number alone to pay nothing; go back to the action menu");
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 1);
+    }
+
     /** A chain (Arc Trail: a root and a sub-ability, one target ask each) gets the assumed targets in turn, and a name on
      *  both sides takes the opponent's copy. */
     @Test
