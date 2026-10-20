@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Enlist needs a seasoned helper
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Coalition Warbrute (3/4 trample, enlist), Wall of Swords (3/5 flying defender) and a Craw Wurm (6/4) that came under your control this turn. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-enlist-summoning-sick | Enlist taps a nonattacking creature you control that has haste or has been under your control since the turn began (CR 702.154a), unlike crew: attack with the Warbrute and enlist Wall of Swords (a defender may be enlisted) for 3 + 3; the summoning-sick Craw Wurm can neither attack nor be enlisted, and the Warbrute alone deals 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Coalition Warbrute;Wall of Swords;Craw Wurm|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

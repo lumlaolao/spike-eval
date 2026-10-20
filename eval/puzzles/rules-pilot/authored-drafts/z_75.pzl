@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - First strike doesn't help a fight
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control White Knight (2/2 first strike, protection from black) and have Brute Force and Prey Upon in hand, with one red and one green mana floating. The opponent is at 5 life and controls an untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-fight-not-combat | Fighting is not combat, so first strike doesn't matter and both creatures deal damage at once (CR 701.14b): Brute Force the Knight first, then it fights and kills the Bears and survives as a 5/5 to attack for 5; fighting first trades the 2/2s, and attacking without Prey Upon lets the Bears block
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Brute Force;Prey Upon
+p0battlefield=White Knight
+p0manapool=R G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

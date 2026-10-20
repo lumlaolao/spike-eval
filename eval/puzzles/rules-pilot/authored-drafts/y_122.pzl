@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Spell mastery counts the Shock
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. Lava Spike is in your graveyard. You have Shock and Fiery Impulse (2 damage to target creature; spell mastery: 3 if two or more instants and/or sorceries are in your graveyard) in hand with two red mana floating. The opponent is at 2 life and controls Hill Giant (3/3). Destroy the Giant and reduce the opponent to 0 life this turn.
+Rule:authored-spell-mastery-order | Spell mastery is checked as the spell resolves (CR 207.2c, 608.2h): Shock the opponent first, making two in the graveyard, and Fiery Impulse deals 3 to the Giant; the other order deals only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock;Fiery Impulse
+p0graveyard=Lava Spike
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+count p1 Graveyard "Hill Giant" = 1

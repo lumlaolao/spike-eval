@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 429 - The stolen lord pumps your elves
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Llanowar Elves and have Threaten in hand, with three red mana floating. The opponent is at 4 life and controls an untapped Elvish Archdruid (other Elf creatures you control get +1/+1). Reduce the opponent to 0 life this turn.
+Rule:authored-lord-follows-controller | "You control" in a static ability means its current controller (CR 109.5, 613.1b before 613.4c): Threaten the Archdruid and it now pumps your Llanowar Elves to 2/2, so both attack for 4 with no blocker left; without Threaten the Elves are 1/1 and the Archdruid can block
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Threaten
+p0battlefield=Llanowar Elves
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Elvish Archdruid
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

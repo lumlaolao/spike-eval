@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 422 - Ensoul the Thopter
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Ornithopter (0/2 flying) and have Ensoul Artifact (enchanted artifact is a creature with base power and toughness 5/5) in hand with two blue mana floating. The opponent is at 5 life and controls an untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-aura-sets-base-pt | Ensoul Artifact sets the enchanted artifact's base power and toughness in layer 7b (CR 613.4b) and Ornithopter keeps flying: the 5/5 flier attacks for 5 over the Bears; Ornithopter has been under your control all turn, so it may attack (CR 302.6)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Ensoul Artifact
+p0battlefield=Ornithopter
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

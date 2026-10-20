@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 330 - The shield comes first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Drudge Skeletons, a Swamp and two Mountains, and have Pyroclasm in hand. The opponent controls Grizzly Bears. End the turn with Grizzly Bears in the opponent's graveyard and Drudge Skeletons on your battlefield.
+Rule:authored-regenerate-shield | Regeneration is a replacement shield that must exist before the creature would be destroyed (CR 701.19a, 614.8): activate Drudge Skeletons' regeneration before Pyroclasm resolves; once lethal damage is marked, state-based actions destroy it before you get priority
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyroclasm
+p0battlefield=Drudge Skeletons;Swamp;Mountain;Mountain
+p0library=Swamp;Swamp;Swamp
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+count p0 Battlefield "Drudge Skeletons" = 1

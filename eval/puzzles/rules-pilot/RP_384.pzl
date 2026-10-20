@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 384 - Bloodrush from the hand
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Grizzly Bears and an untapped Mountain, and have Rubblebelt Maaka in hand. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-bloodrush-attacking | Bloodrush is an activated ability of the card in hand that targets an attacking creature (CR 702.92a): attack with Grizzly Bears, then pay R and discard Maaka to make it a 5/5; Maaka can't be cast for one mana
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rubblebelt Maaka
+p0battlefield=Grizzly Bears;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Improvise with new artifacts
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control four summoning-sick artifact creatures (two Ornithopters, two Memnites) and have Bottle-Cap Blast ({4}{R}, improvise: 5 damage to any target) in hand with one red mana floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-improvise-summoning-sick | Improvise taps artifacts to pay generic mana and is not a {T} ability, so summoning-sick artifact creatures can help (CR 702.126a): four artifacts and the red cast the Blast for 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Bottle-Cap Blast
+p0battlefield=Ornithopter|SummonSick;Ornithopter|SummonSick;Memnite|SummonSick;Memnite|SummonSick
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

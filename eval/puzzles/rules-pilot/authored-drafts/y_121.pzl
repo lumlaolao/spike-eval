@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Transmute for a two-drop
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Muddle the Mixture (transmute {1}{U}{U}: discard it to search your library for a card with mana value 2) in hand with {U}{U}{U}{R}{R} floating. Your library is Searing Spear and Colossal Dreadmaws. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-transmute-same-mana-value | Transmute is an activated ability from hand at sorcery speed that finds a card with the same mana value (CR 702.53a): Muddle (mana value 2) finds Searing Spear for 3; it can't be cast as a counterspell with no spell to target
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Muddle the Mixture
+p0manapool=U U U R R
+p0library=Searing Spear;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

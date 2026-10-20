@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Blitz from the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. Tenacious Underdog (3/2; blitz {2}{B}{B}, pay 2 life; you may cast it from your graveyard using blitz) is in your graveyard, and you have {B}{B}{C}{C} floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-blitz-from-graveyard | A creature cast for its blitz cost has haste and is sacrificed at the end step (CR 702.152a): blitz the Underdog from the graveyard and attack for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0graveyard=Tenacious Underdog
+p0manapool=B B C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

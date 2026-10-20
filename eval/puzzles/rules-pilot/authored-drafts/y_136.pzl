@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Promise the card for the extra damage
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Wildfire Howl (gift a card; 2 damage to each creature; if the gift was promised, it also deals 1 damage to any target) in hand with three red mana floating. The opponent is at 1 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-gift-card-extra-target | The gifted effect happens only if the gift was promised as the spell was cast (CR 702.174a): promise the card and Wildfire Howl also deals 1 damage to the opponent
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Wildfire Howl
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=1
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

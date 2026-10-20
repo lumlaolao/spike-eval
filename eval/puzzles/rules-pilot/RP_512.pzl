@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 512 - Encore a hasty copy
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. Fathom Fleet Swordjack (4/3; whenever it attacks, it deals damage to the defending player equal to the number of artifacts you control; encore {5}{R}) is in your graveyard. You control two tapped Darksteel Citadels and have six red mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-encore-haste-token | Encore exiles the card and creates a token copy for each opponent that has haste and attacks that opponent, sacrificed at the next end step (CR 702.141a): the token attacks for 4 and its trigger deals 2 for the two artifacts
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0graveyard=Fathom Fleet Swordjack
+p0battlefield=Darksteel Citadel|Tapped;Darksteel Citadel|Tapped
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

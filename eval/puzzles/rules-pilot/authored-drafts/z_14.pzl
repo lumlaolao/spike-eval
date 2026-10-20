@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Fling it before it sacrifices itself
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control no creatures and have Phyrexian Dreadnought and Fling in hand, with three red mana floating. The opponent is at 12 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-respond-own-trigger-lki | A triggered ability waits on the stack and you get priority before it resolves (CR 603.3, 117.3c): cast Phyrexian Dreadnought, and with its sacrifice trigger on the stack Fling it, dealing damage equal to its last-known power of 12 (CR 608.2h); once the trigger resolves the Dreadnought is gone
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Phyrexian Dreadnought;Fling
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=12
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

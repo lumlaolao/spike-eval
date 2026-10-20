@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 331 - Lands as fuel for retrace
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase and you have not played a land. Flame Jab (1 damage to any target; retrace) is in your graveyard, you have two Mountains in hand, and two red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-retrace-discard-land | Retrace lets you cast the card from your graveyard by discarding a land card as an additional cost (CR 702.81a): discard each Mountain to cast Flame Jab twice for 2; playing a Mountain as your land drop gives a third mana but leaves only one land card to discard, so only 1 damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Mountain;Mountain
+p0graveyard=Flame Jab
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

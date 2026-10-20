@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:2:0 Solver:7:6", "search_replays": 7, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver activated Polukranos, World Eater", "STACK_ADD: Solver activated Polukranos, World Eater"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 7, "uniqueness_exhausted": 2, "uniqueness_replays": 541, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["count p1 Graveyard \"Colossal Dreadmaw\" = 1 (was 0)", "counters p0 Battlefield \"Polukranos, World Eater\" P1P1 = 6 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 280

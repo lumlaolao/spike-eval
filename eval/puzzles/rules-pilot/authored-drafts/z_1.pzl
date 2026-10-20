@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Morbid counts at resolution
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Mogg Fanatic and have Brimstone Volley in hand, with three red mana floating. The opponent is at 6 life and controls a tapped Silent Arbiter. No creature has died this turn. Reduce the opponent to 0 life this turn.
+Rule:authored-morbid-on-resolution | Morbid is checked as Brimstone Volley resolves (CR 608.2h, 207.2c): sacrifice Mogg Fanatic for 1 before the Volley resolves (before casting it or in response to it) and the Volley deals 5; let the Volley resolve first and it deals only 3, and the Fanatic's 1 leaves the opponent at 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Brimstone Volley
+p0battlefield=Mogg Fanatic
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

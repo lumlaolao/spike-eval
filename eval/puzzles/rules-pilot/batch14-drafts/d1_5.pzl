@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Heliod stops being a creature first
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You are at 2 life and control Heliod, God of the Sun (a creature while your devotion to white is 5 or more), Divinity of Pride, Memnite and Phyrexian Altar, with {C}{C}{W} in your mana pool. The opponent controls Harsh Mentor. End the turn alive at 2 life with a Cleric token and Memnite on your battlefield.
+Rule:rulesguru-d2fe449354030495 | Harsh Mentor looks at the source when the ability has been activated, after its costs are paid (CR 601.2i, 602.2b); sacrificing Divinity of Pride to Phyrexian Altar for the mana drops your devotion below 5, so Heliod is not a creature and Mentor does not trigger (a mana ability never triggers it, CR 605.1a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=2
+p0manapool=C C W
+p0battlefield=Heliod, God of the Sun;Divinity of Pride;Memnite;Phyrexian Altar
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Harsh Mentor
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Cleric Token" = 1
+count p0 Battlefield "Memnite" = 1
+life p0 = 2

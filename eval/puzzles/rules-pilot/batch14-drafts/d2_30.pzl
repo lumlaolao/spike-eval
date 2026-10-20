@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - A tapped blocker still blocks
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent's Ainok Bond-Kin (2/1) is attacking you. You control Mishra's Factory and Wastes. End the turn with Ainok Bond-Kin in the opponent's graveyard and Mishra's Factory still on the battlefield.
+Rule:rulesguru-cd6260c68db87eab | Tapping a blocking creature does not remove it from combat, and it still deals combat damage (CR 506.4, 510.1): animate Mishra's Factory, block, then tap it to give itself +1/+1
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=20
+p0battlefield=Mishra's Factory;Wastes
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Ainok Bond-Kin|Attacking|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Ainok Bond-Kin" = 1
+count p0 Battlefield "Mishra's Factory" = 1

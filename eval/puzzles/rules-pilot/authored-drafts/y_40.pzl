@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Mentor needs a smaller student
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Sunhome Stalwart (2/2 first strike, mentor) and Memnite (1/1), and have Giant Growth in hand with one green mana floating. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-mentor-lesser-power | Mentor puts a +1/+1 counter on target attacking creature with lesser power (CR 702.134a): the floating green must be spent now, so Giant Growth goes on the Stalwart (5/5), which mentors Memnite to 2/2 for 7; Giant Growth on Memnite makes it 4/4, too big to mentor, and the total is 6
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth
+p0battlefield=Sunhome Stalwart;Memnite
+p0manapool=G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

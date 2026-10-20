@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 236 - Your Role, not theirs
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control two Craw Wurms and a Mountain. One Craw Wurm wears a Cursed Role you control; the other wears a Cursed Role the opponent controls. You have Monstrous Rage in hand and the opponent controls no creatures. End the turn with the opponent at 10 life.
+Rule:wizards-official-card-rulings-ad7bf0d88d294628 | If a permanent has more than one Role controlled by the same player, all but the newest go to the graveyard as a state-based action (CR 704.5y, 303.7); a Role another player controls stays: Monstrous Rage frees only the Wurm whose Cursed Role you control
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Monstrous Rage
+p0battlefield=Craw Wurm|Id:1;T:role_cursed|AttachedTo:1;Craw Wurm|Id:2;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=T:role_cursed|AttachedTo:2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 10

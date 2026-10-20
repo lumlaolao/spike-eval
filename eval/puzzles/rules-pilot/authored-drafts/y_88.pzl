@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Bestow on a creature that can attack
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Grizzly Bears and have Boon Satyr (4/2 flash; bestow {3}{G}{G}: enchanted creature gets +4/+2) in hand with five green mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-bestow-aura | A creature cast for its bestow cost is an Aura spell that enchants the target (CR 702.103a-b): bestowed on the Bears it makes a 6/4 attacker; cast as a creature the Satyr is summoning sick
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Boon Satyr
+p0battlefield=Grizzly Bears
+p0manapool=G G G G G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

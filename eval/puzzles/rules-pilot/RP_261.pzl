@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 261 - Pumped after it arrived
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Garruk's Packleader and have seven white mana floating, and Break of Day, Break of Day, Errand of Duty and Dictate of Heliod in hand. Your library has six cards. End the turn with exactly one card drawn (five cards left in your library).
+Rule:rulesguru-c0af4e5a0c2dbd61 | A resolved pump affects only the creatures that were on the battlefield when it resolved (CR 611.2c), so Break of Day does not make a later Knight token enter as a 3/3; a static +2/+2 (Dictate of Heliod) applies as it enters, and Packleader draws
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Break of Day;Break of Day;Errand of Duty;Dictate of Heliod
+p0battlefield=Garruk's Packleader
+p0manapool=W W W W W W W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 5

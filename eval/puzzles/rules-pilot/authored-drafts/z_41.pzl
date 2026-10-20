@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Magecraft sees the copy
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Witherbloom Apprentice (magecraft - whenever you cast or copy an instant or sorcery spell, each opponent loses 1 life and you gain 1) and have Opt and Twincast in hand with three blue mana floating. The opponent is at 3 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-magecraft-copy | Copying a spell is not casting it (CR 707.10), but magecraft triggers on both (CR 207.2c): cast Opt (1), Twincast it (1 for casting Twincast, 1 for the copy) for 3; Opt alone drains 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Opt;Twincast
+p0battlefield=Witherbloom Apprentice
+p0manapool=U U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Three spells before combat
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. Your graveyard holds Arclight Phoenix (3/2 flying haste; at the beginning of combat on your turn, if you've cast three or more instant and sorcery spells this turn, return it to the battlefield). You have three Shocks in hand with three red mana floating (it empties when the phase ends). The opponent is at 9 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-beginning-of-combat-intervening-if | The Phoenix's intervening-if is checked at the beginning of combat (CR 603.4, 507.1): cast all three Shocks in the first main phase (6), the Phoenix returns with haste and attacks for 3; there is no later beginning of combat once the main phase has passed
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock;Shock;Shock
+p0graveyard=Arclight Phoenix
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=9
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

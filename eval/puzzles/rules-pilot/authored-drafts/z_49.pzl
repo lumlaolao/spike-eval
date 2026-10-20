@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Treachery pays for itself
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control three untapped Islands and two untapped Mountains and no creatures, and have Treachery (you control enchanted creature; when it enters, untap up to five lands), Threaten and Fling in hand. The opponent is at 12 life and controls two untapped Craw Wurms (6/4). Reduce the opponent to 0 life this turn.
+Rule:authored-untap-lands-mana-order | Treachery's enters trigger untaps the lands already tapped to cast it (CR 603.2, 106.4): cast Treachery first on one Wurm, untap all five lands, Threaten the other Wurm and attack for 6, then Fling a Wurm for 6; Threaten or Fling first leaves too few lands for Treachery, and the Treachery Wurm has no haste
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Treachery;Threaten;Fling
+p0battlefield=Island;Island;Island;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=12
+p1battlefield=Craw Wurm;Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

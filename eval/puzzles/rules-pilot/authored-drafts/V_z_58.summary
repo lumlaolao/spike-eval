@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:3:2 Solver:3:2 Solver:2:1 Solver:3:1 Solver:3:1 Solver:3:0", "search_replays": 14, "opponent_branches_beaten": 0, "actions": ["COMBAT: Solver assigned Hill Giant (5) to attack Opponent.", "STACK_ADD: Solver cast Trumpet Blast"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 11, "uniqueness_exhausted": 11, "uniqueness_replays": 97, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p1 <= 0 (was 5)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 723

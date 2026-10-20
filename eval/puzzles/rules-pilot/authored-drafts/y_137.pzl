@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Explore into a land drop
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have not played a land. You control Grizzly Bears and a Map token ({1}, {T}, sacrifice: target creature you control explores), with one colorless mana floating, and Lightning Bolt in hand. Your library is a Mountain. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-explore-land-to-hand | Explore puts a revealed land card into your hand instead of giving a counter (CR 701.44a): the Map finds the Mountain, play it, and Bolt for 3; the Bears alone deal 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lightning Bolt
+p0battlefield=Grizzly Bears;T:c_a_map_sac_explore
+p0manapool=C
+p0library=Mountain
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

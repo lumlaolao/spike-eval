@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 374 - Level up before combat
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Ranger Class at level 1 (level 2, {1}{G}: whenever you attack, put a +1/+1 counter on target attacking creature) and Grizzly Bears, with two green mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-class-level-up | Leveling up a Class is a sorcery-speed activated ability, and the level-2 ability applies from then on (CR 716.2a-c): level up in the main phase, then the attack trigger puts a counter on the Bears for 3; the floating green would be gone by combat anyway
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Ranger Class;Grizzly Bears
+p0manapool=G G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 408 - Blood pays for madness
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You have Voldaren Epicure (when it enters, it deals 1 damage to each opponent and you create a Blood token) and Fiery Temper ({1}{R}{R}: 3 damage to any target; madness {R}) in hand with three red mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-blood-token-madness | A Blood token ({1}, {T}, discard a card, sacrifice it: draw a card) is a discard outlet, and a discarded madness card may be cast for its madness cost (CR 702.35a, 111.10g): Epicure (1 damage, R), Blood discarding Fiery Temper (1), madness for R, 4 in all; hard-casting the Temper takes all three mana for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Voldaren Epicure;Fiery Temper
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

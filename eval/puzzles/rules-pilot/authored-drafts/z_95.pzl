@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Eidolon hurts first
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You are at 2 life. You have Lightning Bolt and Lava Axe in hand with five red mana floating. The opponent is at 3 life and controls Eidolon of the Great Revel (whenever a player casts a spell with mana value 3 or less, it deals 2 damage to that player). Reduce the opponent to 0 life this turn.
+Rule:authored-cast-trigger-resolves-first | Eidolon's trigger goes on the stack above the spell and resolves first (CR 603.3, 405.5): Lightning Bolt would make Eidolon deal you 2 and you lose before the Bolt resolves; Lava Axe (mana value 5) doesn't trigger it and deals 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=2
+p0hand=Lightning Bolt;Lava Axe
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Eidolon of the Great Revel
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

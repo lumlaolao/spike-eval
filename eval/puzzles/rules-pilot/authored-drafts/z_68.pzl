@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Snow mana, after attacking
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Icehide Troll (2/3; {S}{S}: +2/+0 and indestructible until end of turn, then tap it), two untapped Snow-Covered Forests and an untapped Forest. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-snow-mana-tap-attacker | {S} can be paid only with mana from a snow source (CR 107.4h), and tapping an attacking creature does not remove it from combat (CR 506.4): attack with the Troll, then pay {S}{S} with the two Snow-Covered Forests for a 4-power hit; activating before attackers are declared taps it and it can't attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Icehide Troll;Snow-Covered Forest;Snow-Covered Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

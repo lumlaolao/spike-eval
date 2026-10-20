@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 511 - A hexproof player can't be targeted
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Lightning Bolt and Sizzle (3 damage to each opponent) in hand with three red mana floating. The opponent is at 3 life and controls Leyline of Sanctity (you have hexproof) and no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-player-hexproof | A player with hexproof can't be the target of an opponent's spells (CR 702.11c), but a spell that says each opponent doesn't target: Sizzle deals 3; Lightning Bolt can't target the opponent
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lightning Bolt;Sizzle
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Leyline of Sanctity
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

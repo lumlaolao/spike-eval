@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Flashback is casting
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Monastery Swiftspear (1/2 haste, prowess). Faithless Looting (flashback {2}{R}) is in your graveyard, and you have three red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-flashback-triggers-prowess | Casting a spell with flashback from the graveyard is casting a spell (CR 702.34a, 601.2), so prowess triggers: flash back Looting and the 2/3 Swiftspear attacks for 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0graveyard=Faithless Looting
+p0battlefield=Monastery Swiftspear
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

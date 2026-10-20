@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The armor goes first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control two Mountains and two Swamps, and have Incendiary Flow and Disfigure in hand. The opponent controls Willow Elf enchanted with Eel Umbra. End the turn with Willow Elf in exile.
+Rule:rulesguru-049c905a00e915b7 | Umbra armor replaces the destruction, of which the move to the graveyard is part, so it applies before Incendiary Flow's exile replacement (CR 616.1g, 701.8a, 702.89a); the Elf survives, and Flow's effect still exiles it if it dies later that turn
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Incendiary Flow;Disfigure
+p0battlefield=Mountain;Mountain;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Willow Elf|Id:1;Eel Umbra|AttachedTo:1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Willow Elf" = 1

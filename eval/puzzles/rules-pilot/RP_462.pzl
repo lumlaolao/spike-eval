@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 462 - Exalted poison
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Glistener Elf (1/1 infect) and Akrasan Squire (1/1 exalted). The opponent is at 20 life with 8 poison counters and controls no creatures. Win the game this turn.
+Rule:authored-exalted-infect | Exalted pumps a creature that attacks alone, and infect turns all its damage to a player into poison (CR 702.83a, 702.90b): the Elf alone deals 2 poison for 10; attacking with both gives only 1 poison
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Glistener Elf;Akrasan Squire
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1counters=POISON=8
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

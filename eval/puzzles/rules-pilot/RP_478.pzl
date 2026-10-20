@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 478 - Fill the board, then tap the Cradle
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Gaea's Cradle ({T}: add {G} for each creature you control), two untapped Mountains and Grizzly Bears, and have Memnite, Ornithopter and Lava Axe ({4}{R}: 5 damage to target player) in hand. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-mana-ability-counts-on-activation | A mana ability's amount is determined as it is activated (CR 605.3, 106.4): cast the free Memnite and Ornithopter first, then the Cradle makes three green, and with the Mountains Lava Axe is paid; tapping the Cradle first makes only one green
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Memnite;Ornithopter;Lava Axe
+p0battlefield=Gaea's Cradle;Mountain;Mountain;Grizzly Bears
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

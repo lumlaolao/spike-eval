@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 249 - A manifest was not cast
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Containment Priest. You control a Mountain and two Plains and have Soul Summons and Shock in hand; your library is all Forests. End the turn with the top card of your library manifested as a face-down creature on your battlefield (one card fewer in your library) and none of your cards in exile.
+Rule:rulesguru-19214282e3c5da5c | A manifested card is turned face down before it moves, so it enters as a nontoken 2/2 creature that was not cast (CR 701.40a, 708.2): Containment Priest exiles it even when the card is a land, so the Priest must die first
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Soul Summons;Shock
+p0battlefield=Mountain;Plains;Plains
+p0library=Forest;Forest;Forest;Forest;Forest
+p1life=20
+p1battlefield=Containment Priest
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Containment Priest" = 1
+count p0 Exile * = 0
+count p0 Library * = 4

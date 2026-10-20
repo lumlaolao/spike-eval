@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 277 - Wither cancels the counters Luxior counts
+Goal:Survive
+Turns:2
+Difficulty:Hard
+Description:It is the opponent's turn and their Sickle Ripper (wither) is attacking you. You control Goblin Sky Raider with two +1/+1 counters, Luxior, Giada's Gift (unattached) and three Wastes. The opponent is at 5 life. Reduce the opponent to 0 life by the end of your next turn.
+Rule:rulesguru-e492fbecd8c19c56 | Wither damage is dealt as -1/-1 counters, and +1/+1 and -1/-1 counters on one permanent are removed in pairs as a state-based action (CR 702.80a, 704.5q, 122.3): a Raider that blocks the Ripper ends with no counters, so Luxior gives it nothing; don't block, then equip and attack as a 5/6
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=20
+p0battlefield=Goblin Sky Raider|Counters:P1P1=2;Luxior, Giada's Gift;Wastes;Wastes;Wastes
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Sickle Ripper|Attacking|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Frog the Goyf, then Spray it
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Grizzly Bears and have Turn to Frog and Magma Spray (2 damage to target creature) in hand, with two blue and one red mana floating. The opponent is at 2 life and controls an untapped Tarmogoyf; the opponent's graveyard holds a creature, a land and an instant (Goyf is 3/4). Reduce the opponent to 0 life this turn.
+Rule:authored-set-pt-overrides-cda | A characteristic-defining ability applies in layer 7a and Turn to Frog's base 1/1 in layer 7b, so the Frog stays 1/1 however the graveyards grow (CR 613.4a-b): Frog the Goyf, Magma Spray it, and the Bears attack for 2; Magma Spray alone leaves a 3/4 blocker and the Frog alone still blocks
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Turn to Frog;Magma Spray
+p0battlefield=Grizzly Bears
+p0manapool=U U R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Tarmogoyf
+p1graveyard=Grizzly Bears;Mountain;Lightning Bolt
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

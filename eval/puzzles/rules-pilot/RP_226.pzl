@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 226 - The copy brings itself back
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Driver of the Dead, Falkenrath Noble and two Islands, and have Phantasmal Image and Mutagenic Growth in hand. Grizzly Bears is in your graveyard. End the turn with two Driver of the Dead on your battlefield and the opponent at 19 life.
+Rule:wizards-official-card-rulings-ff9a99af91f85835 | A dies trigger looks back at the permanent, but its target is chosen in the graveyard (CR 603.10a, 400.7): a Phantasmal Image that copied Driver of the Dead dies as a Driver and its trigger can return the mana value 2 Image card itself
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Phantasmal Image;Mutagenic Growth
+p0battlefield=Driver of the Dead;Falkenrath Noble;Island;Island
+p0graveyard=Grizzly Bears
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Driver of the Dead" = 2
+life p1 = 19

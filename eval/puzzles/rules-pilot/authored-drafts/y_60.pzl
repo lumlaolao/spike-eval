@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Bolster picks the least toughness
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Hill Giant (3/3) and Ornithopter (0/2, summoning sick), and have Dromoka's Gift (bolster 4) and Shock in hand with {R}{G}{G}{G}{G}{G} floating. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-bolster-least-toughness | Bolster puts its counters on the creature you control with the least toughness, chosen as it resolves (CR 701.39a): Shock your own Ornithopter first, then bolster 4 goes on the Giant for a 7/7; otherwise the counters go on the Ornithopter and Shock to the face plus the Giant make 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Dromoka's Gift;Shock
+p0battlefield=Hill Giant;Ornithopter|SummonSick
+p0manapool=R G G G G G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

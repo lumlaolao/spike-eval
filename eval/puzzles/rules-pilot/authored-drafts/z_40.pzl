@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Awaken the untapped Island
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control six untapped Islands and no creatures, and have Clutch of Currents (return target creature to its owner's hand; awaken 3 - {4}{U}) in hand. The opponent is at 3 life and controls an untapped Hill Giant. Reduce the opponent to 0 life this turn.
+Rule:authored-awaken-untapped-land | Awaken makes the target land a 0/0 Elemental creature with haste and three +1/+1 counters (CR 702.113a), but a tapped creature can't attack (CR 508.1a): pay the awaken cost with five Islands, target the sixth, untapped Island, bounce the Giant and attack for 3; awakening an Island tapped for mana gives a creature that can't attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Island;Island;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

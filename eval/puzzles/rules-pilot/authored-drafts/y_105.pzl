@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Disturb as an Aura
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears. Lantern Bearer (disturb {2}{U}: its back face Lanterns' Lift is an Aura, enchanted creature gets +1/+1 and flying) is in your graveyard, and you have three blue mana floating. The opponent is at 3 life and controls an untapped Wall of Stone. Reduce the opponent to 0 life this turn.
+Rule:authored-disturb-aura-back-face | Disturb casts the card transformed from the graveyard (CR 702.146a): Lanterns' Lift on the Bears makes a 3/3 flier the Wall can't block
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0graveyard=Lantern Bearer
+p0battlefield=Grizzly Bears
+p0manapool=U U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 394 - Worship stops damage, not life loss
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Blood Artist and have Lightning Bolt in hand, with one red mana floating. The opponent is at 1 life and controls Worship and an untapped Darksteel Myr (indestructible). Reduce the opponent to 0 life this turn.
+Rule:authored-worship-life-loss | Worship replaces only damage (CR 614.1, 120.3) and life loss is not damage (CR 119.3): Bolt your own Blood Artist, and its dies trigger makes the opponent lose 1; Bolt to the opponent is reduced to leave 1 and the indestructible Myr survives Bolt
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt
+p0battlefield=Blood Artist
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=1
+p1battlefield=Worship;Darksteel Myr
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

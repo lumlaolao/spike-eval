@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 327 - No redirect to the planeswalker
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and have Sizzle and Shock in hand with three red mana floating. The opponent is at 20 life and controls Chandra, Torch of Defiance with 4 loyalty and no creatures. Destroy Chandra this turn.
+Rule:authored-planeswalker-no-redirect | Damage that would be dealt to a player can no longer be redirected to a planeswalker; a planeswalker is damaged only by combat or by a spell that names it (CR 120.3c, 306.8, 506.4): Shock Chandra for 2 and attack Chandra with the Bears for 2; Sizzle hits each opponent, never Chandra, and leaves no mana for Shock
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Sizzle;Shock
+p0battlefield=Grizzly Bears
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Chandra, Torch of Defiance|Counters:LOYALTY=4
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Chandra, Torch of Defiance" = 1

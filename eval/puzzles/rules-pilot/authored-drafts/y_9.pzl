@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Entwine buys both modes
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Barbed Lightning (choose one: 3 damage to target creature, or 3 damage to target player or planeswalker; entwine {2}) in hand with five red mana floating. The opponent is at 20 life and controls Hill Giant. Destroy the Hill Giant and deal 3 damage to the opponent this turn.
+Rule:authored-entwine-both-modes | Paying the entwine cost lets you choose all modes of the modal spell (CR 702.42a): cast Barbed Lightning for {2}{R} plus entwine {2} and both 3-damage modes happen; without entwine only one of the two goals is met
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Barbed Lightning
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 17
+count p1 Graveyard "Hill Giant" = 1

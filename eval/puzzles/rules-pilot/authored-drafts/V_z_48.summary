@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:2:0 Solver:2:1", "search_replays": 4, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Turn to Frog targeting [Wall of Stone (5)]", "COMBAT: Solver assigned Wall of Stone (5) to attack Opponent."], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 2, "uniqueness_exhausted": 2, "uniqueness_replays": 1, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p1 <= 0 (was 4)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 236

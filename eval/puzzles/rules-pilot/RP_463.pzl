@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 463 - Casualty copies the spell
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and Memnite, both summoning sick, and have Light 'Em Up (casualty 2: 2 damage to target creature or planeswalker) in hand with two red mana floating. The opponent is at 20 life and controls two Grizzly Bears. Destroy both of the opponent's Grizzly Bears this turn.
+Rule:authored-casualty-power-copy | Casualty N lets you sacrifice a creature with power N or greater as you cast the spell to copy it (CR 702.153a): sacrifice your Bears (power 2) and the copy kills the second Bears; Memnite's power 1 is too small
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Light 'Em Up
+p0battlefield=Grizzly Bears|SummonSick;Memnite|SummonSick
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 2

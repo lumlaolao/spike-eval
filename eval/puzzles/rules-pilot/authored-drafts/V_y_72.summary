@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:2:0 Solver:2:0 Solver:2:1", "search_replays": 3, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Gingerbrute", "STACK_ADD: Solver activated Gingerbrute", "COMBAT: Solver assigned Gingerbrute (1) to attack Opponent."], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 3, "uniqueness_exhausted": 3, "uniqueness_replays": 4, "uniqueness_unproven_alternatives": 1}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p1 <= 0 (was 1)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 690

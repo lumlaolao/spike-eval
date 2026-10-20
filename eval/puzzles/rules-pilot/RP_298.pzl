@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 298 - First strike meets double strike
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent's Fencing Ace (1/1 double strike) and Grizzly Bears (2/2) are attacking you. You control Youthful Knight (2/1 first strike) and Savannah Lions (2/1). End the turn with no creatures on the opponent's battlefield.
+Rule:authored-double-vs-first-strike | First strikers and double strikers deal damage together in the first-strike combat damage step (CR 510.4, 702.4b): Youthful Knight blocking Fencing Ace trades with it, while Savannah Lions dies to the Ace's first hit without dealing damage (CR 510.1d)
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0battlefield=Savannah Lions;Youthful Knight
+p0library=Plains;Plains;Plains
+p1life=20
+p1battlefield=Fencing Ace|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Battlefield * = 0
+life p0 = 2

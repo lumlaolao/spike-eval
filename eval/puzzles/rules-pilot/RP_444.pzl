@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 444 - Boast after the attack
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Hagi Mob (5/4; boast {1}{R}: 1 damage to any target, only if it attacked this turn) and two untapped Mountains. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-boast-after-attack | A boast ability can be activated only if the creature attacked this turn, once per turn (CR 702.142a): attack for 5, then boast for the last 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Hagi Mob;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

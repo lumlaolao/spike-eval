@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 252 - It counts itself on the way
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control a Swamp and have Unearth and Gitaxian Probe in hand; Embodiment of Agonies is the only card in your graveyard. End the turn at 20 life with Embodiment of Agonies on the battlefield.
+Rule:rulesguru-96d878c47e0ae213 | An enters-with-counters replacement is applied while the card is still in its old zone (CR 614.1c, 614.12): Embodiment of Agonies returning from the graveyard counts its own mana cost and enters as a 1/1, so no other card needs to reach the graveyard first
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gitaxian Probe;Unearth
+p0battlefield=Swamp
+p0graveyard=Embodiment of Agonies
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Embodiment of Agonies" = 1
+life p0 = 20

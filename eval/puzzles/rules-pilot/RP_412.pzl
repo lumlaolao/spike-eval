@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 412 - The eternalized Khenra is bigger
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. Earthshaker Khenra (2/1 haste; when it enters, target creature with power less than or equal to its power can't block this turn; eternalize {4}{R}{R}) is in your graveyard, with six red mana floating. The opponent is at 4 life and controls an untapped Hill Giant (3/3). Reduce the opponent to 0 life this turn.
+Rule:authored-eternalize-4-4 | Eternalize creates a token copy that is a 4/4 black Zombie (CR 702.129a, 707.9b): the token has haste, and its enters trigger checks its power 4, so the Hill Giant (power 3) can't block and 4 damage connects; the printed 2/1 could not have targeted the Giant
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0graveyard=Earthshaker Khenra
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

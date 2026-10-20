@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 266 - The token does not come back
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 3 life and the opponent's Hill Giant is attacking you. You control a 4/4 Bear token enchanted with the opponent's Pacifism and three Plains, and have Acrobatic Maneuver and Holy Day in hand. Survive the turn.
+Rule:rulesguru-bf58c7d51c1eaf63 | A token that leaves the battlefield cannot come back (CR 111.8) and ceases to exist (CR 704.5d): Acrobatic Maneuver on the token exiles it for good, so it cannot shed Pacifism and block; Holy Day is the line that survives
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=3
+p0hand=Acrobatic Maneuver;Holy Day
+p0battlefield=T:g_4_4_bear|Id:1;Plains;Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant|Attacking|Tapped;Pacifism|AttachedTo:1
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 >= 1
+winner p0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 235 - Dealt no damage this way
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Soul-Scar Mage and two Mountains, and have Flame Slash and Pillar of Flame in hand. The opponent controls Merfolk of the Pearl Trident. End the turn with Merfolk of the Pearl Trident in exile.
+Rule:rulesguru-d6e715d7bd3a22b3 | Soul-Scar Mage replaces the damage with -1/-1 counters, so the replaced damage is never dealt (CR 614.6, 120.3) and no creature was "dealt damage this way" for Pillar of Flame's exile clause: the Mage must be gone before Pillar resolves
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flame Slash;Pillar of Flame
+p0battlefield=Soul-Scar Mage;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Merfolk of the Pearl Trident
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Merfolk of the Pearl Trident" = 1

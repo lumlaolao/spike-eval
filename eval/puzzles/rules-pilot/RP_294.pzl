@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 294 - Deathtouch does not stop trample
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent's Colossal Dreadmaw (6/6 trample) and Grizzly Bears (2/2) are attacking you. You control Typhoid Rats (1/1 deathtouch) and Wall of Stone (0/8). Survive the turn.
+Rule:authored-trample-deathtouch-blocker | A trampler need assign only lethal damage to its blocker, the blocker's toughness, before the rest goes to the player (CR 702.19b, 120.6); the blocker's deathtouch changes nothing, since all combat damage is dealt at once (CR 510.2): the Rats would let 5 through, the Wall's 8 toughness lets none
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0battlefield=Typhoid Rats;Wall of Stone
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Colossal Dreadmaw|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+life p0 = 2

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Grace ends before the turn does
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You are at 7 life with 9 poison counters. The opponent's Blighted Agent (infect, can't be blocked) and Colossal Dreadmaw are attacking you. You control Sacred Foundry and have Angel's Grace and Shock in hand. Survive until your next turn.
+Rule:rulesguru-8a4b9f0c75421565 | Angel's Grace's "can't lose" lasts until the cleanup step; when it ends, state-based actions are checked (CR 514.2, 514.3a, 704.5c) and a player with 10 poison counters loses: Shock the Agent and take 6 instead
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=7
+p0counters=POISON=9
+p0hand=Angel's Grace;Shock
+p0battlefield=Sacred Foundry
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Blighted Agent|Attacking|Tapped;Colossal Dreadmaw|Attacking|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

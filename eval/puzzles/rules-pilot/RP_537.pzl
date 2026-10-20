@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 537 - Break the Cage, then persist
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Murderous Redcap (2/2; when it enters, it deals damage equal to its power to any target; persist) and have Shatter and Fling in hand with four red mana floating. The opponent is at 3 life and controls Grafdigger's Cage (creature cards in graveyards can't enter the battlefield). Reduce the opponent to 0 life this turn.
+Rule:authored-cage-stops-persist | Grafdigger's Cage stops persist's return from the graveyard (CR 702.79a, 101.2): Shatter the Cage first, then Fling the Redcap for 2, and it persists back as a 1/1 dealing 1 more; Fling with the Cage in play deals only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shatter;Fling
+p0battlefield=Murderous Redcap
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Grafdigger's Cage
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

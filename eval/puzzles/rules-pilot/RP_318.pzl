@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 318 - Evolve compares as each one enters
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Cloudfin Raptor (0/1, evolve) and have Memnite and Grizzly Bears in hand, with two green mana floating. End the turn with two +1/+1 counters on Cloudfin Raptor.
+Rule:authored-evolve-order | Evolve compares the entering creature with the evolving creature as it is then, and again on resolution (CR 702.100a-b): Memnite (1/1) first evolves the 0/1 Raptor to 1/2, then Grizzly Bears (2/2) evolves it again; Bears first leaves a 1/2 Raptor that a 1/1 cannot evolve
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Memnite;Grizzly Bears
+p0battlefield=Cloudfin Raptor
+p0manapool=G G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Cloudfin Raptor" P1P1 = 2

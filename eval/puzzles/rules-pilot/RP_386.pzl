@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 386 - Changeling is a Goblin too
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Goblin King (other Goblins get +1/+1 and mountainwalk; it came under your control this turn and is summoning sick) and Woodland Changeling (2/2 changeling). The opponent is at 3 life and controls a Mountain and an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-changeling-lord-landwalk | Changeling gives every creature type (CR 702.73a), so Goblin King makes Woodland Changeling a 3/3 with mountainwalk, unblockable while the opponent controls a Mountain (CR 702.14c); without the King's bonus the 2/2 Changeling is blocked by the Wall or falls one short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Goblin King|SummonSick;Woodland Changeling
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Wall of Stone;Mountain
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 534 - Dethrone counts a tie
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You are at 3 life and control Marchesa's Emissary (2/2, dethrone) and Grizzly Bears. The opponent is at 3 life and controls a tapped Silent Arbiter (no more than one creature can attack each combat). Reduce the opponent to 0 life this turn.
+Rule:authored-dethrone-tie | Dethrone triggers when the creature attacks the player with the most life or tied for most life (CR 702.105a): at 3 life each, the Emissary attacking gets a +1/+1 counter and deals 3; Grizzly Bears deals 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=3
+p0battlefield=Marchesa's Emissary;Grizzly Bears
+p0library=Island;Island;Island
+p1life=3
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

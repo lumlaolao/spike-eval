@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Devour eats as it enters
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control two Grizzly Bears that came under your control this turn (summoning sick) and have Predator Dragon (4/4 flying, haste, devour 2) in hand with six red mana floating. The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-devour-two-counters | Devour is a replacement as the creature enters: sacrifice any number of creatures and it enters with N +1/+1 counters for each (CR 702.82a): devouring both Bears makes the hasty Dragon an 8/8 flier; devouring one gives 6 and none 4, and the summoning-sick Bears can't attack anyway
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Predator Dragon
+p0battlefield=Grizzly Bears|SummonSick;Grizzly Bears|SummonSick
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

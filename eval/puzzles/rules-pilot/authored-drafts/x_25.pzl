@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Delve pays with the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your second main phase. You have Murderous Cut in hand with one black mana floating, and four Swamps in your graveyard. The opponent controls Serra Angel. End the turn with Serra Angel in the opponent's graveyard.
+Rule:authored-delve-generic | Delve lets each card exiled from your graveyard pay for one generic mana (CR 702.66a): exile the four Swamps and pay B for Murderous Cut
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Murderous Cut
+p0graveyard=Swamp;Swamp;Swamp;Swamp
+p0manapool=B
+p0library=Swamp;Swamp;Swamp
+p1life=20
+p1battlefield=Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Serra Angel" = 1

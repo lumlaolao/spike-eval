@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 237 - One counter, one loot
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Baral, Chief of Compliance and four Islands, and have Memnite and Mystic Confluence in hand. End the turn with Memnite countered (in your graveyard) and exactly three cards drawn this turn (three cards left in your library).
+Rule:rulesguru-a320578e3d81f127 | A mode chosen more than once is carried out once per choice in order (CR 700.2d), but a spell already countered is in the graveyard and cannot be countered again (CR 701.6a): Baral triggers once however many counter modes you pick, so counter once and draw twice
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Memnite;Mystic Confluence
+p0battlefield=Baral, Chief of Compliance;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Graveyard "Memnite" = 1
+count p0 Library * = 3

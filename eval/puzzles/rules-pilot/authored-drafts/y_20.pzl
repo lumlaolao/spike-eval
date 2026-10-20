@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Fog Bank stops only combat damage
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and have Shock in hand with one red mana floating. The opponent is at 2 life and controls an untapped Fog Bank (0/2 flying defender; prevent all combat damage dealt to and dealt by it). Destroy Fog Bank and reduce the opponent to 0 life this turn.
+Rule:authored-fog-bank-noncombat | A prevention effect applies only to the damage it describes (CR 615.1): Fog Bank prevents combat damage, not Shock's, so Shock the Fog Bank first and the Bears' 2 damage is unblocked; Shock to the face leaves Fog Bank to block and absorb the Bears
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock
+p0battlefield=Grizzly Bears
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Fog Bank
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+count p1 Graveyard "Fog Bank" = 1

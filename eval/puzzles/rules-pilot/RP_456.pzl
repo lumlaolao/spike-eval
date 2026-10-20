@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 456 - Harmonize with the big one
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Craw Wurm (6/4) and Grizzly Bears, both summoning sick. Wild Ride (target creature gets +3/+0 and haste; harmonize {4}{R}) is in your graveyard, and you have two red mana floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-harmonize-tap-power | Harmonize casts the card from the graveyard, and you may tap an untapped creature you control to reduce the cost by its power (CR 702.180a); tapping is not a {T} cost, so a summoning-sick creature may do it: tap the Wurm to pay, give the Bears +3/+0 and haste, 5 damage; tapping the Bears leaves the cost too high
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0graveyard=Wild Ride
+p0battlefield=Craw Wurm|SummonSick;Grizzly Bears|SummonSick
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

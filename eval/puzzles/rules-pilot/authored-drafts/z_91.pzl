@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Two creature spells bring back Vengevine
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. Your graveyard holds Vengevine (4/3 haste; whenever you cast your second creature spell each turn, you may return it from your graveyard to the battlefield). You have Memnite and Ornithopter in hand and no mana. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-graveyard-cast-trigger | An ability that says it works from the graveyard triggers there (CR 113.6b, 603.6): casting the second creature spell returns Vengevine, which has haste and attacks for 4; the two 0-cost creatures are summoning sick
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Memnite;Ornithopter
+p0graveyard=Vengevine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

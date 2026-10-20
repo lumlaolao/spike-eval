@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Attack first, then Relentless Assault
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Hill Giant (3/3) and four untapped Mountains, and have Relentless Assault (untap all creatures that attacked this turn; after this main phase there is an additional combat phase followed by an additional main phase) in hand. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-additional-combat-phase | An additional combat phase has its own declare attackers step (CR 500.8, 506.1), and Relentless Assault untaps only creatures that attacked before it resolves: attack for 3, cast it in the second main phase to untap the Giant, and attack again for 3; cast before combat it untaps nothing, the Giant attacks in the extra combat and is still tapped for the regular one
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Relentless Assault
+p0battlefield=Hill Giant;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Kick the Comet for a second target
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Comet Storm ({X}{R}{R}, multikicker {1}: X damage to any target and one more target per kick) in hand with six red mana floating. The opponent is at 20 life and controls two Hill Giants (3/3). Destroy both Hill Giants this turn.
+Rule:authored-multikicker-targets | Multikicker may be paid any number of times, and Comet Storm takes one more target per kick (CR 702.33c): X=3 with one kick costs 3+RR+1 and deals 3 to each Giant; X=4 unkicked kills only one
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Comet Storm
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 2

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 332 - Proliferate counts poison
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Contentious Plan (proliferate, then draw a card) in hand with two blue mana floating. The opponent is at 20 life with 9 poison counters and controls no creatures. Win the game this turn.
+Rule:authored-proliferate-poison | Proliferate gives each chosen permanent and player another counter of each kind already there, poison counters on players included (CR 701.34a); a player with ten or more poison counters loses (CR 704.5c): Contentious Plan has no target and touches no permanent here, yet its proliferate gives the opponent the tenth poison counter
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Contentious Plan
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1counters=POISON=9
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

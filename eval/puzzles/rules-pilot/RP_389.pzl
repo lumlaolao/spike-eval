@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 389 - Grave Pact clears the blocker
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grave Pact, Hill Giant and a Mogg Fanatic that came under your control this turn. The opponent is at 4 life and controls an untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-sacrifice-trigger-before-ability | Sacrificing Mogg Fanatic is a cost, so Grave Pact triggers at once and resolves before the Fanatic's ability (CR 602.2b, 603.3, 405.5): the opponent must sacrifice the Bears, aim the Fanatic's 1 at the opponent, and the Giant attacks unblocked for 3; aiming it at the Bears wastes it because the Bears are already gone
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Grave Pact;Hill Giant;Mogg Fanatic|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

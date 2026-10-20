@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Dredge through the Chains
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Chains of Mephistopheles, two Forests and three Islands, and have Urban Evolution and Life from the Loam in hand. End the turn with Life from the Loam in your hand and only three cards left in your library.
+Rule:rulesguru-bd94082f9a2d54a7 | Chains of Mephistopheles replaces each draw with discard-then-draw (CR 614.1a), and that new draw can itself be replaced by dredge: discard Life from the Loam, dredge it back, three times, milling nine
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Urban Evolution;Life from the Loam
+p0battlefield=Chains of Mephistopheles;Forest;Forest;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand "Life from the Loam" = 1
+count p0 Library * = 3

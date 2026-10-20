@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 421 - Kill Thalia before casting
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Fervor (creatures you control have haste) and have Flame Slash and Grizzly Bears in hand, with one red and two green mana floating. The opponent is at 2 life and controls an untapped Thalia, Heretic Cathar (3/2 first strike; creatures your opponents control enter tapped). Reduce the opponent to 0 life this turn.
+Rule:authored-enters-tapped-replacement-order | Thalia's enters-tapped replacement applies as the creature enters (CR 614.1c, 614.12), and removing Thalia later does not untap it: Flame Slash Thalia first, then cast the Bears, which enter untapped with haste and attack for 2; cast the Bears first and they enter tapped and can't attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flame Slash;Grizzly Bears
+p0battlefield=Fervor
+p0manapool=R G G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Thalia, Heretic Cathar
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

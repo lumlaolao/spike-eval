@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Haunt the right creature
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Blind Hunter (haunt; when it enters or the creature it haunts dies, target player loses 2 life and you gain 2) and Grizzly Bears, and have two Flings in hand with four red mana floating. The opponent is at 6 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-haunt-order | Haunt exiles the dying card haunting target creature, and its effect happens again when the haunted creature dies (CR 702.55a-c): Fling Blind Hunter (2), haunt your Grizzly Bears, then Fling the Bears (2) for the second drain of 2; Fling the Bears first and the Hunter can only haunt the Arbiter, for 4 in total
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling;Fling
+p0battlefield=Blind Hunter;Grizzly Bears
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

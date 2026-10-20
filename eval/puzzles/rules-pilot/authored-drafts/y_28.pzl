@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Madness from a discard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Faithless Looting and Fiery Temper ({1}{R}{R}, 3 damage to any target; madness {R}) in hand with two red mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-madness-discard | A discarded madness card is exiled instead and may be cast for its madness cost when the trigger resolves (CR 702.35a): Faithless Looting, discarding Fiery Temper, then cast it for {R}; two mana can't hard-cast the Temper
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Faithless Looting;Fiery Temper
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

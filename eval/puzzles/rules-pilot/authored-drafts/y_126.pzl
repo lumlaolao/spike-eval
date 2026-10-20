@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Gideon becomes a creature
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Gideon, Ally of Zendikar with 4 loyalty (+1: until end of turn he becomes a 5/5 indestructible creature; 0: create a 2/2 Knight). The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-planeswalker-animates-attacks | A planeswalker that becomes a creature can attack if you have controlled it since the turn began (CR 302.6, 306.4): +1 and Gideon attacks for 5; the 0 ability's Knight is summoning sick
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Gideon, Ally of Zendikar|Counters:LOYALTY=4
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -319,8 +319,11 @@ public final class LlmSpikeGui {
      *  [2 0] was taken, so Fire at two targets dealt all 2 to one.
      *  Epoch 65 (2026-10-19, pr-review of PR #268): a source whose tap damage is lethal pays last for a harness seat,
      *  not first; at 1 life with City of Brass and Llanowar Elves the payment plan tapped City for {1}.
+     *  Epoch 66 (2026-10-20, authored rules puzzles): an attack the engine refuses (Silent Arbiter) is asked once more
+     *  with the reason, then made legal; the engine re-asked forever. The puzzle prover targets a copy that may take
+     *  new targets (Twincast), as the model seat does; Forge's AI picked it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-65";
+    static final String HARNESS_EPOCH = "harness-epoch-66";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1928,21 +1931,28 @@ public final class LlmSpikeGui {
             if (!(rnd instanceof PuzzleArms.Search) || !"Solver".equals(((PuzzleArms.Search) rnd).seat)) return;
             if (type != null && UNIQUENESS_NEUTRAL.contains(type)) return;
             PuzzleArms.Line l = PuzzleArms.searchLine;
-            if (l != null && label != null && !label.startsWith("PASS") && !"[]".equals(label))
-                l.note((type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
-                        .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", "")
-                        // the object's current size and counters: the same card before and after a counter (RP_127)
-                        .replaceAll(" ?\\(\\d+/\\d+\\)", "").replaceAll("\\[[^\\]]* x\\d+\\]", ""));
+            if (l != null && label != null && !label.startsWith("PASS") && !"[]".equals(label)) l.note(choiceKey(type, label));
+        }
+
+        /** A solver choice as the uniqueness search compares it: handles, repeat markers, tapped/sick marks, the
+         *  object's current size (negative too: Fiend Artisan (-1/1), batch 14d2), a planeswalker's loyalty and counters
+         *  dropped (RP_127). */
+        static String choiceKey(String type, String label) {
+            return (type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
+                    .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", "")
+                    .replaceAll(" ?\\(-?\\d+/-?\\d+\\)", "").replaceAll(" ?\\[loyalty -?\\d+\\]", "")
+                    .replaceAll("\\[[^\\]]* x\\d+\\]", "");
         }
 
         /** Choices that make no second solution on their own (rules puzzle batch 3: 18 correct puzzles were called
          *  "multiple" for them): the order of cards moved together or of triggers and replacements, which source paid,
-         *  a scry, a confirm prompt, a library pick declined and made again, mana paid from the pool or the colour an
-         *  any-colour source made (a "choose a color" effect is asked under this type too, a known blind spot). Where one
+         *  a scry or a clash (top or bottom, batch 14b2), a confirm prompt, a library pick declined and made again,
+         *  mana paid from the pool or the colour an any-colour source made (a "choose a color" effect is asked under this type too, a known blind spot). Where one
          *  decides the result, the result
          *  differs in the solver's actions or in a choice that is noted. */
         static final java.util.Set<String> UNIQUENESS_NEUTRAL = new java.util.HashSet<>(java.util.Arrays.asList(
-                "order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color", "scry", "confirm",
+                "order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color", "scry", "clash",
+                "confirm",
                 "zone-change", "target", "targets"));   // targets: the log's "targeting [...]" already says them (RP_022)
 
         /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
@@ -2945,7 +2955,7 @@ public final class LlmSpikeGui {
                 // baseline. Never the engine AI.
                 if (!smartOk()) {
                     for (Card c : legal) combat.addAttacker(c, defender);
-                    auto("attackers(no-model)->all-in x" + legal.size());
+                    if (!makeAttackLegal(combat, "no-model")) auto("attackers(no-model)->all-in x" + legal.size());
                     return;
                 }
                 // Numbered subset pick, same PICKS router as discard: robust to duplicate creature names
@@ -2964,26 +2974,42 @@ public final class LlmSpikeGui {
                 boolean anyInfect = false;
                 for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
                 // Shared question template (single source; the ai-teacher seat rebuilds byte-identically).
-                List<Integer> picks = decideMany(smart, null,
-                        buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect,
-                                attackersCeiling(legal, defender, combat)),
-                        labels, 0, legal.size());
-                if (picks == null) {
-                    // Bridge dead -> no attack, the fixed legal option. Reading attackers out of the plan's
-                    // prose, the prior-turn set and the all-in default were each the harness attacking for a
-                    // seat that did not answer (acceptance `gaming`; 2026-10-16 review M2).
-                    auto("attackers(bridge-down)->none");
-                    return;
+                String question = buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect,
+                        attackersCeiling(legal, defender, combat));
+                // The engine re-asks until the declaration is legal (PhaseHandler: validateAttackers), so a set it
+                // refuses (Silent Arbiter's one attacker, a creature that must attack) looped for a seat that kept
+                // its answer (authored puzzles x_0, x_15, x_18 searched for hours). Asked once more with the reason;
+                // refused again, the engine's own legal declaration is made, like any unanswered decision.
+                List<Integer> picks = null;
+                boolean refused = false;
+                PuzzleArms.Line line = PuzzleArms.searchLine;
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    int noted = line == null ? 0 : line.choices.size();
+                    picks = decideMany(smart, null, question, labels, 0, legal.size());
+                    if (picks == null) break;
+                    for (int i : picks) combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
+                    if (CombatUtil.validateAttackers(combat)) break;
+                    // on the record as asked, answered and overruled (its own row type: JSONL stays additive)
+                    for (int i : picks) combat.removeFromCombat(legal.get(i));
+                    evalDec("attackers-refused", legal.size(), picks.size(), tierOf(true), 0, null, labels);
+                    p("[ROUTER] attackers: refused by the engine: " + namesOf(legal, picks));
+                    if (line != null) line.dropChoicesAfter(noted);   // a refused set is no solver choice
+                    question = question + " " + illegalAttackNote(attacker, combat);
+                    picks = null;
+                    refused = true;
                 }
-                StringBuilder chosen = new StringBuilder();
-                for (int i : picks) {
-                    combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
-                    if (chosen.length() > 0) chosen.append(", ");
-                    chosen.append(legal.get(i).getName());
+                if (picks == null) {
+                    // Bridge dead or refused twice -> no attack, the fixed legal option, or the engine's legal set
+                    // when no attack is not legal. Reading attackers out of the plan's prose, the prior-turn set and
+                    // the all-in default were each the harness attacking for a seat that did not answer (acceptance
+                    // `gaming`; 2026-10-16 review M2).
+                    String why = refused ? "refused twice" : "bridge-down";
+                    if (!makeAttackLegal(combat, why)) auto("attackers(" + why + ")->none");
+                    return;
                 }
                 lastShadowChoice = shadowAtk; // re-attach: decideMany's clearLast() nulled it above
                 evalDec("attackers", legal.size(), picks.size(), tierOf(true), 0, null, labels); // choice = # declared
-                p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : chosen.toString()));
+                p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : namesOf(legal, picks)));
                 formBands(combat);
             } catch (Exception e) {
                 // A failure branch takes a deterministic LEGAL option, never the Forge AI for strategy
@@ -2991,6 +3017,36 @@ public final class LlmSpikeGui {
                 // resolves combat from an empty set.
                 auto("attackers(err)->none");
             }
+        }
+
+        /** The names of {@code cards} at {@code picks}, comma-separated, for the router log. */
+        static String namesOf(List<Card> cards, List<Integer> picks) {
+            StringBuilder sb = new StringBuilder();
+            for (int i : picks) sb.append(sb.length() > 0 ? ", " : "").append(cards.get(i).getName());
+            return sb.toString();
+        }
+
+        /** Why the engine refuses a declared attack, for the seat's second ask: the global limit when there is one
+         *  (Silent Arbiter, Crawlspace), else the restrictions and requirements in general. */
+        static String illegalAttackNote(Player attacker, Combat combat) {
+            Integer max = null;
+            try { max = forge.game.combat.GlobalAttackRestrictions.getGlobalRestrictions(attacker, combat.getDefenders()).getMax(); }
+            catch (Exception ignore) { }
+            return "That set is not a legal attack: " + (max != null ? "at most " + max + " creature"
+                    + (max == 1 ? "" : "s") + " can attack this combat" : "it breaks an attack restriction or requirement"
+                    + " (a limit, a creature that must attack, a cost)") + ". Choose again.";
+        }
+
+        /** A declaration the engine would refuse is replaced by the engine's legal one ({@code AttackConstraints}: the
+         *  set with the fewest requirements broken, a constraint solve, not a strategy), so the engine never re-asks
+         *  a seat that cannot answer. True when it replaced the declaration (and recorded that as the one taken). */
+        private boolean makeAttackLegal(Combat combat, String why) {
+            if (CombatUtil.validateAttackers(combat)) return false;
+            for (Card c : new ArrayList<>(combat.getAttackers())) combat.removeFromCombat(c);
+            for (Map.Entry<Card, GameEntity> e : combat.getAttackConstraints().getLegalAttackers().getLeft().entrySet())
+                combat.addAttacker(e.getKey(), e.getValue());
+            auto("attackers(" + why + ", refused)->engine legal x" + combat.getAttackers().size());
+            return true;
         }
 
         /** Bands (CR 702.22): an attacker with banding, or bands with other, may attack together with others
@@ -5272,8 +5328,8 @@ public final class LlmSpikeGui {
                 if (sa.isTrigger() && !sa.isCopied()) {
                     if (prepareTrigger(sa)) forge.ai.ComputerUtil.playStack(sa, getPlayer(), getGame());
                     else p("[ROUTER] trigger: " + safeName(sa.getHostCard()) + " has no legal target -> not put on the stack");
-                } else if (sa.isCopied() && sa.isSpell() && sa.isMayChooseNewTargets() && choosesOwnColours()
-                        && !sa.hasParam("TargetingPlayer")) {
+                } else if (sa.isCopied() && sa.isSpell() && sa.isMayChooseNewTargets()
+                        && seatTargetsCopies("llm".equals(mode) && rnd == null, rnd) && !sa.hasParam("TargetingPlayer")) {
                     if (!sa.getHostCard().isInZone(ZoneType.Stack)) sa.setHostCard(getGame().getAction().moveToStack(sa.getHostCard(), sa));
                     else getGame().getStackZone().add(sa.getHostCard());
                     retargetCopy(sa);
@@ -5282,6 +5338,13 @@ public final class LlmSpikeGui {
                     super.orderAndPlaySimultaneousSa(java.util.Collections.singletonList(sa));
                 }
             }
+        }
+
+        /** Who targets a copy that may take new targets: the model seat and the puzzle prover (authored z_4: under the
+         *  search arm Forge's AI picked the copy's target, so the prover never tried the other one). The other
+         *  zero-model arms keep the engine path, so the canaries do not move. */
+        static boolean seatTargetsCopies(boolean modelSeat, java.util.Random arm) {
+            return modelSeat || arm instanceof PuzzleArms.Search;
         }
 
         /** "a copy of " for a copied spell under the faithful profile (a storm copy is not the card it copies), else "". */

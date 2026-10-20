@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 480 - Map the way to a counter
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Grizzly Bears and a Map token ({1}, {T}, sacrifice: target creature you control explores; sorcery speed), with one colorless mana floating. Your library is all Colossal Dreadmaws. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-map-explore-counter | Explore reveals the top card; a nonland card stays and the creature gets a +1/+1 counter (CR 701.44a): the Map makes the Bears explore into a Dreadmaw and attack as a 3/3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Grizzly Bears;T:c_a_map_sac_explore
+p0manapool=C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Revolt arrives in time
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:It is your upkeep. You control Founding the Third Path with two lore counters and a Swamp, and Fatal Push is in your graveyard. The opponent controls Acolyte of Affliction and Grizzly Bears. End the turn with Acolyte of Affliction in the opponent's graveyard.
+Rule:rulesguru-4f88642d6e0a25e4 | Fatal Push checks mana value only as it resolves; the copy cast during chapter III resolves after the Saga is sacrificed as a state-based action (CR 714.4, 704.3), so Revolt is on and the four-drop Acolyte is destroyed
+[state]
+turn=2
+activeplayer=p0
+activephase=UPKEEP
+p0life=20
+p0battlefield=Founding the Third Path|Counters:LORE=2;Swamp
+p0graveyard=Fatal Push
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Acolyte of Affliction;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Acolyte of Affliction" = 1
+count p1 Battlefield "Grizzly Bears" = 1

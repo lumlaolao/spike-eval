@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Mana from the hand
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Simian Spirit Guide (exile it from your hand: add {R}) and Lightning Bolt in hand, and no mana. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-mana-ability-from-hand | A mana ability can be activated from a zone other than the battlefield if it says so (CR 605.1a, 605.3a): exile Simian Spirit Guide for {R} and cast Lightning Bolt
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Simian Spirit Guide;Lightning Bolt
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

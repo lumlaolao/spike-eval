@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:4:1 Solver:2:0 Opponent:2:0", "search_replays": 2, "opponent_branches_beaten": 1, "actions": ["STACK_ADD: Solver cast Decree of Pain", "STACK_ADD: Solver cast Naturalize targeting [Eland Umbra (12)]"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 4, "uniqueness_exhausted": 4, "uniqueness_replays": 16, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["count p0 Library * = 3 (was 5)", "count p1 Graveyard \"Raptor Companion\" = 1 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 39

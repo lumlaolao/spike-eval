@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 414 - Blink it for a second entry
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Flametongue Kavu (when it enters, it deals 4 damage to target creature) and Ephemerate (exile target creature you control, then return it to the battlefield) in hand with {R}{R}{R}{R}{W} floating. The opponent is at 20 life and controls Hill Giant and Craw Wurm (6/4). Destroy both of the opponent's creatures this turn.
+Rule:authored-flicker-new-etb | A creature exiled and returned is a new object that enters the battlefield again (CR 400.7, 603.6a): cast Flametongue Kavu to kill one creature, then Ephemerate it and its enters trigger kills the other
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flametongue Kavu;Ephemerate
+p0manapool=R R R R W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant;Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1
+count p1 Graveyard "Craw Wurm" = 1

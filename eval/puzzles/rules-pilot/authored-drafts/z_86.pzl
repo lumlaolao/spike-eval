@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Goblins into the Altar
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Ashnod's Altar (sacrifice a creature: add {C}{C}) and have Dragon Fodder and Lava Axe ({4}{R}: 5 damage to target player) in hand, with three red mana floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-sacrifice-mana-ability | Sacrificing for mana is a mana ability that doesn't use the stack (CR 605.1a, 605.3): Dragon Fodder's two Goblins become four colorless mana, which with the last red pays for Lava Axe; three red alone can't
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dragon Fodder;Lava Axe
+p0battlefield=Ashnod's Altar
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

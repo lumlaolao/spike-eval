@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Toxic damage, then proliferate
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Bloated Contaminator (4/4 trample, toxic 1; whenever it deals combat damage to a player, proliferate). The opponent is at 20 life with 8 poison counters and controls no creatures. Win the game this turn.
+Rule:authored-toxic-proliferate | Toxic gives poison counters in addition to the combat damage (CR 702.164c), and the damage then triggers the Contaminator's proliferate: 8+1=9, then 10 poison; counting toxic alone, or the 4 damage as life loss only, the attack looks one counter short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Bloated Contaminator
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1counters=POISON=8
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

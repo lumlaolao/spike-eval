@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Vigilance leaves a creature to tap
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Serra Angel, Grizzly Bears and three untapped Mountains, and have Stoke the Flames in hand. The opponent is at 9 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-vigilance-convoke | Attacking with vigilance does not tap the creature (CR 702.20b), and convoke taps untapped creatures to pay (CR 702.51a): attack with both for 6, then tap the still-untapped Serra Angel and the Mountains for Stoke the Flames (4); spending the Bears on Stoke before combat leaves 8
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Stoke the Flames
+p0battlefield=Serra Angel;Grizzly Bears;Mountain;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=9
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

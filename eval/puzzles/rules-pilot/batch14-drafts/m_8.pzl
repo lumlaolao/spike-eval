@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - The Clamp is still attached when it dies
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your second main phase. You control Skullclamp, Memnite and Grizzly Bears, with one red mana floating; your library has five cards. End the turn with three cards left in your library.
+Rule:rulesguru-235ebde9b2e59b0e | State-based actions are checked after the equip ability resolves (CR 117.5, 704.3, 704.5f): Memnite equipped with Skullclamp is a 2/0 and dies while equipped, so Skullclamp draws two; Grizzly Bears becomes a 3/1 and draws nothing
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Skullclamp;Memnite;Grizzly Bears
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 3

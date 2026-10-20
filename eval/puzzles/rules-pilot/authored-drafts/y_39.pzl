@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Pump the skulker after blocks
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Furtive Homunculus (2/1, skulk) and an untapped Forest, and have Giant Growth in hand. The opponent is at 5 life and controls an untapped Hill Giant (3/3). Reduce the opponent to 0 life this turn.
+Rule:authored-skulk-pump-after-blocks | Skulk is checked only when blockers are declared: a creature with skulk can't be blocked by creatures with greater power (CR 702.118b, 509.1b): attack as a 2/1 the Giant can't block, then Giant Growth after blockers for 5; pumped before blocks, the 5/4 can be blocked by the Giant
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth
+p0battlefield=Furtive Homunculus;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

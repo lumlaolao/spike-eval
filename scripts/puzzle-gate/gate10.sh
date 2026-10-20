@@ -9,12 +9,12 @@ D=$S/rp10
 pz() { local id=$1; if [[ $id == V_* ]]; then echo $S/rp10v/${id#V_}.pzl; else echo $R/eval/puzzles/rules-pilot/$id.pzl; fi; }
 # jvms: java processes only (a shell whose command line names the pattern must not count)
 jvms() { for p in $(pgrep -f "rp10/.*java.args"); do ps -o comm= -p $p; done | grep -c '\(^\|/\)java$'; }   # macOS ps prints the full path
-# wait for no HOLD and fewer than 2 JVMs; serialize starts with a lock (a directory: mkdir is atomic),
+# wait for no HOLD and fewer than GATE_JVMS (default 2) JVMs; serialize starts with a lock (a directory: mkdir is atomic),
 # kept until our JVM shows up
 startgate() {  # $1 = tag ; prints a starts line
   until mkdir $S/rp10/start.lock 2>/dev/null; do sleep 2; done
   trap 'rmdir "$S/rp10/start.lock" 2>/dev/null' EXIT   # a killed run must not hold the lock
-  while [ -e $S/HOLD ] || [ $(jvms) -ge 2 ]; do sleep 20; done
+  while [ -e $S/HOLD ] || [ $(jvms) -ge ${GATE_JVMS:-2} ]; do sleep 20; done
   echo "start-$1 $(date +%s) hold=$( [ -e $S/HOLD ] && echo Y || echo N) jvms=$(jvms)"
 }
 release() { n0=$1; for i in $(seq 1 30); do [ $(jvms) -gt $n0 ] && break; sleep 1; done; sleep 2; rmdir $S/rp10/start.lock; trap - EXIT; }

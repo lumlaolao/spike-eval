@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Hexproof is not shroud
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Slippery Bogle and Mist Leopard, and have Giant Growth in hand with one green mana floating. The opponent is at 4 life and controls a tapped Silent Arbiter (no more than one creature can attack each combat). Reduce the opponent to 0 life this turn.
+Rule:authored-hexproof-own-target | Hexproof stops only the opponents' spells and abilities from targeting (CR 702.11b), while shroud stops everyone's (CR 702.18a): Giant Growth can target your own Slippery Bogle, which attacks as a 4/4; Mist Leopard cannot be pumped and deals only 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth
+p0battlefield=Slippery Bogle;Mist Leopard
+p0manapool=G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 460 - Crack the Clue for the Bolt
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control a Clue token ({2}, sacrifice: draw a card) and have {C}{C}{R} floating and no cards in hand. Your library is all Lightning Bolts. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-clue-draw-then-cast | A Clue is an artifact token whose ability draws a card (CR 111.10f): sacrifice it for {2}, draw Lightning Bolt and cast it with the red
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=T:c_a_clue_draw
+p0manapool=C C R
+p0library=Lightning Bolt;Lightning Bolt;Lightning Bolt
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

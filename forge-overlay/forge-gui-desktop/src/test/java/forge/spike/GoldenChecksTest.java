@@ -22,6 +22,7 @@ import forge.game.GameLogEntryType;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
 import forge.game.combat.Combat;
+import forge.game.combat.CombatUtil;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
@@ -66,7 +67,9 @@ public class GoldenChecksTest {
             "harmonize", "attack-bands", "exert", "enlist", "splice", "flip", "shield", "roll-ignore", "roll-reroll",
             "roll-modify", "roll-swap", "sticker", "crank", "sprocket", "sector", "starting-hand", "assist", "assist-pay",
             // 2026-10-17: asked since floating mana is on the menu; no golden check named it until delve met a pool.
-            "mana-from-pool"));
+            "mana-from-pool",
+            // 2026-10-20 (epoch 66): an attack the engine refused, recorded as answered and overruled.
+            "attackers-refused"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
@@ -2050,6 +2053,68 @@ public class GoldenChecksTest {
         seat(g, model, model).declareAttackers(me, combat);
         Assert.assertNotSame(combat.getBandOfAttacker(bears), combat.getBandOfAttacker(hero), "an invalid band is not formed");
         Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("BANDS:")).count(), 2L, "asked once more with the reason");
+    }
+
+    /** An attack the engine refuses (Silent Arbiter: one attacker at most) was carried out as picked, and the engine
+     *  asked again, forever for a seat that kept the same answer: authored puzzles x_0, x_15 and x_18 (2026-10-20) spent
+     *  hours in that loop. The seat is told why and asked once more; a second refused set takes the engine's legal set. */
+    @Test
+    public void anAttackTheEngineRefusesIsAskedAgainThenMadeLegal() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("declare attackers", p -> p.contains("not a legal attack")
+                ? picks("Hill Giant").apply(p) : picks("Grizzly Bears", "Hill Giant").apply(p));
+        Combat combat = new Combat(me);
+        LlmSpikeGui.PlayerControllerLLM first = seat(g, model, model);
+        Player seatPlayer = me;
+        String log = LineFindingProbeTest.logOf(() -> first.declareAttackers(seatPlayer, combat));
+        Assert.assertEquals(combat.getAttackers(), java.util.Collections.singletonList(giant), "the second answer is used");
+        Assert.assertTrue(log.contains("refused by the engine: Grizzly Bears, Hill Giant"), "the refused answer is on the record: " + log);
+        Assert.assertTrue(CombatUtil.validateAttackers(combat));
+        String again = model.prompts.stream().filter(q -> q.contains("not a legal attack")).findFirst().orElse("");
+        Assert.assertTrue(again.contains("at most 1"), "the seat is told the limit: " + again);
+        // The same refused set twice: a legal declaration, not a third ask.
+        g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        me = g.getPlayers().get(0);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", g.getPlayers().get(1), ZoneType.Battlefield);
+        model = new Script("CHOICE: 1").on("declare attackers", picks("Grizzly Bears", "Hill Giant"));
+        Combat combat2 = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat2);
+        Assert.assertTrue(CombatUtil.validateAttackers(combat2), "a refused set twice ends legal: " + combat2.getAttackers());
+        Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("declare attackers")).count(), 2L, "asked twice");
+    }
+
+    /** Under the puzzle prover the refused first set was still noted as a solver choice, so the same final attack
+     *  reached with and without a refused try read as two solutions (x_0, x_15, x_18 re-gated on epoch 66). A refused
+     *  set never happened: its note is withdrawn. */
+    @Test
+    public void aRefusedAttackLeavesNoSolverChoiceBehind() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", g.getPlayers().get(1), ZoneType.Battlefield);
+        // include draws, one per candidate: both (refused), then the Bears alone
+        PuzzleArms.searchLine = new PuzzleArms.Line(java.util.Arrays.asList(new PuzzleArms.Step("Solver", 2, 1),
+                new PuzzleArms.Step("Solver", 2, 1), new PuzzleArms.Step("Solver", 2, 1), new PuzzleArms.Step("Solver", 2, 0)), 5L);
+        try {
+            Script model = new Script("CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                    new forge.ai.LobbyPlayerAi("Solver", null), "Solver", "", model, model, "search");
+            me.dangerouslySetController(ctrl);
+            Combat combat = new Combat(me);
+            ctrl.declareAttackers(me, combat);
+            Assert.assertEquals(combat.getAttackers(), java.util.Collections.singletonList(bears));
+            Assert.assertFalse(PuzzleArms.searchLine.choices.toString().contains("Hill Giant"),
+                    "the refused set is not a choice: " + PuzzleArms.searchLine.choices);
+        } finally {
+            PuzzleArms.searchLine = null;
+        }
     }
 
     /** Exert and enlist (Forge's AI chose both until 2026-10-17): which attackers, the seat's. */

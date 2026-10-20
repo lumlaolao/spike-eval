@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The newer animation keeps its keywords
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Humility and Grizzly Bears and has 9 poison counters. You control Inkmoth Nexus and Wastes. Win this turn.
+Rule:rulesguru-f305b4938b36b97e | Ability-adding and ability-removing effects apply in timestamp order in layer 6 (CR 613.7, 613.1f): Inkmoth Nexus animated after Humility is a 1/1 with flying and infect, so it flies over the Bears and gives the tenth poison counter
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Inkmoth Nexus;Wastes
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1counters=POISON=9
+p1battlefield=Humility;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

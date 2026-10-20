@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:2:0 Solver:2:1 Solver:3:1", "search_replays": 6, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Wildfire Howl targeting [Opponent]"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 4, "uniqueness_exhausted": 4, "uniqueness_replays": 3, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p1 <= 0 (was 1)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 387

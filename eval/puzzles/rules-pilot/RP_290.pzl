@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 290 - Still alone
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Geist of Saint Traft (2/2), Grizzly Bears and three tapped Cathedrals of War (each has exalted). The opponent is at 9 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-exalted-alone | A creature attacks alone if it is the only creature declared as an attacker (CR 506.5, 702.83b); the Angel Geist puts onto the battlefield attacking was never declared, so all three exalted triggers still pump Geist: 2+3 plus the Angel's 4 is 9, while attacking with the Bears too gives 8
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Grizzly Bears;Geist of Saint Traft;Cathedral of War|Tapped;Cathedral of War|Tapped;Cathedral of War|Tapped
+p0library=Plains;Plains;Plains
+p1life=9
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

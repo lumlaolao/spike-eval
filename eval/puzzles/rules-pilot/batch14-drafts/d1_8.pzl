@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Devour leaves no empty moment
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Porphyry Nodes and Trained Orgg (the only creature on the battlefield), have Tar Fiend in hand and {B}{B}{B}{B}{B}{B} in your mana pool. The opponent has one card in hand. End the turn with Porphyry Nodes still on your battlefield and the opponent's hand empty.
+Rule:rulesguru-11cc8df3f4c47c96 | Devour sacrifices the creatures as the devouring creature enters, in the same event (CR 702.82a, 614.1c), so there is never a moment with no creatures and Porphyry Nodes's state trigger does not trigger: devour the Orgg and make the opponent discard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=B B B B B B
+p0hand=Tar Fiend
+p0battlefield=Porphyry Nodes;Trained Orgg
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1hand=Plains
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Porphyry Nodes" = 1
+count p1 Hand * = 0

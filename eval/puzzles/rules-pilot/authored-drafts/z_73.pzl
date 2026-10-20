@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Reach 51 before paying 50
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 41 life. You control Aetherflux Reservoir (whenever you cast a spell, you gain 1 life for each spell you've cast this turn; pay 50 life: 50 damage to any target) and have two Ornithopters and two Memnites in hand. The opponent is at 20 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-life-cost-payable-count | You can pay life only up to your life total and paying to 0 makes you lose before the ability resolves (CR 119.4, 704.5a): casting all four free artifacts gains 1+2+3+4 = 10, reaching 51, so you can pay 50 and survive; three spells reach only 47
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=41
+p0hand=Ornithopter;Ornithopter;Memnite;Memnite
+p0battlefield=Aetherflux Reservoir
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

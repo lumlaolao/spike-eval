@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Indestructible is not immortal
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent's Tajic, Blade of the Legion (2/2, indestructible) and Grizzly Bears (2/2) are attacking you. You control Typhoid Rats (1/1, deathtouch) and Boggart Ram-Gang (3/3, wither). End the turn with no creatures on the opponent's battlefield.
+Rule:authored-indestructible-wither | Deathtouch damage destroys (CR 702.2b), and an indestructible permanent can't be destroyed (CR 702.12b); wither damage is -1/-1 counters (CR 702.80a) and a creature with toughness 0 or less is put into the graveyard, which is not destruction (CR 704.5f): only the wither blocker kills Tajic
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0battlefield=Typhoid Rats;Boggart Ram-Gang
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Tajic, Blade of the Legion|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+count p1 Battlefield * = 0
+life p0 = 2

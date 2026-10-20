@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Splice keeps the card in hand
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You have Lava Spike (Arcane: 3 damage to target player or planeswalker) and Glacial Ray (Arcane: 2 damage to any target; splice onto Arcane {1}{R}) in hand with five red mana floating. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-splice-stays-in-hand | Splicing reveals the card and adds its text to the Arcane spell; the spliced card stays in your hand (CR 702.47a-b): cast Lava Spike spliced with Glacial Ray (3+2), then cast Glacial Ray itself for 2 more, five mana in all; cast separately they deal only 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lava Spike;Glacial Ray
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

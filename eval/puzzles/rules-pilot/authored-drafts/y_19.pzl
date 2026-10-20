@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Gain the life before paying it
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 3 life. You control Vampire Nighthawk (2/3 flying, deathtouch, lifelink) and an untapped Wastes, and have Dismember ({1}{B/P}{B/P}) in hand. The opponent is at 20 life and controls a tapped Serra Angel. Destroy the Serra Angel this turn and stay alive.
+Rule:authored-lifelink-then-pay-life | A player can't pay more life than they have (CR 119.4), and lifelink's life is gained as the combat damage is dealt (CR 702.15b): attack first to go to 5, then Dismember paying {C} and 4 life leaves you at 1; at 3 life you can pay for only one Phyrexian symbol and you have no black mana
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=3
+p0hand=Dismember
+p0battlefield=Vampire Nighthawk;Wastes
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Serra Angel|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Serra Angel" = 1
+life p0 >= 1

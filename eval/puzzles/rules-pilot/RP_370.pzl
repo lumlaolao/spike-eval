@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 370 - Floating mana can't pay Propaganda
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and two untapped Mountains and have Lightning Bolt in hand, with one red mana floating. The opponent is at 5 life and controls Propaganda (creatures can't attack them unless their controller pays {2} for each). Reduce the opponent to 0 life this turn.
+Rule:authored-mana-empties-attack-tax | Unused mana empties at the end of each step and phase (CR 106.4), so the floating red can't pay Propaganda's {2} in the declare attackers step (CR 508.1h): spend it on Lightning Bolt now and keep both Mountains for the attack tax; tapping a Mountain for Bolt leaves too little to attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lightning Bolt
+p0battlefield=Grizzly Bears;Mountain;Mountain
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Propaganda
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -244,3 +244,95 @@ Five rows where the drop reason does not hold:
 - #41 (Elesh Norn can't beat once each turn)
 - #50 (Marneus draws once per token event; overlaps the Desecrated Tomb puzzle)
 - #650 (gravestorm counts on resolution)
+
+---
+
+## Repairs
+
+Gate failures in batch 13 and the v2 boards written beside the drafts (`<name>_v2.pzl`). None of them has been
+gated yet.
+
+### s1_0 -> s1_0_v2.pzl (uniqueness "multiple": the Cadet already flew at the start)
+
+- What failed: the proven "main line" was one equip of Eager Cadet (a no-op) and an attack. The second solution
+  was two no-op equips of the Cadet and an attack. In the first replay of the search log, Eager Cadet could attack
+  over Moat before anything was equipped ("attackers: 1 can attack"), so the setup gave the Windbreaker the later
+  timestamp.
+- Why: `GameState.handleCardAttachments` attaches in `HashMap<Card,Integer>` iteration order, and
+  `GameEntity.hashCode()` is the card id. Card ids run p0 hand, library, battlefield, then p1 the same way (the log
+  shows Eager Cadet @4 and Grizzly Bears @6). So Windbreaker was id 5 (bucket 5) and Grounded id 16 (bucket 0):
+  Grounded was attached first and the Windbreaker got the later timestamp. Forge itself is right:
+  `Card.attachToEntity` returns without a new timestamp when re-attaching to the same object (CR 701.3b).
+- Change: p0's library is 7 Plains and the Windbreaker is last on p0's battlefield, so it is id 16 (bucket 0) and
+  Grounded is id 20 (bucket 4). The Windbreaker is attached first, Grounded later, so Grounded wins as described.
+  Same cards, same mana and the same description.
+- Intended line: equip Grizzly Bears ({3}), then equip Eager Cadet ({3}). That is a new attachment with a new
+  timestamp, so flying applies after Grounded, and the Cadet attacks over Moat for 1.
+- The misread line (equip the Cadet directly, once or twice) does nothing and the Cadet can't attack. The Bears are
+  summoning sick. The pass arm doesn't attack. Six Plains pay for exactly two equips, so Bears-then-Cadet is the
+  only solution.
+- Check at the gate: in the first search replay the Cadet must not be able to attack ("attackers: none can
+  attack"). If it still can, the id arithmetic above is off.
+
+### s3_3 -> s3_3_v2.pzl (uniqueness "multiple": order and target)
+
+- What failed: proliferate-then-+2 and +2-then-proliferate both reach 8. The fingerprint differs because the
+  proliferate pick shows Sorin's loyalty ([loyalty 4] or [loyalty 6]) and because the +2 target was Solver on one
+  line and Opponent on the other. Neither difference is the rule being tested.
+- Change: Steady Progress and the Islands are gone. The proliferate is Guildpact Informant's combat-damage trigger,
+  and the puzzle starts with the Informant already attacking (`COMBAT_DECLARE_ATTACKERS`, as RP_007 does). The
+  proliferate must then come before Sorin can be activated in main 2, which fixes the order. `life p1 = 18` fixes
+  the +2 target: the Informant deals 1 and Sorin 1. Targeting yourself leaves the opponent at 19, and targeting Sorin
+  costs a loyalty and leaves 7.
+- Intended line: proliferate Sorin on combat damage (one counter, doubled: 4 -> 6), then in main 2 Sorin +2
+  targeting the opponent (cost not doubled: 6 -> 8; opponent 19 -> 18).
+- Misread line: "the +2 is doubled" makes proliferating overshoot (6 then 10), so the misreader leaves Sorin out of
+  the proliferate and expects 4 + 4 = 8. The real result is 6, which fails. The pass arm leaves Sorin at 4 or 6 and
+  the opponent at 19. Sorin's -X has no target (empty graveyard).
+- I first considered keeping a spell and pinning the order with Tezzeret's Gambit paid with life. I dropped it
+  because the auto-payer (`ComputerUtilMana`) pays a phyrexian shard before generic mana and could spend an Island
+  on it, which would make the spell look uncastable.
+
+### s3_2 -> s3_2_v2.pzl (search not_found: the search space, not the board)
+
+- What failed: in 600 rollouts the pairing prompt was offered 91 times, and every time Mutavault was already
+  tapped ("Mutavault (2/2)[tapped]"). The auto-payment for Wolfir Silverheart tapped Mutavault for {C}. The tree
+  also branched on six separate Forest mana activations and repeated Mutavault animations (2316 of them). The line
+  was never played.
+- Change: the six Forests became `p0manapool=G G G G G G` (floating mana, RP_103 / RP_204). Payment spends pool
+  mana first, so Mutavault stays untapped, and the land mana abilities leave the search tree.
+- Intended line: animate Mutavault ({G} from the pool), cast Silverheart (the other five), pair them as it enters,
+  and attack with a 6/6 Mutavault: 20 -> 14.
+- The misread line (cast Silverheart, then animate) gets no soulbond trigger, so a 2/2 attacks: 18. Animating twice
+  leaves 4 mana, which can't cast Silverheart. Paying with Mutavault's {C} taps it, so it can't attack. The pass arm
+  leaves 20.
+
+### s0_0 -> s0_0_v2.pzl (search not_found: the search space, not the board)
+
+- What failed: Forge agrees with the judge. Every rollout that killed the haunted Memnite with Teysa alive put
+  exactly one drain on the stack, and Teysa doubled the haunt-exile trigger itself (two Blind Hunter targets).
+  But the search spent its budget on sacrificing Teysa (404 times), tapping the Mountain at random and the Shock
+  targets. No rollout combined: haunt Memnite, sacrifice Memnite, drain the opponent, Shock the opponent.
+- Change: the Mountain is now `p0manapool=R`, which removes its mana ability from every decision point. Nothing
+  else changed.
+- Intended line: sacrifice Blind Hunter to Spawning Pit. Its haunt trigger is doubled; the first to resolve exiles it
+  haunting Memnite. Sacrifice Memnite: one drain (the exiled card is not a permanent), so 20 -> 18. Shock the
+  opponent: 16. Teysa stays.
+- The misread line ("the drain is doubled", stop at the drain or Shock a creature) leaves 18. Haunting Teysa gives
+  no drain unless Teysa dies. Spending the {R} on the Spawn token loses the Shock. The pass arm leaves 20.
+- If this still comes back not_found, the next cut is replacing Spawning Pit (whose token ability is a dead branch)
+  with a single-ability sacrifice outlet.
+
+### s2_2: not fixable by changing the board (a harness limitation)
+
+- What failed: Ancient Vendetta's "choose a card name" (`NameCard` with no list, so
+  `ChooseCardNameEffect` calls `chooseCardName(sa, cpp, valid, message)`) is answered on the search arm by
+  `LlmSpikeGui.chooseCardName` (predicate overload). It takes
+  `StaticData...streamAllFaces().filter(cpp).limit(500)` and picks at random:
+  `auto("card-name(random)->" + pick)`. It never calls `noteSolverChoice`, so the name isn't a search choice point.
+  The first 500 faces don't include Plains: the log shows "Abundant Growth", "A-Tome Shredder" and so on, with no
+  basic lands. The prover can never name Plains, whatever the board.
+- Forge isn't wrong (naming Plains is legal), and the misread is fine. The puzzle needs a harness change: on the
+  search and random arms, offer the names of cards visible in the game (or the list overload, which records the
+  choice) as recorded choices. A card with a `ChooseFromList` / `ChooseFromDefinedCards` name choice would test a
+  different rule.

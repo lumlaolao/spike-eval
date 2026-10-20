@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 400 - Discover on the cast creature
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Geological Appraiser (3/2; when it enters, if you cast it, discover 3) in hand with four red mana floating. Your library is Colossal Dreadmaw, Lightning Bolt, Colossal Dreadmaw. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-discover-free-cast | Discover N exiles cards until a nonland card with mana value N or less and lets you cast it without paying its mana cost (CR 701.57a): the Appraiser can't attack, but discover 3 skips the Dreadmaw and casts Lightning Bolt free for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Geological Appraiser
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Lightning Bolt;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

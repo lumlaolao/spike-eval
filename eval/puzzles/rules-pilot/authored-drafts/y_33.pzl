@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Cascade skips the big ones
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Bloodbraid Elf (3/2 haste, cascade) in hand with {R}{R}{G}{G} floating. Your library is Colossal Dreadmaw, Lightning Bolt, Colossal Dreadmaw. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-cascade-lower-mv | Cascade exiles cards until it finds a nonland card with lower mana value and lets you cast it free (CR 702.85a): the Dreadmaw (mana value 6) is passed over, Lightning Bolt is cast for 3, and the hasty Elf attacks for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Bloodbraid Elf
+p0manapool=R R G G
+p0library=Colossal Dreadmaw;Lightning Bolt;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

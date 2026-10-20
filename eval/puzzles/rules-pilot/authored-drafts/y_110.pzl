@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Exhaust once
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Prowcatcher Specialist (2/1 haste; exhaust {3}{R}: put two +1/+1 counters on it) in hand with six red mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-exhaust-once | An exhaust ability can be activated only once (CR 702.177a): cast the hasty Specialist, exhaust it to 4/3, and attack for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Prowcatcher Specialist
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

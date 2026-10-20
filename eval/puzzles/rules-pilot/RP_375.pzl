@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 375 - Move the Husk off the Germ
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and have Flayer Husk (living weapon; equipped creature gets +1/+1; equip {2}) in hand with three colorless mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-living-weapon-germ | Living weapon creates a 0/0 Germ token and attaches the Equipment to it (CR 702.92a); equipping another creature leaves the Germ a 0/0 that dies as a state-based action: re-equip the Husk to the Bears for a 3/3 attacker; the new Germ is summoning sick
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flayer Husk
+p0battlefield=Grizzly Bears
+p0manapool=C C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

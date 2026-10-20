@@ -1,0 +1,23 @@
+[metadata]
+Name:Rules pilot NNN - Protection prevents the deathtouch
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Paladin en-Vec (2/2 first strike, protection from black and from red) and Grizzly Bears, and have Pit Fight (target creature you control fights another target creature) in hand with one green mana floating. The opponent is at 20 life and controls Typhoid Rats (1/1 deathtouch, black). Destroy the Rats and keep both your creatures.
+Rule:authored-protection-prevents-fight-damage | Fight damage from a black source to a creature with protection from black is prevented (CR 702.16e), so deathtouch has nothing to act on (CR 702.2b): the Paladin fights and survives; the Bears would trade
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Pit Fight
+p0battlefield=Paladin en-Vec;Grizzly Bears
+p0manapool=G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Typhoid Rats
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Typhoid Rats" = 1
+count p0 Battlefield "Paladin en-Vec" = 1
+count p0 Battlefield "Grizzly Bears" = 1

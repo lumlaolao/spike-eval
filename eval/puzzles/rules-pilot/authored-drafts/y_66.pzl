@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Cleave removes the condition
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Fierce Retribution (destroy target [attacking] creature; cleave {5}{W}) in hand with six white mana floating. The opponent is at 20 life and controls an untapped Hill Giant. Destroy the Hill Giant this turn.
+Rule:authored-cleave-bracketed-text | Casting a spell for its cleave cost removes the words in square brackets (CR 702.148a): for {5}{W} Fierce Retribution destroys any creature, not just an attacking one
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fierce Retribution
+p0manapool=W W W W W W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 350 - Anger works from the graveyard
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control a tapped Mountain and have Anger, Hill Giant and Faithless Looting in hand, with five red mana floating. Your library is three Colossal Dreadmaws. The opponent is at 3 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-graveyard-static-anger | An ability works only on the battlefield unless it says otherwise (CR 113.6), and Anger's says it works from your graveyard (CR 113.6b): discard Anger to Faithless Looting and the Hill Giant you cast has haste while you control a Mountain, attacking for 3; casting Anger itself gives only a 2-power attacker
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Anger;Hill Giant;Faithless Looting
+p0battlefield=Mountain|Tapped
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

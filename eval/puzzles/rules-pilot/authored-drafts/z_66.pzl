@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Tap it for mana, then Fling it
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Elvish Archdruid (2/2; {T}: add {G} for each Elf you control) and have Fling in hand with one red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-tap-for-mana-then-sacrifice | Mana abilities may be activated before costs are paid, and a tapped creature can still be sacrificed (CR 601.2g-h): tap the Archdruid for green, then pay Fling's {1}{R} and sacrifice the Archdruid for 2 damage; without its mana Fling can't be cast
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling
+p0battlefield=Elvish Archdruid
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - On the battlefield X is zero
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and have Smother (destroy target creature with mana value 3 or less) and Disfigure in hand, with two black mana floating. The opponent is at 2 life and controls an untapped Endless One with five +1/+1 counters (a 5/5). Reduce the opponent to 0 life this turn.
+Rule:authored-x-zero-on-battlefield | X is 0 everywhere but on the stack (CR 107.3f, 202.3e), so the 5/5 Endless One has mana value 0 and Smother can destroy it, letting the Bears attack for 2; Disfigure leaves a 3/3 blocker, and the two black mana pay for only one of the spells
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Smother;Disfigure
+p0battlefield=Grizzly Bears
+p0manapool=B B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Endless One|Counters:P1P1=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

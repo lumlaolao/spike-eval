@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Below zero, damage is poison
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You have Lightning Bolt and Shock in hand with two red mana floating. The opponent is at 3 life with 8 poison counters and controls Phyrexian Unlife (they don't lose for having 0 or less life; while at 0 or less, damage dealt to them is dealt as though its source had infect). Win the game this turn.
+Rule:authored-unlife-infect-order | Phyrexian Unlife's infect clause checks the life total as the damage is dealt (CR 702.90b, 120.3b): Bolt first takes them from 3 to 0, then Shock gives 2 poison counters for 10 (CR 704.5c); Shock first leaves them at 1 and Bolt's damage is still ordinary
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Shock
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1counters=POISON=8
+p1battlefield=Phyrexian Unlife
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

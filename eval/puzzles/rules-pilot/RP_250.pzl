@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 250 - Nameless is not the same name
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Guardian Project, a face-down Stormwing Dragon and three Forests, and have Stormwing Dragon and Grizzly Bears in hand; a Grizzly Bears is in your graveyard. End the turn having drawn exactly one card (four cards left in your library).
+Rule:rulesguru-c4c9977b920f2009 | A face-down creature has no name (CR 708.2, 702.37a), and two objects with no name do not share a name (CR 201.2c): a second Stormwing Dragon cast face down passes Guardian Project's intervening-if and draws, where Grizzly Bears shares a name with the card in the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Grizzly Bears;Stormwing Dragon
+p0battlefield=Guardian Project;Stormwing Dragon|FaceDown;Forest;Forest;Forest
+p0graveyard=Grizzly Bears
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 4

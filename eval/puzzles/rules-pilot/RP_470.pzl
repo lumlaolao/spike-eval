@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 470 - Only haste can block the Gingerbrute
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Gingerbrute (1/1 haste; {1}: it can't be blocked this turn except by creatures with haste) in hand with two colorless mana floating. The opponent is at 1 life and controls an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-evasion-haste-blockers | An evasion restriction applies when blockers are declared (CR 509.1b): cast Gingerbrute, activate its ability, and the Wall, which lacks haste, can't block it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Gingerbrute
+p0manapool=C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=1
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

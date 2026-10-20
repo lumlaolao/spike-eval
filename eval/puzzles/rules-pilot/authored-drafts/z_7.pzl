@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Sacrifice after the damage
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Mogg Fanatic and have no cards in hand. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-no-damage-on-stack | Combat damage does not use the stack (CR 510.2): attack with Mogg Fanatic, let its 1 combat damage be dealt, then sacrifice it for 1 more; sacrificing it before the combat damage step means it deals no combat damage, for 1 in total
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Mogg Fanatic
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

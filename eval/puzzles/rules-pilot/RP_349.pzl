@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 349 - Worship needs a creature
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You have Lightning Bolt and Shock in hand, with two red mana floating. The opponent is at 3 life and controls Worship and a tapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-worship-order | Worship's replacement checks whether its controller controls a creature as the damage would be dealt (CR 614.1, 614.6): Shock the Grizzly Bears first, then Lightning Bolt deals the full 3; Bolt first is reduced to leave 1 life, and Bolting the Bears leaves Shock 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Shock
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Worship;Grizzly Bears|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

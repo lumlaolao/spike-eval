@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 269 - Under the Sun it enters untapped
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Blood Sun and a Forest, have not played a land this turn, and have Rugged Highlands, a Mountain, Kalonian Tusker and Rip-Clan Crasher in hand. You are at 20 life. End the turn with Kalonian Tusker on the battlefield and still at 20 life.
+Rule:rulesguru-8ae9a5ca2af77ff9 | Under Blood Sun Rugged Highlands has no "enters tapped" replacement as it enters (CR 614.12, 614.1d), so it enters untapped, and its enters trigger does not trigger (CR 603.10, 611.3c): Highlands plus Forest pay for Kalonian Tusker, and no life is gained
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Rugged Highlands;Mountain;Kalonian Tusker;Rip-Clan Crasher
+p0battlefield=Blood Sun;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Kalonian Tusker" = 1
+life p0 = 20

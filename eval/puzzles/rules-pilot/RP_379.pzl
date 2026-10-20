@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 379 - Pump before the first strike
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Fencing Ace (1/1 double strike) and an untapped Forest, and have Giant Growth in hand. The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-double-strike-pump-early | A double striker deals damage in both combat damage steps, each time equal to its power then (CR 702.4b, 510.4): Giant Growth before first-strike damage makes it 4+4=8; cast after the first-strike step it adds only once, 1+4=5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth
+p0battlefield=Fencing Ace;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

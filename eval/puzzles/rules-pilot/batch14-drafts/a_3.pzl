@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - The Saga is sacrificed
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:It is your upkeep. You control Smothering Abomination, Opalescence, Memnite and Chainer's Torment with two lore counters. End the turn having drawn exactly three cards this turn (three cards left in your library).
+Rule:rulesguru-2ce35ae968dea107 | A Saga whose final chapter ability has resolved is sacrificed as a state-based action (CR 714.4); under Opalescence it is a creature, so Smothering Abomination draws for it: sacrifice Memnite to the upkeep trigger and let chapter III happen
+[state]
+turn=2
+activeplayer=p0
+activephase=UPKEEP
+p0life=20
+p0battlefield=Smothering Abomination;Chainer's Torment|Counters:LORE=2;Opalescence;Memnite
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 3

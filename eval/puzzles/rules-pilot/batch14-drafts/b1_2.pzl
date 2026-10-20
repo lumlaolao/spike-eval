@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The Knight sees its companions
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control seven Swamps and have Twilight's Call and Reanimate in hand. Breathless Knight and Kindercatch are in your graveyard. End the turn at 20 life with Breathless Knight carrying two +1/+1 counters.
+Rule:rulesguru-35f14a2715f29a77 | An enters-the-battlefield trigger checks right after the event, so a permanent entering at the same time as others sees them all (CR 603.6a, 603.10): Breathless Knight returned together with Kindercatch by Twilight's Call triggers twice, with no need to Reanimate it first and pay life
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Twilight's Call;Reanimate
+p0battlefield=Swamp;Swamp;Swamp;Swamp;Swamp;Swamp;Swamp
+p0graveyard=Breathless Knight;Kindercatch
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Breathless Knight" P1P1 = 2
+life p0 = 20

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The awakened land has haste
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control an untapped Island and have Coastal Discovery (draw two cards; awaken 4 for {5}{U}) in hand with six blue mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-awaken-haste-land | Awaken puts +1/+1 counters on target land you control and makes it a 0/0 Elemental creature with haste (CR 702.113a): awaken the untapped Island and attack with the 4/4; cast for {3}{U} it only draws
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Coastal Discovery
+p0battlefield=Island
+p0manapool=U U U U U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

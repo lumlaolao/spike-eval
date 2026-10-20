@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 527 - Conspire with the fresh Goblins
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control no creatures and have Dragon Fodder and Burn Trail (3 damage to any target; conspire) in hand, with six red mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-conspire-new-tokens | Conspire taps two untapped creatures you control that share a color with the spell as an additional cost and copies it (CR 702.78a); tapping for a cost is not a {T} ability, so creatures that just arrived may be tapped: Dragon Fodder's two red Goblins conspire Burn Trail for 3 + 3; Burn Trail alone deals 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dragon Fodder;Burn Trail
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

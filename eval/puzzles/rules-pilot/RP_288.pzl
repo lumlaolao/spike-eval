@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 288 - Protection is DEBT, not immunity
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase and you have B B R floating. You have Pyroclasm and Infest in hand. The opponent controls Paladin en-Vec (2/2, first strike, protection from black and from red). End the turn with Paladin en-Vec in the opponent's graveyard.
+Rule:authored-protection-debt | Protection stops only damage, enchanting or equipping, blocking and targeting (CR 702.16b-f): Pyroclasm's damage from a red source is prevented (CR 702.16e), but Infest's -2/-2 neither targets nor deals damage, so it kills the Paladin
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Pyroclasm;Infest
+p0manapool=B B R
+p0library=Swamp;Swamp;Swamp
+p1life=20
+p1battlefield=Paladin en-Vec
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Paladin en-Vec" = 1

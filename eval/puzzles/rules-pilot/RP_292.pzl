@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 292 - Ninjutsu after first strike
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:Your Youthful Knight (2/1 first strike) and Grizzly Bears (2/2) are attacking. The opponent is at 7 life and controls no creatures. You control two untapped Swamps and have Mukotai Ambusher (3/2 lifelink, ninjutsu {1}{B}) in hand. Reduce the opponent to 0 life this turn.
+Rule:authored-ninjutsu-first-strike | Ninjutsu can be activated whenever you have an unblocked attacker, including in the first-strike combat damage step (CR 702.49a); a creature put onto the battlefield attacking after that step deals its damage in the regular step (CR 510.4, 508.4d): return the Knight after it has dealt its 2 for 2+2+3
+[state]
+turn=1
+activeplayer=p0
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=20
+p0hand=Mukotai Ambusher
+p0battlefield=Grizzly Bears|Attacking|Tapped;Youthful Knight|Attacking|Tapped;Swamp;Swamp
+p0library=Swamp;Swamp;Swamp
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 415 - Spree pays for both modes
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Explosive Derailment ({R} plus spree: +{2} 4 damage to target creature; +{2} destroy target artifact) in hand with five red mana floating. The opponent is at 20 life and controls Hill Giant and Ornithopter. Destroy both of the opponent's creatures this turn.
+Rule:authored-spree-both-modes | Spree adds each chosen mode's cost to the spell's cost (CR 702.172a): pay {R}+{2}+{2} for both modes, 4 damage to the Giant and destroy the artifact Ornithopter
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Explosive Derailment
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant;Ornithopter
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1
+count p1 Graveyard "Ornithopter" = 1

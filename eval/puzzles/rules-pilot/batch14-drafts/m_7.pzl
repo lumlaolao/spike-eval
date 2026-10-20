@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The Shadow is a 13/13 in exile
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Duplicant and Fling in hand with eight red mana floating. The opponent is at 12 life and controls Death's Shadow (a 1/1 right now) and Hill Giant. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-f01c8c5f1ddcd809 | Death's Shadow's -X/-X works only on the battlefield (CR 113.6), so in exile it is a 13/13, and Duplicant takes the power and toughness of the card it exiled: exile the Shadow, not the bigger-looking Hill Giant, and Fling a 13/13 Duplicant
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Duplicant;Fling
+p0manapool=R R R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=12
+p1battlefield=Death's Shadow;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Target the Image
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You have Phantasmal Image and Shock in hand, with two blue and one red mana floating. The opponent is at 5 life and controls an untapped Kokusho, the Evening Star. Reduce the opponent to 0 life this turn.
+Rule:authored-phantasmal-target-sacrifice | Phantasmal Image copies Kokusho, dies trigger included (CR 707.2), and gains "when this becomes the target of a spell or ability, sacrifice it": Shock aimed at your own Image makes you sacrifice it before Shock resolves, and your Kokusho copy's dies trigger drains 5 (CR 603.10a); Shock to the face deals only 2 and Kokusho is too big for it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Phantasmal Image;Shock
+p0manapool=U U R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Kokusho, the Evening Star
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

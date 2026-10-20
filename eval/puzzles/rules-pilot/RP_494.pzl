@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 494 - Rally gives haste to the newcomer
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Chasm Guide (3/2 Ally; rally: whenever it or another Ally enters, creatures you control gain haste) and have a second Chasm Guide in hand with four red mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-rally-haste-newcomer | Rally triggers when the Ally enters and affects the creatures you control as it resolves, the new Ally included (CR 207.2c, 603.6a): the new Guide gains haste and both attack for 6
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Chasm Guide
+p0battlefield=Chasm Guide
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

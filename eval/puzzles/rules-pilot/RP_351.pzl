@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 351 - Emerge counts mana value, not power
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Wall of Stone, Goblin Guide and Grizzly Bears, and have Elder Deep-Fiend (emerge {5}{U}{U}) in hand with two blue and two colorless mana floating. End the turn with Elder Deep-Fiend on the battlefield.
+Rule:authored-emerge-mana-value | Emerge's cost is reduced by the sacrificed creature's mana value (CR 702.119a): sacrifice Wall of Stone (mana value 3) and pay {2}{U}{U}; Goblin Guide (power 2, mana value 1) or Grizzly Bears (mana value 2) leave too much to pay
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Elder Deep-Fiend
+p0battlefield=Wall of Stone;Goblin Guide;Grizzly Bears
+p0manapool=U U C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Elder Deep-Fiend" = 1

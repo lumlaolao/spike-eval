@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Convoke with new creatures
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Goblin Piker (red), Memnite and Ornithopter, all summoning sick, and have Stoke the Flames ({2}{R}{R}, convoke: 4 damage to any target) in hand with one red mana floating. The opponent is at 4 life. Reduce the opponent to 0 life this turn.
+Rule:authored-convoke-summoning-sick | Convoke taps creatures as a cost but is not a {T} ability of theirs, so summoning-sick creatures can convoke (CR 702.51a, 302.6): the red Piker pays {R}, the artifacts pay {2}, with the floating red
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Stoke the Flames
+p0battlefield=Goblin Piker|SummonSick;Memnite|SummonSick;Ornithopter|SummonSick
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

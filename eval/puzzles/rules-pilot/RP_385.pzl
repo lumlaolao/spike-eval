@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 385 - The copy keeps haste, not counters
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Raging Goblin (1/1 haste) with two +1/+1 counters on it, and a tapped Hill Giant. You have Phantasmal Image in hand with two blue mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-copy-haste-no-counters | A copy takes the copiable values, including keywords such as haste, but not counters (CR 707.2, 702.10): Phantasmal Image copying Raging Goblin is a 1/1 with haste that attacks beside the 3/3 Goblin for exactly 4; copying the bigger Hill Giant gives a creature that can't attack this turn
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Phantasmal Image
+p0battlefield=Raging Goblin|Counters:P1P1=2;Hill Giant|Tapped
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

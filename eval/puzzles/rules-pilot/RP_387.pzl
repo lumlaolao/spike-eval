@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 387 - The spell is also a land
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase and you have not played a land. You have Shatterskull Smashing (a modal double-faced card whose back face is Shatterskull, the Hammer Pass, a land that enters untapped if you pay 3 life) and two Shocks in hand, with one red mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-mdfc-play-land-face | A modal double-faced card can be played as its back face; playing the land face uses your land drop and is not casting (CR 712.12, 305.1): play Shatterskull, the Hammer Pass untapped for 3 life, tap it, and cast both Shocks for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shatterskull Smashing;Shock;Shock
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

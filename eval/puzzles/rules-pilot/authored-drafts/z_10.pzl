@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Tap the Mountains, then sacrifice them
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control two untapped Mountains and have Fireblast, Lightning Bolt and Shock in hand. The opponent is at 9 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-tap-then-sacrifice-land | A tapped permanent can still be sacrificed (CR 701.21a), so tap both Mountains for Lightning Bolt and Shock first (5 damage) and then pay Fireblast's alternative cost by sacrificing the tapped Mountains (CR 118.9) for 4 more; Fireblast first sacrifices the Mountains before they make mana and totals 4 or 7
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fireblast;Lightning Bolt;Shock
+p0battlefield=Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=9
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

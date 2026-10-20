@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 477 - Devoid gets past protection
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Hill Giant (3/3) and have Pyroclasm and Kozilek's Return (devoid; 2 damage to each creature) in hand, with three red mana floating. The opponent is at 2 life and controls an untapped Kor Firewalker (2/2, protection from red). Reduce the opponent to 0 life this turn.
+Rule:authored-devoid-colorless-protection | A devoid card is colorless (CR 702.114a), so Kor Firewalker's protection from red does not prevent Kozilek's Return's damage (CR 702.16e): it kills the Firewalker, the Giant survives and attacks for 3; Pyroclasm is a red source, its damage to the Firewalker is prevented and the Firewalker blocks
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Pyroclasm;Kozilek's Return
+p0battlefield=Hill Giant
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Kor Firewalker
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

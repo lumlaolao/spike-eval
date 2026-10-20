@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 308 - The Shaman's mana does not wait
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Deathrite Shaman, two Hill Giants, a Swamp and two Wastes. The opponent is at 5 life and controls Sphere of Safety and Glorious Anthem; their graveyard holds a Plains and Lightning Bolt. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-9226825b8528a323 | Sphere of Safety's cost is paid while attackers are declared, when only mana abilities can be activated (CR 508.1g, 605.3a); Deathrite Shaman's targeted mana ability is not one (CR 605.1a), and mana made in the beginning of combat step empties before attackers are declared (CR 500.4): use the Shaman to drain instead
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Deathrite Shaman;Hill Giant;Hill Giant;Swamp;Wastes;Wastes
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Sphere of Safety;Glorious Anthem
+p1graveyard=Plains;Lightning Bolt
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

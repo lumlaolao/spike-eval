@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Draw the extra card first
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:It is your upkeep. You control Kami of the Crescent Moon, a Swamp and a Plains, and Ornithopter is in your graveyard. Your library, top first: Redress Fate, Dark Ritual, then Colossal Dreadmaws. End the turn with Ornithopter on the battlefield.
+Rule:rulesguru-2875a02ad500af1f | Revealing a miracle card only triggers its ability (CR 702.94a); the miracle trigger and Kami of the Crescent Moon's draw trigger are put on the stack together and you choose their order (CR 603.3b): let the Kami draw Dark Ritual first, cast it, then pay the miracle cost {3}{W} with its mana and the Plains
+[state]
+turn=2
+activeplayer=p0
+activephase=UPKEEP
+p0life=20
+p0battlefield=Kami of the Crescent Moon;Swamp;Plains
+p0graveyard=Ornithopter
+p0library=Redress Fate;Dark Ritual;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Ornithopter" = 1

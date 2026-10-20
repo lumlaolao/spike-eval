@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Battle cry needs company
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Signal Pest (0/1, battle cry) and Grizzly Bears. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-battle-cry-others | Battle cry gives +1/+0 to each other attacking creature, not to itself (CR 702.91a): attack with both, the Bears hit for 3 and the 0/1 Pest for 0; the Bears alone deal 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Signal Pest;Grizzly Bears
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

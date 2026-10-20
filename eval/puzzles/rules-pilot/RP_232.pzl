@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 232 - Maraxus counts after paying
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Sarkhan's Unsealing and eleven Mountains and have Maraxus of Keld and Seething Song in hand. The opponent controls Hill Giant and is at 20 life. End the turn with Hill Giant in the opponent's graveyard and the opponent at 16 life.
+Rule:rulesguru-374a0d1fbb5f4ca8 | Maraxus of Keld's power is a characteristic-defining ability that applies on the stack (CR 604.3a), and costs are paid before Sarkhan's Unsealing checks the cast (CR 601.2g-i): Mountains tapped for Maraxus do not count, so ramp with Seething Song to cast it with power 7
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Maraxus of Keld;Seething Song
+p0battlefield=Sarkhan's Unsealing;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1
+life p1 = 16

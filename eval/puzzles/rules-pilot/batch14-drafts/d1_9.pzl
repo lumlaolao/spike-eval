@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The Angel inherits the haste
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Legion Warboss (it came under your control this turn), have Divine Visitation and Lightning Bolt in hand and {W}{W}{W}{R}{R} in your mana pool. The opponent is at 4 life and controls Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-c2ae1d99c4d8cced | Divine Visitation replaces the Goblin token with a 4/4 flying Angel (CR 614.1a), and Legion Warboss's later instructions then apply to the token actually created (CR 608.2c): the Angel has haste and attacks this combat
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0manapool=W W W R R
+p0hand=Divine Visitation;Lightning Bolt
+p0battlefield=Legion Warboss|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

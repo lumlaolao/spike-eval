@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 359 - Act of Treason on your own Giant
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control a tapped Hill Giant and have Act of Treason in hand, with three red mana floating. The opponent is at 3 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-threaten-own-creature | Act of Treason can target any creature, including one you already control (CR 115.1, 601.2c): it untaps your tapped Hill Giant and gives it haste, so it can attack for 3; stealing the opponent's 1-power Silent Arbiter instead deals only 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Act of Treason
+p0battlefield=Hill Giant|Tapped
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

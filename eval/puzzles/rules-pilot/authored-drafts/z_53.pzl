@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Phage must be cast
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Sneak Attack ({R}: put a creature card from your hand onto the battlefield; it gains haste; sacrifice it at the next end step) and have Phage the Untouchable and Hill Giant in hand, with one red mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-put-not-cast-phage | Putting a creature onto the battlefield is not casting it (CR 601.1a, 603.4): Phage's enters trigger makes you lose the game if you didn't cast it from your hand, so Sneak Attack the Hill Giant and attack for 3 instead
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Phage the Untouchable;Hill Giant
+p0battlefield=Sneak Attack
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:3:1 Solver:2:0", "search_replays": 1, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Savannah Lions", "STACK_ADD: Solver cast Spectral Procession"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 3, "uniqueness_exhausted": 3, "uniqueness_replays": 5, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["tokens p0 Battlefield * = 3 (was 0)", "count p0 Battlefield \"Savannah Lions\" = 1 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 581

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 279 - Lifelink is not capped by toughness
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is the opponent's turn. You are at 10 life and control Scrounger of Souls (3/4 lifelink). The opponent's Minotaur Warrior (2/3) and Dromoka Warrior (3/1) are attacking you. End the turn at 11 life.
+Rule:rulesguru-031fece7640a3d44 | A creature deals combat damage equal to its power whatever the blocked creature's toughness (CR 510.1a), and lifelink gains that much (CR 702.15b): blocking the 3/1 gains 3, not 1
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=10
+p0battlefield=Scrounger of Souls
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Minotaur Warrior|Attacking|Tapped;Dromoka Warrior|Attacking|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 11

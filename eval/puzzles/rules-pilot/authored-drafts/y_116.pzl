@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Station the ship with a new creature
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Warmaker Gunship (Spacecraft; station 6: at 6 or more charge counters it is a 4/3 flying artifact creature) and Craw Wurm (6/4, summoning sick). The opponent is at 4 life and controls an untapped Wall of Stone. Reduce the opponent to 0 life this turn.
+Rule:authored-station-summoning-sick | Station taps another creature to put charge counters equal to its power, at sorcery speed, and a summoning-sick creature may be tapped (CR 702.184a); the Gunship has been yours since the turn began, so once a creature it may attack (CR 302.6): 4 in the air
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Warmaker Gunship;Craw Wurm|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

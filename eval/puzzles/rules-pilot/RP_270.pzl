@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 270 - Storm looks back
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control five Mountains and an Island, and have Empty the Warrens and Turn the Tide in hand. You have cast no spells this turn. End the turn with four Goblin tokens.
+Rule:rulesguru-8ab897f342f8a14e | Storm counts only the spells cast before the storm spell this turn (CR 702.40a): Turn the Tide cast in response to the storm trigger adds no copy, so it must be cast first
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Empty the Warrens;Turn the Tide
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Mountain;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Goblin Token" = 4

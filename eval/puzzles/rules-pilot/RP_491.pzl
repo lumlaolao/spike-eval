@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 491 - The pain land would kill you
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You are at 1 life. You control Grizzly Bears and an untapped Karplusan Forest ({T}: {C}; or {R}/{G} and it deals 1 damage to you), and have Giant Growth and Elvish Spirit Guide (exile it from your hand: add {G}) in hand. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-pain-land-damage-life | A mana ability's damage to you is dealt at once and you lose at 0 life at the next state-based check (CR 605.3a, 704.5a): take the green from Elvish Spirit Guide for Giant Growth; the Forest's green would put you at 0
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=1
+p0hand=Giant Growth;Elvish Spirit Guide
+p0battlefield=Grizzly Bears;Karplusan Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

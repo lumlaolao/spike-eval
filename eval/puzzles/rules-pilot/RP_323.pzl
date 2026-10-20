@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 323 - Buy it back first
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You have Searing Touch (1 damage to any target; buyback {4}) in hand with six red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-buyback-order | A spell cast with buyback returns to its owner's hand as it resolves instead of going to the graveyard (CR 702.27a): cast it with buyback first (five mana), then again normally (one mana) for 2 damage; cast normally first, it goes to the graveyard and the remaining five mana do nothing
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Searing Touch
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

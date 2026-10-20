@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Intimidate lets artifacts block
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Bladetusk Boar (3/2 red, intimidate) and have Shock in hand with one red mana floating. The opponent is at 3 life and controls an untapped Ornithopter (0/2 artifact) and an untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-intimidate-artifact-blocker | A creature with intimidate can be blocked only by artifact creatures and creatures that share a color with it (CR 702.13b): Shock the Ornithopter and the green Bears can't block the Boar, which deals 3; Shocking the Bears leaves the artifact Ornithopter free to block, and Shock to the face deals only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock
+p0battlefield=Bladetusk Boar
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Ornithopter;Grizzly Bears;Plains
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

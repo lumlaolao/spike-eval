@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 518 - Pay life for X
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You are at 10 life and have Fire Covenant ({1}{B}{R}, pay X life: X damage divided among any number of target creatures) in hand with {B}{R}{C} floating. The opponent is at 20 life and controls three Hill Giants (3/3). Destroy all three Hill Giants this turn and stay alive.
+Rule:authored-pay-x-life-divided | X life may be paid up to your life total (CR 119.4, 107.1b): pay 9 of your 10 life and divide 3 damage to each Giant; paying all 10 kills you
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=10
+p0hand=Fire Covenant
+p0manapool=B R C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant;Hill Giant;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 3
+life p0 >= 1

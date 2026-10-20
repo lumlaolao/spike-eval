@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Reinforce from the hand
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Grizzly Bears and have Brighthearth Banneret (1/1; reinforce 1 for {1}{R}) in hand with two red mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-reinforce-hand-ability | Reinforce is an activated ability of the card in hand: discard it to put +1/+1 counters on target creature (CR 702.77a): reinforce the Bears to 3/3 for 3; cast, the Banneret is summoning sick and the Bears deal 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Brighthearth Banneret
+p0battlefield=Grizzly Bears
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

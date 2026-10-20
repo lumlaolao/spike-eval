@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 267 - One card at a time slips past the Collector
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Alms Collector. You have Think Twice and Divination in hand and {U}{U}{U}{U}{U} in your mana pool. End the turn having drawn exactly two cards (three left in your library) while the opponent draws none (three left in theirs).
+Rule:rulesguru-bb44751fbe7a0a13 | Alms Collector replaces only a single draw of two or more cards (CR 614.1a, 121.2); two separate one-card draws are not affected: cast Think Twice and flash it back, where Divination's two-card draw would be replaced
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=U U U U U
+p0hand=Think Twice;Divination
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Alms Collector
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 3
+count p1 Library * = 3

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 396 - Encode before combat
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Grizzly Bears and five untapped Swamps, and have Shadow Slice (target opponent loses 3 life; cipher) in hand. The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-cipher-precombat | Cipher exiles the spell encoded on a creature you control, and whenever that creature deals combat damage to a player you may cast a copy (CR 702.99a): cast Shadow Slice before combat and encode it on the Bears for 3+2+3=8; cast after combat it deals only 3+2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shadow Slice
+p0battlefield=Grizzly Bears;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

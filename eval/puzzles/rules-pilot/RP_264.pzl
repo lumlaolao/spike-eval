@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 264 - Double strike is not first strike
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Marisi's Twinclaws, a Forest and a Mountain, and have Giant Growth in hand. The opponent is at 4 life and controls Ghostly Prison and a tapped Archetype of Courage. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-e3bb461ba8ca6271 | Double strike is a different ability from first strike (CR 702.4a, 702.7a): Archetype of Courage removes first strike, not double strike, so Marisi's Twinclaws still deals combat damage twice; pay Ghostly Prison's {2} and attack for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth
+p0battlefield=Marisi's Twinclaws;Forest;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Ghostly Prison;Archetype of Courage|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

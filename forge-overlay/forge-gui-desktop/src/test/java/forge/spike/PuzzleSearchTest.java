@@ -200,6 +200,17 @@ public class PuzzleSearchTest {
             Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.faithfulMenu(false, PuzzleArms.forMode(arm, 1L, "Solver")), arm);
     }
 
+    /** Authored puzzle z_4 (2026-10-20): Twincast's copy of Act of Treason "may choose new targets", but under the
+     *  search arm the copy went down the engine path and Forge's AI picked its target, so the prover never tried the
+     *  second Hill Giant. The prover, like the model seat, targets its own copies; the canary arms keep the old path. */
+    @Test
+    public void theProverChoosesACopysNewTargetsAndTheCanaryArmsKeepTheirs() {
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.seatTargetsCopies(false, PuzzleArms.forMode("search", 1L, "Solver")));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.seatTargetsCopies(true, null));
+        for (String arm : new String[] {"random", "pass", "first"})
+            Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.seatTargetsCopies(false, PuzzleArms.forMode(arm, 1L, "Solver")), arm);
+    }
+
     /** Rules pilot RP_002 / RP_020: the search arm answered every order ask (trigger order, cards to a zone) in the
      *  given order, so a puzzle decided by trigger order was "proven" only because Forge's default was right. */
     @Test
@@ -225,10 +236,24 @@ public class PuzzleSearchTest {
     @Test
     public void choicesThatMakeNoSecondSolutionAreNotCompared() {
         for (String t : new String[] {"order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color",
-                "scry", "confirm", "zone-change", "target", "targets"})
+                "scry", "clash", "confirm", "zone-change", "target", "targets"})
             Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
         for (String t : new String[] {"modes", "number", "card-name", "some-type", "entity"})
             Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
+    }
+
+    /** Batch 14d2 (2026-10-19): Mystic Subdual then Shock, or Shock then Subdual, both kill Fiend Artisan; the one
+     *  choice that told them apart was the target's size, "(5/5)" against "(-1/1)", and a negative size was kept. */
+    @Test
+    public void aChoiceKeyDropsTheObjectsSizeEvenWhenNegative() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Fiend Artisan (-1/1) [Opponent's Battlefield]"),
+                LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Fiend Artisan (5/5) [Opponent's Battlefield]"));
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Grizzly Bears (2/-3)@41 #2"), "choice: Grizzly Bears");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey(null, "Hill Giant (3/3)[tapped]"), "choice: Hill Giant");
+        // authored k_13 (2026-10-20): the same attack on Jace Beleren before and after a Bolt read "[loyalty 4]" and
+        // "[loyalty 1]"; a planeswalker's current loyalty is its size, not a choice
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey("attack-target", "Jace Beleren[loyalty 1] [Opponent's Battlefield]"),
+                LlmSpikeGui.PlayerControllerLLM.choiceKey("attack-target", "Jace Beleren[loyalty 4] [Opponent's Battlefield]"));
     }
 
     @Test

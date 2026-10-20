@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 473 - Indestructible but not toughness-proof
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Doom Blade and Disfigure in hand with two black mana floating. The opponent is at 20 life and controls Darksteel Myr (0/1 indestructible). Put the Darksteel Myr into the graveyard this turn.
+Rule:authored-indestructible-zero-toughness | Indestructible stops destruction, not the state-based action for 0 toughness (CR 702.12b, 704.5f): Disfigure makes the Myr -2/-1 and it dies; Doom Blade does nothing to it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Doom Blade;Disfigure
+p0manapool=B B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Darksteel Myr
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Darksteel Myr" = 1

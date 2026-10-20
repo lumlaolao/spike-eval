@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 461 - Move the Bonesplitter
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. Your Bonesplitter (+2/+0; equip {1}) is attached to a summoning-sick Memnite. You also control Grizzly Bears and have one colorless mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-re-equip-moves | Equip moves the Equipment to another creature you control at sorcery speed (CR 702.6a): move Bonesplitter to the Bears and attack for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Memnite|Id:1|SummonSick;Bonesplitter|AttachedTo:1;Grizzly Bears
+p0manapool=C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

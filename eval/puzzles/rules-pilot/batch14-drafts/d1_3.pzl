@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Kalitas leaves the Broodmoth nothing
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Kalitas, Traitor of Ghet, have Cast Down in hand and {B}{B} in your mana pool. The opponent controls Luminous Broodmoth and Harrier Naga. End the turn with Harrier Naga in exile and a Zombie token on your battlefield.
+Rule:rulesguru-281451ea9012b26e | Kalitas replaces the opponent's creature dying with exile (CR 614.6), so it never dies (CR 700.4) and Luminous Broodmoth's dies trigger never happens: destroy Harrier Naga itself, not the Broodmoth
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=B B
+p0hand=Cast Down
+p0battlefield=Kalitas, Traitor of Ghet
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Luminous Broodmoth;Harrier Naga
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Harrier Naga" = 1
+tokens p0 Battlefield "Zombie Token" = 1

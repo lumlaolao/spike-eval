@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 490 - Protection stops your own Aura
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Kor Firewalker (2/2, protection from red) and have Madcap Skills (red Aura: +3/+0 and menace) and Giant Growth in hand with {R}{G} floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-protection-own-red-aura | Protection from red stops red Auras from enchanting, whoever controls them (CR 702.16c): Madcap Skills can't enchant the Firewalker, Giant Growth can target it for 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Madcap Skills;Giant Growth
+p0battlefield=Kor Firewalker
+p0manapool=R G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

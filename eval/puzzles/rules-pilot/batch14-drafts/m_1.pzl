@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The Liege does not see itself
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Deathbringer Liege, Raise the Alarm and Duress in hand, with seven white mana and one black mana floating. The opponent controls an untapped Serra Angel and has no cards in hand. End the turn with Serra Angel in the opponent's graveyard.
+Rule:rulesguru-1efed68353de6299 | Deathbringer Liege's cast triggers work only while it is on the battlefield (CR 113.6, 603.10), and a spell being cast is on the stack (CR 601.2a), so casting the Liege does not trigger itself: cast the Liege, then a white spell to tap the Angel, then a black spell to destroy it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Deathbringer Liege;Raise the Alarm;Duress
+p0manapool=W W W W W W W B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Serra Angel" = 1

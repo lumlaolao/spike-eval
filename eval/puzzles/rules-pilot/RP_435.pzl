@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 435 - Reconfigure the Lizard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Hill Giant and Lizard Blades (1/1 double strike creature; equipped creature has double strike; reconfigure {2}), with two colorless mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-reconfigure-double-strike | Reconfigure attaches the Equipment creature to another creature, and it stops being a creature while attached (CR 702.151a-b): the Giant with double strike deals 3+3; attacking with both deals 3+1+1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Hill Giant;Lizard Blades
+p0manapool=C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
