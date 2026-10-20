@@ -263,6 +263,26 @@ public class LineFindingProbeTest {
         Assert.assertEquals(g.getStack().size(), 0);
     }
 
+    /** Life is not paid for a Phyrexian cost whose rest cannot be paid (pr-review of #277): Dismember {1}{B/P}{B/P} with
+     *  no land, handed to the play path as a stale menu would. The life went first and was not refunded. */
+    @Test
+    public void aPhyrexianCostWithAnUnpayableRestCostsNoLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        // A failed cast leaves the card in the Stack zone, as the engine routine does; this test is about the life.
+        card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        int life = me.getLife();
+        logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertEquals(me.getLife(), life, "life paid for a cast that could not happen");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
     /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the
      *  battlefield, handed to the play path as a stale menu would. MagicStack.add drops it ("failed to target"). */
     @Test
