@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Extort counts what is on the battlefield
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Syndic of Tithes (extort) and have a second Syndic of Tithes and Raise the Alarm in hand, with seven white mana floating. The opponent is at 3 life. Reduce the opponent to 0 life this turn.
+Rule:authored-extort-order | Extort triggers whenever you cast a spell, from each extort permanent on the battlefield (CR 702.101a); a spell being cast is not on the battlefield, so it does not trigger its own extort: cast the second Syndic first (one drain), then Raise the Alarm (two drains), three in all; the other order gives two
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Syndic of Tithes;Raise the Alarm
+p0battlefield=Syndic of Tithes
+p0manapool=W W W W W W W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
