@@ -1,11 +1,11 @@
-# Handoff: keep working the puzzles (2026-10-19, updated after batch 12 and the PR #268 review)
+# Handoff: the puzzle work (updated 2026-10-20)
 
-For a fresh session. Branch `feat/puzzle-search-prover` (PR #268, open). Read `CLAUDE.md`, then
-`eval/PUZZLES.md` (the prover, acceptance, uniqueness) and `eval/puzzles/rules-pilot/REPORT.md` (batches 1 to 9),
-then this file.
+For a fresh session. Read `CLAUDE.md`, then `eval/PUZZLES.md` (the prover, acceptance, uniqueness) and
+`eval/puzzles/rules-pilot/REPORT.md` (batches 1 to 9), then this file.
 
-**The order of work is now `docs/harness/WORK-PLAN.md`, "The plan (owner, 2026-10-19)"**: land PR #268,
-score PUZ, then decide on the suite's size. The tracks below are its detail, not its order.
+**Where it stands:** 526 converted rules puzzles, past the owner's 500 goal, landed with harness-epoch-66 (PR #270).
+The next step is the benchmark on a sample: `docs/harness/WORK-PLAN.md`, "The plan". The tracks below are how the
+suite was built and how to extend it.
 
 ## The owner's ask
 
@@ -24,16 +24,13 @@ model identifiers in commits. Skip acceptance and the gauntlets unless asked (ow
 
 ## State of the code
 
-harness-epoch-65, observation-faithful-v42, lookahead-preview-v15. Epoch 65: a source whose tap damage is lethal
-pays last for a harness seat (City of Brass after Llanowar Elves). Epoch 64: a divided split gives each target at
-least 1 and takes no more targets than its total (RP_221). v42: an effect of an effect carries no engine id (g33).
-Epoch 63: a play a static forbids (Pithing Needle, Null Rod, Gaddock
-Teeg) is no longer on the menu; Forge's canPlay() leaves those to checkRestrictions (RP_207, REPORT.md batch 10).
-Before that: harness-epoch-62 (`docs/harness/VERSIONS.md`). Epochs 60 to 62 on this branch: Port-style
-"tap a land" costs can't also tap the source for mana; the lookahead previews stack-targeting spells (Force of
-Negation) and shows exile counts; payment sacrifices, a forced free cast's tax and an already-confirmed optional cast
-are the seat's; `PuzzleArms.SETUP` makes choices during puzzle setup non-draws; named cards survive puzzle setup.
-Details: `docs/harness/ARCHITECTURE.md`, `docs/harness/ENGINE-PATCHES.md`, last commits on the branch.
+harness-epoch-66 (`docs/harness/VERSIONS.md` has every stamp). The epochs made on the puzzle branches, newest first:
+66, an attack the engine refuses is asked once more with the reason, then made legal, and the prover targets copies
+as the model seat does (x_0, z_4); 65, a source whose tap damage is lethal pays last for a harness seat (City of
+Brass after Llanowar Elves); 64, a divided split gives each target at least 1 (RP_221); 63, a play a static forbids
+(Pithing Needle, Null Rod, Gaddock Teeg) is not on the menu (RP_207); 60 to 62, Port-style tap costs, stack-targeting
+previews, payment sacrifices and forced free casts are the seat's, and `PuzzleArms.SETUP` makes setup choices
+non-draws. Details: `docs/harness/ARCHITECTURE.md`, `docs/harness/ENGINE-PATCHES.md`.
 
 ## Track 1: the rules backlog
 
@@ -44,11 +41,11 @@ boards for drops whose reason a harness change removes. Known reasons to drop: r
 (Forge never offers the order), a card Forge lacks, near-duplicates (name the puzzle), legality questions (the engine
 offers only legal plays). A setup-time choice under a *model* solver still asks the model (`SETUP` covers the arms).
 
-Batch 12 (RP_218 to RP_222) re-read the legality and unobservable drops: 204 converted now. **Next: batch 13.** Four
+Batch 12 (RP_218 to RP_222) re-read the legality and unobservable drops. Batch 13: four
 agents re-screened the 485 drops of batches 1-9 and proposed 19 boards, in `eval/puzzles/rules-pilot/batch13-drafts/`
 (`partN.candidates.md` with the reasoning, `sN_K.pzl` drafts, `V_sN_K.summary` gate results on epoch 64). 8 were
-gated: proven, unique, pass arm rejected for s0_1, s0_2, s2_0, s2_1, s2_3, s2_4; not found for s0_0 (Teysa/haunt)
-and s2_2 (Ancient Vendetta). Still to gate: s0_3, s0_4, s1_0-3, s3_0-4. For each keeper: number it RP_223+ (fix the
+gated first: proven, unique, pass arm rejected for s0_1, s0_2, s2_0, s2_1, s2_3, s2_4; not found for s0_0
+(Teysa/haunt) and s2_2 (Ancient Vendetta). To add a keeper from any source: number it after the last RP (fix the
 `Name:` line), re-gate from the committed file, row it (`scripts/puzzle-gate/` helpers; the row writer used last is
 a copy of batch 10's: one `converted(...)` call per puzzle, replacing the question's dropped row), and add a REPORT
 section. Not found means read the search log: a board error or a Forge disagreement.
@@ -78,7 +75,7 @@ Near-duplicates kept but not counted: RP_300, RP_402, RP_454, RP_521. Lessons fr
 export SCRATCH=/tmp/puzzle-scratch; mkdir -p $SCRATCH
 STAGES="classpath compile" FORGE_HOME=/root/forge bash eval/harness_acceptance.sh | tail -3
 # the run dir it prints (runs/harness-acceptance/<ts>) is an isolated build; pin it:
-ls -d runs/harness-acceptance/* | tail -1 > $SCRATCH/epoch62-build.txt
+ls -d runs/harness-acceptance/* | tail -1 > $SCRATCH/build.txt   # BUILD_FILE=$SCRATCH/build.txt
 bash scripts/puzzle-gate/gate10.sh RP_214          # search arm then pass arm -> $SCRATCH/rp10/RP_214.summary
 bash scripts/puzzle-gate/gate10.sh V_draft         # a scratch variant at $SCRATCH/rp10v/draft.pzl
 bash scripts/puzzle-gate/gate10.sh R_RP_214 1,2,3  # random arm, logs only
@@ -106,4 +103,4 @@ rebuild never swaps classes under the prover. Next: g34 on a deck and seed not u
 
 ## Then
 
-The order of work is `docs/harness/WORK-PLAN.md`, "The plan (owner, 2026-10-19)".
+The order of work is `docs/harness/WORK-PLAN.md`, "The plan".

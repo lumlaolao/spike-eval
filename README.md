@@ -29,8 +29,9 @@ FORGE_HOME=/root/forge bash eval/harness_acceptance.sh                   # compi
 bash eval/keyword_gauntlet.sh                                            # 28 free games over 553 cards
 ```
 
-`eval/harness_acceptance.sh` never touches the checkout (it builds into `runs/harness-acceptance/<ts>/`). Its
-zero-model canaries are bit-reproducible: the seed-42 floor mirror wins A in 108 turns, the random mirror A in 59.
+`eval/harness_acceptance.sh` never touches the checkout (it builds into `runs/harness-acceptance/<ts>/`). Its zero-model
+canaries are bit-reproducible: the seed-42 floor mirror wins A in 108 turns, the random mirror A in 55 (Linux pins,
+`eval/harness_acceptance.expected`).
 
 ## Play a game
 

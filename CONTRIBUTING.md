@@ -29,13 +29,13 @@ gh pr merge <n> --merge      # merge commit, the only allowed method
 
 ## Source of truth
 
-`forge-overlay/` is the source of truth. **Never edit files inside `~/code/forge`** —
+`forge-overlay/` is the source of truth. **Never edit files inside the Forge checkout (`$FORGE_HOME`: `~/code/forge` on the Mac, `/root/forge` in the cloud)** —
 they are overwritten by `install.sh`. Workflow for any harness change:
 
 ```bash
 # 1. edit forge-overlay/.../forge/spike/LlmSpikeGui.java
 bash install.sh                                        # 2. copy overlay into $FORGE_HOME
-cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (install, not just compile)
+cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (install, not just compile)
 ```
 
 ## What must never be committed
