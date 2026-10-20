@@ -1,0 +1,49 @@
+[metadata]
+Name:storm_e2f0d85a67c7
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control two untapped Mountains. Your hand is Seething Song, Shock, Lightning Bolt, Lava Spike, Seething Song, Lightning Bolt, Goblin Guide, Grapeshot, Lava Spike, Rite of Flame, Pyretic Ritual and Shock. The opponent is at 27 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-storm | 10 spells before Grapeshot make 10 copies; rituals paid in order (Rites back to back, Seething Song once three are open), burn before Grapeshot; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Seething Song;Shock;Lightning Bolt;Lava Spike;Seething Song;Lightning Bolt;Goblin Guide;Grapeshot;Lava Spike;Rite of Flame;Pyretic Ritual;Shock
+p0battlefield=Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=27
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+cast Rite of Flame
+cast Pyretic Ritual
+cast Seething Song
+cast Seething Song
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Lightning Bolt
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Lightning Bolt
+opponent
+cast Grapeshot
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+[acceptance]
+life p1 <= 0

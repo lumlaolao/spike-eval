@@ -1,0 +1,38 @@
+[metadata]
+Name:ping_312bfed30c96
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and Thermo-Alchemist and two untapped Mountains. Your hand is Goblin Guide, Chain Lightning, Shock, Lava Spike and Desperate Ritual. The opponent is at 18 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 2 Alchemist(s) ping before each of 4 spells and once after; rituals open with the lands, burn spends the pool exactly; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Goblin Guide;Chain Lightning;Shock;Lava Spike;Desperate Ritual
+p0battlefield=Thermo-Alchemist;Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Chain Lightning
+opponent
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

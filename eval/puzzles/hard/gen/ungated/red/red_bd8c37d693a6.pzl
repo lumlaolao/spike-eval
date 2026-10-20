@@ -1,0 +1,42 @@
+[metadata]
+Name:red_bd8c37d693a6
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Goblin Electromancer and one untapped Mountain. Your hand is Gitaxian Probe, Rite of Flame, Lava Spike, Seething Song, Glacial Ray and Shock. The opponent is at 18 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 18; a plain player deals 8
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Gitaxian Probe;Rite of Flame;Lava Spike;Seething Song;Glacial Ray;Shock
+p0battlefield=Thermo-Alchemist;Goblin Electromancer;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+cast Seething Song
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Glacial Ray
+opponent
+opponent
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+activate Thermo-Alchemist
+Goblin Electromancer
+[acceptance]
+life p1 <= 0

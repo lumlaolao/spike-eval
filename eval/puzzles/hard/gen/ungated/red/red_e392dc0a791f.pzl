@@ -1,0 +1,42 @@
+[metadata]
+Name:red_e392dc0a791f
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Kiln Fiend and one untapped Mountain. Your hand is Lava Dart, Seething Song, Gitaxian Probe, Lava Dart, Fireblast and Rite of Flame. The opponent is at 25 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 25; a plain player deals 16
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lava Dart;Seething Song;Gitaxian Probe;Lava Dart;Fireblast;Rite of Flame
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=25
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+activate Thermo-Alchemist
+cast Rite of Flame
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,43 @@
+[metadata]
+Name:ping_10325daf6635
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist, Thermo-Alchemist and Kiln Fiend and two untapped Mountains. Your hand is Rite of Flame, Lightning Bolt, Goblin Guide, Lightning Bolt and Chain Lightning. The opponent is at 32 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 2 Alchemist(s) ping before each of 4 spells and once after; rituals open with the lands, burn spends the pool exactly; every spell before combat pumps Kiln Fiend; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rite of Flame;Lightning Bolt;Goblin Guide;Lightning Bolt;Chain Lightning
+p0battlefield=Thermo-Alchemist;Thermo-Alchemist;Kiln Fiend;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=32
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Rite of Flame
+Thermo-Alchemist; Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Chain Lightning
+opponent
+Thermo-Alchemist; Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+Thermo-Alchemist; Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+Thermo-Alchemist; Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0

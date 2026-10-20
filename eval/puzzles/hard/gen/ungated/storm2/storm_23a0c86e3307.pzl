@@ -1,0 +1,47 @@
+[metadata]
+Name:storm_23a0c86e3307
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control three untapped Mountains. Your hand is Lava Spike, Grapeshot, Gitaxian Probe, Lava Spike, Shock, Desperate Ritual, Desperate Ritual, Chain Lightning, Shock and Seething Song. The opponent is at 23 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-storm | 9 spells before Grapeshot make 9 copies; rituals paid in order (Rites back to back, Seething Song once three are open), burn before Grapeshot
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lava Spike;Grapeshot;Gitaxian Probe;Lava Spike;Shock;Desperate Ritual;Desperate Ritual;Chain Lightning;Shock;Seething Song
+p0battlefield=Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=23
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+cast Desperate Ritual
+cast Desperate Ritual
+cast Seething Song
+cast Gitaxian Probe
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Chain Lightning
+opponent
+cast Grapeshot
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+[acceptance]
+life p1 <= 0

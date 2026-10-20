@@ -1,0 +1,40 @@
+[metadata]
+Name:red_134c8918f91a
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Kiln Fiend and two untapped Mountains. Your hand is Pyretic Ritual, Lava Dart, Pyretic Ritual, Desperate Ritual and Fireblast. The opponent is at 27 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 27; a plain player deals 7
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Pyretic Ritual;Lava Dart;Pyretic Ritual;Desperate Ritual;Fireblast
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=27
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+activate Thermo-Alchemist
+cast Pyretic Ritual
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Pyretic Ritual
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Fireblast
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Desperate Ritual
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0

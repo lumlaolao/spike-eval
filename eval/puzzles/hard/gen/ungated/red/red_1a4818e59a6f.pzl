@@ -1,0 +1,40 @@
+[metadata]
+Name:red_1a4818e59a6f
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Lightning Bolt, Grapeshot, Lava Spike, Pyretic Ritual, Lightning Bolt and Pyretic Ritual. The opponent is at 17 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 17; a plain player deals 9
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Grapeshot;Lava Spike;Pyretic Ritual;Lightning Bolt;Pyretic Ritual
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=17
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Grapeshot
+opponent
+Thermo-Alchemist; Grapeshot
+opponent
+opponent
+opponent
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

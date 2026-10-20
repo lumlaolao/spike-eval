@@ -1,0 +1,438 @@
+[
+  {
+    "board": "storm_023f10766b8f",
+    "solved": false,
+    "played": false,
+    "actions": 14,
+    "engine_actions": 3,
+    "drift": "line 4: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green",
+    "unconsumed": 33,
+    "dropped": "line: line 4: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_09ea47952aaf",
+    "solved": true,
+    "played": true,
+    "actions": 10,
+    "engine_actions": 19,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "storm_111db4b9a5be",
+    "solved": false,
+    "played": false,
+    "actions": 10,
+    "engine_actions": 4,
+    "drift": "line 5: \"cast Gitaxian Probe\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green",
+    "unconsumed": 21,
+    "dropped": "line: line 5: \"cast Gitaxian Probe\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_15dfd871739b",
+    "solved": false,
+    "played": false,
+    "actions": 15,
+    "engine_actions": 4,
+    "drift": "line 5: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green",
+    "unconsumed": 35,
+    "dropped": "line: line 5: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_185abb1de218",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @23 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 22,
+    "dropped": "line: line 7: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @23 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_288534f95fc0",
+    "solved": false,
+    "played": false,
+    "actions": 12,
+    "engine_actions": 4,
+    "drift": "line 5: \"cast Gitaxian Probe\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {2}{R} for Seething Song ... | options: white | blue | black | red | green",
+    "unconsumed": 27,
+    "dropped": "line: line 5: \"cast Gitaxian Probe\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {2}{R} for Seething Song ... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_2c700e296294",
+    "solved": false,
+    "played": false,
+    "actions": 13,
+    "engine_actions": 25,
+    "drift": "line 22: \"opponent\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Grapeshot @41 ... | options: white | blue | black | red | green",
+    "unconsumed": 12,
+    "dropped": "line: line 22: \"opponent\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Grapeshot @41 ... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_2ccfe167c753",
+    "solved": true,
+    "played": true,
+    "actions": 14,
+    "engine_actions": 27,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "storm_2ef0ca14337b",
+    "solved": true,
+    "played": true,
+    "actions": 13,
+    "engine_actions": 25,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "storm_3415e49c240a",
+    "solved": false,
+    "played": false,
+    "actions": 13,
+    "engine_actions": 3,
+    "drift": "line 4: \"cast Desperate Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green",
+    "unconsumed": 30,
+    "dropped": "line: line 4: \"cast Desperate Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_352dc8d691ed",
+    "solved": false,
+    "played": false,
+    "actions": 13,
+    "engine_actions": 3,
+    "drift": "line 4: \"cast Desperate Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green",
+    "unconsumed": 30,
+    "dropped": "line: line 4: \"cast Desperate Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_4e3741b98c8a",
+    "solved": false,
+    "played": false,
+    "actions": 10,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Lightning Bolt\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @22 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 19,
+    "dropped": "line: line 7: \"cast Lightning Bolt\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @22 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_4e5f41512fbc",
+    "solved": false,
+    "played": false,
+    "actions": 10,
+    "engine_actions": 4,
+    "drift": "line 6: \"cast Chain Lightning\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @21 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 21,
+    "dropped": "line: line 6: \"cast Chain Lightning\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @21 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_529549c795e7",
+    "solved": false,
+    "played": false,
+    "actions": 10,
+    "engine_actions": 19,
+    "drift": "line 17: \"opponent\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Grapeshot @33 ... | options: white | blue | black | red | green",
+    "unconsumed": 9,
+    "dropped": "line: line 17: \"opponent\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Grapeshot @33 ... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_5bf9f8c3b603",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "engine_actions": 21,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "storm_5bfd85cdbf55",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @24 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 22,
+    "dropped": "line: line 7: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @24 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_64995c02eda9",
+    "solved": false,
+    "played": false,
+    "actions": 12,
+    "engine_actions": 4,
+    "drift": "line 5: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green",
+    "unconsumed": 26,
+    "dropped": "line: line 5: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_64abc0051bcb",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 3,
+    "drift": "line 4: \"cast Pyretic Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green",
+    "unconsumed": 25,
+    "dropped": "line: line 4: \"cast Pyretic Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_6c380264c11d",
+    "solved": false,
+    "played": false,
+    "actions": 12,
+    "engine_actions": 23,
+    "drift": "line 20: \"opponent\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Grapeshot @40 ... | options: white | blue | black | red | green",
+    "unconsumed": 11,
+    "dropped": "line: line 20: \"opponent\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Grapeshot @40 ... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_6eb29b756493",
+    "solved": false,
+    "played": false,
+    "actions": 15,
+    "engine_actions": 6,
+    "drift": "line 8: \"cast Shock\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @30 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 32,
+    "dropped": "line: line 8: \"cast Shock\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @30 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_73e665d64e95",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @22 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 22,
+    "dropped": "line: line 7: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @22 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_7c9a0b88e9eb",
+    "solved": false,
+    "played": false,
+    "actions": 15,
+    "engine_actions": 5,
+    "drift": "line 6: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green",
+    "unconsumed": 33,
+    "dropped": "line: line 6: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_7d8eb2e65b6d",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @24 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 22,
+    "dropped": "line: line 7: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @24 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_87bf0355e69a",
+    "solved": false,
+    "played": false,
+    "actions": 12,
+    "engine_actions": 3,
+    "drift": "line 4: \"cast Desperate Ritual\" fits no option: DECISION: SPLICE [Desperate Ritual: Add {R}{R}{R}. Splice onto Arcane {1}{R} (As you cast an Arcane spell, you may reveal this card from your hand and pay its s... | options: Desperate Ritual 1{R} @11",
+    "unconsumed": 28,
+    "dropped": "line: line 4: \"cast Desperate Ritual\" fits no option: DECISION: SPLICE [Desperate Ritual: Add {R}{R}{R}. Splice onto Arcane {1}{R} (As you cast an Arcane spell, you may reveal this card from your hand and pay its s... | options: Desperate Ritual 1{R} @11"
+  },
+  {
+    "board": "storm_88f9152b3505",
+    "solved": true,
+    "played": true,
+    "actions": 10,
+    "engine_actions": 19,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "storm_954f137cc8e4",
+    "solved": false,
+    "played": false,
+    "actions": 12,
+    "engine_actions": 3,
+    "drift": "line 4: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green",
+    "unconsumed": 28,
+    "dropped": "line: line 4: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_9fffeb884485",
+    "solved": false,
+    "played": false,
+    "actions": 14,
+    "engine_actions": 5,
+    "drift": "line 6: \"cast Gitaxian Probe\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green",
+    "unconsumed": 31,
+    "dropped": "line: line 6: \"cast Gitaxian Probe\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_ab1ef4874892",
+    "solved": false,
+    "played": false,
+    "actions": 13,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Chain Lightning\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @26 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 28,
+    "dropped": "line: line 7: \"cast Chain Lightning\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @26 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_ac711661aead",
+    "solved": false,
+    "played": false,
+    "actions": 14,
+    "engine_actions": 6,
+    "drift": "line 8: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @27 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 29,
+    "dropped": "line: line 8: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @27 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_b6b336b7ba50",
+    "solved": false,
+    "played": false,
+    "actions": 14,
+    "engine_actions": 6,
+    "drift": "line 8: \"cast Shock\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @29 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 29,
+    "dropped": "line: line 8: \"cast Shock\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @29 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_b70ea6841aa2",
+    "solved": false,
+    "played": false,
+    "actions": 14,
+    "engine_actions": 6,
+    "drift": "line 8: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @28 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 29,
+    "dropped": "line: line 8: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @28 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_bbe30e36a48d",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @23 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 22,
+    "dropped": "line: line 7: \"cast Lava Spike\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @23 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_be43d149d3c7",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Shock\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @24 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 22,
+    "dropped": "line: line 7: \"cast Shock\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @24 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_c17bd3919583",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 4,
+    "drift": "line 6: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @22 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 24,
+    "dropped": "line: line 6: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @22 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_cb4d19b14cb3",
+    "solved": false,
+    "played": false,
+    "actions": 11,
+    "engine_actions": 4,
+    "drift": "line 5: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green",
+    "unconsumed": 23,
+    "dropped": "line: line 5: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_cc650e3b6cc8",
+    "solved": false,
+    "played": false,
+    "actions": 14,
+    "engine_actions": 4,
+    "drift": "line 5: \"cast Pyretic Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green",
+    "unconsumed": 32,
+    "dropped": "line: line 5: \"cast Pyretic Ritual\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Pyretic Ritual... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_cdf5212bdbc2",
+    "solved": false,
+    "played": false,
+    "actions": 12,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Lightning Bolt\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @25 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 25,
+    "dropped": "line: line 7: \"cast Lightning Bolt\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @25 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_e893bf53ce99",
+    "solved": false,
+    "played": false,
+    "actions": 13,
+    "engine_actions": 5,
+    "drift": "line 7: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @27 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life",
+    "unconsumed": 28,
+    "dropped": "line: line 7: \"cast Gitaxian Probe\" fits no option: DECISION: MANA: you are paying {U/P} for CAST Gitaxian Probe @27 {U/P} [Look at target player's hand.]. Each Phyrexian symbol is paid with one mana of its colou... | options: pay every Phyrexian symbol with mana (no life) | pay 1 Phyrexian symbol with 2 life"
+  },
+  {
+    "board": "storm_ea0684c16915",
+    "solved": false,
+    "played": false,
+    "actions": 15,
+    "engine_actions": 5,
+    "drift": "line 6: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green",
+    "unconsumed": 33,
+    "dropped": "line: line 6: \"cast Seething Song\" fits no option: DECISION: Choose a color: Select Mana to Produce [Lotus Petal: {T}, Sacrifice Lotus Petal: Add one mana of any color.] (you are paying {1}{R} for Desperate Ritu... | options: white | blue | black | red | green"
+  },
+  {
+    "board": "storm_f84326b139f5",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "engine_actions": 21,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  }
+]

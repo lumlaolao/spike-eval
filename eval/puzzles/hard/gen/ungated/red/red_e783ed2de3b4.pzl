@@ -1,0 +1,37 @@
+[metadata]
+Name:red_e783ed2de3b4
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Shock, Desperate Ritual, Fireblast, Desperate Ritual, Seething Song and Gitaxian Probe. The opponent is at 13 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 13; a plain player deals 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock;Desperate Ritual;Fireblast;Desperate Ritual;Seething Song;Gitaxian Probe
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=13
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Fireblast
+opponent
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Seething Song
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

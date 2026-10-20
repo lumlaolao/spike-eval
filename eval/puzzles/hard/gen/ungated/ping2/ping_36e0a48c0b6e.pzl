@@ -1,0 +1,34 @@
+[metadata]
+Name:ping_36e0a48c0b6e
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Goblin Electromancer and one untapped Mountain. Your hand is Lightning Bolt, Shock, Desperate Ritual and Lava Spike. The opponent is at 15 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 4 spells and once after; rituals open with the lands, burn spends the pool exactly
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lightning Bolt;Shock;Desperate Ritual;Lava Spike
+p0battlefield=Thermo-Alchemist;Goblin Electromancer;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=15
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+activate Thermo-Alchemist
+Goblin Electromancer
+[acceptance]
+life p1 <= 0

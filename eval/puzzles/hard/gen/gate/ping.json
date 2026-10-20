@@ -1,0 +1,453 @@
+[
+  {
+    "board": "ping_23b94544c325",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @9 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 17,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @9 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_2673c878fd08",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_2a13ad0c26d5",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_4c51e00e1ac7",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 17,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_50be144310f4",
+    "solved": true,
+    "played": true,
+    "actions": 13,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_5386024018ed",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_54c73a107e58",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_54e92c99729f",
+    "solved": false,
+    "played": false,
+    "actions": 3,
+    "drift": "line 4: \"activate Thermo-Alchemist\" fits no option: DECISION: These 3 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @5 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 11,
+    "dropped": "line: line 4: \"activate Thermo-Alchemist\" fits no option: DECISION: These 3 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @5 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_5c0d1f2b1dc3",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 14,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_6998e9b5a350",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 17,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_7037c79b86c6",
+    "solved": true,
+    "played": true,
+    "actions": 12,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 1,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    },
+    "dropped": "floors: random 1"
+  },
+  {
+    "board": "ping_72369f4636a8",
+    "solved": true,
+    "played": true,
+    "actions": 10,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_84a4ba9748e6",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 17,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_8cc9869168c5",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_95bc35b7ce6a",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_9719307e767b",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_a548229267bf",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_a5fd3702e196",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 14,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_a910d3b44aeb",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_a9d526313887",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 17,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_aa1f225a6c23",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 14,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_c6731a293de1",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 14,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @7 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @10 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_c95252b9c92b",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_cae657ba1e4c",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 14,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_cbaf489cd0b2",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @11 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 16,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @11 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_ce41f367de4d",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @11 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 17,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @8 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @11 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_cf858b6bee11",
+    "solved": true,
+    "played": true,
+    "actions": 13,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_d623dc892913",
+    "solved": true,
+    "played": true,
+    "actions": 13,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_db208cc42d17",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 14,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @6 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  },
+  {
+    "board": "ping_dca185853752",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_e1c35548a916",
+    "solved": true,
+    "played": true,
+    "actions": 12,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_e8c0c30d8064",
+    "solved": true,
+    "played": true,
+    "actions": 15,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_e8f7009bd660",
+    "solved": true,
+    "played": true,
+    "actions": 14,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_f01b45d21b92",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_fb8e113831a8",
+    "solved": true,
+    "played": true,
+    "actions": 11,
+    "drift": "",
+    "unconsumed": 0,
+    "floors": {
+      "random": 0,
+      "pass": 0,
+      "first": 0,
+      "greedy": 0,
+      "ai": 0
+    }
+  },
+  {
+    "board": "ping_ffecd0bffec9",
+    "solved": false,
+    "played": false,
+    "actions": 2,
+    "drift": "line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @5 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]",
+    "unconsumed": 11,
+    "dropped": "line: line 3: \"activate Thermo-Alchemist\" fits no option: DECISION: These 2 triggers go on the stack at the same time. List them in the order you want them to RESOLVE \u2014 the FIRST number you name resolves FIRST (it goes... | options: Thermo-Alchemist 0/3 @5 [Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.] | Kiln Fiend 1/2 @8 [Whenever you cast a instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]"
+  }
+]

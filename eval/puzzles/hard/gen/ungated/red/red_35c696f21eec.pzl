@@ -1,0 +1,45 @@
+[metadata]
+Name:red_35c696f21eec
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Kiln Fiend and two untapped Mountains. Your hand is Rite of Flame, Gitaxian Probe, Seething Song, Fireblast, Fireblast, Gitaxian Probe and Glacial Ray. The opponent is at 32 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 32; a plain player deals 24
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rite of Flame;Gitaxian Probe;Seething Song;Fireblast;Fireblast;Gitaxian Probe;Glacial Ray
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=32
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Rite of Flame
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Seething Song
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Fireblast
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0

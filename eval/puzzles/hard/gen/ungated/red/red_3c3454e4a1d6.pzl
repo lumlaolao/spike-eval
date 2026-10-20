@@ -1,0 +1,46 @@
+[metadata]
+Name:red_3c3454e4a1d6
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Kiln Fiend and three untapped Mountains. Your hand is Glacial Ray, Shock, Shock, Gitaxian Probe, Shock and Seething Song. The opponent is at 34 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 34; a plain player deals 24
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Glacial Ray;Shock;Shock;Gitaxian Probe;Shock;Seething Song
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=34
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Seething Song
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Shock
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Shock
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Shock
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0

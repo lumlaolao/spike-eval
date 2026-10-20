@@ -1,0 +1,35 @@
+[metadata]
+Name:ping_fb8e113831a8
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Lightning Bolt, Goblin Guide, Gut Shot, Lightning Bolt, Pyretic Ritual and Lightning Bolt. The opponent is at 16 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 5 spells and once after; rituals open with the lands, burn spends the pool exactly; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Goblin Guide;Gut Shot;Lightning Bolt;Pyretic Ritual;Lightning Bolt
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=16
+p1library=Plains;Plains;Plains
+[solution]
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Gut Shot
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

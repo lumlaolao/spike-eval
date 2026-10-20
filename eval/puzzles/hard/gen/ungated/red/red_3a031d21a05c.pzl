@@ -1,0 +1,41 @@
+[metadata]
+Name:red_3a031d21a05c
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and one untapped Mountain. Your hand is Pyretic Ritual, Lava Spike, Gitaxian Probe, Rite of Flame, Desperate Ritual and Lava Spike. The opponent is at 13 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 13; a plain player deals 6
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyretic Ritual;Lava Spike;Gitaxian Probe;Rite of Flame;Desperate Ritual;Lava Spike
+p0battlefield=Thermo-Alchemist;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=13
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Desperate Ritual
+opponent
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Desperate Ritual
+opponent
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

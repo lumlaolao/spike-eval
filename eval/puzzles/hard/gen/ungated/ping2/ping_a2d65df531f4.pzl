@@ -1,0 +1,46 @@
+[metadata]
+Name:ping_a2d65df531f4
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Kiln Fiend and three untapped Mountains. Your hand is Seething Song, Lava Spike, Lava Spike, Lightning Bolt, Lightning Bolt and Lightning Bolt. The opponent is at 41 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 6 spells and once after; rituals open with the lands, burn spends the pool exactly; every spell before combat pumps Kiln Fiend
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Seething Song;Lava Spike;Lava Spike;Lightning Bolt;Lightning Bolt;Lightning Bolt
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=41
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Seething Song
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,37 @@
+[metadata]
+Name:red_f210cda8cc6b
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Lava Dart, Rite of Flame, Shock, Shock, Lightning Bolt and Shock. The opponent is at 13 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 13; a plain player deals 8
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lava Dart;Rite of Flame;Shock;Shock;Lightning Bolt;Shock
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=13
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+Mountain
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

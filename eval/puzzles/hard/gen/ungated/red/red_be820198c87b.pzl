@@ -1,0 +1,42 @@
+[metadata]
+Name:red_be820198c87b
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Grapeshot, Pyretic Ritual, Lava Spike, Desperate Ritual and Fireblast. The opponent is at 18 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 18; a plain player deals 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Grapeshot;Pyretic Ritual;Lava Spike;Desperate Ritual;Fireblast
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Desperate Ritual
+opponent
+activate Thermo-Alchemist
+cast Fireblast
+opponent
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Grapeshot
+opponent
+Thermo-Alchemist; Grapeshot
+opponent
+opponent
+opponent
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

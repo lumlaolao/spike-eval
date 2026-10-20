@@ -1,0 +1,38 @@
+[metadata]
+Name:ping_d9fce9b2485e
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and three untapped Mountains. Your hand is Lightning Bolt, Rite of Flame, Lightning Bolt, Lightning Bolt, Mutagenic Growth and Shock. The opponent is at 18 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 6 spells and once after; rituals open with the lands, burn spends the pool exactly
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Rite of Flame;Lightning Bolt;Lightning Bolt;Mutagenic Growth;Shock
+p0battlefield=Thermo-Alchemist;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Mutagenic Growth
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

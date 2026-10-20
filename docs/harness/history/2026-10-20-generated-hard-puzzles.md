@@ -43,3 +43,30 @@ search prover and are not in this set.
    Forge's AI at most 1 of 4.
 
 Nothing paid is run; no model is called.
+
+## Where it stands (paused 2026-10-20, owner asked to wrap up)
+
+Kept so far: **59** boards in `eval/puzzles/hard/gen/kept/` (ping 24, splice 29, storm 6), each passed both gate
+steps above; the gate's rows are in `eval/puzzles/hard/gen/gate/<family>.json`.
+
+| Batch | Kept | Main drop reason |
+|---|---|---|
+| ping (36) | 20 | the old Kiln Fiend trigger-order bug (fixed in e80b523), one random-floor solve |
+| ping-rest | 4 | |
+| storm (40) | 6 | Lotus Petal's colour and Gitaxian Probe payment questions (Petal removed in 43ea29c) |
+| splice (40) | 29 | 11 lines did not solve as written (`solved=False unconsumed=12..19`): the line stops early |
+
+Not gated yet (the gate was stopped to pause): `eval/puzzles/hard/gen/ungated/red` (60), `ungated/ping2` (60) and
+`ungated/storm2` (50, generated after the Petal fix). Two more families (drain and elf; fling) are on their own
+branches, see their notes.
+
+Next, in order:
+1. Read one dropped splice board's line log (`puzzle_baselines.py line --pzl ...`): find where the line stops and
+   fix the generator, then re-gate the 11.
+2. Gate the ungated batches, one at a time (the box has 4 cores; `-j 2`, about 1 to 2 hours a batch of 60):
+   `FORGE_HOME=/root/forge python3 scripts/puzzle-gate/gen_gate.py --build <build> --forge /root/forge
+   --boards eval/puzzles/hard/gen/ungated/red --out <out> -j 2`, then copy `<out>/kept/*.pzl` into `kept/`.
+3. Generate more of whichever families keep best (`python3 eval/puzzle_gen.py --family <f> --count N --seed S
+   --out DIR`) until 200 are kept, deduping by board key.
+4. Land the generator, `gen_gate.py`, the kept boards and this note through a PR and the full gate (acceptance is
+   owed: `eval/` changes).

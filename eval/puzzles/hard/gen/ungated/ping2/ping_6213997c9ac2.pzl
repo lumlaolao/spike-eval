@@ -1,0 +1,37 @@
+[metadata]
+Name:ping_6213997c9ac2
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Goblin Electromancer and two untapped Mountains. Your hand is Lava Spike, Mutagenic Growth, Rite of Flame, Goblin Guide, Lightning Bolt and Lightning Bolt. The opponent is at 19 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 5 spells and once after; rituals open with the lands, burn spends the pool exactly; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lava Spike;Mutagenic Growth;Rite of Flame;Goblin Guide;Lightning Bolt;Lightning Bolt
+p0battlefield=Thermo-Alchemist;Goblin Electromancer;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=19
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Mutagenic Growth
+Goblin Electromancer
+activate Thermo-Alchemist
+Goblin Electromancer
+[acceptance]
+life p1 <= 0

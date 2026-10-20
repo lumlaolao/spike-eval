@@ -1,0 +1,38 @@
+[metadata]
+Name:ping_26002e5e96f3
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Chain Lightning, Fireblast, Shock, Shock, Mutagenic Growth, Pyretic Ritual and Goblin Guide. The opponent is at 18 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 6 spells and once after; rituals open with the lands, burn spends the pool exactly; Fireblast last, after both Mountains tap; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Chain Lightning;Fireblast;Shock;Shock;Mutagenic Growth;Pyretic Ritual;Goblin Guide
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Chain Lightning
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Mutagenic Growth
+activate Thermo-Alchemist
+cast Fireblast
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

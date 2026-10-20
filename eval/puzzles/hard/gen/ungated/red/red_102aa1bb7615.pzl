@@ -1,0 +1,38 @@
+[metadata]
+Name:red_102aa1bb7615
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Lightning Bolt, Pyretic Ritual, Lava Spike, Seething Song, Gitaxian Probe and Lightning Bolt. The opponent is at 16 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 16; a plain player deals 10
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Pyretic Ritual;Lava Spike;Seething Song;Gitaxian Probe;Lightning Bolt
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=16
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Seething Song
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,40 @@
+[metadata]
+Name:ping_025774607f9f
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Goblin Electromancer and two untapped Mountains. Your hand is Shock, Shock, Gut Shot, Lightning Bolt, Desperate Ritual, Goblin Guide and Shock. The opponent is at 19 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 6 spells and once after; rituals open with the lands, burn spends the pool exactly; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock;Shock;Gut Shot;Lightning Bolt;Desperate Ritual;Goblin Guide;Shock
+p0battlefield=Thermo-Alchemist;Goblin Electromancer;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=19
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Gut Shot
+opponent
+activate Thermo-Alchemist
+Goblin Electromancer
+[acceptance]
+life p1 <= 0

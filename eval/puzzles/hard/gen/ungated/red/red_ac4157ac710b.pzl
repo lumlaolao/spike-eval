@@ -1,0 +1,46 @@
+[metadata]
+Name:red_ac4157ac710b
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Kiln Fiend and two untapped Mountains. Your hand is Glacial Ray, Gitaxian Probe, Pyretic Ritual, Lava Dart, Desperate Ritual and Glacial Ray. The opponent is at 30 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-red | the searched best line deals 30; a plain player deals 12
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Glacial Ray;Gitaxian Probe;Pyretic Ritual;Lava Dart;Desperate Ritual;Glacial Ray
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=30
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Pyretic Ritual
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Dart
+opponent
+Mountain
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Desperate Ritual
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0

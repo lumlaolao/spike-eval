@@ -1,0 +1,40 @@
+[metadata]
+Name:ping_cec6378aafbe
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Lightning Bolt, Desperate Ritual, Lava Spike, Chain Lightning, Pyretic Ritual, Lightning Bolt, Mutagenic Growth and Goblin Guide. The opponent is at 20 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 7 spells and once after; rituals open with the lands, burn spends the pool exactly; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Desperate Ritual;Lava Spike;Chain Lightning;Pyretic Ritual;Lightning Bolt;Mutagenic Growth;Goblin Guide
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Chain Lightning
+opponent
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+activate Thermo-Alchemist
+cast Mutagenic Growth
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0
