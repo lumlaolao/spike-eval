@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Gaddock Teeg must go first
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You have Magma Spray (2 damage to target creature) and Lava Axe ({4}{R}: 5 damage to target player) in hand with six red mana floating. The opponent is at 5 life and controls an untapped Gaddock Teeg (2/2; noncreature spells with mana value 4 or greater can't be cast). Reduce the opponent to 0 life this turn.
+Rule:authored-cant-be-cast-prohibition | Gaddock Teeg's restriction is checked as a spell would be cast (CR 101.2, 601.3): Magma Spray kills Teeg, and then Lava Axe (mana value 5) can be cast for 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Magma Spray;Lava Axe
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Gaddock Teeg
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

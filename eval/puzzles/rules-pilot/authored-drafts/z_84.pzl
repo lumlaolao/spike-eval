@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Explore for a second Mountain
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control two untapped Forests and have Explore (you may play an additional land this turn; draw a card), two Mountains and Fireblast (sacrifice two Mountains rather than pay its mana cost; 4 damage) in hand. You have not played a land this turn. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-additional-land-play | Normally you may play one land each turn (CR 305.2); Explore grants an additional land play: play a Mountain, cast Explore, play the second Mountain, and sacrifice both to Fireblast for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Explore;Mountain;Mountain;Fireblast
+p0battlefield=Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

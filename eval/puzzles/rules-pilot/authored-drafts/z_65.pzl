@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The Kavu must hit something
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Boros Reckoner (3/3; whenever it is dealt damage, it deals that much damage to any target) and have Flametongue Kavu (when it enters, it deals 4 damage to target creature) in hand with four red mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-mandatory-etb-target-own | A triggered ability with a target must target something legal if it can (CR 603.3d), and with no opposing creatures Flametongue Kavu's trigger must hit one of yours: aim it at Boros Reckoner, which is dealt 4 and deals 4 to the opponent; aimed at the Kavu itself it does nothing useful
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flametongue Kavu
+p0battlefield=Boros Reckoner
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

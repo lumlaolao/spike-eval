@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Spark Double isn't legendary
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Kokusho, the Evening Star and have Spark Double (enter as a copy of a creature you control, except with a +1/+1 counter and not legendary) and Fling in hand, with four blue and two red mana floating. The opponent is at 11 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-copy-exception-nonlegendary | A copy effect's exceptions become part of the copiable values (CR 707.9b): Spark Double becomes a nonlegendary 6/6 Kokusho, so no legend rule applies; Fling it for 6 and its own dies trigger drains 5; Flinging the original Kokusho deals 5 + 5 = 10
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Spark Double;Fling
+p0battlefield=Kokusho, the Evening Star
+p0manapool=U U U U R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=11
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

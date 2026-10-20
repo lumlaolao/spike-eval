@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Bracers copy the Fanatic
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Mogg Fanatic, an unattached Illusionist's Bracers (whenever an ability of equipped creature is activated, if it isn't a mana ability, copy it; equip {3}) and three untapped Mountains. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-copy-ability-sacrificed-source | A copied activated ability needs no cost paid again and resolves even though its source is gone (CR 707.10, 113.7a): equip the Bracers to Mogg Fanatic, sacrifice it, and the ability and its copy deal 1 each
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Mogg Fanatic;Illusionist's Bracers;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

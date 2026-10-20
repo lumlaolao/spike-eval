@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Repercussion punishes their creatures
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your second main phase. You control Repercussion (whenever a creature is dealt damage, it deals that much damage to that creature's controller) and have Pyroclasm in hand with two red mana floating. The opponent is at 4 life and controls two untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-damage-trigger-per-creature | Repercussion triggers separately for each creature dealt damage (CR 603.2c): Pyroclasm deals 2 to each Bears, and each trigger deals 2 to their controller, 4 in total
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyroclasm
+p0battlefield=Repercussion
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Grizzly Bears;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

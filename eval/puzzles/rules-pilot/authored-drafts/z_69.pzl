@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Colorless means Wastes
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Horned Turtle (1/4), an untapped Wastes and two untapped Mountains, and have Spatial Contortion ({1}{C}: target creature gets +3/-3) and Lightning Bolt in hand. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-colorless-mana-symbol | {C} must be paid with colorless mana, unlike generic {1} (CR 107.4c): pay Spatial Contortion's {C} with Wastes, make the Turtle a 4/1 that attacks for 4, and Bolt with a Mountain for 3; a Mountain cannot pay {C}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Spatial Contortion;Lightning Bolt
+p0battlefield=Horned Turtle;Wastes;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

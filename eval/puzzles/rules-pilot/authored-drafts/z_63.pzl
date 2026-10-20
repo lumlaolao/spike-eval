@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Make the blocker an artifact
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and Liquimetal Coating ({T}: target permanent becomes an artifact until end of turn) and have Shatter in hand with two red mana floating. The opponent is at 2 life and controls an untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-type-change-enables-target | A type-changing effect adds the artifact type in layer 4 (CR 613.1d, 205.1b), and Shatter checks its target as it is cast and resolves: Coat the opponent's Bears, Shatter them, and your Bears attack for 2; Shatter has no other legal target worth hitting
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shatter
+p0battlefield=Grizzly Bears;Liquimetal Coating
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

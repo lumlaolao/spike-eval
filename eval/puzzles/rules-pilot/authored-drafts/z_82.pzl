@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Keep the Artist for the Return
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Blood Artist and Grizzly Bears; your graveyard holds Dread Return (flashback - sacrifice three creatures) and Gray Merchant of Asphodel. You have Dragon Fodder in hand with two red mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-flashback-sacrifice-keep-devotion | Flashback may have a non-mana cost (CR 702.34a): make two Goblins, sacrifice them and the Bears to flash back Dread Return (Blood Artist drains 3), and return Gray Merchant, whose devotion counts Blood Artist's {B} too for 3 more; sacrificing Blood Artist also drains 3 but leaves devotion at 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dragon Fodder
+p0battlefield=Blood Artist;Grizzly Bears
+p0graveyard=Dread Return;Gray Merchant of Asphodel
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

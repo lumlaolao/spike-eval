@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Embercleave after attacking
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Hill Giant (3/3), Grizzly Bears and four untapped Mountains, and have Embercleave (flash; costs {1} less for each attacking creature you control; when it enters, attach it to target creature you control; equipped creature gets +1/+1, double strike and trample) in hand. The opponent is at 10 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-cost-reduction-attacking-count | A cost reduction is computed as the spell is cast (CR 601.2f): attack with both creatures, then flash in Embercleave for {2}{R}{R}, attach it to the Giant for 4 + 4, and the Bears add 2; before combat it costs six
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Embercleave
+p0battlefield=Hill Giant;Grizzly Bears;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=10
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

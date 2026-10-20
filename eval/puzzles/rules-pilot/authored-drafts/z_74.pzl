@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Searing Blood waits for the death
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You have Searing Blood (2 damage to target creature; when that creature dies this turn, 3 damage to its controller) and Shock in hand with three red mana floating. The opponent is at 3 life and controls an untapped Hill Giant (3/3). Reduce the opponent to 0 life this turn.
+Rule:authored-delayed-trigger-this-turn | Searing Blood sets up a delayed trigger that watches its target for the rest of the turn (CR 603.7a-c): Searing Blood and Shock together kill the 3/3 Giant in either order, and the delayed trigger deals 3 to the opponent; Shock to the face leaves the opponent at 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Searing Blood;Shock
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

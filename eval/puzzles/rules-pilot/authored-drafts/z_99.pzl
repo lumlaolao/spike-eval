@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Bestow, attack, then Fling
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears, two untapped Forests and five untapped Mountains, and have Boon Satyr (flash; bestow {3}{G}{G}; enchanted creature gets +4/+2) and Fling in hand. The opponent is at 12 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-bestow-unattached-creature | A bestowed Aura's bonus counts in Fling's last-known power, and when the enchanted creature leaves, the bestow card becomes an enchantment creature instead of going to the graveyard (CR 702.103f, 608.2h): bestow on the Bears, attack for 6, then Fling them for 6; Fling first leaves nothing to attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Boon Satyr;Fling
+p0battlefield=Grizzly Bears;Forest;Forest;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=12
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

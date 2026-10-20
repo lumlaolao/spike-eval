@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Solemnity keeps persist going
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Solemnity (counters can't be put on creatures) and Murderous Redcap (2/2; when it enters, it deals damage equal to its power to any target; persist), and have two Flings in hand with four red mana floating. The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-solemnity-persist-repeat | Persist returns a creature only if it had no -1/-1 counter, and under Solemnity the returned Redcap gets none (CR 702.79a, 122.1): Fling it for 2, it returns and deals 2, Fling it again for 2, it returns again and deals 2, 8 in all
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling;Fling
+p0battlefield=Solemnity;Murderous Redcap
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

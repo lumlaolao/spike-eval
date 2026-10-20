@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Powerstone mana buys artifacts
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and two untapped Powerstone tokens ({T}: add {C}; this mana can't be spent to cast nonartifact spells) and have Bonesplitter and Shock in hand. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-restricted-mana-abilities | Restricted mana can be spent only as its rule allows (CR 106.6): Powerstone mana may cast the artifact Bonesplitter and pay its equip ability, so the 4/2 Bears attack for 4; it can't pay for Shock
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Bonesplitter;Shock
+p0battlefield=Grizzly Bears;T:c_a_powerstone;T:c_a_powerstone
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Lifelink on the Rift
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You are at 4 life and control Soulfire Grand Master (instant and sorcery spells you control have lifelink). You have Flame Rift (4 damage to each player) in hand with two red mana floating. The opponent is at 4 life and controls no creatures. Win the game this turn.
+Rule:authored-lifelink-all-damage-simultaneous | Lifelink gains life for all damage the source deals, including damage to you, at the same time it is dealt (CR 702.15b, 120.3f): Flame Rift deals 8 in total, so you go 4 - 4 + 8 = 8 while the opponent drops to 0 and loses alone
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=4
+p0hand=Flame Rift
+p0battlefield=Soulfire Grand Master
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

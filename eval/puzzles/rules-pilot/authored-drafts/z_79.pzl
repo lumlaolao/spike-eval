@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - The Bandit Lord's mana gives haste
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Hall of the Bandit Lord ({T}, pay 3 life: add {C}; if that mana is spent on a creature spell, it gains haste) and three untapped Mountains, and have Hill Giant in hand. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-mana-rider-haste | Mana can carry an effect that applies to the spell it pays for (CR 106.6): Hill Giant needs all four lands, so the Hall's mana gives it haste and it attacks for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Hill Giant
+p0battlefield=Hall of the Bandit Lord;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
