@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The evoked creature still enters
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your second main phase. You have Shriekmaw in hand with two black mana floating. The opponent controls Serra Angel. End the turn with Serra Angel in the opponent's graveyard.
+Rule:authored-evoke-etb | Evoke is an alternative cost (CR 702.74a): the creature enters, its enters trigger and the evoke sacrifice trigger both go on the stack, and Shriekmaw's destroy trigger still resolves; its full cost of five is out of reach
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shriekmaw
+p0manapool=B B
+p0library=Swamp;Swamp;Swamp
+p1life=20
+p1battlefield=Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Serra Angel" = 1
