@@ -558,6 +558,12 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,
   puzzles and tools.
 - *Why so many refusals:* each one stops a number from meaning something other than what it says.
+- **The demo viewer (`demo_server.py`, `docs/harness/DEMO.md`)** replays a recorded game, or follows a running
+  one, in a browser: the board as the seat's prompt showed it (`demo_state.py`), each decision with the model calls,
+  tool requests, provider reasoning and answer that produced it (`demo_events.py`), and the objects the model's own
+  calls and words name (`demo_highlights.py`). It only reads the JSONL and the console log beside it.
+  *Why read-only:* it can then never change what the seat sees or decides, needs no engine and no model, and works
+  on every recorded game.
 
 ## 13. How a change is checked
 

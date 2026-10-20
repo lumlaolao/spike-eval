@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge LLM Seat</title>
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <strong>Forge LLM seat</strong>
+    <span class="sub">a model plays Magic inside the Forge rules engine; every decision is the model's, every move is the engine's</span>
+  </div>
+  <nav class="transport" aria-label="transport">
+    <button id="first" title="first decision (Home)">&#x23EE;</button>
+    <button id="prev" title="previous decision (&larr;)">&#x25C0;</button>
+    <button id="play" title="play / pause (space)">&#x25B6;</button>
+    <button id="next" title="next decision (&rarr;)">&#x25B6;&#x25B6;</button>
+    <button id="last" title="last decision (End)">&#x23ED;</button>
+    <label>speed
+      <select id="speed">
+        <option value="real">real time</option>
+        <option value="2">2x</option>
+        <option value="5" selected>5x</option>
+        <option value="step">1 s per step</option>
+      </select>
+    </label>
+    <label>turn <input id="turn" type="number" min="0" step="1" size="3"></label>
+    <label class="chk"><input id="lockstep" type="checkbox" checked> lockstep by turn</label>
+  </nav>
+</header>
+<main id="panes"></main>
+<template id="pane-tpl">
+  <section class="pane">
+    <div class="pane-head"></div>
+    <div class="pane-body">
+      <div class="board-col">
+        <div class="statusbar"></div>
+        <div class="board"></div>
+        <div class="plan"></div>
+      </div>
+      <div class="trace-col">
+        <div class="filters"></div>
+        <ol class="timeline"></ol>
+        <div class="detail"></div>
+      </div>
+    </div>
+    <footer class="summary"></footer>
+  </section>
+</template>
+<script src="demo.js"></script>
+</body>
+</html>
