@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - A dual land counts twice for domain
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control a tapped Mountain and a tapped Swamp, have not played a land, and have Island, Savannah (Forest Plains) and Tribal Flames (domain: X damage to any target, X = basic land types among your lands) in hand with two red mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-domain-dual-types | Domain counts basic land types, and a land with two types counts both (CR 305.6, 205.3i): play Savannah for Mountain, Swamp, Forest and Plains, 4 damage; the Island gives only 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Island;Savannah;Tribal Flames
+p0battlefield=Mountain|Tapped;Swamp|Tapped
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

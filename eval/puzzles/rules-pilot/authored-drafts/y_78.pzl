@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Mobilize grows the count
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Stadium Headliner (1/1, mobilize 1; {1}{R}, sacrifice it: it deals damage equal to the number of creatures you control to target creature) and two untapped Mountains. The opponent is at 20 life and controls an untapped Grizzly Bears. Destroy the Grizzly Bears this turn.
+Rule:authored-mobilize-count-creatures | Mobilize creates a tapped and attacking Warrior token when the creature attacks (CR 702.181a), and the sacrifice ability counts creatures as it resolves, after the cost (CR 608.2h): attack, then sacrifice Headliner with the token out for 2 damage; before combat it deals 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Stadium Headliner;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1

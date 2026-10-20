@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The copy has the enters trigger
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Flametongue Kavu (summoning sick; when it enters, it deals 4 damage to target creature) and have Phantasmal Image in hand with two blue mana floating. The opponent is at 20 life and controls Hill Giant. Destroy the Hill Giant this turn.
+Rule:authored-copy-etb-triggers | A creature entering as a copy has the copied enters-the-battlefield ability and it triggers (CR 707.2, 603.6a): Phantasmal Image as Flametongue Kavu deals 4 to the Giant
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Phantasmal Image
+p0battlefield=Flametongue Kavu|SummonSick
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1

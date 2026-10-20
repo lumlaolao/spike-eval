@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Double strike after first strike
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control White Knight (2/2 first strike) and two untapped Mountains, and have Temur Battle Rage (target creature gains double strike) in hand. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-first-strike-gains-double | A creature with double strike deals damage in both combat damage steps, even if it gains double strike after the first-strike damage step (CR 702.4c-d, 510.4): Battle Rage on the Knight, before or after first-strike damage, gives 2+2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Temur Battle Rage
+p0battlefield=White Knight;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

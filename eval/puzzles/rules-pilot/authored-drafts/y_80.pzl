@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Read ahead from chapter one
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have The Elder Dragon War (read ahead; I: 2 damage to each creature and each opponent; II: rummage; III: a 4/4 Dragon) in hand with four red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-read-ahead-chapter | Read ahead lets the Saga enter with one to three lore counters, and only the chosen chapter triggers; earlier chapters don't (CR 714.3c): choose chapter I for 2 damage; starting at III gives only a summoning-sick Dragon
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=The Elder Dragon War
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

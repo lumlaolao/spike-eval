@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Battalion needs three attackers
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Boros Elite (1/1; battalion: +2/+2 when it and at least two other creatures attack), Memnite and Grizzly Bears. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-battalion-three-attackers | Battalion triggers when the creature and at least two others attack (CR 207.2c): all three attack and the Elite is a 3/3, 3+1+2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Boros Elite;Memnite;Grizzly Bears
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

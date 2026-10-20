@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - A miracle on the first draw
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have drawn no cards this turn. You have Opt (scry 1, then draw a card) in hand with {U}{R} floating, and the only card in your library is Thunderous Wrath (5 damage to any target; miracle {R}). The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-miracle-first-draw | Miracle lets you cast the card for its miracle cost when it is the first card you drew this turn, revealed as you draw it (CR 702.94a): Opt draws Thunderous Wrath and the miracle trigger casts it for {R}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Opt
+p0manapool=U R
+p0library=Thunderous Wrath
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

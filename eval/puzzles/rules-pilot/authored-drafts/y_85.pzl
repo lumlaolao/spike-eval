@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Level up to first strike
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Student of Warfare with one level counter (level up {W}; level 2-6: 3/3 first strike) and have one white mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-level-up-sorcery | Level up is a sorcery-speed activated ability that puts a level counter on the creature (CR 702.87a, 711.2): the second counter makes Student a 3/3 that attacks for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Student of Warfare|Counters:LEVEL=1
+p0manapool=W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

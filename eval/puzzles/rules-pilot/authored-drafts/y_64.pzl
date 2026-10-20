@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Proliferate the right counters
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Grim Affliction (put a -1/-1 counter on target creature, then proliferate) in hand with three black mana floating. The opponent is at 20 life and controls Hill Giant and Grizzly Bears, each with one -1/-1 counter. Destroy both of the opponent's creatures this turn.
+Rule:authored-proliferate-minus-counters | Proliferate adds one counter of each kind already on each chosen permanent, and state-based actions wait until the spell has resolved (CR 701.34a, 704.3): the counter goes on the Giant (2), proliferate both makes Giant 3 and Bears 2 counters; aimed at the Bears, the Giant ends with only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Grim Affliction
+p0manapool=B B B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant|Counters:M1M1=1;Grizzly Bears|Counters:M1M1=1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1
+count p1 Graveyard "Grizzly Bears" = 1

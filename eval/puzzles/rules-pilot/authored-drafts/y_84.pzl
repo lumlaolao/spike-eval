@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Conspire with new creatures
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control two Goblin Pikers (red, summoning sick) and have Burn Trail (3 damage to any target; conspire) in hand with four red mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-conspire-summoning-sick | Conspire taps two untapped creatures that share a color with the spell to copy it; it is not a {T} ability, so summoning-sick creatures can pay it (CR 702.78a, 302.6): 3+3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Burn Trail
+p0battlefield=Goblin Piker|SummonSick;Goblin Piker|SummonSick
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

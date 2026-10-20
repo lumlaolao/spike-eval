@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Play the snow land first
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control two Snow-Covered Mountains (one untapped), have not played a land, and have a Snow-Covered Mountain and Skred (damage to target creature equal to the number of snow permanents you control) in hand. The opponent is at 20 life and controls Hill Giant (3/3). Destroy the Hill Giant this turn.
+Rule:authored-skred-snow-count | Skred counts snow permanents as it resolves (CR 608.2h): play the third Snow-Covered Mountain first and Skred deals 3; cast now it deals 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Snow-Covered Mountain;Skred
+p0battlefield=Snow-Covered Mountain;Snow-Covered Mountain|Tapped
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Enrage your own Aegisaur
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and Bellowing Aegisaur (3/5, summoning sick; enrage: whenever it is dealt damage, put a +1/+1 counter on each other creature you control), and have Flame Slash (4 damage to target creature) in hand with one red mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-enrage-own-creature | Enrage triggers whenever the creature is dealt damage, whatever the source (CR 207.2c, 603.2): Flame Slash on your own 3/5 Aegisaur gives the Bears a counter and it attacks for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flame Slash
+p0battlefield=Grizzly Bears;Bellowing Aegisaur|SummonSick
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
