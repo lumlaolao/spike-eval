@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 314 - Bloodthirst wants the player
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Shock and Gorehorn Minotaurs (bloodthirst 2) in hand with five red mana floating. The opponent controls Grizzly Bears. End the turn with Gorehorn Minotaurs on your battlefield with two +1/+1 counters.
+Rule:authored-bloodthirst-player | Bloodthirst checks whether an opponent (a player) was dealt damage this turn (CR 702.54a); damage to a creature the opponent controls does not count: Shock the opponent, then cast Gorehorn Minotaurs
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock;Gorehorn Minotaurs
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Gorehorn Minotaurs" P1P1 = 2
