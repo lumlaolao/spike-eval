@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 319 - Fused halves resolve in order
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You have Far // Away in hand with one blue, one black and three colorless mana floating. The opponent controls Grizzly Bears and Slippery Bogle (hexproof) and has no other permanents. End the turn with no permanents on the opponent's battlefield.
+Rule:authored-fuse-order | A fused split spell's halves resolve in the order printed (CR 702.102d): Far returns Grizzly Bears first, then Away makes the opponent sacrifice a creature, and the hexproof Slippery Bogle is the only one left; either half alone leaves the opponent a creature
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Far // Away
+p0manapool=U B C C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears;Slippery Bogle
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Battlefield * = 0
