@@ -46,3 +46,14 @@ search prover and are not in this set.
    Forge's AI at most 1 of 4.
 
 Nothing paid is run; no model is called.
+
+## Where the fling family stands (2026-10-20, stopped at the owner's wrap-up)
+
+- 60 boards from `--family fling --count 60 --seed 1`. All 60 written lines played as written and solved in
+  the engine (10 to 12 steps); none drifted, so no generator fix was needed after the stack-aware search.
+- The floors stage was stopped after 6 boards to wrap up: 5 finished every floor and are kept (random 0/20,
+  PASS, first, greedy and Forge's AI each 0/4); the sixth (`fling_23e615214cc3`) had every floor but the AI
+  at 0, and kept in an earlier six-board run with the old description wording. No board was dropped by a floor.
+- Next: re-run `gen_gate.py` on the 54 boards without floors (about 2.5 minutes a board at `-j 1`). 50 of
+  the 60 lines open the second main phase with Rite of Flame; for variety, weight the draw away from two Rites
+  or add a second finisher (Temur Battle Rage before combat, then Fling).
