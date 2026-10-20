@@ -44,6 +44,69 @@ opponent's real hand at every decision, in a dashed gold box labelled "audience 
 seat itself sees ("4 cards (hidden)"). The seat never reads the feed: its prompts are byte-identical with the feed
 on and off (`DemoFeedTest`). A game recorded without the feed shows the opponent's hand face down, as the seat saw it.
 
+## Forge's own window, with the model's cards framed
+
+`run-llm-spike.sh` (the GUI launcher) opens Forge's match window as a spectator, which shows both hands. To draw the
+model's attention on it, start the server with `--highlight-file` and the game with the same path:
+
+```bash
+python3 eval/demo_server.py --live runs/demo/live --highlight-file /tmp/demo-hl.json &
+DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT=runs/demo/live bash $FORGE_HOME/run-llm-spike.sh
+```
+
+After each decision the server writes the engine ids of that decision's highlighted cards (the same ones the
+browser marks); `DemoHighlight.java` polls the file and gives those cards Forge's own highlight frame. It is display
+only: it never reads or writes anything the seat reads. Put the Forge window and the browser side by side: the
+window is the board, the browser is the agent's log, plan and highlights. On a fresh Forge home, Forge may open a
+bug-report dialog at start-up (a default gauntlet file it cannot load); click Discard once.
+
+## Side by side: the current harness against a real older one
+
+`eval/demo_compare.py` plays the same model, seed and decks against Forge's AI twice: on this checkout and on an
+older commit of the harness on the same engine pin (refused otherwise). The decks come from the fixed sets in
+`eval/demo/decks.json` (`demo_compare.py decks` lists them): control and storm decks for the model, aggro decks for
+Forge's AI.
+
+```bash
+python3 eval/demo_compare.py build-now                       # isolated build of this checkout
+python3 eval/demo_compare.py build-then --commit e1324cfd    # the 2026-10-14 harness, with the feed ported in
+python3 eval/demo_compare.py run --seed 4201 --deck-a vintage-esper-control --deck-b pioneer-red-deck-wins \
+    --fake --budget-usd 0.01 --out runs/demo/pair-rehearsal                  # free loopback rehearsal
+python3 eval/demo_server.py --game runs/demo/pair-4201/now --game runs/demo/pair-4201/then
+```
+
+A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, about $0.05 to $0.30) needs the owner's
+egress consent. In the viewer, the two panes step in lockstep by turn and phase, and the **first divergence** button
+jumps both to the first decision where the games part: the same question answered differently, or (if the
+engine asked different questions) the point where they had already parted. Viewer-local `@handles` are ignored when
+comparing, since the two harnesses number them differently. Two games of different seeds or decks are flagged as
+"not a side by side". One pair illustrates; it measures nothing.
+
+## The benchmark and the gate (`/eval.html`)
+
+```bash
+python3 eval/demo_server.py --game runs/loop/g33 --acceptance /tmp/acc-<sha>    # an acceptance OUT dir
+# open http://127.0.0.1:8765/eval.html  (also linked from the viewer's top bar)
+```
+
+`demo_eval.py` builds the page from files on disk: every stage of that acceptance run (its `summary.txt`, the
+canaries checked against their pins), PUZ computed by `puzzle_score.score` from the recorded Luna runs in
+`eval/puzzles/rules-pilot/benchmark-v1/` (each condition's headline, 95% interval and floors, as a forest plot), and
+STR-AI and STR-HELDOUT shown as not yet run, with the mirror panel's size (16 cells, 1600 games) and its cost ($32 to
+$80). No number on the page is typed in.
+
+## A walkthrough (about ten minutes)
+
+1. `/eval.html`: what the benchmark measures, each score next to its floor, and the gate a change must pass.
+2. The viewer on `runs/loop/g33`: `#d=11` (a simulate preview before a play), `#d=37` (blockers, with the
+   highlighted attackers), the plan panel, then End (the win), and the summary strip (`ai=0`, `textParses=0`, cost).
+3. A game with the feed: both hands, P/T and damage chips, the opponent's real hand in the audience box.
+4. The side by side: lockstep, then **first divergence**.
+5. Live: a running game (a loopback rehearsal, or a paid game the owner started), with the Forge window beside the
+   browser and the model's cards framed in both.
+
+Fallback: everything in steps 1 to 4 is a recording and works offline once the images are prefetched.
+
 ## What is on screen, and where it comes from
 
 | Pane | Source |

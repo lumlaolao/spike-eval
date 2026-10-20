@@ -25,6 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 import demo_cards
+import demo_eval
 import demo_events
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo", "web")
@@ -135,6 +136,21 @@ def build_summary(pane):
     return out
 
 
+class EvalReport:
+    """demo_eval.report for one acceptance dir, built once on first ask (the PUZ bootstraps take a few seconds)."""
+
+    def __init__(self, acceptance_dir=None):
+        self.acceptance_dir = acceptance_dir
+        self.lock = threading.Lock()
+        self.value = None
+
+    def get(self):
+        with self.lock:
+            if self.value is None:
+                self.value = demo_eval.report(self.acceptance_dir)
+            return self.value
+
+
 class Handler(BaseHTTPRequestHandler):
     panes = []
     cards = None
@@ -178,6 +194,17 @@ class Handler(BaseHTTPRequestHandler):
                 out.append({"i": i, "path": p.path, "live": p.live, "events": len(p.events), "done": p.done,
                             "summary": p.summary()})
             return self._send(200, out)
+        if parts[1:] == ["eval"]:
+            return self._send(200, self.eval_report.get())
+        if parts[1:] == ["divergence"]:
+            # Two panes of one seed: where the games part (demo_events.divergence). None for one pane.
+            if len(self.panes) != 2:
+                return self._send(200, None)
+            for p in self.panes:
+                p.refresh()
+            with self.panes[0].lock, self.panes[1].lock:
+                a, b = list(self.panes[0].events), list(self.panes[1].events)
+            return self._send(200, demo_events.divergence(a, b))
         if len(parts) == 4 and parts[1] == "game" and parts[3] in ("events", "summary"):
             try:
                 pane = self.panes[int(parts[2])]
@@ -214,8 +241,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, f.read(), TYPES.get(os.path.splitext(path)[1], "application/octet-stream"))
 
 
-def make_server(panes, port=8765, host="127.0.0.1", cards=None):
-    handler = type("DemoHandler", (Handler,), {"panes": panes, "cards": cards})
+def make_server(panes, port=8765, host="127.0.0.1", cards=None, eval_report=None):
+    handler = type("DemoHandler", (Handler,), {"panes": panes, "cards": cards,
+                                               "eval_report": eval_report or EvalReport()})
     return ThreadingHTTPServer((host, port), handler)
 
 
@@ -230,14 +258,16 @@ def main(argv=None):
                     "Forge window (the JVM reads it with DEMO_HIGHLIGHT_FILE set to the same path)")
     ap.add_argument("--fetch-images", action="store_true",
                     help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
+    ap.add_argument("--acceptance", help="the eval page's gate: an OUT dir of eval/harness_acceptance.sh (/eval.html)")
     a = ap.parse_args(argv)
     panes = [Pane(p) for p in a.game] + [Pane(p, live=True, highlight_file=a.highlight_file) for p in a.live]
-    if not panes:
-        ap.error("give at least one --game or --live")
+    if not panes and not a.acceptance:
+        ap.error("give at least one --game or --live (or --acceptance for the eval page alone)")
     for p in panes:
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
-    srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images))
+    srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images),
+                      EvalReport(a.acceptance))
     if a.highlight_file:
         # The Forge window's highlights follow the game whether or not a browser is polling.
         def follow():

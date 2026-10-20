@@ -4,9 +4,9 @@ same seed, once on the current harness and once on an older commit of it, and th
 
   python3 eval/demo_compare.py build-now                               # isolated build of this checkout's harness
   python3 eval/demo_compare.py build-then --commit e1324cfd            # worktree + isolated build of the older harness
-  python3 eval/demo_compare.py run --seed 4201 --deck-a eval/decks/vintage-esper-control.txt \\
-      --deck-b eval/decks/pioneer-red-deck-wins.txt --model openrouter:openai/gpt-6-luna --budget-usd 0.40 \\
-      --out runs/demo/pair-4201                                        # both arms, one after the other
+  python3 eval/demo_compare.py decks                                   # the fixed deck sets (eval/demo/decks.json)
+  python3 eval/demo_compare.py run --seed 4201 --deck-a vintage-esper-control --deck-b pioneer-red-deck-wins \\
+      --model openrouter:openai/gpt-6-luna --budget-usd 0.40 --out runs/demo/pair-4201   # both arms in turn
   python3 eval/demo_server.py --game runs/demo/pair-4201/now --game runs/demo/pair-4201/then
 
 How the older arm runs: `git worktree add` at the commit; DemoFeed (the display-only audience feed) is copied into
@@ -22,6 +22,7 @@ Every run passes --budget-usd; --fake plays both arms on the loopback fake model
 Stdlib only.
 """
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -29,6 +30,7 @@ import sys
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DECKS = os.path.join(REPO, "eval", "demo", "decks.json")
 SPIKE = "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
 OBS_ANCHOR = "    Player viewer() { return viewer; }\n"
 OBS_HOOK = OBS_ANCHOR + """
@@ -130,9 +132,34 @@ def direct_env(seed, deck_a, deck_b, model, out, base_url):
             "CONTEXT_PROFILE": "v4-faithful", "GAME_CAP_MS": "1800000", "DEMO_FEED": "1", "EVAL_OUT": out}
 
 
+def deck_sets(path=DECKS):
+    with open(path) as f:
+        d = json.load(f)
+    return d["agent"], d["forge_ai"]
+
+
+def pick_deck(name, allowed, side):
+    """eval/decks/<name>.txt for a name in the fixed set; anything else is refused, so a demo pair is always one of
+    the rehearsed match-ups."""
+    if name not in allowed:
+        raise SystemExit("refusing %s deck %r: pick one of %s (eval/demo/decks.json)" % (side, name, ", ".join(allowed)))
+    return os.path.join(REPO, "eval", "decks", name + ".txt")
+
+
+def decks(a):
+    agent, ai = deck_sets()
+    for title, s in (("the model's seat (--deck-a)", agent), ("Forge AI (--deck-b)", ai)):
+        print(title)
+        for k, v in s.items():
+            print("  %-24s %s" % (k, v))
+    return 0
+
+
 def run(a):
     if a.budget_usd is None or a.budget_usd <= 0:
         raise SystemExit("refusing: pass --budget-usd (a paid pair costs money; --fake runs cost nothing)")
+    agent, ai = deck_sets()
+    deck_a, deck_b = pick_deck(a.deck_a, agent, "agent"), pick_deck(a.deck_b, ai, "Forge AI")
     out = os.path.abspath(a.out)
     homes = {"now": os.path.join(os.path.abspath(a.now_build), "forge-home"),
              "then": os.path.join(os.path.abspath(a.build), "forge-home")}
@@ -165,7 +192,6 @@ def run(a):
         arms = (("now", REPO), ("then", os.path.abspath(a.worktree)))
         for name, repo in arms:
             dest = os.path.join(out, name)
-            deck_a, deck_b = os.path.abspath(a.deck_a), os.path.abspath(a.deck_b)
             if a.fake:
                 os.makedirs(dest, exist_ok=True)
                 cmd = ["bash", os.path.join(homes[name], "run-llm-headless.sh")]
@@ -192,10 +218,11 @@ def main(argv=None):
     b = sub.add_parser("build-then")
     b.add_argument("--commit", required=True)
     n = sub.add_parser("build-now")
+    sub.add_parser("decks")
     r = sub.add_parser("run")
     r.add_argument("--seed", type=int, required=True)
-    r.add_argument("--deck-a", required=True)
-    r.add_argument("--deck-b", required=True)
+    r.add_argument("--deck-a", required=True, help="the model's deck, a name from `decks`")
+    r.add_argument("--deck-b", required=True, help="Forge AI's deck, a name from `decks`")
     r.add_argument("--model", default="openrouter:openai/gpt-6-luna")
     r.add_argument("--budget-usd", type=float)
     r.add_argument("--out", required=True)
@@ -207,6 +234,8 @@ def main(argv=None):
         p.add_argument("--now-build", default="/home/user/harness-now-build")
         p.add_argument("--forge", default=os.path.expandvars(os.environ.get("FORGE_HOME", "/root/forge")))
     a = ap.parse_args(argv)
+    if a.cmd == "decks":
+        return decks(a)
     return {"build-then": build_then, "build-now": build_now, "run": run}[a.cmd](a)
 
 

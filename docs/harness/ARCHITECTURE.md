@@ -572,6 +572,14 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   prompts are byte-identical with it on and off (`DemoFeedTest`); no version stamp covers it for that reason. It is
   off unless set, and `run_batch.py` passes it only as an exploratory `--env DEMO_FEED=1`, recorded in the manifest.
   *Why:* the audience should see both hands; the seat never may, and the JSONL holds only what the seat saw.
+- **The Forge window's highlights (`DemoHighlight.java`, `DEMO_HIGHLIGHT_FILE`)** give the cards of the latest
+  decision's highlights (written by `demo_server.py --highlight-file`) Forge's own highlight frame in the spectator
+  window. A daemon thread reads the file; nothing the seat reads is touched. *Why:* Forge already draws the board.
+- **The side by side (`demo_compare.py`)** builds this harness and an older commit of it (same engine pin, the feed
+  ported in) in isolation and plays both on one seed and deck pair from the fixed sets in `eval/demo/decks.json`; the
+  viewer marks the first decision where the games part (`demo_events.divergence`).
+- **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
+  via `puzzle_score.score`, and the STR scores as not yet run with their cost.
 
 ## 13. How a change is checked
 

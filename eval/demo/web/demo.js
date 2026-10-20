@@ -108,6 +108,7 @@ class Pane {
         const same = this.absorb(r);
         if (!same) { this.render(); continue; }
         if (r.events.length || r.done !== wasDone) { this.render(); if (r.done) this.refreshSummary(); }
+        if (r.events.length && app.panes.length === 2) app.loadDivergence().then(() => app.panes.forEach(p => p.renderTimeline()));
         if (r.done) await new Promise(res => setTimeout(res, 2000));
       } catch (e) { await new Promise(res => setTimeout(res, 1000)); }
     }
@@ -292,7 +293,7 @@ class Pane {
         if (!pass(e)) continue;
         const tools = e.calls.flatMap(c => c.tools.map(t => t.name)).filter(t => t !== "answer");
         const flag = isBreach(e) || e.answer_invalid ? " !" : "";
-        rows.push(`<li data-n="${n}" class="${n === this.cur ? "cur" : ""}"><span class="t">T${esc(e.turn)} ${esc((e.phase || "").slice(0, 6))}</span>` +
+        rows.push(`<li data-n="${n}" class="${n === this.cur ? "cur" : ""}${n === this.divergeAt ? " diverge" : ""}"${n === this.divergeAt ? ' title="first divergence between the two harnesses"' : ""}><span class="t">T${esc(e.turn)} ${esc((e.phase || "").slice(0, 6))}</span>` +
           `<span>${esc(e.type)}${e.tier === "ai" ? " (FORGE AI)" : e.tier === "auto" ? ` (${esc(e.auto_class === "forced" ? "forced" : e.auto_class || "not asked")})` : ""}${tools.length ? " · " + esc(tools.join(", ")) : ""}<span class="flag">${flag}</span></span>` +
           `<span class="t">${fmtMs(e.latency_ms)}</span></li>`);
       } else if (e.kind === "window" && this.filter === "all") {
@@ -387,12 +388,27 @@ const app = {
     root.classList.toggle("two", games.length > 1);
     this.panes = games.map(g => new Pane(g.i, g, root));
     await Promise.all(this.panes.map(p => p.load()));
+    if (this.panes.length === 2) await this.loadDivergence();
     this.fromHash();
-    this.renderAll();
+    if (this.panes[0]) this.seek(this.panes[0], this.panes[0].cur);  // a bookmark aligns the other pane too
     this.bind();
     setInterval(() => this.panes.forEach(p => { if (p.info.live && !p.done) p.renderStatus(); }), 500);
   },
   renderAll() { this.panes.forEach(p => p.render()); this.toHash(); },
+  // Side by side (same seed and decks, two harnesses): the first decision where the games part, marked in both
+  // timelines; the button seeks both panes there without lockstep, since the two games' clocks may differ.
+  async loadDivergence() {
+    const dv = await fetch("api/divergence").then(x => x.json()).catch(() => null);
+    const b = $("#diverge");
+    this.panes.forEach((p, k) => { p.divergeAt = dv && !dv.unpaired ? dv[k ? "b" : "a"] : null; });
+    if (!dv) { b.hidden = false; b.disabled = true; b.textContent = "no divergence yet"; return; }
+    if (dv.unpaired) { b.hidden = false; b.disabled = true; b.textContent = "seeds or decks differ: not a side by side"; return; }
+    const d = this.panes[0].decisions[dv.a] || {};
+    b.hidden = false; b.disabled = false;
+    b.textContent = `first divergence: T${d.turn} ${d.phase || ""}`;
+    b.title = dv.reason;
+    b.onclick = () => { this.panes.forEach((p, k) => { p.cur = k ? dv.b : dv.a; }); this.renderAll(); };
+  },
   seek(pane, n) {
     pane.cur = Math.max(0, Math.min(n, pane.decisions.length - 1));
     if ($("#lockstep").checked && this.panes.length > 1) {

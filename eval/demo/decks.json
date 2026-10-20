@@ -1,0 +1,20 @@
+{
+  "_note": "The demo's fixed deck sets (docs/harness/DEMO.md): decks that make real decisions for the model's seat, against Forge AI decks it pilots well. Each name is eval/decks/<name>.txt.",
+  "agent": {
+    "vintage-esper-control": "Vintage control: counters, removal, card selection",
+    "legacy-bant-control": "Legacy control: Force of Will, planeswalkers",
+    "standard-uw-control": "Standard control: sweepers and card draw",
+    "miracles": "Jeskai Miracles: Brainstorm, Top, Counterbalance",
+    "legacy-tes": "The Epic Storm: rituals, tutors, one big turn",
+    "ant-storm": "Ad Nauseam Tendrils: rituals and a storm kill",
+    "doomsday": "Doomsday: build a five-card library, win with Oracle"
+  },
+  "forge_ai": {
+    "pioneer-red-deck-wins": "Pioneer red aggro",
+    "mardu-energy": "Mardu Energy aggro-disruption",
+    "burn": "Red burn",
+    "legacy-boros-aggro": "Legacy Boros aggro",
+    "goblins": "Legacy Goblins",
+    "death-and-taxes": "Death & Taxes hatebears"
+  }
+}

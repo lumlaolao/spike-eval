@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchmark and Gate</title>
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <strong>Benchmark and gate</strong>
+    <span class="sub">every number below is read from a scorer or an acceptance summary; a score is shown with its floor</span>
+  </div>
+  <a class="navlink" href="./">&larr; game viewer</a>
+</header>
+<main class="eval">
+  <h2>Headline scores</h2>
+  <p class="lede">The deliverable is a benchmark. A score without the trivial baseline it beats is not a score.</p>
+  <div class="heads" id="heads"><p class="lede">loading (the PUZ bootstrap takes a few seconds)&hellip;</p></div>
+  <h2 id="puz-title" hidden>PUZ by condition</h2>
+  <div id="puz"></div>
+  <h2>Acceptance gate</h2>
+  <p class="lede" id="gate-lede"></p>
+  <div id="gate"></div>
+</main>
+<script src="eval.js"></script>
+</body>
+</html>

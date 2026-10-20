@@ -201,6 +201,35 @@ class FeedTest(unittest.TestCase):
         self.assertIsNone(ev["feed"])
 
 
+def dec(turn, options, chosen, phase="MAIN1", type_="play"):
+    return {"kind": "decision", "seat": "Seat", "turn": turn, "phase": phase, "type": type_, "options": options,
+            "chosen": chosen}
+
+
+class DivergenceTest(unittest.TestCase):
+    MENU = ["CAST Brainstorm @12", "PLAY Tundra @7", "PASS"]
+
+    def test_the_first_different_answer_to_the_same_question_is_the_divergence(self):
+        a = [dec(1, self.MENU, [1]), {"kind": "window"}, dec(1, self.MENU, [0]), dec(2, ["PASS"], [0])]
+        b = [dec(1, self.MENU, [1]), dec(1, self.MENU, [2]), dec(3, ["PASS"], [0])]
+        self.assertEqual(de.divergence(a, b),
+                         {"a": 1, "b": 1, "reason": "same question, different answer"})
+
+    def test_handles_numbered_differently_by_two_harnesses_are_the_same_option(self):
+        older = ["CAST Brainstorm @3", "PLAY Tundra @1", "PASS"]
+        self.assertIsNone(de.divergence([dec(1, self.MENU, [1])], [dec(1, older, [1])]))
+
+    def test_two_games_of_different_seeds_are_not_called_a_divergence(self):
+        a = [dec(1, self.MENU, [1]), {"kind": "game", "seed": 1, "deck_a": "x", "deck_b": "y"}]
+        b = [dec(1, self.MENU, [1]), {"kind": "game", "seed": 2, "deck_a": "x", "deck_b": "y"}]
+        self.assertTrue(de.divergence(a, b)["unpaired"])
+
+    def test_a_different_menu_is_reported_as_already_parted(self):
+        dv = de.divergence([dec(1, self.MENU, [2])], [dec(1, ["PASS"], [0])])
+        self.assertEqual((dv["a"], dv["b"]), (0, 0))
+        self.assertIn("different questions", dv["reason"])
+
+
 class ReaderTest(unittest.TestCase):
     def test_a_live_tail_parses_new_complete_lines_only(self):
         with tempfile.TemporaryDirectory() as d:

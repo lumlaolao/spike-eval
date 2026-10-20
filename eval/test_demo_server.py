@@ -114,6 +114,32 @@ class ReplayTest(unittest.TestCase):
             shutil.rmtree(cache_dir)
 
 
+class DivergenceEndpointTest(unittest.TestCase):
+    def test_two_panes_get_their_divergence_and_one_pane_gets_none(self):
+        d = tempfile.mkdtemp()
+        try:
+            for sub, chosen in (("now", 0), ("then", 1)):
+                os.makedirs(os.path.join(d, sub))
+                with open(os.path.join(d, sub, "game-7-1.jsonl"), "w") as f:
+                    f.write(json.dumps({"t": "decision", "seat": "Seat", "turn": 1, "phase": "MAIN1",
+                                        "type": "play", "options": ["PLAY Tundra @7", "PASS"],
+                                        "choice": chosen, "tier": "smart"}) + "\n")
+            server, url = serve([srv.Pane(os.path.join(d, "now")), srv.Pane(os.path.join(d, "then"))])
+            try:
+                self.assertEqual(get(url + "/api/divergence")[1]["reason"], "same question, different answer")
+            finally:
+                server.shutdown()
+                server.server_close()
+            server, url = serve([srv.Pane(os.path.join(d, "now"))])
+            try:
+                self.assertIsNone(get(url + "/api/divergence")[1])
+            finally:
+                server.shutdown()
+                server.server_close()
+        finally:
+            shutil.rmtree(d)
+
+
 class HighlightFileTest(unittest.TestCase):
     def test_the_forge_window_gets_the_latest_decisions_highlighted_engine_ids(self):
         ev = {"kind": "decision", "n": 3, "seat": "A", "turn": 2, "feed_handles": {"101": 17, "102": 20, "103": 25},

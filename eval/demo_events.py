@@ -284,6 +284,36 @@ def _last_row(path):
         return None
 
 
+HANDLE = re.compile(r"\s*@\d+")
+
+
+def _norm(option):
+    """An option without its viewer-local @handles, which two harness versions number differently."""
+    return HANDLE.sub("", str(option)).strip()
+
+
+def divergence(a, b):
+    """Where two games of the same seed and decks part: the first decision, in order, where the menus differ or the
+    same menu got a different answer. {"a": i, "b": i, "reason": ...} (decision indexes into each game's decisions),
+    or None when every decision both games reached matched."""
+    ga = next((e for e in a if e.get("kind") == "game"), None)
+    gb = next((e for e in b if e.get("kind") == "game"), None)
+    cond = lambda g: tuple(g.get(k) for k in ("seed", "deck_a", "deck_b"))
+    if ga and gb and cond(ga) != cond(gb):
+        return {"a": 0, "b": 0, "reason": "not a side by side: the seeds or decks differ", "unpaired": True}
+    da = [e for e in a if e.get("kind") == "decision"]
+    db = [e for e in b if e.get("kind") == "decision"]
+    for n, (x, y) in enumerate(zip(da, db)):
+        spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
+        if spot(x) != spot(y) or [_norm(o) for o in x.get("options") or []] != [_norm(o) for o in y.get("options") or []]:
+            return {"a": n, "b": n, "reason": "the engine asked different questions (the games had already parted)"}
+        pick = lambda d: sorted(_norm((d.get("options") or [])[c]) for c in d.get("chosen") or []
+                                if 0 <= c < len(d.get("options") or []))
+        if pick(x) != pick(y):
+            return {"a": n, "b": n, "reason": "same question, different answer"}
+    return None
+
+
 GAME_FILE = re.compile(r"game-(-?\d+)-(\d+)\.jsonl$")
 
 

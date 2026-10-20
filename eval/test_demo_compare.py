@@ -63,6 +63,18 @@ class ArmTest(unittest.TestCase):
             dc.main(["run", "--seed", "1", "--deck-a", "a", "--deck-b", "b", "--out", "/tmp/x"])
         self.assertIn("--budget-usd", str(cm.exception))
 
+    def test_a_deck_outside_the_fixed_sets_is_refused(self):
+        with self.assertRaises(SystemExit) as cm:
+            dc.main(["run", "--seed", "1", "--deck-a", "burn", "--deck-b", "burn", "--budget-usd", "0.1",
+                     "--out", "/tmp/x"])
+        self.assertIn("vintage-esper-control", str(cm.exception))  # burn is a Forge AI deck, not the seat's
+
+    def test_every_deck_in_the_fixed_sets_exists_and_the_sets_do_not_overlap(self):
+        agent, ai = dc.deck_sets()
+        self.assertFalse(set(agent) & set(ai))
+        for name in list(agent) + list(ai):
+            self.assertTrue(os.path.isfile(dc.pick_deck(name, [name], "x")), name)
+
     def test_the_stand_in_home_runs_the_isolated_classes_from_the_real_checkout(self):
         d = tempfile.mkdtemp()
         try:

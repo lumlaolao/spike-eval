@@ -177,3 +177,39 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--code); pa
 .chip.atk { background: #c25e00; }
 .chip.blk { background: #1f5fa8; }
 .chip.sick { background: #6b6b6b; }
+
+/* Side by side: the first decision where the two harnesses' games part. */
+.timeline li.diverge { border-left: 3px solid var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.diverge-btn { border-color: var(--warn); color: var(--warn); }
+.diverge-btn:disabled { opacity: 0.5; }
+
+/* The eval page (eval.html): the gate and the headline scores, each next to its floor. */
+.eval { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.eval h2 { font-size: 16px; margin: 24px 0 8px; }
+.eval .lede { color: var(--muted); margin: 0 0 12px; }
+.heads { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.head { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.head h3 { margin: 0 0 4px; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; }
+.head .what, .head .floor { color: var(--muted); font-size: 12px; margin: 2px 0; }
+.head .big { font-size: 28px; font-weight: 600; margin: 8px 0 2px; font-variant-numeric: tabular-nums; }
+.status { font-size: 11px; padding: 1px 8px; border-radius: 10px; border: 1px solid currentColor; font-weight: 500; }
+.status.PASS, .status.recorded { color: var(--ok); }
+.status.FAIL { color: var(--bad); }
+.status.SKIP, .status.notrun { color: var(--muted); }
+.forest { width: 100%; border-collapse: collapse; font-size: 13px; }
+.forest td { padding: 6px 4px; vertical-align: middle; }
+.forest td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.axis { position: relative; height: 22px; min-width: 240px; }
+.axis .rule { position: absolute; top: 10px; left: 0; right: 0; border-top: 1px solid var(--line); }
+.axis .ci { position: absolute; top: 7px; height: 7px; background: color-mix(in srgb, var(--planned) 35%, transparent);
+  border-radius: 3px; }
+.axis .pt { position: absolute; top: 4px; width: 3px; height: 13px; margin-left: -1px; background: var(--planned); }
+.axis .fl { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--muted); }
+.axis.ticks span { position: absolute; font-size: 10px; color: var(--muted); transform: translateX(-50%); }
+.gate { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.gate td, .gate th { padding: 6px 10px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 13px; }
+.gate th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.gate td.stage { font-family: var(--mono); white-space: nowrap; }
+.gate tr.key td { background: color-mix(in srgb, var(--ok) 6%, transparent); }
+.navlink { font-size: 12px; color: var(--planned); }
+@media (max-width: 640px) { .gate td.detail { font-size: 12px; } .axis { min-width: 140px; } }
