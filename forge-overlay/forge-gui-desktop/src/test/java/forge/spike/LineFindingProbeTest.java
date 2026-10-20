@@ -271,7 +271,7 @@ public class LineFindingProbeTest {
         Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
         Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
         Card dismember = card("Dismember", me, ZoneType.Hand);
-        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        SpellAbility cast = dismember.getFirstSpellAbility();
         cast.setActivatingPlayer(me);
         cast.getTargets().add(bears);
         Recorder pass = new Recorder(PLAY);

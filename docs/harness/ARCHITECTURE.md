@@ -146,11 +146,12 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   phase, stack, board, menu) was already passed;
 - a play that failed to pay, was forbidden by a static or was refused by the stack for want of a target is not
   offered again in the same window (turn, phase, top of the stack), as Forge's AI skips a failed ability: the
-  seat was offered the same unpayable play 999 times. A play that fails to pay, is
-  cancelled at its cost or is refused by the stack for want of a target is undone by the engine's own rollback
-  (`GameActionUtil.rollbackAbility`, the human path's): the card goes back to the zone it was cast from and the mana
-  paid is refunded; a non-mana cost already paid (a tap, life) is not, as the copied payment records none
-  (harness-epoch-70; the copied engine routine's recovery left a card cast from hand in the Stack zone).
+  seat was offered the same unpayable play 999 times.
+  A play that fails to pay, is cancelled at its cost or is refused by the stack for want of a target is undone by
+  the engine's own rollback (`GameActionUtil.rollbackAbility`, the human path's): the card goes back to the zone it
+  was cast from and the mana paid is refunded; a non-mana cost already paid (a tap, life) is not, as the copied
+  payment records none (harness-epoch-70; the copied engine routine's recovery left a card cast from hand in the
+  Stack zone).
 
 Anything new asks again: an opponent's spell or ability, every attack and block, a trigger, a new option.
 - *Why:* skipping a window the model could act in, keeping a hand for it, or picking its play is a

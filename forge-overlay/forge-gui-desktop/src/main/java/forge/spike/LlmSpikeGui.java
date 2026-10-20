@@ -5021,12 +5021,11 @@ public final class LlmSpikeGui {
             }
             costCancelled = false;
             sa.setSkip(true);
-            // The engine's own rollback, not the engine routine's recovery: that one moved the card back only when the
-            // zone it was cast FROM was the Stack, so a failed cast from hand stayed in the Stack zone with nothing on
-            // the stack. This one puts the card back where it was, refunds the mana paid and unfreezes the stack.
+            // The engine's own rollback, not the engine routine's recovery, which moved the card back only when the zone it
+            // was cast FROM was the Stack, so a failed cast from hand stayed in the Stack zone with nothing on the stack.
+            // The rollback refunds the mana paid and clears the freeze but not the play it was for, so the stack is
+            // unfrozen here as PlaySpellAbility.playAbility does; else the next play would stay frozen.
             forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, pay, source);
-            // The rollback clears the freeze but not the play it was for, so the next play would stay frozen
-            // (PlaySpellAbility.playAbility unfreezes here too).
             if (!refreeze) game.getStack().unfreezeStack();
             return true;
         }
