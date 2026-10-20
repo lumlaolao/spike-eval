@@ -55,12 +55,19 @@ Forge enforces ("Win" or "Survive" by turn N).
 
 - `difficulty`, `tier_v2` and `skills` (additive, `docs/harness/BENCHMARK-V2.md` section 4), computed from the
   proof, never typed in (`puzzle_format.difficulty`, `tier_v2`, `skill_tags`; `puzzle_baselines.py retier`):
-  - `L` solver actions, `D` solver choice points with two or more options, `O` opponent choice points, `T` turns
-    played, `B` the product of the solver's menu sizes along the proof line (capped at 10^12), `board_objects`
-    the cards in both players' battlefield, hand, graveyard and exile;
-  - `tier_v2`: 3 when `L >= 6`, `O >= 2` or `B >= 10^4`; else 2 when `L >= 3`, `O >= 1` or `T >= 2`; else 1 when
-    Forge's AI solves at least half, 2 when it does not; null without a proof or (for a short line) the AI's rate.
-    The thresholds are the proposed ones, to be refit after the first full run;
+  - `L` solver actions; `D` the solver's search draws with two or more values and `B` the product of their sizes
+    (capped at 10^12), so `B` is the size of the answer space the proof searched (an order over n items is n-1
+    draws, a subset ask one draw per option), not the menus a player sees; `O` opponent choice points, counted
+    only for a proof against the search opponent (null against Forge's AI); `T` turns played, from the puzzle's
+    start turn (the next one when it starts in CLEANUP) and capped at its `Turns:` limit, null without the
+    pzl's `Turns:` header or a real end turn; `board_objects` the cards in both players' battlefield, hand,
+    graveyard and exile;
+  - `tier_v2`: 3 when `L >= 6` or `O >= 2`; else 2 when `L >= 3`, `O >= 1` or `T >= 2`; else 1 when
+    Forge's AI solves at least half, 2 when it does not; null without a proof, its turns, its opponent count or
+    (for a short line) the AI's rate.
+    `B` is recorded but is not a tier-3 trigger until it counts the menus the seat is shown, not the search's
+    draws (RP_035, one cast Forge's AI always solves, read `B = 92160`). The thresholds are the proposed ones,
+    to be refit after the first full run;
   - `skills`: the tags that can be read off the source and the proof (rules application, sequencing, combat
     arithmetic, long lines, adversarial, multi-turn, restraint). Hidden information is not tagged.
 

@@ -65,7 +65,9 @@ Every puzzle gets four kinds of difficulty evidence; the tier is computed, never
 
 **Structural** (from the proof line, free): `L` solver actions, `D` solver decision points with two or more
 options, `O` opponent choice points, `T` turns to the acceptance check, `B` the product of menu sizes along the
-line. All exist in the prover's output today except `D` and `B`, which the replay can count.
+line. All exist in the prover's output today except `D` and `B`, which the replay can count. As built (#280),
+`B` is the product of the search's draw sizes, which is not the menus the seat sees (an order over n items is
+n-1 draws), so it is recorded and is not a tier-3 trigger until it counts menus.
 
 **Floors** (free, already run): random, PASS, first-option, Forge AI solve rates on 50 rollouts.
 
@@ -78,8 +80,8 @@ as broken (ATLAS: 3-6% of items in standard benchmarks).
 | Tier | Rule | Role | Expected for a strong model |
 |---|---|---|---|
 | T1 regression | `L <= 2`, `O = 0`, Forge AI solves at least half | the floor check; a failure here is read as a harness suspect first | near 100% |
-| T2 capability | `L` 3 to 5, or `O >= 1`, or `T >= 2` | the hill | 40-80% |
-| T3 hard | `L >= 6`, or `O >= 2`, or `B >= 10^4` | headroom; the Possibility Storm class | under 40% |
+| T2 capability | `L` 3 to 5, or `O >= 1`, or `T >= 2`, or a short line (`L <= 2`, `O = 0`, `T = 1`) Forge AI fails | the hill | 40-80% |
+| T3 hard | `L >= 6`, or `O >= 2` (`B >= 10^4` once `B` counts menus; see below) | headroom; the Possibility Storm class | under 40% |
 
 Random must stay at or under 20% for any active puzzle (v1 said 5%; 20% is what the suite uses today and
 the margin `pass@1 - random` already corrects for it; **owner decision**: tighten back to 5% for T2/T3 and
@@ -149,7 +151,7 @@ wall-clock, both recorded, so "not found" states the budget it was not found und
 | Phase | Work | Needs | Cost |
 |---|---|---|---|
 | 0 | Land PR #272 (tools guard, sample v1 data) and #273 (goal line); finish the epoch-67 rerun; this plan reviewed | running | ~$0.40 |
-| 1 | **Difficulty v2 in the record** (code landed with the script-arm stack; the 526 re-tiered by `puzzle_baselines.py prove --unique-budget 0`, `run --arms ai --baselines-only` and `retier`): `L`, `D`, `O`, `T`, `B` and skill tags in `puzzle.v1` records (additive), the tier rule in `puzzle_format.py`, the 526 re-tiered from their proofs; tests first | nothing paid | $0 |
+| 1 | **Difficulty v2 in the record** (code in `puzzle_format.py` and `puzzle_baselines.py`; the 526 are not yet re-tiered: `prove --unique-budget 0`, then `run --arms ai --baselines-only`, then `retier`): `L`, `D`, `O`, `T`, `B` and skill tags in `puzzle.v1` records (additive), the tier rule in `puzzle_format.py`, the 526 re-tiered from their proofs; tests first | nothing paid | $0 |
 | 2 | **The neutral brief and the budget fields** (code: feat/score-v2, harness-epoch-69): `seatBrief` drops author hint text (a rules puzzle's name and label went in epoch 67); `pzl-result` gains tokens, calls, ms; epoch bump; `puzzle_score.py` refuses invalid rows, adds clustered and paired intervals, the power line, the budget line and the integrity metrics | owner decision A, G, H | $0 |
 | 3 | **Hard sources**: prover improvements (1)-(3); Forge built-ins at budget 3000; the `h_*` drafts; adversarial variants of 30 T2 puzzles; one generated combat family (50 boards); mined positions from the failed attempts so far | CPU time (days) | $0 |
 | 4 | **Splits and contamination**: held-out files moved out, canary added, recall probe written | owner decision D | ~$0.50 |

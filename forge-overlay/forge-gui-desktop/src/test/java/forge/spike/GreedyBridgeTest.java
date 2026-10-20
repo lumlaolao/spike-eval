@@ -184,6 +184,14 @@ public class GreedyBridgeTest {
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).getAsJsonArray("options").toString(), "[]");
     }
 
+    /** Only the menu's own "CANCEL:" row is never taken: a card named Cancel is a target like any other. */
+    @Test
+    public void aCardNamedCancelCanBeTheTarget() {
+        String ask = targetAsk("Ashes to Ashes", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
+                "Cancel @11 [Graveyard, opponent's]", "CANCEL: do not take this action");
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 2);
+    }
+
     /** A chain (Arc Trail: a root and a sub-ability, one target ask each) gets the assumed targets in turn, and a name on
      *  both sides takes the opponent's copy. */
     @Test
