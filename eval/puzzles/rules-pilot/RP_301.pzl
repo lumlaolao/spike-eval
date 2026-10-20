@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 301 - Revenge never reaches the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control eight Mountains and have Titan's Revenge in hand; your library is all Colossal Dreadmaws. The opponent is at 2 life and controls Leyline of the Void and Grizzly Bears; their library is all Plains. End the turn with Grizzly Bears in the opponent's graveyard and the opponent at 0 life or less.
+Rule:rulesguru-5c2e89ec4a40d7db | A resolving spell stays on the stack until it finishes resolving (CR 608.2n): Titan's Revenge goes from the stack to your hand when you win the clash and never meets Leyline of the Void, so it can be cast twice with X=2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Titan's Revenge
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Leyline of the Void;Grizzly Bears
+p1library=Plains;Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+life p1 <= 0

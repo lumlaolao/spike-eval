@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 302 - Subdued below the bonus
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Fiend Artisan and has four creature cards in their graveyard, so it is a 5/5. You have Mystic Subdual and Shock in hand and U U R floating. End the turn with Fiend Artisan in the opponent's graveyard.
+Rule:rulesguru-2aa64a548ec6da1b | Mystic Subdual removes Fiend Artisan's graveyard bonus in layer 6 and gives -2/-0 in layer 7c (CR 613.1f, 613.4c): the Artisan is a -1/1, so Shock kills it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Mystic Subdual;Shock
+p0manapool=U U R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Fiend Artisan
+p1graveyard=Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Fiend Artisan" = 1
