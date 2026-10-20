@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 355 - Pump after the Bridge checks
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Ensnaring Bridge (creatures with power greater than the number of cards in your hand can't attack), Grizzly Bears and an untapped Forest, and have Giant Growth and Colossal Dreadmaw in hand. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-attack-restriction-declare | Attack restrictions are checked only as attackers are declared (CR 508.1c): with two cards in hand the 2-power Bears may attack, and Giant Growth cast after attackers are declared makes it 5/5 without removing it from combat (CR 506.4); Giant Growth before combat makes it 5 power with one card in hand, and it can't attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth;Colossal Dreadmaw
+p0battlefield=Ensnaring Bridge;Grizzly Bears;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
