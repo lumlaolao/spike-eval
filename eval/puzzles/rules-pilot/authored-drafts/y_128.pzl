@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Summoning sickness is for creatures
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Rod of Ruin ({3}, {T}: 1 damage to any target) and Prodigal Pyromancer ({T}: 1 damage to any target) in hand with seven colorless mana floating. The opponent is at 1 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-summoning-sickness-creatures-only | Summoning sickness stops only creatures from using {T} abilities (CR 302.6): the Rod, a noncreature artifact, can be cast and activated at once for 4+3; the Pyromancer can't tap this turn
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rod of Ruin;Prodigal Pyromancer
+p0manapool=C C C C C C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=1
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

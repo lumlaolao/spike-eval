@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - Eat before you pay
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You are at 2 life. You control a Food token and a tapped Swamp, with two colorless mana floating, and have Snuff Out (destroy target nonblack creature; if you control a Swamp you may pay 4 life instead of its mana cost) in hand. The opponent is at 20 life and controls Hill Giant. Destroy the Hill Giant this turn and stay alive.
+Rule:authored-food-life-then-pay | Food ({2}, {T}, sacrifice: gain 3 life) is an artifact token (CR 111.10b), and a player can pay life only up to their life total (CR 119.4): eat the Food to go to 5, then pay 4 life for Snuff Out and end at 1; at 2 life the alternative cost can't be paid
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=2
+p0hand=Snuff Out
+p0battlefield=T:c_a_food_sac;Swamp|Tapped
+p0manapool=C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1
+life p0 >= 1

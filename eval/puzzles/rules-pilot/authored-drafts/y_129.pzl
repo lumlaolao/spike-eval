@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Rest in Peace stops undying
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Geralf's Messenger (summoning sick; undying; when it enters, target opponent loses 2 life) and have Flame Slash and Disenchant in hand with {R}{W}{C} floating. The opponent is at 2 life and controls Rest in Peace (cards that would go to a graveyard are exiled instead). Reduce the opponent to 0 life this turn.
+Rule:authored-rest-in-peace-no-dies | Under Rest in Peace a creature is exiled instead of dying, so undying never triggers (CR 614.6, 700.4): Disenchant the Rest in Peace first, then Flame Slash the Messenger; the other order exiles it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flame Slash;Disenchant
+p0battlefield=Geralf's Messenger|SummonSick
+p0manapool=R W C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Rest in Peace
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

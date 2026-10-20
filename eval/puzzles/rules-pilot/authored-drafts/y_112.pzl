@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Double strike doubles the poison
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Glistener Elf (1/1 infect) and two untapped Mountains, and have Temur Battle Rage (target creature gains double strike) in hand. The opponent is at 20 life with 8 poison counters and controls no creatures. Win the game this turn.
+Rule:authored-infect-double-strike | A double striker deals combat damage twice, and infect damage to a player is poison counters each time (CR 702.4b, 702.90b): 1+1 poison takes the opponent from 8 to 10
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Temur Battle Rage
+p0battlefield=Glistener Elf;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1counters=POISON=8
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

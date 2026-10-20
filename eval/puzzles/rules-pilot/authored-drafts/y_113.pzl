@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Trample counts damage already dealt
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Craw Wurm (6/4) and two untapped Mountains, and have Temur Battle Rage (double strike; ferocious: also trample if you control a creature with power 4 or greater) in hand. The opponent is at 4 life and controls an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-trample-lethal-after-first-strike | Lethal damage for trample accounts for damage already marked on the blocker (CR 702.19c, 510.1c-d): blocked by the Wall, the double-striking Wurm deals 6 in the first step and needs to assign only 2 more in the second, trampling 4 over
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Temur Battle Rage
+p0battlefield=Craw Wurm;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

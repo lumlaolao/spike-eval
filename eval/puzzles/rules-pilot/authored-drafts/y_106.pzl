@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Backup lends trample
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and have Cragsmasher Yeti (4/2 trample; backup 2) in hand with six red mana floating. The opponent is at 2 life and controls an untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-backup-grants-ability | Backup puts its counters on target creature and, if that is another creature, gives it the backup creature's abilities until end of turn (CR 702.165a): your Bears become a 4/4 trampler, enough even if blocked; backed up onto itself, the Yeti can't attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cragsmasher Yeti
+p0battlefield=Grizzly Bears
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
