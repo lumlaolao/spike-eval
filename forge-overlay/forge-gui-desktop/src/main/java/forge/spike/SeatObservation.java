@@ -334,6 +334,14 @@ final class SeatObservation {
 
     Player viewer() { return viewer; }
 
+    /** handle -> engine card id, a copy, for the demo's audience feed (DemoFeed) only. Reading it changes nothing
+     *  the seat is shown: it is never rendered into a prompt. */
+    Map<Integer, Integer> handleMap() {
+        Map<Integer, Integer> m = new java.util.TreeMap<>();
+        for (Map.Entry<Integer, Tracked> e : byHandle.entrySet()) m.put(e.getKey(), e.getValue().engineId);
+        return m;
+    }
+
     // ---- visibility ---------------------------------------------------------------------------
 
     /** Zones whose contents the viewer may see at all. */

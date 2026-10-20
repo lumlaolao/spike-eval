@@ -565,6 +565,13 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   into a run. Card images come from a local cache (`demo_cards.py prefetch` fetches them from Scryfall by card name;
   the server fetches a miss only with `--fetch-images`). *Why read-only:* it can then never change what the seat
   sees or decides, needs no engine and no model, and works on every recorded game.
+- **The audience feed (`DemoFeed.java`, `DEMO_FEED=1`)** is the one engine-side piece of the demo: on each game
+  event it writes engine truth (both hands, every zone, the stack, combat, each llm seat's `@handle -> engine id`
+  map) to `feed-<seed>-<ms>.jsonl` beside the game JSONL, with the JSONL's length at that moment so the viewer can
+  put each snapshot between the decision rows it fell between. It renders no prompt and calls no seat, so the seat's
+  prompts are byte-identical with it on and off (`DemoFeedTest`); no version stamp covers it for that reason. It is
+  off unless set, and `run_batch.py` passes it only as an exploratory `--env DEMO_FEED=1`, recorded in the manifest.
+  *Why:* the audience should see both hands; the seat never may, and the JSONL holds only what the seat saw.
 
 ## 13. How a change is checked
 

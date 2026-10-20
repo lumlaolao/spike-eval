@@ -156,3 +156,8 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--code); pa
   .board-col { border-right: 0; border-bottom: 1px solid var(--line); }
   .middle { grid-template-columns: 1fr; }
 }
+
+/* The opponent's real hand from the audience feed: visibly not the seat's view. */
+.zone.audience { border: 2px dashed #b8860b; border-radius: 8px; padding: 4px; background: rgba(184, 134, 11, .08); }
+.zone.audience .card { opacity: .92; }
+.aud-note { width: 100%; font-size: 11px; color: #8a6508; font-weight: 600; margin-left: 76px; }

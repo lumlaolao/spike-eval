@@ -36,6 +36,14 @@ after the rehearsal) replaces it on screen. A loopback fake-model game (`eval/fa
 --policy random --answer-tool`, no egress, no cost) is the rehearsal; a paid game needs the owner's go-ahead, a stated
 cost and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell.
 
+## Both hands: the audience feed
+
+Run the game with `DEMO_FEED=1` (with `run_batch.py`: `--exploratory --env DEMO_FEED=1`) and the JVM writes
+`feed-<seed>-<ms>.jsonl` beside the game JSONL: engine truth after every game event. The viewer then draws the
+opponent's real hand at every decision, in a dashed gold box labelled "audience view (engine truth)" with what the
+seat itself sees ("4 cards (hidden)"). The seat never reads the feed: its prompts are byte-identical with the feed
+on and off (`DemoFeedTest`). A game recorded without the feed shows the opponent's hand face down, as the seat saw it.
+
 ## What is on screen, and where it comes from
 
 | Pane | Source |
@@ -43,7 +51,7 @@ cost and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell.
 | board, life, counters, stack, combat, FACTS | the decision row's `prompt` (`demo_state.parse_prompt`); a row with no prompt (`tier: auto`) shows the seat's last prompt and says so |
 | card images | Scryfall's printed card by exact name (`demo_cards.py`, cached in `~/.cache/mtg-forge-demo/cards`); what the game changed (P/T, tags, counters, `@handle`) is in the caption under the image, never drawn on it; a token or unknown name keeps its text tile |
 | a row the model was not asked | labelled by `match_review.classify_auto`: forced (one legal choice), TAKEN or LOST (the harness decided: a defect), or other; a `tier: ai` row is Forge's AI choosing for the seat, an `ai=0` breach |
-| opponent's hand | a count of face-down tiles: the seat never sees it, and neither does the viewer |
+| opponent's hand | with the audience feed, the real cards in a labelled audience-only box; without it, face-down tiles, as the seat saw it |
 | decision text and options, the chosen one marked | the decision row (`options`, `choice`, `picks`) and the `answer` call |
 | what the model did, in order | the `context_call` rows (latency, provider, tokens, reasoning) and their `context_tool` rows (each tool's arguments and result) |
 | why | the `answer` call's `why` |

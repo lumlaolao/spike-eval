@@ -65,13 +65,16 @@ class Builder:
         self.pending = {}       # seat -> list of calls (each with its tools) since that seat's last decision
         self.last_state = {}    # seat -> index of the last decision event with a parsed state
         self.plans = {}         # seat -> its latest set_plan arguments
+        self.start = None       # byte offset of the row being added (Reader sets it)
+        self.feed_at = None     # offset -> the audience feed's snapshot written before it (Reader sets it)
         self.game = None
         self.decisions = 0
 
     def _calls(self, seat):
         return self.pending.setdefault(seat, [])
 
-    def add(self, row):
+    def add(self, row, start=None):
+        self.start = start
         t = row.get("t")
         seat = row.get("seat")
         if t == "context_call":
@@ -128,6 +131,9 @@ class Builder:
             "prompt": prompt, "state": state,
             "state_from": len(self.events) if state else self.last_state.get(seat),
         }
+        # The engine-truth snapshot (DemoFeed) written before this row: what was really in both hands when the seat
+        # was asked. Audience only: nothing of it reaches the seat or the highlights.
+        ev["feed"] = self.feed_at(self.start) if self.feed_at and self.start is not None else None
         if state:
             self.last_state[seat] = len(self.events)
         if ev["plan"]:
@@ -158,25 +164,32 @@ class Reader:
         self.offset = 0
         self.builder = Builder()
         self.bad_lines = 0
+        # DemoFeed writes feed-<seed>-<ms>.jsonl beside game-<seed>-<ms>.jsonl when DEMO_FEED=1.
+        d, name = os.path.split(path)
+        self.feed = Lines(os.path.join(d, "feed-" + name[len("game-"):])) if name.startswith("game-") else None
+        self.builder.feed_at = self.feed_at
+
+    def feed_at(self, offset):
+        """The last feed snapshot written while the game JSONL was at most `offset` bytes long."""
+        rows = self.feed.rows if self.feed else []
+        lo, hi = 0, len(rows)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if (rows[mid].get("jsonl_offset") or 0) <= offset:
+                lo = mid + 1
+            else:
+                hi = mid
+        return rows[lo - 1] if lo else None
 
     def poll(self):
-        """Parse every complete line appended since the last poll; return the number of new events."""
+        """Parse every complete line appended since the last poll; return the number of new events. The feed is read
+        first: a decision row is written after every feed row that precedes it."""
+        if self.feed:
+            self.feed.poll()
         before = len(self.builder.events)
-        try:
-            with open(self.path, "rb") as f:
-                f.seek(self.offset)
-                data = f.read()
-        except OSError:
-            return 0
-        end = data.rfind(b"\n")
-        if end < 0:
-            return 0
-        self.offset += end + 1
-        for line in data[:end].split(b"\n"):
-            if not line.strip():
-                continue
+        for line, at in read_lines(self.path, self):
             try:
-                self.builder.add(json.loads(line.decode("utf-8")))
+                self.builder.add(json.loads(line.decode("utf-8")), at)
             except ValueError:
                 self.bad_lines += 1
         return len(self.builder.events) - before
@@ -184,6 +197,43 @@ class Reader:
     @property
     def events(self):
         return self.builder.events
+
+
+def read_lines(path, cursor):
+    """Complete lines appended to `path` since `cursor.offset`, each with its start offset; advances the cursor. A
+    half-written last line waits for its newline."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(cursor.offset)
+            data = f.read()
+    except OSError:
+        return []
+    end = data.rfind(b"\n")
+    if end < 0:
+        return []
+    out, at = [], cursor.offset
+    for line in data[:end + 1].split(b"\n")[:-1]:
+        if line.strip():
+            out.append((line, at))
+        at += len(line) + 1
+    cursor.offset += end + 1
+    return out
+
+
+class Lines:
+    """A JSONL of plain rows read incrementally (the audience feed)."""
+
+    def __init__(self, path):
+        self.path = path
+        self.offset = 0
+        self.rows = []
+
+    def poll(self):
+        for line, _ in read_lines(self.path, self):
+            try:
+                self.rows.append(json.loads(line.decode("utf-8")))
+            except ValueError:
+                pass
 
 
 def load(path):

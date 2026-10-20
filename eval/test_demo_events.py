@@ -175,6 +175,30 @@ class FindGameTest(unittest.TestCase):
                 os.chdir(cwd)
 
 
+class FeedTest(unittest.TestCase):
+    def test_each_decision_gets_the_feed_snapshot_written_before_its_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            game, feed = os.path.join(d, "game-7-1.jsonl"), os.path.join(d, "feed-7-1.jsonl")
+            rows = [{"t": "decision", "seat": "A", "turn": t, "type": "play", "choice": 0, "options": ["x"]}
+                    for t in (1, 2)]
+            lines = [json.dumps(r) + "\n" for r in rows]
+            with open(game, "w") as f:
+                f.write("".join(lines))
+            second = len(lines[0])  # the byte offset where the second decision row starts
+            snaps = [{"t": "feed", "seq": 0, "jsonl_offset": 0, "players": [{"name": "B", "hand": [{"name": "Bolt"}]}]},
+                     {"t": "feed", "seq": 1, "jsonl_offset": second, "players": [{"name": "B", "hand": []}]},
+                     {"t": "feed", "seq": 2, "jsonl_offset": second + 5, "players": []}]
+            with open(feed, "w") as f:
+                f.write("".join(json.dumps(s) + "\n" for s in snaps))
+            d1, d2 = [e for e in de.load(game).events if e["kind"] == "decision"]
+            self.assertEqual((d1["feed"]["seq"], d2["feed"]["seq"]), (0, 1))
+            self.assertEqual(d1["feed"]["players"][0]["hand"], [{"name": "Bolt"}])
+
+    def test_without_a_feed_file_a_decision_has_no_feed(self):
+        (ev,) = decisions(events("g33-simulate.jsonl"))
+        self.assertIsNone(ev["feed"])
+
+
 class ReaderTest(unittest.TestCase):
     def test_a_live_tail_parses_new_complete_lines_only(self):
         with tempfile.TemporaryDirectory() as d:

@@ -1268,6 +1268,8 @@ public final class LlmSpikeGui {
             // their game behaviour and prompt bytes are untouched.
             this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
             if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
+            // Display-only: an audience feed for the demo viewer when DEMO_FEED=1 (DemoFeed); off, nothing happens.
+            DemoFeed.attach(game, seat, observer);
             contextMemory.setReporter(problem -> p("[REPORT] " + seat + " T" + safeTurn() + ": " + problem));
             contextMemory.offerPreviews(lookaheadEnabled());
             if (rulesToolWired(MEMORY_TOOLS, RULES_TOOL)) {

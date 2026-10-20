@@ -146,6 +146,7 @@ class Pane {
     if (!st) { el.innerHTML = `<p class="engine-note">${this.waitingForFile ? "No game file yet." : "No board yet (no prompt recorded before this decision)."}</p>`; return; }
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
     const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
+    this.feed = d.feed || null;
     el.innerHTML = stale + opp.map(p => this.playerHtml(p, hl)).join("") + this.middleHtml(st, hl) +
       you.map(p => this.playerHtml(p, hl)).join("") + this.legendHtml(hl);
   }
@@ -155,7 +156,14 @@ class Pane {
     const ctr = ["poison", "library", "graveyard", "exile", "mana_pool", "lands_played_this_turn", "spells_cast_this_turn"]
       .filter(k => c[k] != null).map(k => `${k.replace(/_/g, " ")} ${esc(c[k])}`).join(" · ");
     const zones = [];
-    if (p.kind === "OPP" && p.hand_hidden != null) {
+    // With the audience feed (DEMO_FEED), the opponent's real hand: engine truth the seat never sees, drawn in a
+    // style of its own and labelled so, never as the seat's knowledge.
+    const truth = p.kind === "OPP" && this.feed ? (this.feed.players || []).find(f => f.name === p.name) : null;
+    if (truth) {
+      zones.push(`<div class="zone z-hand audience"><span class="zlabel">hand</span>` +
+        (truth.hand.length ? truth.hand.map(c => this.cardHtml({name: c.name, pt: c.pt, tags: []}, {})).join("") : `<span class="empty">empty</span>`) +
+        `<span class="aud-note">audience view (engine truth): the seat sees only "${esc(p.hand_hidden || truth.hand.length + " cards")}"</span></div>`);
+    } else if (p.kind === "OPP" && p.hand_hidden != null) {
       const n = parseInt(p.hand_hidden, 10) || 0;
       zones.push(this.zoneHtml("hand", Array.from({length: Math.min(n, 12)}, () => `<div class="card back" title="hidden from the seat"></div>`).join("") +
         `<span class="empty">${esc(p.hand_hidden)}</span>`));
