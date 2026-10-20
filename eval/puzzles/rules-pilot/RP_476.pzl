@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 476 - Spend every loyalty counter
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and Chandra Nalaar with 4 loyalty (+1: 1 damage to target player or planeswalker; -X: X damage to target creature). The opponent is at 2 life and controls an untapped Craw Wurm (6/4). Reduce the opponent to 0 life this turn.
+Rule:authored-loyalty-to-zero | A loyalty cost may remove every loyalty counter; the planeswalker dies as a state-based action but its ability still resolves (CR 606.4, 704.5i, 113.7a): -4 kills the Craw Wurm and the Bears attack for 2; +1 deals only 1 and the Wurm blocks, and one loyalty ability per turn allows nothing more (CR 606.3)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Grizzly Bears;Chandra Nalaar|Counters:LOYALTY=4
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

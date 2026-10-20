@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 472 - Snapcaster gives flashback
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. Lightning Bolt is in your graveyard. You have Snapcaster Mage (when it enters, target instant or sorcery card in your graveyard gains flashback, its mana cost) in hand with {U}{U}{R} floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-snapcaster-flashback | Snapcaster's trigger grants flashback equal to the card's mana cost (CR 702.34a): cast Snapcaster, target Lightning Bolt, and flash it back for {R}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Snapcaster Mage
+p0graveyard=Lightning Bolt
+p0manapool=U U R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
