@@ -22,23 +22,10 @@ class WrittenLineTest(unittest.TestCase):
         self.assertTrue(pb.line_verdict(drifted).startswith("drift: line 3"))
         short = dict(self.PLAYED, script_unconsumed=5, script_played=False)
         self.assertEqual(pb.line_verdict(short), "5 lines unplayed")
-        # A cast the harness accepted but the engine rolled back (its payment failed) never happened (pr-review, #276).
-        rolled = dict(self.PLAYED, script_taken=["cast Lava Spike => CAST Lava Spike @1 {R} [x]",
-                                                 "cast Fireblast => CAST Fireblast @3 [y]"],
-                      actions=["STACK_ADD: Solver cast Lava Spike targeting [Opponent]"])
-        self.assertEqual(pb.line_verdict(rolled), "no cast of Fireblast reached the stack (the line took 1)")
-        self.assertEqual(pb.line_verdict(dict(rolled, actions=rolled["actions"] + ["STACK_ADD: Solver cast Fireblast"])),
-                         "played")
-        # Copies log as casts too (a storm copy is "Solver cast Grapeshot"): they must not stand in for a cast of
-        # another card that was rolled back, so casts are matched by card name (pr-review v2, #276).
-        storm = dict(self.PLAYED, script_taken=["cast Bolt => CAST Lightning Bolt @4 {R} [x]",
-                                                "cast Grapeshot => CAST Grapeshot @7 1{R} [y]"],
-                     actions=["STACK_ADD: Solver cast Grapeshot targeting [Opponent]"] * 3)
-        self.assertEqual(pb.line_verdict(storm), "no cast of Lightning Bolt reached the stack (the line took 1)")
-        # A face-down cast logs as "Morph", not by name.
-        morph = dict(self.PLAYED, script_taken=["cast Thing => CAST Den Protector @2 face down {3} [z]"],
-                     actions=["STACK_ADD: Solver cast Morph"])
-        self.assertEqual(pb.line_verdict(morph), "played")
+        # A play the line chose that never happened (unpayable, so the engine rolled it back) voids the line, whatever
+        # card it was: the seat counts it (pr-review of #276; a log-name match refused every creature cast).
+        self.assertEqual(pb.line_verdict(dict(self.PLAYED, plays_not_made=1)), "1 plays the line chose did not happen")
+        self.assertEqual(pb.line_verdict(dict(self.PLAYED, plays_not_made=0)), "played")
         lost = dict(self.PLAYED, status="failed", solved=False, acceptance_failed=["life p1 <= 0 (was 7)"])
         self.assertIn("was 7", pb.line_verdict(lost))
         self.assertEqual(pb.line_verdict(dict(self.PLAYED, tainted_by_deckout=True)), "solved by a deck-out")
@@ -46,8 +33,8 @@ class WrittenLineTest(unittest.TestCase):
         self.assertEqual(pb.line_verdict(None), "no result row")
 
     def test_the_line_runs_as_the_model_seat_under_the_paid_condition(self):
-        env = pb.line_env(Path("/x/h_1.pzl"), "ai", "1..3")
-        self.assertEqual((env["CONTROLLER_A"], env["CONTROLLER_B"], env["PZL_SEEDS"]), ("llm", "ai", "1..3"))
+        env = pb.line_env(Path("/x/h_1.pzl"), "ai")
+        self.assertEqual((env["CONTROLLER_A"], env["CONTROLLER_B"]), ("llm", "ai"))
         self.assertEqual(env["SMART_MODEL_A"], "script:/x/h_1.pzl")
         self.assertEqual(env["FAST_MODEL_A"], env["SMART_MODEL_A"])
         self.assertEqual(env["ONE_TIER"], "1", "one bridge, one position: never inherited from the shell")
@@ -81,6 +68,7 @@ class WrittenLineTest(unittest.TestCase):
             args = ["line", "--pzl", str(pzl_file), "--seeds", "1..2", "--out-dir", str(out / "o")]
             self.assertEqual(pb.main(args), 0)
             self.assertEqual(seen["PUZZLE"], str(pzl_file.resolve()))
+            self.assertEqual(seen["PZL_SEEDS"], "1..2")
             pb.Build = lambda *a, **k: FakeBuild([dict(self.PLAYED, seed=1), dict(self.PLAYED, seed=2, script_unconsumed=1)])
             self.assertEqual(pb.main(args), 1)
             script = out / "other.line"
@@ -89,7 +77,6 @@ class WrittenLineTest(unittest.TestCase):
             self.assertEqual(seen["SMART_MODEL_A"], "script:" + str(script.resolve()))
         finally:
             pb.Build = real
-
 
 
 if __name__ == "__main__":

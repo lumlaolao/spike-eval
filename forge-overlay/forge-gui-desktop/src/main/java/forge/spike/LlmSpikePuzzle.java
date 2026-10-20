@@ -791,7 +791,11 @@ public final class LlmSpikePuzzle {
             }
         } catch (Exception ignore) {}
         // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
-        if (written != null) extra.putAll(written.report());
+        if (written != null) {
+            extra.putAll(written.report());
+            extra.put("plays_not_made", ((LlmSpikeGui.PlayerControllerLLM) game.getRegisteredPlayers().get(0)
+                    .getController()).playsNotMade());
+        }
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());

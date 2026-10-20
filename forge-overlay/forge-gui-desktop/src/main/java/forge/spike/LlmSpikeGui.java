@@ -4872,6 +4872,11 @@ public final class LlmSpikeGui {
          *  are added, so a sacrifice that arrives that way (Casualty) is covered too. Only an ability
          *  that defers targeting to another player stays on the inherited path.
          *  RE-DIFF against {@code handlePlayingSpellAbility} on every engine re-pin (ENGINE-PIN.md). */
+        /** Plays the seat chose that did not happen: forbidden by a static, no modes, or unpayable (a cancel is the seat's
+         *  own choice and is not counted). A written line (ScriptBridge) is void when any of its plays did not happen. */
+        private int playsNotMade = 0;
+        int playsNotMade() { return playsNotMade; }
+
         @Override
         public boolean playChosenSpellAbility(SpellAbility sa) {
             boolean ours = false;
@@ -4885,7 +4890,7 @@ public final class LlmSpikeGui {
             if (!ours) {
                 forge.game.zone.Zone from = sa.getHostCard() == null ? null : sa.getHostCard().getZone();
                 boolean played = super.playChosenSpellAbility(sa);
-                if (played) playSeen(sa, from);
+                if (played) playSeen(sa, from); else playsNotMade++;
                 return played;
             }
 
@@ -4913,10 +4918,14 @@ public final class LlmSpikeGui {
             if (!sa.checkRestrictions(ai)) {
                 p("[ROUTER] play: " + labelOf(sa) + " is forbidden by a static -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
                 forge.game.GameActionUtil.rollbackAbility(sa, hz, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
                 return true;
             }
-            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
+            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) {
+                playsNotMade++;
+                return true;
+            }
 
             game.getStack().freezeStack(sa);
             final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
@@ -4943,6 +4952,7 @@ public final class LlmSpikeGui {
             } else {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
             }
             costCancelled = false;
             sa.setSkip(true);

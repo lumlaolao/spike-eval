@@ -275,6 +275,8 @@ public class LineFindingProbeTest {
         Assert.assertTrue(log.contains("FAILED to pay for"), log);
         Assert.assertTrue(bombardment.isInZone(ZoneType.Battlefield));
         Assert.assertEquals(g.getStack().size(), 0, "a failed play reached the stack");
+        // A written line reads this count: the line chose the play, and the play never happened (pr-review, #276).
+        Assert.assertEquals(ctrl.playsNotMade(), 1, "the unpaid play is counted");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 

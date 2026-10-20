@@ -39,10 +39,8 @@ import datetime
 import json
 import os
 import subprocess
-import re
 import sys
 import tempfile
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -422,8 +420,6 @@ def cmd_prove(a):
     return 0
 
 
-CAST_LOG = "STACK_ADD: Solver cast "
-
 
 def line_verdict(row):
     """"played" when a written-line game played every line, drifted nowhere and solved cleanly; else why not.
@@ -440,39 +436,27 @@ def line_verdict(row):
         return "solved by a deck-out" if row.get("status") == "solved" else "decided by a deck-out"
     if row.get("status") != "solved":
         return "%s %s" % (row.get("status"), row.get("acceptance_failed") or "")
-    # A cast the harness accepted can be rolled back by the engine (its payment failed): every CAST the line took
-    # must reach the stack, matched by card name, because copies (storm) and free casts log as casts too. Not
-    # checked: a same-named copy standing in for a rolled-back cast, and activations.
-    claimed = Counter(m.group(1) for t in row.get("script_taken") or []
-                      for m in [re.search(r" => CAST (.+?)(?: @\d+| \{| \[| face down|$)", t)] if m)
-    cast = Counter(re.sub(r" targeting .*$", "", a[len(CAST_LOG):]) for a in row.get("actions") or []
-                   if a.startswith(CAST_LOG))
-    morphs = cast.pop("Morph", 0)
-    for name, n in sorted(claimed.items()):
-        short = max(0, n - cast.get(name, 0))
-        used = min(short, morphs)
-        morphs -= used
-        if short > used:
-            return "no cast of %s reached the stack (the line took %d)" % (name, n) if not cast.get(name) else \
-                "%d casts of %s reached the stack of %d the line took" % (cast[name], name, n)
+    # A play the line chose can still not happen (unpayable, or forbidden by a static): the seat counts those.
+    if row.get("plays_not_made"):
+        return "%d plays the line chose did not happen" % row["plays_not_made"]
     return "played" if row.get("script_played") else "not played"
 
 
-def line_env(script, opponent, seeds):
+def line_env(script, opponent):
     """The model seat with the written line `script` as its model (ScriptBridge), under the condition a paid run
     pins with the tools off (puzzle_solve.condition): the line plays the menus the model is shown."""
     import puzzle_solve  # here: puzzle_solve imports this module
     cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
     spec = "script:" + str(Path(script).resolve())
     return dict(cond, CONTROLLER_A="llm", CONTROLLER_B=opponent, SMART_MODEL_A=spec, FAST_MODEL_A=spec,
-                PZL_SEEDS=seeds, GAME_CAP_MS="300000", ONE_TIER="1")
+                GAME_CAP_MS="300000", ONE_TIER="1")
 
 
 def cmd_line(a):
     build = Build(a.build, a.forge)
     pzl = Path(a.pzl).resolve()
     out = Path(a.out_dir or REPO / "runs/puzzles/lines" / pzl.stem)
-    rows = run_arm(build, pzl, "written", a.seeds, out, line_env(a.script or pzl, a.opponent, a.seeds))
+    rows = run_arm(build, pzl, "written", a.seeds, out, line_env(a.script or pzl, a.opponent))
     want = sorted(expand_seeds(a.seeds))
     verdicts = {r.get("seed"): line_verdict(r) for r in rows}
     for seed in want:
