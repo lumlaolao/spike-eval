@@ -120,22 +120,9 @@ final class ScriptBridge implements LLMBridge {
         JsonElement last = msgs.get(msgs.size() - 1);
         if (msgs.size() > 1 && "tool".equals(role(last)) && text(last).startsWith("ERROR:")) refused = text(last);
         String args = decide(new Question(prompt), refused).toString();
-        NativeTools.Call call = new NativeTools.Call("s" + calls, AnswerTool.NAME, args);
-        JsonObject f = new JsonObject();
-        f.addProperty("name", call.name);
-        f.addProperty("arguments", call.arguments);
-        JsonObject tc = new JsonObject();
-        tc.addProperty("id", call.id);
-        tc.addProperty("type", "function");
-        tc.add("function", f);
-        JsonArray tcs = new JsonArray();
-        tcs.add(tc);
-        JsonObject msg = new JsonObject();
-        msg.addProperty("role", "assistant");
-        msg.add("tool_calls", tcs);
-        List<NativeTools.Call> list = new ArrayList<>();
-        list.add(call);
-        return new NativeTools.Turn(null, msg.toString(), list);
+        List<NativeTools.Call> one = new ArrayList<>();
+        one.add(new NativeTools.Call("s" + calls, AnswerTool.NAME, args));
+        return NativeTools.Turn.ofCalls(one);
     }
 
     private static String role(JsonElement m) {
@@ -264,7 +251,7 @@ final class ScriptBridge implements LLMBridge {
             return -1;
         }
 
-        /** The option numbers {@code body} names, one per pick, or null (with {@link #ambiguity} when two fit). */
+        /** The one unused option {@code body} names, or null (with {@link #ambiguity} when two different labels fit). */
         private Integer pick(String body, Set<Integer> used) {
             for (Map.Entry<Integer, String> e : options.entrySet())
                 if (!used.contains(e.getKey()) && norm(e.getValue()).equals(norm(body))) return e.getKey();
