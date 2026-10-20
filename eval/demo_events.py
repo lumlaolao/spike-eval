@@ -310,10 +310,12 @@ def divergence(a, b):
     db = [e for e in b if e.get("kind") == "decision"]
     spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
     menu = lambda d: [_norm(o) for o in d.get("options") or []]
-    picked = lambda d: sorted(menu(d)[c] for c in d.get("chosen") or [] if 0 <= c < len(menu(d)))
-    # A pick whose text, notes stripped, names two options (two abilities of one card, your Bears and theirs) cannot
-    # be matched across different menus: the notes were what told them apart.
-    ambiguous = lambda d: any(menu(d).count(p) > 1 for p in picked(d))
+    bare = lambda o: " ".join(HANDLE.sub("", str(o)).split())  # handles stripped, notes kept
+    chosen = lambda d: [o for c, o in enumerate(d.get("options") or []) if c in (d.get("chosen") or [])]
+    picked = lambda d: sorted(_norm(o) for o in chosen(d))
+    # A pick whose text, notes stripped, names options its notes tell apart (two abilities of one card, your Bears and
+    # theirs) cannot be matched that way across different menus. Interchangeable copies (two Mountains) can.
+    ambiguous = lambda d: any(len({bare(o) for o in d.get("options") or [] if _norm(o) == p}) > 1 for p in picked(d))
     menus_from = None
     for n, (x, y) in enumerate(zip(da, db)):
         if spot(x) != spot(y):
@@ -322,7 +324,8 @@ def divergence(a, b):
             if sorted(x.get("chosen") or []) == sorted(y.get("chosen") or []):  # by index: notes may be all that differ
                 continue
             reason = "same question, different answer"
-        elif picked(x) == picked(y) and not ambiguous(x) and not ambiguous(y):
+        elif (sorted(map(bare, chosen(x))) == sorted(map(bare, chosen(y)))
+              or (picked(x) == picked(y) and not ambiguous(x) and not ambiguous(y))):
             # The harnesses list different options here (one offers mana abilities, say) but both took the same one:
             # noted, and the scan goes on to the first different answer.
             if menus_from is None:
