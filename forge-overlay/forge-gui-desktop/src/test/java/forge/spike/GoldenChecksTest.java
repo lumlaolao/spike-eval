@@ -1078,17 +1078,22 @@ public class GoldenChecksTest {
     }
 
     /** A cast cancelled at its cost goes back to the hand (harness-epoch-70): Village Rites (sacrifice a creature) from
-     *  hand, CANCEL at the sacrifice. The copied engine routine's recovery left the card in the Stack zone. */
+     *  hand, CANCEL at the sacrifice. The copied engine routine's recovery left the card in the Stack zone. The next
+     *  play in the window reaches the stack: the rollback's freeze, kept for the cancelled play, held Duress back. */
     @Test
     public void aCastCancelledAtItsCostIsBackInHand() {
         Game g = bareGame(PhaseType.MAIN1);
         Player me = g.getPlayers().get(0);
-        lands(me, "Swamp");
+        lands(me, "Swamp", "Swamp");
         card("Grizzly Bears", me, ZoneType.Battlefield);
         card("Hill Giant", me, ZoneType.Battlefield);
         card("Swamp", me, ZoneType.Hand);
         Card rites = card("Village Rites", me, ZoneType.Hand);
-        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Village Rites"))
+        card("Duress", me, ZoneType.Hand);
+        int[] menus = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", p -> choiceWith(++menus[0] == 1 ? "Village Rites" : "Duress").apply(p))
+                .on("Choose the TARGET", choiceWith("Rival"))
                 .on(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL, picks(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
@@ -1100,6 +1105,11 @@ public class GoldenChecksTest {
         Assert.assertTrue(g.getStackZone().isEmpty(), "a card left in the Stack zone");
         Assert.assertEquals(me.getCreaturesInPlay().size(), 2, "nothing sacrificed");
         Assert.assertEquals(me.getManaPool().totalMana(), 0);
+        r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Duress offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Duress is on the stack");
+        Assert.assertFalse(g.getStack().isFrozen());
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 

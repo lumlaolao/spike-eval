@@ -4982,6 +4982,7 @@ public final class LlmSpikeGui {
                 return true;
             }
 
+            final boolean refreeze = game.getStack().isFrozen();
             game.getStack().freezeStack(sa);
             final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
             // Every cost part is decided before any is paid, so a cost ask can still cancel the play,
@@ -5023,6 +5024,9 @@ public final class LlmSpikeGui {
             // zone it was cast FROM was the Stack, so a failed cast from hand stayed in the Stack zone with nothing on
             // the stack. This one puts the card back where it was, refunds the mana paid and unfreezes the stack.
             forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, pay, source);
+            // The rollback clears the freeze but not the play it was for, so the next play would stay frozen
+            // (PlaySpellAbility.playAbility unfreezes here too).
+            if (!refreeze) game.getStack().unfreezeStack();
             return true;
         }
 

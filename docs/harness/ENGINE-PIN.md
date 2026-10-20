@@ -69,8 +69,8 @@ Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the ne
    for `PlayerControllerLLM.playNoStack`, a copy of `ComputerUtil.playNoStack` (effects and triggers
    played without the stack). Two steps of the play routine differ on purpose, both the human path's
    (`PlaySpellAbility.playAbility`): the paying mana is cleared before the cost, and a play that does not
-   happen is undone with `GameActionUtil.rollbackAbility`, not the routine's recovery, which leaves a card
-   cast from hand in the Stack zone (harness-epoch-70).
+   happen is undone with `GameActionUtil.rollbackAbility` and the stack unfrozen, not the routine's recovery,
+   which leaves a card cast from hand in the Stack zone (harness-epoch-70).
    Every engine patch in `docs/harness/ENGINE-PATCHES.md` is re-diffed the same way, and its upstream
    sha256 recorded again (`eval/test_engine_patches.py` fails until it is).
 4c. **Re-check the copier workaround.** `PlayerLookahead.UncopiedEffects` reaches the private
