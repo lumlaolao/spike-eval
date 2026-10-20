@@ -150,7 +150,7 @@ final class GreedyBridge implements LLMBridge {
      *  engine lists the seat's own cards first, and the first one took a removal spell). */
     private static int side(String label) {
         String l = ScriptBridge.norm(label);
-        // the menu's own rows (CANCEL and a cost ask's CANCEL this play); a card named Cancel can still be a target
+        // only the menu's own rows (OWN_ROWS); a card named Cancel can still be a target
         for (String row : OWN_ROWS) if (l.startsWith(row)) return NEVER;
         if (l.startsWith("opponent") || l.contains(", opponent's]")) return OPPONENT;
         if (l.startsWith("no target")) return DECLINE;

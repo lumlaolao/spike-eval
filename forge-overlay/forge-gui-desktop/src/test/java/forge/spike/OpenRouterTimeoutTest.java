@@ -65,12 +65,11 @@ public class OpenRouterTimeoutTest {
 
     private static final AtomicInteger completionCalls = new AtomicInteger();
     private static final AtomicInteger billedCalls = new AtomicInteger();
-    private String billedBase;
     private static final AtomicInteger handlersOpened = new AtomicInteger();
     private static final AtomicInteger handlersReleased = new AtomicInteger();
 
     private HttpServer server;
-    private String dribbleUrl, promptUrl, loopbackBase, slowBase;
+    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase;
 
     @BeforeClass
     public void startServer() throws IOException {

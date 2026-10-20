@@ -289,7 +289,7 @@ class DifficultyCommandsTest(unittest.TestCase):
         self.assertEqual(out["proof"]["status"], "not_found")
         self.assertEqual((out["difficulty"], out["tier_v2"], out["skills"]), (None, None, None))
 
-    def test_prove_and_run_give_no_tier_from_a_pzl_that_is_not_the_one_recorded(self):
+    def test_apply_difficulty_gives_no_tier_from_a_pzl_that_is_not_the_one_recorded(self):
         # pr-review of #280 at 0374732: only retier checked pzl_sha256, so prove and run tiered another checkout's file.
         repo = Path(tempfile.mkdtemp())
         (repo / "h.pzl").write_text(PZL, encoding="utf-8")

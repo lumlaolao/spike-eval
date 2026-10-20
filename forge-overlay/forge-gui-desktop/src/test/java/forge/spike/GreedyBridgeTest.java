@@ -206,7 +206,7 @@ public class GreedyBridgeTest {
     @Test
     public void aCancelLabelWithoutAColonIsMatchedWhole() {
         Assert.assertEquals(GreedyBridge.ownRow("CANCEL this play (pay nothing)"), "cancel this play (pay nothing)");
-        Assert.assertEquals(GreedyBridge.ownRow("CANCEL: do not take this action"), "cancel:");
+        Assert.assertEquals(GreedyBridge.ownRow(LlmSpikeGui.PlayerControllerLLM.CANCEL_LABEL), "cancel:");
     }
 
     /** A chain (Arc Trail: a root and a sub-ability, one target ask each) gets the assumed targets in turn, and a name on
