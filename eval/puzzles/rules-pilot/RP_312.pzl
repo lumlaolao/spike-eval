@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 312 - The Keeper checks the front face
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Treasure Keeper and Ashnod's Altar. The top card of your library is Valki, God of Lies (whose back face is Tibalt, Cosmic Impostor), then two Colossal Dreadmaws. End the turn with Tibalt, Cosmic Impostor on the battlefield with its starting 5 loyalty.
+Rule:rulesguru-36011f578b7bdd29 | In the library a modal double-faced card has only its front face's characteristics (CR 712.8a), so Valki (mana value 2) is found by Treasure Keeper; Keeper puts no limit on the cast itself, and you choose which face to cast (CR 712.11b, 601.3e): cast Tibalt for free
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Treasure Keeper;Ashnod's Altar
+p0library=Valki, God of Lies;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Tibalt, Cosmic Impostor" = 1
+counters p0 Battlefield "Tibalt, Cosmic Impostor" LOYALTY = 5
