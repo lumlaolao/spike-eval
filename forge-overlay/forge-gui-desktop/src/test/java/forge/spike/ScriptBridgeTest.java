@@ -8,7 +8,6 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
-import java.util.List;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -124,8 +123,16 @@ public class ScriptBridgeTest {
         Assert.assertEquals(b.unconsumed(), 0);
         Assert.assertTrue(b.played());
         Assert.assertEquals(b.report().get("script_played"), true);
-        Assert.assertEquals(((List<?>) b.report().get("script_taken")).get(0),
-                "cast Divination => CAST Divination @1 2{U} [Draw two cards.]");
+        // What each line took, for the minimality check (HARD-PUZZLES section 4, item 3): which lines open an action.
+        Assert.assertEquals(b.report().get("script_taken"), Arrays.asList(
+                "cast Divination => CAST Divination @1 2{U} [Draw two cards.]",
+                "cast Snakeform => CAST Snakeform @2 2{G/U} [Until end of turn, target creature loses all abilities and"
+                        + " becomes a green Snake with base power and toughness 1/1. Draw a card.]",
+                "Thing in the Ice => Thing in the Ice 0/4 [untapped] [Ice x2] [defender] @4 [Battlefield, yours]"));
+        Assert.assertEquals(b.report().get("script_actions"), Arrays.asList(0, 1), "the target belongs to Snakeform");
+        ScriptBridge attack = script("Goblin Electromancer; Thermo-Alchemist");
+        answer(attack, ATTACK);
+        Assert.assertEquals(attack.report().get("script_actions"), Arrays.asList(0), "an attack is an action");
     }
 
     @Test
@@ -224,6 +231,39 @@ public class ScriptBridgeTest {
         ScriptBridge b = script("Typhoid Rats -> Grizzly Bears 2/2 @1");
         Assert.assertEquals(answer(b, handles).getAsJsonArray("blocks").toString(), "[{\"blocker\":1,\"attacker\":2}]");
         Assert.assertNull(b.drift);
+    }
+
+    /** The minimality replays (pr-review of #278: a removed attack drifted, so a drift read as "necessary"): a decision
+     *  the next line does not fit takes the do-nothing answer and the line keeps its place, so a removed attack, or a
+     *  play waiting on a removed cast, is played out, not drifted. */
+    @Test
+    public void aRelaxedLineAnswersWhatItDoesNotFitWithTheDoNothingOption() {
+        ScriptBridge b = script("cast Divination");
+        b.relaxed = true;
+        Assert.assertEquals(answer(b, ATTACK).getAsJsonArray("options").size(), 0, "no attack");
+        Assert.assertNull(b.drift);
+        Assert.assertEquals(b.skipped, 1);
+        Assert.assertEquals(b.unconsumed(), 1, "the line keeps its place");
+        Assert.assertEquals(answer(b, PLAY_MAIN2).get("option").getAsInt(), 1, "and is played when its window comes");
+        Assert.assertEquals(b.unconsumed(), 0);
+        Assert.assertEquals(b.report().get("script_skipped"), 1);
+        Assert.assertFalse(script("x").report().containsKey("script_skipped"), "a strict line writes no skip count");
+    }
+
+    /** Under the search opponent a reply can let the line win before its end; that solve is the line's. A drift, or a
+     *  play the line chose that did not happen, is not (pr-review of #278: such a solve was read as a refutation). */
+    @Test
+    public void aWrittenLineWinsUnderAReplyOnlyAsWritten() {
+        ScriptBridge early = script("cast Divination", "cast Snakeform");
+        answer(early, PLAY_MAIN2);
+        Assert.assertEquals(early.unconsumed(), 1);
+        Assert.assertTrue(LlmSpikePuzzle.wonAsWritten(true, early, 0), "won with a line to spare");
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(false, early, 0), "not solved");
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(true, early, 1), "a play it chose did not happen");
+        ScriptBridge drifted = script("Thing in Ice");
+        answer(drifted, TARGET);
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(true, drifted, 0), "drifted, then stumbled into the solve");
+        Assert.assertTrue(LlmSpikePuzzle.wonAsWritten(true, null, 0), "no written line: the solve alone");
     }
 
     @Test

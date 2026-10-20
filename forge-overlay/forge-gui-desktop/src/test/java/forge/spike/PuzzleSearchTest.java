@@ -55,6 +55,28 @@ public class PuzzleSearchTest {
         org.testng.Assert.assertEquals(line.taken.size(), 1);
     }
 
+    /** A written line plays the solver (ScriptBridge): every draw on the line is the opponent's. The proof is then
+     *  that one fixed line beats every opponent reply (docs/harness/HARD-PUZZLES.md section 4, item 2). */
+    private static PuzzleSearch.Game opponentOnly(java.util.function.BiPredicate<Integer, Integer> solved) {
+        return (prefix, seed) -> {
+            PuzzleArms.Line line = new PuzzleArms.Line(prefix, seed);
+            int b = line.draw("Opponent", 3), d = line.draw("Opponent", 2);
+            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved.test(b, d), line.drift);
+        };
+    }
+
+    @Test
+    public void aWrittenLineIsProvenOnlyWhenItBeatsEveryReply() {
+        PuzzleSearch.Result r = new PuzzleSearch(opponentOnly((b, d) -> true), "Solver", 200, 8, 7L).prove();
+        Assert.assertEquals(r.verdict, PuzzleSearch.Verdict.PROVEN);
+        Assert.assertEquals(r.opponentChoicePoints, 2);
+        Assert.assertEquals(r.opponentBranches, 5, "all six (b, d) replies are beaten: five beyond the main line");
+        PuzzleSearch.Result beaten = new PuzzleSearch(opponentOnly((b, d) -> !(b == 1 && d == 0)), "Solver", 200, 8, 7L).prove();
+        Assert.assertNotEquals(beaten.verdict, PuzzleSearch.Verdict.PROVEN, "b=1, d=0 beats the line");
+        Assert.assertNotNull(beaten.refutation, "the reply that beats it is shown");
+        Assert.assertEquals(beaten.refutation.get(0).value, 1);
+    }
+
     @Test
     public void aPuzzleWithOneSolvingStrategyIsUnique() {
         PuzzleSearch.Uniqueness u = unique(toy((a, b, c) -> a == 2 && c == b), 300);

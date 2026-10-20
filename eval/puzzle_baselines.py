@@ -12,7 +12,8 @@ Every arm here is free: no model is called and nothing leaves the machine.
   python3 eval/puzzle_baselines.py run    --suite S.json [--ids a,b] [--rollouts 200] [-j 4] --write S.json
   python3 eval/puzzle_baselines.py verify --suite S.json [-j 4]
   python3 eval/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
-  python3 eval/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3]
+  python3 eval/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3] [--opponent search]
+                                          [--minimality]
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
@@ -27,7 +28,11 @@ spent budget, never a claim that the puzzle is unsolvable.
 
 `line` plays a puzzle's written solution (its `[solution]` section, one line per decision in the words the seat is
 shown; ScriptBridge.java) through the model seat, and exits 0 only when every seed played the whole line, drifted
-nowhere and solved. That proves a line a person can write, however long, without a search finding it.
+nowhere and solved. That proves a line a person can write, however long, without a search finding it. With
+`--opponent search` the prover plays the line against every reply the engine offers (exit 0 when proven). With
+`--minimality` each action is removed in turn (a relaxed replay, `script:relaxed:<file>`); exit 0 only when every
+removal is a game played out and lost. A drift, the cap, a deck-out or a stalled line is inconclusive, never
+"necessary": it cannot show an action is needed, only fail to.
 
 The Java side runs against an ISOLATED build: --build DIR holding classes/ and classpath.txt, as
 eval/harness_acceptance.sh writes them under runs/harness-acceptance/<stamp>/ (the newest one is the
@@ -426,6 +431,23 @@ def line_verdict(row):
     A drift is checked first: after one, the do-nothing answers can still stumble into the acceptance state."""
     if not row:
         return "no result row"
+    if row.get("opponent_arm") == "search":
+        # The prover's row (LlmSpikePuzzle.search): proven means the one line beat every reply the engine offers. The
+        # line may win before its end under the main line's replies (LlmSpikePuzzle.wonAsWritten): lines unplayed are
+        # allowed there, a drift or a play that did not happen is not.
+        if row.get("status") == "proven" and "script_played" in row and not row.get("script_drift") \
+                and not row.get("plays_not_made"):
+            return "proven"
+        if row.get("refutation_line"):
+            how = ("drift: " + row["refutation_script_drift"]) if row.get("refutation_script_drift") \
+                else ("%d plays the line chose did not happen" % row["refutation_plays_not_made"]) \
+                if row.get("refutation_plays_not_made") else (row.get("refutation_status") or "lost")
+            return "beaten by %s (%s)" % (row["refutation_line"], how)
+        if row.get("script_drift"):
+            return "drift: " + row["script_drift"]
+        if row.get("plays_not_made"):
+            return "%d plays the line chose did not happen" % row["plays_not_made"]
+        return str(row.get("status")) if row.get("status") != "proven" else "proven, but no written-line fields on the row"
     if "script_played" not in row:
         return "not a written-line row"
     if row.get("script_drift"):
@@ -444,26 +466,141 @@ def line_verdict(row):
     return "played" if row.get("script_played") else "not played"
 
 
-def line_env(script, opponent):
+def line_env(script, opponent, budget=200, relaxed=False):
     """The model seat with the written line `script` as its model (ScriptBridge), under the condition a paid run
-    pins with the tools off (puzzle_solve.condition): the line plays the menus the model is shown."""
+    pins with the tools off (puzzle_solve.condition): the line plays the menus the model is shown. Against the
+    search opponent the prover tries every reply on the line, within `budget` rollouts. `relaxed`: a minimality
+    replay ("script:relaxed:<file>"), where a decision the line does not fit takes the do-nothing answer."""
     import puzzle_solve  # here: puzzle_solve imports this module
     cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
-    spec = "script:" + str(Path(script).resolve())
-    return dict(cond, CONTROLLER_A="llm", CONTROLLER_B=opponent, SMART_MODEL_A=spec, FAST_MODEL_A=spec,
-                GAME_CAP_MS="300000", ONE_TIER="1")
+    spec = "script:" + ("relaxed:" if relaxed else "") + str(Path(script).resolve())
+    env = dict(cond, CONTROLLER_A="llm", CONTROLLER_B=opponent, SMART_MODEL_A=spec, FAST_MODEL_A=spec,
+               GAME_CAP_MS="300000", ONE_TIER="1")
+    if opponent == "search":
+        env["PZL_SEARCH_BUDGET"] = str(budget)
+    return env
+
+
+def script_lines(path):
+    """The lines ScriptBridge.fromFile plays: the [solution] section when the file has sections, else the whole file;
+    blank and # lines skipped. Split and trimmed as Java's readAllLines and trim() do (only \\n and \\r; only
+    characters up to a space), so the indices match the row's script_actions."""
+    text = Path(path).read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    raw = [l.strip("".join(chr(c) for c in range(33))) for l in text.split("\n")]
+    header = lambda l: l.startswith("[") and l.endswith("]") and len(l) > 2  # noqa: E731
+    sectioned = any(header(l) for l in raw)
+    out, inside = [], not sectioned
+    for l in raw:
+        if header(l):
+            inside = l.lower() == "[solution]"
+        elif inside and l and not l.startswith("#"):
+            out.append(l)
+    return out
+
+
+def action_groups(n, action_lines):
+    """The line indices of each action: the line that opened it (ScriptBridge's script_actions) and the lines after it,
+    up to the next. A line before the first action stands alone."""
+    starts = set(action_lines)
+    groups = []
+    for i in range(n):
+        if i in starts or not any(s <= i for s in starts):
+            groups.append([i])
+        else:
+            groups[-1].append(i)
+    return groups
+
+
+def removal_verdict(row):
+    """What one removal shows (a relaxed replay, ScriptBridge.relaxed): "fails" when the game was played to its end and
+    not solved, "played" when it solved anyway (the action is not needed), else "inconclusive: <why>" (no row, the cap,
+    a deck-out, a drift, a play that did not happen). Only "fails" shows the action is needed (pr-review of #278: a drift read as necessary)."""
+    if not row:
+        return "inconclusive: no result row"
+    if row.get("tainted_by_deckout"):
+        return "inconclusive: decided by a deck-out"
+    if row.get("status") not in ("solved", "failed"):
+        return "inconclusive: %s" % row.get("status")
+    if row.get("script_drift"):
+        return "inconclusive: drift: " + row["script_drift"]
+    if row.get("plays_not_made"):
+        return "inconclusive: %d plays the line chose did not happen" % row["plays_not_made"]
+    if row.get("status") == "solved":
+        return "played"
+    # A line that stalled behind a play that can never fit again (a source the removed action would have untapped)
+    # lost without playing the rest: that shows nothing about the action (pr-review of #278: h_0 without Lava Spike
+    # took 1 of 9 lines).
+    if row.get("script_unconsumed"):
+        return "inconclusive: stalled, %d lines unplayed" % row["script_unconsumed"]
+    return "fails"
+
+
+def minimality(build, pzl, script, out, seed):
+    """Each action of a played line removed in turn, the rest as written as far as it goes (a relaxed replay): every
+    removal must fail. Returns the record written to out/minimality.json; "inconclusive" counts the removals that
+    showed nothing either way."""
+    lines = script_lines(script)
+    full = run_arm(build, pzl, "written", seed, out / "line", line_env(script, "ai"))
+    row = full[-1] if full else None
+    rec = {"line": line_verdict(row), "seed": seed, "actions": 0, "necessary": 0, "unnecessary": [], "inconclusive": [],
+           "removals": []}
+    if rec["line"] == "played" and row.get("script_lines") != len(lines):
+        rec["line"] = "script_lines read %d lines, ScriptBridge %s" % (len(lines), row.get("script_lines"))
+    if rec["line"] == "played":
+        # The row's writer quotes every list item (LlmSpikePuzzle.toJson): the indices come back as strings.
+        groups = action_groups(len(lines), [int(i) for i in row.get("script_actions") or []])
+        rec["actions"] = len(groups)
+        for k, g in enumerate(groups):
+            d = out / ("minus-%d" % (k + 1))
+            d.mkdir(parents=True, exist_ok=True)
+            rest = [l for i, l in enumerate(lines) if i not in g]
+            if rest:
+                left = d / "line.txt"
+                # Sectioned, so a line that looks like a header cannot make ScriptBridge.fromFile read none.
+                left.write_text("[solution]\n" + "".join(l + "\n" for l in rest), encoding="utf-8")
+                rows = run_arm(build, pzl, "written", seed, d, line_env(left, "ai", relaxed=True))
+                v = removal_verdict(rows[-1] if rows else None)
+            else:  # the line without its only action is the do-nothing line: the pass arm
+                rows = run_arm(build, pzl, "pass", seed, d)
+                v = removal_verdict(rows[-1] if rows else None)
+            removed = [lines[i] for i in g]
+            r = rows[-1] if rows else {}
+            # What the relaxed replay passed over, so a reader can see which decisions took the do-nothing answer.
+            rec["removals"].append({"removed": removed, "verdict": v, "skipped": r.get("script_skipped"),
+                                    "unplayed": r.get("script_unconsumed")})
+            if v == "played":
+                rec["unnecessary"].append(removed)
+            elif v == "fails":
+                rec["necessary"] += 1
+            else:
+                rec["inconclusive"].append(removed)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "minimality.json").write_text(json.dumps(rec, indent=2) + "\n", encoding="utf-8")
+    return rec
 
 
 def cmd_line(a):
     build = Build(a.build, a.forge)
     pzl = Path(a.pzl).resolve()
     out = Path(a.out_dir or REPO / "runs/puzzles/lines" / pzl.stem)
-    rows = run_arm(build, pzl, "written", a.seeds, out, line_env(a.script or pzl, a.opponent))
-    want = sorted(expand_seeds(a.seeds))
+    seeds = sorted(expand_seeds(a.seeds))
+    if a.minimality:
+        if a.opponent != "ai":
+            raise SystemExit("--minimality replays against Forge's AI only: drop --opponent")
+        rec = minimality(build, pzl, Path(a.script or pzl), out, seeds[0])
+        print("%-24s seed %s line %s; %d of %d actions necessary%s%s" % (
+            pzl.stem, seeds[0], rec["line"], rec["necessary"], rec["actions"],
+            "".join("; not needed: " + " / ".join(u) for u in rec["unnecessary"]),
+            "".join("; inconclusive: " + " / ".join(u) for u in rec["inconclusive"])))
+        return 0 if rec["line"] == "played" and rec["necessary"] == rec["actions"] else 1
+    # The prover plays one engine seed per proof: pass it that seed, the one read back.
+    want, ok = (seeds[:1], "proven") if a.opponent == "search" else (seeds, "played")
+    spec = str(want[0]) if a.opponent == "search" else a.seeds
+    rows = run_arm(build, pzl, "written", spec, out, line_env(a.script or pzl, a.opponent, a.budget))
     verdicts = {r.get("seed"): line_verdict(r) for r in rows}
     for seed in want:
         print("%-24s seed %-4s %s" % (pzl.stem, seed, verdicts.get(seed, "no result row")), flush=True)
-    return 0 if all(verdicts.get(s) == "played" for s in want) else 1
+    return 0 if all(verdicts.get(s) == ok for s in want) else 1
 
 
 def cmd_run(a):
@@ -561,8 +698,12 @@ def main(argv=None):
     ln = sub.add_parser("line", help="play a puzzle's written solution through the model seat (exit 1 unless played)")
     ln.add_argument("--pzl", required=True, help="the puzzle; its [solution] section is the line unless --script")
     ln.add_argument("--script", default=None, help="a file of solution lines (default: the puzzle's [solution])")
-    ln.add_argument("--opponent", choices=("ai",), default="ai")
+    ln.add_argument("--opponent", choices=("ai", "search"), default="ai",
+                    help="ai: Forge's AI replies; search: prove the line beats every reply the engine offers")
+    ln.add_argument("--budget", type=int, default=200, help="--opponent search: rollouts the prover may play")
     ln.add_argument("--seeds", default="1")
+    ln.add_argument("--minimality", action="store_true",
+                    help="replay the line with each action removed in turn: exit 0 only when every removal fails")
     ln.add_argument("--out-dir", default=None)
     a = ap.parse_args(argv)
     return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line}[a.cmd](a)

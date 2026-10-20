@@ -40,6 +40,8 @@ import java.util.regex.Pattern;
  */
 final class ScriptBridge implements LLMBridge {
     static final String PREFIX = "script:";
+    /** After {@link #PREFIX}: a relaxed replay ({@link #relaxed}). */
+    static final String RELAXED = "relaxed:";
 
     private final String label;
     final List<String> lines;
@@ -54,9 +56,19 @@ final class ScriptBridge implements LLMBridge {
     int untapsLeft = 0;
     /** What each played line took: "line => label". */
     final List<String> taken = new ArrayList<>();
+    /** The 0-based lines that opened an action (a priority menu's play, an attack, a block); the lines after each, up
+     *  to the next, are its targets, costs and choices. The minimality check removes one action at a time. */
+    final List<Integer> actionLines = new ArrayList<>();
     /** The line the last answer came from, or null when it was a wait or a do-nothing answer. */
     private String lastTaken = null;
     private int calls = 0;
+    /** The minimality check's replays ("script:relaxed:<file>"): a line with an action removed. A decision the next line does
+     *  not fit is answered with the do-nothing option and the line keeps its place, counted in {@link #skipped},
+     *  instead of a drift ending the line there (pr-review of #278: a removed attack, or a play waiting on a removed
+     *  cast, drifted by construction and read as "necessary"). */
+    boolean relaxed = false;
+    /** Decisions a relaxed replay answered with the do-nothing option. */
+    int skipped = 0;
 
     ScriptBridge(String label, List<String> lines) {
         this.label = label;
@@ -102,6 +114,8 @@ final class ScriptBridge implements LLMBridge {
         m.put("script_played", played());
         // What each line took ("line => label"), for a reader of the row; the verdict does not read it.
         m.put("script_taken", new ArrayList<>(taken));
+        m.put("script_actions", new ArrayList<>(actionLines));
+        if (relaxed) m.put("script_skipped", skipped);
         return m;
     }
 
@@ -183,13 +197,14 @@ final class ScriptBridge implements LLMBridge {
             waits++;
             return q.fallback();
         }
+        JsonObject a = line != null && here ? q.answer(body) : null;
+        if (relaxed && a == null) { skipped++; return q.fallback(); }
         if (line == null) {
             exhausted = true;
             fail("the line ended before this decision: " + q.head());
             return q.fallback();
         }
         if (!here) { fail("\"" + line + "\" is for another step; this decision is at T" + q.turn + " " + q.phase + ": " + q.head()); return q.fallback(); }
-        JsonObject a = q.answer(body);
         if (a == null) {
             fail("\"" + line + "\" fits no option" + (q.ambiguity == null ? "" : " (" + q.ambiguity + ")") + ": " + q.head()
                     + (q.options.isEmpty() ? "" : " | options: " + String.join(" | ", q.options.values())));
@@ -200,6 +215,7 @@ final class ScriptBridge implements LLMBridge {
     }
 
     private void take(String line, Question q) {
+        if (q.opensAction()) actionLines.add(pos);
         lastTaken = line;
         pos++;
         taken.add(line + " => " + (q.takenLabel == null ? "" : q.takenLabel));
@@ -268,6 +284,10 @@ final class ScriptBridge implements LLMBridge {
             phase = ph;
             playMenu = block.contains("You have priority (") && passOption() > 0;
             manaUntap = block.startsWith("DECISION: MANA: you are paying") && block.contains("stay untapped");
+        }
+
+        boolean opensAction() {
+            return playMenu || "blocks".equals(field) || block.contains("declare attackers");
         }
 
         String head() {

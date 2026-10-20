@@ -372,8 +372,11 @@ public final class LlmSpikePuzzle {
             PuzzleArms.scriptTape = FileUtil.readFileToString(new File(tapeFile.trim())).trim();
         }
 
-        if ("search".equals(ctlA)) {
-            search(file, id, sections, goal, bounded, pzlSha, ctlB, smartA, fastA, capMs);
+        // The prover: both seats on the search arm, or a written line (ScriptBridge) against the search opponent, which
+        // then proves that one fixed line beats every reply the engine offers (HARD-PUZZLES.md section 4, item 2).
+        boolean writtenSolver = "llm".equals(ctlA) && smartA.startsWith(ScriptBridge.PREFIX);
+        if ("search".equals(ctlA) || (writtenSolver && "search".equals(ctlB))) {
+            search(file, id, sections, goal, bounded, pzlSha, ctlA, ctlB, smartA, fastA, capMs);
             LlmSpikeGui.EvalLog.closeForTest();
             System.exit(0);
         }
@@ -411,7 +414,8 @@ public final class LlmSpikePuzzle {
      *  replays from the start position on the same seed; only the line of choices differs. The proof's main
      *  line is then replayed twice more and must give the same game log both times, or the result is drift. */
     static void search(File file, String id, Map<String, List<String>> sections, String goal, boolean bounded,
-                       String pzlSha, String ctlB, String smartA, String fastA, long capMs) throws Exception {
+                       String pzlSha, String ctlA, String ctlB, String smartA, String fastA, long capMs) throws Exception {
+        final boolean written = !"search".equals(ctlA);
         List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
         final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
         int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
@@ -433,7 +437,7 @@ public final class LlmSpikePuzzle {
             }
             Played p;
             try {
-                p = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded, line);
+                p = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded, line);
             } catch (Exception e) {
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout threw: " + e);
             }
@@ -442,7 +446,8 @@ public final class LlmSpikePuzzle {
             // wall-clock cap: not a solve. Only a game thread that outlived the cap makes the JVM unsafe (broken).
             if ("invalid".equals(p.status) && line.drift == null)
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, p.healthy ? null : "rollout hit the wall-clock cap");
-            boolean solved = p.cleanSolve() && !line.stopped();
+            // A written line that drifted under this reply did not beat it, whatever the do-nothing answers reached.
+            boolean solved = !line.stopped() && wonAsWritten(p.cleanSolve(), writtenLine(p.game), playsNotMade(p.game));
             // What tells two solutions apart: the solver's game-log actions, and what it chose where the log does not
             // say (a mode, a clone pick, a number). Not the final state: the opponent's replies change that too
             // (RP_045: the opponent's Scavenging Ooze exiled a card on one line and not the other).
@@ -463,17 +468,20 @@ public final class LlmSpikePuzzle {
         Map<String, Object> extra = new LinkedHashMap<>();
         Played main = null;
         if ("proven".equals(status)) {
-            main = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+            main = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.line, 0));
-            Played again = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+            Played again = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.line, 0));
-            if (!main.cleanSolve() || !logFingerprint(main.logLines).equals(logFingerprint(again.logLines))) {
+            putWritten(extra, "", main.game);
+            if (!wonAsWritten(main.cleanSolve(), writtenLine(main.game), playsNotMade(main.game))
+                    || !logFingerprint(main.logLines).equals(logFingerprint(again.logLines))) {
                 status = "drift";
                 extra.put("search_drift", "the main line did not replay to the same solve");
             }
         }
         // One solution (eval/BENCHMARK-V1.md): a rules puzzle is searched for a second one by default.
-        int uniqueBudget = intOr(System.getenv().getOrDefault("PZL_UNIQUE_BUDGET",
+        // A written line has no solver choice on the search line to vary: its uniqueness is not searched here.
+        int uniqueBudget = written ? 0 : intOr(System.getenv().getOrDefault("PZL_UNIQUE_BUDGET",
                 sections.get("acceptance") != null ? String.valueOf(budget) : "0"), 0);
         if ("proven".equals(status) && uniqueBudget > 0) {
             PuzzleSearch.Uniqueness u = searcher.unique(r.line, uniqueBudget);
@@ -484,7 +492,7 @@ public final class LlmSpikePuzzle {
             extra.put("uniqueness_unproven_alternatives", u.unprovenAlternatives);
             if (u.second != null) {
                 extra.put("uniqueness_second_line", PuzzleSearch.lineText(u.second));
-                Played second = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+                Played second = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                         new PuzzleArms.Line(u.second, 0));
                 extra.put("uniqueness_second_actions", solverActions(second.logLines, "Solver"));
                 if (u.mainPrint != null && u.secondPrint != null) {
@@ -504,12 +512,15 @@ public final class LlmSpikePuzzle {
         }
         if (r != null && r.refutation != null && !"proven".equals(status)) {
             // The opponent reply that beat every line found, played out once, for the puzzle's audit.
-            Played ref = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+            Played ref = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.refutation, 0));
             List<String> opp = new ArrayList<>();
             for (String l : ref.logLines) if (l.contains("Opponent")) opp.add(l);
             extra.put("refutation_line", PuzzleSearch.lineText(r.refutation));
             extra.put("refutation_opponent_log", opp);
+            // How the line fared under that reply: lost, or drifted (pr-review of #278: both read "beaten").
+            extra.put("refutation_status", ref.status);
+            putWritten(extra, "refutation_", ref.game);
         }
         long durMs = System.currentTimeMillis() - t0;
         extra.put("pzl_sha256", pzlSha);
@@ -534,19 +545,19 @@ public final class LlmSpikePuzzle {
         System.out.println("[PZL] search " + id + ": " + status + (r == null ? "" : " after " + r.replays
                 + " rollouts, " + r.opponentBranches + " opponent replies beaten") + " (" + (durMs / 1000) + "s)");
         writeRow(id, file, status, "proven".equals(status), main == null ? -1 : main.turns,
-                main == null ? "?" : main.winCond, durMs, seed, "search", ctlB, "",
+                main == null ? "?" : main.winCond, durMs, seed, written ? ctlA : "search", ctlB, written ? smartA : "",
                 main != null && main.goalInstalled, main == null ? "" : main.goalOracle, goal, extra);
     }
 
     /** One search rollout: the engine re-seeded as for a fresh launch, both search seats drawing from {@code line}. */
-    static Played replay(File file, String id, Map<String, List<String>> sections, String ctlB, String smartA,
+    static Played replay(File file, String id, Map<String, List<String>> sections, String ctlA, String ctlB, String smartA,
                          String fastA, long seed, long capMs, int rollout, boolean bounded,
                          PuzzleArms.Line line) throws Exception {
         MyRandom.setRandom(new java.util.Random(seed));
         LlmSpikeGui.SEED_USED = seed;
         PuzzleArms.searchLine = line;
         try {
-            return playOnce(file, id, sections, "search", ctlB, smartA, fastA, seed, capMs, rollout, bounded, true);
+            return playOnce(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, rollout, bounded, true);
         } finally {
             PuzzleArms.searchLine = null;
         }
@@ -781,23 +792,10 @@ public final class LlmSpikePuzzle {
         if (suiteSha != null && !suiteSha.trim().isEmpty()) extra.put("suite_sha256", suiteSha.trim());
         extra.put("log_sha256", logFingerprint(logLines));
         extra.put("solver_actions", actions.size());
-        java.util.Random arm = null;
-        ScriptBridge written = null;
-        int playsNotMade = 0;
-        try {
-            Object ctl = game.getRegisteredPlayers().get(0).getController();
-            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) {
-                LlmSpikeGui.PlayerControllerLLM llm = (LlmSpikeGui.PlayerControllerLLM) ctl;
-                arm = llm.armRandom();
-                written = llm.scriptBridge();
-                playsNotMade = llm.playsNotMade();
-            }
-        } catch (Exception ignore) {}
+        LlmSpikeGui.PlayerControllerLLM llm = solverLlm(game);
+        java.util.Random arm = llm == null ? null : llm.armRandom();
         // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
-        if (written != null) {
-            extra.putAll(written.report());
-            extra.put("plays_not_made", playsNotMade);
-        }
+        putWritten(extra, "", game);
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());
@@ -812,6 +810,43 @@ public final class LlmSpikePuzzle {
         writeRow(id, file, status, solved, turns, winCond, durMs, seed, ctlA, ctlB,
                 smartA, pl.goalInstalled, pl.goalOracle, goal, extra);
         return pl.healthy;
+    }
+
+    /** The solver seat's controller when it is the model seat, else null. */
+    static LlmSpikeGui.PlayerControllerLLM solverLlm(Game game) {
+        try {
+            Object c = game.getRegisteredPlayers().get(0).getController();
+            return c instanceof LlmSpikeGui.PlayerControllerLLM ? (LlmSpikeGui.PlayerControllerLLM) c : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** The written line the solver played (ScriptBridge), or null when the solver is no script seat. */
+    static ScriptBridge writtenLine(Game game) {
+        LlmSpikeGui.PlayerControllerLLM l = solverLlm(game);
+        return l == null ? null : l.scriptBridge();
+    }
+
+    /** Plays the solver seat chose that did not happen (PlayerControllerLLM.playsNotMade), 0 for another seat. */
+    static int playsNotMade(Game game) {
+        LlmSpikeGui.PlayerControllerLLM l = solverLlm(game);
+        return l == null ? 0 : l.playsNotMade();
+    }
+
+    /** A written line's row fields (ScriptBridge.report and the seat's plays_not_made), each name after {@code prefix}. */
+    static void putWritten(Map<String, Object> extra, String prefix, Game game) {
+        ScriptBridge w = writtenLine(game);
+        if (w == null) return;
+        for (Map.Entry<String, Object> e : w.report().entrySet()) extra.put(prefix + e.getKey(), e.getValue());
+        extra.put(prefix + "plays_not_made", playsNotMade(game));
+    }
+
+    /** A solve the written line made (or any solve, without one): no drift and every play it chose happened. Lines left
+     *  unplayed are allowed: under some replies the line wins before its end (pr-review of #278: an opponent that did
+     *  not chump-block lost in combat, and the solve was read as that reply beating the line). */
+    static boolean wonAsWritten(boolean cleanSolve, ScriptBridge w, int playsNotMade) {
+        return cleanSolve && (w == null || (w.drift == null && playsNotMade == 0));
     }
 
     /** Seat i's PlayerOutcome, read off the STABLE player list.

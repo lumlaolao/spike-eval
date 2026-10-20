@@ -485,7 +485,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   the engine, both counted; a result row's `script_played` is true only when every line was taken with no drift.
   `puzzle_baselines.py line` reads the row (`eval/PUZZLES.md`, "Proving a written line"), including the seat's
   `plays_not_made`: a play the line chose that did not happen voids it, and a row without the count is refused.
-  The seat's two tiers share one bridge, so a script has one position.
+  The seat's two tiers share one bridge, so a script has one position. Against `CONTROLLER_B=search` the prover
+  plays the line as the solver, so every branch it enumerates is an opponent reply the fixed line must beat.
+  `script:relaxed:<file>` (the minimality replays) answers a decision the line does not fit with the do-nothing
+  option instead of drifting.
 
 - The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).
