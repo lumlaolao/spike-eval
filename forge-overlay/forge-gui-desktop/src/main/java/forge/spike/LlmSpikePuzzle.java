@@ -153,6 +153,52 @@ public final class LlmSpikePuzzle {
                 + "knowing the verdict answers a different question than the puzzle asks.");
     }
 
+    /** What the solver is told. A rules puzzle (an [acceptance] section) gets its author's description and turn
+     *  limit only: its Forge Goal is just the turn bound (usually Survive, above a description asking for the
+     *  opponent at 0 life), and its Name and Difficulty name the rule it tests. Forge's HumanControl warning stays:
+     *  the solver then decides for the opponent too. A Forge puzzle keeps Forge's description, whose goal line is
+     *  the goal Forge enforces. */
+    static String seatBrief(Map<String, List<String>> sections, String forgeDescription) {
+        if (sections.get("acceptance") == null) return forgeDescription;
+        String warning = forgeDescription.startsWith(HUMAN_CONTROL)
+                ? forgeDescription.substring(0, forgeDescription.indexOf("\n\n") + 2) : "";
+        return warning + "Turns Limit: " + turnLimit(sections) + "\n\n"
+                + sectionValue(sections.get("metadata"), "Description", "").replace("\\n", "\n");
+    }
+
+    /** How Forge's getGoalDescription opens for a HumanControl puzzle (Puzzle.java). */
+    static final String HUMAN_CONTROL = "\nWARNING: This puzzle is human-controlled";
+
+    static int turnLimit(Map<String, List<String>> sections) {
+        return intOr(sectionValue(sections.get("metadata"), "Turns", "1"), 1);
+    }
+
+    /** The solver's brief ({@link #seatBrief}), stored in LlmSpikeGui.puzzleBrief: call it before the solver's seat
+     *  is built, whose system prompt reads it. */
+    static String briefSolver(Map<String, List<String>> sections, Puzzle puzzle) {
+        String brief = seatBrief(sections, puzzle.getGoalDescription());
+        LlmSpikeGui.puzzleBrief = brief;
+        return brief;
+    }
+
+    /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
+     *  .pzl's), the named cards Forge's setup drops, and on the Puzzle Goal card the brief the solver's prompt
+     *  reads (LlmSpikeGui.puzzleBrief, set by {@link #briefSolver}), so the two cannot differ. */
+    static void applyBoard(Game game, Puzzle puzzle) {
+        PuzzleArms.SETUP = true;
+        try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
+        restoreNamedCards(puzzle);
+        tellGoalCard(game, LlmSpikeGui.puzzleBrief);
+    }
+
+    /** Forge writes its whole goal description on the Puzzle Goal card, which `inspect` reads: the card gets the
+     *  solver's brief, so a rules puzzle's name and "Goal: Survive" stay hidden there too. */
+    static void tellGoalCard(Game game, String brief) {
+        for (forge.game.player.Player p : game.getPlayers())
+            for (Card c : p.getZone(ZoneType.Command))
+                if ("Puzzle Goal".equals(c.getName())) c.setOracleText(brief);
+    }
+
     /** Read `key=value` out of a FileSection body, case-insensitively, or `def`. */
     static String sectionValue(List<String> lines, String key, String def) {
         if (lines == null) return def;
@@ -179,7 +225,7 @@ public final class LlmSpikePuzzle {
      *  eventually". This is not hypothetical -- PS_STX2 (Turns:1, turn=2) ran to turn 8 under the
      *  Forge-AI arm and was scored a solve. 6 of the 300 suite rows are in this shape. */
     static boolean goalIsBounded(Map<String, List<String>> sections) {
-        int turns = intOr(sectionValue(sections.get("metadata"), "Turns", "1"), 1);
+        int turns = turnLimit(sections);
         int startTurn = intOr(sectionValue(sections.get("state"), "turn", "1"), 1);
         boolean startsInCleanup =
                 "CLEANUP".equalsIgnoreCase(sectionValue(sections.get("state"), "activephase", ""));
@@ -516,8 +562,7 @@ public final class LlmSpikePuzzle {
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
-        // The solver is told the goal as the author wrote it, before its seat (and prompt) is built.
-        LlmSpikeGui.puzzleBrief = puzzle.getGoalDescription();
+        briefSolver(sections, puzzle);
         LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", "", smartA, fastA);
         LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
                 : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
@@ -551,9 +596,7 @@ public final class LlmSpikePuzzle {
         Thread worker = new Thread(() -> {
             try {
                 match.startGame(game, () -> {
-                    PuzzleArms.SETUP = true;
-                    try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
-                    restoreNamedCards(puzzle);
+                    applyBoard(game, puzzle);
                     // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
                     PuzzleArms.Line setupLine = PuzzleArms.searchLine;
                     if (setupLine != null) setupLine.clearChoices();
