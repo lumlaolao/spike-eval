@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 364 - Any lore counter reads the chapter
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Chainer's Torment with one lore counter (chapters I and II: it deals 2 damage to each opponent and you gain 2 life). You have Contentious Plan (proliferate, then draw a card) in hand with two blue mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-saga-proliferate-chapter | A Saga's chapter ability triggers whenever a lore counter is put on it and the count reaches that chapter, by any means (CR 714.2b, 714.3b): proliferating the lore counter from 1 to 2 triggers chapter II now, 2 damage, instead of waiting for your next precombat main phase
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Contentious Plan
+p0battlefield=Chainer's Torment|Counters:LORE=1
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

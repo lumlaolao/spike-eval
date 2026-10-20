@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 363 - Provoke wakes the blocker
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Lowland Tracker (2/2, first strike, provoke). The opponent is at 20 life and controls a tapped Grizzly Bears. Destroy the opponent's Grizzly Bears this turn while keeping Lowland Tracker.
+Rule:authored-provoke-untaps | Provoke triggers on attack and makes the target creature untap and block the attacker if able (CR 702.39a): attack with Lowland Tracker and target the tapped Grizzly Bears, which untaps, must block, and dies to first-strike damage before it can strike back; a tapped creature is not out of reach of provoke
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Lowland Tracker
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+count p0 Battlefield "Lowland Tracker" = 1

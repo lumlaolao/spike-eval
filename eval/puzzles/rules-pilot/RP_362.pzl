@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 362 - Dash gives haste
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Goblin Heelcutter in hand with three red mana floating. The opponent is at 3 life and controls an untapped Wall of Stone. Reduce the opponent to 0 life this turn.
+Rule:authored-dash-haste | A creature cast for its dash cost gains haste and returns to hand at the end step (CR 702.109a): dash Goblin Heelcutter for three, attack, and aim its attack trigger at Wall of Stone so it can't block; its normal cost is four
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Goblin Heelcutter
+p0manapool=R R R
+p0library=Mountain;Mountain;Mountain
+p1life=3
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
