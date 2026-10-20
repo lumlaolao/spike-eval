@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 481 - The Incubator was here all turn
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control an Incubator token with three +1/+1 counters ({2}: transform it into a 0/0 Phyrexian artifact creature), with two colorless mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-incubator-transform-attack | A permanent that becomes a creature can attack if you have controlled it continuously since the turn began (CR 302.6): the transformed Incubator is a 3/3 Phyrexian that attacks at once
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=T:incubator_c_0_0_a_phyrexian|Counters:P1P1=3
+p0manapool=C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

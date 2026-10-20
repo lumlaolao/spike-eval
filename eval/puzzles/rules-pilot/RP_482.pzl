@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 482 - The adventure frees the Beast
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Lovestruck Beast (5/5; it can't attack unless you control a 1/1 creature) and have a second Lovestruck Beast in hand (adventure: Heart's Desire {G}, create a 1/1 Human) with one green mana floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-adventure-token-enables-attack | An adventurer card can be cast as its Adventure (CR 715.3): Heart's Desire makes a 1/1, which lets the Beast on the battlefield attack for 5; cast as a creature the second Beast is summoning sick and can't attack either
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lovestruck Beast
+p0battlefield=Lovestruck Beast
+p0manapool=G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

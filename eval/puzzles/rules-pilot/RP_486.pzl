@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 486 - Collect evidence to save mana
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Hill Giant (summoning sick). Colossal Dreadmaw (mana value 6) is in your graveyard, and you have Bite Down on Crime (you may collect evidence 6 as you cast it; if you do, it costs {2} less; your creature gets +2/+0 and deals damage equal to its power to target creature you don't control) in hand with two green mana floating. The opponent is at 20 life and controls Craw Wurm (6/4). Destroy the Craw Wurm this turn.
+Rule:authored-collect-evidence-cost | Collect evidence N exiles cards from your graveyard with total mana value N or more (CR 701.59a): exile the Dreadmaw, cast for {G}{G}, and the 5/3 Giant deals 5 to the Wurm
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Bite Down on Crime
+p0graveyard=Colossal Dreadmaw
+p0battlefield=Hill Giant|SummonSick
+p0manapool=G G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Craw Wurm" = 1
