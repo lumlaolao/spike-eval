@@ -203,9 +203,11 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   - no lookup tools unless `--memory-tools` or `--rules-tool` is given;
   - no harness shortcuts;
   - every setting pinned explicitly and written to each puzzle's `batch-manifest.json`.
-- The system prompt states the puzzle as its author wrote it (goal, turn limit and anything the solver
-  is told, such as the top cards of the library), in place of "win the game". The eval pool's
-  archetype reference is left out.
+- The system prompt states the puzzle's brief (`LlmSpikePuzzle.seatBrief`: goal, turn limit and anything the
+  solver is told, such as the top cards of the library; never the name or difficulty label), in place of "win the
+  game". The eval pool's archetype reference is left out.
+- Each result row carries `harness_epoch` and, for a model seat, what the attempt spent: `model_calls`,
+  `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
 

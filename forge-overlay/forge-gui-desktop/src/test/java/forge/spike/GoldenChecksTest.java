@@ -1893,6 +1893,39 @@ public class GoldenChecksTest {
         Assert.assertEquals(me.getLife(), 18);
     }
 
+    /** The game line stamps the rules lookup as wired, not as asked for: RULES_TOOL=1 without MEMORY_TOOLS=1 never
+     *  offers it, and the stamp said rules_tool=true for those games (pr-review of PR #272). */
+    @Test
+    public void theRulesToolIsStampedOnlyWhenTheSeatIsOfferedIt() {
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.rulesToolWired(true, true));
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.rulesToolWired(false, true));
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.rulesToolWired(true, false));
+    }
+
+    /** What one attempt spent, for its puzzle result row (BENCHMARK-V2 section 3: the budget recorded per attempt):
+     *  the model calls, their prompt and completion tokens and milliseconds, and the lookups. */
+    @Test
+    public void aSeatCountsWhatItsDecisionsSpent() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1") {
+            @Override public int getLastPromptTokens() { return 100; }
+            @Override public int getLastCompletionTokens() { return 7; }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.budget().get("model_calls"), 0);
+        ctrl.chooseSpellAbilityToPlay();
+        java.util.Map<String, Object> b = ctrl.budget();
+        Assert.assertEquals(b.get("model_calls"), 1, String.valueOf(b));
+        Assert.assertEquals(b.get("prompt_tokens"), 100L);
+        Assert.assertEquals(b.get("completion_tokens"), 7L);
+        Assert.assertTrue((Long) b.get("model_ms") >= 0);
+        Assert.assertEquals(b.get("lookups"), 0);
+    }
+
     /** X, then the modes of a modal spell, each from the model. */
     @Test
     public void xAndModesAreTheModels() {

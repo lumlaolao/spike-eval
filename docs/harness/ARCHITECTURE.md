@@ -298,7 +298,8 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
   archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
 A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told. For a Forge puzzle that is
-Forge's description (name, difficulty, goal, turn limit, text); a rules puzzle (an `[acceptance]` section) gets only its
+Forge's description from its goal line on (goal, turn limit, text; the name and difficulty label are dropped since
+epoch 69, the neutral brief of BENCHMARK-V2 section 3); a rules puzzle (an `[acceptance]` section) gets only its
 turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its Forge goal is just the turn bound
 (148 of the 526 converted puzzles in `eval/puzzles/rules-pilot/manifest.jsonl` say `Goal:Survive` and have `life p1 <= 0`
 in their `[acceptance]` section, 2026-10-20) and its name states the rule it tests. The

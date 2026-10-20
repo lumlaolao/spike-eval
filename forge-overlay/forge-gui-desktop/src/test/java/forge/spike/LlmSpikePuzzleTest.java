@@ -45,12 +45,18 @@ public class LlmSpikePuzzleTest {
             Assert.assertFalse(brief.contains(hidden), hidden + " reached the seat: " + brief);
     }
 
-    /** A Forge puzzle has no acceptance state: its goal line is the goal Forge enforces, so the header stays. */
+    /** A Forge puzzle keeps Forge's goal line, the goal Forge enforces, but not its name or difficulty label
+     *  (BENCHMARK-V2 section 3, the neutral brief; epoch 69): "Mythic" is the author's guess at how hard it is, and a
+     *  name can state the trick, as the rules puzzles' did. Forge's HumanControl warning stays. */
     @Test
-    public void aForgePuzzleKeepsForgesGoalDescription() {
-        String forge = "Possibility Storm 1\nDifficulty: Hard\n\nGoal: Win\nTurns Limit: 1\n\nWin this turn.";
-        Assert.assertEquals(LlmSpikePuzzle.seatBrief(sections(new String[] {"Goal:Win", "Turns:1"},
-                new String[] {"turn=1"}), forge), forge);
+    public void aForgePuzzleIsToldItsGoalNotItsNameOrDifficulty() {
+        String forge = "Possibility Storm 1 - Sac the Thopters\nDifficulty: Mythic\n\nGoal: Win\nTurns Limit: 1\n\nWin this turn.";
+        String brief = LlmSpikePuzzle.seatBrief(sections(new String[] {"Goal:Win", "Turns:1"}, new String[] {"turn=1"}), forge);
+        Assert.assertEquals(brief, "Goal: Win\nTurns Limit: 1\n\nWin this turn.");
+        String warned = "\nWARNING: This puzzle is human-controlled (it does not have an active AI player). x\n\n" + forge;
+        Assert.assertEquals(LlmSpikePuzzle.seatBrief(sections(new String[] {"Goal:Win", "Turns:1"}, new String[] {"turn=1"}), warned),
+                "\nWARNING: This puzzle is human-controlled (it does not have an active AI player). x\n\n"
+                        + "Goal: Win\nTurns Limit: 1\n\nWin this turn.");
     }
 
     // ================================================================================

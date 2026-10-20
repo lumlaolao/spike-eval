@@ -33,6 +33,8 @@ final class ContextMemory {
     private final List<Entry> entries = new ArrayList<>();
     private final List<String> notes = new ArrayList<>();
     private int toolsUsed;
+    /** Lookups served this game, against TOOLS_PER_GAME. */
+    int lookupsUsed() { return toolsUsed; }
     /** The seat's reports that a question was broken (report_unclear_decision). */
     static final int REPORTS_PER_GAME = 10;
     private final List<String> reports = new ArrayList<>();
