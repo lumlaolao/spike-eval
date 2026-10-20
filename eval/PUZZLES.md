@@ -231,9 +231,11 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
     (`--rules-tool` alone is refused: the seat would not offer it);
   - no harness shortcuts;
   - every setting pinned explicitly and written to each puzzle's `batch-manifest.json`.
-- The system prompt states the puzzle as its author wrote it (goal, turn limit and anything the solver
-  is told, such as the top cards of the library), in place of "win the game". The eval pool's
-  archetype reference is left out.
+- The system prompt states the puzzle's brief (`LlmSpikePuzzle.seatBrief`: goal, turn limit and anything the
+  solver is told, such as the top cards of the library; never the name or difficulty label), in place of "win the
+  game". The eval pool's archetype reference is left out.
+- Each result row carries `harness_epoch` and, for a model seat, what the attempt spent: `model_calls`,
+  `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
 
@@ -264,7 +266,15 @@ Runs of other puzzles, suites, splits or k are refused. Lookups per condition: `
 - mix suite or puzzle versions;
 - mix solvers;
 - score a puzzle with fewer than k attempts, or with a seed repeated;
-- score an unscoreable row (one where the goal was not enforced).
+- score an unscoreable row (one where the goal was not enforced);
+- pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
+  stamped one is refused too).
+
+Beside the score (BENCHMARK-V2 phase 2): the clustered 95% interval of the headline and of pass@1 (the standard
+error of the per-puzzle means, Miller 2024), the smallest pass@1 difference two independent runs of this size
+detect at 80% power, the solved count by `tier_v2` when the records carry it, the budget per attempt (median and
+total model calls, tokens, model time and lookups, from rows that record them), and the integrity counts at weight
+0 (capped attempts, deck-out solves).
 
 Some attempts count as failures, so a failure cannot vanish from the count:
 - a capped game;

@@ -24,8 +24,9 @@ model identifiers in commits. Skip acceptance and the gauntlets unless asked (ow
 
 ## State of the code
 
-harness-epoch-68 (`docs/harness/VERSIONS.md` has every stamp). The epochs made on the puzzle branches, newest first:
-68, a Phyrexian spell the AI will not pay life for (Gitaxian Probe) is on the seat's menu and paid with life (PR #277,
+harness-epoch-69 (`docs/harness/VERSIONS.md` has every stamp). The epochs made on the puzzle branches, newest first:
+69, a Forge puzzle's brief starts at its goal line, without its name and difficulty label (PR #282); 68, a Phyrexian
+spell the AI will not pay life for (Gitaxian Probe) is on the seat's menu and paid with life (PR #277,
 h_0); 67, a rules puzzle's brief and Puzzle Goal card carry only its description and turn limit (PR #273); 66, an attack the
 engine refuses is asked once more with the reason, then made legal, and the prover targets copies as the model seat
 does (x_0, z_4); 65, a source whose tap damage is lethal pays last for a harness seat (City of Brass after Llanowar

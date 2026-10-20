@@ -153,15 +153,19 @@ public final class LlmSpikePuzzle {
                 + "knowing the verdict answers a different question than the puzzle asks.");
     }
 
-    /** What the solver is told. A rules puzzle (an [acceptance] section) gets its author's description and turn
-     *  limit only: its Forge Goal is just the turn bound (usually Survive, above a description asking for the
-     *  opponent at 0 life), and its Name and Difficulty name the rule it tests. Forge's HumanControl warning stays:
-     *  the solver then decides for the opponent too. A Forge puzzle keeps Forge's description, whose goal line is
-     *  the goal Forge enforces. */
+    /** What the solver is told: never Forge's name or difficulty label (the author's guess at the difficulty, and a
+     *  name that can state the trick: rules pilot RP_443, "Bolster picks the least toughness"). A rules puzzle (an
+     *  [acceptance] section) gets its author's description and turn limit only, since its Forge Goal is just the turn
+     *  bound (usually Survive, above a description asking for the opponent at 0 life). A Forge puzzle keeps Forge's
+     *  goal line, turn limit and description, from its Goal line on: the goal there is the one Forge enforces.
+     *  Forge's HumanControl warning stays in both: the solver then decides for the opponent too. */
     static String seatBrief(Map<String, List<String>> sections, String forgeDescription) {
-        if (sections.get("acceptance") == null) return forgeDescription;
         String warning = forgeDescription.startsWith(HUMAN_CONTROL)
                 ? forgeDescription.substring(0, forgeDescription.indexOf("\n\n") + 2) : "";
+        if (sections.get("acceptance") == null) {
+            int goal = forgeDescription.indexOf("\n\nGoal: ", warning.length());
+            return goal < 0 ? forgeDescription : warning + forgeDescription.substring(goal + 2);
+        }
         return warning + "Turns Limit: " + turnLimit(sections) + "\n\n"
                 + sectionValue(sections.get("metadata"), "Description", "").replace("\\n", "\n");
     }
@@ -794,6 +798,8 @@ public final class LlmSpikePuzzle {
         extra.put("solver_actions", actions.size());
         LlmSpikeGui.PlayerControllerLLM llm = solverLlm(game);
         java.util.Random arm = llm == null ? null : llm.armRandom();
+        // What the attempt spent (BENCHMARK-V2 section 3): a model seat's calls, tokens, time and lookups.
+        if (llm != null && "llm".equals(ctlA)) extra.putAll(llm.budget());
         // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
         putWritten(extra, "", game);
         if (arm instanceof PuzzleArms.ArmRandom) {
@@ -900,6 +906,8 @@ public final class LlmSpikePuzzle {
         row.put("opponent_arm", ctlB);
         row.put("solver_model", "llm".equals(ctlA) ? smartA : "");
         row.put("goal", goal);
+        // Which interface the attempt saw: puzzle_score.py refuses to pool epochs (pr-review of PR #273).
+        row.put("harness_epoch", LlmSpikeGui.HARNESS_EPOCH);
         row.putAll(extra);
         String line = toJson(row);
         System.out.println("PZL_RESULT " + line);

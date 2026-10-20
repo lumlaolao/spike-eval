@@ -303,7 +303,8 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
   archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
 A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told. For a Forge puzzle that is
-Forge's description (name, difficulty, goal, turn limit, text); a rules puzzle (an `[acceptance]` section) gets only its
+Forge's description from its goal line on (goal, turn limit, text; the name and difficulty label are dropped since
+epoch 69, the neutral brief of BENCHMARK-V2 section 3); a rules puzzle (an `[acceptance]` section) gets only its
 turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its Forge goal is just the turn bound
 (148 of the 526 converted puzzles in `eval/puzzles/rules-pilot/manifest.jsonl` say `Goal:Survive` and have `life p1 <= 0`
 in their `[acceptance]` section, 2026-10-20) and its name states the rule it tests. The
@@ -458,6 +459,14 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - Every call row carries:
   - prompt, completion, cached and cache-write tokens;
   - its price, from `eval/cost_report.py` with `eval/pricing/prices.json`.
+- A puzzle attempt's result row carries what a model seat spent (`PlayerControllerLLM.budget()`, harness-epoch-69):
+  `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms`, `lookups`. Tokens come from the bridge's bill
+  (`LLMBridge.getBilledPromptTokens()`/`getBilledCompletionTokens()`), read as a difference around each ask:
+  `OpenRouterBridge` bills every send that came back, a truncation retry's first send included. A bridge that keeps no
+  bill returns -1 and the seat adds its last usage only when the ask answered. A bridge that wraps another
+  (`ChatSessionBridge`) must pass the bill through, or the seat falls back to last-call usage.
+  - *Why:* reading the last call's usage once an ask counted a failed ask's stale tokens again and lost a retry's
+    first send (pr-review of #282).
 - `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget.
 - The owner rule is a small block first, with the expected cost stated before it starts.
 - *Why:* small per-game costs add up unseen. 204 games in one day came to about $8.

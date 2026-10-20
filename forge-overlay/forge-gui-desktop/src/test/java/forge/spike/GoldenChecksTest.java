@@ -1899,6 +1899,104 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.autoPicksCount(), autos + 1, "the forced life payment left no auto row");
     }
 
+    /** The game line stamps the rules lookup as wired, not as asked for: RULES_TOOL=1 without MEMORY_TOOLS=1 never
+     *  offers it, and the stamp said rules_tool=true for those games (pr-review of PR #272). */
+    @Test
+    public void theRulesToolIsStampedOnlyWhenTheSeatIsOfferedIt() {
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.rulesToolWired(true, true));
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.rulesToolWired(false, true));
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.rulesToolWired(true, false));
+    }
+
+    /** What one attempt spent, for its puzzle result row (BENCHMARK-V2 section 3: the budget recorded per attempt):
+     *  the model calls, their prompt and completion tokens and milliseconds, and the lookups. */
+    @Test
+    public void aSeatCountsWhatItsDecisionsSpent() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1") {
+            // A call that takes time, so model_ms has something to count (pr-review of #282: >= 0 could not fail).
+            @Override public String ask(String prompt) {
+                try { Thread.sleep(5); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                return super.ask(prompt);
+            }
+            @Override public int getLastPromptTokens() { return 100; }
+            @Override public int getLastCompletionTokens() { return 7; }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.budget().get("model_calls"), 0);
+        ctrl.chooseSpellAbilityToPlay();
+        java.util.Map<String, Object> b = ctrl.budget();
+        Assert.assertEquals(b.get("model_calls"), 1, String.valueOf(b));
+        Assert.assertEquals(b.get("prompt_tokens"), 100L);
+        Assert.assertEquals(b.get("completion_tokens"), 7L);
+        Assert.assertTrue((Long) b.get("model_ms") >= 5, String.valueOf(b));
+        Assert.assertEquals(b.get("lookups"), 0);
+    }
+
+    /** A bridge that reports no billing and fails its next ask still shows the last call's usage; the budget must not
+     *  count it twice (pr-review of #282: a dead bridge reported a full call's tokens it never spent). */
+    @Test
+    public void aFailedAskAddsNoTokensToTheBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicBoolean down = new java.util.concurrent.atomic.AtomicBoolean();
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) { return down.get() ? null : super.ask(prompt); }
+            @Override public int getLastPromptTokens() { return 100; }
+            @Override public int getLastCompletionTokens() { return 7; }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        down.set(true);
+        card("Shock", me, ZoneType.Hand);   // a new spot, so the seat is asked again rather than passing it
+        ctrl.chooseSpellAbilityToPlay();
+        java.util.Map<String, Object> b = ctrl.budget();
+        Assert.assertTrue((Integer) b.get("model_calls") >= 2, "the second spot was asked: " + b);
+        Assert.assertEquals(b.get("prompt_tokens"), 100L, String.valueOf(b));
+        Assert.assertEquals(b.get("completion_tokens"), 7L);
+    }
+
+    /** A bridge that keeps a bill is read by its bill: 80 billed for an answered ask whose last call reported 30 (a
+     *  truncation retry's first send), and nothing for a failed ask that billed nothing (pr-review of #282: no test
+     *  reached this branch, which every OpenRouter seat takes). */
+    @Test
+    public void aBilledBridgeIsReadByItsBill() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicBoolean down = new java.util.concurrent.atomic.AtomicBoolean();
+        long[] bill = {0, 0};
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                if (down.get()) return null;
+                bill[0] += 80; bill[1] += 9;
+                return super.ask(prompt);
+            }
+            @Override public int getLastPromptTokens() { return 30; }
+            @Override public int getLastCompletionTokens() { return 4; }
+            @Override public long getBilledPromptTokens() { return bill[0]; }
+            @Override public long getBilledCompletionTokens() { return bill[1]; }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        down.set(true);
+        card("Shock", me, ZoneType.Hand);   // a new spot, so the seat is asked again
+        ctrl.chooseSpellAbilityToPlay();
+        java.util.Map<String, Object> b = ctrl.budget();
+        Assert.assertTrue((Integer) b.get("model_calls") >= 2, "the second spot was asked: " + b);
+        Assert.assertEquals(b.get("prompt_tokens"), 80L, String.valueOf(b));
+        Assert.assertEquals(b.get("completion_tokens"), 9L);
+    }
+
     /** X, then the modes of a modal spell, each from the model. */
     @Test
     public void xAndModesAreTheModels() {

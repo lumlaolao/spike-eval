@@ -62,7 +62,7 @@ class PairedTest(unittest.TestCase):
 
     def write_run(self, name, recs, solves):
         out = Path(self.tmp.name) / name
-        out.mkdir()
+        out.mkdir(exist_ok=True)
         rows = []
         for r, c in zip(recs, solves):
             rows += [result(r, s, "solved" if s < c else "failed") for s in range(4)]
@@ -96,6 +96,122 @@ class PairedTest(unittest.TestCase):
         self.assertEqual(ps.signed(-1.9e-18), "+0.000")
         self.assertEqual(ps.signed(-0.0004), "+0.000")
         self.assertEqual(ps.signed(-0.076), "-0.076")
+
+
+    def test_the_paired_flags_reach_the_interval(self):
+        seen = {}
+        real = ps.paired
+        ps.paired = lambda a, b, base=None, n_boot=None, seed=None: seen.update(n_boot=n_boot, seed=seed) or real(
+            a, b, base, n_boot=n_boot, seed=seed)
+        try:
+            _, out = self.run_cli("a", "--paired-with", "b", "--paired-seed", "3", "--paired-bootstrap", "200")
+        finally:
+            ps.paired = real
+        self.assertEqual(seen, {"n_boot": 200, "seed": 3}, "the interval is drawn as the line says")
+        self.assertIn("200 resamples, seed 3", out)
+
+    def test_against_needs_paired_with_and_a_refusal_exits_2(self):
+        with self.assertRaises(SystemExit):
+            self.run_cli("a", "--against", "c", "d")
+        with self.assertRaises(SystemExit):
+            self.run_cli("a", "--paired-with", "b", "--paired-bootstrap", "0")
+        rc, _ = self.run_cli("a", "--paired-with", "b", "--ids", self.recs[0]["id"])
+        self.assertEqual(rc, 0, "both runs scored on the same --ids")
+        short = self.write_run("e", [dict(r, pzl=str(Path(self.tmp.name) / r["pzl"])) for r in self.recs[:2]], [4, 4])
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc, _ = self.run_cli("a", "--paired-with", short)
+        self.assertEqual(rc, 2, "a paired run missing a puzzle is refused, not a traceback")
+        self.assertIn("REFUSED", err.getvalue())
+
+
+class ScoreV2Test(unittest.TestCase):
+    """BENCHMARK-V2 phase 2: clustered intervals and the power line, the budget and integrity lines, epochs never pooled,
+    and the score by v2 tier."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        ids = [i for i in ("p%d" % n for n in range(40)) if pf.split_for(i) == "open"][:3]
+        self.recs = [rec(i, self.tmp.name) for i in ids]
+        for r, t in zip(self.recs, (1, 2, 3)):
+            r["tier_v2"] = t
+        self.m = suite(self.recs)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def rows(self, solves, **kw):
+        out = []
+        for r, c in zip(self.recs, solves):
+            out += [result(r, s, "solved" if s < c else "failed", **kw) for s in range(4)]
+        return out
+
+    def test_the_clustered_interval_and_the_smallest_difference_it_can_see(self):
+        a = ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=50)["aggregate"]
+        sd = ((0.5 ** 2 + 0 + 0.5 ** 2) / 2) ** 0.5
+        lo, hi = a["pass@1"]["ci95_clustered"]
+        self.assertAlmostEqual(lo, 0.5 - 1.96 * sd / 3 ** 0.5)
+        self.assertAlmostEqual(hi, 0.5 + 1.96 * sd / 3 ** 0.5)
+        self.assertAlmostEqual(a["pass@1"]["mde80"], 2.8 * 2 ** 0.5 * sd / 3 ** 0.5)
+        self.assertIsNotNone(a["headline"]["ci95_clustered"])
+
+    def test_the_budget_line_reads_what_each_attempt_spent(self):
+        rows = self.rows([4, 2, 0], harness_epoch="harness-epoch-69")
+        for i, r in enumerate(rows):
+            r.update(model_calls=3, prompt_tokens=1000 + i, completion_tokens=50, model_ms=200, lookups=i % 2)
+        rep = ps.score(self.m, rows, "open", k=4, n_boot=50)
+        b = rep["budget"]
+        self.assertEqual((b["attempts"], b["recorded"]), (12, 12))
+        self.assertEqual(b["model_calls"]["total"], 36)
+        self.assertEqual(b["prompt_tokens"]["median"], 1005.5)
+        self.assertEqual(b["lookups"]["total"], 6)
+        text = ps.render(rep)
+        self.assertIn("budget per attempt", text)
+        self.assertIn("clustered", text)
+        self.assertEqual(ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)["budget"]["recorded"], 0)
+        self.assertIn("budget: not recorded", ps.render(ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)))
+
+    def test_integrity_counts_what_is_not_a_clean_attempt(self):
+        rows = self.rows([4, 2, 0])
+        rows[0]["status"] = "invalid"
+        rows[1]["tainted_by_deckout"] = True
+        rep = ps.score(self.m, rows, "open", k=4, n_boot=20)
+        self.assertEqual(rep["integrity"], {"attempts": 12, "capped": 1, "tainted": 1})
+        self.assertIn("integrity", ps.render(rep))
+
+    def test_attempts_from_two_harness_epochs_are_never_pooled(self):
+        rows = self.rows([4, 2, 0], harness_epoch="harness-epoch-69")
+        ps.score(self.m, rows, "open", k=4, n_boot=20)
+        rows[0]["harness_epoch"] = "harness-epoch-68"
+        with self.assertRaisesRegex(ps.Refused, "harness epochs"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+        del rows[0]["harness_epoch"]
+        with self.assertRaisesRegex(ps.Refused, "harness epochs"):  # an unstamped row cannot be told apart
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+        ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)  # none stamped: older runs still score
+
+    def test_no_spread_gives_no_smallest_difference(self):
+        # pr-review of #282: three puzzles all solved 4/4 printed "detect: 0.000", the opposite of what they show.
+        a = ps.score(self.m, self.rows([4, 4, 4]), "open", k=4, n_boot=20)["aggregate"]
+        self.assertIsNone(a["pass@1"]["mde80"])
+        self.assertIn("not estimable (no spread)", ps.render(ps.score(self.m, self.rows([4, 4, 4]), "open", k=4,
+                                                                         n_boot=20)))
+
+    def test_the_report_names_its_epoch_and_a_cross_epoch_pair_says_so(self):
+        # pr-review of #282: neither the score nor a paired difference said which interface it measured.
+        rep = ps.score(self.m, self.rows([4, 2, 0], harness_epoch="harness-epoch-69"), "open", k=4, n_boot=20)
+        self.assertEqual(rep["harness_epoch"], "harness-epoch-69")
+        self.assertIn("epoch=harness-epoch-69", ps.render(rep))
+        old = ps.score(self.m, self.rows([4, 4, 0]), "open", k=4, n_boot=20)
+        self.assertIsNone(old["harness_epoch"])
+        c = ps.paired(old, rep, n_boot=50)
+        self.assertEqual(c["epochs"], [None, "harness-epoch-69"])
+        self.assertTrue(c["cross_epoch"])
+        self.assertFalse(ps.paired(rep, rep, n_boot=50)["cross_epoch"])
+
+    def test_the_score_by_v2_tier(self):
+        s = ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)["aggregate"]["solved"]
+        self.assertEqual({t: b["solved"] for t, b in s["by_tier_v2"].items()}, {"1": 1, "2": 1, "3": 0})
 
 
 if __name__ == "__main__":

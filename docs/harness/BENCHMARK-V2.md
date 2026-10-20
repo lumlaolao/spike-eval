@@ -1,6 +1,8 @@
 # MTG-Bench v2: harder puzzles, a leak-proof seat, a measurable score (proposal, 2026-10-20)
 
-**Status: proposed, for the owner's review before any work starts.** Nothing below is built. It amends
+**Status: proposed, for the owner's review.** Phase 2 (the Forge puzzles' neutral brief, the budget fields, the
+score's intervals, budget and integrity lines) is built at harness-epoch-69 (#282), and phase 1's difficulty fields
+are in the code (#280, #281); nothing else below is built. It amends
 [eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md) (approved 2026-10-18); what v1 decided stays decided unless a row below
 says otherwise. The evidence is in
 [history/2026-10-20-benchmark-v2-research.md](history/2026-10-20-benchmark-v2-research.md) (today's reading:
@@ -19,12 +21,12 @@ the data, not in the model:
 |---|---|---|
 | The puzzles are short | 453 of the 526 converted puzzles are decided by one or two actions; the model made a median 3 decisions with a median 2 options each | there is almost nothing to search; a wrong answer is a wrong rule, never a wrong plan |
 | No opponent choice | 470 of 526 proofs beat no opponent branch (the opponent had no choice) | the "beat every reply" property v1 required is untested on 90% of the suite |
-| Labels do not predict | tools off: Easy 97%, Medium 91%, Hard 85% | the author's label is a prior, not a tier |
-| The tools do nothing here | 0 `rules_lookup` calls in 145 attempts; every visible card's text is already in the prompt | the on/off comparison v1 wanted cannot be read from this suite |
+| Labels do not predict | epoch 66, tools off: Easy 97%, Medium 91%, Hard 85% | the author's label is a prior, not a tier |
+| The tools do nothing here | 0 `rules_lookup` calls in 145 tools-on attempts at epoch 66 and 0 in 145 at epoch 67; every visible card's text is already in the prompt (`eval/puzzles/rules-pilot/benchmark-v1/REPORT.md`, from its `results/`, `results-e67/`, `tool-use.txt` and `tool-use-e67.txt`) | the epoch-67 on-off gap (+0.055 [0.007, 0.110], one of five comparisons, inspect 47 calls) is not separable from noise: the on/off comparison v1 wanted cannot be read from this suite |
 | The brief leaks | until epoch 67 `Name` and `Difficulty` went to the seat; a `Description` that explains the card text (19 of 36) still does | part of the solve rate is reading the author's hint |
 | The score is saturated | 26 of 29 puzzles solved; Anthropic: a capability eval "should start at a low pass rate" | v1's suite is a regression suite; v2 needs a capability tier |
 
-Where the suite does separate, it is what the research says to expect: the seven puzzles Luna failed are
+Where the suite does separate, it is what the research says to expect: the seven puzzles Luna failed at epoch 66 are
 rules subtleties (a mana ability resolving before a trigger, bolster order, devoid, layers 7a/7b, haunt,
 copies and counters). Those stay. What is missing is everything else a player does: lines of five to
 fifteen actions, combat with several blockers, an opponent who can respond, more than one turn.
@@ -51,12 +53,12 @@ Audited today; each line is either already true (with where it is enforced) or p
 | One attempt is one game: a committed action cannot be undone; the k attempts are independent JVMs with independent seeds and nothing carries across (no memory file, no notes) | true | `puzzle_solve.py` (`PZL_SEEDS`), `ContextMemory` is in-process only |
 | No engine search in C0 and C1: `simulate` is never offered (`LOOKAHEAD=0`); C2 offers it with a pinned call budget and is its own arm | true for C0/C1; C2 not yet pinned | `puzzle_solve.py condition()`; **add** `--lookahead N` as a refused-to-mix condition with its budget stamped in the manifest |
 | Lookups read nothing hidden: `inspect`, memory search and reveals are viewer-aware; a preview re-deals hidden zones | true | `ContextMemory` ("cannot query hidden state"), lookahead-preview-v6 |
-| The brief is neutral: goal and turn limit, the board as the engine shows it, a description that states the objective and nothing about how; no `Name`, no `Difficulty`, no author solution text, no rule citation | **proposed** | `LlmSpikePuzzle.seatBrief` (epoch 67: a rules puzzle gets its turn limit and description only; author hint text in the description remains, and a Forge puzzle keeps Forge's header); the rule and its citation stay in the manifest for the scorer |
+| The brief is neutral: goal and turn limit, the board as the engine shows it, a description that states the objective and nothing about how; no `Name`, no `Difficulty`, no author solution text, no rule citation | true except author hint text | `LlmSpikePuzzle.seatBrief` (epoch 67: a rules puzzle gets its turn limit and description only; epoch 69: a Forge puzzle its goal line, turn limit and description; author hint text in a description remains); the rule and its citation stay in the manifest for the scorer |
 | Time and thinking are bounded by loop guards, not by the puzzle: 32000 thinking tokens and 300 s a call, 16 tool calls an ask, 30 minutes an attempt; an attempt that hits a guard is `invalid`, not a model failure | guards true; scoring **proposed** | `MODEL-LIMITS.md`; today `puzzle_score.py` counts an `invalid` row as a miss tagged `capped`; v2 re-runs it and counts it only if it is capped again (then the puzzle, not the model, is the suspect) |
-| The budget is recorded per attempt (prompt and completion tokens, tool calls, model ms) in the result row | **proposed** (the game JSONL has it; `pzl-result-v1` does not) | additive fields in `LlmSpikePuzzle`'s result row |
+| The budget is recorded per attempt (prompt and completion tokens, tool calls, model ms) in the result row | yes, from harness-epoch-69 (#282): `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms` and `lookups` on a model seat's `pzl-result-v1` row (`PlayerControllerLLM.budget()`), every send billed, a truncation retry's first send included | `puzzle_score.py` prints the budget line |
 | The grader is the engine: Forge's Puzzle Goal card plus `[acceptance]` on the final state; no judge, no text | true | `PuzzleAcceptance`, `Puzzle.addGoalEnforcement` |
 | A solve must beat every opponent reply: the proof is a strategy tree, and the opponent arm in a scored run is the Forge AI on a fixed seed | true for proven puzzles; **extend** by preferring puzzles with `opponent_choice_points >= 1` | `PuzzleSearch.prove`, `opponent_branches_beaten` |
-| Exploits are logged apart from correctness: `report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers each counted per attempt and shown next to the score | partly (`eval/puzzle_tool_use.py` counts lookups per condition) | **add** to `puzzle_score.py` as weight-0 metrics (Reward Hacking Benchmark: integrity beside correctness) |
+| Exploits are logged apart from correctness: `report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers each counted per attempt and shown next to the score | partly: `puzzle_score.py` counts capped games and deck-out solves at weight 0 (#282), `eval/puzzle_tool_use.py` counts lookups per condition | **add** the rest (`report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers) to the result row, then to the integrity line (Reward Hacking Benchmark: integrity beside correctness) |
 | Reproducibility stamp on every number: engine commit, suite sha, harness epoch and prompt versions, condition, model id and provider, date, k, seeds, temperature (provider default unless set) | mostly | **add** the model's served id and the request's generation parameters to the manifest |
 
 ## 4. Difficulty, measured
@@ -152,7 +154,7 @@ wall-clock, both recorded, so "not found" states the budget it was not found und
 |---|---|---|---|
 | 0 | Land PR #272 (tools guard, sample v1 data) and #273 (goal line); finish the epoch-67 rerun; this plan reviewed | running | ~$0.40 |
 | 1 | **Difficulty v2 in the record** (code in `puzzle_format.py` and `puzzle_baselines.py`; the 526 are not yet re-tiered: `prove --unique-budget 0`, then `run --arms ai --baselines-only`, then `retier`): `L`, `D`, `O`, `T`, `B` and skill tags in `puzzle.v1` records (additive), the tier rule in `puzzle_format.py`, the 526 re-tiered from their proofs; tests first | nothing paid | $0 |
-| 2 | **The neutral brief and the budget fields**: `seatBrief` drops author hint text (a rules puzzle's name and label went in epoch 67); `pzl-result` gains tokens, calls, ms; epoch bump; `puzzle_score.py` refuses invalid rows, adds clustered and paired intervals, the power line, the budget line and the integrity metrics | owner decision A, G, H | $0 |
+| 2 | **The neutral brief and the budget fields** (built at harness-epoch-69, #282): `seatBrief` drops a Forge puzzle's name and difficulty label (a rules puzzle's went in epoch 67); `pzl-result` gains calls, tokens, ms and lookups; `puzzle_score.py` refuses to pool epochs, adds clustered and paired intervals, the smallest detectable difference, the budget line and integrity counts (capped and deck-out at weight 0). Not done: author hint text in a description stays; a capped attempt is counted as a miss, not re-run | owner decision A, G, H | $0 |
 | 3 | **Hard sources**: prover improvements (1)-(3); Forge built-ins at budget 3000; the `h_*` drafts; adversarial variants of 30 T2 puzzles; one generated combat family (50 boards); mined positions from the failed attempts so far | CPU time (days) | $0 |
 | 4 | **Splits and contamination**: held-out files moved out, canary added, recall probe written | owner decision D | ~$0.50 |
 | 5 | **Pilot v2**: 60 puzzles (20 a tier) x k=5 x C0 and C1 on Luna; read every T2/T3 failure; refit the tier thresholds so the bands separate | phases 1-4 | ~$1 |

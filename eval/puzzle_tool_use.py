@@ -27,11 +27,13 @@ CONDITIONS = ("off", "on")
 
 
 def condition(dirpath):
-    """{solved, attempts, per_puzzle {id: (c, k)}, lookups Counter, rules_attempts, call_secs []} for one condition."""
+    """{solved, attempts, games, per_puzzle {id: (c, k)}, lookups Counter, rules_attempts, call_secs []} for one
+    condition; `games` is the game logs found, which the completeness check compares with the attempts."""
     out = {"solved": 0, "attempts": 0, "per_puzzle": {}, "lookups": collections.Counter(), "rules_attempts": 0,
            "call_secs": [], "games": 0}
     for d in sorted(glob.glob(os.path.join(dirpath, "*"))):
-        rows = [json.loads(l) for f in glob.glob(d + "/puzzle-results.jsonl") for l in open(f) if l.strip()]
+        f = os.path.join(d, "puzzle-results.jsonl")
+        rows = [json.loads(l) for l in open(f) if l.strip()] if os.path.exists(f) else []
         c = sum(bool(r.get("solved")) for r in rows)
         out["per_puzzle"][os.path.basename(d)] = (c, len(rows))
         out["solved"] += c
@@ -54,10 +56,6 @@ def condition(dirpath):
 
 def report(root):
     """The text, and whether it can be trusted: every attempt of both conditions has its game log."""
-    return report_checked(root)[0]
-
-
-def report_checked(root):
     if not all(os.path.isdir(os.path.join(root, c)) for c in CONDITIONS):
         return "no %s/ beside each other in %s" % ("/ and ".join(CONDITIONS), root), False
     by = {c: condition(os.path.join(root, c)) for c in CONDITIONS}
@@ -67,6 +65,9 @@ def report_checked(root):
         x = by[c]
         lines.append("== %s: %d/%d attempts solved (%.0f%%), %d puzzles" % (
             c, x["solved"], x["attempts"], 100.0 * x["solved"] / max(x["attempts"], 1), len(x["per_puzzle"])))
+        if not x["attempts"]:
+            lines.append("   no attempts in %s/" % c)
+            continue
         if x["games"] < x["attempts"]:
             # Without the logs a lookup count of zero would read as "none made" (pr-review of PR #272).
             lines.append("   no game JSONL for %d of %d attempts: lookups not counted" % (
@@ -88,7 +89,7 @@ def report_checked(root):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("root", help="a run dir holding off/ and on/")
-    text, complete = report_checked(ap.parse_args(argv).root)
+    text, complete = report(ap.parse_args(argv).root)
     print(text)
     return 0 if complete else 2
 
