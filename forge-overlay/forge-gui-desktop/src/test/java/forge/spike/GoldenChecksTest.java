@@ -1113,6 +1113,35 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** A play the stack refused for want of a target is not offered again in the window (pr-review of #284): rolled
+     *  back, Murder is in hand with its Swamps untapped, the window unchanged, so a seat could pick it without end. */
+    @Test
+    public void aPlayTheStackRefusedIsNotOfferedAgainInTheWindow() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Swamp", me, ZoneType.Hand);
+        Card murder = card("Murder", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "the seat passed");
+        Assert.assertTrue(lastDecision(model).contains("Murder"), "Murder on the first menu");
+        SpellAbility cast = murder.getFirstSpellAbility();   // no target set: the stack refuses it, as from a stale menu
+        cast.setActivatingPlayer(me);
+        ctrl.playChosenSpellAbility(cast);
+        Assert.assertEquals(g.getCardState(murder).getZone().getZoneType(), ZoneType.Hand, "rolled back");
+        int asked = model.prompts.size();
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(model.prompts.size(), asked + 1, "the changed menu is asked");
+        Assert.assertFalse(lastDecision(model).contains("Murder"), "the refused play offered again: " + lastDecision(model));
+    }
+
+    private static String lastDecision(Recorder model) {
+        String p = model.prompts.get(model.prompts.size() - 1);
+        return p.substring(Math.max(0, p.lastIndexOf("DECISION:")));
+    }
+
     /** A rollback refunds only this play's mana (pr-review of harness-epoch-70): Siege-Gang Commander's "{1}{R},
      *  Sacrifice a Goblin" activated and resolved, then activated again and cancelled at its sacrifice. The ability's
      *  own object kept the first activation's mana (the stack took a copy), and the rollback put {1}{R} in the pool. */

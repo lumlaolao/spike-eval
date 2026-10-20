@@ -4996,6 +4996,7 @@ public final class LlmSpikeGui {
                 game.getStack().addAndUnfreeze(sa);
                 if (!reaches) {
                     p("[ROUTER] play: " + labelOf(sa) + " paid but has no legal target -> the stack refused it");
+                    failedInWindow.add(chosenKey);
                     playsNotMade++;
                     forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, pay, source);
                     return true;

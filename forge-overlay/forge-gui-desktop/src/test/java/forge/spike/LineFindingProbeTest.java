@@ -285,7 +285,7 @@ public class LineFindingProbeTest {
         Assert.assertEquals(g.getCardState(dismember).getZone().getZoneType(), ZoneType.Hand, "the failed cast's card");
         Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), 1);
         Assert.assertTrue(g.getStackZone().isEmpty(), "a card left in the Stack zone with nothing on the stack");
-        Assert.assertFalse(g.getStack().isFrozen(), "the stack frozen for the payment stays frozen");
+        Assert.assertFalse(g.getStack().isFrozen(), "the stack's freeze flag stays set");
     }
 
     /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1
