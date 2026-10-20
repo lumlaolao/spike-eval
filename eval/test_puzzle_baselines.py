@@ -26,9 +26,19 @@ class WrittenLineTest(unittest.TestCase):
         rolled = dict(self.PLAYED, script_taken=["cast Lava Spike => CAST Lava Spike @1 {R} [x]",
                                                  "cast Fireblast => CAST Fireblast @3 [y]"],
                       actions=["STACK_ADD: Solver cast Lava Spike targeting [Opponent]"])
-        self.assertEqual(pb.line_verdict(rolled), "1 casts on the stack of 2 the line took")
+        self.assertEqual(pb.line_verdict(rolled), "no cast of Fireblast reached the stack (the line took 1)")
         self.assertEqual(pb.line_verdict(dict(rolled, actions=rolled["actions"] + ["STACK_ADD: Solver cast Fireblast"])),
                          "played")
+        # Copies log as casts too (a storm copy is "Solver cast Grapeshot"): they must not stand in for a cast of
+        # another card that was rolled back, so casts are matched by card name (pr-review v2, #276).
+        storm = dict(self.PLAYED, script_taken=["cast Bolt => CAST Lightning Bolt @4 {R} [x]",
+                                                "cast Grapeshot => CAST Grapeshot @7 1{R} [y]"],
+                     actions=["STACK_ADD: Solver cast Grapeshot targeting [Opponent]"] * 3)
+        self.assertEqual(pb.line_verdict(storm), "no cast of Lightning Bolt reached the stack (the line took 1)")
+        # A face-down cast logs as "Morph", not by name.
+        morph = dict(self.PLAYED, script_taken=["cast Thing => CAST Den Protector @2 face down {3} [z]"],
+                     actions=["STACK_ADD: Solver cast Morph"])
+        self.assertEqual(pb.line_verdict(morph), "played")
         lost = dict(self.PLAYED, status="failed", solved=False, acceptance_failed=["life p1 <= 0 (was 7)"])
         self.assertIn("was 7", pb.line_verdict(lost))
         self.assertEqual(pb.line_verdict(dict(self.PLAYED, tainted_by_deckout=True)), "solved by a deck-out")

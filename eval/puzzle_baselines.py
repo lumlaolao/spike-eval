@@ -39,8 +39,10 @@ import datetime
 import json
 import os
 import subprocess
+import re
 import sys
 import tempfile
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -420,6 +422,9 @@ def cmd_prove(a):
     return 0
 
 
+CAST_LOG = "STACK_ADD: Solver cast "
+
+
 def line_verdict(row):
     """"played" when a written-line game played every line, drifted nowhere and solved cleanly; else why not.
     A drift is checked first: after one, the do-nothing answers can still stumble into the acceptance state."""
@@ -435,10 +440,21 @@ def line_verdict(row):
         return "solved by a deck-out" if row.get("status") == "solved" else "decided by a deck-out"
     if row.get("status") != "solved":
         return "%s %s" % (row.get("status"), row.get("acceptance_failed") or "")
-    claimed = sum(1 for t in row.get("script_taken") or [] if " => CAST " in t)
-    cast = sum(1 for a in row.get("actions") or [] if a.startswith("STACK_ADD: Solver cast "))
-    if claimed > cast:
-        return "%d casts on the stack of %d the line took" % (cast, claimed)
+    # A cast the harness accepted can be rolled back by the engine (its payment failed): every CAST the line took
+    # must reach the stack, matched by card name, because copies (storm) and free casts log as casts too. Not
+    # checked: a same-named copy standing in for a rolled-back cast, and activations.
+    claimed = Counter(m.group(1) for t in row.get("script_taken") or []
+                      for m in [re.search(r" => CAST (.+?)(?: @\d+| \{| \[| face down|$)", t)] if m)
+    cast = Counter(re.sub(r" targeting .*$", "", a[len(CAST_LOG):]) for a in row.get("actions") or []
+                   if a.startswith(CAST_LOG))
+    morphs = cast.pop("Morph", 0)
+    for name, n in sorted(claimed.items()):
+        short = max(0, n - cast.get(name, 0))
+        used = min(short, morphs)
+        morphs -= used
+        if short > used:
+            return "no cast of %s reached the stack (the line took %d)" % (name, n) if not cast.get(name) else \
+                "%d casts of %s reached the stack of %d the line took" % (cast[name], name, n)
     return "played" if row.get("script_played") else "not played"
 
 
