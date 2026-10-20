@@ -107,6 +107,9 @@ only for what search is good at: opponent replies, deviations and minimality.
    winning line; run it from the script's line, so a long puzzle's adversarial proof costs only the opponent
    branches. The deviation search (`unique`) runs at each solver step with a stated budget and reports
    `unique-within-budget N`, never "unique".
+   **Done for the proof (2026-10-20):** `puzzle_baselines.py line --opponent search` proves a fixed line against
+   every reply (h_0, h_1: no opponent choice; RP_141: 3 blocks, 2 beyond the main line). Not done: a line that must
+   answer a reply differently (one line per branch), and the deviation search from a written line.
 3. **Minimality**: replay the script with each solver action removed in turn (the rest attempted as written);
    every removal must fail. Written to the record as `necessary_actions`.
 4. **The greedy-preview arm**: a zero-model policy over `PlayerLookahead`'s one-ply preview, taking the option

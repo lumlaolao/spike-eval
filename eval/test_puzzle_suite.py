@@ -348,6 +348,18 @@ class WrittenLineTest(unittest.TestCase):
         self.assertEqual(pb.line_verdict({"status": "solved"}), "not a written-line row")
         self.assertEqual(pb.line_verdict(None), "no result row")
 
+    def test_against_the_search_opponent_only_a_proof_with_the_line_played_passes(self):
+        # RP_141: two Canopy Gorgers attack, and every block the opponent can make is beaten (search row, written solver).
+        proof = {"status": "proven", "solver_arm": "llm", "opponent_arm": "search", "script_played": True,
+                 "script_drift": "", "script_unconsumed": 0, "opponent_branches_beaten": 2}
+        self.assertEqual(pb.line_verdict(proof), "proven")
+        beaten = dict(proof, status="not_found", refutation_line="Opponent:2:1", script_played=None)
+        self.assertEqual(pb.line_verdict(beaten), "beaten by Opponent:2:1")
+        self.assertEqual(pb.line_verdict(dict(beaten, refutation_line=None)), "not_found")
+        env = pb.line_env(Path("/x/h.pzl"), "search", "1", budget=300)
+        self.assertEqual((env["CONTROLLER_B"], env["PZL_SEARCH_BUDGET"]), ("search", "300"))
+        self.assertNotIn("PZL_SEARCH_BUDGET", pb.line_env(Path("/x/h.pzl"), "ai", "1"))
+
     def test_the_line_runs_as_the_model_seat_under_the_paid_condition(self):
         env = pb.line_env(Path("/x/h_1.pzl"), "ai", "1..3")
         self.assertEqual((env["CONTROLLER_A"], env["CONTROLLER_B"], env["PZL_SEEDS"]), ("llm", "ai", "1..3"))
