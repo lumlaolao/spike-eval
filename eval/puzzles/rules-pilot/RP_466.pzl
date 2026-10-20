@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 466 - Kill Thalia before the burn
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control no creatures and have Mogg Fanatic, Lightning Bolt and Shock in hand, with three red mana floating. The opponent is at 5 life and controls an untapped Thalia, Guardian of Thraben (2/1 first strike; noncreature spells cost {1} more). Reduce the opponent to 0 life this turn.
+Rule:authored-cost-increase-removed-first | A cost increase is applied as each spell's total cost is determined (CR 601.2f), so removing Thalia first makes the rest cheaper: cast Mogg Fanatic (a creature, untaxed), sacrifice it to kill Thalia, then Bolt and Shock for one red each, 5 damage; with Thalia alive the burn costs two each and three mana deal at most 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Mogg Fanatic;Lightning Bolt;Shock
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Thalia, Guardian of Thraben
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 467 - Ping, burn, ping again
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Thermo-Alchemist (0/3 defender; {T}: 1 damage to each opponent; whenever you cast an instant or sorcery spell, untap it) and have two Shocks in hand with two red mana floating. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-untap-trigger-interleave | The untap trigger resolves before the spell, so tap Thermo-Alchemist before each spell to reuse it (CR 603.3, 602.2): ping, Shock, ping, Shock, ping for 1+2+1+2+1 = 7; casting both Shocks before pinging untaps an untapped Alchemist and totals 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock;Shock
+p0battlefield=Thermo-Alchemist
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
