@@ -33,6 +33,11 @@ final class ToolAnswerBridge implements LLMBridge {
     @Override public String getModel() { return script.getModel(); }
     @Override public long getTotalMs() { return 0; }
     @Override public int getCalls() { return script.getCalls(); }
+    // What the script reports spending, as the bridge it stands for would (the seat's budget reads these).
+    @Override public int getLastPromptTokens() { return script.getLastPromptTokens(); }
+    @Override public int getLastCompletionTokens() { return script.getLastCompletionTokens(); }
+    @Override public long getBilledPromptTokens() { return script.getBilledPromptTokens(); }
+    @Override public long getBilledCompletionTokens() { return script.getBilledCompletionTokens(); }
 
     @Override
     public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
@@ -50,7 +55,9 @@ final class ToolAnswerBridge implements LLMBridge {
             if ((role.equals("tool") || role.equals("user")) && m.has("content") && m.get("content").isJsonPrimitive())
                 seen.append("\n\n").append(m.get("content").getAsString());
         }
-        String args = toArgs(script.ask(seen.toString()), prompt);   // the script itself, not counted as a text ask
+        String reply = script.ask(seen.toString());   // the script itself, not counted as a text ask
+        if (reply == null) return null;   // a script that fails stands for a bridge that failed: no turn at all
+        String args = toArgs(reply, prompt);
         List<NativeTools.Call> calls = new ArrayList<>();
         calls.add(new NativeTools.Call("t" + (++seq), AnswerTool.NAME, args));
         return NativeTools.Turn.ofCalls(calls);
