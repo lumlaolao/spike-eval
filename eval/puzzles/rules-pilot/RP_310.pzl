@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 310 - Fling is the source
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Vampire Nighthawk and two Mountains, and have Fling in hand. The opponent controls Grizzly Bears. End the turn with Grizzly Bears in the opponent's graveyard and your life at 22.
+Rule:authored-fling-not-lifelink | Lifelink applies only to damage dealt by the source that has it (CR 702.15b); Fling's damage is dealt by Fling, not by the sacrificed creature: attack with Vampire Nighthawk for the life, then Fling it at the Bears after combat
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fling
+p0battlefield=Vampire Nighthawk;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+life p0 = 22

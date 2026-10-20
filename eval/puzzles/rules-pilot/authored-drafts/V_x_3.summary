@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:4:0 Solver:2:0 Solver:4:2", "search_replays": 16, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Steady Progress", "STACK_ADD: Solver activated Ajani Goldmane"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 7, "uniqueness_exhausted": 7, "uniqueness_replays": 14, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["tokens p0 Battlefield * = 1 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 54
