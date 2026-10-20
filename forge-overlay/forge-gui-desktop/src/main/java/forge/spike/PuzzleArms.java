@@ -285,6 +285,9 @@ final class PuzzleArms {
 
         synchronized void clearChoices() { choices.clear(); }
 
+        /** Withdraws the choices noted after the first {@code keep} (an answer the engine refused never happened). */
+        synchronized void dropChoicesAfter(int keep) { while (choices.size() > keep) choices.remove(choices.size() - 1); }
+
         /** True once the rollout passed {@link #maxDraws}: the runner ends the game, unsolved. */
         boolean stopped() { return stopped; }
 

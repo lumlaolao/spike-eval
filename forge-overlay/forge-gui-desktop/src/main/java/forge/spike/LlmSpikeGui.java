@@ -2983,12 +2983,15 @@ public final class LlmSpikeGui {
                 // refused again, the engine's own legal declaration is made, like any unanswered decision.
                 List<Integer> picks = null;
                 boolean refused = false;
+                PuzzleArms.Line line = PuzzleArms.searchLine;
                 for (int attempt = 0; attempt < 2; attempt++) {
+                    int noted = line == null ? 0 : line.choices.size();
                     picks = decideMany(smart, null, question, labels, 0, legal.size());
                     if (picks == null) break;
                     for (int i : picks) combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
                     if (CombatUtil.validateAttackers(combat)) break;
                     for (int i : picks) combat.removeFromCombat(legal.get(i));
+                    if (line != null) line.dropChoicesAfter(noted);   // a refused set is no solver choice
                     question = question + " " + illegalAttackNote(attacker, combat);
                     picks = null;
                     refused = true;

@@ -2084,6 +2084,34 @@ public class GoldenChecksTest {
         Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("declare attackers")).count(), 2L, "asked twice");
     }
 
+    /** Under the puzzle prover the refused first set was still noted as a solver choice, so the same final attack
+     *  reached with and without a refused try read as two solutions (x_0, x_15, x_18 re-gated on epoch 66). A refused
+     *  set never happened: its note is withdrawn. */
+    @Test
+    public void aRefusedAttackLeavesNoSolverChoiceBehind() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", g.getPlayers().get(1), ZoneType.Battlefield);
+        // include draws, one per candidate: both (refused), then the Bears alone
+        PuzzleArms.searchLine = new PuzzleArms.Line(java.util.Arrays.asList(new PuzzleArms.Step("Solver", 2, 1),
+                new PuzzleArms.Step("Solver", 2, 1), new PuzzleArms.Step("Solver", 2, 1), new PuzzleArms.Step("Solver", 2, 0)), 5L);
+        try {
+            Script model = new Script("CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                    new forge.ai.LobbyPlayerAi("Solver", null), "Solver", "", model, model, "search");
+            me.dangerouslySetController(ctrl);
+            Combat combat = new Combat(me);
+            ctrl.declareAttackers(me, combat);
+            Assert.assertEquals(combat.getAttackers(), java.util.Collections.singletonList(bears));
+            Assert.assertFalse(PuzzleArms.searchLine.choices.toString().contains("Hill Giant"),
+                    "the refused set is not a choice: " + PuzzleArms.searchLine.choices);
+        } finally {
+            PuzzleArms.searchLine = null;
+        }
+    }
+
     /** Exert and enlist (Forge's AI chose both until 2026-10-17): which attackers, the seat's. */
     @Test
     public void exertAndEnlistAreTheSeats() {
