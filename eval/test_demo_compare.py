@@ -1,5 +1,7 @@
 """demo_compare: the older harness gets the audience feed by a port that is idempotent and refuses a tree it cannot
 place it in; both arms play the same conditions; a run never starts without a budget. No game is played here."""
+import contextlib
+import io
 import os
 import shutil
 import subprocess
@@ -204,6 +206,44 @@ class ArmTest(unittest.TestCase):
             with self.assertRaises(SystemExit):  # nothing compiled: refused after acceptance ran
                 dc.compile_arm(dc.REPO, tempfile.mkdtemp(), "/forge", dc.REPO)
         self.assertEqual((seen.get("JAVA_HOME"), seen.get("FORGE_HOME")), ("/brew/jdk", "/forge"))
+
+    def run_dry(self, arm):
+        d = tempfile.mkdtemp()
+        builds = {}
+        for name in ("now", "then"):
+            home = os.path.join(d, name, "forge-home")
+            os.makedirs(home)
+            open(os.path.join(home, "run-llm-headless.sh"), "w").close()
+            builds[name] = os.path.join(d, name)
+        checked = []
+        out = io.StringIO()
+        with mock.patch.object(dc, "check_pins", lambda arms, forge, wt: checked.append(sorted(arms))), \
+                contextlib.redirect_stdout(out):
+            dc.main(["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd",
+                     "0.4", "--out", os.path.join(d, "out"), "--dry-run", "--arm", arm, "--now-build", builds["now"],
+                     "--build", builds["then"], "--worktree", d])
+        shutil.rmtree(d)
+        return [line for line in out.getvalue().splitlines() if line.startswith("[")], checked
+
+    def test_a_pair_splits_the_budget_and_one_arm_gets_all_of_it(self):
+        lines, checked = self.run_dry("both")
+        self.assertEqual([l.split()[0] for l in lines], ["[now]", "[then]"])
+        self.assertTrue(all("--budget-usd 0.2 " in l for l in lines))
+        lines, checked2 = self.run_dry("then")
+        self.assertEqual([l.split()[0] for l in lines], ["[then]"])
+        self.assertIn("--budget-usd 0.4 ", lines[0])
+        self.assertEqual(checked + checked2, [["now", "then"], ["now", "then"]])  # both pins checked either way
+
+    def test_a_forge_checkout_that_is_a_git_worktree_passes_the_guard(self):
+        d = tempfile.mkdtemp()
+        try:
+            with open(os.path.join(d, ".git"), "w") as f:
+                f.write("gitdir: /elsewhere/.git/worktrees/x\n")
+            with self.assertRaises(SystemExit) as cm:  # stops later, at the pin check: not "no Forge checkout"
+                dc.main(["build-then", "--commit", "e1324cfd", "--forge", d])
+            self.assertNotIn("no Forge checkout", str(cm.exception))
+        finally:
+            shutil.rmtree(d)
 
     def test_an_explicit_forge_home_wins_else_the_checkout_every_tool_finds(self):
         env = {k: v for k, v in os.environ.items() if k != "FORGE_HOME"}

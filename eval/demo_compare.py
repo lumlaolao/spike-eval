@@ -256,6 +256,8 @@ def build_then(a):
                          % (a.commit, old_pin, pin))
     if not os.path.isdir(tree):
         subprocess.run(["git", "-C", REPO, "worktree", "add", "--detach", tree, a.commit], check=True)
+    if not os.path.isdir(os.path.join(tree, "eval", "pricing")):
+        raise SystemExit("%s has no eval/pricing: too old for a budgeted run" % a.commit)
     print("ported:", ", ".join(port_feed(tree) + [port_prices(tree)]))
     compile_arm(tree, build, a.forge, a.worktree)
     return 0
@@ -373,10 +375,10 @@ def main(argv=None):
     r.add_argument("--deck-a", required=True, help="the model's deck, a name from `decks`")
     r.add_argument("--deck-b", required=True, help="Forge AI's deck, a name from `decks`")
     r.add_argument("--model", default="openrouter:openai/gpt-6-luna")
-    r.add_argument("--budget-usd", type=float, help="for the pair: each arm gets half")
+    r.add_argument("--budget-usd", type=float, help="the pair's budget: each arm gets half; with --arm, that arm all")
     r.add_argument("--out", required=True)
     r.add_argument("--fake", action="store_true", help="both arms on the loopback fake model (free)")
-    r.add_argument("--dry-run", action="store_true", help="print the two commands only")
+    r.add_argument("--dry-run", action="store_true", help="print the commands only")
     r.add_argument("--arm", choices=("both", "now", "then"), default="both",
                    help="play one arm only (its budget is then the whole --budget-usd), e.g. to redo a failed arm")
     for p in (b, n, r):

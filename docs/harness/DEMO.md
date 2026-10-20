@@ -97,6 +97,10 @@ python3 eval/demo_compare.py run --seed 4201 --deck-a vintage-esper-control --de
 python3 eval/demo_server.py --game runs/demo/pair-rehearsal/now --game runs/demo/pair-rehearsal/then   # replay it
 ```
 
+build-then also copies the current price list into the older worktree (its own lacks newer models, and its
+`run_batch.py` refuses `--budget-usd` without a price). To redo one arm that failed, run the same command with
+`--arm then` (or `now`) and the same `--out`: that arm alone plays, with the whole budget.
+
 A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, split between the two arms; two one-tier games at CLAUDE.md's $0.02 to $0.05 each) needs the owner's
 egress consent. In the viewer, the two panes step in lockstep by turn and phase, and the **first divergence** button
 jumps both to the first decision the two harnesses answer differently (`demo_events.divergence`): the same menu
