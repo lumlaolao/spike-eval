@@ -85,6 +85,48 @@ class WrittenLineTest(unittest.TestCase):
             pb.Build = real
 
 
+class MinimalityTest(unittest.TestCase):
+    """HARD-PUZZLES.md section 4, item 3: every solver action of a written line is needed; remove one, it fails."""
+
+    LINES = ["cast Lava Spike", "opponent", "cast Fling", "Goblin", "cast Shock", "opponent"]
+
+    def test_an_action_is_its_opening_line_and_what_follows(self):
+        self.assertEqual(pb.action_groups(6, [0, 2, 4]), [[0, 1], [2, 3], [4, 5]])
+        self.assertEqual(pb.action_groups(3, [1]), [[0], [1, 2]], "lines before the first action stand alone")
+        self.assertEqual(pb.action_groups(2, []), [[0], [1]])
+
+    def test_each_action_is_removed_in_turn_and_a_spare_one_is_named(self):
+        out = Path(tempfile.mkdtemp())
+        pzl = out / "h.pzl"
+        pzl.write_text("[metadata]\nName:h\n[state]\nturn=1\n[solution]\n" + "\n".join(self.LINES) + "\n")
+        runs = []
+
+        class FakeBuild:
+            def run(self, env, out_dir, timeout_s=None):
+                lines = open(env["SMART_MODEL_A"][len("script:"):]).read().split("\n")
+                lines = [l for l in lines if l and not l.startswith("[") and not l.startswith("Name") and l != "turn=1"]
+                runs.append(lines)
+                solved = "cast Lava Spike" in lines and "cast Fling" in lines   # Shock is spare
+                row = {"status": "solved" if solved else "failed", "seed": 1, "script_played": True, "script_drift": "",
+                       "script_unconsumed": 0, "script_actions": ["0", "2", "4"]}
+                Path(out_dir).mkdir(parents=True, exist_ok=True)
+                with open(Path(out_dir) / "puzzle-results.jsonl", "a") as f:
+                    f.write(json.dumps(row) + "\n")
+                return 0
+        real = pb.Build
+        try:
+            pb.Build = lambda *a, **k: FakeBuild()
+            rc = pb.main(["line", "--pzl", str(pzl), "--minimality", "--out-dir", str(out / "o")])
+        finally:
+            pb.Build = real
+        self.assertEqual(rc, 1, "an unnecessary action fails the check")
+        self.assertEqual(len(runs), 4, "the whole line, then one run per action")
+        self.assertEqual(runs[3], ["cast Lava Spike", "opponent", "cast Fling", "Goblin"])
+        res = json.loads((out / "o" / "minimality.json").read_text())
+        self.assertEqual((res["actions"], res["necessary"]), (3, 2))
+        self.assertEqual(res["unnecessary"], [["cast Shock", "opponent"]])
+
+
 
 if __name__ == "__main__":
     unittest.main()

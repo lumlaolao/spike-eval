@@ -460,10 +460,77 @@ def line_env(script, opponent, seeds, budget=None):
     return env
 
 
+def script_lines(path):
+    """The lines ScriptBridge.fromFile plays: the [solution] section when the file has sections, else the whole file;
+    blank and # lines skipped."""
+    raw = [l.strip() for l in Path(path).read_text(encoding="utf-8").splitlines()]
+    header = lambda l: l.startswith("[") and l.endswith("]") and len(l) > 2  # noqa: E731
+    sectioned = any(header(l) for l in raw)
+    out, inside = [], not sectioned
+    for l in raw:
+        if header(l):
+            inside = l.lower() == "[solution]"
+        elif inside and l and not l.startswith("#"):
+            out.append(l)
+    return out
+
+
+def action_groups(n, action_lines):
+    """The line indices of each action: the line that opened it (ScriptBridge's script_actions) and the lines after it,
+    up to the next. A line before the first action stands alone."""
+    starts = set(action_lines)
+    groups = []
+    for i in range(n):
+        if i in starts or not groups or not any(s <= i for s in starts):
+            groups.append([i])
+        else:
+            groups[-1].append(i)
+    return groups
+
+def minimality(build, pzl, script, out, seed):
+    """Each action of a played line removed in turn, the rest as written: every removal must fail (not play to a
+    solve). Returns the record written to out/minimality.json."""
+    lines = script_lines(script)
+    full = run_arm(build, pzl, "written", seed, out / "line", line_env(script, "ai", seed))
+    row = full[-1] if full else None
+    rec = {"line": line_verdict(row), "actions": 0, "necessary": 0, "unnecessary": [], "removals": []}
+    if rec["line"] == "played":
+        # The row's writer quotes every list item (LlmSpikePuzzle.toJson): the indices come back as strings.
+        groups = action_groups(len(lines), [int(i) for i in row.get("script_actions") or []])
+        rec["actions"] = len(groups)
+        for k, g in enumerate(groups):
+            d = out / ("minus-%d" % (k + 1))
+            d.mkdir(parents=True, exist_ok=True)
+            rest = [l for i, l in enumerate(lines) if i not in g]
+            if rest:
+                left = d / "line.txt"
+                left.write_text("".join(l + "\n" for l in rest), encoding="utf-8")
+                rows = run_arm(build, pzl, "written", seed, d, line_env(left, "ai", seed))
+                v = line_verdict(rows[-1] if rows else None)
+            else:  # the line without its only action is the do-nothing line: the pass arm
+                rows = run_arm(build, pzl, "pass", seed, d)
+                v = "played" if rows and rows[-1].get("status") == "solved" else "pass arm: %s" % (
+                    rows[-1].get("status") if rows else "no row")
+            removed = [lines[i] for i in g]
+            rec["removals"].append({"removed": removed, "verdict": v})
+            if v == "played":
+                rec["unnecessary"].append(removed)
+            else:
+                rec["necessary"] += 1
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "minimality.json").write_text(json.dumps(rec, indent=2) + "\n", encoding="utf-8")
+    return rec
+
+
 def cmd_line(a):
     build = Build(a.build, a.forge)
     pzl = Path(a.pzl).resolve()
     out = Path(a.out_dir or REPO / "runs/puzzles/lines" / pzl.stem)
+    if a.minimality:
+        rec = minimality(build, pzl, Path(a.script or pzl), out, sorted(expand_seeds(a.seeds))[0])
+        print("%-24s line %s; %d of %d actions necessary%s" % (pzl.stem, rec["line"], rec["necessary"], rec["actions"],
+              "".join("; not needed: " + " / ".join(u) for u in rec["unnecessary"])))
+        return 0 if rec["line"] == "played" and rec["necessary"] == rec["actions"] else 1
     rows = run_arm(build, pzl, "written", a.seeds, out, line_env(a.script or pzl, a.opponent, a.seeds, a.budget))
     # The prover plays its first seed only (one engine seed per proof).
     want = sorted(expand_seeds(a.seeds))[:1] if a.opponent == "search" else sorted(expand_seeds(a.seeds))
@@ -573,6 +640,8 @@ def main(argv=None):
                     help="ai: Forge's AI replies; search: prove the line beats every reply the engine offers")
     ln.add_argument("--budget", type=int, default=200, help="--opponent search: rollouts the prover may play")
     ln.add_argument("--seeds", default="1")
+    ln.add_argument("--minimality", action="store_true",
+                    help="replay the line with each action removed in turn: exit 0 only when every removal fails")
     ln.add_argument("--out-dir", default=None)
     a = ap.parse_args(argv)
     return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line}[a.cmd](a)

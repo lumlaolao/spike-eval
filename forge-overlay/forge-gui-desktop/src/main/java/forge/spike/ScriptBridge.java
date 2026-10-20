@@ -53,6 +53,9 @@ final class ScriptBridge implements LLMBridge {
     int untapsLeft = 0;
     /** What each played line took: "line => label". */
     final List<String> taken = new ArrayList<>();
+    /** The 0-based lines that opened an action (a priority menu's play, an attack, a block); the lines after each, up
+     *  to the next, are its targets, costs and choices. The minimality check removes one action at a time. */
+    final List<Integer> actionLines = new ArrayList<>();
     private int calls = 0;
 
     ScriptBridge(String label, List<String> lines) {
@@ -95,6 +98,8 @@ final class ScriptBridge implements LLMBridge {
         m.put("script_waits", waits);
         m.put("script_untaps_left", untapsLeft);
         m.put("script_played", played());
+        m.put("script_taken", new ArrayList<>(taken));
+        m.put("script_actions", new ArrayList<>(actionLines));
         return m;
     }
 
@@ -192,6 +197,7 @@ final class ScriptBridge implements LLMBridge {
     }
 
     private void take(String line, Question q) {
+        if (q.opensAction()) actionLines.add(pos);
         pos++;
         taken.add(line + " => " + (q.lastTaken == null ? "" : q.lastTaken));
     }
@@ -252,6 +258,10 @@ final class ScriptBridge implements LLMBridge {
             phase = ph;
             playMenu = block.contains("You have priority (") && passOption() > 0;
             manaUntap = block.startsWith("DECISION: MANA: you are paying") && block.contains("stay untapped");
+        }
+
+        boolean opensAction() {
+            return playMenu || "blocks".equals(field) || block.contains("declare attackers");
         }
 
         String head() {

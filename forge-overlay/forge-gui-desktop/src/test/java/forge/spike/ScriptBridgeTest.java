@@ -123,6 +123,16 @@ public class ScriptBridgeTest {
         Assert.assertEquals(b.unconsumed(), 0);
         Assert.assertTrue(b.played());
         Assert.assertEquals(b.report().get("script_played"), true);
+        // What each line took, for the minimality check (HARD-PUZZLES section 4, item 3): which lines open an action.
+        Assert.assertEquals(b.report().get("script_taken"), Arrays.asList(
+                "cast Divination => CAST Divination @1 2{U} [Draw two cards.]",
+                "cast Snakeform => CAST Snakeform @2 2{G/U} [Until end of turn, target creature loses all abilities and"
+                        + " becomes a green Snake with base power and toughness 1/1. Draw a card.]",
+                "Thing in the Ice => Thing in the Ice 0/4 [untapped] [Ice x2] [defender] @4 [Battlefield, yours]"));
+        Assert.assertEquals(b.report().get("script_actions"), Arrays.asList(0, 1), "the target belongs to Snakeform");
+        ScriptBridge attack = script("Goblin Electromancer; Thermo-Alchemist");
+        answer(attack, ATTACK);
+        Assert.assertEquals(attack.report().get("script_actions"), Arrays.asList(0), "an attack is an action");
     }
 
     @Test

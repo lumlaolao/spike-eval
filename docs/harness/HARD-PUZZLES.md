@@ -112,6 +112,8 @@ only for what search is good at: opponent replies, deviations and minimality.
    answer a reply differently (one line per branch), and the deviation search from a written line.
 3. **Minimality**: replay the script with each solver action removed in turn (the rest attempted as written);
    every removal must fail. Written to the record as `necessary_actions`.
+   **Done (2026-10-20):** `puzzle_baselines.py line --minimality` (`minimality.json`). A removal that drifts counts as
+   failing: the rest cannot be played as written without the action.
 4. **The greedy-preview arm**: a zero-model policy over `PlayerLookahead`'s one-ply preview, taking the option
    whose preview lowers the opponent's life most (then the one that adds most power). The "depth 1" floor; it
    must fail on T3 and is reported with the other floors.

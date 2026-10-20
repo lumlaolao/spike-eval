@@ -117,7 +117,11 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   every draw on the search line is the opponent's, so `proven` means this one fixed line beats every reply the
   engine offers, and `not_found` names the reply that beats it (`refutation_line`, RP_141 with one attacker: the
   Persecutor blocks it). A reply under which the line drifts counts as beaten. Uniqueness is not searched (the
-  line has no solver choice on the search line to vary); the line's own minimality is item 3. The section is in the file the solver never reads;
+  line has no solver choice on the search line to vary).
+- `--minimality` replays the line with each action removed in turn, the rest as written, and exits 0 only when
+  every removal fails. An action is the line that opened it (a priority play, an attack, a block; the row's
+  `script_actions`) and the lines after it; removing a line's only action plays the pass arm. The record is
+  `minimality.json` in the output directory: the actions, how many are necessary, and each removal's verdict. The section is in the file the solver never reads;
   it is a public answer, so a held-out puzzle keeps its line out of the public repository.
 
 ## Rules puzzles: an acceptance state and one solution
