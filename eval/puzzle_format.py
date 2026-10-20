@@ -45,8 +45,8 @@ SPLITS = ("open", "heldout")
 STATUSES = ("active", "dropped", "candidate")
 TIERS = (1, 2, 3)
 # The trivial policies every puzzle carries a solve rate for. random/pass/first are the floors the
-# headline is measured against; floor (the harness's own no-model fallback) and ai (Forge's AI as the
-# solver, for tiering) are anchors.
+# headline is measured against; floor (the harness's own no-model fallback), ai (Forge's AI as the
+# solver, for tiering) and greedy (the one-move-deep preview floor, GreedyBridge) are anchors.
 BASELINE_ARMS = ("random", "pass", "first", "floor", "ai", "greedy")
 REQUIRED_BASELINES = ("random", "pass", "first")
 SOURCE_KINDS = ("mined", "forge-builtin", "authored", "rules")

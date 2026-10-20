@@ -172,6 +172,7 @@ class MinimalityTest(unittest.TestCase):
         f.write_text("a\r\n\u00a0\nb\x0cc\n  # note\n\n d \n", encoding="utf-8")
         self.assertEqual(pb.script_lines(f), ["a", "\u00a0", "b\x0cc", "d"])
 
+
 class GreedyArmTest(unittest.TestCase):
     """The greedy-preview floor (HARD-PUZZLES.md section 4, item 4) is a baseline arm like the others."""
 
@@ -190,9 +191,7 @@ class GreedyArmTest(unittest.TestCase):
         self.assertEqual(seen["MEMORY_TOOLS"], "0")
         self.assertFalse(any(k.startswith("OPENROUTER") for k in seen if k != "OPENROUTER_BASE_URL"))
         self.assertIn("greedy", pb.DEFAULT_SEEDS)
-        import puzzle_format as pf
-        self.assertIn("greedy", pf.BASELINE_ARMS)
-
+        self.assertIn("greedy", pb.pf.BASELINE_ARMS)
 
 
 if __name__ == "__main__":

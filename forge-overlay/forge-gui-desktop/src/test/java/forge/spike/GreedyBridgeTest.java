@@ -51,14 +51,44 @@ public class GreedyBridgeTest {
     public void everyCastAndActivationIsPreviewedThenTheLargestDropIsTaken() {
         GreedyBridge g = new GreedyBridge("Solver/smart");
         NativeTools.Turn previews = g.chat(user(MENU).toString(), TOOLS, true);
-        Assert.assertEquals(previews.calls.size(), 3, "options 1-3; PASS is not previewed");
+        Assert.assertEquals(previews.calls.size(), 2, "the two casts; a land's mana ability and PASS are not previewed");
         for (NativeTools.Call c : previews.calls) Assert.assertEquals(c.name, NativeTools.SIMULATE);
         Assert.assertEquals(JsonParser.parseString(previews.calls.get(1).arguments).getAsJsonObject().get("option").getAsInt(), 2);
         NativeTools.Turn answer = g.chat(afterPreviews(MENU, previews,
                 "cast Dark Ritual: you mana pool empty -> BBB; graveyard 0 -> 1; Opponent no change",
-                "cast Lava Spike [assuming target: Opponent]: you graveyard 0 -> 1; Opponent life 11 -> 8",
-                "activate Swamp: you mana pool empty -> B; Opponent no change").toString(), TOOLS, true);
+                "cast Lava Spike [assuming target: Opponent]: you graveyard 0 -> 1; Opponent life 11 -> 8").toString(), TOOLS, true);
         Assert.assertEquals(args(answer).get("option").getAsInt(), 2);
+    }
+
+    /** A preview resolves what is already on the stack too, so with a spell there every option seemed to deal its damage
+     *  and the floor cast and tapped for nothing (pr-review of #279: Mutagenic Growth "Opponent life 11 -> 8" was the
+     *  Lava Spike beneath it). With the stack not empty it previews nothing and passes. */
+    @Test
+    public void withSomethingOnTheStackItPasses() {
+        GreedyBridge g = new GreedyBridge("Solver/smart");
+        String busy = MENU.replace("DECISION:", "STACK (engine, top first): 1 not yet resolved: Lava Spike @2\nDECISION:");
+        NativeTools.Turn t = g.chat(user(busy).toString(), TOOLS, true);
+        Assert.assertEquals(args(t).get("option").getAsInt(), 4, "no previews, a pass");
+        String empty = MENU.replace("DECISION:", "STACK (engine, top first): (empty)\nDECISION:");
+        Assert.assertEquals(g.chat(user(empty).toString(), TOOLS, true).calls.get(0).name, NativeTools.SIMULATE);
+    }
+
+    /** The target is the one the chosen play's preview assumed, and the floor never cancels its own play (pr-review of
+     *  #279: a creature target with no "opponent" option took CANCEL, twice a window). */
+    @Test
+    public void aTargetIsTheOneThePreviewAssumedAndNeverCancel() {
+        GreedyBridge g = new GreedyBridge("Solver/smart");
+        NativeTools.Turn previews = g.chat(user(MENU).toString(), TOOLS, true);
+        g.chat(afterPreviews(MENU, previews, "cast Dark Ritual: Opponent no change",
+                "cast Lava Spike [assuming target: Thermo-Alchemist]: you graveyard 0 -> 1; Opponent life 11 -> 10").toString(), TOOLS, true);
+        String target = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose the TARGET for Lava Spike @2\n"
+                + "Options:\n  1) Grizzly Bears 2/2 @7 [Battlefield, Opponent]\n  2) Thermo-Alchemist 0/3 @5 [Battlefield, yours]\n"
+                + "  3) CANCEL: do not take this action; go back to the action menu\n"
+                + "ANSWER: call `answer` with `option`: one number from the list.";
+        Assert.assertEquals(args(g.chat(user(target).toString(), TOOLS, true)).get("option").getAsInt(), 2, "the assumed target");
+        String other = target.replace("Thermo-Alchemist 0/3 @5", "Llanowar Elves 1/1 @5");
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(other).toString(), TOOLS, true)).get("option").getAsInt(), 1,
+                "no assumption: the first option that is not CANCEL");
     }
 
     @Test

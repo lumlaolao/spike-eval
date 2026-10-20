@@ -38,9 +38,8 @@ Forge enforces ("Win" or "Survive" by turn N).
     others), so they are read where Forge distributes them and not copied here.
   - The hash catches a checkout whose file differs.
 - `baselines`: solves and attempts for each free arm: `random` (uniform over the same legal menus the
-  model sees), `pass`, `first`, `floor`, `ai` (Forge's AI as the solver) and `greedy` (the model seat with no
-  model: it previews each cast and activation with the seat's own `simulate` and takes the one that lowers the
-  opponent's life most, else passes; `GreedyBridge`, spec `greedy:`). A puzzle `greedy` solves is one move deep.
+  model sees), `pass`, `first`, `floor`, `ai` (Forge's AI as the solver) and `greedy` (the one-move-deep preview
+  floor; `GreedyBridge`, see docs/harness/ARCHITECTURE.md). A puzzle `greedy` solves is one move deep.
 - `reference_line`: the proof that the position is solvable in this engine. It is one of:
   - a random rollout's draw tape and seed, replayed by the `script` arm, which must not drift and must
     reach the goal;

@@ -68,7 +68,9 @@ ADD_OPENS = [
 
 # Arm -> CONTROLLER_A. "ai" cannot sit in the solver seat (LlmSpikePuzzle.requireOverridableSolver);
 # ai-log is the same Forge AI with logging.
-ARM_CONTROLLER = {"random": "random", "pass": "pass", "first": "first", "floor": "floor", "ai": "ai-log"}
+ARM_CONTROLLER = {"random": "random", "pass": "pass", "first": "first", "floor": "floor", "ai": "ai-log",
+                  "greedy": "llm"}
+GREEDY_SPEC = "greedy:"  # GreedyBridge.PREFIX
 DEFAULT_SEEDS = {"pass": "1..4", "first": "1..4", "floor": "1..4", "ai": "1..4", "greedy": "1..4"}
 SEARCH_BASE = 1_000_000
 
@@ -434,10 +436,7 @@ def greedy_env():
     (LOOKAHEAD=1), every other setting as a paid run pins it with the tools off."""
     import puzzle_solve  # here: puzzle_solve imports this module
     cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
-    return dict(cond, CONTROLLER_A="llm", SMART_MODEL_A=GREEDY_SPEC, FAST_MODEL_A=GREEDY_SPEC, LOOKAHEAD="1")
-
-
-GREEDY_SPEC = "greedy:"
+    return dict(cond, SMART_MODEL_A=GREEDY_SPEC, FAST_MODEL_A=GREEDY_SPEC, LOOKAHEAD="1")
 
 
 def line_verdict(row):
