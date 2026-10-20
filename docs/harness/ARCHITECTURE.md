@@ -465,6 +465,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 | `random` | uniform over the same legal menus |
 | `ai` | Forge's AI, the opponent and a baseline |
 | `pass`, `first`, `script` | puzzle arms |
+| `greedy:` (a model spec, `CONTROLLER_A=llm`, `LOOKAHEAD=1`) | the one-move-deep floor (`GreedyBridge`): previews each cast and activation with the seat's `simulate` and takes the largest drop in the opponent's life, else passes; attacks with everything, targets the opponent |
 | `script:<file>` (a model spec, `CONTROLLER_A=llm`) | a written solution line played by the model seat (`ScriptBridge`): each line names the option the seat is shown, the bridge answers `answer` with it, and a line no option fits is a drift, never a guess |
 | `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is |
 

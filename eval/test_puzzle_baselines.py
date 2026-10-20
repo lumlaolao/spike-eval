@@ -127,6 +127,28 @@ class MinimalityTest(unittest.TestCase):
         self.assertEqual(res["unnecessary"], [["cast Shock", "opponent"]])
 
 
+class GreedyArmTest(unittest.TestCase):
+    """The greedy-preview floor (HARD-PUZZLES.md section 4, item 4) is a baseline arm like the others."""
+
+    def test_the_greedy_arm_is_the_model_seat_with_previews_and_no_model(self):
+        seen = {}
+
+        class FakeBuild:
+            def run(self, env, out_dir, timeout_s=None):
+                seen.update(env)
+                Path(out_dir).mkdir(parents=True, exist_ok=True)
+                (Path(out_dir) / "puzzle-results.jsonl").write_text(json.dumps({"status": "failed", "seed": 1}) + "\n")
+                return 0
+        pb.run_arm(FakeBuild(), Path("/x/h.pzl"), "greedy", "1..4", Path(tempfile.mkdtemp()))
+        self.assertEqual((seen["CONTROLLER_A"], seen["SMART_MODEL_A"], seen["FAST_MODEL_A"]), ("llm", "greedy:", "greedy:"))
+        self.assertEqual(seen["LOOKAHEAD"], "1", "the floor is the seat's own one-ply preview")
+        self.assertEqual(seen["MEMORY_TOOLS"], "0")
+        self.assertFalse(any(k.startswith("OPENROUTER") for k in seen if k != "OPENROUTER_BASE_URL"))
+        self.assertIn("greedy", pb.DEFAULT_SEEDS)
+        import puzzle_format as pf
+        self.assertIn("greedy", pf.BASELINE_ARMS)
+
+
 
 if __name__ == "__main__":
     unittest.main()

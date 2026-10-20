@@ -7,6 +7,8 @@ Every arm here is free: no model is called and nothing leaves the machine.
   pass    the do-nothing option wherever one exists (PASS, decline, no attack/block), else the first
   first   the first option of every menu
   floor   the harness's own no-model fallback (all-in attack, no blocks, PASS) -- an anchor
+  greedy  the model seat with no model, previewing each play and taking the one that lowers the opponent's life
+          most (GreedyBridge): the one-move-deep floor a hard puzzle must stay above
   ai      Forge's AI in the solver seat (CONTROLLER_A=ai-log) -- the tiering anchor
 
   python3 eval/puzzle_baselines.py run    --suite S.json [--ids a,b] [--rollouts 200] [-j 4] --write S.json
@@ -63,7 +65,7 @@ ADD_OPENS = [
 # Arm -> CONTROLLER_A. "ai" cannot sit in the solver seat (LlmSpikePuzzle.requireOverridableSolver);
 # ai-log is the same Forge AI with logging.
 ARM_CONTROLLER = {"random": "random", "pass": "pass", "first": "first", "floor": "floor", "ai": "ai-log"}
-DEFAULT_SEEDS = {"pass": "1..4", "first": "1..4", "floor": "1..4", "ai": "1..4"}
+DEFAULT_SEEDS = {"pass": "1..4", "first": "1..4", "floor": "1..4", "ai": "1..4", "greedy": "1..4"}
 SEARCH_BASE = 1_000_000
 
 
@@ -165,6 +167,8 @@ def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
             return rows
     env = {"PUZZLE": str(Path(pzl_path).resolve()), "CONTROLLER_A": ARM_CONTROLLER.get(arm, arm),
            "CONTROLLER_B": "ai", "PZL_SEEDS": seeds, "GAME_CAP_MS": "120000"}
+    if arm == "greedy":
+        env.update(greedy_env())
     env.update(extra_env or {})
     # LlmSpikePuzzle appends its rows: without this a re-run read the last run's rows (another build, say).
     (Path(out_dir) / "puzzle-results.jsonl").unlink(missing_ok=True)
@@ -421,6 +425,17 @@ def cmd_prove(a):
     return 0
 
 
+def greedy_env():
+    """The greedy-preview floor (GreedyBridge): the model seat with no model, its own `simulate` previews on
+    (LOOKAHEAD=1), every other setting as a paid run pins it with the tools off."""
+    import puzzle_solve  # here: puzzle_solve imports this module
+    cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
+    return dict(cond, CONTROLLER_A="llm", SMART_MODEL_A=GREEDY_SPEC, FAST_MODEL_A=GREEDY_SPEC, LOOKAHEAD="1")
+
+
+GREEDY_SPEC = "greedy:"
+
+
 def line_verdict(row):
     """"played" when a written-line game played every line, drifted nowhere and solved cleanly; else why not.
     A drift is checked first: after one, the do-nothing answers can still stumble into the acceptance state."""
@@ -578,7 +593,7 @@ def cmd_run(a):
     for r in manifest["puzzles"]:
         if r["id"] in done:
             b = r.get("baselines", {})
-            print("%-24s %-9s tier=%s random=%s pass=%s first=%s floor=%s ai=%s line=%s %s" % (
+            print("%-24s %-9s tier=%s random=%s pass=%s first=%s floor=%s ai=%s greedy=%s line=%s %s" % (
                 r["id"], r["status"], r.get("tier"),
                 *[("%d/%d" % (b[x]["solved"], b[x]["n"])) if x in b else "-" for x in pf.BASELINE_ARMS],
                 (r.get("reference_line") or {}).get("solver_actions"), ",".join(r.get("flags", []))))

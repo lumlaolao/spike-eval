@@ -10870,6 +10870,8 @@ public final class LlmSpikeGui {
                 throw new IllegalArgumentException("model spec required for " + label);
             // A written solution line played through the model seat (ScriptBridge): no model, nothing leaves.
             if (spec.startsWith(ScriptBridge.PREFIX)) return ScriptBridge.fromFile(label, spec.substring(ScriptBridge.PREFIX.length()));
+            // The greedy-preview floor: zero-model, the seat's own one-ply previews (GreedyBridge).
+            if (spec.startsWith(GreedyBridge.PREFIX)) return new GreedyBridge(label);
             if (spec.startsWith("openrouter:")) {
                 // Explicit egress consent: every OpenRouter call ships the full game snapshot
                 // (board, hand, deck plan) to a third-party API. Holding an API key is a
