@@ -1,0 +1,47 @@
+[metadata]
+Name:fling_57a4c7c8cd0d
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend, Soul-Scar Mage and two untapped Mountains. Your hand is Gitaxian Probe, Seething Song, Pyretic Ritual, Mutagenic Growth, Gitaxian Probe, Brute Force, Gitaxian Probe, Brute Force and Fling. The opponent is at 46 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 46, Fling after combat with mana held for it; every spell before combat deals at most 45, Fling paid only by held Mountains at most 45
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Gitaxian Probe;Seething Song;Pyretic Ritual;Mutagenic Growth;Gitaxian Probe;Brute Force;Gitaxian Probe;Brute Force;Fling
+p0battlefield=Kiln Fiend;Soul-Scar Mage;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=46
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Soul-Scar Mage
+cast Gitaxian Probe
+opponent
+Kiln Fiend; Soul-Scar Mage
+cast Gitaxian Probe
+opponent
+Kiln Fiend; Soul-Scar Mage
+Kiln Fiend; Soul-Scar Mage
+at MAIN2: cast Pyretic Ritual
+Kiln Fiend; Soul-Scar Mage
+cast Seething Song
+Kiln Fiend; Soul-Scar Mage
+cast Brute Force
+Kiln Fiend
+Kiln Fiend; Soul-Scar Mage
+cast Brute Force
+Kiln Fiend
+Kiln Fiend; Soul-Scar Mage
+cast Gitaxian Probe
+opponent
+Kiln Fiend; Soul-Scar Mage
+cast Fling
+opponent
+Kiln Fiend
+[acceptance]
+life p1 <= 0

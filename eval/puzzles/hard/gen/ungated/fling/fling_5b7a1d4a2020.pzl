@@ -1,0 +1,38 @@
+[metadata]
+Name:fling_5b7a1d4a2020
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Soul-Scar Mage and two untapped Mountains. Your hand is Fling, Lightning Bolt, Seething Song, Gitaxian Probe, Lightning Bolt, Seething Song, Lava Spike, Rite of Flame, Lightning Bolt and Rite of Flame. The opponent is at 27 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 27, Fling after combat with mana held for it; every spell before combat deals at most 22, Fling paid only by held Mountains at most 22
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fling;Lightning Bolt;Seething Song;Gitaxian Probe;Lightning Bolt;Seething Song;Lava Spike;Rite of Flame;Lightning Bolt;Rite of Flame
+p0battlefield=Soul-Scar Mage;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=27
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+cast Rite of Flame
+cast Lava Spike
+opponent
+cast Lightning Bolt
+opponent
+cast Gitaxian Probe
+opponent
+Soul-Scar Mage
+at MAIN2: cast Rite of Flame
+cast Seething Song
+cast Seething Song
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Fling
+opponent
+[acceptance]
+life p1 <= 0

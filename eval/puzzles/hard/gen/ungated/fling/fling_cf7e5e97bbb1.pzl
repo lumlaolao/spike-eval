@@ -1,0 +1,34 @@
+[metadata]
+Name:fling_cf7e5e97bbb1
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Soul-Scar Mage and two untapped Mountains. Your hand is Rite of Flame, Gitaxian Probe, Rite of Flame, Mutagenic Growth, Pyretic Ritual, Rite of Flame, Shock, Fling and Mutagenic Growth. The opponent is at 27 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 27, Fling after combat with mana held for it; every spell before combat deals at most 15, Fling paid only by held Mountains at most 16
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rite of Flame;Gitaxian Probe;Rite of Flame;Mutagenic Growth;Pyretic Ritual;Rite of Flame;Shock;Fling;Mutagenic Growth
+p0battlefield=Soul-Scar Mage;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=27
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+cast Rite of Flame
+cast Rite of Flame
+cast Shock
+opponent
+cast Pyretic Ritual
+cast Mutagenic Growth
+cast Mutagenic Growth
+cast Gitaxian Probe
+opponent
+Soul-Scar Mage
+at MAIN2: cast Rite of Flame
+cast Fling
+opponent
+[acceptance]
+life p1 <= 0

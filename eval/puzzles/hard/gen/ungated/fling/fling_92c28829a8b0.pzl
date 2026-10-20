@@ -1,0 +1,49 @@
+[metadata]
+Name:fling_92c28829a8b0
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend, Monastery Swiftspear and two untapped Mountains. Your hand is Brute Force, Fling, Shock, Rite of Flame, Lava Spike, Rite of Flame, Pyretic Ritual, Mutagenic Growth, Mutagenic Growth and Gitaxian Probe. The opponent is at 81 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 81, Fling after combat with mana held for it; every spell before combat deals at most 53, Fling paid only by held Mountains at most 53
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Brute Force;Fling;Shock;Rite of Flame;Lava Spike;Rite of Flame;Pyretic Ritual;Mutagenic Growth;Mutagenic Growth;Gitaxian Probe
+p0battlefield=Kiln Fiend;Monastery Swiftspear;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=81
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+cast Rite of Flame
+Kiln Fiend; Monastery Swiftspear
+cast Pyretic Ritual
+Kiln Fiend; Monastery Swiftspear
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Lava Spike
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Shock
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Gitaxian Probe
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Brute Force
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+Kiln Fiend; Monastery Swiftspear
+at MAIN2: cast Rite of Flame
+Kiln Fiend; Monastery Swiftspear
+cast Fling
+opponent
+Kiln Fiend
+[acceptance]
+life p1 <= 0

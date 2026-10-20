@@ -1,0 +1,52 @@
+[metadata]
+Name:fling_b4f2acc1e2e1
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend, Monastery Swiftspear and two untapped Mountains. Your hand is Mutagenic Growth, Gitaxian Probe, Fling, Lava Spike, Pyretic Ritual, Pyretic Ritual, Lava Spike, Mutagenic Growth, Pyretic Ritual, Lava Spike and Mutagenic Growth. The opponent is at 67 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 67, Fling after combat with mana held for it; every spell before combat deals at most 60, Fling paid only by held Mountains at most 60
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Mutagenic Growth;Gitaxian Probe;Fling;Lava Spike;Pyretic Ritual;Pyretic Ritual;Lava Spike;Mutagenic Growth;Pyretic Ritual;Lava Spike;Mutagenic Growth
+p0battlefield=Kiln Fiend;Monastery Swiftspear;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=67
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Gitaxian Probe
+opponent
+Kiln Fiend; Monastery Swiftspear
+Kiln Fiend; Monastery Swiftspear
+at MAIN2: cast Pyretic Ritual
+Kiln Fiend; Monastery Swiftspear
+cast Pyretic Ritual
+Kiln Fiend; Monastery Swiftspear
+cast Pyretic Ritual
+Kiln Fiend; Monastery Swiftspear
+cast Lava Spike
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Lava Spike
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Lava Spike
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Fling
+opponent
+Kiln Fiend
+[acceptance]
+life p1 <= 0

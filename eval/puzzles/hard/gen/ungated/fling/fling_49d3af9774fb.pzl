@@ -1,0 +1,51 @@
+[metadata]
+Name:fling_49d3af9774fb
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend, Soul-Scar Mage and two untapped Mountains. Your hand is Rite of Flame, Mutagenic Growth, Seething Song, Brute Force, Pyretic Ritual, Rite of Flame, Lightning Bolt, Fling, Brute Force, Lightning Bolt and Mutagenic Growth. The opponent is at 68 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 68, Fling after combat with mana held for it; every spell before combat deals at most 61, Fling paid only by held Mountains at most 61
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rite of Flame;Mutagenic Growth;Seething Song;Brute Force;Pyretic Ritual;Rite of Flame;Lightning Bolt;Fling;Brute Force;Lightning Bolt;Mutagenic Growth
+p0battlefield=Kiln Fiend;Soul-Scar Mage;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=68
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Soul-Scar Mage
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Soul-Scar Mage
+cast Brute Force
+Kiln Fiend
+Kiln Fiend; Soul-Scar Mage
+Kiln Fiend; Soul-Scar Mage
+at MAIN2: cast Rite of Flame
+Kiln Fiend; Soul-Scar Mage
+cast Rite of Flame
+Kiln Fiend; Soul-Scar Mage
+cast Seething Song
+Kiln Fiend; Soul-Scar Mage
+cast Pyretic Ritual
+Kiln Fiend; Soul-Scar Mage
+cast Lightning Bolt
+opponent
+Kiln Fiend; Soul-Scar Mage
+cast Lightning Bolt
+opponent
+Kiln Fiend; Soul-Scar Mage
+cast Brute Force
+Kiln Fiend
+Kiln Fiend; Soul-Scar Mage
+cast Fling
+opponent
+Kiln Fiend
+[acceptance]
+life p1 <= 0

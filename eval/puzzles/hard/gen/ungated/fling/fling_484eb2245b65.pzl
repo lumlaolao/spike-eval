@@ -1,0 +1,51 @@
+[metadata]
+Name:fling_484eb2245b65
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend, Monastery Swiftspear and two untapped Mountains. Your hand is Shock, Shock, Seething Song, Rite of Flame, Rite of Flame, Brute Force, Lightning Bolt, Rite of Flame, Gitaxian Probe, Shock and Fling. The opponent is at 84 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 84, Fling after combat with mana held for it; every spell before combat deals at most 57, Fling paid only by held Mountains at most 57
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock;Shock;Seething Song;Rite of Flame;Rite of Flame;Brute Force;Lightning Bolt;Rite of Flame;Gitaxian Probe;Shock;Fling
+p0battlefield=Kiln Fiend;Monastery Swiftspear;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=84
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+cast Rite of Flame
+Kiln Fiend; Monastery Swiftspear
+cast Rite of Flame
+Kiln Fiend; Monastery Swiftspear
+cast Shock
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Seething Song
+Kiln Fiend; Monastery Swiftspear
+cast Gitaxian Probe
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Shock
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Shock
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Lightning Bolt
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Brute Force
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+Kiln Fiend; Monastery Swiftspear
+at MAIN2: cast Rite of Flame
+Kiln Fiend; Monastery Swiftspear
+cast Fling
+opponent
+Kiln Fiend
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,34 @@
+[metadata]
+Name:fling_8bf24dae7b84
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend and two untapped Mountains. Your hand is Seething Song, Lava Spike, Pyretic Ritual, Rite of Flame, Mutagenic Growth, Fling, Seething Song, Mutagenic Growth and Lightning Bolt. The opponent is at 49 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 49, Fling after combat with mana held for it; every spell before combat deals at most 35, Fling paid only by held Mountains at most 35
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Seething Song;Lava Spike;Pyretic Ritual;Rite of Flame;Mutagenic Growth;Fling;Seething Song;Mutagenic Growth;Lightning Bolt
+p0battlefield=Kiln Fiend;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=49
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+cast Mutagenic Growth
+cast Mutagenic Growth
+cast Lava Spike
+opponent
+Kiln Fiend
+at MAIN2: cast Rite of Flame
+cast Pyretic Ritual
+cast Seething Song
+cast Seething Song
+cast Lightning Bolt
+opponent
+cast Fling
+opponent
+[acceptance]
+life p1 <= 0

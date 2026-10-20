@@ -1,0 +1,52 @@
+[metadata]
+Name:fling_440c012930bd
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend, Monastery Swiftspear and three untapped Mountains. Your hand is Fling, Pyretic Ritual, Mutagenic Growth, Mutagenic Growth, Pyretic Ritual, Brute Force, Shock, Mutagenic Growth, Shock, Seething Song and Lightning Bolt. The opponent is at 74 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 74, Fling after combat with mana held for it; every spell before combat deals at most 61, Fling paid only by held Mountains at most 61
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fling;Pyretic Ritual;Mutagenic Growth;Mutagenic Growth;Pyretic Ritual;Brute Force;Shock;Mutagenic Growth;Shock;Seething Song;Lightning Bolt
+p0battlefield=Kiln Fiend;Monastery Swiftspear;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=74
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Mutagenic Growth
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+cast Brute Force
+Kiln Fiend
+Kiln Fiend; Monastery Swiftspear
+Kiln Fiend; Monastery Swiftspear
+at MAIN2: cast Pyretic Ritual
+Kiln Fiend; Monastery Swiftspear
+cast Seething Song
+Kiln Fiend; Monastery Swiftspear
+cast Pyretic Ritual
+Kiln Fiend; Monastery Swiftspear
+cast Shock
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Shock
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Lightning Bolt
+opponent
+Kiln Fiend; Monastery Swiftspear
+cast Fling
+opponent
+Kiln Fiend
+[acceptance]
+life p1 <= 0

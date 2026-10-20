@@ -1,0 +1,36 @@
+[metadata]
+Name:fling_e9386d6b0721
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Kiln Fiend and one untapped Mountain. Your hand is Shock, Pyretic Ritual, Pyretic Ritual, Pyretic Ritual, Fling, Rite of Flame, Rite of Flame, Gitaxian Probe, Lightning Bolt and Rite of Flame. The opponent is at 34 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-fling | the searched best deals 34, Fling after combat with mana held for it; every spell before combat deals at most 33, Fling paid only by held Mountains at most 33
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock;Pyretic Ritual;Pyretic Ritual;Pyretic Ritual;Fling;Rite of Flame;Rite of Flame;Gitaxian Probe;Lightning Bolt;Rite of Flame
+p0battlefield=Kiln Fiend;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=34
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+cast Gitaxian Probe
+opponent
+Kiln Fiend
+at MAIN2: cast Rite of Flame
+cast Shock
+opponent
+cast Rite of Flame
+cast Rite of Flame
+cast Pyretic Ritual
+cast Pyretic Ritual
+cast Pyretic Ritual
+cast Lightning Bolt
+opponent
+cast Fling
+opponent
+[acceptance]
+life p1 <= 0
