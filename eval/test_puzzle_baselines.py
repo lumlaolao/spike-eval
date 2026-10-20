@@ -1,4 +1,5 @@
-"""puzzle_baselines.py: the `line` command, which plays a puzzle's written solution through the model seat."""
+"""puzzle_baselines.py: the `line` command (a written solution played through the model seat), the greedy arm's
+condition, and the commands that write a record's difficulty and v2 tier (prove, retier, run --baselines-only)."""
 import json
 import sys
 import tempfile
@@ -194,6 +195,124 @@ class GreedyArmTest(unittest.TestCase):
         cond = pb.greedy_condition()
         self.assertEqual(cond["env"]["SMART_MODEL_A"], "greedy:")
         self.assertTrue(str(cond["harness_epoch"]).startswith("harness-epoch-"), cond)
+
+
+PZL = ("[metadata]\nName:x\nGoal:Win\nTurns:1\n[state]\nturn=1\np0hand=Lava Spike;Fling\n"
+       "p0battlefield=Mountain;Thermo-Alchemist\np0library=Island;Island\np1battlefield=Wall of Omens\n"
+       "p1graveyard=Shock\n[acceptance]\nlife p1 <= 0\n")
+
+
+class DifficultyCommandsTest(unittest.TestCase):
+    """The commands that write a record's difficulty, v2 tier and skills (prove, retier, run --baselines-only)."""
+
+    def test_a_proven_record_gets_its_difficulty_tier_and_tags(self):
+        repo = Path(tempfile.mkdtemp())
+        (repo / "h.pzl").write_text(PZL, encoding="utf-8")
+        rec = {"id": "h", "pzl": str(repo / "h.pzl"), "source": {"kind": "rules"},
+               "baselines": {"ai": {"solved": 0, "n": 4, "rate": 0.0}},
+               "proof": {"status": "proven", "opponent": "search", "line": "Solver:3:1 Solver:2:0", "solver_actions": 2, "turns": 1,
+                         "opponent_choice_points": 0, "actions": ["STACK_ADD: Solver cast Shock",
+                                                                  "STACK_ADD: Solver cast Fling"]}}
+        out = pb.apply_difficulty(rec)
+        self.assertEqual(out["difficulty"]["B"], 6)
+        self.assertEqual(out["tier_v2"], 2, "two actions, but Forge's AI fails it")
+        self.assertEqual(out["skills"], ["rules application", "sequencing"])
+        self.assertEqual(pb.apply_difficulty(dict(rec, proof={"status": "not_found"}))["tier_v2"], None)
+        self.assertEqual(pb.proof_from_row({"status": "proven", "turns": 2}, "search", "x", "d")["turns"], 2)
+
+    def test_retier_rewrites_every_record_from_its_proof(self):
+        repo = Path(tempfile.mkdtemp())
+        (repo / "h.pzl").write_text(PZL, encoding="utf-8")
+        rec = {"id": "h", "pzl": str(repo / "h.pzl"), "source": {"kind": "rules"}, "baselines": {},
+               "proof": {"status": "proven", "opponent": "search", "turns": 1, "line": "Solver:2:0", "solver_actions": 6, "opponent_choice_points": 0}}
+        suite = repo / "s.json"
+        suite.write_text(json.dumps({"schema": "puzzle-suite.v1", "suite": "s", "puzzles": [rec]}), encoding="utf-8")
+        self.assertEqual(pb.main(["retier", "--suite", str(suite), "--write", str(repo / "t.json")]), 0)
+        self.assertEqual(json.loads((repo / "t.json").read_text())["puzzles"][0]["tier_v2"], 3)
+
+    def test_an_unreadable_pzl_gives_no_tier_and_fails_retier(self):
+        # With FORGE_HOME at another checkout every forge: record read as T=None and board_objects=0, and retier
+        # rewrote them all with exit 0 (pr-review of #280).
+        repo = Path(tempfile.mkdtemp())
+        old = {"L": 1, "D": 1, "O": 0, "T": 1, "B": 2, "board_objects": 5}
+        rec = {"id": "h", "pzl": str(repo / "missing.pzl"), "source": {"kind": "rules"}, "baselines": {},
+               "difficulty": old, "tier_v2": 1, "proof": {"status": "proven", "opponent": "search", "turns": 1,
+                                                         "line": "Solver:2:0", "solver_actions": 1}}
+        out = pb.apply_difficulty(rec)
+        self.assertEqual((out["difficulty"], out["tier_v2"], out["skills"]), (None, None, None),
+                         "no measure from a pzl that was not read, and no old one beside a new proof")
+        suite = repo / "s.json"
+        suite.write_text(json.dumps({"schema": "puzzle-suite.v1", "suite": "s", "puzzles": [rec]}), encoding="utf-8")
+        with self.assertRaises(SystemExit):
+            pb.main(["retier", "--suite", str(suite), "--write", str(repo / "t.json")])
+        self.assertFalse((repo / "t.json").exists(), "no manifest is written")
+
+    def test_baselines_only_measures_the_arms_and_nothing_else(self):
+        calls = []
+        real = pb.run_arm
+        pb.run_arm = lambda build, pzl, arm, seeds, out, extra_env=None: calls.append(arm) or [{"status": "solved", "seed": 1}]
+        try:
+            rec = {"id": "h", "pzl": "/x/h.pzl", "source": {"kind": "rules"}, "status": "candidate"}
+            out = pb.baseline_puzzle(None, rec, Path(tempfile.mkdtemp()), 4, 1, 0, ["ai"], baselines_only=True)
+        finally:
+            pb.run_arm = real
+        self.assertEqual(calls, ["ai"], "no line search, no verification replay")
+        self.assertEqual(out["baselines"]["ai"]["rate"], 1.0)
+        self.assertEqual(out["status"], "candidate")
+
+    def test_baselines_only_keeps_the_status_true_to_the_new_rates(self):
+        # An active record whose new random rate is above the drop threshold is dropped, and its v1 tier follows the
+        # AI's new rate (pr-review of #280: both were left as they were).
+        real = pb.run_arm
+        pb.run_arm = lambda build, pzl, arm, seeds, out, extra_env=None: [{"status": "solved", "seed": i} for i in range(4)]
+        try:
+            rec = {"id": "h", "pzl": "/x/h.pzl", "source": {"kind": "rules"}, "status": "active", "tier": 3,
+                   "verification": {"status": "verified"}, "reference_line": {"solver_actions": 2}}
+            out = pb.baseline_puzzle(None, rec, Path(tempfile.mkdtemp()), 4, 1, 0, ["random", "ai"], baselines_only=True)
+        finally:
+            pb.run_arm = real
+        self.assertEqual(out["status"], "dropped")
+        self.assertIn("random_above_threshold", out["flags"])
+        self.assertEqual(out["tier"], pb.tier_for(1.0, 2))
+
+    def test_a_proof_not_found_keeps_no_old_tier(self):
+        # pr-review of #280 at e23f74d: re-proving with FORGE_HOME elsewhere wrote a not_found proof beside the old
+        # difficulty and tier_v2 1.
+        class NoGame:
+            def run(self, env, out, timeout_s=None):
+                Path(out).mkdir(parents=True, exist_ok=True)
+        repo = Path(tempfile.mkdtemp())
+        rec = {"id": "h", "pzl": str(repo / "missing.pzl"), "source": {"kind": "rules"}, "baselines": {},
+               "difficulty": {"L": 1, "D": 1, "O": 0, "T": 1, "B": 2, "board_objects": 5}, "tier_v2": 1,
+               "skills": ["rules application"], "proof": {"status": "proven"}}
+        out = pb.prove_puzzle(NoGame(), rec, repo / "out", 10, "search")
+        self.assertEqual(out["proof"]["status"], "not_found")
+        self.assertEqual((out["difficulty"], out["tier_v2"], out["skills"]), (None, None, None))
+
+    def test_retier_refuses_a_pzl_that_is_not_the_one_proven(self):
+        # Another Forge checkout can hold a file of the same name with other contents (pr-review of #280).
+        repo = Path(tempfile.mkdtemp())
+        (repo / "h.pzl").write_text(PZL, encoding="utf-8")
+        rec = {"id": "h", "pzl": str(repo / "h.pzl"), "pzl_sha256": "0" * 64, "source": {"kind": "rules"},
+               "baselines": {}, "proof": {"status": "proven", "opponent": "search", "turns": 1, "line": "Solver:2:0",
+                                          "solver_actions": 1}}
+        suite = repo / "s.json"
+        suite.write_text(json.dumps({"schema": "puzzle-suite.v1", "suite": "s", "puzzles": [rec]}), encoding="utf-8")
+        with self.assertRaises(SystemExit):
+            pb.main(["retier", "--suite", str(suite), "--write", str(repo / "t.json")])
+        self.assertFalse((repo / "t.json").exists())
+
+    def test_baselines_only_clears_the_v1_tier_of_an_unverified_record(self):
+        # The normal path sets tier None when the line is not verified; --baselines-only kept the old tier.
+        real = pb.run_arm
+        pb.run_arm = lambda build, pzl, arm, seeds, out, extra_env=None: [{"status": "failed", "seed": i} for i in range(4)]
+        try:
+            rec = {"id": "h", "pzl": "/x/h.pzl", "source": {"kind": "rules"}, "status": "candidate", "tier": 2,
+                   "verification": {"status": "failed"}}
+            out = pb.baseline_puzzle(None, rec, Path(tempfile.mkdtemp()), 4, 1, 0, ["ai"], baselines_only=True)
+        finally:
+            pb.run_arm = real
+        self.assertIsNone(out["tier"])
 
 
 if __name__ == "__main__":

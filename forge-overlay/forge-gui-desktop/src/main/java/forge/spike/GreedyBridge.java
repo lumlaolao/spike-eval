@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,9 +20,10 @@ import java.util.regex.Pattern;
  * (LOOKAHEAD=1) and takes the one that lowers the opponent's life most, else passes. Every other decision is
  * answered toward the opponent: a target ask takes what the chosen play's preview assumed (the opponent's copy of a
  * name first, each used once across a chain's asks), else ranks the opponent's side first and the seat's own last,
- * below declining an "up to" ask; never CANCEL; every attacker; no blocks; any other ask the do-nothing answer. It acts only when the faithful prompt shows
- * an empty stack (a preview resolves what is already there too, so every option would seem to deal that damage), and
- * it never plays a land or previews a land's mana ability. It plans nothing: a puzzle it solves is one move deep.
+ * below declining an "up to" ask; never CANCEL; every attacker; no blocks; any other ask the do-nothing answer. It
+ * acts only when the faithful prompt shows an empty stack (a preview resolves what is already there too, so every
+ * option would seem to deal that damage), and it never plays a land or previews a land's mana ability. It plans
+ * nothing: a puzzle it solves is one move deep.
  *
  * <p>It sees only what the model is shown and calls only the model's tools, through the faithful seat, so the floor
  * is the seat's own one-ply lookahead, not a privileged search.
@@ -115,8 +118,7 @@ final class GreedyBridge implements LLMBridge {
         JsonObject a = q.fallback();
         boolean target = q.block.contains("TARGET");
         if (target && "option".equals(q.field)) {
-            // "No target" on the list means the ask is "up to one": declining is allowed.
-            boolean upTo = q.options.values().stream().anyMatch(l -> ScriptBridge.norm(l).startsWith("no target"));
+            boolean upTo = q.options.values().stream().anyMatch(l -> side(l) == DECLINE);
             List<Integer> picks = targets(q, assumed, upTo ? 0 : 1, 1);
             if (!picks.isEmpty()) a.addProperty("option", picks.get(0));
         }
@@ -133,16 +135,19 @@ final class GreedyBridge implements LLMBridge {
         return a;
     }
 
+    private static final int OPPONENT = 0, UNSHOWN = 1, DECLINE = 2, OWN = 3, NEVER = Integer.MAX_VALUE;
+
     /** How much an option suits a play aimed at the opponent: the opponent or the opponent's card first, then a card
      *  with no side shown, then declining ("No target"), the seat's own last; CANCEL never (pr-review of #279: the
      *  engine lists the seat's own cards first, and the first one took a removal spell). */
-    static int side(String label) {
+    private static int side(String label) {
         String l = ScriptBridge.norm(label);
-        if (l.startsWith("cancel")) return Integer.MAX_VALUE;
-        if (l.startsWith("opponent") || l.contains(", opponent's]")) return 0;
-        if (l.startsWith("no target")) return 2;
-        if (l.startsWith("you ") || l.contains(", yours]")) return 3;
-        return 1;
+        // the menu's own rows (CANCEL and a cost ask's CANCEL this play); a card named Cancel can still be a target
+        if (l.startsWith("cancel:") || l.startsWith("cancel this play:")) return NEVER;
+        if (l.startsWith("opponent") || l.contains(", opponent's]")) return OPPONENT;
+        if (l.startsWith("no target")) return DECLINE;
+        if (l.startsWith("you ") || l.contains(", yours]")) return OWN;
+        return UNSHOWN;
     }
 
     /** A label that names {@code name} whole: the name, then its end, a handle or a bracket ("Grizzly Bears 2/2 @7"). */
@@ -157,12 +162,12 @@ final class GreedyBridge implements LLMBridge {
      *  {@code min} (at least one), the best-suited options by {@link #side}. */
     private static List<Integer> targets(ScriptBridge.Question q, List<String> want, int min, int max) {
         List<Map.Entry<Integer, String>> ranked = new ArrayList<>(q.options.entrySet());
-        ranked.sort(java.util.Comparator.comparingInt(o -> side(o.getValue())));
+        ranked.sort(Comparator.comparingInt(o -> side(o.getValue())));
         List<Integer> picks = new ArrayList<>();
-        for (java.util.Iterator<String> it = want.iterator(); it.hasNext() && picks.size() < max; ) {
+        for (Iterator<String> it = want.iterator(); it.hasNext() && picks.size() < max; ) {
             String w = it.next();
             for (Map.Entry<Integer, String> o : ranked)
-                if (!picks.contains(o.getKey()) && side(o.getValue()) < Integer.MAX_VALUE && names(o.getValue(), w)) {
+                if (!picks.contains(o.getKey()) && side(o.getValue()) < NEVER && names(o.getValue(), w)) {
                     picks.add(o.getKey());
                     it.remove();
                     break;
@@ -170,9 +175,9 @@ final class GreedyBridge implements LLMBridge {
         }
         for (Map.Entry<Integer, String> o : ranked) {
             if (picks.size() >= Math.min(Math.max(min, 1), max)) break;
-            if (side(o.getValue()) == Integer.MAX_VALUE || picks.contains(o.getKey())) continue;
-            if (side(o.getValue()) == 2 && min > 0) continue;   // declining is not a pick where one is required
-            if (side(o.getValue()) == 3 && min == 0) continue;  // where declining is allowed, never the seat's own
+            if (side(o.getValue()) == NEVER || picks.contains(o.getKey())) continue;
+            if (side(o.getValue()) == DECLINE && min > 0) continue;   // declining is not a pick where one is required
+            if (side(o.getValue()) == OWN && min == 0) continue;  // where declining is allowed, never the seat's own
             picks.add(o.getKey());
         }
         return picks;
