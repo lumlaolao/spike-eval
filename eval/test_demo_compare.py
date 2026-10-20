@@ -176,12 +176,12 @@ class ArmTest(unittest.TestCase):
                 f.write("/m2/a.jar:/m2/b.jar\n")
             java = os.path.join(d, "fake java")  # prints where it ran and the classpath it was given
             with open(java, "w") as f:
-                f.write('#!/bin/bash\npwd\nwhile [ "$1" != "-cp" ]; do shift; done\necho "$2"\necho "$3"\n')
+                f.write('#!/bin/bash\npwd\nwhile [ $# -gt 0 ] && [ "$1" != "-cp" ]; do shift; done\necho "$2"\necho "$3"\n')
             os.chmod(java, 0o755)
             script = dc.standin_home(os.path.join(d, "home"), os.path.join(b, "classes"),
                                      os.path.join(b, "classpath.txt"), forge, java)
             self.assertTrue(os.access(script, os.X_OK))
-            out = subprocess.run([script], capture_output=True, text=True, check=True).stdout.splitlines()
+            out = subprocess.run([script], capture_output=True, text=True, check=True, timeout=30).stdout.splitlines()
             self.assertEqual(os.path.realpath(out[0]), os.path.realpath(os.path.join(forge, "forge-gui-desktop")))
             self.assertEqual(out[1], os.path.join(b, "classes") + ":/m2/a.jar:/m2/b.jar")
             self.assertEqual(out[2], "forge.spike.LlmSpikeHeadless")
@@ -194,12 +194,14 @@ class ArmTest(unittest.TestCase):
             home = os.path.join(d, "jdk")
             os.makedirs(os.path.join(home, "bin"))
             open(os.path.join(home, "bin", "javac"), "w").close()
-            with mock.patch.dict(os.environ, {"JAVA_HOME": home}):
-                self.assertEqual(dc.jdk_tool("javac"), os.path.join(home, "bin", "javac"))
+            brew = os.path.join(d, "brew")
+            os.makedirs(brew)
+            with mock.patch.dict(os.environ, {"JAVA_HOME": home}), mock.patch.object(dc, "BREW_JDKS", ("/nowhere", brew)):
+                self.assertEqual(dc.jdk_tool("javac"), os.path.join(home, "bin", "javac"))  # JAVA_HOME first
             with mock.patch.dict(os.environ, {"JAVA_HOME": os.path.join(d, "none")}), \
-                    mock.patch.object(dc, "BREW_JDK", home):
-                self.assertEqual(dc.jdk(), home)  # the Mac default
-            with mock.patch.dict(os.environ, {"JAVA_HOME": ""}), mock.patch.object(dc, "BREW_JDK", "/nowhere"), \
+                    mock.patch.object(dc, "BREW_JDKS", ("/nowhere", brew)):
+                self.assertEqual(dc.jdk(), brew)  # the Mac default (here the Intel prefix)
+            with mock.patch.dict(os.environ, {"JAVA_HOME": ""}), mock.patch.object(dc, "BREW_JDKS", ("/nowhere",)), \
                     mock.patch.object(dc.shutil, "which", lambda n: os.path.join(home, "bin", "javac")):
                 self.assertEqual(dc.jdk(), os.path.realpath(home))  # Linux: the javac on PATH
         finally:

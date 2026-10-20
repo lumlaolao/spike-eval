@@ -14,12 +14,13 @@ Everything here runs on both; the commands are the same. Once per machine:
 | | macOS | Linux |
 |---|---|---|
 | Python | 3.9 or newer: the system `python3` or Homebrew's (the demo is stdlib only; tests run on 3.9) | `python3` 3.9 or newer |
-| JDK 17 (side by side, Forge window) | `brew install openjdk@17`; the launchers, acceptance and `demo_compare.py` find it at Homebrew's path, or set `JAVA_HOME` | the `javac` on `PATH`, or `JAVA_HOME` |
-| Forge checkout | `export FORGE_HOME=~/forge` (the default when unset) | the same, or `--forge <dir>` |
+| JDK 17 (side by side, Forge window) | `brew install openjdk@17`; the launchers, acceptance and `demo_compare.py` find it at Homebrew's path (Apple Silicon; `demo_compare.py` also Intel), or set `JAVA_HOME` | the `javac` on `PATH`, or `JAVA_HOME` |
+| Forge checkout | `$FORGE_HOME`, else `~/code/forge` (what every eval tool finds) | the same, or `--forge <dir>` |
 | card images | if `demo_cards.py prefetch` prints a certificate hint, run python.org's `Install Certificates.command` once | nothing |
 | browser | Chrome, Firefox or Safari 16.2+ | Chrome or Firefox |
 
-`demo_compare.py` quotes every path it writes into a launcher, so a home folder with a space works. The Forge window
+`demo_compare.py` quotes every path it writes into its stand-in launcher; the repository and the Forge checkout
+themselves should sit at paths without spaces, as acceptance's compile stage assumes. The Forge window
 (`run-llm-spike.sh`) is the desktop app: on macOS it opens like any app; on a Linux server it needs a display.
 
 ## Replay a recorded game (free, offline)
@@ -66,7 +67,7 @@ model's attention on it, start the server with `--highlight-file` and the game w
 
 ```bash
 python3 eval/demo_server.py --live runs/demo/live --highlight-file /tmp/demo-hl.json &
-DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT=runs/demo/live bash $FORGE_HOME/run-llm-spike.sh
+DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT=runs/demo/live bash "$FORGE_HOME/run-llm-spike.sh"
 ```
 
 After each decision the server writes the engine ids of that decision's highlighted cards (the same ones the

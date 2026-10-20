@@ -31,8 +31,13 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import puzzle_format  # noqa: E402  (forge_home: the checkout every eval tool finds)
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BREW_JDK = "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"  # the Mac default, as the launchers
+# Homebrew's openjdk@17 on Apple Silicon and on Intel Macs (keg-only: not on PATH).
+BREW_JDKS = ("/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",
+             "/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home")
 SIBLINGS = os.path.dirname(REPO)  # the default worktree and build dirs sit beside the checkout
 DECKS = os.path.join(REPO, "eval", "demo", "decks.json")
 SPIKE = "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
@@ -78,13 +83,14 @@ def port_feed(tree, source=REPO):
 
 
 def jdk():
-    """The JDK the launchers and acceptance use: JAVA_HOME, else Homebrew's openjdk@17 (macOS), else the javac on PATH
+    """The JDK, in the order acceptance looks: JAVA_HOME, else Homebrew's openjdk@17 (macOS), else the javac on PATH
     (Linux). None when there is no JDK at all."""
     home = os.environ.get("JAVA_HOME")
     if home and os.path.isfile(os.path.join(home, "bin", "javac")):
         return home
-    if os.path.isdir(BREW_JDK):
-        return BREW_JDK
+    for brew in BREW_JDKS:
+        if os.path.isdir(brew):
+            return brew
     javac = shutil.which("javac")
     return os.path.dirname(os.path.dirname(os.path.realpath(javac))) if javac else None
 
@@ -94,7 +100,7 @@ def jdk_tool(name):
     return os.path.join(home, "bin", name) if home else name
 
 
-def standin_home(home, classes, classpath, forge, java="java"):
+def standin_home(home, classes, classpath, forge, java):
     """A Forge home whose run-llm-headless.sh runs `classes` against the real checkout (never written). Paths are
     shell-quoted: a macOS home folder may hold a space."""
     os.makedirs(home, exist_ok=True)
@@ -352,7 +358,7 @@ def main(argv=None):
         p.add_argument("--worktree", default=os.path.join(SIBLINGS, "harness-then"))
         p.add_argument("--build", default=os.path.join(SIBLINGS, "harness-then-build"))
         p.add_argument("--now-build", default=os.path.join(SIBLINGS, "harness-now-build"))
-        p.add_argument("--forge", default=os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "~/forge"))))
+        p.add_argument("--forge", default=str(puzzle_format.forge_home()))
     a = ap.parse_args(argv)
     return {"build-then": build_then, "build-now": build_now, "run": run, "decks": decks}[a.cmd](a)
 

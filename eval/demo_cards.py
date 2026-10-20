@@ -169,9 +169,12 @@ def main(argv=None):
         ap.error("no game-*.jsonl in %s" % a.target)
     names = names_in_game(jsonl)
     got = [n for n in names if cache.get(n)]
-    missing = [n for n in names if n not in got]
-    print("cached %d of %d card names in %s%s" % (len(got), len(names), cache.root,
-                                                  ("; no image (tokens, unknown names): " + ", ".join(missing)) if missing else ""))
+    unfetched = [n for n in names if n not in got and n.strip().lower() in cache.failed]
+    missing = [n for n in names if n not in got and n not in unfetched]
+    print("cached %d of %d card names in %s%s%s" % (
+        len(got), len(names), cache.root,
+        ("; not fetched (network, retry later): %d" % len(unfetched)) if unfetched else "",
+        ("; no image (tokens, unknown names): " + ", ".join(missing)) if missing else ""))
     return 0
 
 
