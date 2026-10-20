@@ -120,6 +120,12 @@ only for what search is good at: opponent replies, deviations and minimality.
 4. **The greedy-preview arm**: a zero-model policy over `PlayerLookahead`'s one-ply preview, taking the option
    whose preview lowers the opponent's life most (then the one that adds most power). The "depth 1" floor; it
    must fail on T3 and is reported with the other floors.
+   **Done (2026-10-20):** the `greedy` baseline arm (`GreedyBridge`, spec `greedy:`, LOOKAHEAD=1). Measured with
+   `puzzle_baselines.py run --suite eval/suites/greedy-check-v0.json --arms greedy,pass,random --rollouts 20`
+   (greedy and pass on seeds 1-4, random on 20; runs
+   `/tmp/puzzle-scratch/greedy-run2` and, for greedy at 30963f4, `greedy-run3`, not kept): greedy 0/4 on
+   h_0, h_1 and RP_243 and 4/4 on RP_141 and RP_035; pass 0/4 on all five; random 1/20 on h_0, RP_035 and RP_243,
+   5/20 on RP_141 (so RP_141 is too easy for a hard tier) and 0/20 on h_1.
 5. **The arms see the faithful seat's menu**: floating mana and sacrifice-cost mana abilities are offered only
    to the faithful seat today (rules pilot, harness bug 5), so a storm or Altar line cannot be scripted or
    proven. The arms and the seat must share one menu.

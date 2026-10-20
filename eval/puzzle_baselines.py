@@ -7,6 +7,8 @@ Every arm here is free: no model is called and nothing leaves the machine.
   pass    the do-nothing option wherever one exists (PASS, decline, no attack/block), else the first
   first   the first option of every menu
   floor   the harness's own no-model fallback (all-in attack, no blocks, PASS) -- an anchor
+  greedy  the model seat with no model, previewing each play and taking the one that lowers the opponent's life
+          most (GreedyBridge): the one-move-deep floor a hard puzzle must stay above
   ai      Forge's AI in the solver seat (CONTROLLER_A=ai-log) -- the tiering anchor
 
   python3 eval/puzzle_baselines.py run    --suite S.json [--ids a,b] [--rollouts 200] [-j 4] --write S.json
@@ -66,8 +68,10 @@ ADD_OPENS = [
 
 # Arm -> CONTROLLER_A. "ai" cannot sit in the solver seat (LlmSpikePuzzle.requireOverridableSolver);
 # ai-log is the same Forge AI with logging.
-ARM_CONTROLLER = {"random": "random", "pass": "pass", "first": "first", "floor": "floor", "ai": "ai-log"}
-DEFAULT_SEEDS = {"pass": "1..4", "first": "1..4", "floor": "1..4", "ai": "1..4"}
+ARM_CONTROLLER = {"random": "random", "pass": "pass", "first": "first", "floor": "floor", "ai": "ai-log",
+                  "greedy": "llm"}
+GREEDY_SPEC = "greedy:"  # GreedyBridge.PREFIX
+DEFAULT_SEEDS = {"pass": "1..4", "first": "1..4", "floor": "1..4", "ai": "1..4", "greedy": "1..4"}
 SEARCH_BASE = 1_000_000
 
 
@@ -169,6 +173,8 @@ def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
             return rows
     env = {"PUZZLE": str(Path(pzl_path).resolve()), "CONTROLLER_A": ARM_CONTROLLER.get(arm, arm),
            "CONTROLLER_B": "ai", "PZL_SEEDS": seeds, "GAME_CAP_MS": "120000"}
+    if arm == "greedy":
+        env.update(greedy_env())
     env.update(extra_env or {})
     # LlmSpikePuzzle appends its rows: without this a re-run read the last run's rows (another build, say).
     (Path(out_dir) / "puzzle-results.jsonl").unlink(missing_ok=True)
@@ -328,6 +334,8 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms):
             ai_rows = rows
         s = summarize(rows, seeds)
         base[arm] = {k: v for k, v in s.items() if v or k in ("solved", "n", "rate", "seeds")}
+        if arm == "greedy":
+            base[arm]["condition"] = greedy_condition()
     rec = dict(rec, baselines=base)
     if not pf.has_line(rec.get("reference_line")):
         line = choose_line(random_rows)
@@ -425,6 +433,22 @@ def cmd_prove(a):
     return 0
 
 
+def greedy_condition():
+    """What a greedy rate was measured under: the arm reads the seat's prompt (the STACK line, previews), so its rate
+    moves with the interface. The pinned env and the source's stamps, stored beside the rate; a floor and a model run
+    compare only within one harness epoch (pr-review/standards of #279)."""
+    import versions  # eval/versions.py: the stamps, read from the overlay source
+    stamps = {field: value for _, value, field, _ in versions.read_stamps()}
+    return dict({f: stamps.get(f) for f in ("harness_epoch", "observation_version", "lookahead_version")}, env=greedy_env())
+
+
+def greedy_env():
+    """The greedy-preview floor (GreedyBridge): the model seat with no model, its own `simulate` previews on
+    (LOOKAHEAD=1), every other setting as a paid run pins it with the tools off."""
+    import puzzle_solve  # here: puzzle_solve imports this module
+    cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
+    return dict(cond, SMART_MODEL_A=GREEDY_SPEC, FAST_MODEL_A=GREEDY_SPEC, LOOKAHEAD="1")
+
 
 def line_verdict(row):
     """"played" when a written-line game played every line, drifted nowhere and solved cleanly; else why not.
@@ -439,15 +463,19 @@ def line_verdict(row):
                 and not row.get("plays_not_made"):
             return "proven"
         if row.get("refutation_line"):
-            how = ("drift: " + row["refutation_script_drift"]) if row.get("refutation_script_drift") \
-                else ("%d plays the line chose did not happen" % row["refutation_plays_not_made"]) \
-                if row.get("refutation_plays_not_made") else (row.get("refutation_status") or "lost")
+            how = row.get("refutation_status") or "lost"
+            if row.get("refutation_script_drift"):
+                how = "drift: " + row["refutation_script_drift"]
+            elif row.get("refutation_plays_not_made"):
+                how = "%d plays the line chose did not happen" % row["refutation_plays_not_made"]
             return "beaten by %s (%s)" % (row["refutation_line"], how)
         if row.get("script_drift"):
             return "drift: " + row["script_drift"]
         if row.get("plays_not_made"):
             return "%d plays the line chose did not happen" % row["plays_not_made"]
-        return str(row.get("status")) if row.get("status") != "proven" else "proven, but no written-line fields on the row"
+        if row.get("status") == "proven":
+            return "proven, but no written-line fields on the row"
+        return str(row.get("status"))
     if "script_played" not in row:
         return "not a written-line row"
     if row.get("script_drift"):
@@ -481,12 +509,15 @@ def line_env(script, opponent, budget=200, relaxed=False):
     return env
 
 
+_JAVA_TRIM = "".join(map(chr, range(33)))  # what String.trim() strips: every character up to U+0020
+
+
 def script_lines(path):
     """The lines ScriptBridge.fromFile plays: the [solution] section when the file has sections, else the whole file;
     blank and # lines skipped. Split and trimmed as Java's readAllLines and trim() do (only \\n and \\r; only
     characters up to a space), so the indices match the row's script_actions."""
     text = Path(path).read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
-    raw = [l.strip("".join(chr(c) for c in range(33))) for l in text.split("\n")]
+    raw = [l.strip(_JAVA_TRIM) for l in text.split("\n")]
     header = lambda l: l.startswith("[") and l.endswith("]") and len(l) > 2  # noqa: E731
     sectioned = any(header(l) for l in raw)
     out, inside = [], not sectioned
@@ -514,7 +545,8 @@ def action_groups(n, action_lines):
 def removal_verdict(row):
     """What one removal shows (a relaxed replay, ScriptBridge.relaxed): "fails" when the game was played to its end and
     not solved, "played" when it solved anyway (the action is not needed), else "inconclusive: <why>" (no row, the cap,
-    a deck-out, a drift, a play that did not happen). Only "fails" shows the action is needed (pr-review of #278: a drift read as necessary)."""
+    a deck-out, a drift, a play that did not happen, a line that stalled). Only "fails" shows the action is needed
+    (pr-review of #278: a drift read as necessary)."""
     if not row:
         return "inconclusive: no result row"
     if row.get("tainted_by_deckout"):
@@ -559,12 +591,11 @@ def minimality(build, pzl, script, out, seed):
                 # Sectioned, so a line that looks like a header cannot make ScriptBridge.fromFile read none.
                 left.write_text("[solution]\n" + "".join(l + "\n" for l in rest), encoding="utf-8")
                 rows = run_arm(build, pzl, "written", seed, d, line_env(left, "ai", relaxed=True))
-                v = removal_verdict(rows[-1] if rows else None)
             else:  # the line without its only action is the do-nothing line: the pass arm
                 rows = run_arm(build, pzl, "pass", seed, d)
-                v = removal_verdict(rows[-1] if rows else None)
-            removed = [lines[i] for i in g]
             r = rows[-1] if rows else {}
+            v = removal_verdict(r)
+            removed = [lines[i] for i in g]
             # What the relaxed replay passed over, so a reader can see which decisions took the do-nothing answer.
             rec["removals"].append({"removed": removed, "verdict": v, "skipped": r.get("script_skipped"),
                                     "unplayed": r.get("script_unconsumed")})
@@ -594,8 +625,8 @@ def cmd_line(a):
             "".join("; inconclusive: " + " / ".join(u) for u in rec["inconclusive"])))
         return 0 if rec["line"] == "played" and rec["necessary"] == rec["actions"] else 1
     # The prover plays one engine seed per proof: pass it that seed, the one read back.
-    want, ok = (seeds[:1], "proven") if a.opponent == "search" else (seeds, "played")
-    spec = str(want[0]) if a.opponent == "search" else a.seeds
+    want, ok, spec = ((seeds[:1], "proven", str(seeds[0])) if a.opponent == "search"
+                      else (seeds, "played", a.seeds))
     rows = run_arm(build, pzl, "written", spec, out, line_env(a.script or pzl, a.opponent, a.budget))
     verdicts = {r.get("seed"): line_verdict(r) for r in rows}
     for seed in want:
@@ -640,7 +671,7 @@ def cmd_run(a):
     for r in manifest["puzzles"]:
         if r["id"] in done:
             b = r.get("baselines", {})
-            print("%-24s %-9s tier=%s random=%s pass=%s first=%s floor=%s ai=%s line=%s %s" % (
+            print("%-24s %-9s tier=%s random=%s pass=%s first=%s floor=%s ai=%s greedy=%s line=%s %s" % (
                 r["id"], r["status"], r.get("tier"),
                 *[("%d/%d" % (b[x]["solved"], b[x]["n"])) if x in b else "-" for x in pf.BASELINE_ARMS],
                 (r.get("reference_line") or {}).get("solver_actions"), ",".join(r.get("flags", []))))

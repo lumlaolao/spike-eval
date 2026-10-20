@@ -146,12 +146,12 @@ final class ScriptBridge implements LLMBridge {
         return NativeTools.Turn.ofCalls(one);
     }
 
-    private static String role(JsonElement m) {
+    static String role(JsonElement m) {
         JsonObject o = m.getAsJsonObject();
         return o.has("role") ? o.get("role").getAsString() : "";
     }
 
-    private static String text(JsonElement m) {
+    static String text(JsonElement m) {
         JsonObject o = m.getAsJsonObject();
         return o.has("content") && o.get("content").isJsonPrimitive() ? o.get("content").getAsString() : "";
     }

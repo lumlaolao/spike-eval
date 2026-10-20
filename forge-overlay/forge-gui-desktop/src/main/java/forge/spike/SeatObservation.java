@@ -1084,7 +1084,7 @@ final class SeatObservation {
             }
             s.append(opponentCardText());
 
-            s.append("STACK (engine, top first): ").append(stack()).append('\n');
+            s.append(STACK_LINE).append(stack()).append('\n');
             s.append("COMBAT: ").append(combat()).append('\n');
             s.append("NOT VISIBLE: ").append(notVisible()).append('\n');
             s.append(history);
@@ -1238,6 +1238,9 @@ final class SeatObservation {
         if (n > shown) b.append(" (+").append(n - shown).append(" more not shown; profile cap ").append(cap).append(')');
         return b.length() == 0 ? "(none)" : b.toString();
     }
+
+    /** The stack line's label; the greedy floor (GreedyBridge) reads it to know the stack is empty. */
+    static final String STACK_LINE = "STACK (engine, top first): ";
 
     String stack() {
         try {

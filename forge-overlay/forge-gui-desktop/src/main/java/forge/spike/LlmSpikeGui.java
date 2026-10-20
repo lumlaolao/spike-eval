@@ -10937,6 +10937,8 @@ public final class LlmSpikeGui {
                 b.relaxed = relaxed;
                 return b;
             }
+            // The greedy-preview floor: zero-model, the seat's own one-ply previews (GreedyBridge).
+            if (spec.startsWith(GreedyBridge.PREFIX)) return new GreedyBridge(label);
             if (spec.startsWith("openrouter:")) {
                 // Explicit egress consent: every OpenRouter call ships the full game snapshot
                 // (board, hand, deck plan) to a third-party API. Holding an API key is a
