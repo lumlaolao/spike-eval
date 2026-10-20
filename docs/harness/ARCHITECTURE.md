@@ -144,8 +144,14 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   refused (it declined to exile Altar of the Wretched for a craft, so the payment failed);
 - the priority menu is PASS only (nothing castable, activatable or playable), or this exact spot (turn,
   phase, stack, board, menu) was already passed;
-- a play that failed to pay is not offered again in the same window (turn, phase, top of the stack), as Forge's
-  AI skips a failed ability: the seat was offered the same unpayable play 999 times.
+- a play that failed to pay, was forbidden by a static or was refused by the stack for want of a target is not
+  offered again in the same window (turn, phase, top of the stack), as Forge's AI skips a failed ability: the
+  seat was offered the same unpayable play 999 times.
+  A play that fails to pay, is cancelled at its cost or is refused by the stack for want of a target is undone by
+  the engine's own rollback (`GameActionUtil.rollbackAbility`, the human path's): the card goes back to the zone it
+  was cast from and the mana paid is refunded; a non-mana cost already paid (a tap, life) is not, as the copied
+  payment records none (harness-epoch-70; the copied engine routine's recovery left a card cast from hand in the
+  Stack zone).
 
 Anything new asks again: an opponent's spell or ability, every attack and block, a trigger, a new option.
 - *Why:* skipping a window the model could act in, keeping a hand for it, or picking its play is a
@@ -552,6 +558,13 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,
   puzzles and tools.
 - *Why so many refusals:* each one stops a number from meaning something other than what it says.
+- **The demo viewer (`demo_server.py`, `docs/harness/DEMO.md`)** replays a recorded game, or follows a running
+  one, in a browser: the board as the seat's prompt showed it (`demo_state.py`), each decision with the model calls,
+  tool requests, provider reasoning and answer that produced it (`demo_events.py`), and the objects the model's own
+  calls and words name (`demo_highlights.py`). It reads the JSONL and the console log beside it and writes nothing
+  into a run. Card images come from a local cache (`demo_cards.py prefetch` fetches them from Scryfall by card name;
+  the server fetches a miss only with `--fetch-images`). *Why read-only:* it can then never change what the seat
+  sees or decides, needs no engine and no model, and works on every recorded game.
 
 ## 13. How a change is checked
 

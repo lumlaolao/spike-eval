@@ -12,6 +12,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | WORK-PLAN.md | open work |
 | BENCHMARK-V2.md | the proposed benchmark v2 (measured tiers, the seat's puzzle contract, the protocol), awaiting the owner |
 | HARD-PUZZLES.md | the plan for puzzles of 10 to 15 actions: the bar, the sources, the generators, the gate work |
+| HARNESS-ENV.md | proposal: building the harness as an RL environment, in GBA Eval's shape, graded by a hidden surface test |
 | HANDOFF-PUZZLES.md | the puzzle-track handoff: the rules backlog, the built-in prover, the games |
 | REVIEW-2026-10-16.md | the independent review's findings and their status (R, S and E items) |
 | GAME-LOOP-LOG.md | what each real game found |
@@ -31,6 +32,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | MATCH-MODEL.md | persistent state and memory for the seat |
 | LATENCY.md | per-decision latency measurements and knobs |
 | PLAYER-HARNESS.md | the player-harness direction and its tool-protocol measurements |
+| DEMO.md | the live demo: the replay viewer, following a running game, the rehearsal runbook |
 
 ## Historical (in `history/`)
 
