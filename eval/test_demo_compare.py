@@ -203,8 +203,15 @@ class ArmTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/typo-forge"}):
             self.assertEqual(dc.default_forge(), os.path.expanduser("~/typo-forge"))
         env = {k: v for k, v in os.environ.items() if k != "FORGE_HOME"}
-        with mock.patch.dict(os.environ, env, clear=True):
-            self.assertEqual(dc.default_forge(), str(dc.puzzle_format.forge_home()))
+        found = lambda: "/somewhere/code/forge"  # a checkout forge_home would fall back to, on any machine
+        with mock.patch.object(dc.puzzle_format, "forge_home", found):
+            with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/typo-forge"}):
+                self.assertEqual(dc.default_forge(), os.path.expanduser("~/typo-forge"))  # never the fallback
+            with mock.patch.dict(os.environ, env, clear=True):
+                self.assertEqual(dc.default_forge(), "/somewhere/code/forge")
+        with self.assertRaises(SystemExit) as cm:
+            dc.main(["build-then", "--commit", "e1324cfd", "--forge", os.path.expanduser("~/typo-forge")])
+        self.assertIn("no Forge checkout", str(cm.exception))
 
     def test_the_jdk_is_java_home_else_homebrews_else_the_javac_on_path(self):
         d = tempfile.mkdtemp()

@@ -141,7 +141,6 @@ Fallback: everything in steps 1 to 4 is a recording and works offline once the i
 | Pane | Source |
 |---|---|
 | board, life, counters, stack, combat, FACTS | the decision row's `prompt` (`demo_state.parse_prompt`); a row with no prompt (`tier: auto`) shows the seat's last prompt and says so |
-| Forge built once (side by side, Forge window) | Maven and `FORGE_HOME=... bash install.sh` then a build, as in the README; after a reboot, regenerate `/tmp/forge_cp.txt` (the launcher says how) | the same |
 | card images | Scryfall's printed card by exact name (`demo_cards.py`, cached in `~/.cache/mtg-forge-demo/cards`); what the game changed (P/T, tags, counters, `@handle`) is in the caption under the image; with the audience feed, P/T, damage, counter and combat chips sit on the card's corners as in Forge's own panel; a token or unknown name keeps its text tile |
 | a row the model was not asked | labelled by `match_review.classify_auto`: forced (one legal choice), TAKEN or LOST (the harness decided: a defect), or other; a `tier: ai` row is Forge's AI choosing for the seat, an `ai=0` breach |
 | opponent's hand | with the audience feed, the real cards in a labelled audience-only box; without it, face-down tiles, as the seat saw it |
