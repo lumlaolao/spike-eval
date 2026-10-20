@@ -16,19 +16,11 @@ text in the trace and never lights up a card.
 """
 import re
 
+import demo_state
+
 HANDLE = re.compile(r"@(\d+)")
 RANK = {"chosen": 4, "looked": 3, "planned": 2, "mentioned": 1}
 NUMBERED = re.compile(r"(\d+) = [^@\n]*?@(\d+)")
-
-
-def _visible(state):
-    objs = []
-    for p in (state or {}).get("players", []):
-        for zone, lst in p.get("zones", {}).items():
-            for o in lst:
-                if o.get("handle") is not None:
-                    objs.append(dict(o, owner=p.get("kind")))
-    return objs
 
 
 def _names(objs):
@@ -105,7 +97,7 @@ def _option_handles(label, objs, own_only=False):
 
 def compute(ev, state, plan=None):
     """Highlights for one decision event (demo_events), given the state its board shows and the seat's latest plan."""
-    objs = _visible(state)
+    objs = [o for o in demo_state.visible_objects(state or {}) if o.get("handle") is not None]
     if not objs:
         return {}
     marks = Marks(objs)

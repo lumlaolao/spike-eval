@@ -214,7 +214,7 @@ def parse_prompt(prompt):
             elif label == "YOUR PLAN":
                 st["plan"] = _plan(val)
                 st["plan"]["stated"] = note
-            st.setdefault("blocks", {})[label] = {"note": note, "text": val, "lines": []}
+            st["blocks"][label] = {"note": note, "text": val, "lines": []}
             continue
         if block is not None and line.startswith("  "):
             st["blocks"][block]["lines"].append(line.strip())

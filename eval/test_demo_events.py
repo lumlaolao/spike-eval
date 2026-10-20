@@ -153,6 +153,16 @@ class FindGameTest(unittest.TestCase):
             os.utime(early, (2e9, 2e9))
             self.assertEqual(de.find_game(d)[0], late)
 
+    def test_a_negative_seeds_log_is_found_too(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name in ("game--5-0.log", "game--5-1.log"):
+                with open(os.path.join(d, name), "w") as f:
+                    f.write("x\n")
+            path = os.path.join(d, "game--5-100.jsonl")
+            with open(path, "w") as f:
+                f.write(json.dumps({"t": "game", "seed": -5, "swap": True}) + "\n")
+            self.assertEqual(de.find_game(d), (path, os.path.join(d, "game--5-1.log")))
+
     def test_a_bare_file_name_resolves_in_the_current_directory(self):
         with tempfile.TemporaryDirectory() as d:
             cwd = os.getcwd()

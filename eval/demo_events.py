@@ -218,9 +218,12 @@ def _last_row(path):
         return None
 
 
+GAME_FILE = re.compile(r"game-(-?\d+)-(\d+)\.jsonl$")
+
+
 def _started(name):
-    m = re.match(r"game--?\d+-(\d+)\.jsonl$", name)
-    return int(m.group(1)) if m else 0
+    m = GAME_FILE.match(name)
+    return int(m.group(2)) if m else 0
 
 
 def find_game(path):
@@ -239,7 +242,8 @@ def find_game(path):
     else:
         jsonl = path
     d = os.path.dirname(jsonl) or "."
-    seed = os.path.basename(jsonl).split("-")[1] if os.path.basename(jsonl).count("-") >= 2 else None
+    m = GAME_FILE.match(os.path.basename(jsonl))
+    seed = m.group(1) if m else None
     logs = [f for f in os.listdir(d) if f.endswith(".log") and seed and f.startswith("game-%s-" % seed)]
     if not logs:
         return jsonl, None

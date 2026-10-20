@@ -79,13 +79,14 @@ class Pane:
 
     def summary(self):
         with self.lock:
-            cached, gen = self._summary, self.gen
+            cached, key = self._summary, (self.gen, self.done)
         if cached is not None:
             return cached
         built = build_summary(self)
         with self.lock:
-            # Kept only if no newer game replaced this one while it was being built (match_review is slow).
-            if self.gen == gen:
+            # Kept only if the game it describes is still this pane's, in the same state (no newer file, no game row
+            # landed meanwhile); otherwise it is returned once and rebuilt on the next request.
+            if (self.gen, self.done) == key:
                 self._summary = built
         return built
 
@@ -99,7 +100,7 @@ def build_summary(pane):
         try:
             import match_review
             r = match_review.review(pane.reader.path)
-            out["review"] = {k: v for k, v in r["counts"].items()}
+            out["review"] = dict(r["counts"])
         except Exception as e:  # the sheet is decoration; a reader error must not break the viewer
             out["review_error"] = repr(e)
         try:

@@ -33,7 +33,12 @@ const cardImg = name => "card/" + encodeURIComponent(name);
 // Names whose image failed once are drawn as text tiles at once: a live re-render must not lay out an image box
 // and then fall back.
 const NO_IMAGE = new Set();
-window.noImage = img => { const c = img.closest(".card"); c.classList.add("noimg"); NO_IMAGE.add(c.getAttribute("data-name")); };
+// Only a permanent miss (the server's cacheable 404) is remembered; an offline or failed answer is asked again.
+window.noImage = img => {
+  const c = img.closest(".card"), name = c.getAttribute("data-name");
+  c.classList.add("noimg");
+  fetch(img.src, {method: "HEAD"}).then(r => { if (/max-age/.test(r.headers.get("Cache-Control") || "")) NO_IMAGE.add(name); });
+};
 
 class Pane {
   constructor(i, info, root) {
@@ -78,8 +83,11 @@ class Pane {
     }
   }
   async refreshSummary() {
-    this.info.summary = await fetch(`api/game/${this.i}/summary`).then(x => x.json());
-    this.renderSummary();
+    const gen = this.gen;
+    const s = await fetch(`api/game/${this.i}/summary`).then(x => x.json());
+    if (gen !== this.gen) return;  // a newer game replaced this one while the summary was built
+    this.info.summary = s;
+    this.renderSummary(); this.renderHead();
   }
 
   stateOf(d) {
@@ -137,8 +145,7 @@ class Pane {
     const el = $(".board", this.el);
     if (!st) { el.innerHTML = `<p class="engine-note">${this.waitingForFile ? "No game file yet." : "No board yet (no prompt recorded before this decision)."}</p>`; return; }
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
-    const players = st.players.slice().sort((a, b) => (a.kind === "OPP" ? -1 : 1) - (b.kind === "OPP" ? -1 : 1));
-    const opp = players.filter(p => p.kind === "OPP"), you = players.filter(p => p.kind === "YOU");
+    const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
     el.innerHTML = stale + opp.map(p => this.playerHtml(p, hl)).join("") + this.middleHtml(st, hl) +
       you.map(p => this.playerHtml(p, hl)).join("") + this.legendHtml(hl);
   }
@@ -165,7 +172,7 @@ class Pane {
   }
   zoneHtml(label, inner, zone) { return `<div class="zone z-${esc(zone || label)}"><span class="zlabel">${esc(label)}</span>${inner}</div>`; }
   cardHtml(o, hl) {
-    const h = o.handle != null ? hl[o.handle] || hl["@" + o.handle] : null;
+    const h = o.handle != null ? hl[o.handle] : null;
     const tags = (o.tags || []).filter(t => t !== "untapped" && t !== "tapped");
     const tapped = (o.tags || []).includes("tapped");
     const cls = ["card", NO_IMAGE.has(o.name) ? "noimg" : "", tapped ? "tapped" : "", h ? "hl-" + h.kind : "", h && h.engine ? "hl-engine" : ""].join(" ");
@@ -190,8 +197,8 @@ class Pane {
   }
   legendHtml(hl) {
     if (!Object.keys(hl).length) return "";
-    return `<div class="legend">${[["chosen", "--chosen"], ["planned", "--planned"], ["looked", "--looked"], ["mentioned", "--mentioned"], ["engine", "--engine"]]
-      .map(([k, v]) => `<span><i style="background:var(${v})"></i>${KIND_LABEL[k]}</span>`).join("")}</div>`;
+    return `<div class="legend">${["chosen", "planned", "looked", "mentioned", "engine"]
+      .map(k => `<span><i style="background:var(--${k})"></i>${KIND_LABEL[k]}</span>`).join("")}</div>`;
   }
 
   renderPlan() {
@@ -219,7 +226,7 @@ class Pane {
 
   renderTimeline() {
     const pass = (FILTERS.find(f => f[0] === this.filter) || FILTERS[0])[2];
-    const decs = this.decisions, rows = [];
+    const rows = [];
     let n = -1;
     for (const e of this.events) {
       if (e.kind === "decision") {
@@ -246,7 +253,6 @@ class Pane {
     tl.onclick = ev => { const li = ev.target.closest("li[data-n]"); if (li) app.seek(this, +li.getAttribute("data-n")); };
     const cur = $("li.cur", tl);
     if (cur) cur.scrollIntoView({block: "nearest"});
-    void decs;
   }
 
   renderDetail() {

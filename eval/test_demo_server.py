@@ -112,11 +112,37 @@ class ReplayTest(unittest.TestCase):
             shutil.rmtree(cache_dir)
 
 
+class SummaryTest(unittest.TestCase):
+    def test_a_summary_built_while_the_game_ended_is_not_kept(self):
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, "game-4133-1.jsonl")
+            with open(os.path.join(FIX, "g33-simulate.jsonl")) as f, open(path, "w") as out:
+                out.write(f.read())
+            pane = srv.Pane(d, live=True)
+            real = srv.build_summary
+
+            def slow(p):
+                s = real(p)
+                with open(os.path.join(FIX, "g33-game.jsonl")) as f, open(path, "a") as out:
+                    out.write(f.read())  # the game row lands while this summary is being built
+                p.refresh()
+                return s
+            srv.build_summary = slow
+            try:
+                self.assertIsNone(pane.summary()["game"])
+            finally:
+                srv.build_summary = real
+            self.assertEqual(pane.summary()["game"]["winner"], "A")  # rebuilt for the finished game
+        finally:
+            shutil.rmtree(d)
+
+
 class LiveTest(unittest.TestCase):
     def test_a_live_pane_waits_for_the_file_then_follows_it_to_the_game_row(self):
         d = tempfile.mkdtemp()
+        server, url = serve([srv.Pane(d, live=True)])
         try:
-            server, url = serve([srv.Pane(d, live=True)])
             _, r = get(url + "/api/game/0/events")
             self.assertTrue(r["waiting_for_file"])
             self.assertEqual(r["events"], [])
@@ -139,9 +165,9 @@ class LiveTest(unittest.TestCase):
             _, r = get(url + "/api/game/0/events?from=1&wait=1")
             self.assertEqual([e["kind"] for e in r["events"]], ["game"])
             self.assertTrue(r["done"])
+        finally:
             server.shutdown()
             server.server_close()
-        finally:
             shutil.rmtree(d)
 
     def test_a_live_pane_moves_to_a_newer_game_written_into_the_same_directory(self):
