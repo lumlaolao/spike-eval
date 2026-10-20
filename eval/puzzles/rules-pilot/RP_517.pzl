@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 517 - Escalate with a discard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Collective Brutality (choose one or more; escalate: discard a card for each mode beyond the first; -2/-2 to target creature; target opponent loses 2 life and you gain 2) and Colossal Dreadmaw in hand with two black mana floating. The opponent is at 20 life and controls Grizzly Bears. Destroy the Bears and make the opponent lose 2 life this turn.
+Rule:authored-escalate-discard | Escalate is an additional cost paid for each mode chosen beyond the first (CR 702.120a): discard the Dreadmaw to choose both the -2/-2 and the drain modes
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Collective Brutality;Colossal Dreadmaw
+p0manapool=B B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 18
+count p1 Graveyard "Grizzly Bears" = 1

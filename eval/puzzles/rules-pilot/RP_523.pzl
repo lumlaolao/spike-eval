@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 523 - Rancor comes home
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Mogg Fanatic (it came under your control this turn) enchanted with Rancor, and Grizzly Bears, with one green mana floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-aura-return-trigger | When the enchanted creature leaves, Rancor is put into the graveyard as a state-based action (CR 704.5m), which triggers its return to your hand (CR 603.6c): sacrifice Mogg Fanatic for 1, recast Rancor on the Bears and attack for 4 with trample; attacking with the plain Bears and sacrificing the Fanatic totals 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Mogg Fanatic|SummonSick|Id:1;Rancor|AttachedTo:1;Grizzly Bears
+p0manapool=G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

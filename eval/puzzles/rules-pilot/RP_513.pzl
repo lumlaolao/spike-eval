@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 513 - Count the Treasures, then spend them
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control three Treasure tokens and a tapped Darksteel Citadel, with no mana floating, and have Myr Enforcer ({7}, affinity for artifacts) in hand. Get Myr Enforcer onto the battlefield this turn.
+Rule:authored-affinity-then-sacrifice-treasure | The total cost is locked in before mana abilities are activated to pay it (CR 601.2f-h): four artifacts make Enforcer cost {3}, then the three Treasures are sacrificed for the mana; sacrificing even one Treasure first raises the cost above the mana left
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Myr Enforcer
+p0battlefield=T:c_a_treasure_sac;T:c_a_treasure_sac;T:c_a_treasure_sac;Darksteel Citadel|Tapped
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Myr Enforcer" = 1

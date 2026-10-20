@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 521 - Undying brings a new enters trigger
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Geralf's Messenger (summoning sick; undying; when it enters, target opponent loses 2 life) and have Flame Slash (4 damage to target creature) in hand with one red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-undying-new-etb | A creature returned by undying is a new object, and its enters trigger fires again (CR 702.93a, 400.7): Flame Slash your own Messenger, it returns with a +1/+1 counter, and the opponent loses 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flame Slash
+p0battlefield=Geralf's Messenger|SummonSick
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

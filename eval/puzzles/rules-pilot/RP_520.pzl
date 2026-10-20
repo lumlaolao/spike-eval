@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 520 - Pump before the shroud
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Hill Giant (summoning sick) and have Lightning Greaves (equipped creature has haste and shroud; equip {0}) and Giant Growth in hand with {G}{C}{C} floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-shroud-own-pump-order | Shroud stops every spell from targeting the creature, yours included (CR 702.18a): cast Giant Growth on the Giant first, then cast and equip the Greaves for haste, 6 damage; once it has shroud, Giant Growth can't target it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lightning Greaves;Giant Growth
+p0battlefield=Hill Giant|SummonSick
+p0manapool=G C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
