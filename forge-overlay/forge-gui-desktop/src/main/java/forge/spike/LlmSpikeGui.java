@@ -2990,7 +2990,11 @@ public final class LlmSpikeGui {
                     if (picks == null) break;
                     for (int i : picks) combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
                     if (CombatUtil.validateAttackers(combat)) break;
-                    for (int i : picks) combat.removeFromCombat(legal.get(i));
+                    // on the record as asked, answered and overruled (its own row type: JSONL stays additive)
+                    StringBuilder no = new StringBuilder();
+                    for (int i : picks) { combat.removeFromCombat(legal.get(i)); no.append(no.length() > 0 ? ", " : "").append(legal.get(i).getName()); }
+                    evalDec("attackers-refused", legal.size(), picks.size(), tierOf(true), 0, null, labels);
+                    p("[ROUTER] attackers: refused by the engine: " + no);
                     if (line != null) line.dropChoicesAfter(noted);   // a refused set is no solver choice
                     question = question + " " + illegalAttackNote(attacker, combat);
                     picks = null;

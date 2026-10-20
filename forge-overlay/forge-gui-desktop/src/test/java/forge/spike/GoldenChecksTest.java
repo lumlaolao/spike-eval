@@ -2066,8 +2066,11 @@ public class GoldenChecksTest {
         Script model = new Script("CHOICE: 1").on("declare attackers", p -> p.contains("not a legal attack")
                 ? picks("Hill Giant").apply(p) : picks("Grizzly Bears", "Hill Giant").apply(p));
         Combat combat = new Combat(me);
-        seat(g, model, model).declareAttackers(me, combat);
+        LlmSpikeGui.PlayerControllerLLM first = seat(g, model, model);
+        Player seatPlayer = me;
+        String log = LineFindingProbeTest.logOf(() -> first.declareAttackers(seatPlayer, combat));
         Assert.assertEquals(combat.getAttackers(), java.util.Collections.singletonList(giant), "the second answer is used");
+        Assert.assertTrue(log.contains("refused by the engine: Grizzly Bears, Hill Giant"), "the refused answer is on the record: " + log);
         Assert.assertTrue(CombatUtil.validateAttackers(combat));
         String again = model.prompts.stream().filter(q -> q.contains("not a legal attack")).findFirst().orElse("");
         Assert.assertTrue(again.contains("at most 1"), "the seat is told the limit: " + again);
@@ -2078,9 +2081,9 @@ public class GoldenChecksTest {
         card("Hill Giant", me, ZoneType.Battlefield);
         card("Silent Arbiter", g.getPlayers().get(1), ZoneType.Battlefield);
         model = new Script("CHOICE: 1").on("declare attackers", picks("Grizzly Bears", "Hill Giant"));
-        combat = new Combat(me);
-        seat(g, model, model).declareAttackers(me, combat);
-        Assert.assertTrue(CombatUtil.validateAttackers(combat), "a refused set twice ends legal: " + combat.getAttackers());
+        Combat combat2 = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat2);
+        Assert.assertTrue(CombatUtil.validateAttackers(combat2), "a refused set twice ends legal: " + combat2.getAttackers());
         Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("declare attackers")).count(), 2L, "asked twice");
     }
 

@@ -77,8 +77,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
   the seat may give fails the cast (harness-epoch-43).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
-- An attack the engine refuses (Silent Arbiter's one attacker, a creature that must attack) is asked once more with the
-  reason ("at most 1 creature can attack this combat"), then replaced by the engine's legal declaration
+- An attack the engine refuses (Silent Arbiter's one attacker, a creature that must attack) is recorded (an
+  `attackers-refused` row and a `refused by the engine` log line), asked once more with the reason ("at most 1
+  creature can attack this combat"), then replaced by the engine's legal declaration
   (`AttackConstraints.getLegalAttackers`, a constraint solve), recorded as taken. The engine re-asks until the
   declaration is legal, so a seat that kept its answer looped (epoch 66; authored puzzles x_0, x_15, x_18).
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
