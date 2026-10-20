@@ -285,7 +285,8 @@ public class LineFindingProbeTest {
 
     /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1
      *  life") as the only land. Paid first, the 4 life left 1, the AI's source filter then refused the Canopy (it keeps
-     *  1 life), and the cast failed with the life gone. Mana first, the Canopy pays at 5 and the life after it. */
+     *  1 life), and the cast failed with the life gone. Mana first, the Canopy pays at 5; the 4 life would then leave
+     *  0, so it is not paid and the mana is refunded (pr-review of #277, third round). */
     @Test
     public void phyrexianLifeIsPaidAfterTheManaSoAFailedCastCostsNoLife() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -300,8 +301,12 @@ public class LineFindingProbeTest {
         Recorder pass = new Recorder(PLAY);
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
         logOf(() -> ctrl.playChosenSpellAbility(cast));
-        boolean cast0 = g.getStack().size() == 1;
-        Assert.assertTrue(cast0 || me.getLife() == 5, "life " + me.getLife() + " paid and the cast failed");
+        // The Canopy's 1 life leaves 4: paying 4 more would put the seat at 0, which the split never offered (the AI's
+        // own payment stops there too). So the Phyrexian life is not paid, the Canopy's mana is refunded, and no cast.
+        Assert.assertEquals(g.getStack().size(), 0, "cast at " + me.getLife() + " life");
+        Assert.assertEquals(me.getLife(), 4, "only the Canopy's own life is gone");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "the Canopy's mana was refunded to the pool");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
     }
 
     /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the

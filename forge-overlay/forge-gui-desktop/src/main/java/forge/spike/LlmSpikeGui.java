@@ -5078,14 +5078,19 @@ public final class LlmSpikeGui {
                 }
                 // The life goes last: paid first, a source that costs life (Horizon Canopy) could then be refused by the
                 // engine's payment and the cast fail with the life gone, unrefunded (pr-review of #277).
+                // The same test as the offer: a source that cost life (Horizon Canopy, a painland) may have left too little,
+                // and life is never paid to 0 unless the seat cannot lose for it. Then the mana goes back to the pool.
                 if (paid && lifeDue[0] > 0) {
                     int n = lifeDue[0];
-                    if (getPlayer().canPayLife(2 * n, effect, sa)) {
-                        getPlayer().payLife(2 * n, sa, effect);
-                        sa.setSpendPhyrexianMana(true);
+                    Player me = getPlayer();
+                    if (me.canPayLife(2 * n, effect, sa) && (me.getLife() > 2 * n || me.cantLoseForZeroOrLessLife())) {
+                        me.payLife(2 * n, sa, effect);
+                        for (int i = 0; i < n; i++) sa.setSpendPhyrexianMana(true);   // once per symbol, as the engine does
                         p("[ROUTER] mana: " + n + " Phyrexian paid with " + (2 * n) + " life for " + labelOf(sa));
                     } else {
-                        p("[ROUTER] mana: " + (2 * n) + " life for the Phyrexian symbols can no longer be paid -> not paid");
+                        new forge.game.mana.ManaRefundService(sa).refundManaPaid();
+                        p("[ROUTER] mana: " + (2 * n) + " life for the Phyrexian symbols can no longer be paid at "
+                                + me.getLife() + " life -> the mana is refunded, nothing is paid");
                         paid = false;
                     }
                 }
@@ -5112,10 +5117,10 @@ public final class LlmSpikeGui {
         /** Phyrexian mana is the seat's: how many Phyrexian symbols it pays with 2 life each. Forge's
          *  payment pays one with mana whenever a source can and with life only when none can
          *  (ComputerUtilMana.payManaCost, the saPayment == null branch), so it decided whether Dismember
-         *  or Gitaxian Probe cost life. The seat pays the life here and hands the engine the rest, whose
-         *  Phyrexian symbols it then pays with mana. Only splits the seat can pay are offered (the life,
+         *  or Gitaxian Probe cost life. The seat chooses the split here and hands the engine the rest, its
+         *  Phyrexian symbols as plain colours; payManaCost pays the life once that mana is paid. Only splits the seat can pay are offered (the life,
          *  and the rest with mana by the engine's own test payment); with one, nothing is asked. Returns
-         *  the cost the engine still pays; the life ({@code lifeDue}) is paid by payManaCost once the mana is. */
+         *  the cost the engine still pays. */
         private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect,
                                                          int[] lifeDue) {
             if (toPay == null || !toPay.hasPhyrexian() || toPay.countX() > 0 || sa == null || sa.isManaAbility()
@@ -5136,22 +5141,22 @@ public final class LlmSpikeGui {
                           + (n < k ? ", the rest with mana" : ""));
             }
             if (lifeFor.isEmpty()) return toPay;
-            String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
             int n;
             if (lifeFor.size() == 1) {
-                // One way to pay. With mana the engine's payment takes it; with life it is paid here, because the
-                // engine's payment is Forge's AI and obeys AIPhyrexianPayment ("Never" on Gitaxian Probe, hard draft h_0).
+                // One way to pay. With mana the engine's payment takes it; with life the seat takes it (paid after the mana,
+                // in payManaCost), because the engine's payment is Forge's AI and obeys AIPhyrexianPayment ("Never" on
+                // Gitaxian Probe, hard draft h_0).
                 if (lifeFor.get(0) == 0) return toPay;
                 n = lifeFor.get(0);
                 auto("phyrexian(forced: payable only with life)->" + (2 * n) + " life" + srcOf(sa));
             } else {
+                String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
                 int c = decideOne(smartOk() ? smart : fast, "phyrexian", "MANA: you are paying " + toPay + " for " + what
                         + ". Each Phyrexian symbol is paid with one mana of its colour or with 2 life. You have "
                         + me.getLife() + " life. How do you pay?", labels, null);
                 if (c < 0 || c >= lifeFor.size()) { auto("phyrexian(unparsed)->engine"); return toPay; }
                 n = lifeFor.get(c);
             }
-            if (n == 0) return withPhyrexian(toPay, 0, true);
             lifeDue[0] = n;   // payManaCost pays it after the mana
             // The rest as plain colours, the cost the split was priced at: the engine cannot pay more of it with life.
             return withPhyrexian(toPay, n, true);

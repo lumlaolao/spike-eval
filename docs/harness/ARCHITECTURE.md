@@ -247,9 +247,11 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
     AI not to pay Gitaxian Probe's {U/P} with life; obeyed by the seat's check, Probe with no blue source was "(not
     castable now)" and off the menu, and a cost payable only with life went to the AI's payment, which refused it.
     The same hint is hidden around Forge AI's cost check in an effect cast or a trigger (`ComputerUtil.playStack`).
-    The seat pays Phyrexian life itself (`phyrexianByLife`): a split is offered only when the engine can pay the rest
-    with mana, one way to pay is taken without asking (a `tier=auto` row), and the life is paid after the mana, so a
-    cast that fails costs no life. Found by h_0's written line.
+    The seat pays Phyrexian life itself (`phyrexianByLife` chooses the split, `payManaCost` pays the life): a split is
+    offered only when the engine can pay the rest with mana, one way to pay is taken without asking (a `tier=auto`
+    row), and the Phyrexian life is paid only after the mana. If a mana source's own life cost (Horizon Canopy) has
+    left too little, the Phyrexian life is not paid and the mana is refunded; that source's life is not. Found by
+    h_0's written line.
 
   - The one hint still worked out by the harness: "(need 1 more B)" compares the cost's coloured pips
     with the per-colour mana. It is shown only when the engine has already said the card cannot be
