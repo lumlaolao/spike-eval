@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 432 - A stun counter eats an untap
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control a tapped Hill Giant with a stun counter on it, and have two Bursts of Energy (untap target permanent) in hand with two white mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-stun-counter-untap | If a permanent with a stun counter would become untapped, a stun counter is removed instead (CR 122.1d): the first Burst of Energy only removes the counter, the second untaps the Giant so it can attack for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Burst of Energy;Burst of Energy
+p0battlefield=Hill Giant|Tapped|Counters:STUN=1
+p0manapool=W W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

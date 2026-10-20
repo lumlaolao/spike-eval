@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 434 - Circle up after the Rift
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 4 life and control Circle of Protection: Red ({1}: the next time a red source of your choice would deal damage to you this turn, prevent that damage). You have Flame Rift (4 damage to each player) in hand with three red mana floating. The opponent is at 4 life and controls no permanents. Win the game this turn.
+Rule:authored-prevention-shield-respond | A prevention shield must exist before the damage is dealt, and the Circle needs a red source to choose (CR 615.1, 609.7a): cast Flame Rift, and with it on the stack activate the Circle choosing Flame Rift, so only the opponent takes 4; without the shield both players reach 0 at once and the game is a draw (CR 104.4a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=4
+p0hand=Flame Rift
+p0battlefield=Circle of Protection: Red
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0
