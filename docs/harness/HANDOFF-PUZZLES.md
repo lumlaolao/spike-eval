@@ -53,7 +53,7 @@ and s2_2 (Ancient Vendetta). Still to gate: s0_3, s0_4, s1_0-3, s3_0-4. For each
 a copy of batch 10's: one `converted(...)` call per puzzle, replacing the question's dropped row), and add a REPORT
 section. Not found means read the search log: a board error or a Forge disagreement.
 
-**2026-10-20: 515 converted (the 500 goal is met).** After batch 14's RulesGuru questions, the rest were authored
+**2026-10-20: 526 converted (the 500 goal is met).** After batch 14's RulesGuru questions, the rest were authored
 from the Comprehensive Rules: `authored-drafts/x_*` (by hand), `y_*` (keywords and mechanics) and `z_*` (stack,
 priority, layers, timing), about 70% of drafts passing. Each keeper's row has question id `authored-<slug>`.
 Near-duplicates kept but not counted: RP_300, RP_402, RP_454, RP_521. Lessons from the gate:

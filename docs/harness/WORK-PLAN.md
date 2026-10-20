@@ -8,7 +8,7 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 **Priority 1, the only focus until done: digitize 500 puzzles** (raised from 250 by the owner). A digitized puzzle is
 a converted rules puzzle (`eval/puzzles/rules-pilot/manifest.jsonl`, `result: converted`): search proven, acceptance
-accepted, unique, the pass arm rejected. **515 on 2026-10-20 (RP_001-RP_537; RP_300, RP_402, RP_454 and RP_521 are
+accepted, unique, the pass arm rejected. **526 on 2026-10-20 (RP_001-RP_548; RP_300, RP_402, RP_454 and RP_521 are
 near-duplicates kept but not counted).** Most of the last 290 are authored from the Comprehensive Rules
 (`authored-drafts/x_*, y_*, z_*`, question ids `authored-<slug>`); see HANDOFF-PUZZLES.md for the gate lessons and
 the two harness gaps found and fixed (epoch 66). Sources used before that, in order:
