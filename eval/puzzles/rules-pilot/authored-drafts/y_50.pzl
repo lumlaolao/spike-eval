@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Unmorph empties the hand
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control a face-down Gathan Raiders (a 2/2 face down; morph: discard a card; face up it is 3/3 with hellbent +2/+2 while you have no cards in hand), and Colossal Dreadmaw is your only card in hand. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-morph-special-action | Turning a face-down creature face up is a special action that doesn't use the stack (CR 702.37e, 116.2b): discard the Dreadmaw to unmorph, and with an empty hand hellbent makes the Raiders 5/5; face down it attacks for only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Colossal Dreadmaw
+p0battlefield=Gathan Raiders|FaceDown
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

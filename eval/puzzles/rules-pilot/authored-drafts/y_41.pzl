@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Keep the Treasure for metalcraft
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Memnite (summoning sick) and a Treasure token, and have Galvanic Blast (2 damage to any target; metalcraft: 4 instead if you control three or more artifacts) and Ornithopter in hand, with one red mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-metalcraft-treasure-count | A Treasure token is an artifact (CR 111.10a) and metalcraft counts artifacts as the spell resolves (CR 207.2c, 608.2h): cast Ornithopter, pay for Galvanic Blast with the floating red, and three artifacts make it deal 4; sacrificing the Treasure for mana leaves only two and 2 damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Galvanic Blast;Ornithopter
+p0battlefield=Memnite|SummonSick;T:c_a_treasure_sac
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

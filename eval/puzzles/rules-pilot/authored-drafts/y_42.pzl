@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Revolt from a fetch
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control an untapped Evolving Wilds and have Fatal Push (destroy target creature with mana value 2 or less; revolt: 4 or less if a permanent you controlled left the battlefield this turn) in hand with one black mana floating. The opponent is at 20 life and controls Hill Giant (mana value 4). Destroy the Hill Giant this turn.
+Rule:authored-revolt-fetch-land | Revolt checks whether a permanent you controlled left the battlefield this turn (CR 207.2c): sacrifice Evolving Wilds first, then Fatal Push reaches mana value 4; cast first, it can't destroy the Giant
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fatal Push
+p0battlefield=Evolving Wilds
+p0manapool=B
+p0library=Swamp;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1

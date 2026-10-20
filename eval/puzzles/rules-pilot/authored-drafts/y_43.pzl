@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Scavenge from the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Grizzly Bears, and Dreg Mangler (3/3; scavenge {3}{B}{G}) is in your graveyard. You have {B}{G}{G}{G}{G} floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-scavenge-power-counters | Scavenge exiles the card from your graveyard to put +1/+1 counters equal to its power on target creature, at sorcery speed (CR 702.97a): three counters make the Bears a 5/5 for exactly 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0graveyard=Dreg Mangler
+p0battlefield=Grizzly Bears
+p0manapool=B G G G G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Cycling is not casting, but it is cycling
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Lightning Rift (whenever a player cycles a card, you may pay {1}; if you do, it deals 2 damage to any target) and have Iron Will (cycling {2}) in hand with three red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-cycling-trigger | Cycling is an activated ability of the card in hand, not casting it (CR 702.29a), and it triggers abilities that look for cycling (CR 702.29c): you can't cast Iron Will without white, but cycling it for two and paying one for Lightning Rift deals 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Iron Will
+p0battlefield=Lightning Rift
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
