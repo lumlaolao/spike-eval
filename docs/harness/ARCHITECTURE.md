@@ -459,6 +459,14 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - Every call row carries:
   - prompt, completion, cached and cache-write tokens;
   - its price, from `eval/cost_report.py` with `eval/pricing/prices.json`.
+- A puzzle attempt's result row carries what a model seat spent (`PlayerControllerLLM.budget()`, harness-epoch-69):
+  `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms`, `lookups`. Tokens come from the bridge's bill
+  (`LLMBridge.getBilledPromptTokens()`/`getBilledCompletionTokens()`), read as a difference around each ask:
+  `OpenRouterBridge` bills every send that came back, a truncation retry's first send included. A bridge that keeps no
+  bill returns -1 and the seat adds its last usage only when the ask answered. A bridge that wraps another
+  (`ChatSessionBridge`) must pass the bill through, or the seat falls back to last-call usage.
+  - *Why:* reading the last call's usage once an ask counted a failed ask's stale tokens again and lost a retry's
+    first send (pr-review of #282).
 - `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget.
 - The owner rule is a small block first, with the expected cost stated before it starts.
 - *Why:* small per-game costs add up unseen. 204 games in one day came to about $8.

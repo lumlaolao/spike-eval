@@ -30,7 +30,7 @@ public class ChatSessionTest {
     public void legacy() { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null; }
 
     /** Records the message list of every ask and answers with {@code reply}. */
-    static final class Messages implements ChatSessionBridge.MessagesBridge {
+    static class Messages implements ChatSessionBridge.MessagesBridge {
         final List<String> sent = new ArrayList<>();
         final String reply;
         Messages(String reply) { this.reply = reply; }
@@ -40,6 +40,19 @@ public class ChatSessionTest {
         @Override public String getModel() { return "fake"; }
         @Override public long getTotalMs() { return 0; }
         @Override public int getCalls() { return sent.size(); }
+    }
+
+    /** A seat on a one-chat session reads the wrapped bridge's bill; without the pass-through it would fall back to the
+     *  last call's usage and lose a truncation retry's first send (pr-review of #282). */
+    @Test
+    public void theSessionPassesTheWrappedBridgesBillThrough() {
+        Messages billed = new Messages("CHOICE: 1") {
+            @Override public long getBilledPromptTokens() { return 123; }
+            @Override public long getBilledCompletionTokens() { return 45; }
+        };
+        ChatSessionBridge c = new ChatSessionBridge(billed);
+        Assert.assertEquals(c.getBilledPromptTokens(), 123L);
+        Assert.assertEquals(c.getBilledCompletionTokens(), 45L);
     }
 
     @Test

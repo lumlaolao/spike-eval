@@ -991,20 +991,20 @@ try:
     rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
 except Exception as e:
     print("no result rows: %s" % e); sys.exit()
-r = rows[-1] if rows else {}
+r = rows[-1] if rows and isinstance(rows[-1], dict) else {}
 p = []
 if r.get("harness_epoch") != "harness-epoch-69": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
 for k in ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups"):
     if not isinstance(r.get(k), int): p.append("%s=%r" % (k, r.get(k)))
 if isinstance(r.get("model_calls"), int) and r["model_calls"] < 1: p.append("model_calls=0 for a played line")
-print("; ".join(p))
+print("; ".join(p) or "ok")
 PY
 )
     if [ "$GRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/played.log" && [ "$TRC" = 1 ] && grep -q "drift: " "$dir/typo.log" \
-        && [ "$HRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/h_0.log" && [ -z "$ROWP" ]; then
+        && [ "$HRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/h_0.log" && [ "$ROWP" = ok ]; then
       pass lines "h_1 and h_0 written lines played and solved; the misspelt copy drifted (exit 1); the row has its epoch and spend"
     else
-      fail lines "h_1 rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift), h_0 rc=$HRC (want 0); row: ${ROWP:-ok}: see $dir"
+      fail lines "h_1 rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift), h_0 rc=$HRC (want 0); row: ${ROWP:-the check printed nothing}: see $dir"
     fi
   fi
 fi

@@ -1963,6 +1963,40 @@ public class GoldenChecksTest {
         Assert.assertEquals(b.get("completion_tokens"), 7L);
     }
 
+    /** A bridge that keeps a bill is read by its bill: 80 billed for an answered ask whose last call reported 30 (a
+     *  truncation retry's first send), and nothing for a failed ask that billed nothing (pr-review of #282: no test
+     *  reached this branch, which every OpenRouter seat takes). */
+    @Test
+    public void aBilledBridgeIsReadByItsBill() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicBoolean down = new java.util.concurrent.atomic.AtomicBoolean();
+        long[] bill = {0, 0};
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                if (down.get()) return null;
+                bill[0] += 80; bill[1] += 9;
+                return super.ask(prompt);
+            }
+            @Override public int getLastPromptTokens() { return 30; }
+            @Override public int getLastCompletionTokens() { return 4; }
+            @Override public long getBilledPromptTokens() { return bill[0]; }
+            @Override public long getBilledCompletionTokens() { return bill[1]; }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        down.set(true);
+        card("Shock", me, ZoneType.Hand);   // a new spot, so the seat is asked again
+        ctrl.chooseSpellAbilityToPlay();
+        java.util.Map<String, Object> b = ctrl.budget();
+        Assert.assertTrue((Integer) b.get("model_calls") >= 2, "the second spot was asked: " + b);
+        Assert.assertEquals(b.get("prompt_tokens"), 80L, String.valueOf(b));
+        Assert.assertEquals(b.get("completion_tokens"), 9L);
+    }
+
     /** X, then the modes of a modal spell, each from the model. */
     @Test
     public void xAndModesAreTheModels() {
