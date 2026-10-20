@@ -270,8 +270,7 @@ public class LineFindingProbeTest {
         Game g = bareGame(PhaseType.MAIN1);
         Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
         Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
-        // A failed cast leaves the card in the Stack zone, as the engine routine does; this test is about the life.
-        card("Dismember", me, ZoneType.Hand);
+        Card dismember = card("Dismember", me, ZoneType.Hand);
         SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
         cast.setActivatingPlayer(me);
         cast.getTargets().add(bears);
@@ -281,6 +280,12 @@ public class LineFindingProbeTest {
         logOf(() -> ctrl.playChosenSpellAbility(cast));
         Assert.assertEquals(me.getLife(), life, "life paid for a cast that could not happen");
         Assert.assertEquals(ctrl.playsNotMade(), 1);
+        // The failed cast is rolled back: the card is in hand again, not left in the Stack zone with nothing on the
+        // stack (the engine routine's recovery tested the zone it came from, Hand, for Stack and never moved it).
+        Assert.assertEquals(g.getCardState(dismember).getZone().getZoneType(), ZoneType.Hand, "the failed cast's card");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), 1);
+        Assert.assertTrue(g.getStackZone().isEmpty(), "a card left in the Stack zone with nothing on the stack");
+        Assert.assertFalse(g.getStack().isFrozen(), "the stack frozen for the payment stays frozen");
     }
 
     /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1

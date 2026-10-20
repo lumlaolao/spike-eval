@@ -65,7 +65,9 @@ Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the ne
    the counts in `OWNERSHIP.md`).
 4b. **Re-diff the copied play routine.** `PlayerControllerLLM.playChosenSpellAbility` repeats the
    steps of `ComputerUtil.handlePlayingSpellAbility` so it can pay with `LlmCostDecision` (the engine
-   hard-codes `AiCostDecision` there). If upstream changed that method, port the change. The same holds
+   hard-codes `AiCostDecision` there). If upstream changed that method, port the change. One step differs on
+   purpose: a play that fails to pay is undone with `GameActionUtil.rollbackAbility` (the human path's rollback),
+   not the routine's recovery, which leaves a card cast from hand in the Stack zone (harness-epoch-70). The same holds
    for `PlayerControllerLLM.playNoStack`, a copy of `ComputerUtil.playNoStack` (effects and triggers
    played without the stack).
    Every engine patch in `docs/harness/ENGINE-PATCHES.md` is re-diffed the same way, and its upstream
