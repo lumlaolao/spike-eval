@@ -970,8 +970,9 @@ fi
 # A line a person wrote is proven by playing it, not by a search finding it (docs/harness/HARD-PUZZLES.md, section
 # 4). Fails if: the model seat on a script: spec does not play h_1's 16 lines or h_0's 11 to the acceptance state
 # (h_0 pays Gitaxian Probe with life, which the menu hid until epoch 68), or a line naming no option on the menu is
-# played anyway. The misspelt copy still solves after its drift (the do-nothing sacrifice takes the first two
-# Mountains), which is why the verdict reads the drift and not the solve.
+# played anyway, or h_1's result row lacks harness_epoch or the five budget fields. The misspelt copy still solves
+# after its drift (the do-nothing sacrifice takes the first two Mountains), which is why the verdict reads the drift
+# and not the solve.
 if has_stage lines; then
   if [ ! -f "$CLASSES/forge/spike/ScriptBridge.class" ]; then fail lines "no compiled classes"; else
     dir="$OUT/lines"; rm -rf "$dir"; mkdir -p "$dir"
@@ -982,11 +983,28 @@ if has_stage lines; then
         --forge "$FORGE" line --pzl "$dir/h_1-typo.pzl" --out-dir "$dir/typo" ) >"$dir/typo.log" 2>&1; TRC=$?
     ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
         --forge "$FORGE" line --pzl eval/puzzles/hard/h_0.pzl --out-dir "$dir/h_0" ) >"$dir/h_0.log" 2>&1; HRC=$?
+    # The model seat's result row carries the epoch puzzle_score.py refuses to pool across, and what the attempt spent
+    # (pr-review of #282: nothing failed when either was dropped).
+    ROWP=$(python3 - "$dir/played/puzzle-results.jsonl" <<'PY'
+import json, sys
+try:
+    rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+except Exception as e:
+    print("no result rows: %s" % e); sys.exit()
+r = rows[-1] if rows else {}
+p = []
+if r.get("harness_epoch") != "harness-epoch-69": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
+for k in ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups"):
+    if not isinstance(r.get(k), int): p.append("%s=%r" % (k, r.get(k)))
+if isinstance(r.get("model_calls"), int) and r["model_calls"] < 1: p.append("model_calls=0 for a played line")
+print("; ".join(p))
+PY
+)
     if [ "$GRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/played.log" && [ "$TRC" = 1 ] && grep -q "drift: " "$dir/typo.log" \
-        && [ "$HRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/h_0.log"; then
-      pass lines "h_1 and h_0 written lines played and solved; the misspelt copy drifted (exit 1)"
+        && [ "$HRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/h_0.log" && [ -z "$ROWP" ]; then
+      pass lines "h_1 and h_0 written lines played and solved; the misspelt copy drifted (exit 1); the row has its epoch and spend"
     else
-      fail lines "h_1 rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift), h_0 rc=$HRC (want 0): see $dir"
+      fail lines "h_1 rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift), h_0 rc=$HRC (want 0); row: ${ROWP:-ok}: see $dir"
     fi
   fi
 fi

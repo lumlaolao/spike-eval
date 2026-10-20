@@ -125,7 +125,8 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
     epochs = {r.get("harness_epoch") for r in rows}
     if len(epochs) > 1:
         raise Refused("results come from harness epochs %s (None: a row from before the stamp); what the seat saw "
-                      "differs, so score each separately" % sorted(epochs, key=str))
+                      "differs, so score each separately (every row read counts, before --solver and --ids)"
+                      % sorted(epochs, key=str))
     if solver:
         rows = [r for r in rows if solver_of(r) == solver]
     solvers = {solver_of(r) for r in rows}
@@ -290,7 +291,10 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     attempts = group_attempts(manifest, rows, split, k, solver, ids)
     puzzles = per_puzzle(manifest, attempts, k)
     solvers = sorted({solver_of(r) for att in attempts.values() for r in att})
+    epochs = {r.get("harness_epoch") for att in attempts.values() for r in att}
     return {
+        # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
+        "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
         "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
@@ -315,9 +319,10 @@ def clustered_ci(values):
 
 def mde80(values):
     """2.8 standard errors of a difference between two independent runs of this size: the smallest difference in mean
-    it detects at 80% power, alpha 0.05. None for fewer than two puzzles."""
+    it detects at 80% power, alpha 0.05. None for fewer than two puzzles, or when every puzzle has the same rate: no
+    spread is no estimate of it, not a detectable difference of 0 (pr-review of #282)."""
     ci = clustered_ci(values)
-    return None if ci is None else 2.8 * 2 ** 0.5 * (ci[1] - ci[0]) / (2 * 1.96)
+    return None if ci is None or ci[1] == ci[0] else 2.8 * 2 ** 0.5 * (ci[1] - ci[0]) / (2 * 1.96)
 
 
 BUDGET_FIELDS = ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups")
@@ -364,9 +369,12 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
     diffs = [rates[1][p] - rates[0][p] for p in ids]
     if base:
         diffs = [d - (rates[3][p] - rates[2][p]) for d, p in zip(diffs, ids)]
+    epochs = [r.get("harness_epoch") for r in reps]
     return {"n_puzzles": len(ids), "mean": _mean(diffs), "ci95": bootstrap_ci(diffs, _mean, n_boot, seed),
             "ci95_clustered": clustered_ci(diffs), "solvers": [r.get("solver") for r in reps],
-            "difference_of_differences": bool(base)}
+            "difference_of_differences": bool(base),
+            # A difference across interfaces is a measurement of the change, and is labelled as one.
+            "epochs": epochs, "cross_epoch": len(set(epochs)) > 1}
 
 
 def signed(x):
@@ -385,9 +393,9 @@ def _ci(c):
 
 def render(rep):
     a = rep["aggregate"]
-    lines = ["PUZ  suite=%s v%s (%s)  split=%s  solver=%s  puzzles=%d  k=%d%s"
+    lines = ["PUZ  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
              % (rep["suite"], rep["suite_version"], rep["suite_sha256"][:12], rep["split"], rep["solver"],
-                a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
+                rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
     h = a["headline"]
     lines.append("  headline %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
                  % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _ci(h.get("ci95_clustered")), _fmt(h["floors"]["pass"]),
@@ -403,7 +411,8 @@ def render(rep):
                             _fmt(b["floors"]["pass"]), _fmt(b["floors"]["first"]), extra))
     if a["pass@1"].get("ci95_clustered"):
         lines.append("  pass@1 clustered 95%% CI %s; smallest difference two runs of this size detect: %s"
-                     % (_ci(a["pass@1"]["ci95_clustered"]), _fmt(a["pass@1"]["mde80"])))
+                     % (_ci(a["pass@1"]["ci95_clustered"]),
+                        "not estimable (no spread)" if a["pass@1"]["mde80"] is None else _fmt(a["pass@1"]["mde80"])))
     if "normalized" in a:
         lines.append("  normalized (random=0, Forge AI=1)      %s   (Forge AI rate %s)"
                      % (_fmt(a["normalized"]["value"]), _fmt(a["normalized"]["forge_ai_rate"])))
@@ -473,9 +482,10 @@ def main(argv=None):
             print("REFUSED: %s" % e, file=sys.stderr)
             return 2
         c = rep["paired"]
-        print("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)"
+        print("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)%s"
               % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", signed(c["mean"]), _ci(c["ci95"]),
-                 _ci(c["ci95_clustered"]), c["n_puzzles"], a.paired_bootstrap, a.paired_seed))
+                 _ci(c["ci95_clustered"]), c["n_puzzles"], a.paired_bootstrap, a.paired_seed,
+                 "  CROSS-EPOCH %s" % " vs ".join(e or "unstamped" for e in c["epochs"]) if c["cross_epoch"] else ""))
     if a.json:
         Path(a.json).write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

@@ -190,6 +190,25 @@ class ScoreV2Test(unittest.TestCase):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
         ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)  # none stamped: older runs still score
 
+    def test_no_spread_gives_no_smallest_difference(self):
+        # pr-review of #282: three puzzles all solved 4/4 printed "detect: 0.000", the opposite of what they show.
+        a = ps.score(self.m, self.rows([4, 4, 4]), "open", k=4, n_boot=20)["aggregate"]
+        self.assertIsNone(a["pass@1"]["mde80"])
+        self.assertIn("not estimable (no spread)", ps.render(ps.score(self.m, self.rows([4, 4, 4]), "open", k=4,
+                                                                         n_boot=20)))
+
+    def test_the_report_names_its_epoch_and_a_cross_epoch_pair_says_so(self):
+        # pr-review of #282: neither the score nor a paired difference said which interface it measured.
+        rep = ps.score(self.m, self.rows([4, 2, 0], harness_epoch="harness-epoch-69"), "open", k=4, n_boot=20)
+        self.assertEqual(rep["harness_epoch"], "harness-epoch-69")
+        self.assertIn("epoch=harness-epoch-69", ps.render(rep))
+        old = ps.score(self.m, self.rows([4, 4, 0]), "open", k=4, n_boot=20)
+        self.assertIsNone(old["harness_epoch"])
+        c = ps.paired(old, rep, n_boot=50)
+        self.assertEqual(c["epochs"], [None, "harness-epoch-69"])
+        self.assertTrue(c["cross_epoch"])
+        self.assertFalse(ps.paired(rep, rep, n_boot=50)["cross_epoch"])
+
     def test_the_score_by_v2_tier(self):
         s = ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)["aggregate"]["solved"]
         self.assertEqual({t: b["solved"] for t, b in s["by_tier_v2"].items()}, {"1": 1, "2": 1, "3": 0})

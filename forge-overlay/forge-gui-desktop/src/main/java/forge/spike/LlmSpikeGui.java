@@ -133,6 +133,12 @@ interface LLMBridge {
     default int getLastCacheWriteTokens() { return -1; }
     /** The provider that served the most recent ask (OpenRouter's response `provider`), or null. */
     default String getLastProvider() { return null; }
+    /** Prompt tokens billed since the bridge was made, every send that came back counted (a truncation retry's first
+     *  send included), or -1 when the bridge does not count them. Read as a difference around an ask, it is what the
+     *  ask spent, which a failed ask's stale getLastPromptTokens() is not. */
+    default long getBilledPromptTokens() { return -1; }
+    /** Completion tokens billed, as {@link #getBilledPromptTokens()}. */
+    default long getBilledCompletionTokens() { return -1; }
 }
 
 /**
@@ -7916,6 +7922,7 @@ public final class LlmSpikeGui {
          *  health bookkeeping as a plain ask. `prompt` is what the decision row records. */
         private String askModel(LLMBridge b, String prompt, java.util.function.Supplier<String> call) {
             long tAsk = System.currentTimeMillis();
+            long billedPrompt0 = b.getBilledPromptTokens(), billedCompletion0 = b.getBilledCompletionTokens();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
             lastTier = (b == smart) ? "smart" : "fast";
@@ -7975,8 +7982,15 @@ public final class LlmSpikeGui {
             lastCachedTokens = b.getLastCachedTokens();
             lastCacheWriteTokens = b.getLastCacheWriteTokens();
             lastProvider = b.getLastProvider();
-            spentPromptTokens += Math.max(0, lastPromptTokens);
-            spentCompletionTokens += Math.max(0, lastCompletionTokens);
+            // What this ask spent: the bridge's billing when it keeps one (every send, retries included); else the last
+            // call's usage, and only when it answered, since a failed ask leaves the previous call's count in place.
+            if (billedPrompt0 >= 0) {
+                spentPromptTokens += b.getBilledPromptTokens() - billedPrompt0;
+                spentCompletionTokens += b.getBilledCompletionTokens() - billedCompletion0;
+            } else if (reply != null) {
+                spentPromptTokens += Math.max(0, lastPromptTokens);
+                spentCompletionTokens += Math.max(0, lastCompletionTokens);
+            }
             spentModelMs += System.currentTimeMillis() - tAsk;
             lastAskMs += System.currentTimeMillis() - tAsk; // summed over every attempt; retained for the
                                                              // ms<=0 legacy substitution guard in evalDec
@@ -10597,6 +10611,7 @@ public final class LlmSpikeGui {
         private volatile String lastFinishReason;
         private volatile int lastPromptTokens = -1;
         private volatile int lastCompletionTokens = -1;
+        private volatile long billedPromptTokens = 0, billedCompletionTokens = 0;
         private volatile int lastCachedTokens = -1, lastCacheWriteTokens = -1;
         private volatile String lastProvider = null;
         // Test-only instrumentation (see lastSendCount()). A bridge belongs to one seat/tier and
@@ -10719,6 +10734,7 @@ public final class LlmSpikeGui {
 
                 OrResult r = send(messages, toolsJson, allowCalls, maxTokens, reasoningEffort, temperature, deadline);
                 if (r == null) return null; // transport/HTTP-status failure, already logged by send()
+                bill(r);
                 r = r.withContent(collapseDegenerateRepetition(r.content)); // F2 residual (usage carried through)
 
                 // TRUNCATION RECOVERY (Infra-3): MUST run BEFORE isNonAnswer() below -- ordering bug
@@ -10754,6 +10770,7 @@ public final class LlmSpikeGui {
                             + maxTokens + " -> retrying at " + retryTokens
                             + (reasoner ? " with reasoning disabled" : ""));
                     OrResult retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
+                    if (retry != null) bill(retry);
                     // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
                     // original reply is a better final result than a garbled/empty retry, and either way
                     // the isNonAnswer() check right below still gets the final say.
@@ -10938,6 +10955,13 @@ public final class LlmSpikeGui {
         @Override public String getLastFinishReason() { return lastFinishReason; }
         @Override public int getLastPromptTokens() { return lastPromptTokens; }
         @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
+        @Override public long getBilledPromptTokens() { return billedPromptTokens; }
+        @Override public long getBilledCompletionTokens() { return billedCompletionTokens; }
+        /** One send that came back, billed whether or not its reply is used (pr-review of #282). */
+        private void bill(OrResult r) {
+            billedPromptTokens += Math.max(0, r.promptTokens);
+            billedCompletionTokens += Math.max(0, r.completionTokens);
+        }
         @Override public int getLastCachedTokens() { return lastCachedTokens; }
         @Override public String getLastProvider() { return lastProvider; }
         @Override public int getLastCacheWriteTokens() { return lastCacheWriteTokens; }

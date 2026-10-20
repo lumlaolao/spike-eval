@@ -64,6 +64,8 @@ public class OpenRouterTimeoutTest {
     private static final long BUDGET_MS = 2000;
 
     private static final AtomicInteger completionCalls = new AtomicInteger();
+    private static final AtomicInteger billedCalls = new AtomicInteger();
+    private String billedBase;
     private static final AtomicInteger handlersOpened = new AtomicInteger();
     private static final AtomicInteger handlersReleased = new AtomicInteger();
 
@@ -121,12 +123,26 @@ public class OpenRouterTimeoutTest {
                 dribble(ex);
             }
         });
+        // Billing (pr-review of #282): a length-truncated first reply and its retry each report usage, and a third
+        // ask fails with HTTP 500. Every send that came back is billed; a failed one adds nothing.
+        server.createContext("/billed/chat/completions", ex -> {
+            drain(ex);
+            int n = billedCalls.incrementAndGet();
+            if (n == 1) respond(ex, "{\"choices\":[{\"message\":{\"content\":\"still reasoning\"},"
+                    + "\"finish_reason\":\"length\"}],\"usage\":{\"prompt_tokens\":50,\"completion_tokens\":20}}");
+            else if (n == 2) respond(ex, "{\"choices\":[{\"message\":{\"content\":\"CHOICE: 1\"},"
+                    + "\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":30,\"completion_tokens\":5}}");
+            else {
+                try { ex.sendResponseHeaders(500, -1); ex.close(); } catch (Exception ignore) { }
+            }
+        });
         server.start();
         String base = "http://127.0.0.1:" + server.getAddress().getPort();
         dribbleUrl = base + "/dribble";
         promptUrl = base + "/prompt";
         loopbackBase = base + "/v1";
         slowBase = base + "/slow";
+        billedBase = base + "/billed";
     }
 
     @AfterClass(alwaysRun = true)
@@ -382,6 +398,21 @@ public class OpenRouterTimeoutTest {
                         + (FIRST_REPLY_MS + BUDGET_MS) + " ms)");
         Assert.assertTrue(elapsed >= FIRST_REPLY_MS,
                 "sanity: the slow first reply should still have been waited for");
+    }
+
+    /** Every send that came back is billed, the truncated first one included; a failed ask adds nothing and leaves no
+     *  stale count to be read again (pr-review of #282: the seat's budget read the last call's tokens once an ask). */
+    @Test
+    public void everySendThatCameBackIsBilledAndAFailedAskAddsNothing() {
+        billedCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, billedBase, BUDGET_MS);
+        Assert.assertEquals(bridge.ask("what is the play?"), "CHOICE: 1");
+        Assert.assertEquals(bridge.getBilledPromptTokens(), 80L, "50 for the truncated reply, 30 for its retry");
+        Assert.assertEquals(bridge.getBilledCompletionTokens(), 25L);
+        Assert.assertNull(bridge.ask("again?"));
+        Assert.assertEquals(bridge.getBilledPromptTokens(), 80L, "an HTTP 500 is not billed");
+        Assert.assertEquals(bridge.getBilledCompletionTokens(), 25L);
     }
 
     /** A bridge pointed at a loopback endpoint needs no API key, and the deadline still applies. */

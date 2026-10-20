@@ -1917,6 +1917,11 @@ public class GoldenChecksTest {
         card("Mountain", me, ZoneType.Battlefield);
         card("Lightning Bolt", me, ZoneType.Hand);
         Script model = new Script("CHOICE: 1") {
+            // A call that takes time, so model_ms has something to count (pr-review of #282: >= 0 could not fail).
+            @Override public String ask(String prompt) {
+                try { Thread.sleep(5); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                return super.ask(prompt);
+            }
             @Override public int getLastPromptTokens() { return 100; }
             @Override public int getLastCompletionTokens() { return 7; }
         };
@@ -1928,8 +1933,34 @@ public class GoldenChecksTest {
         Assert.assertEquals(b.get("model_calls"), 1, String.valueOf(b));
         Assert.assertEquals(b.get("prompt_tokens"), 100L);
         Assert.assertEquals(b.get("completion_tokens"), 7L);
-        Assert.assertTrue((Long) b.get("model_ms") >= 0);
+        Assert.assertTrue((Long) b.get("model_ms") >= 5, String.valueOf(b));
         Assert.assertEquals(b.get("lookups"), 0);
+    }
+
+    /** A bridge that reports no billing and fails its next ask still shows the last call's usage; the budget must not
+     *  count it twice (pr-review of #282: a dead bridge reported a full call's tokens it never spent). */
+    @Test
+    public void aFailedAskAddsNoTokensToTheBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicBoolean down = new java.util.concurrent.atomic.AtomicBoolean();
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) { return down.get() ? null : super.ask(prompt); }
+            @Override public int getLastPromptTokens() { return 100; }
+            @Override public int getLastCompletionTokens() { return 7; }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        down.set(true);
+        card("Shock", me, ZoneType.Hand);   // a new spot, so the seat is asked again rather than passing it
+        ctrl.chooseSpellAbilityToPlay();
+        java.util.Map<String, Object> b = ctrl.budget();
+        Assert.assertTrue((Integer) b.get("model_calls") >= 2, "the second spot was asked: " + b);
+        Assert.assertEquals(b.get("prompt_tokens"), 100L, String.valueOf(b));
+        Assert.assertEquals(b.get("completion_tokens"), 7L);
     }
 
     /** X, then the modes of a modal spell, each from the model. */
