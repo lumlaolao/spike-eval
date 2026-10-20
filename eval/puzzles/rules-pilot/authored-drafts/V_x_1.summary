@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:4:0 Solver:2:0 Solver:2:0", "search_replays": 2, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Brute Force targeting [Grizzly Bears (7)]", "STACK_ADD: Solver cast Prey Upon targeting [Grizzly Bears (7)] [Hill Giant (11)]"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 5, "uniqueness_exhausted": 5, "uniqueness_replays": 23, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["count p1 Graveyard \"Hill Giant\" = 1 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 2492

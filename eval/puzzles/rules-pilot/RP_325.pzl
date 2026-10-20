@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 325 - Bolt above the City
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 1 life and the opponent is at 3. You have Lightning Bolt in hand and your only land is City of Brass. Win this turn.
+Rule:authored-city-of-brass-bolt | City of Brass's damage is a triggered ability, while its mana ability resolves at once (CR 605.3b) and the trigger waits to be put on the stack until a player would get priority (CR 603.3): tapped while casting Bolt, the trigger goes above Bolt and kills you first; tap it for mana first, then cast Bolt above the trigger (the offensive twin of RP_017)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=1
+p0hand=Lightning Bolt
+p0battlefield=City of Brass
+p0library=Mountain;Mountain;Mountain
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+winner p0
