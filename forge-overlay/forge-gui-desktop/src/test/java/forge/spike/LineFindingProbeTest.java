@@ -263,6 +263,52 @@ public class LineFindingProbeTest {
         Assert.assertEquals(g.getStack().size(), 0);
     }
 
+    /** Life is not paid for a Phyrexian cost whose rest cannot be paid (pr-review of #277): Dismember {1}{B/P}{B/P} with
+     *  no land, handed to the play path as a stale menu would. The life went first and was not refunded. */
+    @Test
+    public void aPhyrexianCostWithAnUnpayableRestCostsNoLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        // A failed cast leaves the card in the Stack zone, as the engine routine does; this test is about the life.
+        card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        int life = me.getLife();
+        logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertEquals(me.getLife(), life, "life paid for a cast that could not happen");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
+    /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1
+     *  life") as the only land. Paid first, the 4 life left 1, the AI's source filter then refused the Canopy (it keeps
+     *  1 life), and the cast failed with the life gone. Mana first, the Canopy pays at 5; the 4 life would then leave
+     *  0, so it is not paid and the mana is refunded (pr-review of #277, third round). */
+    @Test
+    public void phyrexianLifeIsPaidAfterTheManaSoAFailedCastCostsNoLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        me.setLife(5, null);
+        card("Horizon Canopy", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        logOf(() -> ctrl.playChosenSpellAbility(cast));
+        // The Canopy's 1 life leaves 4: paying 4 more would put the seat at 0, which the split never offered (the AI's
+        // own payment stops there too). So the Phyrexian life is not paid, the Canopy's mana is refunded, and no cast.
+        Assert.assertEquals(g.getStack().size(), 0, "cast at " + me.getLife() + " life");
+        Assert.assertEquals(me.getLife(), 4, "only the Canopy's own life is gone");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "the Canopy's mana was refunded to the pool");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
     /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the
      *  battlefield, handed to the play path as a stale menu would. MagicStack.add drops it ("failed to target"). */
     @Test

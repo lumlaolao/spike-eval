@@ -970,8 +970,8 @@ fi
 # A line a person wrote is proven by playing it, not by a search finding it (docs/harness/HARD-PUZZLES.md, section
 # 4). Fails if: the model seat on a script: spec does not play h_1's 16 lines or h_0's 11 to the acceptance state
 # (h_0 pays Gitaxian Probe with life, which the menu hid until epoch 68), or a line naming no option on the menu is
-# played anyway. The misspelt copy still solves after its drift (the do-nothing
-# sacrifice takes the first two Mountains), which is why the verdict reads the drift and not the solve.
+# played anyway. The misspelt copy still solves after its drift (the do-nothing sacrifice takes the first two
+# Mountains), which is why the verdict reads the drift and not the solve.
 if has_stage lines; then
   if [ ! -f "$CLASSES/forge/spike/ScriptBridge.class" ]; then fail lines "no compiled classes"; else
     dir="$OUT/lines"; rm -rf "$dir"; mkdir -p "$dir"
