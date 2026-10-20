@@ -60,8 +60,8 @@ python3 eval/run_batch.py --seeds N --exploratory --budget-usd 0.40 --deck eval/
   --memory-tools --lookahead --out runs/loop/gNN               # one paid game (the game-loop skill's form)
 ```
 
-Zero-model canaries (in acceptance): seed 42 floor mirror wins A in 108 turns, random mirror A in 59. Floor never
-reaches the play menu; use the random arm for play, attack and block paths. Before trusting a green gate, say what
+Zero-model canaries (in acceptance): seed 42 floor mirror wins A in 108 turns, random mirror A in 55 (Linux pins). Floor
+never reaches the play menu; use the random arm for play, attack and block paths. Before trusting a green gate, say what
 would have made it fail.
 
 ## Where things are

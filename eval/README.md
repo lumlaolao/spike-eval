@@ -178,7 +178,7 @@ Ground truth is `LlmSpikeHeadless.java`; the game line is keyed by
   model, and two games that each resolved only `smart` or only `fast` never
   combine into a joint condition. Baseline seats (floor/random/ai) have no
   model to name and are reported `not-applicable`, never unresolved. See
-  `docs/harness/EVAL-IDENTITY-IMPLEMENTATION.md`.
+  `docs/harness/history/EVAL-IDENTITY-IMPLEMENTATION.md`.
 
 ## Frozen suites + the holdout registry
 

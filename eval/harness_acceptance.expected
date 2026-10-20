@@ -139,6 +139,8 @@ linux.floor.decisions=1828
 # draws shift and the walk re-rolls (first divergence diffed against main's canary, A/59/397 reproduced there):
 # A/55/365. ai=0, silent drops=0, not capped. Floor unchanged (A/108/1828). The Mac random pin is STALE until
 # measured there.
+# Runs: the head's runs/harness-acceptance/20261019T212427Z, main's worktree run 20261019T213133Z (A/59/397),
+# and the bd3b9b1 acceptance run, which reproduced A/55/365.
 linux.random.winner=A
 linux.random.turns=55
 # 2026-10-15 (fix/no-engine-fallback-rare): six replacement-order and two counter-type choices with one

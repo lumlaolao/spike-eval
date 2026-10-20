@@ -2,7 +2,7 @@
 """Own-card line report: did the seat get to make, and make, the decisions its lines depend on?
 
 Counts, from recorded games (EVAL_OUT JSONL), the decision classes that were silent or impossible
-before the 2026-10-13 action-fidelity fixes (docs/harness/ARCHITECTURE-REVIEW.md problems 1-4):
+before the 2026-10-13 action-fidelity fixes (docs/harness/history/ARCHITECTURE-REVIEW.md problems 1-4):
 
   sacrifice        which permanent paid a sacrifice cost, and who chose (model tier / forced / fallback)
   confirm-trigger  optional triggers offered, and how many were accepted

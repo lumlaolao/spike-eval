@@ -556,7 +556,7 @@ sixteen pairs cannot say which.
    land drop, where the later steps are cards the land makes castable and are therefore not on the
    menu; 13 of the 92 requests asked to preview a land.
 4. An MCP server and a sandboxed workspace are not being built
-   (`docs/harness/NOTES-mcp-and-workspace.md`).
+   (`docs/harness/history/NOTES-mcp-and-workspace.md`).
 
 ## References
 

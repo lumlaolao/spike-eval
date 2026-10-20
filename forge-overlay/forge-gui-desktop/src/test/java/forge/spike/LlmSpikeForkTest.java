@@ -107,7 +107,7 @@ public class LlmSpikeForkTest {
 
     @Test
     public void rowsMatch_differingNOptionsDoesNotMatch() {
-        // This is the synthetic corruption HANDOFF.md's own 5b negative check used (n_options 3 -> 999).
+        // This is the synthetic corruption the Milestone D handoff's 5b negative check used (n_options 3 -> 999).
         Assert.assertFalse(LlmSpikeFork.rowsMatch(
                 new String[] {"play", "A", "3"}, new String[] {"play", "A", "999"}));
     }
@@ -222,7 +222,7 @@ public class LlmSpikeForkTest {
         // seed/swap/controllers/decks must stay strict regardless of the sha relaxation.
         String src = sourceLine("abc123", "def456");
         Map<String, String> env = matchingEnv(null, null);
-        env.put("GAME_SEED", "9999"); // deliberately wrong seed (mirrors HANDOFF.md's own negative check)
+        env.put("GAME_SEED", "9999"); // deliberately wrong seed (the Milestone D handoff's negative check)
 
         LlmSpikeFork.ProvenanceVerdict v = LlmSpikeFork.evaluateProvenance(src, env);
 

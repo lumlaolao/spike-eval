@@ -22,7 +22,7 @@ The two traps it is designed around, both already observed in this repo:
    same deck* wins 28.6% (ceiling control; both figures from the 2026-07-24
    stage-2 tracking notes — the win-rate runs live in the main checkout, not
    this worktree, so re-measure before re-quoting). PokerBench found the same
-   dissociation — Brief B via `docs/training-feasibility.md` §2. Agreement
+   dissociation — Brief B via `docs/training-feasibility.md` §2 (removed 2026-10-20; in git history). Agreement
    metrics are diagnostics, never headline results.
 2. **The current eval cannot detect a student surpassing its teacher.** Every
    per-decision reference today (shadow oracle, replay-match, SFT labels) is the

@@ -3,7 +3,7 @@
 Design + work order for the capability the user asked for: *the model should be able to call
 the Forge engine on a position, look a few moves into the future, and reason on the result* —
 without cheating. Status: **design, not built.** This is the G8 gate ("safe simulation",
-`COMPLETION-GATES.md`).
+`history/COMPLETION-GATES.md`).
 
 ## Why this is the highest-leverage play-quality item
 

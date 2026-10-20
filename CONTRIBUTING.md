@@ -29,19 +29,20 @@ gh pr merge <n> --merge      # merge commit, the only allowed method
 
 ## Source of truth
 
-`forge-overlay/` is the source of truth. **Never edit files inside `~/code/forge`** —
+`forge-overlay/` is the source of truth. **Never edit files inside the Forge checkout (`$FORGE_HOME`: `~/code/forge` on the Mac, `/root/forge` in the cloud)** —
 they are overwritten by `install.sh`. Workflow for any harness change:
 
 ```bash
 # 1. edit forge-overlay/.../forge/spike/LlmSpikeGui.java
 bash install.sh                                        # 2. copy overlay into $FORGE_HOME
-cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (install, not just compile)
+cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (install, not just compile)
 ```
 
 ## What must never be committed
 
 - `secrets.env` (git-ignored) — the real `OPENROUTER_API_KEY` never enters history.
-- `datasets/` (~650 MB) and `runs/` (~490 MB) — regenerable artifacts, not history.
+- generated training data under `datasets/` (only each corpus's `meta.jsonl` and README are kept, as the
+  seed record the held-out guard reads) and new `runs/` output beyond the JSONL evidence a doc cites.
   Stage files explicitly; `git add -A` at the repo root is always wrong.
 - `*.mp4` recordings — archive out-of-band.
 - Anything under `models/` or `.venv-mlx/`.
