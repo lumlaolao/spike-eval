@@ -32,8 +32,10 @@ import java.util.regex.Pattern;
  * that differ in more than their handle (@N) are ambiguous. "at [T2] PHASE: line" waits for that turn and step.
  *
  * <p>Nothing is guessed. A priority menu the next line does not fit is passed (the line waits for its window), and
- * a mana payment's "which stay untapped" the line does not name is left to the engine; both are counted. Any other
- * decision the next line does not fit, an answer the harness refuses, or a decision after the last line is a DRIFT:
+ * a mana payment's "which stay untapped" is left to the engine unless the line is written for it ("untap: Mountain");
+ * both are counted. Any other
+ * decision the next line does not fit, an answer the harness refuses, or a decision after the last line (other than
+ * a priority menu or an untap ask) is a DRIFT:
  * recorded, the rest of the game answered by the do-nothing option, and the result void. A game that ends with
  * lines unplayed did not play the line either (the runner refuses {@link #unconsumed} above zero).
  */
@@ -95,9 +97,12 @@ final class ScriptBridge implements LLMBridge {
         m.put("script_exhausted", exhausted);
         m.put("script_unconsumed", unconsumed());
         m.put("script_lines", lines.size());
+        // Which line the row played: --script files are not covered by the puzzle's hash.
+        m.put("script_sha256", LlmSpikePuzzle.sha256(String.join("\n", lines)));
         m.put("script_waits", waits);
         m.put("script_untaps_left", untapsLeft);
         m.put("script_played", played());
+        // What each line took ("line => label"): the verdict checks the casts it claims against the game log.
         m.put("script_taken", new ArrayList<>(taken));
         m.put("script_actions", new ArrayList<>(actionLines));
         return m;
@@ -125,22 +130,9 @@ final class ScriptBridge implements LLMBridge {
         JsonElement last = msgs.get(msgs.size() - 1);
         if (msgs.size() > 1 && "tool".equals(role(last)) && text(last).startsWith("ERROR:")) refused = text(last);
         String args = decide(new Question(prompt), refused).toString();
-        NativeTools.Call call = new NativeTools.Call("s" + calls, AnswerTool.NAME, args);
-        JsonObject f = new JsonObject();
-        f.addProperty("name", call.name);
-        f.addProperty("arguments", call.arguments);
-        JsonObject tc = new JsonObject();
-        tc.addProperty("id", call.id);
-        tc.addProperty("type", "function");
-        tc.add("function", f);
-        JsonArray tcs = new JsonArray();
-        tcs.add(tc);
-        JsonObject msg = new JsonObject();
-        msg.addProperty("role", "assistant");
-        msg.add("tool_calls", tcs);
-        List<NativeTools.Call> list = new ArrayList<>();
-        list.add(call);
-        return new NativeTools.Turn(null, msg.toString(), list);
+        List<NativeTools.Call> one = new ArrayList<>();
+        one.add(new NativeTools.Call("s" + calls, AnswerTool.NAME, args));
+        return NativeTools.Turn.ofCalls(one);
     }
 
     private static String role(JsonElement m) {
@@ -157,8 +149,9 @@ final class ScriptBridge implements LLMBridge {
 
     /** One decision: the arguments of its `answer` call. */
     JsonObject decide(Question q, String refused) {
-        if (refused != null) fail("the harness refused the answer to line " + pos + " (" + lines.get(Math.max(0, pos - 1))
-                + "): " + refused);
+        if (refused != null) fail("the harness refused " + (lastTaken == null ? "the do-nothing answer"
+                : "the answer to line " + pos + " (" + lastTaken + ")") + ": " + refused);
+        lastTaken = null;
         if (drift != null) return q.fallback();
         String line = pos < lines.size() ? lines.get(pos) : null;
         String body = line;
@@ -171,13 +164,26 @@ final class ScriptBridge implements LLMBridge {
                         && m.group(2).equalsIgnoreCase(q.phase);
             }
         }
-        if (q.playMenu || q.manaUntap) {
+        if (q.manaUntap) {
+            // Only a line written for it ("untap: Mountain"): any other line is for a later decision, and an untap ask
+            // that took it would shift every line after it (pr-review of PR #276: "none" for the attack was eaten).
+            Matcher u = UNTAP.matcher(body == null ? "" : body);
+            if (line != null && here && u.matches()) {
+                JsonObject a = q.answer(u.group(1).trim());
+                if (a != null) { take(line, q); return a; }
+                fail("\"" + line + "\" fits no source: " + q.head() + (q.ambiguity == null ? "" : " (" + q.ambiguity + ")"));
+                return q.fallback();
+            }
+            untapsLeft++;
+            return q.fallback();
+        }
+        if (q.playMenu) {
             if (line != null && here) {
                 JsonObject a = q.answer(body);
                 if (a != null) { take(line, q); return a; }
                 if (q.ambiguity != null) { fail(q.ambiguity); return q.fallback(); }
             }
-            if (q.playMenu) waits++; else untapsLeft++;
+            waits++;
             return q.fallback();
         }
         if (line == null) {
@@ -196,12 +202,17 @@ final class ScriptBridge implements LLMBridge {
         return a;
     }
 
+    /** The line the last answer came from, or null when it was a wait or a do-nothing answer. */
+    private String lastTaken = null;
+
     private void take(String line, Question q) {
         if (q.opensAction()) actionLines.add(pos);
+        lastTaken = line;
         pos++;
         taken.add(line + " => " + (q.lastTaken == null ? "" : q.lastTaken));
     }
 
+    static final Pattern UNTAP = Pattern.compile("(?i)^untap:\\s*(.*)$");
     static final Pattern QUALIFIED = Pattern.compile("(?i)^at\\s+(?:T(\\d+)\\s+)?([A-Za-z0-9_]+)\\s*:\\s*(.*)$");
     private static final Pattern OPTION = Pattern.compile("(?m)^\\s*(\\d+)\\) (.*)$");
     private static final Pattern FIELD = Pattern.compile("call `answer` with `(\\w+)`");
@@ -274,7 +285,7 @@ final class ScriptBridge implements LLMBridge {
             return -1;
         }
 
-        /** The option numbers {@code body} names, one per pick, or null (with {@link #ambiguity} when two fit). */
+        /** The one unused option {@code body} names, or null (with {@link #ambiguity} when two different labels fit). */
         private Integer pick(String body, Set<Integer> used) {
             for (Map.Entry<Integer, String> e : options.entrySet())
                 if (!used.contains(e.getKey()) && norm(e.getValue()).equals(norm(body))) return e.getKey();
@@ -320,12 +331,15 @@ final class ScriptBridge implements LLMBridge {
                 }
                 case "blocks": {
                     JsonArray out = new JsonArray();
+                    Set<Integer> usedBlockers = new LinkedHashSet<>();
                     if (!b.equalsIgnoreCase("none")) {
                         for (String pair : b.split(";")) {
                             String[] ab = pair.split("->");
                             if (ab.length != 2) return null;
-                            int blocker = listed("YOUR BLOCKERS:", ab[0].trim()), attacker = listed("ATTACKERS:", ab[1].trim());
+                            int blocker = listed("YOUR BLOCKERS:", ab[0].trim(), usedBlockers, true);
+                            int attacker = blocker < 0 ? -1 : listed("ATTACKERS:", ab[1].trim(), new LinkedHashSet<>(), false);
                             if (blocker < 0 || attacker < 0) return null;
+                            usedBlockers.add(blocker);
                             JsonObject o = new JsonObject();
                             o.addProperty("blocker", blocker);
                             o.addProperty("attacker", attacker);
@@ -365,17 +379,35 @@ final class ScriptBridge implements LLMBridge {
             }
         }
 
-        /** "1 = Typhoid Rats 1/1 @3; 2 = ..." on the line headed {@code header}: the number of the one that fits. */
-        private int listed(String header, String name) {
+        /** "1 = Typhoid Rats 1/1 @3; 2 = ..." on the line headed {@code header}: the number of the one {@code name}
+         *  names, as {@link #pick} names an option: an equal label first, then one that fits; two different labels
+         *  that fit are ambiguous. Twins (labels equal but for the handle) take turns as blockers ({@code used}); as
+         *  attackers they are ambiguous, since one each and a double block are both legal: the line names a handle. */
+        private int listed(String header, String name, Set<Integer> used, boolean twinsTakeTurns) {
             int i = block.lastIndexOf(header);
             if (i < 0) return -1;
             int end = block.indexOf('\n', i);
             String row = block.substring(i + header.length(), end < 0 ? block.length() : end);
+            Map<Integer, String> items = new LinkedHashMap<>();
             for (String item : row.split(";")) {
                 Matcher m = Pattern.compile("^\\s*(\\d+) = (.*)$").matcher(item);
-                if (m.matches() && fits(m.group(2), name)) return Integer.parseInt(m.group(1));
+                if (m.matches()) items.put(Integer.parseInt(m.group(1)), m.group(2).trim());
             }
-            return -1;
+            for (Map.Entry<Integer, String> e : items.entrySet())
+                if (!used.contains(e.getKey()) && norm(e.getValue()).equals(norm(name))) return e.getKey();
+            List<Integer> fit = new ArrayList<>();
+            Set<String> kinds = new LinkedHashSet<>();
+            for (Map.Entry<Integer, String> e : items.entrySet()) {
+                if (used.contains(e.getKey()) || !fits(e.getValue(), name)) continue;
+                fit.add(e.getKey());
+                kinds.add(norm(HANDLE.matcher(e.getValue()).replaceAll("")));
+            }
+            if (kinds.size() > 1 || (!twinsTakeTurns && fit.size() > 1)) {
+                ambiguity = "ambiguous: \"" + name + "\" fits " + fit.size() + " in " + header.replace(":", "")
+                        + (kinds.size() > 1 ? ": " + String.join(" | ", kinds) : " (twins: name one by its handle)");
+                return -1;
+            }
+            return fit.isEmpty() ? -1 : fit.get(0);
         }
 
         /** The do-nothing answer: PASS, CANCEL or a decline, no picks beyond the least allowed, no blocks, the least number. */

@@ -256,6 +256,17 @@ class TestConditionEnv(unittest.TestCase):
         self.assertNotIn("[out]", p.stdout)
 
 
+class TestRulesToolNeedsMemoryTools(unittest.TestCase):
+    """The seat wires the rules lookup only with MEMORY_TOOLS=1 (LlmSpikeGui, `MEMORY_TOOLS && RULES_TOOL`),
+    so --rules-tool alone recorded rules_tool=1 for games that never offered it (benchmark pilot,
+    runs/puzzles/bench-pilot/on, 2026-10-20: 0 rules_lookup calls, none possible)."""
+
+    def test_rules_tool_without_memory_tools_is_refused(self):
+        with self.assertRaises(SystemExit) as cm:
+            run_batch.main(["--rules-tool", "--seeds", "1"])
+        self.assertIn("--memory-tools", str(cm.exception.code))
+
+
 class TestUnpinnedSeat(unittest.TestCase):
     """Issue #234: a seat with no controller is an llm seat, and an llm tier with no model spec fell through
     to the in-JVM default (Opus for the smart tier): a Luna mirror launched with only seat A pinned played

@@ -22,6 +22,13 @@ class WrittenLineTest(unittest.TestCase):
         self.assertTrue(pb.line_verdict(drifted).startswith("drift: line 3"))
         short = dict(self.PLAYED, script_unconsumed=5, script_played=False)
         self.assertEqual(pb.line_verdict(short), "5 lines unplayed")
+        # A cast the harness accepted but the engine rolled back (its payment failed) never happened (pr-review, #276).
+        rolled = dict(self.PLAYED, script_taken=["cast Lava Spike => CAST Lava Spike @1 {R} [x]",
+                                                 "cast Fireblast => CAST Fireblast @3 [y]"],
+                      actions=["STACK_ADD: Solver cast Lava Spike targeting [Opponent]"])
+        self.assertEqual(pb.line_verdict(rolled), "1 casts on the stack of 2 the line took")
+        self.assertEqual(pb.line_verdict(dict(rolled, actions=rolled["actions"] + ["STACK_ADD: Solver cast Fireblast"])),
+                         "played")
         lost = dict(self.PLAYED, status="failed", solved=False, acceptance_failed=["life p1 <= 0 (was 7)"])
         self.assertIn("was 7", pb.line_verdict(lost))
         self.assertEqual(pb.line_verdict(dict(self.PLAYED, tainted_by_deckout=True)), "solved by a deck-out")
@@ -45,6 +52,7 @@ class WrittenLineTest(unittest.TestCase):
         self.assertEqual((env["CONTROLLER_A"], env["CONTROLLER_B"], env["PZL_SEEDS"]), ("llm", "ai", "1..3"))
         self.assertEqual(env["SMART_MODEL_A"], "script:/x/h_1.pzl")
         self.assertEqual(env["FAST_MODEL_A"], env["SMART_MODEL_A"])
+        self.assertEqual(env["ONE_TIER"], "1", "one bridge, one position: never inherited from the shell")
         import puzzle_solve
         import argparse
         luna = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
