@@ -16,8 +16,9 @@ import java.util.regex.Pattern;
  * The greedy-preview floor (docs/harness/HARD-PUZZLES.md section 4, item 4), model spec {@code greedy:}: a zero-model
  * seat that, at each priority menu, previews every cast and activation with the seat's own `simulate` tool
  * (LOOKAHEAD=1) and takes the one that lowers the opponent's life most, else passes. Every other decision is
- * answered toward the opponent: a target ask takes what the chosen play's preview assumed, else the opponent, never
- * CANCEL; every attacker; no blocks; any other ask the do-nothing answer. It acts only when the faithful prompt shows
+ * answered toward the opponent: a target ask takes what the chosen play's preview assumed (the opponent's copy of a
+ * name first, each used once across a chain's asks), else ranks the opponent's side first and the seat's own last,
+ * below declining an "up to" ask; never CANCEL; every attacker; no blocks; any other ask the do-nothing answer. It acts only when the faithful prompt shows
  * an empty stack (a preview resolves what is already there too, so every option would seem to deal that damage), and
  * it never plays a land or previews a land's mana ability. It plans nothing: a puzzle it solves is one move deep.
  *
@@ -29,7 +30,8 @@ final class GreedyBridge implements LLMBridge {
 
     private final String label;
     private int calls = 0;
-    /** The targets the last chosen play's preview assumed ("[assuming target: X, Y]"), for its target ask only. */
+    /** The targets the last chosen play's preview assumed ("[assuming target: X, Y]"), for the target asks of that
+     *  play, used up as taken. */
     private List<String> assumed = new ArrayList<>();
     private static final Pattern ASSUMED = Pattern.compile(Pattern.quote(PlayerLookahead.ASSUMING) + "([^\\]]+)\\]");
 
@@ -170,6 +172,7 @@ final class GreedyBridge implements LLMBridge {
             if (picks.size() >= Math.min(Math.max(min, 1), max)) break;
             if (side(o.getValue()) == Integer.MAX_VALUE || picks.contains(o.getKey())) continue;
             if (side(o.getValue()) == 2 && min > 0) continue;   // declining is not a pick where one is required
+            if (side(o.getValue()) == 3 && min == 0) continue;  // where declining is allowed, never the seat's own
             picks.add(o.getKey());
         }
         return picks;

@@ -173,6 +173,17 @@ public class GreedyBridgeTest {
                 "declining beats the seat's own creature");
     }
 
+    /** An "up to two" ask has no "No target" row (the empty list declines): with only the seat's own creatures it picks
+     *  none (pr-review of #279: the multi ask still took the seat's own creature). */
+    @Test
+    public void anUpToAskWithOnlyTheSeatsOwnCardsPicksNone() {
+        String ask = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose TARGETS for Frost Breath @2\n"
+                + "Choose between 0 and 2 of these (by number):\n  1) Grizzly Bears 2/2 @3 [Battlefield, yours]\n"
+                + "  2) Thermo-Alchemist 0/3 @5 [Battlefield, yours]\n"
+                + "ANSWER: call `answer` with `options`: the numbers you pick, between 0 and 2 (an empty list for none).";
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).getAsJsonArray("options").toString(), "[]");
+    }
+
     /** A chain (Arc Trail: a root and a sub-ability, one target ask each) gets the assumed targets in turn, and a name on
      *  both sides takes the opponent's copy. */
     @Test
