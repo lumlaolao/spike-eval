@@ -102,7 +102,8 @@ only for what search is good at: opponent replies, deviations and minimality.
    **Done (2026-10-20):** a model spec `script:<file>` (`ScriptBridge.java`) instead of a new controller, so the line
    plays the faithful seat's own menus; `puzzle_baselines.py line`; acceptance stage `lines`. h_1 is proven by its
    16-line solution (`eval/puzzles/hard/h_1.pzl`). h_0's line needs Gitaxian Probe paid with life, which the
-   menu never offers (Forge's AI-only `AIPhyrexianPayment$ Never` hint decides castability): a harness defect.
+   menu never offers (Forge's AI-only `AIPhyrexianPayment$ Never` hint decides castability): a harness defect,
+   fixed in PR #277 (harness-epoch-68).
 2. **The prover from a line**: `PuzzleSearch.prove` already enumerates every opponent alternative along a
    winning line; run it from the script's line, so a long puzzle's adversarial proof costs only the opponent
    branches. The deviation search (`unique`) runs at each solver step with a stated budget and reports
@@ -112,6 +113,8 @@ only for what search is good at: opponent replies, deviations and minimality.
    answer a reply differently (one line per branch), and the deviation search from a written line.
 3. **Minimality**: replay the script with each solver action removed in turn (the rest attempted as written);
    every removal must fail. Written to the record as `necessary_actions`.
+   **Done (2026-10-20):** `puzzle_baselines.py line --minimality` (`minimality.json`). A removal that drifts counts as
+   failing: the rest cannot be played as written without the action.
 4. **The greedy-preview arm**: a zero-model policy over `PlayerLookahead`'s one-ply preview, taking the option
    whose preview lowers the opponent's life most (then the one that adds most power). The "depth 1" floor; it
    must fail on T3 and is reported with the other floors.

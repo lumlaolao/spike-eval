@@ -51,22 +51,9 @@ final class ToolAnswerBridge implements LLMBridge {
                 seen.append("\n\n").append(m.get("content").getAsString());
         }
         String args = toArgs(script.ask(seen.toString()), prompt);   // the script itself, not counted as a text ask
-        NativeTools.Call call = new NativeTools.Call("t" + (++seq), AnswerTool.NAME, args);
-        JsonObject msg = new JsonObject();
-        msg.addProperty("role", "assistant");
-        JsonArray tcs = new JsonArray();
-        JsonObject tc = new JsonObject();
-        tc.addProperty("id", call.id);
-        tc.addProperty("type", "function");
-        JsonObject f = new JsonObject();
-        f.addProperty("name", call.name);
-        f.addProperty("arguments", call.arguments);
-        tc.add("function", f);
-        tcs.add(tc);
-        msg.add("tool_calls", tcs);
         List<NativeTools.Call> calls = new ArrayList<>();
-        calls.add(call);
-        return new NativeTools.Turn(null, msg.toString(), calls);
+        calls.add(new NativeTools.Call("t" + (++seq), AnswerTool.NAME, args));
+        return NativeTools.Turn.ofCalls(calls);
     }
 
     private static final Pattern TAG = Pattern.compile("(?m)^\\s*(CHOICE|PICKS|NUMBER|CARD|ALLOC|BLOCKS):\\s*(.*)$");
