@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 457 - Urborg makes their Plains a Swamp
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Bog Wraith (3/3, swampwalk) and have Urborg, Tomb of Yawgmoth in hand; you have not played a land this turn. The opponent is at 3 life and controls a Plains and an untapped Grizzly Bears. Reduce the opponent to 0 life this turn.
+Rule:authored-landwalk-type-change | Landwalk checks the land types the defending player's lands have (CR 702.14c), and Urborg makes every land a Swamp (CR 305.7): play Urborg and the opponent's Plains is a Swamp, so Bog Wraith can't be blocked and deals 3; without it the Bears block
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Urborg, Tomb of Yawgmoth
+p0battlefield=Bog Wraith
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Plains;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

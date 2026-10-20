@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 459 - Trumpet Blast needs attackers
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Hill Giant (3/3) and three untapped Mountains and have Trumpet Blast (attacking creatures get +2/+0 until end of turn) in hand. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-attacking-creatures-at-resolution | "Attacking creatures" are determined as the spell resolves (CR 608.2h, 506.4): cast Trumpet Blast after the Giant is declared as an attacker and it deals 5; cast in the main phase it affects nothing
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Trumpet Blast
+p0battlefield=Hill Giant;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
