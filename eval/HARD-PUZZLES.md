@@ -35,8 +35,8 @@ cheaper than inventing it.
 
 | Source | Size | Board as | Solutions | In Forge already | Worth |
 |---|---|---|---|---|---|
-| **Possibility Storm** (possibilitystorm.com, 2017 to now) | 310 numbered; 74 Mythic, 108 Rare of Forge's 282 | image only | Patreon, $1 a month for the whole archive | 276 | the main T3 source: the ones random and the Forge AI cannot solve are already on disk as 255 unproven candidates (the 21 active today are the easy ones, 1 to 8 actions) |
-| **Perplexing Chimera** (Sean Uy, GatheringMagic then CoolStuffInc, 2015 to 2020) | 300, the archive still online | **text** (zones listed, life, hand) | in the next article; the last one has 11 steps | 48 | about 250 to transcribe from text; many are two-turn (`Turns:2`, survive then win) |
+| **Possibility Storm** (possibilitystorm.com, 2017 to now) | 310 numbered; 74 Mythic, 108 Rare of Forge's 282 | image only | Patreon, $1 a month for the whole archive | 282 files (276 scoreable candidates) | the main T3 source: the ones random and the Forge AI cannot solve are already on disk as 255 unproven candidates (the 21 active today are the easy ones, 1 to 8 actions) |
+| **Perplexing Chimera** (Sean Uy, GatheringMagic then CoolStuffInc, 2015 to 2020) | 300, the archive still online | **text** (zones listed, life, hand) | in the next article; the last one has 11 steps | 49 files (48 candidates) | about 250 to transcribe from text; many are two-turn (`Turns:2`, survive then win) |
 | **Pauper Puzzles** (pauperpuzzles.wordpress.com, 2017) | about 30 | image | on the blog | 29 | done |
 | **MTG Puzzles** (mtgpuzzles.com, 2023) | 10 | image, with a text checklist of starting conditions | not shown | 8 | the last 2 |
 | **Mind Twists** (StarCityGames, Dayv Doberne) | at least 22 (11 columns, two puzzles each) | text in the article | the next column | 0 | transcribe; older cards |
