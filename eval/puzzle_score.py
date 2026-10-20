@@ -122,6 +122,10 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
     if stamped and stamped != {suite_sha}:
         raise Refused("results were run against suite version %s, not %s" % (stamped.pop(), suite_sha))
 
+    epochs = {r.get("harness_epoch") for r in rows}
+    if len(epochs) > 1:
+        raise Refused("results come from harness epochs %s (None: a row from before the stamp); what the seat saw "
+                      "differs, so score each separately" % sorted(epochs, key=str))
     if solver:
         rows = [r for r in rows if solver_of(r) == solver]
     solvers = {solver_of(r) for r in rows}
@@ -182,7 +186,7 @@ def per_puzzle(manifest, attempts, k):
         base = rec.get("baselines", {})
         rate = {arm: base[arm]["rate"] for arm in base}
         row = {
-            "id": pid, "tier": rec.get("tier"), "category": rec.get("category"),
+            "id": pid, "tier": rec.get("tier"), "tier_v2": rec.get("tier_v2"), "category": rec.get("category"),
             "k": k, "solves": c, "pass@1": c / k,
             "pass^2": pass_hat(c, k, 2) if k >= 2 else None,
             "pass^k": pass_hat(c, k, k),
@@ -224,10 +228,15 @@ def aggregate(rows, k, n_boot=2000, seed=0):
         "name": "mean(pass@1 - random_rate)",
         "value": stat_of("margin")(rows),
         "ci95": bootstrap_ci(rows, stat_of("margin"), n_boot, seed),
+        "ci95_clustered": clustered_ci([r["margin"] for r in rows]),
         "floors": {"random": 0.0, "pass": floor_margin("pass"), "first": floor_margin("first")},
     }
     out["pass@1"] = {
         "value": stat_of("pass@1")(rows), "ci95": bootstrap_ci(rows, stat_of("pass@1"), n_boot, seed),
+        "ci95_clustered": clustered_ci([r["pass@1"] for r in rows]),
+        # The smallest pass@1 difference between two independent solvers this many puzzles detects at 80% power and
+        # alpha 0.05 (Miller 2024: 2.8 standard errors of the difference); a paired comparison does better.
+        "mde80": mde80([r["pass@1"] for r in rows]),
         # At k=1 each puzzle is one Bernoulli trial: the count interval applies (at k>1 attempts cluster by puzzle).
         "ci95_wilson": list(wilson_ci(sum(r["solves"] for r in rows), len(rows))) if k == 1 and rows else None,
         "floors": {arm: _mean([r[arm + "_rate"] for r in rows]) for arm in ("random", "pass", "first")},
@@ -254,11 +263,15 @@ def aggregate(rows, k, n_boot=2000, seed=0):
 
 
 def solved_counts(rows, k, n_boot=2000, seed=0):
-    tiers = {}
-    for tier in sorted({r["tier"] for r in rows}, key=lambda t: (t is None, t)):
-        sub = [r for r in rows if r["tier"] == tier]
-        tiers[str(tier)] = _solved_block(sub, k, n_boot, seed)
-    return {"all": _solved_block(rows, k, n_boot, seed), "by_tier": tiers}
+    def by(key):
+        out = {}
+        for tier in sorted({r.get(key) for r in rows}, key=lambda t: (t is None, t)):
+            out[str(tier)] = _solved_block([r for r in rows if r.get(key) == tier], k, n_boot, seed)
+        return out
+    out = {"all": _solved_block(rows, k, n_boot, seed), "by_tier": by("tier")}
+    if any(r.get("tier_v2") is not None for r in rows):
+        out["by_tier_v2"] = by("tier_v2")
+    return out
 
 
 def _solved_block(sub, k, n_boot, seed):
@@ -283,6 +296,8 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
         "pilot": bool(manifest.get("pilot")) or ids is not None,
         "aggregate": aggregate(puzzles, k, n_boot, seed),
+        "budget": budget(attempts),
+        "integrity": integrity(attempts),
         "puzzles": sorted(puzzles, key=lambda r: r["id"]),
     }
 
@@ -296,6 +311,38 @@ def clustered_ci(values):
     m = sum(values) / n
     se = (sum((v - m) ** 2 for v in values) / (n - 1)) ** 0.5 / n ** 0.5
     return [m - 1.96 * se, m + 1.96 * se]
+
+
+def mde80(values):
+    """2.8 standard errors of a difference between two independent runs of this size: the smallest difference in mean
+    it detects at 80% power, alpha 0.05. None for fewer than two puzzles."""
+    ci = clustered_ci(values)
+    return None if ci is None else 2.8 * 2 ** 0.5 * (ci[1] - ci[0]) / (2 * 1.96)
+
+
+BUDGET_FIELDS = ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups")
+
+
+def budget(attempts):
+    """What the attempts spent (BENCHMARK-V2 section 3), from the rows that carry it: per field the total and the
+    median per attempt. `recorded` counts those rows; rows from before the stamp carry none."""
+    rows = [r for att in attempts.values() for r in att]
+    have = [r for r in rows if all(isinstance(r.get(f), (int, float)) for f in BUDGET_FIELDS)]
+    out = {"attempts": len(rows), "recorded": len(have)}
+    for f in BUDGET_FIELDS:
+        vals = sorted(r[f] for r in have)
+        if vals:
+            mid = len(vals) // 2
+            out[f] = {"total": sum(vals), "median": vals[mid] if len(vals) % 2 else (vals[mid - 1] + vals[mid]) / 2}
+    return out
+
+
+def integrity(attempts):
+    """Attempts that are not clean evidence, counted beside the score at weight 0: capped (the wall clock ended the
+    game) and solves decided by an empty library."""
+    rows = [r for att in attempts.values() for r in att]
+    return {"attempts": len(rows), "capped": sum(1 for r in rows if r.get("status") == "invalid"),
+            "tainted": sum(1 for r in rows if r.get("tainted_by_deckout"))}
 
 
 def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
@@ -342,8 +389,9 @@ def render(rep):
              % (rep["suite"], rep["suite_version"], rep["suite_sha256"][:12], rep["split"], rep["solver"],
                 a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
     h = a["headline"]
-    lines.append("  headline %-28s %s  95%% CI %s   floors: random 0.000, PASS %s, first %s"
-                 % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _fmt(h["floors"]["pass"]), _fmt(h["floors"]["first"])))
+    lines.append("  headline %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
+                 % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _ci(h.get("ci95_clustered")), _fmt(h["floors"]["pass"]),
+                    _fmt(h["floors"]["first"])))
     for key in ("pass@1", "pass^2", "pass^k"):
         if key in a:
             b = a[key]
@@ -353,14 +401,29 @@ def render(rep):
             lines.append("  %-37s %s  95%% CI %s   floors: random %s, PASS %s, first %s%s"
                          % (key, _fmt(b["value"]), _ci(b["ci95"]), _fmt(b["floors"]["random"]),
                             _fmt(b["floors"]["pass"]), _fmt(b["floors"]["first"]), extra))
+    if a["pass@1"].get("ci95_clustered"):
+        lines.append("  pass@1 clustered 95%% CI %s; smallest difference two runs of this size detect: %s"
+                     % (_ci(a["pass@1"]["ci95_clustered"]), _fmt(a["pass@1"]["mde80"])))
     if "normalized" in a:
         lines.append("  normalized (random=0, Forge AI=1)      %s   (Forge AI rate %s)"
                      % (_fmt(a["normalized"]["value"]), _fmt(a["normalized"]["forge_ai_rate"])))
     s = a["solved"]
-    for name, b in [("all", s["all"])] + [("tier " + t, b) for t, b in s["by_tier"].items()]:
+    for name, b in [("all", s["all"])] + [("tier " + t, b) for t, b in s["by_tier"].items()] + [
+            ("tier v2 " + t, b) for t, b in s.get("by_tier_v2", {}).items()]:
         lines.append("  solved %-30s %d/%d  95%% CI %s Wilson %s   expected floors: random %.2f, PASS %.2f, first %.2f"
                      % (name, b["solved"], b["of"], _ci(b["ci95"]), _ci(b["ci95_wilson"]), b["floors"]["random"],
                         b["floors"]["pass"], b["floors"]["first"]))
+    b = rep.get("budget") or {}
+    if b.get("recorded"):
+        lines.append("  budget per attempt (median; total): " + ", ".join(
+            "%s %s; %s" % (f, _fmt(b[f]["median"]), _fmt(b[f]["total"])) for f in BUDGET_FIELDS if f in b)
+            + "  (%d of %d attempts recorded)" % (b["recorded"], b["attempts"]))
+    elif b:
+        lines.append("  budget: not recorded (rows from before harness-epoch-69)")
+    i = rep.get("integrity")
+    if i:
+        lines.append("  integrity (weight 0): %d of %d attempts capped, %d decided by a deck-out"
+                     % (i["capped"], i["attempts"], i["tainted"]))
     return "\n".join(lines)
 
 
@@ -385,22 +448,27 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.k < 1:
         ap.error("--k must be >= 1")
+    if a.against and not a.paired_with:
+        ap.error("--against needs --paired-with")
+    if a.paired_bootstrap < 1:
+        ap.error("--paired-bootstrap must be >= 1")
     try:
         manifest = pf.load_suite(a.suite)
         problems = pf.validate_suite(manifest)
         if problems:
             raise Refused("suite does not validate: " + "; ".join(problems[:5]))
         ids = set(a.ids.split(",")) if a.ids else None
-        rep = score(manifest, load_rows(a.results), a.split, a.k, a.solver, a.bootstrap, a.seed, ids)
+        def scored(paths):  # every run of one command scored alike, the paired ones too
+            return score(manifest, load_rows(paths), a.split, a.k, a.solver, a.bootstrap, a.seed, ids)
+        rep = scored(a.results)
     except Refused as e:
         print("REFUSED: %s" % e, file=sys.stderr)
         return 2
     print(render(rep))
     if a.paired_with:
         try:
-            other = lambda paths: score(manifest, load_rows(paths), a.split, a.k, a.solver, a.bootstrap, a.seed, ids)  # noqa: E731
-            base = (other([a.against[0]]), other([a.against[1]])) if a.against else None
-            rep["paired"] = paired(rep, other(a.paired_with), base, n_boot=a.paired_bootstrap, seed=a.paired_seed)
+            base = (scored([a.against[0]]), scored([a.against[1]])) if a.against else None
+            rep["paired"] = paired(rep, scored(a.paired_with), base, n_boot=a.paired_bootstrap, seed=a.paired_seed)
         except Refused as e:
             print("REFUSED: %s" % e, file=sys.stderr)
             return 2

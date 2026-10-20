@@ -239,7 +239,15 @@ Runs of other puzzles, suites, splits or k are refused. Lookups per condition: `
 - mix suite or puzzle versions;
 - mix solvers;
 - score a puzzle with fewer than k attempts, or with a seed repeated;
-- score an unscoreable row (one where the goal was not enforced).
+- score an unscoreable row (one where the goal was not enforced);
+- pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
+  stamped one is refused too).
+
+Beside the score (BENCHMARK-V2 phase 2): the clustered 95% interval of the headline and of pass@1 (the standard
+error of the per-puzzle means, Miller 2024), the smallest pass@1 difference two independent runs of this size
+detect at 80% power, the solved count by `tier_v2` when the records carry it, the budget per attempt (median and
+total model calls, tokens, model time and lookups, from rows that record them), and the integrity counts at weight
+0 (capped attempts, deck-out solves).
 
 Some attempts count as failures, so a failure cannot vanish from the count:
 - a capped game;

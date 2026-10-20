@@ -96,7 +96,7 @@ What it says:
 2. **With the tools on, the drop is smaller, but not separably so:** the on arm's drop minus the off arm's is
    +0.055 [0.000, 0.124]. On minus off is now positive. Luna still made 0 rules
    lookups; the difference is in `inspect` (47 calls) and the arm's own noise. Three puzzles flip 2 or more solves
-   in 5 between runs with nothing changed, so one sample of 29 does not separate these from noise well: the "on
+   in 5 between the epoch-66 arms, which differ only in lookups that were not the rules lookup, so one sample of 29 does not separate these from noise well: the "on
    minus off" interval barely clears zero and is one of five comparisons made here.
 3. The two `report_unclear_decision` calls came from RP_385 and RP_443.
 

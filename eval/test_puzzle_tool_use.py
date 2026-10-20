@@ -30,10 +30,10 @@ class ToolUseTest(unittest.TestCase):
                                                      'TOOL CALL answer {"option":1}', 'TOOL CALL set_plan {}',
                                                      'TOOL CALL rules_lookup {"query":"x"}'])
         write(root, "off", "rules-RP_2", [True])
-        write(root, "on", "rules-RP_2", [True])
-        text = ptu.report(root)
+        write(root, "on", "rules-RP_2", [True], ['TOOL CALL inspect {"target":"@2"}'])  # a lookup, not the rules
+        text, _ = ptu.report(root)
         self.assertIn("== off: 2/3 attempts solved (67%), 2 puzzles", text)
-        self.assertIn("lookups: {'inspect': 1, 'rules_lookup': 1} | attempts that called rules_lookup: 1", text)
+        self.assertIn("lookups: {'inspect': 2, 'rules_lookup': 1} | attempts that called rules_lookup: 1", text)
         self.assertNotIn("answer", text.split("== on")[1].split("\n")[1])
         self.assertIn("model time per call: median 4.0s", text)
         self.assertIn("rules-RP_1     1/2 -> 2/2", text)
@@ -45,11 +45,19 @@ class ToolUseTest(unittest.TestCase):
         write(root, "off", "rules-RP_1", [True, False])
         write(root, "on", "rules-RP_1", [True])
         os.remove(os.path.join(root, "on", "rules-RP_1", "game-1-1.jsonl"))
-        text = ptu.report(root)
+        text, _ = ptu.report(root)
         self.assertIn("no game JSONL for 1 of 1 attempts", text)
         self.assertNotIn("attempts that called rules_lookup: 0", text.split("== on")[1])
         self.assertEqual(ptu.main([root]), 2, "lookup counts without the logs would read as none made")
         self.assertEqual(ptu.main([os.path.join(root, "nonexistent")]), 2)
+
+    def test_an_empty_condition_says_so(self):
+        root = tempfile.mkdtemp()
+        write(root, "off", "rules-RP_1", [True])
+        os.makedirs(os.path.join(root, "on"))
+        text, complete = ptu.report(root)
+        self.assertIn("no attempts in on/", text)
+        self.assertFalse(complete)
 
 
 if __name__ == "__main__":
