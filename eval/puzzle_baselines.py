@@ -437,6 +437,8 @@ def line_verdict(row):
     if row.get("status") != "solved":
         return "%s %s" % (row.get("status"), row.get("acceptance_failed") or "")
     # A play the line chose can still not happen (unpayable, or forbidden by a static): the seat counts those.
+    if "plays_not_made" not in row:
+        return "no plays_not_made on the row (a build before the seat counted them)"
     if row.get("plays_not_made"):
         return "%d plays the line chose did not happen" % row["plays_not_made"]
     return "played" if row.get("script_played") else "not played"

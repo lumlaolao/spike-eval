@@ -13,7 +13,7 @@ class WrittenLineTest(unittest.TestCase):
     """`line`: a puzzle's written solution played by the faithful seat (ScriptBridge, HARD-PUZZLES.md section 4)."""
 
     PLAYED = {"status": "solved", "solved": True, "acceptance": "accepted", "script_drift": "", "script_exhausted": False,
-              "script_unconsumed": 0, "script_lines": 16, "script_played": True}
+              "script_unconsumed": 0, "script_lines": 16, "script_played": True, "plays_not_made": 0}
 
     def test_only_a_whole_line_that_solves_is_played(self):
         self.assertEqual(pb.line_verdict(self.PLAYED), "played")
@@ -26,6 +26,8 @@ class WrittenLineTest(unittest.TestCase):
         # card it was: the seat counts it (pr-review of #276; a log-name match refused every creature cast).
         self.assertEqual(pb.line_verdict(dict(self.PLAYED, plays_not_made=1)), "1 plays the line chose did not happen")
         self.assertEqual(pb.line_verdict(dict(self.PLAYED, plays_not_made=0)), "played")
+        unread = dict(self.PLAYED); del unread["plays_not_made"]
+        self.assertTrue(pb.line_verdict(unread).startswith("no plays_not_made"), "a missing count is not a zero")
         lost = dict(self.PLAYED, status="failed", solved=False, acceptance_failed=["life p1 <= 0 (was 7)"])
         self.assertIn("was 7", pb.line_verdict(lost))
         self.assertEqual(pb.line_verdict(dict(self.PLAYED, tainted_by_deckout=True)), "solved by a deck-out")

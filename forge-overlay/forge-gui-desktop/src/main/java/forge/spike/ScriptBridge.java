@@ -100,7 +100,7 @@ final class ScriptBridge implements LLMBridge {
         m.put("script_waits", waits);
         m.put("script_untaps_left", untapsLeft);
         m.put("script_played", played());
-        // What each line took ("line => label"): the verdict checks the casts it claims against the game log.
+        // What each line took ("line => label"), for a reader of the row; the verdict does not read it.
         m.put("script_taken", new ArrayList<>(taken));
         return m;
     }
@@ -211,13 +211,13 @@ final class ScriptBridge implements LLMBridge {
     private static final Pattern FIELD = Pattern.compile("call `answer` with `(\\w+)`");
     private static final Pattern HEADER = Pattern.compile("== Turn (\\d+) ([A-Z0-9_]+) \\(");
     private static final Pattern PRIORITY = Pattern.compile("You have priority \\(([A-Z0-9_]+),");
-    /** What tells twins apart and nothing else: a handle ("@5", "@29 (was @26)") or an attack menu's "#2". */
     private static final Pattern LIST_ITEM = Pattern.compile("^\\s*(\\d+) = (.*)$");
     private static final Pattern PICK_RANGE =
             Pattern.compile("`options`: the numbers you pick, (?:exactly (\\d+)|between (\\d+) and)");
     private static final Pattern NUMBER_FROM = Pattern.compile("`number`: an integer from (-?\\d+)");
     private static final Pattern AMOUNTS_SPEC =
             Pattern.compile("`amounts`: (\\d+) numbers in the order listed, summing to (-?\\d+)");
+    /** What tells twins apart and nothing else: a handle ("@5", "@29 (was @26)") or an attack menu's "#2". */
     private static final Pattern HANDLE = Pattern.compile("\\s*@\\d+(\\s*\\(was @\\d+\\))?|\\s+#\\d+$");
 
     static String norm(String s) { return s.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim(); }

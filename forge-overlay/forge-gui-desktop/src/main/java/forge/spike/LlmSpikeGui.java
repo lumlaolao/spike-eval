@@ -4157,6 +4157,7 @@ public final class LlmSpikeGui {
                 if (chosen.getApi() == ApiType.Charm) {
                     if (!forge.game.ability.effects.CharmEffect.makeChoices(chosen)) {
                         p("[ROUTER] play: no legal mode set for " + labelOf(chosen) + " -> PASS");
+                        playsNotMade++;
                         return PASS;
                     }
                     modesChosenFor = chosen;
@@ -4178,6 +4179,7 @@ public final class LlmSpikeGui {
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
                 p("[ROUTER] play: error " + e + " -> PASS");
+                playsNotMade++;   // the menu failed: whatever the seat chose did not happen
                 return PASS;
             }
         }
@@ -4861,6 +4863,12 @@ public final class LlmSpikeGui {
             return new ArrayList<>();
         }
 
+        /** Plays the seat chose that did not happen: forbidden by a static, no legal modes, unpayable, refused by the stack
+         *  for want of a target, or lost to an error in the play menu (a cancel is the seat's own choice and is not
+         *  counted). A written line (ScriptBridge) is void when any of its plays did not happen. */
+        private int playsNotMade = 0;
+        int playsNotMade() { return playsNotMade; }
+
         /** The play path for a cast or activation. The inherited implementation hands the ability to
          *  {@code ComputerUtil.handlePlayingSpellAbility}, which pays EVERY cost with a hard-coded
          *  {@code new AiCostDecision(...)} and never consults {@link #getCostDecisionMaker} — so Forge's
@@ -4872,11 +4880,6 @@ public final class LlmSpikeGui {
          *  are added, so a sacrifice that arrives that way (Casualty) is covered too. Only an ability
          *  that defers targeting to another player stays on the inherited path.
          *  RE-DIFF against {@code handlePlayingSpellAbility} on every engine re-pin (ENGINE-PIN.md). */
-        /** Plays the seat chose that did not happen: forbidden by a static, no modes, or unpayable (a cancel is the seat's
-         *  own choice and is not counted). A written line (ScriptBridge) is void when any of its plays did not happen. */
-        private int playsNotMade = 0;
-        int playsNotMade() { return playsNotMade; }
-
         @Override
         public boolean playChosenSpellAbility(SpellAbility sa) {
             boolean ours = false;
@@ -4889,8 +4892,12 @@ public final class LlmSpikeGui {
             modesChosenFor = null;
             if (!ours) {
                 forge.game.zone.Zone from = sa.getHostCard() == null ? null : sa.getHostCard().getZone();
+                int stackBefore = getGame().getStack().size();
                 boolean played = super.playChosenSpellAbility(sa);
-                if (played) playSeen(sa, from); else playsNotMade++;
+                // The inherited routine returns true whatever happened: read what it did from the game.
+                boolean happened = sa.isLandAbility() ? sa.getHostCard() != null && sa.getHostCard().getZone() != from
+                        : getGame().getStack().size() > stackBefore;
+                if (happened) playSeen(sa, from); else playsNotMade++;
                 return played;
             }
 
@@ -4935,7 +4942,14 @@ public final class LlmSpikeGui {
             if (observer != null && rnd == null && cancels < 2) decision.offerCancel();
             costCancelled = false;
             if (pay.payComputerCosts(decision)) {
+                // The stack refuses a play with no legal target left ("Couldn't add to stack, failed to target").
+                boolean reaches = sa.isCopied() || sa.isManaAbility() || game.getStack().hasLegalTargeting(sa);
                 game.getStack().addAndUnfreeze(sa);
+                if (!reaches) {
+                    p("[ROUTER] play: " + labelOf(sa) + " paid but has no legal target -> the stack refused it");
+                    playsNotMade++;
+                    return true;
+                }
                 playSeen(sa, hz);
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
