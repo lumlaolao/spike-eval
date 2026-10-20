@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Fireball pays for each extra target
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You have Fireball in hand with six red mana floating. The opponent is at 20 life and controls two Grizzly Bears. Destroy both Grizzly Bears this turn.
+Rule:authored-fireball-extra-target | Fireball costs {1} more for each target beyond the first and divides X evenly, rounded down (CR 601.2f, 107.3): with six mana, X=4 on two targets costs 4+R+1 and deals 2 to each Bear; X=5 on two targets costs seven, and X=3 on three targets deals only 1 each
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fireball
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 2

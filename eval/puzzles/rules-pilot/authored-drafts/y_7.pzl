@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Overload does not target
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Mizzium Mortars (overload {3}{R}{R}{R}) in hand with six red mana floating. The opponent is at 20 life and controls Gladecover Scout (hexproof) and Grizzly Bears. Destroy both of the opponent's creatures this turn.
+Rule:authored-overload-hexproof | Overload replaces the word target with each, so the overloaded spell has no targets (CR 702.96a-b) and hexproof does not stop it: overloaded Mortars deals 4 to each creature you don't control; cast normally it can target only the Bears
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Mizzium Mortars
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Gladecover Scout;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Gladecover Scout" = 1
+count p1 Graveyard "Grizzly Bears" = 1

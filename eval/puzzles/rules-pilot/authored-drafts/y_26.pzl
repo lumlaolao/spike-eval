@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Jump-start needs a card to discard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase and you have not played a land. You have Direct Current (2 damage to any target; jump-start) and a Mountain in hand, with six red mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-jump-start-discard | Jump-start lets you cast the card from your graveyard by paying its mana cost and discarding a card (CR 702.133a): cast Direct Current, then jump-start it discarding the Mountain for 4 damage; playing the Mountain as a land leaves nothing to discard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Direct Current;Mountain
+p0manapool=R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

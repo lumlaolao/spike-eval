@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Annihilator before blocks
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Hand of Emrakul (7/7, annihilator 1). The opponent is at 7 life and controls only an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-annihilator-before-blocks | Annihilator triggers when the creature attacks, so the defending player sacrifices permanents in the declare attackers step, before blockers are declared (CR 702.86a, 508.1m): the Wall of Stone is the only permanent to sacrifice and the 7/7 is unblocked
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Hand of Emrakul
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

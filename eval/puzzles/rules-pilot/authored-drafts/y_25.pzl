@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Unearth gives haste
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. Dregscape Zombie (2/1, unearth {B}) is in your graveyard and Vampire Lacerator (2/2) is in your hand, with one black mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-unearth-haste | Unearth returns the card to the battlefield with haste, to be exiled at the next end step (CR 702.84a): unearth the Zombie and attack for 2; Vampire Lacerator cast from hand has summoning sickness and can't attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Vampire Lacerator
+p0graveyard=Dregscape Zombie
+p0manapool=B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

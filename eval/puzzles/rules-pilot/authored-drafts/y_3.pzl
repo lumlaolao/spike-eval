@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The switch comes last
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Horned Turtle (1/4) and an untapped Plateau (taps for R or W), with one blue mana floating. You have Twisted Image, Iron Will and Bull Rush in hand. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-layers-switch-last | Power/toughness switching applies in layer 7d, after every other P/T change whatever the timestamps (CR 613.4d, 613.7): Iron Will plus Twisted Image makes the Turtle 1/8 switched to 8/1 in either order; Bull Rush after the switch does not give 6/1 as a naive reading says, the Turtle is 3/4 switched to 4/3 and deals 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Twisted Image;Iron Will;Bull Rush
+p0battlefield=Horned Turtle;Plateau
+p0manapool=U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

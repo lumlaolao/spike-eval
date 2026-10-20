@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Raid after the attack
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Raging Goblin (1/1 haste) and five untapped Mountains, and have Arrow Storm (4 damage to any target; raid: 5 damage instead if you attacked this turn) in hand. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-raid-after-attack | Raid checks as the spell resolves whether you attacked with a creature this turn (CR 207.2c): attack with the Goblin for 1, then cast Arrow Storm in the second main phase for 5; cast before combat it deals only 4 and the total is 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Raging Goblin;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

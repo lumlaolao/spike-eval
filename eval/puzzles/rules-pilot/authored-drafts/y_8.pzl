@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Heroic wants the right target
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Phalanx Leader (1/1, heroic: put a +1/+1 counter on each creature you control) and Grizzly Bears, and have Gods Willing in hand with one white mana floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-heroic-target-self | Heroic triggers when you cast a spell that targets the heroic creature (heroic is an ability word for a cast trigger, CR 207.2c, 603.2, 601.2c): Gods Willing on Phalanx Leader puts a counter on both creatures for 2+3=5; the same spell aimed at the bigger Bears triggers nothing and the attack deals only 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Gods Willing
+p0battlefield=Phalanx Leader;Grizzly Bears
+p0manapool=W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
