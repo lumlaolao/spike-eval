@@ -968,8 +968,9 @@ fi
 
 # ---------------------------------------------------------------- lines (written solutions)
 # A line a person wrote is proven by playing it, not by a search finding it (docs/harness/HARD-PUZZLES.md, section
-# 4). Fails if: the model seat on a script: spec does not play h_1's 16 lines to the acceptance state, or a line
-# naming no option on the menu is played anyway. The misspelt copy still solves after its drift (the do-nothing
+# 4). Fails if: the model seat on a script: spec does not play h_1's 16 lines or h_0's 11 to the acceptance state
+# (h_0 pays Gitaxian Probe with life, which the menu hid until epoch 68), or a line naming no option on the menu is
+# played anyway. The misspelt copy still solves after its drift (the do-nothing
 # sacrifice takes the first two Mountains), which is why the verdict reads the drift and not the solve.
 if has_stage lines; then
   if [ ! -f "$CLASSES/forge/spike/ScriptBridge.class" ]; then fail lines "no compiled classes"; else
@@ -979,10 +980,13 @@ if has_stage lines; then
         --forge "$FORGE" line --pzl eval/puzzles/hard/h_1.pzl --out-dir "$dir/played" ) >"$dir/played.log" 2>&1; GRC=$?
     ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
         --forge "$FORGE" line --pzl "$dir/h_1-typo.pzl" --out-dir "$dir/typo" ) >"$dir/typo.log" 2>&1; TRC=$?
-    if [ "$GRC" = 0 ] && grep -q " played$" "$dir/played.log" && [ "$TRC" = 1 ] && grep -q "drift: " "$dir/typo.log"; then
-      pass lines "h_1 written line played and solved; the misspelt copy drifted (exit 1)"
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
+        --forge "$FORGE" line --pzl eval/puzzles/hard/h_0.pzl --out-dir "$dir/h_0" ) >"$dir/h_0.log" 2>&1; HRC=$?
+    if [ "$GRC" = 0 ] && grep -q " played$" "$dir/played.log" && [ "$TRC" = 1 ] && grep -q "drift: " "$dir/typo.log" \
+        && [ "$HRC" = 0 ]; then
+      pass lines "h_1 and h_0 written lines played and solved; the misspelt copy drifted (exit 1)"
     else
-      fail lines "written line rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift): see $dir"
+      fail lines "h_1 rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift), h_0 rc=$HRC (want 0): see $dir"
     fi
   fi
 fi

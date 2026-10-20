@@ -1,0 +1,33 @@
+[metadata]
+Name:Hard 0
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist, Goblin Electromancer and an untapped Mountain. Your hand is Lava Spike, Gitaxian Probe, Mutagenic Growth and Fling. The opponent is at 11 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:authored-hard-alchemist-interleave | Thermo-Alchemist untaps whenever you cast an instant or sorcery, so tapping it before each spell pings once per spell plus once more: four pings, Lava Spike for 3, and Electromancer attacking as a 4/4 after Mutagenic Growth is exactly 11; casting the spells first pings once (8), and Fling on the Electromancer gives up the Spike and the attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lava Spike;Gitaxian Probe;Mutagenic Growth;Fling
+p0battlefield=Thermo-Alchemist;Goblin Electromancer;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=11
+p1library=Plains;Plains;Plains
+[solution]
+# Tap Thermo-Alchemist before each spell: it untaps on every instant or sorcery, so three spells ping four times.
+# Gitaxian Probe and Mutagenic Growth are paid with 2 life each; Electromancer attacks as a 4/4: 4 + 3 + 4 = 11.
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+activate Thermo-Alchemist
+cast Mutagenic Growth
+Goblin Electromancer
+activate Thermo-Alchemist
+Goblin Electromancer
+[acceptance]
+life p1 <= 0

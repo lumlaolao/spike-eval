@@ -89,6 +89,27 @@ public class PuzzleSetupTest {
         return game;
     }
 
+    /** Gitaxian Probe's script tells Forge's AI never to pay its {U/P} with life (AIPhyrexianPayment$ Never), and the
+     *  seat's menu asked the AI's payment check: with no blue source the Probe was "(not castable now)" and never on
+     *  the menu, though 2 life pays it (hard draft h_0, its written line drifted there, 2026-10-20). Mutagenic Growth,
+     *  with no such hint, was offered beside it. A legal play is never hidden. */
+    @Test
+    public void aPhyrexianSpellTheAiWillNotPayLifeForIsStillTheSeats() throws Exception {
+        Game game = boardOf("../hard/h_0.pzl");
+        Player solver = game.getPlayers().get(0);
+        List<String> offered = new ArrayList<>();
+        for (SpellAbility sa : LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(solver, true, true).spells)
+            offered.add(sa.getHostCard().getName());
+        Assert.assertTrue(offered.contains("Mutagenic Growth"), "the control: " + offered);
+        Assert.assertTrue(offered.contains("Gitaxian Probe"), "Probe is payable with 2 life: " + offered);
+        Card probe = null;
+        for (Card c : solver.getZone(ZoneType.Hand)) if ("Gitaxian Probe".equals(c.getName())) probe = c;
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.castTag(solver, probe,
+                LlmSpikeGui.PlayerControllerLLM.untappedManaTally(solver)), "(castable)");
+        Assert.assertEquals(probe.getFirstSpellAbility().getParam("AIPhyrexianPayment"), "Never",
+                "the hint is the AI's to keep: the check hides it, never deletes it");
+    }
+
     private static Card onBattlefield(Player p, String name) {
         for (Card c : p.getZone(ZoneType.Battlefield)) if (name.equals(c.getName())) return c;
         throw new AssertionError(name + " is not on " + p.getName() + "'s battlefield");

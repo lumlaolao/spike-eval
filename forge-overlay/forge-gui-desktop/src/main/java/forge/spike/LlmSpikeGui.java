@@ -2697,7 +2697,7 @@ public final class LlmSpikeGui {
                 // Restored, never cleared: under an outer pricing a cleared flag let the next hook ask (StackOverflowError).
                 boolean was = PRICING_FOR_SNAPSHOT;
                 PRICING_FOR_SNAPSHOT = true;
-                try { if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)"; }
+                try { if (seatCanPay(sa, pl, 0, false)) return "(castable)"; }
                 finally { PRICING_FOR_SNAPSHOT = was; }
             } catch (Exception e) { return null; }
             try {
@@ -3361,7 +3361,7 @@ public final class LlmSpikeGui {
             int can = 0;
             for (int k = Math.min(max, 20); k > 0; k--) {
                 forge.game.mana.ManaCostBeingPaid probe = new forge.game.mana.ManaCostBeingPaid(forge.card.mana.ManaCost.get(k));
-                if (ComputerUtilMana.canPayManaCost(probe, sa, getPlayer(), false)) { can = k; break; }
+                if (seatCanPay(probe, sa, getPlayer(), false)) { can = k; break; }
             }
             if (can == 0) { auto("assist-pay(cannot pay)->0"); return true; }
             List<String> labels = new ArrayList<>();
@@ -4680,7 +4680,7 @@ public final class LlmSpikeGui {
                 for (int n = 0; n < max; n++) {
                     forge.game.mana.ManaCostBeingPaid rest = new forge.game.mana.ManaCostBeingPaid(payingCost);
                     rest.decreaseGenericMana(n);
-                    if (ComputerUtilMana.canPayManaCost(rest, payingFor, getPlayer(), false)) return n;
+                    if (seatCanPay(rest, payingFor, getPlayer(), false)) return n;
                 }
                 return max;
             } catch (Exception e) {
@@ -5077,13 +5077,21 @@ public final class LlmSpikeGui {
                         : "pay " + n + " Phyrexian symbol" + (n == 1 ? "" : "s") + " with " + (2 * n) + " life"
                           + (n < k ? ", the rest with mana" : ""));
             }
-            if (lifeFor.size() < 2) return toPay; // one way to pay: the engine's payment takes it
+            if (lifeFor.isEmpty()) return toPay;
             String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
-            int c = decideOne(smartOk() ? smart : fast, "phyrexian", "MANA: you are paying " + toPay + " for " + what
-                    + ". Each Phyrexian symbol is paid with one mana of its colour or with 2 life. You have "
-                    + me.getLife() + " life. How do you pay?", labels, null);
-            if (c < 0 || c >= lifeFor.size()) { auto("phyrexian(unparsed)->engine"); return toPay; }
-            int n = lifeFor.get(c);
+            int n;
+            if (lifeFor.size() == 1) {
+                // One way to pay. With mana the engine's payment takes it; with life it is paid here, because the
+                // engine's payment is Forge's AI and obeys AIPhyrexianPayment ("Never" on Gitaxian Probe, hard draft h_0).
+                if (lifeFor.get(0) == 0) return toPay;
+                n = lifeFor.get(0);
+            } else {
+                int c = decideOne(smartOk() ? smart : fast, "phyrexian", "MANA: you are paying " + toPay + " for " + what
+                        + ". Each Phyrexian symbol is paid with one mana of its colour or with 2 life. You have "
+                        + me.getLife() + " life. How do you pay?", labels, null);
+                if (c < 0 || c >= lifeFor.size()) { auto("phyrexian(unparsed)->engine"); return toPay; }
+                n = lifeFor.get(c);
+            }
             if (n == 0) return withPhyrexian(toPay, 0, true);
             me.payLife(2 * n, sa, effect);
             sa.setSpendPhyrexianMana(true);
@@ -7417,7 +7425,7 @@ public final class LlmSpikeGui {
                     // The most X the engine says it can pay. ComputerUtilMana.determineLeftoverMana answered 0
                     // and 1 with three Forests for Green Sun's Zenith while canPayManaCost(X=2) is true.
                     max = min;
-                    while (max < 99 && forge.ai.ComputerUtilMana.canPayManaCost(sa, getPlayer(), max + 1, false)) max++;
+                    while (max < 99 && seatCanPay(sa, getPlayer(), max + 1, false)) max++;
                     note = " (you can pay for X up to " + max + ")";
                 } else {
                     org.apache.commons.lang3.Range<Integer> range = forge.game.ability.AbilityUtils.getAnnouncementBounds(sa, "X");
@@ -8705,9 +8713,33 @@ public final class LlmSpikeGui {
          *  refused, half the time at random, a planeswalker ability that spends all its loyalty, refused ward costs and
          *  casualty creatures it would not pay, and kept a tax it expects later. A legal option is the model's to take or
          *  leave (owner, 2026-10-17: "if it's a legal action we don't disallow it"). */
+        /** Card hints for Forge's AI that its payment check obeys: AIPhyrexianPayment ("Never" on Gitaxian Probe and
+         *  Mental Misstep, "OnFatalDamage.N" on Gut Shot) refuses to pay Phyrexian mana with life. They are advice to
+         *  the AI, not rules, so a harness seat's checks run with them hidden: with no blue source, Probe was "(not
+         *  castable now)" and off the menu though 2 life pays it (hard draft h_0). Restored after every check. */
+        static final String[] AI_PAYMENT_HINTS = {"AIPhyrexianPayment"};
+
+        /** {@code check} with {@code sa}'s AI payment hints hidden: whether a harness seat can pay, by the rules only. */
+        static boolean seatCheck(SpellAbility sa, java.util.function.BooleanSupplier check) {
+            Map<String, String> hidden = new java.util.HashMap<>();
+            for (String k : AI_PAYMENT_HINTS) if (sa != null && sa.hasParam(k)) hidden.put(k, sa.getParam(k));
+            for (String k : hidden.keySet()) sa.removeParam(k);
+            try { return check.getAsBoolean(); }
+            finally { for (Map.Entry<String, String> e : hidden.entrySet()) sa.putParam(e.getKey(), e.getValue()); }
+        }
+        static boolean seatCanPay(SpellAbility sa, Player p, int extra, boolean effect) {
+            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(sa, p, extra, effect));
+        }
+        static boolean seatCanPay(Cost cost, SpellAbility sa, Player p, int extra, boolean effect) {
+            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, extra, effect));
+        }
+        static boolean seatCanPay(forge.game.mana.ManaCostBeingPaid cost, SpellAbility sa, Player p, boolean effect) {
+            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, effect));
+        }
+
         static boolean legallyPayable(Cost cost, SpellAbility sa, Player p, boolean effect) {
             if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(p);
-            return ComputerUtilMana.canPayManaCost(cost, sa, p, 0, effect)
+            return seatCanPay(cost, sa, p, 0, effect)
                     && forge.game.cost.CostPayment.canPayAdditionalCosts(cost, sa, effect, p);
         }
         static boolean legallyPayable(SpellAbility sa, Player p, boolean effect) { return legallyPayable(sa.getPayCosts(), sa, p, effect); }
@@ -8756,7 +8788,7 @@ public final class LlmSpikeGui {
             PRICING_FOR_SNAPSHOT = true;
             boolean payable;
             try {
-                payable = alt ? legallyPayable(sa, me, false) : ComputerUtilMana.canPayManaCost(sa, me, 0, false);
+                payable = alt ? legallyPayable(sa, me, false) : seatCanPay(sa, me, 0, false);
                 // The rest of the cost by the engine's own test, at the least X it allows: Arcee, Sharpshooter's
                 // "{1}, remove X +1/+1 counters (X at least 1)" was offered with no counter on it and failed to pay.
                 if (payable && !alt && sa.getPayCosts() != null) {

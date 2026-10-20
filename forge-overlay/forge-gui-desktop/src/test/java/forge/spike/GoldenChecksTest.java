@@ -1875,6 +1875,24 @@ public class GoldenChecksTest {
         Assert.assertEquals(me.getLife(), 18);
     }
 
+    /** With no blue source, Gitaxian Probe is paid with 2 life, though its script tells Forge's AI never to pay it so
+     *  (AIPhyrexianPayment$ Never): the menu asked the AI's payment check, and with one way to pay the payment was
+     *  the AI's too, so the Probe was never offered and could not be cast (hard draft h_0, 2026-10-20). */
+    @Test
+    public void aPhyrexianSpellPayableOnlyWithLifeIsCastWithLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Gitaxian Probe", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choice("CAST Gitaxian Probe"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the Probe was not on the menu: " + PromptFidelityTest.promptWith(model, "DECISION:"));
+        Assert.assertEquals(r.get(0).getHostCard().getName(), "Gitaxian Probe");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "the Probe was not paid for");
+        Assert.assertEquals(me.getLife(), 18);
+    }
+
     /** X, then the modes of a modal spell, each from the model. */
     @Test
     public void xAndModesAreTheModels() {
