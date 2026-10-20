@@ -33,11 +33,12 @@ const cardImg = name => "card/" + encodeURIComponent(name);
 // Names whose image failed once are drawn as text tiles at once: a live re-render must not lay out an image box
 // and then fall back.
 const NO_IMAGE = new Set();
-// Only a permanent miss (the server's cacheable 404) is remembered; an offline or failed answer is asked again.
+// Only a permanent miss (the server's X-Image-Miss 404, cacheable, so this GET is usually answered by the browser
+// cache) is remembered; an offline or failed answer is asked again on the next render.
 window.noImage = img => {
   const c = img.closest(".card"), name = c.getAttribute("data-name");
   c.classList.add("noimg");
-  fetch(img.src, {method: "HEAD"}).then(r => { if (/max-age/.test(r.headers.get("Cache-Control") || "")) NO_IMAGE.add(name); });
+  fetch(img.src).then(r => { if (r.headers.get("X-Image-Miss") === "1") NO_IMAGE.add(name); }).catch(() => {});
 };
 
 class Pane {
@@ -85,7 +86,7 @@ class Pane {
   async refreshSummary() {
     const gen = this.gen;
     const s = await fetch(`api/game/${this.i}/summary`).then(x => x.json());
-    if (gen !== this.gen) return;  // a newer game replaced this one while the summary was built
+    if (gen !== this.gen || (s.gen != null && s.gen !== this.gen)) return;  // a summary of another game
     this.info.summary = s;
     this.renderSummary(); this.renderHead();
   }
@@ -171,14 +172,14 @@ class Pane {
     for (const z of ["hand", "board", "lands", "graveyard", "exile"]) {
       const objs = (p.zones || {})[z] || [];
       if (z === "hand" && p.kind === "OPP" && !objs.length) continue;
-      zones.push(this.zoneHtml(z, objs.length ? objs.map(o => this.cardHtml(o, hl)).join("") : `<span class="empty">none</span>`, z));
+      zones.push(this.zoneHtml(z, objs.length ? objs.map(o => this.cardHtml(o, hl)).join("") : `<span class="empty">none</span>`));
     }
     const mana = (p.lines || {})["mana available"];
     return `<div class="player ${esc(p.kind)}"><div class="who"><span class="name">${p.kind === "YOU" ? "seat: " : "opponent: "}${esc(p.name)}</span>` +
       `<span class="life">${esc(c.life)} life</span><span class="ctr">${ctr}</span></div>${zones.join("")}` +
       (mana ? `<div class="mana">mana available: ${esc(mana.split(" (")[0])}</div>` : "") + `</div>`;
   }
-  zoneHtml(label, inner, zone) { return `<div class="zone z-${esc(zone || label)}"><span class="zlabel">${esc(label)}</span>${inner}</div>`; }
+  zoneHtml(label, inner) { return `<div class="zone z-${esc(label)}"><span class="zlabel">${esc(label)}</span>${inner}</div>`; }
   cardHtml(o, hl) {
     const h = o.handle != null ? hl[o.handle] : null;
     const tags = (o.tags || []).filter(t => t !== "untapped" && t !== "tapped");

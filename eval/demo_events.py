@@ -264,7 +264,7 @@ def _last_row(path):
             f.seek(max(0, f.tell() - 65536))
             lines = [x for x in f.read().split(b"\n") if x.strip()]
         return json.loads(lines[-1].decode("utf-8")) if lines else None
-    except (OSError, ValueError, IndexError):
+    except (OSError, ValueError):
         return None
 
 

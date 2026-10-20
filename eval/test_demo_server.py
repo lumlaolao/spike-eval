@@ -100,11 +100,13 @@ class ReplayTest(unittest.TestCase):
                 self.assertEqual(cm.exception.code, 404)
             self.assertEqual(asked, ["Fire // Ice", "Construct Token"])  # a miss is asked for once
             self.assertEqual(cm.exception.headers["Cache-Control"], "max-age=86400")  # a miss never changes
+            self.assertEqual(cm.exception.headers["X-Image-Miss"], "1")  # and says so: the page stops asking
             offline = srv.demo_cards.Cache(cache_dir, fetch=fake, offline=True)
             server2, url2 = serve([srv.Pane(self.dir)], cards=offline)
             with self.assertRaises(urllib.error.HTTPError) as cm:
                 get(url2 + "/card/Time%20Walk")  # not cached and not fetched: it may have an image later
             self.assertEqual(cm.exception.headers["Cache-Control"], "no-store")
+            self.assertIsNone(cm.exception.headers["X-Image-Miss"])
         finally:
             for s in [x for x in (locals().get("server"), locals().get("server2")) if x]:
                 s.shutdown()

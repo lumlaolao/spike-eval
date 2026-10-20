@@ -106,10 +106,10 @@ def compute(ev, state, plan=None):
     answer = ev.get("answer") or {}
 
     # engine: what the engine itself put in front of the seat.
-    for item in (state or {}).get("stack", []):
+    for item in state.get("stack", []):
         for h in item.get("handles", []):
             marks.add(h, "engine", "on the stack: " + (item.get("source") or item.get("text") or ""))
-    combat = (state or {}).get("combat") or ""
+    combat = state.get("combat") or ""
     for h in HANDLE.findall(combat):
         marks.add(int(h), "engine", "in combat: " + combat[:120])
 
@@ -125,7 +125,7 @@ def compute(ev, state, plan=None):
     plan_texts = []
     if plan:
         plan_texts.append("set_plan: GOAL %s NEXT %s" % (plan.get("goal") or "", plan.get("next") or ""))
-    sp = (state or {}).get("plan") or {}
+    sp = state.get("plan") or {}
     if sp.get("goal") or sp.get("next"):
         plan_texts.append("YOUR PLAN: GOAL %s NEXT %s" % (sp.get("goal") or "", sp.get("next") or ""))
     for text in plan_texts:
@@ -158,7 +158,7 @@ def compute(ev, state, plan=None):
             for h in _option_handles(options[i], objs, own_only=ev.get("type") == "attackers"):
                 marks.add(h, "chosen", "chosen option %d: %s" % (i + 1, options[i]))
     blocks = answer.get("blocks") or []
-    if blocks and state and state.get("decision"):
+    if blocks and state.get("decision"):
         text = state["decision"]
         att = dict((int(n), int(h)) for n, h in NUMBERED.findall(_line(text, "ATTACKERS:")))
         blk = dict((int(n), int(h)) for n, h in NUMBERED.findall(_line(text, "YOUR BLOCKERS:")))

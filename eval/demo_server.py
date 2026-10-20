@@ -8,11 +8,12 @@
 Then open http://127.0.0.1:8765/. Stdlib only, no engine: replay needs only the JSONL (and the console log beside it
 for the [TALLY] line). Card images come from the demo_cards.py cache (filled by `python3 eval/demo_cards.py prefetch
 <run>`); only with --fetch-images does the server send a missing card's name to api.scryfall.com and write the image
-into that cache. A live pane re-reads its file on every request, so the
-page follows a game a JVM is writing (EVAL_OUT rows are autoflushed per line). The server never writes into a run
-and never talks to the JVM, so it cannot change what the seat sees or decides.
+into that cache. A live pane re-reads its file on every request, so the page follows a game a JVM is writing
+(EVAL_OUT rows are autoflushed per line). The server never writes into a run and never talks to the JVM, so it cannot
+change what the seat sees or decides.
 
-What it cannot show: what the JSONL does not hold (the system prompt, the opponent's hidden hand, library order).
+What it cannot show: what the JSONL does not hold (the system prompt, library order, and the opponent's hidden hand
+unless the game was played with the audience feed, DEMO_FEED=1).
 """
 import argparse
 import json
@@ -82,7 +83,7 @@ class Pane:
             cached, key = self._summary, (self.gen, self.done)
         if cached is not None:
             return cached
-        built = build_summary(self)
+        built = dict(build_summary(self), gen=key[0])  # the page drops a summary of a game it no longer shows
         with self.lock:
             # Kept only if the game it describes is still this pane's, in the same state (no newer file, no game row
             # landed meanwhile); otherwise it is returned once and rebuilt on the next request.
@@ -120,12 +121,14 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
-    def _send(self, code, body, ctype="application/json", cache=False):
+    def _send(self, code, body, ctype="application/json", cache=False, headers=()):
         data = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "max-age=86400" if cache else "no-store")
+        for k, v in headers:
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(data)
 
@@ -139,8 +142,10 @@ class Handler(BaseHTTPRequestHandler):
             name = unquote(parts[1])
             p = self.cards.get(name) if self.cards else None
             if not p:
-                # Only a name Scryfall lacks is cacheable; offline, a failed or an in-flight fetch may succeed later.
-                return self._send(404, {"error": "no image"}, cache=bool(self.cards and self.cards.is_miss(name)))
+                # Only a name Scryfall lacks is cacheable, and says so (X-Image-Miss: the page stops asking for it);
+                # offline, a failed or an in-flight fetch may succeed later.
+                miss = bool(self.cards and self.cards.is_miss(name))
+                return self._send(404, {"error": "no image"}, cache=miss, headers=[("X-Image-Miss", "1")] if miss else [])
             with open(p, "rb") as f:
                 return self._send(200, f.read(), "image/jpeg", cache=True)
         if parts[0] != "api":
