@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Phyrexian mana can be paid in life
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Shock and Gut Shot in hand with one red mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-phyrexian-life | A Phyrexian mana symbol can be paid with one mana of its color or with 2 life (CR 107.4f, 601.2g): pay Gut Shot with 2 life and spend the red mana on Shock, 1 + 2 damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock;Gut Shot
+p0manapool=R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
