@@ -6,9 +6,12 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## The plan (owner, 2026-10-19; this comes before every list below)
 
-**Priority 1, the only focus until done: digitize 250 puzzles.** A digitized puzzle is a converted rules puzzle
-(`eval/puzzles/rules-pilot/manifest.jsonl`, `result: converted`): search proven, acceptance accepted, unique, the
-pass arm rejected. 210 on 2026-10-19 (RP_001-RP_228). Sources, in order:
+**Priority 1, the only focus until done: digitize 500 puzzles** (raised from 250 by the owner). A digitized puzzle is
+a converted rules puzzle (`eval/puzzles/rules-pilot/manifest.jsonl`, `result: converted`): search proven, acceptance
+accepted, unique, the pass arm rejected. **501 on 2026-10-20 (RP_001-RP_523; RP_300, RP_402, RP_454 and RP_521 are
+near-duplicates kept but not counted).** Most of the last 290 are authored from the Comprehensive Rules
+(`authored-drafts/x_*, y_*, z_*`, question ids `authored-<slug>`); see HANDOFF-PUZZLES.md for the gate lessons and
+the two harness gaps found. Sources used before that, in order:
 - batch 13's remaining re-screen drafts (`batch13-drafts/`);
 - new RulesGuru questions (`puzzles/modern/harvest.py fetch-rulesguru`; earlier "good" questions converted almost all);
 - re-screens of dropped questions (low yield now).

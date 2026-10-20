@@ -53,6 +53,26 @@ and s2_2 (Ancient Vendetta). Still to gate: s0_3, s0_4, s1_0-3, s3_0-4. For each
 a copy of batch 10's: one `converted(...)` call per puzzle, replacing the question's dropped row), and add a REPORT
 section. Not found means read the search log: a board error or a Forge disagreement.
 
+**2026-10-20: 501 converted (the 500 goal is met).** After batch 14's RulesGuru questions, the rest were authored
+from the Comprehensive Rules: `authored-drafts/x_*` (by hand), `y_*` (keywords and mechanics) and `z_*` (stack,
+priority, layers, timing), about 70% of drafts passing. Each keeper's row has question id `authored-<slug>`.
+Near-duplicates kept but not counted: RP_300, RP_402, RP_454, RP_521. Lessons from the gate:
+- "multiple" comes from a redundant action: an extra land drop from a drawn card (fill libraries with Colossal
+  Dreadmaw), a spare mana or a free activation that can repeat, a yes/no on a trigger that changes nothing, a
+  creature that can sacrifice itself. A second line that only reorders or picks other payers is accepted with
+  `REVIEWED="reason"` (RP_322, RP_329, RP_371).
+- A tapped Silent Arbiter with two or more possible attackers loops the search for hours (below); mark creatures
+  that must not attack `|SummonSick` instead.
+- When one spell both kills a creature and ends the game, the creature never reaches the graveyard: keep the
+  opponent alive if the acceptance counts the graveyard.
+- Fireball-style X and target choices exhaust the 600-rollout budget.
+
+**Two harness gaps found (not fixed; they affect the model seat in real games too):**
+1. Silent Arbiter: the attack menu offers declarations with more than one attacker; the engine rejects each and asks
+   again, so a search (or a seat answering randomly) can loop. Seen on x_0, x_15, x_18.
+2. A copied spell that may choose new targets (Twincast) never offers the choice, so the copy keeps the original
+   target. Seen on z_4.
+
 ### The gate (helpers in `scripts/puzzle-gate/`)
 
 ```bash
