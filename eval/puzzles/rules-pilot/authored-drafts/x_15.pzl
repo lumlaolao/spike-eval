@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - One blocker cannot stop menace
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Boggart Brute (3/2, menace) and Hill Giant (3/3). The opponent is at 3 life and controls an untapped Wall of Stone and a tapped Silent Arbiter (no more than one creature can attack or block each combat). Reduce the opponent to 0 life this turn.
+Rule:authored-menace-one-blocker | A creature with menace can't be blocked except by two or more creatures (CR 702.111b): with one creature able to attack and one able to block, Boggart Brute is unblockable and deals 3; Hill Giant can be blocked by the Wall
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Boggart Brute;Hill Giant
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Wall of Stone;Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
