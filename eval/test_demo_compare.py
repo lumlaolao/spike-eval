@@ -2,6 +2,7 @@
 place it in; both arms play the same conditions; a run never starts without a budget. No game is played here."""
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -27,7 +28,7 @@ class PortTest(unittest.TestCase):
         with open(os.path.join(self.spike, name)) as f:
             return f.read()
 
-    def test_the_feed_and_its_two_hooks_are_ported_once(self):
+    def test_the_feed_and_its_hooks_are_ported_once(self):
         self.assertEqual(dc.port_feed(self.tree), ["DemoFeed.java", "SeatObservation.java", "LlmSpikeGui.java", "LlmSpikeGui.java"])
         self.assertIn("Map<Integer, Integer> handleMap()", self.read("SeatObservation.java"))
         self.assertIn("DemoFeed.attach(game, seat, observer);", self.read("LlmSpikeGui.java"))
@@ -51,6 +52,65 @@ class PortTest(unittest.TestCase):
             f.write("class LlmSpikeGui {}\n")
         with self.assertRaises(SystemExit):
             dc.port_feed(self.tree)
+
+
+class EnginePinTest(unittest.TestCase):
+    """Which engine each arm runs: its own overlay copy of every patched engine file, else the pinned stock source."""
+
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.d)
+
+    def write(self, path, text):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(text)
+
+    def tree(self, name, files):
+        root = os.path.join(self.d, name)
+        for rel, text in files.items():
+            self.write(os.path.join(root, "forge-overlay", rel), text)
+        return root
+
+    def test_engine_patches_are_main_sources_outside_the_harness_package(self):
+        t = self.tree("t", {"forge-game/src/main/java/x/A.java": "", dc.SPIKE.split("forge-overlay/")[1] + "/S.java": "",
+                            "forge-gui-desktop/src/test/java/x/T.java": "", "forge-gui/res/a.png": ""})
+        self.assertEqual(dc.engine_patches(t), ["forge-game/src/main/java/x/A.java"])
+
+    def test_each_file_is_the_trees_overlay_copy_or_the_stock_source_and_a_missing_stock_is_refused(self):
+        a, b = "forge-game/src/main/java/x/A.java", "forge-ai/src/main/java/x/B.java"
+        tree = self.tree("then", {a: "class A { /* then */ }"})
+        forge = os.path.join(self.d, "forge")
+        self.write(os.path.join(forge, b), "class B { /* stock */ }")
+        for cmd in (["init", "-q"], ["add", "."], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "s"]):
+            subprocess.run(["git", "-C", forge] + cmd, check=True)
+        build = os.path.join(self.d, "build")
+        self.write(os.path.join(build, "classpath.txt"), "/cp")
+        compiled = []
+        real = dc.subprocess.run
+
+        def fake_run(cmd, **kw):  # javac stubbed: record what it would compile
+            if cmd[0] == "javac":
+                compiled.extend(cmd)
+                return subprocess.CompletedProcess(cmd, 0, "", "")
+            return real(cmd, **kw)
+        dc.subprocess.run = fake_run
+        try:
+            dc.pin_engine(tree, build, forge, [a, b])
+        finally:
+            dc.subprocess.run = real
+        with open(os.path.join(build, "engine-patches.txt")) as f:
+            self.assertEqual(f.read(), "stock\t%s\noverlay\t%s\n" % (b, a))
+        with open(os.path.join(build, "engine-src", b)) as f:
+            self.assertIn("stock", f.read())
+        with open(os.path.join(build, "engine-src", a)) as f:
+            self.assertIn("then", f.read())
+        self.assertIn("--release", compiled)
+        self.assertIn(os.path.join(build, "classes"), compiled)
+        with self.assertRaises(SystemExit):  # neither an overlay copy nor a stock source: refused, never guessed
+            dc.pin_engine(tree, build, forge, ["forge-game/src/main/java/x/Gone.java"])
 
 
 class ArmTest(unittest.TestCase):

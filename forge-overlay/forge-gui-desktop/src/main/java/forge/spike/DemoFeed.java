@@ -106,6 +106,11 @@ final class DemoFeed {
         JsonObject row = new JsonObject();
         row.addProperty("t", "feed_handles");
         row.add("handles", hm);
+        emit(row);
+    }
+
+    /** Stamps the row's place in the game JSONL (the replay files it between decision rows) and writes it. */
+    private void emit(JsonObject row) {
         row.addProperty("seq", seq++);
         row.addProperty("jsonl_offset", gameFile.length());
         out.println(row.toString());
@@ -189,9 +194,7 @@ final class DemoFeed {
         last = body;
         JsonObject hm = grownHandles();
         if (hm.size() > 0) row.add("handles", hm);
-        row.addProperty("seq", seq++);
-        row.addProperty("jsonl_offset", gameFile.length());
-        out.println(row.toString());
+        emit(row);
     }
 
     private static JsonArray cards(Iterable<Card> cs) {

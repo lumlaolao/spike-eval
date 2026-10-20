@@ -4,6 +4,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -91,9 +96,9 @@ public class DemoFeedTest {
         long decisionAt = jsonl.substring(0, jsonl.indexOf("{\"t\":\"decision\"")).getBytes().length;
         boolean mapped = false;
         for (String line : rows.split("\n")) {
-            com.google.gson.JsonObject r = com.google.gson.JsonParser.parseString(line).getAsJsonObject();
-            if (!r.has("handles") || r.get("jsonl_offset").getAsLong() > decisionAt) continue;
-            for (java.util.Map.Entry<String, com.google.gson.JsonElement> h : r.getAsJsonObject("handles").getAsJsonObject("Seat").entrySet())
+            JsonObject r = JsonParser.parseString(line).getAsJsonObject();
+            if (!r.has("handles") || !r.getAsJsonObject("handles").has("Seat") || r.get("jsonl_offset").getAsLong() > decisionAt) continue;
+            for (Map.Entry<String, JsonElement> h : r.getAsJsonObject("handles").getAsJsonObject("Seat").entrySet())
                 if (h.getValue().getAsInt() == boltId) mapped = true;
         }
         Assert.assertTrue(mapped, "the Bolt's handle is mapped by the first decision row (at " + decisionAt + "): " + rows);

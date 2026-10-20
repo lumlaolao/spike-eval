@@ -10,7 +10,7 @@ same seed, once on the current harness and once on an older commit of it, and th
   python3 eval/demo_server.py --game runs/demo/pair-4201/now --game runs/demo/pair-4201/then
 
 How the older arm runs: `git worktree add` at the commit; DemoFeed (the display-only audience feed) is copied into
-that worktree's overlay with its two hooks, so both panes show both hands; that worktree's own acceptance script
+that worktree's overlay with the hooks it needs (port_feed), so both panes show both hands; that worktree's own acceptance script
 compiles its overlay into an isolated classes directory; a stand-in Forge home runs those classes from the real
 checkout, which is never written (the acceptance `scoring` stage's recipe); and that commit's own run_batch.py
 launches the game. Both arms therefore run on the same pinned engine only if the commit pins it: build-then refuses a
@@ -114,7 +114,7 @@ def engine_patches(tree):
 def pin_engine(tree, build, forge, paths):
     """Compile, into this arm's classes (first on its classpath), its own version of every engine file either arm
     patches: the tree's overlay copy, or the pinned engine's stock source when the tree has no patch for it. The
-    checkout holds whatever install.sh last installed, so neither arm may inherit it. Returns {path: origin}."""
+    checkout holds whatever install.sh last installed, so neither arm may inherit it. Records each file's origin in engine-patches.txt."""
     src = os.path.join(build, "engine-src")
     shutil.rmtree(src, ignore_errors=True)
     origin, files = {}, []
@@ -136,14 +136,13 @@ def pin_engine(tree, build, forge, paths):
     if files:
         with open(os.path.join(build, "classpath.txt")) as f:
             cp = os.path.join(build, "classes") + ":" + f.read().strip()
-        r = subprocess.run(["javac", "-nowarn", "-encoding", "UTF-8", "-cp", cp, "-d", os.path.join(build, "classes")]
+        r = subprocess.run(["javac", "--release", "17", "-proc:none", "-nowarn", "-encoding", "UTF-8", "-cp", cp, "-d", os.path.join(build, "classes")]
                            + files, capture_output=True, text=True)
         if r.returncode != 0:
             raise SystemExit("engine files did not compile:\n" + r.stderr[-2000:])
     with open(os.path.join(build, "engine-patches.txt"), "w") as f:
         f.write("".join("%s\t%s\n" % (origin[p], p) for p in sorted(origin)))
     print("engine files:", ", ".join("%s (%s)" % (os.path.basename(p), origin[p]) for p in sorted(origin)) or "none")
-    return origin
 
 
 def compile_arm(tree, build, forge):
@@ -226,6 +225,13 @@ def run(a):
     for name, home in homes.items():
         if not os.path.isfile(os.path.join(home, "run-llm-headless.sh")):
             raise SystemExit("no %s build at %s: run build-%s first" % (name, home, name))
+    want = sorted(set(engine_patches(REPO)) | set(engine_patches(os.path.abspath(a.worktree))))
+    for name, home in homes.items():
+        with open(os.path.join(os.path.dirname(home), "engine-patches.txt")) as f:
+            have = sorted(line.split("\t", 1)[1].strip() for line in f if "\t" in line)
+        if have != want:
+            raise SystemExit("the %s build pinned other engine files than the trees patch now: run build-%s again"
+                             % (name, name))
     env = dict(os.environ)
     model = a.model
     fake = None

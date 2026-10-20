@@ -9,7 +9,7 @@ Two blocks, read from a scorer or a summary line; the one typed-in number is the
      zero-model canaries checked against their pins (the canary stages fail when a pin moves).
   2. The headline scores (CLAUDE.md, "The benchmark"), each next to its floors. PUZ is computed here by
      puzzle_score.score from the recorded benchmark-v1 results; STR-AI and STR-HELDOUT are shown as not yet run,
-     with the panel's size and the cost of running it at CLAUDE.md's per-game range ("Cost of paid runs"), until a panel root is given.
+     with the panel's size and the cost of running it (GAME_COST_USD), until a panel root is given.
 Stdlib only.
 """
 import argparse
