@@ -5034,8 +5034,9 @@ public final class LlmSpikeGui {
         public boolean payManaCost(forge.card.mana.ManaCost toPay, forge.game.cost.CostPartMana costPartMana,
                 SpellAbility sa, String prompt, forge.game.mana.ManaConversionMatrix matrix, boolean effect) {
             Set<Card> said = new HashSet<>();
+            int[] lifeDue = {0};   // Phyrexian symbols the seat pays with life, paid once the mana is (CR 601.2h)
             try {
-                toPay = phyrexianByLife(toPay, sa, effect);
+                toPay = phyrexianByLife(toPay, sa, effect, lifeDue);
             } catch (Exception e) {
                 p("[ROUTER] mana: phyrexian " + e + " -> engine");
             }
@@ -5075,6 +5076,19 @@ public final class LlmSpikeGui {
                     sa.setSkip(false);
                     paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
                 }
+                // The life goes last: paid first, a source that costs life (Horizon Canopy) could then be refused by the
+                // engine's payment and the cast fail with the life gone, unrefunded (pr-review of #277).
+                if (paid && lifeDue[0] > 0) {
+                    int n = lifeDue[0];
+                    if (getPlayer().canPayLife(2 * n, effect, sa)) {
+                        getPlayer().payLife(2 * n, sa, effect);
+                        sa.setSpendPhyrexianMana(true);
+                        p("[ROUTER] mana: " + n + " Phyrexian paid with " + (2 * n) + " life for " + labelOf(sa));
+                    } else {
+                        p("[ROUTER] mana: " + (2 * n) + " life for the Phyrexian symbols can no longer be paid -> not paid");
+                        paid = false;
+                    }
+                }
             } finally {
                 payingForReal = wasPaying;
                 payingCost = wasCost;
@@ -5101,8 +5115,9 @@ public final class LlmSpikeGui {
          *  or Gitaxian Probe cost life. The seat pays the life here and hands the engine the rest, whose
          *  Phyrexian symbols it then pays with mana. Only splits the seat can pay are offered (the life,
          *  and the rest with mana by the engine's own test payment); with one, nothing is asked. Returns
-         *  the cost the engine still pays. */
-        private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
+         *  the cost the engine still pays; the life ({@code lifeDue}) is paid by payManaCost once the mana is. */
+        private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect,
+                                                         int[] lifeDue) {
             if (toPay == null || !toPay.hasPhyrexian() || toPay.countX() > 0 || sa == null || sa.isManaAbility()
                     || "floor".equals(mode) || (!smartOk() && !fastOk())) return toPay;
             final Player me = getPlayer();
@@ -5128,6 +5143,7 @@ public final class LlmSpikeGui {
                 // engine's payment is Forge's AI and obeys AIPhyrexianPayment ("Never" on Gitaxian Probe, hard draft h_0).
                 if (lifeFor.get(0) == 0) return toPay;
                 n = lifeFor.get(0);
+                auto("phyrexian(forced: payable only with life)->" + (2 * n) + " life" + srcOf(sa));
             } else {
                 int c = decideOne(smartOk() ? smart : fast, "phyrexian", "MANA: you are paying " + toPay + " for " + what
                         + ". Each Phyrexian symbol is paid with one mana of its colour or with 2 life. You have "
@@ -5136,10 +5152,9 @@ public final class LlmSpikeGui {
                 n = lifeFor.get(c);
             }
             if (n == 0) return withPhyrexian(toPay, 0, true);
-            me.payLife(2 * n, sa, effect);
-            sa.setSpendPhyrexianMana(true);
-            p("[ROUTER] mana: " + n + " Phyrexian paid with " + (2 * n) + " life for " + what);
-            return withPhyrexian(toPay, n, false);
+            lifeDue[0] = n;   // payManaCost pays it after the mana
+            // The rest as plain colours, the cost the split was priced at: the engine cannot pay more of it with life.
+            return withPhyrexian(toPay, n, true);
         }
 
         /** {@code cost} without its first {@code byLife} Phyrexian symbols; with {@code restAsMana} the

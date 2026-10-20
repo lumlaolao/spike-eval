@@ -1892,8 +1892,11 @@ public class GoldenChecksTest {
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the Probe was not on the menu: " + PromptFidelityTest.promptWith(model, "DECISION:"));
         Assert.assertEquals(r.get(0).getHostCard().getName(), "Gitaxian Probe");
+        int autos = ctrl.autoPicksCount();
         Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "the Probe was not paid for");
         Assert.assertEquals(me.getLife(), 18);
+        // Paying with life was the only way: the harness paid it, so it says so with a tier=auto row (standards, #277).
+        Assert.assertEquals(ctrl.autoPicksCount(), autos + 1, "the forced life payment left no auto row");
     }
 
     /** X, then the modes of a modal spell, each from the model. */
@@ -2425,6 +2428,23 @@ public class GoldenChecksTest {
         Assert.assertFalse(ctrl.playSaFromPlayEffect(free), "Gaddock Teeg forbids it");
         Assert.assertTrue(concentrate.isInZone(ZoneType.Exile), "Concentrate stays in exile");
         Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
+    /** An effect cast tests its cost with Forge AI's check, which obeys Gitaxian Probe's AI-only "never pay life" hint;
+     *  the seat's cast runs with it hidden, so with no blue source Probe is cast for 2 life (pr-review of #277). */
+    @Test
+    public void anEffectCastOfAPhyrexianSpellIsPaidWithLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        Card probe = card("Gitaxian Probe", me, ZoneType.Exile);
+        Script model = new Script("CHOICE: 1").on("An effect lets you", choice("Cast it"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility play = probe.getFirstSpellAbility();
+        play.setActivatingPlayer(me);
+        Assert.assertTrue(ctrl.playSaFromPlayEffect(play), "the Probe was refused by the AI's cost check");
+        Assert.assertEquals(me.getLife(), 18);
+        Assert.assertEquals(ctrl.playsNotMade(), 0);
     }
 
     /** A land play goes through the inherited play routine, which returns true whatever happened, so the count reads the

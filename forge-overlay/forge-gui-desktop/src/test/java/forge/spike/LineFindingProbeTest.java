@@ -283,6 +283,27 @@ public class LineFindingProbeTest {
         Assert.assertEquals(ctrl.playsNotMade(), 1);
     }
 
+    /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1
+     *  life") as the only land. Paid first, the 4 life left 1, the AI's source filter then refused the Canopy (it keeps
+     *  1 life), and the cast failed with the life gone. Mana first, the Canopy pays at 5 and the life after it. */
+    @Test
+    public void phyrexianLifeIsPaidAfterTheManaSoAFailedCastCostsNoLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        me.setLife(5, null);
+        card("Horizon Canopy", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        logOf(() -> ctrl.playChosenSpellAbility(cast));
+        boolean cast0 = g.getStack().size() == 1;
+        Assert.assertTrue(cast0 || me.getLife() == 5, "life " + me.getLife() + " paid and the cast failed");
+    }
+
     /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the
      *  battlefield, handed to the play path as a stale menu would. MagicStack.add drops it ("failed to target"). */
     @Test
