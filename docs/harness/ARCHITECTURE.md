@@ -238,6 +238,12 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
     | [sick], [tapped] | `Card.isSick()` / `isTapped()` |
     | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
     | X in the mode and target questions | the announced `getXManaCostPaid` of the spell |
+
+  - Every `canPayManaCost` a harness seat asks runs with the card's AI-only payment hints hidden
+    (`PlayerControllerLLM.seatCanPay`, `AI_PAYMENT_HINTS`, epoch 68). `AIPhyrexianPayment$ Never` tells Forge's
+    AI not to pay Gitaxian Probe's {U/P} with life; obeyed by the seat's check, Probe with no blue source was "(not
+    castable now)" and off the menu, and a cost payable only with life went to the AI's payment, which refused it.
+    The harness now pays a life-only Phyrexian cost itself (`phyrexianByLife`). Found by h_0's written line.
     | a card's name in a question | the engine's name, with an effect's engine id removed, its source's too when the source is an effect (one function, `safeName`; observation-faithful-v42, g33) |
     | a filter in a cost or a name ask ("another blue card", "three black creatures", "a nonland card") | the engine's filter (`Card.Blue+Other`) said in words (`filterParts`, `plainFilters`, `nameConstraint`), in every cost the seat reads and in the state's stack and history lines (`SeatObservation.redact`), under the faithful profile (legacy profiles keep the engine's text). Control and ownership ("creatures an opponent controls"), a chosen or shared name, and a bare filter (a plural) are said too. Any other condition is left out of a counted phrase ("a card"), reads "the creatures the card describes" in a bare one, and leaves a name ask to the card's own text. A creature type Forge pluralised with an "s" takes its own plural from Forge's type list (`typePlurals`: "Elfs" reads "Elves", g10) |
     | CAST THIS GAME, LANDS PLAYED | the engine's `GameEventSpellAbilityCast` / `GameEventLandPlayed` (a copy is not a cast), not the log line's wording |
@@ -291,7 +297,13 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
 - `<reference>`: terms and keywords, the same in every format and in a puzzle. It named the Legacy eval pool's
   archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
-A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told.
+A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told. For a Forge puzzle that is
+Forge's description (name, difficulty, goal, turn limit, text); a rules puzzle (an `[acceptance]` section) gets only its
+turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its Forge goal is just the turn bound
+(148 of the 526 converted puzzles in `eval/puzzles/rules-pilot/manifest.jsonl` say `Goal:Survive` and have `life p1 <= 0`
+in their `[acceptance]` section, 2026-10-20) and its name states the rule it tests. The
+Puzzle Goal card, which `inspect` reads, carries the same brief (`tellGoalCard`), and Forge's HumanControl warning
+stays in front of it. A result row's `goal_oracle` is that card's text as the seat sees it.
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
