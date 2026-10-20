@@ -162,7 +162,9 @@ def storm_board(rng):
     rituals = [rng.choice(names) for _ in range(rng.choice([2, 3, 3, 4]))]
     # An order that can be paid: cheapest first, Rites together, Seething Song once three are open.
     order = sorted(rituals, key=lambda r: (STORM_RITUALS[r][0] + STORM_RITUALS[r][1], r != "Rite of Flame"))
-    petals = rng.choice([0, 1, 1, 2])
+    # No Lotus Petal: when the engine pays with one it asks for a colour, and a Petal that can make blue turns
+    # Gitaxian Probe's Phyrexian cost into a mana-or-life question (34 of 40 storm boards drifted, 2026-10-20).
+    petals = 0
     pool, lands, rites, petal_mana = 0, mountains, 0, petals
     for r in order:
         generic, red, added = STORM_RITUALS[r]
