@@ -87,6 +87,7 @@ class DifficultyV2Test(unittest.TestCase):
         self.assertEqual(tags, ["rules application", "sequencing", "combat arithmetic", "long lines",
                                 "adversarial", "multi-turn"])
         self.assertEqual(pf.skill_tags({"L": 0, "D": 0, "O": 0, "T": 1, "B": 1}, [], "forge-builtin"), ["restraint"])
+        self.assertTrue(set(tags + ["restraint"]) <= set(pf.SKILL_TAGS), "every emitted tag validates")
 
     def test_a_record_with_bad_difficulty_is_refused(self):
         good = {"L": 2, "D": 1, "O": 0, "T": 1, "B": 3, "board_objects": 4}

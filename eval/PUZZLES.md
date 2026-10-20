@@ -64,7 +64,8 @@ Forge enforces ("Win" or "Survive" by turn N).
     graveyard and exile;
   - `tier_v2`: 3 when `L >= 6` or `O >= 2`; else 2 when `L >= 3`, `O >= 1` or `T >= 2`; else 1 when
     Forge's AI solves at least half, 2 when it does not; null without a proof, its turns, its opponent count or
-    (for a short line) the AI's rate.
+    (for a short line) the AI's rate. Difficulty, `tier_v2` and `skills` are all null when the pzl cannot be read or
+    is not the file `pzl_sha256` names, and `prove`, `run` and `retier` refuse such a record before anything runs.
     `B` is recorded but is not a tier-3 trigger until it counts the menus the seat is shown, not the search's
     draws (RP_035, one cast Forge's AI solves 4/4, read `B = 92160` from `puzzle_baselines.py prove --suite
     eval/suites/greedy-check-v0.json --ids rules-RP_035 --budget 600 --unique-budget 0 --write <copy>`, then

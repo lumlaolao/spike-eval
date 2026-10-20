@@ -337,43 +337,58 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms, b
         if arm == "greedy":
             base[arm]["condition"] = greedy_condition()
     rec = dict(rec, baselines=base)
-    if baselines_only:  # the floors and the AI's rate for a suite already proven (re-tiering): no line, no replay
-        # The v1 tier and the status follow the new rates (pr-review of #280: an active record kept a status its new
-        # random rate contradicted).
-        verified = (rec.get("verification") or {}).get("status") == "verified"
-        rec["tier"] = tier_for(base.get("ai", {}).get("rate"),
-                               (rec.get("reference_line") or {}).get("solver_actions")) if verified else None
-        rec["status"], rec["flags"] = decide_status(rec)
-        return apply_difficulty(rec)
-    if not pf.has_line(rec.get("reference_line")):
-        line = choose_line(random_rows)
-        if line is None and search > 0:
-            seeds = "%d..%d" % (SEARCH_BASE, SEARCH_BASE + search - 1)
-            line = choose_line(run_arm(build, pzl, "random", seeds, out_root / pid / "search"))
-        if line is None:
-            line = choose_ai_line(ai_rows)
-        if line is None and (rec.get("source") or {}).get("kind") == "rules":
-            rows = run_arm(build, pzl, "search", "1", out_root / pid / "prove", search_env(SEARCH_LINE_BUDGET))
-            line = choose_search_line(rows[-1] if rows else None)
-        if line is not None:
-            rec["reference_line"] = line
-    rec = verify_puzzle(build, rec, out_root)
-    line = rec.get("reference_line") or {}
-    ai = base.get("ai", {}).get("rate")
-    rec["tier"] = tier_for(ai, line.get("solver_actions")) if rec["verification"]["status"] == "verified" else None
+    if not baselines_only:  # a suite already proven (re-tiering) measures the floors and the AI's rate only
+        if not pf.has_line(rec.get("reference_line")):
+            line = choose_line(random_rows)
+            if line is None and search > 0:
+                seeds = "%d..%d" % (SEARCH_BASE, SEARCH_BASE + search - 1)
+                line = choose_line(run_arm(build, pzl, "random", seeds, out_root / pid / "search"))
+            if line is None:
+                line = choose_ai_line(ai_rows)
+            if line is None and (rec.get("source") or {}).get("kind") == "rules":
+                rows = run_arm(build, pzl, "search", "1", out_root / pid / "prove", search_env(SEARCH_LINE_BUDGET))
+                line = choose_search_line(rows[-1] if rows else None)
+            if line is not None:
+                rec["reference_line"] = line
+        rec = verify_puzzle(build, rec, out_root)
+    # The v1 tier and the status follow the new rates on both paths (pr-review of #280: --baselines-only kept a
+    # status its new random rate contradicted).
+    verified = (rec.get("verification") or {}).get("status") == "verified"
+    rec["tier"] = tier_for(base.get("ai", {}).get("rate"),
+                           (rec.get("reference_line") or {}).get("solver_actions")) if verified else None
     rec["status"], rec["flags"] = decide_status(rec)
     return apply_difficulty(rec)
 
 
+def proven_pzl_text(rec):
+    """The record's pzl text, or None when it cannot be read or is not the file its pzl_sha256 names: FORGE_HOME at
+    another checkout would measure a record from nothing, or from a different file of the same name."""
+    path = pf.pzl_path(rec)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    return None if rec.get("pzl_sha256") and pf.sha256_file(path) != rec["pzl_sha256"] else text
+
+
+def refuse_unproven(puzzles, what):
+    """Stop before any game when a record's pzl cannot be read or is not the file its pzl_sha256 names: the games
+    would measure, and the manifest record, another file (pr-review of #281)."""
+    bad = [r["id"] for r in puzzles if proven_pzl_text(r) is None]
+    if bad:
+        raise SystemExit("%d pzl file(s) unreadable or not the one recorded, nothing %s: %s"
+                         % (len(bad), what, ", ".join(bad[:5])))
+
+
 def apply_difficulty(rec):
     """The record's measured difficulty, its v2 tier and its skill tags (BENCHMARK-V2.md section 4), recomputed from
-    its proof and its Forge AI rate; all three null without a proven proof or a readable pzl (an empty board would
+    its proof and its Forge AI rate; all three null without a proven proof or the recorded pzl (an empty board would
     read as board_objects=0, and an old tier would stand beside a new proof). Additive: `tier` (v1) is untouched."""
     proof = rec.get("proof") or {}
-    try:
-        text = pf.pzl_path(rec).read_text(encoding="utf-8")
-    except OSError:
-        print("%s: pzl unreadable (%s); no difficulty" % (rec.get("id"), pf.pzl_path(rec)), file=sys.stderr)
+    text = proven_pzl_text(rec)
+    if text is None:
+        print("%s: pzl unreadable or not the recorded one (%s); no difficulty" % (rec.get("id"), pf.pzl_path(rec)),
+              file=sys.stderr)
         return dict(rec, difficulty=None, tier_v2=None, skills=None)
     d = pf.difficulty(proof, text)
     ai = ((rec.get("baselines") or {}).get("ai") or {}).get("rate")
@@ -436,13 +451,14 @@ def prove_puzzle(build, rec, out_root, budget, opponent, seed=1, unique_budget=N
 
 
 def cmd_prove(a):
-    build = Build(a.build, a.forge)
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; a proof changes its records. Write to a new manifest with --write")
     ids = set(a.ids.split(",")) if a.ids else None
     out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-proofs" % manifest["suite"]))
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
+    refuse_unproven(todo, "played")
+    build = Build(a.build, a.forge)
     manifest = dict(manifest, frozen=False, suite_sha256=None)
     target = Path(a.write or a.suite)
     done = {}
@@ -662,7 +678,6 @@ def cmd_line(a):
 
 
 def cmd_run(a):
-    build = Build(a.build, a.forge)
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; baselines change its hash. Write to a new manifest with --write")
@@ -670,6 +685,8 @@ def cmd_run(a):
     out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-baselines" % manifest["suite"]))
     arms = [x for x in a.arms.split(",") if x]
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
+    refuse_unproven(todo, "played")
+    build = Build(a.build, a.forge)
 
     def work(rec):
         try:
@@ -710,12 +727,7 @@ def cmd_retier(a):
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; re-tiering changes its records. Write to a new manifest with --write")
-    # FORGE_HOME at another checkout would re-tier every forge: record from nothing, or from a different file
-    unread = [r["id"] for r in manifest["puzzles"] if not pf.pzl_path(r).is_file()
-              or (r.get("pzl_sha256") and pf.sha256_file(pf.pzl_path(r)) != r["pzl_sha256"])]
-    if unread:
-        raise SystemExit("%d pzl file(s) unreadable or not the one proven, nothing written: %s"
-                         % (len(unread), ", ".join(unread[:5])))
+    refuse_unproven(manifest["puzzles"], "written")
     puzzles = [apply_difficulty(r) for r in manifest["puzzles"]]
     Path(a.write or a.suite).write_text(json.dumps(dict(manifest, puzzles=puzzles, frozen=False, suite_sha256=None),
                                                    indent=2) + "\n", encoding="utf-8")
@@ -760,7 +772,8 @@ def main(argv=None):
     r.add_argument("--out-dir", default=None)
     r.add_argument("--write", default=None, help="manifest to write (default: --suite in place)")
     r.add_argument("--baselines-only", action="store_true",
-                   help="measure the arms only (no line search, no verification), then recompute tier_v2")
+                   help="measure the arms only (no line search, no verification), then recompute the v1 tier, "
+                        "the status and tier_v2")
     r.add_argument("--resume", action="store_true",
                    help="reuse an arm's rows when this build already ran exactly its seeds in --out-dir")
     v = sub.add_parser("verify")
