@@ -10,6 +10,7 @@ turn=1
 activeplayer=p0
 activephase=MAIN1
 p0life=20
+p0hand=Arrow Storm
 p0battlefield=Raging Goblin;Mountain;Mountain;Mountain;Mountain;Mountain
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
 p1life=6
