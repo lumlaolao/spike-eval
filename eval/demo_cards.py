@@ -17,6 +17,7 @@ import argparse
 import hashlib
 import json
 import os
+import ssl
 import sys
 import threading
 import time
@@ -33,6 +34,16 @@ HEADERS = {"User-Agent": "mtg-forge-llm-agent-demo/1.0", "Accept": "image/jpeg,i
 MIN_GAP_S = 0.1
 TIMEOUT_S = 5
 RETRY_AFTER_S = 300   # a network failure is not a miss, but the name is not tried again for five minutes
+# python.org's macOS installer ships without root certificates until its "Install Certificates.command" is run, so
+# every fetch fails verification and the viewer silently shows text tiles; say so once.
+SSL_HINT = ("[demo_cards] Scryfall's certificate could not be verified, so no card images can be fetched. On macOS "
+            "with python.org's Python, run '/Applications/Python 3.x/Install Certificates.command' once (or use "
+            "Homebrew's python3); then fetch again.")
+
+
+def is_cert_error(e):
+    return isinstance(e, ssl.SSLCertVerificationError) or isinstance(getattr(e, "reason", None),
+                                                                     ssl.SSLCertVerificationError)
 
 
 def http_fetch(name):
@@ -58,6 +69,7 @@ class Cache:
         self.last = 0.0
         self.failed = {}               # name -> when the network last failed for it
         self.inflight = set()
+        self.hinted = False            # the macOS certificate hint, printed once
         os.makedirs(root, exist_ok=True)
         self.misses_path = os.path.join(root, "misses.json")
         try:
@@ -96,9 +108,13 @@ class Cache:
                 time.sleep(wait)
             try:
                 data = self.fetch(name)
-            except Exception:  # the network is optional: no image, the text tile stays
+            except Exception as e:  # the network is optional: no image, the text tile stays
                 with self.lock:
                     self.failed[key] = time.time()
+                    hint = is_cert_error(e) and not self.hinted
+                    self.hinted = self.hinted or hint
+                if hint:
+                    print(SSL_HINT, file=sys.stderr, flush=True)
                 return None
             if data is None:
                 with self.lock:

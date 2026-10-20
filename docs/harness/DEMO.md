@@ -7,6 +7,21 @@ engine and no model, and it cannot change what the seat sees or decides. Card im
 `demo_cards.py prefetch` fills once from Scryfall; the server itself sends nothing out unless started with
 `--fetch-images`, which sends each missing card's name to api.scryfall.com.
 
+## macOS and Linux
+
+Everything here runs on both; the commands are the same. Once per machine:
+
+| | macOS | Linux |
+|---|---|---|
+| Python | 3.9 or newer: the system `python3` or Homebrew's (the demo is stdlib only; tests run on 3.9) | `python3` 3.9 or newer |
+| JDK 17 (side by side, Forge window) | `brew install openjdk@17`; the launchers, acceptance and `demo_compare.py` find it at Homebrew's path, or set `JAVA_HOME` | the `javac` on `PATH`, or `JAVA_HOME` |
+| Forge checkout | `export FORGE_HOME=~/forge` (the default when unset) | the same, or `--forge <dir>` |
+| card images | if `demo_cards.py prefetch` prints a certificate hint, run python.org's `Install Certificates.command` once | nothing |
+| browser | Chrome, Firefox or Safari 16.2+ | Chrome or Firefox |
+
+`demo_compare.py` quotes every path it writes into a launcher, so a home folder with a space works. The Forge window
+(`run-llm-spike.sh`) is the desktop app: on macOS it opens like any app; on a Linux server it needs a display.
+
 ## Replay a recorded game (free, offline)
 
 ```bash

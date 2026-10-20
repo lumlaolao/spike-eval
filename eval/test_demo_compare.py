@@ -94,7 +94,7 @@ class EnginePinTest(unittest.TestCase):
         real = dc.subprocess.run
 
         def fake_run(cmd, **kw):  # javac stubbed: record what it would compile
-            if cmd[0] == "javac":
+            if os.path.basename(cmd[0]) == "javac":
                 compiled.extend(cmd)
                 return subprocess.CompletedProcess(cmd, 0, "", "")
             return real(cmd, **kw)
@@ -165,17 +165,43 @@ class ArmTest(unittest.TestCase):
         for name in list(agent) + list(ai):
             self.assertTrue(os.path.isfile(dc.pick_deck(name, [name], "x")), name)
 
-    def test_the_stand_in_home_runs_the_isolated_classes_from_the_real_checkout(self):
+    def test_the_stand_in_home_runs_the_isolated_classes_from_the_real_checkout_even_with_spaces(self):
+        d = tempfile.mkdtemp(prefix="Sean Thomas ")  # a macOS home folder may hold a space
+        try:
+            forge, b = os.path.join(d, "my forge"), os.path.join(d, "build dir")
+            os.makedirs(os.path.join(forge, ".git"))
+            os.makedirs(os.path.join(forge, "forge-gui-desktop"))
+            os.makedirs(b)
+            with open(os.path.join(b, "classpath.txt"), "w") as f:
+                f.write("/m2/a.jar:/m2/b.jar\n")
+            java = os.path.join(d, "fake java")  # prints where it ran and the classpath it was given
+            with open(java, "w") as f:
+                f.write('#!/bin/bash\npwd\nwhile [ "$1" != "-cp" ]; do shift; done\necho "$2"\necho "$3"\n')
+            os.chmod(java, 0o755)
+            script = dc.standin_home(os.path.join(d, "home"), os.path.join(b, "classes"),
+                                     os.path.join(b, "classpath.txt"), forge, java)
+            self.assertTrue(os.access(script, os.X_OK))
+            out = subprocess.run([script], capture_output=True, text=True, check=True).stdout.splitlines()
+            self.assertEqual(os.path.realpath(out[0]), os.path.realpath(os.path.join(forge, "forge-gui-desktop")))
+            self.assertEqual(out[1], os.path.join(b, "classes") + ":/m2/a.jar:/m2/b.jar")
+            self.assertEqual(out[2], "forge.spike.LlmSpikeHeadless")
+        finally:
+            shutil.rmtree(d)
+
+    def test_the_jdk_is_java_home_else_homebrews_else_the_javac_on_path(self):
         d = tempfile.mkdtemp()
         try:
-            forge = os.path.join(d, "forge")
-            os.makedirs(os.path.join(forge, ".git"))
-            script = dc.standin_home(os.path.join(d, "home"), "/b/classes", "/b/classpath.txt", forge)
-            with open(script) as f:
-                text = f.read()
-            self.assertIn("cd %s/forge-gui-desktop" % forge, text)
-            self.assertIn('-cp "/b/classes:$(cat /b/classpath.txt)" forge.spike.LlmSpikeHeadless', text)
-            self.assertTrue(os.access(script, os.X_OK))
+            home = os.path.join(d, "jdk")
+            os.makedirs(os.path.join(home, "bin"))
+            open(os.path.join(home, "bin", "javac"), "w").close()
+            with mock.patch.dict(os.environ, {"JAVA_HOME": home}):
+                self.assertEqual(dc.jdk_tool("javac"), os.path.join(home, "bin", "javac"))
+            with mock.patch.dict(os.environ, {"JAVA_HOME": os.path.join(d, "none")}), \
+                    mock.patch.object(dc, "BREW_JDK", home):
+                self.assertEqual(dc.jdk(), home)  # the Mac default
+            with mock.patch.dict(os.environ, {"JAVA_HOME": ""}), mock.patch.object(dc, "BREW_JDK", "/nowhere"), \
+                    mock.patch.object(dc.shutil, "which", lambda n: os.path.join(home, "bin", "javac")):
+                self.assertEqual(dc.jdk(), os.path.realpath(home))  # Linux: the javac on PATH
         finally:
             shutil.rmtree(d)
 

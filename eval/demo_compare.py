@@ -25,12 +25,14 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BREW_JDK = "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"  # the Mac default, as the launchers
 SIBLINGS = os.path.dirname(REPO)  # the default worktree and build dirs sit beside the checkout
 DECKS = os.path.join(REPO, "eval", "demo", "decks.json")
 SPIKE = "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
@@ -75,18 +77,37 @@ def port_feed(tree, source=REPO):
     return changed
 
 
+def jdk():
+    """The JDK the launchers and acceptance use: JAVA_HOME, else Homebrew's openjdk@17 (macOS), else the javac on PATH
+    (Linux). None when there is no JDK at all."""
+    home = os.environ.get("JAVA_HOME")
+    if home and os.path.isfile(os.path.join(home, "bin", "javac")):
+        return home
+    if os.path.isdir(BREW_JDK):
+        return BREW_JDK
+    javac = shutil.which("javac")
+    return os.path.dirname(os.path.dirname(os.path.realpath(javac))) if javac else None
+
+
+def jdk_tool(name):
+    home = jdk()
+    return os.path.join(home, "bin", name) if home else name
+
+
 def standin_home(home, classes, classpath, forge, java="java"):
-    """A Forge home whose run-llm-headless.sh runs `classes` against the real checkout (never written)."""
+    """A Forge home whose run-llm-headless.sh runs `classes` against the real checkout (never written). Paths are
+    shell-quoted: a macOS home folder may hold a space."""
     os.makedirs(home, exist_ok=True)
     git = os.path.join(home, ".git")
     if not os.path.exists(git):
         os.symlink(os.path.join(forge, ".git"), git)
     script = os.path.join(home, "run-llm-headless.sh")
     with open(script, "w") as f:
-        f.write("#!/bin/bash\ncd %s\nexec %s --add-opens java.base/java.lang=ALL-UNNAMED -Xmx3g "
-                "-Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dapple.awt.UIElement=true "
-                "-Djava.awt.headless=true -cp \"%s:$(cat %s)\" forge.spike.LlmSpikeHeadless\n"
-                % (os.path.join(forge, "forge-gui-desktop"), java, classes, classpath))
+        f.write("#!/bin/bash\ncd %s || exit 1\nCP=%s:\"$(cat %s)\"\nexec %s --add-opens java.base/java.lang=ALL-UNNAMED "
+                "-Xmx3g -Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dapple.awt.UIElement=true "
+                "-Djava.awt.headless=true -cp \"$CP\" forge.spike.LlmSpikeHeadless\n"
+                % (shlex.quote(os.path.join(forge, "forge-gui-desktop")), shlex.quote(classes), shlex.quote(classpath),
+                   shlex.quote(java)))
     os.chmod(script, 0o755)
     return script
 
@@ -156,7 +177,7 @@ def pin_engine(tree, build, forge, paths):
     if files:
         with open(os.path.join(build, "classpath.txt")) as f:
             cp = os.path.join(build, "classes") + ":" + f.read().strip()
-        r = subprocess.run(["javac", "--release", "17", "-proc:none", "-nowarn", "-encoding", "UTF-8", "-cp", cp,
+        r = subprocess.run([jdk_tool("javac"), "--release", "17", "-proc:none", "-nowarn", "-encoding", "UTF-8", "-cp", cp,
                             "-d", os.path.join(build, "classes")] + files, capture_output=True, text=True)
         if r.returncode != 0:
             raise SystemExit("engine files did not compile:\n" + r.stderr[-2000:])
@@ -191,7 +212,7 @@ def compile_arm(tree, build, forge, worktree):
         raise SystemExit("%s did not compile (see %s/javac.log)" % (tree, build))
     pin_engine(tree, build, forge, pinned_paths(worktree))
     print("stand-in home:", standin_home(os.path.join(build, "forge-home"), os.path.join(build, "classes"),
-                                         os.path.join(build, "classpath.txt"), forge))
+                                         os.path.join(build, "classpath.txt"), forge, jdk_tool("java")))
 
 
 def build_now(a):
@@ -331,7 +352,7 @@ def main(argv=None):
         p.add_argument("--worktree", default=os.path.join(SIBLINGS, "harness-then"))
         p.add_argument("--build", default=os.path.join(SIBLINGS, "harness-then-build"))
         p.add_argument("--now-build", default=os.path.join(SIBLINGS, "harness-now-build"))
-        p.add_argument("--forge", default=os.path.expandvars(os.environ.get("FORGE_HOME", "/root/forge")))
+        p.add_argument("--forge", default=os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "~/forge"))))
     a = ap.parse_args(argv)
     return {"build-then": build_then, "build-now": build_now, "run": run, "decks": decks}[a.cmd](a)
 
