@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 342 - Unlife lets the Earthquake through
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You are at 1 life and control Phyrexian Unlife. You have Earthquake in hand with four red mana floating. The opponent is at 3 life and controls no permanents. Win the game this turn.
+Rule:authored-cant-lose-simultaneous | Earthquake deals its damage to each player at once and both players reach 0 or less together (CR 120.3, 704.5a), which would be a draw (CR 104.4a); Phyrexian Unlife says you don't lose for having 0 or less life (CR 104.3b, 614 replacement), so only the opponent loses: cast it with X = 3; a smaller X leaves the opponent alive
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=1
+p0hand=Earthquake
+p0battlefield=Phyrexian Unlife
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

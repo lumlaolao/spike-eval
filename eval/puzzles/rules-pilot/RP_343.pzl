@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 343 - Two Kokushos, one legend
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Kokusho, the Evening Star and have Threaten in hand, with three red mana floating. The opponent is at 5 life and controls their own untapped Kokusho, the Evening Star. Reduce the opponent to 0 life this turn.
+Rule:authored-legend-rule-stolen | The legend rule applies to legendary permanents with the same name that one player controls (CR 704.5j): Threaten the opponent's Kokusho and you must put one of your two into its owner's graveyard; it dies under your control, so its trigger is yours and the opponent loses 5 (CR 603.3a, 603.10a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Threaten
+p0battlefield=Kokusho, the Evening Star
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Kokusho, the Evening Star
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
