@@ -255,11 +255,11 @@ def difficulty(proof, pzl_text):
         O = sum(1 for seat, n, _ in steps if seat == "Opponent" and n >= 2)
     if proof.get("opponent") != "search":
         O = None
+    draws = [n for seat, n, _ in steps if seat == "Solver" and n >= 2]
     B = 1
-    for seat, n, _ in steps:
-        if seat == "Solver" and n >= 2:
-            B = min(B * n, B_CAP)
-    return {"L": L, "D": sum(1 for seat, n, _ in steps if seat == "Solver" and n >= 2), "O": O,
+    for n in draws:
+        B = min(B * n, B_CAP)
+    return {"L": L, "D": len(draws), "O": O,
             "T": turns_played(proof.get("turns"), pzl_text), "B": B, "board_objects": board_objects(pzl_text)}
 
 
@@ -275,11 +275,9 @@ def turns_played(last, pzl_text):
     start = start or 1
     if last < start:
         return None
-    if phase.upper() == "CLEANUP":
-        end = min(last, limit + 1) if isinstance(limit, int) and limit >= start else last
-        return max(1, end - start)
-    end = min(last, limit) if isinstance(limit, int) and limit >= start else last
-    return max(1, end - start + 1)
+    off = 1 if phase.upper() == "CLEANUP" else 0
+    end = min(last, limit + off) if isinstance(limit, int) and limit >= start else last
+    return max(1, end - start + 1 - off)
 
 
 def tier_v2(d, ai_rate):
@@ -299,9 +297,13 @@ def tier_v2(d, ai_rate):
     return 1 if ai_rate >= 0.5 else 2
 
 
+SKILL_TAGS = ("rules application", "sequencing", "combat arithmetic", "long lines", "adversarial", "multi-turn",
+              "restraint")
+
+
 def skill_tags(d, actions, source_kind):
-    """The tags section 4 names that can be read mechanically off the source and the proof; the rest (hidden
-    information) are not assigned here."""
+    """The tags section 4 names that can be read mechanically off the source and the proof (d is a difficulty dict,
+    never None); the rest (hidden information) are not assigned here."""
     tags = []
     actions = actions or []
     if source_kind == "rules":
@@ -310,27 +312,23 @@ def skill_tags(d, actions, source_kind):
         tags.append("sequencing")
     if any(a.startswith("COMBAT: Solver") for a in actions):
         tags.append("combat arithmetic")
-    if d and (d.get("L") or 0) >= T3_ACTIONS:
+    if (d.get("L") or 0) >= T3_ACTIONS:
         tags.append("long lines")
-    if d and (d.get("O") or 0) >= 1:
+    if (d.get("O") or 0) >= 1:
         tags.append("adversarial")
-    if d and (d.get("T") or 1) >= 2:
+    if (d.get("T") or 1) >= 2:
         tags.append("multi-turn")
-    if d and d.get("L") == 0:
+    if d.get("L") == 0:
         tags.append("restraint")
     return tags
 
 
-SKILL_TAGS = ("rules application", "sequencing", "combat arithmetic", "long lines", "adversarial", "multi-turn",
-              "restraint")
-
-
 def difficulty_problems(pid, d, tier, skills=None):
-    p = []
     if d is None and tier is not None:
         return ["%s: tier_v2 without its difficulty" % pid]
     if d is not None and (not isinstance(d, dict) or set(d) != set(DIFFICULTY_KEYS)):
         return ["%s: difficulty is not {%s}" % (pid, ", ".join(DIFFICULTY_KEYS))]
+    p = []
     for k, v in (d or {}).items():
         if v is not None and (not isinstance(v, int) or isinstance(v, bool) or v < 0):
             p.append("%s: difficulty %s is %r, want a count" % (pid, k, v))
@@ -372,8 +370,7 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
         elif not rec.get("pilot") and not (20000 <= seed <= 29999):
             p.append("%s: mined from seed %d, outside the puzzle-mining band 20000-29999, "
                      "and not marked pilot" % (pid, seed))
-    if rec.get("difficulty") is not None or rec.get("tier_v2") is not None or rec.get("skills") is not None:
-        p.extend(difficulty_problems(pid, rec.get("difficulty"), rec.get("tier_v2"), rec.get("skills")))
+    p.extend(difficulty_problems(pid, rec.get("difficulty"), rec.get("tier_v2"), rec.get("skills")))
     tier = rec.get("tier")
     if tier is not None and tier not in TIERS:
         p.append("%s: tier %r not in %s" % (pid, tier, TIERS))

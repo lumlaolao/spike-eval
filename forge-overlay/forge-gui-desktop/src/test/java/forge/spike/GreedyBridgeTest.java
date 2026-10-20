@@ -86,7 +86,7 @@ public class GreedyBridgeTest {
                 "cast Lava Spike [assuming target: Thermo-Alchemist]: you graveyard 0 -> 1; Opponent life 11 -> 10").toString(), TOOLS, true);
         String target = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose the TARGET for Lava Spike @2\n"
                 + "Options:\n  1) Grizzly Bears 2/2 @7 [Battlefield, opponent's]\n  2) Thermo-Alchemist 0/3 @5 [Battlefield, yours]\n"
-                + "  3) CANCEL: do not take this action; go back to the action menu\n"
+                + "  3) " + LlmSpikeGui.PlayerControllerLLM.CANCEL_LABEL + "\n"
                 + "ANSWER: call `answer` with `option`: one number from the list.";
         Assert.assertEquals(args(g.chat(user(target).toString(), TOOLS, true)).get("option").getAsInt(), 2, "the assumed target");
         // The preview's target is for that ask only: the next target ask has no assumption.
@@ -166,7 +166,7 @@ public class GreedyBridgeTest {
     @Test
     public void withNoAssumptionTheOpponentsCardIsTakenNotTheSeatsOwn() {
         String ask = targetAsk("Electrostatic Pummeler's trigger", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
-                "Abyssal Persecutor 6/6 @9 [Battlefield, opponent's]", "CANCEL: do not take this action");
+                "Abyssal Persecutor 6/6 @9 [Battlefield, opponent's]", LlmSpikeGui.PlayerControllerLLM.CANCEL_LABEL);
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 2);
         String upTo = targetAsk("Skyclave Apparition's trigger", "Grizzly Bears 2/2 @3 [Battlefield, yours]", "No target");
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(upTo).toString(), TOOLS, true)).get("option").getAsInt(), 2,
@@ -188,7 +188,7 @@ public class GreedyBridgeTest {
     @Test
     public void aCardNamedCancelCanBeTheTarget() {
         String ask = targetAsk("Ashes to Ashes", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
-                "Cancel @11 [Graveyard, opponent's]", "CANCEL: do not take this action");
+                "Cancel @11 [Graveyard, opponent's]", LlmSpikeGui.PlayerControllerLLM.CANCEL_LABEL);
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 2);
     }
 
@@ -197,7 +197,7 @@ public class GreedyBridgeTest {
     @Test
     public void theCostAsksCancelRowIsNeverTaken() {
         String ask = targetAsk("Ashes to Ashes", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
-                "CANCEL this play: pick this number alone to pay nothing; go back to the action menu");
+                LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL);
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 1);
     }
 

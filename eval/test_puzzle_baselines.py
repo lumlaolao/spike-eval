@@ -289,6 +289,17 @@ class DifficultyCommandsTest(unittest.TestCase):
         self.assertEqual(out["proof"]["status"], "not_found")
         self.assertEqual((out["difficulty"], out["tier_v2"], out["skills"]), (None, None, None))
 
+    def test_prove_and_run_give_no_tier_from_a_pzl_that_is_not_the_one_recorded(self):
+        # pr-review of #280 at 0374732: only retier checked pzl_sha256, so prove and run tiered another checkout's file.
+        repo = Path(tempfile.mkdtemp())
+        (repo / "h.pzl").write_text(PZL, encoding="utf-8")
+        rec = {"id": "h", "pzl": str(repo / "h.pzl"), "pzl_sha256": "0" * 64, "source": {"kind": "rules"},
+               "baselines": {}, "proof": {"status": "proven", "opponent": "search", "turns": 1, "line": "Solver:2:0",
+                                          "solver_actions": 1}}
+        out = pb.apply_difficulty(rec)
+        self.assertEqual((out["difficulty"], out["tier_v2"], out["skills"]), (None, None, None))
+        self.assertIsNotNone(pb.apply_difficulty(dict(rec, pzl_sha256=pb.pf.sha256_file(repo / "h.pzl")))["difficulty"])
+
     def test_retier_refuses_a_pzl_that_is_not_the_one_proven(self):
         # Another Forge checkout can hold a file of the same name with other contents (pr-review of #280).
         repo = Path(tempfile.mkdtemp())
