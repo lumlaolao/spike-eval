@@ -38,7 +38,10 @@ Forge enforces ("Win" or "Survive" by turn N).
     others), so they are read where Forge distributes them and not copied here.
   - The hash catches a checkout whose file differs.
 - `baselines`: solves and attempts for each free arm: `random` (uniform over the same legal menus the
-  model sees), `pass`, `first`, `floor` and `ai` (Forge's AI as the solver).
+  model sees), `pass`, `first`, `floor`, `ai` (Forge's AI as the solver) and, when measured (`--arms greedy`; not in
+  the frozen v1 suites, and not a default arm), `greedy` (the one-move-deep preview floor; `GreedyBridge`, see
+  docs/harness/ARCHITECTURE.md), stored with the condition it ran under (`condition`: its env and the harness
+  epoch; the record is refused without it). A puzzle `greedy` solves is one move deep.
 - `reference_line`: the proof that the position is solvable in this engine. It is one of:
   - a random rollout's draw tape and seed, replayed by the `script` arm, which must not drift and must
     reach the goal;
@@ -117,23 +120,32 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   `cast Lava Spike`, `opponent` (a target), `Desperate Ritual` (a splice pick), `Mountain; Mountain` (two picks),
   `Grizzly Bears -> Hill Giant` (a block), `none`, a number. A line names the option whose label starts with it;
   ` ... ` skips ahead in the label (`activate Tundra ... Add {U}`); `at [T2] PHASE: line` waits for that step.
+  The section is in the file the solver never reads; it is a public answer, so a held-out puzzle keeps its line out
+  of the public repository.
 - It is played by the model seat with `SMART_MODEL_A=script:<file>` (`ScriptBridge.java`) under the condition a
   paid run pins with the tools off, so the line meets the menus a model meets. A priority menu the next line does
   not fit is passed (the line waits); every other decision it does not fit is a drift, recorded on the row
   (`script_drift`), and the rest of the game is answered by the do-nothing option.
 - Exit 0 only when every seed played every line (`script_played`) and solved. A drift can still solve (the
-  do-nothing answers can stumble into the acceptance state), so the solve alone is never read.
+  do-nothing answers can stumble into the acceptance state), so the solve alone is never read. The verdict also
+  refuses a row where a play the line chose did not happen (`plays_not_made`, counted by the seat; the list is on
+  `PlayerControllerLLM.playsNotMade`); a cancel the line wrote is its own choice and is not counted.
 - Forge's AI is the opponent by default: the line is then proven against its replies only. `--opponent search`
   runs the prover with the written line as the solver (`CONTROLLER_A=llm` on a `script:` spec, `CONTROLLER_B=search`):
   every draw on the search line is the opponent's, so `proven` means this one fixed line beats every reply the
   engine offers, and `not_found` names the reply that beats it (`refutation_line`, RP_141 with one attacker: the
-  Persecutor blocks it). A reply under which the line drifts counts as beaten. Uniqueness is not searched (the
+  Persecutor blocks it; the verdict says whether the line lost or drifted under it). A reply under which the line
+  drifts counts as beaten; one under which it wins before its last line does not. Uniqueness is not searched (the
   line has no solver choice on the search line to vary).
-- `--minimality` replays the line with each action removed in turn, the rest as written, and exits 0 only when
-  every removal fails. An action is the line that opened it (a priority play, an attack, a block; the row's
-  `script_actions`) and the lines after it; removing a line's only action plays the pass arm. The record is
-  `minimality.json` in the output directory: the actions, how many are necessary, and each removal's verdict. The section is in the file the solver never reads;
-  it is a public answer, so a held-out puzzle keeps its line out of the public repository.
+- `--minimality` replays the line with each action removed in turn and exits 0 only when every removal fails. An
+  action is the line that opened it (a priority play, an attack, a block; the row's `script_actions`) and the lines
+  after it; removing a line's only action plays the pass arm. A removal is replayed relaxed (`script:relaxed:<file>`):
+  a decision the next line does not fit takes the do-nothing answer and the line keeps its place, so the rest is
+  played as far as it goes. Only a game played out and lost counts as "fails"; a solve is "played" (the action is
+  not needed), and a drift, the cap, a deck-out, a lost play or a line that stalled with lines unplayed (a play
+  that can never fit again, as a source the removed action would have untapped) is "inconclusive". Against Forge's
+  AI only, on the first seed. The record is `minimality.json` in the output directory, each removal with its verdict
+  and its skipped and unplayed counts.
 
 ## Rules puzzles: an acceptance state and one solution
 

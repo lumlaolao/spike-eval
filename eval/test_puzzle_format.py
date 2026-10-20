@@ -99,6 +99,27 @@ class DifficultyV2Test(unittest.TestCase):
         self.assertTrue(pf.difficulty_problems("x", good, 4))
 
 
+class BaselineArmsTest(unittest.TestCase):
+    """A record's baselines name known arms; a greedy rate carries the condition it was measured under."""
+
+    RATE = {"solved": 0, "n": 4, "rate": 0.0}
+
+    def problems(self, baselines):
+        rec = {"schema": "puzzle.v1", "id": "x", "split": "open", "status": "candidate", "goal": {"engine_goal": "Win", "turns": 1},
+               "source": {"kind": "rules"}, "pzl": "eval/puzzles/rules-pilot/RP_001.pzl", "pzl_sha256": "0" * 64,
+               "baselines": baselines}
+        return [p for p in pf.validate_puzzle(rec, check_files=False) if "baseline" in p]
+
+    def test_an_unknown_arm_is_refused_and_greedy_is_known(self):
+        self.assertTrue(any("unknown baseline arm" in p for p in self.problems({"deep": self.RATE})))
+        self.assertIn("greedy", pf.BASELINE_ARMS)
+
+    def test_a_greedy_rate_without_its_epoch_is_refused(self):
+        self.assertTrue(any("without its condition" in p for p in self.problems({"greedy": self.RATE})))
+        ok = dict(self.RATE, condition={"harness_epoch": "harness-epoch-68", "env": {}})
+        self.assertEqual(self.problems({"greedy": ok}), [])
+        self.assertEqual(self.problems({"pass": self.RATE}), [], "the other arms read no prompt: no condition needed")
+
 
 if __name__ == "__main__":
     unittest.main()
