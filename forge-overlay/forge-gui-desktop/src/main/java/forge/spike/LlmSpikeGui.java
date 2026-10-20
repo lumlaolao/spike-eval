@@ -5077,13 +5077,12 @@ public final class LlmSpikeGui {
                     paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
                 }
                 // The life goes last: paid first, a source that costs life (Horizon Canopy) could then be refused by the
-                // engine's payment and the cast fail with the life gone, unrefunded (pr-review of #277).
-                // The same test as the offer: a source that cost life (Horizon Canopy, a painland) may have left too little,
-                // and life is never paid to 0 unless the seat cannot lose for it. Then the mana goes back to the pool.
+                // engine's payment and the cast fail with the life gone, unrefunded (pr-review of #277). The offer's test
+                // again, as a source's own life cost may have left too little; then the mana goes back to the pool.
                 if (paid && lifeDue[0] > 0) {
                     int n = lifeDue[0];
                     Player me = getPlayer();
-                    if (me.canPayLife(2 * n, effect, sa) && (me.getLife() > 2 * n || me.cantLoseForZeroOrLessLife())) {
+                    if (lifePayable(me, n, effect, sa)) {
                         me.payLife(2 * n, sa, effect);
                         for (int i = 0; i < n; i++) sa.setSpendPhyrexianMana(true);   // once per symbol, as the engine does
                         p("[ROUTER] mana: " + n + " Phyrexian paid with " + (2 * n) + " life for " + labelOf(sa));
@@ -5118,9 +5117,14 @@ public final class LlmSpikeGui {
          *  payment pays one with mana whenever a source can and with life only when none can
          *  (ComputerUtilMana.payManaCost, the saPayment == null branch), so it decided whether Dismember
          *  or Gitaxian Probe cost life. The seat chooses the split here and hands the engine the rest, its
-         *  Phyrexian symbols as plain colours; payManaCost pays the life once that mana is paid. Only splits the seat can pay are offered (the life,
-         *  and the rest with mana by the engine's own test payment); with one, nothing is asked. Returns
-         *  the cost the engine still pays. */
+         *  Phyrexian symbols as plain colours. Only splits the seat can pay are offered (the life, and the
+         *  rest with mana by the engine's own test payment); with one, nothing is asked. Returns the cost the
+         *  engine still pays; the life goes in {@code lifeDue}, which payManaCost pays once the mana is. */
+        /** 2n life the seat may pay for Phyrexian symbols: payable, and never to 0 unless it cannot lose for it. */
+        private static boolean lifePayable(Player me, int n, boolean effect, SpellAbility sa) {
+            return me.canPayLife(2 * n, effect, sa) && (me.getLife() > 2 * n || me.cantLoseForZeroOrLessLife());
+        }
+
         private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect,
                                                          int[] lifeDue) {
             if (toPay == null || !toPay.hasPhyrexian() || toPay.countX() > 0 || sa == null || sa.isManaAbility()
@@ -5130,9 +5134,9 @@ public final class LlmSpikeGui {
             List<Integer> lifeFor = new ArrayList<>();
             List<String> labels = new ArrayList<>();
             for (int n = 0; n <= k; n++) {
-                if (n > 0 && (!me.canPayLife(2 * n, effect, sa) || (me.getLife() <= 2 * n && !me.cantLoseForZeroOrLessLife()))) break;
-                // What is left after n life is paid by the engine with mana: a split it cannot finish is not offered, so
-                // no life is spent on a cast that then fails (the life is not refunded; Dismember with no land).
+                if (n > 0 && !lifePayable(me, n, effect, sa)) break;
+                // What is left after n life is paid by the engine with mana: a split it cannot finish is not offered
+                // (Dismember with no land would be a choice that can only fail).
                 forge.card.mana.ManaCost rest = withPhyrexian(toPay, n, true);
                 if (rest.getCMC() > 0 && ComputerUtilMana.getManaSourcesToPayCost(neededMana(rest, sa, effect), sa, me, effect) == null) continue;
                 lifeFor.add(n);

@@ -286,12 +286,37 @@ public class LineFindingProbeTest {
     /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1
      *  life") as the only land. Paid first, the 4 life left 1, the AI's source filter then refused the Canopy (it keeps
      *  1 life), and the cast failed with the life gone. Mana first, the Canopy pays at 5; the 4 life would then leave
-     *  0, so it is not paid and the mana is refunded (pr-review of #277, third round). */
+     *  0 (the AI's own payment stops there too), so it is not paid and the mana is refunded (pr-review of #277). */
     @Test
     public void phyrexianLifeIsPaidAfterTheManaSoAFailedCastCostsNoLife() {
         Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LlmSpikeGui.PlayerControllerLLM ctrl = canopyDismember(g, 5);
+        Assert.assertEquals(g.getStack().size(), 0, "cast at " + me.getLife() + " life");
+        Assert.assertEquals(me.getLife(), 4, "only the Canopy's own life is gone");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "the Canopy's mana was refunded to the pool");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
+    /** The same board at 6 life: the Canopy leaves 5, the 4 life leaves 1, and Dismember is cast with both Phyrexian
+     *  symbols paid with life, each counted as the engine counts it (pr-review of #277, fourth round). */
+    @Test
+    public void phyrexianLifeAfterALifeCostingSourceIsPaidWhenItLeavesLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LlmSpikeGui.PlayerControllerLLM ctrl = canopyDismember(g, 6);
+        Assert.assertEquals(g.getStack().size(), 1, "not cast at " + me.getLife() + " life");
+        Assert.assertEquals(me.getLife(), 1);
+        Assert.assertEquals(me.getManaPool().totalMana(), 0);
+        // The engine adds 2 (the life) per symbol paid with life: two symbols read 4.
+        Assert.assertEquals(g.getStack().peekAbility().getSpendPhyrexianMana(), 4, "one count per symbol paid with life");
+        Assert.assertEquals(ctrl.playsNotMade(), 0);
+    }
+
+    /** Dismember {1}{B/P}{B/P} handed to the play path at {@code life} with Horizon Canopy ("{T}, Pay 1 life") the only land. */
+    private static LlmSpikeGui.PlayerControllerLLM canopyDismember(Game g, int life) {
         Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
-        me.setLife(5, null);
+        me.setLife(life, null);
         card("Horizon Canopy", me, ZoneType.Battlefield);
         Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
         card("Dismember", me, ZoneType.Hand);
@@ -301,12 +326,7 @@ public class LineFindingProbeTest {
         Recorder pass = new Recorder(PLAY);
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
         logOf(() -> ctrl.playChosenSpellAbility(cast));
-        // The Canopy's 1 life leaves 4: paying 4 more would put the seat at 0, which the split never offered (the AI's
-        // own payment stops there too). So the Phyrexian life is not paid, the Canopy's mana is refunded, and no cast.
-        Assert.assertEquals(g.getStack().size(), 0, "cast at " + me.getLife() + " life");
-        Assert.assertEquals(me.getLife(), 4, "only the Canopy's own life is gone");
-        Assert.assertEquals(me.getManaPool().totalMana(), 1, "the Canopy's mana was refunded to the pool");
-        Assert.assertEquals(ctrl.playsNotMade(), 1);
+        return ctrl;
     }
 
     /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the
