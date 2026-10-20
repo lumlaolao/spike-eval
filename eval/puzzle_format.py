@@ -211,7 +211,7 @@ def has_line(line):
 
 DIFFICULTY_KEYS = ("L", "D", "O", "T", "B", "board_objects")
 # The proposed thresholds; refit after the first full run (BENCHMARK-V2.md section 4).
-T3_ACTIONS, T3_OPPONENT_POINTS, T3_BRANCHING = 6, 2, 10 ** 4
+T3_ACTIONS, T3_OPPONENT_POINTS = 6, 2
 B_CAP = 10 ** 12
 BOARD_ZONES = ("battlefield", "hand", "graveyard", "exile")
 
@@ -264,22 +264,33 @@ def difficulty(proof, pzl_text):
 
 
 def turns_played(last, pzl_text):
-    """How many turns a solve took: the row's `turns` is Forge's absolute turn number when the game ended."""
+    """How many turns a solve took: the row's `turns` is Forge's absolute turn number when the game ended. A start in
+    CLEANUP leaves only that step of the first turn, so the first real turn is the next one and Forge's limit moves a
+    turn later with it (Puzzle.addGoalEnforcement). None without the pzl's Turns: header or a real end turn."""
     if not isinstance(last, int) or isinstance(last, bool):
         return None
-    _, limit, start, _ = pzl_goal(pzl_text)
+    if section_value(parse_pzl(pzl_text).get("metadata", []), "Turns", None) is None:
+        return None
+    _, limit, start, phase = pzl_goal(pzl_text)
     start = start or 1
+    if last < start:
+        return None
+    if phase.upper() == "CLEANUP":
+        end = min(last, limit + 1) if isinstance(limit, int) and limit >= start else last
+        return max(1, end - start)
     end = min(last, limit) if isinstance(limit, int) and limit >= start else last
     return max(1, end - start + 1)
 
 
 def tier_v2(d, ai_rate):
-    """T3 hard (L >= 6, O >= 2 or B >= 10^4), T2 capability (L 3-5, O >= 1, T >= 2, or a short line Forge's AI
-    fails), T1 regression (L <= 2, O = 0, the AI solves half or more). None when the evidence is missing."""
+    """T3 hard (L >= 6 or O >= 2), T2 capability (L 3-5, O >= 1, T >= 2, or a short line Forge's AI fails), T1
+    regression (L <= 2, O = 0, the AI solves half or more). None when the evidence is missing. B is recorded but is
+    not a T3 trigger: it counts the search's draws, not the menus the seat is shown, so one cast with a large
+    target space (RP_035, which Forge's AI always solves) read as T3 (pr-review of #280)."""
     if not d or d.get("L") is None or d.get("O") is None or d.get("T") is None:
         return None
-    L, O, T, B = d["L"], d["O"], d["T"], d.get("B") or 1
-    if L >= T3_ACTIONS or O >= T3_OPPONENT_POINTS or B >= T3_BRANCHING:
+    L, O, T = d["L"], d["O"], d["T"]
+    if L >= T3_ACTIONS or O >= T3_OPPONENT_POINTS:
         return 3
     if L >= 3 or O >= 1 or T >= 2:
         return 2

@@ -28,7 +28,7 @@ class DifficultyV2Test(unittest.TestCase):
         self.assertEqual((d["L"], d["O"], d["T"]), (2, 2, None))
         self.assertIsNone(pf.difficulty({"status": "not_found"}, self.PZL), "no proof, no structure")
 
-    def test_the_tier_rule(self):
+    def test_each_tier_starts_at_its_threshold(self):
         t = lambda L, O=0, T=1, B=1, ai=1.0: pf.tier_v2({"L": L, "D": L, "O": O, "T": T, "B": B}, ai)  # noqa: E731
         self.assertEqual(t(2), 1)
         self.assertEqual(t(2, ai=0.25), 2, "the AI fails a two-action puzzle: a capability item")
@@ -38,7 +38,8 @@ class DifficultyV2Test(unittest.TestCase):
         self.assertEqual(t(1, T=2), 2)
         self.assertEqual(t(6), 3)
         self.assertEqual(t(1, O=2), 3)
-        self.assertEqual(t(5, B=10 ** 4), 3)
+        self.assertEqual(t(1, B=92160), 1, "B counts search draws, not menus: alone it does not make a T3 (pr-review of "
+                         "#280: RP_035, one cast of Animate Dead that Forge's AI always solves, read T3)")
         self.assertIsNone(pf.tier_v2(None, 1.0))
         self.assertIsNone(t(2, T=None), "a proof without its turns is not tiered as one turn (pr-review of #280)")
 
@@ -52,6 +53,18 @@ class DifficultyV2Test(unittest.TestCase):
         self.assertEqual(pf.difficulty(dict(proof, turns=3), late)["T"], 1, "a puzzle that starts on turn 3")
         two = self.PZL.replace("Turns:1", "Turns:2")
         self.assertEqual(pf.difficulty(dict(proof, turns=2), two)["T"], 2)
+        # A start in CLEANUP leaves only that step of the first turn: the first real turn is the next one, and Forge's
+        # limit moves one turn later with it (Puzzle.addGoalEnforcement). RP_209's header: Survive, Turns:2, turn=1.
+        cleanup = two.replace("Goal:Win", "Goal:Survive").replace("turn=1", "turn=1\nactivephase=CLEANUP")
+        self.assertEqual(pf.difficulty(dict(proof, turns=2), cleanup)["T"], 1, "won on the first real turn")
+        self.assertEqual(pf.difficulty(dict(proof, turns=4), cleanup)["T"], 2, "survived to the limit")
+
+    def test_no_turns_are_counted_without_the_pzl_or_a_real_end_turn(self):
+        proof = {"status": "proven", "opponent": "search", "line": "Solver:2:1", "solver_actions": 1, "turns": 3}
+        d = pf.difficulty(proof, "")
+        self.assertIsNone(d["T"], "an unreadable pzl is not a one-turn puzzle (pr-review of #280)")
+        self.assertIsNone(pf.tier_v2(d, 1.0))
+        self.assertIsNone(pf.difficulty(dict(proof, turns=-1), self.PZL)["T"], "-1: the row had no main rollout")
 
     def test_opponent_points_count_only_against_the_search_opponent(self):
         # Against Forge's AI the line has no opponent draws, so O=0 would read as "the opponent cannot respond".

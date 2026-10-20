@@ -1,4 +1,5 @@
-"""puzzle_baselines.py: the `line` command, which plays a puzzle's written solution through the model seat."""
+"""puzzle_baselines.py: the `line` command (a written solution played through the model seat), the greedy arm's
+condition, and the commands that write a record's difficulty and v2 tier (prove, retier, run --baselines-only)."""
 import json
 import sys
 import tempfile
