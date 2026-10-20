@@ -201,7 +201,8 @@ final class ScriptBridge implements LLMBridge {
     private static final Pattern FIELD = Pattern.compile("call `answer` with `(\\w+)`");
     private static final Pattern HEADER = Pattern.compile("== Turn (\\d+) ([A-Z0-9_]+) \\(");
     private static final Pattern PRIORITY = Pattern.compile("You have priority \\(([A-Z0-9_]+),");
-    private static final Pattern HANDLE = Pattern.compile("\\s*@\\d+(\\s*\\(was @\\d+\\))?");
+    /** What tells twins apart and nothing else: a handle ("@5", "@29 (was @26)") or an attack menu's "#2". */
+    private static final Pattern HANDLE = Pattern.compile("\\s*@\\d+(\\s*\\(was @\\d+\\))?|\\s+#\\d+$");
 
     static String norm(String s) { return s.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim(); }
 

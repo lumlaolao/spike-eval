@@ -174,6 +174,17 @@ public class ScriptBridgeTest {
         Assert.assertNull(twins.drift);
     }
 
+    /** The attack menu tells twins apart by "#N", not by a handle (rules pilot RP_141: "Canopy Gorger (6/5) #1"
+     *  and "#2"): twins all the same, so "Canopy Gorger; Canopy Gorger" attacks with both. */
+    @Test
+    public void attackersNumberedAsTwinsAreTwins() {
+        String twins = ATTACK.replace("Goblin Electromancer (4/4)", "Canopy Gorger (6/5) #1")
+                .replace("Thermo-Alchemist (0/3)", "Canopy Gorger (6/5) #2");
+        ScriptBridge b = script("Canopy Gorger; Canopy Gorger");
+        Assert.assertEquals(answer(b, twins).getAsJsonArray("options").toString(), "[1,2]");
+        Assert.assertNull(b.drift);
+    }
+
     @Test
     public void anExactLabelWinsOverLongerOnes() {
         ScriptBridge b = script("1", "11");
