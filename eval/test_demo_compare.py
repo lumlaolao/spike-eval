@@ -90,11 +90,12 @@ class EnginePinTest(unittest.TestCase):
         return forge
 
     def pin(self, tree, build, forge, paths, compiled=None):
+        compiled = [] if compiled is None else compiled
         real = dc.subprocess.run
 
         def fake_run(cmd, **kw):  # javac stubbed: record what it would compile
             if cmd[0] == "javac":
-                (compiled if compiled is not None else []).extend(cmd)
+                compiled.extend(cmd)
                 return subprocess.CompletedProcess(cmd, 0, "", "")
             return real(cmd, **kw)
         self.write(os.path.join(build, "classpath.txt"), "/cp")

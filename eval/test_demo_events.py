@@ -261,10 +261,25 @@ class DivergenceTest(unittest.TestCase):
         b = [dec(1, self.MENU, [1]), {"kind": "game", "seed": 2, "deck_a": "x", "deck_b": "y"}]
         self.assertTrue(de.divergence(a, b)["unpaired"])
 
-    def test_a_different_menu_is_reported_as_already_parted(self):
-        dv = de.divergence([dec(1, self.MENU, [2])], [dec(1, ["PASS"], [0])])
-        self.assertEqual((dv["a"], dv["b"]), (0, 0))
-        self.assertIn("different menus", dv["reason"])
+    def test_two_picks_that_differ_only_in_a_note_are_different_answers(self):
+        menu = ["Grizzly Bears @3 [Battlefield, yours]", "Grizzly Bears @7 [Battlefield, opponent's]"]
+        dv = de.divergence([dec(1, menu, [0])], [dec(1, menu, [1])])
+        self.assertEqual(dv["reason"], "same question, different answer")
+
+    def test_a_menu_only_difference_is_noted_and_the_first_different_answer_is_the_divergence(self):
+        newer = ["ACTIVATE Mox Ruby @11 [{T}: Add {R}.]", "PLAY LAND Urza's Saga @8", "PASS (do nothing)"]
+        older = ["PLAY LAND Urza's Saga @5", "PASS (do nothing)"]
+        a = [dec(1, newer, [1]), dec(2, self.MENU, [0])]
+        b = [dec(1, older, [0]), dec(2, self.MENU, [1])]
+        self.assertEqual(de.divergence(a, b), {"a": 1, "b": 1, "menus_differ_from": 0,
+                                               "reason": "same question, different answer"})
+        dv = de.divergence([dec(1, newer, [0])], [dec(1, older, [0])])  # Mox Ruby against Urza's Saga
+        self.assertEqual(dv["reason"], "same spot, different menus, different answer")
+        dv = de.divergence([dec(1, newer, [1])], [dec(1, older, [0])])  # the same play: only the menus differ
+        self.assertEqual((dv["a"], dv["menus_differ_from"]), (0, 0))
+        self.assertIn("same answers throughout", dv["reason"])
+
+    def test_a_different_spot_is_reported_as_already_parted(self):
         dv = de.divergence([dec(1, self.MENU, [2])], [dec(2, self.MENU, [2])])
         self.assertIn("already parted", dv["reason"])
 

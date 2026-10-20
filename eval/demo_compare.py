@@ -171,7 +171,10 @@ def check_pins(arms, forge, worktree):
     paths = pinned_paths(worktree)
     for name, (tree, build) in arms.items():
         path = os.path.join(build, "engine-patches.txt")
-        have = open(path).read() if os.path.isfile(path) else None
+        have = None
+        if os.path.isfile(path):
+            with open(path) as f:
+                have = f.read()
         if have != pin_record(engine_sources(tree, forge, paths)):
             raise SystemExit("the %s build's engine files are not what its tree pins now: run build-%s again"
                              % (name, name))
@@ -252,12 +255,11 @@ def run(a):
     agent, ai = deck_sets()
     deck_a, deck_b = pick_deck(a.deck_a, agent, "agent"), pick_deck(a.deck_b, ai, "Forge AI")
     out = os.path.abspath(a.out)
-    homes = {"now": os.path.join(os.path.abspath(a.now_build), "forge-home"),
-             "then": os.path.join(os.path.abspath(a.build), "forge-home")}
+    arms = {"now": (REPO, os.path.abspath(a.now_build)), "then": (os.path.abspath(a.worktree), os.path.abspath(a.build))}
+    homes = {name: os.path.join(build, "forge-home") for name, (_, build) in arms.items()}
     for name, home in homes.items():
         if not os.path.isfile(os.path.join(home, "run-llm-headless.sh")):
             raise SystemExit("no %s build at %s: run build-%s first" % (name, home, name))
-    arms = {"now": (REPO, os.path.abspath(a.now_build)), "then": (os.path.abspath(a.worktree), os.path.abspath(a.build))}
     check_pins(arms, a.forge, a.worktree)
     env = dict(os.environ)
     model = a.model
@@ -285,8 +287,7 @@ def run(a):
         env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
         model = "openrouter:fake/demo-model"
     try:
-        arms = (("now", REPO), ("then", os.path.abspath(a.worktree)))
-        for name, repo in arms:
+        for name, (repo, _) in arms.items():
             dest = os.path.join(out, name)
             if a.fake:
                 os.makedirs(dest, exist_ok=True)

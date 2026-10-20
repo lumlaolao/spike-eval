@@ -66,7 +66,7 @@ class Builder:
         self.last_state = {}    # seat -> index of the last decision event with a parsed state
         self.plans = {}         # seat -> its latest set_plan arguments
         self.feed_at = None     # offset -> the audience feed's snapshot written before it (Reader sets it)
-        self.handles_at = None  # (offset, seat) -> engine id -> handle, from the feed (Reader sets it)
+        self.handles_at = None  # (offset, seat) -> {@handle: engine id}, from the feed (Reader sets it)
         self.game = None
         self.decisions = 0
 
@@ -308,15 +308,29 @@ def divergence(a, b):
     da = [e for e in a if e.get("kind") == "decision"]
     db = [e for e in b if e.get("kind") == "decision"]
     spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
-    pick = lambda d: sorted(_norm((d.get("options") or [])[c]) for c in d.get("chosen") or []
-                            if 0 <= c < len(d.get("options") or []))
+    menu = lambda d: [_norm(o) for o in d.get("options") or []]
+    picked = lambda d: sorted(menu(d)[c] for c in d.get("chosen") or [] if 0 <= c < len(menu(d)))
+    menus_from = None
     for n, (x, y) in enumerate(zip(da, db)):
         if spot(x) != spot(y):
-            return {"a": n, "b": n, "reason": "different spots: the games had already parted"}
-        if [_norm(o) for o in x.get("options") or []] != [_norm(o) for o in y.get("options") or []]:
-            return {"a": n, "b": n, "reason": "same spot, different menus: the harnesses offer different options here"}
-        if pick(x) != pick(y):
-            return {"a": n, "b": n, "reason": "same question, different answer"}
+            out = {"a": n, "b": n, "reason": "different spots: the games had already parted"}
+        elif menu(x) == menu(y):
+            if sorted(x.get("chosen") or []) == sorted(y.get("chosen") or []):  # by index: notes may be all that differ
+                continue
+            out = {"a": n, "b": n, "reason": "same question, different answer"}
+        elif picked(x) == picked(y):
+            # The harnesses list different options here (one offers mana abilities, say) but both took the same one:
+            # noted, and the scan goes on to the first different answer.
+            menus_from = n if menus_from is None else menus_from
+            continue
+        else:
+            out = {"a": n, "b": n, "reason": "same spot, different menus, different answer"}
+        if menus_from is not None:
+            out["menus_differ_from"] = menus_from
+        return out
+    if menus_from is not None:
+        return {"a": menus_from, "b": menus_from, "menus_differ_from": menus_from,
+                "reason": "same answers throughout; the harnesses list different options from here"}
     return None
 
 

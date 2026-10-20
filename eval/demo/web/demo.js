@@ -410,7 +410,8 @@ const app = {
     const d = this.panes[0].decisions[dv.a] || {};
     b.hidden = false; b.disabled = false;
     b.textContent = `first divergence: T${d.turn} ${d.phase || ""}`;
-    b.title = dv.reason;
+    const m = dv.menus_differ_from != null ? this.panes[0].decisions[dv.menus_differ_from] : null;
+    b.title = dv.reason + (m ? `; the menus first differ at T${m.turn} ${m.phase || ""} (decision ${dv.menus_differ_from + 1})` : "");
     b.onclick = () => { this.panes.forEach((p, k) => { p.cur = k ? dv.b : dv.a; }); this.renderAll(); };
   },
   seek(pane, n) {
