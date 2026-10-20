@@ -3,19 +3,18 @@ Name:Rules pilot NNN - Graft moves to the newcomer
 Goal:Survive
 Turns:1
 Difficulty:Easy
-Description:It is your first main phase. You control Simic Initiate (0/0, graft 1) with one +1/+1 counter, and have Raging Goblin in hand with one red mana floating. The opponent is at 2 life and controls a tapped Silent Arbiter (no more than one creature can attack each combat). Reduce the opponent to 0 life this turn.
-Rule:authored-graft-move-counter | Graft triggers whenever another creature enters and may move a +1/+1 counter from the graft creature onto it (CR 702.58a): cast Raging Goblin and move the counter to make a 2/2 haste attacker; the Initiate or an unboosted Goblin deals only 1
+Description:It is your first main phase. You control Simic Initiate (0/0, graft 1) with one +1/+1 counter; it came under your control this turn (summoning sick). You have Raging Goblin in hand with one red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-graft-move-counter | Graft triggers whenever another creature enters and may move a +1/+1 counter from the graft creature onto it (CR 702.58a): cast Raging Goblin and move the counter to make a 2/2 haste attacker; an unboosted Goblin deals only 1
 [state]
 turn=1
 activeplayer=p0
 activephase=MAIN1
 p0life=20
 p0hand=Raging Goblin
-p0battlefield=Simic Initiate|Counters:P1P1=1
+p0battlefield=Simic Initiate|Counters:P1P1=1|SummonSick
 p0manapool=R
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
 p1life=2
-p1battlefield=Silent Arbiter|Tapped
 p1library=Plains;Plains;Plains
 [acceptance]
 life p1 <= 0

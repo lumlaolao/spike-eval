@@ -3,7 +3,7 @@ Name:Rules pilot NNN - A new creature can crew
 Goal:Survive
 Turns:1
 Difficulty:Medium
-Description:It is your first main phase. You control Smuggler's Copter (3/3 flying vehicle, crew 1) and have Grizzly Bears in hand with two green mana floating. The opponent is at 3 life and controls a tapped Silent Arbiter (no more than one creature can attack each combat). Reduce the opponent to 0 life this turn.
+Description:It is your first main phase. You control Smuggler's Copter (3/3 flying vehicle, crew 1) and have Grizzly Bears in hand with two green mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
 Rule:authored-crew-summoning-sick | Crewing is not a {T} ability of the crewing creature, so a creature that came under your control this turn can crew (CR 702.122a, 302.6): cast Grizzly Bears, tap it to crew the Copter, and attack with the 3/3 flier
 [state]
 turn=1
@@ -15,7 +15,6 @@ p0battlefield=Smuggler's Copter
 p0manapool=G G
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
 p1life=3
-p1battlefield=Silent Arbiter|Tapped
 p1library=Plains;Plains;Plains
 [acceptance]
 life p1 <= 0
