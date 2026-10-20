@@ -3,12 +3,12 @@ Name:Rules pilot NNN - The pump and the damage end together
 Goal:Survive
 Turns:1
 Difficulty:Medium
-Description:It is your first main phase. You control Grizzly Bears and have Brute Force, Shock and Prey Upon in hand, with one red and one green mana floating. The opponent controls Hill Giant. End the turn with Hill Giant in the opponent's graveyard and Grizzly Bears still on your battlefield.
+Description:It is your second main phase. You control Grizzly Bears and have Brute Force, Shock and Prey Upon in hand, with one red and one green mana floating. The opponent controls Hill Giant. End the turn with Hill Giant in the opponent's graveyard and Grizzly Bears still on your battlefield.
 Rule:authored-cleanup-simultaneous | In the cleanup step all damage is removed and "until end of turn" effects end at the same time (CR 514.2): Grizzly Bears pumped by Brute Force fights Hill Giant as a 5/5, takes 3 and survives the end of turn; Shock plus the fight also kills the Giant, but the 2/2 Bears die
 [state]
 turn=1
 activeplayer=p0
-activephase=MAIN1
+activephase=MAIN2
 p0life=20
 p0hand=Brute Force;Shock;Prey Upon
 p0battlefield=Grizzly Bears
