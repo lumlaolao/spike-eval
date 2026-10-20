@@ -95,6 +95,13 @@ def jdk():
     return os.path.dirname(os.path.dirname(os.path.realpath(javac))) if javac else None
 
 
+def default_forge():
+    """$FORGE_HOME as given when it is set (a mistyped one should fail, not build against another checkout), else the
+    checkout every eval tool finds (puzzle_format.forge_home: ~/code/forge, /root/forge)."""
+    env = os.environ.get("FORGE_HOME")
+    return os.path.expanduser(os.path.expandvars(env)) if env else str(puzzle_format.forge_home())
+
+
 def jdk_tool(name):
     home = jdk()
     return os.path.join(home, "bin", name) if home else name
@@ -212,6 +219,9 @@ def compile_arm(tree, build, forge, worktree):
     in this tree's version (pin_engine); then a stand-in Forge home."""
     os.makedirs(build, exist_ok=True)
     env = dict(os.environ, STAGES="preflight classpath compile", OUT=build, FORGE_HOME=forge)
+    home = jdk()
+    if home:  # acceptance's own lookup misses Intel Homebrew and falls to macOS's /usr/bin/javac stub
+        env["JAVA_HOME"] = home
     r = subprocess.run(["bash", os.path.join(tree, "eval", "harness_acceptance.sh")], env=env, capture_output=True, text=True)
     print("\n".join(line for line in r.stdout.splitlines() if line.startswith(("PASS", "FAIL"))))
     if not os.path.isfile(os.path.join(build, "classes", "forge", "spike", "DemoFeed.class")):
@@ -358,7 +368,7 @@ def main(argv=None):
         p.add_argument("--worktree", default=os.path.join(SIBLINGS, "harness-then"))
         p.add_argument("--build", default=os.path.join(SIBLINGS, "harness-then-build"))
         p.add_argument("--now-build", default=os.path.join(SIBLINGS, "harness-now-build"))
-        p.add_argument("--forge", default=str(puzzle_format.forge_home()))
+        p.add_argument("--forge", default=default_forge())
     a = ap.parse_args(argv)
     return {"build-then": build_then, "build-now": build_now, "run": run, "decks": decks}[a.cmd](a)
 

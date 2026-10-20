@@ -159,7 +159,7 @@ def main(argv=None):
     ap.add_argument("target", help="a run directory or game-*.jsonl (prefetch), or a card name (get)")
     ap.add_argument("--cache", default=DEFAULT_CACHE)
     a = ap.parse_args(argv)
-    cache = Cache(a.cache)
+    cache = Cache(a.cache, fetch=http_fetch)
     if a.cmd == "get":
         p = cache.get(a.target)
         print(p or "no image for %r" % a.target)

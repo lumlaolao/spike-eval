@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 import urllib.error
 
 import demo_cards as dc
@@ -94,6 +95,18 @@ class CacheTest(unittest.TestCase):
         c = dc.Cache(self.dir, fetch=lambda name: b"<html>proxy login</html>")
         self.assertIsNone(c.get("Tundra"))
         self.assertFalse(os.path.exists(c.path("Tundra")))
+
+    def test_prefetch_counts_network_failures_apart_from_names_scryfall_lacks(self):
+        game = os.path.join(HERE, "testdata", "demo", "g33-t5-upkeep.jsonl")
+
+        def down(name):
+            raise OSError("no route")
+        out = io.StringIO()
+        with mock.patch.object(dc, "http_fetch", down), contextlib.redirect_stdout(out):
+            dc.main(["prefetch", game, "--cache", self.dir])
+        line = out.getvalue()
+        self.assertIn("not fetched (network, retry later)", line)
+        self.assertNotIn("no image", line)
 
     def test_prefetch_names_are_the_objects_the_prompts_showed(self):
         names = dc.names_in_game(os.path.join(HERE, "testdata", "demo", "g33-t5-upkeep.jsonl"))

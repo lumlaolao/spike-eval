@@ -188,6 +188,24 @@ class ArmTest(unittest.TestCase):
         finally:
             shutil.rmtree(d)
 
+    def test_the_build_hands_acceptance_the_jdk_it_found(self):
+        seen = {}
+
+        def fake_run(cmd, **kw):  # acceptance stubbed: record its env, compile nothing
+            seen.update(kw.get("env") or {})
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        with mock.patch.object(dc.subprocess, "run", fake_run), mock.patch.object(dc, "jdk", lambda: "/brew/jdk"):
+            with self.assertRaises(SystemExit):  # nothing compiled: refused after acceptance ran
+                dc.compile_arm(dc.REPO, tempfile.mkdtemp(), "/forge", dc.REPO)
+        self.assertEqual((seen.get("JAVA_HOME"), seen.get("FORGE_HOME")), ("/brew/jdk", "/forge"))
+
+    def test_an_explicit_forge_home_wins_else_the_checkout_every_tool_finds(self):
+        with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/typo-forge"}):
+            self.assertEqual(dc.default_forge(), os.path.expanduser("~/typo-forge"))
+        env = {k: v for k, v in os.environ.items() if k != "FORGE_HOME"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            self.assertEqual(dc.default_forge(), str(dc.puzzle_format.forge_home()))
+
     def test_the_jdk_is_java_home_else_homebrews_else_the_javac_on_path(self):
         d = tempfile.mkdtemp()
         try:
