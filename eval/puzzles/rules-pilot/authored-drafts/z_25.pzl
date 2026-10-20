@@ -3,14 +3,14 @@ Name:Rules pilot NNN - Canonist allows artifacts
 Goal:Win
 Turns:1
 Difficulty:Medium
-Description:It is your first main phase. You control Grizzly Bears and have Lightning Bolt, Shock and Bonesplitter in hand, with two red and two colorless mana floating. The opponent is at 7 life and controls a tapped Ethersworn Canonist (each player who has cast a nonartifact spell this turn can't cast additional nonartifact spells). Reduce the opponent to 0 life this turn.
-Rule:authored-canonist-artifact-spell | Ethersworn Canonist stops only a second nonartifact spell (CR 101.2): cast Lightning Bolt (3) as your one nonartifact spell, then the artifact Bonesplitter and equip it (CR 702.6a) for a 4-power attack; Shock after Bolt can't be cast, and Shock instead of Bolt totals 6
+Description:It is your first main phase. You control Grizzly Bears and have Lightning Bolt, Raging Goblin and Bonesplitter in hand, with two red and two colorless mana floating. The opponent is at 7 life and controls a tapped Ethersworn Canonist (each player who has cast a nonartifact spell this turn can't cast additional nonartifact spells). Reduce the opponent to 0 life this turn.
+Rule:authored-canonist-artifact-spell | Ethersworn Canonist stops only a second nonartifact spell (CR 101.2): cast Lightning Bolt (3) as your one nonartifact spell, then the artifact Bonesplitter and equip it (CR 702.6a) for a 4-power attack; Raging Goblin after Bolt can't be cast, and the hasty Goblin instead of Bolt totals 5
 [state]
 turn=1
 activeplayer=p0
 activephase=MAIN1
 p0life=20
-p0hand=Lightning Bolt;Shock;Bonesplitter
+p0hand=Lightning Bolt;Raging Goblin;Bonesplitter
 p0battlefield=Grizzly Bears
 p0manapool=R R C C
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
