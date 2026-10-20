@@ -33,10 +33,8 @@ import java.util.regex.Pattern;
  *
  * <p>Nothing is guessed. A priority menu the next line does not fit is passed (the line waits for its window), and
  * a mana payment's "which stay untapped" is left to the engine unless the line is written for it ("untap: Mountain");
- * both are counted. Any other
- * decision the next line does not fit, an answer the harness refuses, or a decision after the last line (other than
- * a priority menu or an untap ask) is a DRIFT:
- * recorded, the rest of the game answered by the do-nothing option, and the result void. A game that ends with
+ * both are counted. Any other decision the next line does not fit, an answer the harness refuses, or a decision
+ * after the last line (other than a priority menu or an untap ask) is a DRIFT: recorded, the rest of the game answered by the do-nothing option, and the result void. A game that ends with
  * lines unplayed did not play the line either (the runner refuses {@link #unconsumed} above zero).
  */
 final class ScriptBridge implements LLMBridge {

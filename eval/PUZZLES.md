@@ -111,7 +111,10 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   not fit is passed (the line waits); every other decision it does not fit is a drift, recorded on the row
   (`script_drift`), and the rest of the game is answered by the do-nothing option.
 - Exit 0 only when every seed played every line (`script_played`) and solved. A drift can still solve (the
-  do-nothing answers can stumble into the acceptance state), so the solve alone is never read.
+  do-nothing answers can stumble into the acceptance state), so the solve alone is never read. The verdict also
+  refuses a row where a card the line cast never reached the stack (an engine rollback): each CAST in
+  `script_taken` is matched by card name to a solver cast in `actions`. A same-named copy can still stand in for a
+  rolled-back cast, and activations are not checked.
 - Forge's AI is the opponent: a written line proves solvability against its replies. Beating every reply is the
   prover's job (`prove`, and HARD-PUZZLES.md section 4 item 2). The section is in the file the solver never reads;
   it is a public answer, so a held-out puzzle keeps its line out of the public repository.

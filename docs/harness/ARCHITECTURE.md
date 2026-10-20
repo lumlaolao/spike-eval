@@ -472,6 +472,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   model seat, the line sees the menus a model sees (floating mana, costly mana abilities, splice and alternative
   costs) and the engine checks every step. Unmatched priority menus pass and unmatched mana-untap asks are left to
   the engine, both counted; a result row's `script_played` is true only when every line was taken with no drift.
+  `puzzle_baselines.py line` also refuses a row where a card the line cast never reached the stack, by card name.
   The seat's two tiers share one bridge, so a script has one position.
 
 - The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
