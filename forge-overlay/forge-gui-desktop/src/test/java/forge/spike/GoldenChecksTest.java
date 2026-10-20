@@ -67,7 +67,9 @@ public class GoldenChecksTest {
             "harmonize", "attack-bands", "exert", "enlist", "splice", "flip", "shield", "roll-ignore", "roll-reroll",
             "roll-modify", "roll-swap", "sticker", "crank", "sprocket", "sector", "starting-hand", "assist", "assist-pay",
             // 2026-10-17: asked since floating mana is on the menu; no golden check named it until delve met a pool.
-            "mana-from-pool"));
+            "mana-from-pool",
+            // 2026-10-20 (epoch 66): an attack the engine refused, recorded as answered and overruled.
+            "attackers-refused"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());

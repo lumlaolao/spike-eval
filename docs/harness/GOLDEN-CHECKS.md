@@ -37,6 +37,7 @@ under the legacy profile, where the contract does not run; they are not counted.
 | mulligan-bottom | tuckCardsViaMulligan | 0 / 0 | no | theMulliganAndTheBottomAreTheModels |
 | starting-player | chooseStartingPlayer | 6 / 6 | no | playOrDrawIsTheModels |
 | attackers | declareAttackers | 66 / 15 | yes | attackersAndWhereTheyAttackAreTheModels |
+| attackers-refused | declareAttackers (a set the engine refused; asked again with the reason) | 0 / 0 | no | anAttackTheEngineRefusesIsAskedAgainThenMadeLegal |
 | attack-target | declareAttackers | 0 / 0 | yes | attackersAndWhereTheyAttackAreTheModels |
 | blockers | declareBlockers | 1 / 2 | yes | blocksAreTheModels |
 | damage-assign | assignCombatDamage | 2 / 31 | no | combatDamageIsAssignedTheModelsWay |
