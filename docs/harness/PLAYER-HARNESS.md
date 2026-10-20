@@ -20,7 +20,7 @@ changes are made only in the overlay.
 Recovered work includes `ContextProfile`, `GameHistory`, visible battlefield IDs
 and duplicate-label handling, replay rollouts, puzzle support, HTTP deadlines,
 and associated tests. These are inherited implementations, not newly completed
-features. The old `HANDOFF.md` rollout-stub statement is superseded by this recovery.
+features. The old `docs/harness/history/HANDOFF-MILESTONE-D.md` rollout-stub statement is superseded by this recovery.
 Compilation and tests do not certify their strategic correctness or fairness.
 
 ## Required information contract

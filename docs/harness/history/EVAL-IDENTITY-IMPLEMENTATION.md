@@ -3,7 +3,7 @@
 Date: 2026-09-07. Work order: `CLAUDE-EVAL-IDENTITY-WORK-ORDER.md`, finding 3 of
 `INDEPENDENT-REVIEW-20260907.md`. Scope: `eval/aggregate.py`,
 `eval/build_report.py`, `eval/test_experiments.py`, `eval/README.md`,
-`docs/harness/EVAL-IMPLEMENTATION.md` and this file. No Java, no acceptance
+`docs/harness/history/EVAL-IMPLEMENTATION.md` and this file. No Java, no acceptance
 runner, no `defect_analyzer.py`, no seed governance, no commits, no model
 calls, no real run directories or datasets were read; every fixture is
 synthetic and written to a temp dir.

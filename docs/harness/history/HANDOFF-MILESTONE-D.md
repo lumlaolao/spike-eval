@@ -1,6 +1,6 @@
 # HANDOFF — Milestone D: LlmSpikeFork (replay-and-rollout harness)
 
-> September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+> September 2026 continuation: see [Player harness direction and status](../PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
 
 Status: **core replay path (check + enumerate) DONE and validated. Rollout cleanly STUBBED,
 not implemented.** Everything compiles (`install.sh` + offline `mvn ... compile`, checkstyle

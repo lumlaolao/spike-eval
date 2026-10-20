@@ -1,5 +1,5 @@
 """plan_audit: the fixtures are real lines from the game that exposed prose plan execution
-(docs/harness/ARCHITECTURE-REVIEW.md, problem 5)."""
+(docs/harness/history/ARCHITECTURE-REVIEW.md, problem 5)."""
 import json
 import os
 import tempfile

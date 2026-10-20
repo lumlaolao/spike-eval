@@ -7,7 +7,7 @@ thing as context:
 
   HOLD-VIOLATION  the plan says to hold / keep / save / play-later a card, and that card was cast or
                   activated in the same turn. Seven of these in one game is how plan-then-execute's
-                  prose matching was caught (docs/harness/ARCHITECTURE-REVIEW.md, problem 5).
+                  prose matching was caught (docs/harness/history/ARCHITECTURE-REVIEW.md, problem 5).
   unplanned       an action on a card the plan never names. NOT a defect by itself: plans are one
                   line. It is reported as a rate so a change in it is visible.
 

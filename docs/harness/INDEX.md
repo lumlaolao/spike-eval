@@ -30,16 +30,19 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | LATENCY.md | per-decision latency measurements and knobs |
 | PLAYER-HARNESS.md | the player-harness direction and its tool-protocol measurements |
 
-## Historical
+## Historical (in `history/`)
 
 | Document | What it records |
 |---|---|
-| ARCHITECTURE-REVIEW.md | 2026-10-13 review of why the seat did not play cards together |
-| CLAUDE-WORK-ORDER.md, CLAUDE-EVAL-WORK-ORDER.md, CLAUDE-EVAL-IDENTITY-WORK-ORDER.md, CLAUDE-OWNERSHIP-WORK-ORDER.md, CLAUDE-OBSERVATION-REVIEW-WORK-ORDER.md, CLAUDE-DURABLE-CONTEXT-WORK-ORDER.md | the September-October work orders (A to D and follow-ups), all carried out |
-| G7-REMAINING-WORK-ORDER.md | the four hard hooks, routed since |
-| HANDOFF-PERFECT-HARNESS.md | the 2026-10-14 handoff that started the "model is the bottleneck" work |
-| COMPLETION-GATES.md | the gates G1 to G10 as first written |
-| EVAL-IMPLEMENTATION.md, EVAL-IDENTITY-IMPLEMENTATION.md | reports on eval work orders B and identity |
-| INDEPENDENT-REVIEW-20260907.md, OBSERVATION-REVIEW.md, VALIDATION.md | the September review, its observation repair, and the validation of that time |
-| NOTES-mcp-and-workspace.md | ideas not built |
-| INDEX.md | this page |
+| history/ARCHITECTURE-REVIEW.md | 2026-10-13 review of why the seat did not play cards together |
+| history/CLAUDE-WORK-ORDER.md, history/CLAUDE-EVAL-WORK-ORDER.md, history/CLAUDE-EVAL-IDENTITY-WORK-ORDER.md, history/CLAUDE-OWNERSHIP-WORK-ORDER.md, history/CLAUDE-OBSERVATION-REVIEW-WORK-ORDER.md, history/CLAUDE-DURABLE-CONTEXT-WORK-ORDER.md | the September-October work orders (A to D and follow-ups), all carried out |
+| history/G7-REMAINING-WORK-ORDER.md | the four hard hooks, routed since |
+| history/HANDOFF-MILESTONE-D.md | the Milestone D handoff (the replay-and-rollout fork), once the handoff at the repository root |
+| history/HANDOFF-PERFECT-HARNESS.md | the 2026-10-14 handoff that started the "model is the bottleneck" work |
+| history/COMPLETION-GATES.md | the gates G1 to G10 as first written |
+| history/EVAL-IMPLEMENTATION.md, history/EVAL-IDENTITY-IMPLEMENTATION.md | reports on eval work orders B and identity |
+| history/INDEPENDENT-REVIEW-20260907.md, history/OBSERVATION-REVIEW.md, history/VALIDATION.md | the September review, its observation repair, and the validation of that time |
+| history/NOTES-mcp-and-workspace.md | ideas not built |
+| history/WORK-PLAN-2026-10-19.md | the work plan through 2026-10-19, every finished item with its evidence |
+
+INDEX.md is this page.

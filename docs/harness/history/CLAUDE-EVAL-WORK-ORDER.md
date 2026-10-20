@@ -34,7 +34,7 @@ Implement, integrate, and test:
    tool failure/unknown tokens, and batch resume behavior. Existing tests and CLI
    reporting should still work or migrate with clear justification and tests.
 
-Edit only eval Python source/tests and a new docs/harness/EVAL-IMPLEMENTATION.md.
+Edit only eval Python source/tests and a new docs/harness/history/EVAL-IMPLEMENTATION.md.
 No other edits; do not commit, stage, push, install, deploy, contact people, read
 secrets.env/credentials/datasets/game logs/personal files, or run paid evaluations.
 Use local Python and synthetic fixtures. Do not modify or weaken
