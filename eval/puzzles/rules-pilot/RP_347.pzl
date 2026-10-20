@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 347 - Modular feeds the Ravager
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Arcbound Ravager and Arcbound Worker, each with one +1/+1 counter (modular 1); the Worker came under your control this turn (summoning sick). The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-modular-ravager | When a modular creature dies its trigger may move its +1/+1 counters onto target artifact creature (CR 702.43a): sacrifice the Worker to the Ravager for one counter, move the Worker's counter onto the Ravager with modular, and attack with a 3/3; sacrificing the Worker without moving its counter leaves a 2/2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Arcbound Ravager|Counters:P1P1=1;Arcbound Worker|Counters:P1P1=1|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
