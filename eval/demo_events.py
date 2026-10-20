@@ -297,9 +297,10 @@ def _norm(option):
 
 
 def divergence(a, b):
-    """Where two games of the same seed and decks part: the first decision, in order, where the menus differ or the
-    same menu got a different answer. {"a": i, "b": i, "reason": ...} (decision indexes into each game's decisions),
-    or None when every decision both games reached matched."""
+    """Where two games of the same seed and decks part: the first decision, in order, that the two harnesses answer
+    differently (equal menus compared by index), or reach at different spots. {"a": i, "b": i, "reason": ...}
+    (decision indexes into each game's decisions), plus "menus_differ_from": j where the menus first differed with the
+    same answer; that menus-only result when every answer matched; None when the decisions matched too."""
     ga = next((e for e in a if e.get("kind") == "game"), None)
     gb = next((e for e in b if e.get("kind") == "game"), None)
     cond = lambda g: tuple(g.get(k) for k in ("seed", "deck_a", "deck_b"))
@@ -310,21 +311,26 @@ def divergence(a, b):
     spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
     menu = lambda d: [_norm(o) for o in d.get("options") or []]
     picked = lambda d: sorted(menu(d)[c] for c in d.get("chosen") or [] if 0 <= c < len(menu(d)))
+    # A pick whose text, notes stripped, names two options (two abilities of one card, your Bears and theirs) cannot
+    # be matched across different menus: the notes were what told them apart.
+    ambiguous = lambda d: any(menu(d).count(p) > 1 for p in picked(d))
     menus_from = None
     for n, (x, y) in enumerate(zip(da, db)):
         if spot(x) != spot(y):
-            out = {"a": n, "b": n, "reason": "different spots: the games had already parted"}
+            reason = "different spots: the games had already parted"
         elif menu(x) == menu(y):
             if sorted(x.get("chosen") or []) == sorted(y.get("chosen") or []):  # by index: notes may be all that differ
                 continue
-            out = {"a": n, "b": n, "reason": "same question, different answer"}
-        elif picked(x) == picked(y):
+            reason = "same question, different answer"
+        elif picked(x) == picked(y) and not ambiguous(x) and not ambiguous(y):
             # The harnesses list different options here (one offers mana abilities, say) but both took the same one:
             # noted, and the scan goes on to the first different answer.
-            menus_from = n if menus_from is None else menus_from
+            if menus_from is None:
+                menus_from = n
             continue
         else:
-            out = {"a": n, "b": n, "reason": "same spot, different menus, different answer"}
+            reason = "same spot, different menus, different answer"
+        out = {"a": n, "b": n, "reason": reason}
         if menus_from is not None:
             out["menus_differ_from"] = menus_from
         return out

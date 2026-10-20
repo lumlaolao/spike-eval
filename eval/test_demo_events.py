@@ -279,6 +279,12 @@ class DivergenceTest(unittest.TestCase):
         self.assertEqual((dv["a"], dv["menus_differ_from"]), (0, 0))
         self.assertIn("same answers throughout", dv["reason"])
 
+    def test_two_abilities_of_one_card_across_different_menus_are_different_answers(self):
+        newer = ["ACTIVATE Mutavault @9 [{T}: Add {C}.]", "ACTIVATE Mutavault @9 [{1}: Mutavault becomes a 2/2]", "PASS"]
+        older = ["ACTIVATE Mutavault @4 [{1}: Mutavault becomes a 2/2]", "PASS"]
+        dv = de.divergence([dec(1, newer, [0])], [dec(1, older, [0])])  # tap for mana against animate
+        self.assertEqual(dv["reason"], "same spot, different menus, different answer")
+
     def test_a_different_spot_is_reported_as_already_parted(self):
         dv = de.divergence([dec(1, self.MENU, [2])], [dec(2, self.MENU, [2])])
         self.assertIn("already parted", dv["reason"])

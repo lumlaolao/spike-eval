@@ -77,7 +77,7 @@ python3 eval/demo_compare.py build-now                       # isolated build of
 python3 eval/demo_compare.py build-then --commit e1324cfd    # the 2026-10-14 harness, with the feed ported in
 python3 eval/demo_compare.py run --seed 4201 --deck-a vintage-esper-control --deck-b pioneer-red-deck-wins \
     --fake --budget-usd 0.01 --out runs/demo/pair-rehearsal                  # free loopback rehearsal
-python3 eval/demo_server.py --game runs/demo/pair-4201/now --game runs/demo/pair-4201/then
+python3 eval/demo_server.py --game runs/demo/pair-rehearsal/now --game runs/demo/pair-rehearsal/then   # replay it
 ```
 
 A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, split between the two arms; two one-tier games at CLAUDE.md's $0.02 to $0.05 each) needs the owner's
@@ -86,8 +86,9 @@ jumps both to the first decision the two harnesses answer differently (`demo_eve
 answered with a different option, a different option taken where the harnesses list different menus, or different
 spots (the games had already parted). Where the menus differ but both took the same option, the scan goes on and the
 button's tooltip notes where the menus first differed. Against e1324cfd they differ from the first main phase: the
-current harness lists mana abilities and that commit does not (a free pair, `demo_compare.py run --fake --seed 4201
---deck-a vintage-esper-control --deck-b pioneer-red-deck-wins`, shows it at turn 1). Menus are compared without what
+current harness lists mana abilities and that commit does not. The rehearsal in the block above (after build-now and
+build-then, written to `runs/demo/pair-rehearsal`) parts at decision 5, turn 1: the current harness taps Mox Ruby, an
+option that commit never lists, and that commit plays Urza's Saga. Menus are compared without what
 each version adds when it renders an option (`@handles`, bracketed notes); answers to equal menus by index. Two games of different seeds or decks are flagged as
 "not a side by side". One pair illustrates; it measures nothing.
 
