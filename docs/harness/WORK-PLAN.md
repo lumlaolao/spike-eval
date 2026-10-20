@@ -21,6 +21,10 @@ a new one is agreed, so the next session can pick up from it.
    - the paid run (`eval/puzzle_solve.py ... --k 5 --budget-usd X`, with and without `--rules-tool`): state the
      cost first; the owner sets `OPENROUTER_ALLOW_EGRESS=1`.
 
+**Proposed next (2026-10-20, awaiting the owner): [eval/BENCHMARK-V2.md](../../eval/BENCHMARK-V2.md).** Sample v1
+saturated (130/145 with and without tools); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
+puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner reviews it.
+
 ## Open work, after the benchmark
 
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop
