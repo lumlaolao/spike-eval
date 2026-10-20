@@ -21,8 +21,9 @@ import java.util.regex.Pattern;
  * answered toward the opponent: a target ask takes what the chosen play's preview assumed (the opponent's copy of a
  * name first, each used once across a chain's asks), else ranks the opponent's side first and the seat's own last,
  * below declining an "up to" ask; never CANCEL; every attacker; no blocks; any other ask the do-nothing answer. It
- * acts only when the faithful prompt shows an empty stack (a preview resolves what is already there too, so every option would seem to deal that damage), and
- * it never plays a land or previews a land's mana ability. It plans nothing: a puzzle it solves is one move deep.
+ * acts only when the faithful prompt shows an empty stack (a preview resolves what is already there too, so every
+ * option would seem to deal that damage), and it never plays a land or previews a land's mana ability. It plans
+ * nothing: a puzzle it solves is one move deep.
  *
  * <p>It sees only what the model is shown and calls only the model's tools, through the faithful seat, so the floor
  * is the seat's own one-ply lookahead, not a privileged search.

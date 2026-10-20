@@ -196,5 +196,67 @@ class GreedyArmTest(unittest.TestCase):
         self.assertTrue(str(cond["harness_epoch"]).startswith("harness-epoch-"), cond)
 
 
+PZL = ("[metadata]\nName:x\nGoal:Win\nTurns:1\n[state]\nturn=1\np0hand=Lava Spike;Fling\n"
+       "p0battlefield=Mountain;Thermo-Alchemist\np0library=Island;Island\np1battlefield=Wall of Omens\n"
+       "p1graveyard=Shock\n[acceptance]\nlife p1 <= 0\n")
+
+
+class DifficultyCommandsTest(unittest.TestCase):
+    """The commands that write a record's difficulty, v2 tier and skills (prove, retier, run --baselines-only)."""
+
+    def test_a_proven_record_gets_its_difficulty_tier_and_tags(self):
+        repo = Path(tempfile.mkdtemp())
+        (repo / "h.pzl").write_text(PZL, encoding="utf-8")
+        rec = {"id": "h", "pzl": str(repo / "h.pzl"), "source": {"kind": "rules"},
+               "baselines": {"ai": {"solved": 0, "n": 4, "rate": 0.0}},
+               "proof": {"status": "proven", "opponent": "search", "line": "Solver:3:1 Solver:2:0", "solver_actions": 2, "turns": 1,
+                         "opponent_choice_points": 0, "actions": ["STACK_ADD: Solver cast Shock",
+                                                                  "STACK_ADD: Solver cast Fling"]}}
+        out = pb.apply_difficulty(rec)
+        self.assertEqual(out["difficulty"]["B"], 6)
+        self.assertEqual(out["tier_v2"], 2, "two actions, but Forge's AI fails it")
+        self.assertEqual(out["skills"], ["rules application", "sequencing"])
+        self.assertEqual(pb.apply_difficulty(dict(rec, proof={"status": "not_found"}))["tier_v2"], None)
+        self.assertEqual(pb.proof_from_row({"status": "proven", "turns": 2}, "search", "x", "d")["turns"], 2)
+
+    def test_retier_rewrites_every_record_from_its_proof(self):
+        repo = Path(tempfile.mkdtemp())
+        (repo / "h.pzl").write_text(PZL, encoding="utf-8")
+        rec = {"id": "h", "pzl": str(repo / "h.pzl"), "source": {"kind": "rules"}, "baselines": {},
+               "proof": {"status": "proven", "opponent": "search", "turns": 1, "line": "Solver:2:0", "solver_actions": 6, "opponent_choice_points": 0}}
+        suite = repo / "s.json"
+        suite.write_text(json.dumps({"schema": "puzzle-suite.v1", "suite": "s", "puzzles": [rec]}), encoding="utf-8")
+        self.assertEqual(pb.main(["retier", "--suite", str(suite), "--write", str(repo / "t.json")]), 0)
+        self.assertEqual(json.loads((repo / "t.json").read_text())["puzzles"][0]["tier_v2"], 3)
+
+    def test_baselines_only_measures_the_arms_and_nothing_else(self):
+        calls = []
+        real = pb.run_arm
+        pb.run_arm = lambda build, pzl, arm, seeds, out, extra_env=None: calls.append(arm) or [{"status": "solved", "seed": 1}]
+        try:
+            rec = {"id": "h", "pzl": "/x/h.pzl", "source": {"kind": "rules"}, "status": "candidate"}
+            out = pb.baseline_puzzle(None, rec, Path(tempfile.mkdtemp()), 4, 1, 0, ["ai"], baselines_only=True)
+        finally:
+            pb.run_arm = real
+        self.assertEqual(calls, ["ai"], "no line search, no verification replay")
+        self.assertEqual(out["baselines"]["ai"]["rate"], 1.0)
+        self.assertEqual(out["status"], "candidate")
+
+    def test_baselines_only_keeps_the_status_true_to_the_new_rates(self):
+        # An active record whose new random rate is above the drop threshold is dropped, and its v1 tier follows the
+        # AI's new rate (pr-review of #280: both were left as they were).
+        real = pb.run_arm
+        pb.run_arm = lambda build, pzl, arm, seeds, out, extra_env=None: [{"status": "solved", "seed": i} for i in range(4)]
+        try:
+            rec = {"id": "h", "pzl": "/x/h.pzl", "source": {"kind": "rules"}, "status": "active", "tier": 3,
+                   "verification": {"status": "verified"}, "reference_line": {"solver_actions": 2}}
+            out = pb.baseline_puzzle(None, rec, Path(tempfile.mkdtemp()), 4, 1, 0, ["random", "ai"], baselines_only=True)
+        finally:
+            pb.run_arm = real
+        self.assertEqual(out["status"], "dropped")
+        self.assertIn("random_above_threshold", out["flags"])
+        self.assertEqual(out["tier"], pb.tier_for(1.0, 2))
+
+
 if __name__ == "__main__":
     unittest.main()

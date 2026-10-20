@@ -238,9 +238,12 @@ def board_objects(pzl_text):
 
 
 def difficulty(proof, pzl_text):
-    """The structural difficulty of a proven puzzle, off its proof: L solver actions, D solver choice points with two
-    or more options, O opponent choice points, T turns played, B the product of the solver's menu sizes along the
-    line (capped), and the board's size. None without a proven proof."""
+    """The structural difficulty of a proven puzzle, off its proof: L solver actions; D the solver's search draws with
+    two or more values and B the product of their sizes (capped), so B is the size of the answer space the line was
+    found in (an order over n items is n-1 draws, a subset one draw per option), not the menus shown; O opponent
+    choice points, only against the search opponent (against Forge's AI the line has no opponent draws); T turns
+    played, counted from the puzzle's start turn and capped at its Turns: limit (a Survive game ends as the turn
+    after the limit begins); and the board's size. None without a proven proof."""
     if not proof or proof.get("status") != "proven":
         return None
     steps = line_steps(proof.get("line"))
@@ -250,21 +253,32 @@ def difficulty(proof, pzl_text):
     O = proof.get("opponent_choice_points")
     if not isinstance(O, int):
         O = sum(1 for seat, n, _ in steps if seat == "Opponent" and n >= 2)
+    if proof.get("opponent") != "search":
+        O = None
     B = 1
     for seat, n, _ in steps:
         if seat == "Solver" and n >= 2:
             B = min(B * n, B_CAP)
     return {"L": L, "D": sum(1 for seat, n, _ in steps if seat == "Solver" and n >= 2), "O": O,
-            "T": proof.get("turns") if isinstance(proof.get("turns"), int) else None, "B": B,
-            "board_objects": board_objects(pzl_text)}
+            "T": turns_played(proof.get("turns"), pzl_text), "B": B, "board_objects": board_objects(pzl_text)}
+
+
+def turns_played(last, pzl_text):
+    """How many turns a solve took: the row's `turns` is Forge's absolute turn number when the game ended."""
+    if not isinstance(last, int) or isinstance(last, bool):
+        return None
+    _, limit, start, _ = pzl_goal(pzl_text)
+    start = start or 1
+    end = min(last, limit) if isinstance(limit, int) and limit >= start else last
+    return max(1, end - start + 1)
 
 
 def tier_v2(d, ai_rate):
     """T3 hard (L >= 6, O >= 2 or B >= 10^4), T2 capability (L 3-5, O >= 1, T >= 2, or a short line Forge's AI
     fails), T1 regression (L <= 2, O = 0, the AI solves half or more). None when the evidence is missing."""
-    if not d or d.get("L") is None or d.get("O") is None:
+    if not d or d.get("L") is None or d.get("O") is None or d.get("T") is None:
         return None
-    L, O, T, B = d["L"], d["O"], d.get("T") or 1, d.get("B") or 1
+    L, O, T, B = d["L"], d["O"], d["T"], d.get("B") or 1
     if L >= T3_ACTIONS or O >= T3_OPPONENT_POINTS or B >= T3_BRANCHING:
         return 3
     if L >= 3 or O >= 1 or T >= 2:
@@ -296,15 +310,23 @@ def skill_tags(d, actions, source_kind):
     return tags
 
 
-def difficulty_problems(pid, d, tier):
+SKILL_TAGS = ("rules application", "sequencing", "combat arithmetic", "long lines", "adversarial", "multi-turn",
+              "restraint")
+
+
+def difficulty_problems(pid, d, tier, skills=None):
     p = []
-    if not isinstance(d, dict) or set(d) - set(DIFFICULTY_KEYS):
+    if d is None and tier is not None:
+        return ["%s: tier_v2 without its difficulty" % pid]
+    if d is not None and (not isinstance(d, dict) or set(d) - set(DIFFICULTY_KEYS)):
         return ["%s: difficulty is not {%s}" % (pid, ", ".join(DIFFICULTY_KEYS))]
-    for k, v in d.items():
+    for k, v in (d or {}).items():
         if v is not None and (not isinstance(v, int) or isinstance(v, bool) or v < 0):
             p.append("%s: difficulty %s is %r, want a count" % (pid, k, v))
-    if tier is not None and tier not in TIERS:
+    if tier is not None and (isinstance(tier, bool) or tier not in TIERS):
         p.append("%s: tier_v2 %r not in %s" % (pid, tier, TIERS))
+    if skills is not None and (not isinstance(skills, list) or any(s not in SKILL_TAGS for s in skills)):
+        p.append("%s: skills %r are not a list of %s" % (pid, skills, SKILL_TAGS))
     return p
 
 
@@ -339,8 +361,8 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
         elif not rec.get("pilot") and not (20000 <= seed <= 29999):
             p.append("%s: mined from seed %d, outside the puzzle-mining band 20000-29999, "
                      "and not marked pilot" % (pid, seed))
-    if rec.get("difficulty") is not None or rec.get("tier_v2") is not None:
-        p.extend(difficulty_problems(pid, rec.get("difficulty") or {}, rec.get("tier_v2")))
+    if rec.get("difficulty") is not None or rec.get("tier_v2") is not None or rec.get("skills") is not None:
+        p.extend(difficulty_problems(pid, rec.get("difficulty"), rec.get("tier_v2"), rec.get("skills")))
     tier = rec.get("tier")
     if tier is not None and tier not in TIERS:
         p.append("%s: tier %r not in %s" % (pid, tier, TIERS))

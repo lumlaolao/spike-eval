@@ -338,6 +338,11 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms, b
             base[arm]["condition"] = greedy_condition()
     rec = dict(rec, baselines=base)
     if baselines_only:  # the floors and the AI's rate for a suite already proven (re-tiering): no line, no replay
+        # The v1 tier and the status follow the new rates (pr-review of #280: an active record kept a status its new
+        # random rate contradicted).
+        if (rec.get("verification") or {}).get("status") == "verified":
+            rec["tier"] = tier_for(base.get("ai", {}).get("rate"), (rec.get("reference_line") or {}).get("solver_actions"))
+        rec["status"], rec["flags"] = decide_status(rec)
         return apply_difficulty(rec)
     if not pf.has_line(rec.get("reference_line")):
         line = choose_line(random_rows)
