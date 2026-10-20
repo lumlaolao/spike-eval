@@ -372,8 +372,8 @@ def proven_pzl_text(rec):
 
 
 def refuse_unproven(puzzles, what):
-    """Stop before any game when a record's pzl cannot be read or is not the file its pzl_sha256 names: the games
-    would measure, and the manifest record, another file (pr-review of #281)."""
+    """Stop before any game when proven_pzl_text refuses a record: the games would measure, and the manifest
+    record, another file (pr-review of #281)."""
     bad = [r["id"] for r in puzzles if proven_pzl_text(r) is None]
     if bad:
         raise SystemExit("%d pzl file(s) unreadable or not the one recorded, nothing %s: %s"

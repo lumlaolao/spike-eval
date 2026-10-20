@@ -291,7 +291,8 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     attempts = group_attempts(manifest, rows, split, k, solver, ids)
     puzzles = per_puzzle(manifest, attempts, k)
     solvers = sorted({solver_of(r) for att in attempts.values() for r in att})
-    epochs = {r.get("harness_epoch") for att in attempts.values() for r in att}
+    flat = [r for att in attempts.values() for r in att]
+    epochs = {r.get("harness_epoch") for r in flat}
     return {
         # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
@@ -300,52 +301,55 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
         "pilot": bool(manifest.get("pilot")) or ids is not None,
         "aggregate": aggregate(puzzles, k, n_boot, seed),
-        "budget": budget(attempts),
-        "integrity": integrity(attempts),
+        "budget": budget(flat),
+        "integrity": integrity(flat),
         "puzzles": sorted(puzzles, key=lambda r: r["id"]),
     }
 
 
-def clustered_ci(values):
-    """The normal-approximation 95% interval of a mean over puzzles, attempts clustered within each puzzle
-    (Miller 2024: the standard error of the per-puzzle means). None for fewer than two puzzles."""
+def _mean_se(values):
+    """The mean over puzzles and its standard error (attempts clustered within each puzzle, Miller 2024: the standard
+    error of the per-puzzle means). None for fewer than two puzzles."""
     n = len(values)
     if n < 2:
         return None
     m = sum(values) / n
-    se = (sum((v - m) ** 2 for v in values) / (n - 1)) ** 0.5 / n ** 0.5
-    return [m - 1.96 * se, m + 1.96 * se]
+    return m, (sum((v - m) ** 2 for v in values) / (n - 1)) ** 0.5 / n ** 0.5
+
+
+def clustered_ci(values):
+    """The normal-approximation 95% interval of a mean over puzzles, attempts clustered within each puzzle."""
+    ms = _mean_se(values)
+    return None if ms is None else [ms[0] - 1.96 * ms[1], ms[0] + 1.96 * ms[1]]
 
 
 def mde80(values):
     """2.8 standard errors of a difference between two independent runs of this size: the smallest difference in mean
     it detects at 80% power, alpha 0.05. None for fewer than two puzzles, or when every puzzle has the same rate: no
     spread is no estimate of it, not a detectable difference of 0 (pr-review of #282)."""
-    ci = clustered_ci(values)
-    return None if ci is None or ci[1] == ci[0] else 2.8 * 2 ** 0.5 * (ci[1] - ci[0]) / (2 * 1.96)
+    ms = _mean_se(values)
+    return None if ms is None or ms[1] == 0 else 2.8 * 2 ** 0.5 * ms[1]
 
 
 BUDGET_FIELDS = ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups")
 
 
-def budget(attempts):
+def budget(rows):
     """What the attempts spent (BENCHMARK-V2 section 3), from the rows that carry it: per field the total and the
     median per attempt. `recorded` counts those rows; rows from before the stamp carry none."""
-    rows = [r for att in attempts.values() for r in att]
     have = [r for r in rows if all(isinstance(r.get(f), (int, float)) for f in BUDGET_FIELDS)]
     out = {"attempts": len(rows), "recorded": len(have)}
-    for f in BUDGET_FIELDS:
-        vals = sorted(r[f] for r in have)
-        if vals:
-            mid = len(vals) // 2
+    if have:
+        mid = len(have) // 2
+        for f in BUDGET_FIELDS:
+            vals = sorted(r[f] for r in have)
             out[f] = {"total": sum(vals), "median": vals[mid] if len(vals) % 2 else (vals[mid - 1] + vals[mid]) / 2}
     return out
 
 
-def integrity(attempts):
+def integrity(rows):
     """Attempts that are not clean evidence, counted beside the score at weight 0: capped (the wall clock ended the
     game) and solves decided by an empty library."""
-    rows = [r for att in attempts.values() for r in att]
     return {"attempts": len(rows), "capped": sum(1 for r in rows if r.get("status") == "invalid"),
             "tainted": sum(1 for r in rows if r.get("tainted_by_deckout"))}
 
@@ -425,7 +429,7 @@ def render(rep):
     b = rep.get("budget") or {}
     if b.get("recorded"):
         lines.append("  budget per attempt (median; total): " + ", ".join(
-            "%s %s; %s" % (f, _fmt(b[f]["median"]), _fmt(b[f]["total"])) for f in BUDGET_FIELDS if f in b)
+            "%s %s; %s" % (f, _fmt(b[f]["median"]), _fmt(b[f]["total"])) for f in BUDGET_FIELDS)
             + "  (%d of %d attempts recorded)" % (b["recorded"], b["attempts"]))
     elif b:
         lines.append("  budget: not recorded (rows from before harness-epoch-69)")

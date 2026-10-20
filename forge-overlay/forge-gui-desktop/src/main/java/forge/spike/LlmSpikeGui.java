@@ -7991,8 +7991,9 @@ public final class LlmSpikeGui {
                 spentPromptTokens += Math.max(0, lastPromptTokens);
                 spentCompletionTokens += Math.max(0, lastCompletionTokens);
             }
-            spentModelMs += System.currentTimeMillis() - tAsk;
-            lastAskMs += System.currentTimeMillis() - tAsk; // summed over every attempt; retained for the
+            long askMs = System.currentTimeMillis() - tAsk;
+            spentModelMs += askMs;
+            lastAskMs += askMs; // summed over every attempt; retained for the
                                                              // ms<=0 legacy substitution guard in evalDec
             return reply;
         }
