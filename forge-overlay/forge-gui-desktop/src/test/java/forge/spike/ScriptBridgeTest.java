@@ -8,6 +8,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.List;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -123,6 +124,8 @@ public class ScriptBridgeTest {
         Assert.assertEquals(b.unconsumed(), 0);
         Assert.assertTrue(b.played());
         Assert.assertEquals(b.report().get("script_played"), true);
+        Assert.assertEquals(((List<?>) b.report().get("script_taken")).get(0),
+                "cast Divination => CAST Divination @1 2{U} [Draw two cards.]");
     }
 
     @Test
@@ -185,6 +188,71 @@ public class ScriptBridgeTest {
         Assert.assertNull(b.drift);
     }
 
+    private static final String TWIN_BLOCKERS = BLOCKS.replace("YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = Boggart Ram-Gang 3/3 @4",
+            "YOUR BLOCKERS: 1 = Llanowar Elves 1/1 @3; 2 = Llanowar Elves 3/3 @4");
+    private static final String TWIN_ATTACKERS = BLOCKS.replace("ATTACKERS: 1 = Tajic, Blade of the Legion 2/2 @1; 2 = Grizzly Bears 2/2 @2",
+            "ATTACKERS: 1 = Grizzly Bears 2/2 @1; 2 = Grizzly Bears 2/2 @2");
+    private static final String SAME_BLOCKERS = BLOCKS.replace("YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = Boggart Ram-Gang 3/3 @4",
+            "YOUR BLOCKERS: 1 = Goblin Guide 2/2 @3; 2 = Goblin Guide 2/2 @4");
+
+    /** A block names each side as an option is named: two different blockers that fit is ambiguous, twin blockers take
+     *  turns, and twin attackers must be told apart by handle (pr-review of PR #276: the first fit was taken). */
+    @Test
+    public void blocksAreMatchedLikeOptions() {
+        ScriptBridge diff = script("Llanowar Elves -> Grizzly Bears");
+        answer(diff, TWIN_BLOCKERS);
+        Assert.assertNotNull(diff.drift, "a 1/1 and a 3/3 Elves: which one blocks is the line's to say");
+        ScriptBridge sized = script("Llanowar Elves 3/3 -> Grizzly Bears");
+        Assert.assertEquals(answer(sized, TWIN_BLOCKERS).getAsJsonArray("blocks").toString(), "[{\"blocker\":2,\"attacker\":2}]");
+        ScriptBridge twins = script("Goblin Guide -> Tajic; Goblin Guide -> Grizzly Bears");
+        Assert.assertEquals(answer(twins, SAME_BLOCKERS).getAsJsonArray("blocks").toString(),
+                "[{\"blocker\":1,\"attacker\":1},{\"blocker\":2,\"attacker\":2}]", "twin blockers take turns");
+        ScriptBridge bears = script("Typhoid Rats -> Grizzly Bears; Boggart Ram-Gang -> Grizzly Bears");
+        answer(bears, TWIN_ATTACKERS);
+        Assert.assertNotNull(bears.drift, "two Bears attack: one each or a double block is the line's to say, by handle");
+        ScriptBridge handles = script("Typhoid Rats -> Grizzly Bears 2/2 @1; Boggart Ram-Gang -> Grizzly Bears 2/2 @2");
+        Assert.assertEquals(answer(handles, TWIN_ATTACKERS).getAsJsonArray("blocks").toString(),
+                "[{\"blocker\":1,\"attacker\":1},{\"blocker\":2,\"attacker\":2}]");
+        Assert.assertNull(handles.drift);
+    }
+
+    @Test
+    public void aLineForAnotherStepAtAnotherDecisionDrifts() {
+        ScriptBridge b = script("at COMBAT_DECLARE_BLOCKERS: Thing in the Ice");
+        answer(b, TARGET);
+        Assert.assertNotNull(b.drift);
+        Assert.assertTrue(b.drift.contains("another step"), b.drift);
+    }
+
+    @Test
+    public void aTextAskIsADrift() {
+        ScriptBridge b = script("cast Divination");
+        Assert.assertNull(b.ask("CHOICE: <number>"));
+        Assert.assertNotNull(b.drift);
+    }
+
+    @Test
+    public void afterADriftEveryAnswerIsTheLeastAllowed() {
+        ScriptBridge b = script("nothing fits this");
+        answer(b, TARGET);
+        String exactly = ATTACK.replace(AnswerTool.instruction(AnswerTool.Spec.many(2, 0, 2), false),
+                AnswerTool.instruction(AnswerTool.Spec.many(2, 2, 2), false));
+        Assert.assertEquals(answer(b, exactly).getAsJsonArray("options").size(), 2, "exactly 2: the first two");
+        String number = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose a number.\n"
+                + AnswerTool.instruction(AnswerTool.Spec.number(1, 5), false);
+        Assert.assertEquals(answer(b, number).get("number").getAsInt(), 1);
+        String amounts = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Divide 3 damage.\n"
+                + AnswerTool.instruction(AnswerTool.Spec.alloc(2, 3), false);
+        Assert.assertEquals(answer(b, amounts).getAsJsonArray("amounts").toString(), "[3,0]");
+    }
+
+    @Test
+    public void theRowStampsWhichLineWasPlayed() {
+        ScriptBridge a = script("cast Divination"), b = script("cast Snakeform");
+        Assert.assertNotEquals(a.report().get("script_sha256"), b.report().get("script_sha256"));
+        Assert.assertEquals(a.report().get("script_sha256"), script("cast Divination").report().get("script_sha256"));
+    }
+
     @Test
     public void anExactLabelWinsOverLongerOnes() {
         ScriptBridge b = script("1", "11");
@@ -208,9 +276,15 @@ public class ScriptBridgeTest {
         Assert.assertEquals(answer(b, MANA).getAsJsonArray("options").size(), 0);
         Assert.assertNull(b.drift);
         Assert.assertEquals(b.unconsumed(), 1);
-        ScriptBridge keep = script("Mountain", "cast Divination");
+        Assert.assertEquals(b.untapsLeft, 1);
+        ScriptBridge keep = script("untap: Mountain", "cast Divination");
         Assert.assertEquals(answer(keep, MANA).getAsJsonArray("options").toString(), "[2]", "a written untap is kept");
         Assert.assertEquals(keep.unconsumed(), 1);
+        // A line written for a later decision is not eaten by an untap ask it was not written for (pr-review, PR #276).
+        ScriptBridge later = script("none", "Mountain");
+        Assert.assertEquals(answer(later, MANA).getAsJsonArray("options").size(), 0);
+        Assert.assertEquals(later.unconsumed(), 2, "\"none\" was meant for the attack after it");
+        Assert.assertEquals(later.untapsLeft, 1);
     }
 
     @Test
