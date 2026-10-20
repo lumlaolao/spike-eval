@@ -136,6 +136,14 @@ final class GreedyBridge implements LLMBridge {
     }
 
     private static final int OPPONENT = 0, UNSHOWN = 1, DECLINE = 2, OWN = 3, NEVER = Integer.MAX_VALUE;
+    /** The menu's own rows, matched up to the colon of the labels the seat is shown, so a reworded label moves here. */
+    private static final String[] OWN_ROWS = {ownRow(LlmSpikeGui.PlayerControllerLLM.CANCEL_LABEL),
+            ownRow(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL)};
+
+    static String ownRow(String label) {
+        int colon = label.indexOf(':');
+        return ScriptBridge.norm(colon < 0 ? label : label.substring(0, colon + 1));
+    }
 
     /** How much an option suits a play aimed at the opponent: the opponent or the opponent's card first, then a card
      *  with no side shown, then declining ("No target"), the seat's own last; CANCEL never (pr-review of #279: the
@@ -143,7 +151,7 @@ final class GreedyBridge implements LLMBridge {
     private static int side(String label) {
         String l = ScriptBridge.norm(label);
         // the menu's own rows (CANCEL and a cost ask's CANCEL this play); a card named Cancel can still be a target
-        if (l.startsWith("cancel:") || l.startsWith("cancel this play:")) return NEVER;
+        for (String row : OWN_ROWS) if (l.startsWith(row)) return NEVER;
         if (l.startsWith("opponent") || l.contains(", opponent's]")) return OPPONENT;
         if (l.startsWith("no target")) return DECLINE;
         if (l.startsWith("you ") || l.contains(", yours]")) return OWN;
@@ -167,7 +175,7 @@ final class GreedyBridge implements LLMBridge {
         for (Iterator<String> it = want.iterator(); it.hasNext() && picks.size() < max; ) {
             String w = it.next();
             for (Map.Entry<Integer, String> o : ranked)
-                if (!picks.contains(o.getKey()) && side(o.getValue()) < NEVER && names(o.getValue(), w)) {
+                if (!picks.contains(o.getKey()) && side(o.getValue()) != NEVER && names(o.getValue(), w)) {
                     picks.add(o.getKey());
                     it.remove();
                     break;

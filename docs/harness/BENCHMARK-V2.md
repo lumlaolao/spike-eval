@@ -81,7 +81,7 @@ as broken (ATLAS: 3-6% of items in standard benchmarks).
 |---|---|---|---|
 | T1 regression | `L <= 2`, `O = 0`, Forge AI solves at least half | the floor check; a failure here is read as a harness suspect first | near 100% |
 | T2 capability | `L` 3 to 5, or `O >= 1`, or `T >= 2`, or a short line (`L <= 2`, `O = 0`, `T = 1`) Forge AI fails | the hill | 40-80% |
-| T3 hard | `L >= 6`, or `O >= 2` (`B >= 10^4` once `B` counts menus; see below) | headroom; the Possibility Storm class | under 40% |
+| T3 hard | `L >= 6`, or `O >= 2` (`B >= 10^4` once `B` counts menus; see Structural above) | headroom; the Possibility Storm class | under 40% |
 
 Random must stay at or under 20% for any active puzzle (v1 said 5%; 20% is what the suite uses today and
 the margin `pass@1 - random` already corrects for it; **owner decision**: tighten back to 5% for T2/T3 and
