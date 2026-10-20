@@ -1,0 +1,14 @@
+== off: 119/145 attempts solved (82%), 29 puzzles
+   lookups: {} | attempts that called rules_lookup: 0
+   model time per call: median 4.8s, total 81 min
+== on: 127/145 attempts solved (88%), 29 puzzles
+   lookups: {'inspect': 47, 'report_unclear_decision': 2} | attempts that called rules_lookup: 0
+   model time per call: median 5.1s, total 83 min
+== puzzles where the conditions differ (off c/k -> on c/k):
+   rules-RP_151   3/5 -> 5/5
+   rules-RP_197   5/5 -> 4/5
+   rules-RP_243   2/5 -> 3/5
+   rules-RP_385   2/5 -> 3/5
+   rules-RP_443   0/5 -> 2/5
+   rules-RP_449   4/5 -> 5/5
+   rules-RP_477   0/5 -> 2/5

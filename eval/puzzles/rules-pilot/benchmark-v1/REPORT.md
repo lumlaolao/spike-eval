@@ -55,3 +55,46 @@ Floors (`puzzle_score.py`): pass@1 random 0.088, PASS 0.000, first option 0.207;
 Next, to make the comparison mean something: harder puzzles (tier 3 and the puzzles Luna fails here), and a look at
 why Luna does not reach for the lookup (the tool description, or a prompt that tells it when a rule decides the
 puzzle). Both are owner decisions.
+
+## Epoch 67: the same sample with a neutral brief (2026-10-20)
+
+harness-epoch-67 (PR #273) tells a rules puzzle's solver only its author's description and turn limit, on the
+`<puzzle>` block and on the Puzzle Goal card that `inspect` reads. Forge's Name ("Rules pilot 243 - The trigger
+outlives its source"), Difficulty and "Goal: Survive" lines are gone; each result row's `goal_oracle` shows the
+brief the seat got. Everything else is as above: same suite, model, k=5, seeds 1-5, `-j 2` a condition, both at
+once, isolated build `runs/puzzles/builds/e67`. Results: `results-e67/off/` and `results-e67/on/`; game JSONL in
+`runs/puzzles/bench-v1-e67/` (git-ignored); tool counts `tool-use-e67.txt`.
+
+| | Off, epoch 66 | Off, epoch 67 | On, epoch 66 | On, epoch 67 |
+|---|---|---|---|---|
+| attempts solved | 130/145 | **119/145** | 130/145 | 127/145 |
+| PUZ headline, mean(pass@1 - random rate) | 0.809 [0.709, 0.888] | 0.733 [0.608, 0.841] | 0.809 [0.717, 0.883] | 0.788 [0.691, 0.867] |
+| puzzles solved (c >= k/2) | 26/29 | 24/29 | 26/29 | 26/29 |
+| pass^k | 0.793 | 0.690 | 0.793 | 0.724 |
+| `rules_lookup` calls | none offered | none offered | 0 | **0** |
+| other lookups | none offered | none offered | `inspect` 40, unclear 1 | `inspect` 47, unclear 2 |
+| cost | $0.18 | $0.17 | $0.20 | $0.20 |
+
+Paired by puzzle (10,000 bootstrap resamples of the 29 puzzles, 95% interval), change in pass@1:
+
+| comparison | mean | interval |
+|---|---|---|
+| off, epoch 67 minus epoch 66 | -0.076 | [-0.145, -0.021] |
+| on, epoch 67 minus epoch 66 | -0.021 | [-0.062, 0.021] |
+| epoch 67, on minus off | +0.055 | [0.007, 0.110] |
+| epoch 66, on minus off | 0.000 | [-0.069, 0.069] |
+
+What it says:
+
+1. **The name was a hint.** Without the tools, Luna solves fewer attempts once the name is hidden, and the interval
+   excludes zero. The largest drop is RP_243 (5/5 to 2/5 off, 5/5 to 3/5 on), whose name states its trick: every
+   failed attempt but one let Awoken Horror's transform trigger bounce Grizzly Bears. RP_151 ("Count the snow first") and
+   RP_385 ("The copy keeps haste, not counters") fell too. The earlier 130/145 overstated what Luna can do.
+2. **With the tools on, the drop is mostly gone,** and on minus off is now positive. Luna still made 0 rules
+   lookups; the difference is in `inspect` (47 calls) and the arm's own noise. Three puzzles flip 2 or more solves
+   in 5 between runs with nothing changed, so one sample of 29 does not separate these from noise well: the "on
+   minus off" interval barely clears zero and is one of four comparisons made here.
+3. The Goal-line finding above (item 4) is fixed by epoch 67. The two `report_unclear_decision` calls came from
+   RP_385 and RP_443.
+
+Next is `docs/harness/BENCHMARK-V2.md`: measured tiers and harder puzzles, since 24 of 29 still solve with no tools.
