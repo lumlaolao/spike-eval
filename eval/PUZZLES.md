@@ -111,7 +111,9 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   not fit is passed (the line waits); every other decision it does not fit is a drift, recorded on the row
   (`script_drift`), and the rest of the game is answered by the do-nothing option.
 - Exit 0 only when every seed played every line (`script_played`) and solved. A drift can still solve (the
-  do-nothing answers can stumble into the acceptance state), so the solve alone is never read.
+  do-nothing answers can stumble into the acceptance state), so the solve alone is never read. The verdict also
+  refuses a row where a play the line chose did not happen (`plays_not_made`, counted by the seat; the list is on
+  `PlayerControllerLLM.playsNotMade`); a cancel the line wrote is its own choice and is not counted.
 - Forge's AI is the opponent by default: the line is then proven against its replies only. `--opponent search`
   runs the prover with the written line as the solver (`CONTROLLER_A=llm` on a `script:` spec, `CONTROLLER_B=search`):
   every draw on the search line is the opponent's, so `proven` means this one fixed line beats every reply the

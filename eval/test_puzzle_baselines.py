@@ -13,7 +13,7 @@ class WrittenLineTest(unittest.TestCase):
     """`line`: a puzzle's written solution played by the faithful seat (ScriptBridge, HARD-PUZZLES.md section 4)."""
 
     PLAYED = {"status": "solved", "solved": True, "acceptance": "accepted", "script_drift": "", "script_exhausted": False,
-              "script_unconsumed": 0, "script_lines": 16, "script_played": True}
+              "script_unconsumed": 0, "script_lines": 16, "script_played": True, "plays_not_made": 0}
 
     def test_only_a_whole_line_that_solves_is_played(self):
         self.assertEqual(pb.line_verdict(self.PLAYED), "played")
@@ -22,13 +22,12 @@ class WrittenLineTest(unittest.TestCase):
         self.assertTrue(pb.line_verdict(drifted).startswith("drift: line 3"))
         short = dict(self.PLAYED, script_unconsumed=5, script_played=False)
         self.assertEqual(pb.line_verdict(short), "5 lines unplayed")
-        # A cast the harness accepted but the engine rolled back (its payment failed) never happened (pr-review, #276).
-        rolled = dict(self.PLAYED, script_taken=["cast Lava Spike => CAST Lava Spike @1 {R} [x]",
-                                                 "cast Fireblast => CAST Fireblast @3 [y]"],
-                      actions=["STACK_ADD: Solver cast Lava Spike targeting [Opponent]"])
-        self.assertEqual(pb.line_verdict(rolled), "1 casts on the stack of 2 the line took")
-        self.assertEqual(pb.line_verdict(dict(rolled, actions=rolled["actions"] + ["STACK_ADD: Solver cast Fireblast"])),
-                         "played")
+        # A play the line chose that never happened (unpayable, so the engine rolled it back) voids the line, whatever
+        # card it was: the seat counts it (pr-review of #276; a log-name match refused every creature cast).
+        self.assertEqual(pb.line_verdict(dict(self.PLAYED, plays_not_made=1)), "1 plays the line chose did not happen")
+        self.assertEqual(pb.line_verdict(dict(self.PLAYED, plays_not_made=0)), "played")
+        unread = dict(self.PLAYED); del unread["plays_not_made"]
+        self.assertTrue(pb.line_verdict(unread).startswith("no plays_not_made"), "a missing count is not a zero")
         lost = dict(self.PLAYED, status="failed", solved=False, acceptance_failed=["life p1 <= 0 (was 7)"])
         self.assertIn("was 7", pb.line_verdict(lost))
         self.assertEqual(pb.line_verdict(dict(self.PLAYED, tainted_by_deckout=True)), "solved by a deck-out")
@@ -43,13 +42,13 @@ class WrittenLineTest(unittest.TestCase):
         beaten = dict(proof, status="not_found", refutation_line="Opponent:2:1", script_played=None)
         self.assertEqual(pb.line_verdict(beaten), "beaten by Opponent:2:1")
         self.assertEqual(pb.line_verdict(dict(beaten, refutation_line=None)), "not_found")
-        env = pb.line_env(Path("/x/h.pzl"), "search", "1", budget=300)
+        env = pb.line_env(Path("/x/h.pzl"), "search", budget=300)
         self.assertEqual((env["CONTROLLER_B"], env["PZL_SEARCH_BUDGET"]), ("search", "300"))
-        self.assertNotIn("PZL_SEARCH_BUDGET", pb.line_env(Path("/x/h.pzl"), "ai", "1"))
+        self.assertNotIn("PZL_SEARCH_BUDGET", pb.line_env(Path("/x/h.pzl"), "ai"))
 
     def test_the_line_runs_as_the_model_seat_under_the_paid_condition(self):
-        env = pb.line_env(Path("/x/h_1.pzl"), "ai", "1..3")
-        self.assertEqual((env["CONTROLLER_A"], env["CONTROLLER_B"], env["PZL_SEEDS"]), ("llm", "ai", "1..3"))
+        env = pb.line_env(Path("/x/h_1.pzl"), "ai")
+        self.assertEqual((env["CONTROLLER_A"], env["CONTROLLER_B"]), ("llm", "ai"))
         self.assertEqual(env["SMART_MODEL_A"], "script:/x/h_1.pzl")
         self.assertEqual(env["FAST_MODEL_A"], env["SMART_MODEL_A"])
         self.assertEqual(env["ONE_TIER"], "1", "one bridge, one position: never inherited from the shell")
@@ -83,6 +82,7 @@ class WrittenLineTest(unittest.TestCase):
             args = ["line", "--pzl", str(pzl_file), "--seeds", "1..2", "--out-dir", str(out / "o")]
             self.assertEqual(pb.main(args), 0)
             self.assertEqual(seen["PUZZLE"], str(pzl_file.resolve()))
+            self.assertEqual(seen["PZL_SEEDS"], "1..2")
             pb.Build = lambda *a, **k: FakeBuild([dict(self.PLAYED, seed=1), dict(self.PLAYED, seed=2, script_unconsumed=1)])
             self.assertEqual(pb.main(args), 1)
             script = out / "other.line"
@@ -116,7 +116,7 @@ class MinimalityTest(unittest.TestCase):
                 runs.append(lines)
                 solved = "cast Lava Spike" in lines and "cast Fling" in lines   # Shock is spare
                 row = {"status": "solved" if solved else "failed", "seed": 1, "script_played": True, "script_drift": "",
-                       "script_unconsumed": 0, "script_actions": ["0", "2", "4"]}
+                       "script_unconsumed": 0, "script_actions": ["0", "2", "4"], "plays_not_made": 0}
                 Path(out_dir).mkdir(parents=True, exist_ok=True)
                 with open(Path(out_dir) / "puzzle-results.jsonl", "a") as f:
                     f.write(json.dumps(row) + "\n")
@@ -133,7 +133,6 @@ class MinimalityTest(unittest.TestCase):
         res = json.loads((out / "o" / "minimality.json").read_text())
         self.assertEqual((res["actions"], res["necessary"]), (3, 2))
         self.assertEqual(res["unnecessary"], [["cast Shock", "opponent"]])
-
 
 
 if __name__ == "__main__":

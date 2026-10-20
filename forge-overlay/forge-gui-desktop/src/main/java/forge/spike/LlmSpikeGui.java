@@ -3444,10 +3444,14 @@ public final class LlmSpikeGui {
             forge.game.zone.Zone from = tgtSA.getHostCard() == null ? null : tgtSA.getHostCard().getZone();
             tgtSA = withOptionalCosts(tgtSA);   // a spell cast by an effect may still be kicked (CR 601.2b)
             announceX(tgtSA);
-            if (tgtSA.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(tgtSA)) return false;
+            // From here the seat has chosen to cast it: a cast that then does not happen is counted (playsNotMade).
+            if (tgtSA.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(tgtSA)) {
+                if (!tgtSA.hasParam("Optional")) playsNotMade++;
+                return false;
+            }
             ensureTargetsSet(tgtSA);
             boolean played = forge.ai.ComputerUtil.playStack(tgtSA, getPlayer(), getGame());
-            if (played) playSeen(tgtSA, from);
+            if (played) playSeen(tgtSA, from); else playsNotMade++;
             return played;
         }
 
@@ -3688,6 +3692,7 @@ public final class LlmSpikeGui {
             // the seat's pricing and combat helpers read it too, so the seat clears it in the same place. Uncleared,
             // answers keyed by this game lasted the whole game and every finished game stayed reachable (prove-v3).
             forge.ai.AiCache.clear();
+            boolean chose = false;   // the seat picked a play: an error after this lost it
             try {
                 Player me = getPlayer();
                 PhaseHandler phh = me.getGame().getPhaseHandler();
@@ -4138,6 +4143,7 @@ public final class LlmSpikeGui {
                     return Lists.newArrayList(landPlays.get(li));
                 }
                 SpellAbility chosen = options.get(choice - 1);
+                chose = true;
                 // D4 shadow guard (MANDATORY): shadowPlay's AI eval (canPlaySa/canPlayWithSubs) may have set
                 // targets AND X on this SAME SA object *and its sub-abilities*; without a full-chain reset,
                 // ensureTargetsSet would see a sub-ability "already targeted" (see :1449 below) and skip it —
@@ -4160,6 +4166,7 @@ public final class LlmSpikeGui {
                 if (chosen.getApi() == ApiType.Charm) {
                     if (!forge.game.ability.effects.CharmEffect.makeChoices(chosen)) {
                         p("[ROUTER] play: no legal mode set for " + labelOf(chosen) + " -> PASS");
+                        if (!chosen.hasParam("Optional")) playsNotMade++;   // a declined optional charm is a choice
                         return PASS;
                     }
                     modesChosenFor = chosen;
@@ -4181,6 +4188,7 @@ public final class LlmSpikeGui {
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
                 p("[ROUTER] play: error " + e + " -> PASS");
+                if (chose) playsNotMade++;   // the seat's pick was lost to the error
                 return PASS;
             }
         }
@@ -4864,6 +4872,13 @@ public final class LlmSpikeGui {
             return new ArrayList<>();
         }
 
+        /** Plays the seat chose that did not happen, from the play menu or cast through an effect: forbidden by a static,
+         *  no legal modes, unpayable, refused by the stack for want of a target, a land drop the engine refused, or a pick
+         *  lost to an error in the play menu. A cancel, or a declined optional charm, is the seat's own choice and is not
+         *  counted. A written line (ScriptBridge) is void when any of its plays did not happen. */
+        private int playsNotMade = 0;
+        int playsNotMade() { return playsNotMade; }
+
         /** The play path for a cast or activation. The inherited implementation hands the ability to
          *  {@code ComputerUtil.handlePlayingSpellAbility}, which pays EVERY cost with a hard-coded
          *  {@code new AiCostDecision(...)} and never consults {@link #getCostDecisionMaker} — so Forge's
@@ -4887,8 +4902,12 @@ public final class LlmSpikeGui {
             modesChosenFor = null;
             if (!ours) {
                 forge.game.zone.Zone from = sa.getHostCard() == null ? null : sa.getHostCard().getZone();
+                int stackBefore = getGame().getStack().size();
                 boolean played = super.playChosenSpellAbility(sa);
-                if (played) playSeen(sa, from);
+                // The inherited routine returns true whatever happened: read what it did from the game.
+                boolean happened = sa.isLandAbility() ? sa.getHostCard() != null && sa.getHostCard().getZone() != from
+                        : getGame().getStack().size() > stackBefore;
+                if (happened) playSeen(sa, from); else playsNotMade++;
                 return played;
             }
 
@@ -4916,10 +4935,14 @@ public final class LlmSpikeGui {
             if (!sa.checkRestrictions(ai)) {
                 p("[ROUTER] play: " + labelOf(sa) + " is forbidden by a static -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
                 forge.game.GameActionUtil.rollbackAbility(sa, hz, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
                 return true;
             }
-            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
+            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) {
+                if (!sa.hasParam("Optional")) playsNotMade++;
+                return true;
+            }
 
             game.getStack().freezeStack(sa);
             final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
@@ -4929,7 +4952,14 @@ public final class LlmSpikeGui {
             if (observer != null && rnd == null && cancels < 2) decision.offerCancel();
             costCancelled = false;
             if (pay.payComputerCosts(decision)) {
+                // The stack refuses a play with no legal target left ("Couldn't add to stack, failed to target").
+                boolean reaches = sa.isCopied() || sa.isManaAbility() || game.getStack().hasLegalTargeting(sa);
                 game.getStack().addAndUnfreeze(sa);
+                if (!reaches) {
+                    p("[ROUTER] play: " + labelOf(sa) + " paid but has no legal target -> the stack refused it");
+                    playsNotMade++;
+                    return true;
+                }
                 playSeen(sa, hz);
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
@@ -4946,6 +4976,7 @@ public final class LlmSpikeGui {
             } else {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
             }
             costCancelled = false;
             sa.setSkip(true);

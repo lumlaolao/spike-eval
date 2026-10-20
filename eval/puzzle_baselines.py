@@ -421,6 +421,7 @@ def cmd_prove(a):
     return 0
 
 
+
 def line_verdict(row):
     """"played" when a written-line game played every line, drifted nowhere and solved cleanly; else why not.
     A drift is checked first: after one, the do-nothing answers can still stumble into the acceptance state."""
@@ -443,14 +444,15 @@ def line_verdict(row):
         return "solved by a deck-out" if row.get("status") == "solved" else "decided by a deck-out"
     if row.get("status") != "solved":
         return "%s %s" % (row.get("status"), row.get("acceptance_failed") or "")
-    claimed = sum(1 for t in row.get("script_taken") or [] if " => CAST " in t)
-    cast = sum(1 for a in row.get("actions") or [] if a.startswith("STACK_ADD: Solver cast "))
-    if claimed > cast:
-        return "%d casts on the stack of %d the line took" % (cast, claimed)
+    # A play the line chose can still not happen (unpayable, or forbidden by a static): the seat counts those.
+    if "plays_not_made" not in row:
+        return "no plays_not_made on the row (a build before the seat counted them)"
+    if row.get("plays_not_made"):
+        return "%d plays the line chose did not happen" % row["plays_not_made"]
     return "played" if row.get("script_played") else "not played"
 
 
-def line_env(script, opponent, seeds, budget=None):
+def line_env(script, opponent, budget=None):
     """The model seat with the written line `script` as its model (ScriptBridge), under the condition a paid run
     pins with the tools off (puzzle_solve.condition): the line plays the menus the model is shown. Against the
     search opponent the prover tries every reply on the line, within `budget` rollouts."""
@@ -458,7 +460,7 @@ def line_env(script, opponent, seeds, budget=None):
     cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
     spec = "script:" + str(Path(script).resolve())
     env = dict(cond, CONTROLLER_A="llm", CONTROLLER_B=opponent, SMART_MODEL_A=spec, FAST_MODEL_A=spec,
-               PZL_SEEDS=seeds, GAME_CAP_MS="300000", ONE_TIER="1")
+               GAME_CAP_MS="300000", ONE_TIER="1")
     if opponent == "search":
         env["PZL_SEARCH_BUDGET"] = str(budget or 200)
     return env
@@ -495,7 +497,7 @@ def minimality(build, pzl, script, out, seed):
     """Each action of a played line removed in turn, the rest as written: every removal must fail (not play to a
     solve). Returns the record written to out/minimality.json."""
     lines = script_lines(script)
-    full = run_arm(build, pzl, "written", seed, out / "line", line_env(script, "ai", seed))
+    full = run_arm(build, pzl, "written", seed, out / "line", line_env(script, "ai"))
     row = full[-1] if full else None
     rec = {"line": line_verdict(row), "actions": 0, "necessary": 0, "unnecessary": [], "removals": []}
     if rec["line"] == "played":
@@ -509,7 +511,7 @@ def minimality(build, pzl, script, out, seed):
             if rest:
                 left = d / "line.txt"
                 left.write_text("".join(l + "\n" for l in rest), encoding="utf-8")
-                rows = run_arm(build, pzl, "written", seed, d, line_env(left, "ai", seed))
+                rows = run_arm(build, pzl, "written", seed, d, line_env(left, "ai"))
                 v = line_verdict(rows[-1] if rows else None)
             else:  # the line without its only action is the do-nothing line: the pass arm
                 rows = run_arm(build, pzl, "pass", seed, d)
@@ -535,7 +537,7 @@ def cmd_line(a):
         print("%-24s line %s; %d of %d actions necessary%s" % (pzl.stem, rec["line"], rec["necessary"], rec["actions"],
               "".join("; not needed: " + " / ".join(u) for u in rec["unnecessary"])))
         return 0 if rec["line"] == "played" and rec["necessary"] == rec["actions"] else 1
-    rows = run_arm(build, pzl, "written", a.seeds, out, line_env(a.script or pzl, a.opponent, a.seeds, a.budget))
+    rows = run_arm(build, pzl, "written", a.seeds, out, line_env(a.script or pzl, a.opponent, a.budget))
     # The prover plays its first seed only (one engine seed per proof).
     want = sorted(expand_seeds(a.seeds))[:1] if a.opponent == "search" else sorted(expand_seeds(a.seeds))
     verdicts = {r.get("seed"): line_verdict(r) for r in rows}

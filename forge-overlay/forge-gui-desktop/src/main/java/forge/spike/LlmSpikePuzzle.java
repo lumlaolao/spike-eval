@@ -448,7 +448,7 @@ public final class LlmSpikePuzzle {
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, p.healthy ? null : "rollout hit the wall-clock cap");
             // A written line that drifted under this reply did not beat it, whatever the do-nothing answers reached.
             ScriptBridge w = writtenLine(p.game);
-            boolean solved = p.cleanSolve() && !line.stopped() && (w == null || w.played());
+            boolean solved = p.cleanSolve() && !line.stopped() && (w == null || writtenPlayed(p.game, w));
             // What tells two solutions apart: the solver's game-log actions, and what it chose where the log does not
             // say (a mode, a clone pick, a number). Not the final state: the opponent's replies change that too
             // (RP_045: the opponent's Scavenging Ooze exiled a card on one line and not the other).
@@ -474,8 +474,11 @@ public final class LlmSpikePuzzle {
             Played again = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.line, 0));
             ScriptBridge w = writtenLine(main.game);
-            if (w != null) extra.putAll(w.report());
-            if (!main.cleanSolve() || (w != null && !w.played())
+            if (w != null) {
+                extra.putAll(w.report());
+                extra.put("plays_not_made", playsNotMade(main.game));
+            }
+            if (!main.cleanSolve() || (w != null && !writtenPlayed(main.game, w))
                     || !logFingerprint(main.logLines).equals(logFingerprint(again.logLines))) {
                 status = "drift";
                 extra.put("search_drift", "the main line did not replay to the same solve");
@@ -793,12 +796,20 @@ public final class LlmSpikePuzzle {
         extra.put("solver_actions", actions.size());
         java.util.Random arm = null;
         ScriptBridge written = writtenLine(game);
+        int playsNotMade = 0;
         try {
             Object ctl = game.getRegisteredPlayers().get(0).getController();
-            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) arm = ((LlmSpikeGui.PlayerControllerLLM) ctl).armRandom();
+            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) {
+                LlmSpikeGui.PlayerControllerLLM llm = (LlmSpikeGui.PlayerControllerLLM) ctl;
+                arm = llm.armRandom();
+                playsNotMade = llm.playsNotMade();
+            }
         } catch (Exception ignore) {}
         // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
-        if (written != null) extra.putAll(written.report());
+        if (written != null) {
+            extra.putAll(written.report());
+            extra.put("plays_not_made", playsNotMade);
+        }
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());
@@ -824,6 +835,19 @@ public final class LlmSpikePuzzle {
             return null;
         }
     }
+
+    /** Plays the solver seat chose that did not happen (PlayerControllerLLM.playsNotMade), 0 for another seat. */
+    static int playsNotMade(Game game) {
+        try {
+            Object ctl = game.getRegisteredPlayers().get(0).getController();
+            return ctl instanceof LlmSpikeGui.PlayerControllerLLM ? ((LlmSpikeGui.PlayerControllerLLM) ctl).playsNotMade() : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** A written line was played: every line taken with no drift, and every play it chose happened. */
+    static boolean writtenPlayed(Game game, ScriptBridge w) { return w.played() && playsNotMade(game) == 0; }
 
     /** Seat i's PlayerOutcome, read off the STABLE player list.
      *

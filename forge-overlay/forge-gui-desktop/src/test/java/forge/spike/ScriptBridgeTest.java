@@ -223,6 +223,16 @@ public class ScriptBridgeTest {
         Assert.assertNull(handles.drift);
     }
 
+    /** A handle that begins another handle ("@1" and "@12") names the one it equals (pr-review v2, PR #276). */
+    @Test
+    public void aBlockNamingAHandleTakesTheExactOne() {
+        String handles = BLOCKS.replace("ATTACKERS: 1 = Tajic, Blade of the Legion 2/2 @1; 2 = Grizzly Bears 2/2 @2",
+                "ATTACKERS: 1 = Grizzly Bears 2/2 @12; 2 = Grizzly Bears 2/2 @1");
+        ScriptBridge b = script("Typhoid Rats -> Grizzly Bears 2/2 @1");
+        Assert.assertEquals(answer(b, handles).getAsJsonArray("blocks").toString(), "[{\"blocker\":1,\"attacker\":2}]");
+        Assert.assertNull(b.drift);
+    }
+
     @Test
     public void aLineForAnotherStepAtAnotherDecisionDrifts() {
         ScriptBridge b = script("at COMBAT_DECLARE_BLOCKERS: Thing in the Ice");
@@ -292,6 +302,12 @@ public class ScriptBridgeTest {
         Assert.assertEquals(answer(later, MANA).getAsJsonArray("options").size(), 0);
         Assert.assertEquals(later.unconsumed(), 2, "\"none\" was meant for the attack after it");
         Assert.assertEquals(later.untapsLeft, 1);
+        // An untap line for another turn waits for it: this ask is the engine's, counted.
+        ScriptBridge t2 = script("at T2 MAIN1: untap: Mountain");
+        Assert.assertEquals(answer(t2, MANA).getAsJsonArray("options").size(), 0);
+        Assert.assertEquals(t2.unconsumed(), 1);
+        Assert.assertEquals(t2.untapsLeft, 1);
+        Assert.assertNull(t2.drift);
     }
 
     @Test

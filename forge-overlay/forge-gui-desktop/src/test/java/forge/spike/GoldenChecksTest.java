@@ -958,8 +958,10 @@ public class GoldenChecksTest {
             cast[0] = true;
             return choiceWith("Explosive Derailment").apply(p);
         }).on("MODAL SPELL", p -> "PICKS: 1,2").on("TARGET", choiceWith("CANCEL"));
-        seat(g, model, model).chooseSpellAbilityToPlay();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
         Assert.assertTrue(model.prompts.stream().anyMatch(p -> p.contains("MODAL SPELL")), "modes were asked");
+        Assert.assertEquals(ctrl.playsNotMade(), 0, "a cancel at the target is the seat's own choice");
         Assert.assertNull(derail.getFirstSpellAbility().getSubAbility(), "the cancelled spell kept its modes");
     }
 
@@ -1071,6 +1073,7 @@ public class GoldenChecksTest {
         resolveAll(g);
         Assert.assertEquals(me.getCreaturesInPlay().stream().filter(Card::isTapped).count(), 0L,
                 "nothing tapped: " + String.join(" | ", model.prompts.stream().map(p -> p.substring(Math.max(0, p.length() - 300))).toList()));
+        Assert.assertEquals(ctrl.playsNotMade(), 0, "a cancel is the seat's own choice, not a play that failed");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
@@ -2403,6 +2406,51 @@ public class GoldenChecksTest {
         SpellAbility free = spike.getFirstSpellAbility().copyWithNoManaCost(me);
         ctrl.playSaFromPlayEffect(free);
         Assert.assertEquals(model.prompts.size(), 1, "asked twice:\n" + String.join("\n----\n", model.prompts));
+        Assert.assertEquals(ctrl.playsNotMade(), 0, "Divination was cast");
+    }
+
+    /** A cast the seat chose through an effect that then does not happen is counted, so a written line that chose it is
+     *  void (pr-review of #276): Concentrate, mana value 4, cast free "if able" under the opponent's Gaddock Teeg. */
+    @Test
+    public void anEffectCastAStaticForbidsIsCountedAsNotMade() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Gaddock Teeg", rival, ZoneType.Battlefield);
+        Card concentrate = card("Concentrate", me, ZoneType.Exile);
+        g.getAction().checkStaticAbilities();
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility free = concentrate.getFirstSpellAbility().copyWithNoManaCost(me);
+        free.getPayCosts().setMandatory(true);
+        Assert.assertFalse(ctrl.playSaFromPlayEffect(free), "Gaddock Teeg forbids it");
+        Assert.assertTrue(concentrate.isInZone(ZoneType.Exile), "Concentrate stays in exile");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
+    /** A land play goes through the inherited play routine, which returns true whatever happened, so the count reads the
+     *  game: a land played counts nothing, a second land drop the engine refuses counts one (pr-review of #276). */
+    @Test
+    public void aLandPlayIsCountedOnlyWhenTheEngineRefusesIt() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card forest = card("Forest", me, ZoneType.Hand);
+        Card island = card("Island", me, ZoneType.Hand);
+        boolean[] first = {true};
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> {
+            String land = first[0] ? "PLAY LAND Forest" : "PLAY LAND Island";
+            first[0] = false;
+            return choiceWith(land).apply(p);
+        });
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> playForest = ctrl.chooseSpellAbilityToPlay(), playIsland = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(playForest.get(0).getHostCard(), forest, "fixture: the Forest first");
+        Assert.assertEquals(playIsland.get(0).getHostCard(), island, "fixture: then the Island");
+        ctrl.playChosenSpellAbility(playForest.get(0));
+        Assert.assertTrue(forest.isInZone(ZoneType.Battlefield));
+        Assert.assertEquals(ctrl.playsNotMade(), 0, "the Forest was played");
+        ctrl.playChosenSpellAbility(playIsland.get(0));
+        Assert.assertTrue(island.isInZone(ZoneType.Hand), "one land a turn");
+        Assert.assertEquals(ctrl.playsNotMade(), 1, "the refused Island is counted");
     }
 
     /** runs/loop/g27 T18 (2026-10-19): after epoch 59 let a card pay for its own ability, Rishadan Port's "{1}, {T}: Tap

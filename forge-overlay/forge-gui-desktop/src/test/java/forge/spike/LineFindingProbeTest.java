@@ -239,6 +239,48 @@ public class LineFindingProbeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** A play a static forbids is not made, and a written line that chose it is void (pr-review of #276): Endbringer's
+     *  ping under Pithing Needle, handed to the play path as a stale menu would. */
+    @Test
+    public void aPlayAStaticForbidsIsCountedAsNotMade() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card endbringer = card("Endbringer", me, ZoneType.Battlefield);
+        endbringer.setSickness(false);
+        SpellAbility ping = null;
+        for (SpellAbility sa : endbringer.getSpellAbilities())
+            if (sa.isActivatedAbility() && !sa.isManaAbility() && sa.getPayCosts().getCostMana() == null) ping = sa;
+        Assert.assertNotNull(ping, "Endbringer's {T} ping");
+        ping.setActivatingPlayer(me);
+        ping.getTargets().add(rival);
+        card("Pithing Needle", rival, ZoneType.Battlefield).addNamedCard("Endbringer");
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        final SpellAbility tap = ping;
+        String log = logOf(() -> ctrl.playChosenSpellAbility(tap));
+        Assert.assertTrue(log.contains("forbidden by a static"), log);
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+        Assert.assertEquals(g.getStack().size(), 0);
+    }
+
+    /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the
+     *  battlefield, handed to the play path as a stale menu would. MagicStack.add drops it ("failed to target"). */
+    @Test
+    public void aPaidPlayTheStackRefusesIsCountedAsNotMade() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+        Card murder = card("Murder", me, ZoneType.Hand);
+        SpellAbility cast = murder.getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        String log = logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertTrue(log.contains("the stack refused it"), log);
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+        Assert.assertEquals(g.getStack().size(), 0);
+    }
+
     /** A play that cannot be paid for is not a play, and the log must say so (the audited game logged a failed
      *  Bombardment as "casts Goblin Bombardment"). The seat picks Bombardment at the opponent; its only creature
      *  leaves before the payment, so nothing can be sacrificed. (Sacrificing the ability's own target is legal and
@@ -275,6 +317,8 @@ public class LineFindingProbeTest {
         Assert.assertTrue(log.contains("FAILED to pay for"), log);
         Assert.assertTrue(bombardment.isInZone(ZoneType.Battlefield));
         Assert.assertEquals(g.getStack().size(), 0, "a failed play reached the stack");
+        // A written line reads this count: the line chose the play, and the play never happened (pr-review, #276).
+        Assert.assertEquals(ctrl.playsNotMade(), 1, "the unpaid play is counted");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
