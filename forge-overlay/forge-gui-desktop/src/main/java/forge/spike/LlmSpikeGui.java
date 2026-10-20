@@ -2990,10 +2990,9 @@ public final class LlmSpikeGui {
                     for (int i : picks) combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
                     if (CombatUtil.validateAttackers(combat)) break;
                     // on the record as asked, answered and overruled (its own row type: JSONL stays additive)
-                    StringBuilder no = new StringBuilder();
-                    for (int i : picks) { combat.removeFromCombat(legal.get(i)); no.append(no.length() > 0 ? ", " : "").append(legal.get(i).getName()); }
+                    for (int i : picks) combat.removeFromCombat(legal.get(i));
                     evalDec("attackers-refused", legal.size(), picks.size(), tierOf(true), 0, null, labels);
-                    p("[ROUTER] attackers: refused by the engine: " + no);
+                    p("[ROUTER] attackers: refused by the engine: " + namesOf(legal, picks));
                     if (line != null) line.dropChoicesAfter(noted);   // a refused set is no solver choice
                     question = question + " " + illegalAttackNote(attacker, combat);
                     picks = null;
@@ -3008,14 +3007,9 @@ public final class LlmSpikeGui {
                     if (!makeAttackLegal(combat, why)) auto("attackers(" + why + ")->none");
                     return;
                 }
-                StringBuilder chosen = new StringBuilder();
-                for (int i : picks) {
-                    if (chosen.length() > 0) chosen.append(", ");
-                    chosen.append(legal.get(i).getName());
-                }
                 lastShadowChoice = shadowAtk; // re-attach: decideMany's clearLast() nulled it above
                 evalDec("attackers", legal.size(), picks.size(), tierOf(true), 0, null, labels); // choice = # declared
-                p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : chosen.toString()));
+                p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : namesOf(legal, picks)));
                 formBands(combat);
             } catch (Exception e) {
                 // A failure branch takes a deterministic LEGAL option, never the Forge AI for strategy
@@ -3023,6 +3017,13 @@ public final class LlmSpikeGui {
                 // resolves combat from an empty set.
                 auto("attackers(err)->none");
             }
+        }
+
+        /** The names of {@code cards} at {@code picks}, comma-separated, for the router log. */
+        static String namesOf(List<Card> cards, List<Integer> picks) {
+            StringBuilder sb = new StringBuilder();
+            for (int i : picks) sb.append(sb.length() > 0 ? ", " : "").append(cards.get(i).getName());
+            return sb.toString();
         }
 
         /** Why the engine refuses a declared attack, for the seat's second ask: the global limit when there is one
