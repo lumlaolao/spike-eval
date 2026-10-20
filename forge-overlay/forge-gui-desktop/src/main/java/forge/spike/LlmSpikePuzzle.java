@@ -153,6 +153,17 @@ public final class LlmSpikePuzzle {
                 + "knowing the verdict answers a different question than the puzzle asks.");
     }
 
+    /** What the solver is told. A rules puzzle (an [acceptance] section) gets its author's description and turn
+     *  limit only: its Forge Goal is just the turn bound (usually Survive, above a description asking for the
+     *  opponent at 0 life), and its Name and Difficulty name the rule it tests. A Forge puzzle keeps Forge's
+     *  description, whose goal line is the goal Forge enforces. */
+    static String seatBrief(Map<String, List<String>> sections, String forgeDescription) {
+        if (sections.get("acceptance") == null) return forgeDescription;
+        List<String> meta = sections.get("metadata");
+        return "Turns Limit: " + intOr(sectionValue(meta, "Turns", "1"), 1) + "\n\n"
+                + sectionValue(meta, "Description", "").replace("\\n", "\n");
+    }
+
     /** Read `key=value` out of a FileSection body, case-insensitively, or `def`. */
     static String sectionValue(List<String> lines, String key, String def) {
         if (lines == null) return def;
@@ -517,7 +528,7 @@ public final class LlmSpikePuzzle {
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
         // The solver is told the goal as the author wrote it, before its seat (and prompt) is built.
-        LlmSpikeGui.puzzleBrief = puzzle.getGoalDescription();
+        LlmSpikeGui.puzzleBrief = seatBrief(sections, puzzle.getGoalDescription());
         LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", "", smartA, fastA);
         LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
                 : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);

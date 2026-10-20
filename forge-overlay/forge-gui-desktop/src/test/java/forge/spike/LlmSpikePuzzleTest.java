@@ -26,6 +26,33 @@ public class LlmSpikePuzzleTest {
         return m;
     }
 
+    /** A rules puzzle (an [acceptance] section) is told its author's description and turn limit only: Forge's
+     *  header put "Goal: Survive" (the turn bound) above "Reduce the opponent to 0 life" on 148 of the 526, and
+     *  its Name and Difficulty lines named the trick ("Bolster picks the least toughness", benchmark-v1 RP_443). */
+    @Test
+    public void aRulesPuzzleIsToldItsDescriptionNotForgesGoalLine() {
+        Map<String, List<String>> s = sections(
+                new String[] {"Name:Rules pilot 443 - Bolster picks the least toughness", "Goal:Survive", "Turns:1",
+                        "Difficulty:Hard", "Description:You control Hill Giant.\\nReduce the opponent to 0 life this turn."},
+                new String[] {"turn=1"});
+        s.put("acceptance", Arrays.asList("life p1 <= 0"));
+        String brief = LlmSpikePuzzle.seatBrief(s, "Rules pilot 443 - Bolster picks the least toughness\nDifficulty: Hard"
+                + "\n\nGoal: Survive\nTurns Limit: 1\n\nYou control Hill Giant.\nReduce the opponent to 0 life this turn.");
+        Assert.assertTrue(brief.contains("Reduce the opponent to 0 life this turn."), brief);
+        Assert.assertTrue(brief.contains("You control Hill Giant.\nReduce"), "the author's line breaks: " + brief);
+        Assert.assertTrue(brief.contains("Turns Limit: 1"), brief);
+        for (String hidden : new String[] {"Goal:", "Survive", "Difficulty", "Hard", "Bolster", "least toughness"})
+            Assert.assertFalse(brief.contains(hidden), hidden + " reached the seat: " + brief);
+    }
+
+    /** A Forge puzzle has no acceptance state: its goal line is the goal Forge enforces, so the header stays. */
+    @Test
+    public void aForgePuzzleKeepsForgesGoalDescription() {
+        String forge = "Possibility Storm 1\nDifficulty: Hard\n\nGoal: Win\nTurns Limit: 1\n\nWin this turn.";
+        Assert.assertEquals(LlmSpikePuzzle.seatBrief(sections(new String[] {"Goal:Win", "Turns:1"},
+                new String[] {"turn=1"}), forge), forge);
+    }
+
     // ================================================================================
     // goalIsBounded: can the enforcement trigger's TurnCount ever equal the turn counter?
     // Forge compares with STRICT equality (Trigger.java:281-286) and addGoalEnforcement never

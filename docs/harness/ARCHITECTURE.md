@@ -290,7 +290,10 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
 - `<reference>`: terms and keywords, the same in every format and in a puzzle. It named the Legacy eval pool's
   archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
-A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told.
+A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told. For a Forge puzzle that is
+Forge's description (name, difficulty, goal, turn limit, text); a rules puzzle (an `[acceptance]` section) gets only its
+turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its Forge goal is just the turn bound
+("Goal: Survive" above "Reduce the opponent to 0 life" on 148 of the 526) and its name states the rule it tests.
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);

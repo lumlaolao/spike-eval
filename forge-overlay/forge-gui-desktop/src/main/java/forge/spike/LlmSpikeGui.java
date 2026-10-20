@@ -322,8 +322,11 @@ public final class LlmSpikeGui {
      *  Epoch 66 (2026-10-20, authored rules puzzles): an attack the engine refuses (Silent Arbiter) is asked once more
      *  with the reason, then made legal; the engine re-asked forever. The puzzle prover targets a copy that may take
      *  new targets (Twincast), as the model seat does; Forge's AI picked it.
+     *  Epoch 67 (2026-10-20, benchmark sample v1): a rules puzzle's <puzzle> block is its author's description and
+     *  turn limit only; Forge's header said "Goal: Survive" above "Reduce the opponent to 0 life" on 148 of 526,
+     *  and its Name and Difficulty lines named the rule being tested.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-66";
+    static final String HARNESS_EPOCH = "harness-epoch-67";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
