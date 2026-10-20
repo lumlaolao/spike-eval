@@ -3,18 +3,17 @@ Name:Rules pilot NNN - An artifact creature is two card types
 Goal:Survive
 Turns:1
 Difficulty:Medium
-Description:It is your first main phase. You control Gnarlwood Dryad (delirium: +2/+2), Ornithopter, Grizzly Bears and Ashnod's Altar; your graveyard holds Shock and a Forest. The opponent is at 3 life and controls a tapped Silent Arbiter (no more than one creature can attack). Reduce the opponent to 0 life this turn and keep Grizzly Bears.
+Description:It is your first main phase. You control Gnarlwood Dryad (delirium: +2/+2), Ornithopter, Grizzly Bears and Ashnod's Altar; your graveyard holds Shock and a Forest. The opponent is at 3 life; Ornithopter and Grizzly Bears came under your control this turn. Reduce the opponent to 0 life this turn and keep Grizzly Bears.
 Rule:authored-delirium-two-types | Delirium counts card types among cards in your graveyard (CR 205.2a), and an artifact creature card has two: sacrificing Ornithopter to Ashnod's Altar adds artifact and creature to instant and land, four types, so Gnarlwood Dryad attacks as a 3/3; sacrificing Grizzly Bears adds only creature
 [state]
 turn=1
 activeplayer=p0
 activephase=MAIN1
 p0life=20
-p0battlefield=Gnarlwood Dryad;Ornithopter;Grizzly Bears;Ashnod's Altar
+p0battlefield=Gnarlwood Dryad;Ornithopter|SummonSick;Grizzly Bears|SummonSick;Ashnod's Altar
 p0graveyard=Shock;Forest
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
 p1life=3
-p1battlefield=Silent Arbiter|Tapped
 p1library=Plains;Plains;Plains
 [acceptance]
 life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 337 - Exploit itself
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:It is your second main phase. You control no creatures and have Fell Stinger in hand, with three black mana floating. The opponent is at 2 life and controls a tapped Silent Arbiter. Reduce the opponent to 0 life this turn.
+Rule:authored-exploit-self | Exploit lets the creature sacrifice itself (CR 702.110a), and its "when it exploits a creature" ability still triggers even though it left the battlefield (CR 702.110b, 603.10a): Fell Stinger exploits itself and the opponent draws two and loses 2; you have no other creature to sacrifice
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fell Stinger
+p0manapool=B B B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Silent Arbiter|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
