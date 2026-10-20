@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:3:0 Solver:2:1 Solver:2:0 Solver:3:1 Solver:3:1", "search_replays": 28, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Shatter targeting [Grafdigger's Cage (10)]", "STACK_ADD: Solver cast Fling targeting [Opponent]"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 8, "uniqueness_exhausted": 8, "uniqueness_replays": 8, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p1 <= 0 (was 3)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 60
