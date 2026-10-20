@@ -178,8 +178,9 @@ amounts, order), never by the candidate's label, and records it; over the wire i
   2026-10-20) holds 79,691 decision rows, counted as every `"t":"decision"` row of every `*.jsonl` under it (`play`
   69%, `target` 7%, `attackers` 4%, then `counter-type`, `replacement-order`, `sacrifice`, `mana-sources`,
   `choose-entity`, `cleanup-discard`, `damage-assign` at 1 to 2% each, a tail of forty-plus types under 1%). The rows
-  pool every epoch they were played at, and some carry type names that predate `OWNED` (including `choose-entity`,
-  `replacement-order`, `announce-x`, `combat-cost`, `discard-cost`, `return-cost`, `static-order`, `exile-cost`) and must be mapped onto it first.
+  pool every epoch they were played at, and some carry type names that predate `OWNED` (including
+  `choose-entity`, `replacement-order`, `announce-x`, `combat-cost`, `discard-cost`, `return-cost`, `static-order`,
+  `exile-cost`) and must be mapped onto it first.
   Contexts are weighted from the same rows (`play:alt:*`, `play:opt:*`, cost kinds). A floor weight keeps rare
   surfaces worth mapping; weights and instances are versioned apart (section 2).
 - **Score** = Σ weight x (five checks pass) / Σ weight over the hidden instances, reported per hook family and per
@@ -255,24 +256,24 @@ overlay):
 ## 6. Episodes, milestones, cost, pilot
 
 GBA Eval fits a day because an emulator has one spec and one output; our week was 716 commits on main and 131 merged
-PRs, #139 to #284 (since 2026-10-15, counted from the GitHub REST API by paging `commits?since=` and closed `pulls`,
-at main 5778367), over three months of earlier work, and sessions of tens of millions of tokens, inside the range GBA Eval's own
-runs used (`tokens_used` in leaderboard.json: 5.68M to 2.35B; Opus 5 8.71M, Fable 5 41.7M, Opus 4.8 57.1M, GPT-5.5
-240.9M) and far above the 100k to 500k Mechanize gives as a generic per-task average
-([their own estimate](https://www.mechanize.work/blog/cheap-rl-tasks-will-waste-compute)). So:
+PRs, #139 to #284 (since 2026-10-15, counted from the GitHub REST API by paging `commits?since=` and closed `pulls`, at
+main 5778367), over three months of earlier work, and sessions of tens of millions of tokens (estimated, not measured:
+tokens per session are not recorded, section 7). That is inside the range of GBA Eval's graded runs (leaderboard
+`tokens_used`: 8.71M to 2.35B among graded runs that record tokens; Opus 5 8.71M, Fable 5 41.7M, Opus 4.8 57.1M, GPT-5.5
+240.9M) and far above the 100k to 500k Mechanize gives as a generic per-task average ([their own
+estimate](https://www.mechanize.work/blog/cheap-rl-tasks-will-waste-compute)). So:
 
-- **Milestone starts**, from our history (epochs from the low single digits to 70 in six days, 2026-10-15 to
-  2026-10-20: epoch 4 by 2026-10-15T04:06Z, read from the GitHub REST API; the 13 unproven hooks of
-  REVIEW-2026-10-16 S3 to 0, `surfaces` 69 to 89): M0 a
-  floor-vs-AI game writes rows; M1 an HTTP seat answers priority, attack, block and target surfaces and `garbage` never
-  beats floor; M2 engine-side `ai=0` and no silent drop over the gauntlet; M3 tool-call answers only; M4 `AskContract`
-  and invariance on every request; **M5 the surface suite**; M6 lookups and previews; M7 lines; M8 the eval layer; M9
-  the paid play score. Each start is the commit that first passed gate k, tagged by epoch; each gate a frozen subset
-  of the suite with a dense per-cell sub-score from the first commit (GBA Eval's 15-minute checkpoints).
+- **Milestone starts**, from our history (epoch 4 on 2026-10-15T04:06Z to epoch 70 on 2026-10-20, GitHub REST;
+  REVIEW-2026-10-16 S3's 13 unproven hooks to 0; `surfaces` 69 to 89): M0 a floor-vs-AI game writes rows; M1 an HTTP
+  seat answers priority, attack, block and target surfaces and `garbage` never beats floor; M2 engine-side `ai=0` and no
+  silent drop over the gauntlet; M3 tool-call answers only; M4 `AskContract` and invariance on every request; **M5 the
+  surface suite**; M6 lookups and previews; M7 lines; M8 the eval layer; M9 the paid play score. Each start is the
+  commit that first passed gate k, tagged by epoch; each gate a frozen subset of the suite with a dense per-cell
+  sub-score from the first commit (GBA Eval's 15-minute checkpoints).
 - **PR replays** (SWE-Gym, [arXiv 2412.21139](https://arxiv.org/abs/2412.21139v1)): 249 merged PRs as candidates;
   today's #280, #282, #283 and #284 took 40 minutes to just over five hours each, first commit to merge (GitHub
-  REST). **Synthetic defects** (SWE-smith, [arXiv 2504.21798](https://arxiv.org/pdf/2504.21798)): mutate `PlayerControllerLLM`, `LlmCostDecision`,
-  `AnswerTool`, keep the mutants a surface catches.
+  REST). **Synthetic defects** (SWE-smith, [arXiv 2504.21798](https://arxiv.org/pdf/2504.21798)): mutate
+  `PlayerControllerLLM`, `LlmCostDecision`, `AnswerTool`, keep the mutants a surface catches.
 - **Pilot**: (1) build the generator and measure *our own* harness on a first suite of about 2,000 instances across
   the (hook, context) cells with corpus weights, inside the existing test JVM, about three days, free; it will not
   score 1.0 (see the keyword gauntlet's first-run defects in `ARCHITECTURE.md` section 13, the keyword gauntlet). (2)
