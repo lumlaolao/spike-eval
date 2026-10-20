@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 306 - The Giant comes back from its adventure
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Bonecrusher Giant in hand with five red mana floating. The opponent controls Grizzly Bears. End the turn with Grizzly Bears in the opponent's graveyard and Bonecrusher Giant on your battlefield.
+Rule:authored-adventure-exile-cast | A card cast as an Adventure is exiled as it resolves, and its owner may later cast the creature from exile (CR 715.3d, 715.4): Stomp the Bears, then cast Bonecrusher Giant from exile; cast from hand first, the Giant can never Stomp
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Bonecrusher Giant
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+count p0 Battlefield "Bonecrusher Giant" = 1
