@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 506 - Trample through protection
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Hill Giant and have Rancor (enchanted creature gets +2/+0 and trample) and Giant Growth in hand with one green mana floating. The opponent is at 3 life and controls an untapped Kor Firewalker (2/2, protection from red). Reduce the opponent to 0 life this turn.
+Rule:authored-trample-protection-blocker | A trampler must assign lethal damage to its blockers before the player, and lethal is judged by toughness even if protection will prevent it (CR 702.19b-c): Rancor's 5/3 trampler assigns 2 to the Firewalker and 3 to the player; Giant Growth's 6/6 is simply blocked
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rancor;Giant Growth
+p0battlefield=Hill Giant
+p0manapool=G
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Kor Firewalker
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

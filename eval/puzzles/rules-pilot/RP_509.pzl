@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 509 - The prototype is cheaper and still hasty
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Blitz Automaton (6/4 haste for {7}; prototype {2}{R}: 3/2) in hand with three red mana floating. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-prototype-keeps-abilities | A prototyped permanent has the prototype's mana cost, power and toughness but keeps its other abilities (CR 702.160a-b): cast for {2}{R} it is a 3/2 with haste and attacks for 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Blitz Automaton
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

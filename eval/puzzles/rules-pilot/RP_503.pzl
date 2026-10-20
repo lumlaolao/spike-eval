@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 503 - Warp in the Hellkite
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Nova Hellkite (4/5 flying, haste; when it enters, 1 damage to target creature an opponent controls; warp {2}{R}) in hand with three red mana floating. The opponent is at 4 life and controls an untapped Birds of Paradise (0/1 flier). Reduce the opponent to 0 life this turn.
+Rule:authored-warp-etb-haste | Casting for a warp cost is an alternative cost; the creature enters normally and is exiled at the next end step (CR 702.185a): warp the Hellkite, its enters trigger kills the Birds, and it attacks unblocked for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Nova Hellkite
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Birds of Paradise
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

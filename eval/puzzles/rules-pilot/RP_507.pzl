@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 507 - Exalted on a double striker
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Fencing Ace (1/1 double strike) and Akrasan Squire (1/1 exalted). The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-exalted-double-strike | Exalted gives +1/+1 to a creature that attacks alone (CR 702.83a), and a double striker deals that power in both damage steps (CR 702.4b): Fencing Ace alone hits 2+2; the Squire alone deals 2, both together 2+1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Fencing Ace;Akrasan Squire
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

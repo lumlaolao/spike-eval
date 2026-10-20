@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 505 - The tenth permanent first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control nine tapped Islands and have Memnite and Secrets of the Golden City (draw two cards; ascend: draw three instead) in hand with three blue mana floating. End the turn with Memnite on the battlefield and three cards in hand.
+Rule:authored-ascend-ten-permanents | Ascend gives you the city's blessing if you control ten or more permanents as the spell resolves (CR 702.131b): cast Memnite first for the tenth permanent and Secrets draws three; cast Secrets first and it draws only two
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Memnite;Secrets of the Golden City
+p0battlefield=Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped
+p0manapool=U U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Memnite" = 1
+count p0 Hand * = 3
