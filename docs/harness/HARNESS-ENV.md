@@ -19,63 +19,64 @@ Pokémon, and the grade is whether the machine behaves like the reference on fix
 
 ## 1. GBA Eval, read closely
 
-Sources: the task prompt and ABI in the public repository ([TASK.md](https://raw.githubusercontent.com/mechanize-work/gba-eval/main/quickstart/task/TASK.md),
-[ABI.md](https://raw.githubusercontent.com/mechanize-work/gba-eval/main/spec/ABI.md), [README](https://github.com/mechanize-work/gba-eval),
-[grader.yaml](https://raw.githubusercontent.com/mechanize-work/gba-eval/main/corpus/grader.yaml), the corpus README),
-[Epoch AI's listing](https://epoch.ai/benchmarks/gbaeval), the [gbaeval.com blog index](https://gbaeval.com/blog),
-[Mechanize's announcement post](https://x.com/MechanizeWork/status/2061469838292496717), an
-[AlphaSignal write-up](https://alphasignal.ai/news/anthropic-s-claude-fable-5-beats-the-hardest-coding-benchmark-in-under)
-and the [rl-list vendor entry](https://www.rl-list.com/vendors/mechanize).
+Every source is listed under [Sources](#sources).
 
-**What the agent is given.** A Docker container with Rust 1.87 and the `wasm32` target, clang, cmake, python with numpy
-and scipy; `spec/ABI.md` (ten C-ABI exports the wasm must implement: init, ROM buffer and load, reset, `emu_set_keys`,
-`emu_run_frame`, a 240x160 framebuffer, audio buffer, sample count and rate); a 16 KiB clean-room BIOS stub; `gbatek.htm`,
-the standard GBA hardware reference; `dev-roms/`, example ROMs; and an `oracle` CLI, "a reference emulator, with no
-source code available", a black-box Mesen2 that runs any ROM with any input sequence. The task text: build an emulator
-"whose video and audio output matches a reference emulator across a suite of real games", cycle-accurate, handling
-button presses so games progress "past title screens, through menus, and into gameplay"; "keep working indefinitely".
+**What the agent is given.** A Docker container with Rust 1.87 and the `wasm32-unknown-unknown` target, clang 14 with
+`wasm-ld`, cmake, python3 with numpy and scipy; `spec/ABI.md` (ten C-ABI exports the wasm must implement: init, ROM
+buffer and load, reset, `emu_set_keys`, `emu_run_frame`, a 240x160 framebuffer, audio buffer, sample count and rate);
+a 16 KiB clean-room BIOS stub; `gbatek.htm`, the standard GBA hardware reference; `dev-roms/`, example ROMs; and an
+`oracle` tool, which TASK.md describes as "a GBA emulator. You do not have access to the source code." (the grader's
+reference is Mesen2, per the README). The task text: "Build a GBA emulator that matches a reference emulator's output
+— both video and audio — across a suite of real games", fully cycle-accurate, handling input "so that games progress
+past title screens, through menus, and into actual gameplay"; "You must continue working towards this goal
+indefinitely."
 
-**What is withheld or forbidden.** "No internet access. The test corpus and grading are offline." "No copying existing
-emulators." "Do not use the oracle's output as the implementation." The graded corpus is not the dev ROMs: the corpus
-README lists `roms/test/` (the open accuracy suites: armwrestler, fuzzarm, jsmolka, destoer, tonc, nba-hw, mgba-suite),
-`roms/homebrew/` (about sixteen) and `roms/commercial/` as "local-only", with replays recorded as `<frame> <keys_hex>`
-input logs; reference frames and per-replay thresholds are precomputed. Mesen2's source is not readable from the
-container.
+**What is withheld or forbidden.** TASK.md: "Do not attempt to access the internet — the test corpus and grading
+happen offline against the bundled reference, and pulling code from external sources is not what's being evaluated."
+It names no rule against copying an emulator or the oracle's output; with no network and no oracle source there is
+nothing in the container to copy. The graded corpus is not the dev ROMs, and it is not secret: `corpus/README.md`
+lists `roms/test/` (the open accuracy suites: armwrestler, fuzzarm, jsmolka, destoer, tonc, nba-hw, mgba-suite) and
+`roms/homebrew/` (sixteen games, three of them the dev ROMs "shipped in the agent task container; not in the grader
+corpus") as "Force-added to git", and only `roms/commercial/` as "Never checked in (copyrighted)". Replays are
+`<frame> <keys_hex>` input logs; reference frames and per-replay thresholds are precomputed. GBA Eval withholds the
+corpus at the container, not by secrecy: the graded ROMs sit in a public repository, but the agent's container holds
+only the dev ROMs and has no internet.
 
-**How grading works.** `overall = 0.60 x replay + 0.20 x procedural + 0.20 x audio`. Replays: "real gameplay with button
-presses, end-to-end behavior under input", frames compared against Mesen2 with per-replay thresholds; "idle-frame
-correctness alone is not sufficient". Procedural: "CPU, memory, timers, DMA, deterministic self-checking ROMs", weighted
-inside the section (cpu 0.35, memory 0.15, comprehensive 0.20, timer 0.12, dma 0.08, halt_irq 0.10). Audio: "per-frame
-log-mel spectral distance vs Mesen2", half PSG and half game audio. The config notes that adding ROMs to a subsystem
-"improves measurement precision without shifting other subsystems' weights". The harness has a `lockstep/` component,
-candidate and reference stepped together. The GBA is deterministic (no clock, no analog input), so one input log has
-one correct output.
+**How grading works.** `overall = 0.60 x replay + 0.20 x procedural + 0.20 x audio`. Replays: "Real gameplay with
+button presses — end-to-end behavior under input" (README), frames compared against Mesen2 with per-replay thresholds;
+TASK.md adds "Rendering a correct idle frame is not enough". Procedural: "CPU, memory, timers, DMA — deterministic
+self-checking ROMs", weighted inside the section (cpu 0.35, memory 0.15, comprehensive 0.20, timer 0.12, dma 0.08,
+halt_irq 0.10). Audio: "Per-frame log-mel spectral distance vs Mesen2", half PSG and half game audio. The config notes
+that adding ROMs to a subsystem "improves measurement precision without shifting other subsystems' weights". The
+harness has a `lockstep/` component, candidate and reference stepped together. The GBA is deterministic (no clock, no
+analog input), so one input log has one correct output.
 
 **Why they think it measures capability.** The README: "we hope it gives a concrete sense of what we mean when we talk
 about environments and grading"; Mechanize's essays call for replication tasks where "either the generated
-implementation behaves identically to the reference, or it doesn't" and say the hard part is that "writing effective,
-comprehensive tests is hard" ([GPT-3 moment for RL](https://www.mechanize.work/blog/the-upcoming-gpt-3-moment-for-rl/)).
+implementation behaves identically to the reference, or it doesn't" and name the hard part: "Writing effective and
+comprehensive tests remains a non-trivial task and demands substantial engineering effort"
+([GPT-3 moment for RL](https://www.mechanize.work/blog/the-upcoming-gpt-3-moment-for-rl/)).
 A multi-week human project, a spec everyone has, a reference nobody can copy, and a grade that is a profile (gameplay,
 CPU, memory, timers, DMA, audio), not one bit.
 
 **Episodes.** 24 hours a model, checkpoints every 15 minutes with score trajectories, tokens and wall clock recorded;
 attempt repositories published with commit histories and chat transcripts. Scores: GPT-5.5 0.532; Claude Opus 4.8 0.709
 (passed GPT-5.5's 24-hour score "in under an hour"); Claude Fable 5 0.745 (gameplay 91.5%, audio 44.5%; passed Opus 4.8
-in under two hours); Claude Opus 5 0.796; several open-weight models near zero. Grok Build 0.1 "hard-codes the exact
-example ROMs to fake passing in its CPU implementation" and scored 0.024: the dev ROMs are not the graded ROMs, so the
-hack bought nothing.
+in under two hours). From the gbaeval.com leaderboard, not fetched here: Claude Opus 5 0.796; several open-weight
+models near zero; Grok Build 0.1 "hard-codes the exact example ROMs to fake passing in its CPU implementation" and
+scored 0.024: the dev ROMs are not the graded ROMs, so the hack bought nothing.
 
 ## 2. The mapping, point by point
 
 | GBA Eval | Ours | Holds? |
 |---|---|---|
 | the emulator the agent writes | the harness: `PlayerControllerLLM` plus observation, prompt, tools, bridges, eval layer (`forge-overlay/`, `eval/`) | yes |
-| the CPU and hardware spec (GBATEK, ABI.md, BIOS stub) | Forge's `PlayerController` interface (133 methods; 86 strategic, 15 payment in `controller-ownership.tsv`), the 34,086 card scripts, the comprehensive rules (`data/rules/MagicCompRules.txt`), and our S2 interface contract (CLI, rows, `[TALLY]`, wire protocol) | yes; our "GBATEK" is the engine's own source, which the agent may read, as GBATEK is read |
+| the CPU and hardware spec (GBATEK, ABI.md, BIOS stub) | Forge's `PlayerController` interface (hook counts in section 3.1), the 34,086 card scripts, the comprehensive rules (`data/rules/MagicCompRules.txt`), and the proposed interface contract, SPEC-2 (CLI, rows, `[TALLY]`, wire protocol; not yet written) | yes; our "GBATEK" is the engine's own source, which the agent may read, as GBATEK is read |
 | the oracle: a black-box reference emulator with no source | an instrumented Forge plus our harness at a pinned epoch, reachable only as a service: "play this instance with this answer and tell me the end state" | yes, with the same rule: its output may be consulted, never used as the implementation |
 | dev ROMs | the public development suite: the sweep's 553 named cards, the 28 gauntlet decks, the golden boards, h_0 and h_1 | yes |
-| the hidden corpus: accuracy suites, homebrew, commercial local-only | the hidden surface instances (every decision kind x context, generated from card scripts with fresh seeds) and puzzle lines with `[solution]` | yes; Grok's lesson is why instances must be generated, not listed |
+| the graded corpus: accuracy suites and homebrew force-added to git, commercial never checked in; none of it in the agent's container | the hidden surface instances (every decision kind x context, generated from card scripts with fresh seeds) and puzzle lines with `[solution]` | yes, withheld the same way, at the container; Grok's lesson is why instances must be generated, not listed |
 | procedural self-checking ROMs (cpu, memory, timer, dma, halt_irq), 20% | the per-surface deterministic checks: one hook in one context, asked / offered / shown / carried out / no parse; subsystem weights by hook family | yes, and this is our primary grader (section 3), weighted higher than theirs |
-| gameplay replays under input, 60%, "idle-frame correctness is not sufficient" | full games through the candidate seat with a scripted or fake model (`random`, `first`, `pass` policies on the gauntlet decks and fresh seeds), compared in lockstep with the reference trace: every ask, every option list, every end state | yes; and the same warning: a seat that passes only on PASS is "idle-frame correct" |
+| gameplay replays under input, 60% | full games through the candidate seat with a scripted or fake model (`random`, `first`, `pass` policies on the gauntlet decks and fresh seeds), compared in lockstep with the reference trace: every ask, every option list, every end state | yes; the idle-frame warning carries over (section 4) |
 | audio, 20%: a second output channel compared by a distance, not equality | the observation: what the seat is shown, compared by `AskContract` plus a fact check, not byte equality | partly; see where it breaks |
 | per-replay thresholds, partial credit, a profile per subsystem | per-cell scores by hook and context, weighted by real-game frequency; the gates (`ai=0`, no silent drop, no parse) | yes |
 | Mesen2 as the one reference | our harness at a pinned epoch as the one reference, with its known gaps in `MODEL-LIMITS.md`, `surface_gaps.txt` | yes, and the same risk: a reference bug becomes the standard |
@@ -86,19 +87,16 @@ hack bought nothing.
 1. **The harness has a second quality dimension the emulator lacks: what the model is shown.** An emulator's output is a
    frame; equality is the whole question. A seat's "output" to the engine is a legal object (checkable), but its output
    to the model is a prompt, and "showed what the decision turns on" is a judgement. GBA Eval's audio channel is the
-   nearest analogue: graded by a distance with a threshold, not equality. Ours is `AskContract` (a lint: the DECISION
-   line, the source's rules text, each option whose and at what cost, nothing cut, no engine id, numbered 1..n) plus a
-   fact check (the objects the decision involves are named), and the hidden-state invariance test (two instances
-   differing only in hidden state must produce identical requests). It is weaker than the other four checks and is
-   weighted like audio, not like replays.
+   nearest analogue: graded by a distance with a threshold, not equality. Ours is the "shown" check of section 3.3.
+   It is weaker than the other four checks and is weighted like audio, not like replays.
 2. **Legality is the engine's, not the candidate's.** In GBA Eval the candidate can be wrong about the hardware; in
    ours the engine refuses illegal moves, so the candidate cannot play illegally. What it can do is hide a legal move,
    decide one itself, or hand one to Forge's AI. The surface test therefore checks the *menu* and the *asker*, where
    an emulator test checks the *result*.
-3. **The reference is ours and is young.** Mesen2 is years of cycle-accuracy work; our reference is at epoch 69, with
-   defects still being found weekly (three in g27, g28, g33 alone). A candidate that disagrees with the reference may be
-   right. GBA Eval accepts this; we should keep the engine as the oracle of legality wherever possible, and use the
-   reference seat only for the end-state diff.
+3. **The reference is ours and is young.** Mesen2 is years of cycle-accuracy work; our reference is at epoch 70 (main,
+   PR #284), with defects still being found weekly (three in g27, g28, g33 alone). A candidate that disagrees with the
+   reference may be right. GBA Eval accepts this; we should keep the engine as the oracle of legality wherever
+   possible, and use the reference seat only for the end-state diff.
 4. **No single input log.** A GBA replay is one key sequence; a Magic game has two players and hidden information. The
    scripted answer must be chosen by engine identity, and the opponent must be a fixed arm.
 5. **The spec is partly the engine's source.** GBATEK is a document; ours is the engine's Java, which the agent reads
@@ -107,20 +105,20 @@ hack bought nothing.
 
 **What GBA Eval's choices imply for ours.**
 
-- **Spec given, reference black-boxed, corpus withheld.** Give the spec (S0 to S2), give the engine, give a reference
-  service, withhold the surface instances and the lines, and generate the hidden set fresh. Grok's 0.024 is the
-  argument for generation over a list.
-- **No copying.** GBA Eval forbids copying existing emulators and has nothing to copy from offline. We must withhold
-  our own code and history (283 PRs with the fix for every defect in their bodies) and the public repository is the
-  contamination risk for any model trained after today.
+- **Spec given, reference black-boxed, corpus withheld.** Give the spec (SPEC-0 to SPEC-2), give the engine, give a
+  reference service, withhold the surface instances and the lines, and generate the hidden set fresh.
+- **Nothing to copy inside the container.** GBA Eval keeps the agent off the internet and the oracle's source out of
+  reach; its corpus is public and absent only from the container. We must keep our own code and history (249 merged
+  PRs with the fix for every defect in their bodies) out of the container the same way, and the public repository
+  stays the contamination risk for any model trained after today, as GBA Eval's public corpus is for its own.
 - **Partial credit as a profile.** Their leaderboard reads 91.5% gameplay against 44.5% audio for one model; ours
   should read per hook family and per context, so "maps combat but not costs" is a sentence the score can say.
 - **Precision by adding cases without moving weights.** Their config note is the rule for our suite: more instances
   in a cell sharpen that cell; the weights come from real-game frequency and are versioned apart.
 - **Checkpoints with trajectories.** A score every 15 minutes made "beat the previous best in under an hour" a
-  statement. Our episodes should grade a sampled hundred surfaces at every commit (under a minute) and keep the curve.
-- **Episode length.** 24 hours was enough for 0.8 of an emulator; our week was 490 commits. The task must be cut into
-  milestone starts (section 6), or the first milestones only, to fit a day.
+  statement. Our episodes should grade a sample at every commit and keep the curve (cost: section 3.4).
+- **Episode length.** 24 hours was enough for three-quarters of an emulator; our week was far more than a day's work
+  (section 6). The task must be cut into milestone starts, or the first milestones only, to fit a day.
 
 ## 3. The primary grader: the surface test
 
@@ -133,8 +131,8 @@ the weight of its replay suite.
 
 1. **Hooks**: `PlayerController` by reflection, classified by the ledger (133; 86 strategic, 15 payment). Proven today:
    the `surfaces` stage reaches 89 hooks with the model asked, `human_decisions.py` finds 0 `PlayerControllerHuman` asks
-   unowned, `GoldenChecksTest.OWNED` names 77 seat decision types with one golden check each (159 tests) and the five
-   `Surface*ChoicesTest` classes add 28.
+   unowned, `GoldenChecksTest.OWNED` names 78 seat decision types with one golden check each (170 `@Test` methods in
+   the class) and `Surface*ChoicesTest` and `SurfaceCombatSurfacesTest` add 28.
 2. **Contexts**, from the engine's enumerations: `AlternativeCost` and `OptionalCost` (the 44 ways to play a card,
    `play_gaps.txt` empty since epoch 39); the `CostPart` subclasses (sacrifice, exile, tap-type, discard, return, pay
    life, remove counters, Phyrexian, convoke, delve, keyword counts); asking `ApiType`s (charm modes, dig piles, choose
@@ -176,11 +174,14 @@ amounts, order), never by the candidate's label, and records it; over the wire i
 
 ### 3.4 Coverage, weights, held-out, cost
 
-- **Weights** from recorded play: this clone's `runs/` holds 79,691 decision rows (`play` 69%, `target` 7%, `attackers`
-  4%, then `counter-type`, `replacement-order`, `sacrifice`, `mana-sources`, `choose-entity`, `cleanup-discard`,
-  `damage-assign` at 1 to 2% each, a tail of forty-plus types under 1%); contexts weighted from the same rows
-  (`play:alt:*`, `play:opt:*`, cost kinds). A floor weight keeps rare surfaces worth mapping; a weights file is
-  versioned with the suite, and adding instances to a cell sharpens it without moving the others (GBA Eval's rule).
+- **Weights** from recorded play: a local clone's uncommitted `runs/` (`/home/user/mtg-forge-llm-agent/runs`, on
+  2026-10-20) holds 79,691 decision rows, counted as every `"t":"decision"` row of every `*.jsonl` under it (`play`
+  69%, `target` 7%, `attackers` 4%, then `counter-type`, `replacement-order`, `sacrifice`, `mana-sources`,
+  `choose-entity`, `cleanup-discard`, `damage-assign` at 1 to 2% each, a tail of forty-plus types under 1%). The rows
+  pool every epoch they were played at, and some carry type names that predate `OWNED` (`choose-entity`,
+  `replacement-order`, `announce-x`, `combat-cost`, `discard-cost`, `return-cost`) and must be mapped onto it first.
+  Contexts are weighted from the same rows (`play:alt:*`, `play:opt:*`, cost kinds). A floor weight keeps rare
+  surfaces worth mapping; weights and instances are versioned apart (section 2).
 - **Score** = Σ weight x (five checks pass) / Σ weight over the hidden instances, reported per hook family and per
   context, **gated** by run-wide invariants: engine-side `ai=0`, no silent drop, no parse, no engine file changed
   unmarked.
@@ -209,23 +210,25 @@ amounts, order), never by the candidate's label, and records it; over the wire i
 - **Replays = full games through the candidate seat** with a scripted or fake model on the gauntlet decks and fresh
   seeds, in lockstep with the reference trace: the sequence of asks, each option list, each end state. This is GBA
   Eval's 60%; here it is second to the surface suite because the surfaces already isolate each cell, and a game is
-  where cells compose (the states between plays the sweep cannot reach: combat, upkeep, death, end step). "Idle-frame
-  correctness is not sufficient" reads here as: the `pass` policy proves nothing about plays, attacks or blocks, which
-  the canary history already taught (`CLAUDE.md`: floor never reaches the play menu).
-- **Lines**: `h_0`, `h_1` with `[solution]`, 534 manifest rows with prover `solution_actions` convertible to lines,
-  Forge's puzzles. A line that plays exactly as written (no drift, every line played, `plays_not_made=0`) and reaches
-  its `[acceptance]` state checks that surfaces compose and that the engine's ruling survived the harness. Today's
-  puzzle runs reach 40 of 77 decision types and 453 of 526 rules puzzles are one or two actions; a secondary, cheap
-  (seconds a line), already-proven suite.
+  where cells compose (the states between plays the sweep cannot reach: combat, upkeep, death, end step). TASK.md's
+  "Rendering a correct idle frame is not enough" reads here as: the `pass` policy proves nothing about plays, attacks
+  or blocks, which the canary history already taught (`CLAUDE.md`: floor never reaches the play menu).
+- **Lines**: `h_0`, `h_1` with `[solution]`, 520 converted puzzles with prover `solution_actions`
+  (`eval/puzzles/rules-pilot/manifest.jsonl`), Forge's puzzles. A line that plays exactly as written (no drift, every
+  line played, `plays_not_made=0`) and reaches its `[acceptance]` state checks that surfaces compose and that the
+  engine's ruling survived the harness. The puzzle rows in the same local `runs/puzzles` reach 30 of the 78 `OWNED`
+  types (six more under pre-`OWNED` names), and most rules puzzles are one or two actions (`BENCHMARK-V2.md` section
+  1); a secondary, cheap (seconds a line), already-proven suite.
 - **The play benchmark** (STR-AI, PUZ with a real model, intervals beside floors) is the ride: scored last, only on a
   seat at the ceiling on surfaces, and reported as its own number.
 
 ## 5. The spec, the owner, the hacks
 
-**Spec** (given): S0 the goal (`CLAUDE.md`), S1 the owner rules (`CLAUDE.md`, `STANDARDS.md` section 8's twenty rows),
-S2 the interface contract (CLI environment, rows, `[TALLY]`, wire protocol, `.pzl` sections, what a seat may know,
-tools, fallbacks: `ARCHITECTURE.md` with the "why" and the file names removed). **Withheld**: our code, 920 Java and 444
-Python tests, the history, the game-loop log, acceptance records, canary pins, lines, generator seeds. **Reference**:
+**Spec** (given): SPEC-0 the goal (`CLAUDE.md`), SPEC-1 the owner rules (`CLAUDE.md`, `STANDARDS.md` section 8's
+twenty rows), SPEC-2 the interface contract, proposed and not yet written (CLI environment, rows, `[TALLY]`, wire
+protocol, `.pzl` sections, what a seat may know, tools, fallbacks: `ARCHITECTURE.md` with the "why" and the file names
+removed). **Withheld**: our code, its Java tests (924 in `ACCEPTANCE.md`'s latest recorded run) and Python tests, the
+history, the game-loop log, acceptance records, canary pins, lines, generator seeds. **Reference**:
 instrumented Forge plus our seat at a pinned epoch as a service, consulted not copied.
 
 **The owner** becomes a decision file behind an `ask_owner` tool (`DECISIONS.jsonl`: date, question, answer, rejected
@@ -251,38 +254,40 @@ overlay):
 
 ## 6. Episodes, milestones, cost, pilot
 
-GBA Eval fits a day because an emulator has one spec and one output; our week was 490 commits on 64 merged PRs
-(2026-10-15 to 2026-10-20) over three months of earlier work, and sessions of tens of millions of tokens against
+GBA Eval fits a day because an emulator has one spec and one output; our week was 716 commits on main and 131 merged
+PRs, #139 to #284 (since 2026-10-15, counted from the GitHub REST API by paging `commits?since=` and closed `pulls`,
+at main 5778367), over three months of earlier work, and sessions of tens of millions of tokens against
 Mechanize's 100k to 500k ([their own estimate](https://www.mechanize.work/blog/cheap-rl-tasks-will-waste-compute)). So:
 
-- **Milestone starts**, from our history (epochs 30 to 69 in nine days, ownership 13 to 0, `surfaces` 69 to 89): M0 a
+- **Milestone starts**, from our history (epochs 26 to 70 in five days, 2026-10-16 to 2026-10-20: the clone's first
+  commit is at epoch 26 and epoch 30 landed on 2026-10-16; ownership 13 to 0, `surfaces` 69 to 89): M0 a
   floor-vs-AI game writes rows; M1 an HTTP seat answers priority, attack, block and target surfaces and `garbage` never
   beats floor; M2 engine-side `ai=0` and no silent drop over the gauntlet; M3 tool-call answers only; M4 `AskContract`
   and invariance on every request; **M5 the surface suite**; M6 lookups and previews; M7 lines; M8 the eval layer; M9
   the paid play score. Each start is the commit that first passed gate k, tagged by epoch; each gate a frozen subset
   of the suite with a dense per-cell sub-score from the first commit (GBA Eval's 15-minute checkpoints).
-- **PR replays** (SWE-Gym, [arXiv 2412.21139](https://arxiv.org/abs/2412.21139v1)): 283 candidates; 96 fix or feat
-  commits touch the overlay and a test; tonight's #280, #282, #283 are one to six hours each. **Synthetic defects**
-  (SWE-smith, [arXiv 2504.21798](https://arxiv.org/pdf/2504.21798)): mutate `PlayerControllerLLM`, `LlmCostDecision`,
+- **PR replays** (SWE-Gym, [arXiv 2412.21139](https://arxiv.org/abs/2412.21139v1)): 249 merged PRs as candidates;
+  today's #280, #282, #283 and #284 took 40 minutes to five and a half hours each, first commit to merge (GitHub
+  REST). **Synthetic defects** (SWE-smith, [arXiv 2504.21798](https://arxiv.org/pdf/2504.21798)): mutate `PlayerControllerLLM`, `LlmCostDecision`,
   `AnswerTool`, keep the mutants a surface catches.
-- **Pilot**: (1) build the generator and measure *our own* harness on a first suite of about 2,000 instances across the
-  (hook, context) cells with corpus weights, inside the existing test JVM, about three days, free; the sweep's history
-  says it will not score 1.0 (its first runs found an unpayable craft, a 999-times window, a StackOverflowError, Squad
-  answered 1.2 billion). (2) Move the checks into a grader-side engine patch set and the script policy onto the wire;
-  re-run through the wire. (3) Twenty PR replays graded by the suite. (4) One from-scratch M1 episode graded only by the
-  instrumented engine and the suite's priority, attack, block and target cells: if M1 cannot be graded without our
-  code, nothing later can. (5) Replays and lines as the end-to-end check, then about $0.30 of paid STR-AI games last.
+- **Pilot**: (1) build the generator and measure *our own* harness on a first suite of about 2,000 instances across
+  the (hook, context) cells with corpus weights, inside the existing test JVM, about three days, free; it will not
+  score 1.0 (see the keyword gauntlet's first-run defects in `ARCHITECTURE.md` section 13, the keyword gauntlet). (2)
+  Move the checks into a grader-side engine patch set and the script policy onto the wire; re-run through the wire.
+  (3) Twenty PR replays graded by the suite. (4) One from-scratch M1 episode graded only by the instrumented engine
+  and the suite's priority, attack, block and target cells: if M1 cannot be graded without our code, nothing later
+  can. (5) Replays and lines as the end-to-end check, then about $0.30 of paid STR-AI games last.
 
 ## 7. What this says about our process now
 
 - Build the surface generator and run it on ourselves first: it is a grader for an environment and a free, model-less
   gate for us; the sweep and the `surfaces` stage are two-thirds of it.
 - Move the invariants into a grader-side engine patch set that does not trust the overlay it measures.
-- Write the interface contract (S2) as its own document; it is the ABI.md of this bike.
+- Write the interface contract (SPEC-2) as its own document; it is the ABI.md of this bike.
 - Keep a weights file from the corpus (`runs/` is uncommitted and partly gone), one decision file, the PR bodies'
-  review rounds (the transcripts GBA Eval publishes), the acceptance `OUT=` directories (tonight's are in
-  `/tmp/puzzle-scratch/acc/`), tokens and wall clock per PR (the checkpoint trajectory), and epoch tags (this clone is
-  shallow, 490 commits since 2026-10-15).
+  review rounds (the transcripts GBA Eval publishes), the acceptance `OUT=` directories (today's sit in
+  `/tmp/puzzle-scratch/acc/` and are not kept, which is the reason to archive them), tokens and wall clock per PR (the
+  checkpoint trajectory), and epoch tags (this clone is shallow; history counts come from the GitHub API).
 - Withhold what will be withheld: generator seeds, the hidden suite, the lines and the private puzzle split
   (`BENCHMARK-V2.md` decision D) must leave the public repository before they are a grader.
 
@@ -292,6 +297,7 @@ Mechanize's 100k to 500k ([their own estimate](https://www.mechanize.work/blog/c
   [quickstart/task/TASK.md](https://raw.githubusercontent.com/mechanize-work/gba-eval/main/quickstart/task/TASK.md);
   [spec/ABI.md](https://raw.githubusercontent.com/mechanize-work/gba-eval/main/spec/ABI.md);
   [corpus/grader.yaml](https://raw.githubusercontent.com/mechanize-work/gba-eval/main/corpus/grader.yaml);
+  [corpus/README.md](https://raw.githubusercontent.com/mechanize-work/gba-eval/main/corpus/README.md);
   [corpus](https://github.com/mechanize-work/gba-eval/tree/main/corpus), [harness](https://github.com/mechanize-work/gba-eval/tree/main/harness),
   [quickstart](https://github.com/mechanize-work/gba-eval/tree/main/quickstart); [gbaeval.com](https://gbaeval.com/) and its
   [blog index](https://gbaeval.com/blog) (posts: "Grok Build 0.1 (unsuccessfully) reward-hacks GBA Eval", "How gameplay
@@ -310,6 +316,7 @@ Mechanize's 100k to 500k ([their own estimate](https://www.mechanize.work/blog/c
 - This repository: `CLAUDE.md`; `docs/STANDARDS.md` section 8; `docs/harness/ARCHITECTURE.md`, `ACCEPTANCE.md`,
   `BENCHMARK-V2.md`, `HARD-PUZZLES.md`, `GAME-LOOP-LOG.md`, `controller-ownership.tsv`; `eval/harness_acceptance.sh`
   (`surfaces`), `defect_analyzer.py`, `match_review.py`, `fake_model_server.py`, `puzzle_baselines.py`,
-  `human_decisions.py`; `KeywordSurfaceSweepTest.java`, `GoldenChecksTest.OWNED`, `Surface*ChoicesTest`, `AskContract.java`,
-  `ScriptBridge.java`, `LlmSpikeGui.SURFACE_REPORT`; `eval/puzzles/rules-pilot/manifest.jsonl`, `eval/puzzles/hard/`;
-  PR bodies #270 to #283; `runs/` row counts; `forge-gui/res/cardsfolder` (34,086 scripts).
+  `human_decisions.py`; `KeywordSurfaceSweepTest.java`, `GoldenChecksTest.OWNED`, `Surface*ChoicesTest`,
+  `SurfaceCombatSurfacesTest`, `AskContract.java`, `ScriptBridge.java`, `LlmSpikeGui.SURFACE_REPORT`;
+  `eval/puzzles/rules-pilot/manifest.jsonl`, `eval/puzzles/hard/`; `VERSIONS.md`; PR bodies #270 to #284; the GitHub
+  REST API (commit and PR counts); `runs/` row counts; `forge-gui/res/cardsfolder` (34,086 scripts).
