@@ -38,6 +38,10 @@ final class ToolAnswerBridge implements LLMBridge {
     @Override public int getLastCompletionTokens() { return script.getLastCompletionTokens(); }
     @Override public long getBilledPromptTokens() { return script.getBilledPromptTokens(); }
     @Override public long getBilledCompletionTokens() { return script.getBilledCompletionTokens(); }
+    @Override public int getLastCachedTokens() { return script.getLastCachedTokens(); }
+    @Override public int getLastCacheWriteTokens() { return script.getLastCacheWriteTokens(); }
+    @Override public String getLastProvider() { return script.getLastProvider(); }
+    @Override public String getLastFinishReason() { return script.getLastFinishReason(); }
 
     @Override
     public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
@@ -68,7 +72,6 @@ final class ToolAnswerBridge implements LLMBridge {
     /** The script's reply as `answer` arguments: its last tagged line, or KEEP / MULLIGAN. */
     static String toArgs(String reply, String prompt) {
         JsonObject a = new JsonObject();
-        if (reply == null) return a.toString();
         String tag = null, value = null;
         Matcher m = TAG.matcher(reply);
         while (m.find()) { tag = m.group(1); value = m.group(2).trim(); }
