@@ -325,8 +325,11 @@ public final class LlmSpikeGui {
      *  Epoch 67 (2026-10-20, benchmark sample v1): a rules puzzle's <puzzle> block, and the Puzzle Goal card
      *  `inspect` reads, are its author's description and turn limit only; Forge's header said "Goal: Survive" on 148
      *  of 526 whose acceptance is `life p1 <= 0`, and its Name and Difficulty lines named the rule being tested.
+     *  Epoch 68 (2026-10-20, hard draft h_0): Forge's AI-only payment hints (AIPhyrexianPayment: Gitaxian Probe's
+     *  "Never") no longer decide what the seat may cast; a Phyrexian cost payable only with life is paid by the
+     *  harness. Probe with no blue source was "(not castable now)" and off the menu.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-67";
+    static final String HARNESS_EPOCH = "harness-epoch-68";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
