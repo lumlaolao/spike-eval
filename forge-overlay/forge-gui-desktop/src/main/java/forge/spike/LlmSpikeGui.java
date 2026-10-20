@@ -1943,8 +1943,8 @@ public final class LlmSpikeGui {
 
         /** Choices that make no second solution on their own (rules puzzle batch 3: 18 correct puzzles were called
          *  "multiple" for them): the order of cards moved together or of triggers and replacements, which source paid,
-         *  a scry or a clash (top or bottom, batch 14b2), a confirm prompt, a library pick declined and made again, mana paid from the pool or the colour an
-         *  any-colour source made (a "choose a color" effect is asked under this type too, a known blind spot). Where one
+         *  a scry or a clash (top or bottom, batch 14b2), a confirm prompt, a library pick declined and made again,
+         *  mana paid from the pool or the colour an any-colour source made (a "choose a color" effect is asked under this type too, a known blind spot). Where one
          *  decides the result, the result
          *  differs in the solver's actions or in a choice that is noted. */
         static final java.util.Set<String> UNIQUENESS_NEUTRAL = new java.util.HashSet<>(java.util.Arrays.asList(

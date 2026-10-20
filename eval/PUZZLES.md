@@ -126,8 +126,10 @@ whose solver actions (its game-log actions) or solver choices the log does not s
 number, a card named; card handles dropped) differ, and which is itself proven against every opponent reply. The
 choices that make no second solution on their own are not compared either (`UNIQUENESS_NEUTRAL`: an order, a
 scry or clash, a confirm, which source paid, ...), and a choice's label drops the object's current size, negative
-sizes included (a target shown as "(5/5)" before Mystic Subdual and "(-1/1)" after is one choice). The final state is deliberately not compared: the opponent's replies change it too (RP_045's first check called a line
-where the opponent's Scavenging Ooze ate a card a second solution). `uniqueness_difference` lists what differed.
+sizes included (a target shown as "(5/5)" before Mystic Subdual and "(-1/1)" after is one choice), and so does a
+planeswalker's current loyalty. The final state is deliberately not compared: the opponent's replies change it too
+(RP_045's first check called a line where the opponent's Scavenging Ooze ate a card a second solution).
+`uniqueness_difference` lists what differed.
 `PZL_SEARCH_LINES` (default 32; it was 4, which gave up on RP_034) bounds the lines tried per choice point.
 `uniqueness`: `unique` (none found) or `multiple` (`uniqueness_second_line` and `uniqueness_second_actions`
 show it); `uniqueness_exhausted` of `uniqueness_deviations` deviations were played out completely, and when all
