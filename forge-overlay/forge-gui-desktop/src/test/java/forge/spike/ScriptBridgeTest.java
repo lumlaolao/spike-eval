@@ -29,7 +29,7 @@ public class ScriptBridgeTest {
             + "  3) ACTIVATE Island @3 [{T}: Add {U}.]\n"
             + "  4) PASS (do nothing)\n"
             + "If you PASS, you may also give `yield` in your `answer`.\n"
-            + "ANSWER: call `answer` with `option`: one number from the list.";
+            + AnswerTool.instruction(AnswerTool.Spec.one(4), false);
 
     private static final String TARGET = "== Turn 1 MAIN2 (active: Solver | priority: you) ==\n\n"
             + "DECISION: Choose the TARGET for Snakeform @2 2{G/U} [Until end of turn, target creature loses all"
@@ -38,7 +38,7 @@ public class ScriptBridgeTest {
             + "  1) Thing in the Ice 0/4 [untapped] [Ice x2] [defender] @4 [Battlefield, yours]\n"
             + "  2) Grizzly Bears 2/2 [untapped] @5 [Battlefield, yours]\n"
             + "  3) CANCEL: do not take this action; go back to the action menu\n"
-            + "ANSWER: call `answer` with `option`: one number from the list.";
+            + AnswerTool.instruction(AnswerTool.Spec.one(3), false);
 
     private static final String TWO_TUNDRA = "== Turn 3 UPKEEP (active: Seat | priority: you) ==\n\n"
             + "DECISION: You have priority (UPKEEP, instant-speed window). Choose ONE action:\n"
@@ -46,14 +46,14 @@ public class ScriptBridgeTest {
             + "  2) ACTIVATE Tundra @25 [{T}: Add {U}.]\n"
             + "  3) ACTIVATE Mox Ruby @28 [{T}: Add {R}.]\n"
             + "  4) PASS (do nothing)\n"
-            + "ANSWER: call `answer` with `option`: one number from the list.";
+            + AnswerTool.instruction(AnswerTool.Spec.one(4), false);
 
     private static final String TWO_ISLANDS = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\n"
             + "DECISION: You have priority (MAIN1, your main phase). Choose ONE action:\n"
             + "  1) ACTIVATE Island @3 [{T}: Add {U}.]\n"
             + "  2) ACTIVATE Island @6 [{T}: Add {U}.]\n"
             + "  3) PASS (do nothing)\n"
-            + "ANSWER: call `answer` with `option`: one number from the list.";
+            + AnswerTool.instruction(AnswerTool.Spec.one(3), false);
 
     private static final String ATTACK = "== Turn 1 COMBAT_DECLARE_ATTACKERS (active: Solver | priority: you) ==\n\n"
             + "DECISION: COMBAT: declare attackers against Opponent (life 11). Choose which creatures attack; you may"
@@ -61,7 +61,7 @@ public class ScriptBridgeTest {
             + "Choose between 0 and 2 of these (by number):\n"
             + "  1) Goblin Electromancer (4/4)\n"
             + "  2) Thermo-Alchemist (0/3)\n"
-            + "ANSWER: call `answer` with `options`: the numbers you pick, between 0 and 2 (an empty list for none).";
+            + AnswerTool.instruction(AnswerTool.Spec.many(2, 0, 2), false);
 
     private static final String MANA = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\n"
             + "DECISION: MANA: you are paying {1}{B} for CAST Animate Dead @9 1{B} [Animate Dead]. It needs 2 of your"
@@ -70,20 +70,20 @@ public class ScriptBridgeTest {
             + "Choose between 0 and 2 of these (by number):\n"
             + "  1) Swamp [untapped] @3 [Battlefield, yours] — {T}: Add {B}.\n"
             + "  2) Mountain [untapped] @4 [Battlefield, yours] — {T}: Add {R}.\n"
-            + "ANSWER: call `answer` with `options`: the numbers you pick, between 0 and 2 (an empty list for none).";
+            + AnswerTool.instruction(AnswerTool.Spec.many(2, 0, 2), false);
 
     private static final String X = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\n"
             + "DECISION: Choose X for CAST Prismatic Ending @34 {X}{W} (you can pay for X up to 11)\n"
             + "Options:\n"
             + "  1) 0\n  2) 1\n  3) 10\n  4) 11\n"
-            + "ANSWER: call `answer` with `option`: one number from the list.";
+            + AnswerTool.instruction(AnswerTool.Spec.one(4), false);
 
     private static final String BLOCKS = "== Turn 2 COMBAT_DECLARE_BLOCKERS (active: Opponent | priority: you) ==\n\n"
             + "DECISION: COMBAT — declare blockers. Incoming: Tajic, Blade of the Legion 2/2 @1, Grizzly Bears 2/2 @2.\n"
             + "ATTACKERS: 1 = Tajic, Blade of the Legion 2/2 @1; 2 = Grizzly Bears 2/2 @2\n"
             + "YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = Boggart Ram-Gang 3/3 @4\n"
-            + "ANSWER: call `answer` with `blocks`: pairs of a blocker number and an attacker number (an empty list for"
-            + " no blocks).";
+            + AnswerTool.instruction(AnswerTool.Spec.blocks(Arrays.asList("Typhoid Rats", "Boggart Ram-Gang"),
+                    Arrays.asList("Tajic", "Grizzly Bears")), false);
 
     private static String messages(String... userThenTool) {
         JsonArray a = new JsonArray();
@@ -195,6 +195,71 @@ public class ScriptBridgeTest {
         Assert.assertNull(b.drift);
     }
 
+    private static final String TWIN_BLOCKERS = BLOCKS.replace("YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = Boggart Ram-Gang 3/3 @4",
+            "YOUR BLOCKERS: 1 = Llanowar Elves 1/1 @3; 2 = Llanowar Elves 3/3 @4");
+    private static final String TWIN_ATTACKERS = BLOCKS.replace("ATTACKERS: 1 = Tajic, Blade of the Legion 2/2 @1; 2 = Grizzly Bears 2/2 @2",
+            "ATTACKERS: 1 = Grizzly Bears 2/2 @1; 2 = Grizzly Bears 2/2 @2");
+    private static final String SAME_BLOCKERS = BLOCKS.replace("YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = Boggart Ram-Gang 3/3 @4",
+            "YOUR BLOCKERS: 1 = Goblin Guide 2/2 @3; 2 = Goblin Guide 2/2 @4");
+
+    /** A block names each side as an option is named: two different blockers that fit is ambiguous, twin blockers take
+     *  turns, and twin attackers must be told apart by handle (pr-review of PR #276: the first fit was taken). */
+    @Test
+    public void blocksAreMatchedLikeOptions() {
+        ScriptBridge diff = script("Llanowar Elves -> Grizzly Bears");
+        answer(diff, TWIN_BLOCKERS);
+        Assert.assertNotNull(diff.drift, "a 1/1 and a 3/3 Elves: which one blocks is the line's to say");
+        ScriptBridge sized = script("Llanowar Elves 3/3 -> Grizzly Bears");
+        Assert.assertEquals(answer(sized, TWIN_BLOCKERS).getAsJsonArray("blocks").toString(), "[{\"blocker\":2,\"attacker\":2}]");
+        ScriptBridge twins = script("Goblin Guide -> Tajic; Goblin Guide -> Grizzly Bears");
+        Assert.assertEquals(answer(twins, SAME_BLOCKERS).getAsJsonArray("blocks").toString(),
+                "[{\"blocker\":1,\"attacker\":1},{\"blocker\":2,\"attacker\":2}]", "twin blockers take turns");
+        ScriptBridge bears = script("Typhoid Rats -> Grizzly Bears; Boggart Ram-Gang -> Grizzly Bears");
+        answer(bears, TWIN_ATTACKERS);
+        Assert.assertNotNull(bears.drift, "two Bears attack: one each or a double block is the line's to say, by handle");
+        ScriptBridge handles = script("Typhoid Rats -> Grizzly Bears 2/2 @1; Boggart Ram-Gang -> Grizzly Bears 2/2 @2");
+        Assert.assertEquals(answer(handles, TWIN_ATTACKERS).getAsJsonArray("blocks").toString(),
+                "[{\"blocker\":1,\"attacker\":1},{\"blocker\":2,\"attacker\":2}]");
+        Assert.assertNull(handles.drift);
+    }
+
+    @Test
+    public void aLineForAnotherStepAtAnotherDecisionDrifts() {
+        ScriptBridge b = script("at COMBAT_DECLARE_BLOCKERS: Thing in the Ice");
+        answer(b, TARGET);
+        Assert.assertNotNull(b.drift);
+        Assert.assertTrue(b.drift.contains("another step"), b.drift);
+    }
+
+    @Test
+    public void aTextAskIsADrift() {
+        ScriptBridge b = script("cast Divination");
+        Assert.assertNull(b.ask("CHOICE: <number>"));
+        Assert.assertNotNull(b.drift);
+    }
+
+    @Test
+    public void afterADriftEveryAnswerIsTheLeastAllowed() {
+        ScriptBridge b = script("nothing fits this");
+        answer(b, TARGET);
+        String exactly = ATTACK.replace(AnswerTool.instruction(AnswerTool.Spec.many(2, 0, 2), false),
+                AnswerTool.instruction(AnswerTool.Spec.many(2, 2, 2), false));
+        Assert.assertEquals(answer(b, exactly).getAsJsonArray("options").size(), 2, "exactly 2: the first two");
+        String number = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose a number.\n"
+                + AnswerTool.instruction(AnswerTool.Spec.number(1, 5), false);
+        Assert.assertEquals(answer(b, number).get("number").getAsInt(), 1);
+        String amounts = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Divide 3 damage.\n"
+                + AnswerTool.instruction(AnswerTool.Spec.alloc(2, 3), false);
+        Assert.assertEquals(answer(b, amounts).getAsJsonArray("amounts").toString(), "[3,0]");
+    }
+
+    @Test
+    public void theRowStampsWhichLineWasPlayed() {
+        ScriptBridge a = script("cast Divination"), b = script("cast Snakeform");
+        Assert.assertNotEquals(a.report().get("script_sha256"), b.report().get("script_sha256"));
+        Assert.assertEquals(a.report().get("script_sha256"), script("cast Divination").report().get("script_sha256"));
+    }
+
     @Test
     public void anExactLabelWinsOverLongerOnes() {
         ScriptBridge b = script("1", "11");
@@ -218,9 +283,15 @@ public class ScriptBridgeTest {
         Assert.assertEquals(answer(b, MANA).getAsJsonArray("options").size(), 0);
         Assert.assertNull(b.drift);
         Assert.assertEquals(b.unconsumed(), 1);
-        ScriptBridge keep = script("Mountain", "cast Divination");
+        Assert.assertEquals(b.untapsLeft, 1);
+        ScriptBridge keep = script("untap: Mountain", "cast Divination");
         Assert.assertEquals(answer(keep, MANA).getAsJsonArray("options").toString(), "[2]", "a written untap is kept");
         Assert.assertEquals(keep.unconsumed(), 1);
+        // A line written for a later decision is not eaten by an untap ask it was not written for (pr-review, PR #276).
+        ScriptBridge later = script("none", "Mountain");
+        Assert.assertEquals(answer(later, MANA).getAsJsonArray("options").size(), 0);
+        Assert.assertEquals(later.unconsumed(), 2, "\"none\" was meant for the attack after it");
+        Assert.assertEquals(later.untapsLeft, 1);
     }
 
     @Test
@@ -241,9 +312,9 @@ public class ScriptBridgeTest {
         Assert.assertEquals(blocks.toString(), "[{\"blocker\":2,\"attacker\":2},{\"blocker\":1,\"attacker\":1}]");
         Assert.assertEquals(answer(b, BLOCKS).getAsJsonArray("blocks").size(), 0);
         String number = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose a number.\n"
-                + "ANSWER: call `answer` with `number`: an integer from 0 through 5.";
+                + AnswerTool.instruction(AnswerTool.Spec.number(0, 5), false);
         String amounts = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Divide 3 damage.\n"
-                + "ANSWER: call `answer` with `amounts`: 2 numbers in the order listed, summing to 3.";
+                + AnswerTool.instruction(AnswerTool.Spec.alloc(2, 3), false);
         ScriptBridge c = script("4", "2, 1");
         Assert.assertEquals(answer(c, number).get("number").getAsInt(), 4);
         Assert.assertEquals(answer(c, amounts).getAsJsonArray("amounts").toString(), "[2,1]");

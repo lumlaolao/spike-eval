@@ -443,6 +443,10 @@ def line_verdict(row):
         return "solved by a deck-out" if row.get("status") == "solved" else "decided by a deck-out"
     if row.get("status") != "solved":
         return "%s %s" % (row.get("status"), row.get("acceptance_failed") or "")
+    claimed = sum(1 for t in row.get("script_taken") or [] if " => CAST " in t)
+    cast = sum(1 for a in row.get("actions") or [] if a.startswith("STACK_ADD: Solver cast "))
+    if claimed > cast:
+        return "%d casts on the stack of %d the line took" % (cast, claimed)
     return "played" if row.get("script_played") else "not played"
 
 
@@ -454,7 +458,7 @@ def line_env(script, opponent, seeds, budget=None):
     cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
     spec = "script:" + str(Path(script).resolve())
     env = dict(cond, CONTROLLER_A="llm", CONTROLLER_B=opponent, SMART_MODEL_A=spec, FAST_MODEL_A=spec,
-               PZL_SEEDS=seeds, GAME_CAP_MS="300000")
+               PZL_SEEDS=seeds, GAME_CAP_MS="300000", ONE_TIER="1")
     if opponent == "search":
         env["PZL_SEARCH_BUDGET"] = str(budget or 200)
     return env

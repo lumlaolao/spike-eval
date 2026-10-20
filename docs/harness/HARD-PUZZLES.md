@@ -102,7 +102,8 @@ only for what search is good at: opponent replies, deviations and minimality.
    **Done (2026-10-20):** a model spec `script:<file>` (`ScriptBridge.java`) instead of a new controller, so the line
    plays the faithful seat's own menus; `puzzle_baselines.py line`; acceptance stage `lines`. h_1 is proven by its
    16-line solution (`eval/puzzles/hard/h_1.pzl`). h_0's line needs Gitaxian Probe paid with life, which the
-   menu never offers (Forge's AI-only `AIPhyrexianPayment$ Never` hint decides castability): a harness defect.
+   menu never offers (Forge's AI-only `AIPhyrexianPayment$ Never` hint decides castability): a harness defect,
+   fixed in PR #277 (harness-epoch-68).
 2. **The prover from a line**: `PuzzleSearch.prove` already enumerates every opponent alternative along a
    winning line; run it from the script's line, so a long puzzle's adversarial proof costs only the opponent
    branches. The deviation search (`unique`) runs at each solver step with a stated budget and reports

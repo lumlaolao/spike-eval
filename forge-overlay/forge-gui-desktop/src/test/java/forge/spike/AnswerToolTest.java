@@ -20,21 +20,7 @@ import java.util.List;
 public class AnswerToolTest {
 
     private static NativeTools.Turn calls(NativeTools.Call... cs) {
-        JsonObject msg = new JsonObject();
-        msg.addProperty("role", "assistant");
-        JsonArray tcs = new JsonArray();
-        for (NativeTools.Call c : cs) {
-            JsonObject tc = new JsonObject();
-            tc.addProperty("id", c.id);
-            tc.addProperty("type", "function");
-            JsonObject f = new JsonObject();
-            f.addProperty("name", c.name);
-            f.addProperty("arguments", c.arguments);
-            tc.add("function", f);
-            tcs.add(tc);
-        }
-        msg.add("tool_calls", tcs);
-        return new NativeTools.Turn(null, msg.toString(), Arrays.asList(cs));
+        return NativeTools.Turn.ofCalls(Arrays.asList(cs));
     }
 
     /** Tool definitions open the prompt-cache prefix: one decision's list must be byte-identical to the
