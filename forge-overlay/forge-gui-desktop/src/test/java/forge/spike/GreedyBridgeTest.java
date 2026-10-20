@@ -85,7 +85,7 @@ public class GreedyBridgeTest {
         g.chat(afterPreviews(MENU, previews, "cast Dark Ritual: Opponent no change",
                 "cast Lava Spike [assuming target: Thermo-Alchemist]: you graveyard 0 -> 1; Opponent life 11 -> 10").toString(), TOOLS, true);
         String target = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose the TARGET for Lava Spike @2\n"
-                + "Options:\n  1) Grizzly Bears 2/2 @7 [Battlefield, Opponent]\n  2) Thermo-Alchemist 0/3 @5 [Battlefield, yours]\n"
+                + "Options:\n  1) Grizzly Bears 2/2 @7 [Battlefield, opponent's]\n  2) Thermo-Alchemist 0/3 @5 [Battlefield, yours]\n"
                 + "  3) CANCEL: do not take this action; go back to the action menu\n"
                 + "ANSWER: call `answer` with `option`: one number from the list.";
         Assert.assertEquals(args(g.chat(user(target).toString(), TOOLS, true)).get("option").getAsInt(), 2, "the assumed target");
@@ -149,9 +149,45 @@ public class GreedyBridgeTest {
                 TOOLS, true);
         String two = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose TARGETS for Arc Trail @2\n"
                 + "Choose between 2 and 2 of these (by number):\n  1) you (Solver)\n  2) Thermo-Alchemist 0/3 @5 [Battlefield, yours]\n"
-                + "  3) opponent (Opponent)\n  4) Grizzly Bears 2/2 @7 [Battlefield, Opponent]\n"
+                + "  3) opponent (Opponent)\n  4) Grizzly Bears 2/2 @7 [Battlefield, opponent's]\n"
                 + "ANSWER: call `answer` with `options`: the numbers you pick, between 2 and 2 (an empty list for none).";
         Assert.assertEquals(args(g.chat(user(two).toString(), TOOLS, true)).getAsJsonArray("options").toString(), "[3,4]");
+    }
+
+    private static String targetAsk(String what, String... options) {
+        StringBuilder b = new StringBuilder("== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose the TARGET for "
+                + what + "\nOptions:\n");
+        for (int i = 0; i < options.length; i++) b.append("  ").append(i + 1).append(") ").append(options[i]).append("\n");
+        return b.append("ANSWER: call `answer` with `option`: one number from the list.").toString();
+    }
+
+    /** With nothing assumed (a trigger's target), the opponent's card is taken over the seat's own, which the engine
+     *  lists first; with only its own, an "up to one" ask declines (pr-review of #279: the first card took a removal). */
+    @Test
+    public void withNoAssumptionTheOpponentsCardIsTakenNotTheSeatsOwn() {
+        String ask = targetAsk("Electrostatic Pummeler's trigger", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
+                "Abyssal Persecutor 6/6 @9 [Battlefield, opponent's]", "CANCEL: do not take this action");
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 2);
+        String upTo = targetAsk("Skyclave Apparition's trigger", "Grizzly Bears 2/2 @3 [Battlefield, yours]", "No target");
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(upTo).toString(), TOOLS, true)).get("option").getAsInt(), 2,
+                "declining beats the seat's own creature");
+    }
+
+    /** A chain (Arc Trail: a root and a sub-ability, one target ask each) gets the assumed targets in turn, and a name on
+     *  both sides takes the opponent's copy. */
+    @Test
+    public void aChainsAsksShareTheAssumedTargetsAndTheOpponentsCopyIsTaken() {
+        GreedyBridge g = new GreedyBridge("Solver/smart");
+        NativeTools.Turn previews = g.chat(user(MENU).toString(), TOOLS, true);
+        g.chat(afterPreviews(MENU, previews, "cast Dark Ritual: Opponent no change",
+                "cast Lava Spike [assuming target: Opponent, Grizzly Bears]: you graveyard 0 -> 1; Opponent life 11 -> 9").toString(),
+                TOOLS, true);
+        String root = targetAsk("Arc Trail", "you (Solver)", "opponent (Opponent)", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
+                "Grizzly Bears 2/2 @7 [Battlefield, opponent's]");
+        Assert.assertEquals(args(g.chat(user(root).toString(), TOOLS, true)).get("option").getAsInt(), 2);
+        String sub = targetAsk("Arc Trail (the second target)", "Grizzly Bears 2/2 @3 [Battlefield, yours]",
+                "Grizzly Bears 2/2 @7 [Battlefield, opponent's]");
+        Assert.assertEquals(args(g.chat(user(sub).toString(), TOOLS, true)).get("option").getAsInt(), 2, "the opponent's Bears");
     }
 
     @Test

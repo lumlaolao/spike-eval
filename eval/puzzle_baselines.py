@@ -439,8 +439,7 @@ def greedy_condition():
     compare only within one harness epoch (pr-review/standards of #279)."""
     import versions  # eval/versions.py: the stamps, read from the overlay source
     stamps = {field: value for _, value, field, _ in versions.read_stamps()}
-    return {"env": greedy_env(), "harness_epoch": stamps.get("harness_epoch"),
-            "observation_version": stamps.get("observation_version"), "lookahead_version": stamps.get("lookahead_version")}
+    return dict({f: stamps.get(f) for f in ("harness_epoch", "observation_version", "lookahead_version")}, env=greedy_env())
 
 
 def greedy_env():
