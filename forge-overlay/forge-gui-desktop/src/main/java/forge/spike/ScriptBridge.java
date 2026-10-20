@@ -33,14 +33,15 @@ import java.util.regex.Pattern;
  *
  * <p>Nothing is guessed. A priority menu the next line does not fit is passed (the line waits for its window), and
  * a mana payment's "which stay untapped" is left to the engine unless the line is written for it ("untap: Mountain");
- * both are counted. Any other
- * decision the next line does not fit, an answer the harness refuses, or a decision after the last line (other than
- * a priority menu or an untap ask) is a DRIFT:
- * recorded, the rest of the game answered by the do-nothing option, and the result void. A game that ends with
- * lines unplayed did not play the line either (the runner refuses {@link #unconsumed} above zero).
+ * both are counted. Any other decision the next line does not fit, an answer the harness refuses, or a decision
+ * after the last line (other than a priority menu or an untap ask) is a DRIFT: recorded, the rest of the game
+ * answered by the do-nothing option, and the result void. A game that ends with lines unplayed did not play the line
+ * either (the runner refuses {@link #unconsumed} above zero).
  */
 final class ScriptBridge implements LLMBridge {
     static final String PREFIX = "script:";
+    /** After {@link #PREFIX}: a relaxed replay ({@link #relaxed}). */
+    static final String RELAXED = "relaxed:";
 
     private final String label;
     final List<String> lines;
@@ -58,7 +59,16 @@ final class ScriptBridge implements LLMBridge {
     /** The 0-based lines that opened an action (a priority menu's play, an attack, a block); the lines after each, up
      *  to the next, are its targets, costs and choices. The minimality check removes one action at a time. */
     final List<Integer> actionLines = new ArrayList<>();
+    /** The line the last answer came from, or null when it was a wait or a do-nothing answer. */
+    private String lastTaken = null;
     private int calls = 0;
+    /** The minimality check's replays ("script:relaxed:<file>"): a line with an action removed. A decision the next line does
+     *  not fit is answered with the do-nothing option and the line keeps its place, counted in {@link #skipped},
+     *  instead of a drift ending the line there (pr-review of #278: a removed attack, or a play waiting on a removed
+     *  cast, drifted by construction and read as "necessary"). */
+    boolean relaxed = false;
+    /** Decisions a relaxed replay answered with the do-nothing option. */
+    int skipped = 0;
 
     ScriptBridge(String label, List<String> lines) {
         this.label = label;
@@ -102,9 +112,10 @@ final class ScriptBridge implements LLMBridge {
         m.put("script_waits", waits);
         m.put("script_untaps_left", untapsLeft);
         m.put("script_played", played());
-        // What each line took ("line => label"): the verdict checks the casts it claims against the game log.
+        // What each line took ("line => label"), for a reader of the row; the verdict does not read it.
         m.put("script_taken", new ArrayList<>(taken));
         m.put("script_actions", new ArrayList<>(actionLines));
+        if (relaxed) m.put("script_skipped", skipped);
         return m;
     }
 
@@ -135,12 +146,12 @@ final class ScriptBridge implements LLMBridge {
         return NativeTools.Turn.ofCalls(one);
     }
 
-    private static String role(JsonElement m) {
+    static String role(JsonElement m) {
         JsonObject o = m.getAsJsonObject();
         return o.has("role") ? o.get("role").getAsString() : "";
     }
 
-    private static String text(JsonElement m) {
+    static String text(JsonElement m) {
         JsonObject o = m.getAsJsonObject();
         return o.has("content") && o.get("content").isJsonPrimitive() ? o.get("content").getAsString() : "";
     }
@@ -186,13 +197,14 @@ final class ScriptBridge implements LLMBridge {
             waits++;
             return q.fallback();
         }
+        JsonObject a = line != null && here ? q.answer(body) : null;
+        if (relaxed && a == null) { skipped++; return q.fallback(); }
         if (line == null) {
             exhausted = true;
             fail("the line ended before this decision: " + q.head());
             return q.fallback();
         }
         if (!here) { fail("\"" + line + "\" is for another step; this decision is at T" + q.turn + " " + q.phase + ": " + q.head()); return q.fallback(); }
-        JsonObject a = q.answer(body);
         if (a == null) {
             fail("\"" + line + "\" fits no option" + (q.ambiguity == null ? "" : " (" + q.ambiguity + ")") + ": " + q.head()
                     + (q.options.isEmpty() ? "" : " | options: " + String.join(" | ", q.options.values())));
@@ -202,14 +214,11 @@ final class ScriptBridge implements LLMBridge {
         return a;
     }
 
-    /** The line the last answer came from, or null when it was a wait or a do-nothing answer. */
-    private String lastTaken = null;
-
     private void take(String line, Question q) {
         if (q.opensAction()) actionLines.add(pos);
         lastTaken = line;
         pos++;
-        taken.add(line + " => " + (q.lastTaken == null ? "" : q.lastTaken));
+        taken.add(line + " => " + (q.takenLabel == null ? "" : q.takenLabel));
     }
 
     static final Pattern UNTAP = Pattern.compile("(?i)^untap:\\s*(.*)$");
@@ -218,6 +227,12 @@ final class ScriptBridge implements LLMBridge {
     private static final Pattern FIELD = Pattern.compile("call `answer` with `(\\w+)`");
     private static final Pattern HEADER = Pattern.compile("== Turn (\\d+) ([A-Z0-9_]+) \\(");
     private static final Pattern PRIORITY = Pattern.compile("You have priority \\(([A-Z0-9_]+),");
+    private static final Pattern LIST_ITEM = Pattern.compile("^\\s*(\\d+) = (.*)$");
+    private static final Pattern PICK_RANGE =
+            Pattern.compile("`options`: the numbers you pick, (?:exactly (\\d+)|between (\\d+) and)");
+    private static final Pattern NUMBER_FROM = Pattern.compile("`number`: an integer from (-?\\d+)");
+    private static final Pattern AMOUNTS_SPEC =
+            Pattern.compile("`amounts`: (\\d+) numbers in the order listed, summing to (-?\\d+)");
     /** What tells twins apart and nothing else: a handle ("@5", "@29 (was @26)") or an attack menu's "#2". */
     private static final Pattern HANDLE = Pattern.compile("\\s*@\\d+(\\s*\\(was @\\d+\\))?|\\s+#\\d+$");
 
@@ -245,7 +260,7 @@ final class ScriptBridge implements LLMBridge {
         final String phase;
         final boolean playMenu, manaUntap;
         final String prompt;
-        String ambiguity, lastTaken;
+        String ambiguity, takenLabel;
 
         Question(String prompt) {
             this.prompt = prompt;
@@ -308,7 +323,7 @@ final class ScriptBridge implements LLMBridge {
                 case "option": {
                     Integer n = pick(b, new LinkedHashSet<>());
                     if (n == null) return null;
-                    lastTaken = options.get(n);
+                    takenLabel = options.get(n);
                     a.addProperty("option", n);
                     return a;
                 }
@@ -325,7 +340,7 @@ final class ScriptBridge implements LLMBridge {
                     }
                     List<String> names = new ArrayList<>();
                     for (Integer n : used) names.add(options.get(n));
-                    lastTaken = used.isEmpty() ? "none" : String.join("; ", names);
+                    takenLabel = used.isEmpty() ? "none" : String.join("; ", names);
                     a.add("options", picks);
                     return a;
                 }
@@ -346,14 +361,14 @@ final class ScriptBridge implements LLMBridge {
                             out.add(o);
                         }
                     }
-                    lastTaken = b;
+                    takenLabel = b;
                     a.add("blocks", out);
                     return a;
                 }
                 case "number":
                     if (!b.matches("-?\\d+")) return null;
                     a.addProperty("number", Integer.parseInt(b));
-                    lastTaken = b;
+                    takenLabel = b;
                     return a;
                 case "amounts": {
                     JsonArray out = new JsonArray();
@@ -362,17 +377,17 @@ final class ScriptBridge implements LLMBridge {
                         out.add(Integer.parseInt(x));
                     }
                     a.add("amounts", out);
-                    lastTaken = b;
+                    takenLabel = b;
                     return a;
                 }
                 case "keep":
                     if (!b.equalsIgnoreCase("keep") && !b.equalsIgnoreCase("mulligan")) return null;
                     a.addProperty("keep", b.equalsIgnoreCase("keep"));
-                    lastTaken = b;
+                    takenLabel = b;
                     return a;
                 case "card":
                     a.addProperty("card", b);
-                    lastTaken = b;
+                    takenLabel = b;
                     return a;
                 default:
                     return null;
@@ -390,7 +405,7 @@ final class ScriptBridge implements LLMBridge {
             String row = block.substring(i + header.length(), end < 0 ? block.length() : end);
             Map<Integer, String> items = new LinkedHashMap<>();
             for (String item : row.split(";")) {
-                Matcher m = Pattern.compile("^\\s*(\\d+) = (.*)$").matcher(item);
+                Matcher m = LIST_ITEM.matcher(item);
                 if (m.matches()) items.put(Integer.parseInt(m.group(1)), m.group(2).trim());
             }
             for (Map.Entry<Integer, String> e : items.entrySet())
@@ -425,7 +440,7 @@ final class ScriptBridge implements LLMBridge {
                     return a;
                 }
                 case "options": {
-                    Matcher m = Pattern.compile("`options`: the numbers you pick, (?:exactly (\\d+)|between (\\d+) and)").matcher(prompt);
+                    Matcher m = PICK_RANGE.matcher(prompt);
                     int lo = m.find() ? Integer.parseInt(m.group(1) != null ? m.group(1) : m.group(2)) : 0;
                     JsonArray picks = new JsonArray();
                     for (Integer n : options.keySet()) { if (picks.size() >= lo) break; picks.add(n); }
@@ -434,12 +449,12 @@ final class ScriptBridge implements LLMBridge {
                 }
                 case "blocks": a.add("blocks", new JsonArray()); return a;
                 case "number": {
-                    Matcher m = Pattern.compile("`number`: an integer from (-?\\d+)").matcher(prompt);
+                    Matcher m = NUMBER_FROM.matcher(prompt);
                     a.addProperty("number", m.find() ? Integer.parseInt(m.group(1)) : 0);
                     return a;
                 }
                 case "amounts": {
-                    Matcher m = Pattern.compile("`amounts`: (\\d+) numbers in the order listed, summing to (-?\\d+)").matcher(prompt);
+                    Matcher m = AMOUNTS_SPEC.matcher(prompt);
                     JsonArray out = new JsonArray();
                     if (m.find()) {
                         out.add(Integer.parseInt(m.group(2)));

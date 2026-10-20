@@ -33,6 +33,9 @@ import forge.util.MyRandom;
  * wiring, not here. It is NOT yet wired to the seat; nothing calls it during a real game.
  */
 final class PlayerLookahead {
+    /** How a preview names the targets it assumed; the greedy floor (GreedyBridge) reads them back. */
+    static final String ASSUMING = "[assuming target: ";
+
     /** Stamped on the game line: what a preview covers and reports is part of what the model sees.
      *  v2 (2026-10-13): activated abilities as well as spells; names of permanents that left or
      *  entered; hand and library sizes; a refusal instead of "no change" when the copy could not pay;
@@ -472,7 +475,7 @@ final class PlayerLookahead {
                 GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
                 b.append(i == 0 ? "" : ", then ")
                  .append(isLand ? "play " : (o.isSpell() ? "cast " : "activate ")).append(label)
-                 .append(assumed.isEmpty() ? "" : " [assuming target: " + assumed + "]");
+                 .append(assumed.isEmpty() ? "" : " " + ASSUMING + assumed + "]");
                 sacrifice |= o.getPayCosts() != null && o.getPayCosts().hasSpecificCostType(forge.game.cost.CostSacrifice.class);
                 // Taken after EACH completed step: a later step that fails to be paid for can leave
                 // the copy half-changed (its card already off the hand), and that must not be reported.

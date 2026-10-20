@@ -451,8 +451,7 @@ public final class LlmSpikePuzzle {
             if ("invalid".equals(p.status) && line.drift == null)
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, p.healthy ? null : "rollout hit the wall-clock cap");
             // A written line that drifted under this reply did not beat it, whatever the do-nothing answers reached.
-            ScriptBridge w = writtenLine(p.game);
-            boolean solved = p.cleanSolve() && !line.stopped() && (w == null || w.played());
+            boolean solved = !line.stopped() && wonAsWritten(p.cleanSolve(), writtenLine(p.game), playsNotMade(p.game));
             // What tells two solutions apart: the solver's game-log actions, and what it chose where the log does not
             // say (a mode, a clone pick, a number). Not the final state: the opponent's replies change that too
             // (RP_045: the opponent's Scavenging Ooze exiled a card on one line and not the other).
@@ -477,9 +476,8 @@ public final class LlmSpikePuzzle {
                     new PuzzleArms.Line(r.line, 0));
             Played again = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.line, 0));
-            ScriptBridge w = writtenLine(main.game);
-            if (w != null) extra.putAll(w.report());
-            if (!main.cleanSolve() || (w != null && !w.played())
+            putWritten(extra, "", main.game);
+            if (!wonAsWritten(main.cleanSolve(), writtenLine(main.game), playsNotMade(main.game))
                     || !logFingerprint(main.logLines).equals(logFingerprint(again.logLines))) {
                 status = "drift";
                 extra.put("search_drift", "the main line did not replay to the same solve");
@@ -524,6 +522,9 @@ public final class LlmSpikePuzzle {
             for (String l : ref.logLines) if (l.contains("Opponent")) opp.add(l);
             extra.put("refutation_line", PuzzleSearch.lineText(r.refutation));
             extra.put("refutation_opponent_log", opp);
+            // How the line fared under that reply: lost, or drifted (pr-review of #278: both read "beaten").
+            extra.put("refutation_status", ref.status);
+            putWritten(extra, "refutation_", ref.game);
         }
         long durMs = System.currentTimeMillis() - t0;
         extra.put("pzl_sha256", pzlSha);
@@ -795,18 +796,12 @@ public final class LlmSpikePuzzle {
         if (suiteSha != null && !suiteSha.trim().isEmpty()) extra.put("suite_sha256", suiteSha.trim());
         extra.put("log_sha256", logFingerprint(logLines));
         extra.put("solver_actions", actions.size());
-        java.util.Random arm = null;
-        ScriptBridge written = writtenLine(game);
-        try {
-            Object ctl = game.getRegisteredPlayers().get(0).getController();
-            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) {
-                arm = ((LlmSpikeGui.PlayerControllerLLM) ctl).armRandom();
-                // What the attempt spent (BENCHMARK-V2 section 3): a model seat's calls, tokens, time and lookups.
-                if ("llm".equals(ctlA)) extra.putAll(((LlmSpikeGui.PlayerControllerLLM) ctl).budget());
-            }
-        } catch (Exception ignore) {}
+        LlmSpikeGui.PlayerControllerLLM llm = solverLlm(game);
+        java.util.Random arm = llm == null ? null : llm.armRandom();
+        // What the attempt spent (BENCHMARK-V2 section 3): a model seat's calls, tokens, time and lookups.
+        if (llm != null && "llm".equals(ctlA)) extra.putAll(llm.budget());
         // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
-        if (written != null) extra.putAll(written.report());
+        putWritten(extra, "", game);
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());
@@ -823,14 +818,41 @@ public final class LlmSpikePuzzle {
         return pl.healthy;
     }
 
-    /** The written line the solver played (ScriptBridge), or null when the solver is no script seat. */
-    static ScriptBridge writtenLine(Game game) {
+    /** The solver seat's controller when it is the model seat, else null. */
+    static LlmSpikeGui.PlayerControllerLLM solverLlm(Game game) {
         try {
-            Object ctl = game.getRegisteredPlayers().get(0).getController();
-            return ctl instanceof LlmSpikeGui.PlayerControllerLLM ? ((LlmSpikeGui.PlayerControllerLLM) ctl).scriptBridge() : null;
+            Object c = game.getRegisteredPlayers().get(0).getController();
+            return c instanceof LlmSpikeGui.PlayerControllerLLM ? (LlmSpikeGui.PlayerControllerLLM) c : null;
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** The written line the solver played (ScriptBridge), or null when the solver is no script seat. */
+    static ScriptBridge writtenLine(Game game) {
+        LlmSpikeGui.PlayerControllerLLM l = solverLlm(game);
+        return l == null ? null : l.scriptBridge();
+    }
+
+    /** Plays the solver seat chose that did not happen (PlayerControllerLLM.playsNotMade), 0 for another seat. */
+    static int playsNotMade(Game game) {
+        LlmSpikeGui.PlayerControllerLLM l = solverLlm(game);
+        return l == null ? 0 : l.playsNotMade();
+    }
+
+    /** A written line's row fields (ScriptBridge.report and the seat's plays_not_made), each name after {@code prefix}. */
+    static void putWritten(Map<String, Object> extra, String prefix, Game game) {
+        ScriptBridge w = writtenLine(game);
+        if (w == null) return;
+        for (Map.Entry<String, Object> e : w.report().entrySet()) extra.put(prefix + e.getKey(), e.getValue());
+        extra.put(prefix + "plays_not_made", playsNotMade(game));
+    }
+
+    /** A solve the written line made (or any solve, without one): no drift and every play it chose happened. Lines left
+     *  unplayed are allowed: under some replies the line wins before its end (pr-review of #278: an opponent that did
+     *  not chump-block lost in combat, and the solve was read as that reply beating the line). */
+    static boolean wonAsWritten(boolean cleanSolve, ScriptBridge w, int playsNotMade) {
+        return cleanSolve && (w == null || (w.drift == null && playsNotMade == 0));
     }
 
     /** Seat i's PlayerOutcome, read off the STABLE player list.

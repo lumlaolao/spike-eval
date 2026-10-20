@@ -223,6 +223,49 @@ public class ScriptBridgeTest {
         Assert.assertNull(handles.drift);
     }
 
+    /** A handle that begins another handle ("@1" and "@12") names the one it equals (pr-review v2, PR #276). */
+    @Test
+    public void aBlockNamingAHandleTakesTheExactOne() {
+        String handles = BLOCKS.replace("ATTACKERS: 1 = Tajic, Blade of the Legion 2/2 @1; 2 = Grizzly Bears 2/2 @2",
+                "ATTACKERS: 1 = Grizzly Bears 2/2 @12; 2 = Grizzly Bears 2/2 @1");
+        ScriptBridge b = script("Typhoid Rats -> Grizzly Bears 2/2 @1");
+        Assert.assertEquals(answer(b, handles).getAsJsonArray("blocks").toString(), "[{\"blocker\":1,\"attacker\":2}]");
+        Assert.assertNull(b.drift);
+    }
+
+    /** The minimality replays (pr-review of #278: a removed attack drifted, so a drift read as "necessary"): a decision
+     *  the next line does not fit takes the do-nothing answer and the line keeps its place, so a removed attack, or a
+     *  play waiting on a removed cast, is played out, not drifted. */
+    @Test
+    public void aRelaxedLineAnswersWhatItDoesNotFitWithTheDoNothingOption() {
+        ScriptBridge b = script("cast Divination");
+        b.relaxed = true;
+        Assert.assertEquals(answer(b, ATTACK).getAsJsonArray("options").size(), 0, "no attack");
+        Assert.assertNull(b.drift);
+        Assert.assertEquals(b.skipped, 1);
+        Assert.assertEquals(b.unconsumed(), 1, "the line keeps its place");
+        Assert.assertEquals(answer(b, PLAY_MAIN2).get("option").getAsInt(), 1, "and is played when its window comes");
+        Assert.assertEquals(b.unconsumed(), 0);
+        Assert.assertEquals(b.report().get("script_skipped"), 1);
+        Assert.assertFalse(script("x").report().containsKey("script_skipped"), "a strict line writes no skip count");
+    }
+
+    /** Under the search opponent a reply can let the line win before its end; that solve is the line's. A drift, or a
+     *  play the line chose that did not happen, is not (pr-review of #278: such a solve was read as a refutation). */
+    @Test
+    public void aWrittenLineWinsUnderAReplyOnlyAsWritten() {
+        ScriptBridge early = script("cast Divination", "cast Snakeform");
+        answer(early, PLAY_MAIN2);
+        Assert.assertEquals(early.unconsumed(), 1);
+        Assert.assertTrue(LlmSpikePuzzle.wonAsWritten(true, early, 0), "won with a line to spare");
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(false, early, 0), "not solved");
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(true, early, 1), "a play it chose did not happen");
+        ScriptBridge drifted = script("Thing in Ice");
+        answer(drifted, TARGET);
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(true, drifted, 0), "drifted, then stumbled into the solve");
+        Assert.assertTrue(LlmSpikePuzzle.wonAsWritten(true, null, 0), "no written line: the solve alone");
+    }
+
     @Test
     public void aLineForAnotherStepAtAnotherDecisionDrifts() {
         ScriptBridge b = script("at COMBAT_DECLARE_BLOCKERS: Thing in the Ice");
@@ -292,6 +335,12 @@ public class ScriptBridgeTest {
         Assert.assertEquals(answer(later, MANA).getAsJsonArray("options").size(), 0);
         Assert.assertEquals(later.unconsumed(), 2, "\"none\" was meant for the attack after it");
         Assert.assertEquals(later.untapsLeft, 1);
+        // An untap line for another turn waits for it: this ask is the engine's, counted.
+        ScriptBridge t2 = script("at T2 MAIN1: untap: Mountain");
+        Assert.assertEquals(answer(t2, MANA).getAsJsonArray("options").size(), 0);
+        Assert.assertEquals(t2.unconsumed(), 1);
+        Assert.assertEquals(t2.untapsLeft, 1);
+        Assert.assertNull(t2.drift);
     }
 
     @Test

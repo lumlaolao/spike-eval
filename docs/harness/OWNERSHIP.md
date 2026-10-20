@@ -130,8 +130,8 @@ mechanics** (established by reading the engine source, not assumed):
 activated by the seat before the engine pays, so which Elves it taps is the model's (#105); which
 sources pay is `ComputerUtilMana.payManaCost(...)`, the whole mana-payment mechanism with no seam,
 and stays Forge AI's; since 2026-10-15 so do which sources stay untapped (`holdManaSources`) and how
-Phyrexian symbols are paid (`phyrexianByLife`: the seat pays the life itself and hands the engine the
-rest of the cost, whose Phyrexian symbols the engine then pays with mana). **The colour an any-colour
+Phyrexian symbols are paid (`phyrexianByLife`; the order and the auto row are in ARCHITECTURE.md, the
+Phyrexian paragraph). **The colour an any-colour
 source makes during a payment (Lotus Petal, Lion's Eye Diamond, City of Brass) had no hook (since
 2026-10-15 an engine patch leaves it to the seat for a generic shard; see ENGINE-PATCHES.md):** `ComputerUtilMana.canPayShardWithSpellAbility` sets `AbilityManaPart.setExpressChoice`
 inside the static payment loop, for the shard it is paying, and no `PlayerController` method is called
