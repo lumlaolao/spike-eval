@@ -46,7 +46,7 @@ Nothing paid is run; no model is called.
 
 ## Where it stands (paused 2026-10-20, owner asked to wrap up)
 
-Kept so far: **59** boards in `eval/puzzles/hard/gen/kept/` (ping 24, splice 29, storm 6), each passed both gate
+Kept so far: **116** (59 at first count; boards in `eval/puzzles/hard/gen/kept/` ping 24, splice 29, storm 6, fling 5, drain 46, elf 6), each passed both gate
 steps above; the gate's rows are in `eval/puzzles/hard/gen/gate/<family>.json`.
 
 | Batch | Kept | Main drop reason |
@@ -70,3 +70,37 @@ Next, in order:
    --out DIR`) until 200 are kept, deduping by board key.
 4. Land the generator, `gen_gate.py`, the kept boards and this note through a PR and the full gate (acceptance is
    owed: `eval/` changes).
+
+## Handoff (all work paused, 2026-10-20)
+
+### Done today
+- Merged #280, #281, #282, #283, #285 (HARNESS-ENV.md: building the harness as an RL environment, GBA Eval framing).
+- Demo-session prompt: scratchpad/demo-session-prompt.md (paste into a new session).
+
+### Hard puzzles (59 of 200 kept) — branch feat/hard-gen @ ea9774e, no PR yet
+Full plan in docs/harness/history/2026-10-20-generated-hard-puzzles.md ("Where it stands"):
+1. Fix the 11 splice lines that stop early (solved=False unconsumed=12..19), re-gate them.
+2. Gate eval/puzzles/hard/gen/ungated/{red,ping2,storm2} (170 boards), one batch at a time.
+3. Generate more of the best-keeping families (splice 29/40, ping 24/36) until 200.
+4. PR with the full gate (acceptance owed: eval/ changes).
+Subagent branches (drain/elf, fling): see their pushed notes (added below when they report).
+
+### Other open items
+- Re-tier data PR: measurements saved on branch data/retier-v2 @ 9f7bc75 (eval/puzzles/retier/); needs
+  a test for summarize.py, a PR and acceptance (eval/).
+- Owner questions: tier rule for B; h_0's held-out split; the 2-life Phyrexian; HARD-PUZZLES item 5; rulesEffective().
+- Standards proposals: §2 model-id rule (and a pr_format.py check), §6 model line, versions pin check,
+  plan-status rule, test-file subjects rule, bridge-forwarding reflection test, xargs -r, GraphQL-free gh commands.
+- Pending: run Luna on the hard set (tools off/on) — paid, ask first.
+
+### Subagent branches
+- fling family: feat/hard-gen-more @ 0760579 (code + 3 tests; 60/60 lines solve as written). Floors ran on 6 of
+  60: 5 kept (now in feat/hard-gen kept/, 64 total). Gate the other 55 (feat/hard-gen ungated/fling; one dir, no
+  resume in gen_gate.py). Note: its two commits lack the Co-Authored-By trailer; 50/60 lines use Rite of Flame
+  after combat, so vary the draw. fling_23e615214cc3 is a borderline AI-floor case.
+- drain and elf families: feat/hard-gen-engines @ afaee5b (code + tests; status in HARD-PUZZLES.md section 3).
+  52 of 52 gated kept (46 drain, 6 elf), now in feat/hard-gen kept/ (116 total). Gate the 40 elf boards in
+  ungated/elf. Nothing was dropped, so add stricter checks: one action removed must fail, a near-miss leaves the
+  opponent at 1 to 3, no mana left unused. Elf boards with one Sentinel repeat a few life totals (31, 35, 47).
+- Landing: merge the three branches (feat/hard-gen, -engines, -more) into one PR; all touch eval/puzzle_gen.py
+  and eval/test_puzzle_gen.py, so expect conflicts. Full gate with acceptance.
