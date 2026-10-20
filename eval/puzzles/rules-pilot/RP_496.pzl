@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 496 - Don't tap the Mutavault for mana
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Mutavault ({T}: {C}; {1}: it becomes a 2/2 creature until end of turn) and Wastes, both untapped. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-manland-tapped-for-mana | An animated land that has been yours all turn can attack, but not if it is tapped (CR 302.6, 508.1a): pay Mutavault's {1} with the Wastes and attack for 2; tapping Mutavault for its own activation leaves it unable to attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Mutavault;Wastes
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

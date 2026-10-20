@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 499 - Landcycle for a land drop
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have not played a land. You have Cragsmasher Yeti (mountaincycling {2}) and Lightning Bolt in hand with two colorless mana floating. Your library has a Mountain and Colossal Dreadmaws. The opponent is at 3 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-landcycling-then-land-drop | Landcycling is cycling that searches for a land card (CR 702.29e): mountaincycle the Yeti, play the Mountain, and tap it for Lightning Bolt
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cragsmasher Yeti;Lightning Bolt
+p0manapool=C C
+p0library=Mountain;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

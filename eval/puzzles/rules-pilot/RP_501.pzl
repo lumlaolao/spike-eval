@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 501 - Crew instead of attacking
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and Sky Skiff (2/3 flying vehicle, crew 1). The opponent is at 2 life and controls an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-crew-flier-over-wall | Crewing taps the creature, which then can't attack, but the Vehicle becomes an artifact creature that can (CR 702.122a): crew the Skiff with the Bears and fly over the Wall for 2; the Bears would be blocked
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Grizzly Bears;Sky Skiff
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

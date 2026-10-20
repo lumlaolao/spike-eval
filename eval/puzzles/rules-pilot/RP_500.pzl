@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 500 - Addendum in the main phase
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control two untapped Plains and have Summary Judgment (3 damage to target tapped creature; addendum: 5 instead if cast during your main phase) in hand. The opponent is at 20 life and controls a tapped Serra Angel (4/4). Destroy the Serra Angel this turn.
+Rule:authored-addendum-main-phase | Addendum checks whether the spell was cast during your main phase (CR 207.2c): cast now it deals 5 and kills the 4/4; during combat it would deal 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Summary Judgment
+p0battlefield=Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Serra Angel|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Serra Angel" = 1
