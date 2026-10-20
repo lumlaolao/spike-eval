@@ -958,8 +958,10 @@ public class GoldenChecksTest {
             cast[0] = true;
             return choiceWith("Explosive Derailment").apply(p);
         }).on("MODAL SPELL", p -> "PICKS: 1,2").on("TARGET", choiceWith("CANCEL"));
-        seat(g, model, model).chooseSpellAbilityToPlay();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
         Assert.assertTrue(model.prompts.stream().anyMatch(p -> p.contains("MODAL SPELL")), "modes were asked");
+        Assert.assertEquals(ctrl.playsNotMade(), 0, "a cancel at the target is the seat's own choice");
         Assert.assertNull(derail.getFirstSpellAbility().getSubAbility(), "the cancelled spell kept its modes");
     }
 
@@ -1071,6 +1073,7 @@ public class GoldenChecksTest {
         resolveAll(g);
         Assert.assertEquals(me.getCreaturesInPlay().stream().filter(Card::isTapped).count(), 0L,
                 "nothing tapped: " + String.join(" | ", model.prompts.stream().map(p -> p.substring(Math.max(0, p.length() - 300))).toList()));
+        Assert.assertEquals(ctrl.playsNotMade(), 0, "a cancel is the seat's own choice, not a play that failed");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
