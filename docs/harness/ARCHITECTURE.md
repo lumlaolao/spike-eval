@@ -453,12 +453,20 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 | `random` | uniform over the same legal menus |
 | `ai` | Forge's AI, the opponent and a baseline |
 | `pass`, `first`, `script` | puzzle arms |
+| `script:<file>` (a model spec, `CONTROLLER_A=llm`) | a written solution line played by the model seat (`ScriptBridge`): each line names the option the seat is shown, the bridge answers `answer` with it, and a line no option fits is a drift, never a guess |
 | `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is |
 
 - *Why the prover:* Forge's puzzle mode tests one opponent line, its AI's, so a solve can come from the AI
   blocking badly. A proof (`eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and
   every leaf of it is a solve Forge scored. A decideMany subset is drawn through `PuzzleArms.subset`, which
   makes the old draws for every other arm (no canary moves) and one include-or-not per option for search.
+
+- *Why written lines:* a 12-action line with three options a step is one line in half a million, which no rollout
+  budget finds (h_0 at budget 600, `docs/harness/HARD-PUZZLES.md` section 4). A person can write it. Played through the
+  model seat, the line sees the menus a model sees (floating mana, costly mana abilities, splice and alternative
+  costs) and the engine checks every step. Unmatched priority menus pass and unmatched mana-untap asks are left to
+  the engine, both counted; a result row's `script_played` is true only when every line was taken with no drift.
+  The seat's two tiers share one bridge, so a script has one position.
 
 - The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).

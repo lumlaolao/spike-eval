@@ -1217,7 +1217,8 @@ public final class LlmSpikeGui {
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
                 smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
-            if (ONE_TIER) return new LLMBridge[] {smartB, smartB};
+            // A script is one line: both tiers must read it from one position.
+            if (ONE_TIER || smartB instanceof ScriptBridge) return new LLMBridge[] {smartB, smartB};
             return new LLMBridge[] {smartB,
                     LLMBridgeFactory.create(seat + "/fast", fastModel, framingFor(seat, deckPlan, true, fastModel))};
         }
@@ -1266,6 +1267,8 @@ public final class LlmSpikeGui {
 
         /** The zero-model arm's draw source (null for llm/floor); LlmSpikePuzzle reads its tape. */
         java.util.Random armRandom() { return rnd; }
+        /** The written line this seat plays (ScriptBridge), or null for any other seat. */
+        ScriptBridge scriptBridge() { return smart instanceof ScriptBridge ? (ScriptBridge) smart : null; }
 
         // ---------------- candidate labels: one seam, two renderers ----------------
         // Faithful profile: every menu option is rendered by the observer, so what the model can pick
@@ -10827,6 +10830,8 @@ public final class LlmSpikeGui {
         static LLMBridge create(String label, String spec, String preamble) {
             if (spec == null || spec.isEmpty())
                 throw new IllegalArgumentException("model spec required for " + label);
+            // A written solution line played through the model seat (ScriptBridge): no model, nothing leaves.
+            if (spec.startsWith(ScriptBridge.PREFIX)) return ScriptBridge.fromFile(label, spec.substring(ScriptBridge.PREFIX.length()));
             if (spec.startsWith("openrouter:")) {
                 // Explicit egress consent: every OpenRouter call ships the full game snapshot
                 // (board, hand, deck plan) to a third-party API. Holding an API key is a

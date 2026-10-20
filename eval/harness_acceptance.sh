@@ -46,6 +46,9 @@
 #              carries the RULES grammar, and no single result exceeds the page cap (context-bound)
 #   turnchat   a loopback game with TURN_CHAT=1: every request a valid tool-call sequence, the turn's earlier
 #              decisions carried as their calls, results and reasoning, never as text
+#   lines      a written solution (eval/puzzles/hard/h_1.pzl, its [solution] section) played by the model seat
+#              (ScriptBridge) through puzzle_baselines.py line must solve with every line played; the same line
+#              with one pick misspelt must drift and exit 1, never be guessed into a solve
 #   scoring    end to end: one open puzzle on the loopback model through puzzle_solve.py, scored as a pilot by
 #              puzzle_score.py; one mirror panel cell (random pilot) through run_batch.py --panel, scored by
 #              panel_score.py with no version, condition, deck-pin or gate problem
@@ -70,7 +73,7 @@ JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 export JAVA_HOME JAVA
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-ALL_STAGES="preflight classpath compile javatests surfaces pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool turnchat rules scoring"
+ALL_STAGES="preflight classpath compile javatests surfaces pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool turnchat rules lines scoring"
 STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
@@ -959,6 +962,27 @@ EOF
 )"
         case "$VERDICT" in PASS*) pass turnchat "${VERDICT#PASS }";; *) fail turnchat "${VERDICT#FAIL }";; esac
       fi
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------- lines (written solutions)
+# A line a person wrote is proven by playing it, not by a search finding it (docs/harness/HARD-PUZZLES.md, section
+# 4). Fails if: the model seat on a script: spec does not play h_1's 16 lines to the acceptance state, or a line
+# naming no option on the menu is played anyway. The misspelt copy still solves after its drift (the do-nothing
+# sacrifice takes the first two Mountains), which is why the verdict reads the drift and not the solve.
+if has_stage lines; then
+  if [ ! -f "$CLASSES/forge/spike/ScriptBridge.class" ]; then fail lines "no compiled classes"; else
+    dir="$OUT/lines"; rm -rf "$dir"; mkdir -p "$dir"
+    sed 's/^Mountain; Mountain$/Mountains; Mountain/' "$REPO/eval/puzzles/hard/h_1.pzl" > "$dir/h_1-typo.pzl"
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
+        --forge "$FORGE" line --pzl eval/puzzles/hard/h_1.pzl --out-dir "$dir/played" ) >"$dir/played.log" 2>&1; GRC=$?
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
+        --forge "$FORGE" line --pzl "$dir/h_1-typo.pzl" --out-dir "$dir/typo" ) >"$dir/typo.log" 2>&1; TRC=$?
+    if [ "$GRC" = 0 ] && grep -q " played$" "$dir/played.log" && [ "$TRC" = 1 ] && grep -q "drift: " "$dir/typo.log"; then
+      pass lines "h_1 written line played and solved; the misspelt copy drifted (exit 1)"
+    else
+      fail lines "written line rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift): see $dir"
     fi
   fi
 fi

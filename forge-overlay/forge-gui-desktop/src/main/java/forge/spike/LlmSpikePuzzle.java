@@ -741,10 +741,16 @@ public final class LlmSpikePuzzle {
         extra.put("log_sha256", logFingerprint(logLines));
         extra.put("solver_actions", actions.size());
         java.util.Random arm = null;
+        ScriptBridge written = null;
         try {
             Object ctl = game.getRegisteredPlayers().get(0).getController();
-            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) arm = ((LlmSpikeGui.PlayerControllerLLM) ctl).armRandom();
+            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) {
+                arm = ((LlmSpikeGui.PlayerControllerLLM) ctl).armRandom();
+                written = ((LlmSpikeGui.PlayerControllerLLM) ctl).scriptBridge();
+            }
         } catch (Exception ignore) {}
+        // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
+        if (written != null) extra.putAll(written.report());
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());

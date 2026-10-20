@@ -96,6 +96,26 @@ python3 eval/puzzle_baselines.py prove --suite S.json [--ids a,b] --budget 1500 
   of combat damage and of a divided spell ("distribute 5 damage"); the other arms still split evenly.
 - Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
 
+## Proving a written line
+
+```bash
+python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script L.txt] [--seeds 1..3]
+```
+
+- A puzzle's `[solution]` section (or `--script`) holds one line per decision in the words the seat is shown:
+  `cast Lava Spike`, `opponent` (a target), `Desperate Ritual` (a splice pick), `Mountain; Mountain` (two picks),
+  `Grizzly Bears -> Hill Giant` (a block), `none`, a number. A line names the option whose label starts with it;
+  ` ... ` skips ahead in the label (`activate Tundra ... Add {U}`); `at [T2] PHASE: line` waits for that step.
+- It is played by the model seat with `SMART_MODEL_A=script:<file>` (`ScriptBridge.java`) under the condition a
+  paid run pins with the tools off, so the line meets the menus a model meets. A priority menu the next line does
+  not fit is passed (the line waits); every other decision it does not fit is a drift, recorded on the row
+  (`script_drift`), and the rest of the game is answered by the do-nothing option.
+- Exit 0 only when every seed played every line (`script_played`) and solved. A drift can still solve (the
+  do-nothing answers can stumble into the acceptance state), so the solve alone is never read.
+- Forge's AI is the opponent: a written line proves solvability against its replies. Beating every reply is the
+  prover's job (`prove`, and HARD-PUZZLES.md section 4 item 2). The section is in the file the solver never reads;
+  it is a public answer, so a held-out puzzle keeps its line out of the public repository.
+
 ## Rules puzzles: an acceptance state and one solution
 
 A rules puzzle (made from a question in `puzzles/modern/puzzles.jsonl`; triage in `eval/puzzles/rules/`) adds
