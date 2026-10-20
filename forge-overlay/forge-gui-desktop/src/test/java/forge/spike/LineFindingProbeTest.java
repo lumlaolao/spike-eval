@@ -254,19 +254,29 @@ public class LineFindingProbeTest {
         ping.setActivatingPlayer(me);
         ping.getTargets().add(rival);
         card("Pithing Needle", rival, ZoneType.Battlefield).addNamedCard("Endbringer");
-        LLMBridge pass = new LLMBridge() {
-            public String ask(String prompt) { return PLAY; }
-            public String getLabel() { return "probe"; }
-            public String getModel() { return "fake"; }
-            public long getTotalMs() { return 0; }
-            public int getCalls() { return 0; }
-        };
-        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
-                new LobbyPlayerAi("Seat", null), "Seat", "", pass, pass, "llm");
-        me.dangerouslySetController(ctrl);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
         final SpellAbility tap = ping;
         String log = logOf(() -> ctrl.playChosenSpellAbility(tap));
         Assert.assertTrue(log.contains("forbidden by a static"), log);
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+        Assert.assertEquals(g.getStack().size(), 0);
+    }
+
+    /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the
+     *  battlefield, handed to the play path as a stale menu would. MagicStack.add drops it ("failed to target"). */
+    @Test
+    public void aPaidPlayTheStackRefusesIsCountedAsNotMade() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+        Card murder = card("Murder", me, ZoneType.Hand);
+        SpellAbility cast = murder.getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        String log = logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertTrue(log.contains("the stack refused it"), log);
         Assert.assertEquals(ctrl.playsNotMade(), 1);
         Assert.assertEquals(g.getStack().size(), 0);
     }
