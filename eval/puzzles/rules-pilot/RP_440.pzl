@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 440 - Champion the Merchant
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You control Gray Merchant of Asphodel (2/4) and have Changeling Hero (4/4; champion a creature) and Fling in hand, with one white, four black and two red mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-champion-return-new-object | Champion exiles another creature you control until the champion leaves, then returns it as a new object (CR 702.72a, 400.7): cast Changeling Hero, champion the Merchant, Fling the Hero for 4, and the returned Merchant's enters trigger drains 2; Flinging the Merchant directly deals only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Changeling Hero;Fling
+p0battlefield=Gray Merchant of Asphodel
+p0manapool=W B B B B R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
