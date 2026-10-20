@@ -1,9 +1,9 @@
 # MTG-Bench v2: harder puzzles, a leak-proof seat, a measurable score (proposal, 2026-10-20)
 
 **Status: proposed, for the owner's review before any work starts.** Nothing below is built. It amends
-[BENCHMARK-V1.md](BENCHMARK-V1.md) (approved 2026-10-18); what v1 decided stays decided unless a row below
+[eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md) (approved 2026-10-18); what v1 decided stays decided unless a row below
 says otherwise. The evidence is in
-[research/2026-10-20-benchmark-v2-research.md](research/2026-10-20-benchmark-v2-research.md) (today's reading:
+[history/2026-10-20-benchmark-v2-research.md](history/2026-10-20-benchmark-v2-research.md) (today's reading:
 Anthropic's eval guides and skills, Hillclimb's DeepRSI, Prime Intellect's `verifiers`, the Hugging Face
 guidebook, AISI on test-time compute, ChessArena, METR, BALROG, lmgame-Bench, the Reward Hacking Benchmark) and
 in our own sample v1 numbers.
