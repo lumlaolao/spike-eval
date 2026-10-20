@@ -190,7 +190,7 @@ maps to a handle, and a public card that shares a hidden card's name is never er
 `7896dbb44d9f` -> `8b5409f50ab1`); two adversarial tests added. `render()`'s
 `CAST THIS GAME`/`LANDS PLAYED` now also come from the redacted seat stream instead of
 the legacy raw-log `castHistory` (byte-identical on public data). See
-`OBSERVATION-REVIEW.md` for the repair, evidence and remaining limits.
+`history/OBSERVATION-REVIEW.md` for the repair, evidence and remaining limits.
 
 **2026-10-13 — known hidden locations (`observation-faithful-v3`).** The faithful observer now
 keeps a **`KNOWN IN HIDDEN ZONES`** ledger: a card the seat *saw* move into an opponent's hidden
@@ -258,7 +258,7 @@ half is the `RECURRING` line). Test:
 `opponentProfileIsShownOnlyWhenTheModelWroteOneAndIsLabelledUnverified`.
 
 **2026-10-13 — options say what they are (`observation-faithful-v11`).** Four changes to what the
-seat is shown, from `ARCHITECTURE-REVIEW.md` problems 2, 4 and 9:
+seat is shown, from `history/ARCHITECTURE-REVIEW.md` problems 2, 4 and 9:
 
 - **Option labels carry the option's own cost and zone.** The legacy label printed the host card's
   mana cost on every option, so an ability paid with a creature read `CAST Goblin Bombardment 1{R}`
@@ -318,7 +318,7 @@ Legacy profiles keep their bytes. Tests: `aDigRestPileToTheTopIsAskedTopDownAndT
 `aDigOrderIsAskedTopDownOnlyWhenEveryLibraryPileItCouldBeLandsOnTop`.
 
 **2026-10-15 — asks carry what they turn on (`observation-faithful-v15`).** From the per-decision
-prompt audit of runs/loop g01-g07 (`HANDOFF-PERFECT-HARNESS.md`). Faithful profile only; legacy
+prompt audit of runs/loop g01-g07 (`history/HANDOFF-PERFECT-HARNESS.md`). Faithful profile only; legacy
 profiles keep their bytes:
 
 - **Options say whose object they are**: `[Battlefield, yours]` / `[Battlefield, opponent's]`, and a
@@ -576,7 +576,7 @@ Now every decision is answered by calling `answer` (`AnswerTool.java`), and the 
 | P0 | Controller ownership and legal-menu audit | Inventory every hook; tests for omitted legal alternatives and silent AI choices; attributable fallback records | Ledger + test done; 13 silent AI decisions remain (numeric/binary/confirmation routed); payment execution, trigger targeting and legal-menu completeness untested |
 | P1 | Object registry and object inspection | Same-name copies, blink/new incarnation, control change, tokens, attachments, target and combat references; no hidden-zone identity tracking | Done for copies, zone re-entry, control change, attachments, targets, combat, INSPECT; tokens untested |
 | P1 | Durable knowledge and bounded summarization | Full-game reset/restart recovery, source-preserving compression, explicit stale knowledge, bounded prompts and retrievable full reveals | Reveals retrievable in full; archive still in-JVM; prompts not yet bounded independent of game length |
-| P1 | Tool protocol and eval accounting | Native typed adapters or strict equivalent, per-decision budgets across retries, exact request/token accounting, disjoint experiment grouping | Eval grouping/accounting done (EVAL-IMPLEMENTATION.md); tools remain text commands; INSPECT added to the shared budget |
+| P1 | Tool protocol and eval accounting | Native typed adapters or strict equivalent, per-decision budgets across retries, exact request/token accounting, disjoint experiment grouping | Eval grouping/accounting done (history/EVAL-IMPLEMENTATION.md); tools remain text commands; INSPECT added to the shared budget |
 | P2 | Strategy notebook and optional archetype evidence library | Contradiction/update tests, no opponent deck-label leakage, assistance version and ablations | Notes only |
 | P2 | Player-safe simulation adapter | Live-state/RNG equality before/after calls, hidden-world invariance, disclosed rollout policy and assumptions, unsupported cases refused | Not started |
 | P3 | Frozen harness evaluation suite | Observation/comprehension, identity, memory/retrieval, legal actions, puzzles and full-game play; fixed seeds, baselines, confidence intervals | Substantially covered: the acceptance suite (10 stages, fixed seed-42 canaries + loopback games) plus `SeatObservationTest` (observation/identity/tokens/face-down), `ContextMemoryTest` (memory/retrieval/notes), `LlmSpikeTest` (routing/parsing) and the ownership ledger test; **full-game play baselines with CIs** remain the piece not yet frozen as a suite |
