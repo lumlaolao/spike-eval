@@ -107,6 +107,14 @@ def jdk_tool(name):
     return os.path.join(home, "bin", name) if home else name
 
 
+def port_prices(tree, source=REPO):
+    """The current price list into an older tree: its run_batch refuses --budget-usd for a model its own list
+    lacks (GPT-6 Luna postdates e1324cfd). Pricing data only; nothing the seat sees."""
+    rel = os.path.join("eval", "pricing", "prices.json")
+    shutil.copyfile(os.path.join(source, rel), os.path.join(tree, rel))
+    return "prices.json"
+
+
 def standin_home(home, classes, classpath, forge, java):
     """A Forge home whose run-llm-headless.sh runs `classes` against the real checkout (never written). Paths are
     shell-quoted: a macOS home folder may hold a space."""
@@ -248,7 +256,7 @@ def build_then(a):
                          % (a.commit, old_pin, pin))
     if not os.path.isdir(tree):
         subprocess.run(["git", "-C", REPO, "worktree", "add", "--detach", tree, a.commit], check=True)
-    print("ported:", ", ".join(port_feed(tree)))
+    print("ported:", ", ".join(port_feed(tree) + [port_prices(tree)]))
     compile_arm(tree, build, a.forge, a.worktree)
     return 0
 
@@ -327,6 +335,8 @@ def run(a):
         model = "openrouter:fake/demo-model"
     try:
         for name, (repo, _) in arms.items():
+            if a.arm not in ("both", name):
+                continue
             dest = os.path.join(out, name)
             if a.fake:
                 os.makedirs(dest, exist_ok=True)
@@ -334,7 +344,8 @@ def run(a):
                 run_env = dict(env, **direct_env(a.seed, deck_a, deck_b, model, dest, env["OPENROUTER_BASE_URL"]))
                 log = os.path.join(dest, "game-%d-0.log" % a.seed)
             else:
-                cmd = arm_command(repo, homes[name], a.seed, deck_a, deck_b, model, a.budget_usd / 2, dest)
+                cmd = arm_command(repo, homes[name], a.seed, deck_a, deck_b, model,
+                                  a.budget_usd / 2 if a.arm == "both" else a.budget_usd, dest)
                 run_env, log = env, None
             print("[%s]" % name, " ".join(cmd), flush=True)
             if not a.dry_run:
@@ -366,6 +377,8 @@ def main(argv=None):
     r.add_argument("--out", required=True)
     r.add_argument("--fake", action="store_true", help="both arms on the loopback fake model (free)")
     r.add_argument("--dry-run", action="store_true", help="print the two commands only")
+    r.add_argument("--arm", choices=("both", "now", "then"), default="both",
+                   help="play one arm only (its budget is then the whole --budget-usd), e.g. to redo a failed arm")
     for p in (b, n, r):
         p.add_argument("--worktree", default=os.path.join(SIBLINGS, "harness-then"))
         p.add_argument("--build", default=os.path.join(SIBLINGS, "harness-then-build"))

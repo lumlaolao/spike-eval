@@ -48,6 +48,12 @@ class PortTest(unittest.TestCase):
         sig = "Map<Integer, Integer> handleMap() {"
         self.assertIn(sig + dc.OBS_HOOK.split(sig, 1)[1], current)
 
+    def test_the_current_price_list_is_ported_so_the_older_run_batch_accepts_a_budget(self):
+        os.makedirs(os.path.join(self.tree, "eval", "pricing"))
+        self.assertEqual(dc.port_prices(self.tree), "prices.json")
+        with open(os.path.join(self.tree, "eval", "pricing", "prices.json")) as f:
+            self.assertIn("openai/gpt-6-luna", f.read())
+
     def test_a_tree_without_the_anchor_is_refused_not_guessed(self):
         with open(os.path.join(self.spike, "LlmSpikeGui.java"), "w") as f:
             f.write("class LlmSpikeGui {}\n")
