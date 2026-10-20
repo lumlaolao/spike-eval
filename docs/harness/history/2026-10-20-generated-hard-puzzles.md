@@ -27,10 +27,13 @@ words the seat is shown. The opponent's life is set to exactly what the best lin
 | storm | every spell cast before Grapeshot | rituals in a payable order (Seething Song needs three open, Rites back to back), burn before Grapeshot |
 | splice | Arcane spells, pings | which Arcane spell carries Desperate Ritual or Glacial Ray; the line is the exhaustive-search best and must beat every unspliced line |
 | red | all of the above, plus Lava Dart's flashback, Goblin Electromancer, Kiln Fiend | the searched best line; kept only when a plain player (ping, then the biggest spell, never splice, Grapeshot last) falls short |
+| fling | every instant or sorcery before Fling, each one growing Kiln Fiend and the prowess creatures | Fling after combat deals the attacker's power a second time, but the pool empties when the first main phase ends: a Mountain and a ritual are held for the second; kept only when the searched best beats every line that casts it all before combat and every line that pays Fling only with held Mountains |
 
 What the engine taught the written lines: a choice with one legal answer gets no line; a splice is asked only
 for cards the seat could pay; two of the seat's triggers at once are an order question; a Grapeshot copy is
-logged as a cast, so each solution states its real step count (`# steps: N`).
+logged as a cast, so each solution states its real step count (`# steps: N`). A written line casts each card the
+moment it is castable, so an instant goes on the stack over a ritual that has not resolved and taps a Mountain
+the line meant to hold: the fling search plays the stack the way the line does.
 
 A combat puzzle whose answer depends on the opponent's blocks cannot be a fixed line, so those stay with the
 search prover and are not in this set.

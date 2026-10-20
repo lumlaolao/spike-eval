@@ -539,7 +539,179 @@ def red_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
 
 
-FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "red": red_board}
+# The fling family: (generic, red, mana added, damage to the opponent, pump to a target creature, target kind).
+# Every card is an instant or sorcery, so each one cast triggers prowess (+1) and Kiln Fiend (+3). No Desperate
+# Ritual: Lava Spike is Arcane, and a splice is one more question.
+FLING_CARDS = {
+    "Rite of Flame": (0, 1, 2, 0, 0, "none"),
+    "Pyretic Ritual": (1, 1, 3, 0, 0, "none"),
+    "Seething Song": (2, 1, 5, 0, 0, "none"),
+    "Lightning Bolt": (0, 1, 0, 3, 0, "any"),
+    "Lava Spike": (0, 1, 0, 3, 0, "player"),
+    "Shock": (0, 1, 0, 2, 0, "any"),
+    "Brute Force": (0, 1, 0, 0, 3, "creature"),
+    "Mutagenic Growth": (0, 0, 0, 0, 2, "creature"),
+    "Gitaxian Probe": (0, 0, 0, 0, 0, "player"),
+    "Fling": (1, 1, 0, 0, 0, "any"),
+}
+# Base power and what each instant or sorcery cast adds to it.
+FLING_CREATURES = {"Monastery Swiftspear": (1, 1), "Soul-Scar Mage": (1, 1), "Kiln Fiend": (1, 3)}
+
+
+FLING_SORCERIES = {"Rite of Flame", "Lava Spike", "Gitaxian Probe"}
+
+
+def fling_search(hand, mountains, creatures, mode="best", respond=True):
+    """The most damage the turn can deal and one line that deals it, by exhaustive search. The turn has two halves:
+    the first main phase, then the attack with every creature left (nobody blocks), then the second main phase. The
+    mana pool empties between them; only Mountains left untapped carry over. Mana is all red, paid from the pool
+    first, then from Mountains. Fling sacrifices a creature and deals its power, which keeps every pump and trigger
+    it got, so a creature that has attacked can still be Flung. Modes restrict the second main phase: "best"
+    (anything), "precombat" (nothing after the attack), "fling-only" (only Fling, paid by Mountains held back).
+
+    respond=True plays the way a written line plays (ScriptBridge): the next card is cast at the first priority it
+    is castable, so an instant goes on the stack above a ritual that has not resolved, and is paid by a Mountain
+    when the pool is empty (fling_f67a2fdc14e8, 2026-10-20: Lightning Bolt cast over Pyretic Ritual tapped the
+    Mountain kept for Fling). A card that is not castable yet waits while the stack resolves, one object a pass; a
+    sorcery waits for an empty stack. respond=False lets everything resolve before the next cast (a player who
+    passes priority on purpose): the bound the plain plans are held to.
+
+    Line items: ("cast", card, creature or None) and ("attack", names), with ("main2",) where the second main phase
+    begins. Returns (damage, steps, line); steps count the casts and the attack."""
+    from functools import lru_cache
+
+    def better(a, b):
+        return a if (a[0], -a[1]) >= (b[0], -b[1]) else b
+
+    def resolve(pool, rites, alive, stack):
+        """The top of the stack resolves: (pool, rites, alive, stack)."""
+        top, stack = stack[-1], stack[:-1]
+        if top[0] == "mana":
+            pool += top[1] + (rites if top[2] else 0)
+            rites += top[2]
+        elif top[0] == "pump":
+            alive = tuple((n, p + top[2] if n == top[1] else p) for n, p in alive)
+        return pool, rites, alive, stack
+
+    @lru_cache(maxsize=None)
+    def go(phase, hand, pool, untapped, rites, alive, stack):
+        best = (0, 0, ())
+        # End the phase: the stack resolves, then the attack (phase 1) or the turn's end.
+        p_, r_, a_, s_ = pool, rites, alive, stack
+        while s_:
+            p_, r_, a_, s_ = resolve(p_, r_, a_, s_)
+        if phase == 1:
+            d, st, ln = go(2, hand, 0, untapped, r_, a_, ()) if mode != "precombat" else (0, 0, ())
+            names = tuple(n for n, _ in a_)
+            atk = (("attack", names),) if names else ()
+            best = better((d + sum(p for _, p in a_), st + len(atk), atk + (("main2",),) + ln), best)
+        for c in sorted(set(hand)):
+            if phase == 2 and mode == "fling-only" and c != "Fling":
+                continue
+            g, r, add, dmg, pump, kind = FLING_CARDS[c]
+            cost = g + r
+            # Wait (pass) until the card is castable: the stack resolves one object at a time.
+            p_, r_, a_, s_ = pool, rites, alive, stack
+            while (cost > p_ + untapped or (c in FLING_SORCERIES and s_)) and s_:
+                p_, r_, a_, s_ = resolve(p_, r_, a_, s_)
+            if cost > p_ + untapped or (c in FLING_SORCERIES and s_):
+                continue
+            needs = kind == "creature" or c == "Fling"
+            if needs and not a_:
+                continue
+            from_pool = min(p_, cost)
+            npool, nun = p_ - from_pool, untapped - (cost - from_pool)
+            rest = list(hand)
+            rest.remove(c)
+            for who in ([n for n, _ in a_] if needs else [None]):
+                hit, left = dmg, a_
+                if c == "Fling":
+                    hit = dict(a_)[who]
+                    left = tuple((n, p) for n, p in a_ if n != who)
+                spell = ("mana", add, 1) if c == "Rite of Flame" else ("mana", add, 0) if add else \
+                    ("pump", who, pump) if pump else ("none",)
+                ns = s_ + (spell,) + tuple(("pump", n, FLING_CREATURES[n][1]) for n, _ in left)
+                np_, nr, nl = npool, r_, left
+                if not respond:
+                    while ns:
+                        np_, nr, nl, ns = resolve(np_, nr, nl, ns)
+                d, st, ln = go(phase, tuple(sorted(rest)), np_, nun, nr, nl, ns)
+                best = better((d + hit, st + 1, (("cast", c, who),) + ln), best)
+        return best
+    start = tuple(sorted((n, FLING_CREATURES[n][0]) for n in creatures))
+    return go(1, tuple(sorted(hand)), 0, mountains, 0, start, ())
+
+
+def fling_lines(line, creatures):
+    """The written line for a fling_search line, in the seat's menu words: a creature is named only when there
+    are two to choose from, a player target is `opponent`, two triggers at once are put in order, and the first
+    play after the attack waits for the second main phase."""
+    out, alive, wait = [], sorted(creatures), False
+    for item in line:
+        if item[0] == "main2":
+            wait = True
+            continue
+        if item[0] == "attack":
+            out.append("; ".join(item[1]))
+            continue
+        _, c, who = item
+        out.append(("at MAIN2: " if wait else "") + "cast " + c)
+        wait = False
+        kind = FLING_CARDS[c][5]
+        if kind in ("any", "player"):
+            out.append("opponent")
+        if (kind == "creature" or c == "Fling") and len(alive) > 1:
+            out.append(who)
+        if c == "Fling":
+            alive.remove(who)
+        if len(alive) > 1:
+            out.append("; ".join(alive))
+    return out
+
+
+def fling_board(rng):
+    """Prowess creatures and Kiln Fiend grow with every instant and sorcery; the attack deals their power, and Fling
+    after combat deals the Flung creature's power a second time. The mana pool empties when the first main phase
+    ends, so the mana for Fling must be held: a Mountain left untapped, or a ritual cast after combat (whose
+    trigger still grows the creature to be Flung). Kept only when the searched best beats both plain plans: every
+    spell before combat (Fling included), and every spell but Fling before combat with Fling paid by Mountains."""
+    mountains = rng.choice([1, 1, 2, 2, 3])
+    creatures = sorted(rng.sample(sorted(FLING_CREATURES), rng.choice([1, 2, 2])))
+    pool = sorted(c for c in FLING_CARDS if c != "Fling")
+    hand = ["Fling"] + [rng.choice(pool) for _ in range(rng.choice([8, 9, 9, 10]))]
+    if len(set(hand)) < 5:
+        return None
+    early = fling_search(hand, mountains, creatures, "precombat", respond=False)[0]
+    held = fling_search(hand, mountains, creatures, "fling-only", respond=False)[0]
+    if max(early, held) >= fling_search(hand, mountains, creatures, respond=False)[0]:
+        return None                    # the cheap bound first: the written line deals no more than this
+    dmg, steps, line = fling_search(hand, mountains, creatures)
+    if max(early, held) >= dmg or not MIN_ACTIONS <= steps <= MAX_ACTIONS:
+        return None
+    casts = [x[1] for x in line if x[0] == "cast"]
+    after = line[[x[0] for x in line].index("main2") + 1:]
+    if "Fling" not in casts or len(casts) != len(hand) or not after:
+        return None                    # every card is spent, and the line plays on after the attack
+    solution = ["# steps: %d" % steps] + fling_lines(line, creatures)
+    battlefield = creatures + ["Mountain"] * mountains
+    rng.shuffle(hand)
+    lands = "%s untapped Mountain%s" % (["", "one", "two", "three"][mountains], "" if mountains == 1 else "s")
+    desc = ("It is your first main phase. You are at 20 life and control %s. Your hand is %s. The opponent is at "
+            "%d life and controls nothing. Reduce the opponent to 0 life this turn."
+            % (_join(creatures + [lands]), _join(hand), dmg))
+    rule = ("generated-fling | the searched best deals %d, Fling after combat with mana held for it; every spell "
+            "before combat deals at most %d, Fling paid only by held Mountains at most %d" % (dmg, early, held))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN1"), ("p0life", 20),
+             ("p0hand", ";".join(hand)), ("p0battlefield", ";".join(battlefield)),
+             ("p0library", "Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw"),
+             ("p1life", dmg), ("p1library", "Plains;Plains;Plains")]
+    return {"family": "fling", "actions": steps, "life": dmg, "early": early, "held": held, "hand": sorted(hand),
+            "battlefield": sorted(battlefield), "phase": "MAIN1",
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "red": red_board,
+            "fling": fling_board}
 
 
 def board_key(b):

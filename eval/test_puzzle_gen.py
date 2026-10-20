@@ -1,5 +1,6 @@
-"""puzzle_gen.py: the generated families (ping, storm, splice) draw boards of the right length with the life set to
-exactly what their line deals, and the splice search finds a line no unspliced line matches."""
+"""puzzle_gen.py: the generated families (ping, storm, splice, fling) draw boards of the right length with the life
+set to exactly what their line deals, the splice search finds a line no unspliced line matches, and the fling search
+plays the way a written line plays."""
 import random
 import re
 import sys
@@ -62,6 +63,38 @@ class GeneratedFamiliesTest(unittest.TestCase):
         self.assertEqual((best, plain), (20, 17), "splicing the Ritual onto both Spikes pays for the rest")
         self.assertTrue(any(x and x[1] for x in line))
         self.assertEqual(steps, 13)
+
+    def test_fling_after_combat_beats_both_plain_plans(self):
+        # fling_7925155e0782: Swiftspear and two Mountains. Rite of Flame, Pyretic Ritual and the burn before
+        # combat, a Mountain held; after combat that Mountain casts the second Rite (three mana, a prowess trigger)
+        # and Fling deals Swiftspear's 9 again: 8 burn + 8 combat + 9.
+        hand = ["Shock", "Pyretic Ritual", "Gitaxian Probe", "Fling", "Gitaxian Probe", "Rite of Flame", "Lava Spike",
+                "Rite of Flame", "Lava Spike"]
+        dmg, steps, line = pg.fling_search(hand, 2, ["Monastery Swiftspear"])
+        self.assertEqual((dmg, steps), (25, 10))
+        after = [x[1] for x in line[line.index(("main2",)) + 1:]]
+        self.assertEqual(after, ["Rite of Flame", "Fling"])
+        for mode in ("precombat", "fling-only"):
+            self.assertEqual(pg.fling_search(hand, 2, ["Monastery Swiftspear"], mode, respond=False)[0], 17, mode)
+
+    def test_a_written_line_casts_in_response(self):
+        # After combat Pyretic Ritual pays Brute Force and Fling. A player who lets each spell resolve Flings a
+        # 10-power Kiln Fiend; a written line casts Fling the moment it is castable, over Brute Force and the
+        # trigger, so it Flings a 4-power one.
+        hand = ["Pyretic Ritual", "Brute Force", "Fling"]
+        self.assertEqual(pg.fling_search(hand, 2, ["Kiln Fiend"], respond=False)[0], 11)
+        self.assertEqual(pg.fling_search(hand, 2, ["Kiln Fiend"])[0], 10)
+
+    def test_a_fling_board_deals_its_life_and_waits_for_main2(self):
+        for b in pg.generate("fling", 3, seed=2):
+            self.assertTrue(pg.MIN_ACTIONS <= b["actions"] <= pg.MAX_ACTIONS)
+            self.assertLess(max(b["early"], b["held"]), b["life"])
+            lines = solution(b["text"]("x"))
+            self.assertEqual(lines[0], "# steps: %d" % b["actions"])
+            waits = [l for l in lines if l.startswith("at MAIN2: ")]
+            self.assertEqual(len(waits), 1, "only the first play after combat waits")
+            self.assertEqual(sum(l.startswith(("cast ", "at MAIN2: cast ")) for l in lines) + 1, b["actions"])
+            self.assertIn("cast Fling", "\n".join(lines))
 
     def test_a_written_board_is_a_valid_pzl(self):
         out = Path(tempfile.mkdtemp())
