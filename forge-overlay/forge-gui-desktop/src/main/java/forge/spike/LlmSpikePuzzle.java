@@ -175,10 +175,8 @@ public final class LlmSpikePuzzle {
 
     /** The solver's brief ({@link #seatBrief}), stored in LlmSpikeGui.puzzleBrief: call it before the solver's seat
      *  is built, whose system prompt reads it. */
-    static String briefSolver(Map<String, List<String>> sections, Puzzle puzzle) {
-        String brief = seatBrief(sections, puzzle.getGoalDescription());
-        LlmSpikeGui.puzzleBrief = brief;
-        return brief;
+    static void briefSolver(Map<String, List<String>> sections, Puzzle puzzle) {
+        LlmSpikeGui.puzzleBrief = seatBrief(sections, puzzle.getGoalDescription());
     }
 
     /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
@@ -559,10 +557,10 @@ public final class LlmSpikePuzzle {
                            String smartA, String fastA, long seed, long capMs, int rollout, boolean bounded,
                            boolean quiet) throws Exception {
         final Puzzle puzzle = new Puzzle(sections, id, false);
+        briefSolver(sections, puzzle);
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
-        briefSolver(sections, puzzle);
         LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", "", smartA, fastA);
         LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
                 : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
@@ -784,10 +782,22 @@ public final class LlmSpikePuzzle {
         extra.put("log_sha256", logFingerprint(logLines));
         extra.put("solver_actions", actions.size());
         java.util.Random arm = null;
+        ScriptBridge written = null;
+        int playsNotMade = 0;
         try {
             Object ctl = game.getRegisteredPlayers().get(0).getController();
-            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) arm = ((LlmSpikeGui.PlayerControllerLLM) ctl).armRandom();
+            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) {
+                LlmSpikeGui.PlayerControllerLLM llm = (LlmSpikeGui.PlayerControllerLLM) ctl;
+                arm = llm.armRandom();
+                written = llm.scriptBridge();
+                playsNotMade = llm.playsNotMade();
+            }
         } catch (Exception ignore) {}
+        // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
+        if (written != null) {
+            extra.putAll(written.report());
+            extra.put("plays_not_made", playsNotMade);
+        }
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());

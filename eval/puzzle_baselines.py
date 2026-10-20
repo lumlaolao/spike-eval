@@ -12,6 +12,7 @@ Every arm here is free: no model is called and nothing leaves the machine.
   python3 eval/puzzle_baselines.py run    --suite S.json [--ids a,b] [--rollouts 200] [-j 4] --write S.json
   python3 eval/puzzle_baselines.py verify --suite S.json [-j 4]
   python3 eval/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
+  python3 eval/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3]
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
@@ -23,6 +24,10 @@ longer reaches the goal (an engine bump retires such a puzzle).
 stores its result as the record's `proof`: "proven" means a strategy that beats every opponent choice the
 engine offers (with --opponent ai, only the Forge AI's), every leaf a Forge-scored solve. "not_found" is a
 spent budget, never a claim that the puzzle is unsolvable.
+
+`line` plays a puzzle's written solution (its `[solution]` section, one line per decision in the words the seat is
+shown; ScriptBridge.java) through the model seat, and exits 0 only when every seed played the whole line, drifted
+nowhere and solved. That proves a line a person can write, however long, without a search finding it.
 
 The Java side runs against an ISOLATED build: --build DIR holding classes/ and classpath.txt, as
 eval/harness_acceptance.sh writes them under runs/harness-acceptance/<stamp>/ (the newest one is the
@@ -415,6 +420,52 @@ def cmd_prove(a):
     return 0
 
 
+
+def line_verdict(row):
+    """"played" when a written-line game played every line, drifted nowhere and solved cleanly; else why not.
+    A drift is checked first: after one, the do-nothing answers can still stumble into the acceptance state."""
+    if not row:
+        return "no result row"
+    if "script_played" not in row:
+        return "not a written-line row"
+    if row.get("script_drift"):
+        return "drift: " + row["script_drift"]
+    if row.get("script_unconsumed"):
+        return "%d lines unplayed" % row["script_unconsumed"]
+    if row.get("tainted_by_deckout"):
+        return "solved by a deck-out" if row.get("status") == "solved" else "decided by a deck-out"
+    if row.get("status") != "solved":
+        return "%s %s" % (row.get("status"), row.get("acceptance_failed") or "")
+    # A play the line chose can still not happen (unpayable, or forbidden by a static): the seat counts those.
+    if "plays_not_made" not in row:
+        return "no plays_not_made on the row (a build before the seat counted them)"
+    if row.get("plays_not_made"):
+        return "%d plays the line chose did not happen" % row["plays_not_made"]
+    return "played" if row.get("script_played") else "not played"
+
+
+def line_env(script, opponent):
+    """The model seat with the written line `script` as its model (ScriptBridge), under the condition a paid run
+    pins with the tools off (puzzle_solve.condition): the line plays the menus the model is shown."""
+    import puzzle_solve  # here: puzzle_solve imports this module
+    cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False, rules_tool=False))
+    spec = "script:" + str(Path(script).resolve())
+    return dict(cond, CONTROLLER_A="llm", CONTROLLER_B=opponent, SMART_MODEL_A=spec, FAST_MODEL_A=spec,
+                GAME_CAP_MS="300000", ONE_TIER="1")
+
+
+def cmd_line(a):
+    build = Build(a.build, a.forge)
+    pzl = Path(a.pzl).resolve()
+    out = Path(a.out_dir or REPO / "runs/puzzles/lines" / pzl.stem)
+    rows = run_arm(build, pzl, "written", a.seeds, out, line_env(a.script or pzl, a.opponent))
+    want = sorted(expand_seeds(a.seeds))
+    verdicts = {r.get("seed"): line_verdict(r) for r in rows}
+    for seed in want:
+        print("%-24s seed %-4s %s" % (pzl.stem, seed, verdicts.get(seed, "no result row")), flush=True)
+    return 0 if all(verdicts.get(s) == "played" for s in want) else 1
+
+
 def cmd_run(a):
     build = Build(a.build, a.forge)
     manifest = pf.load_suite(a.suite)
@@ -507,8 +558,14 @@ def main(argv=None):
     pr.add_argument("-j", "--jobs", type=int, default=4)
     pr.add_argument("--out-dir", default=None)
     pr.add_argument("--write", default=None, help="manifest to write (default: --suite in place)")
+    ln = sub.add_parser("line", help="play a puzzle's written solution through the model seat (exit 1 unless played)")
+    ln.add_argument("--pzl", required=True, help="the puzzle; its [solution] section is the line unless --script")
+    ln.add_argument("--script", default=None, help="a file of solution lines (default: the puzzle's [solution])")
+    ln.add_argument("--opponent", choices=("ai",), default="ai")
+    ln.add_argument("--seeds", default="1")
+    ln.add_argument("--out-dir", default=None)
     a = ap.parse_args(argv)
-    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove}[a.cmd](a)
+    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line}[a.cmd](a)
 
 
 if __name__ == "__main__":

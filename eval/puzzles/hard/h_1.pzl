@@ -1,0 +1,38 @@
+[metadata]
+Name:Hard 1
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control three untapped Mountains. Your hand is Lava Spike, Desperate Ritual, Fireblast and four Lightning Bolt. The opponent is at 19 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:authored-hard-splice-ritual | Lava Spike and Desperate Ritual are both Arcane, so splicing the Ritual onto the Spike (CR 702.47a) adds RRR while the Ritual stays in hand to be cast as well: that is one more mana than casting the Ritual alone, enough for all four Bolts; 3 + 12, plus Fireblast sacrificing two tapped Mountains, is 19, and every line without the splice reaches 16
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lava Spike;Desperate Ritual;Fireblast;Lightning Bolt;Lightning Bolt;Lightning Bolt;Lightning Bolt
+p0battlefield=Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=19
+p1library=Plains;Plains;Plains
+[solution]
+# One line per decision, in the words the seat is shown (ScriptBridge.java). Splice the Ritual onto the
+# Spike, re-target, then the Ritual, four Bolts and Fireblast for its alternative cost: 3 + 12 + 4 = 19.
+cast Lava Spike
+opponent
+Desperate Ritual
+opponent
+cast Desperate Ritual
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Fireblast
+opponent
+Mountain; Mountain
+[acceptance]
+life p1 <= 0

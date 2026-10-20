@@ -1220,7 +1220,8 @@ public final class LlmSpikeGui {
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
                 smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
-            if (ONE_TIER) return new LLMBridge[] {smartB, smartB};
+            // A script is one line: both tiers must read it from one position.
+            if (ONE_TIER || smartB instanceof ScriptBridge) return new LLMBridge[] {smartB, smartB};
             return new LLMBridge[] {smartB,
                     LLMBridgeFactory.create(seat + "/fast", fastModel, framingFor(seat, deckPlan, true, fastModel))};
         }
@@ -1269,6 +1270,8 @@ public final class LlmSpikeGui {
 
         /** The zero-model arm's draw source (null for llm/floor); LlmSpikePuzzle reads its tape. */
         java.util.Random armRandom() { return rnd; }
+        /** The written line this seat plays (ScriptBridge), or null for any other seat. */
+        ScriptBridge scriptBridge() { return smart instanceof ScriptBridge ? (ScriptBridge) smart : null; }
 
         // ---------------- candidate labels: one seam, two renderers ----------------
         // Faithful profile: every menu option is rendered by the observer, so what the model can pick
@@ -4154,6 +4157,7 @@ public final class LlmSpikeGui {
                 if (chosen.getApi() == ApiType.Charm) {
                     if (!forge.game.ability.effects.CharmEffect.makeChoices(chosen)) {
                         p("[ROUTER] play: no legal mode set for " + labelOf(chosen) + " -> PASS");
+                        playsNotMade++;
                         return PASS;
                     }
                     modesChosenFor = chosen;
@@ -4175,6 +4179,7 @@ public final class LlmSpikeGui {
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
                 p("[ROUTER] play: error " + e + " -> PASS");
+                playsNotMade++;   // the menu failed: whatever the seat chose did not happen
                 return PASS;
             }
         }
@@ -4858,6 +4863,12 @@ public final class LlmSpikeGui {
             return new ArrayList<>();
         }
 
+        /** Plays the seat chose that did not happen: forbidden by a static, no legal modes, unpayable, refused by the stack
+         *  for want of a target, or lost to an error in the play menu (a cancel is the seat's own choice and is not
+         *  counted). A written line (ScriptBridge) is void when any of its plays did not happen. */
+        private int playsNotMade = 0;
+        int playsNotMade() { return playsNotMade; }
+
         /** The play path for a cast or activation. The inherited implementation hands the ability to
          *  {@code ComputerUtil.handlePlayingSpellAbility}, which pays EVERY cost with a hard-coded
          *  {@code new AiCostDecision(...)} and never consults {@link #getCostDecisionMaker} — so Forge's
@@ -4881,8 +4892,12 @@ public final class LlmSpikeGui {
             modesChosenFor = null;
             if (!ours) {
                 forge.game.zone.Zone from = sa.getHostCard() == null ? null : sa.getHostCard().getZone();
+                int stackBefore = getGame().getStack().size();
                 boolean played = super.playChosenSpellAbility(sa);
-                if (played) playSeen(sa, from);
+                // The inherited routine returns true whatever happened: read what it did from the game.
+                boolean happened = sa.isLandAbility() ? sa.getHostCard() != null && sa.getHostCard().getZone() != from
+                        : getGame().getStack().size() > stackBefore;
+                if (happened) playSeen(sa, from); else playsNotMade++;
                 return played;
             }
 
@@ -4910,10 +4925,14 @@ public final class LlmSpikeGui {
             if (!sa.checkRestrictions(ai)) {
                 p("[ROUTER] play: " + labelOf(sa) + " is forbidden by a static -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
                 forge.game.GameActionUtil.rollbackAbility(sa, hz, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
                 return true;
             }
-            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
+            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) {
+                playsNotMade++;
+                return true;
+            }
 
             game.getStack().freezeStack(sa);
             final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
@@ -4923,7 +4942,14 @@ public final class LlmSpikeGui {
             if (observer != null && rnd == null && cancels < 2) decision.offerCancel();
             costCancelled = false;
             if (pay.payComputerCosts(decision)) {
+                // The stack refuses a play with no legal target left ("Couldn't add to stack, failed to target").
+                boolean reaches = sa.isCopied() || sa.isManaAbility() || game.getStack().hasLegalTargeting(sa);
                 game.getStack().addAndUnfreeze(sa);
+                if (!reaches) {
+                    p("[ROUTER] play: " + labelOf(sa) + " paid but has no legal target -> the stack refused it");
+                    playsNotMade++;
+                    return true;
+                }
                 playSeen(sa, hz);
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
@@ -4940,6 +4966,7 @@ public final class LlmSpikeGui {
             } else {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
             }
             costCancelled = false;
             sa.setSkip(true);
@@ -10830,6 +10857,8 @@ public final class LlmSpikeGui {
         static LLMBridge create(String label, String spec, String preamble) {
             if (spec == null || spec.isEmpty())
                 throw new IllegalArgumentException("model spec required for " + label);
+            // A written solution line played through the model seat (ScriptBridge): no model, nothing leaves.
+            if (spec.startsWith(ScriptBridge.PREFIX)) return ScriptBridge.fromFile(label, spec.substring(ScriptBridge.PREFIX.length()));
             if (spec.startsWith("openrouter:")) {
                 // Explicit egress consent: every OpenRouter call ships the full game snapshot
                 // (board, hand, deck plan) to a third-party API. Holding an API key is a
