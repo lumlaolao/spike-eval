@@ -142,12 +142,22 @@ def run_decks(run_dir):
     return names if all(names) else None
 
 
+def run_arm(run_dir):
+    """The side by side arm a run directory holds (demo_compare's arm.json: arm, commit, date), or None."""
+    try:
+        with open(os.path.join(run_dir, "arm.json")) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
 def build_summary(pane):
     """The strip under the board: the game row, the [TALLY] line, match_review counts, and the run's cost."""
     out = {"path": pane.path, "live": pane.live, "jsonl": pane.reader.path if pane.reader else None,
            "log": pane.log, "game": pane.reader.builder.game if pane.reader else None,
            "tally": demo_events.tally(pane.log) if pane.log else {}, "puzzle": pane.puzzle(),
-           "decks": run_decks(os.path.dirname(pane.reader.path)) if pane.reader else None}
+           "decks": run_decks(os.path.dirname(pane.reader.path)) if pane.reader else None,
+           "arm": run_arm(os.path.dirname(pane.reader.path)) if pane.reader else None}
     if pane.reader and pane.done:
         try:
             import match_review

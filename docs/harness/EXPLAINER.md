@@ -129,9 +129,9 @@ step of the reference solution too.
 
 | Number | Source |
 |---|---|
-| 89 decision hooks, 44 ways to play a card, every one proven asked or played by a test | acceptance stage `surfaces` (`/tmp/claude-0/acc-ec9f6f11/summary.txt`, 2026-10-20) |
-| 929 Java tests, 528 Python tests, 19 acceptance stages PASS, about 12 minutes (11.5 on that run) | the same summary and its file times; `docs/harness/ACCEPTANCE.md` records every run |
-| canaries: seed 42 floor mirror wins A in 108 turns (1,828 decisions), random mirror A in 55 (365) | `eval/harness_acceptance.expected` (Linux pins); the summary |
+| 89 decision hooks, 44 ways to play a card, every one proven asked or played by a test | acceptance stage `surfaces`; `docs/harness/ACCEPTANCE.md`, the 2026-10-20 row for PR #287 |
+| 929 Java tests, 528 Python tests, 19 acceptance stages PASS, about 12 minutes (11.5 on that run) | the same `ACCEPTANCE.md` row |
+| canaries: seed 42 floor mirror wins A in 108 turns (1,828 decisions), random mirror A in 55 (365) | `eval/harness_acceptance.expected` (Linux pins); the same `ACCEPTANCE.md` row |
 | 4 patched engine files, each with its upstream hash and a golden check | `docs/harness/ENGINE-PATCHES.md` |
 | the rules lookup holds 3,163 rules and 741 terms, effective September 25, 2026 | acceptance stage `rules`; `eval/puzzles/rules-pilot/benchmark-v1/REPORT.md` |
 | PUZ, rules sample, 29 puzzles, k=5, Luna: 0.81 (95% CI 0.71 to 0.89) at epoch 66 with lookups off and on alike; at epoch 67 (neutral brief) 0.73 (0.61 to 0.84) off and 0.79 (0.69 to 0.87) on | `eval/puzzles/rules-pilot/benchmark-v1/REPORT.md`; recomputed live by `python3 eval/demo_eval.py` and on `/eval.html` |

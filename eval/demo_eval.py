@@ -74,10 +74,13 @@ def puz():
 
 def puz_check(check_dir):
     """A pilot PUZ score from a check directory (check-suite.json, ids.txt, results/: the layout of the hard-suite
-    Luna check on the demo-recordings branch), scored by puzzle_score.score on that suite's open split. None when
-    the directory is not given or not there. A pilot (one attempt, a sample of boards) is labelled so, never pooled."""
-    if not check_dir or not os.path.isdir(check_dir):
+    Luna check on the demo-recordings branch), scored by puzzle_score.score on that suite's open split. None when no
+    directory is given; an error when it is not there. A pilot (one attempt, a sample of boards) is labelled so, never
+    pooled."""
+    if not check_dir:
         return None
+    if not os.path.isdir(check_dir):
+        return {"error": "%s: no such directory" % check_dir}
     manifest = pf.load_suite(os.path.join(check_dir, "check-suite.json"))
     with open(os.path.join(check_dir, "ids.txt")) as f:
         ids = set(f.read().replace(",", " ").split())  # puzzle_score's --ids form: comma-separated

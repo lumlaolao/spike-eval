@@ -88,7 +88,7 @@ def info(run_dir, seed=None):
         text = raw.decode("utf-8")
         # The file found today must be the one played: else its Rule and [solution] are not what the run faced.
         out["pzl_changed"] = bool(row.get("pzl_sha256")) and pf.sha256_bytes(raw) != row["pzl_sha256"]
-        if out["pzl_changed"]:
+        if out["pzl_changed"] or not row.get("pzl_sha256"):  # steps only onto the file shown to have been played
             out["script_lines"] = None
         parsed = pf.parse_pzl(text)  # comment lines dropped, as Forge reads it
         meta = parsed.get("metadata", [])

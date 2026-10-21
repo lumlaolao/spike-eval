@@ -2,6 +2,7 @@
 place it in; both arms play the same conditions; a run never starts without a budget. No game is played here."""
 import contextlib
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -283,12 +284,25 @@ class ArmTest(unittest.TestCase):
                 args = ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd",
                         "0.4", "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build",
                         os.path.join(d, "then"), "--worktree", os.path.join(d, "harness-then")]
+                out = io.StringIO()
                 with mock.patch.object(dc, "check_pins", lambda *a: None), \
-                        mock.patch.object(dc.subprocess, "Popen", Proc), contextlib.redirect_stdout(io.StringIO()):
+                        mock.patch.object(dc, "arm_record", lambda repo, name: {"arm": name, "commit": "c0ffee"}), \
+                        mock.patch.object(dc.subprocess, "Popen", Proc), contextlib.redirect_stdout(out):
                     dc.main(args + (["--parallel"] if parallel else []))
+                with open(os.path.join(d, "out", "then", "arm.json")) as f:  # the viewer names the arm from this
+                    self.assertEqual(json.load(f), {"arm": "then", "commit": "c0ffee"})
             finally:
                 shutil.rmtree(d)
             self.assertEqual(events[:len(want)], want)
+            printed = out.getvalue()
+            if parallel:  # the live line comes before the games start, while there is something to watch
+                self.assertLess(printed.index("--live"), printed.index("[now]"))
+            else:
+                self.assertNotIn("--live", printed)
+
+    def test_an_arm_records_the_commit_it_played(self):
+        rec = dc.arm_record(dc.REPO, "now")
+        self.assertEqual((rec["arm"], len(rec["commit"]), len(rec["date"])), ("now", 40, 10))
 
     def test_a_forge_checkout_that_is_a_git_worktree_passes_the_guard(self):
         d = tempfile.mkdtemp()

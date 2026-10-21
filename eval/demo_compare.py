@@ -27,6 +27,7 @@ import json
 import os
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -304,6 +305,13 @@ def decks(a):
     return 0
 
 
+def arm_record(repo, name):
+    """OUT/<arm>/arm.json: which harness commit this arm played, so the viewer names it from the run, not a guess."""
+    show = subprocess.run(["git", "-C", repo, "show", "-s", "--format=%H %cs", "HEAD"], capture_output=True, text=True)
+    commit, date = (show.stdout.split() + ["", ""])[:2]
+    return {"arm": name, "commit": commit, "date": date}
+
+
 def run(a):
     if a.budget_usd is None or a.budget_usd <= 0:
         raise SystemExit("refusing: pass --budget-usd (a paid pair costs money; --fake runs cost nothing)")
@@ -341,6 +349,9 @@ def run(a):
         env.pop("OPENROUTER_ALLOW_EGRESS", None)
         env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
         model = "openrouter:fake/demo-model"
+    if a.parallel:
+        print("live (start it now, before the games): python3 eval/demo_server.py --live %s --live %s"
+              % (os.path.join(out, "now"), os.path.join(out, "then")), flush=True)
     running = []  # --parallel: both arms play at once (watched live with demo_server --live), each its own JVM
     try:
         for name, (repo, _) in arms.items():
@@ -358,25 +369,27 @@ def run(a):
                 run_env, log = env, None
             print("[%s]" % name, " ".join(cmd), flush=True)
             if not a.dry_run:
+                os.makedirs(dest, exist_ok=True)
+                with open(os.path.join(dest, "arm.json"), "w") as f:
+                    json.dump(arm_record(repo, name), f)
                 f = open(log, "w") if log else None
-                p = subprocess.Popen(cmd, env=run_env, cwd=repo, stdout=f, stderr=subprocess.STDOUT if f else None)
+                # Its own process group, so stopping it stops the JVM under run_batch and bash too (a paid game).
+                p = subprocess.Popen(cmd, env=run_env, cwd=repo, stdout=f, stderr=subprocess.STDOUT if f else None,
+                                     start_new_session=True)
                 running.append((p, f))
                 if not a.parallel:
                     p.wait()
-        for p, f in running:
+        for p, _ in running:
             p.wait()
+    finally:
+        for p, f in running:
+            if p.poll() is None:
+                os.killpg(p.pid, signal.SIGTERM)
             if f:
                 f.close()
-    finally:
-        for p, _ in running:
-            if p.poll() is None:
-                p.terminate()
         if fake:
             fake.terminate()
     print("replay: python3 eval/demo_server.py --game %s --game %s" % (os.path.join(out, "now"), os.path.join(out, "then")))
-    if a.parallel:
-        print("live (start it before the run): python3 eval/demo_server.py --live %s --live %s"
-              % (os.path.join(out, "now"), os.path.join(out, "then")))
     return 0
 
 

@@ -56,6 +56,8 @@ class PuzzleTest(unittest.TestCase):
     def test_a_pzl_changed_since_the_run_is_flagged_and_its_steps_not_mapped(self):
         i = self.run_with(pzl_sha256="0" * 64)
         self.assertEqual((i["pzl_changed"], i["script_lines"]), (True, None))
+        unverified = self.run_with(pzl_sha256=None)  # an older row without the hash: today's file is not proven
+        self.assertEqual((unverified["pzl_changed"], unverified["script_lines"]), (False, None))
 
     def test_a_model_attempt_names_the_model(self):
         self.assertEqual(demo_puzzle.solver_of({"solver_model": "openrouter:openai/gpt-6-luna"}),

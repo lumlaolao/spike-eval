@@ -67,6 +67,9 @@ fetch("api/eval").then(r => r.json()).then(r => {
       $("#hard-title").hidden = false;
       $("#hard").innerHTML = forest({runs: [pr.hard]}, `A pilot, not a PUZ score: one attempt each on ${esc(pr.hard.puzzles)} open ` +
         `boards of the generated hard suite (${esc(pr.hard.suite)}); floors: ${Object.entries(pr.hard.headline.floors).map(([n, v]) => `${esc(n)} ${f3(v)}`).join(" · ")}. Source: ${esc(pr.hard.path)}.`);
+    } else if (pr.hard) {  // a --hard-results that could not be scored says so, rather than leaving the row out
+      $("#hard-title").hidden = false;
+      $("#hard").innerHTML = `<p class="lede">The hard-suite pilot could not be read: ${esc(pr.hard.error)}</p>`;
     }
   }
   const a = r.acceptance;

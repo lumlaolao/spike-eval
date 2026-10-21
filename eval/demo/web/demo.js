@@ -124,6 +124,8 @@ class Pane {
     const s = await fetch(`api/game/${this.i}/summary`).then(x => x.json());
     if (gen !== this.gen || (s.gen != null && s.gen !== this.gen)) return;  // a summary of another game
     this.info.summary = s;
+    // A live pane learns it is a puzzle only now: leave watch mode for full detail, as fromHash would have.
+    if (s.puzzle && app.watchAuto) { app.watchAuto = false; document.body.classList.remove("watch"); app.renderWatchButton(); app.renderAll(); }
     this.renderSummary(); this.renderHead(); this.renderPuzzle(); this.renderStatus();
   }
 
@@ -165,10 +167,12 @@ class Pane {
     return this.decisions.slice(0, n + 1).filter(asked).length;
   }
 
-  // Two games side by side: which harness this pane is (its run directory's name: now / then), and the decks.
+  // Two games side by side: which harness this pane is (demo_compare's arm.json, else the run directory's name).
   get label() {
-    const base = (this.info.path || "").replace(/\/+$/, "").split("/").pop();
-    return {now: "current harness", then: "2026-10-14 harness (e1324cfd)"}[base] || base;
+    const a = (this.info.summary || {}).arm, base = (this.info.path || "").replace(/\/+$/, "").split("/").pop();
+    if (a && a.arm === "now") return "current harness";
+    if (a && a.commit) return `${a.date ? a.date + " " : ""}harness (${a.commit.slice(0, 8)})`;
+    return {now: "current harness", then: "older harness"}[base] || base;
   }
   get matchup() {
     const d = (this.info.summary || {}).decks, nice = s => s.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -384,10 +388,8 @@ class Pane {
       (marks ? `<span class="w-marks">${marks}</span>` : "") + `</span><span class="w-nm">${esc(o.name)}</span></div>`;
   }
   // Each game plays on its own clock in watch mode: the next decision after its own recorded latency (scaled by speed).
-  // A game already at its end starts again from its first decision; each one runs on to its last.
   play(on) {
     if (!on || this.timer) { clearTimeout(this.timer); this.timer = null; if (!on) { app.syncPlay(); return; } }
-    if (this.cur >= this.decisions.length - 1) { this.cur = 0; this.render(); }
     const tick = () => {
       if (this.cur >= this.decisions.length - 1) { this.timer = null; app.syncPlay(); return; }
       this.cur += 1; this.render(); app.toHash();
@@ -612,7 +614,7 @@ const app = {
     $("#play").onclick = () => this.toggle();
     $("#logonly").onclick = () => { document.body.classList.toggle("logonly"); this.toHash(); };
     $("#watch").hidden = this.panes.length !== 2;
-    $("#watch").onclick = () => { document.body.classList.toggle("watch"); this.panes.forEach(p => p.play(false)); this.renderWatchButton(); this.renderAll(); };
+    $("#watch").onclick = () => { this.watchAuto = false; document.body.classList.toggle("watch"); this.panes.forEach(p => p.play(false)); this.renderWatchButton(); this.renderAll(); };
     this.renderWatchButton();
     $("#turn").onchange = ev => {
       const t = +ev.target.value, p = this.panes[0];
@@ -636,6 +638,8 @@ const app = {
   toggle() {
     if (this.watching) {  // both games, each on its own clock
       const on = !this.panes.some(p => p.timer);
+      if (on && this.panes.every(p => p.cur >= p.decisions.length - 1))  // both ended: play both again from the start
+        this.panes.forEach(p => { p.cur = 0; p.render(); });
       this.panes.forEach(p => p.play(on));
       return;
     }
@@ -665,7 +669,9 @@ const app = {
     // &log: the log-only layout, for a browser beside Forge's own match window (which draws the board).
     document.body.classList.toggle("logonly", /(^|[#&])log(&|$)/.test(location.hash));
     // Two games: watch mode (both boards on one screen) unless the URL asks for full detail (&full).
-    document.body.classList.toggle("watch", this.panes.length === 2 && !/(^|[#&])full(&|$)/.test(location.hash));
+    // A puzzle pair opens in full detail: watch mode has no puzzle panel (brief, reveal, result).
+    this.watchAuto = this.panes.length === 2 && !this.panes.some(p => p.puzzle) && !/(^|[#&])full(&|$)/.test(location.hash);
+    document.body.classList.toggle("watch", this.watchAuto);
     const m = /d=(\d+)/.exec(location.hash);
     if (m && this.panes[0]) this.panes[0].cur = Math.max(0, Math.min(+m[1] - 1, this.panes[0].decisions.length - 1));
   },
