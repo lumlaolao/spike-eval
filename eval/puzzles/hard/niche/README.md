@@ -16,27 +16,33 @@ the bar in `docs/harness/HARD-PUZZLES.md` section 1:
 - floors, from `puzzle_baselines.py run --arms random,pass,first,ai,greedy --baselines-only` on a candidate suite:
   random (50 rollouts; the stack theme 20, too few to resolve the bar's "at most 2%"), PASS (4 seeds), first-option (4),
   Forge AI as the solver (4) and greedy-preview (4; the stack theme with its other floors, the other 20 boards in
-  `recheck/greedy.json`). Every one solved 0, except `reequip`, Forge AI 1 of 4 (within the bar's "at most 1 of 4"), on
-  a line that worked only because the AI opponent did not block. Outputs in `runs/puzzles/niche/<theme>/` (`floors*`,
-  `*-floors*`) and `runs/puzzles/niche/recheck/floors.json`;
+  `recheck/greedy.json`, per-game outputs in `runs/puzzles/niche-greedy-baselines/`). Every one solved 0, except
+  `reequip`, Forge AI 1 of 4 (within the bar's "at most 1 of 4"), on a line that worked only because the AI opponent did
+  not block. Outputs in `runs/puzzles/niche/<theme>/` (`floors*`, `*-floors*`; combat `suite-*.json`, of which
+  `suite-p45.json` holds `blocker_removed`'s older bytes) and `runs/puzzles/niche/recheck/floors.json` (per game:
+  `runs/puzzles/niche-recheck-baselines/`), which re-measures the boards edited since;
 - `--minimality`, which replays the line with each action removed, against Forge's AI only. Many removals are
-  "inconclusive" (the shortened line stalls: later labels no longer match), and the authors replayed those as
-  hand-written variant lines, each of which lost. Some removals came back "played" (solved without them): the `pass`
-  lines (21 of `crawler`'s 33, all 23 of `mirror`'s, 16 of `zones_redcap`'s 18, three of `blocker_removed`'s four),
-  which only let the stack resolve; `humility`'s land drop, four Thuds and Fling, because Forge's AI declined the Royal
-  Assassin chump block the worst case needs; and one `torbran` Bombardment, because the AI took the larger damage order.
-  Minimality against Forge's AI therefore cannot rule on `humility` or `torbran`. Outputs in
-  `runs/puzzles/niche/<theme>/<run>-minimality*/` (combat: `<run>-min/`); `blocker_removed` and `zones_redcap`, edited
-  after their first run, were replayed on the committed bytes in `recheck/blocker_removed-minimality/` and
-  `recheck/zones_redcap-minimality/` with the same result.
+  "inconclusive" (the shortened line stalls: later labels no longer match). Only some were replayed as hand-written
+  variant lines, each of which lost: `zones/variants/` (crawler, four flayer lines, hunter, mirror, zones_redcap) and
+  the stack theme's `split-second-minimality2/` and `token-first-minimality2/`, whose attack was rebuilt by hand for
+  each removal. The other inconclusive removals have no ruling: a stall usually means the mana or the target for a later
+  action is missing, a likely but unproven sign the removed action is needed. Some removals came back "played" (solved
+  without them): the `pass` lines (21 of `crawler`'s 33, all 23 of `mirror`'s, 16 of `zones_redcap`'s 18, three of
+  `blocker_removed`'s four), which only let the stack resolve; `humility`'s land drop, four Thuds and Fling, because
+  Forge's AI declined the Royal Assassin chump block the worst case needs; and one `torbran` Bombardment, because the AI
+  took the larger damage order. Minimality against Forge's AI therefore cannot rule on `humility` or `torbran`. Outputs
+  in `runs/puzzles/niche/<theme>/<run>-minimality*/` (combat: `<run>-min/`); `blocker_removed` and `zones_redcap`,
+  edited after their first run, were replayed on the committed bytes in `recheck/blocker_removed-minimality/` and
+  `recheck/zones_redcap-minimality/` with the same result; `hunter`'s minimality ran on bytes that differ from the
+  committed file only in its `Rule:` line, which neither the engine nor the seat reads.
 
 `<run>`, the run-directory name: the file's last word for replacement, zones and layers (`torbran`, `crawler`,
-`reequip`); for combat `band_redirect`, `blocker_removed`, `dt_trample`, `late_ds`, `marked_lethal`; for stack
-`redcap`, `split-second`, `steam-kin`, `storm-copy`, `token-first` (`split-second` has only `-minimality2`,
-`token-first` both `-minimality` and `-minimality2`).
+`reequip`); for combat `band_redirect`, `blocker_removed`, `dt_trample`, `late_ds`, `marked_lethal`; for stack `redcap`,
+`split-second`, `steam-kin`, `storm-copy`, `token-first` (`split-second` has only `-minimality2`, `token-first` both
+`-minimality` and `-minimality2`).
 
-The `runs/` outputs are not committed; each command above reproduces them, with `B` an isolated acceptance build and
-`FORGE_HOME` the pinned checkout.
+The `runs/` outputs are not committed; each command above reproduces them (not the hand-written variant lines), with `B`
+an isolated acceptance build and `FORGE_HOME` the pinned checkout.
 
 A held-out split and a frozen suite are not made yet: these files are open answers.
 
@@ -49,7 +55,7 @@ A held-out split and a frozen suite are not made yet: these files are open answe
 | combat | `combat/niche_combat_marked_lethal.pzl` | damage already marked counts toward lethal for trample (702.19b, 120.6) | 9 | block or not |
 | replacement | `replacement/niche_replacement_scales.pzl` | the controller orders counter replacements: Scales first (616.1, 616.1e-f) | 28 | which attacker is blocked |
 | replacement | `replacement/niche_replacement_torbran.pzl` | the damaged player orders Torbran and Fiery Emancipation: 3x+2 (616.1) | 11 | block, seven orders |
-| replacement | `replacement/niche_replacement_leyline.pzl` | Leyline of the Void exiles cards, tokens still die (614.6, 108.2b, 111.6) | 10 | block |
+| replacement | `replacement/niche_replacement_leyline.pzl` | Leyline of the Void exiles cards, tokens still die (614.6, 108.2b, 111.6) | 14 | block |
 | replacement | `replacement/niche_replacement_palisade.pzl` | redirected damage keeps deathtouch (614.9, 702.2b-c) | 11 | block |
 | replacement | `replacement/niche_replacement_consuls.pzl` | Authority of the Consuls checks the permanent after the copy effect (614.12, 616.1c) | 10 | block |
 | zones | `zones/niche_zones_flayer.pzl` | a flickered card is a new object; Flayer triggers only from the graveyard (400.7, 702.93a) | 11 | block |
@@ -68,9 +74,9 @@ A held-out split and a frozen suite are not made yet: these files are open answe
 | stack | `stack/niche_stack_split_second.pzl` | split second shuts off the opponent's fog; it counts for storm (702.61a-b, 702.40a) | 10 | block |
 | stack | `stack/niche_stack_storm_copy.pzl` | a copy of a storm spell is not cast and gets no storm copies (702.40a, 707.10) | 10 | none |
 
-L counts the solver's actions on the written line as HARD-PUZZLES.md section 1 does (casts, non-mana activations,
-land drops, attacks, and a mana ability where the engine offers it as a choice: `lattice`'s four taps); `leyline`'s
-Ashnod's Altar sacrifices are mana abilities the engine does not offer, so its L of 10 leaves them out (14 with them).
+L counts the solver's actions on the written line as HARD-PUZZLES.md section 1 does (casts, non-mana activations, land
+drops, attacks, and a mana ability where the engine offers it as a choice: `lattice`'s four taps, `leyline`'s four
+Ashnod's Altar sacrifices).
 
 Known limits:
 
