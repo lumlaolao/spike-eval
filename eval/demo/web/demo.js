@@ -6,7 +6,9 @@
 const $ = (sel, el) => (el || document).querySelector(sel);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const fmtMs = ms => ms == null ? "" : ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s";
-const phaseName = ph => String(ph || "").replace(/_/g, " ").toLowerCase();
+// Before turn 1 (the mulligan, who plays first) the engine has no phase and the row says "null": that is the pregame.
+const rawPhase = ph => (!ph || ph === "null" ? "pregame" : String(ph));  // the full view keeps the engine's names
+const phaseName = ph => rawPhase(ph).replace(/_/g, " ").toLowerCase();
 const isAsked = e => e.tier === "smart" || e.tier === "fast";  // the model was asked (not forced, not the harness)
 const inWatch = () => document.body.classList.contains("watch");
 // A puzzle attempt's result as puzzle_score reads it: a capped game or a deck-out solve is a miss, an unscoreable or
@@ -234,7 +236,7 @@ class Pane {
   renderStatus() {
     const d = this.decision, st = this.stateOf(d), h = (st && st.header) || {};
     const bits = [];
-    if (d) bits.push(`<span class="turn">Turn ${esc(d.turn)} · ${esc(d.phase || h.phase || "")}</span>`);
+    if (d) bits.push(`<span class="turn">Turn ${esc(d.turn)} · ${esc(rawPhase(d.phase !== "null" && d.phase || h.phase))}</span>`);
     if (h.active) bits.push(`<span>active: <b>${esc(h.active)}</b></span>`);
     if (d) bits.push(`<span>deciding: <b>${esc(d.seat)}</b> (${esc(d.type)})</span>`);
     bits.push(`<span class="pill">decision ${this.decisions.length ? this.cur + 1 : 0} / ${this.decisions.length}</span>`);
@@ -440,7 +442,7 @@ class Pane {
     const blocks = (st && st.blocks) || {};
     const block = name => blocks[name] ? [blocks[name].text].concat(blocks[name].lines).filter(Boolean).join(" ") : "";
     const parts = [];
-    if (plan) parts.push(`<div class="box"><h4>plan (set_plan at T${esc(at.turn)} ${esc(at.phase)}${at === d ? ", this decision" : ""})</h4>` +
+    if (plan) parts.push(`<div class="box"><h4>plan (set_plan at T${esc(at.turn)} ${esc(rawPhase(at.phase))}${at === d ? ", this decision" : ""})</h4>` +
       `<div class="goal">${esc(plan.goal)}</div><div>next: ${esc(plan.next)}</div></div>`);
     else if (st && st.plan) parts.push(`<div class="box"><h4>plan (as the prompt shows it)</h4><div class="goal">${esc(st.plan.goal)}</div><div>next: ${esc(st.plan.next)}</div></div>`);
     if (block("YOUR OPPONENT PROFILE")) parts.push(`<div class="box"><h4>the seat's opponent profile</h4>${esc(block("YOUR OPPONENT PROFILE"))}</div>`);
@@ -466,7 +468,7 @@ class Pane {
         if (!pass(e)) continue;
         const tools = e.calls.flatMap(c => c.tools.map(t => t.name)).filter(t => t !== "answer");
         const flag = isBreach(e) || e.answer_invalid ? " !" : "";
-        rows.push(`<li data-n="${n}" class="${n === this.cur ? "cur" : ""}${n === this.divergeAt ? " diverge" : ""}"${n === this.divergeAt ? ' title="first divergence between the two harnesses"' : ""}><span class="t">T${esc(e.turn)} ${esc((e.phase || "").slice(0, 6))}</span>` +
+        rows.push(`<li data-n="${n}" class="${n === this.cur ? "cur" : ""}${n === this.divergeAt ? " diverge" : ""}"${n === this.divergeAt ? ' title="first divergence between the two harnesses"' : ""}><span class="t">T${esc(e.turn)} ${esc((e.phase && e.phase !== "null" ? e.phase.slice(0, 6) : "pregame"))}</span>` +
           `<span>${esc(e.type)}${e.tier === "ai" ? " (FORGE AI)" : e.tier === "auto" ? ` (${esc(e.auto_class === "forced" ? "forced" : e.auto_class || "not asked")})` : ""}${tools.length ? " · " + esc(tools.join(", ")) : ""}<span class="flag">${flag}</span></span>` +
           `<span class="t">${fmtMs(e.latency_ms)}</span></li>`);
       } else if (e.kind === "window" && this.filter === "all") {
@@ -523,7 +525,7 @@ class Pane {
     const extras = ["blocks_note", "yield", "profile", "lines", "keep_untapped", "blocks", "amounts", "number", "card", "steps"]
       .filter(k => a[k] != null && a[k] !== "" && a[k] !== "none" && !(Array.isArray(a[k]) && !a[k].length) && !(k === "number" && a[k] === 0))
       .map(k => `<div><b>${esc(k)}</b>: ${esc(typeof a[k] === "string" ? a[k] : JSON.stringify(a[k]))}</div>`).join("");
-    el.innerHTML = `<h3>${esc(d.seat)} · T${esc(d.turn)} ${esc(d.phase)} · ${esc(d.type)}</h3>` +
+    el.innerHTML = `<h3>${esc(d.seat)} · T${esc(d.turn)} ${esc(rawPhase(d.phase))} · ${esc(d.type)}</h3>` +
       `<div class="engine-note">tier ${esc(d.tier)} · ${fmtMs(d.latency_ms)} · ${esc(d.prompt_tokens || 0)} prompt tokens (${esc(d.cached_tokens || 0)} cached) · ${esc(d.completion_tokens || 0)} completion · answered via ${esc(d.answer_via || "-")}</div>` +
       (q ? `<div class="q">${esc(q)}</div>` : d.tier !== "smart" && d.tier !== "fast" ? `<div class="q">${esc(autoLabel(d))}</div>` : "") +
       flags.map(f => `<div class="flagbox">${esc(f)}</div>`).join("") + opts +
@@ -599,9 +601,9 @@ const app = {
     if (dv.unpaired) { b.hidden = false; b.disabled = true; b.textContent = "seeds or decks differ: not a side by side"; return; }
     const d = this.panes[0].decisions[dv.a] || {};
     b.hidden = false; b.disabled = false;
-    b.textContent = `first divergence: T${d.turn} ${d.phase || ""}`;
+    b.textContent = `first divergence: T${d.turn} ${rawPhase(d.phase)}`;
     const m = dv.menus_differ_from != null ? this.panes[0].decisions[dv.menus_differ_from] : null;
-    b.title = dv.reason + (m ? `; the menus first differ at T${m.turn} ${m.phase || ""} (decision ${dv.menus_differ_from + 1})` : "");
+    b.title = dv.reason + (m ? `; the menus first differ at T${m.turn} ${rawPhase(m.phase)} (decision ${dv.menus_differ_from + 1})` : "");
     b.onclick = () => { this.panes.forEach((p, k) => { p.cur = k ? dv.b : dv.a; }); this.renderAll(); };
   },
   seek(pane, n) {
