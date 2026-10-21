@@ -46,7 +46,7 @@ class Pane:
         self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
         self.lock = threading.Lock()
         self._summary = None
-        self._puzzle = None     # a puzzle run's result (demo_puzzle.info), once its row is written
+        self._puzzle = None     # a puzzle run's result (demo_puzzle.info) once its row is written; False: not a puzzle
         self.refresh()
 
     def refresh(self):
@@ -75,11 +75,16 @@ class Pane:
         return self.reader is not None and (self.reader.builder.game is not None or self.puzzle() is not None)
 
     def puzzle(self):
-        """demo_puzzle.info for this pane's game when it is a finished puzzle attempt, else None. Kept once found."""
+        """demo_puzzle.info for this pane's game when it is a finished puzzle attempt, else None. Kept once found; a
+        game with no puzzle-results.jsonl beside it is marked not a puzzle and never looked up again."""
         if self._puzzle is None and self.reader is not None:
-            m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
-            self._puzzle = demo_puzzle.info(os.path.dirname(self.reader.path), m.group(1) if m else None)
-        return self._puzzle
+            run = os.path.dirname(self.reader.path)
+            if not os.path.isfile(os.path.join(run, "puzzle-results.jsonl")) and not self.live:
+                self._puzzle = False
+            else:
+                m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
+                self._puzzle = demo_puzzle.info(run, m.group(1) if m else None)
+        return self._puzzle or None
 
     @property
     def events(self):
@@ -150,15 +155,15 @@ def build_summary(pane):
 class EvalReport:
     """demo_eval.report for one acceptance dir, built once on first ask (the PUZ bootstraps take a few seconds)."""
 
-    def __init__(self, acceptance_dir=None):
-        self.acceptance_dir = acceptance_dir
+    def __init__(self, acceptance_dir=None, hard_dir=None):
+        self.acceptance_dir, self.hard_dir = acceptance_dir, hard_dir
         self.lock = threading.Lock()
         self.value = None
 
     def get(self):
         with self.lock:
             if self.value is None:
-                self.value = demo_eval.report(self.acceptance_dir)
+                self.value = demo_eval.report(self.acceptance_dir, self.hard_dir)
             return self.value
 
 
@@ -270,6 +275,8 @@ def main(argv=None):
     ap.add_argument("--fetch-images", action="store_true",
                     help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
     ap.add_argument("--acceptance", help="the eval page's gate: an OUT dir of eval/harness_acceptance.sh (/eval.html)")
+    ap.add_argument("--hard-results", help="the eval page's hard-suite pilot: a PUZ check dir (demo-recordings branch: "
+                    "puzzles/hard-gen-luna-check)")
     a = ap.parse_args(argv)
     panes = [Pane(p) for p in a.game] + [Pane(p, live=True, highlight_file=a.highlight_file) for p in a.live]
     if not panes and not a.acceptance:
@@ -278,7 +285,7 @@ def main(argv=None):
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
     srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images),
-                      EvalReport(a.acceptance))
+                      EvalReport(a.acceptance, a.hard_results))
     if a.highlight_file:
         # The Forge window's highlights follow the game whether or not a browser is polling.
         def follow():

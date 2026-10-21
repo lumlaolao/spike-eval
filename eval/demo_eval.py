@@ -68,6 +68,23 @@ def puz():
             "runs": runs}
 
 
+def puz_check(check_dir):
+    """A pilot PUZ score from a check directory (check-suite.json, ids.txt, results/: the layout of the hard-suite
+    Luna check on the demo-recordings branch), scored by puzzle_score.score on that suite's open split. None when
+    the directory is not given or not there. A pilot (one attempt, a sample of boards) is labelled so, never pooled."""
+    if not check_dir or not os.path.isdir(check_dir):
+        return None
+    manifest = pf.load_suite(os.path.join(check_dir, "check-suite.json"))
+    with open(os.path.join(check_dir, "ids.txt")) as f:
+        ids = {i for i in f.read().replace(",", " ").split()}  # puzzle_score's --ids form: comma-separated
+    rep = ps.score(manifest, ps.load_rows([os.path.join(check_dir, "results")]), "open", 1, ids=ids)
+    agg = rep["aggregate"]
+    return {"label": "%s, %d boards, one attempt each" % (rep["solver"].split("/", 1)[-1], agg["n_puzzles"]),
+            "path": check_dir, "suite": rep["suite"], "puzzles": agg["n_puzzles"], "k": agg["k"], "pilot": True,
+            "headline": agg["headline"], "pass@1": {k: agg["pass@1"][k] for k in ("value", "ci95", "floors")},
+            "attempts": rep["integrity"]["attempts"]}
+
+
 def panel_plan(panel):
     spec, _, _ = panel_score.load_panel(PANELS, panel)
     games = len(spec["cells"]) * len(panel_score.parse_seed_spec(spec["seeds"])) * (2 if spec.get("pairs") else 1)
@@ -75,7 +92,8 @@ def panel_plan(panel):
             "cost_usd": [round(games * c, 2) for c in GAME_COST_USD], "game_cost_usd": list(GAME_COST_USD)}
 
 
-def report(acceptance_dir=None):
+def report(acceptance_dir=None, hard_dir=None):
+    hard = puz_check(hard_dir)
     return {
         "acceptance": acceptance(acceptance_dir) if acceptance_dir else None,
         "headlines": [
@@ -86,7 +104,7 @@ def report(acceptance_dir=None):
              "floor": "as STR-AI", "status": "not yet run", "plan": None},
             {"key": "PUZ", "what": "mean over puzzles of pass@1 minus the puzzle's random solve rate (eval/puzzle_score.py)",
              "floor": "0 for random play by construction; the PASS and first-option policies alongside",
-             "status": "recorded", "result": puz()},
+             "status": "recorded", "result": dict(puz(), hard=hard)},
         ],
     }
 
@@ -94,8 +112,9 @@ def report(acceptance_dir=None):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--acceptance", help="an OUT dir of eval/harness_acceptance.sh (holds summary.txt)")
+    ap.add_argument("--hard-results", help="a PUZ check dir (check-suite.json, ids.txt, results/), scored as a pilot")
     a = ap.parse_args(argv)
-    print(json.dumps(report(a.acceptance), indent=2))
+    print(json.dumps(report(a.acceptance, a.hard_results), indent=2))
     return 0
 
 

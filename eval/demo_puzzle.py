@@ -6,7 +6,7 @@
 A puzzle run (eval/puzzle_baselines.py line, eval/puzzle_solve.py) writes game-*.jsonl, which the viewer replays
 like any game, and puzzle-results.jsonl, which says how it ended. This module reads that result row and the
 .pzl it names, and returns the panel: the brief the seat was given (the .pzl's Description), who played (the
-puzzle's written line, a script, or a model), how it ended, and, for the audience only, the puzzle's intended
+puzzle's written line (the script arm) or the model), how it ended, and, for the audience only, the puzzle's intended
 line (its Rule: note and [solution] steps). The seat never sees the Rule or the solution; the panel draws them
 behind a reveal. Stdlib only.
 
@@ -26,7 +26,8 @@ REPO = os.path.dirname(HERE)
 
 
 def result_row(run_dir, seed=None):
-    """The puzzle-results.jsonl row of the run (the one for `seed` when given, else the last)."""
+    """The puzzle-results.jsonl row of the run: the one for `seed` when given (None when that attempt wrote no row:
+    another seed's result is never borrowed), else the last."""
     path = os.path.join(run_dir, "puzzle-results.jsonl")
     try:
         with open(path) as f:
@@ -34,7 +35,7 @@ def result_row(run_dir, seed=None):
     except (OSError, ValueError):
         return None
     if seed is not None:
-        rows = [r for r in rows if str(r.get("seed")) == str(seed)] or rows
+        rows = [r for r in rows if str(r.get("seed")) == str(seed)]
     return rows[-1] if rows else None
 
 
@@ -50,17 +51,22 @@ def find_pzl(row):
     return None
 
 
-def solution_steps(text):
-    """The [solution] section's steps, in order (comment lines dropped, as Forge reads it)."""
-    return pf.parse_pzl(text).get("solution", [])
-
-
 def solver_of(row):
-    """Who played: the puzzle's written line, a script, or the model spec."""
+    """Who played: the puzzle's written line, another script (a --script file, a relaxed replay), or the model."""
     model = row.get("solver_model") or ""
     if model.startswith("script:"):
-        return {"kind": "written line", "detail": "the puzzle's [solution], replayed by the script arm (no model)"}
+        path = model[len("script:"):]
+        if path == row.get("source_file"):
+            return {"kind": "written line", "detail": "the puzzle's [solution], replayed by the script arm (no model)"}
+        return {"kind": "script", "detail": "a scripted line (%s), not the puzzle's [solution]" % path}
     return {"kind": "model", "detail": model or row.get("solver_arm") or "?"}
+
+
+def steps_mappable(row):
+    """True when each asked decision consumed exactly one [solution] line, in order: the written line itself, with no
+    wait, untap fallback, drift or exhaustion (ScriptBridge answers those without consuming a line)."""
+    return (solver_of(row)["kind"] == "written line" and not row.get("script_drift") and not row.get("script_exhausted")
+            and not row.get("script_waits") and not row.get("script_untaps_left"))
 
 
 def info(run_dir, seed=None):
@@ -69,20 +75,26 @@ def info(run_dir, seed=None):
     if not row:
         return None
     out = {"id": row.get("id"), "status": row.get("status"), "solved": bool(row.get("solved")),
-           "solver": solver_of(row), "turns": row.get("turns"), "win_condition": row.get("win_condition"),
-           "solver_actions": row.get("solver_actions"), "model_calls": row.get("model_calls"),
-           "opponent_loss_reason": row.get("opponent_loss_reason"), "harness_epoch": row.get("harness_epoch")}
+           "solver": solver_of(row), "solver_actions": row.get("solver_actions"),
+           "harness_epoch": row.get("harness_epoch"), "brief": row.get("goal_oracle"),
+           "script_lines": row.get("script_lines") if steps_mappable(row) else None}
     pzl = find_pzl(row)
     if pzl:
-        with open(pzl, encoding="utf-8") as f:
-            text = f.read()
-        meta = pf.parse_pzl(text).get("metadata", [])
+        with open(pzl, "rb") as f:
+            raw = f.read()
+        text = raw.decode("utf-8")
+        # The file found today must be the one played: else its Rule and [solution] are not what the run faced.
+        out["pzl_changed"] = bool(row.get("pzl_sha256")) and pf.sha256_bytes(raw) != row["pzl_sha256"]
+        if out["pzl_changed"]:
+            out["script_lines"] = None
+        parsed = pf.parse_pzl(text)  # comment lines dropped, as Forge reads it
+        meta = parsed.get("metadata", [])
         rule = pf.section_value(meta, "Rule", "") or ""
         out.update({"pzl": os.path.relpath(pzl, REPO) if pzl.startswith(REPO) else pzl,
-                    "brief": pf.section_value(meta, "Description", ""),
+                    "brief": out["brief"] or pf.section_value(meta, "Description", ""),
                     "family": rule.split("|", 1)[0].replace("generated-", "").strip() or None,
                     "rule": rule.split("|", 1)[1].strip() if "|" in rule else rule,
-                    "solution": solution_steps(text)})
+                    "solution": parsed.get("solution", [])})
     return out
 
 

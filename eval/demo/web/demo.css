@@ -225,6 +225,7 @@ body.logonly .board { display: none; }
 .puzzle { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 8px 0; background: var(--panel); }
 .puzzle .ptitle { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .puzzle p { margin: 4px 0; }
+.puzzle .brief { white-space: pre-line; }
 .puzzle details summary { cursor: pointer; color: var(--planned); font-size: 13px; margin-top: 4px; }
 .puzzle .rule { color: var(--muted); font-size: 13px; }
 .puzzle .steps { margin: 4px 0 0; padding-left: 30px; font-family: var(--mono); font-size: 12px; max-height: 180px;

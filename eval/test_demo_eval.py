@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 import demo_eval
 
@@ -37,6 +38,32 @@ class EvalTest(unittest.TestCase):
         self.assertAlmostEqual(on67["headline"]["value"], 0.788, places=3)       # REPORT.md, epoch 67 table
         self.assertAlmostEqual(runs["lookups off, epoch 66"]["headline"]["value"], 0.809, places=3)
         self.assertEqual(on67["headline"]["floors"]["random"], 0.0)
+
+    def test_a_check_dir_is_scored_as_a_labelled_pilot_on_its_own_suite_and_ids(self):
+        self.assertIsNone(demo_eval.puz_check(None))
+        self.assertIsNone(demo_eval.puz_check("/nowhere"))
+        d = tempfile.mkdtemp()
+        try:
+            open(os.path.join(d, "check-suite.json"), "w").close()
+            with open(os.path.join(d, "ids.txt"), "w") as f:
+                f.write("hard-a,hard-b\n")  # puzzle_score's --ids form
+            os.makedirs(os.path.join(d, "results"))
+            seen = {}
+            agg = {"n_puzzles": 2, "k": 1, "headline": {"value": 0.5}, "pass@1": {"value": 0.5, "ci95": [0, 1], "floors": {}}}
+
+            def score(manifest, rows, split, k, ids=None):
+                seen.update(split=split, k=k, ids=ids)
+                return {"aggregate": agg, "solver": "llm/openrouter:x/y", "suite": "hard-gen-check",
+                        "integrity": {"attempts": 2}}
+            with mock.patch.object(demo_eval.pf, "load_suite", lambda p: {}), \
+                    mock.patch.object(demo_eval.ps, "load_rows", lambda paths: []), \
+                    mock.patch.object(demo_eval.ps, "score", score):
+                h = demo_eval.puz_check(d)
+        finally:
+            shutil.rmtree(d)
+        self.assertEqual(seen, {"split": "open", "k": 1, "ids": {"hard-a", "hard-b"}})
+        self.assertTrue(h["pilot"])
+        self.assertEqual((h["puzzles"], h["label"]), (2, "openrouter:x/y, 2 boards, one attempt each"))
 
     def test_str_ai_is_not_yet_run_and_carries_its_cost(self):
         h = {x["key"]: x for x in demo_eval.report()["headlines"]}

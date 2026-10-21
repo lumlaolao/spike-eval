@@ -142,7 +142,8 @@ class Pane {
     const k = this.scriptStep(this.cur);
     const steps = (pz.solution || []).map((s, i) => `<li class="${i + 1 === k ? "cur" : ""}">${esc(s)}</li>`).join("");
     const open = el.querySelector("details") && el.querySelector("details").open;
-    el.innerHTML = `<div class="ptitle">the brief (what the seat is told)</div><p>${esc(pz.brief || "")}</p>` +
+    el.innerHTML = `<div class="ptitle">the brief (what the seat is told)</div><p class="brief">${esc(pz.brief || "")}</p>` +
+      (pz.pzl_changed ? `<div class="flagbox">the .pzl changed since this run: the line below is today's file, not the one played</div>` : "") +
       (steps || pz.rule ? `<details${open ? " open" : ""}><summary>reveal the intended line (audience only: the seat never sees it)</summary>` +
         (pz.rule ? `<p class="rule">${esc(pz.rule)}</p>` : "") + (steps ? `<ol class="steps">${steps}</ol>` : "") + `</details>` : "");
     const li = el.querySelector(".steps li.cur");
@@ -155,12 +156,12 @@ class Pane {
   }
 
   get puzzle() { return (this.info.summary || {}).puzzle || null; }
-  // A written-line run consumes one [solution] step per decision the seat is asked, in order: the step (1-based)
-  // that answered decision n, or 0 when this run is not the written line or n was not asked.
+  // A clean written-line run consumes one [solution] line per asked decision, in order (demo_puzzle.steps_mappable
+  // says when; script_lines is null otherwise): the step (1-based) that answered decision n, or 0.
   scriptStep(n) {
-    const pz = this.puzzle, d = this.decisions[n];
-    if (!pz || pz.solver.kind !== "written line" || !d || (d.tier !== "smart" && d.tier !== "fast")) return 0;
-    return this.decisions.slice(0, n + 1).filter(e => e.tier === "smart" || e.tier === "fast").length;
+    const pz = this.puzzle, d = this.decisions[n], asked = e => e.tier === "smart" || e.tier === "fast";
+    if (!pz || !pz.script_lines || !d || !asked(d) || this.decisions.filter(asked).length !== pz.script_lines) return 0;
+    return this.decisions.slice(0, n + 1).filter(asked).length;
   }
 
   renderHead() {
@@ -202,13 +203,11 @@ class Pane {
         bits.push(`<span class="pill think" data-think>model thinking ${fmtMs(think)}</span>`);
       }
     }
-    const pz = this.puzzle;
-    if (pz && this.done && this.cur >= this.decisions.length - 1) {
-      bits.push(`<span class="pill ${pz.solved ? "done" : "think"}">puzzle ${pz.solved ? "SOLVED" : "not solved"} by the ${esc(pz.solver.kind)}` +
+    if (this.done && this.cur >= this.decisions.length - 1) {
+      const pz = this.puzzle, g = this.game || {};
+      if (pz) bits.push(`<span class="pill ${pz.solved ? "done" : "think"}">puzzle ${pz.solved ? "SOLVED" : "not solved"} by the ${esc(pz.solver.kind)}` +
         ` (${esc(pz.solver_actions)} actions${pz.solved ? "" : `, ${esc(pz.status)}`})</span>`);
-    } else if (this.done && this.cur >= this.decisions.length - 1) {
-      const g = this.game || {};
-      bits.push(`<span class="pill done">game over: ${esc(g.winner === "A" ? g.deck_a : g.winner === "B" ? g.deck_b : g.winner)} won, T${esc(g.turns)} (${esc(g.win_condition)})</span>`);
+      else bits.push(`<span class="pill done">game over: ${esc(g.winner === "A" ? g.deck_a : g.winner === "B" ? g.deck_b : g.winner)} won, T${esc(g.turns)} (${esc(g.win_condition)})</span>`);
     }
     $(".statusbar", this.el).innerHTML = bits.join("");
   }
@@ -366,7 +365,7 @@ class Pane {
     if (d.first_failed_reply) flags.push(`first failed reply: ${d.first_failed_reply}`);
     const opts = d.options.length
       ? `<ol class="opts">${d.options.map((o, i) => `<li class="${chosen.has(i) ? "sel" : ""}"><span class="n">${i + 1})</span>${esc(o)}</li>`).join("")}</ol>` : "";
-    const steps = d.calls.map(c => this.callHtml(c)).join("");
+    const steps = d.calls.map(c => this.callHtml(c)).join(""), k = this.scriptStep(this.cur);
     const a = Object.assign({}, d.answer);
     if (d.type === "blockers" && Array.isArray(a.blocks) && !a.blocks.length) a.blocks_note = "no blocks";
     const extras = ["blocks_note", "yield", "profile", "lines", "keep_untapped", "blocks", "amounts", "number", "card", "steps"]
@@ -378,8 +377,8 @@ class Pane {
       flags.map(f => `<div class="flagbox">${esc(f)}</div>`).join("") + opts +
       (a.why ? `<div class="why"><b>why</b> (the model's own words in its answer): ${esc(a.why)}</div>` : "") +
       (extras ? `<div class="step tool-answer">${extras}</div>` : "") +
-      (this.scriptStep(this.cur) ? `<div class="step"><b>played by the written line</b>, step ${this.scriptStep(this.cur)}: ` +
-        `<code>${esc((this.puzzle.solution || [])[this.scriptStep(this.cur) - 1] || "")}</code> (no model; the engine still checked the move)</div>`
+      (k ? `<div class="step"><b>played by the written line</b>, step ${k}: ` +
+        `<code>${esc((this.puzzle.solution || [])[k - 1] || "")}</code> (no model; the engine still checked the move)</div>`
         : steps ? `<h3>what the model did, in order</h3>${steps}` : "") +
       (d.prompt ? `<details><summary>the whole prompt the seat was shown</summary><pre>${esc(d.prompt)}</pre></details>` : "");
   }

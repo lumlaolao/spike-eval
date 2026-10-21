@@ -144,7 +144,7 @@ class PuzzleTest(unittest.TestCase):
     def test_a_puzzle_run_is_done_on_its_result_row_and_its_summary_carries_the_puzzle(self):
         d = tempfile.mkdtemp()
         try:
-            game = os.path.join(FIX, "puzzle", "game-1-1792545763927.jsonl")
+            game = os.path.join(FIX, "puzzle", "game-1-1792546270115.jsonl")
             shutil.copy(game, d)
             pane = srv.Pane(d)
             self.assertFalse(pane.done)  # a puzzle writes no game row; until its result row lands, not done
@@ -152,6 +152,12 @@ class PuzzleTest(unittest.TestCase):
             pane = srv.Pane(d)
             self.assertTrue(pane.done)
             self.assertEqual(pane.summary()["puzzle"]["solver"]["kind"], "written line")
+            # a newer attempt (seed 2) in the same directory, its result not written yet: not done, nothing borrowed
+            shutil.copy(game, os.path.join(d, "game-2-1792546299999.jsonl"))
+            live = srv.Pane(d, live=True)
+            self.assertTrue(live.reader.path.endswith("game-2-1792546299999.jsonl"))
+            self.assertFalse(live.done)
+            self.assertIsNone(live.summary()["puzzle"])
         finally:
             shutil.rmtree(d)
 

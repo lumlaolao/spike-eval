@@ -135,18 +135,25 @@ how it ended (from `puzzle-results.jsonl`; `demo_puzzle.py` reads it), and behin
 names the solution step that answered it and the reveal marks that step.
 
 ```bash
-P=eval/puzzles/hard/gen/drain_0026d851c85f.pzl       # one of the 116 generated hard puzzles
+P=eval/puzzles/hard/gen/drain_3c09484e5e54.pzl       # an open-split generated hard puzzle (Luna missed it)
 DEMO_FEED=1 python3 eval/puzzle_baselines.py line --pzl $P --out-dir runs/demo/puzzle-line          # free: no model
-DEMO_FEED=1 python3 eval/puzzle_solve.py --suite eval/suites/puzzles-hard-gen-v1.json --split heldout \
-    --ids hard-drain-0026d851c85f --k 1 --model openrouter:openai/gpt-6-luna --budget-usd 0.05 \
+DEMO_FEED=1 python3 eval/puzzle_solve.py --suite eval/suites/puzzles-hard-gen-v1.json --split open \
+    --ids hard-drain-3c09484e5e54 --k 1 --model openrouter:openai/gpt-6-luna --budget-usd 0.05 \
     --out runs/demo/puzzle-luna                                                                    # paid: cents
-python3 eval/demo_server.py --game runs/demo/puzzle-line --game runs/demo/puzzle-luna/hard-drain-0026d851c85f
+python3 eval/demo_server.py --game runs/demo/puzzle-line --game runs/demo/puzzle-luna/hard-drain-3c09484e5e54
 ```
 
 Both commands use the newest acceptance build under `runs/harness-acceptance` (or `--build DIR`). The paid attempt
 needs the owner's egress consent; `--model openrouter:fake/...` with a loopback `OPENROUTER_BASE_URL` rehearses it
 for free. Side by side, **first divergence** jumps to the first decision where the model left the written line.
-The suite's split (open or held out) and id are in `eval/suites/puzzles-hard-gen-v1.json`.
+Demo puzzles come from the open split: a held-out puzzle's line is not copied into a recording (eval/PUZZLES.md).
+Per-decision steps are shown only for a clean written-line run of the file that was played (no wait, fallback or
+drift in the script, and the .pzl's hash matching the run's); otherwise the reveal shows the line without steps.
+
+Recorded already, on the `demo-recordings` branch: this puzzle's written line (`puzzles/drain-3c09-written-line`)
+and Luna's attempt that missed it, the opponent left at 2 life (`puzzles/hard-gen-luna-check/runs/hard-drain-3c09484e5e54`),
+plus a board Luna solved. `--hard-results ../demo-recordings/puzzles/hard-gen-luna-check` puts that check's PUZ
+pilot on the eval page (20 of 68, one attempt each; scored by `puzzle_score.py`, labelled a pilot).
 
 ## The benchmark and the gate (`/eval.html`)
 
