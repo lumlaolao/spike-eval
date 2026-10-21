@@ -107,6 +107,12 @@ def jdk_tool(name):
     return os.path.join(home, "bin", name) if home else name
 
 
+def has_price_list(commit):
+    """True when `commit` carries eval/pricing/prices.json, which port_prices replaces (read from git, not a tree)."""
+    return subprocess.run(["git", "-C", REPO, "cat-file", "-e", "%s:eval/pricing/prices.json" % commit],
+                          capture_output=True).returncode == 0
+
+
 def port_prices(tree, source=REPO):
     """The current price list into an older tree: its run_batch refuses --budget-usd for a model its own list
     lacks (GPT-6 Luna postdates e1324cfd). Pricing data only; nothing the seat sees."""
@@ -248,6 +254,8 @@ def build_then(a):
     tree, build = os.path.abspath(a.worktree), os.path.abspath(a.build)
     if not os.path.exists(os.path.join(a.forge, ".git")):  # a directory, or a worktree's .git file
         raise SystemExit("no Forge checkout at %s (set FORGE_HOME or pass --forge)" % a.forge)
+    if not has_price_list(a.commit):  # checked before anything is written: a refusal leaves no worktree behind
+        raise SystemExit("%s has no eval/pricing/prices.json: too old for a budgeted run (or not a commit)" % a.commit)
     pin = subprocess.run(["git", "-C", a.forge, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     old = subprocess.run(["git", "-C", REPO, "show", "%s:FORGE_COMMIT" % a.commit], capture_output=True, text=True)
     old_pin = (old.stdout.split() or ["?"])[0] if old.returncode == 0 else "?"
@@ -256,8 +264,6 @@ def build_then(a):
                          % (a.commit, old_pin, pin))
     if not os.path.isdir(tree):
         subprocess.run(["git", "-C", REPO, "worktree", "add", "--detach", tree, a.commit], check=True)
-    if not os.path.isdir(os.path.join(tree, "eval", "pricing")):
-        raise SystemExit("%s has no eval/pricing: too old for a budgeted run" % a.commit)
     print("ported:", ", ".join(port_feed(tree) + [port_prices(tree)]))
     compile_arm(tree, build, a.forge, a.worktree)
     return 0

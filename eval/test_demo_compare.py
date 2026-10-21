@@ -234,6 +234,33 @@ class ArmTest(unittest.TestCase):
         self.assertIn("--budget-usd 0.4 ", lines[0])
         self.assertEqual(checked + checked2, [["now", "then"], ["now", "then"]])  # both pins checked either way
 
+    def test_a_commit_without_a_price_list_is_refused_before_any_worktree_is_made(self):
+        self.assertTrue(dc.has_price_list("HEAD"))
+        d = tempfile.mkdtemp()
+        try:
+            open(os.path.join(d, ".git"), "w").close()  # passes the checkout guard
+            calls = []
+
+            def git(cmd, **kw):  # the engine pins agree, so only the price check can stop the build
+                calls.append(cmd)
+                if "rev-parse" in cmd or (len(cmd) > 3 and cmd[3] == "show"):
+                    return subprocess.CompletedProcess(cmd, 0, "34a8662\n", "")
+                raise AssertionError("unexpected call: %s" % cmd)
+            with mock.patch.object(dc, "has_price_list", lambda c: False), \
+                    mock.patch.object(dc.subprocess, "run", git):
+                with self.assertRaises(SystemExit) as cm:
+                    dc.main(["build-then", "--commit", "e1324cfd", "--forge", d, "--worktree", os.path.join(d, "w")])
+            self.assertIn("too old for a budgeted run", str(cm.exception))
+            self.assertFalse(any("worktree" in c for c in calls))
+            # and with a price list the same fixture does reach the worktree: the check is what stopped it
+            with mock.patch.object(dc, "has_price_list", lambda c: True), \
+                    mock.patch.object(dc.subprocess, "run", git):
+                with self.assertRaises(AssertionError) as cm:
+                    dc.main(["build-then", "--commit", "e1324cfd", "--forge", d, "--worktree", os.path.join(d, "w")])
+            self.assertIn("worktree", str(cm.exception))
+        finally:
+            shutil.rmtree(d)
+
     def test_a_forge_checkout_that_is_a_git_worktree_passes_the_guard(self):
         d = tempfile.mkdtemp()
         try:

@@ -158,9 +158,8 @@ most log questions).
   block will cost before starting it (`cost_report.py --plan N`). Prefer the measurement that costs
   nothing (a loopback game, the unit tests) or cents (the tool-use suite) when it answers the
   question. A model with no entry in `eval/pricing/prices.json` is not run.
-- Real paid runs use only a model the owner has authorised (currently
-  `openrouter:deepseek/deepseek-v4.1-flash`), always with `EVAL_OUT` set. Never set
-  `OPENROUTER_ALLOW_EGRESS` on the owner's behalf.
+- Real paid runs use only the model the owner has authorised, named once in `CLAUDE.md` ("Owner
+  rules"), always with `EVAL_OUT` set. Never set `OPENROUTER_ALLOW_EGRESS` on the owner's behalf.
 - A finding is a harness defect unless the prompt shows the model had what it needed
   (`.claude/skills/harness-audit/`).
 - Reserved seed blocks (501-525, 20000-29999, 30000-30099) are never training-data sources;
