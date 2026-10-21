@@ -67,7 +67,7 @@ api.scryfall.com. The page waits for the file, follows it row by row (the JVM fl
 thinking since the last row, and ends on the game row. A newer game written into the same directory (the real game
 after the rehearsal) replaces it on screen. A loopback fake-model game (`eval/fake_model_server.py
 --policy random --answer-tool`, no egress, no cost) is the rehearsal; a paid game needs the owner's go-ahead, a stated
-cost and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell.
+cost, and `OPENROUTER_API_KEY` and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell.
 
 ## Both hands: the audience feed
 
@@ -94,8 +94,8 @@ CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=4201 \
 
 Every variable in that game line matters: without the models and decks the launcher falls back to its own defaults
 (both seats on another model, decks from ~/Downloads, the seats named after them). It is a paid game (CLAUDE.md: about $0.02 to $0.05, 20 to 90
-minutes, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with `OPENROUTER_ALLOW_EGRESS=1` set by
-the owner in their own shell. For a free rehearsal, use the loopback fake model as in the check below.
+minutes, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with `OPENROUTER_API_KEY` and
+`OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell (without the key the seats are not built). For a free rehearsal, use the loopback fake model as in the check below.
 
 After each decision the server writes the engine ids of that decision's highlighted cards (the same ones the
 browser marks); `DemoHighlight.java` polls the file and gives those cards Forge's own highlight frame. It is display
