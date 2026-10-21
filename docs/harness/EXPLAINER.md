@@ -136,7 +136,7 @@ step of the reference solution too.
 | the rules lookup holds 3,163 rules and 741 terms, effective September 25, 2026 | acceptance stage `rules`; `eval/puzzles/rules-pilot/benchmark-v1/REPORT.md` |
 | PUZ, rules sample, 29 puzzles, k=5, Luna: 0.81 (95% CI 0.71 to 0.89) at epoch 66 with lookups off and on alike; at epoch 67 (neutral brief) 0.73 (0.61 to 0.84) off and 0.79 (0.69 to 0.87) on | `eval/puzzles/rules-pilot/benchmark-v1/REPORT.md`; recomputed live by `python3 eval/demo_eval.py` and on `/eval.html` |
 | on that sample pass@1 floors are random 0.088, PASS 0.000, first option 0.207; Forge's AI solves 0.302 | the same REPORT.md |
-| Luna called `rules_lookup` 0 times in 145 attempts when it was offered (`inspect` 40 times) | the same REPORT.md |
+| Luna called `rules_lookup` 0 times in 145 attempts when it was offered (`inspect` 40 times at epoch 66, 47 at epoch 67) | the same REPORT.md |
 | hard generated puzzles, pilot: 20 of 68 solved, one attempt each, pass@1 0.294 (95% CI 0.19 to 0.40), floors 0 | `DEMO.md`; `/eval.html` with `--hard-results`; a pilot, never pooled with PUZ |
 | a Luna game costs $0.02 to $0.05 and takes 20 to 90 minutes (the planning figure) | CLAUDE.md; `python3 eval/cost_report.py <run>` prices any run |
 | recorded single games have cost from $0.01 to $0.32 (g26, 28 turns); the walkthrough game g33 (a win on turn 14) cost $0.13 | `docs/harness/GAME-LOOP-LOG.md` |

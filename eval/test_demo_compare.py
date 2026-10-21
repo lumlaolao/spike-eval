@@ -328,13 +328,13 @@ class ArmTest(unittest.TestCase):
             with mock.patch.object(dc, "check_pins", lambda *a: None), \
                     mock.patch.object(dc, "arm_record", lambda repo, name: {"arm": name}), \
                     mock.patch.object(dc.subprocess, "Popen", Proc), \
-                    mock.patch.object(dc.os, "killpg", lambda pid, sig: killed.append(pid)), \
+                    mock.patch.object(dc.os, "killpg", lambda pid, sig: killed.append((pid, signal.getsignal(signal.SIGTERM)))), \
                     contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
                 dc.main(args)
             self.assertEqual(signal.getsignal(signal.SIGINT), before)  # the handlers are put back
         finally:
             shutil.rmtree(d)
-        self.assertEqual(sorted(killed), [1001, 1002])
+        self.assertEqual(sorted(killed), [(1001, signal.SIG_IGN), (1002, signal.SIG_IGN)])  # a second signal waits
 
     def test_an_arm_records_the_commit_it_played(self):
         rec = dc.arm_record(dc.REPO, "now")

@@ -17,6 +17,7 @@ moved since the run (it is found by its recorded path, else by its id under eval
 import argparse
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,11 +27,19 @@ import puzzle_format as pf  # noqa: E402
 REPO = os.path.dirname(HERE)
 
 
-def result_row(run_dir, seed=None, attempt=None):
+GAME_FILE = re.compile(r"game-(-?\d+)-(\d+)\.jsonl$")
+SLACK_S = 2.0  # a game's last write may land just after its result row
+
+
+def result_row(run_dir, seed=None, game=None):
     """The puzzle-results.jsonl row of the run: the one for `seed` when given (None when that attempt wrote no row:
-    another seed's result is never borrowed), else the last. `attempt` (0-based) is which game file of that seed this
-    is, oldest first: a second run into the same directory replays the same seeds and appends, so the n-th game of a
-    seed pairs with the n-th row of it, and an attempt whose row is not written yet has none."""
+    another seed's result is never borrowed), else the last.
+
+    `game` (a game-<seed>-<ms>.jsonl path) picks that game's own row when a directory holds several games of one seed:
+    puzzle_solve.py replays the same seeds into an --out and appends rows, and puzzle_baselines.py rewrites the file
+    but keeps the older game files. A row is written when its game ends, so a game written after the file has no row
+    yet (it is still playing, or was stopped), and the finished games of the seed pair with its rows from the newest
+    end. A stopped attempt older than the newest row can still shift that pairing."""
     path = os.path.join(run_dir, "puzzle-results.jsonl")
     try:
         with open(path) as f:
@@ -39,8 +48,16 @@ def result_row(run_dir, seed=None, attempt=None):
         return None
     if seed is not None:
         rows = [r for r in rows if str(r.get("seed")) == str(seed)]
-    if attempt is not None:
-        return rows[attempt] if attempt < len(rows) else None
+    if game is not None and rows:
+        written = os.path.getmtime(path) + SLACK_S
+        if os.path.getmtime(game) > written:
+            return None
+        same = [os.path.join(run_dir, n) for n in os.listdir(run_dir)
+                if (GAME_FILE.search(n) or [None, None])[1] == str(seed)]
+        done = sorted((g for g in same if os.path.getmtime(g) <= written),
+                      key=lambda g: int(GAME_FILE.search(g).group(2)), reverse=True)
+        k = [os.path.basename(g) for g in done].index(os.path.basename(game))
+        return rows[-1 - k] if k < len(rows) else None
     return rows[-1] if rows else None
 
 
@@ -74,26 +91,24 @@ def steps_mappable(row):
             and not row.get("script_exhausted") and not row.get("script_waits") and not row.get("script_untaps_left"))
 
 
-def info(run_dir, seed=None, attempt=None):
+def info(run_dir, seed=None, game=None):
     """The puzzle panel for one run directory, or None when the directory holds no puzzle result."""
-    row = result_row(run_dir, seed, attempt)
+    row = result_row(run_dir, seed, game)
     if not row:
         return None
     out = {"id": row.get("id"), "status": row.get("status"), "solved": bool(row.get("solved")),
            "solver": solver_of(row), "solver_actions": row.get("solver_actions"),
            "harness_epoch": row.get("harness_epoch"), "brief": row.get("goal_oracle"),
-           "script_lines": row.get("script_lines") if steps_mappable(row) else None}
+           "script_lines": None}
     pzl = find_pzl(row)
-    if not pzl:
-        out["script_lines"] = None  # no [solution] to name the steps from
-    else:
+    if pzl:
         with open(pzl, "rb") as f:
             raw = f.read()
         text = raw.decode("utf-8")
         # The file found today must be the one played: else its Rule and [solution] are not what the run faced.
         out["pzl_changed"] = bool(row.get("pzl_sha256")) and pf.sha256_bytes(raw) != row["pzl_sha256"]
-        if out["pzl_changed"] or not row.get("pzl_sha256"):  # steps only onto the file shown to have been played
-            out["script_lines"] = None
+        if steps_mappable(row) and row.get("pzl_sha256") and not out["pzl_changed"]:  # onto the file shown played
+            out["script_lines"] = row.get("script_lines")
         parsed = pf.parse_pzl(text)  # comment lines dropped, as Forge reads it
         meta = parsed.get("metadata", [])
         rule = pf.section_value(meta, "Rule", "") or ""

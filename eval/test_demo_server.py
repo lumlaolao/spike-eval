@@ -159,15 +159,51 @@ class PuzzleTest(unittest.TestCase):
             self.assertTrue(live.reader.path.endswith("game-2-1792546299999.jsonl"))
             self.assertFalse(live.done)
             self.assertIsNone(live.summary()["puzzle"])
-            # a second run of the same seed into the directory (a rehearsal, then the real attempt): the newer game
-            # of seed 1 has no row of its own yet, so it is neither done nor given the first run's result
-            os.remove(os.path.join(d, "game-2-1792546299999.jsonl"))
-            shutil.copy(game, os.path.join(d, "game-1-1792546999999.jsonl"))
-            again = srv.Pane(d, live=True)
-            self.assertTrue(again.reader.path.endswith("game-1-1792546999999.jsonl"))
-            self.assertFalse(again.done)
-            self.assertIsNone(again.summary()["puzzle"])
         finally:
+            shutil.rmtree(d)
+
+    def test_a_second_run_of_a_seed_pairs_each_game_with_its_own_row(self):
+        fix = os.path.join(FIX, "puzzle")
+        with open(os.path.join(fix, "puzzle-results.jsonl")) as f:
+            row = json.loads(f.readline())
+        d = tempfile.mkdtemp()
+        try:
+            old, new = os.path.join(d, "game-1-1792546270115.jsonl"), os.path.join(d, "game-1-1792546999999.jsonl")
+            results = os.path.join(d, "puzzle-results.jsonl")
+            shutil.copy(os.path.join(fix, "game-1-1792546270115.jsonl"), old)
+            shutil.copy(old, new)
+
+            def write(rows, t_old, t_results, t_new):
+                with open(results, "w") as f:
+                    f.writelines(json.dumps(r) + "\n" for r in rows)
+                for path, t in ((old, t_old), (results, t_results), (new, t_new)):
+                    os.utime(path, (t, t))
+            # puzzle_solve appends: the rehearsal's row is there, the real attempt still plays (written after it)
+            write([dict(row, solved=False, status="failed")], 1000, 1100, 1200)
+            live = srv.Pane(d, live=True)
+            self.assertTrue(live.reader.path.endswith("game-1-1792546999999.jsonl"))
+            self.assertEqual((live.done, live.summary()["puzzle"]), (False, None))
+            # it ends: two rows, each game its own
+            write([dict(row, solved=False, status="failed"), row], 1000, 1300, 1290)
+            self.assertTrue(srv.Pane(new).summary()["puzzle"]["solved"])
+            self.assertFalse(srv.Pane(old).summary()["puzzle"]["solved"])
+            # puzzle_baselines line rewrites the file and keeps the old game: the one row is the newest game's
+            write([row], 1000, 1300, 1290)
+            self.assertTrue(srv.Pane(d).done)
+            self.assertTrue(srv.Pane(new).summary()["puzzle"]["solved"])
+            self.assertIsNone(srv.Pane(old).summary()["puzzle"])
+        finally:
+            shutil.rmtree(d)
+
+    def test_a_game_named_from_its_own_directory_is_found(self):
+        d, here = tempfile.mkdtemp(), os.getcwd()
+        try:
+            for name in ("game-1-1792546270115.jsonl", "puzzle-results.jsonl"):
+                shutil.copy(os.path.join(FIX, "puzzle", name), d)
+            os.chdir(d)
+            self.assertTrue(srv.Pane("game-1-1792546270115.jsonl").done)  # dirname "" is the working directory
+        finally:
+            os.chdir(here)
             shutil.rmtree(d)
 
 

@@ -78,17 +78,12 @@ class Pane:
         """demo_puzzle.info for this pane's game when it is a finished puzzle attempt, else None. Kept once found; a
         game with no puzzle-results.jsonl beside it is marked not a puzzle and never looked up again."""
         if self._puzzle is None and self.reader is not None:
-            run = os.path.dirname(self.reader.path)
+            run = os.path.dirname(self.reader.path) or "."
             if not os.path.isfile(os.path.join(run, "puzzle-results.jsonl")) and not self.live:
                 self._puzzle = False
             else:
                 m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
-                if m:  # which game of its seed this is, oldest first (a re-run into the directory appends rows)
-                    same = sorted(int(g.group(2)) for g in map(demo_events.GAME_FILE.search, os.listdir(run))
-                                  if g and g.group(1) == m.group(1))
-                    self._puzzle = demo_puzzle.info(run, m.group(1), same.index(int(m.group(2))))
-                else:
-                    self._puzzle = demo_puzzle.info(run)
+                self._puzzle = demo_puzzle.info(run, m.group(1), self.reader.path) if m else demo_puzzle.info(run)
         return self._puzzle or None
 
     @property

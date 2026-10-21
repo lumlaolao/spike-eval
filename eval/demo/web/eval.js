@@ -69,7 +69,7 @@ fetch("api/eval").then(r => r.json()).then(r => {
     $("#hard-title").hidden = false;
     $("#hard").innerHTML = pr.hard.error ? `<p class="lede">The hard-suite pilot could not be read: ${esc(pr.hard.error)}</p>` :
       forest({runs: [pr.hard]}, `A pilot, not a PUZ score: one attempt each on ${esc(pr.hard.puzzles)} open ` +
-        `boards of the generated hard suite (${esc(pr.hard.suite)}); floors: ${Object.entries(pr.hard.headline.floors).map(([n, v]) => `${esc(n)} ${f3(v)}`).join(" · ")}. Source: ${esc(pr.hard.path)}.`);
+        `boards of the generated hard suite (${esc(pr.hard.suite)}). Source: ${esc(pr.hard.path)}.`);
   }
   const a = r.acceptance;
   const notPassed = a ? a.stages.filter(s => s.status !== "PASS").map(s => `${s.stage} ${s.status}`) : [];

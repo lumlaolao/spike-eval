@@ -7,6 +7,7 @@ const $ = (sel, el) => (el || document).querySelector(sel);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const fmtMs = ms => ms == null ? "" : ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s";
 const phaseName = ph => String(ph || "").replace(/_/g, " ").toLowerCase();
+const isAsked = e => e.tier === "smart" || e.tier === "fast";  // the model was asked (not forced, not the harness)
 const KIND_LABEL = {chosen: "chosen", planned: "plan", looked: "looked up", mentioned: "mentioned", engine: "engine"};
 const FILTERS = [
   ["all", "all", () => true],
@@ -14,7 +15,7 @@ const FILTERS = [
   ["combat", "combat", e => /attack|block|damage/.test(e.type || "")],
   ["tools", "tool calls", e => e.calls.some(c => c.tools.some(t => t.name !== "answer"))],
   ["plans", "plans", e => !!e.plan],
-  ["model", "model asked", e => e.tier === "smart" || e.tier === "fast"],
+  ["model", "model asked", isAsked],
   ["auto", "not asked", e => e.tier !== "smart" && e.tier !== "fast"],
   ["flags", "flags", e => !!(e.fallback || e.answer_invalid || e.first_failed_reply || isBreach(e))],
 ];
@@ -125,7 +126,7 @@ class Pane {
     if (gen !== this.gen || (s.gen != null && s.gen !== this.gen)) return;  // a summary of another game
     this.info.summary = s;
     // A live pane learns it is a puzzle only now: leave watch mode for full detail, as fromHash would have.
-    if (s.puzzle && app.watchAuto) { app.watchAuto = false; clearTimeout(app.timer); app.timer = null; app.panes.forEach(p => p.play(false)); document.body.classList.remove("watch"); app.renderWatchButton(); app.renderAll(); }
+    if (s.puzzle && app.watchAuto) app.setWatch(false);
     this.renderSummary(); this.renderHead(); this.renderPuzzle(); this.renderStatus();
   }
 
@@ -162,9 +163,9 @@ class Pane {
   // A clean written-line run consumes one [solution] line per asked decision, in order (demo_puzzle.steps_mappable
   // says when; script_lines is null otherwise): the step (1-based) that answered decision n, or 0.
   scriptStep(n) {
-    const pz = this.puzzle, d = this.decisions[n], asked = e => e.tier === "smart" || e.tier === "fast";
-    if (!pz || !pz.script_lines || !d || !asked(d) || this.decisions.filter(asked).length !== pz.script_lines) return 0;
-    return this.decisions.slice(0, n + 1).filter(asked).length;
+    const pz = this.puzzle, d = this.decisions[n];
+    if (!pz || !pz.script_lines || !d || !isAsked(d) || this.decisions.filter(isAsked).length !== pz.script_lines) return 0;
+    return this.decisions.slice(0, n + 1).filter(isAsked).length;
   }
 
   // Two games side by side: which harness this pane is (demo_compare's arm.json, else the run directory's name).
@@ -483,7 +484,7 @@ class Pane {
     if (!document.body.classList.contains("watch")) return;
     const rows = this.decisions.slice(0, this.cur + 1).map((d, n) => {
       const pick = (d.chosen || []).map(i => d.options[i]).filter(Boolean).join("; ") || (d.type === "blockers" ? "no blocks" : "-");
-      const why = (d.answer || {}).why, asked = d.tier === "smart" || d.tier === "fast";
+      const why = (d.answer || {}).why, asked = isAsked(d);
       return `<li class="${n === this.cur ? "cur" : ""}${asked ? "" : " auto"}"><span class="t">T${esc(d.turn)} ${esc(phaseName(d.phase))}</span>` +
         `<span class="k">${esc(d.type)}${asked ? "" : ` (${esc(d.auto_class === "forced" ? "forced" : d.auto_class || "not asked")})`}</span>` +
         `<span class="pick" title="${esc(pick)}">${esc(pick)}</span>` + (why ? `<div class="why">${esc(why)}</div>` : "") + `</li>`;
@@ -621,7 +622,7 @@ const app = {
     $("#play").onclick = () => this.toggle();
     $("#logonly").onclick = () => { document.body.classList.toggle("logonly"); this.toHash(); };
     $("#watch").hidden = this.panes.length !== 2;
-    $("#watch").onclick = () => { this.watchAuto = false; clearTimeout(this.timer); this.timer = null; document.body.classList.toggle("watch"); this.panes.forEach(p => p.play(false)); this.renderWatchButton(); this.renderAll(); };
+    $("#watch").onclick = () => this.setWatch(!document.body.classList.contains("watch"));
     this.renderWatchButton();
     $("#turn").onchange = ev => {
       const t = +ev.target.value, p = this.panes[0];
@@ -668,6 +669,12 @@ const app = {
     const flags = (document.body.classList.contains("logonly") ? "&log" : "") +
       (this.panes.length === 2 && !document.body.classList.contains("watch") ? "&full" : "");
     if (p) history.replaceState(null, "", `#d=${p.cur + 1}${flags}`);
+  },
+  // Into or out of watch mode: every clock stops (the panes' own and the full view's), and play shows play.
+  setWatch(on) {
+    this.watchAuto = false; clearTimeout(this.timer); this.timer = null;
+    this.panes.forEach(p => p.play(false)); $("#play").innerHTML = "&#x25B6;";
+    document.body.classList.toggle("watch", on); this.renderWatchButton(); this.renderAll();
   },
   renderWatchButton() {
     $("#watch").textContent = document.body.classList.contains("watch") ? "full detail" : "watch both";

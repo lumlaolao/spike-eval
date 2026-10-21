@@ -327,31 +327,6 @@ def run(a):
     env = dict(os.environ)
     model = a.model
     fake = None
-    if a.fake:
-        # The loopback fake model: no egress, no key, no cost. Both arms answer the same way.
-        log = os.path.join(out, "fake_server.out")
-        os.makedirs(out, exist_ok=True)
-        fake = subprocess.Popen([sys.executable, os.path.join(REPO, "eval", "fake_model_server.py"), "--port", "0",
-                                 "--policy", "first", "--answer-tool", "--native-calls", "6"],
-                                stdout=open(log, "w"), stderr=subprocess.STDOUT)
-        port = None
-        for _ in range(40):
-            time.sleep(0.25)
-            with open(log) as f:
-                for line in f:
-                    if line.startswith("LISTENING"):
-                        port = line.split()[1]
-            if port:
-                break
-        if not port:
-            fake.terminate()
-            raise SystemExit("the fake model server never reported its port (see %s)" % log)
-        env.pop("OPENROUTER_ALLOW_EGRESS", None)
-        env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
-        model = "openrouter:fake/demo-model"
-    if a.parallel:
-        print("live (start it now, before the games): python3 eval/demo_server.py --live %s --live %s"
-              % (os.path.join(out, "now"), os.path.join(out, "then")), flush=True)
     running = []  # --parallel: both arms play at once (watched live with demo_server --live), each its own JVM
     # The arms run in their own process groups, so a hangup or a kill of this process no longer reaches them: turn
     # both into an exit, so the finally below stops them (a paid game would otherwise play on, and spend).
@@ -360,6 +335,31 @@ def run(a):
     for sig in stops[:2]:
         signal.signal(sig, lambda n, _: sys.exit(128 + n))
     try:
+        if a.fake:
+            # The loopback fake model: no egress, no key, no cost. Both arms answer the same way.
+            log = os.path.join(out, "fake_server.out")
+            os.makedirs(out, exist_ok=True)
+            fake = subprocess.Popen([sys.executable, os.path.join(REPO, "eval", "fake_model_server.py"), "--port", "0",
+                                     "--policy", "first", "--answer-tool", "--native-calls", "6"],
+                                    stdout=open(log, "w"), stderr=subprocess.STDOUT)
+            port = None
+            for _ in range(40):
+                time.sleep(0.25)
+                with open(log) as f:
+                    for line in f:
+                        if line.startswith("LISTENING"):
+                            port = line.split()[1]
+                if port:
+                    break
+            if not port:
+                fake.terminate()
+                raise SystemExit("the fake model server never reported its port (see %s)" % log)
+            env.pop("OPENROUTER_ALLOW_EGRESS", None)
+            env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
+            model = "openrouter:fake/demo-model"
+        if a.parallel:
+            print("live (start it now, before the games): python3 eval/demo_server.py --live %s --live %s"
+                  % (os.path.join(out, "now"), os.path.join(out, "then")), flush=True)
         for name, (repo, _) in arms.items():
             if a.arm not in ("both", name):
                 continue
