@@ -77,50 +77,40 @@ opponent's real hand at every decision, in a dashed gold box labelled "audience 
 seat itself sees ("4 cards (hidden)"). The seat never reads the feed: its prompts are byte-identical with the feed
 on and off (`DemoFeedTest`). A game recorded without the feed shows the opponent's hand face down, as the seat saw it.
 
-## Forge's own window, with the model's cards framed
+## Forge's own window beside the browser
 
-`run-llm-spike.sh` (the GUI launcher) opens Forge's match window as a spectator, which shows both hands. To draw the
-model's attention on it, start the server with `--highlight-file` and the game with the same path:
+`run-llm-spike.sh` (the GUI launcher) opens Forge's match window as a spectator, which shows both hands. The
+highlights (what the model is thinking about) are drawn in the browser only; Forge's window is the plain board.
 
 ```bash
-python3 eval/demo_server.py --live runs/demo/live --highlight-file /tmp/demo-hl.json &
+python3 eval/demo_server.py --live runs/demo/live &
 CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=4201 \
   SMART_MODEL=openrouter:openai/gpt-6-luna FAST_MODEL=openrouter:openai/gpt-6-luna \
   DECK_A="$PWD/eval/decks/vintage-esper-control.txt" DECK_B="$PWD/eval/decks/pioneer-red-deck-wins.txt" \
   DECK_A_NAME="Vintage Esper Control" DECK_B_NAME="Pioneer Red Deck Wins" \
-  DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT="$PWD/runs/demo/live" \
+  DEMO_FEED=1 EVAL_OUT="$PWD/runs/demo/live" \
   bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
 ```
 
 Every variable in that game line matters: without the models and decks the launcher falls back to its own defaults
-(both seats on another model, decks from ~/Downloads, the seats named after them). It is a paid game (CLAUDE.md: about $0.02 to $0.05, 20 to 90
-minutes, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with `OPENROUTER_API_KEY` and
-`OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell (without the key the seats are not built). For a free rehearsal, use the loopback fake model as in the check below.
-
-After each decision the server writes the engine ids of that decision's highlighted cards (the same ones the
-browser marks); `DemoHighlight.java` polls the file and gives those cards Forge's own highlight frame. It is display
-only: it never reads or writes anything the seat reads. Put the Forge window and the browser side by side: the
-window is the board, the browser is the agent's log, plan and highlights. The **log only** button (or `&log` in the URL, e.g. `#d=37&log`) hides the page's board so the
-log and plan get the width. On a fresh Forge home, Forge may open a
-bug-report dialog at start-up (a default gauntlet file it cannot load); click Discard once.
-
-Checked on 2026-10-21 (a screen check, not a recording): the server command above and the block below, run as
-written from the repository root (the port filled in; the game file, the feed and the highlight file all
-landed where the server reads them), with screenshots taken while the highlight file named a card:
+(both seats on another model, decks from ~/Downloads, the seats named after them). It is a paid game (CLAUDE.md:
+about $0.02 to $0.05, 20 to 90 minutes, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with
+`OPENROUTER_API_KEY` and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell (without the key the seats
+are not built). For a free rehearsal, run the seat on the loopback fake model instead:
 
 ```bash
 python3 eval/fake_model_server.py --port 0 --policy first --answer-tool &    # prints LISTENING <port>: use it below
 SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
   OPENROUTER_BASE_URL=http://127.0.0.1:<port>/v1 CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=42 \
   DECK_A="$PWD/eval/decks/burn.txt" DECK_B="$PWD/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB \
-  DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT="$PWD/runs/demo/live" \
-  xvfb-run -a bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
+  DEMO_FEED=1 EVAL_OUT="$PWD/runs/demo/live" bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
 ```
 
-In the screenshots Forge framed the named card (Goblin Guide, then Monastery Swiftspear). Forge also frames some of the
-model's own lands in the same purple when no card is named, so in the window that frame alone does not say "the
-model is thinking about this"; the browser's colours do.
-Forge may also ask once whether to download a card image index; Not Now is fine.
+Put the Forge window and the browser side by side: the window is the board, the browser is the agent's log, plan
+and highlights. The **log only** button (or `&log` in the URL, e.g. `#d=37&log`) hides the page's board so the log
+and plan get the width. On a fresh Forge home, Forge may open a bug-report dialog at start-up (a default gauntlet
+file it cannot load); click Discard once, and it may ask once whether to download a card image index; Not Now is
+fine.
 
 ## Side by side: the current harness against a real older one
 
@@ -221,7 +211,7 @@ $80, at CLAUDE.md's $0.02 to $0.05 a game). Every other number on the page is re
 5. A hard puzzle: the written line solving it (reveal the intended line), then the model's attempt beside it, and
    **first divergence** to where the model left the line.
 6. Live: a running game (a loopback rehearsal, or a paid game the owner started), with the Forge window beside the
-   browser and the model's cards framed in both.
+   browser, which frames the model's cards.
 
 Fallback: everything in steps 1 to 5 is a recording and works offline once the images are prefetched.
 

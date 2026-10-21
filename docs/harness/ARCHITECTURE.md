@@ -579,9 +579,6 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   `DemoFeed.beforeDecisionRow()`, which writes a board-less `feed_handles` row at that row's offset: a card first shown
   in a prompt is mapped by its own decision.
   *Why:* the audience should see both hands; the seat never may, and the JSONL holds only what the seat saw.
-- **The Forge window's highlights (`DemoHighlight.java`, `DEMO_HIGHLIGHT_FILE`)** give the cards of the latest
-  decision's highlights (written by `demo_server.py --highlight-file`) Forge's own highlight frame in the spectator
-  window. A daemon thread reads the file; nothing the seat reads is touched. *Why:* Forge already draws the board.
 - **The side by side (`demo_compare.py`)** builds this harness and an older commit of it (same engine pin, the feed
   ported in) in isolation and plays both on one seed and deck pair from the fixed sets in `eval/demo/decks.json`; the
   viewer marks the first decision where the games part (`demo_events.divergence`). `--parallel` plays both arms at

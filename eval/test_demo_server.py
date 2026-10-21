@@ -275,24 +275,6 @@ class NotAPuzzleTest(unittest.TestCase):
             shutil.rmtree(d)
 
 
-class HighlightFileTest(unittest.TestCase):
-    def test_the_forge_window_gets_the_latest_decisions_highlighted_engine_ids(self):
-        ev = {"kind": "decision", "n": 3, "seat": "A", "turn": 2, "feed_handles": {"17": 101, "20": 102, "25": 103, "4": 101},
-              "highlights": {"4": {"kind": "planned"}, "20": {"kind": "chosen"}, "25": {"kind": "engine"},
-                             "99": {"kind": "planned"}}}
-        # @4 is card 101's older handle (a new timestamp gave it @17): still framed. Not the engine frame; a handle
-        # with no card is skipped.
-        self.assertEqual(srv.highlight_ids(ev), [101, 102])
-        d = tempfile.mkdtemp()
-        try:
-            path = os.path.join(d, "hl.json")
-            srv.write_highlights(path, [dict(ev, n=2, feed_handles={}), ev, {"kind": "window"}])
-            with open(path) as f:
-                self.assertEqual(json.load(f), {"decision": 3, "seat": "A", "turn": 2, "ids": [101, 102]})
-        finally:
-            shutil.rmtree(d)
-
-
 class SummaryTest(unittest.TestCase):
     def test_a_summary_built_while_the_game_ended_is_not_kept(self):
         d = tempfile.mkdtemp()
