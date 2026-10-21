@@ -1,0 +1,47 @@
+[metadata]
+Name:niche_replacement_consuls
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fires of Yavimaya, Smuggler's Copter, two Memnites, Llanowar Elves and Grizzly Bears (none of them summoning sick), an unattached Bonesplitter, four Mountains and four Forests, all untapped. Your hand is Phyrexian Metamorph, Sculpting Steel, Mutavault and Goblin Guide. Your library is three Mountains. The opponent is at 13 life and controls Authority of the Consuls, Darksteel Gargoyle and two Plains. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-replacement-consuls-copy | Authority of the Consuls taps creatures as they enter (CR 614.1d), and whether it applies is checked on the permanent as it would exist on the battlefield, after any copy effect (CR 614.12, 616.1c): Metamorph and Sculpting Steel entering as copies of Smuggler's Copter are noncreature Vehicles, so they enter untapped and gain the opponent no life, while Goblin Guide or a creature copy enters tapped. Three Copters crewed by the three 1-power creatures, Mutavault animated, Bonesplitter and Fires (sacrificed only after attackers are declared, so the new Copters and Mutavault keep haste) on the two 2-power ground creatures: 3+3+3+4+4, and the flying indestructible Gargoyle blocks a 4: 13
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Phyrexian Metamorph;Sculpting Steel;Mutavault;Goblin Guide
+p0battlefield=Fires of Yavimaya;Smuggler's Copter;Memnite;Memnite;Llanowar Elves;Grizzly Bears;Bonesplitter;Mountain;Mountain;Mountain;Mountain;Forest;Forest;Forest;Forest
+p0library=Mountain;Mountain;Mountain
+p1life=13
+p1battlefield=Authority of the Consuls;Darksteel Gargoyle;Plains;Plains
+p1library=Plains;Plains;Plains
+[solution]
+play land Mutavault
+cast Phyrexian Metamorph
+untap: Llanowar Elves; Mutavault
+yes
+Smuggler's Copter
+cast Sculpting Steel
+untap: Llanowar Elves; Mutavault
+yes
+Smuggler's Copter
+activate Bonesplitter
+Grizzly Bears
+untap: Llanowar Elves; Mutavault
+activate Mutavault ... becomes a 2/2
+untap: Llanowar Elves
+activate Smuggler's Copter @5
+Memnite
+activate Smuggler's Copter @27
+Memnite
+activate Smuggler's Copter @29
+Llanowar Elves
+Smuggler's Copter; Smuggler's Copter; Smuggler's Copter; Grizzly Bears; Mutavault
+activate Fires of Yavimaya
+Mutavault
+no
+no
+no
+[acceptance]
+life p1 <= 0

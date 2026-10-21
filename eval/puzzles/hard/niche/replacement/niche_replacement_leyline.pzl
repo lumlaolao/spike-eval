@@ -1,0 +1,53 @@
+[metadata]
+Name:niche_replacement_leyline
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Zulaport Cutthroat, Pawn of Ulamog and Doomed Traveler (none of them summoning sick), Ashnod's Altar, Goblin Bombardment, an untapped Mountain and an untapped Plains. Your hand is Dragon Fodder, Raise the Alarm and Spectral Procession. Your library is three Plains. The opponent is at 15 life and controls Leyline of the Void, Wall of Stone and two Swamps. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-replacement-leyline-tokens | Leyline of the Void replaces a card going to your graveyard with exile (CR 614.1a), so your nontoken creatures never die (CR 614.6, 700.4): no Zulaport drain, no Eldrazi Spawn, no Spirit, and Zulaport itself is exiled. Tokens are not cards (CR 108.2b, 111.6), so they still die and drain. The cards become Altar mana (four colorless with two tokens, enough for Fodder, Alarm and a Procession paid with six), every token dies, and Zulaport goes last: 2 in combat past the Wall, 2 Altar drains, 6 Bombardment and 5 drains: 15
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Dragon Fodder;Raise the Alarm;Spectral Procession
+p0battlefield=Zulaport Cutthroat;Pawn of Ulamog;Doomed Traveler;Ashnod's Altar;Goblin Bombardment;Mountain;Plains
+p0library=Plains;Plains;Plains
+p1life=15
+p1battlefield=Leyline of the Void;Wall of Stone;Swamp;Swamp
+p1library=Swamp;Swamp;Swamp
+[solution]
+Zulaport Cutthroat; Pawn of Ulamog; Doomed Traveler
+at MAIN2: activate Ashnod's Altar
+Pawn of Ulamog
+activate Ashnod's Altar
+Doomed Traveler
+cast Dragon Fodder
+cast Raise the Alarm
+pass
+pass
+activate Ashnod's Altar
+Goblin Token
+activate Ashnod's Altar
+Goblin Token
+cast Spectral Procession
+pass
+activate Goblin Bombardment
+opponent
+Soldier Token
+activate Goblin Bombardment
+opponent
+Soldier Token
+activate Goblin Bombardment
+opponent
+Spirit Token
+activate Goblin Bombardment
+opponent
+Spirit Token
+activate Goblin Bombardment
+opponent
+Spirit Token
+activate Goblin Bombardment
+opponent
+[acceptance]
+life p1 <= 0

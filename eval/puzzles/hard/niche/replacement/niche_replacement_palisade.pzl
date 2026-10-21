@@ -1,0 +1,44 @@
+[metadata]
+Name:niche_replacement_palisade
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Grizzly Bears (not summoning sick), Basilisk Collar (unattached), Goblin Bombardment and ten untapped Plains. Your hand is Walking Ballista and Memnite. Your library is three Plains. The opponent is at 8 life and controls Palisade Giant equipped with Swiftfoot Boots, Darksteel Myr and two Forests. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-replacement-palisade-deathtouch | Palisade Giant redirects all damage that would be dealt to the opponent or their other permanents to itself (CR 614.9); the redirected damage is still dealt by its source, so one point from a deathtouch Ballista aimed at the opponent destroys the hexproof 2/7 (CR 702.2b, 702.2c), which no targeted spell can touch and which would otherwise soak seven. Collar on the X=4 Ballista, one ping at the player kills the Giant, three more reach the player, the Bears attack into the indestructible Myr (one blocked: 2), and both Bears and Memnite go to Bombardment: 3 + 2 + 3 = 8
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Walking Ballista;Memnite
+p0battlefield=Grizzly Bears;Grizzly Bears;Basilisk Collar;Goblin Bombardment;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+p0library=Plains;Plains;Plains
+p1life=8
+p1battlefield=Palisade Giant|Id:101;Swiftfoot Boots|AttachedTo:101;Darksteel Myr;Forest;Forest
+p1library=Forest;Forest;Forest
+[solution]
+cast Memnite
+cast Walking Ballista
+4
+activate Basilisk Collar
+Walking Ballista
+pass
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+Grizzly Bears; Grizzly Bears
+at MAIN2: activate Goblin Bombardment
+opponent
+Grizzly Bears
+activate Goblin Bombardment
+opponent
+Grizzly Bears
+activate Goblin Bombardment
+opponent
+[acceptance]
+life p1 <= 0

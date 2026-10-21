@@ -1,0 +1,44 @@
+[metadata]
+Name:niche_stack_steam_kin
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Runaway Steam-Kin with two +1/+1 counters on it and two untapped Mountains. Your hand is Blaze, Desperate Ritual, two Lightning Bolt, Gut Shot, Lava Dart, Manamorphose and Rite of Flame. Your library holds only Colossal Dreadmaw. The opponent is at 18 life and controls Grizzly Bears and two untapped Swamps, with no cards in hand. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-stack-steam-kin | Steam-Kin's counter trigger has an intervening "if" (CR 603.4): a red spell cast while it has three counters does not trigger, and a trigger that resolves after others have taken it to three does nothing. Its counters are a mana ability, usable whenever you have priority and while a cost is being paid, before the spell becomes cast and triggers (CR 605.3a, 601.2g-i): so the counters must be spent before or during each cast at three counters, never left while the Mountains or floating mana pay. Gut Shot 1, Bolts 3 + 3, Lava Dart 1 + 1, Blaze for 9 = 18; paying with the Mountains first (the natural payment) reaches at most 17
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blaze;Desperate Ritual;Lightning Bolt;Lightning Bolt;Gut Shot;Lava Dart;Manamorphose;Rite of Flame
+p0battlefield=Runaway Steam-Kin|Counters:P1P1=2;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1battlefield=Grizzly Bears;Swamp;Swamp
+p1library=Swamp;Swamp;Swamp
+[solution]
+# Gut Shot for life (2 -> 3 counters); cash before Manamorphose, which the Mountains could pay. Later casts at three
+# counters find no other mana, so their payment spends the counters first and they still trigger. Blaze for 9; flashback.
+cast Gut Shot
+opponent
+pay 1 Phyrexian
+activate Runaway Steam-Kin
+cast Manamorphose
+red
+red
+cast Rite of Flame
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lava Dart
+opponent
+cast Desperate Ritual
+cast Blaze
+9
+opponent
+cast Lava Dart
+opponent
+Mountain
+[acceptance]
+life p1 <= 0

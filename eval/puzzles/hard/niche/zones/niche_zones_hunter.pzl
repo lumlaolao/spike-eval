@@ -1,0 +1,58 @@
+[metadata]
+Name:niche_zones_hunter
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Spined Wurm, Trained Armodon and Gray Ogre, none of them new this turn, with seventeen white mana in your pool (it empties when the phase ends). Your hand is Fiend Hunter, Banisher Priest, Whitemane Lion, three Cloudshifts, Ephemerate and Momentary Blink. The opponent is at 5 life and controls Wall of Stone, Wall of Wood, Wall of Air, Fog Bank, Craw Wurm, Hill Giant, Grizzly Bears, Llanowar Elves, Raging Goblin, Hulking Goblin and Jungle Lion, all untapped. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-zones-hunter | Fiend Hunter's exile and its return are two linked triggered abilities (CR 607.2a): if the Hunter leaves while its enters trigger is on the stack, the leaves trigger returns nothing and the enters trigger then exiles its target for good, and the returned Hunter is a new object with a new link (CR 400.7, 603.6); so every flicker and the Whitemane Lion bounce, used while a Hunter enters trigger is pending, removes one more blocker. Banisher Priest's single 'until it leaves' ability exiles nothing if the Priest has already left (CR 610.3c), so it is cast last and left alone. Eight of the nine possible blockers go (Hulking Goblin and Jungle Lion can't block); the last one blocks Spined Wurm and 3 + 2 is exactly 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fiend Hunter;Banisher Priest;Whitemane Lion;Cloudshift;Cloudshift;Cloudshift;Ephemerate;Momentary Blink
+p0battlefield=Spined Wurm;Trained Armodon;Gray Ogre
+p0manapool=W W W W W W W W W W W W W W W W W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Wall of Stone;Wall of Wood;Wall of Air;Fog Bank;Craw Wurm;Hill Giant;Grizzly Bears;Llanowar Elves;Raging Goblin;Hulking Goblin;Jungle Lion
+p1library=Plains;Plains;Plains
+[solution]
+cast Fiend Hunter
+Craw Wurm
+cast Cloudshift
+Fiend Hunter
+Fiend Hunter ... leaves; Fiend Hunter ... enters
+Hill Giant
+cast Cloudshift
+Fiend Hunter
+Fiend Hunter ... leaves; Fiend Hunter ... enters
+Grizzly Bears
+cast Cloudshift
+Fiend Hunter
+Fiend Hunter ... leaves; Fiend Hunter ... enters
+Llanowar Elves
+cast Ephemerate
+Fiend Hunter
+Fiend Hunter ... leaves; Fiend Hunter ... enters
+Raging Goblin
+cast Momentary Blink
+Fiend Hunter
+Fiend Hunter ... leaves; Fiend Hunter ... enters
+Wall of Wood
+cast Whitemane Lion
+Fiend Hunter
+yes
+yes
+yes
+yes
+yes
+yes
+cast Fiend Hunter
+Wall of Air
+yes
+cast Banisher Priest
+Fog Bank
+Spined Wurm; Trained Armodon; Gray Ogre
+[acceptance]
+life p1 <= 0

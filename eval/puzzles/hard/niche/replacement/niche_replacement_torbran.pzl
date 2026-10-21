@@ -1,0 +1,45 @@
+[metadata]
+Name:niche_replacement_torbran
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Torbran, Thane of Red Fell (not summoning sick), Fiery Emancipation, Goblin Bombardment and seven untapped Mountains. Your hand is Hordeling Outburst, Goblin Bushwhacker and two Raging Goblins. Your library is three Mountains. The opponent is at 78 life and controls Wall of Stone and two Plains. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-replacement-torbran-order | Torbran's +2 and Fiery Emancipation's tripling both modify damage to the opponent and to their permanents, so the opponent, the affected player, chooses their order (CR 616.1, 616.1e): triple first, 3x+2, never 3(x+2). A Bombardment ping deals 5, not 9, to the 0/8 Wall, so spending a goblin to clear it for Torbran fails; the Wall must be left to block Torbran (11). Outburst and both Raging Goblins before the kicked Bushwhacker: six hasty 2-power goblins unblocked (48), each sacrificed after combat (30): 78
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Hordeling Outburst;Goblin Bushwhacker;Raging Goblin;Raging Goblin
+p0battlefield=Torbran, Thane of Red Fell;Fiery Emancipation;Goblin Bombardment;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=78
+p1battlefield=Wall of Stone;Plains;Plains
+p1library=Plains;Plains;Plains
+[solution]
+cast Hordeling Outburst
+cast Raging Goblin
+cast Raging Goblin
+cast Goblin Bushwhacker
+Kicker
+Torbran, Thane of Red Fell; Goblin Bushwhacker; Raging Goblin; Raging Goblin; Goblin Token; Goblin Token; Goblin Token
+at MAIN2: activate Goblin Bombardment
+opponent
+Goblin Token
+activate Goblin Bombardment
+opponent
+Goblin Token
+activate Goblin Bombardment
+opponent
+Goblin Token
+activate Goblin Bombardment
+opponent
+Goblin Bushwhacker
+activate Goblin Bombardment
+opponent
+Raging Goblin
+activate Goblin Bombardment
+opponent
+Raging Goblin
+[acceptance]
+life p1 <= 0

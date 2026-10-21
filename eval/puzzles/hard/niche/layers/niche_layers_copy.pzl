@@ -1,0 +1,52 @@
+[metadata]
+Name:niche_layers_copy
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Goblin Pikers, Frogify (enchanting the opponent's Siege-Gang Commander) and 22 untapped Volcanic Islands. Your hand is Clone and Phantasmal Image. The opponent is at 18 life and controls an untapped Serra Angel, a tapped Siege-Gang Commander enchanted by your Frogify, a tapped Craw Wurm with three +1/+1 counters and two untapped Plains. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-layers-copy | A copy effect uses only the copiable values (CR 707.2, 613.2a): Frogify's type, ability and P/T changes (layers 4, 6, 7b) are not copied, so Phantasmal Image and Clone each become a full Siege-Gang Commander, with its enters trigger and its sacrifice ability, while a copy of the Wurm would drop its counters and a copy of the Angel is summoning sick; 2 Pikers past one blocker deal 2, and the 8 Goblins sacrificed deal 16: 18
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Clone;Phantasmal Image
+p0battlefield=Goblin Piker;Goblin Piker;Frogify|AttachedTo:7;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island;Volcanic Island
+p0library=Island;Island;Island;Island
+p1life=18
+p1battlefield=Serra Angel;Siege-Gang Commander|Id:7|Tapped;Craw Wurm|Tapped|Counters:P1P1=3;Plains;Plains
+p1library=Plains;Plains;Plains;Plains
+[solution]
+cast Phantasmal Image
+yes
+Siege-Gang Commander 1/1
+cast Clone
+yes
+Siege-Gang Commander 1/1
+Goblin Piker; Goblin Piker
+activate Siege-Gang Commander
+opponent
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Siege-Gang Commander
+activate Siege-Gang Commander
+opponent
+Siege-Gang Commander
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,45 @@
+[metadata]
+Name:niche_combat_blocker_removed
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Dauthi Jackal, four untapped Mountains and two untapped Swamps. Your hand is Hill Giant, Fervor, Temur Battle Rage, Brute Force, Brute Force, Rite of Flame, Rite of Flame, Desperate Ritual, Pyretic Ritual and Seething Song. The opponent is at 18 life and controls an untapped Rumbling Baloth and three Forests. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-combat-blocker-removed | A blocked creature stays blocked when its blocker is destroyed and, without trample, deals no combat damage (CR 509.1h, 510.1c); a blocked trampler with no blockers left assigns all its damage to the player (CR 702.19d). Two rituals-fuelled Brute Forces make Hill Giant 9/9 (Fervor gives haste); Temur Battle Rage gives double strike and trample and, after blocks, the Jackal destroys the blocking Baloth: 9 + 9 = 18. Unblocked it is 18 + 2. Letting the Baloth soak first-strike damage reaches 16, the Jackal kill without trample 0, the pumps on the unblockable Jackal 16
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Hill Giant;Fervor;Temur Battle Rage;Brute Force;Brute Force;Rite of Flame;Rite of Flame;Desperate Ritual;Pyretic Ritual;Seething Song
+p0battlefield=Dauthi Jackal;Mountain;Mountain;Mountain;Mountain;Swamp;Swamp
+p0library=Mountain;Mountain;Mountain;Mountain
+p1life=18
+p1battlefield=Rumbling Baloth;Forest;Forest;Forest
+p1library=Forest;Forest;Forest;Forest
+[solution]
+# Each PASS lets a ritual resolve before the next is cast, so every cost after the first is paid from the pool; the
+# untap lines keep both Swamps (the Jackal's {B}{B}) and two Mountains (Temur Battle Rage) for combat.
+cast Rite of Flame
+untap: Mountain; Mountain; Mountain; Swamp; Swamp
+cast Rite of Flame
+PASS
+cast Desperate Ritual
+PASS
+cast Pyretic Ritual
+PASS
+cast Seething Song
+PASS
+cast Hill Giant
+cast Fervor
+cast Brute Force
+Hill Giant
+cast Brute Force
+Hill Giant
+untap: Mountain; Mountain; Swamp; Swamp
+at COMBAT_BEGIN: cast Temur Battle Rage
+Hill Giant
+untap: Swamp; Swamp
+Hill Giant; Dauthi Jackal
+activate Dauthi Jackal
+[acceptance]
+life p1 <= 0

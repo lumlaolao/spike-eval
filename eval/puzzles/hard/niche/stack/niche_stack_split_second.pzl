@@ -1,0 +1,40 @@
+[metadata]
+Name:niche_stack_split_second
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two untapped Swamps and three untapped Mountains. Your hand is Sudden Spoiling, Gitaxian Probe, Rite of Flame, Desperate Ritual, Seething Song, Manamorphose, Gut Shot, Empty the Warrens and Goblin Bushwhacker. Your library holds only Colossal Dreadmaw. The opponent is at 33 life and controls Spore Frog, a tapped Vampire Nighthawk, a tapped Typhoid Rats, an untapped Forest and an untapped Swamp, with no cards in hand. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-stack-split-second | Spore Frog can be sacrificed for its fog in response to anything, and the fog covers the whole turn, so removal or any spell cast first only invites it; split second (CR 702.61a, 702.61b) lets no player cast spells or activate non-mana abilities while Sudden Spoiling is on the stack, so cast first, before the opponent ever has priority, it strips the Frog of its ability until end of turn (and makes it a 0/2). Spoiling still counts for storm (CR 702.40a): seven spells before Empty the Warrens make 16 Goblins; with the kicked Bushwhacker that is 17 2/1 attackers; the 0/2 Frog, the only untapped blocker, stops one: 32 + Gut Shot's 1 = 33
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Sudden Spoiling;Gitaxian Probe;Rite of Flame;Desperate Ritual;Seething Song;Manamorphose;Gut Shot;Empty the Warrens;Goblin Bushwhacker
+p0battlefield=Swamp;Swamp;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=33
+p1battlefield=Spore Frog;Vampire Nighthawk|Tapped;Typhoid Rats|Tapped;Forest;Swamp
+p1library=Swamp;Swamp;Swamp
+[solution]
+# Spoiling first (the opponent never has priority while the Frog has its ability); then every spell for storm,
+# Empty the Warrens, the kicked Bushwhacker after it; attack with everything.
+cast Sudden Spoiling
+opponent
+cast Gitaxian Probe
+opponent
+cast Rite of Flame
+cast Desperate Ritual
+cast Seething Song
+cast Manamorphose
+red
+red
+cast Gut Shot
+opponent
+pay 1 Phyrexian
+cast Empty the Warrens
+cast Goblin Bushwhacker
+Kicker
+Goblin Bushwhacker; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token; Goblin Token
+[acceptance]
+life p1 <= 0
