@@ -57,7 +57,8 @@ faithful observation draws with fewer fields, and a block the parser does not kn
 ```bash
 mkdir -p runs/demo/live
 python3 eval/demo_server.py --live runs/demo/live &
-# then start any game with EVAL_OUT=runs/demo/live (run-llm-headless.sh, run-llm-spike.sh, or run_batch.py --out)
+# then start any game with EVAL_OUT="$PWD/runs/demo/live" (run-llm-headless.sh, run-llm-spike.sh, or run_batch.py --out);
+# the launchers change directory, so EVAL_OUT and DECK_A/DECK_B are absolute paths (run_batch.py makes them so)
 ```
 
 Card images: a game in progress cannot be prefetched, so either prefetch an earlier game with the same decks
@@ -83,7 +84,7 @@ model's attention on it, start the server with `--highlight-file` and the game w
 
 ```bash
 python3 eval/demo_server.py --live runs/demo/live --highlight-file /tmp/demo-hl.json &
-DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT=runs/demo/live bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
+DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT="$PWD/runs/demo/live" bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
 ```
 
 After each decision the server writes the engine ids of that decision's highlighted cards (the same ones the
@@ -93,16 +94,17 @@ window is the board, the browser is the agent's log, plan and highlights. The **
 log and plan get the width. On a fresh Forge home, Forge may open a
 bug-report dialog at start-up (a default gauntlet file it cannot load); click Discard once.
 
-Checked on 2026-10-21 (a screen check, not a recording): the two commands above under `xvfb-run`, with the seat
-on a loopback fake model and screenshots taken while the highlight file named a card:
+Checked on 2026-10-21 (a screen check, not a recording): the server command above, and the game below under
+`xvfb-run` with the seat on a loopback fake model, run from the repository root, with screenshots taken while the
+highlight file named a card:
 
 ```bash
-python3 eval/fake_model_server.py --port 0 --policy first --answer-tool    # prints LISTENING <port>
+python3 eval/fake_model_server.py --port 0 --policy first --answer-tool &    # prints LISTENING <port>: use it below
 SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
   OPENROUTER_BASE_URL=http://127.0.0.1:<port>/v1 CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=42 \
-  DECK_A=eval/decks/burn.txt DECK_B=eval/decks/burn.txt \
-  DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT=runs/demo/live \
-  xvfb-run -a bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"   # the server above, with this highlight file
+  DECK_A="$PWD/eval/decks/burn.txt" DECK_B="$PWD/eval/decks/burn.txt" \
+  DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT="$PWD/runs/demo/live" \
+  xvfb-run -a bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
 ```
 
 In the screenshots Forge framed the named card (Goblin Guide, then Monastery Swiftspear). Forge also frames some of the
