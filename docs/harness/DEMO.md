@@ -127,6 +127,27 @@ option that commit never lists, and that commit plays Urza's Saga. Menus are com
 each version adds when it renders an option (`@handles`, bracketed notes); answers to equal menus by index. Two games of different seeds or decks are flagged as
 "not a side by side". One pair illustrates; it measures nothing.
 
+## Puzzle mode: the written line, then the model
+
+A puzzle run is replayed like a game. Its pane shows the brief the seat was told (the .pzl's Description), who played,
+how it ended (from `puzzle-results.jsonl`; `demo_puzzle.py` reads it), and behind a reveal the puzzle's intended line
+(its `Rule:` note and `[solution]` steps), which the seat never sees. When the written line played, each decision
+names the solution step that answered it and the reveal marks that step.
+
+```bash
+P=eval/puzzles/hard/gen/drain_0026d851c85f.pzl       # one of the 116 generated hard puzzles
+DEMO_FEED=1 python3 eval/puzzle_baselines.py line --pzl $P --out-dir runs/demo/puzzle-line          # free: no model
+DEMO_FEED=1 python3 eval/puzzle_solve.py --suite eval/suites/puzzles-hard-gen-v1.json --split heldout \
+    --ids hard-drain-0026d851c85f --k 1 --model openrouter:openai/gpt-6-luna --budget-usd 0.05 \
+    --out runs/demo/puzzle-luna                                                                    # paid: cents
+python3 eval/demo_server.py --game runs/demo/puzzle-line --game runs/demo/puzzle-luna/hard-drain-0026d851c85f
+```
+
+Both commands use the newest acceptance build under `runs/harness-acceptance` (or `--build DIR`). The paid attempt
+needs the owner's egress consent; `--model openrouter:fake/...` with a loopback `OPENROUTER_BASE_URL` rehearses it
+for free. Side by side, **first divergence** jumps to the first decision where the model left the written line.
+The suite's split (open or held out) and id are in `eval/suites/puzzles-hard-gen-v1.json`.
+
 ## The benchmark and the gate (`/eval.html`)
 
 ```bash
@@ -147,10 +168,12 @@ $80, at CLAUDE.md's $0.02 to $0.05 a game). Every other number on the page is re
    highlighted attackers), the plan panel, then End (the win), and the summary strip (`ai=0`, `textParses=0`, cost).
 3. A game with the feed: both hands, P/T and damage chips, the opponent's real hand in the audience box.
 4. The side by side: lockstep, then **first divergence**.
-5. Live: a running game (a loopback rehearsal, or a paid game the owner started), with the Forge window beside the
+5. A hard puzzle: the written line solving it (reveal the intended line), then the model's attempt beside it, and
+   **first divergence** to where the model left the line.
+6. Live: a running game (a loopback rehearsal, or a paid game the owner started), with the Forge window beside the
    browser and the model's cards framed in both.
 
-Fallback: everything in steps 1 to 4 is a recording and works offline once the images are prefetched.
+Fallback: everything in steps 1 to 5 is a recording and works offline once the images are prefetched.
 
 ## What is on screen, and where it comes from
 

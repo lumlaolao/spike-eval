@@ -585,6 +585,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - **The side by side (`demo_compare.py`)** builds this harness and an older commit of it (same engine pin, the feed
   ported in) in isolation and plays both on one seed and deck pair from the fixed sets in `eval/demo/decks.json`; the
   viewer marks the first decision where the games part (`demo_events.divergence`).
+- **Puzzle mode (`demo_puzzle.py`)**: a puzzle run's pane shows the brief the seat was told, who played (the written
+  line or a model), the result row, and behind a reveal the .pzl's intended line, which the seat never sees. A puzzle
+  pane is finished on its result row (a puzzle writes no game row).
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
   via `puzzle_score.score`, and the STR scores as not yet run with their cost.
 

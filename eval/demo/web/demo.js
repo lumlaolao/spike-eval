@@ -123,7 +123,7 @@ class Pane {
     const s = await fetch(`api/game/${this.i}/summary`).then(x => x.json());
     if (gen !== this.gen || (s.gen != null && s.gen !== this.gen)) return;  // a summary of another game
     this.info.summary = s;
-    this.renderSummary(); this.renderHead();
+    this.renderSummary(); this.renderHead(); this.renderPuzzle(); this.renderStatus();
   }
 
   stateOf(d) {
@@ -134,12 +134,45 @@ class Pane {
   // Highlights for a decision (computed server-side by demo_highlights.py): handle -> {kind, evidence}.
   hl(d) { return (d && d.highlights) || {}; }
 
+  // Puzzle mode: the brief the seat was given, and behind a reveal the puzzle's intended line, which the seat never
+  // sees (demo_puzzle.py reads both from the .pzl).
+  renderPuzzle() {
+    const pz = this.puzzle, el = $(".puzzle", this.el);
+    if (!pz) { el.innerHTML = ""; return; }
+    const k = this.scriptStep(this.cur);
+    const steps = (pz.solution || []).map((s, i) => `<li class="${i + 1 === k ? "cur" : ""}">${esc(s)}</li>`).join("");
+    const open = el.querySelector("details") && el.querySelector("details").open;
+    el.innerHTML = `<div class="ptitle">the brief (what the seat is told)</div><p>${esc(pz.brief || "")}</p>` +
+      (steps || pz.rule ? `<details${open ? " open" : ""}><summary>reveal the intended line (audience only: the seat never sees it)</summary>` +
+        (pz.rule ? `<p class="rule">${esc(pz.rule)}</p>` : "") + (steps ? `<ol class="steps">${steps}</ol>` : "") + `</details>` : "");
+    const li = el.querySelector(".steps li.cur");
+    if (li) li.parentElement.scrollTop = li.offsetTop - li.parentElement.offsetTop - 40;
+  }
+
   render() {
-    this.renderHead(); this.renderStatus(); this.renderBoard(); this.renderPlan(); this.renderTimeline();
+    this.renderHead(); this.renderStatus(); this.renderPuzzle(); this.renderBoard(); this.renderPlan(); this.renderTimeline();
     this.renderDetail(); this.renderSummary();
   }
 
+  get puzzle() { return (this.info.summary || {}).puzzle || null; }
+  // A written-line run consumes one [solution] step per decision the seat is asked, in order: the step (1-based)
+  // that answered decision n, or 0 when this run is not the written line or n was not asked.
+  scriptStep(n) {
+    const pz = this.puzzle, d = this.decisions[n];
+    if (!pz || pz.solver.kind !== "written line" || !d || (d.tier !== "smart" && d.tier !== "fast")) return 0;
+    return this.decisions.slice(0, n + 1).filter(e => e.tier === "smart" || e.tier === "fast").length;
+  }
+
   renderHead() {
+    const pz = this.puzzle;
+    if (pz) {
+      $(".pane-head", this.el).innerHTML =
+        `<span class="title">Puzzle ${esc(pz.id)}${pz.family ? ` · ${esc(pz.family)}` : ""}</span>` +
+        `<span class="cond">played by: <b>${esc(pz.solver.kind)}</b> · ${esc(pz.solver.detail)}</span>` +
+        `<span class="cond">${esc(pz.harness_epoch || "")} · ${esc(pz.pzl || "")}</span>` +
+        `<span class="cond">${esc(this.info.path)}</span>`;
+      return;
+    }
     const g = this.game || {}, s = (this.info.summary || {}).game || g;
     const cond = [s.harness_epoch, s.context_profile, s.observation_version,
       s.native_tools === true ? "native tools" : s.native_tools === false ? "text tools" : null,
@@ -169,7 +202,11 @@ class Pane {
         bits.push(`<span class="pill think" data-think>model thinking ${fmtMs(think)}</span>`);
       }
     }
-    if (this.done && this.cur >= this.decisions.length - 1) {
+    const pz = this.puzzle;
+    if (pz && this.done && this.cur >= this.decisions.length - 1) {
+      bits.push(`<span class="pill ${pz.solved ? "done" : "think"}">puzzle ${pz.solved ? "SOLVED" : "not solved"} by the ${esc(pz.solver.kind)}` +
+        ` (${esc(pz.solver_actions)} actions${pz.solved ? "" : `, ${esc(pz.status)}`})</span>`);
+    } else if (this.done && this.cur >= this.decisions.length - 1) {
       const g = this.game || {};
       bits.push(`<span class="pill done">game over: ${esc(g.winner === "A" ? g.deck_a : g.winner === "B" ? g.deck_b : g.winner)} won, T${esc(g.turns)} (${esc(g.win_condition)})</span>`);
     }
@@ -341,7 +378,9 @@ class Pane {
       flags.map(f => `<div class="flagbox">${esc(f)}</div>`).join("") + opts +
       (a.why ? `<div class="why"><b>why</b> (the model's own words in its answer): ${esc(a.why)}</div>` : "") +
       (extras ? `<div class="step tool-answer">${extras}</div>` : "") +
-      (steps ? `<h3>what the model did, in order</h3>${steps}` : "") +
+      (this.scriptStep(this.cur) ? `<div class="step"><b>played by the written line</b>, step ${this.scriptStep(this.cur)}: ` +
+        `<code>${esc((this.puzzle.solution || [])[this.scriptStep(this.cur) - 1] || "")}</code> (no model; the engine still checked the move)</div>`
+        : steps ? `<h3>what the model did, in order</h3>${steps}` : "") +
       (d.prompt ? `<details><summary>the whole prompt the seat was shown</summary><pre>${esc(d.prompt)}</pre></details>` : "");
   }
 

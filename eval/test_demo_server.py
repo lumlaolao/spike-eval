@@ -140,6 +140,22 @@ class DivergenceEndpointTest(unittest.TestCase):
             shutil.rmtree(d)
 
 
+class PuzzleTest(unittest.TestCase):
+    def test_a_puzzle_run_is_done_on_its_result_row_and_its_summary_carries_the_puzzle(self):
+        d = tempfile.mkdtemp()
+        try:
+            game = os.path.join(FIX, "puzzle", "game-1-1792545763927.jsonl")
+            shutil.copy(game, d)
+            pane = srv.Pane(d)
+            self.assertFalse(pane.done)  # a puzzle writes no game row; until its result row lands, not done
+            shutil.copy(os.path.join(FIX, "puzzle", "puzzle-results.jsonl"), d)
+            pane = srv.Pane(d)
+            self.assertTrue(pane.done)
+            self.assertEqual(pane.summary()["puzzle"]["solver"]["kind"], "written line")
+        finally:
+            shutil.rmtree(d)
+
+
 class HighlightFileTest(unittest.TestCase):
     def test_the_forge_window_gets_the_latest_decisions_highlighted_engine_ids(self):
         ev = {"kind": "decision", "n": 3, "seat": "A", "turn": 2, "feed_handles": {"17": 101, "20": 102, "25": 103, "4": 101},

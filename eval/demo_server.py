@@ -27,6 +27,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 import demo_cards
 import demo_eval
 import demo_events
+import demo_puzzle
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo", "web")
 TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
@@ -45,6 +46,7 @@ class Pane:
         self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
         self.lock = threading.Lock()
         self._summary = None
+        self._puzzle = None     # a puzzle run's result (demo_puzzle.info), once its row is written
         self.refresh()
 
     def refresh(self):
@@ -57,6 +59,7 @@ class Pane:
                     self.reader = demo_events.Reader(jsonl)
                     self.gen += 1
                     self._summary = None
+                    self._puzzle = None
                 if jsonl:
                     self.log = log
             if self.reader is not None:
@@ -68,7 +71,15 @@ class Pane:
 
     @property
     def done(self):
-        return self.reader is not None and self.reader.builder.game is not None
+        """The game row landed, or, for a puzzle, its result row (a puzzle run writes no game row)."""
+        return self.reader is not None and (self.reader.builder.game is not None or self.puzzle() is not None)
+
+    def puzzle(self):
+        """demo_puzzle.info for this pane's game when it is a finished puzzle attempt, else None. Kept once found."""
+        if self._puzzle is None and self.reader is not None:
+            m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
+            self._puzzle = demo_puzzle.info(os.path.dirname(self.reader.path), m.group(1) if m else None)
+        return self._puzzle
 
     @property
     def events(self):
@@ -118,7 +129,7 @@ def build_summary(pane):
     """The strip under the board: the game row, the [TALLY] line, match_review counts, and the run's cost."""
     out = {"path": pane.path, "live": pane.live, "jsonl": pane.reader.path if pane.reader else None,
            "log": pane.log, "game": pane.reader.builder.game if pane.reader else None,
-           "tally": demo_events.tally(pane.log) if pane.log else {}}
+           "tally": demo_events.tally(pane.log) if pane.log else {}, "puzzle": pane.puzzle()}
     if pane.reader and pane.done:
         try:
             import match_review

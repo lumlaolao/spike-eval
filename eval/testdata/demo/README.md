@@ -13,6 +13,7 @@ Each slice starts on the row after a decision row of the same seat, so the rows 
 | g33-damage-assign.jsonl | same, rows 647-649 | harness-epoch-64 | T14 damage-assign, `tier: auto`, `prompt: null` |
 | g33-game.jsonl | same, last row | harness-epoch-64 | the game row (won by A on T14) |
 | mirror-42-start.jsonl | a loopback mirror, first 60 rows (command below) | harness-epoch-70 | two llm seats' asks in one file |
+| puzzle/ | `puzzle_baselines.py line --pzl eval/puzzles/hard/gen/drain_0026d851c85f.pzl` with DEMO_FEED=1: the game file's rows up to its third decision, and its result row trimmed to the fields demo_puzzle reads, with `source_file` moved so the lookup by id is exercised | harness-epoch-70 | the written line of a hard puzzle |
 | tournament-2026-07-play.jsonl | runs/tournament-1/match-F-1/game-264-1784515705553.jsonl | before epochs | a July 2026 prompt ("yard(5):", "Name(0/1)[T]") |
 
 `mirror-42-start.jsonl` was made with `python3 eval/fake_model_server.py --port 0 --policy random --seed 7 --answer-tool
