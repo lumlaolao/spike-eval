@@ -261,6 +261,35 @@ class ArmTest(unittest.TestCase):
         finally:
             shutil.rmtree(d)
 
+    def test_parallel_starts_both_arms_before_waiting_and_sequential_waits_between(self):
+        for parallel, want in ((True, ["start now", "start then", "wait", "wait"]),
+                               (False, ["start now", "wait", "start then", "wait", "wait", "wait"])):
+            events = []
+
+            class Proc:
+                def __init__(self, cmd, **kw):
+                    events.append("start " + ("then" if "harness-then" in " ".join(cmd) or "/then/" in " ".join(cmd) else "now"))
+
+                def wait(self):
+                    events.append("wait")
+
+                def poll(self):
+                    return 0
+            d = tempfile.mkdtemp()
+            try:
+                for name in ("now", "then"):
+                    os.makedirs(os.path.join(d, name, "forge-home"))
+                    open(os.path.join(d, name, "forge-home", "run-llm-headless.sh"), "w").close()
+                args = ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd",
+                        "0.4", "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build",
+                        os.path.join(d, "then"), "--worktree", os.path.join(d, "harness-then")]
+                with mock.patch.object(dc, "check_pins", lambda *a: None), \
+                        mock.patch.object(dc.subprocess, "Popen", Proc), contextlib.redirect_stdout(io.StringIO()):
+                    dc.main(args + (["--parallel"] if parallel else []))
+            finally:
+                shutil.rmtree(d)
+            self.assertEqual(events[:len(want)], want)
+
     def test_a_forge_checkout_that_is_a_git_worktree_passes_the_guard(self):
         d = tempfile.mkdtemp()
         try:

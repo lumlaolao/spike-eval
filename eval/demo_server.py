@@ -130,11 +130,24 @@ def write_highlights(path, events):
     os.replace(tmp, path)
 
 
+def run_decks(run_dir):
+    """The deck names a run_batch run played (its batch-manifest.json), e.g. ["vintage-esper-control", ...]; the game
+    row names the seats only ("Identity-A"). None without a manifest."""
+    try:
+        with open(os.path.join(run_dir, "batch-manifest.json")) as f:
+            cond = json.load(f).get("condition") or {}
+    except (OSError, ValueError):
+        return None
+    names = [os.path.splitext(os.path.basename(cond.get(k) or ""))[0] for k in ("deck_a", "deck_b")]
+    return names if all(names) else None
+
+
 def build_summary(pane):
     """The strip under the board: the game row, the [TALLY] line, match_review counts, and the run's cost."""
     out = {"path": pane.path, "live": pane.live, "jsonl": pane.reader.path if pane.reader else None,
            "log": pane.log, "game": pane.reader.builder.game if pane.reader else None,
-           "tally": demo_events.tally(pane.log) if pane.log else {}, "puzzle": pane.puzzle()}
+           "tally": demo_events.tally(pane.log) if pane.log else {}, "puzzle": pane.puzzle(),
+           "decks": run_decks(os.path.dirname(pane.reader.path)) if pane.reader else None}
     if pane.reader and pane.done:
         try:
             import match_review

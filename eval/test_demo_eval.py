@@ -42,6 +42,11 @@ class EvalTest(unittest.TestCase):
     def test_a_check_dir_is_scored_as_a_labelled_pilot_on_its_own_suite_and_ids(self):
         self.assertIsNone(demo_eval.puz_check(None))
         self.assertIsNone(demo_eval.puz_check("/nowhere"))
+        broken = tempfile.mkdtemp()  # exists but holds no check: the pilot row errors, the page still renders
+        try:
+            self.assertIn("error", demo_eval.report(None, broken)["headlines"][2]["result"]["hard"])
+        finally:
+            shutil.rmtree(broken)
         d = tempfile.mkdtemp()
         try:
             open(os.path.join(d, "check-suite.json"), "w").close()

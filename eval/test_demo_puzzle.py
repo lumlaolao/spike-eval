@@ -47,6 +47,9 @@ class PuzzleTest(unittest.TestCase):
     def test_steps_are_not_mapped_when_the_script_waited_drifted_or_was_not_the_written_line(self):
         self.assertIsNone(self.run_with(script_waits=1)["script_lines"])
         self.assertIsNone(self.run_with(script_drift="cast X")["script_lines"])
+        self.assertIsNone(self.run_with(script_untaps_left=1)["script_lines"])
+        self.assertIsNone(self.run_with(script_exhausted=True)["script_lines"])
+        self.assertIsNone(self.run_with(script_played=False)["script_lines"])
         other = self.run_with(solver_model="script:/tmp/L.txt")
         self.assertEqual((other["solver"]["kind"], other["script_lines"]), ("script", None))
 

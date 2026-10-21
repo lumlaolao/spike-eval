@@ -33,6 +33,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | LATENCY.md | per-decision latency measurements and knobs |
 | PLAYER-HARNESS.md | the player-harness direction and its tool-protocol measurements |
 | DEMO.md | the live demo: the replay viewer, following a running game, the rehearsal runbook |
+| EXPLAINER.md | the tech and the stack for a presenter: layers, one decision end to end, numbers and their sources |
 
 ## Historical (in `history/`)
 

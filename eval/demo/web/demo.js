@@ -6,6 +6,7 @@
 const $ = (sel, el) => (el || document).querySelector(sel);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const fmtMs = ms => ms == null ? "" : ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s";
+const phaseName = ph => String(ph || "").replace(/_/g, " ").toLowerCase();
 const KIND_LABEL = {chosen: "chosen", planned: "plan", looked: "looked up", mentioned: "mentioned", engine: "engine"};
 const FILTERS = [
   ["all", "all", () => true],
@@ -164,7 +165,25 @@ class Pane {
     return this.decisions.slice(0, n + 1).filter(asked).length;
   }
 
+  // Two games side by side: which harness this pane is (its run directory's name: now / then), and the decks.
+  get label() {
+    const base = (this.info.path || "").replace(/\/+$/, "").split("/").pop();
+    return {now: "current harness", then: "2026-10-14 harness (e1324cfd)"}[base] || base;
+  }
+  get matchup() {
+    const d = (this.info.summary || {}).decks, nice = s => s.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    return d ? `${nice(d[0])} vs ${nice(d[1])}` : null;
+  }
+
   renderHead() {
+    if (document.body.classList.contains("watch")) {
+      const d = this.decision, g = this.game || {}, over = this.done && d && this.cur >= this.decisions.length - 1;
+      $(".pane-head", this.el).innerHTML =
+        `<span class="title" title="${esc(this.matchup || "")}">${esc(this.label)}</span>` + (this.matchup ? `<span class="cond">${esc(this.matchup)}</span>` : "") +
+        (d ? `<span class="w-turn">T${esc(d.turn)} · ${esc(phaseName(d.phase))}</span>` : "") +
+        (over ? `<span class="pill done">${(g.winner === "A" ? g.deck_a : g.deck_b) === d.seat ? "the model" : "Forge AI"} won, T${esc(g.turns)}</span>` : "");
+      return;
+    }
     const pz = this.puzzle;
     if (pz) {
       $(".pane-head", this.el).innerHTML =
@@ -218,6 +237,7 @@ class Pane {
     if (!st) { el.innerHTML = `<p class="engine-note">${this.waitingForFile ? "No game file yet." : "No board yet (no prompt recorded before this decision)."}</p>`; return; }
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
     const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
+    if (document.body.classList.contains("watch")) { el.innerHTML = this.watchHtml(d, st, hl); this.fitWatch(el); return; }
     if (d.feed) {
       const fps = feedPlayers(d, st);
       el.innerHTML = `<p class="engine-note">board: engine truth from the audience feed; the seat's own view is its prompt (below the trace)</p>` +
@@ -286,6 +306,99 @@ class Pane {
       `${o.handle != null ? `<span class="h">@${esc(o.handle)}</span>` : ""}</div>` +
       `${tags.length || (o.notes || []).length ? `<div class="tags">${esc(tags.concat(o.notes || []).join(", "))}</div>` : ""}</div>`;
   }
+  // Watch mode's board: a playmat per player, readable at half a screen. Opponent on top, the model below, between
+  // them one line of chips for the stack and combat. Per player: a header (name, life, library and hand counts),
+  // then labelled rows: HAND, BATTLEFIELD (permanents, then lands grouped by name), and the graveyard and exile
+  // piles at the side. Every card shows its name under the art.
+  // A crowded board draws every card of the game a little smaller, all alike, until it fits above the log (never
+  // below 40px wide, where a card stops being readable); then the log gives up height, down to 90px; past that the
+  // board scrolls.
+  fitWatch(el) {
+    const col = el.closest(".board-col"), log = $(".w-log", this.el);
+    let w = 72;
+    el.style.setProperty("--w", w + "px"); log.style.height = "";
+    while (col && el.scrollHeight > col.clientHeight + 1 && w > 40) el.style.setProperty("--w", (w -= 4) + "px");
+    const over = col ? el.scrollHeight - col.clientHeight : 0;
+    if (over > 0) log.style.height = Math.max(90, log.clientHeight - over) + "px";
+  }
+  watchHtml(d, st, hl) {
+    const ps = d.feed ? feedPlayers(d, st) : st.players;
+    const opp = ps.filter(p => p.kind === "OPP"), you = ps.filter(p => p.kind === "YOU");
+    const stack = (st.stack || []).map(s => s.kind ? `${s.source} (${s.kind}, ${s.who || "?"})` : s.text).join(" → ");
+    const combat = st.combat && st.combat !== "none" ? st.combat : "";
+    const chip = (lab, text, empty) => `<span class="w-chip${text ? "" : " off"}" title="${esc(text || empty)}"><b>${lab}</b>${esc(text || empty)}</span>`;
+    return opp.map(p => this.watchPlayer(p, hl)).join("") +
+      `<div class="w-mid">${chip("stack", stack, "empty")}${chip("combat", combat, "none")}</div>` +
+      you.map(p => this.watchPlayer(p, hl)).join("");
+  }
+  watchPlayer(p, hl) {
+    const c = p.counters || {}, z = p.zones || {};
+    const tiles = (objs, group) => {
+      if (!group) return objs.map(o => this.watchTile(o, hl, 1)).join("");
+      const seen = new Map();  // identical lands, same tapped state, no highlight: one tile with a count
+      for (const o of objs) {
+        const key = o.handle != null && hl[o.handle] ? "h" + o.handle : o.name + "|" + (o.tags || []).includes("tapped");
+        if (seen.has(key)) seen.get(key).n++; else seen.set(key, {o, n: 1});
+      }
+      return [...seen.values()].map(({o, n}) => this.watchTile(o, hl, n)).join("");
+    };
+    const row = (lab, cls, inner, empty) => `<div class="w-row ${cls}"><span class="w-vlab">${lab}</span>` +
+      `<div class="w-tiles">${inner || `<span class="w-note">${empty}</span>`}</div></div>`;
+    const hidden = parseInt(p.hand_hidden, 10) || 0;
+    const handN = p.kind === "YOU" || p.audienceHand ? (z.hand || []).length : hidden;
+    const hand = p.audienceHand ? row("hand", "aud", tiles(z.hand || []) + `<i class="w-aud">audience only</i>`, "empty")
+      : p.kind === "OPP" ? row("hand", "", Array.from({length: Math.min(hidden, 10)}, () => `<span class="w-back" title="hidden from the seat"></span>`).join(""), "empty")
+      : row("hand", "", tiles(z.hand || []), "empty");
+    const field = tiles(z.board || []) + ((z.lands || []).length ? `<span class="w-vlab lands">lands</span>` + tiles(z.lands || [], true) : "");
+    // Graveyard and exile: a real stack of cards, each one's title strip peeking out above the next, the newest on
+    // top and shown whole (the last 5, and a count of the rest).
+    const pile = (name, objs) => {
+      const shown = objs.slice(-5), more = objs.length - shown.length;
+      return `<div class="w-pile"><span class="w-lab">${name}</span>` +
+        (objs.length ? `<div class="w-cards" title="${objs.length} cards${more > 0 ? `, the top ${shown.length} shown` : ""}">` +
+          shown.map(o => { const h = o.handle != null ? hl[o.handle] : null;
+          return `<div class="w-sc${h ? " hl-" + h.kind : ""}" data-name="${esc(o.name)}" title="${esc(o.name + (h ? "\n" + (KIND_LABEL[h.kind] || h.kind) + ": " + (h.evidence || "") : ""))}">` +
+            `<img src="${cardImg(o.name)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"></div>`; }).join("") +
+          `<span class="w-cnt">${objs.length}</span></div>` : `<div class="w-empty">empty</div>`) + `</div>`;
+    };
+    const stat = (lab, v) => `<span class="w-stat">${lab} <b>${esc(v)}</b></span>`;
+    return `<div class="w-player ${esc(p.kind)}"><div class="w-main"><div class="w-who"><span class="w-name">${p.kind === "YOU" ? "the model" : "Forge AI"}</span>` +
+      `<span class="w-life" title="life total"><b>${esc(c.life)}</b> life</span>` + stat("library", c.library) + stat("hand", handN) +
+      (c.poison && !String(c.poison).startsWith("0") ? stat("poison", c.poison) : "") + `</div>` +
+      `<div class="w-rows">${hand}${row("battlefield", "field", field, "no permanents")}</div></div>` +
+      `<div class="w-side">${pile("graveyard", z.graveyard || [])}${pile("exile", z.exile || [])}</div></div>`;
+  }
+  watchTile(o, hl, n) {
+    const h = o.handle != null ? hl[o.handle] : null, tags = o.tags || [];
+    const pt = o.pt ? `<span class="w-pt${o.damage || (o.base_pt && o.pt !== o.base_pt) ? " changed" : ""}">${esc(o.pt)}</span>` : "";
+    // Status as small marks on the art, not text: attacking, blocking, summoning sick, damage, counters.
+    const marks = [tags.includes("attacking") ? `<i class="m atk" title="attacking">⚔</i>` : "",
+      tags.includes("blocking") ? `<i class="m blk" title="blocking">⛨</i>` : "",
+      tags.includes("sick") ? `<i class="m sick" title="summoning sick">z</i>` : "",
+      o.damage ? `<i class="m dmg" title="${esc(o.damage)} damage">${esc(o.damage)}</i>` : "",
+      o.counters ? `<i class="m ctr" title="${esc(o.counters)}">+</i>` : ""].join("");
+    return `<div class="w-card${tags.includes("tapped") ? " tapped" : ""}${h ? " hl-" + h.kind : ""}" data-name="${esc(o.name)}"` +
+      ` title="${esc([o.name, h ? (KIND_LABEL[h.kind] || h.kind) + ": " + (h.evidence || "") : ""].filter(Boolean).join("\n"))}">` +
+      `<span class="w-art"><img src="${cardImg(o.name)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('none')">` +
+      `${pt}${n > 1 ? `<span class="w-n">×${n}</span>` : ""}${h ? `<span class="w-badge">${esc(KIND_LABEL[h.kind] || h.kind)}</span>` : ""}` +
+      (marks ? `<span class="w-marks">${marks}</span>` : "") + `</span><span class="w-nm">${esc(o.name)}</span></div>`;
+  }
+  // Each game plays on its own clock in watch mode: the next decision after its own recorded latency (scaled by speed).
+  // A game already at its end starts again from its first decision; each one runs on to its last.
+  play(on) {
+    if (!on || this.timer) { clearTimeout(this.timer); this.timer = null; if (!on) { app.syncPlay(); return; } }
+    if (this.cur >= this.decisions.length - 1) { this.cur = 0; this.render(); }
+    const tick = () => {
+      if (this.cur >= this.decisions.length - 1) { this.timer = null; app.syncPlay(); return; }
+      this.cur += 1; this.render(); app.toHash();
+      const sp = $("#speed").value, next = this.decisions[this.cur + 1];
+      const real = Math.max(300, (next && next.latency_ms) || 1000);
+      this.timer = setTimeout(tick, sp === "step" ? 1000 : sp === "real" ? real : Math.max(250, real / +sp));
+    };
+    this.timer = setTimeout(tick, 200);
+    app.syncPlay();
+  }
+
   middleHtml(st, hl) {
     const stack = st.stack && st.stack.length
       ? `<ul>${st.stack.map(s => `<li>${esc(s.kind ? `#${s.index} ${s.kind} ${s.source} (${s.who || "?"})${s.text ? ": " + s.text : ""}` : s.text)}</li>`).join("")}</ul>`
@@ -354,7 +467,26 @@ class Pane {
     if (cur) cur.scrollIntoView({block: "nearest"});
   }
 
+  // Watch mode's log per game: one entry per decision so far (turn and phase, what was asked, the pick, the model's
+  // own why), the newest at the bottom, scrolled into view as the game plays.
+  renderLog() {
+    const el = $(".w-log", this.el);
+    if (!document.body.classList.contains("watch")) return;
+    const rows = this.decisions.slice(0, this.cur + 1).map((d, n) => {
+      const pick = (d.chosen || []).map(i => d.options[i]).filter(Boolean).join("; ") || (d.type === "blockers" ? "no blocks" : "-");
+      const why = (d.answer || {}).why, asked = d.tier === "smart" || d.tier === "fast";
+      return `<li class="${n === this.cur ? "cur" : ""}${asked ? "" : " auto"}"><span class="t">T${esc(d.turn)} ${esc(phaseName(d.phase))}</span>` +
+        `<span class="k">${esc(d.type)}${asked ? "" : ` (${esc(d.auto_class === "forced" ? "forced" : d.auto_class || "not asked")})`}</span>` +
+        `<span class="pick" title="${esc(pick)}">${esc(pick)}</span>` + (why ? `<div class="why">${esc(why)}</div>` : "") + `</li>`;
+    });
+    el.innerHTML = `<div class="w-loghead">the model's decisions <span>${this.decisions.length ? this.cur + 1 : 0} / ${this.decisions.length}</span></div>` +
+      `<ol>${rows.join("") || `<li class="auto"><span class="k">no decisions yet</span></li>`}</ol>`;
+    const ol = $("ol", el);
+    ol.scrollTop = ol.scrollHeight;
+  }
+
   renderDetail() {
+    this.renderLog();
     const d = this.decision, el = $(".detail", this.el);
     if (!d) { el.innerHTML = ""; return; }
     const st = d.state, q = st && st.decision ? st.decision.split("\n")[0] : null;
@@ -460,11 +592,15 @@ const app = {
     }
     this.renderAll();
   },
-  step(k) { this.seek(this.panes[0], this.panes[0].cur + k); },
+  get watching() { return document.body.classList.contains("watch") && this.panes.length === 2; },
+  step(k) {
+    if (this.watching) { this.panes.forEach(p => { p.cur = Math.max(0, Math.min(p.cur + k, p.decisions.length - 1)); }); this.renderAll(); }
+    else this.seek(this.panes[0], this.panes[0].cur + k);
+  },
   bind() {
     const pv = $("#preview");
     document.addEventListener("mouseover", ev => {
-      const c = ev.target.closest(".card[data-name]");
+      const c = ev.target.closest(".card[data-name], .w-card[data-name], .w-sc[data-name]");
       if (!c || c.classList.contains("noimg")) { pv.hidden = true; return; }
       pv.innerHTML = `<img src="${cardImg(c.getAttribute("data-name"))}" alt="">`;
       pv.hidden = false;
@@ -475,11 +611,15 @@ const app = {
     $("#next").onclick = () => this.step(1);
     $("#play").onclick = () => this.toggle();
     $("#logonly").onclick = () => { document.body.classList.toggle("logonly"); this.toHash(); };
+    $("#watch").hidden = this.panes.length !== 2;
+    $("#watch").onclick = () => { document.body.classList.toggle("watch"); this.panes.forEach(p => p.play(false)); this.renderWatchButton(); this.renderAll(); };
+    this.renderWatchButton();
     $("#turn").onchange = ev => {
       const t = +ev.target.value, p = this.panes[0];
       const n = p.decisions.findIndex(d => d.turn >= t);
       if (n >= 0) this.seek(p, n);
     };
+    addEventListener("resize", () => { if (this.watching) this.panes.forEach(p => p.renderBoard()); });  // refit
     document.addEventListener("keydown", ev => {
       if (ev.target.tagName === "INPUT" || ev.target.tagName === "SELECT") return;
       if (ev.key === "ArrowRight") this.step(1);
@@ -489,7 +629,16 @@ const app = {
       else if (ev.key === " ") { ev.preventDefault(); this.toggle(); }
     });
   },
+  // The global button shows pause while any game in watch mode is still playing.
+  syncPlay() {
+    if (this.watching) $("#play").innerHTML = this.panes.some(p => p.timer) ? "&#x23F8;" : "&#x25B6;";
+  },
   toggle() {
+    if (this.watching) {  // both games, each on its own clock
+      const on = !this.panes.some(p => p.timer);
+      this.panes.forEach(p => p.play(on));
+      return;
+    }
     if (this.timer) { clearTimeout(this.timer); this.timer = null; $("#play").innerHTML = "&#x25B6;"; return; }
     $("#play").innerHTML = "&#x23F8;";
     const tick = () => {
@@ -505,11 +654,18 @@ const app = {
   },
   toHash() {
     const p = this.panes[0];
-    if (p) history.replaceState(null, "", `#d=${p.cur + 1}${document.body.classList.contains("logonly") ? "&log" : ""}`);
+    const flags = (document.body.classList.contains("logonly") ? "&log" : "") +
+      (this.panes.length === 2 && !document.body.classList.contains("watch") ? "&full" : "");
+    if (p) history.replaceState(null, "", `#d=${p.cur + 1}${flags}`);
+  },
+  renderWatchButton() {
+    $("#watch").textContent = document.body.classList.contains("watch") ? "full detail" : "watch both";
   },
   fromHash() {
     // &log: the log-only layout, for a browser beside Forge's own match window (which draws the board).
     document.body.classList.toggle("logonly", /(^|[#&])log(&|$)/.test(location.hash));
+    // Two games: watch mode (both boards on one screen) unless the URL asks for full detail (&full).
+    document.body.classList.toggle("watch", this.panes.length === 2 && !/(^|[#&])full(&|$)/.test(location.hash));
     const m = /d=(\d+)/.exec(location.hash);
     if (m && this.panes[0]) this.panes[0].cur = Math.max(0, Math.min(+m[1] - 1, this.panes[0].decisions.length - 1));
   },

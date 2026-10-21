@@ -5,8 +5,9 @@
 
 A puzzle run (eval/puzzle_baselines.py line, eval/puzzle_solve.py) writes game-*.jsonl, which the viewer replays
 like any game, and puzzle-results.jsonl, which says how it ended. This module reads that result row and the
-.pzl it names, and returns the panel: the brief the seat was given (the .pzl's Description), who played (the
-puzzle's written line (the script arm) or the model), how it ended, and, for the audience only, the puzzle's intended
+.pzl it names, and returns the panel: the brief the seat was given (the row's goal_oracle, else the .pzl's
+Description), who played (the puzzle's written line, another script, or the model), how it ended, and, for the
+audience only, the puzzle's intended
 line (its Rule: note and [solution] steps). The seat never sees the Rule or the solution; the panel draws them
 behind a reveal. Stdlib only.
 
@@ -65,8 +66,8 @@ def solver_of(row):
 def steps_mappable(row):
     """True when each asked decision consumed exactly one [solution] line, in order: the written line itself, with no
     wait, untap fallback, drift or exhaustion (ScriptBridge answers those without consuming a line)."""
-    return (solver_of(row)["kind"] == "written line" and not row.get("script_drift") and not row.get("script_exhausted")
-            and not row.get("script_waits") and not row.get("script_untaps_left"))
+    return (solver_of(row)["kind"] == "written line" and bool(row.get("script_played")) and not row.get("script_drift")
+            and not row.get("script_exhausted") and not row.get("script_waits") and not row.get("script_untaps_left"))
 
 
 def info(run_dir, seed=None):
@@ -79,7 +80,9 @@ def info(run_dir, seed=None):
            "harness_epoch": row.get("harness_epoch"), "brief": row.get("goal_oracle"),
            "script_lines": row.get("script_lines") if steps_mappable(row) else None}
     pzl = find_pzl(row)
-    if pzl:
+    if not pzl:
+        out["script_lines"] = None  # no [solution] to name the steps from
+    else:
         with open(pzl, "rb") as f:
             raw = f.read()
         text = raw.decode("utf-8")

@@ -1,5 +1,8 @@
 # The demo: watching the seat play
 
+To explain the system behind it (the stack, one decision end to end, the numbers and where each comes from), read
+`EXPLAINER.md` first.
+
 A browser viewer for one game, recorded or running: both players' zones as the seat's prompt showed them, every
 decision with what the model was asked, what it looked up, what it planned, the reasoning its provider returned,
 what it answered, and the game objects it named. It reads the game's `EVAL_OUT` JSONL and nothing else, so it needs no
@@ -113,8 +116,16 @@ build-then also copies the current price list into the older worktree (its own l
 `run_batch.py` refuses `--budget-usd` without a price). To redo one arm that failed, run the same command with
 `--arm then` (or `now`) and the same `--out`: that arm alone plays, with the whole budget.
 
+To watch both arms play live rather than replay them, add `--parallel`: the two arms start at once, each in its own
+JVM, and the command prints the viewer line to start first (`demo_server.py --live OUT/now --live OUT/then`). Without
+it the arms play one after the other. Stopping the command stops both games.
+
 A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, split between the two arms; two one-tier games at CLAUDE.md's $0.02 to $0.05 each) needs the owner's
-egress consent. In the viewer, the two panes step in lockstep by turn and phase, and the **first divergence** button
+egress consent. Two games open in watch mode: each pane is a clear board (life, library and hand counts; hand,
+battlefield and lands rows; graveyard and exile as stacks of card images) with the stack and combat on one line between
+the players and a scrollable log of the model's decisions under it. One play button runs both games to their end side by
+side, each on its own recorded clock (from the start again if both have ended); space toggles it. **full detail** (or
+`&full` in the URL) switches to the full view, where the two panes step in lockstep by turn and phase, and the **first divergence** button
 jumps both to the first decision the two harnesses answer differently (`demo_events.divergence`): the same menu
 answered with a different option, a different option taken where the harnesses list different menus, or different
 spots (the games had already parted). Where the menus differ but both took the same option, the scan goes on and the
@@ -129,7 +140,7 @@ each version adds when it renders an option (`@handles`, bracketed notes); answe
 
 ## Puzzle mode: the written line, then the model
 
-A puzzle run is replayed like a game. Its pane shows the brief the seat was told (the .pzl's Description), who played,
+A puzzle run is replayed like a game. Its pane shows the brief the seat was told (the result row's `goal_oracle`, else the .pzl's Description), who played,
 how it ended (from `puzzle-results.jsonl`; `demo_puzzle.py` reads it), and behind a reveal the puzzle's intended line
 (its `Rule:` note and `[solution]` steps), which the seat never sees. When the written line played, each decision
 names the solution step that answered it and the reveal marks that step.
@@ -153,7 +164,8 @@ drift in the script, and the .pzl's hash matching the run's); otherwise the reve
 Recorded already, on the `demo-recordings` branch: this puzzle's written line (`puzzles/drain-3c09-written-line`)
 and Luna's attempt that missed it, the opponent left at 2 life (`puzzles/hard-gen-luna-check/runs/hard-drain-3c09484e5e54`),
 plus a board Luna solved. `--hard-results ../demo-recordings/puzzles/hard-gen-luna-check` puts that check's PUZ
-pilot on the eval page (20 of 68, one attempt each; scored by `puzzle_score.py`, labelled a pilot).
+pilot on the eval page: 20 of 68 boards solved, one attempt each, pass@1 0.294 (95% CI 0.19 to 0.40), floors 0;
+scored by `puzzle_score.py` and labelled a pilot, never pooled with PUZ.
 
 ## The benchmark and the gate (`/eval.html`)
 
@@ -174,7 +186,7 @@ $80, at CLAUDE.md's $0.02 to $0.05 a game). Every other number on the page is re
 2. The viewer on `runs/loop/g33`: `#d=11` (a simulate preview before a play), `#d=37` (blockers, with the
    highlighted attackers), the plan panel, then End (the win), and the summary strip (`ai=0`, `textParses=0`, cost).
 3. A game with the feed: both hands, P/T and damage chips, the opponent's real hand in the audience box.
-4. The side by side: lockstep, then **first divergence**.
+4. The side by side: press play and watch both games, then **full detail** and **first divergence**.
 5. A hard puzzle: the written line solving it (reveal the intended line), then the model's attempt beside it, and
    **first divergence** to where the model left the line.
 6. Live: a running game (a loopback rehearsal, or a paid game the owner started), with the Forge window beside the

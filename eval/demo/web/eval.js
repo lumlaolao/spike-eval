@@ -59,14 +59,14 @@ fetch("api/eval").then(r => r.json()).then(r => {
   $("#heads").innerHTML = r.headlines.map(headCard).join("");
   const p = r.headlines.find(h => h.key === "PUZ");
   if (p && p.result.runs.length) {
-    const r = p.result;
+    const pr = p.result;
     $("#puz-title").hidden = false;
-    $("#puz").innerHTML = forest(r, `Luna, ${esc(r.runs[0].puzzles)} frozen rules puzzles (${esc(r.suite)}), 5 attempts each. ` +
-      `The headline subtracts each puzzle's random solve rate, so random play scores 0. Source: ${esc(r.report)}.`);
-    if (r.hard) {
+    $("#puz").innerHTML = forest(pr, `Luna, ${esc(pr.runs[0].puzzles)} frozen rules puzzles (${esc(pr.suite)}), 5 attempts each. ` +
+      `The headline subtracts each puzzle's random solve rate, so random play scores 0. Source: ${esc(pr.report)}.`);
+    if (pr.hard && !pr.hard.error) {
       $("#hard-title").hidden = false;
-      $("#hard").innerHTML = forest({runs: [r.hard]}, `A pilot, not a PUZ score: one attempt each on ${esc(r.hard.puzzles)} open ` +
-        `boards of the generated hard suite (${esc(r.hard.suite)}), every floor solving none. Source: ${esc(r.hard.path)}.`);
+      $("#hard").innerHTML = forest({runs: [pr.hard]}, `A pilot, not a PUZ score: one attempt each on ${esc(pr.hard.puzzles)} open ` +
+        `boards of the generated hard suite (${esc(pr.hard.suite)}); floors: ${Object.entries(pr.hard.headline.floors).map(([n, v]) => `${esc(n)} ${f3(v)}`).join(" · ")}. Source: ${esc(pr.hard.path)}.`);
     }
   }
   const a = r.acceptance;

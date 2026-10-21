@@ -51,6 +51,14 @@ def acceptance(out_dir):
             "total": len(stages)}
 
 
+def run_entry(rep, label, path, **extra):
+    """One plotted PUZ run, as eval.js's forest() reads it."""
+    agg = rep["aggregate"]
+    return dict({"label": label, "path": path, "solver": rep["solver"], "puzzles": agg["n_puzzles"], "k": agg["k"],
+                 "headline": agg["headline"], "pass@1": {k: agg["pass@1"][k] for k in ("value", "ci95", "floors")},
+                 "attempts": rep["integrity"]["attempts"]}, **extra)
+
+
 def puz():
     manifest = pf.load_suite(PUZ_SUITE)
     runs = []
@@ -59,11 +67,7 @@ def puz():
         if not os.path.isdir(path):
             continue
         rep = ps.score(manifest, ps.load_rows([path]), "open", 5)
-        agg = rep["aggregate"]
-        runs.append({"label": label, "path": os.path.relpath(path, REPO), "solver": rep["solver"],
-                     "puzzles": agg["n_puzzles"], "k": agg["k"], "headline": agg["headline"],
-                     "pass@1": {k: agg["pass@1"][k] for k in ("value", "ci95", "floors")},
-                     "attempts": rep["integrity"]["attempts"]})
+        runs.append(run_entry(rep, label, os.path.relpath(path, REPO)))
     return {"suite": os.path.relpath(PUZ_SUITE, REPO), "report": os.path.relpath(os.path.join(PUZ_DIR, "REPORT.md"), REPO),
             "runs": runs}
 
@@ -76,13 +80,10 @@ def puz_check(check_dir):
         return None
     manifest = pf.load_suite(os.path.join(check_dir, "check-suite.json"))
     with open(os.path.join(check_dir, "ids.txt")) as f:
-        ids = {i for i in f.read().replace(",", " ").split()}  # puzzle_score's --ids form: comma-separated
+        ids = set(f.read().replace(",", " ").split())  # puzzle_score's --ids form: comma-separated
     rep = ps.score(manifest, ps.load_rows([os.path.join(check_dir, "results")]), "open", 1, ids=ids)
-    agg = rep["aggregate"]
-    return {"label": "%s, %d boards, one attempt each" % (rep["solver"].split("/", 1)[-1], agg["n_puzzles"]),
-            "path": check_dir, "suite": rep["suite"], "puzzles": agg["n_puzzles"], "k": agg["k"], "pilot": True,
-            "headline": agg["headline"], "pass@1": {k: agg["pass@1"][k] for k in ("value", "ci95", "floors")},
-            "attempts": rep["integrity"]["attempts"]}
+    return run_entry(rep, "%s, %d boards, one attempt each" % (rep["solver"].split("/", 1)[-1], rep["aggregate"]["n_puzzles"]),
+                     check_dir, suite=rep["suite"], pilot=True)
 
 
 def panel_plan(panel):
@@ -93,7 +94,10 @@ def panel_plan(panel):
 
 
 def report(acceptance_dir=None, hard_dir=None):
-    hard = puz_check(hard_dir)
+    try:
+        hard = puz_check(hard_dir)
+    except Exception as e:  # a wrong check dir costs the pilot row, never the whole page
+        hard = {"error": "%s: %s" % (hard_dir, e)}
     return {
         "acceptance": acceptance(acceptance_dir) if acceptance_dir else None,
         "headlines": [

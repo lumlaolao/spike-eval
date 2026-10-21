@@ -341,6 +341,7 @@ def run(a):
         env.pop("OPENROUTER_ALLOW_EGRESS", None)
         env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
         model = "openrouter:fake/demo-model"
+    running = []  # --parallel: both arms play at once (watched live with demo_server --live), each its own JVM
     try:
         for name, (repo, _) in arms.items():
             if a.arm not in ("both", name):
@@ -357,15 +358,25 @@ def run(a):
                 run_env, log = env, None
             print("[%s]" % name, " ".join(cmd), flush=True)
             if not a.dry_run:
-                if log:
-                    with open(log, "w") as f:
-                        subprocess.run(cmd, env=run_env, cwd=repo, check=False, stdout=f, stderr=subprocess.STDOUT)
-                else:
-                    subprocess.run(cmd, env=run_env, cwd=repo, check=False)
+                f = open(log, "w") if log else None
+                p = subprocess.Popen(cmd, env=run_env, cwd=repo, stdout=f, stderr=subprocess.STDOUT if f else None)
+                running.append((p, f))
+                if not a.parallel:
+                    p.wait()
+        for p, f in running:
+            p.wait()
+            if f:
+                f.close()
     finally:
+        for p, _ in running:
+            if p.poll() is None:
+                p.terminate()
         if fake:
             fake.terminate()
     print("replay: python3 eval/demo_server.py --game %s --game %s" % (os.path.join(out, "now"), os.path.join(out, "then")))
+    if a.parallel:
+        print("live (start it before the run): python3 eval/demo_server.py --live %s --live %s"
+              % (os.path.join(out, "now"), os.path.join(out, "then")))
     return 0
 
 
@@ -385,6 +396,8 @@ def main(argv=None):
     r.add_argument("--out", required=True)
     r.add_argument("--fake", action="store_true", help="both arms on the loopback fake model (free)")
     r.add_argument("--dry-run", action="store_true", help="print the commands only")
+    r.add_argument("--parallel", action="store_true",
+                   help="play both arms at once, to watch them live side by side (demo_server --live OUT/now --live OUT/then)")
     r.add_argument("--arm", choices=("both", "now", "then"), default="both",
                    help="play one arm only (its budget is then the whole --budget-usd), e.g. to redo a failed arm")
     for p in (b, n, r):

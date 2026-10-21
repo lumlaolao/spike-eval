@@ -31,6 +31,7 @@
     <label class="chk"><input id="lockstep" type="checkbox" checked> lockstep by turn</label>
     <button id="diverge" class="diverge-btn" hidden></button>
     <button id="logonly" title="hide the board: put this beside Forge's own match window">log only</button>
+    <button id="watch" title="two games: one board per game with its decision log; off: every detail" hidden>full detail</button>
   </nav>
 </header>
 <main id="panes"></main>
@@ -46,6 +47,7 @@
         <div class="plan"></div>
       </div>
       <div class="trace-col">
+        <div class="w-log"></div>
         <div class="filters"></div>
         <ol class="timeline"></ol>
         <div class="detail"></div>

@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 import urllib.error
 import urllib.request
 
@@ -158,6 +159,21 @@ class PuzzleTest(unittest.TestCase):
             self.assertTrue(live.reader.path.endswith("game-2-1792546299999.jsonl"))
             self.assertFalse(live.done)
             self.assertIsNone(live.summary()["puzzle"])
+        finally:
+            shutil.rmtree(d)
+
+
+class NotAPuzzleTest(unittest.TestCase):
+    def test_a_replayed_game_with_no_puzzle_results_is_never_looked_up(self):
+        def boom(*a):
+            raise AssertionError("looked up a puzzle for an ordinary game")
+        d = tempfile.mkdtemp()
+        try:
+            shutil.copy(os.path.join(FIX, "g33-game.jsonl"), os.path.join(d, "game-4133-1.jsonl"))
+            with mock.patch.object(srv.demo_puzzle, "info", boom):
+                pane = srv.Pane(d)
+                self.assertIsNone(pane.puzzle())
+                self.assertIsNone(pane.puzzle())
         finally:
             shutil.rmtree(d)
 
