@@ -223,6 +223,18 @@ class LoneGameTest(unittest.TestCase):
         finally:
             shutil.rmtree(d)
 
+    def test_a_file_named_like_a_game_after_a_prefix_takes_no_row(self):
+        d = tempfile.mkdtemp()
+        try:  # the server and result_row agree: only a name that starts game-<seed>- has a seed
+            game = os.path.join(FIX, "puzzle", "game-1-1792546270115.jsonl")
+            copy = os.path.join(d, "copy-game-1-1792546299999.jsonl")
+            shutil.copy(game, d)
+            shutil.copy(game, copy)
+            shutil.copy(os.path.join(FIX, "puzzle", "puzzle-results.jsonl"), d)
+            self.assertIsNone(srv.Pane(copy).summary()["puzzle"])
+        finally:
+            shutil.rmtree(d)
+
     def test_a_game_file_without_a_seed_in_its_name_takes_no_row(self):
         d = tempfile.mkdtemp()
         try:

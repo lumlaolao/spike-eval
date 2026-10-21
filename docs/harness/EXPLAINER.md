@@ -142,7 +142,7 @@ step of the reference solution too.
 | recorded single games have cost from $0.01 to $0.32 (g26, 28 turns); the walkthrough game g33 (a win on turn 14) cost $0.13 | `docs/harness/GAME-LOOP-LOG.md` |
 | the paid side by side cost $0.32 + $0.14; the games part at decision 6, turn 1 (Mana Crypt against Tundra); the older harness won on turn 16, the current one lost on turn 15 | the `demo-recordings` README. One pair illustrates; it measures nothing. |
 | 54% of prompt tokens read from cache on an ask's first round, 92% on later rounds | `ARCHITECTURE.md` section 9 |
-| the deciding fact came back from a tool in 26 of 30 asks (87%) with native calls, 4 of 30 (13%) with a text grammar (the tool-use suite, smart tier, on another model than the game model; 18 of 30 on the fast tier; never calling reaches 0%); the grammar refused 30 of 43 tool requests across 48 games | `docs/harness/PLAYER-HARNESS.md`, "Tool protocol"; `ARCHITECTURE.md` section 7 |
+| the deciding fact came back from a tool in 26 of 30 asks (87%) with native calls, 4 of 30 (13%) with a text grammar (the tool-use suite, smart tier, on another model than the game model; native 18 of 30 and text 7 of 30 on the fast tier; never calling reaches 0%); the grammar refused 30 of 43 tool requests across 48 games | `docs/harness/PLAYER-HARNESS.md`, "Tool protocol"; `ARCHITECTURE.md` section 7 |
 | 16 tool calls an ask, 1,000 a game; `MAX_NUDGES` is 2 | `docs/harness/MODEL-LIMITS.md`; `AnswerTool.java` |
 
 ## Questions an audience asks
