@@ -24,6 +24,18 @@ Everything here runs on both; the commands are the same. Once per machine:
 themselves should sit at paths without spaces, as acceptance's compile stage assumes. The Forge window
 (`run-llm-spike.sh`) is the desktop app: on macOS it opens like any app; on a Linux server it needs a display.
 
+## The recorded games (another machine)
+
+The demo's recordings live on the data-only branch `demo-recordings` (never merged into `main`): the paid side by
+side (`pair-4201`), the walkthrough game (`g33`), the free rehearsal pair and the card image cache, so a fresh
+machine replays everything offline. Its README lists what each one is.
+
+```bash
+git fetch origin demo-recordings:demo-recordings && git worktree add ../demo-recordings demo-recordings
+python3 eval/demo_server.py --game ../demo-recordings/pair-4201/now --game ../demo-recordings/pair-4201/then \
+    --image-cache ../demo-recordings/cards
+```
+
 ## Replay a recorded game (free, offline)
 
 ```bash
