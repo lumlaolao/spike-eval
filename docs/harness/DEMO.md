@@ -100,11 +100,12 @@ on a loopback fake model and screenshots taken while the highlight file named a 
 python3 eval/fake_model_server.py --port 0 --policy first --answer-tool    # prints LISTENING <port>
 SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
   OPENROUTER_BASE_URL=http://127.0.0.1:<port>/v1 CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=42 \
-  DECK_A=eval/decks/burn.txt DECK_B=eval/decks/burn.txt   # plus the DEMO_FEED, DEMO_HIGHLIGHT_FILE, EVAL_OUT above
+  DECK_A=eval/decks/burn.txt DECK_B=eval/decks/burn.txt \
+  DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT=runs/demo/live \
+  xvfb-run -a bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"   # the server above, with this highlight file
 ```
 
-In
-the screenshots Forge framed the named card (Goblin Guide, then Monastery Swiftspear). Forge also frames some of the
+In the screenshots Forge framed the named card (Goblin Guide, then Monastery Swiftspear). Forge also frames some of the
 model's own lands in the same purple when no card is named, so in the window that frame alone does not say "the
 model is thinking about this"; the browser's colours do.
 Forge may also ask once whether to download a card image index; Not Now is fine.
