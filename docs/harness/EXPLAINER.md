@@ -168,7 +168,8 @@ step of the reference solution too.
   (epoch 67) it solved 119 of 145 attempts with lookups off and 127 with them on, against a first-option floor of
   0.21 and Forge's AI at 0.30 (REPORT.md; the earlier 130 of 145 was helped by the puzzle's name).
 - **What does it cost?** Cents a game; the full STR-AI panel is $32 to $80. Every paid run states its cost first
-  and is capped by `--budget-usd`; small per-game costs add up (204 games in one day came to about $8).
+  and is capped by `--budget-usd`; small per-game costs add up, and
+  `python3 eval/cost_report.py <runs>` prices any run.
 - **How do you know a change did not break it?** The acceptance gate above, plus three review passes on every PR
   (`pr-review`, `simplify`, `standards`) recorded on the PR, and a merge script that refuses without them
   (`docs/STANDARDS.md` section 1). The rule earned by the canaries: before trusting a green gate, say what would

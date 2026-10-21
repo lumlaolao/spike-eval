@@ -16,7 +16,7 @@ const FILTERS = [
   ["tools", "tool calls", e => e.calls.some(c => c.tools.some(t => t.name !== "answer"))],
   ["plans", "plans", e => !!e.plan],
   ["model", "model asked", isAsked],
-  ["auto", "not asked", e => e.tier !== "smart" && e.tier !== "fast"],
+  ["auto", "not asked", e => !isAsked(e)],
   ["flags", "flags", e => !!(e.fallback || e.answer_invalid || e.first_failed_reply || isBreach(e))],
 ];
 
@@ -183,6 +183,7 @@ class Pane {
   // The result pill of watch mode: a puzzle's from its result row (it writes no game row), a game's from its winner.
   watchResult(g, d) {
     const pz = this.puzzle;
+    if (pz && !pz.solved && pz.status !== "failed") return `${pz.status}: no result for the ${pz.solver.kind}`;  // a cap
     if (pz) return `${pz.solved ? "solved" : "not solved"} by the ${pz.solver.kind}`;
     if (g.winner !== "A" && g.winner !== "B") return "no winner";
     return `${(g.winner === "A" ? g.deck_a : g.deck_b) === d.seat ? "the model" : "Forge AI"} won, T${g.turns}`;
@@ -486,7 +487,7 @@ class Pane {
       const pick = (d.chosen || []).map(i => d.options[i]).filter(Boolean).join("; ") || (d.type === "blockers" ? "no blocks" : "-");
       const why = (d.answer || {}).why, asked = isAsked(d);
       return `<li class="${n === this.cur ? "cur" : ""}${asked ? "" : " auto"}"><span class="t">T${esc(d.turn)} ${esc(phaseName(d.phase))}</span>` +
-        `<span class="k">${esc(d.type)}${asked ? "" : ` (${esc(d.auto_class === "forced" ? "forced" : d.auto_class || "not asked")})`}</span>` +
+        `<span class="k">${esc(d.type)}${asked ? "" : ` (${esc(d.auto_class || "not asked")})`}</span>` +
         `<span class="pick" title="${esc(pick)}">${esc(pick)}</span>` + (why ? `<div class="why">${esc(why)}</div>` : "") + `</li>`;
     });
     el.innerHTML = `<div class="w-loghead">the model's decisions <span>${this.decisions.length ? this.cur + 1 : 0} / ${this.decisions.length}</span></div>` +

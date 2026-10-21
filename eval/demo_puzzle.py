@@ -17,17 +17,16 @@ moved since the run (it is found by its recorded path, else by its id under eval
 import argparse
 import json
 import os
-import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import puzzle_format as pf  # noqa: E402
+from demo_events import GAME_FILE  # noqa: E402  (the viewer's own game-file pattern)
 
 REPO = os.path.dirname(HERE)
 
 
-GAME_FILE = re.compile(r"game-(-?\d+)-(\d+)\.jsonl$")
 SLACK_S = 2.0  # a game's last write may land just after its result row
 
 
@@ -37,9 +36,10 @@ def result_row(run_dir, seed=None, game=None):
 
     `game` (a game-<seed>-<ms>.jsonl path) picks that game's own row when a directory holds several games of one seed:
     puzzle_solve.py replays the same seeds into an --out and appends rows, and puzzle_baselines.py rewrites the file
-    but keeps the older game files. A row is written when its game ends, so a game written after the file has no row
-    yet (it is still playing, or was stopped), and the finished games of the seed pair with its rows from the newest
-    end. A stopped attempt older than the newest row can still shift that pairing."""
+    but keeps the older game files. A row is written when its game ends, so a game that started after the file's last
+    write, or was written after it, has no row yet (it is still playing, or was stopped). The finished games of the
+    seed pair with its rows from the newest end. A stopped attempt older than the newest row can still shift that
+    pairing."""
     path = os.path.join(run_dir, "puzzle-results.jsonl")
     try:
         with open(path) as f:
@@ -49,14 +49,17 @@ def result_row(run_dir, seed=None, game=None):
     if seed is not None:
         rows = [r for r in rows if str(r.get("seed")) == str(seed)]
     if game is not None and rows:
-        written = os.path.getmtime(path) + SLACK_S
-        if os.path.getmtime(game) > written:
+        last = os.path.getmtime(path)
+
+        def finished(n):  # started before the file's last write, and not written to after it
+            m = GAME_FILE.search(n)
+            return bool(m and m.group(1) == str(seed) and int(m.group(2)) / 1000 <= last
+                        and os.path.getmtime(os.path.join(run_dir, n)) <= last + SLACK_S)
+        done = sorted(filter(finished, os.listdir(run_dir)), key=lambda n: int(GAME_FILE.search(n).group(2)), reverse=True)
+        name = os.path.basename(game)
+        if name not in done:  # each file's times are read once: a write landing meanwhile cannot break the lookup
             return None
-        same = [os.path.join(run_dir, n) for n in os.listdir(run_dir)
-                if (GAME_FILE.search(n) or [None, None])[1] == str(seed)]
-        done = sorted((g for g in same if os.path.getmtime(g) <= written),
-                      key=lambda g: int(GAME_FILE.search(g).group(2)), reverse=True)
-        k = [os.path.basename(g) for g in done].index(os.path.basename(game))
+        k = done.index(name)
         return rows[-1 - k] if k < len(rows) else None
     return rows[-1] if rows else None
 

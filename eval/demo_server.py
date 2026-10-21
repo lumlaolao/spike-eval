@@ -83,7 +83,8 @@ class Pane:
                 self._puzzle = False
             else:
                 m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
-                self._puzzle = demo_puzzle.info(run, m.group(1), self.reader.path) if m else demo_puzzle.info(run)
+                # a game file without a seed in its name is not paired with any row: no seed's result is borrowed
+                self._puzzle = demo_puzzle.info(run, m.group(1), self.reader.path) if m else False
         return self._puzzle or None
 
     @property

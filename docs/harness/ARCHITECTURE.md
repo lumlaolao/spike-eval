@@ -475,7 +475,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     first send (pr-review of #282).
 - `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget.
 - The owner rule is a small block first, with the expected cost stated before it starts.
-- *Why:* small per-game costs add up unseen. 204 games in one day came to about $8.
+- *Why:* small per-game costs add up unseen; `eval/cost_report.py` prices any run, and `--plan N` the next N games.
 
 ## 11. Zero-model arms and canaries
 

@@ -178,17 +178,21 @@ class PuzzleTest(unittest.TestCase):
                     f.writelines(json.dumps(r) + "\n" for r in rows)
                 for path, t in ((old, t_old), (results, t_results), (new, t_new)):
                     os.utime(path, (t, t))
+            t = 1792546000  # epoch seconds near the games' start times in their names (270.115 s and 999.999 s later)
             # puzzle_solve appends: the rehearsal's row is there, the real attempt still plays (written after it)
-            write([dict(row, solved=False, status="failed")], 1000, 1100, 1200)
+            write([dict(row, solved=False, status="failed")], t + 300, t + 500, t + 1200)
             live = srv.Pane(d, live=True)
             self.assertTrue(live.reader.path.endswith("game-1-1792546999999.jsonl"))
             self.assertEqual((live.done, live.summary()["puzzle"]), (False, None))
+            # the real attempt has just started (after the row was written), its first write within the slack
+            write([dict(row, solved=False, status="failed")], t + 300, t + 999, t + 1000.5)
+            self.assertIsNone(srv.Pane(new).summary()["puzzle"])
             # it ends: two rows, each game its own
-            write([dict(row, solved=False, status="failed"), row], 1000, 1300, 1290)
+            write([dict(row, solved=False, status="failed"), row], t + 300, t + 1300, t + 1290)
             self.assertTrue(srv.Pane(new).summary()["puzzle"]["solved"])
             self.assertFalse(srv.Pane(old).summary()["puzzle"]["solved"])
             # puzzle_baselines line rewrites the file and keeps the old game: the one row is the newest game's
-            write([row], 1000, 1300, 1290)
+            write([row], t + 300, t + 1300, t + 1290)
             self.assertTrue(srv.Pane(d).done)
             self.assertTrue(srv.Pane(new).summary()["puzzle"]["solved"])
             self.assertIsNone(srv.Pane(old).summary()["puzzle"])
