@@ -586,7 +586,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   ported in) in isolation and plays both on one seed and deck pair from the fixed sets in `eval/demo/decks.json`; the
   viewer marks the first decision where the games part (`demo_events.divergence`). `--parallel` plays both arms at
   once, each in its own JVM, so they can be watched live (`demo_server.py --live OUT/now --live OUT/then`); two panes
-  open in watch mode, one play button running each game on its own recorded clock.
+  open in watch mode, one play button running each game on its own recorded clock (a puzzle pair opens in full
+  detail, where its puzzle panel is).
 - **Puzzle mode (`demo_puzzle.py`)**: a puzzle run's pane shows the brief the seat was told (the result row's
   `goal_oracle`, else the .pzl's Description), who played (the puzzle's written line, another script, or a model),
   the result row, and behind a reveal the .pzl's intended line, which the seat never sees. Solution steps are mapped

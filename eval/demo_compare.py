@@ -353,6 +353,10 @@ def run(a):
         print("live (start it now, before the games): python3 eval/demo_server.py --live %s --live %s"
               % (os.path.join(out, "now"), os.path.join(out, "then")), flush=True)
     running = []  # --parallel: both arms play at once (watched live with demo_server --live), each its own JVM
+    # The arms run in their own process groups, so a hangup or a kill of this process no longer reaches them: turn
+    # both into an exit, so the finally below stops them (a paid game would otherwise play on, and spend).
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, lambda n, _: sys.exit(128 + n))
     try:
         for name, (repo, _) in arms.items():
             if a.arm not in ("both", name):
@@ -384,7 +388,10 @@ def run(a):
     finally:
         for p, f in running:
             if p.poll() is None:
-                os.killpg(p.pid, signal.SIGTERM)
+                try:
+                    os.killpg(p.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
             if f:
                 f.close()
         if fake:

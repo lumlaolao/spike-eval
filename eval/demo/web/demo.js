@@ -125,7 +125,7 @@ class Pane {
     if (gen !== this.gen || (s.gen != null && s.gen !== this.gen)) return;  // a summary of another game
     this.info.summary = s;
     // A live pane learns it is a puzzle only now: leave watch mode for full detail, as fromHash would have.
-    if (s.puzzle && app.watchAuto) { app.watchAuto = false; document.body.classList.remove("watch"); app.renderWatchButton(); app.renderAll(); }
+    if (s.puzzle && app.watchAuto) { app.watchAuto = false; app.panes.forEach(p => p.play(false)); document.body.classList.remove("watch"); app.renderWatchButton(); app.renderAll(); }
     this.renderSummary(); this.renderHead(); this.renderPuzzle(); this.renderStatus();
   }
 
@@ -179,13 +179,20 @@ class Pane {
     return d ? `${nice(d[0])} vs ${nice(d[1])}` : null;
   }
 
+  // The result pill of watch mode: a puzzle's from its result row (it writes no game row), a game's from its winner.
+  watchResult(g, d) {
+    const pz = this.puzzle;
+    if (pz) return `${pz.solved ? "solved" : "not solved"} by the ${pz.solver.kind}`;
+    if (g.winner !== "A" && g.winner !== "B") return "no winner";
+    return `${(g.winner === "A" ? g.deck_a : g.deck_b) === d.seat ? "the model" : "Forge AI"} won, T${g.turns}`;
+  }
   renderHead() {
     if (document.body.classList.contains("watch")) {
       const d = this.decision, g = this.game || {}, over = this.done && d && this.cur >= this.decisions.length - 1;
       $(".pane-head", this.el).innerHTML =
         `<span class="title" title="${esc(this.matchup || "")}">${esc(this.label)}</span>` + (this.matchup ? `<span class="cond">${esc(this.matchup)}</span>` : "") +
         (d ? `<span class="w-turn">T${esc(d.turn)} · ${esc(phaseName(d.phase))}</span>` : "") +
-        (over ? `<span class="pill done">${(g.winner === "A" ? g.deck_a : g.deck_b) === d.seat ? "the model" : "Forge AI"} won, T${esc(g.turns)}</span>` : "");
+        (over ? `<span class="pill done">${esc(this.watchResult(g, d))}</span>` : "");
       return;
     }
     const pz = this.puzzle;

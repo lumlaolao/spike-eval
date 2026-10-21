@@ -57,20 +57,19 @@ function gate(acc) {
 
 fetch("api/eval").then(r => r.json()).then(r => {
   $("#heads").innerHTML = r.headlines.map(headCard).join("");
-  const p = r.headlines.find(h => h.key === "PUZ");
-  if (p && p.result.runs.length) {
-    const pr = p.result;
+  const p = r.headlines.find(h => h.key === "PUZ"), pr = p && p.result;
+  if (pr && pr.runs.length) {
     $("#puz-title").hidden = false;
     $("#puz").innerHTML = forest(pr, `Luna, ${esc(pr.runs[0].puzzles)} frozen rules puzzles (${esc(pr.suite)}), 5 attempts each. ` +
       `The headline subtracts each puzzle's random solve rate, so random play scores 0. Source: ${esc(pr.report)}.`);
-    if (pr.hard && !pr.hard.error) {
-      $("#hard-title").hidden = false;
-      $("#hard").innerHTML = forest({runs: [pr.hard]}, `A pilot, not a PUZ score: one attempt each on ${esc(pr.hard.puzzles)} open ` +
+  }
+  // The hard pilot stands apart from the recorded PUZ runs, so it shows without them; one that could not be scored
+  // says so rather than leaving the row out.
+  if (pr && pr.hard) {
+    $("#hard-title").hidden = false;
+    $("#hard").innerHTML = pr.hard.error ? `<p class="lede">The hard-suite pilot could not be read: ${esc(pr.hard.error)}</p>` :
+      forest({runs: [pr.hard]}, `A pilot, not a PUZ score: one attempt each on ${esc(pr.hard.puzzles)} open ` +
         `boards of the generated hard suite (${esc(pr.hard.suite)}); floors: ${Object.entries(pr.hard.headline.floors).map(([n, v]) => `${esc(n)} ${f3(v)}`).join(" · ")}. Source: ${esc(pr.hard.path)}.`);
-    } else if (pr.hard) {  // a --hard-results that could not be scored says so, rather than leaving the row out
-      $("#hard-title").hidden = false;
-      $("#hard").innerHTML = `<p class="lede">The hard-suite pilot could not be read: ${esc(pr.hard.error)}</p>`;
-    }
   }
   const a = r.acceptance;
   const notPassed = a ? a.stages.filter(s => s.status !== "PASS").map(s => `${s.stage} ${s.status}`) : [];

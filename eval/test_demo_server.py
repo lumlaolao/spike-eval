@@ -163,6 +163,20 @@ class PuzzleTest(unittest.TestCase):
             shutil.rmtree(d)
 
 
+class ArmTest(unittest.TestCase):
+    def test_the_summary_names_the_arm_demo_compare_recorded(self):
+        d = tempfile.mkdtemp()
+        try:
+            shutil.copy(os.path.join(FIX, "g33-game.jsonl"), os.path.join(d, "game-4133-1.jsonl"))
+            self.assertIsNone(srv.Pane(d).summary()["arm"])  # no arm.json: the viewer falls back to the directory name
+            arm = {"arm": "then", "commit": "e1324cfdf5b5e830a9a9684cee6c9fd09a616f33", "date": "2026-10-14"}
+            with open(os.path.join(d, "arm.json"), "w") as f:  # what demo_compare.arm_record writes
+                json.dump(arm, f)
+            self.assertEqual(srv.Pane(d).summary()["arm"], arm)
+        finally:
+            shutil.rmtree(d)
+
+
 class NotAPuzzleTest(unittest.TestCase):
     def test_a_replayed_game_with_no_puzzle_results_is_never_looked_up(self):
         def boom(*a):
