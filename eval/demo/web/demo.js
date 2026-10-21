@@ -6,7 +6,8 @@
 const $ = (sel, el) => (el || document).querySelector(sel);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const fmtMs = ms => ms == null ? "" : ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s";
-const phaseName = ph => String(ph || "").replace(/_/g, " ").toLowerCase();
+// Before turn 1 (the mulligan, who plays first) the engine has no phase and the row says "null": that is the pregame.
+const phaseName = ph => (!ph || ph === "null" ? "pregame" : String(ph).replace(/_/g, " ").toLowerCase());
 const isAsked = e => e.tier === "smart" || e.tier === "fast";  // the model was asked (not forced, not the harness)
 const inWatch = () => document.body.classList.contains("watch");
 // A puzzle attempt's result as puzzle_score reads it: a capped game or a deck-out solve is a miss, an unscoreable or
