@@ -65,6 +65,33 @@ class GeneratedFamiliesTest(unittest.TestCase):
         self.assertTrue(any(x and x[1] for x in line))
         self.assertEqual(steps, 13)
 
+    def test_the_splice_search_splices_two_copies_of_one_card(self):
+        # Forge offers every copy in hand: two Desperate Rituals spliced onto one Arcane spell. Picking splice
+        # cards by name found 19 here.
+        hand = ["Desperate Ritual"] * 4 + ["Glacial Ray"] * 2 + ["Lava Spike"]
+        (best, _, line), _ = pg.splice_best(hand, 3, True)
+        self.assertEqual(best, 21)
+        self.assertEqual(pg.red_search(hand, 3, True, False)[0], 21, "the red search agrees")
+        self.assertTrue(any(x and len(x[1]) > len(set(x[1])) for x in line), "one spell carries two copies")
+
+    def test_a_written_line_lets_the_ritual_resolve_before_a_splice(self):
+        # splice_2b37741c0e25 (2026-10-20 gate: solved=False unconsumed=12): the line cast the third Desperate
+        # Ritual the moment it was castable, over the second one still on the stack, so the Glacial Ray splice
+        # was unpayable, asked nothing, and every later line fell out of step. The line now passes first.
+        hand = ["Desperate Ritual"] * 3 + ["Glacial Ray", "Shock", "Shock"]
+        (dmg, _, line), _ = pg.splice_best(hand, 3, True)
+        items = ["ping" if x is None else ("cast", x[0], x[1]) for x in line]
+        lines, dealt, _ = pg.written_line(items, hand, 3, True, False, False)
+        self.assertEqual(dealt, dmg, "the line, played on the model of the stack, deals what the search says")
+        spliced = lines.index("Glacial Ray")
+        self.assertEqual(lines[spliced - 1], "cast Desperate Ritual")
+        self.assertEqual(lines[spliced - 2], "pass", "the Ritual below resolves before the splice is asked")
+
+    def test_kiln_fiend_counts_inside_the_red_search(self):
+        # A free Gitaxian Probe deals nothing but pumps Kiln Fiend by 3: the search must cast it.
+        dmg, _, line, casts, _ = pg.red_search(["Gitaxian Probe", "Lightning Bolt"], 1, False, False, kiln=True)
+        self.assertEqual((dmg, casts), (3 + 6, 2))
+
     def test_fling_after_combat_beats_both_plain_plans(self):
         # fling_7925155e0782: Swiftspear and two Mountains. Rite of Flame, Pyretic Ritual and the burn before
         # combat, a Mountain held; after combat that Mountain casts the second Rite (three mana, a prowess trigger)
@@ -108,6 +135,44 @@ class GeneratedFamiliesTest(unittest.TestCase):
 
 def stated_life(text):
     return int(re.search(r"^p1life=(\d+)$", text, re.M).group(1))
+
+
+class Splice2Test(unittest.TestCase):
+    """The super-hard splice family: 13 to 15 steps, the opponent's life the exact searched maximum, no mana left at
+    the end, and a trap: the better of two plain plans (never splice; splice every payable card onto each Arcane
+    spell) falls 1 to 3 short."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.boards = pg.generate("splice2", 6, seed=3)
+
+    def test_a_splice2_board_is_thirteen_to_fifteen_steps(self):
+        self.assertGreaterEqual(len(self.boards), 4)
+        for b in self.boards:
+            lines = solution(b["text"]("x"))
+            self.assertTrue(13 <= b["actions"] <= 15, b["actions"])
+            self.assertEqual(lines[0], "# steps: %d" % b["actions"])
+            counted = [l for l in lines[1:] if l.startswith(("cast ", "activate "))]
+            self.assertEqual(len(counted) + (1 if b["attackers"] else 0), b["actions"])
+
+    def test_a_splice2_boards_life_is_the_searched_maximum_with_nothing_left(self):
+        for b in self.boards:
+            s = b["search"]
+            dmg, _, _, _, left = pg.red_search(s["hand"], s["mountains"], s["alchemist"], s["reducer"],
+                                               kiln=s["kiln"])
+            self.assertEqual(dmg + s["attack_base"], b["life"])
+            self.assertEqual(stated_life(b["text"]("x")), b["life"])
+            self.assertEqual(left, 0, "the best line spends every mana")
+
+    def test_a_splice2_board_has_a_trap_one_to_three_short(self):
+        for b in self.boards:
+            s = b["search"]
+            never = pg.red_search(s["hand"], s["mountains"], s["alchemist"], s["reducer"], False, s["kiln"])[0]
+            greedy = pg.red_search(s["hand"], s["mountains"], s["alchemist"], s["reducer"], "max", s["kiln"])[0]
+            self.assertEqual((never + s["attack_base"], greedy + s["attack_base"]), (b["never"], b["greedy"]))
+            self.assertEqual(b["trap"], max(b["never"], b["greedy"]))
+            self.assertTrue(1 <= b["life"] - b["trap"] <= 3, (b["life"], b["trap"]))
+            self.assertIn("trap %d" % b["trap"], b["text"]("x"))
 
 
 class DrainSearchTest(unittest.TestCase):
