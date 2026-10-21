@@ -84,8 +84,18 @@ model's attention on it, start the server with `--highlight-file` and the game w
 
 ```bash
 python3 eval/demo_server.py --live runs/demo/live --highlight-file /tmp/demo-hl.json &
-DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT="$PWD/runs/demo/live" bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
+CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=4201 \
+  SMART_MODEL=openrouter:openai/gpt-6-luna FAST_MODEL=openrouter:openai/gpt-6-luna \
+  DECK_A="$PWD/eval/decks/vintage-esper-control.txt" DECK_B="$PWD/eval/decks/pioneer-red-deck-wins.txt" \
+  DECK_A_NAME="Vintage Esper Control" DECK_B_NAME="Pioneer Red Deck Wins" \
+  DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT="$PWD/runs/demo/live" \
+  bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
 ```
+
+Every variable in that game line matters: without the models and decks the launcher falls back to its own defaults
+(both seats on another model, decks from ~/Downloads, the seats named after them). It is a paid game (CLAUDE.md: about $0.02 to $0.05, 20 to 90
+minutes, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with `OPENROUTER_ALLOW_EGRESS=1` set by
+the owner in their own shell. For a free rehearsal, use the loopback fake model as in the check below.
 
 After each decision the server writes the engine ids of that decision's highlighted cards (the same ones the
 browser marks); `DemoHighlight.java` polls the file and gives those cards Forge's own highlight frame. It is display
@@ -94,15 +104,15 @@ window is the board, the browser is the agent's log, plan and highlights. The **
 log and plan get the width. On a fresh Forge home, Forge may open a
 bug-report dialog at start-up (a default gauntlet file it cannot load); click Discard once.
 
-Checked on 2026-10-21 (a screen check, not a recording): the server command above, and the game below under
-`xvfb-run` with the seat on a loopback fake model, run from the repository root, with screenshots taken while the
-highlight file named a card:
+Checked on 2026-10-21 (a screen check, not a recording): the server command above and the block below, run as
+written from the repository root (the port filled in; the game file, the feed and the highlight file all
+landed where the server reads them), with screenshots taken while the highlight file named a card:
 
 ```bash
 python3 eval/fake_model_server.py --port 0 --policy first --answer-tool &    # prints LISTENING <port>: use it below
 SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
   OPENROUTER_BASE_URL=http://127.0.0.1:<port>/v1 CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=42 \
-  DECK_A="$PWD/eval/decks/burn.txt" DECK_B="$PWD/eval/decks/burn.txt" \
+  DECK_A="$PWD/eval/decks/burn.txt" DECK_B="$PWD/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB \
   DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT="$PWD/runs/demo/live" \
   xvfb-run -a bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
 ```
