@@ -142,8 +142,9 @@ each version adds when it renders an option (`@handles`, bracketed notes); answe
 
 A puzzle run is replayed like a game. Its pane shows the brief the seat was told (the result row's `goal_oracle`, else the .pzl's Description), who played,
 how it ended (from `puzzle-results.jsonl`; `demo_puzzle.py` reads it), and behind a reveal the puzzle's intended line
-(its `Rule:` note and `[solution]` steps), which the seat never sees. When the written line played, each decision
-names the solution step that answered it and the reveal marks that step.
+(its `Rule:` note and `[solution]` steps), which the seat never sees. When the written line played cleanly (no wait,
+fallback or drift in the script, and the .pzl's hash matching the run's), each decision names the solution step that
+answered it and the reveal marks that step; otherwise the reveal shows the line without steps.
 
 ```bash
 P=eval/puzzles/hard/gen/drain_3c09484e5e54.pzl       # an open-split generated hard puzzle (Luna missed it)
@@ -161,8 +162,6 @@ Copy a recording with its file times kept (a clone, `cp -p`, `rsync -t`): where 
 seed, each is matched to its result row by the files' times (`demo_puzzle.result_row`).
 A puzzle pair opens in full detail, not watch mode, since the puzzle panel (brief, result, reveal) lives there.
 Demo puzzles come from the open split: a held-out puzzle's line is not copied into a recording (eval/PUZZLES.md).
-Per-decision steps are shown only for a clean written-line run of the file that was played (no wait, fallback or
-drift in the script, and the .pzl's hash matching the run's); otherwise the reveal shows the line without steps.
 
 Recorded already, on the `demo-recordings` branch: this puzzle's written line (`puzzles/drain-3c09-written-line`)
 and Luna's attempt that missed it, the opponent left at 2 life (`puzzles/hard-gen-luna-check/runs/hard-drain-3c09484e5e54`),

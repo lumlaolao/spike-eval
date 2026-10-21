@@ -17,6 +17,17 @@ OBS = "class SeatObservation {\n" + dc.OBS_ANCHOR + "}\n"
 GUI = "class LlmSpikeGui {\n" + dc.CTRL_ANCHOR + dc.WRITE_ANCHOR + "}\n"
 
 
+
+def pair_args(d, *extra):
+    """Two stand-in arm builds under d, and the `run` arguments that play them on one seed (the worktree's name says
+    "then", which a fake Popen reads to name the arm)."""
+    for name in ("now", "then"):
+        os.makedirs(os.path.join(d, name, "forge-home"))
+        open(os.path.join(d, name, "forge-home", "run-llm-headless.sh"), "w").close()
+    return ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd", "0.4",
+            "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build", os.path.join(d, "then"),
+            "--worktree", os.path.join(d, "harness-then")] + list(extra)
+
 class PortTest(unittest.TestCase):
     def setUp(self):
         self.tree = tempfile.mkdtemp()
@@ -279,12 +290,7 @@ class ArmTest(unittest.TestCase):
                     return 0
             d = tempfile.mkdtemp()
             try:
-                for name in ("now", "then"):
-                    os.makedirs(os.path.join(d, name, "forge-home"))
-                    open(os.path.join(d, name, "forge-home", "run-llm-headless.sh"), "w").close()
-                args = ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd",
-                        "0.4", "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build",
-                        os.path.join(d, "then"), "--worktree", os.path.join(d, "harness-then")]
+                args = pair_args(d)
                 out = io.StringIO()
                 with mock.patch.object(dc, "check_pins", lambda *a: None), \
                         mock.patch.object(dc, "arm_record", lambda repo, name: {"arm": name, "commit": "c0ffee"}), \
@@ -318,12 +324,7 @@ class ArmTest(unittest.TestCase):
                 return None
         d = tempfile.mkdtemp()
         try:
-            for name in ("now", "then"):
-                os.makedirs(os.path.join(d, name, "forge-home"))
-                open(os.path.join(d, name, "forge-home", "run-llm-headless.sh"), "w").close()
-            args = ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd", "0.4",
-                    "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build",
-                    os.path.join(d, "then"), "--worktree", os.path.join(d, "harness-then"), "--parallel"]
+            args = pair_args(d, "--parallel")
             before = signal.getsignal(signal.SIGINT)
             with mock.patch.object(dc, "check_pins", lambda *a: None), \
                     mock.patch.object(dc, "arm_record", lambda repo, name: {"arm": name}), \

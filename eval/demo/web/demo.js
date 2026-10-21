@@ -9,8 +9,11 @@ const fmtMs = ms => ms == null ? "" : ms < 1000 ? ms + " ms" : (ms / 1000).toFix
 const phaseName = ph => String(ph || "").replace(/_/g, " ").toLowerCase();
 const isAsked = e => e.tier === "smart" || e.tier === "fast";  // the model was asked (not forced, not the harness)
 const inWatch = () => document.body.classList.contains("watch");
-// A puzzle attempt's result as puzzle_score reads its status: a capped game is a miss, an unscoreable one no result.
-const puzzleVerdict = pz => ({solved: "solved", invalid: "not solved (capped)", unscoreable: "unscoreable, no result"})[pz.status] || "not solved";
+// A puzzle attempt's result as puzzle_score reads it: a capped game or a deck-out solve is a miss, an unscoreable or
+// unknown row no result.
+const puzzleWon = pz => pz.status === "solved" && !pz.tainted_by_deckout;
+const puzzleVerdict = pz => pz.status === "solved" ? (pz.tainted_by_deckout ? "not solved (a deck-out)" : "solved")
+  : pz.status === "failed" ? "not solved" : pz.status === "invalid" ? "not solved (capped)" : `no result (${pz.status || "no status"})`;
 // Playback: the next decision after its recorded latency, scaled by the speed control.
 const stepDelay = next => {
   const sp = $("#speed").value, real = Math.max(300, (next && next.latency_ms) || 1000);
@@ -168,6 +171,7 @@ class Pane {
   }
 
   get puzzle() { return (this.info.summary || {}).puzzle || null; }
+  get atEnd() { return this.cur >= this.decisions.length - 1; }
   // A clean written-line run consumes one [solution] line per asked decision, in order (demo_puzzle.steps_mappable
   // says when; script_lines is null otherwise): the step (1-based) that answered decision n, or 0.
   scriptStep(n) {
@@ -191,13 +195,13 @@ class Pane {
   // The result pill of watch mode: a puzzle's from its result row (it writes no game row), a game's from its winner.
   watchResult(g, d) {
     const pz = this.puzzle;
-    if (pz) return `${puzzleVerdict(pz)} by the ${pz.solver.kind}`;
+    if (pz) return `${pz.solver.kind}: ${puzzleVerdict(pz)}`;
     if (g.winner !== "A" && g.winner !== "B") return "no winner";
     return `${(g.winner === "A" ? g.deck_a : g.deck_b) === d.seat ? "the model" : "Forge AI"} won, T${g.turns}`;
   }
   renderHead() {
     if (inWatch()) {
-      const d = this.decision, g = this.game || {}, over = this.done && d && this.cur >= this.decisions.length - 1;
+      const d = this.decision, g = this.game || {}, over = this.done && d && this.atEnd;
       $(".pane-head", this.el).innerHTML =
         `<span class="title" title="${esc(this.matchup || "")}">${esc(this.label)}</span>` + (this.matchup ? `<span class="cond">${esc(this.matchup)}</span>` : "") +
         (d ? `<span class="w-turn">T${esc(d.turn)} · ${esc(phaseName(d.phase))}</span>` : "") +
@@ -242,9 +246,9 @@ class Pane {
         bits.push(`<span class="pill think" data-think>model thinking ${fmtMs(think)}</span>`);
       }
     }
-    if (this.done && this.cur >= this.decisions.length - 1) {
+    if (this.done && this.atEnd) {
       const pz = this.puzzle, g = this.game || {};
-      if (pz) bits.push(`<span class="pill ${pz.status === "solved" ? "done" : "think"}">puzzle ${esc(puzzleVerdict(pz))} by the ${esc(pz.solver.kind)}` +
+      if (pz) bits.push(`<span class="pill ${puzzleWon(pz) ? "done" : "think"}">puzzle, ${esc(pz.solver.kind)}: ${esc(puzzleVerdict(pz))}` +
         ` (${esc(pz.solver_actions)} actions)</span>`);
       else bits.push(`<span class="pill done">game over: ${esc(g.winner === "A" ? g.deck_a : g.winner === "B" ? g.deck_b : g.winner)} won, T${esc(g.turns)} (${esc(g.win_condition)})</span>`);
     }
@@ -255,9 +259,9 @@ class Pane {
     const d = this.decision, st = this.stateOf(d), hl = this.hl(d);
     const el = $(".board", this.el);
     if (!st) { el.innerHTML = `<p class="engine-note">${this.waitingForFile ? "No game file yet." : "No board yet (no prompt recorded before this decision)."}</p>`; return; }
+    if (inWatch()) { el.innerHTML = this.watchHtml(d, st, hl); this.fitWatch(el); return; }  // its own player split
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
     const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
-    if (inWatch()) { el.innerHTML = this.watchHtml(d, st, hl); this.fitWatch(el); return; }
     if (d.feed) {
       const fps = feedPlayers(d, st);
       el.innerHTML = `<p class="engine-note">board: engine truth from the audience feed; the seat's own view is its prompt (below the trace)</p>` +
@@ -407,7 +411,7 @@ class Pane {
   play(on) {
     if (!on || this.timer) { clearTimeout(this.timer); this.timer = null; if (!on) { app.syncPlay(); return; } }
     const tick = () => {
-      if (this.cur >= this.decisions.length - 1) { this.timer = null; app.syncPlay(); return; }
+      if (this.atEnd) { this.timer = null; app.syncPlay(); return; }
       this.cur += 1; this.render(); app.toHash();
       this.timer = setTimeout(tick, stepDelay(this.decisions[this.cur + 1]));
     };
@@ -652,7 +656,7 @@ const app = {
   toggle() {
     if (this.watching) {  // both games, each on its own clock
       const on = !this.panes.some(p => p.timer);
-      if (on && this.panes.every(p => p.cur >= p.decisions.length - 1))  // both ended: play both again from the start
+      if (on && this.panes.every(p => p.atEnd))  // both ended: play both again from the start
         this.panes.forEach(p => { p.cur = 0; p.render(); });
       this.panes.forEach(p => p.play(on));
       return;
@@ -661,7 +665,7 @@ const app = {
     $("#play").innerHTML = "&#x23F8;";
     const tick = () => {
       const p = this.panes[0];
-      if (p.cur >= p.decisions.length - 1) { this.toggle(); return; }
+      if (p.atEnd) { this.toggle(); return; }
       this.step(1);
       this.timer = setTimeout(tick, stepDelay(p.decisions[p.cur + 1]));
     };
