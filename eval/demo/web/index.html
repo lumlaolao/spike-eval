@@ -11,6 +11,7 @@
   <div class="brand">
     <strong>Forge LLM seat</strong>
     <span class="sub">a model plays Magic inside the Forge rules engine; every decision is the model's, every move is the engine's</span>
+    <a class="navlink" href="eval.html">benchmark and gate &rarr;</a>
   </div>
   <nav class="transport" aria-label="transport">
     <button id="first" title="first decision (Home)">&#x23EE;</button>
@@ -28,6 +29,8 @@
     </label>
     <label>turn <input id="turn" type="number" min="0" step="1" size="3"></label>
     <label class="chk"><input id="lockstep" type="checkbox" checked> lockstep by turn</label>
+    <button id="diverge" class="diverge-btn" hidden></button>
+    <button id="logonly" title="hide the board: put this beside Forge's own match window">log only</button>
   </nav>
 </header>
 <main id="panes"></main>

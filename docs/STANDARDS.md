@@ -158,9 +158,8 @@ most log questions).
   block will cost before starting it (`cost_report.py --plan N`). Prefer the measurement that costs
   nothing (a loopback game, the unit tests) or cents (the tool-use suite) when it answers the
   question. A model with no entry in `eval/pricing/prices.json` is not run.
-- Real paid runs use only a model the owner has authorised (currently
-  `openrouter:deepseek/deepseek-v4.1-flash`), always with `EVAL_OUT` set. Never set
-  `OPENROUTER_ALLOW_EGRESS` on the owner's behalf.
+- Real paid runs use only the model the owner has authorised, named once in `CLAUDE.md` ("Owner
+  rules"), always with `EVAL_OUT` set. Never set `OPENROUTER_ALLOW_EGRESS` on the owner's behalf.
 - A finding is a harness defect unless the prompt shows the model had what it needed
   (`.claude/skills/harness-audit/`).
 - Reserved seed blocks (501-525, 20000-29999, 30000-30099) are never training-data sources;
@@ -206,6 +205,6 @@ strategic choice, the engine owns every mechanism. Each rule has its check.
 | **A seat that never answers scores no better than one that passes.** With no answer the harness takes the do-nothing option where one exists (pass, no attack, decline) and the first legal option only where a choice is mandatory; never a land drop, an attack or Forge's AI. | acceptance `gaming` (empty-reply and garbage-reply seats vs the floor seat); `aSeatThatNeverAnswersNeitherPlaysALandNorAttacks` |
 | **The harness decides at most 2% of the choices the model could make.** match_review's TAKEN and LOST plus any Forge-AI row, forced picks excluded, over the llm identities' decisions. | `aggregate.py` harness-decided gate (exit 4); `test_harness_decided_gate` |
 | **The harness does not limit the model.** Nothing the seat reads is cut, and what it may look up, preview, write or think is capped only by a loop guard far above any recorded game, a condition that defines an arm, or a transport retry; each kept limit is listed with its reason in `docs/harness/MODEL-LIMITS.md`. Cost is not a reason for a cap. | `SeatObservationTest.nothingTheObservationShowsIsCut`, `ContextProfileTest.theFaithfulHistoryIsWhole`, `ContextMemoryTest.theToolBudgetsAreLoopGuardsNotDecisionLimits`, `ContextProfileTest.theCallBudgetsAndTheTurnCapAreLoopGuards` |
-| **The interface has one version.** `HARNESS_EPOCH` moves with any change to what the seat is asked, when, or what its answer does, beside the per-layer versions; games across an epoch are not compared. | game line `harness_epoch`, asserted in acceptance `faithful`; `aggregate.py` experiment key |
+| **The interface has one version.** `HARNESS_EPOCH` moves with any change to what the seat is asked, when, or what its answer does, beside the per-layer versions; games across an epoch are never pooled or compared in a count or rate (a labelled illustration that computes none, `demo_compare.py`, is allowed). | game line `harness_epoch`, asserted in acceptance `faithful`; `aggregate.py` experiment key |
 
 A game read by `game-loop` that finds a defect outside these checks adds the check here with its fix.

@@ -65,13 +65,15 @@ class Builder:
         self.pending = {}       # seat -> list of calls (each with its tools) since that seat's last decision
         self.last_state = {}    # seat -> index of the last decision event with a parsed state
         self.plans = {}         # seat -> its latest set_plan arguments
+        self.feed_at = None     # offset -> the audience feed's snapshot written before it (Reader sets it)
+        self.handles_at = None  # (offset, seat) -> {@handle: engine id}, from the feed (Reader sets it)
         self.game = None
         self.decisions = 0
 
     def _calls(self, seat):
         return self.pending.setdefault(seat, [])
 
-    def add(self, row):
+    def add(self, row, start=None):
         t = row.get("t")
         seat = row.get("seat")
         if t == "context_call":
@@ -92,7 +94,7 @@ class Builder:
             target["tools"].append({"name": name, "args": args, "result": row.get("result") or "",
                                     "request": row.get("request") or ""})
         elif t == "decision":
-            self._decision(row)
+            self._decision(row, start)
         elif t == "window":
             # One event per row, never changed after it is sent: a live client fetches only new events, so a merged
             # marker would keep its first count. The viewer collapses runs of them for display.
@@ -102,7 +104,7 @@ class Builder:
             self.game = summarize_game(row)
             self.events.append(dict(self.game, kind="game", i=len(self.events)))
 
-    def _decision(self, row):
+    def _decision(self, row, start=None):
         seat = row.get("seat")
         calls = self.pending.pop(seat, [])
         tools = [tool for c in calls for tool in c["tools"]]
@@ -128,6 +130,11 @@ class Builder:
             "prompt": prompt, "state": state,
             "state_from": len(self.events) if state else self.last_state.get(seat),
         }
+        # The engine-truth snapshot (DemoFeed) written before this row: what was really in both hands when the seat
+        # was asked. Audience only: nothing of it reaches the seat or the highlights.
+        ev["feed"] = self.feed_at(start) if self.feed_at and start is not None else None
+        # this seat's @handle -> engine id at that moment, so the seat's highlights land on the true cards.
+        ev["feed_handles"] = self.handles_at(start, seat) if self.handles_at and start is not None else None
         if state:
             self.last_state[seat] = len(self.events)
         if ev["plan"]:
@@ -158,25 +165,49 @@ class Reader:
         self.offset = 0
         self.builder = Builder()
         self.bad_lines = 0
+        # DemoFeed writes feed-<seed>-<ms>.jsonl beside game-<seed>-<ms>.jsonl when DEMO_FEED=1.
+        d, name = os.path.split(path)
+        self.feed = Lines(os.path.join(d, "feed-" + name[len("game-"):])) if name.startswith("game-") else None
+        self.builder.feed_at = self.feed_at
+        self.builder.handles_at = self.handles_at
+
+    def _index_at(self, offset):
+        rows = self.feed.rows if self.feed else []
+        lo, hi = 0, len(rows)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if (rows[mid].get("jsonl_offset") or 0) <= offset:
+                lo = mid + 1
+            else:
+                hi = mid
+        return lo - 1
+
+    def feed_at(self, offset):
+        """The last feed snapshot written while the game JSONL was at most `offset` bytes long."""
+        for i in range(self._index_at(offset), -1, -1):
+            if "players" in self.feed.rows[i]:  # a handles-only row carries no board
+                return self.feed.rows[i]
+        return None
+
+    def handles_at(self, offset, seat):
+        """@handle -> engine id for `seat` as of that snapshot, as the feed wrote it (one card can hold two handles: a
+        new timestamp gives it a new one). The feed writes a seat's map only when it grows."""
+        for i in range(self._index_at(offset), -1, -1):
+            m = (self.feed.rows[i].get("handles") or {}).get(seat)
+            if m is not None:
+                return {str(h): int(eid) for h, eid in m.items()}
+        return None
 
     def poll(self):
-        """Parse every complete line appended since the last poll; return the number of new events."""
+        """Parse every complete line appended since the last poll; return the number of new events. The game file is
+        read before the feed: every feed row a game row follows was written before it, so it is already on disk."""
+        lines = list(read_lines(self.path, self))
+        if self.feed:
+            self.feed.poll()
         before = len(self.builder.events)
-        try:
-            with open(self.path, "rb") as f:
-                f.seek(self.offset)
-                data = f.read()
-        except OSError:
-            return 0
-        end = data.rfind(b"\n")
-        if end < 0:
-            return 0
-        self.offset += end + 1
-        for line in data[:end].split(b"\n"):
-            if not line.strip():
-                continue
+        for line, at in lines:
             try:
-                self.builder.add(json.loads(line.decode("utf-8")))
+                self.builder.add(json.loads(line.decode("utf-8")), at)
             except ValueError:
                 self.bad_lines += 1
         return len(self.builder.events) - before
@@ -184,6 +215,43 @@ class Reader:
     @property
     def events(self):
         return self.builder.events
+
+
+def read_lines(path, cursor):
+    """Complete lines appended to `path` since `cursor.offset`, each with its start offset; advances the cursor. A
+    half-written last line waits for its newline."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(cursor.offset)
+            data = f.read()
+    except OSError:
+        return []
+    end = data.rfind(b"\n")
+    if end < 0:
+        return []
+    out, at = [], cursor.offset
+    for line in data[:end + 1].split(b"\n")[:-1]:
+        if line.strip():
+            out.append((line, at))
+        at += len(line) + 1
+    cursor.offset += end + 1
+    return out
+
+
+class Lines:
+    """A JSONL of plain rows read incrementally (the audience feed)."""
+
+    def __init__(self, path):
+        self.path = path
+        self.offset = 0
+        self.rows = []
+
+    def poll(self):
+        for line, _ in read_lines(self.path, self):
+            try:
+                self.rows.append(json.loads(line.decode("utf-8")))
+            except ValueError:
+                pass
 
 
 def load(path):
@@ -214,8 +282,66 @@ def _last_row(path):
             f.seek(max(0, f.tell() - 65536))
             lines = [x for x in f.read().split(b"\n") if x.strip()]
         return json.loads(lines[-1].decode("utf-8")) if lines else None
-    except (OSError, ValueError, IndexError):
+    except (OSError, ValueError):
         return None
+
+
+HANDLE = re.compile(r"\s*@\d+")
+NOTE = re.compile(r"\s*\[[^\]]*\]")
+
+
+def _norm(option):
+    """An option as the engine offered it, without what each harness version adds when it renders one: viewer-local
+    @handles (numbered differently) and bracketed notes (zone, owner, rules text: worded differently)."""
+    return " ".join(NOTE.sub("", HANDLE.sub("", str(option))).split())
+
+
+def divergence(a, b):
+    """Where two games of the same seed and decks part: the first decision, in order, that the two harnesses answer
+    differently (equal menus compared by index), or reach at different spots. {"a": i, "b": i, "reason": ...}
+    (decision indexes into each game's decisions), plus "menus_differ_from": j where the menus first differed with the
+    same answer; that menus-only result when every answer matched; None when the decisions matched too."""
+    ga = next((e for e in a if e.get("kind") == "game"), None)
+    gb = next((e for e in b if e.get("kind") == "game"), None)
+    cond = lambda g: tuple(g.get(k) for k in ("seed", "deck_a", "deck_b"))
+    if ga and gb and cond(ga) != cond(gb):
+        return {"a": 0, "b": 0, "reason": "not a side by side: the seeds or decks differ", "unpaired": True}
+    da = [e for e in a if e.get("kind") == "decision"]
+    db = [e for e in b if e.get("kind") == "decision"]
+    spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
+    menu = lambda d: [_norm(o) for o in d.get("options") or []]
+    bare = lambda o: " ".join(HANDLE.sub("", str(o)).split())  # handles stripped, notes kept
+    chosen = lambda d: [o for c, o in enumerate(d.get("options") or []) if c in (d.get("chosen") or [])]
+    picked = lambda d: sorted(_norm(o) for o in chosen(d))
+    # A pick whose text, notes stripped, names options its notes tell apart (two abilities of one card, your Bears and
+    # theirs) cannot be matched that way across different menus: it must match with its notes, word for word, so an
+    # older version's rewording of them reads as a divergence. Interchangeable copies (two Mountains) can.
+    ambiguous = lambda d: any(len({bare(o) for o in d.get("options") or [] if _norm(o) == p}) > 1 for p in picked(d))
+    menus_from = None
+    for n, (x, y) in enumerate(zip(da, db)):
+        if spot(x) != spot(y):
+            reason = "different spots: the games had already parted"
+        elif menu(x) == menu(y):
+            if sorted(x.get("chosen") or []) == sorted(y.get("chosen") or []):  # by index: notes may be all that differ
+                continue
+            reason = "same question, different answer"
+        elif (sorted(map(bare, chosen(x))) == sorted(map(bare, chosen(y)))
+              or (picked(x) == picked(y) and not ambiguous(x) and not ambiguous(y))):
+            # The harnesses list different options here (one offers mana abilities, say) but both took the same one:
+            # noted, and the scan goes on to the first different answer.
+            if menus_from is None:
+                menus_from = n
+            continue
+        else:
+            reason = "same spot, different menus, different answer"
+        out = {"a": n, "b": n, "reason": reason}
+        if menus_from is not None:
+            out["menus_differ_from"] = menus_from
+        return out
+    if menus_from is not None:
+        return {"a": menus_from, "b": menus_from, "menus_differ_from": menus_from,
+                "reason": "same answers throughout; the harnesses list different options from here"}
+    return None
 
 
 GAME_FILE = re.compile(r"game-(-?\d+)-(\d+)\.jsonl$")

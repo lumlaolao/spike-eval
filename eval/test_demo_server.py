@@ -100,16 +100,62 @@ class ReplayTest(unittest.TestCase):
                 self.assertEqual(cm.exception.code, 404)
             self.assertEqual(asked, ["Fire // Ice", "Construct Token"])  # a miss is asked for once
             self.assertEqual(cm.exception.headers["Cache-Control"], "max-age=86400")  # a miss never changes
+            self.assertEqual(cm.exception.headers["X-Image-Miss"], "1")  # and says so: the page stops asking
             offline = srv.demo_cards.Cache(cache_dir, fetch=fake, offline=True)
             server2, url2 = serve([srv.Pane(self.dir)], cards=offline)
             with self.assertRaises(urllib.error.HTTPError) as cm:
                 get(url2 + "/card/Time%20Walk")  # not cached and not fetched: it may have an image later
             self.assertEqual(cm.exception.headers["Cache-Control"], "no-store")
+            self.assertIsNone(cm.exception.headers["X-Image-Miss"])
         finally:
             for s in [x for x in (locals().get("server"), locals().get("server2")) if x]:
                 s.shutdown()
                 s.server_close()
             shutil.rmtree(cache_dir)
+
+
+class DivergenceEndpointTest(unittest.TestCase):
+    def test_two_panes_get_their_divergence_and_one_pane_gets_none(self):
+        d = tempfile.mkdtemp()
+        try:
+            for sub, chosen in (("now", 0), ("then", 1)):
+                os.makedirs(os.path.join(d, sub))
+                with open(os.path.join(d, sub, "game-7-1.jsonl"), "w") as f:
+                    f.write(json.dumps({"t": "decision", "seat": "Seat", "turn": 1, "phase": "MAIN1",
+                                        "type": "play", "options": ["PLAY Tundra @7", "PASS"],
+                                        "choice": chosen, "tier": "smart"}) + "\n")
+            server, url = serve([srv.Pane(os.path.join(d, "now")), srv.Pane(os.path.join(d, "then"))])
+            try:
+                self.assertEqual(get(url + "/api/divergence")[1]["reason"], "same question, different answer")
+            finally:
+                server.shutdown()
+                server.server_close()
+            server, url = serve([srv.Pane(os.path.join(d, "now"))])
+            try:
+                self.assertIsNone(get(url + "/api/divergence")[1])
+            finally:
+                server.shutdown()
+                server.server_close()
+        finally:
+            shutil.rmtree(d)
+
+
+class HighlightFileTest(unittest.TestCase):
+    def test_the_forge_window_gets_the_latest_decisions_highlighted_engine_ids(self):
+        ev = {"kind": "decision", "n": 3, "seat": "A", "turn": 2, "feed_handles": {"17": 101, "20": 102, "25": 103, "4": 101},
+              "highlights": {"4": {"kind": "planned"}, "20": {"kind": "chosen"}, "25": {"kind": "engine"},
+                             "99": {"kind": "planned"}}}
+        # @4 is card 101's older handle (a new timestamp gave it @17): still framed. Not the engine frame; a handle
+        # with no card is skipped.
+        self.assertEqual(srv.highlight_ids(ev), [101, 102])
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, "hl.json")
+            srv.write_highlights(path, [dict(ev, n=2, feed_handles={}), ev, {"kind": "window"}])
+            with open(path) as f:
+                self.assertEqual(json.load(f), {"decision": 3, "seat": "A", "turn": 2, "ids": [101, 102]})
+        finally:
+            shutil.rmtree(d)
 
 
 class SummaryTest(unittest.TestCase):

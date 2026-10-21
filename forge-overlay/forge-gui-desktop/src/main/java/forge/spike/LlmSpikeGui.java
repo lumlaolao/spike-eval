@@ -365,7 +365,11 @@ public final class LlmSpikeGui {
                 System.out.println("[EVAL] jsonl " + file.getName());
             } catch (Exception e) { System.out.println("[EVAL] log init failed: " + e); }
         }
-        static synchronized void write(String json) { if (out != null) out.println(json); }
+        static synchronized void write(String json) {
+            if (out == null) return;
+            if (json.startsWith("{\"t\":\"decision\"")) DemoFeed.beforeDecisionRow();  // display only (DEMO_FEED)
+            out.println(json);
+        }
         static boolean on() { return out != null; }
         /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
          *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */
@@ -1268,6 +1272,8 @@ public final class LlmSpikeGui {
             // their game behaviour and prompt bytes are untouched.
             this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
             if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
+            // Display-only: an audience feed for the demo viewer when DEMO_FEED=1 (DemoFeed); off, nothing happens.
+            DemoFeed.attach(game, seat, observer);
             contextMemory.setReporter(problem -> p("[REPORT] " + seat + " T" + safeTurn() + ": " + problem));
             contextMemory.offerPreviews(lookaheadEnabled());
             if (rulesToolWired(MEMORY_TOOLS, RULES_TOOL)) {
@@ -11338,7 +11344,8 @@ public final class LlmSpikeGui {
         // exit — where the surrounding catch(Exception) cannot catch an ExceptionInInitializerError
         // and an automated driver waiting on the exit line would hang instead of seeing the error.
         ContextProfile.fromEnv();
-        GuiBase.setInterface(new GuiDesktop());
+        // DEMO_HIGHLIGHT_FILE (display only): remember the spectator window so DemoHighlight can frame cards on it.
+        GuiBase.setInterface(DemoHighlight.file() != null ? DemoHighlight.capturingGui() : new GuiDesktop());
         Singletons.initializeOnce(true);
         Singletons.getControl().initialize();
         new Thread(() -> {
@@ -11373,6 +11380,7 @@ public final class LlmSpikeGui {
         final HostedMatch hosted = GuiBase.getInterface().hostMatch();
         hosted.startMatch(rules, EnumSet.of(GameType.Constructed), players, (RegisteredPlayer) null, null);
         System.out.println("[LLM-SEAM] match started (games-per-match=" + gpm + "). Watch the Forge window.");
+        if (DemoHighlight.file() != null) DemoHighlight.watch(hosted, DemoHighlight.file());
 
         // Tournament / automation: with AUTO_EXIT=1, watch the match and when it ends emit the identity-keyed
         // game-summary line (same one headless writes), give the recorder a beat to capture the final board,
