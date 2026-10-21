@@ -87,10 +87,11 @@ Heritage Druid taps the Sentinels before each green spell (which untaps them) an
 boards whose best line casts everything and attacks with everything are dropped. The line resolves each object of
 its own on the stack with `pass` only in the windows the seat is asked (one where only a Swamp's or Forest's mana is
 playable is skipped by the seat). Gate (`scripts/puzzle-gate/gen_gate.py -j 1`): 6 drain + 6 elf (seed 11) kept 12
-of 12, then 40 drain (seed 2) kept 40 of 40; every floor at 0. Not done: the 40 elf boards of seed 2
-(`/tmp/puzzle-scratch/gen-engines/g2/elf`) were generated but not gated (stopped for time, about 2.5 hours at -j 1).
-Next: gate them; the drain boards are all kept, so the drain family can take a harder bar (minimality, a trap line
-at 1 to 3 life, unused mana); neither family yet meets "no mana floats unused at the end".
+of 12, then 40 drain (seed 2) kept 40 of 40; every floor at 0. They are in the generated hard suite
+(`eval/PUZZLES.md`, "The generated hard suite"; status and the paid model check:
+`docs/harness/history/2026-10-20-generated-hard-puzzles.md`). Not done: the 40 elf boards of seed 2 were generated but
+not gated (on branch `feat/hard-gen`); neither family carries a trap line at 1 to 3 life or a check that no mana
+floats unused at the end.
 
 Rules that apply to every board: no slack (exact mana, exact damage, no spare pump); every card in hand either
 used on the line or a red herring that a trap line uses; the library filled with Colossal Dreadmaw (or stated

@@ -47,74 +47,54 @@ search prover and are not in this set.
 
 Nothing paid is run; no model is called.
 
-## Where it stands (paused 2026-10-20, owner asked to wrap up)
+## The first suite (`eval/suites/puzzles-hard-gen-v1.json`)
 
-Kept so far: **116** boards in `eval/puzzles/hard/gen/kept/` (ping 24, splice 29, storm 6, fling 5, drain 46, elf 6), each passed both gate
-steps above; the gate's rows are in `eval/puzzles/hard/gen/gate/<family>.json`.
+The boards kept by the gate on 2026-10-20 were re-gated from scratch on 2026-10-21 against a build of main at
+e96c679 (harness-epoch-70) with this branch's generator (`runs/puzzles/hard-gen-gate`), and frozen by
+`scripts/puzzle-gate/gen_suite.py`:
 
-| Batch | Kept | Main drop reason |
-|---|---|---|
-| ping (36) | 20 | the old Kiln Fiend trigger-order bug (fixed in e80b523), one random-floor solve |
-| ping-rest | 4 | |
-| storm (40) | 6 | Lotus Petal's colour and Gitaxian Probe payment questions (Petal removed in 43ea29c) |
-| splice (40) | 29 | 11 lines did not solve as written (`solved=False unconsumed=12..19`): the line stops early |
+| Family | Active | Open / held-out | Steps | Luna, open split, 1 attempt each |
+|---|---|---|---|---|
+| drain | 46 | 35 / 11 | 10-15 | 1 of 21 |
+| splice | 29 | 23 / 6 | 11-15 | 1 of 21 |
+| ping | 24 | 17 / 7 | 10-15 | 15 of 17 |
+| elf | 6 | 5 / 1 | 10-14 | 1 of 5 |
+| storm | 6 | 2 / 4 | 10-14 | 2 of 2 |
+| fling | 5 | 2 / 3 | 11-12 | 0 of 2 |
+| **all** | **116** | 84 / 32 | | **20 of 68** |
 
-Not gated yet (the gate was stopped to pause): `eval/puzzles/hard/gen/ungated/red` (60), `ungated/ping2` (60) and
-`ungated/storm2` (50, generated after the Petal fix). Two more families (drain and elf; fling) are on their own
-branches, see their notes.
+Every active board passed, on that build: its written line replayed and solved (10 to 15 steps), and random (0 of
+20), PASS, first option and greedy (0 of 4 each) failed it, and Forge's AI solved it at most once in 4.
 
-Next, in order:
-1. Read one dropped splice board's line log (`puzzle_baselines.py line --pzl ...`): find where the line stops and
-   fix the generator, then re-gate the 11.
-2. Gate the ungated batches, one at a time (the box has 4 cores; `-j 2`, about 1 to 2 hours a batch of 60):
-   `FORGE_HOME=/root/forge python3 scripts/puzzle-gate/gen_gate.py --build <build> --forge /root/forge
-   --boards eval/puzzles/hard/gen/ungated/red --out <out> -j 2`, then copy `<out>/kept/*.pzl` into `kept/`.
-3. Generate more of whichever families keep best (`python3 eval/puzzle_gen.py --family <f> --count N --seed S
-   --out DIR`) until 200 are kept, deduping by board key.
-4. Land the generator, `gen_gate.py`, the kept boards and this note through a PR and the full gate (acceptance is
-   owed: `eval/` changes).
+**What "hard" rests on.** The floors say no blind or one-move-deep player wins. The opponent's life is exactly what
+the line deals: for splice, red, drain, elf and fling that is the maximum of an exhaustive search over a model of
+the board, so no line deals more and every weaker line loses; for ping and storm it is what the constructed line
+deals, not a proven maximum. The minimality replay (`puzzle_baselines.py line --minimality`) was tried and does not
+judge these boards: a removed step leaves the rest of an interlocked line unplayable (drain_0026d851c85f: 1 of 53
+groups necessary, 16 inconclusive, the other 36 `pass` lines).
 
-## Handoff (all work paused, 2026-10-20)
+**The model check (paid).** GPT-6 Luna (`openrouter:openai/gpt-6-luna`, the faithful profile, tools off) took one
+attempt at 68 of the 84 open boards, every family included (`eval/puzzle_solve.py --k 1 --budget-usd 0.98`, run
+directory `runs/puzzles/hard-gen-luna-check`, against a provisional suite with the same boards and files,
+`check-suite.json` there; $0.912, plus $0.014 for a one-board pilot). It solved 20 (table above), against 0 for
+every floor. Without ping it solved 5 of 51. On its 48 misses it left the opponent at 2 to 39 life (median 4). The
+harness was clean in every game: `ai=0`, `textParses=0`; the 151 decisions taken for the seat had no choice (no
+options, or one forced target). One attempt a board is a check, not a score: a PUZ score takes k=4
+(`eval/PUZZLES.md`). Ping is kept as its own family (owner, 2026-10-21): the floors fail it, Luna mostly solves it,
+and its life total is not a searched maximum.
 
-### Done today
-- Merged #280, #281, #282, #283, #285 (HARNESS-ENV.md: building the harness as an RL environment, GBA Eval framing).
-- Demo-session prompt: scratchpad/demo-session-prompt.md (paste into a new session).
+The active set is not filtered on the model's result: keeping only the boards one model fails would make the suite
+hard for that model by construction.
 
-### Hard puzzles (59 of 200 kept) — branch feat/hard-gen @ ea9774e, no PR yet
-Full plan in docs/harness/history/2026-10-20-generated-hard-puzzles.md ("Where it stands"):
-1. Fix the 11 splice lines that stop early (solved=False unconsumed=12..19), re-gate them.
-2. Gate eval/puzzles/hard/gen/ungated/{red,ping2,storm2} (170 boards), one batch at a time.
-3. Generate more of the best-keeping families (splice 29/40, ping 24/36) until 200.
-4. PR with the full gate (acceptance owed: eval/ changes).
-Subagent branches (drain/elf, fling): see their pushed notes (added below when they report).
+## Not done
 
-### Other open items
-- Re-tier data PR: measurements saved on branch data/retier-v2 @ 9f7bc75 (eval/puzzles/retier/); needs
-  a test for summarize.py, a PR and acceptance (eval/).
-- Owner questions: tier rule for B; h_0's held-out split; the 2-life Phyrexian; HARD-PUZZLES item 5; rulesEffective().
-- Standards proposals: §2 model-id rule (and a pr_format.py check), §6 model line, versions pin check,
-  plan-status rule, test-file subjects rule, bridge-forwarding reflection test, xargs -r, GraphQL-free gh commands.
-- Pending: run Luna on the hard set (tools off/on) — paid, ask first.
-
-### Subagent branches
-- fling family: feat/hard-gen-more @ 0760579 (code + 3 tests; 60/60 lines solve as written). Floors ran on 6 of
-  60: 5 kept (now in feat/hard-gen kept/, 64 total). Gate the other 55 (feat/hard-gen ungated/fling; one dir, no
-  resume in gen_gate.py). Note: its two commits lack the Co-Authored-By trailer; 50/60 lines use Rite of Flame
-  after combat, so vary the draw. fling_23e615214cc3 is a borderline AI-floor case.
-- drain and elf families: feat/hard-gen-engines @ afaee5b (code + tests; status in HARD-PUZZLES.md section 3).
-  52 of 52 gated kept (46 drain, 6 elf), now in feat/hard-gen kept/ (116 total). Gate the 40 elf boards in
-  ungated/elf. Nothing was dropped, so add stricter checks: one action removed must fail, a near-miss leaves the
-  opponent at 1 to 3, no mana left unused. Elf boards with one Sentinel repeat a few life totals (31, 35, 47).
-- Landing: merge the three branches (feat/hard-gen, -engines, -more) into one PR; all touch eval/puzzle_gen.py
-  and eval/test_puzzle_gen.py, so expect conflicts. Full gate with acceptance.
-
-## Where the fling family stands (2026-10-20, stopped at the owner's wrap-up)
-
-- 60 boards from `--family fling --count 60 --seed 1`. All 60 written lines played as written and solved in
-  the engine (10 to 12 steps); none drifted, so no generator fix was needed after the stack-aware search.
-- The floors stage was stopped after 6 boards to wrap up: 5 finished every floor and are kept (random 0/20,
-  PASS, first, greedy and Forge's AI each 0/4); the sixth (`fling_23e615214cc3`) had every floor but the AI
-  at 0, and kept in an earlier six-board run with the old description wording. No board was dropped by a floor.
-- Next: re-run `gen_gate.py` on the 54 boards without floors (about 2.5 minutes a board at `-j 1`). 50 of
-  the 60 lines open the second main phase with Rite of Flame; for variety, weight the draw away from two Rites
-  or add a second finisher (Temur Battle Rage before combat, then Fling).
+- Boards generated and never gated (red 60, ping 60, storm 50, fling 55, elf 40) are on branch `feat/hard-gen` at
+  5dc07c4 (`eval/puzzles/hard/gen/ungated/`); they are not in this suite.
+- 11 of 40 splice lines stopped before the win when replayed (`solved=False unconsumed=12..19`): a generator defect
+  to find before more splice boards are drawn.
+- Most fling lines open the second main phase with Rite of Flame; elf boards with one Sentinel repeat a few life
+  totals (31, 35, 47). More variety before more boards.
+- The suite has 116 boards, short of the 200 asked for.
+- Run faster next time (owner, 2026-10-21): a model check waits on the provider, not the CPU (about 15 s a call),
+  so run it 8 to 12 attempts at a time, not 3; split the engine gates into batches run side by side rather than in
+  one queue. This check took about two hours at 3 at a time.

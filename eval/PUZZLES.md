@@ -47,6 +47,9 @@ Forge enforces ("Win" or "Survive" by turn N).
     reach the goal;
   - when random never solves the puzzle, a Forge AI solve's seed and game-log hash, replayed by seed,
     which must reproduce the same log.
+  - a rules puzzle's search proof (`arm: search`, below);
+  - a generated board's own `[solution]` (`arm: written`, with the step count it was gated at), replayed as
+    written against Forge's AI, which must play every line and solve (the hard suite, below).
 - `verification`: the result of that replay, with the engine commit.
 - `tier`:
   - 1: Forge's AI solves at least half its attempts;
@@ -214,6 +217,22 @@ line may also be its search proof (`arm: search`): when neither a random rollout
 proves it again at the gate's budget (`SEARCH_LINE_BUDGET`, opponent `search`, no uniqueness search), and the
 verification proves it once more, which must come out proven and accepted (on any line: a rollout capped under load
 steers the search elsewhere).
+
+### The generated hard suite
+
+`eval/suites/puzzles-hard-gen-v1.json` holds boards drawn by `eval/puzzle_gen.py` (families and research:
+`docs/harness/history/2026-10-20-generated-hard-puzzles.md`), each one turn long with a written line of 10 to 15 steps
+and the opponent's life set to exactly what that line deals. `scripts/puzzle-gate/gen_gate.py` replays each line and
+measures the floors; `scripts/puzzle-gate/gen_suite.py` freezes the result. A board is active only when its line
+played as written and solved, and random (0 of 20), PASS, first option and greedy (0 of 4 each) all failed it and
+Forge's AI solved it at most once in 4. Every other board stays in the file as dropped, with its reason.
+
+```bash
+FORGE_HOME=/root/forge python3 scripts/puzzle-gate/gen_gate.py --build B --forge /root/forge \
+  --boards eval/puzzles/hard/gen --out runs/puzzles/hard-gen-gate -j 3
+python3 scripts/puzzle-gate/gen_suite.py --gate runs/puzzles/hard-gen-gate --boards eval/puzzles/hard/gen \
+  --out eval/suites/puzzles-hard-gen-v1.json
+```
 
 ## Running a model
 
