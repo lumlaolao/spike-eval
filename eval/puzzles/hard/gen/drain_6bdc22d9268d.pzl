@@ -1,0 +1,78 @@
+[metadata]
+Name:drain_6bdc22d9268d
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Carrion Feeder, Cruel Celebrant, Reassembling Skeleton, Zulaport Cutthroat and 5 untapped Swamps. Your hand is Blood Artist, Bloodghast and Swamp. Your graveyard holds nothing. The opponent is at 18 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain | the exhaustive maximum is 18 drained in 11 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; the land drop waits until Bloodghast is in the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blood Artist;Bloodghast;Swamp
+p0battlefield=Carrion Feeder;Cruel Celebrant;Reassembling Skeleton;Zulaport Cutthroat;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 11
+cast Blood Artist
+pass
+cast Bloodghast
+pass
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Carrion Feeder
+Reassembling Skeleton
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Reassembling Skeleton
+pass
+activate Carrion Feeder
+Reassembling Skeleton
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Carrion Feeder
+Blood Artist
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Carrion Feeder
+Cruel Celebrant
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+activate Carrion Feeder
+Carrion Feeder
+[acceptance]
+life p1 <= 0

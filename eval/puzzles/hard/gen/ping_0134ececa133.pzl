@@ -1,0 +1,39 @@
+[metadata]
+Name:ping_0134ececa133
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Goblin Electromancer and two untapped Mountains. Your hand is Lava Spike, Pyretic Ritual, Mutagenic Growth, Goblin Guide, Shock, Shock and Shock. The opponent is at 20 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 6 spells and once after; rituals open with the lands, burn spends the pool exactly; Goblin Guide is a trap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lava Spike;Pyretic Ritual;Mutagenic Growth;Goblin Guide;Shock;Shock;Shock
+p0battlefield=Thermo-Alchemist;Goblin Electromancer;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[solution]
+activate Thermo-Alchemist
+cast Pyretic Ritual
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Mutagenic Growth
+Goblin Electromancer
+activate Thermo-Alchemist
+Goblin Electromancer
+[acceptance]
+life p1 <= 0

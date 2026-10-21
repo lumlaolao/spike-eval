@@ -76,6 +76,22 @@ at a share of the suite so no one trick dominates).
 | **Rule stacking** | three or four of the rules puzzles' tricks composed on one board, each needed in order | the line needs every rule; the `RP_*` boards are the parts | the 526 rules puzzles |
 | **Adversarial hand** | the opponent is stated to hold one instant (a counter, a removal spell) with the mana for it | the proof must beat the reply at every window: play around it or bait it | any family above |
 
+Generated drain and elf (`eval/puzzle_gen.py --family drain|elf`, 2026-10-20). Each board's opponent life is the exact
+maximum of an exhaustive search over a model of the board, and the written line is the fewest-step one reaching
+it (10 to 15 steps; Altar, Druid, Forest and mana-elf activations are mana abilities and not counted). **drain**:
+every death drains once per drainer still out (Blood Artist, Zulaport Cutthroat, Cruel Celebrant, each counting its
+own death), Reassembling Skeleton returns for {1}{B}, Gravecrawler is recast from the graveyard only while Carrion
+Feeder (a Zombie) lives, Bloodghast returns on the land drop, Ashnod's Altar's {C}{C} pays generic halves. **elf**:
+Heritage Druid taps the Sentinels before each green spell (which untaps them) and the elves just cast; Craterhoof's
++X/+X goes to the creatures that started untapped, so tapping the Druid or a starting mana elf costs an attacker;
+boards whose best line casts everything and attacks with everything are dropped. The line resolves each object of
+its own on the stack with `pass` only in the windows the seat is asked (one where only a Swamp's or Forest's mana is
+playable is skipped by the seat). They are in the generated hard suite
+(`eval/PUZZLES.md`, "The generated hard suite"; status and the paid model check:
+`docs/harness/history/2026-10-20-generated-hard-puzzles.md`). Not done: the 40 elf boards of seed 2 were generated but
+not gated (on branch `feat/hard-gen`); neither family carries a trap line at 1 to 3 life or a check that no mana
+floats unused at the end.
+
 Rules that apply to every board: no slack (exact mana, exact damage, no spare pump); every card in hand either
 used on the line or a red herring that a trap line uses; the library filled with Colossal Dreadmaw (or stated
 known cards) so draws decide nothing; the opponent with no mana abilities on its blockers (a pointless tap

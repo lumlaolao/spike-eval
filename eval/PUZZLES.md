@@ -47,6 +47,9 @@ Forge enforces ("Win" or "Survive" by turn N).
     reach the goal;
   - when random never solves the puzzle, a Forge AI solve's seed and game-log hash, replayed by seed,
     which must reproduce the same log.
+  - a rules puzzle's search proof (`arm: search`, below);
+  - a generated board's own `[solution]` (`arm: written`, with the step count it was gated at), replayed as
+    written against Forge's AI, which must play every line and solve (the hard suite, below).
 - `verification`: the result of that replay, with the engine commit.
 - `tier`:
   - 1: Forge's AI solves at least half its attempts;
@@ -132,7 +135,9 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   `Grizzly Bears -> Hill Giant` (a block), `none`, a number. A line names the option whose label starts with it;
   ` ... ` skips ahead in the label (`activate Tundra ... Add {U}`); `at [T2] PHASE: line` waits for that step.
   The section is in the file the solver never reads; it is a public answer, so a held-out puzzle keeps its line out
-  of the public repository.
+  of the public repository. The generated hard suite is the exception while the repository is private (owner,
+  2026-10-21): its held-out boards carry their `[solution]` and `Rule:` lines, which must be stripped (and kept
+  outside the repository) before it is made public.
 - It is played by the model seat with `SMART_MODEL_A=script:<file>` (`ScriptBridge.java`) under the condition a
   paid run pins with the tools off, so the line meets the menus a model meets. A priority menu the next line does
   not fit is passed (the line waits); every other decision it does not fit is a drift, recorded on the row
@@ -214,6 +219,23 @@ line may also be its search proof (`arm: search`): when neither a random rollout
 proves it again at the gate's budget (`SEARCH_LINE_BUDGET`, opponent `search`, no uniqueness search), and the
 verification proves it once more, which must come out proven and accepted (on any line: a rollout capped under load
 steers the search elsewhere).
+
+### The generated hard suite
+
+`eval/suites/puzzles-hard-gen-v1.json` holds boards drawn by `eval/puzzle_gen.py` (families and research:
+`docs/harness/history/2026-10-20-generated-hard-puzzles.md`), each one turn long with a written line of 10 to 15 steps
+and the opponent's life set to exactly what that line deals. `scripts/puzzle-gate/gen_gate.py` replays each line and
+measures the floors; `scripts/puzzle-gate/gen_suite.py` freezes the result. A board is active only when its line
+played as written and solved, and random (0 of 20), PASS, first option and greedy (0 of 4 each) all failed it and
+Forge's AI solved it at most once in 4. Every other board the gate measured stays in the file as dropped, with
+its reason.
+
+```bash
+FORGE_HOME=/root/forge python3 scripts/puzzle-gate/gen_gate.py --build B --forge /root/forge \
+  --boards eval/puzzles/hard/gen --out runs/puzzles/hard-gen-gate -j 3
+python3 scripts/puzzle-gate/gen_suite.py --gate runs/puzzles/hard-gen-gate --boards eval/puzzles/hard/gen \
+  --out eval/suites/puzzles-hard-gen-v1.json
+```
 
 ## Running a model
 

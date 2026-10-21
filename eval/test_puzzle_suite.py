@@ -201,6 +201,19 @@ class BaselineDecisionTest(unittest.TestCase):
         self.assertFalse(pf.has_line({"arm": "random", "seed": 3}))  # a random line needs its tape
         self.assertIsNone(pb.choose_ai_line(rows[:1]))
 
+    def test_a_written_line_is_the_pzls_own_solution_replayed(self):
+        # A generated board (eval/puzzle_gen.py) carries its line in its [solution] section, covered by pzl_sha256.
+        line = {"arm": "written", "seed": 1, "solver_actions": 12}
+        self.assertTrue(pf.has_line(line))
+        self.assertFalse(pf.has_line(dict(line, solver_actions=None)))   # the length it was gated at
+        self.assertFalse(pf.has_line(dict(line, seed=None)))
+        played = {"script_played": True, "status": "solved", "plays_not_made": 0}
+        self.assertEqual(pb.check_written_replay(line, played), [])
+        self.assertTrue(pb.check_written_replay(line, None))
+        for bad in ({"script_drift": "i4 vs i3"}, {"status": "failed"}, {"script_unconsumed": 2},
+                    {"plays_not_made": 1}):
+            self.assertTrue(pb.check_written_replay(line, dict(played, **bad)), bad)
+
     def test_a_replay_verifies_only_when_it_reaches_the_goal_on_the_same_line(self):
         line = {"log_sha256": "L"}
         self.assertEqual(pb.check_replay(line, {"status": "solved", "log_sha256": "L"}), [])

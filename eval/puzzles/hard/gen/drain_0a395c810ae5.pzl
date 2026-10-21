@@ -1,0 +1,75 @@
+[metadata]
+Name:drain_0a395c810ae5
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Blood Artist, Bloodghast, Carrion Feeder, Cruel Celebrant, Viscera Seer and 3 untapped Swamps. Your hand is Reassembling Skeleton and Swamp. Your graveyard holds nothing. The opponent is at 13 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain | the exhaustive maximum is 13 drained in 10 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; the land drop waits until Bloodghast is in the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Reassembling Skeleton;Swamp
+p0battlefield=Blood Artist;Bloodghast;Carrion Feeder;Cruel Celebrant;Viscera Seer;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=13
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+cast Reassembling Skeleton
+pass
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+activate Carrion Feeder
+Carrion Feeder
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+activate Viscera Seer
+Reassembling Skeleton
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Reassembling Skeleton
+pass
+activate Viscera Seer
+Reassembling Skeleton
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Blood Artist
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cruel Celebrant
+[acceptance]
+life p1 <= 0
