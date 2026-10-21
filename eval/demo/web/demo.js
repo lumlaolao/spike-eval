@@ -8,6 +8,14 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&am
 const fmtMs = ms => ms == null ? "" : ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s";
 const phaseName = ph => String(ph || "").replace(/_/g, " ").toLowerCase();
 const isAsked = e => e.tier === "smart" || e.tier === "fast";  // the model was asked (not forced, not the harness)
+const inWatch = () => document.body.classList.contains("watch");
+// A puzzle attempt's result as puzzle_score reads its status: a capped game is a miss, an unscoreable one no result.
+const puzzleVerdict = pz => ({solved: "solved", invalid: "not solved (capped)", unscoreable: "unscoreable, no result"})[pz.status] || "not solved";
+// Playback: the next decision after its recorded latency, scaled by the speed control.
+const stepDelay = next => {
+  const sp = $("#speed").value, real = Math.max(300, (next && next.latency_ms) || 1000);
+  return sp === "step" ? 1000 : sp === "real" ? real : Math.max(250, real / +sp);
+};
 const KIND_LABEL = {chosen: "chosen", planned: "plan", looked: "looked up", mentioned: "mentioned", engine: "engine"};
 const FILTERS = [
   ["all", "all", () => true],
@@ -145,7 +153,7 @@ class Pane {
     if (!pz) { el.innerHTML = ""; return; }
     const k = this.scriptStep(this.cur);
     const steps = (pz.solution || []).map((s, i) => `<li class="${i + 1 === k ? "cur" : ""}">${esc(s)}</li>`).join("");
-    const open = el.querySelector("details") && el.querySelector("details").open;
+    const det = el.querySelector("details"), open = !!(det && det.open);
     el.innerHTML = `<div class="ptitle">the brief (what the seat is told)</div><p class="brief">${esc(pz.brief || "")}</p>` +
       (pz.pzl_changed ? `<div class="flagbox">the .pzl changed since this run: the line below is today's file, not the one played</div>` : "") +
       (steps || pz.rule ? `<details${open ? " open" : ""}><summary>reveal the intended line (audience only: the seat never sees it)</summary>` +
@@ -183,13 +191,12 @@ class Pane {
   // The result pill of watch mode: a puzzle's from its result row (it writes no game row), a game's from its winner.
   watchResult(g, d) {
     const pz = this.puzzle;
-    if (pz && !pz.solved && pz.status !== "failed") return `${pz.status}: no result for the ${pz.solver.kind}`;  // a cap
-    if (pz) return `${pz.solved ? "solved" : "not solved"} by the ${pz.solver.kind}`;
+    if (pz) return `${puzzleVerdict(pz)} by the ${pz.solver.kind}`;
     if (g.winner !== "A" && g.winner !== "B") return "no winner";
     return `${(g.winner === "A" ? g.deck_a : g.deck_b) === d.seat ? "the model" : "Forge AI"} won, T${g.turns}`;
   }
   renderHead() {
-    if (document.body.classList.contains("watch")) {
+    if (inWatch()) {
       const d = this.decision, g = this.game || {}, over = this.done && d && this.cur >= this.decisions.length - 1;
       $(".pane-head", this.el).innerHTML =
         `<span class="title" title="${esc(this.matchup || "")}">${esc(this.label)}</span>` + (this.matchup ? `<span class="cond">${esc(this.matchup)}</span>` : "") +
@@ -237,8 +244,8 @@ class Pane {
     }
     if (this.done && this.cur >= this.decisions.length - 1) {
       const pz = this.puzzle, g = this.game || {};
-      if (pz) bits.push(`<span class="pill ${pz.solved ? "done" : "think"}">puzzle ${pz.solved ? "SOLVED" : "not solved"} by the ${esc(pz.solver.kind)}` +
-        ` (${esc(pz.solver_actions)} actions${pz.solved ? "" : `, ${esc(pz.status)}`})</span>`);
+      if (pz) bits.push(`<span class="pill ${pz.status === "solved" ? "done" : "think"}">puzzle ${esc(puzzleVerdict(pz))} by the ${esc(pz.solver.kind)}` +
+        ` (${esc(pz.solver_actions)} actions)</span>`);
       else bits.push(`<span class="pill done">game over: ${esc(g.winner === "A" ? g.deck_a : g.winner === "B" ? g.deck_b : g.winner)} won, T${esc(g.turns)} (${esc(g.win_condition)})</span>`);
     }
     $(".statusbar", this.el).innerHTML = bits.join("");
@@ -250,7 +257,7 @@ class Pane {
     if (!st) { el.innerHTML = `<p class="engine-note">${this.waitingForFile ? "No game file yet." : "No board yet (no prompt recorded before this decision)."}</p>`; return; }
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
     const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
-    if (document.body.classList.contains("watch")) { el.innerHTML = this.watchHtml(d, st, hl); this.fitWatch(el); return; }
+    if (inWatch()) { el.innerHTML = this.watchHtml(d, st, hl); this.fitWatch(el); return; }
     if (d.feed) {
       const fps = feedPlayers(d, st);
       el.innerHTML = `<p class="engine-note">board: engine truth from the audience feed; the seat's own view is its prompt (below the trace)</p>` +
@@ -396,15 +403,13 @@ class Pane {
       `${pt}${n > 1 ? `<span class="w-n">×${n}</span>` : ""}${h ? `<span class="w-badge">${esc(KIND_LABEL[h.kind] || h.kind)}</span>` : ""}` +
       (marks ? `<span class="w-marks">${marks}</span>` : "") + `</span><span class="w-nm">${esc(o.name)}</span></div>`;
   }
-  // Each game plays on its own clock in watch mode: the next decision after its own recorded latency (scaled by speed).
+  // Each game plays on its own clock in watch mode (stepDelay).
   play(on) {
     if (!on || this.timer) { clearTimeout(this.timer); this.timer = null; if (!on) { app.syncPlay(); return; } }
     const tick = () => {
       if (this.cur >= this.decisions.length - 1) { this.timer = null; app.syncPlay(); return; }
       this.cur += 1; this.render(); app.toHash();
-      const sp = $("#speed").value, next = this.decisions[this.cur + 1];
-      const real = Math.max(300, (next && next.latency_ms) || 1000);
-      this.timer = setTimeout(tick, sp === "step" ? 1000 : sp === "real" ? real : Math.max(250, real / +sp));
+      this.timer = setTimeout(tick, stepDelay(this.decisions[this.cur + 1]));
     };
     this.timer = setTimeout(tick, 200);
     app.syncPlay();
@@ -482,7 +487,7 @@ class Pane {
   // own why), the newest at the bottom, scrolled into view as the game plays.
   renderLog() {
     const el = $(".w-log", this.el);
-    if (!document.body.classList.contains("watch")) return;
+    if (!inWatch()) return;
     const rows = this.decisions.slice(0, this.cur + 1).map((d, n) => {
       const pick = (d.chosen || []).map(i => d.options[i]).filter(Boolean).join("; ") || (d.type === "blockers" ? "no blocks" : "-");
       const why = (d.answer || {}).why, asked = isAsked(d);
@@ -603,7 +608,7 @@ const app = {
     }
     this.renderAll();
   },
-  get watching() { return document.body.classList.contains("watch") && this.panes.length === 2; },
+  get watching() { return inWatch() && this.panes.length === 2; },
   step(k) {
     if (this.watching) { this.panes.forEach(p => { p.cur = Math.max(0, Math.min(p.cur + k, p.decisions.length - 1)); }); this.renderAll(); }
     else this.seek(this.panes[0], this.panes[0].cur + k);
@@ -623,7 +628,7 @@ const app = {
     $("#play").onclick = () => this.toggle();
     $("#logonly").onclick = () => { document.body.classList.toggle("logonly"); this.toHash(); };
     $("#watch").hidden = this.panes.length !== 2;
-    $("#watch").onclick = () => this.setWatch(!document.body.classList.contains("watch"));
+    $("#watch").onclick = () => this.setWatch(!inWatch());
     this.renderWatchButton();
     $("#turn").onchange = ev => {
       const t = +ev.target.value, p = this.panes[0];
@@ -658,17 +663,14 @@ const app = {
       const p = this.panes[0];
       if (p.cur >= p.decisions.length - 1) { this.toggle(); return; }
       this.step(1);
-      const sp = $("#speed").value, next = p.decisions[p.cur + 1];
-      const real = Math.max(300, (next && next.latency_ms) || 1000);
-      const wait = sp === "step" ? 1000 : sp === "real" ? real : Math.max(250, real / +sp);
-      this.timer = setTimeout(tick, wait);
+      this.timer = setTimeout(tick, stepDelay(p.decisions[p.cur + 1]));
     };
     this.timer = setTimeout(tick, 200);
   },
   toHash() {
     const p = this.panes[0];
     const flags = (document.body.classList.contains("logonly") ? "&log" : "") +
-      (this.panes.length === 2 && !document.body.classList.contains("watch") ? "&full" : "");
+      (this.panes.length === 2 && !inWatch() ? "&full" : "");
     if (p) history.replaceState(null, "", `#d=${p.cur + 1}${flags}`);
   },
   // Into or out of watch mode: every clock stops (the panes' own and the full view's), and play shows play.
@@ -678,7 +680,7 @@ const app = {
     document.body.classList.toggle("watch", on); this.renderWatchButton(); this.renderAll();
   },
   renderWatchButton() {
-    $("#watch").textContent = document.body.classList.contains("watch") ? "full detail" : "watch both";
+    $("#watch").textContent = inWatch() ? "full detail" : "watch both";
   },
   fromHash() {
     // &log: the log-only layout, for a browser beside Forge's own match window (which draws the board).

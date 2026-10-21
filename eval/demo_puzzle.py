@@ -7,9 +7,8 @@ A puzzle run (eval/puzzle_baselines.py line, eval/puzzle_solve.py) writes game-*
 like any game, and puzzle-results.jsonl, which says how it ended. This module reads that result row and the
 .pzl it names, and returns the panel: the brief the seat was given (the row's goal_oracle, else the .pzl's
 Description), who played (the puzzle's written line, another script, or the model), how it ended, and, for the
-audience only, the puzzle's intended
-line (its Rule: note and [solution] steps). The seat never sees the Rule or the solution; the panel draws them
-behind a reveal. Stdlib only.
+audience only, the puzzle's intended line (its Rule: note and [solution] steps). The seat never sees the Rule or
+the solution; the panel draws them behind a reveal. Stdlib only.
 
 What it cannot show: a result the run did not write (a puzzle killed mid-game has no result row), or a .pzl that
 moved since the run (it is found by its recorded path, else by its id under eval/puzzles).
@@ -26,7 +25,6 @@ from demo_events import GAME_FILE  # noqa: E402  (the viewer's own game-file pat
 
 REPO = os.path.dirname(HERE)
 
-
 SLACK_S = 2.0  # a game's last write may land just after its result row
 
 
@@ -38,24 +36,28 @@ def result_row(run_dir, seed=None, game=None):
     puzzle_solve.py replays the same seeds into an --out and appends rows, and puzzle_baselines.py rewrites the file
     but keeps the older game files. A row is written when its game ends, so a game that started after the file's last
     write, or was written after it, has no row yet (it is still playing, or was stopped). The finished games of the
-    seed pair with its rows from the newest end. A stopped attempt older than the newest row can still shift that
-    pairing."""
+    seed pair with its rows from the newest end. This reads file times, so it assumes the files kept the times they
+    were written with, within SLACK_S of the game's clock (a clone or `cp -p` keeps them; a lone game file rewritten
+    later does not), and a stopped attempt older than the newest row can still shift the pairing. A seed with one
+    game file, as in every recording, needs no times: it takes the seed's last row."""
     path = os.path.join(run_dir, "puzzle-results.jsonl")
     try:
+        last = os.path.getmtime(path)  # before the rows: a row landing in between only adds a row, never shifts one
         with open(path) as f:
             rows = [json.loads(line) for line in f if line.strip()]
     except (OSError, ValueError):
         return None
     if seed is not None:
         rows = [r for r in rows if str(r.get("seed")) == str(seed)]
-    if game is not None and rows:
-        last = os.path.getmtime(path)
+    same = [n for n in os.listdir(run_dir) if (GAME_FILE.search(n) or [None, None])[1] == str(seed)] if game else []
+    if len(same) > 1 and rows:
 
-        def finished(n):  # started before the file's last write, and not written to after it
-            m = GAME_FILE.search(n)
-            return bool(m and m.group(1) == str(seed) and int(m.group(2)) / 1000 <= last
-                        and os.path.getmtime(os.path.join(run_dir, n)) <= last + SLACK_S)
-        done = sorted(filter(finished, os.listdir(run_dir)), key=lambda n: int(GAME_FILE.search(n).group(2)), reverse=True)
+        # started before the file's last write (strictly: the next seed's game opens milliseconds after a row), and
+        # not written to after it
+        def finished(n):
+            return (int(GAME_FILE.search(n).group(2)) / 1000 <= last
+                    and os.path.getmtime(os.path.join(run_dir, n)) <= last + SLACK_S)
+        done = sorted(filter(finished, same), key=lambda n: int(GAME_FILE.search(n).group(2)), reverse=True)
         name = os.path.basename(game)
         if name not in done:  # each file's times are read once: a write landing meanwhile cannot break the lookup
             return None

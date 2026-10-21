@@ -211,6 +211,29 @@ class PuzzleTest(unittest.TestCase):
             shutil.rmtree(d)
 
 
+class LoneGameTest(unittest.TestCase):
+    def test_a_lone_game_of_its_seed_takes_its_row_whatever_the_file_times(self):
+        d = tempfile.mkdtemp()
+        try:
+            for name in ("game-1-1792546270115.jsonl", "puzzle-results.jsonl"):
+                shutil.copy(os.path.join(FIX, "puzzle", name), d)
+            # a clock behind the recording, or a game file rewritten by a later checkout: times say nothing here
+            os.utime(os.path.join(d, "puzzle-results.jsonl"), (1000, 1000))
+            self.assertTrue(srv.Pane(d).summary()["puzzle"]["solved"])
+        finally:
+            shutil.rmtree(d)
+
+    def test_a_game_file_without_a_seed_in_its_name_takes_no_row(self):
+        d = tempfile.mkdtemp()
+        try:
+            shutil.copy(os.path.join(FIX, "puzzle", "game-1-1792546270115.jsonl"), os.path.join(d, "game-copy.jsonl"))
+            shutil.copy(os.path.join(FIX, "puzzle", "puzzle-results.jsonl"), d)
+            pane = srv.Pane(os.path.join(d, "game-copy.jsonl"))
+            self.assertIsNone(pane.summary()["puzzle"])
+        finally:
+            shutil.rmtree(d)
+
+
 class ArmTest(unittest.TestCase):
     def test_the_summary_names_the_arm_demo_compare_recorded(self):
         d = tempfile.mkdtemp()

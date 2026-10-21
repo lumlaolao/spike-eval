@@ -157,6 +157,8 @@ python3 eval/demo_server.py --game runs/demo/puzzle-line --game runs/demo/puzzle
 Both commands use the newest acceptance build under `runs/harness-acceptance` (or `--build DIR`). The paid attempt
 needs the owner's egress consent; `--model openrouter:fake/...` with a loopback `OPENROUTER_BASE_URL` rehearses it
 for free. Side by side, **first divergence** jumps to the first decision where the model left the written line.
+Copy a recording with its file times kept (a clone, `cp -p`, `rsync -t`): where a directory holds several games of one
+seed, each is matched to its result row by the files' times (`demo_puzzle.result_row`).
 A puzzle pair opens in full detail, not watch mode, since the puzzle panel (brief, result, reveal) lives there.
 Demo puzzles come from the open split: a held-out puzzle's line is not copied into a recording (eval/PUZZLES.md).
 Per-decision steps are shown only for a clean written-line run of the file that was played (no wait, fallback or
