@@ -82,7 +82,7 @@ class Pane:
             if not os.path.isfile(os.path.join(run, "puzzle-results.jsonl")) and not self.live:
                 self._puzzle = False
             else:
-                m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
+                m = demo_events.GAME_FILE.match(os.path.basename(self.reader.path))
                 # a game file without a seed in its name is not paired with any row: no seed's result is borrowed
                 self._puzzle = demo_puzzle.info(run, m.group(1), self.reader.path) if m else False
         return self._puzzle or None
