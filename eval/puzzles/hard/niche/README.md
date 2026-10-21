@@ -10,9 +10,10 @@ the bar in `docs/harness/HARD-PUZZLES.md` section 1:
 - `puzzle_baselines.py --build B line --pzl <file>`: the written line plays every line and solves against Forge's AI;
   all 25 re-run on the committed files, outputs in `runs/puzzles/niche/final/<name>/`;
 - `line --opponent search`: `proven`, the one fixed line beats every opponent reply the engine offers. Search budgets:
-  zones and `token_first` 200 (the recheck 600), combat 400, layers 1000, replacement 2000, stack and `torbran` 3000.
-  Outputs in `runs/puzzles/niche/<theme>/<run>-search/` (`<run>` below); the five files edited after their first proof
-  (four zones boards and `blocker_removed`) were proven again on the committed bytes in `runs/puzzles/niche/recheck/`;
+  zones and `token_first` 200, combat 400 (the recheck of five boards, `blocker_removed` included, 600), layers 1000,
+  replacement 2000, stack and `torbran` 3000. Outputs in `runs/puzzles/niche/<theme>/<run>-search/` (`<run>` below); the
+  five files edited after their first proof (four zones boards and `blocker_removed`) were proven again on the committed
+  bytes in `runs/puzzles/niche/recheck/`;
 - floors, from `puzzle_baselines.py run --arms random,pass,first,ai,greedy --baselines-only` on a candidate suite:
   random (50 rollouts; the stack theme 20, too few to resolve the bar's "at most 2%"), PASS (4 seeds), first-option (4),
   Forge AI as the solver (4) and greedy-preview (4; the stack theme with its other floors, the other 20 boards in
@@ -88,6 +89,8 @@ Known limits:
 - Short of the bar: `marked_lethal` (L 9), `humility` (L 8), `lattice` (L 6 without its mana taps); the stack theme's
   random floor ran 20 rollouts, not 50; `late_double_strike`'s opponent choice is a discard; `steam_kin`, `stack_redcap`
   and `storm_copy` give the opponent no choice.
+- Not measured: D (decision points), exactness (opponent at most 3 below 0, no mana left floating) and trap lines; only
+  the four zones boards have trap runs, ending at 2 to 5 life (`flayer`'s 5 is outside the bar's 1 to 3).
 - Not searched for: a second solution (uniqueness); `scales`, `torbran` and `leyline` have known alternative lines
   reaching the same total.
 - No Forge rules bug was found in any of the 25 boards.
