@@ -175,11 +175,12 @@ class PrFormatTest(unittest.TestCase):
         self.assertIsNone(pf.updated_body("## What\n\nx\n", "Review", "- x", "- y"))
 
     def test_a_model_identifier_is_refused_and_a_trailer_is_not(self):
-        """CLAUDE.md: model identifiers never go in commits or PRs; the owner names the model once."""
+        """CLAUDE.md: model specs and priced slugs never go in commits or PRs; a name in prose is fine."""
         got = pf.commit_problems("fix(a): b\n\nthe seat now plays openrouter:vendor/some-model-1.\n")
         self.assertEqual(len(got), 1, got)
         self.assertIn("openrouter:vendor/some-model-1;", got[0])
-        self.assertIn("describe its role instead", got[0])
+        self.assertIn("name the model in prose instead", got[0])
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nLuna played the seat.\n"), [])  # a name in prose passes
         with open(pf.PRICES, encoding="utf-8") as f:
             slug = sorted(m for m in json.load(f)["models"] if not m.startswith("fake/"))[0]
         for prose in ("measured on %s." % slug, "measured on `%s`" % slug.upper()):

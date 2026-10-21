@@ -12,7 +12,7 @@ const inWatch = () => document.body.classList.contains("watch");
 // A puzzle attempt's result as puzzle_score reads it: a capped game or a deck-out solve is a miss, an unscoreable or
 // unknown row no result.
 const puzzleWon = pz => pz.status === "solved" && !pz.tainted_by_deckout;
-const puzzleVerdict = pz => pz.status === "solved" ? (pz.tainted_by_deckout ? "not solved (a deck-out)" : "solved")
+const puzzleVerdict = pz => puzzleWon(pz) ? "solved" : pz.status === "solved" ? "not solved (a deck-out)"
   : pz.status === "failed" ? "not solved" : pz.status === "invalid" ? "not solved (capped)" : `no result (${pz.status || "no status"})`;
 // Playback: the next decision after its recorded latency, scaled by the speed control.
 const stepDelay = next => {

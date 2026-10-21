@@ -93,10 +93,12 @@ window is the board, the browser is the agent's log, plan and highlights. The **
 log and plan get the width. On a fresh Forge home, Forge may open a
 bug-report dialog at start-up (a default gauntlet file it cannot load); click Discard once.
 
-Checked on 2026-10-21 with a loopback fake-model game in a virtual display (Xvfb, the acceptance build's classes):
-the server wrote card ids for 20 of 41 decisions, and Forge framed the named card each time (Goblin Guide, engine id
-11; Monastery Swiftspear, 4). Forge also frames some of the model's own lands in the same purple when no card is
-named, so in the window that frame alone does not say "the model is thinking about this"; the browser's colours do.
+Checked on 2026-10-21 (a screen check, not a recording): the two commands above with a loopback fake model
+(`eval/fake_model_server.py --policy first --answer-tool`, `SMART_MODEL=openrouter:fake/harness-model`,
+burn against burn, seed 42) under `xvfb-run`, with screenshots taken while the highlight file named a card. In
+the screenshots Forge framed the named card (Goblin Guide, then Monastery Swiftspear). Forge also frames some of the
+model's own lands in the same purple when no card is named, so in the window that frame alone does not say "the
+model is thinking about this"; the browser's colours do.
 Forge may also ask once whether to download a card image index; Not Now is fine.
 
 ## Side by side: the current harness against a real older one

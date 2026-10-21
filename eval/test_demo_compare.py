@@ -17,7 +17,6 @@ OBS = "class SeatObservation {\n" + dc.OBS_ANCHOR + "}\n"
 GUI = "class LlmSpikeGui {\n" + dc.CTRL_ANCHOR + dc.WRITE_ANCHOR + "}\n"
 
 
-
 def pair_args(d, *extra):
     """Two stand-in arm builds under d, and the `run` arguments that play them on one seed (the worktree's name says
     "then", which a fake Popen reads to name the arm)."""
@@ -27,6 +26,7 @@ def pair_args(d, *extra):
     return ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd", "0.4",
             "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build", os.path.join(d, "then"),
             "--worktree", os.path.join(d, "harness-then")] + list(extra)
+
 
 class PortTest(unittest.TestCase):
     def setUp(self):

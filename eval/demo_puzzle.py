@@ -55,9 +55,9 @@ def result_row(run_dir, seed=None, game=None):
         # started before the file's last write (strictly: the next seed's game opens milliseconds after a row), and
         # not written to after it
         def finished(n):
-            return (int(GAME_FILE.search(n).group(2)) / 1000 <= last
+            return (int(GAME_FILE.match(n).group(2)) / 1000 <= last
                     and os.path.getmtime(os.path.join(run_dir, n)) <= last + SLACK_S)
-        done = sorted(filter(finished, same), key=lambda n: int(GAME_FILE.search(n).group(2)), reverse=True)
+        done = sorted(filter(finished, same), key=lambda n: int(GAME_FILE.match(n).group(2)), reverse=True)
         name = os.path.basename(game)
         if name not in done:  # each file's times are read once: a write landing meanwhile cannot break the lookup
             return None
