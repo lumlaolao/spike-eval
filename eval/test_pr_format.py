@@ -174,6 +174,24 @@ class PrFormatTest(unittest.TestCase):
         self.assertNotIn("(pending", pf.updated_body(pending, "Review", "- pr-review @", "- pr-review @ abc123456: CLEAN"))
         self.assertIsNone(pf.updated_body("## What\n\nx\n", "Review", "- x", "- y"))
 
+    def test_a_model_identifier_is_refused_and_a_trailer_is_not(self):
+        """CLAUDE.md: model identifiers never go in commits or PRs; the owner names the model once."""
+        spec = pf.commit_problems("fix(a): b\n\nthe seat now plays openrouter:vendor/some-model-1.\n")
+        self.assertEqual(len(spec), 1, spec)
+        self.assertIn("openrouter:vendor/some-model-1;", spec[0])
+        self.assertIn("describe its role instead", spec[0])
+        with open(pf.PRICES, encoding="utf-8") as f:
+            slug = sorted(json.load(f)["models"])[0]
+        self.assertTrue(any(slug in p for p in pf.commit_problems("fix(a): b\n\nmeasured on %s\n" % slug)))
+        self.assertTrue(any(p.startswith("the title names") for p in pf.pr_problems("fix(a): use " + slug, BODY)))
+        self.assertTrue(any(p.startswith("the body names") for p in
+                            pf.pr_problems("docs: x", BODY.replace("MCP server; see the note.", "`%s` left" % slug))))
+        # Trailers name a model by design; prose that names none, or only the `openrouter:` prefix, passes.
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nwhy it was needed\n\nCo-Authored-By: %s <x@y>\n"
+                                            "Claude-Session: openrouter:%s\n" % (slug, slug)), [])
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nthe authorised model; any `openrouter:` spec is "
+                                            "refused; see eval/pricing/prices.json.\n"), [])
+
     def test_latest_verdict_per_agent_is_read(self):
         self.assertEqual(pf.reviews(BODY)["pr-review"], ("abc123456", "LOW", "two nits, fixed"))
 

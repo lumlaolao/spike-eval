@@ -17,7 +17,9 @@ Every GitHub call is a REST `gh api` call (GraphQL is refused in Claude cloud se
 head commit, none BLOCKER or HIGH, and an acceptance run named in Evidence when code changed.
 Exit 0 clean, 1 with one line per problem.
 """
+import functools
 import json
+import os
 import re
 import subprocess
 import sys
@@ -56,6 +58,31 @@ PH_REVIEW = "<one line>"
 PH_NOT_DONE = "<left out on purpose, and what would reopen it>"
 PLACEHOLDERS = (PH_WHY, PH_OUT, PH_COUNT, PH_JAVA, PH_PYTHON, PH_MEASURE, PH_PROVENANCE, PH_REVIEW, PH_NOT_DONE)
 CODE_SPAN = re.compile(r"`[^`\n]*`")
+# The owner names the model once, in CLAUDE.md's Owner rules; a commit or PR names its role instead.
+# Refused: an `openrouter:` spec, and any slug under `models` in eval/pricing/prices.json.
+PRICES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "eval", "pricing", "prices.json")
+OPENROUTER_SPEC = re.compile(r"\bopenrouter:[A-Za-z0-9][\w.:/-]*[\w/]")
+
+
+@functools.lru_cache(maxsize=None)
+def model_slug():
+    """One pattern over every slug priced in prices.json, matched as a whole token."""
+    with open(PRICES, encoding="utf-8") as f:
+        slugs = sorted(json.load(f)["models"], key=len, reverse=True)
+    return re.compile(r"(?<![\w./-])(%s)(?![\w/-]|\.\w)" % "|".join(map(re.escape, slugs)))
+
+
+def identifier_problems(lines, where):
+    """One refusal per model identifier named in `lines`; git trailer lines name a model by design."""
+    out = []
+    for line in lines:
+        if TRAILER.match(line):
+            continue
+        out += [m.group(0) for m in OPENROUTER_SPEC.finditer(line)]
+        out += [m.group(1) for m in model_slug().finditer(OPENROUTER_SPEC.sub("", line))]
+    return ["%s names the model identifier %s; describe its role instead (\"the authorised model\", "
+            "\"a superseded model\"): the owner names the model once, in CLAUDE.md's Owner rules" % (where, ident)
+            for ident in dict.fromkeys(out)]
 
 
 def subject_problems(subject):
@@ -79,7 +106,7 @@ def commit_problems(message):
         lines.pop(0)
     if not lines:
         return ["empty commit message"]
-    out = subject_problems(lines[0])
+    out = subject_problems(lines[0]) + identifier_problems(lines, "the message")
     # a merge/revert subject is exempt from the body checks like the subject checks: a merge's
     # why lives in its second parent, a revert's in the message it cites
     if lines[0].startswith(EXEMPT_SUBJECTS):
@@ -125,6 +152,7 @@ def same_commit(a, b):
 
 def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
     out = ["title: " + p for p in subject_problems(title)]
+    out += identifier_problems([title], "the title") + identifier_problems((body or "").splitlines(), "the body")
     secs = sections(body)
     present = [s for s in secs if s in SECTIONS]
     for s in SECTIONS:
