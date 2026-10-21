@@ -93,6 +93,14 @@ window is the board, the browser is the agent's log, plan and highlights. The **
 log and plan get the width. On a fresh Forge home, Forge may open a
 bug-report dialog at start-up (a default gauntlet file it cannot load); click Discard once.
 
+Checked on 2026-10-21 (a screen check, not a recording): the two commands above with a loopback fake model
+(`eval/fake_model_server.py --policy first --answer-tool`, `SMART_MODEL=openrouter:fake/harness-model`,
+burn against burn, seed 42) under `xvfb-run`, with screenshots taken while the highlight file named a card. In
+the screenshots Forge framed the named card (Goblin Guide, then Monastery Swiftspear). Forge also frames some of the
+model's own lands in the same purple when no card is named, so in the window that frame alone does not say "the
+model is thinking about this"; the browser's colours do.
+Forge may also ask once whether to download a card image index; Not Now is fine.
+
 ## Side by side: the current harness against a real older one
 
 `eval/demo_compare.py` plays the same model, seed and decks against Forge's AI twice: on this checkout and on an
@@ -142,8 +150,9 @@ each version adds when it renders an option (`@handles`, bracketed notes); answe
 
 A puzzle run is replayed like a game. Its pane shows the brief the seat was told (the result row's `goal_oracle`, else the .pzl's Description), who played,
 how it ended (from `puzzle-results.jsonl`; `demo_puzzle.py` reads it), and behind a reveal the puzzle's intended line
-(its `Rule:` note and `[solution]` steps), which the seat never sees. When the written line played, each decision
-names the solution step that answered it and the reveal marks that step.
+(its `Rule:` note and `[solution]` steps), which the seat never sees. When the written line played cleanly (no wait,
+fallback or drift in the script, and the .pzl's hash matching the run's), each decision names the solution step that
+answered it and the reveal marks that step; otherwise the reveal shows the line without steps.
 
 ```bash
 P=eval/puzzles/hard/gen/drain_3c09484e5e54.pzl       # an open-split generated hard puzzle (Luna missed it)
@@ -161,8 +170,6 @@ Copy a recording with its file times kept (a clone, `cp -p`, `rsync -t`): where 
 seed, each is matched to its result row by the files' times (`demo_puzzle.result_row`).
 A puzzle pair opens in full detail, not watch mode, since the puzzle panel (brief, result, reveal) lives there.
 Demo puzzles come from the open split: a held-out puzzle's line is not copied into a recording (eval/PUZZLES.md).
-Per-decision steps are shown only for a clean written-line run of the file that was played (no wait, fallback or
-drift in the script, and the .pzl's hash matching the run's); otherwise the reveal shows the line without steps.
 
 Recorded already, on the `demo-recordings` branch: this puzzle's written line (`puzzles/drain-3c09-written-line`)
 and Luna's attempt that missed it, the opponent left at 2 life (`puzzles/hard-gen-luna-check/runs/hard-drain-3c09484e5e54`),

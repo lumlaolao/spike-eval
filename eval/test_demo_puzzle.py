@@ -59,6 +59,10 @@ class PuzzleTest(unittest.TestCase):
         unverified = self.run_with(pzl_sha256=None)  # an older row without the hash: today's file is not proven
         self.assertEqual((unverified["pzl_changed"], unverified["script_lines"]), (False, None))
 
+    def test_a_deck_out_solve_is_flagged_as_puzzle_score_counts_it(self):
+        self.assertTrue(self.run_with(tainted_by_deckout=True)["tainted_by_deckout"])  # a miss to puzzle_score
+        self.assertFalse(self.run_with()["tainted_by_deckout"])
+
     def test_a_model_attempt_names_the_model(self):
         self.assertEqual(demo_puzzle.solver_of({"solver_model": "openrouter:openai/gpt-6-luna"}),
                          {"kind": "model", "detail": "openrouter:openai/gpt-6-luna"})

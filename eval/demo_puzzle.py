@@ -49,15 +49,15 @@ def result_row(run_dir, seed=None, game=None):
         return None
     if seed is not None:
         rows = [r for r in rows if str(r.get("seed")) == str(seed)]
-    same = [n for n in os.listdir(run_dir) if (GAME_FILE.search(n) or [None, None])[1] == str(seed)] if game else []
+    same = [n for n in os.listdir(run_dir) if (GAME_FILE.match(n) or [None, None])[1] == str(seed)] if game else []
     if len(same) > 1 and rows:
 
         # started before the file's last write (strictly: the next seed's game opens milliseconds after a row), and
         # not written to after it
         def finished(n):
-            return (int(GAME_FILE.search(n).group(2)) / 1000 <= last
+            return (int(GAME_FILE.match(n).group(2)) / 1000 <= last
                     and os.path.getmtime(os.path.join(run_dir, n)) <= last + SLACK_S)
-        done = sorted(filter(finished, same), key=lambda n: int(GAME_FILE.search(n).group(2)), reverse=True)
+        done = sorted(filter(finished, same), key=lambda n: int(GAME_FILE.match(n).group(2)), reverse=True)
         name = os.path.basename(game)
         if name not in done:  # each file's times are read once: a write landing meanwhile cannot break the lookup
             return None
@@ -102,6 +102,7 @@ def info(run_dir, seed=None, game=None):
     if not row:
         return None
     out = {"id": row.get("id"), "status": row.get("status"), "solved": bool(row.get("solved")),
+           "tainted_by_deckout": bool(row.get("tainted_by_deckout")),  # puzzle_score counts such a solve a miss
            "solver": solver_of(row), "solver_actions": row.get("solver_actions"),
            "harness_epoch": row.get("harness_epoch"), "brief": row.get("goal_oracle"),
            "script_lines": None}
@@ -116,7 +117,7 @@ def info(run_dir, seed=None, game=None):
             out["script_lines"] = row.get("script_lines")
         parsed = pf.parse_pzl(text)  # comment lines dropped, as Forge reads it
         meta = parsed.get("metadata", [])
-        rule = pf.section_value(meta, "Rule", "") or ""
+        rule = pf.section_value(meta, "Rule", "")
         out.update({"pzl": os.path.relpath(pzl, REPO) if pzl.startswith(REPO) else pzl,
                     "brief": out["brief"] or pf.section_value(meta, "Description", ""),
                     "family": rule.split("|", 1)[0].replace("generated-", "").strip() or None,

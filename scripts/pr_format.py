@@ -87,8 +87,8 @@ def identifier_problems(lines, where):
             continue
         out += [m.group(0) for m in OPENROUTER_SPEC.finditer(line)]
         out += [m.group(1) for m in model_slug_pattern().finditer(OPENROUTER_SPEC.sub("", line))]
-    return ["%s names the model identifier %s; describe its role instead (\"the authorised model\", "
-            "\"a superseded model\"): the owner names the model once, in CLAUDE.md's Owner rules" % (where, ident)
+    return ["%s names the model spec or priced slug %s; name the model in prose instead (\"Luna\") or its role "
+            "(STANDARDS section 2)" % (where, ident)
             for ident in dict.fromkeys(out)]
 
 
