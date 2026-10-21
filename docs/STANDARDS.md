@@ -54,7 +54,8 @@ Commit subject: `type(scope): what is now true`, at most 100 characters, no trai
 - The body says why, what was measured, and what would have caught it. Wrap at 100.
 - Merge and revert commits are exempt from the subject form. Any commit that is not trivial has a body.
 - No model identifier (an `openrouter:` spec, or a slug priced in `eval/pricing/prices.json`) in a
-  commit, PR title or PR body; trailers aside. Name the role ("the authorised model"): the owner
+  commit, PR title or PR body; the `Co-Authored-By`, `Claude-Session` and `Signed-off-by` trailers
+  and the loopback `fake/` stub aside. Name the role ("the authorised model"): the owner
   names the model once, in CLAUDE.md's Owner rules. `pr_format.py` refuses it.
 
 Branch: `type/short-name` (`fix/own-trigger-window`). A branch the runtime assigns (`claude/...`) may

@@ -58,18 +58,25 @@ PH_REVIEW = "<one line>"
 PH_NOT_DONE = "<left out on purpose, and what would reopen it>"
 PLACEHOLDERS = (PH_WHY, PH_OUT, PH_COUNT, PH_JAVA, PH_PYTHON, PH_MEASURE, PH_PROVENANCE, PH_REVIEW, PH_NOT_DONE)
 CODE_SPAN = re.compile(r"`[^`\n]*`")
-# The owner names the model once, in CLAUDE.md's Owner rules; a commit or PR names its role instead.
-# Refused: an `openrouter:` spec, and any slug under `models` in eval/pricing/prices.json.
+# Refused: an `openrouter:` spec, and any slug under `models` in eval/pricing/prices.json. The
+# loopback stub (`fake/`) is no model: it sends nothing out, and the gauntlet docs name it.
 PRICES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "eval", "pricing", "prices.json")
-OPENROUTER_SPEC = re.compile(r"\bopenrouter:[A-Za-z0-9][\w.:/-]*[\w/]")
+OPENROUTER_SPEC = re.compile(r"\bopenrouter:(?!fake/)[A-Za-z0-9][\w.:/-]*[\w/]", re.I)
+# `git commit -v` hands the hook the diff below this line; it is not part of the message.
+SCISSORS = re.compile(r"^# -+ >8 -+$", re.M)
 
 
 @functools.lru_cache(maxsize=None)
-def model_slug():
-    """One pattern over every slug priced in prices.json, matched as a whole token."""
-    with open(PRICES, encoding="utf-8") as f:
-        slugs = sorted(json.load(f)["models"], key=len, reverse=True)
-    return re.compile(r"(?<![\w./-])(%s)(?![\w/-]|\.\w)" % "|".join(map(re.escape, slugs)))
+def model_slug_pattern():
+    """One pattern over every slug priced in prices.json, matched as a whole token (not inside a
+    URL or path). An unreadable prices.json leaves the `openrouter:` check alone."""
+    try:
+        with open(PRICES, encoding="utf-8") as f:
+            slugs = sorted((m for m in json.load(f)["models"] if not m.startswith("fake/")), key=len, reverse=True)
+    except (OSError, ValueError, KeyError):
+        slugs = []
+    return re.compile(r"(?<![\w./-])(%s)(?![\w/-]|\.\w)" % "|".join(map(re.escape, slugs)) if slugs else r"(?!)",
+                      re.I)
 
 
 def identifier_problems(lines, where):
@@ -79,7 +86,7 @@ def identifier_problems(lines, where):
         if TRAILER.match(line):
             continue
         out += [m.group(0) for m in OPENROUTER_SPEC.finditer(line)]
-        out += [m.group(1) for m in model_slug().finditer(OPENROUTER_SPEC.sub("", line))]
+        out += [m.group(1) for m in model_slug_pattern().finditer(OPENROUTER_SPEC.sub("", line))]
     return ["%s names the model identifier %s; describe its role instead (\"the authorised model\", "
             "\"a superseded model\"): the owner names the model once, in CLAUDE.md's Owner rules" % (where, ident)
             for ident in dict.fromkeys(out)]
@@ -101,7 +108,7 @@ def subject_problems(subject):
 def commit_problems(message):
     # '#' lines are git template comments, stripped before the audit: a body written only of
     # them reads as no body (heading-only bodies refuse; refuse-not-bless is the safe direction).
-    lines = [l for l in message.splitlines() if not l.startswith("#")]
+    lines = [l for l in SCISSORS.split(message, 1)[0].splitlines() if not l.startswith("#")]
     while lines and not lines[0].strip():
         lines.pop(0)
     if not lines:
