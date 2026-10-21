@@ -10,7 +10,7 @@ for the [TALLY] line). Card images come from the demo_cards.py cache (filled by 
 <run>`); only with --fetch-images does the server send a missing card's name to api.scryfall.com and write the image
 into that cache. A live pane re-reads its file on every request, so the page follows a game a JVM is writing
 (EVAL_OUT rows are autoflushed per line). The server writes nothing the seat reads, so it cannot change what the seat
-sees or decides; with --highlight-file it writes one display-only file that the Forge window's DemoHighlight polls.
+sees or decides.
 
 What it cannot show: what the JSONL does not hold (the system prompt, library order, and the opponent's hidden hand
 unless the game was played with the audience feed, DEMO_FEED=1).
@@ -37,10 +37,9 @@ WAIT_S = 20.0
 class Pane:
     """One game: a run directory or .jsonl (replay), or a directory a JVM is writing into (live)."""
 
-    def __init__(self, path, live=False, highlight_file=None):
+    def __init__(self, path, live=False):
         self.path = path
         self.live = live
-        self.highlight_file = highlight_file  # live: where the Forge window's highlights are written
         self.reader = None
         self.log = None
         self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
@@ -64,8 +63,7 @@ class Pane:
                     self.log = log
             if self.reader is not None:
                 was_done = self.done
-                if self.reader.poll() and self.highlight_file:
-                    write_highlights(self.highlight_file, self.reader.events)
+                self.reader.poll()
                 if self.done and not was_done:
                     self._summary = None
 
@@ -110,25 +108,6 @@ class Pane:
             if (self.gen, self.done) == key:
                 self._summary = built
         return built
-
-
-def highlight_ids(ev):
-    """Engine card ids of the objects a decision highlights (not the engine's own frame), through the feed's handle
-    map. Without the audience feed there is no map, and no id."""
-    by_handle = ev.get("feed_handles") or {}
-    return sorted({by_handle[h] for h, v in (ev.get("highlights") or {}).items()
-                   if v.get("kind") != "engine" and h in by_handle})
-
-
-def write_highlights(path, events):
-    """The latest decision's highlights for DemoHighlight (the Forge window). Written whole, then renamed."""
-    ev = next((e for e in reversed(events) if e.get("kind") == "decision"), None)
-    if ev is None:
-        return
-    tmp = path + ".part"
-    with open(tmp, "w") as f:
-        json.dump({"decision": ev["n"], "seat": ev["seat"], "turn": ev["turn"], "ids": highlight_ids(ev)}, f)
-    os.replace(tmp, path)
 
 
 def run_decks(run_dir):
@@ -294,15 +273,13 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--image-cache", default=demo_cards.DEFAULT_CACHE, help="card images (demo_cards.py prefetch fills it)")
-    ap.add_argument("--highlight-file", help="live: write the latest decision's highlighted card ids here for the "
-                    "Forge window (the JVM reads it with DEMO_HIGHLIGHT_FILE set to the same path)")
     ap.add_argument("--fetch-images", action="store_true",
                     help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
     ap.add_argument("--acceptance", help="the eval page's gate: an OUT dir of eval/harness_acceptance.sh (/eval.html)")
     ap.add_argument("--hard-results", help="the eval page's hard-suite pilot: a PUZ check dir (demo-recordings branch: "
                     "puzzles/hard-gen-luna-check)")
     a = ap.parse_args(argv)
-    panes = [Pane(p) for p in a.game] + [Pane(p, live=True, highlight_file=a.highlight_file) for p in a.live]
+    panes = [Pane(p) for p in a.game] + [Pane(p, live=True) for p in a.live]
     if not panes and not a.acceptance:
         ap.error("give at least one --game or --live (or --acceptance for the eval page alone)")
     for p in panes:
@@ -310,15 +287,6 @@ def main(argv=None):
             ap.error("no game-*.jsonl in %s" % p.path)
     srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images),
                       EvalReport(a.acceptance, a.hard_results))
-    if a.highlight_file:
-        # The Forge window's highlights follow the game whether or not a browser is polling.
-        def follow():
-            while True:
-                for p in panes:
-                    if p.highlight_file:
-                        p.refresh()
-                time.sleep(0.25)
-        threading.Thread(target=follow, daemon=True).start()
     print("DEMO http://%s:%d/  (%s)" % (a.host, srv.server_address[1], ", ".join(p.path for p in panes)), flush=True)
     try:
         srv.serve_forever()
