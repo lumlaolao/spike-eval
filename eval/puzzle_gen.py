@@ -46,11 +46,6 @@ def _join(names):
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
-def _count(names):
-    """'two Dark Rituals'-free plain listing: repeated names are written each time, as the hand shows them."""
-    return _join(names)
-
-
 def pzl_text(name, description, rule, state, solution, acceptance):
     lines = ["[metadata]", "Name:" + name, "Goal:Survive", "Turns:1", "Difficulty:Hard", "Description:" + description,
              "Rule:" + rule, "[state]"]
@@ -138,7 +133,7 @@ def ping_board(rng):
     desc = ("It is your %s main phase. You are at 20 life and control %s and %s untapped Mountain%s. Your hand is "
             "%s. The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
             % ("first" if phase == "MAIN1" else "second", _join(creatures), ["", "one", "two", "three"][mountains],
-               "" if mountains == 1 else "s", _count(hand), damage))
+               "" if mountains == 1 else "s", _join(hand), damage))
     rule = ("generated-ping | %d Alchemist(s) ping before each of %d spells and once after; rituals open with the "
             "lands, burn spends the pool exactly%s%s%s" % (alchemists, k, "; Fireblast last, after both Mountains "
             "tap" if fireblast else "", "; every spell before combat pumps Kiln Fiend" if kiln else "",
@@ -152,11 +147,6 @@ def ping_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
 
 
-STORM_RITUALS = {"Rite of Flame": (0, 1, 2), "Desperate Ritual": (1, 1, 3), "Pyretic Ritual": (1, 1, 3),
-                 "Seething Song": (2, 1, 5)}
-STORM_FREE = ("Gitaxian Probe", "Lotus Petal")
-
-
 def storm_board(rng):
     """Every spell cast before Grapeshot is one more copy, so the whole hand goes first and Grapeshot last. The
     mana is all red and exact: each ritual must be payable when it is cast (Seething Song needs three open; a Rite
@@ -164,16 +154,15 @@ def storm_board(rng):
     before Grapeshot also feeds the storm. A copy's target is a choice, not a step, so steps count casts only.
     Returns None when the draw cannot make a legal board of the right length."""
     mountains = rng.choice([1, 2, 2, 3])
-    names = sorted(STORM_RITUALS)
+    names = sorted(RITUALS)
     rituals = [rng.choice(names) for _ in range(rng.choice([2, 3, 3, 4]))]
     # An order that can be paid: cheapest first, Rites together, Seething Song once three are open.
-    order = sorted(rituals, key=lambda r: (STORM_RITUALS[r][0] + STORM_RITUALS[r][1], r != "Rite of Flame"))
+    order = sorted(rituals, key=lambda r: (RITUALS[r][0] + RITUALS[r][1], r != "Rite of Flame"))
     # No Lotus Petal: when the engine pays with one it asks for a colour, and a Petal that can make blue turns
     # Gitaxian Probe's Phyrexian cost into a mana-or-life question (34 of 40 storm boards drifted, 2026-10-20).
-    petals = 0
-    pool, lands, rites, petal_mana = 0, mountains, 0, petals
+    pool, lands, rites = 0, mountains, 0
     for r in order:
-        generic, red, added = STORM_RITUALS[r]
+        generic, red, added = RITUALS[r]
         cost = generic + red
         if r == "Rite of Flame":
             added += rites
@@ -184,12 +173,12 @@ def storm_board(rng):
         lands -= use
         pool -= cost - use
         pool += added
-    pool += lands + petal_mana
+    pool += lands
     if pool < 2:
         return None
     burn = [rng.choice(sorted(BURN)) for _ in range(pool - 2)]   # Grapeshot takes the last two
     probes = rng.choice([0, 1, 1, 2])
-    before = order + ["Lotus Petal"] * petals + ["Gitaxian Probe"] * probes + burn
+    before = order + ["Gitaxian Probe"] * probes + burn
     steps = len(before) + 1
     if not MIN_ACTIONS <= steps <= MAX_ACTIONS:
         return None
@@ -198,9 +187,8 @@ def storm_board(rng):
     herring = rng.random() < 0.4
     hand = before + ["Grapeshot"] + (["Goblin Guide"] if herring else [])
     rng.shuffle(hand)
-    # Petals are cast first (free) so the engine can spend them when it pays; the rituals in their order; the
-    # Probes; the burn; Grapeshot and a target for it and for each copy.
-    solution = ["# steps: %d" % steps] + ["cast Lotus Petal"] * petals + ["cast " + r for r in order]
+    # The rituals in their order; the Probes; the burn; Grapeshot and a target for it and for each copy.
+    solution = ["# steps: %d" % steps] + ["cast " + r for r in order]
     solution += sum([["cast Gitaxian Probe", "opponent"] for _ in range(probes)], [])
     for b in burn:
         solution += ["cast " + b, "opponent"]
@@ -236,8 +224,8 @@ def splice_best(hand, mana, alchemist):
     """The most damage the hand can deal, and one line that deals it, by exhaustive search over a model of the
     board: all mana red and paid from the pool (lands are only more pool); an Arcane spell may carry any of the
     splice cards still in hand (each paid again and kept); a ping before each spell while Thermo-Alchemist is
-    untapped. Returns (damage, steps, line) with line a list of (spell, splices) and None for a ping, or the best
-    without splicing when allow_splice is False."""
+    untapped. Returns (with_splice, without), each (damage, steps, line) with line a list of (spell, splices) and
+    None for a ping."""
     from functools import lru_cache
 
     @lru_cache(maxsize=None)
@@ -246,7 +234,7 @@ def splice_best(hand, mana, alchemist):
         if untapped and alchemist:
             d, st, ln = go(hand, mana, False, allow)
             best = max(best, (d + 1, st + 1, (None,) + ln), key=lambda x: (x[0], -x[1]))
-        for i, s in enumerate(sorted(set(hand))):
+        for s in sorted(set(hand)):
             rest = list(hand)
             rest.remove(s)
             g, r, add, dmg, arcane, _, _, _, _ = SPLICE_CARDS[s]
@@ -494,7 +482,7 @@ def red_board(rng):
         if tgt in ("any", "player"):
             solution.append("opponent")
         free = pool_m + untapped - max(0, g - (1 if reducer and c != "Gitaxian Probe" and g else 0)) - r
-        offered = [x for x in set(held) if RED[x][4] is not None and RED[x][6]
+        offered = [x for x in set(held) if RED[x][6]
                    and sum(RED[x][6]) <= free] if RED[c][4] else []
         if offered:
             solution.append("; ".join(chosen) if chosen else "none")
@@ -867,7 +855,6 @@ def elf_board(rng):
     x = 1 + sentinels + len(mana_names) + len(names) + 1
     if dmg >= (5 + x) + (1 + x) + sentinels * (2 + x) + len(mana_names) * (1 + x):
         return None
-    # The search tries the lowest unused index of each cost; name the elves in the order they are cast.
     lines = elf_lines(forests, sentinels, mana_names, names, moves)
     battlefield = ["Forest"] * forests + ["Heritage Druid"] + ["Nettle Sentinel"] * sentinels + mana_names
     hand = names + ["Craterhoof Behemoth"]

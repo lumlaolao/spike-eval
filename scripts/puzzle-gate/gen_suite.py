@@ -7,7 +7,9 @@ A board is active only when the gate's own rows show it verified hard:
 1. its written [solution] played as written against Forge's AI and solved, in 10 to 15 steps (the line stage);
 2. every floor failed it: random 0 of 20, PASS, first option and greedy 0 of 4, Forge's AI at most 1 of 4.
 The opponent's life is exactly what the line deals (puzzle_gen.py sets it to the search's maximum for splice, red,
-drain, elf and fling), so a weaker line never wins. Any other board is written as dropped with its reason.
+drain, elf and fling; for fling, over lines that cast each spell at the first priority it can). A board the floors
+measured that fails is written as dropped with its reason; one dropped at the line stage is printed, not written
+(a suite record needs its baselines).
 Free: no model is called. `line --minimality` (puzzle_baselines.py) does not judge these boards: a removed step
 leaves the rest of an interlocked line unplayable, so nearly every removal is inconclusive (drain_0026d851c85f,
 2026-10-21: 1 of 53 groups necessary, 16 inconclusive, 36 of them `pass` lines).
@@ -24,10 +26,6 @@ import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 
 FLOORS = {"random": 0, "pass": 0, "first": 0, "greedy": 0, "ai": 1}   # most solves each may have (gen_gate.py)
-
-
-def rows_of(path):
-    return [json.loads(l) for l in Path(path).read_text().splitlines() if l.strip()] if Path(path).is_file() else []
 
 
 def family_of(pzl_text):
@@ -76,11 +74,12 @@ def build_suite(gate_dir, boards_dir, repo=REPO, engine="unknown", date=None):
     recs = []
     for row in rows:
         pid = "hard-" + row["board"].replace("_", "-")
-        if pid not in floors:   # dropped at the line stage: never floored
+        pzl = Path(boards_dir) / (row["board"] + ".pzl")
+        if pid not in floors:   # dropped at the line stage, never floored: no baselines to record
+            print("  not in the suite %-24s %s" % (row["board"], row.get("dropped", "no floors record")))
             continue
-        line_rows = rows_of(gate_dir / "line" / row["board"] / "puzzle-results.jsonl")
-        recs.append(board_record(floors[pid], row, line_rows[-1] if line_rows else None,
-                                 Path(boards_dir) / (row["board"] + ".pzl"), repo, engine, date))
+        line_rows = pb.read_results(gate_dir / "line" / row["board"])
+        recs.append(board_record(floors[pid], row, line_rows[-1] if line_rows else None, pzl, repo, engine, date))
     m = pf.candidate_suite("hard-gen", "1", engine, recs)
     return pf.freeze(m)
 

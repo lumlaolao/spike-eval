@@ -95,6 +95,9 @@ def main(argv=None):
                     or r["floors"][arm] > most]
             if over:
                 r["dropped"] = "floors: " + ", ".join("%s %s" % (arm, r["floors"][arm]) for arm in over)
+        for r in rows:   # passed the line but has no floors record: never measured, never kept
+            if "dropped" not in r and "floors" not in r:
+                r["dropped"] = "floors: no record"
     kept = out / "kept"
     kept.mkdir(exist_ok=True)
     for p, r in zip(boards, rows):

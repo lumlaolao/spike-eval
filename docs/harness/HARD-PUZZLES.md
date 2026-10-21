@@ -86,8 +86,7 @@ Heritage Druid taps the Sentinels before each green spell (which untaps them) an
 +X/+X goes to the creatures that started untapped, so tapping the Druid or a starting mana elf costs an attacker;
 boards whose best line casts everything and attacks with everything are dropped. The line resolves each object of
 its own on the stack with `pass` only in the windows the seat is asked (one where only a Swamp's or Forest's mana is
-playable is skipped by the seat). Gate (`scripts/puzzle-gate/gen_gate.py -j 1`): 6 drain + 6 elf (seed 11) kept 12
-of 12, then 40 drain (seed 2) kept 40 of 40; every floor at 0. They are in the generated hard suite
+playable is skipped by the seat). They are in the generated hard suite
 (`eval/PUZZLES.md`, "The generated hard suite"; status and the paid model check:
 `docs/harness/history/2026-10-20-generated-hard-puzzles.md`). Not done: the 40 elf boards of seed 2 were generated but
 not gated (on branch `feat/hard-gen`); neither family carries a trap line at 1 to 3 life or a check that no mana

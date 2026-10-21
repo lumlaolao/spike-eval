@@ -555,7 +555,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     by the engine. Its hard suite (`eval/suites/puzzles-hard-gen-v1.json`) is generated (`eval/puzzle_gen.py`): each
     board's own written line is its reference line (`arm: written`), replayed against Forge's AI, and a board is
     active only when every floor failed it. *Why:* the proven rules puzzles are mostly one or two actions; a
-    generated board is 10 to 15 steps with no slack, and is fresh, so it cannot be memorised.
+    generated board is 10 to 15 steps with the opponent at exactly what its line deals, and is fresh, so it
+    cannot be memorised.
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a
   deck-matchup term and cluster-bootstrap CIs.
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,

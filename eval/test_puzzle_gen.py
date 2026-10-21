@@ -166,7 +166,7 @@ class FamilyBoardsTest(unittest.TestCase):
             self.assertEqual(stated_life(text), b["life"])
         return boards
 
-    def test_drain_boards(self):
+    def test_a_drain_boards_life_is_the_searched_maximum_in_the_steps_it_states(self):
         for b in self.check_common("drain"):
             s = b["search"]
             drain, steps, _ = pg.drain_search(s["swamps"], s["land"], set(s["bf"]), set(s["gy"]), set(s["hand"]),
@@ -177,7 +177,7 @@ class FamilyBoardsTest(unittest.TestCase):
                        and l != "activate Ashnod's Altar"]
             self.assertEqual(len(counted), b["actions"], "the line takes the steps it states")
 
-    def test_elf_boards(self):
+    def test_an_elf_boards_life_is_the_searched_maximum_and_each_sentinel_is_asked_per_spell(self):
         for b in self.check_common("elf"):
             s = b["search"]
             costs = [pg.ELF_HAND[n] for n in s["elves"]]

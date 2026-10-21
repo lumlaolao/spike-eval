@@ -14,7 +14,8 @@ gate's own output (`scripts/puzzle-gate/gen_gate.py`, `OUT/gate.json`).
   ([arXiv 2601.20856](https://arxiv.org/html/2601.20856v1)); PuzzlePlex and the Countdown benchmark generate fresh
   instances so a suite cannot be memorised ([2510.06475](https://arxiv.org/html/2510.06475v1),
   [2508.02900](https://arxiv.org/html/2508.02900v1)).
-- Our own suite: 452 of 525 proven rules-puzzle lines are one or two actions (`retier` of the 526, 2026-10-20).
+- Our own suite: 452 of 525 proven rules-puzzle lines are one or two actions (difficulty `L <= 2` in
+  `eval/puzzles/retier/retier-v2-measures.json`, branch `data/retier-v2` at 9f7bc75, the 2026-10-20 re-tier).
 
 ## How a board is made (`eval/puzzle_gen.py`)
 
@@ -68,20 +69,24 @@ Every active board passed, on that build: its written line replayed and solved (
 
 **What "hard" rests on.** The floors say no blind or one-move-deep player wins. The opponent's life is exactly what
 the line deals: for splice, red, drain, elf and fling that is the maximum of an exhaustive search over a model of
-the board, so no line deals more and every weaker line loses; for ping and storm it is what the constructed line
-deals, not a proven maximum. The minimality replay (`puzzle_baselines.py line --minimality`) was tried and does not
-judge these boards: a removed step leaves the rest of an interlocked line unplayable (drain_0026d851c85f: 1 of 53
-groups necessary, 16 inconclusive, the other 36 `pass` lines).
+the board, so no line deals more and every weaker line loses (for fling, over lines that cast each spell at the
+first priority it can, as a written line plays: a player who passes on purpose can deal up to 3 more on 3 of the 5
+fling boards, so a line up to 3 short also wins there); for ping and storm it is what the constructed line deals,
+not a proven maximum. The minimality replay (`puzzle_baselines.py line --minimality`) was tried and does not judge
+these boards: a removed step leaves the rest of an interlocked line unplayable (drain_0026d851c85f: 1 of 53 groups
+necessary, 16 inconclusive, the other 36 `pass` lines).
 
 **The model check (paid).** GPT-6 Luna (`openrouter:openai/gpt-6-luna`, the faithful profile, tools off) took one
-attempt at 68 of the 84 open boards, every family included (`eval/puzzle_solve.py --k 1 --budget-usd 0.98`, run
-directory `runs/puzzles/hard-gen-luna-check`, against a provisional suite with the same boards and files,
-`check-suite.json` there; $0.912, plus $0.014 for a one-board pilot). It solved 20 (table above), against 0 for
-every floor. Without ping it solved 5 of 51. On its 48 misses it left the opponent at 2 to 39 life (median 4). The
-harness was clean in every game: `ai=0`, `textParses=0`; the 151 decisions taken for the seat had no choice (no
-options, or one forced target). One attempt a board is a check, not a score: a PUZ score takes k=4
-(`eval/PUZZLES.md`). Ping is kept as its own family (owner, 2026-10-21): the floors fail it, Luna mostly solves it,
-and its life total is not a searched maximum.
+attempt at 68 of the 84 open boards, every family included (one board of each family in turn until 68, so the 16
+left out are 14 drain and 2 splice) (`eval/puzzle_solve.py --k 1 --budget-usd 0.98`, run directory
+`runs/puzzles/hard-gen-luna-check`, against a provisional suite with the same boards and files, `check-suite.json`
+there; $0.912, plus $0.014 for a one-board pilot). It solved 20 of 68 (29%, Wilson 95% interval 20% to 41%), against
+0 for every floor (random 0 of 20 a board). Without ping it solved 5 of 51 (10%, 4% to 21%); ping alone 15 of 17
+(66% to 97%). The other families' counts are too small to tell apart. On its 48 misses it left the opponent at 2 to
+39 life (median 4). The harness was clean in every game: `ai=0`, `textParses=0`; the 151 decisions taken for the
+seat had no choice (no options, or one forced target). One attempt a board is a check, not a score: a PUZ score
+takes k=4 (`eval/PUZZLES.md`). Ping is kept as its own family (owner, 2026-10-21): the floors fail it, Luna mostly
+solves it, and its life total is not a searched maximum.
 
 The active set is not filtered on the model's result: keeping only the boards one model fails would make the suite
 hard for that model by construction.
@@ -95,6 +100,12 @@ hard for that model by construction.
 - Most fling lines open the second main phase with Rite of Flame; elf boards with one Sentinel repeat a few life
   totals (31, 35, 47). More variety before more boards.
 - The suite has 116 boards, short of the 200 asked for.
+- The splice and red searches pick splice cards by name, so they never splice two copies of one card onto a spell;
+  Forge offers each copy. A multiset search gives the same maximum on all 29 kept splice boards (pr-review of #290),
+  but a future board's "maximum" could be beaten. The red search maximises spell damage and adds Kiln Fiend's attack
+  afterwards, so a free cast that only pumps the Fiend can be missed (no red board is in the suite).
+- The held-out boards carry their `[solution]` and `Rule:` lines in the repository while it is private (owner,
+  2026-10-21; `eval/PUZZLES.md`); they must be stripped before it is made public.
 - Run faster next time (owner, 2026-10-21): a model check waits on the provider, not the CPU (about 15 s a call),
   so run it 8 to 12 attempts at a time, not 3; split the engine gates into batches run side by side rather than in
   one queue. This check took about two hours at 3 at a time.
