@@ -22,17 +22,19 @@ the bar in `docs/harness/HARD-PUZZLES.md` section 1:
   `suite-p45.json` holds `blocker_removed`'s older bytes) and `runs/puzzles/niche/recheck/floors.json` (per game:
   `runs/puzzles/niche-recheck-baselines/`), which re-measures the boards edited since;
 - `--minimality`, which replays the line with each action removed, against Forge's AI only. Many removals are
-  "inconclusive" (the shortened line stalls: later labels no longer match). Only some were replayed as hand-written
-  variant lines, each of which lost: `zones/variants/` (crawler, four flayer lines, hunter, mirror, zones_redcap) and
-  the stack theme's `split-second-minimality2/` and `token-first-minimality2/`, whose attack was rebuilt by hand for
-  each removal. The other inconclusive removals have no ruling: a stall usually means the mana or the target for a later
-  action is missing, a likely but unproven sign the removed action is needed. Some removals came back "played" (solved
-  without them): the `pass` lines (21 of `crawler`'s 33, all 23 of `mirror`'s, 16 of `zones_redcap`'s 18, three of
-  `blocker_removed`'s four), which only let the stack resolve; `humility`'s land drop, four Thuds and Fling, because
-  Forge's AI declined the Royal Assassin chump block the worst case needs; and one `torbran` Bombardment, because the AI
-  took the larger damage order. Minimality against Forge's AI therefore cannot rule on `humility` or `torbran`. Outputs
-  in `runs/puzzles/niche/<theme>/<run>-minimality*/` (combat: `<run>-min/`); `blocker_removed` and `zones_redcap`,
-  edited after their first run, were replayed on the committed bytes in `recheck/blocker_removed-minimality/` and
+  "inconclusive" (the shortened line stalls or drifts: a later label or amount no longer fits). Four were replayed as
+  hand-written lines without the action, each of which lost: `zones/variants/flayer-noCloudshift`, `-noEphemerate`,
+  `-noGeist` and `redcap-noBattlegrowth`; the other four `zones/variants/` runs are trap lines (a tempting wrong order,
+  each lost), not removals. The stack theme's `split-second-minimality2/` and `token-first-minimality2/` rebuilt the
+  attack by hand for each removal and settled 5 of 9 and 6 of 9; the rest still stall. The other inconclusive removals
+  have no ruling: a stall usually means the mana or the target for a later action is missing, a likely but unproven sign
+  the removed action is needed. Some removals came back "played" (solved without them): the `pass` lines (21 of
+  `crawler`'s 33, all 23 of `mirror`'s, 16 of `zones_redcap`'s 18, three of `blocker_removed`'s four), which only let
+  the stack resolve; `humility`'s land drop, four Thuds and Fling, because Forge's AI declined the Royal Assassin chump
+  block the worst case needs; and one `torbran` Bombardment, because the AI took the larger damage order. Minimality
+  against Forge's AI therefore cannot rule on `humility` or `torbran`. Outputs in
+  `runs/puzzles/niche/<theme>/<run>-minimality*/` (combat: `<run>-min/`); `blocker_removed` and `zones_redcap`, edited
+  after their first run, were replayed on the committed bytes in `recheck/blocker_removed-minimality/` and
   `recheck/zones_redcap-minimality/` with the same result; `hunter`'s minimality ran on bytes that differ from the
   committed file only in its `Rule:` line, which neither the engine nor the seat reads.
 
@@ -70,7 +72,7 @@ A held-out split and a frozen suite are not made yet: these files are open answe
 | layers | `layers/niche_layers_lattice.pzl` | March of the Machines depends on Mycosynth Lattice (613.8, 613.8a) | 10 (6 without mana taps) | block |
 | stack | `stack/niche_stack_token_first.pzl` | ordering simultaneous triggers: the token before the pump (603.3b, 611.2c) | 10 | which of 12 creatures is blocked |
 | stack | `stack/niche_stack_steam_kin.pzl` | intervening-if triggers checked on cast and resolution (603.4, 605.3a) | 10 | none |
-| stack | `stack/niche_stack_redcap.pzl` | counter annihilation in response to the persist trigger (704.5q, 704.3) | 12 | none |
+| stack | `stack/niche_stack_redcap.pzl` | counter annihilation in response to the persist trigger (704.5q, 704.3) | 11 | none |
 | stack | `stack/niche_stack_split_second.pzl` | split second shuts off the opponent's fog; it counts for storm (702.61a-b, 702.40a) | 10 | block |
 | stack | `stack/niche_stack_storm_copy.pzl` | a copy of a storm spell is not cast and gets no storm copies (702.40a, 707.10) | 10 | none |
 
