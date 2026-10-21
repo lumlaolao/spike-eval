@@ -4,14 +4,30 @@ Hand-authored boards whose solution turns on one rarely-met rule, five per theme
 `Description:` (the seat's brief), a `Rule:` line naming the rule and its CR numbers (the seat never reads it), a
 `[solution]` written line and an `[acceptance]` state (`eval/PUZZLES.md`).
 
-Every puzzle was checked with the free tools, no model involved (`eval/PUZZLES.md`, "Proving a written line"):
+Every puzzle was checked with the free tools, no model involved (`eval/PUZZLES.md`, "Proving a written line"), against
+the bar in `docs/harness/HARD-PUZZLES.md` section 1:
 
-- `puzzle_baselines.py line`: the written line plays every line and solves against Forge's AI;
-- `line --opponent search`: `proven`, the one fixed line beats every opponent reply the engine offers;
-- floors: random (50 or 20 rollouts), PASS, first-option and Forge AI as the solver all fail (one exception below);
-- `--minimality` where it can rule: no action was ever found unneeded on a final file; many removals are
-  "inconclusive" because the shortened line stalls (later labels no longer match), and the authors replayed those by
-  hand-written variants, each of which lost.
+- `puzzle_baselines.py --build B line --pzl <file>`: the written line plays every line and solves against Forge's AI;
+  all 25 re-run on the committed files, outputs in `runs/puzzles/niche/final/<name>/`;
+- `line --opponent search`: `proven`, the one fixed line beats every opponent reply the engine offers. Search budgets:
+  zones and `token_first` 200 (the zones recheck 600), combat 400, layers 1000, replacement 2000, stack and `torbran`
+  3000. Outputs in `runs/puzzles/niche/<theme>/<slug>-search/`; the five files edited after their first proof (four
+  zones boards and `blocker_removed`) were proven again on the committed bytes in `runs/puzzles/niche/recheck/`;
+- floors, from `puzzle_baselines.py run --arms random,pass,first,ai --baselines-only` on a one-theme candidate suite:
+  random (50 rollouts; the stack theme 20, too few to resolve the bar's "at most 2%"), PASS (4 seeds), first-option
+  (4) and Forge AI as the solver (4). Every one solved 0, except `reequip`, Forge AI 1 of 4. Outputs in
+  `runs/puzzles/niche/<theme>/` (`floors*`, `*-floors*`) and `runs/puzzles/niche/recheck/floors.json`;
+- `--minimality`, which replays the line with each action removed, against Forge's AI only. Many removals are
+  "inconclusive" (the shortened line stalls: later labels no longer match), and the authors replayed those as
+  hand-written variant lines, each of which lost. Some removals came back "played" (solved without them): the `pass`
+  lines of `crawler`, `mirror`, `zones_redcap` and three of `blocker_removed`'s four, which only let the stack
+  resolve; `humility`'s land drop, four Thuds and Fling, because Forge's AI declined the Royal Assassin chump block
+  the worst case needs; and one `torbran` Bombardment, because the AI took the larger damage order. Minimality
+  against Forge's AI therefore cannot rule on `humility` or `torbran`. Outputs in
+  `runs/puzzles/niche/<theme>/<slug>-minimality*/`.
+
+The `runs/` outputs are not committed; each command above reproduces them, with `B` an isolated acceptance build and
+`FORGE_HOME` the pinned checkout.
 
 A held-out split, a frozen suite and the greedy-preview floor are not made yet: these files are open answers.
 
@@ -29,7 +45,7 @@ A held-out split, a frozen suite and the greedy-preview floor are not made yet: 
 | replacement | `replacement/niche_replacement_consuls.pzl` | Authority of the Consuls checks the permanent after the copy effect (614.12, 616.1c) | 10 | block |
 | zones | `zones/niche_zones_flayer.pzl` | a flickered card is a new object; Flayer triggers only from the graveyard (400.7, 702.93a) | 11 | block |
 | zones | `zones/niche_zones_redcap.pzl` | persist and counter annihilation; last-known information (702.79a, 704.5q, 603.10a) | 14 | block |
-| zones | `zones/niche_zones_hunter.pzl` | Fiend Hunter's linked triggers; Banisher Priest leaving first (607.2a, 610.3c) | 10 | block (2 choice points) |
+| zones | `zones/niche_zones_hunter.pzl` | Fiend Hunter's linked triggers; Banisher Priest leaving first (607.2a, 610.3b) | 10 | block (2 choice points) |
 | zones | `zones/niche_zones_mirror.pzl` | tokens cease to exist off the battlefield; undying on a token copy (111.8, 704.5d) | 13 | block |
 | zones | `zones/niche_zones_crawler.pzl` | cast triggers never see "put onto the battlefield" (601.2i, 601.3) | 17 | block |
 | layers | `layers/niche_layers_switch.pzl` | P/T switching applies after every other P/T effect (613.4b-d) | 10 | an instant (Lightning Bolt) |
@@ -43,14 +59,18 @@ A held-out split, a frozen suite and the greedy-preview floor are not made yet: 
 | stack | `stack/niche_stack_split_second.pzl` | split second shuts off the opponent's fog; it counts for storm (702.61a-b, 702.40a) | 10 | block |
 | stack | `stack/niche_stack_storm_copy.pzl` | a copy of a storm spell is not cast and gets no storm copies (702.40a, 707.10) | 10 | none |
 
-L counts the solver's plays and attacks on the written line.
+L counts the solver's actions on the written line as HARD-PUZZLES.md section 1 does (casts, non-mana activations,
+land drops, attacks, and a mana ability where the engine offers it as a choice: `lattice`'s four taps); `leyline`'s
+Ashnod's Altar sacrifices are mana abilities the engine does not offer, so its L of 10 leaves them out (14 with them).
 
 Known limits:
 
 - `torbran`: Forge orders several damage replacements from a `HashMap`, so the order offered changes between games;
-  its search proof drifted on 2 of 4 tries and Forge's AI picks an order at random. Provisional until that is made
+  its search proof drifted on 2 of 4 tries by its author's count (two of those runs are kept:
+  `torbran-search`, proven, and `torbran-search-drift1`), and Forge's AI picks an order at random. Provisional until that is made
   deterministic.
-- Short of the bar: `marked_lethal` (L 9), `humility` (L 8), `lattice` (L 6 without mana taps);
+- Short of the bar: `marked_lethal` (L 9), `humility` (L 8), `lattice` (L 6 without its mana taps); the stack
+  theme's random floor ran 20 rollouts, not 50;
   `late_double_strike`'s opponent choice is a discard; `steam_kin`, `stack_redcap` and `storm_copy` give the
   opponent no choice.
 - `reequip`: Forge AI as the solver won 1 of 4 (within the bar's "at most 1 of 4"), on a line that worked only

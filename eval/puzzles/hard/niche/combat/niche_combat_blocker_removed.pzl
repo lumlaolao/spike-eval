@@ -17,8 +17,9 @@ p1life=18
 p1battlefield=Rumbling Baloth;Forest;Forest;Forest
 p1library=Forest;Forest;Forest;Forest
 [solution]
-# Each PASS lets a ritual resolve before the next is cast, so every cost after the first is paid from the pool; the
-# untap lines keep both Swamps (the Jackal's {B}{B}) and two Mountains (Temur Battle Rage) for combat.
+# The PASS lines let each ritual resolve before the next is cast (the strict replay drifts without them; the relaxed
+# minimality replay solved with three of them removed); the untap lines keep both Swamps (the Jackal's {B}{B}) and
+# two Mountains (Temur Battle Rage) for combat.
 cast Rite of Flame
 untap: Mountain; Mountain; Mountain; Swamp; Swamp
 cast Rite of Flame
