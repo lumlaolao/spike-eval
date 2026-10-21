@@ -83,7 +83,12 @@ class Pane:
                 self._puzzle = False
             else:
                 m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
-                self._puzzle = demo_puzzle.info(run, m.group(1) if m else None)
+                if m:  # which game of its seed this is, oldest first (a re-run into the directory appends rows)
+                    same = sorted(int(g.group(2)) for g in map(demo_events.GAME_FILE.search, os.listdir(run))
+                                  if g and g.group(1) == m.group(1))
+                    self._puzzle = demo_puzzle.info(run, m.group(1), same.index(int(m.group(2))))
+                else:
+                    self._puzzle = demo_puzzle.info(run)
         return self._puzzle or None
 
     @property

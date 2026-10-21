@@ -159,6 +159,14 @@ class PuzzleTest(unittest.TestCase):
             self.assertTrue(live.reader.path.endswith("game-2-1792546299999.jsonl"))
             self.assertFalse(live.done)
             self.assertIsNone(live.summary()["puzzle"])
+            # a second run of the same seed into the directory (a rehearsal, then the real attempt): the newer game
+            # of seed 1 has no row of its own yet, so it is neither done nor given the first run's result
+            os.remove(os.path.join(d, "game-2-1792546299999.jsonl"))
+            shutil.copy(game, os.path.join(d, "game-1-1792546999999.jsonl"))
+            again = srv.Pane(d, live=True)
+            self.assertTrue(again.reader.path.endswith("game-1-1792546999999.jsonl"))
+            self.assertFalse(again.done)
+            self.assertIsNone(again.summary()["puzzle"])
         finally:
             shutil.rmtree(d)
 

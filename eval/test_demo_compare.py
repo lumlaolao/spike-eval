@@ -5,6 +5,7 @@ import io
 import json
 import os
 import shutil
+import signal
 import subprocess
 import tempfile
 import unittest
@@ -299,6 +300,41 @@ class ArmTest(unittest.TestCase):
                 self.assertLess(printed.index("--live"), printed.index("[now]"))
             else:
                 self.assertNotIn("--live", printed)
+
+    def test_a_stop_while_the_arms_play_stops_every_arms_process_group(self):
+        killed = []
+
+        class Proc:
+            n = 0
+
+            def __init__(self, cmd, **kw):
+                Proc.n += 1
+                self.pid = 1000 + Proc.n
+
+            def wait(self):
+                raise SystemExit(143)  # a SIGTERM arriving while the arms play
+
+            def poll(self):
+                return None
+        d = tempfile.mkdtemp()
+        try:
+            for name in ("now", "then"):
+                os.makedirs(os.path.join(d, name, "forge-home"))
+                open(os.path.join(d, name, "forge-home", "run-llm-headless.sh"), "w").close()
+            args = ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd", "0.4",
+                    "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build",
+                    os.path.join(d, "then"), "--worktree", os.path.join(d, "harness-then"), "--parallel"]
+            before = signal.getsignal(signal.SIGINT)
+            with mock.patch.object(dc, "check_pins", lambda *a: None), \
+                    mock.patch.object(dc, "arm_record", lambda repo, name: {"arm": name}), \
+                    mock.patch.object(dc.subprocess, "Popen", Proc), \
+                    mock.patch.object(dc.os, "killpg", lambda pid, sig: killed.append(pid)), \
+                    contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
+                dc.main(args)
+            self.assertEqual(signal.getsignal(signal.SIGINT), before)  # the handlers are put back
+        finally:
+            shutil.rmtree(d)
+        self.assertEqual(sorted(killed), [1001, 1002])
 
     def test_an_arm_records_the_commit_it_played(self):
         rec = dc.arm_record(dc.REPO, "now")

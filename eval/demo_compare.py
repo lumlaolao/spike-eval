@@ -355,7 +355,9 @@ def run(a):
     running = []  # --parallel: both arms play at once (watched live with demo_server --live), each its own JVM
     # The arms run in their own process groups, so a hangup or a kill of this process no longer reaches them: turn
     # both into an exit, so the finally below stops them (a paid game would otherwise play on, and spend).
-    for sig in (signal.SIGTERM, signal.SIGHUP):
+    stops = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)
+    before = {sig: signal.getsignal(sig) for sig in stops}
+    for sig in stops[:2]:
         signal.signal(sig, lambda n, _: sys.exit(128 + n))
     try:
         for name, (repo, _) in arms.items():
@@ -386,6 +388,8 @@ def run(a):
         for p, _ in running:
             p.wait()
     finally:
+        for sig in stops:  # a second signal must not cut the stopping short
+            signal.signal(sig, signal.SIG_IGN)
         for p, f in running:
             if p.poll() is None:
                 try:
@@ -396,6 +400,8 @@ def run(a):
                 f.close()
         if fake:
             fake.terminate()
+        for sig, handler in before.items():
+            signal.signal(sig, handler)
     print("replay: python3 eval/demo_server.py --game %s --game %s" % (os.path.join(out, "now"), os.path.join(out, "then")))
     return 0
 

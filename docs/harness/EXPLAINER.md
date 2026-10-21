@@ -164,8 +164,9 @@ step of the reference solution too.
 - **Why Forge and not MTG Arena?** Forge is open source, implements the comprehensive rules, runs headless and can
   be pinned to a commit. Arena has no API for an agent.
 - **Does the model know the rules?** It can look them up (`rules_lookup`), because a model's memory of the
-  comprehensive rules is unreliable at the edges. On the rules sample it never did, and still solved 90% of
-  attempts (REPORT.md).
+  comprehensive rules is unreliable at the edges. On the rules sample it never did. With the neutral brief
+  (epoch 67) it solved 119 of 145 attempts with lookups off and 127 with them on, against a first-option floor of
+  0.21 and Forge's AI at 0.30 (REPORT.md; the earlier 130 of 145 was helped by the puzzle's name).
 - **What does it cost?** Cents a game; the full STR-AI panel is $32 to $80. Every paid run states its cost first
   and is capped by `--budget-usd`; small per-game costs add up (204 games in one day came to about $8).
 - **How do you know a change did not break it?** The acceptance gate above, plus three review passes on every PR

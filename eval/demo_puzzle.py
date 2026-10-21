@@ -26,9 +26,11 @@ import puzzle_format as pf  # noqa: E402
 REPO = os.path.dirname(HERE)
 
 
-def result_row(run_dir, seed=None):
+def result_row(run_dir, seed=None, attempt=None):
     """The puzzle-results.jsonl row of the run: the one for `seed` when given (None when that attempt wrote no row:
-    another seed's result is never borrowed), else the last."""
+    another seed's result is never borrowed), else the last. `attempt` (0-based) is which game file of that seed this
+    is, oldest first: a second run into the same directory replays the same seeds and appends, so the n-th game of a
+    seed pairs with the n-th row of it, and an attempt whose row is not written yet has none."""
     path = os.path.join(run_dir, "puzzle-results.jsonl")
     try:
         with open(path) as f:
@@ -37,6 +39,8 @@ def result_row(run_dir, seed=None):
         return None
     if seed is not None:
         rows = [r for r in rows if str(r.get("seed")) == str(seed)]
+    if attempt is not None:
+        return rows[attempt] if attempt < len(rows) else None
     return rows[-1] if rows else None
 
 
@@ -70,9 +74,9 @@ def steps_mappable(row):
             and not row.get("script_exhausted") and not row.get("script_waits") and not row.get("script_untaps_left"))
 
 
-def info(run_dir, seed=None):
+def info(run_dir, seed=None, attempt=None):
     """The puzzle panel for one run directory, or None when the directory holds no puzzle result."""
-    row = result_row(run_dir, seed)
+    row = result_row(run_dir, seed, attempt)
     if not row:
         return None
     out = {"id": row.get("id"), "status": row.get("status"), "solved": bool(row.get("solved")),

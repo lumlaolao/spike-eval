@@ -125,7 +125,7 @@ class Pane {
     if (gen !== this.gen || (s.gen != null && s.gen !== this.gen)) return;  // a summary of another game
     this.info.summary = s;
     // A live pane learns it is a puzzle only now: leave watch mode for full detail, as fromHash would have.
-    if (s.puzzle && app.watchAuto) { app.watchAuto = false; app.panes.forEach(p => p.play(false)); document.body.classList.remove("watch"); app.renderWatchButton(); app.renderAll(); }
+    if (s.puzzle && app.watchAuto) { app.watchAuto = false; clearTimeout(app.timer); app.timer = null; app.panes.forEach(p => p.play(false)); document.body.classList.remove("watch"); app.renderWatchButton(); app.renderAll(); }
     this.renderSummary(); this.renderHead(); this.renderPuzzle(); this.renderStatus();
   }
 
@@ -621,7 +621,7 @@ const app = {
     $("#play").onclick = () => this.toggle();
     $("#logonly").onclick = () => { document.body.classList.toggle("logonly"); this.toHash(); };
     $("#watch").hidden = this.panes.length !== 2;
-    $("#watch").onclick = () => { this.watchAuto = false; document.body.classList.toggle("watch"); this.panes.forEach(p => p.play(false)); this.renderWatchButton(); this.renderAll(); };
+    $("#watch").onclick = () => { this.watchAuto = false; clearTimeout(this.timer); this.timer = null; document.body.classList.toggle("watch"); this.panes.forEach(p => p.play(false)); this.renderWatchButton(); this.renderAll(); };
     this.renderWatchButton();
     $("#turn").onchange = ev => {
       const t = +ev.target.value, p = this.panes[0];
