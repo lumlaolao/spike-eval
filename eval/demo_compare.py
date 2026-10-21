@@ -27,6 +27,7 @@ import json
 import os
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -304,6 +305,13 @@ def decks(a):
     return 0
 
 
+def arm_record(repo, name):
+    """OUT/<arm>/arm.json: which harness commit this arm played, so the viewer names it from the run, not a guess."""
+    show = subprocess.run(["git", "-C", repo, "show", "-s", "--format=%H %cs", "HEAD"], capture_output=True, text=True)
+    commit, date = (show.stdout.split() + ["", ""])[:2]
+    return {"arm": name, "commit": commit, "date": date}
+
+
 def run(a):
     if a.budget_usd is None or a.budget_usd <= 0:
         raise SystemExit("refusing: pass --budget-usd (a paid pair costs money; --fake runs cost nothing)")
@@ -319,29 +327,39 @@ def run(a):
     env = dict(os.environ)
     model = a.model
     fake = None
-    if a.fake:
-        # The loopback fake model: no egress, no key, no cost. Both arms answer the same way.
-        log = os.path.join(out, "fake_server.out")
-        os.makedirs(out, exist_ok=True)
-        fake = subprocess.Popen([sys.executable, os.path.join(REPO, "eval", "fake_model_server.py"), "--port", "0",
-                                 "--policy", "first", "--answer-tool", "--native-calls", "6"],
-                                stdout=open(log, "w"), stderr=subprocess.STDOUT)
-        port = None
-        for _ in range(40):
-            time.sleep(0.25)
-            with open(log) as f:
-                for line in f:
-                    if line.startswith("LISTENING"):
-                        port = line.split()[1]
-            if port:
-                break
-        if not port:
-            fake.terminate()
-            raise SystemExit("the fake model server never reported its port (see %s)" % log)
-        env.pop("OPENROUTER_ALLOW_EGRESS", None)
-        env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
-        model = "openrouter:fake/demo-model"
+    running = []  # --parallel: both arms play at once (watched live with demo_server --live), each its own JVM
+    # The arms run in their own process groups, so a hangup or a kill of this process no longer reaches them: turn
+    # both into an exit, so the finally below stops them (a paid game would otherwise play on, and spend).
+    stops = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)
+    before = {sig: signal.getsignal(sig) for sig in stops}
+    for sig in stops[:2]:
+        signal.signal(sig, lambda n, _: sys.exit(128 + n))
     try:
+        if a.fake:
+            # The loopback fake model: no egress, no key, no cost. Both arms answer the same way.
+            log = os.path.join(out, "fake_server.out")
+            os.makedirs(out, exist_ok=True)
+            fake = subprocess.Popen([sys.executable, os.path.join(REPO, "eval", "fake_model_server.py"), "--port", "0",
+                                     "--policy", "first", "--answer-tool", "--native-calls", "6"],
+                                    stdout=open(log, "w"), stderr=subprocess.STDOUT)
+            port = None
+            for _ in range(40):
+                time.sleep(0.25)
+                with open(log) as f:
+                    for line in f:
+                        if line.startswith("LISTENING"):
+                            port = line.split()[1]
+                if port:
+                    break
+            if not port:
+                fake.terminate()
+                raise SystemExit("the fake model server never reported its port (see %s)" % log)
+            env.pop("OPENROUTER_ALLOW_EGRESS", None)
+            env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
+            model = "openrouter:fake/demo-model"
+        if a.parallel:
+            print("live (start it now, before the games): python3 eval/demo_server.py --live %s --live %s"
+                  % (os.path.join(out, "now"), os.path.join(out, "then")), flush=True)
         for name, (repo, _) in arms.items():
             if a.arm not in ("both", name):
                 continue
@@ -357,14 +375,33 @@ def run(a):
                 run_env, log = env, None
             print("[%s]" % name, " ".join(cmd), flush=True)
             if not a.dry_run:
-                if log:
-                    with open(log, "w") as f:
-                        subprocess.run(cmd, env=run_env, cwd=repo, check=False, stdout=f, stderr=subprocess.STDOUT)
-                else:
-                    subprocess.run(cmd, env=run_env, cwd=repo, check=False)
+                os.makedirs(dest, exist_ok=True)
+                with open(os.path.join(dest, "arm.json"), "w") as f:
+                    json.dump(arm_record(repo, name), f)
+                f = open(log, "w") if log else None
+                # Its own process group, so stopping it stops the JVM under run_batch and bash too (a paid game).
+                p = subprocess.Popen(cmd, env=run_env, cwd=repo, stdout=f, stderr=subprocess.STDOUT if f else None,
+                                     start_new_session=True)
+                running.append((p, f))
+                if not a.parallel:
+                    p.wait()
+        for p, _ in running:
+            p.wait()
     finally:
+        for sig in stops:  # a second signal must not cut the stopping short
+            signal.signal(sig, signal.SIG_IGN)
+        for p, f in running:
+            if p.poll() is None:
+                try:
+                    os.killpg(p.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+            if f:
+                f.close()
         if fake:
             fake.terminate()
+        for sig, handler in before.items():
+            signal.signal(sig, handler)
     print("replay: python3 eval/demo_server.py --game %s --game %s" % (os.path.join(out, "now"), os.path.join(out, "then")))
     return 0
 
@@ -385,6 +422,8 @@ def main(argv=None):
     r.add_argument("--out", required=True)
     r.add_argument("--fake", action="store_true", help="both arms on the loopback fake model (free)")
     r.add_argument("--dry-run", action="store_true", help="print the commands only")
+    r.add_argument("--parallel", action="store_true",
+                   help="play both arms at once, to watch them live side by side (demo_server --live OUT/now --live OUT/then)")
     r.add_argument("--arm", choices=("both", "now", "then"), default="both",
                    help="play one arm only (its budget is then the whole --budget-usd), e.g. to redo a failed arm")
     for p in (b, n, r):

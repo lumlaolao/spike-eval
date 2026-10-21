@@ -15,7 +15,7 @@ measured and opted into as a separate condition.
 ## 1. The shape of it
 
 ```
- Forge rules engine (pinned commit; three marked patches, ENGINE-PATCHES.md)
+ Forge rules engine (pinned commit; four marked patches, ENGINE-PATCHES.md)
    │  asks the seat's PlayerController for every decision
    ▼
  PlayerControllerLLM  (forge-overlay/.../spike/LlmSpikeGui.java)
@@ -475,7 +475,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     first send (pr-review of #282).
 - `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget.
 - The owner rule is a small block first, with the expected cost stated before it starts.
-- *Why:* small per-game costs add up unseen. 204 games in one day came to about $8.
+- *Why:* small per-game costs add up unseen; `eval/cost_report.py` prices any run, and `--plan N` the next N games.
 
 ## 11. Zero-model arms and canaries
 
@@ -506,7 +506,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   `script:relaxed:<file>` (the minimality replays) answers a decision the line does not fit with the do-nothing
   option instead of drifting.
 
-- The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
+- The seed-42 floor and random mirrors are pinned canaries, at A/108/1828 and A/55/365 (Linux pins, `eval/harness_acceptance.expected`).
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).
   A canary that cannot move cannot catch a regression, so any change to an automatic path re-pins it
   with evidence.
@@ -584,9 +584,19 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   window. A daemon thread reads the file; nothing the seat reads is touched. *Why:* Forge already draws the board.
 - **The side by side (`demo_compare.py`)** builds this harness and an older commit of it (same engine pin, the feed
   ported in) in isolation and plays both on one seed and deck pair from the fixed sets in `eval/demo/decks.json`; the
-  viewer marks the first decision where the games part (`demo_events.divergence`).
+  viewer marks the first decision where the games part (`demo_events.divergence`). `--parallel` plays both arms at
+  once, each in its own JVM, so they can be watched live (`demo_server.py --live OUT/now --live OUT/then`); two panes
+  open in watch mode, one play button running each game on its own recorded clock (a puzzle pair opens in full
+  detail, where its puzzle panel is).
+- **Puzzle mode (`demo_puzzle.py`)**: a puzzle run's pane shows the brief the seat was told (the result row's
+  `goal_oracle`, else the .pzl's Description), who played (the puzzle's written line, another script, or a model),
+  the result row, and behind a reveal the .pzl's intended line, which the seat never sees. Solution steps are mapped
+  onto decisions only for a clean written-line run (no wait, untap fallback, drift or exhaustion in the script) of
+  the file that was played (`pzl_changed` when the .pzl's hash no longer matches the row's); another seed's result is
+  never borrowed. A puzzle pane is finished on its result row (a puzzle writes no game row).
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
-  via `puzzle_score.score`, and the STR scores as not yet run with their cost.
+  via `puzzle_score.score`, a hard-suite check as a labelled pilot (`--hard-results`, never pooled), and the STR
+  scores as not yet run with their cost.
 
 ## 13. How a change is checked
 

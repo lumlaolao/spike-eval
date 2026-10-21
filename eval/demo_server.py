@@ -27,6 +27,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 import demo_cards
 import demo_eval
 import demo_events
+import demo_puzzle
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo", "web")
 TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
@@ -45,6 +46,7 @@ class Pane:
         self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
         self.lock = threading.Lock()
         self._summary = None
+        self._puzzle = None     # a puzzle run's result (demo_puzzle.info) once its row is written; False: not a puzzle
         self.refresh()
 
     def refresh(self):
@@ -57,6 +59,7 @@ class Pane:
                     self.reader = demo_events.Reader(jsonl)
                     self.gen += 1
                     self._summary = None
+                    self._puzzle = None
                 if jsonl:
                     self.log = log
             if self.reader is not None:
@@ -68,7 +71,21 @@ class Pane:
 
     @property
     def done(self):
-        return self.reader is not None and self.reader.builder.game is not None
+        """The game row landed, or, for a puzzle, its result row (a puzzle run writes no game row)."""
+        return self.reader is not None and (self.reader.builder.game is not None or self.puzzle() is not None)
+
+    def puzzle(self):
+        """demo_puzzle.info for this pane's game when it is a finished puzzle attempt, else None. Kept once found; a
+        game with no puzzle-results.jsonl beside it is marked not a puzzle and never looked up again."""
+        if self._puzzle is None and self.reader is not None:
+            run = os.path.dirname(self.reader.path) or "."
+            if not os.path.isfile(os.path.join(run, "puzzle-results.jsonl")) and not self.live:
+                self._puzzle = False
+            else:
+                m = demo_events.GAME_FILE.search(os.path.basename(self.reader.path))
+                # a game file without a seed in its name is not paired with any row: no seed's result is borrowed
+                self._puzzle = demo_puzzle.info(run, m.group(1), self.reader.path) if m else False
+        return self._puzzle or None
 
     @property
     def events(self):
@@ -114,11 +131,34 @@ def write_highlights(path, events):
     os.replace(tmp, path)
 
 
+def run_decks(run_dir):
+    """The deck names a run_batch run played (its batch-manifest.json), e.g. ["vintage-esper-control", ...]; the game
+    row names the seats only ("Identity-A"). None without a manifest."""
+    try:
+        with open(os.path.join(run_dir, "batch-manifest.json")) as f:
+            cond = json.load(f).get("condition") or {}
+    except (OSError, ValueError):
+        return None
+    names = [os.path.splitext(os.path.basename(cond.get(k) or ""))[0] for k in ("deck_a", "deck_b")]
+    return names if all(names) else None
+
+
+def run_arm(run_dir):
+    """The side by side arm a run directory holds (demo_compare's arm.json: arm, commit, date), or None."""
+    try:
+        with open(os.path.join(run_dir, "arm.json")) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
 def build_summary(pane):
     """The strip under the board: the game row, the [TALLY] line, match_review counts, and the run's cost."""
     out = {"path": pane.path, "live": pane.live, "jsonl": pane.reader.path if pane.reader else None,
            "log": pane.log, "game": pane.reader.builder.game if pane.reader else None,
-           "tally": demo_events.tally(pane.log) if pane.log else {}}
+           "tally": demo_events.tally(pane.log) if pane.log else {}, "puzzle": pane.puzzle(),
+           "decks": run_decks(os.path.dirname(pane.reader.path)) if pane.reader else None,
+           "arm": run_arm(os.path.dirname(pane.reader.path)) if pane.reader else None}
     if pane.reader and pane.done:
         try:
             import match_review
@@ -139,15 +179,15 @@ def build_summary(pane):
 class EvalReport:
     """demo_eval.report for one acceptance dir, built once on first ask (the PUZ bootstraps take a few seconds)."""
 
-    def __init__(self, acceptance_dir=None):
-        self.acceptance_dir = acceptance_dir
+    def __init__(self, acceptance_dir=None, hard_dir=None):
+        self.acceptance_dir, self.hard_dir = acceptance_dir, hard_dir
         self.lock = threading.Lock()
         self.value = None
 
     def get(self):
         with self.lock:
             if self.value is None:
-                self.value = demo_eval.report(self.acceptance_dir)
+                self.value = demo_eval.report(self.acceptance_dir, self.hard_dir)
             return self.value
 
 
@@ -259,6 +299,8 @@ def main(argv=None):
     ap.add_argument("--fetch-images", action="store_true",
                     help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
     ap.add_argument("--acceptance", help="the eval page's gate: an OUT dir of eval/harness_acceptance.sh (/eval.html)")
+    ap.add_argument("--hard-results", help="the eval page's hard-suite pilot: a PUZ check dir (demo-recordings branch: "
+                    "puzzles/hard-gen-luna-check)")
     a = ap.parse_args(argv)
     panes = [Pane(p) for p in a.game] + [Pane(p, live=True, highlight_file=a.highlight_file) for p in a.live]
     if not panes and not a.acceptance:
@@ -267,7 +309,7 @@ def main(argv=None):
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
     srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images),
-                      EvalReport(a.acceptance))
+                      EvalReport(a.acceptance, a.hard_results))
     if a.highlight_file:
         # The Forge window's highlights follow the game whether or not a browser is polling.
         def follow():
