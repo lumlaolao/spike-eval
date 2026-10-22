@@ -90,10 +90,38 @@ records: `runs/puzzles/hard-gen3-gate/gen3-gate-*/gate.json`, `floors.json` and 
 | Batch | Seeds (infect / equip) | infect | equip | Kept |
 |---|---|---|---|---|
 | A | 101 / 102 | 7 | 8 | 15 of 15 |
+| B | 201 / 202 | 5 | 7 | 12 of 12 |
+| **all** | | **12** | **15** | **27 of 27** |
 
 Every written line played as written and solved in the steps it states; every floor (random 0 of 20, PASS, first
-option, greedy, Forge's AI 0 of 4 each) failed every board.
+option, greedy, Forge's AI 0 of 4 each) failed every board. No board was dropped: as for the second suite, the bar is
+the generator's, and the gate confirms the written lines and the floors. The batches share no board (by key).
+
+The kept set:
+- **infect (12)**: the opponent starts at 0 poison on every board, so 10 is the exact maximum and the last counter
+  comes from a proliferate after combat (Unnatural Restoration on 11, Thirsting Roots on 1); steps 13 on 8 boards,
+  14 on 4. The trap is 1 short on all 12: Become Immense cast as soon as it can be paid spends the mana that the
+  after-combat proliferate needed (binding on 12), and never proliferating stops at the 9 combat gives (11). Every
+  line cracks Baubles and casts Become Immense in combat; Mutagenic Growth on 9, Land Grant on 6, Rancor on 2.
+- **equip (15)**: life 39 to 65; steps 13 on 12 boards, 14 on 2, 15 on 1; the trap 2 short on 5 boards and 3 short
+  on 10. Binding plain plans: everything on the creature with the most power (12), cast every Equipment before
+  equipping (5), equip at once (3), Embercleave in the main phase (2). Every kept board has Puresteel Paladin (its
+  free equips are what make 13 steps affordable); Foundry Inspector on 12, Sigarda's Aid on 7, Embercleave cast in
+  combat on 2; 2 to 4 attackers.
 
 ## Not done
 
-NOT-DONE
+- No model has tried these boards; they are not in a frozen suite (`gen_suite.py --name hard-gen3 --gate ...`) and
+  have no open / held-out split.
+- **infect is one shape.** Every kept board is "fill the graveyard for Become Immense, hold a land for the last
+  proliferate"; none starts poisoned, and Inkmoth Nexus, the +1/+1 counters (Battlegrowth, Travel Preparations,
+  Courage in Crisis), Groundswell, Might of Old Krosa and Tezzeret's Gambit are in the search but in no kept line.
+  Hands without Become Immense reach 4 to 9 steps under the 10-poison cap (a 1,500-draw run found none at 13), and a
+  poisoned opponent means a lower maximum, so fewer steps. A second infect shape needs low-yield steps that are not
+  the graveyard's (more Inkmoth-like lands, or a cost that taxes each pump).
+- equip leans on Puresteel Paladin: without its free equips a 13-step line costs more mana than the boards hold.
+  Embercleave in combat is the line on 2 boards only.
+- Not modelled (so a line the engine allows could beat a stated maximum only through them): re-equipping, Rancor
+  returning to hand, Cranial Plating's {B}{B} attach (no black source on these boards), casting an Equipment or Aura
+  in combat with Sigarda's Aid for anything but Embercleave (no board gains by it), and Tezzeret's Gambit drawing
+  anything but Forests (the library is all Forests).
