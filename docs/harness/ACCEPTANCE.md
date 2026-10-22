@@ -9,8 +9,15 @@ are only read.
 
 A full run compiles once, then runs the later stages as four child runs side by side (`OUT/part<n>/`, their
 summaries merged into `OUT/summary.txt`), each JVM held to one core's worth of GC and compiler threads, with the
-keyword sweep split over `SWEEP_SHARDS` (2) JVMs: about 6 minutes on 4 cores against 11 one after another
-(2026-10-21). `ACCEPTANCE_JOBS=1` runs every stage in one process, as before.
+keyword sweep split over `SWEEP_SHARDS` (2) JVMs: 7m59s on 4 cores at load 0.5 when it started
+(`runs/harness-acceptance/par-92a2dbf`, 19/19 PASS, 2026-10-22), against 11m05s one after another
+(`runs/harness-acceptance/` of PR #290's 4e5e016 run, `OUT=/tmp/acc-hp-4e5e016`). The longest group then was
+pytests (2.4 minutes since the generated-puzzle tests) beside the canaries, so `gaming` moved to the lightest
+group. `ACCEPTANCE_JOBS=1` runs every stage in one process with the sweep in one JVM.
+
+The parent reads each child's exit status and requires a PASS or FAIL line for every stage it handed the child:
+a child killed while its canary game ran (`runs/harness-acceptance/par-killtest`, 2026-10-22) failed the run with
+"canary wrote no line" and "part1 exited 137", where reading FAIL lines alone had printed PASS.
 
 | Stage | What it proves | What would make it fail |
 | --- | --- | --- |

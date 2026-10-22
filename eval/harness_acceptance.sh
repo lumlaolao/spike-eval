@@ -226,7 +226,7 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/for
    && [ -f "$CP_FILE" ]; then
   rm -rf "$OUT"/part[0-9]*
   JOBS=""; i=0
-  PARALLEL_GROUPS='javatests surfaces lookahead answertool|pytests canary gaming nativetool|faketool nativerefuse faithful lines|rules turnchat scoring'
+  PARALLEL_GROUPS='javatests surfaces lookahead answertool|pytests canary nativetool|faketool nativerefuse faithful lines|rules turnchat scoring gaming'
   OLDIFS="$IFS"; IFS='|'; set -- $PARALLEL_GROUPS; IFS="$OLDIFS"
   for group in "$@"; do
     picked=""; for s in $group; do has_stage "$s" && picked="$picked $s"; done
