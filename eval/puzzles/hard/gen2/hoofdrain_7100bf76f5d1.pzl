@@ -1,0 +1,96 @@
+[metadata]
+Name:hoofdrain_7100bf76f5d1
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control three Forests, Heritage Druid, one Nettle Sentinel, Llanowar Elves, Elvish Mystic, Priest of Titania, Blood Artist, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Cylian Elf, Craterhoof Behemoth, Norwood Ranger, Treetop Warden, Elvish Lyrist and Wirewood Elf. The opponent is at 136 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 136 damage in 13 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 134, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cylian Elf;Craterhoof Behemoth;Norwood Ranger;Treetop Warden;Elvish Lyrist;Wirewood Elf
+p0battlefield=Forest;Forest;Forest;Heritage Druid;Nettle Sentinel;Llanowar Elves;Elvish Mystic;Priest of Titania;Blood Artist;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=136
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"elves": ["Wirewood Elf", "Norwood Ranger", "Cylian Elf", "Elvish Lyrist", "Treetop Warden"], "forests": 3, "mana_elves": ["Llanowar Elves", "Elvish Mystic"], "others": ["Blood Artist", "Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 134, "plans": {"attack_only": 124, "hoof_asap": 86, "keep_druid": 106, "keep_mana_creatures": -1, "never_tap_sentinels": 106, "sac_early": 107, "sac_new_only": 134, "tap_out_first": 110}, "short": 2}
+activate Forest
+activate Forest
+activate Forest
+cast Norwood Ranger
+yes
+cast Elvish Lyrist
+yes
+pass
+activate Priest of Titania
+cast Wirewood Elf
+yes
+cast Cylian Elf
+yes
+cast Treetop Warden
+yes
+pass
+activate Heritage Druid
+Norwood Ranger; Elvish Lyrist; Wirewood Elf
+activate Heritage Druid
+Nettle Sentinel; Cylian Elf; Treetop Warden
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Norwood Ranger
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Lyrist
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wirewood Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cylian Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Treetop Warden
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid; Llanowar Elves; Elvish Mystic; Blood Artist; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0

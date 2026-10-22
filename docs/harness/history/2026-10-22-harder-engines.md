@@ -51,10 +51,13 @@ will not attack (the elves cast, the starting ones tapped) after the trigger and
 |---|---|---|---|---|
 | A | 6 | 0 | 19 | 25 of 25 |
 | B | 8 | 2 | 15 | 25 of 25 |
-| C | 7 | 0 | 17 | gating (lines: 24 of 24 played and solved) |
+| C | 7 | 0 | 17 | 24 of 24 |
+| **all** | **21** | **2** | **51** | **74 of 74** |
 
 Every written line played as written and solved; every floor (random 0 of 20, PASS, first option, greedy 0 of 4, Forge's
-AI 0 of 4) failed every board. No board was dropped by the gate: as for the first suite, the gate does not separate
+AI 0 of 4) failed every board. Kept: drain2 lives 9 to 27 (9 distinct), traps 1/2/3 short on 5/9/7 boards; elf2 53
+and 59, 3 short; hoofdrain lives 60 to 172 (34 distinct over three batches), 1/2/3 short on 27/21/3. Steps 13/14/15:
+32/6/36. No board was dropped by the gate: as for the first suite, the gate does not separate
 these families; the bar above is the generator's. Gate output: `/tmp/puzzle-scratch/gen2-engines/{A,B,C}/gate`.
 `gen_gate.py --resume` continues a gate stopped by a time limit from its line results and floor rows.
 

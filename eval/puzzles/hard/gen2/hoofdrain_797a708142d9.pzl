@@ -1,0 +1,106 @@
+[metadata]
+Name:hoofdrain_797a708142d9
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel, Fyndhorn Elves, Priest of Titania, Blood Artist, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Craterhoof Behemoth, Wellwisher, Elves of Deep Shadow, Boreal Druid, Willow Elf, Wirewood Elf and Llanowar Elves. The opponent is at 123 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 123 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 121, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Craterhoof Behemoth;Wellwisher;Elves of Deep Shadow;Boreal Druid;Willow Elf;Wirewood Elf;Llanowar Elves
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Fyndhorn Elves;Priest of Titania;Blood Artist;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=123
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Llanowar Elves", "Elves of Deep Shadow", "Boreal Druid", "Wirewood Elf", "Willow Elf", "Wellwisher"], "forests": 2, "mana_elves": ["Fyndhorn Elves"], "others": ["Blood Artist", "Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 121, "plans": {"attack_only": 109, "hoof_asap": 90, "keep_druid": -1, "keep_mana_creatures": -1, "never_tap_sentinels": -1, "sac_early": 88, "sac_new_only": 121, "tap_out_first": 110}, "short": 2}
+activate Forest
+activate Forest
+cast Llanowar Elves
+yes
+cast Elves of Deep Shadow
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Llanowar Elves; Elves of Deep Shadow
+cast Boreal Druid
+yes
+cast Willow Elf
+yes
+pass
+activate Priest of Titania
+cast Wirewood Elf
+yes
+cast Wellwisher
+yes
+pass
+activate Heritage Druid
+Boreal Druid; Willow Elf; Wirewood Elf
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Llanowar Elves
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elves of Deep Shadow
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Boreal Druid
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Willow Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wirewood Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wellwisher
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid; Fyndhorn Elves; Blood Artist; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0
