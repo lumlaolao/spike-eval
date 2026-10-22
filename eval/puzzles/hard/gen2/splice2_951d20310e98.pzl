@@ -1,0 +1,43 @@
+[metadata]
+Name:splice2_951d20310e98
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Desperate Ritual, Lava Spike, Glacial Ray, Desperate Ritual, Rite of Flame and Rite of Flame. The opponent is at 16 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-splice2 | the searched best line deals 16, spending every mana; trap 14 (never splicing deals 12, splicing every payable card onto each Arcane spell 14)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Desperate Ritual;Lava Spike;Glacial Ray;Desperate Ritual;Rite of Flame;Rite of Flame
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=16
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+pass
+pass
+cast Desperate Ritual
+Glacial Ray
+opponent
+activate Thermo-Alchemist
+cast Desperate Ritual
+Glacial Ray
+opponent
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+none
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0
