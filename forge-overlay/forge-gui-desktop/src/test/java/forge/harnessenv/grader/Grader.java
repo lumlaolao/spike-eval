@@ -39,6 +39,10 @@ public final class Grader {
     private Grader() { }
 
     static final long MAX_REPLAY_MS = 30_000;
+    /** Forge's payment executor: entered after the seat decided what to pay (which sources stay up, Phyrexian life,
+     *  whether to pay an attack tax); the ledger records both as "the payment itself is the engine mechanics". Counted
+     *  and reported (ai_payment), not gated: whether to gate on them is the owner's call (framework, question 9). */
+    static final Set<String> PAYMENT_EXECUTORS = Set.of("payManaCost", "payCombatCost");
     static final String MODEL = "fake/harness-model";
     static ScriptedModel server;
 
@@ -123,7 +127,7 @@ public final class Grader {
     }
 
     public static final String[] COLUMNS = {"seat", "instance", "family", "hook", "legal", "reached", "min_requests", "asked",
-            "offered", "carried", "shown", "noparse", "pass", "ai", "note"};
+            "offered", "carried", "shown", "noparse", "pass", "ai", "ai_payment", "note"};
 
     /** One report row: the five checks and the Forge-AI gate of one instance on one seat. */
     public static String grade(String seatName, SeatFactory seat, Instance in) {
@@ -139,14 +143,14 @@ public final class Grader {
         }
         Set<String> reached = new TreeSet<>();
         Set<String> aiHooks = new TreeSet<>();
-        int minAsked = Integer.MAX_VALUE, maxAsked = 0, ai = 0;
+        int minAsked = Integer.MAX_VALUE, maxAsked = 0;
+        int[] ai = new int[2];   // {strategic decision hooks, payment executor}
         Run first = null;
         List<String> errors = new ArrayList<>();
         for (List<String> p : in.profiles) {
             Run r = run(seat, in, ScriptedModel.Mode.CALL, p, logDir);
             if (first == null) first = r;
-            ai += r.ai.size();
-            aiHooks.addAll(r.ai);
+            countAi(r, ai, aiHooks);
             if (r.error != null) { errors.add(r.error + " | answers " + p); continue; }
             reached.add(r.outcome);
             minAsked = Math.min(minAsked, r.decisions);
@@ -157,7 +161,7 @@ public final class Grader {
         Run prose = run(seat, in, ScriptedModel.Mode.PROSE, in.profiles.get(0), logDir);
         Run empty = run(seat, in, ScriptedModel.Mode.EMPTY, in.profiles.get(0), logDir);
         Run garbage = run(seat, in, ScriptedModel.Mode.GARBAGE, in.profiles.get(0), logDir);
-        for (Run r : new Run[] {again, prose, empty, garbage}) { ai += r.ai.size(); aiHooks.addAll(r.ai); }
+        for (Run r : new Run[] {again, prose, empty, garbage}) countAi(r, ai, aiHooks);
         // An instance whose legal set could not be computed proves nothing: it fails rather than passing on count.
         boolean ok = errors.isEmpty() && first != null && (in.legal == null || legal != null);
         // Every replay asks at least once; a play passed at its first question stops there, so the deeper decision
@@ -165,10 +169,11 @@ public final class Grader {
         boolean asked = ok && (legalN < 2 || minAsked >= 1 && maxAsked >= Math.max(1, in.minAsks));
         boolean offered = ok && (legal != null ? reached.containsAll(required) && allowed.containsAll(reached) : reached.size() >= in.minDistinct);
         boolean carried = ok && first.outcome.equals(again.outcome) && (legalN < 2 || reached.size() >= 2);
-        boolean shown = ok && !first.text.isEmpty() && !first.text.contains("CARDNAME");
-        for (String s : in.show) shown &= first != null && first.text.contains(s);
+        // Shown is about a question: with fewer than two legal answers there is nothing to ask, so nothing to show.
+        boolean shown = ok && (legalN < 2 || !first.text.isEmpty() && !first.text.contains("CARDNAME"));
+        if (legalN >= 2) for (String s : in.show) shown &= first != null && first.text.contains(s);
         boolean noparse = prose.error == null && prose.outcome.equals(empty.outcome) && empty.outcome.equals(garbage.outcome);
-        boolean pass = asked && offered && carried && shown && noparse && ai == 0;
+        boolean pass = asked && offered && carried && shown && noparse && ai[0] == 0;
         if (!errors.isEmpty()) note += (note.isEmpty() ? "" : "; ") + "error: " + errors.get(0);
         if (!offered && ok) {
             Set<String> missing = new TreeSet<>(required);
@@ -178,10 +183,17 @@ public final class Grader {
             note += (note.isEmpty() ? "" : "; ") + "missing " + missing + " extra " + extra;
         }
         if (!noparse) note += (note.isEmpty() ? "" : "; ") + "prose=" + prose.outcome + " empty=" + empty.outcome;
-        if (ai > 0) note += (note.isEmpty() ? "" : "; ") + "Forge AI decided " + ai + "x: " + aiHooks;
+        if (ai[0] > 0) note += (note.isEmpty() ? "" : "; ") + "Forge AI decided " + ai[0] + "x: " + aiHooks;
         return String.join("\t", seatName, in.id, in.family, in.hook, String.valueOf(legalN), String.valueOf(reached.size()),
                 String.valueOf(minAsked == Integer.MAX_VALUE ? 0 : minAsked), bit(asked), bit(offered), bit(carried), bit(shown),
-                bit(noparse), bit(pass), String.valueOf(ai), note.replace('\t', ' ').replace('\n', ' '));
+                bit(noparse), bit(pass), String.valueOf(ai[0]), String.valueOf(ai[1]), note.replace('\t', ' ').replace('\n', ' '));
+    }
+
+    private static void countAi(Run r, int[] ai, Set<String> hooks) {
+        for (String h : r.ai) {
+            if (PAYMENT_EXECUTORS.contains(h)) ai[1]++;
+            else { ai[0]++; hooks.add(h); }
+        }
     }
 
     private static String bit(boolean b) { return b ? "1" : "0"; }

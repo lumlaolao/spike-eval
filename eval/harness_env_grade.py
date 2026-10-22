@@ -32,8 +32,8 @@ Usage:
   harness_env_grade.py build <submission overlay> <classpath.txt> <forge> <out>
       compiles the submission's main sources, the grader and its Forge-AI counter patch into <out>/classes
   harness_env_grade.py instances <classes> <classpath.txt> <forge> <out> [--only <id part>] [--seats name=class,...]
-      [--busy <marker>]...   runs the instance grader (GraderSuite; by default the six validation seats) on built
-      classes and prints the table
+      [--set <generated set.json>] [--busy <marker>]...   runs the instance grader (GraderSuite; by default the six
+      validation seats on the hand catalog) on built classes and prints the table
   harness_env_grade.py grade <submission> <out> [--forge <checkout>] [--run] [--busy <marker>]...
 Prints JSON. Exit 0 when a score was produced, 1 when the submission was not scorable, 2 on usage.
 """
@@ -302,7 +302,7 @@ def calibrated(family_scores):
 
 # The instance report EnvGraderSuite writes (forge-overlay/.../EnvGrader.java): one row per seat and instance.
 ENV_COLUMNS = ("seat", "instance", "family", "hook", "legal", "reached", "min_requests", "asked", "offered",
-               "carried", "shown", "noparse", "pass", "ai", "note")
+               "carried", "shown", "noparse", "pass", "ai", "ai_payment", "note")
 SEAT_ORDER = ("ours", "default", "empty", "ours-minus-combat", "ours-minus-costs")
 
 
@@ -368,7 +368,7 @@ def compile_command(javac, classpath_file, submission, grader_repo, ai_patch, ou
     return [javac, "--release", "17", "-encoding", "UTF-8", "-proc:none", "-nowarn", "-cp", cp, "-d", out_classes] + files
 
 
-def instances_command(java, classes, classpath_file, repo, report, only=None, seats=None):
+def instances_command(java, classes, classpath_file, repo, report, only=None, seats=None, set_file=None):
     """argv that runs the instance grader (GraderSuite) on compiled classes, with the system properties the
     acceptance javatests stage gives a seat. Run it from the engine's forge-gui-desktop directory."""
     cp = ""
@@ -385,6 +385,8 @@ def instances_command(java, classes, classpath_file, repo, report, only=None, se
         argv.append("-Dharness.envgrade.only=" + only)
     if seats:
         argv.append("-Dharness.envgrade.seats=" + seats)
+    if set_file:
+        argv.append("-Dharness.envgrade.set=" + set_file)
     return argv + ["-cp", classes + ":" + cp, "org.testng.TestNG", "-testclass", "forge.harnessenv.grader.GraderSuite",
                    "-d", os.path.join(os.path.dirname(report), "testng")]
 
@@ -466,13 +468,15 @@ def main(argv):
         return 0 if rc == 0 else 1
     if len(args) >= 5 and args[0] == "instances":
         classes, cpfile, forge, out, rest = args[1], args[2], args[3], args[4], args[5:]
-        only, busy, seats = None, [], None
+        only, busy, seats, set_file = None, [], None, None
         while rest:
             flag = rest.pop(0)
             if flag == "--only" and rest:
                 only = rest.pop(0)
             elif flag == "--seats" and rest:
                 seats = rest.pop(0)
+            elif flag == "--set" and rest:
+                set_file = rest.pop(0)
             elif flag == "--busy" and rest:
                 busy.append(rest.pop(0))
             else:
@@ -485,7 +489,7 @@ def main(argv):
         report = os.path.join(out, "env-grade.tsv")
         java = os.path.join(os.environ.get("JAVA_HOME", "/usr"), "bin", "java")
         with open(os.path.join(out, "run.log"), "w", encoding="utf-8") as log:
-            subprocess.run(instances_command(java, classes, cpfile, REPO, report, only, seats), cwd=os.path.join(forge, "forge-gui-desktop"),
+            subprocess.run(instances_command(java, classes, cpfile, REPO, report, only, seats, set_file), cwd=os.path.join(forge, "forge-gui-desktop"),
                            stdout=log, stderr=subprocess.STDOUT, timeout=RUN_TIMEOUT_S)
         table = env_table(read_env_report(report))
         print(env_markdown(table))

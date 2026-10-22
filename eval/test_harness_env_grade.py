@@ -239,6 +239,9 @@ class InstancesCommandTest(unittest.TestCase):
         self.assertIn("-Dharness.envgrade.report=/o/env-grade.tsv", argv)
         self.assertIn("-Dharness.envgrade.only=combat.", argv)
         self.assertIn("-Dharness.envgrade.seats=mine=a.b.Mine", argv)
+        with_set = hg.instances_command("/j/java", "/c", "/c/cp.txt", "/r", "/o/r.tsv", set_file="/s/set.json")
+        self.assertIn("-Dharness.envgrade.set=/s/set.json", with_set)
+        self.assertFalse(any("envgrade.set" in a for a in argv))
         self.assertTrue(any(a.startswith("-Dharness.ownership.tsv=/r/") for a in argv))
         self.assertTrue(argv[argv.index("-cp") + 1].startswith("/c/classes:"))
 

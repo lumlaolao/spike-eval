@@ -200,7 +200,7 @@ public final class Instances {
         return out;
     }
 
-    private static Grader.Instance inst(String id, String family, String hook, Supplier<Game> board,
+    static Grader.Instance inst(String id, String family, String hook, Supplier<Game> board,
             BiFunction<Game, PlayerController, String> drive, Function<Game, Set<String>> legal, int minDistinct, int minAsks,
             List<List<String>> profiles, String... show) {
         return new Grader.Instance(id, family, hook, board, drive, legal, minDistinct, minAsks, profiles, show);
@@ -209,7 +209,7 @@ public final class Instances {
     /** The engine's declare-attackers step (PhaseHandler.declareAttackersTurnBasedAction): the game's combat is set,
      *  and a declaration CombatUtil.validateAttackers refuses is asked again. Three tries here, where the engine
      *  would ask forever; what stands after them is the outcome. */
-    private static BiFunction<Game, PlayerController, String> declareAttackers() {
+    static BiFunction<Game, PlayerController, String> declareAttackers() {
         return (g, c) -> {
             Combat combat = new Combat(me(g));
             g.getPhaseHandler().setCombat(combat);
@@ -222,7 +222,7 @@ public final class Instances {
         };
     }
 
-    private static BiFunction<Game, PlayerController, String> declareBlockers(Function<Game, Combat> attack) {
+    static BiFunction<Game, PlayerController, String> declareBlockers(Function<Game, Combat> attack) {
         return (g, c) -> { Combat combat = attack.apply(g); c.declareBlockers(me(g), combat); return blocksOf(combat); };
     }
 
@@ -408,7 +408,7 @@ public final class Instances {
     }
 
     /** chooseTargetsFor on the named spell, outside any cast: the targets set, or "cancel". */
-    private static BiFunction<Game, PlayerController, String> target(String spellName) {
+    static BiFunction<Game, PlayerController, String> target(String spellName) {
         return (g, c) -> {
             SpellAbility sa = spell(g, spellName);
             if (!c.chooseTargetsFor(sa)) return "cancel";

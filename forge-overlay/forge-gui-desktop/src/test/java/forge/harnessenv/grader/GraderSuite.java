@@ -4,7 +4,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -22,7 +25,8 @@ import forge.harnessenv.SeatFactory;
  * reads (-Dharness.envgrade.report, default /tmp/env-grade.tsv). Seats: -Dharness.envgrade.seats=name=class,...
  * (each class a harness-env-abi/1 SeatFactory); the default list is the validation set: ours, the default bridge,
  * ours without its combat or cost hooks, a text-parsing toy and a toy that hands decisions to Forge's AI.
- * -Dharness.envgrade.only=<text> runs only the instances whose id contains it.
+ * -Dharness.envgrade.only=<text> runs only the instances whose id contains it; -Dharness.envgrade.set=<file> grades a
+ * generated set (eval/harness_env_generate.py) instead of the hand catalog.
  *
  * On the validation set it asserts what makes the grader a grader: ours beats the default bridge on every family
  * but play, each ablation loses its family, the text parser fails the no-parse check somewhere it was asked, and the
@@ -58,13 +62,21 @@ public class GraderSuite {
         Map<String, Map<String, int[]>> passes = new TreeMap<>();
         Map<String, int[]> flags = new TreeMap<>();   // seat -> {instances where no-parse failed while asked, instances with an AI count}
         File out = new File(System.getProperty("harness.envgrade.report", "/tmp/env-grade.tsv"));
+        // A generated set (eval/harness_env_generate.py) replaces the hand catalog; its unbuildable instances are named.
+        String set = System.getProperty("harness.envgrade.set");
+        List<Grader.Instance> instances = Instances.all();
+        if (set != null) {
+            List<String> discarded = new ArrayList<>();
+            instances = GeneratedInstances.load(Paths.get(set), discarded);
+            Files.write(Paths.get(out.getPath() + ".discarded"), discarded, StandardCharsets.UTF_8);
+        }
         try (BufferedWriter w = Files.newBufferedWriter(out.toPath(), StandardCharsets.UTF_8)) {
             w.write(String.join("\t", Grader.COLUMNS) + "\n");
-            for (Grader.Instance in : Instances.all()) {
+            for (Grader.Instance in : instances) {
                 if (only != null && !in.id.contains(only)) continue;
                 for (Map.Entry<String, SeatFactory> s : seats.entrySet()) {
                     String row = Grader.grade(s.getKey(), s.getValue(), in);
-                    if (!counting) row = row.replaceFirst("\t\\d+\t([^\t]*)$", "\t-1\t$1");
+                    if (!counting) row = row.replaceFirst("\t\\d+\t\\d+\t([^\t]*)$", "\t-1\t-1\t$1");
                     w.write(row + "\n");
                     w.flush();
                     String[] f = row.split("\t", -1);
@@ -82,7 +94,7 @@ public class GraderSuite {
             for (Map.Entry<String, int[]> f : s.getValue().entrySet())
                 table.append(s.getKey()).append(' ').append(f.getKey()).append(' ').append(f.getValue()[0]).append('/').append(f.getValue()[1]).append('\n');
         System.out.println("[ENVGRADE] report=" + out + "\n" + table);
-        if (only != null || !spec.equals(VALIDATION)) return;
+        if (only != null || set != null || !spec.equals(VALIDATION)) return;
         Assert.assertTrue(counting, "the Forge-AI counter is not on the classpath (eval/harness_env_aicount.py)");
         Map<String, int[]> ours = passes.get("ours"), dflt = passes.get("default");
         for (Map.Entry<String, int[]> f : ours.entrySet()) {
