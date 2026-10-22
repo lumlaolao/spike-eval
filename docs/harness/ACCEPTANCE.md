@@ -7,6 +7,11 @@ under `runs/harness-acceptance/<utc-stamp>/` and prints a PASS/FAIL line per sta
 checkout: sources are compiled into an isolated directory and the pinned engine classes
 are only read.
 
+A full run compiles once, then runs the later stages as four child runs side by side (`OUT/part<n>/`, their
+summaries merged into `OUT/summary.txt`), each JVM held to one core's worth of GC and compiler threads, with the
+keyword sweep split over `SWEEP_SHARDS` (2) JVMs: about 6 minutes on 4 cores against 11 one after another
+(2026-10-21). `ACCEPTANCE_JOBS=1` runs every stage in one process, as before.
+
 | Stage | What it proves | What would make it fail |
 | --- | --- | --- |
 | 2026-10-17 | all 17 stages PASS on the epoch-46 engine patch (a state-dependent pump's resolve line is captured before the effect; `MagicStack.java`) | 767/767 Java, 381 Python; surfaces 89/89 and 44/44; canaries unchanged (Mac pins floor A/108/1804, random B/50/273). `aPumpResolveLineSaysWhatTheStackPreviewSays` failed before the patch. Gauntlets on epoch 46 (first, random s6, lookups t4): 84 games, 0 defect lines. Evidence `runs/harness-acceptance/20261018T013426Z` (and `20261018T011647Z`, PASS before the gauntlets). |
