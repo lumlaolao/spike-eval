@@ -175,6 +175,38 @@ class Splice2Test(unittest.TestCase):
             self.assertIn("trap %d" % b["trap"], b["text"]("x"))
 
 
+GEN2 = Path(__file__).resolve().parent / "puzzles" / "hard" / "gen2"
+
+
+class Gen2BoardsTest(unittest.TestCase):
+    """Every committed splice2 board, re-derived from its own .pzl: the opponent's life is the searched maximum of
+    its hand and battlefield, the best line spends every mana, the stated steps are 13 to 15, and the trap its Rule
+    line states is what the two plain plans deal, 1 to 3 short."""
+
+    def test_every_committed_splice2_board_holds_its_bar(self):
+        boards = sorted(GEN2.glob("splice2_*.pzl"))
+        self.assertTrue(boards, "no splice2 board in %s" % GEN2)
+        for p in boards:
+            text = p.read_text(encoding="utf-8")
+            field = dict(l.split("=", 1) for l in text.split("[state]\n", 1)[1].split("[solution]")[0].splitlines())
+            hand, bf = field["p0hand"].split(";"), field["p0battlefield"].split(";")
+            args = (hand, bf.count("Mountain"), "Thermo-Alchemist" in bf, "Goblin Electromancer" in bf)
+            kiln = "Kiln Fiend" in bf
+            base = pg.attack_base(kiln, args[3])
+            dmg, steps, _, _, left = pg.red_search(*args, kiln=kiln)
+            self.assertEqual(dmg + base, stated_life(text), p.name)
+            self.assertEqual(left, 0, p.name)
+            self.assertEqual(solution(text)[0], "# steps: %d" % (steps + (1 if base else 0)), p.name)
+            self.assertTrue(13 <= steps + (1 if base else 0) <= 15, p.name)
+            never = pg.red_search(*args, splice=False, kiln=kiln)[0] + base
+            greedy = pg.red_search(*args, splice="max", kiln=kiln)[0] + base
+            trap = int(re.search(r"trap (\d+) \(never splicing deals (\d+), splicing every payable card onto each "
+                                 r"Arcane spell (\d+)\)", text).group(1))
+            self.assertEqual(trap, max(never, greedy), p.name)
+            self.assertTrue(1 <= stated_life(text) - trap <= 3, p.name)
+            self.assertIn("life p1 <= 0", text.split("[acceptance]", 1)[1], p.name)
+
+
 class DrainSearchTest(unittest.TestCase):
     def test_the_authored_altar_board_drains_eleven(self):
         # hard2/drain_0: the Skeleton dies four times with both drainers out (8), then the drainers (2 + 1).

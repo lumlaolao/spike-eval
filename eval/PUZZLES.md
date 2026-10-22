@@ -237,6 +237,12 @@ python3 scripts/puzzle-gate/gen_suite.py --gate runs/puzzles/hard-gen-gate --boa
   --out eval/suites/puzzles-hard-gen-v1.json
 ```
 
+`eval/puzzles/hard/gen2/` holds the super-hard splice boards (`--family splice2`,
+`docs/harness/history/2026-10-21-harder-splice.md`), gated the same way but not yet frozen into a suite: 13 to 15
+steps, the opponent's life the exact searched maximum, no mana left at the end of the best line, and a trap: the
+better of two plain plans (never splice; splice every payable card onto each Arcane spell), each played as well as
+it can be, falls 1 to 3 short. `eval/test_puzzle_gen.py` re-derives each committed board from its .pzl.
+
 ## Running a model
 
 ```bash

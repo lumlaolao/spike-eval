@@ -95,15 +95,17 @@ hard for that model by construction.
 
 - Boards generated and never gated (red 60, ping 60, storm 50, fling 55, elf 40) are on branch `feat/hard-gen` at
   5dc07c4 (`eval/puzzles/hard/gen/ungated/`); they are not in this suite.
-- 11 of 40 splice lines stopped before the win when replayed (`solved=False unconsumed=12..19`): a generator defect
-  to find before more splice boards are drawn.
+- 11 of 40 splice lines stopped before the win when replayed (`solved=False unconsumed=12..19`): found and fixed on
+  2026-10-21 (`2026-10-21-harder-splice.md`): the line cast a card over a ritual that had not resolved, so the
+  splice it was meant to carry was unpayable and never asked.
 - Most fling lines open the second main phase with Rite of Flame; elf boards with one Sentinel repeat a few life
   totals (31, 35, 47). More variety before more boards.
 - The suite has 116 boards, short of the 200 asked for.
-- The splice and red searches pick splice cards by name, so they never splice two copies of one card onto a spell;
-  Forge offers each copy. A multiset search gives the same maximum on all 29 kept splice boards (pr-review of #290),
-  but a future board's "maximum" could be beaten. The red search maximises spell damage and adds Kiln Fiend's attack
-  afterwards, so a free cast that only pumps the Fiend can be missed (no red board is in the suite).
+- The splice and red searches picked splice cards by name, so they never spliced two copies of one card onto a
+  spell; Forge offers each copy. A multiset search gives the same maximum on all 29 kept splice boards (pr-review of
+  #290); it beat one dropped board's stated maximum by 2 (splice_9c7a6f5bedc7, 18 to 20). The red search maximised
+  spell damage and added Kiln Fiend's attack afterwards, so a free cast that only pumps the Fiend could be missed.
+  Both fixed on 2026-10-21 (`2026-10-21-harder-splice.md`).
 - The held-out boards carry their `[solution]` and `Rule:` lines in the repository while it is private (owner,
   2026-10-21; `eval/PUZZLES.md`); they must be stripped before it is made public.
 - Run faster next time (owner, 2026-10-21): a model check waits on the provider, not the CPU (about 15 s a call),

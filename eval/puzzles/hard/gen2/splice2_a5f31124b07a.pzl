@@ -1,0 +1,53 @@
+[metadata]
+Name:splice2_a5f31124b07a
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Kiln Fiend and three untapped Mountains. Your hand is Desperate Ritual, Rite of Flame, Lightning Bolt, Glacial Ray, Desperate Ritual and Lava Spike. The opponent is at 38 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-splice2 | the searched best line deals 38, spending every mana; trap 36 (never splicing deals 34, splicing every payable card onto each Arcane spell 36)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Desperate Ritual;Rite of Flame;Lightning Bolt;Glacial Ray;Desperate Ritual;Lava Spike
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=38
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Rite of Flame
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+pass
+pass
+pass
+cast Desperate Ritual
+Desperate Ritual
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Desperate Ritual; Glacial Ray
+opponent
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Desperate Ritual
+Glacial Ray
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend
+[acceptance]
+life p1 <= 0
