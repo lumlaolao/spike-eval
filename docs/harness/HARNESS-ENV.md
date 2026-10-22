@@ -189,8 +189,8 @@ amounts, order), never by the candidate's label, and records it; over the wire i
 - **Held-out**: the dev suite is public (553 sweep cards, 28 gauntlet decks, golden boards); the graded suite is drawn
   fresh per run (cards by feature, board parameters, seeds), ids unpublished, matched by engine identity.
 - **Cost**: an instance is a bare game and one decision, milliseconds to a second; the sweep runs inside the
-  `javatests` stage today. A sampled hundred grades a commit in under a minute; thousands an hour in one JVM, against about
-  6 minutes for full acceptance on 4 cores (11 one stage after another) plus 28 gauntlet games of up to five minutes.
+  `javatests` stage today. A sampled hundred grades a commit in under a minute; thousands an hour in one JVM, against 8 to 15
+  minutes for full acceptance on 4 cores, depending on load (`docs/harness/ACCEPTANCE.md`) plus 28 gauntlet games of up to five minutes.
 
 ### 3.5 Have and missing
 
