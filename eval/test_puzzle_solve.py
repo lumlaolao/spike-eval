@@ -1,7 +1,10 @@
 """puzzle_solve.py refuses a condition the seat would not honour."""
+import json
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import puzzle_solve  # noqa: E402
@@ -16,6 +19,69 @@ class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
             puzzle_solve.main(["--suite", "/nonexistent/suite.json", "--split", "open", "--model", "fake",
                                "--budget-usd", "0", "--out", "/nonexistent/out", "--rules-tool"])
         self.assertIn("--memory-tools", str(cm.exception.code))
+
+
+class ResumeTest(unittest.TestCase):
+    """A run stopped by a container restart is started again with --resume (owner, 2026-10-22): a puzzle whose
+    k attempts on this suite are already recorded is not paid for twice; one cut off part way is played again."""
+
+    def write(self, out, rows):
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "puzzle-results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    def test_a_puzzle_with_its_k_attempts_on_this_suite_is_done(self):
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}, {"seed": 2, "suite_sha256": "S"}])
+        self.assertTrue(puzzle_solve.already_done(out, 2, "S"))
+        self.assertFalse(puzzle_solve.already_done(out, 3, "S"), "a third attempt is still owed")
+        self.assertFalse(puzzle_solve.already_done(out, 2, "OTHER"), "rows of another suite version")
+        self.assertFalse(puzzle_solve.already_done(Path(tempfile.mkdtemp()) / "none", 1, "S"))
+
+    def test_a_puzzle_cut_off_part_way_keeps_its_paid_rows_aside_and_is_played_again(self):
+        out = Path(tempfile.mkdtemp()) / "p"
+        for _ in range(2):   # cut off twice: neither set of rows overwrites the other
+            self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+            (out / "jvm.log").write_text("the cut-off attempt")
+            self.assertEqual(puzzle_solve.prepare(out, 2, "S", resume=True), "run")
+        self.assertFalse((out / "puzzle-results.jsonl").exists(), "a scorer would read the partial rows")
+        self.assertEqual(len(list(out.glob("puzzle-results.partial*.jsonl"))), 2)
+        self.assertEqual(len(list(out.glob("jvm.partial*.log"))), 2)
+
+    def test_a_done_puzzle_is_skipped_only_on_resume(self):
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "done")
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=False), "run")
+
+    def test_main_refuses_a_resume_under_another_condition_before_playing_anything(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        root = Path(tempfile.mkdtemp())
+        puzzle_solve.write_manifest(root / pid, "fake:another-model", suite["suite_sha256"], pid, {})
+        with self.assertRaises(SystemExit) as cm:
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                               "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume",
+                               "--build", "/nonexistent/build"])
+        self.assertIn("another condition", str(cm.exception.code))
+
+    def test_two_cut_offs_before_any_row_keep_both_logs(self):
+        out = Path(tempfile.mkdtemp()) / "p"
+        out.mkdir()
+        for _ in range(2):
+            (out / "jvm.log").write_text("cut off before its first result row")
+            puzzle_solve.set_aside_partial(out)
+        self.assertEqual(len(list(out.glob("jvm.partial*.log"))), 2)
+
+    def test_a_resume_under_another_condition_is_refused(self):
+        # pr-review of #300: a run resumed with --memory-tools on pooled two seats in one score (STANDARDS section 4).
+        root = Path(tempfile.mkdtemp())
+        out = root / "p"
+        cond = {"MEMORY_TOOLS": "0", "CONTEXT_PROFILE": "v4-faithful"}
+        puzzle_solve.write_manifest(out, "m", "S", "p", cond)
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p", "q"], "m", "S", cond), [])
+        for model, sha, c in (("other", "S", cond), ("m", "T", cond), ("m", "S", dict(cond, MEMORY_TOOLS="1"))):
+            self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
 
 
 if __name__ == "__main__":
