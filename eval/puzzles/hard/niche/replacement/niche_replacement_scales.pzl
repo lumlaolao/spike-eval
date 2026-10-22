@@ -1,0 +1,88 @@
+[metadata]
+Name:niche_replacement_scales
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Hardened Scales, Doubling Season, Corpsejack Menace, Grizzly Bears, five Forests and a Plains, all untapped; the creatures are not summoning sick. Your hand is Walking Ballista and Travel Preparations. Your library is three Forests. The opponent is at 34 life and controls Darksteel Myr and two Islands. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-replacement-scales-order | The affected permanent's controller chooses the order of Hardened Scales, Doubling Season and Corpsejack Menace for each counter event (CR 616.1, 616.1e-f); the +1 must be applied first, 4(n+1), so Ballista for X=1 and both halves of Travel Preparations (Ballista twice, each attacker once) make 24 pings and a 10-power unblocked attacker past the indestructible Myr (it blocks the 12/12): 34. Any other order gives 4n+2 or 4n+1 per event
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Walking Ballista;Travel Preparations
+p0battlefield=Hardened Scales;Doubling Season;Corpsejack Menace;Grizzly Bears;Forest;Forest;Forest;Forest;Forest;Plains
+p0library=Forest;Forest;Forest
+p1life=34
+p1battlefield=Darksteel Myr;Island;Island
+p1library=Island;Island;Island
+[solution]
+cast Walking Ballista
+1
+untap: Plains
+Hardened Scales
+Doubling Season
+cast Travel Preparations
+Walking Ballista; Corpsejack Menace
+untap: Plains
+Hardened Scales
+Doubling Season
+Hardened Scales
+Doubling Season
+cast Travel Preparations ... Flashback
+Walking Ballista; Grizzly Bears
+Hardened Scales
+Doubling Season
+Hardened Scales
+Doubling Season
+Corpsejack Menace; Grizzly Bears
+at MAIN2: activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+activate Walking Ballista ... deals 1 damage
+opponent
+[acceptance]
+life p1 <= 0

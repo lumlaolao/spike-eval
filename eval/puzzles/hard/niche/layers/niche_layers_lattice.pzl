@@ -1,0 +1,36 @@
+[metadata]
+Name:niche_layers_lattice
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control March of the Machines and 16 untapped Plains. Your hand is Glorious Anthem, Mycosynth Lattice, Fling, Fling and Mountain. The opponent is at 13 life and controls an untapped Grizzly Bears and three untapped Islands. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-layers-lattice | March of the Machines depends on Mycosynth Lattice (CR 613.8, 613.8a), so the newer Lattice applies first: every land becomes a 0/0 artifact creature (CR 613.1d, 613.4b) and dies unless Glorious Anthem (CR 613.4c) is already out; lands you have controlled since the turn began can attack and tap for mana, the Mountain played this turn cannot once it is a creature (CR 302.6), so it pays for the Lattice; mana floated before the Anthem is flung (and the lands die) pays for flinging the Lattice: 4 lands past one blocker deal 3, then 4 + 6 = 13
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Glorious Anthem;Mycosynth Lattice;Fling;Fling;Mountain
+p0battlefield=March of the Machines;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+p0library=Plains;Plains;Plains;Plains
+p1life=13
+p1battlefield=Grizzly Bears;Island;Island;Island
+p1library=Island;Island;Island;Island
+[solution]
+play land Mountain
+cast Glorious Anthem
+cast Mycosynth Lattice
+untap: Plains; Plains; Plains; Plains; Plains; Plains; Plains; Plains
+Plains; Plains; Plains; Plains
+at MAIN2: activate Plains ... Add {W}
+activate Plains ... Add {W}
+activate Plains ... Add {W}
+activate Plains ... Add {W}
+cast Fling
+opponent
+Glorious Anthem
+cast Fling
+opponent
+Mycosynth Lattice
+[acceptance]
+life p1 <= 0

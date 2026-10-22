@@ -59,6 +59,9 @@ the acceptance.
 
 ## 3. Building our own
 
+Authored so far: 25 boards that each turn on one niche rule (banding, replacement ordering, zone changes, layers, the
+stack), with their checks and the bar rows each misses, in `eval/puzzles/hard/niche/README.md`.
+
 Each family names the mechanism that forces the length and the rule that stops the puzzle collapsing into a
 short one. Every family is built in two modes: **authored** (a person writes the board and the script; about
 70% of our authored drafts have passed the gate) and **generated** (the template's numbers drawn at random,

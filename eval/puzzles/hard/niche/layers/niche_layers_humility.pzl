@@ -1,0 +1,39 @@
+[metadata]
+Name:niche_layers_humility
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Opalescence, then Humility (which entered after Opalescence), Sphere of Safety, Leyline of Sanctity, Ghostly Prison, Propaganda, 2 Plains and 5 Mountains, all untapped. Your hand is Flicker of Fate, Thud, Thud, Thud, Thud, Fling and Mountain. The opponent is at 33 life and controls an untapped Royal Assassin, a tapped Serra Angel and two untapped Swamps. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-layers-humility | Humility and Opalescence both set base P/T in layer 7b and neither depends on the other, so the later timestamp wins (CR 613.4b, 613.7, 613.8): with Humility newer every creature is 1/1; Flicker of Fate gives Opalescence a new timestamp (CR 613.7, 400.7), so each enchantment becomes a creature of its mana value, still stripped of abilities by Humility in layer 6 (CR 613.1f), Royal Assassin's included; the Assassin chumps one attacker, every creature is then sacrificed for its power, Humility last so the Assassin never regains its ability: 19 - 5 + 19 = 33
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flicker of Fate;Thud;Thud;Thud;Thud;Fling;Mountain
+p0battlefield=Opalescence;Humility;Sphere of Safety;Leyline of Sanctity;Ghostly Prison;Propaganda;Plains;Plains;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Plains;Plains;Plains;Plains
+p1life=33
+p1battlefield=Royal Assassin;Serra Angel|Tapped;Swamp;Swamp
+p1library=Swamp;Swamp;Swamp;Swamp
+[solution]
+cast Flicker of Fate
+Opalescence
+Sphere of Safety; Leyline of Sanctity; Ghostly Prison; Propaganda; Humility
+play land Mountain
+cast Thud
+opponent
+Sphere of Safety
+cast Thud
+opponent
+Leyline of Sanctity
+cast Thud
+opponent
+Ghostly Prison
+cast Thud
+opponent
+Propaganda
+cast Fling
+opponent
+[acceptance]
+life p1 <= 0

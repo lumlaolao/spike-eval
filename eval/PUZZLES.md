@@ -134,6 +134,9 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   `cast Lava Spike`, `opponent` (a target), `Desperate Ritual` (a splice pick), `Mountain; Mountain` (two picks),
   `Grizzly Bears -> Hill Giant` (a block), `none`, a number. A line names the option whose label starts with it;
   ` ... ` skips ahead in the label (`activate Tundra ... Add {U}`); `at [T2] PHASE: line` waits for that step.
+  `untap: Mountain; Swamp` names the permanents to keep untapped when a payment asks; a handle after the label
+  (`activate Smuggler's Copter @27`) tells twins apart; `0 6` (space-separated numbers) answers a damage or
+  amount split; `yes` / `no` answer a confirm (`ScriptBridge.java` holds the full grammar).
   The section is in the file the solver never reads; it is a public answer, so a held-out puzzle keeps its line out
   of the public repository. The generated hard suite is the exception while the repository is private (owner,
   2026-10-21): its held-out boards carry their `[solution]` and `Rule:` lines, which must be stripped (and kept

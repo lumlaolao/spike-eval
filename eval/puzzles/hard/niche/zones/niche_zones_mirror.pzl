@@ -1,0 +1,76 @@
+[metadata]
+Name:niche_zones_mirror
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Geralf's Messenger (no counters), Kiki-Jiki, Mirror Breaker, Gray Ogre, Goblin Bombardment, three Plains and a Swamp, all untapped and none of them new this turn. Your hand is Cloudshift, Ephemerate and Momentary Blink. The opponent is at 26 life and controls Wall of Stone and two Islands. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-zones-mirror | A token that leaves the battlefield ceases to exist (CR 111.8, 704.5d): Kiki-Jiki's copy of Geralf's Messenger drains 2 on entering, but its undying returns nothing and a flicker would lose it, so all three flickers go on the card Messenger, each after it has returned with a +1/+1 counter, because the flickered card is a new object without the counter (CR 400.7) and can die to undying again (CR 702.93a); flickering Kiki-Jiki for a second copy is worth less. Wall of Stone on Messenger leaves 2 combat damage, then 2 (copy) + 3 + 3x(2+3) + 4 sacrifices: 26
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cloudshift;Ephemerate;Momentary Blink
+p0battlefield=Geralf's Messenger;Kiki-Jiki, Mirror Breaker;Gray Ogre;Goblin Bombardment;Plains;Plains;Plains;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=26
+p1battlefield=Wall of Stone;Island;Island
+p1library=Island;Island;Island
+[solution]
+Geralf's Messenger; Gray Ogre
+at MAIN2: activate Kiki-Jiki
+Geralf's Messenger
+pass
+pass
+activate Goblin Bombardment
+opponent
+Geralf's Messenger 3/2 [tapped] [undying]
+pass
+pass
+pass
+cast Cloudshift
+Geralf's Messenger 4/3
+pass
+pass
+activate Goblin Bombardment
+opponent
+Geralf's Messenger 3/2 [tapped] [sick]
+pass
+pass
+pass
+cast Ephemerate
+Geralf's Messenger 4/3
+pass
+pass
+activate Goblin Bombardment
+opponent
+Geralf's Messenger 3/2 [tapped] [sick]
+pass
+pass
+pass
+cast Momentary Blink
+Geralf's Messenger 4/3
+pass
+pass
+activate Goblin Bombardment
+opponent
+Geralf's Messenger 3/2 [tapped] [sick]
+pass
+pass
+pass
+activate Goblin Bombardment
+opponent
+Geralf's Messenger 4/3
+pass
+activate Goblin Bombardment
+opponent
+Geralf's Messenger
+pass
+activate Goblin Bombardment
+opponent
+Gray Ogre
+pass
+activate Goblin Bombardment
+opponent
+[acceptance]
+life p1 <= 0

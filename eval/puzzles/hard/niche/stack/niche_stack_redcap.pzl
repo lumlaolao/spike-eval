@@ -1,0 +1,61 @@
+[metadata]
+Name:niche_stack_redcap
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Murderous Redcap with no counters on it, Wall of Wood, Goblin Bombardment and four untapped Forests. Your hand is three Battlegrowth and Hunger of the Howlpack. Your library holds only Colossal Dreadmaw. The opponent is at 18 life and controls Grizzly Bears and two untapped Swamps, with no cards in hand. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-stack-redcap | A +1/+1 and a -1/-1 counter on one creature are removed in pairs as a state-based action (CR 704.5q), checked before any player gets priority (CR 704.3, 117.5), so a persisted Redcap given a +1/+1 counter loses its -1/-1 counter, can persist again, and, when the counter spell resolves above its own enters trigger, is a 2/2 (4/4 with morbid Hunger) when that trigger reads its power (CR 608.2h). A Redcap that dies with its -1/-1 counter still on it does not return (CR 702.79a). Seven Bombardment pings (the last on Wall of Wood) + 2 + 2 + 2 + 4 + 1 = 18; each counter spell cast after the trigger instead of in response loses 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Battlegrowth;Battlegrowth;Battlegrowth;Hunger of the Howlpack
+p0battlefield=Murderous Redcap;Wall of Wood;Goblin Bombardment;Forest;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=18
+p1battlefield=Grizzly Bears;Swamp;Swamp
+p1library=Swamp;Swamp;Swamp
+[solution]
+# Each cycle: Bombardment (sacrificing Redcap) at the opponent, Redcap's enters trigger at
+# the opponent, the counter spell cast in response, one pass (the spell resolves; the next sacrifice may answer the
+# trigger). The last Redcap sacrifice needs no spell; Wall of Wood goes last.
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+opponent
+cast Battlegrowth
+Murderous Redcap
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+opponent
+cast Battlegrowth
+Murderous Redcap
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+opponent
+cast Battlegrowth
+Murderous Redcap
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+opponent
+cast Hunger of the Howlpack
+Murderous Redcap
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+opponent
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+activate Goblin Bombardment
+opponent
+[acceptance]
+life p1 <= 0

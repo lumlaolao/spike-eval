@@ -1,0 +1,36 @@
+[metadata]
+Name:niche_combat_band_redirect
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two untapped Mountains and two untapped Plains. Your hand is Spitemare, Benalish Hero, Mesa Pegasus, Hill Giant, Fervor, Rite of Flame, Rite of Flame, Desperate Ritual, Pyretic Ritual, Seething Song and Lightning Bolt. The opponent is at 8 life and controls an untapped Craw Wurm, a tapped Air Elemental and two Forests. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-combat-band-redirect | A creature blocking any member of an attacking band blocks the whole band (CR 702.22h), and the attacking player, not the defender, divides that blocker's combat damage among the band (CR 702.22k): with Spitemare banded to Benalish Hero, the Wurm either stays home (Hero 1 + Spitemare 3 + Pegasus 1 + Bolt 3 = 8) or blocks and all 6 of its damage goes to Spitemare and on to the opponent; unbanded, the Wurm blocks the Hero and the line ends at 1. Fervor gives haste; the second Rite of Flame makes three, and the rituals are exactly the 11 mana for Fervor, Spitemare, Hero, Pegasus and Bolt
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Spitemare;Benalish Hero;Mesa Pegasus;Hill Giant;Fervor;Rite of Flame;Rite of Flame;Desperate Ritual;Pyretic Ritual;Seething Song;Lightning Bolt
+p0battlefield=Mountain;Mountain;Plains;Plains
+p0library=Plains;Plains;Plains;Plains
+p1life=8
+p1battlefield=Craw Wurm;Air Elemental|Tapped;Forest;Forest
+p1library=Forest;Forest;Forest;Forest
+[solution]
+cast Benalish Hero
+cast Mesa Pegasus
+cast Rite of Flame
+cast Rite of Flame
+cast Desperate Ritual
+cast Pyretic Ritual
+cast Seething Song
+cast Fervor
+cast Spitemare
+cast Lightning Bolt
+opponent
+Benalish Hero; Mesa Pegasus; Spitemare
+Spitemare
+0 6
+opponent
+[acceptance]
+life p1 <= 0

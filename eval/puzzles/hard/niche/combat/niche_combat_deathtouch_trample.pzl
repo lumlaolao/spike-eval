@@ -1,0 +1,41 @@
+[metadata]
+Name:niche_combat_deathtouch_trample
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Hill Giant, Furnace Whelp and thirteen untapped Mountains. Your hand is Quietus Spike, Temur Battle Rage, Brute Force, Brute Force, Lightning Bolt, Lightning Bolt, Lava Spike, Lava Spike and Fireblast. The opponent is at 81 life and controls two untapped Watchdogs, an untapped Cloud Elemental and three Islands. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-combat-deathtouch-trample | Any nonzero damage a deathtouch source assigns is lethal for trample (CR 702.2c, 702.19b), and once both forced blockers die to first-strike damage the double striker's regular damage all goes to the player (CR 702.19d, 510.4); ferocious is checked as Temur Battle Rage resolves, and each untapped Watchdog gives the Giant -1/-0, so Brute Force must resolve first (3 + 3 - 2 = 4). With Quietus Spike equipped: 2 tramples over (81 to 79, halved to 39), 6 more (33, halved to 16), then the 16 burn after combat. Burn cast before combat damage, a second pump, killing a Watchdog or a Rage without trample all fall short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Quietus Spike;Temur Battle Rage;Brute Force;Brute Force;Lightning Bolt;Lightning Bolt;Lava Spike;Lava Spike;Fireblast
+p0battlefield=Hill Giant;Furnace Whelp;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain;Mountain
+p1life=81
+p1battlefield=Watchdog;Watchdog;Cloud Elemental;Island;Island;Island
+p1library=Island;Island;Island;Island
+[solution]
+cast Quietus Spike
+activate Quietus Spike
+Hill Giant
+cast Brute Force
+Hill Giant
+Hill Giant; Furnace Whelp
+at COMBAT_DECLARE_BLOCKERS: cast Temur Battle Rage
+Hill Giant
+1 1 2
+at MAIN2: cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Fireblast
+opponent
+Mountain; Mountain
+[acceptance]
+life p1 <= 0
