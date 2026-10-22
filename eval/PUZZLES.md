@@ -283,7 +283,8 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   in the opponent AI's and the engine's random choices.
 - A run stopped part way (a container restart) continues with the same command plus `--resume`: a puzzle whose
   k attempts on this suite are already in `--out` is skipped; one cut off part way is played again from seed 1,
-  its rows so far renamed `puzzle-results.partial<n>.jsonl` (never scored, still priced).
+  its rows so far and its JVM log renamed `puzzle-results.partial<n>.jsonl` and `jvm.partial<n>.log` (never
+  scored, still priced). A resume into a directory made under another model, suite or seat condition is refused.
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`

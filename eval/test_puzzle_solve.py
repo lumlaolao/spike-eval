@@ -53,6 +53,26 @@ class ResumeTest(unittest.TestCase):
         self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "done")
         self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=False), "run")
 
+    def test_main_refuses_a_resume_under_another_condition_before_playing_anything(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        root = Path(tempfile.mkdtemp())
+        puzzle_solve.write_manifest(root / pid, "fake:another-model", suite["suite_sha256"], pid, {})
+        with self.assertRaises(SystemExit) as cm:
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                               "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume",
+                               "--build", "/nonexistent/build"])
+        self.assertIn("another condition", str(cm.exception.code))
+
+    def test_two_cut_offs_before_any_row_keep_both_logs(self):
+        out = Path(tempfile.mkdtemp()) / "p"
+        out.mkdir()
+        for _ in range(2):
+            (out / "jvm.log").write_text("cut off before its first result row")
+            puzzle_solve.set_aside_partial(out)
+        self.assertEqual(len(list(out.glob("jvm.partial*.log"))), 2)
+
     def test_a_resume_under_another_condition_is_refused(self):
         # pr-review of #300: a run resumed with --memory-tools on pooled two seats in one score (STANDARDS section 4).
         root = Path(tempfile.mkdtemp())

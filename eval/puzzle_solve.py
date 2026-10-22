@@ -79,7 +79,7 @@ def set_aside_partial(out):
     so a scorer never counts them and the replay does not overwrite them, and its game rows stay, so cost_report
     still prices what was spent."""
     out = Path(out)
-    n = len(list(out.glob("puzzle-results.partial*.jsonl")))
+    n = max(len(list(out.glob("puzzle-results.partial*.jsonl"))), len(list(out.glob("jvm.partial*.log"))))
     for name, aside in (("puzzle-results.jsonl", "puzzle-results.partial%d.jsonl"), ("jvm.log", "jvm.partial%d.log")):
         if (out / name).is_file():
             (out / name).rename(out / (aside % n))
@@ -108,7 +108,7 @@ def write_manifest(out, model, suite_sha, puzzle_id, cond):
 def resume_conflicts(out_root, ids, model, suite_sha, cond):
     """The puzzle directories under out_root made under another model, suite or seat condition: a resume into
     them would pool two conditions in one score (STANDARDS section 4)."""
-    bad = []
+    bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
     for pid in ids:
         f = Path(out_root) / pid / "batch-manifest.json"
         if not f.is_file():
@@ -118,7 +118,6 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond):
         except ValueError:
             bad.append("%s: unreadable batch-manifest.json" % pid)
             continue
-        now = {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
         diff = [key for key in now if was.get(key) != now[key]]
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
@@ -174,17 +173,17 @@ def main(argv=None):
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
+    if a.resume:
+        bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a))
+        if bad:
+            raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
+                             % (len(bad), "; ".join(bad[:5])))
     build = pb.Build(a.build, a.forge)
     out_root = Path(a.out)
     out_root.mkdir(parents=True, exist_ok=True)
     print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f)"
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root)), flush=True)
 
-    if a.resume:
-        bad = resume_conflicts(out_root, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a))
-        if bad:
-            raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
-                             % (len(bad), "; ".join(bad[:5])))
 
     def work(rec):
         out = out_root / rec["id"]
