@@ -184,7 +184,6 @@ def main(argv=None):
     print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f)"
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root)), flush=True)
 
-
     def work(rec):
         out = out_root / rec["id"]
         if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
