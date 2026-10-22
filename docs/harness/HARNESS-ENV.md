@@ -1,6 +1,7 @@
 # Building the bike: the harness as an RL environment, in the shape of GBA Eval
 
-**Status: a proposal for the owner, nothing in it is built.** Design note, 2026-10-20. The question: is building this
+**Status: a proposal for the owner.** Design note, 2026-10-20. The framework that makes it concrete, and the
+skeleton built so far, are in `HARNESS-ENV-FRAMEWORK.md`. The question: is building this
 harness itself the interesting RL environment, the way Mechanize means it? This note answers with Mechanize's own
 public instance, GBA Eval, mapped point by point onto our repository, and keeps the deterministic **surface test** as
 the primary grader.

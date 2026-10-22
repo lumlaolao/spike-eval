@@ -13,6 +13,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | BENCHMARK-V2.md | the proposed benchmark v2 (measured tiers, the seat's puzzle contract, the protocol), awaiting the owner |
 | HARD-PUZZLES.md | the plan for puzzles of 10 to 15 actions: the bar, the sources, the generators, the gate work |
 | HARNESS-ENV.md | proposal: building the harness as an RL environment, in GBA Eval's shape, graded by a hidden surface test |
+| HARNESS-ENV-FRAMEWORK.md | that environment made concrete: the sandbox and what it withholds, the done protocol, the hidden grader's interface and checks, validation, pilot, open questions; the skeleton in `eval/harness_env*.py` |
 | HANDOFF-PUZZLES.md | the puzzle-track handoff: the rules backlog, the built-in prover, the games |
 | REVIEW-2026-10-16.md | the independent review's findings and their status (R, S and E items) |
 | GAME-LOOP-LOG.md | what each real game found |
