@@ -1,0 +1,43 @@
+[metadata]
+Name:copy_a8d41a4a09da
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Firebrand Archer and two untapped Mountains. Your hand is Lava Spike, Fork, Rite of Flame, Gitaxian Probe, Lava Spike, Fork, Lava Spike, Shock, Lava Spike, Shock, Gitaxian Probe, Pyretic Ritual, Seething Song and Gitaxian Probe. Your graveyard is empty. The opponent is at 30 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 30 in 13 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 28
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lava Spike;Fork;Rite of Flame;Gitaxian Probe;Lava Spike;Fork;Lava Spike;Shock;Lava Spike;Shock;Gitaxian Probe;Pyretic Ritual;Seething Song;Gitaxian Probe
+p0battlefield=Firebrand Archer;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=30
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Rite of Flame
+cast Seething Song
+cast Pyretic Ritual
+cast Fork
+cast Lava Spike
+opponent
+cast Fork
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,60 @@
+[metadata]
+Name:copy_1ae1d3309d2a
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Firebrand Archer, Witherbloom Apprentice and three untapped Mountains. Your hand is Shock, Fork, Lightning Bolt, Gitaxian Probe, Rite of Flame, Shock, Shock, Lightning Bolt, Seething Song, Lava Spike, Gitaxian Probe, Gitaxian Probe and Gitaxian Probe. Your graveyard is empty. The opponent is at 42 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 42 in 13 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 39
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock;Fork;Lightning Bolt;Gitaxian Probe;Rite of Flame;Shock;Shock;Lightning Bolt;Seething Song;Lava Spike;Gitaxian Probe;Gitaxian Probe;Gitaxian Probe
+p0battlefield=Firebrand Archer;Witherbloom Apprentice;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=42
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Rite of Flame
+Firebrand Archer; Witherbloom Apprentice
+cast Fork
+Firebrand Archer; Witherbloom Apprentice
+cast Seething Song
+Firebrand Archer; Witherbloom Apprentice
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Lightning Bolt
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Lava Spike
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Shock
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Shock
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Shock
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Gitaxian Probe
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Gitaxian Probe
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Gitaxian Probe
+opponent
+Firebrand Archer; Witherbloom Apprentice
+cast Gitaxian Probe
+opponent
+Firebrand Archer; Witherbloom Apprentice
+[acceptance]
+life p1 <= 0

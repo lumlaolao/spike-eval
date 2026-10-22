@@ -264,6 +264,17 @@ class GraveSearchTest(unittest.TestCase):
         self.assertEqual((dmg, steps), (3, 3))
         self.assertEqual([m[1] for m in moves], ["Culling the Weak", "Songs of the Damned", "Consume Spirit"])
 
+    def test_unearth_brings_the_apprentice_back_for_the_casts_after_it(self):
+        # Two Swamps, the Apprentice in the graveyard: Unearth (no drain, it is not back yet), Dark Ritual and
+        # Consume Spirit drain once each: 1 + 1 + X = 1. Without Unearth: X = 2. Dark Ritual could be cast over
+        # Unearth, so one pass lets Unearth resolve first; the Apprentice's trigger then sits over each spell.
+        hand = ["Unearth", "Dark Ritual", "Consume Spirit"]
+        dmg, steps, moves = pg.grave_search(hand, 2, 0, "gy", 1, 0)
+        self.assertEqual((dmg, steps), (3, 3))
+        lines, dealt, n = pg.grave_lines(hand, 2, 0, "gy", 1, 0, moves)
+        self.assertEqual(lines, ["cast Unearth", "pass", "cast Dark Ritual", "cast Consume Spirit", "1", "opponent"])
+        self.assertEqual((dealt, n), (3, 3))
+
     def test_a_grave_board_is_the_searched_maximum_with_a_near_miss_trap(self):
         boards = pg.generate("grave", 6, 7)
         self.assertGreaterEqual(len(boards), 3)

@@ -1,0 +1,46 @@
+[metadata]
+Name:copy_71ac059916d7
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Guttersnipe and three untapped Mountains. Your hand is Gitaxian Probe, Lightning Bolt, Gitaxian Probe, Seething Song, Lightning Bolt, Shock, Lightning Bolt, Lightning Bolt, Gitaxian Probe, Reverberate, Lava Spike, Gitaxian Probe, Rite of Flame and Lava Spike. Your graveyard is empty. The opponent is at 44 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 44 in 13 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 42
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gitaxian Probe;Lightning Bolt;Gitaxian Probe;Seething Song;Lightning Bolt;Shock;Lightning Bolt;Lightning Bolt;Gitaxian Probe;Reverberate;Lava Spike;Gitaxian Probe;Rite of Flame;Lava Spike
+p0battlefield=Guttersnipe;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=44
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Rite of Flame
+cast Reverberate
+cast Seething Song
+pass
+pass
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0
