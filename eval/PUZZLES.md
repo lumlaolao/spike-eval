@@ -246,6 +246,12 @@ steps, the opponent's life the exact searched maximum, no mana left at the end o
 better of two plain plans (never splice; splice every payable card onto each Arcane spell), each played as well as
 it can be, falls 1 to 3 short. `eval/test_puzzle_gen.py` re-derives each committed board from its .pzl.
 
+The super-hard boards (`eval/puzzles/hard/gen2/`: drain2, elf2 and the cross family hoofdrain) passed the same gate
+and a stricter generator bar: 13 to 15 steps, no mana left unused at the end of the best line, and a trap, the best
+plain plan falling 1 to 3 short (`docs/harness/HARD-PUZZLES.md` section 3). They are not yet in a frozen suite;
+`gen_suite.py --gate G --boards eval/puzzles/hard/gen2` freezes one from the gate's output. A gate stopped by a time
+limit continues with `gen_gate.py ... --resume`.
+
 ## Running a model
 
 ```bash

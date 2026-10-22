@@ -1,0 +1,71 @@
+[metadata]
+Name:drain2_63f64fdb5b1b
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Bloodghast, Carrion Feeder, Cruel Celebrant, Gravecrawler and 4 untapped Swamps. Your hand is Reassembling Skeleton, Viscera Seer and Swamp. Your graveyard holds nothing. The opponent is at 9 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain2 | the exhaustive maximum is 9 drained in 15 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard; the best plain plan (play the land first) drains 8, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Reassembling Skeleton;Viscera Seer;Swamp
+p0battlefield=Bloodghast;Carrion Feeder;Cruel Celebrant;Gravecrawler;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=9
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"altar": false, "bf": ["Bloodghast", "Carrion Feeder", "Cruel Celebrant", "Gravecrawler"], "gy": [], "hand": ["Reassembling Skeleton", "Viscera Seer"], "land": true, "swamps": 4}
+# trap: {"best": 8, "plans": {"land_first": 8, "sac_asap": 6}, "short": 1}
+cast Viscera Seer
+pass
+activate Carrion Feeder
+Bloodghast
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Carrion Feeder
+pass
+pass
+activate Viscera Seer
+Gravecrawler
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cruel Celebrant
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,94 @@
+[metadata]
+Name:drain2_7b6f79a840b5
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Bloodghast, Carrion Feeder, Cruel Celebrant, Reassembling Skeleton and 5 untapped Swamps. Your hand is Blood Artist, Gravecrawler, Viscera Seer, Zulaport Cutthroat and Swamp. Your graveyard holds nothing. The opponent is at 21 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain2 | the exhaustive maximum is 21 drained in 13 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard; the best plain plan (cast the drainers last) drains 20, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blood Artist;Gravecrawler;Viscera Seer;Zulaport Cutthroat;Swamp
+p0battlefield=Bloodghast;Carrion Feeder;Cruel Celebrant;Reassembling Skeleton;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=21
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"altar": false, "bf": ["Bloodghast", "Carrion Feeder", "Cruel Celebrant", "Reassembling Skeleton"], "gy": [], "hand": ["Blood Artist", "Gravecrawler", "Viscera Seer", "Zulaport Cutthroat"], "land": true, "swamps": 5}
+# trap: {"best": 20, "plans": {"drainers_last": 20, "land_first": 18, "sac_asap": 17}, "short": 1}
+cast Blood Artist
+pass
+cast Gravecrawler
+pass
+cast Zulaport Cutthroat
+pass
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+play land Swamp
+pass
+yes
+cast Viscera Seer
+pass
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Carrion Feeder
+Carrion Feeder
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Viscera Seer
+Gravecrawler
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Reassembling Skeleton
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Blood Artist
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cruel Celebrant
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Viscera Seer
+[acceptance]
+life p1 <= 0

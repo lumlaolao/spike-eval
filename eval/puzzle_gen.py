@@ -19,7 +19,15 @@ into Craterhoof Behemoth) and fling (prowess creatures attack, then Fling after 
 drain, elf and fling boards set the opponent's life to the exact maximum of an exhaustive search over a model of the
 board.
 
+The super-hard families drain2, elf2 and hoofdrain (elves into Craterhoof with drainers and Viscera Seer) also hold
+each board to 13 to 15 steps, no mana left unused at the end of the best line (no Swamp untapped or land drop
+unplayed; no green floating past Craterhoof), and a trap: the best plain plan (DRAIN_PLANS, ELF_PLANS,
+DRAIN_ELF_PLANS: one natural habit imposed on an otherwise exhaustive search, the best over the habits that apply)
+falls 1 to 3 short of the maximum. A batch never repeats a life total or a structure (`shape`). Each such board states
+its search inputs and trap as `# search:` and `# trap:` comments in its [solution], so a test recomputes it.
+
   python3 eval/puzzle_gen.py --family ping --count 40 --seed 1 --out DIR
+  python3 eval/puzzle_gen.py --family drain2 --count 40 --seed 2 --tries 40000 --out DIR
 """
 import argparse
 import hashlib
@@ -717,22 +725,68 @@ def _drain_moves(st, altar):
     return out
 
 
-def drain_search(swamps, land, bf, gy, hand, altar):
+# The plain plans a drain board is held to (drain2): each is a natural rule a player might follow, applied on its own
+# to the search; the trap is the best of those that bind on the board.
+DRAIN_PLANS = {
+    "land_first": "play the land first",
+    "drainers_last": "cast the drainers last",
+    "sac_asap": "sacrifice as soon as a death drains",
+}
+
+
+def _drain_plan_applies(plan, land, hand):
+    if plan == "land_first":
+        return land
+    if plan == "drainers_last":
+        return any(d in hand for d in DRAINERS) and any(c not in DRAINERS for c in hand)
+    return True
+
+
+def _drain_plan_moves(plan, st, moves):
+    """The moves a plain plan allows from `st`."""
+    if plan == "land_first" and st[2]:
+        return [m for m in moves if m[0][0] == "land"]
+    if plan == "drainers_last":
+        other = any(m[0][0] == "cast" and m[0][1] not in DRAINERS for m in moves)
+        return [m for m in moves if not (other and m[0][0] == "cast" and m[0][1] in DRAINERS)]
+    if plan == "sac_asap" and any(m[0][0] == "sac" and m[2] for m in moves):
+        return [m for m in moves if m[0][0] == "sac"]
+    return moves
+
+
+def drain_search(swamps, land, bf, gy, hand, altar, plan=None, spend=False):
     """The most life the board drains this turn, and the fewest steps that reach it: an exhaustive search over every
-    order of casts, sacrifices, returns and the land drop. Returns (drain, steps, moves)."""
+    order of casts, sacrifices, returns and the land drop. Returns (drain, steps, moves). `plan` holds the search to
+    a plain plan (DRAIN_PLANS); `spend` breaks a tie between equal lines toward the one that leaves fewer Swamps
+    untapped and no land in hand (drain_unused)."""
     from functools import lru_cache
 
     @lru_cache(maxsize=None)
     def best(st):
-        top = (0, 0, ())
-        for move, nxt, drain, step in _drain_moves(st, altar):
-            d, s, line = best(nxt)
-            cand = (d + drain, s + step, (move,) + line)
-            if cand[0] > top[0] or (cand[0] == top[0] and cand[0] > 0 and (cand[1] < top[1] or not top[2])):
+        top = (0, 0, (), (st[1] + st[2]) if spend else 0)
+        for move, nxt, drain, step in _drain_plan_moves(plan, st, _drain_moves(st, altar)):
+            d, s, line, w = best(nxt)
+            cand = (d + drain, s + step, (move,) + line, w)
+            if cand[0] > top[0] or (cand[0] == top[0] and cand[0] > 0
+                                    and ((cand[1], cand[3]) < (top[1], top[3]) or not top[2])):
                 top = cand
         return top
 
-    return best((0, swamps, land, frozenset(bf), frozenset(gy), frozenset(hand)))
+    return best((0, swamps, land, frozenset(bf), frozenset(gy), frozenset(hand)))[:3]
+
+
+def drain_unused(swamps, land, bf, gy, hand, altar, moves):
+    """Mana the line leaves unused: the Swamps still untapped at its end, and the land drop not taken."""
+    st = (0, swamps, land, frozenset(bf), frozenset(gy), frozenset(hand))
+    for move in moves:
+        st = next(nxt for m, nxt, _, _ in _drain_moves(st, altar) if m == move)
+    return st[1] + st[2]
+
+
+def drain_plain(swamps, land, bf, gy, hand, altar):
+    """What each plain plan that binds on the board drains: {plan: drain}."""
+    return {p: drain_search(swamps, land, bf, gy, hand, altar, plan=p)[0] for p in DRAIN_PLANS
+            if _drain_plan_applies(p, land, hand)}
 
 
 def drain_lines(swamps, land, bf, gy, hand, altar, moves, life):
@@ -848,11 +902,58 @@ def drain_board(rng):
     drain, steps, moves = drain_search(swamps, land, bf, gy, hand, altar)
     if not MIN_ACTIONS <= steps <= MAX_ACTIONS or drain < 6:
         return None
+    return _drain_board(swamps, land, bf, gy, hand, altar, drain, steps, moves)
+
+
+def _record_lines(search, trap):
+    """drain2, elf2 and hoofdrain state their search's inputs and the trap in the [solution] as comments (the line
+    reader skips `#` lines), so a test can recompute a committed board (board_record)."""
+    if not trap:
+        return []
+    return ["# search: " + json.dumps(search, sort_keys=True), "# trap: " + json.dumps(trap, sort_keys=True)]
+
+
+def board_record(text):
+    """The family, life, steps, search inputs and trap a drain2, elf2 or hoofdrain board states."""
+    rec = {"family": text.split("Rule:generated-", 1)[1].split()[0],
+           "life": int(text.split("\np1life=", 1)[1].split()[0])}
+    for line in text.splitlines():
+        for key in ("steps", "search", "trap"):
+            if line.startswith("# %s: " % key):
+                rec[key] = json.loads(line.split(": ", 1)[1])
+    return rec
+
+
+def research(rec):
+    """Recompute a board from its stated search inputs: (best, steps, unused mana, {plan: value})."""
+    s = rec["search"]
+    if rec["family"] == "drain2":
+        args = (s["swamps"], s["land"], set(s["bf"]), set(s["gy"]), set(s["hand"]), s["altar"])
+        d, st, moves = drain_search(*args, spend=True)
+        return d, st, drain_unused(*args, moves), drain_plain(*args)
+    costs = [ELF_HAND[n] for n in s["elves"]]
+    args = (s["forests"], s["sentinels"], len(s["mana_elves"]), costs)
+    kw = dict(priest=s["priest"], others=tuple(HOOFDRAIN_OTHERS[o] for o in s["others"]),
+              drain=sum(o in DRAINERS for o in s["others"]))
+    d, st, moves = elf_search(*args, spend=True, **kw)
+    return d, st, elf_unused(*args, moves, s["priest"]), elf_plain(*args, **kw)
+
+
+def _trap_note(trap, plans, unit):
+    """The Rule line's trap clause: the best plain plan, what it deals and how far short it falls."""
+    names = [p for p, v in trap["plans"].items() if v == trap["best"]]
+    return ("; the best plain plan (%s) %s %d, %d short" % (" / ".join(plans[p] for p in names), unit, trap["best"],
+                                                           trap["short"]))
+
+
+def _drain_board(swamps, land, bf, gy, hand, altar, drain, steps, moves, trap=None):
+    """The board dict for a searched drain line (`trap` set for drain2)."""
     lines = drain_lines(swamps, land, bf, gy, hand, altar, moves, drain)
     battlefield = ([ALTAR] if altar else []) + sorted(bf) + ["Swamp"] * swamps
     hand_list = sorted(hand) + (["Swamp"] if land else [])
     graveyard = sorted(gy)
-    solution = ["# steps: %d" % steps] + lines
+    search = {"swamps": swamps, "land": land, "bf": sorted(bf), "gy": sorted(gy), "hand": sorted(hand), "altar": altar}
+    solution = ["# steps: %d" % steps] + _record_lines(search, trap) + lines
     desc = ("It is your second main phase. You are at 20 life and control %s. Your hand is %s. Your graveyard holds "
             "%s. The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
             % (_join(([ALTAR] if altar else []) + sorted(bf) + ["%d untapped Swamp%s" % (swamps, "s" if swamps > 1
@@ -868,18 +969,73 @@ def drain_board(rng):
         notes.append("Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out")
     if "Bloodghast" in cards and land:
         notes.append("the land drop waits until Bloodghast is in the graveyard")
-    rule = "generated-drain | the exhaustive maximum is %d drained in %d steps: %s" % (drain, steps, "; ".join(notes))
+    family = "drain2" if trap else "drain"
+    rule = "generated-%s | the exhaustive maximum is %d drained in %d steps: %s%s" % (
+        family, drain, steps, "; ".join(notes), _trap_note(trap, DRAIN_PLANS, "drains") if trap else "")
     state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
              ("p0hand", ";".join(hand_list)), ("p0battlefield", ";".join(battlefield)),
              ("p0graveyard", ";".join(graveyard)),
              ("p0library", "Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw"),
              ("p1life", drain), ("p1library", "Plains;Plains;Plains")]
     state = [kv for kv in state if kv[1] != ""]
-    return {"family": "drain", "actions": steps, "life": drain, "hand": sorted(hand_list),
+    return {"family": family, "trap": trap, "unused": 0, "actions": steps, "life": drain, "hand": sorted(hand_list),
             "battlefield": sorted(battlefield + ["gy:" + g for g in graveyard]), "phase": "MAIN2",
-            "search": {"swamps": swamps, "land": land, "bf": sorted(bf), "gy": graveyard, "hand": sorted(hand),
-                       "altar": altar},
+            "search": search,
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+
+
+HARD_MIN, HARD_MAX = 13, 15            # drain2 and elf2: the "super hard" length
+TRAP_MIN, TRAP_MAX = 1, 3              # how far short the best plain plan must fall
+
+
+def _trap(best, plain):
+    """The trap record for a board whose searched best is `best`, or None when no plain plan binds, one wins, or the
+    best of them falls 4 or more short."""
+    if not plain:
+        return None
+    top = max(plain.values())
+    if not TRAP_MIN <= best - top <= TRAP_MAX:
+        return None
+    return {"plans": plain, "best": top, "short": best - top}
+
+
+def drain2_board(rng):
+    """The drain engine made super hard: two or three sacrifice outlets that differ (Ashnod's Altar's mana, Carrion
+    Feeder the Zombie that lets Gravecrawler back, Viscera Seer's scry), more recursion, Bloodghast with the land drop
+    more often. Kept only at 13 to 15 steps with every Swamp and the land drop spent on the best line, and when the
+    best plain plan (DRAIN_PLANS: land first, drainers last, sacrifice at once) falls 1 to 3 short."""
+    swamps = rng.choice([2, 3, 3, 4, 4, 5, 5, 6])
+    outlets = rng.sample((ALTAR,) + COUNTED_OUTLETS, rng.choice([2, 2, 3]))
+    if not any(o in COUNTED_OUTLETS for o in outlets):
+        return None
+    altar = ALTAR in outlets
+    bf, gy, hand = set(), set(), set()
+    put = {"bf": bf, "hand": hand, "gy": gy}
+    for d in rng.sample(DRAINERS, rng.choice([1, 2, 2, 3])):
+        put["bf" if d == "Cruel Celebrant" else rng.choice(["bf", "hand", "hand"])].add(d)
+    for o in outlets:
+        if o != ALTAR:
+            put[rng.choice(["bf", "bf", "hand"])].add(o)
+    for r, p in (("Reassembling Skeleton", 0.85), ("Bloodghast", 0.7), ("Gravecrawler", 0.6)):
+        if rng.random() < p:
+            put[rng.choice(["bf", "gy", "hand"])].add(r)
+    land = rng.random() < (0.9 if "Bloodghast" in bf | gy | hand else 0.6)
+    if not bf:
+        return None
+    args = (swamps, land, bf, gy, hand, altar)
+    drain, steps, moves = drain_search(*args, spend=True)
+    if not HARD_MIN <= steps <= HARD_MAX or drain < 9 or drain_unused(*args, moves):
+        return None
+    trap = _trap(drain, drain_plain(*args))
+    if trap is None:
+        return None
+    b = _drain_board(*args, drain, steps, moves, trap)
+    b["shape"] = ("drain2", swamps, land, altar, tuple(sorted(
+        (zone, "drainer" if c in DRAINERS else c) for zone, cards in (("bf", bf), ("gy", gy), ("hand", hand))
+        for c in cards)))
+    return b
 
 
 # The elf family. Hand elves by name and cost in {G}: none has an ability a summoning-sick elf can use, so each is
@@ -889,83 +1045,191 @@ ELF_HAND = {"Willow Elf": 1, "Norwood Ranger": 1, "Elvish Mystic": 1, "Llanowar 
             "Cylian Elf": 2, "Treetop Warden": 2, "Wirewood Elf": 2, "Wellwisher": 2, "Elvish Warrior": 2}
 ELF_MANA = ("Elvish Mystic", "Llanowar Elves", "Fyndhorn Elves")   # may start untapped and able to tap for {G}
 HOOF_COST = 8
+PRIEST = "Priest of Titania"         # starts on the battlefield: {G} per elf on the battlefield
 
 
-def elf_search(forests, sentinels, mana_elves, costs):
+# The plain plans an elf board is held to (elf2, hoofdrain), each applied on its own; the trap is the best that binds.
+ELF_PLANS = {
+    "hoof_asap": "Craterhoof as soon as the mana for it can be made",
+    "never_tap_sentinels": "never tap a Nettle Sentinel",
+    "tap_out_first": "tap the mana creatures before anything else",
+    "keep_druid": "never tap the Druid itself",
+    "keep_mana_creatures": "never tap a mana elf or the Priest: they attack",
+}
+DRAIN_ELF_PLANS = dict(ELF_PLANS, sac_early="sacrifice each elf once the Druid has tapped it",
+                       attack_only="attack without sacrificing",
+                       sac_new_only="sacrifice only the elves cast this turn")
+
+
+def _elf_plan_applies(plan, sentinels, mana_elves, priest, drain):
+    if plan == "never_tap_sentinels":
+        return sentinels > 0
+    if plan in ("tap_out_first", "keep_mana_creatures"):
+        return bool(mana_elves or priest)
+    if plan in ("sac_early", "attack_only", "sac_new_only"):
+        return bool(drain)
+    return True
+
+
+def elf_search(forests, sentinels, mana_elves, costs, priest=False, plan=None, spend=False, others=(), drain=0):
     """The most damage this turn and the fewest steps that reach it. Heritage Druid taps any three untapped elves
-    (itself, the Sentinels, the starting mana elves, summoning-sick ones) for {G}{G}{G}; every green spell untaps every
-    Nettle Sentinel; a starting mana elf taps for {G}; Craterhoof Behemoth (haste) gives each creature +X/+X, X the
-    creatures, and the untapped creatures that started on the battlefield attack beside it. The Forests float first.
-    Returns (damage, steps, moves), moves ("druid", (druid, sentinels, mana elves, sick)), ("tap",), ("cast", i) and
-    ("hoof",) last; steps are the casts, Craterhoof and the attack."""
+    (itself, the Sentinels, the starting mana elves, Priest of Titania, summoning-sick ones) for {G}{G}{G}; every green
+    spell untaps every Nettle Sentinel; a starting mana elf taps for {G}; a starting Priest of Titania taps for {G} per
+    elf on the battlefield; Craterhoof Behemoth (haste) gives each creature +X/+X, X the creatures, and the untapped
+    creatures that started on the battlefield attack beside it. The Forests float first.
+    `others` are the base powers of the starting creatures that are not elves (hoofdrain: the drainers and Viscera
+    Seer); they attack. With `drain` drainers and the Seer out, every creature that will not attack (the elves cast,
+    the starting ones tapped) is sacrificed after Craterhoof's trigger has resolved, X already counted: `drain` each.
+    Returns (damage, steps, moves), moves ("druid", (druid, sentinels, mana elves, priest, sick)), ("tap",),
+    ("priest",), ("cast", i) and ("hoof",) last; steps are the casts, Craterhoof, the sacrifices and the attack. `plan`
+    holds the search to a plain plan (DRAIN_ELF_PLANS); `spend` breaks a tie toward the line that floats less mana
+    past Craterhoof."""
     from functools import lru_cache
-    n = len(costs)
+    by_cost = {}
+    for i, c in enumerate(costs):
+        by_cost.setdefault(c, []).append(i)
+    kinds = sorted(by_cost)
+    elves0 = 1 + sentinels + mana_elves + (1 if priest else 0)
+    pr0 = 1 if priest else 0
+
+    def reach(pool, druid, sent, mana, pr, sick, elves):
+        """The most mana the mana abilities alone make from here."""
+        return pool + pr * elves + max((mana - m) + 3 * ((druid + sent + sick + m) // 3) for m in range(mana + 1))
 
     @lru_cache(maxsize=None)
-    def best(pool, druid, sent, mana, sick, cast):
+    def best(pool, druid, sent, mana, pr, sick, cast, gone):
         cands = []
-        cast_n = bin(cast).count("1")
+        cast_n = sum(cast)
+        elves = elves0 + cast_n - gone
         if pool >= HOOF_COST:
-            x = 1 + sentinels + mana_elves + cast_n + 1
-            dmg = (5 + x) + (1 + x if druid else 0) + sentinels * (2 + x) + mana * (1 + x)
-            cands.append((dmg, cast_n + 2, (("hoof",),)))
-        seen = set()
-        for i in range(n):
-            if not cast >> i & 1 and pool >= costs[i] and costs[i] not in seen:
-                seen.add(costs[i])     # elves of one cost are interchangeable: the lowest index stands for all
-                cands.append((best(pool - costs[i], druid, sentinels, mana, sick + 1, cast | 1 << i), ("cast", i)))
-        if mana:
-            cands.append((best(pool + 1, druid, sent, mana - 1, sick, cast), ("tap",)))
-        for a in range(druid + 1):
-            for b in range(min(sent, 3 - a) + 1):
-                for c in range(min(mana, 3 - a - b) + 1):
-                    k = 3 - a - b - c
-                    if k <= sick:
-                        cands.append((best(pool + 3, druid - a, sent - b, mana - c, sick - k, cast),
-                                      ("druid", (a, b, c, k))))
-        top = (-1, 0, ())
+            x = elves0 + len(others) + cast_n - gone + 1
+            dmg = (5 + x) + (1 + x if druid else 0) + sentinels * (2 + x) + (mana + pr) * (1 + x) \
+                + sum(p + x for p in others)
+            sacs = cast_n + (0 if plan == "sac_new_only" else (1 - druid) + (mana_elves - mana) + (pr0 - pr))
+            sacs = sacs if drain and plan != "attack_only" else 0
+            cands.append((dmg + drain * sacs, cast_n + 2 + sacs, (("hoof",),), pool - HOOF_COST if spend else 0))
+        tap_out = plan == "tap_out_first" and (mana or pr)
+        hurry = plan == "hoof_asap" and reach(pool, druid, sent, mana, pr, sick, elves) >= HOOF_COST
+        need = HOOF_COST + sum(c * (len(by_cost[c]) - cast[j]) for j, c in enumerate(kinds))
+        more = pool < need or tap_out  # past what the hand can spend, more mana taps an attacker for nothing
+        if not (tap_out or hurry):
+            for j, c in enumerate(kinds):
+                if cast[j] < len(by_cost[c]) and pool >= c:
+                    nc = cast[:j] + (cast[j] + 1,) + cast[j + 1:]
+                    cands.append((best(pool - c, druid, sentinels, mana, pr, sick + 1, nc, gone),
+                                  ("cast", by_cost[c][cast[j]])))
+        keep = plan == "keep_mana_creatures"
+        if mana and more and not keep:
+            cands.append((best(pool + 1, druid, sent, mana - 1, pr, sick, cast, gone), ("tap",)))
+        if pr and more and not keep:
+            cands.append((best(pool + elves, druid, sent, mana, 0, sick, cast, gone), ("priest",)))
+        if more and not tap_out:
+            for a in range(0 if plan == "keep_druid" else druid + 1):
+                for b in range(0 if plan == "never_tap_sentinels" else min(sent, 3 - a) + 1):
+                    for c in range(0 if keep else min(mana, 3 - a - b) + 1):
+                        for p in range(0 if keep else min(pr, 3 - a - b - c) + 1):
+                            k = 3 - a - b - c - p
+                            if k > sick:
+                                continue
+                            g = gone + k if plan == "sac_early" else gone
+                            cands.append((best(pool + 3, druid - a, sent - b, mana - c, pr - p, sick - k, cast, g),
+                                          ("druid", (a, b, c, p, k))))
+        top = (-1, 0, (), 0)
         for c in cands:
             if len(c) == 2:
-                (d, s, line), move = c
-                c = (d, s, (move,) + line)
-            if c[0] > top[0] or (c[0] == top[0] and c[1] < top[1]):
+                (d, s, line, w), move = c
+                c = (d, s, (move,) + line, w)
+            if c[0] > top[0] or (c[0] == top[0] and (c[1], c[3]) < (top[1], top[3])):
                 top = c
         return top
 
-    return best(forests, 1, sentinels, mana_elves, 0, 0)
+    d, s, line, w = best(forests, 1, sentinels, mana_elves, pr0, 0, (0,) * len(kinds), 0)
+    return d, s, line
 
 
-def elf_lines(forests, sentinels, mana_names, names, moves):
+def elf_unused(forests, sentinels, mana_elves, costs, moves, priest=False):
+    """The green mana still floating when Craterhoof Behemoth is cast by `moves`."""
+    pool, n = forests, 0
+    for move in moves:
+        if move[0] == "cast":
+            pool -= costs[move[1]]
+            n += 1
+        elif move[0] == "druid":
+            pool += 3
+        elif move[0] == "tap":
+            pool += 1
+        elif move[0] == "priest":
+            pool += 1 + sentinels + mana_elves + 1 + n
+        else:
+            pool -= HOOF_COST
+    return pool
+
+
+def elf_plain(forests, sentinels, mana_elves, costs, priest=False, others=(), drain=0, stop=None):
+    """What each plain plan that binds on the board deals: {plan: damage}, -1 when it never casts Craterhoof. With
+    `stop`, the plans after the first that deals `stop` or more are left out (the board is dropped either way)."""
+    out = {}
+    for p in DRAIN_ELF_PLANS if drain else ELF_PLANS:
+        if _elf_plan_applies(p, sentinels, mana_elves, priest, drain):
+            out[p] = elf_search(forests, sentinels, mana_elves, costs, priest, plan=p, others=others, drain=drain)[0]
+            if stop is not None and out[p] >= stop:
+                break
+    return out
+
+
+def elf_lines(forests, sentinels, mana_names, names, moves, priest=False, others=()):
     """The written line for `moves`. Every Nettle Sentinel's "may untap" is asked when its trigger resolves (yes, also
     when it is untapped); a Druid activation with more than three untapped elves asks which three; a cast elf is
     resolved by one "pass" before a mana activation that would otherwise be taken with it still on the stack, but
-    only in a window the seat is asked (one where nothing but a Forest's mana is playable is skipped)."""
+    only in a window the seat is asked (one where nothing but a Forest's mana is playable is skipped).
+    With Viscera Seer among `others` (hoofdrain) every window is asked: Craterhoof and its trigger resolve by a
+    "pass" each, then the Seer sacrifices every creature that will not attack, each death's drain triggers put in
+    order and resolved (Blood Artist's target the opponent) and the scry answered, before the attack."""
+    seer = "Viscera Seer" in others
     lines = ["activate Forest"] * forests
-    druid, sent = True, sentinels
+    druid, sent, pr = True, sentinels, priest
     mana = list(mana_names)            # untapped starting mana elves
     sick = []                          # untapped summoning-sick elves, in the order cast
     for j, move in enumerate(moves):
         if move[0] == "druid":
-            a, b, c, k = move[1]
+            a, b, c, p, k = move[1]
             lines.append("activate Heritage Druid")
-            if (1 if druid else 0) + sent + len(mana) + len(sick) > 3:
-                lines.append("; ".join(["Heritage Druid"] * a + ["Nettle Sentinel"] * b + mana[:c] + sick[:k]))
-            druid, sent, mana, sick = druid and not a, sent - b, mana[c:], sick[k:]
+            if (1 if druid else 0) + sent + len(mana) + (1 if pr else 0) + len(sick) > 3:
+                lines.append("; ".join(["Heritage Druid"] * a + ["Nettle Sentinel"] * b + mana[:c]
+                                       + [PRIEST] * p + sick[:k]))
+            druid, sent, mana, pr, sick = druid and not a, sent - b, mana[c:], pr and not p, sick[k:]
         elif move[0] == "tap":
             lines.append("activate " + mana.pop(0))
+        elif move[0] == "priest":
+            lines.append("activate " + PRIEST)
+            pr = False
         elif move[0] == "cast":
             name = names[move[1]]
             lines += ["cast " + name] + ["yes"] * sentinels
             sent = sentinels
             nxt = moves[j + 1][0] if j + 1 < len(moves) else None
-            window = (1 if druid else 0) + sent + len(mana) + len(sick) >= 3 or bool(mana)
-            if nxt in ("druid", "tap") and window:
+            window = (1 if druid else 0) + sent + len(mana) + (1 if pr else 0) + len(sick) >= 3 or bool(mana) or pr \
+                or seer
+            if nxt in ("druid", "tap", "priest") and window:
                 lines.append("pass")
             sick.append(name)
         else:
             lines += ["cast Craterhoof Behemoth"] + ["yes"] * sentinels
+            drainers = [o for o in others if o in DRAINERS]
+            if seer and drainers:
+                lines += ["pass", "pass"]          # Craterhoof, then its trigger: X is counted
+                tapped = ([] if druid else ["Heritage Druid"]) + [m for m in mana_names if m not in mana] \
+                    + ([PRIEST] if priest and not pr else [])
+                for victim in [names[m[1]] for m in moves if m[0] == "cast"] + tapped:
+                    lines += ["activate Viscera Seer", victim]
+                    if len(drainers) > 1:
+                        lines.append("; ".join(drainers))
+                    if "Blood Artist" in drainers:
+                        lines.append("opponent")
+                    lines += ["pass"] * len(drainers) + ["pass", "Colossal Dreadmaw"]
             lines.append("; ".join(["Craterhoof Behemoth"] + ["Nettle Sentinel"] * sentinels
-                                   + (["Heritage Druid"] if druid else []) + mana))
+                                   + (["Heritage Druid"] if druid else []) + mana + ([PRIEST] if pr else [])
+                                   + list(others)))
     return lines
 
 
@@ -991,29 +1255,108 @@ def elf_board(rng):
     x = 1 + sentinels + len(mana_names) + len(names) + 1
     if dmg >= (5 + x) + (1 + x) + sentinels * (2 + x) + len(mana_names) * (1 + x):
         return None
-    lines = elf_lines(forests, sentinels, mana_names, names, moves)
-    battlefield = ["Forest"] * forests + ["Heritage Druid"] + ["Nettle Sentinel"] * sentinels + mana_names
+    return _elf_board(rng, forests, sentinels, mana_names, names, dmg, steps, moves)
+
+
+def _elf_board(rng, forests, sentinels, mana_names, names, dmg, steps, moves, priest=False, trap=None, others=()):
+    """The board dict for a searched elf line (`trap` set for elf2 and hoofdrain, `others` for hoofdrain)."""
+    lines = elf_lines(forests, sentinels, mana_names, names, moves, priest, others)
+    battlefield = ["Forest"] * forests + ["Heritage Druid"] + ["Nettle Sentinel"] * sentinels + mana_names \
+        + ([PRIEST] if priest else []) + list(others)
     hand = names + ["Craterhoof Behemoth"]
     rng.shuffle(hand)
-    solution = ["# steps: %d" % steps] + lines
-    count = ["", "one", "two", "three"]
+    search = {"forests": forests, "sentinels": sentinels, "mana_elves": mana_names, "elves": names, "priest": priest,
+              "others": list(others)}
+    solution = ["# steps: %d" % steps] + _record_lines(search, trap) + lines
+    count = ["", "one", "two", "three", "four"]
     desc = ("It is your first main phase. You are at 20 life and control %s, all untapped and none of them summoning "
             "sick. Your hand is %s. The opponent is at %d life and controls nothing. Reduce the opponent to 0 life "
             "this turn." % (_join(([("%s Forest%s" % (count[forests], "s" if forests > 1 else ""))] if forests else [])
                                   + ["Heritage Druid", "%s Nettle Sentinel%s" % (count[sentinels],
                                                                                  "s" if sentinels > 1 else "")]
-                                  + mana_names), _join(hand), dmg))
-    rule = ("generated-elf | the exhaustive maximum is %d damage in %d steps: the Sentinels tapped by the Druid before "
+                                  + mana_names + ([PRIEST] if priest else []) + list(others)), _join(hand), dmg))
+    family = "hoofdrain" if others else "elf2" if trap else "elf"
+    rule = ("generated-%s | the exhaustive maximum is %d damage in %d steps: the Sentinels tapped by the Druid before "
             "each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with %s untapped"
-            % (dmg, steps, "the Druid" if lines[-1].count("Heritage Druid") else "the Sentinels"))
+            % (family, dmg, steps, "the Druid" if lines[-1].count("Heritage Druid") else "the Sentinels"))
+    if priest:
+        rule += "; Priest of Titania taps for one per elf out, or attacks"
+    if others:
+        rule += ("; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not "
+                 "attack, each death draining once per drainer")
+    if trap:
+        rule += _trap_note(trap, DRAIN_ELF_PLANS, "deals")
     state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN1"), ("p0life", 20),
              ("p0hand", ";".join(hand)), ("p0battlefield", ";".join(battlefield)),
              ("p0library", "Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw"),
              ("p1life", dmg), ("p1library", "Plains;Plains;Plains")]
-    return {"family": "elf", "actions": steps, "life": dmg, "hand": sorted(hand), "battlefield": sorted(battlefield),
-            "phase": "MAIN1",
-            "search": {"forests": forests, "sentinels": sentinels, "mana_elves": mana_names, "elves": names},
+    return {"family": family, "trap": trap, "unused": 0, "actions": steps, "life": dmg, "hand": sorted(hand),
+            "battlefield": sorted(battlefield), "phase": "MAIN1",
+            "search": search,
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+def elf2_board(rng):
+    """The elf engine made super hard: more Sentinels and mana elves, and a starting Priest of Titania (one {G} per elf
+    out, so it taps late, or it attacks). Kept only at 13 to 15 steps with nothing floating past Craterhoof, when
+    the mana binds, and when the best plain plan (ELF_PLANS: Craterhoof at once, never tap a Sentinel, tap the mana
+    creatures first, the Druid on the new elves first) falls 1 to 3 short."""
+    forests = rng.choice([0, 1, 1, 2, 2, 3])
+    sentinels = rng.choice([1, 1, 2, 2, 3])
+    mana_names = rng.sample(ELF_MANA, rng.choice([0, 1, 1, 2, 3]))
+    priest = rng.random() < 0.4
+    pool = sorted(set(ELF_HAND) - set(mana_names))
+    names = rng.sample(pool, min(len(pool), rng.randint(HARD_MIN - 2, HARD_MAX - 1)))
+    costs = [ELF_HAND[nm] for nm in names]
+    args = (forests, sentinels, len(mana_names), costs)
+    dmg, steps, moves = elf_search(*args, priest=priest, spend=True)
+    if dmg < 0 or not HARD_MIN <= steps <= HARD_MAX or elf_unused(*args, moves, priest):
+        return None
+    x = 1 + sentinels + len(mana_names) + priest + len(names) + 1
+    if dmg >= (5 + x) + (1 + x) + sentinels * (2 + x) + (len(mana_names) + priest) * (1 + x):
+        return None                    # the mana must bind (elf_board)
+    trap = _trap(dmg, elf_plain(*args, priest=priest, stop=dmg))
+    if trap is None:
+        return None
+    b = _elf_board(rng, forests, sentinels, mana_names, names, dmg, steps, moves, priest, trap)
+    b["shape"] = ("elf2", forests, sentinels, len(mana_names), priest, tuple(sorted(costs)))
+    return b
+
+
+# hoofdrain: the starting creatures that are not elves, by base power.
+HOOFDRAIN_OTHERS = {"Blood Artist": 0, "Zulaport Cutthroat": 1, "Cruel Celebrant": 1, "Viscera Seer": 1}
+
+
+def hoofdrain_board(rng):
+    """Elves and aristocrats: the elf engine into Craterhoof Behemoth, with one or two drainers and Viscera Seer out.
+    Craterhoof's trigger counts X when it resolves, so the creatures that will not attack (the elves cast, the
+    starting ones the Druid tapped) are sacrificed after it, never before; tapping the Druid itself trades its attack
+    for a drain. Kept only at 13 to 15 steps with nothing floating past Craterhoof, when the mana binds, and when the
+    best plain plan (DRAIN_ELF_PLANS) falls 1 to 3 short."""
+    forests = rng.choice([0, 1, 1, 2, 2, 3])
+    sentinels = rng.choice([1, 1, 2, 2, 3])
+    mana_names = rng.sample(ELF_MANA, rng.choice([0, 0, 1, 1, 2]))
+    priest = rng.random() < 0.35
+    drainers = rng.sample(DRAINERS, rng.choice([1, 1, 2]))
+    others = sorted(drainers) + ["Viscera Seer"]
+    pool = sorted(set(ELF_HAND) - set(mana_names))
+    names = rng.sample(pool, rng.randint(4, 7))
+    costs = [ELF_HAND[nm] for nm in names]
+    args = (forests, sentinels, len(mana_names), costs)
+    kw = dict(priest=priest, others=tuple(HOOFDRAIN_OTHERS[o] for o in others), drain=len(drainers))
+    dmg, steps, moves = elf_search(*args, spend=True, **kw)
+    if dmg < 0 or not HARD_MIN <= steps <= HARD_MAX or elf_unused(*args, moves, priest):
+        return None
+    x = 1 + sentinels + len(mana_names) + priest + len(others) + len(names) + 1
+    if dmg >= (5 + x) + (1 + x) + sentinels * (2 + x) + (len(mana_names) + priest) * (1 + x) \
+            + sum(HOOFDRAIN_OTHERS[o] + x for o in others) + len(drainers) * len(names):
+        return None                    # the mana must bind (elf_board)
+    trap = _trap(dmg, elf_plain(*args, stop=dmg, **kw))
+    if trap is None:
+        return None
+    b = _elf_board(rng, forests, sentinels, mana_names, names, dmg, steps, moves, priest, trap, others)
+    b["shape"] = ("hoofdrain", forests, sentinels, len(mana_names), priest, len(drainers), tuple(sorted(costs)))
+    return b
 
 
 # The fling family: (generic, red, mana added, damage to the opponent, pump to a target creature, target kind).
@@ -1188,7 +1531,8 @@ def fling_board(rng):
 
 
 FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "splice2": splice2_board,
-            "red": red_board, "drain": drain_board, "elf": elf_board, "fling": fling_board}
+            "red": red_board, "drain": drain_board, "elf": elf_board, "fling": fling_board, "drain2": drain2_board,
+            "elf2": elf2_board, "hoofdrain": hoofdrain_board}
 
 
 def board_key(b):
@@ -1197,22 +1541,30 @@ def board_key(b):
                           .encode()).hexdigest()[:12]
 
 
-def generate(family, count, seed, tries=20000):
+def iter_boards(family, count, seed, tries=20000):
+    """`count` boards of a family, each yielded as it is drawn. A board that states its structure (drain2, elf2,
+    hoofdrain: `shape`, the cards reduced to their roles) is also one board with any other of that structure or of
+    the same life total, so a batch never repeats a life total."""
     rng = random.Random(seed)
-    seen, out = set(), []
+    seen, n = set(), 0
     for _ in range(tries):
-        if len(out) >= count:
+        if n >= count:
             break
         b = FAMILIES[family](rng)
         if b is None:
             continue
         key = board_key(b)
-        if key in seen:
+        alike = [key] + ([("shape", b["shape"]), ("life", b["life"])] if "shape" in b else [])
+        if any(k in seen for k in alike):
             continue
-        seen.add(key)
+        seen.update(alike)
         b["key"] = key
-        out.append(b)
-    return out
+        n += 1
+        yield b
+
+
+def generate(family, count, seed, tries=20000):
+    return list(iter_boards(family, count, seed, tries))
 
 
 def main(argv=None):
@@ -1220,15 +1572,17 @@ def main(argv=None):
     ap.add_argument("--family", choices=sorted(FAMILIES), required=True)
     ap.add_argument("--count", type=int, default=20)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--tries", type=int, default=20000, help="draws before giving up on --count")
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    boards = generate(a.family, a.count, a.seed)
-    for b in boards:
+    n = 0
+    for b in iter_boards(a.family, a.count, a.seed, a.tries):
         name = "%s_%s" % (a.family, b["key"])
         (out / (name + ".pzl")).write_text(b["text"](name), encoding="utf-8")
-    print("%d %s boards in %s" % (len(boards), a.family, out))
+        n += 1
+    print("%d %s boards in %s" % (n, a.family, out))
     return 0
 
 
