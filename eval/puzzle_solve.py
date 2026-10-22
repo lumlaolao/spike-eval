@@ -12,6 +12,9 @@ far after each puzzle. Then score it:
 
     python3 eval/puzzle_score.py --suite <suite> --split open runs/puzzles/luna-open
 
+A run stopped part way (a container restart) is started again with the same arguments and --resume: a puzzle
+whose k attempts on this suite are recorded is skipped, one cut off part way is played again.
+
 An openrouter: model sends each puzzle's position to openrouter.ai: the egress opt-in
 (OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here.
 """
@@ -66,6 +69,21 @@ def condition(a):
             "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
 
 
+def already_done(out, k, suite_sha):
+    """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it."""
+    seeds = {r.get("seed") for r in pb.read_results(out) if r.get("suite_sha256") == suite_sha}
+    return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
+
+
+def set_aside_partial(out):
+    """A puzzle cut off part way is played again from its first seed; its rows so far are renamed, so a scorer
+    never counts them, and its game rows stay, so cost_report still prices what was spent."""
+    f = Path(out) / "puzzle-results.jsonl"
+    if f.is_file():
+        n = len(list(Path(out).glob("puzzle-results.partial*.jsonl")))
+        f.rename(Path(out) / ("puzzle-results.partial%d.jsonl" % n))
+
+
 def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
@@ -98,6 +116,8 @@ def main(argv=None):
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--build", default=None)
     ap.add_argument("--forge", default=None)
+    ap.add_argument("--resume", action="store_true",
+                    help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
@@ -123,8 +143,13 @@ def main(argv=None):
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root)), flush=True)
 
     def work(rec):
+        out = out_root / rec["id"]
+        if a.resume and already_done(out, a.k, manifest["suite_sha256"]):
+            return rec["id"], "done", pb.read_results(out)
         if spent(out_root) >= a.budget_usd:
             return rec["id"], None, []
+        if a.resume:
+            set_aside_partial(out)
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
 
     skipped = 0
