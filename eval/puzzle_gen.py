@@ -3027,7 +3027,7 @@ def tokens_board(rng):
     cards = s["bf"] + s["hand"]
     notes = []
     if TREMORS in cards or ROASTMASTER in cards:
-        notes.append("every creature entering deals damage, the payoffs out before the bodies")
+        notes.append("every creature entering deals damage")
     if DEVIL in cards:
         notes.append("Mayhem Devil drains for every sacrifice, Skirk Prospector's too")
     if SKIRK in cards:
