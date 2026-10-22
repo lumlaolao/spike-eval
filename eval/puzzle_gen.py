@@ -32,6 +32,13 @@ Increasing Vengeance aimed at a ritual on the stack; plain: copy only burn), gra
 Songs of the Damned count the graveyard; plain: every mana spell first) and atog (each artifact fed to Atog for
 Fling or to Krark-Clan Ironworks for mana; plain: Atog eats everything).
 
+The third set (eval/puzzles/hard/gen3, the same bar): landfall (land drops, fetch cracks and Harrow feeding Akoum
+Hellkite, Valakut, Lotus Cobra and Retreat to Coralhelm's Pyromancer, Blaze for the mana left; plain: the land first,
+or each landfall creature as soon as it is paid for) and tokens (Goblins entering under Impact Tremors and Witty
+Roastmaster and dying to Skirk Prospector and Siege-Gang under Mayhem Devil, Krenko counting them; plain: sacrifice
+tokens first, or the payoffs as soon as the lands pay). Both state their search inputs and trap, and a test rewrites
+each committed board's line from them (written_from_record).
+
   python3 eval/puzzle_gen.py --family ping --count 40 --seed 1 --out DIR
   python3 eval/puzzle_gen.py --family drain2 --count 40 --seed 2 --tries 40000 --out DIR
 """
@@ -935,6 +942,12 @@ def board_record(text):
 def research(rec):
     """Recompute a board from its stated search inputs: (best, steps, unused mana, {plan: value})."""
     s = rec["search"]
+    if rec["family"] == "landfall":
+        d, st, moves = landfall_search(s)
+        return d, st, landfall_unused(s, moves), landfall_plain(s)
+    if rec["family"] == "tokens":
+        d, st, moves = token_search(s)
+        return d, st, token_lines(s, moves, d)[3], token_plain(s)
     if rec["family"] == "drain2":
         args = (s["swamps"], s["land"], set(s["bf"]), set(s["gy"]), set(s["hand"]), s["altar"])
         d, st, moves = drain_search(*args, spend=True)
@@ -945,6 +958,15 @@ def research(rec):
               drain=sum(o in DRAINERS for o in s["others"]))
     d, st, moves = elf_search(*args, spend=True, **kw)
     return d, st, elf_unused(*args, moves, s["priest"]), elf_plain(*args, **kw)
+
+
+def written_from_record(rec):
+    """The line a gen3 board's stated search inputs write (landfall, tokens)."""
+    s = rec["search"]
+    if rec["family"] == "landfall":
+        return landfall_lines(s, landfall_search(s)[2])[0]
+    d, _, moves = token_search(s)
+    return token_lines(s, moves, d)[0]
 
 
 def _trap_note(trap, plans, unit):
@@ -2259,10 +2281,778 @@ def atog_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, ["# steps: %d" % steps] + lines,
                                           ["life p1 <= 0"])}
 
+# The landfall family (eval/puzzles/hard/gen3). Lands enter and payoffs fire: Akoum Hellkite (1, 2 for a Mountain, any
+# target), Tunneling Geopede (1), Valakut (3 for a Mountain with five other Mountains out), Retreat to Coralhelm
+# untapping Prodigal Pyromancer (one more ping per land) and Lotus Cobra (one mana of any colour per land). Wooded
+# Foothills and Evolving Wilds are two landfalls each (Wilds' land enters tapped), Harrow two at once for a land
+# sacrificed, Azusa and Exploration more land drops, and Blaze turns every mana left into damage.
+LF_FETCH, LF_WILDS, VALAKUT = "Wooded Foothills", "Evolving Wilds", "Valakut, the Molten Pinnacle"
+HELLKITE, GEOPEDE, COBRA, AZUSA = "Akoum Hellkite", "Tunneling Geopede", "Lotus Cobra", "Azusa, Lost but Seeking"
+PYROMANCER, CORALHELM = "Prodigal Pyromancer", "Retreat to Coralhelm"
+LF_SPELLS = {COBRA: (1, 1, 0), AZUSA: (2, 1, 0), "Exploration": (0, 1, 0), "Harrow": (2, 1, 0),
+             HELLKITE: (4, 0, 2), GEOPEDE: (2, 0, 1)}            # (generic, green, red)
+LF_DROPS = {AZUSA: 2, "Exploration": 1}
+LF_LANDS = ("Mountain", "Forest", LF_FETCH, LF_WILDS, VALAKUT)
+LF_PAYOFFS = (HELLKITE, GEOPEDE, COBRA)
+LF_LAND_MANA = {"Mountain": "R", VALAKUT: "R", "Forest": "G"}
+LANDFALL_PLANS = {
+    "land_first": "play a land before anything else",
+    "payoff_first": "cast each landfall creature as soon as it can be paid",
+}
+
+
+def landfall_pay(pr, pg, um, uv, uf, gen, green, red):
+    """Every way the engine pays (gen, green, red) once the line floats untapped lands: floating mana pays first
+    (pr red, pg green; ManaPool.payManaCostFromPool), and the line floats only what the cost needs beyond it (um
+    Mountains, uv Valakut, uf Forests untapped). Floating mana of both colours left for a generic part is refused: the
+    engine would ask which pays (LlmSpikeGui.chooseManaFromPool), a question a written line does not answer.
+    Yields ((Mountains, Valakut, Forests) floated, pr', pg', um', uv', uf')."""
+    short = max(0, gen + green + red - pr - pg)
+    for fr in range(short + 1):
+        ff = short - fr
+        if ff > uf or fr > um + uv:
+            continue
+        fm = min(fr, um)
+        r, g = pr + fr - red, pg + ff - green
+        if r < 0 or g < 0 or (gen and r and g):
+            continue
+        if gen:
+            if r >= gen:
+                r -= gen
+            elif g >= gen:
+                g -= gen
+            else:
+                continue
+        yield (fm, fr - fm, ff), r, g, um - fm, uv - (fr - fm), uf - ff
+
+
+def _landfall_plan_applies(plan, start):
+    if plan == "land_first":
+        return any(c in LF_LANDS for c in start["hand"])
+    return any(c in LF_PAYOFFS for c in start["hand"])
+
+
+def landfall_search(start, plan=None):
+    """The most damage the board deals, and the fewest steps that deal it: (damage, steps, moves), an exhaustive
+    search over every order of land drops, fetch cracks and casts, every fetch's and Harrow's choice of basic, Harrow's
+    sacrifice and the colour of each Lotus Cobra mana, ending with Blaze for everything left. Prodigal Pyromancer
+    (with Retreat to Coralhelm) is not searched: it pings at every chance, once to start and once more for each land,
+    each ping a step. `start`: mountains, forests (untapped, on the battlefield), valakut ("bf", "hand" or None),
+    hellkite, geopede, coralhelm (on the battlefield), cobra ("bf", "hand" or None), hand, lib ([Mountains, Forests]).
+    Moves: ("land", card, greens), ("crack", fetch, basic, greens), ("cast", card, floats[, sacrificed, basics,
+    greens]), ("blaze", X); `greens` is how many of Lotus Cobra's mana are named green. `plan` holds the search to a
+    plain plan (LANDFALL_PLANS)."""
+    from functools import lru_cache
+    cor = int(start["coralhelm"])
+
+    @lru_cache(maxsize=None)
+    def best(st, first):
+        pr, pg, um, uv, uf, drops, hand, ff, fw, mtn, frs, lm, lf, crt, val, vt = st
+        hk, geo, cob = crt
+        moves = []
+
+        def fall(types, mtn_after, val_on):
+            d = 0
+            for t in types:
+                d += hk * (2 if t == "Mountain" else 1) + geo + cor
+                if val_on and t == "Mountain" and mtn_after - 1 >= 5:
+                    d += 3
+            return d, len(types) * cob, len(types) * cor
+
+        def cobra(n, r, g):
+            return [(k, r + n - k, g + k) for k in range(n + 1)]
+
+        for c in sorted(set(hand)):
+            rest = list(hand)
+            rest.remove(c)
+            rest = tuple(rest)
+            if c in LF_LANDS:
+                if drops < 1:
+                    continue
+                m2, f2 = mtn + (c == "Mountain"), frs + (c == "Forest")
+                d, n, p = fall([c if c in ("Mountain", "Forest") else "-"], m2, val)
+                for k, r2, g2 in cobra(n, pr, pg):
+                    nst = (r2, g2, um + (c == "Mountain"), uv, uf + (c == "Forest"), drops - 1, rest,
+                           ff + (c == LF_FETCH), fw + (c == LF_WILDS), m2, f2, lm, lf, crt, val or c == VALAKUT,
+                           vt or c == VALAKUT)
+                    moves.append((("land", c, k), nst, d, 1 + p))
+                continue
+            if c not in LF_SPELLS:
+                continue
+            for fl, r1, g1, um1, uv1, uf1 in landfall_pay(pr, pg, um, uv, uf, *LF_SPELLS[c]):
+                if c in LF_PAYOFFS:
+                    crt2 = tuple(x + (j == LF_PAYOFFS.index(c)) for j, x in enumerate(crt))
+                    moves.append((("cast", c, fl), (r1, g1, um1, uv1, uf1, drops, rest, ff, fw, mtn, frs, lm, lf, crt2,
+                                                    val, vt), 0, 1))
+                elif c in LF_DROPS:
+                    moves.append((("cast", c, fl), (r1, g1, um1, uv1, uf1, drops + LF_DROPS[c], rest, ff, fw, mtn, frs,
+                                                    lm, lf, crt, val, vt), 0, 1))
+                else:
+                    # Harrow sacrifices a basic already tapped (its mana spent or floating), a fetch not yet cracked,
+                    # or Valakut once tapped; an untapped basic would be a floated one, which `fl` already offers.
+                    sacs = [s for s, ok in (("Mountain", mtn > um1), ("Forest", frs > uf1), (LF_FETCH, ff),
+                                            (LF_WILDS, fw), (VALAKUT, val and (vt or not uv1))) if ok]
+                    for s in sacs:
+                        m2, f2, v2 = mtn - (s == "Mountain"), frs - (s == "Forest"), val and s != VALAKUT
+                        for nm in (2, 1, 0):
+                            if nm > lm or 2 - nm > lf:
+                                continue
+                            pick = ("Mountain",) * nm + ("Forest",) * (2 - nm)
+                            d, n, p = fall(list(pick), m2 + nm, v2)
+                            for k, r2, g2 in cobra(n, r1, g1):
+                                nst = (r2, g2, um1 + nm, uv1 if v2 else 0, uf1 + 2 - nm, drops, rest,
+                                       ff - (s == LF_FETCH), fw - (s == LF_WILDS), m2 + nm, f2 + 2 - nm, lm - nm,
+                                       lf - (2 - nm), crt, v2, vt and v2)
+                                moves.append((("cast", c, fl, s, pick, k), nst, d, 1 + p))
+        for kind, on in ((LF_FETCH, ff), (LF_WILDS, fw)):
+            for t in ("Mountain", "Forest") if on else ():
+                if not (lm if t == "Mountain" else lf):
+                    continue
+                live = kind == LF_FETCH                 # Evolving Wilds' land enters tapped
+                m2, f2 = mtn + (t == "Mountain"), frs + (t == "Forest")
+                d, n, p = fall([t], m2, val)
+                for k, r2, g2 in cobra(n, pr, pg):
+                    nst = (r2, g2, um + (t == "Mountain" and live), uv, uf + (t == "Forest" and live), drops, hand,
+                           ff - (kind == LF_FETCH), fw - (kind == LF_WILDS), m2, f2, lm - (t == "Mountain"),
+                           lf - (t == "Forest"), crt, val, vt)
+                    moves.append((("crack", kind, t, k), nst, d, 1 + p))
+        if plan == "land_first" and first and any(m[0][0] == "land" for m in moves):
+            moves = [m for m in moves if m[0][0] == "land"]
+        if plan == "payoff_first" and any(m[0][0] == "cast" and m[0][1] in LF_PAYOFFS for m in moves):
+            moves = [m for m in moves if m[0][0] == "cast" and m[0][1] in LF_PAYOFFS]
+        # The end: Blaze for everything left. Its {R} from floating red or a red land; the floating mana its X takes
+        # must be one colour.
+        tot = pr + pg + um + uv + uf
+        top = (0, 0, ())
+        if "Blaze" in hand and (pr or um or uv) and not (pg and pr > 1) and tot >= 2:
+            top = (tot - 1, 1, (("blaze", tot - 1),))
+        for move, nst, d, s in moves:
+            dd, ss, ln = best(nst, False)
+            if (dd + d, -(ss + s)) > (top[0], -top[1]):
+                top = (dd + d, ss + s, (move,) + ln)
+        return top
+
+    vb = start["valakut"] == "bf"
+    st = (0, 0, start["mountains"], int(vb), start["forests"], 1, tuple(sorted(start["hand"])), 0, 0,
+          start["mountains"], start["forests"], start["lib"][0], start["lib"][1],
+          (int(start["hellkite"]), int(start["geopede"]), int(start["cobra"] == "bf")), vb, False)
+    d, s, ln = best(st, True)
+    return d + cor, s + cor, ln
+
+
+def landfall_plain(start):
+    """What each plain plan that applies to the board deals: {plan: damage}."""
+    return {p: landfall_search(start, plan=p)[0] for p in LANDFALL_PLANS if _landfall_plan_applies(p, start)}
+
+
+def landfall_unused(start, moves):
+    """Mana the line leaves: none when it ends with Blaze for everything left (Blaze's X is all of it); else all of
+    it, counted as one."""
+    return 0 if moves and moves[-1][0] == "blaze" and moves[-1][1] >= 1 else 1
+
+
+class LineUnwritable(Exception):
+    """The engine would ask something here that a written line does not answer."""
+
+
+def landfall_lines(start, moves):
+    """The written line for landfall_search's moves: (lines, damage, steps). Each move is made with the stack empty;
+    the triggers of a land entering are put in order (by source: Hellkite, Geopede, Valakut, Coralhelm, Cobra) and
+    their choices named as they go on the stack (in reverse: Coralhelm's mode and target, a damage target), then
+    resolved: Valakut's "yes", Coralhelm's "Untap", Cobra's colour. Prodigal Pyromancer pings at every priority it is
+    untapped. A "pass" is written only before a move the seat could make at once with the stack not empty (a crack,
+    Harrow) and only where the seat is asked (the Pyromancer, a fetch out or Harrow castable; a priority where only a
+    land's mana could be made is passed by the seat itself). Each cast floats exactly the lands its move names, so the
+    engine pays from floating mana alone. A fetch or Harrow names its basic from the library; Blaze its X."""
+    L = []
+    lands = [["Mountain", False] for _ in range(start["mountains"])] + \
+        [["Forest", False] for _ in range(start["forests"])] + ([[VALAKUT, False]] if start["valakut"] == "bf" else [])
+    creatures = ([PYROMANCER] if start["coralhelm"] else []) + ([HELLKITE] if start["hellkite"] else []) + \
+        ([GEOPEDE] if start["geopede"] else []) + ([COBRA] if start["cobra"] == "bf" else [])
+    hand = list(start["hand"])
+    pool = {"R": 0, "G": 0}
+    cor = int(start["coralhelm"])
+    st = {"pyro": bool(cor), "dmg": 0, "steps": 0, "greens": 0}
+    stack = []
+
+    def mountains():
+        return sum(1 for n, _ in lands if n == "Mountain")
+
+    def untapped(*names):
+        return [land for nm in names for land in lands if land[0] == nm and not land[1]]
+
+    def asked():
+        if st["pyro"] or any(n in (LF_FETCH, LF_WILDS) for n, _ in lands):
+            return True
+        tot = pool["R"] + pool["G"] + len(untapped("Mountain", "Forest", VALAKUT))
+        return "Harrow" in hand and tot >= 3 and bool(pool["G"] or untapped("Forest"))
+
+    def fall(entered):
+        trig = []
+        for t in entered:
+            trig += [(HELLKITE, t)] * creatures.count(HELLKITE) + [(GEOPEDE, t)] * creatures.count(GEOPEDE)
+            if t == "Mountain" and mountains() >= 6 and any(n == VALAKUT for n, _ in lands):
+                trig.append((VALAKUT, t))
+            trig += [(CORALHELM, t)] * cor + [(COBRA, t)] * creatures.count(COBRA)
+        if len(set(k for k, _ in trig)) > 1:
+            L.append("; ".join(k for k, _ in trig))
+        for k, _ in reversed(trig):
+            if k == CORALHELM:
+                L.append("You may tap or untap")
+                if len(creatures) > 1:
+                    L.append(PYROMANCER)
+            elif k in (HELLKITE, VALAKUT):
+                L.append("opponent")
+        stack.extend(("trigger",) + kt for kt in reversed(trig))
+
+    def resolve(need_pass):
+        while stack or st["pyro"]:
+            if st["pyro"]:
+                L.extend(["activate " + PYROMANCER, "opponent"])
+                st["pyro"] = False
+                st["steps"] += 1
+                stack.append(("ping",))
+                continue
+            if need_pass and asked():
+                L.append("pass")
+            obj = stack.pop()
+            if obj[0] == "ping":
+                st["dmg"] += 1
+            elif obj[0] == "spell":
+                if obj[1] in LF_PAYOFFS + (AZUSA,):
+                    creatures.append(obj[1])
+            elif obj[0] == "trigger":
+                k, t = obj[1], obj[2]
+                if k == HELLKITE:
+                    st["dmg"] += 2 if t == "Mountain" else 1
+                elif k == GEOPEDE:
+                    st["dmg"] += 1
+                elif k == VALAKUT:
+                    if mountains() < 6:
+                        raise LineUnwritable("Valakut's condition fails as it resolves")
+                    L.append("yes")
+                    st["dmg"] += 3
+                elif k == CORALHELM:
+                    L.append("Untap")
+                    st["pyro"] = True
+                else:
+                    col = "G" if st["greens"] else "R"
+                    st["greens"] -= col == "G"
+                    L.append("green" if col == "G" else "red")
+                    pool[col] += 1
+            else:                                   # a fetch's or Harrow's search
+                for t in obj[2]:
+                    L.append(t)
+                for t in obj[2]:
+                    lands.append([t, obj[1] == LF_WILDS])
+                fall(list(obj[2]))
+
+    def pay(fl, gen, green, red):
+        for name, n in zip(("Mountain", VALAKUT, "Forest"), fl):
+            for _ in range(n):
+                untapped(name)[0][1] = True
+                L.append("activate " + name)
+                pool[LF_LAND_MANA[name]] += 1
+        pool["R"] -= red
+        pool["G"] -= green
+        col = "R" if pool["R"] >= gen else "G"
+        if pool["R"] < 0 or pool["G"] < 0 or (gen and pool["R"] and pool["G"]) or pool[col] < gen:
+            raise LineUnwritable("the floating mana does not pay %s" % ((gen, green, red),))
+        pool[col] -= gen
+
+    resolve(False)
+    for mv in moves:
+        resolve(mv[0] == "crack" or mv[:2] == ("cast", "Harrow"))
+        st["steps"] += 1
+        if mv[0] == "land":
+            L.append("play land " + mv[1])
+            hand.remove(mv[1])
+            st["greens"] = mv[2]
+            lands.append([mv[1], mv[1] == VALAKUT])
+            fall([mv[1] if mv[1] in ("Mountain", "Forest") else "-"])
+        elif mv[0] == "crack":
+            L.append("activate " + mv[1])
+            st["greens"] = mv[3]
+            lands.remove(next(land for land in lands if land[0] == mv[1]))
+            stack.append(("search", mv[1], (mv[2],)))
+        elif mv[0] == "cast":
+            c = mv[1]
+            pay(mv[2], *LF_SPELLS[c])
+            L.append("cast " + c)
+            hand.remove(c)
+            if c == "Harrow":
+                s = mv[3]
+                gone = next(land for land in lands if land[0] == s and (land[1] or s not in LF_LAND_MANA))
+                lands.remove(gone)
+                # A tapped and an untapped land of one name read apart ("[tapped]"): the line names which.
+                L.append(s + (" [tapped]" if s in LF_LAND_MANA and untapped(s) else ""))
+                st["greens"] = mv[5]
+                stack.append(("search", "Harrow", mv[4]))
+            else:
+                stack.append(("spell", c))
+        else:
+            tot = pool["R"] + pool["G"] + len(untapped("Mountain", "Forest", VALAKUT))
+            if mv[1] != tot - 1:
+                raise LineUnwritable("Blaze's X %d of %d mana" % (mv[1], tot))
+            L.extend(["cast Blaze", str(mv[1]), "opponent"])
+            st["dmg"] += mv[1]
+    resolve(False)
+    return L, st["dmg"], st["steps"]
+
+
+def landfall_draw(rng):
+    """A landfall board's search inputs, drawn toward boards where the order matters: Lotus Cobra out or in hand,
+    fetches, a payoff in hand, and the extra land drops."""
+    s = {"mountains": rng.choice([3, 3, 4, 4, 5]), "forests": rng.choice([0, 1, 1, 2]),
+         "valakut": rng.choice([None, "bf", "bf", "hand"]), "hellkite": rng.random() < 0.15,
+         "geopede": rng.random() < 0.15, "coralhelm": rng.random() < 0.2,
+         "cobra": rng.choice(["bf", "hand", "hand"]), "lib": [5, 5]}
+    hand = ["Blaze"] + ([VALAKUT] if s["valakut"] == "hand" else [])
+    hand += [rng.choice([LF_FETCH, LF_FETCH, LF_WILDS]) for _ in range(rng.choice([1, 2, 2, 3]))]
+    hand += [rng.choice(["Mountain", "Forest"]) for _ in range(rng.choice([0, 1, 1, 2]))]
+    hand += [c for c, p in ((AZUSA, 0.5), ("Exploration", 0.5), ("Harrow", 0.5)) if rng.random() < p]
+    if not s["hellkite"] and rng.random() < 0.6:
+        hand.append(HELLKITE)
+    if not s["geopede"] and rng.random() < 0.3:
+        hand.append(GEOPEDE)
+    if s["cobra"] == "hand":
+        hand.append(COBRA)
+    s["hand"] = sorted(hand)
+    return s
+
+
+def _count_words(n, word):
+    return "%s %s%s" % (["no", "one", "two", "three", "four", "five", "six"][n], word, "s" if n != 1 else "")
+
+
+def landfall_board(rng):
+    """Lands and their triggers: the opponent's life is the exhaustive maximum of landfall_search, the line 13 to 15
+    steps ending in Blaze for every mana left, and the best plain plan (LANDFALL_PLANS) falls 1 to 3 short."""
+    s = landfall_draw(rng)
+    dmg, steps, moves = landfall_search(s)
+    if not HARD_MIN <= steps <= HARD_MAX or landfall_unused(s, moves):
+        return None
+    trap = _trap(dmg, landfall_plain(s))
+    if trap is None:
+        return None
+    try:
+        lines, dealt, n = landfall_lines(s, moves)
+    except LineUnwritable:
+        return None
+    if (dealt, n) != (dmg, steps):
+        return None
+    bf = (["Mountain"] * s["mountains"] + ["Forest"] * s["forests"] + ([VALAKUT] if s["valakut"] == "bf" else [])
+          + [c for c, on in ((HELLKITE, s["hellkite"]), (GEOPEDE, s["geopede"]), (COBRA, s["cobra"] == "bf")) if on]
+          + ([CORALHELM, PYROMANCER] if s["coralhelm"] else []))
+    seen = ([c for c in bf if c not in ("Mountain", "Forest")]
+            + ["%s and %s, all untapped" % (_count_words(s["mountains"], "Mountain"), _count_words(s["forests"],
+                                                                                                   "Forest"))])
+    desc = ("It is your second main phase. You are at 20 life and control %s. Your hand is %s. Your library holds five "
+            "Mountains and five Forests. The opponent is at %d life and controls nothing. Reduce the opponent to 0 "
+            "life this turn." % (_join(seen), _join(s["hand"]), dmg))
+    notes = ["every land a landfall trigger"]
+    if s["cobra"]:
+        notes.append("Lotus Cobra's mana for each land after it")
+    if s["valakut"]:
+        notes.append("Valakut only for a Mountain with five others out")
+    if s["coralhelm"]:
+        notes.append("Retreat to Coralhelm untaps Prodigal Pyromancer for another ping")
+    notes.append("Blaze for all the mana left")
+    trap_note = _trap_note(trap, LANDFALL_PLANS, "deals")
+    rule = "generated-landfall | the exhaustive maximum is %d damage in %d steps: %s%s" % (
+        dmg, steps, "; ".join(notes), trap_note)
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(s["hand"])), ("p0battlefield", ";".join(bf)),
+             ("p0library", ";".join(["Mountain", "Forest"] * 5)), ("p1life", dmg), ("p1library", "Plains;Plains;Plains")]
+    solution = ["# steps: %d" % steps] + _record_lines(s, trap) + lines
+    shape = ("landfall", s["mountains"], s["forests"], s["valakut"], s["hellkite"], s["geopede"], s["coralhelm"],
+             s["cobra"], tuple(s["hand"]))
+    return {"family": "landfall", "trap": trap, "unused": 0, "actions": steps, "life": dmg, "hand": s["hand"],
+            "battlefield": sorted(bf), "phase": "MAIN2", "search": s, "shape": shape,
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+# The tokens family (eval/puzzles/hard/gen3). Goblins enter and die in one main phase: Impact Tremors deals 1 for each
+# creature entering, Witty Roastmaster 1 for each other one, Mayhem Devil 1 for each sacrifice (Skirk Prospector's
+# for {R}, Siege-Gang Commander's for 2 damage); Krenko, Mob Boss makes a Goblin for each Goblin out; Mogg War Marshal
+# leaves a token when it dies. Goblin Bushwhacker is left out: whether its kicker is offered depends on how the engine
+# prices Skirk Prospector as a source, a question the written line cannot predict.
+GOBLIN_TOKEN = "Goblin Token"
+KRENKO, SKIRK, INSTIGATOR, MARSHAL = "Krenko, Mob Boss", "Skirk Prospector", "Goblin Instigator", "Mogg War Marshal"
+BEETLEBACK, SIEGE = "Beetleback Chief", "Siege-Gang Commander"
+ROASTMASTER, DEVIL, TREMORS = "Witty Roastmaster", "Mayhem Devil", "Impact Tremors"
+TK_CREATURES = {SKIRK: (1, True, 0), INSTIGATOR: (2, True, 1), MARSHAL: (2, True, 1), BEETLEBACK: (4, True, 2),
+                SIEGE: (5, True, 3), ROASTMASTER: (3, False, 0), KRENKO: (4, True, 0),
+                DEVIL: (3, False, 0), GOBLIN_TOKEN: (0, True, 0)}       # (mana value, a Goblin, tokens on entering)
+TK_SORCERIES = {"Hordeling Outburst": (3, 3), "Dragon Fodder": (2, 2), "Krenko's Command": (2, 2)}
+TK_COST = dict([(c, v[0]) for c, v in TK_CREATURES.items()] + [(c, v[0]) for c, v in TK_SORCERIES.items()]
+               + [(TREMORS, 2)])
+TK_PAYOFFS = (TREMORS, ROASTMASTER, DEVIL)
+TOKEN_PLANS = {
+    "tokens_first": "sacrifice a token whenever there is one, never a creature card",
+    "payoff_first": "cast Impact Tremors, Witty Roastmaster and Mayhem Devil as soon as the lands pay for them",
+}
+
+
+def _goblin(name):
+    return TK_CREATURES[name][1]
+
+
+def token_search(start, plan=None):
+    """The most damage the board deals and the fewest steps that deal it: (damage, steps, moves), an exhaustive search
+    over every order of casts, Krenko's activation and Siege-Gang's, and every kind of Goblin sacrificed. All mana is
+    red: Mountains, and Skirk Prospector's {R} for a Goblin. A sacrifice is made as late as it can be (an earlier one
+    only loses a Goblin Krenko would count or a payoff cast later), so Skirk Prospector pays only what the Mountains
+    left cannot, and at the end every Goblin goes to it while a Mayhem Devil drains for each (Mogg War Marshal's token
+    too). Goblins with nothing left to do (a token, Goblin Instigator, Beetleback Chief once in play) are one kind: a sacrifice takes a token while there is one. `start`: mountains, bf (Krenko, Impact Tremors
+    and the creatures, none summoning sick), hand. Moves: ("cast", card, sacrificed), ("krenko", X), ("siege",
+    sacrificed for the cost, sacrificed for mana), ("sweep", sacrificed); steps are the casts and the activations of
+    Krenko and Siege-Gang (Skirk Prospector's is a mana ability)."""
+    from functools import lru_cache
+    # bodies: (tokens, plain Goblin cards, Marshals, Prospectors, Siege-Gangs, Krenko, Devils, Roastmasters)
+    T, V, M, S, G, K, D, R = range(8)
+    kind_of = {GOBLIN_TOKEN: T, INSTIGATOR: V, BEETLEBACK: V, MARSHAL: M, SKIRK: S, SIEGE: G,
+               KRENKO: K, DEVIL: D, ROASTMASTER: R}
+    name_of = {T: GOBLIN_TOKEN, V: "a Goblin card", M: MARSHAL, S: SKIRK, G: SIEGE, K: KRENKO}
+
+    def add(bodies, i, n=1):
+        b = list(bodies)
+        b[i] += n
+        return tuple(b)
+
+    def goblins(b):
+        return b[T] + b[V] + b[M] + b[S] + b[G] + b[K]
+
+    def enter(b, names, tremors):
+        d = 0
+        for nm in names:
+            d += tremors + b[R]
+            b = add(b, kind_of[nm])
+            for _ in range(TK_CREATURES[nm][2]):
+                d += tremors + b[R]
+                b = add(b, T)
+        return b, d
+
+    def sacrifice(b, i, tremors):
+        b = add(b, i, -1)
+        d = b[D]
+        if i == M:
+            b, d2 = enter(b, [GOBLIN_TOKEN], tremors)
+            d += d2
+        return b, d
+
+    def victims(b, kr):
+        """The kinds of Goblin worth telling apart as a sacrifice: a token (or, with none, a plain Goblin card),
+        a Marshal, a Prospector, a Siege-Gang, Krenko once he has made his tokens."""
+        if b[T] and plan == "tokens_first":
+            return [T]
+        return ([T] if b[T] else [V] if b[V] else []) + [i for i in (M, S, G) if b[i]] + ([K] if b[K] and not kr
+                                                                                          else [])
+
+    def sacs(b, k, tremors, kr):
+        out = {(b, 0): ()}
+        for _ in range(k):
+            nxt = {}
+            for (bs, d), vs in sorted(out.items()):
+                if not bs[S]:
+                    continue
+                for v in victims(bs, kr):
+                    bs2, d2 = sacrifice(bs, v, tremors)
+                    nxt.setdefault((bs2, d + d2), vs + (name_of[v],))
+            out = nxt
+        return [(bs, d, vs) for (bs, d), vs in sorted(out.items())]
+
+    def sweep(b, tremors):
+        d, vs = 0, []
+        while b[S] and (b[D] or b[M]):
+            order = [M] + ([T, V, G, K, S] if b[D] else [])
+            v = next((i for i in order if b[i]), None)
+            if v is None:
+                break
+            b, d2 = sacrifice(b, v, tremors)
+            d += d2
+            vs.append(name_of[v])
+        return d, tuple(vs)
+
+    @lru_cache(maxsize=None)
+    def best(m, hand, b, tremors, kr):
+        moves = []
+        for c in sorted(set(hand)):
+            rest = list(hand)
+            rest.remove(c)
+            rest = tuple(rest)
+            need = TK_COST[c]
+            for bs, d, vs in sacs(b, max(0, need - m), tremors, kr):
+                if c in TK_CREATURES:
+                    bs2, d2 = enter(bs, [c], tremors)
+                    nxt = (max(0, m - need), rest, bs2, tremors, kr)
+                elif c in TK_SORCERIES:
+                    bs2, d2 = enter(bs, [GOBLIN_TOKEN] * TK_SORCERIES[c][1], tremors)
+                    nxt = (max(0, m - need), rest, bs2, tremors, kr)
+                else:
+                    d2, nxt = 0, (max(0, m - need), rest, bs, tremors + 1, kr)
+                moves.append((("cast", c, vs), nxt, d + d2, 1))
+        if kr:
+            x = goblins(b)
+            bs, d = enter(b, [GOBLIN_TOKEN] * x, tremors)
+            moves.append((("krenko", x), (m, hand, bs, tremors, False), d, 1))
+        if b[G]:
+            # The mana is floated first (Skirk's sacrifices among it), then the Goblin sacrificed as the cost: a
+            # Marshal's token comes only once its trigger resolves, after the activation. Siege-Gang may sacrifice
+            # itself: the ability still resolves.
+            for bs, d, vs in sacs(b, max(0, 2 - m), tremors, kr):
+                for v in (victims(bs, kr) if bs[G] else []):
+                    bs2, d2 = sacrifice(bs, v, tremors)
+                    moves.append((("siege", name_of[v], vs), (max(0, m - 2), hand, bs2, tremors, kr), 2 + d + d2, 1))
+        if plan == "payoff_first":
+            pay = [mv for mv in moves if mv[0][0] == "cast" and mv[0][1] in TK_PAYOFFS and TK_COST[mv[0][1]] <= m]
+            moves = pay or moves
+        d, vs = sweep(b, tremors)
+        top = (d, 0, (("sweep", vs),) if vs else ())
+        for move, nst, d, s in moves:
+            dd, ss, ln = best(*nst)
+            if (dd + d, -(ss + s)) > (top[0], -top[1]):
+                top = (dd + d, ss + s, (move,) + ln)
+        return top
+
+    b = [0] * 8
+    for c in start["bf"]:
+        if c in kind_of:
+            b[kind_of[c]] += 1
+    return best(start["mountains"], tuple(sorted(start["hand"])), tuple(b), start["bf"].count(TREMORS),
+                KRENKO in start["bf"])
+
+
+def _token_plan_applies(plan, start):
+    cards = start["bf"] + start["hand"]
+    if plan == "tokens_first":
+        return SKIRK in cards or SIEGE in cards
+    return any(c in TK_PAYOFFS for c in start["hand"])
+
+
+def token_plain(start):
+    """What each plain plan that applies to the board deals: {plan: damage}."""
+    return {p: token_search(start, plan=p)[0] for p in TOKEN_PLANS if _token_plan_applies(p, start)}
+
+
+def token_lines(start, moves, life):
+    """The written line for token_search's moves: (lines, damage, steps, Mountains left untapped). Each move starts
+    with the stack empty: a "pass" is written for each object still on it only when the move starts with something
+    the seat could do at once (a sacrifice, Krenko, Siege-Gang) and the seat is asked (a Prospector or Krenko out, or
+    Siege-Gang payable). A cast's Skirk sacrifices come first, then the Mountains it still needs are floated, so the
+    engine pays from floating mana alone. Triggers going on the stack together are put in order by source (Impact
+    Tremors, Witty Roastmaster, Mayhem Devil, then a maker's token or Mogg War Marshal's), each Devil's target named as
+    it goes on. A sacrificed card is named so that one summoning sick goes before one that started out. The line ends
+    where the opponent reaches 0: the game is over there."""
+    L = []
+    bodies = [{"name": c, "sick": False} for c in start["bf"] if c in TK_CREATURES]
+    st = {"m": start["mountains"], "pool": 0, "tremors": start["bf"].count(TREMORS), "kr": KRENKO in start["bf"],
+          "dmg": 0, "steps": 0}
+    stack = []
+
+    class Over(Exception):
+        pass
+
+    def names():
+        return [b["name"] for b in bodies]
+
+    def deal(n):
+        st["dmg"] += n
+        if st["dmg"] >= life:
+            raise Over()
+
+    def asked():
+        ns = names()
+        return SKIRK in ns or st["kr"] or (SIEGE in ns and st["m"] + st["pool"] >= 2)
+
+    def triggers(sources):
+        """Put triggers (source names) on the stack together: the order, then each Devil's target in reverse."""
+        order = sorted(sources, key=lambda k: (TREMORS, ROASTMASTER, DEVIL).index(k)
+                       if k in (TREMORS, ROASTMASTER, DEVIL) else 3)
+        if len(set(order)) > 1:
+            L.append("; ".join(order))
+        for k in reversed(order):
+            if k == DEVIL:
+                L.append("opponent")
+        stack.extend(("trigger", k) for k in reversed(order))
+
+    def enter(new):
+        """Creatures enter together (a spell's tokens, Krenko's): each's Tremors and Roastmaster triggers, and a
+        maker's own token trigger."""
+        srcs = []
+        for nm in new:
+            srcs += [TREMORS] * st["tremors"] + [ROASTMASTER] * sum(1 for b in bodies if b["name"] == ROASTMASTER)
+            bodies.append({"name": nm, "sick": True})
+            if TK_CREATURES[nm][2]:
+                srcs.append(nm)
+        if srcs:
+            triggers(srcs)
+
+    def resolve(need_pass):
+        while stack:
+            if need_pass and asked():
+                L.append("pass")
+            obj = stack.pop()
+            if obj[0] == "trigger":
+                k = obj[1]
+                if k in (TREMORS, ROASTMASTER, DEVIL):
+                    deal(1)
+                else:
+                    enter([GOBLIN_TOKEN] * (1 if k == MARSHAL else TK_CREATURES[k][2]))
+            elif obj[0] == "spell":
+                c = obj[1]
+                if c in TK_CREATURES:
+                    enter([c])
+                elif c in TK_SORCERIES:
+                    enter([GOBLIN_TOKEN] * TK_SORCERIES[c][1])
+                else:
+                    st["tremors"] += 1
+            elif obj[0] == "krenko":
+                enter([GOBLIN_TOKEN] * obj[1])
+            elif obj[0] == "siege":
+                deal(2)
+
+    def victim_label(kind):
+        """The sacrifice to name: a token, or the plain Goblin card, or the card named; one summoning sick first."""
+        if kind == "a Goblin card":
+            pool = [b for b in bodies if b["name"] in (INSTIGATOR, BEETLEBACK)]
+        else:
+            pool = [b for b in bodies if b["name"] == kind]
+        b = sorted(pool, key=lambda x: not x["sick"])[0]
+        same = [x for x in bodies if x["name"] == b["name"]]
+        label = b["name"]
+        if len(set(x["sick"] for x in same)) > 1:
+            label += " %s [untapped] [sick]" % ("1/1" if b["name"] == SKIRK else "2/2")
+        return b, label
+
+    def sacrifice(kind, outlet):
+        b, label = victim_label(kind)
+        goblins = [x for x in bodies if _goblin(x["name"])]
+        if len(goblins) > 1:
+            L.append(label)
+        bodies.remove(b)
+        srcs = [DEVIL] * sum(1 for x in bodies if x["name"] == DEVIL) + ([MARSHAL] if b["name"] == MARSHAL else [])
+        if b["name"] == KRENKO:
+            st["kr"] = False
+        if srcs:
+            triggers(srcs)
+
+    def skirk(kind):
+        L.append("activate " + SKIRK)
+        sacrifice(kind, SKIRK)
+        st["pool"] += 1
+
+    def float_(n):
+        for _ in range(n):
+            L.append("activate Mountain")
+            st["m"] -= 1
+            st["pool"] += 1
+
+    try:
+        for mv in moves:
+            instant = mv[0] in ("krenko", "siege", "sweep") or (mv[0] == "cast" and mv[2])
+            resolve(instant)
+            if mv[0] == "cast":
+                c = mv[1]
+                for kind in mv[2]:
+                    skirk(kind)
+                    resolve(True)
+                float_(max(0, TK_COST[c] - st["pool"]))
+                if st["pool"] != TK_COST[c] or st["m"] < 0:
+                    raise LineUnwritable("%s paid with %d" % (c, st["pool"]))
+                st["pool"] = 0
+                L.append("cast " + c)
+                st["steps"] += 1
+                stack.append(("spell", c))
+            elif mv[0] == "krenko":
+                L.append("activate " + KRENKO)
+                st["kr"] = False
+                st["steps"] += 1
+                stack.append(("krenko", mv[1]))
+            elif mv[0] == "siege":
+                for kind in mv[2]:
+                    skirk(kind)
+                    resolve(True)
+                float_(max(0, 2 - st["pool"]))
+                st["pool"] = 0
+                L.extend(["activate " + SIEGE, "opponent"])   # the target is asked before the Goblin sacrificed
+                st["steps"] += 1
+                stack.append(("siege",))
+                sacrifice(mv[1], SIEGE)
+            else:
+                for kind in mv[1]:
+                    skirk(kind)
+                    resolve(True)
+        resolve(False)
+    except Over:
+        return L, st["dmg"], st["steps"], st["m"]
+    return L, st["dmg"], st["steps"], st["m"]
+
+
+def token_draw(rng):
+    """A tokens board's search inputs: Skirk Prospector out on most, a hand of cheap Goblins and token makers, and at
+    most one of each payoff (two copies' triggers would be asked in an order the line does not write)."""
+    bf = [KRENKO] if rng.random() < 0.5 else []
+    payoffs = {TREMORS: rng.choice(["bf", "bf", "hand", None]), DEVIL: rng.choice(["bf", "hand", None, None]),
+               ROASTMASTER: rng.choice(["bf", "hand", None, None, None])}
+    bf += [c for c, z in payoffs.items() if z == "bf"]
+    bf += [c for c, p in ((SKIRK, 0.8), (SIEGE, 0.2)) if rng.random() < p]
+    hand = [rng.choice([INSTIGATOR, MARSHAL, MARSHAL, MARSHAL, "Dragon Fodder", "Krenko's Command", SKIRK,
+                        "Hordeling Outburst", BEETLEBACK]) for _ in range(rng.choice([6, 7, 8, 9, 10]))]
+    hand += [c for c, z in payoffs.items() if z == "hand"]
+    return {"mountains": rng.choice([1, 2, 2, 3, 4]), "bf": sorted(bf), "hand": sorted(hand)}
+
+
+def tokens_board(rng):
+    """Goblins entering and dying: the opponent's life is the exhaustive maximum of token_search, the line 13 to 15
+    steps with every Mountain tapped, and the best plain plan (TOKEN_PLANS) falls 1 to 3 short."""
+    s = token_draw(rng)
+    dmg, steps, moves = token_search(s)
+    if not HARD_MIN <= steps <= HARD_MAX:
+        return None
+    trap = _trap(dmg, token_plain(s))
+    if trap is None:
+        return None
+    try:
+        lines, dealt, n, left = token_lines(s, moves, dmg)
+    except LineUnwritable:
+        return None
+    if (dealt, n, left) != (dmg, steps, 0):
+        return None
+    bf = sorted(s["bf"]) + ["Mountain"] * s["mountains"]
+    seen = sorted(s["bf"]) + [_count_words(s["mountains"], "untapped Mountain")]
+    desc = ("It is your second main phase. You are at 20 life and control %s, none of them summoning sick. Your hand "
+            "is %s. The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
+            % (_join(seen), _join(s["hand"]), dmg))
+    cards = s["bf"] + s["hand"]
+    notes = []
+    if TREMORS in cards or ROASTMASTER in cards:
+        notes.append("every creature entering deals damage, the payoffs out before the bodies")
+    if DEVIL in cards:
+        notes.append("Mayhem Devil drains for every sacrifice, Skirk Prospector's too")
+    if SKIRK in cards:
+        notes.append("Skirk Prospector turns a Goblin into {R}")
+    if KRENKO in cards:
+        notes.append("Krenko counts every Goblin out")
+    if MARSHAL in cards:
+        notes.append("Mogg War Marshal leaves a token when it dies")
+    rule = "generated-tokens | the exhaustive maximum is %d damage in %d steps: %s%s" % (
+        dmg, steps, "; ".join(notes), _trap_note(trap, TOKEN_PLANS, "deals"))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(s["hand"])), ("p0battlefield", ";".join(bf)),
+             ("p0library", ";".join(["Colossal Dreadmaw"] * 4)), ("p1life", dmg), ("p1library", "Plains;Plains;Plains")]
+    solution = ["# steps: %d" % steps] + _record_lines(s, trap) + lines
+    shape = ("tokens", s["mountains"], tuple(s["bf"]), tuple(s["hand"]))
+    return {"family": "tokens", "trap": trap, "unused": 0, "actions": steps, "life": dmg, "hand": s["hand"],
+            "battlefield": bf, "phase": "MAIN2", "search": s, "shape": shape,
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
 FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "splice2": splice2_board,
             "red": red_board, "drain": drain_board, "elf": elf_board, "fling": fling_board, "drain2": drain2_board,
             "elf2": elf2_board, "hoofdrain": hoofdrain_board, "atog": atog_board, "grave": grave_board,
-            "copy": copy_board}
+            "copy": copy_board, "landfall": landfall_board,
+            "tokens": tokens_board}
 
 
 def board_key(b):
