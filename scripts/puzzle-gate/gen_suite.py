@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The frozen suite of generated hard puzzles, from the gate's output (gen_gate.py).
 
-  python3 scripts/puzzle-gate/gen_suite.py --gate GATE_OUT --boards DIR --out SUITE.json
+  python3 scripts/puzzle-gate/gen_suite.py --gate GATE_OUT [GATE_OUT ...] --boards DIR --out SUITE.json [--name N]
 
 A board is active only when the gate's own rows show it verified hard:
 1. its written [solution] played as written against Forge's AI and solved, in 10 to 15 steps (the line stage);
@@ -67,31 +67,35 @@ def board_record(floor_rec, gate_row, line_row, pzl, repo=REPO, engine="unknown"
     return rec
 
 
-def build_suite(gate_dir, boards_dir, repo=REPO, engine="unknown", date=None):
-    gate_dir = Path(gate_dir)
-    rows = json.loads((gate_dir / "gate.json").read_text())
-    floors = {r["id"]: r for r in json.loads((gate_dir / "floors.json").read_text())["puzzles"]}
+def build_suite(gate_dirs, boards_dir, repo=REPO, engine="unknown", date=None, name="hard-gen"):
+    """The frozen suite `name` from one gate's output, or several (a set gated in batches, family by family)."""
     recs = []
-    for row in rows:
-        pid = "hard-" + row["board"].replace("_", "-")
-        pzl = Path(boards_dir) / (row["board"] + ".pzl")
-        if pid not in floors:   # dropped at the line stage, never floored: no baselines to record
-            print("  not in the suite %-24s %s" % (row["board"], row.get("dropped", "no floors record")))
-            continue
-        line_rows = pb.read_results(gate_dir / "line" / row["board"])
-        recs.append(board_record(floors[pid], row, line_rows[-1] if line_rows else None, pzl, repo, engine, date))
-    m = pf.candidate_suite("hard-gen", "1", engine, recs)
+    for gate_dir in [gate_dirs] if isinstance(gate_dirs, (str, Path)) else gate_dirs:
+        gate_dir = Path(gate_dir)
+        rows = json.loads((gate_dir / "gate.json").read_text())
+        floors = {r["id"]: r for r in json.loads((gate_dir / "floors.json").read_text())["puzzles"]}
+        for row in rows:
+            pid = "hard-" + row["board"].replace("_", "-")
+            pzl = Path(boards_dir) / (row["board"] + ".pzl")
+            if pid not in floors:   # dropped at the line stage, never floored: no baselines to record
+                print("  not in the suite %-24s %s" % (row["board"], row.get("dropped", "no floors record")))
+                continue
+            line_rows = pb.read_results(gate_dir / "line" / row["board"])
+            recs.append(board_record(floors[pid], row, line_rows[-1] if line_rows else None, pzl, repo, engine,
+                                     date))
+    m = pf.candidate_suite(name, "1", engine, recs)
     return pf.freeze(m)
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--gate", required=True)
+    ap.add_argument("--gate", required=True, nargs="+", help="one gate's output dir, or several")
+    ap.add_argument("--name", default="hard-gen", help="the suite's name (hard-gen, hard-gen2)")
     ap.add_argument("--boards", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
-    m = build_suite(a.gate, a.boards, engine=engine)
+    m = build_suite(a.gate, a.boards, engine=engine, name=a.name)
     problems = pf.validate_suite(m)
     for x in problems:
         print("PROBLEM", x)

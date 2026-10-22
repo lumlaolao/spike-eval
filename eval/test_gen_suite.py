@@ -33,11 +33,11 @@ PLAYED = {"script_played": True, "status": "solved", "plays_not_made": 0, "seed"
 FLOORS_OK = {"random": (0, 20), "pass": (0, 4), "first": (0, 4), "greedy": (0, 4), "ai": (0, 4)}
 
 
-def gate(tmp, boards):
+def gate(tmp, boards, name="gate"):
     """A gate output dir for `boards`: {stem: (floors, line_row)}."""
-    repo, g = Path(tmp), Path(tmp) / "gate"
+    repo, g = Path(tmp), Path(tmp) / name
     bdir = repo / "eval/puzzles/hard/gen"
-    bdir.mkdir(parents=True)
+    bdir.mkdir(parents=True, exist_ok=True)
     rows, recs = [], []
     for stem, (floors, line_row) in boards.items():
         p = bdir / (stem + ".pzl")
@@ -86,6 +86,16 @@ class GenSuiteTest(unittest.TestCase):
             p.write_text(p.read_text() + "# edited\n")
             rec = gs.build_suite(g, bdir, repo=repo, engine="abc")["puzzles"][0]
             self.assertEqual((rec["status"], rec["flags"]), ("dropped", ["pzl_changed_since_gate"]))
+    def test_a_suite_gathers_every_gate_its_boards_ran_in(self):
+        # gen2 was gated family by family in separate runs; one suite takes them all, under its own name.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, g1, bdir = gate(tmp, {"ping_a": (FLOORS_OK, PLAYED)}, "gate1")
+            _, g2, _ = gate(tmp, {"ping_b": (dict(FLOORS_OK, ai=(3, 4)), PLAYED)}, "gate2")
+            suite = gs.build_suite([g1, g2], bdir, repo=repo, engine="abc", name="hard-gen2")
+            self.assertEqual(suite["suite"], "hard-gen2")
+            self.assertEqual({r["id"]: r["status"] for r in suite["puzzles"]},
+                             {"hard-ping-a": "active", "hard-ping-b": "dropped"})
+
 
 if __name__ == "__main__":
     unittest.main()
