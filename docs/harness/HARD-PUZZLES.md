@@ -92,6 +92,24 @@ playable is skipped by the seat). They are in the generated hard suite
 not gated (on branch `feat/hard-gen`); neither family carries a trap line at 1 to 3 life or a check that no mana
 floats unused at the end.
 
+Super-hard drain2, elf2 and hoofdrain (`--family drain2|elf2|hoofdrain`, 2026-10-22; boards in
+`eval/puzzles/hard/gen2/`, status: `docs/harness/history/2026-10-22-harder-engines.md`). Same searches, a stricter bar:
+13 to 15 steps; no mana unused at the end of the best line (drain: every Swamp tapped and the land drop taken; elf:
+nothing floating past Craterhoof); and a **trap**: each plain plan is one natural habit imposed on the otherwise
+exhaustive search, and the best of those that apply must fall 1 to 3 short (a plan that wins, or a best plan 4 or
+more short, drops the board). Plans, drain: play the land first, cast the drainers last, sacrifice as soon as a death
+drains. Elf: Craterhoof as soon as the mana abilities alone can pay it, never tap a Sentinel, tap the mana creatures
+before anything else, never tap the Druid itself, never tap a mana elf or the Priest. hoofdrain adds sacrifice each
+elf once the Druid has tapped it, attack without sacrificing, and sacrifice only the elves cast this turn. drain2
+draws two or three outlets that differ and more recursion; elf2 adds a starting Priest of Titania ({G} per elf, so
+it taps late or attacks); **hoofdrain** is the cross family: the elf engine with one or two drainers and Viscera
+Seer out, where Craterhoof's trigger counts X on resolution, so every creature that will not attack is sacrificed
+after it, never before. A batch never repeats a life total or a structure (the cards reduced to their roles). The
+trap is written in the Rule line and, with the search inputs, as `# search:` and `# trap:` comments in the
+[solution], which `eval/test_puzzle_gen.py` recomputes for every committed board. Two near-misses dominate (see the
+history note): drain2's "play the land first" (Bloodghast) and hoofdrain's "sacrifice only the elves cast"; elf2
+draws pass rarely (about 1 in 150), because an elf plain plan either matches the loop or misses it by far more than 3.
+
 Rules that apply to every board: no slack (exact mana, exact damage, no spare pump); every card in hand either
 used on the line or a red herring that a trap line uses; the library filled with Colossal Dreadmaw (or stated
 known cards) so draws decide nothing; the opponent with no mana abilities on its blockers (a pointless tap

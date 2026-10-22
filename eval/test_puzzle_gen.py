@@ -191,5 +191,132 @@ class FamilyBoardsTest(unittest.TestCase):
             self.assertEqual(lines.count("yes"), len(casts) * s["sentinels"])
 
 
+class HardEnginesTest(unittest.TestCase):
+    """drain2 and elf2: 13 to 15 steps, the opponent's life the exact search maximum with no Swamp, land drop or
+    green mana left unused, and a trap: the best plain plan (puzzle_gen.DRAIN_PLANS, ELF_PLANS) falls 1 to 3
+    short."""
+    COUNT = 12
+
+    def test_playing_the_land_first_strands_bloodghast(self):
+        # Hand-computed: Viscera Seer sacrifices Bloodghast (1), the land brings it back, again (1), then Zulaport
+        # Cutthroat (1, its own death): 3. Land first: Bloodghast once and the Cutthroat: 2.
+        board = (0, True, {"Zulaport Cutthroat", "Viscera Seer", "Bloodghast"}, set(), set(), False)
+        self.assertEqual(pg.drain_search(*board)[0], 3)
+        self.assertEqual(pg.drain_search(*board, plan="land_first")[0], 2)
+        self.assertEqual(pg.drain_plain(*board)["land_first"], 2)
+
+    def test_drainers_cast_last_lose_the_early_deaths(self):
+        # Hand-computed: two Swamps pay for Blood Artist; the Seer then sacrifices the Skeleton and the Artist: 2.
+        # A plain player who keeps the drainer for last casts Gravecrawler first ({B}) and cannot pay for the
+        # Artist ({1}{B}) with the one Swamp left: nothing drains.
+        board = (2, False, {"Viscera Seer", "Reassembling Skeleton"}, set(), {"Blood Artist", "Gravecrawler"}, False)
+        self.assertEqual(pg.drain_search(*board)[0], 2)
+        self.assertEqual(pg.drain_search(*board, plan="drainers_last")[0], 0)
+
+    def test_a_starting_priest_of_titania_counts_every_elf(self):
+        # Hand-computed: the Priest taps first for the four elves out (4); an elf (3); the Druid taps both Sentinels
+        # and that elf (6); the second elf untaps the Sentinels (5); the Druid taps them and the second elf (8):
+        # Craterhoof exactly, X = 7, and the Druid and both Sentinels attack beside it: 12 + 8 + 9 + 9.
+        self.assertEqual(pg.elf_search(0, 2, 0, [1, 1], priest=True)[0], 38)
+        # Never tapping a Sentinel leaves the Priest's 4 and the Druid's one activation: no Craterhoof.
+        self.assertEqual(pg.elf_search(0, 2, 0, [1, 1], priest=True, plan="never_tap_sentinels")[0], -1)
+
+    def test_hoofdrain_sacrifices_after_craterhoof_resolves(self):
+        # Hand-computed: five Forests, Heritage Druid, one Sentinel, Blood Artist (0/1) and Viscera Seer (1/1), three
+        # 1-cost elves. Elf A (4); the Druid taps the Sentinel, itself and A (7); B untaps the Sentinel (6); C (5);
+        # the Druid taps the Sentinel, B and C (8): Craterhoof exactly. Without tapping the Druid itself the third
+        # activation has no third elf. X = 8: Craterhoof 13, the Sentinel 10, the Artist 8, the Seer 9 attack (40);
+        # after Craterhoof's trigger the Seer sacrifices A, B, C and the tapped Druid with the Artist out (4).
+        # Steps: 3 casts, Craterhoof, 4 sacrifices, the attack.
+        args, kw = (5, 1, 0, [1, 1, 1]), dict(others=(0, 1), drain=1)
+        self.assertEqual(pg.elf_search(*args, **kw)[:2], (44, 9))
+        self.assertEqual(pg.elf_search(*args, plan="attack_only", **kw)[0], 40)
+        # Sacrificing each elf as soon as the Druid has tapped it: all three go before Craterhoof, X = 5:
+        # 10 + 7 + 5 + 6 attack, 4 drained.
+        self.assertEqual(pg.elf_search(*args, plan="sac_early", **kw)[0], 32)
+        self.assertEqual(pg.elf_search(*args, plan="never_tap_sentinels", **kw)[0], -1)
+
+    GEN2 = Path(__file__).resolve().parent / "puzzles" / "hard" / "gen2"
+
+    def check_family(self, family):
+        """Every committed board of the family, recomputed from the search inputs it states."""
+        paths = sorted(self.GEN2.glob(family + "_*.pzl"))
+        self.assertTrue(paths, "no %s boards in %s" % (family, self.GEN2))
+        for p in paths:
+            text = p.read_text(encoding="utf-8")
+            rec = pg.board_record(text)
+            lines = solution(text)
+            self.assertEqual(rec["family"], family, p.name)
+            self.assertTrue(13 <= rec["steps"] <= 15, (p.name, rec["steps"]))
+            best, steps, unused, plain = pg.research(rec)
+            self.assertEqual((best, steps), (rec["life"], rec["steps"]), "%s: the life is the search's maximum" % p.name)
+            self.assertEqual(unused, 0, "%s: no mana is left unused at the end of the line" % p.name)
+            self.assertEqual(plain, rec["trap"]["plans"], "%s: the plain plans are recomputed" % p.name)
+            self.assertEqual(max(plain.values()), rec["trap"]["best"], p.name)
+            self.assertTrue(1 <= rec["life"] - rec["trap"]["best"] <= 3, (p.name, rec["trap"]))
+            rule = [l for l in text.splitlines() if l.startswith("Rule:")][0]
+            self.assertIn("plain plan", rule)
+            self.assertIn("%d short" % (rec["life"] - rec["trap"]["best"]), rule)
+            counted = [l for l in lines if l.startswith(("cast ", "play land ", "activate "))
+                       and l not in ("activate Ashnod's Altar", "activate Forest", "activate Heritage Druid",
+                                     "activate " + pg.PRIEST)
+                       and l[len("activate "):] not in pg.ELF_MANA]
+            attack = 1 if family != "drain2" else 0
+            self.assertEqual(len(counted) + attack, rec["steps"], "%s: the line takes the steps it states" % p.name)
+        return paths
+
+    def test_drain2_boards(self):
+        for p in self.check_family("drain2"):
+            rec = pg.board_record(p.read_text(encoding="utf-8"))
+            s = rec["search"]
+            outlets = [o for o in pg.COUNTED_OUTLETS if o in s["bf"] + s["hand"]] + ([pg.ALTAR] if s["altar"] else [])
+            self.assertGreaterEqual(len(outlets), 2, "%s: two sacrifice outlets that differ" % p.name)
+
+    def test_elf2_boards(self):
+        for p in self.check_family("elf2"):
+            self.assertTrue(solution(p.read_text())[-1].startswith("Craterhoof Behemoth"), p.name)
+
+    def test_hoofdrain_boards(self):
+        for p in self.check_family("hoofdrain"):
+            lines = solution(p.read_text())
+            self.assertIn("activate Viscera Seer", lines)
+            self.assertTrue(lines[-1].startswith("Craterhoof Behemoth"), p.name)
+
+    def test_a_generated_drain2_board_states_what_the_tests_recompute(self):
+        # A board drawn now (not one committed): its stated record is what the search gives.
+        b = pg.drain2_board(random.Random(3)) or next(filter(None, (pg.drain2_board(random.Random(i))
+                                                                    for i in range(4, 4000))))
+        rec = pg.board_record(b["text"]("x"))
+        self.assertEqual((rec["life"], rec["steps"], rec["trap"]), (b["life"], b["actions"], b["trap"]))
+        best, steps, unused, plain = pg.research(rec)
+        self.assertEqual((best, steps, unused, plain), (b["life"], b["actions"], 0, b["trap"]["plans"]))
+
+
+class GenGateResumeTest(unittest.TestCase):
+    def test_a_resumed_gate_reuses_a_boards_line_result(self):
+        # A gate stopped by a time limit is run again with --resume: a board whose line already has a result is
+        # not played again.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "puzzle-gate"))
+        import argparse
+        import json
+        import gen_gate
+        tmp = Path(tempfile.mkdtemp())
+        pzl = tmp / "drain2_x.pzl"
+        pzl.write_text("[solution]\n# steps: 13\npass\n", encoding="utf-8")
+        done = tmp / "out" / "line" / "drain2_x" / "a"
+        done.mkdir(parents=True)
+        (done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
+                                                               "solver_actions": 20}) + "\n")
+        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True)
+        real = gen_gate.subprocess.run
+        gen_gate.subprocess.run = lambda *x, **k: self.fail("the line was played again")
+        try:
+            row = gen_gate.play_line(a, pzl)
+        finally:
+            gen_gate.subprocess.run = real
+        self.assertEqual((row["solved"], row["actions"]), (True, 13))
+        self.assertNotIn("dropped", row)
+
+
 if __name__ == "__main__":
     unittest.main()

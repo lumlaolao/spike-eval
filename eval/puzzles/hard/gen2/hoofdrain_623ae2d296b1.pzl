@@ -1,0 +1,95 @@
+[metadata]
+Name:hoofdrain_623ae2d296b1
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel, Elvish Mystic, Priest of Titania, Blood Artist, Cruel Celebrant and Viscera Seer, all untapped and none of them summoning sick. Your hand is Norwood Ranger, Arbor Elf, Wirewood Elf, Willow Elf, Llanowar Elves and Craterhoof Behemoth. The opponent is at 114 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 114 damage in 13 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 112, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Norwood Ranger;Arbor Elf;Wirewood Elf;Willow Elf;Llanowar Elves;Craterhoof Behemoth
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Elvish Mystic;Priest of Titania;Blood Artist;Cruel Celebrant;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=114
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"elves": ["Arbor Elf", "Llanowar Elves", "Wirewood Elf", "Willow Elf", "Norwood Ranger"], "forests": 2, "mana_elves": ["Elvish Mystic"], "others": ["Blood Artist", "Cruel Celebrant", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 112, "plans": {"attack_only": 102, "hoof_asap": 90, "keep_druid": -1, "keep_mana_creatures": -1, "never_tap_sentinels": -1, "sac_early": 88, "sac_new_only": 112, "tap_out_first": 94}, "short": 2}
+activate Forest
+activate Forest
+cast Arbor Elf
+yes
+cast Llanowar Elves
+yes
+pass
+activate Priest of Titania
+cast Willow Elf
+yes
+cast Norwood Ranger
+yes
+cast Wirewood Elf
+yes
+pass
+activate Heritage Druid
+Arbor Elf; Llanowar Elves; Willow Elf
+activate Heritage Druid
+Nettle Sentinel; Norwood Ranger; Wirewood Elf
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Arbor Elf
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Llanowar Elves
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Willow Elf
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Norwood Ranger
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wirewood Elf
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid; Elvish Mystic; Blood Artist; Cruel Celebrant; Viscera Seer
+[acceptance]
+life p1 <= 0

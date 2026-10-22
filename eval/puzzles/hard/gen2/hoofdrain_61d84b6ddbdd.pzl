@@ -1,0 +1,109 @@
+[metadata]
+Name:hoofdrain_61d84b6ddbdd
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel, Priest of Titania, Blood Artist, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Treetop Warden, Elvish Warrior, Craterhoof Behemoth, Llanowar Elves, Boreal Druid, Elvish Mystic and Elvish Scout. The opponent is at 102 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 102 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 100, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Treetop Warden;Elvish Warrior;Craterhoof Behemoth;Llanowar Elves;Boreal Druid;Elvish Mystic;Elvish Scout
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Priest of Titania;Blood Artist;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=102
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Llanowar Elves", "Elvish Warrior", "Boreal Druid", "Elvish Mystic", "Treetop Warden", "Elvish Scout"], "forests": 2, "mana_elves": [], "others": ["Blood Artist", "Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 100, "plans": {"attack_only": 88, "hoof_asap": 83, "keep_druid": -1, "keep_mana_creatures": -1, "never_tap_sentinels": -1, "sac_early": 68, "sac_new_only": 100, "tap_out_first": 83}, "short": 2}
+activate Forest
+activate Forest
+cast Llanowar Elves
+yes
+cast Boreal Druid
+yes
+pass
+activate Priest of Titania
+cast Elvish Mystic
+yes
+cast Elvish Scout
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Llanowar Elves; Boreal Druid
+cast Elvish Warrior
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Mystic; Elvish Scout
+cast Treetop Warden
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Warrior; Treetop Warden
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Llanowar Elves
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Boreal Druid
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Mystic
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Scout
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Warrior
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Treetop Warden
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid; Blood Artist; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0

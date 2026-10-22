@@ -1,0 +1,97 @@
+[metadata]
+Name:hoofdrain_7b3b753707d5
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Heritage Druid, one Nettle Sentinel, Fyndhorn Elves, Priest of Titania, Blood Artist and Viscera Seer, all untapped and none of them summoning sick. Your hand is Arbor Elf, Elvish Warrior, Craterhoof Behemoth, Wellwisher, Llanowar Elves and Elves of Deep Shadow. The opponent is at 64 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 64 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Sentinels untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 61, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Arbor Elf;Elvish Warrior;Craterhoof Behemoth;Wellwisher;Llanowar Elves;Elves of Deep Shadow
+p0battlefield=Heritage Druid;Nettle Sentinel;Fyndhorn Elves;Priest of Titania;Blood Artist;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=64
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Arbor Elf", "Llanowar Elves", "Elves of Deep Shadow", "Wellwisher", "Elvish Warrior"], "forests": 0, "mana_elves": ["Fyndhorn Elves"], "others": ["Blood Artist", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 61, "plans": {"attack_only": 56, "hoof_asap": 59, "keep_druid": -1, "keep_mana_creatures": -1, "never_tap_sentinels": -1, "sac_early": 51, "sac_new_only": 61, "tap_out_first": 54}, "short": 3}
+activate Fyndhorn Elves
+cast Arbor Elf
+yes
+pass
+activate Priest of Titania
+cast Llanowar Elves
+yes
+cast Elves of Deep Shadow
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Arbor Elf; Llanowar Elves
+cast Wellwisher
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elves of Deep Shadow; Wellwisher
+cast Elvish Warrior
+yes
+pass
+activate Heritage Druid
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Arbor Elf
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Llanowar Elves
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elves of Deep Shadow
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wellwisher
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Warrior
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Heritage Druid
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Fyndhorn Elves
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+opponent
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Blood Artist; Viscera Seer
+[acceptance]
+life p1 <= 0
