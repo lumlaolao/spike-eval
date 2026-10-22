@@ -1,0 +1,48 @@
+[metadata]
+Name:niche_stack_token_first
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Leonin Lightscribe, Kykar, Wind's Fury, Fervor and an untapped Mountain. Your hand is Lotus Petal, Lava Dart, Gut Shot, Gitaxian Probe, Rite of Flame, two Lightning Bolt and Mutagenic Growth. Your library holds only Colossal Dreadmaw. The opponent is at 74 life and controls Wall of Denial and two untapped Islands, with no cards in hand. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-stack-token-first | Each instant or sorcery triggers Kykar (a Spirit token) and Lightscribe (+1/+1 to creatures you control) at once and you choose their order (CR 603.3b); a resolved "creatures you control get +1/+1" affects only the creatures there as it resolves (CR 611.2c), so the token trigger must resolve first every time. 9 burn + 65 combat (shrouded Wall of Denial blocks one 11-power attacker) is exactly 74; each pump-first order loses 1, and Lotus Petal cast late loses its token's pumps
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lotus Petal;Lava Dart;Gut Shot;Gitaxian Probe;Rite of Flame;Lightning Bolt;Lightning Bolt;Mutagenic Growth
+p0battlefield=Leonin Lightscribe;Kykar, Wind's Fury;Fervor;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=74
+p1battlefield=Wall of Denial;Island;Island
+p1library=Island;Island;Island
+[solution]
+cast Lotus Petal
+cast Rite of Flame
+Kykar; Leonin
+cast Gitaxian Probe
+opponent
+pay 1 Phyrexian
+Kykar; Leonin
+cast Lightning Bolt
+opponent
+Kykar; Leonin
+cast Lightning Bolt
+opponent
+Kykar; Leonin
+cast Gut Shot
+opponent
+pay 1 Phyrexian
+Kykar; Leonin
+cast Lava Dart
+opponent
+Kykar; Leonin
+cast Mutagenic Growth
+Spirit Token
+Kykar; Leonin
+cast Lava Dart
+opponent
+Kykar; Leonin
+Kykar, Wind's Fury; Leonin Lightscribe; Spirit Token (11/11); Spirit Token (9/9); Spirit Token (8/8); Spirit Token (7/7); Spirit Token (6/6); Spirit Token (5/5); Spirit Token (4/4); Spirit Token (3/3); Spirit Token (2/2)
+[acceptance]
+life p1 <= 0

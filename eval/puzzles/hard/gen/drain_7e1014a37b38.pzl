@@ -1,0 +1,65 @@
+[metadata]
+Name:drain_7e1014a37b38
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Cruel Celebrant, Viscera Seer, Zulaport Cutthroat and 2 untapped Swamps. Your hand is Carrion Feeder, Gravecrawler and Swamp. Your graveyard holds Bloodghast and Reassembling Skeleton. The opponent is at 11 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain | the exhaustive maximum is 11 drained in 10 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Carrion Feeder;Gravecrawler;Swamp
+p0battlefield=Cruel Celebrant;Viscera Seer;Zulaport Cutthroat;Swamp;Swamp
+p0graveyard=Bloodghast;Reassembling Skeleton
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=11
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+play land Swamp
+pass
+yes
+cast Carrion Feeder
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Bloodghast
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Carrion Feeder
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+activate Viscera Seer
+Gravecrawler
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cruel Celebrant
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Viscera Seer
+[acceptance]
+life p1 <= 0

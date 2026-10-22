@@ -1,0 +1,86 @@
+[metadata]
+Name:elf_bea458ed3a9b
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Heritage Druid, two Nettle Sentinels and Llanowar Elves, all untapped and none of them summoning sick. Your hand is Fyndhorn Elves, Craterhoof Behemoth, Boreal Druid, Treetop Warden, Elvish Mystic, Arbor Elf, Wirewood Elf, Cylian Elf, Willow Elf, Elvish Warrior, Elvish Lyrist, Elves of Deep Shadow and Wellwisher. The opponent is at 78 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf | the exhaustive maximum is 78 damage in 14 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fyndhorn Elves;Craterhoof Behemoth;Boreal Druid;Treetop Warden;Elvish Mystic;Arbor Elf;Wirewood Elf;Cylian Elf;Willow Elf;Elvish Warrior;Elvish Lyrist;Elves of Deep Shadow;Wellwisher
+p0battlefield=Heritage Druid;Nettle Sentinel;Nettle Sentinel;Llanowar Elves
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=78
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Llanowar Elves
+cast Elves of Deep Shadow
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Elves of Deep Shadow
+cast Wirewood Elf
+yes
+yes
+cast Fyndhorn Elves
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Wirewood Elf; Fyndhorn Elves
+cast Willow Elf
+yes
+yes
+cast Elvish Lyrist
+yes
+yes
+cast Arbor Elf
+yes
+yes
+pass
+activate Heritage Druid
+Willow Elf; Elvish Lyrist; Arbor Elf
+cast Elvish Warrior
+yes
+yes
+cast Elvish Mystic
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Warrior; Elvish Mystic
+cast Wellwisher
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Wellwisher
+cast Treetop Warden
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Treetop Warden
+cast Cylian Elf
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Cylian Elf
+cast Boreal Druid
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Boreal Druid
+cast Craterhoof Behemoth
+yes
+yes
+Craterhoof Behemoth; Nettle Sentinel; Nettle Sentinel; Heritage Druid
+[acceptance]
+life p1 <= 0

@@ -29,7 +29,7 @@ function headCard(h) {
 }
 
 // A forest plot on a fixed axis: each condition's headline and interval, the floors as dashed lines.
-function forest(puz) {
+function forest(puz, caption) {
   const lo = -0.2, hi = 1.0, x = v => `${((v - lo) / (hi - lo)) * 100}%`;
   const fl = puz.runs[0] ? puz.runs[0].headline.floors : {};
   const floors = [["random", fl.random], ["PASS", fl.pass], ["first", fl.first]].filter(f => f[1] != null);
@@ -44,8 +44,7 @@ function forest(puz) {
   return `<table class="forest">${rows}
     <tr><td></td><td></td><td></td><td><div class="axis ticks">${ticks}</div></td></tr></table>
     <p class="lede">Bar: the headline and its 95% interval. Dashed lines, the floors: ${floors.map(([n, v]) => `${esc(n)} ${f3(v)}`).join(" · ")}.
-    Luna, ${esc(puz.runs[0] ? puz.runs[0].puzzles : "?")} frozen rules puzzles (${esc(puz.suite)}), 5 attempts each.
-    The headline subtracts each puzzle's random solve rate, so random play scores 0. Source: ${esc(puz.report)}.</p>`;
+    ${caption}</p>`;
 }
 
 function gate(acc) {
@@ -58,8 +57,20 @@ function gate(acc) {
 
 fetch("api/eval").then(r => r.json()).then(r => {
   $("#heads").innerHTML = r.headlines.map(headCard).join("");
-  const p = r.headlines.find(h => h.key === "PUZ");
-  if (p && p.result.runs.length) { $("#puz-title").hidden = false; $("#puz").innerHTML = forest(p.result); }
+  const p = r.headlines.find(h => h.key === "PUZ"), pr = p && p.result;
+  if (pr && pr.runs.length) {
+    $("#puz-title").hidden = false;
+    $("#puz").innerHTML = forest(pr, `Luna, ${esc(pr.runs[0].puzzles)} frozen rules puzzles (${esc(pr.suite)}), 5 attempts each. ` +
+      `The headline subtracts each puzzle's random solve rate, so random play scores 0. Source: ${esc(pr.report)}.`);
+  }
+  // The hard pilot stands apart from the recorded PUZ runs, so it shows without them; one that could not be scored
+  // says so rather than leaving the row out.
+  if (pr && pr.hard) {
+    $("#hard-title").hidden = false;
+    $("#hard").innerHTML = pr.hard.error ? `<p class="lede">The hard-suite pilot could not be read: ${esc(pr.hard.error)}</p>` :
+      forest({runs: [pr.hard]}, `A pilot, not a PUZ score: one attempt each on ${esc(pr.hard.puzzles)} open ` +
+        `boards of the generated hard suite (${esc(pr.hard.suite)}). Source: ${esc(pr.hard.path)}.`);
+  }
   const a = r.acceptance;
   const notPassed = a ? a.stages.filter(s => s.status !== "PASS").map(s => `${s.stage} ${s.status}`) : [];
   $("#gate-lede").textContent = a ? `${a.passed} of ${a.total} stages passed in ${a.out}` +

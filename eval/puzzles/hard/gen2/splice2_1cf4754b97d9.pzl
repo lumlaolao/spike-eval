@@ -1,0 +1,53 @@
+[metadata]
+Name:splice2_1cf4754b97d9
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist and Goblin Electromancer and three untapped Mountains. Your hand is Desperate Ritual, Glacial Ray, Rite of Flame, Glacial Ray, Desperate Ritual and Desperate Ritual. The opponent is at 23 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-splice2 | the searched best line deals 23, spending every mana; trap 21 (never splicing deals 13, splicing every payable card onto each Arcane spell 21)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Desperate Ritual;Glacial Ray;Rite of Flame;Glacial Ray;Desperate Ritual;Desperate Ritual
+p0battlefield=Thermo-Alchemist;Goblin Electromancer;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=23
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+pass
+pass
+cast Desperate Ritual
+Desperate Ritual
+activate Thermo-Alchemist
+pass
+pass
+cast Desperate Ritual
+Desperate Ritual; Glacial Ray; Glacial Ray
+opponent
+opponent
+activate Thermo-Alchemist
+cast Desperate Ritual
+Glacial Ray; Glacial Ray
+opponent
+opponent
+activate Thermo-Alchemist
+pass
+pass
+cast Glacial Ray
+opponent
+Glacial Ray
+opponent
+opponent
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+activate Thermo-Alchemist
+Goblin Electromancer
+[acceptance]
+life p1 <= 0

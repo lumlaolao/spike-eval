@@ -1,0 +1,81 @@
+[metadata]
+Name:niche_zones_redcap
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Goblin King, Grizzly Bears, two Murderous Redcaps (one of them has a -1/-1 counter), Goblin Bombardment, three Forests and two Plains, all untapped and none of them new this turn. Your hand is Travel Preparations and Battlegrowth. The opponent is at 25 life and controls Wall of Stone and two Mountains. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-zones-redcap | Persist looks at the creature as it last existed and returns it only without -1/-1 counters (CR 702.79a, 603.10a); a +1/+1 counter put on a persisted Redcap annihilates its -1/-1 counter (CR 704.5q), so it can persist again, while a counter on a Redcap without a -1/-1 counter is wasted, so Travel Preparations and its flashback must each wait until both Redcaps carry a -1/-1 counter; Battlegrowth cast while a returned Redcap's enters trigger is on the stack makes that trigger deal 3, since the damage is its power on resolution (CR 608.2h); Goblin King is sacrificed late. Wall of Stone on either attacker leaves 2 combat damage, then 23 from Goblin Bombardment and the Redcap triggers: 25
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Travel Preparations;Battlegrowth
+p0battlefield=Goblin King;Grizzly Bears;Murderous Redcap|Counters:M1M1=1;Murderous Redcap;Goblin Bombardment;Forest;Forest;Forest;Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=25
+p1battlefield=Wall of Stone;Mountain;Mountain
+p1library=Plains;Plains;Plains
+[solution]
+Goblin King; Grizzly Bears
+at MAIN2: activate Goblin Bombardment
+opponent
+Murderous Redcap 3/3
+opponent
+pass
+pass
+cast Travel Preparations
+Murderous Redcap 2/2 [untapped] [-; Murderous Redcap 2/2 [untapped] [sick]
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap 3/3 [untapped] [persist]
+opponent
+pass
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap 3/3
+opponent
+pass
+pass
+cast Travel Preparations
+Murderous Redcap; Murderous Redcap
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap 3/3
+opponent
+pass
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap 2/2
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+opponent
+cast Battlegrowth
+Murderous Redcap
+pass
+pass
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap 3/3
+opponent
+pass
+pass
+activate Goblin Bombardment
+opponent
+Murderous Redcap
+pass
+activate Goblin Bombardment
+opponent
+Goblin King
+pass
+activate Goblin Bombardment
+opponent
+[acceptance]
+life p1 <= 0

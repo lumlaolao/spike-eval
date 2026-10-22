@@ -17,7 +17,9 @@ Every GitHub call is a REST `gh api` call (GraphQL is refused in Claude cloud se
 head commit, none BLOCKER or HIGH, and an acceptance run named in Evidence when code changed.
 Exit 0 clean, 1 with one line per problem.
 """
+import functools
 import json
+import os
 import re
 import subprocess
 import sys
@@ -56,6 +58,38 @@ PH_REVIEW = "<one line>"
 PH_NOT_DONE = "<left out on purpose, and what would reopen it>"
 PLACEHOLDERS = (PH_WHY, PH_OUT, PH_COUNT, PH_JAVA, PH_PYTHON, PH_MEASURE, PH_PROVENANCE, PH_REVIEW, PH_NOT_DONE)
 CODE_SPAN = re.compile(r"`[^`\n]*`")
+# Refused: an `openrouter:` spec, and any slug under `models` in eval/pricing/prices.json. The
+# loopback stub (`fake/`) is no model: it sends nothing out, and the gauntlet docs name it.
+PRICES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "eval", "pricing", "prices.json")
+OPENROUTER_SPEC = re.compile(r"\bopenrouter:(?!fake/)[A-Za-z0-9][\w.:/-]*[\w/]", re.I)
+# `git commit -v` hands the hook the diff below this line; it is not part of the message.
+SCISSORS = re.compile(r"^# -+ >8 -+$", re.M)
+
+
+@functools.lru_cache(maxsize=None)
+def model_slug_pattern():
+    """One pattern over every slug priced in prices.json, matched as a whole token (not inside a
+    URL or path). An unreadable prices.json leaves the `openrouter:` check alone."""
+    try:
+        with open(PRICES, encoding="utf-8") as f:
+            slugs = sorted((m for m in json.load(f)["models"] if not m.startswith("fake/")), key=len, reverse=True)
+    except (OSError, ValueError, KeyError):
+        slugs = []
+    return re.compile(r"(?<![\w./-])(%s)(?![\w/-]|\.\w)" % "|".join(map(re.escape, slugs)) if slugs else r"(?!)",
+                      re.I)
+
+
+def identifier_problems(lines, where):
+    """One refusal per model identifier named in `lines`; git trailer lines name a model by design."""
+    out = []
+    for line in lines:
+        if TRAILER.match(line):
+            continue
+        out += [m.group(0) for m in OPENROUTER_SPEC.finditer(line)]
+        out += [m.group(1) for m in model_slug_pattern().finditer(OPENROUTER_SPEC.sub("", line))]
+    return ["%s names the model spec or priced slug %s; name the model in prose instead (\"Luna\") or its role "
+            "(STANDARDS section 2)" % (where, ident)
+            for ident in dict.fromkeys(out)]
 
 
 def subject_problems(subject):
@@ -74,12 +108,12 @@ def subject_problems(subject):
 def commit_problems(message):
     # '#' lines are git template comments, stripped before the audit: a body written only of
     # them reads as no body (heading-only bodies refuse; refuse-not-bless is the safe direction).
-    lines = [l for l in message.splitlines() if not l.startswith("#")]
+    lines = [l for l in SCISSORS.split(message, 1)[0].splitlines() if not l.startswith("#")]
     while lines and not lines[0].strip():
         lines.pop(0)
     if not lines:
         return ["empty commit message"]
-    out = subject_problems(lines[0])
+    out = subject_problems(lines[0]) + identifier_problems(lines, "the message")
     # a merge/revert subject is exempt from the body checks like the subject checks: a merge's
     # why lives in its second parent, a revert's in the message it cites
     if lines[0].startswith(EXEMPT_SUBJECTS):
@@ -125,6 +159,7 @@ def same_commit(a, b):
 
 def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
     out = ["title: " + p for p in subject_problems(title)]
+    out += identifier_problems([title], "the title") + identifier_problems((body or "").splitlines(), "the body")
     secs = sections(body)
     present = [s for s in secs if s in SECTIONS]
     for s in SECTIONS:

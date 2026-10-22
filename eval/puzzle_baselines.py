@@ -288,6 +288,12 @@ def check_replay(line, row):
     return p
 
 
+def check_written_replay(line, row):
+    """Problems with a replay of a board's written [solution] against Forge's AI (empty = the line verifies)."""
+    verdict = line_verdict(row)
+    return [] if verdict == "played" else ["written line: " + verdict]
+
+
 def tier_for(ai_rate, line_actions):
     """Tier 1: Forge's AI solves it (and random does not -- dropped puzzles never get here). Tier 2: the
     AI fails and the reference line takes <= 3 actions. Tier 3: the AI fails and it takes 4 or more."""
@@ -408,6 +414,9 @@ def verify_puzzle(build, rec, out_root):
     elif line.get("arm") == "search":
         rows = run_arm(build, pf.pzl_path(rec), "search", str(line["seed"]), out, search_env(line["budget"]))
         check = check_search_replay
+    elif line.get("arm") == "written":
+        rows = run_arm(build, pf.pzl_path(rec), "written", str(line["seed"]), out, line_env(pf.pzl_path(rec), "ai"))
+        check = check_written_replay
     else:
         tape = Path(tempfile.mkdtemp(prefix="pzl-tape-")) / "tape.txt"
         tape.write_text(line["tape"])

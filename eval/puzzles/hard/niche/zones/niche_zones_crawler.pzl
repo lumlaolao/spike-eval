@@ -1,0 +1,88 @@
+[metadata]
+Name:niche_zones_crawler
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Bontu's Monument, Zulaport Cutthroat, Carrion Feeder, Gray Ogre and five Swamps, all untapped and none of them new this turn. Your hand is Unearth and Reanimate. Your graveyard holds Gravecrawler and Diregraf Colossus. The opponent is at 16 life and controls Wall of Stone and two Islands. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-zones-crawler | Bontu's Monument and Diregraf Colossus trigger on casting a spell (CR 601.2i, 603.2), never on a card put onto the battlefield: Gravecrawler cast from the graveyard (CR 601.3, allowed while Carrion Feeder, a Zombie, is out) drains 1 and makes a Zombie token, while Unearth or Reanimate on it would do neither; Unearth goes on Diregraf Colossus, which must be out before the first cast, and Reanimate is a trap. Wall of Stone on the Ogre leaves 1 combat damage, then 4 casts x (1 + 2 deaths) + 3 more deaths: 16
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Unearth;Reanimate
+p0graveyard=Gravecrawler;Diregraf Colossus
+p0battlefield=Bontu's Monument;Zulaport Cutthroat;Carrion Feeder;Gray Ogre;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=16
+p1battlefield=Wall of Stone;Island;Island
+p1library=Island;Island;Island
+[solution]
+Carrion Feeder; Gray Ogre
+at MAIN2: cast Unearth
+Diregraf Colossus
+pass
+cast Gravecrawler
+Bontu's Monument; Diregraf Colossus
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+activate Carrion Feeder
+Zombie Token
+pass
+pass
+cast Gravecrawler
+Bontu's Monument; Diregraf Colossus
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+activate Carrion Feeder
+Zombie Token
+pass
+pass
+cast Gravecrawler
+Bontu's Monument; Diregraf Colossus
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+activate Carrion Feeder
+Zombie Token
+pass
+pass
+cast Gravecrawler
+Bontu's Monument; Diregraf Colossus
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+activate Carrion Feeder
+Zombie Token
+pass
+pass
+activate Carrion Feeder
+Diregraf Colossus
+pass
+pass
+activate Carrion Feeder
+Gray Ogre
+pass
+pass
+activate Carrion Feeder
+Zulaport Cutthroat
+[acceptance]
+life p1 <= 0

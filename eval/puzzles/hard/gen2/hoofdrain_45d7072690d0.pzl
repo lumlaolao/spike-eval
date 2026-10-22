@@ -1,0 +1,90 @@
+[metadata]
+Name:hoofdrain_45d7072690d0
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Heritage Druid, two Nettle Sentinels, Elvish Mystic, Llanowar Elves, Priest of Titania, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Elvish Scout, Fyndhorn Elves, Treetop Warden, Craterhoof Behemoth, Elvish Warrior and Cylian Elf. The opponent is at 132 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 132 damage in 13 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 131, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Elvish Scout;Fyndhorn Elves;Treetop Warden;Craterhoof Behemoth;Elvish Warrior;Cylian Elf
+p0battlefield=Heritage Druid;Nettle Sentinel;Nettle Sentinel;Elvish Mystic;Llanowar Elves;Priest of Titania;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=132
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"elves": ["Elvish Warrior", "Elvish Scout", "Treetop Warden", "Cylian Elf", "Fyndhorn Elves"], "forests": 0, "mana_elves": ["Elvish Mystic", "Llanowar Elves"], "others": ["Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 2}
+# trap: {"best": 131, "plans": {"attack_only": 126, "hoof_asap": 118, "keep_druid": 83, "keep_mana_creatures": -1, "never_tap_sentinels": 83, "sac_early": 104, "sac_new_only": 131, "tap_out_first": 104}, "short": 1}
+activate Elvish Mystic
+cast Elvish Scout
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Elvish Scout
+cast Fyndhorn Elves
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Fyndhorn Elves
+cast Elvish Warrior
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Elvish Warrior
+cast Treetop Warden
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Treetop Warden
+cast Cylian Elf
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Cylian Elf
+cast Craterhoof Behemoth
+yes
+yes
+pass
+pass
+activate Viscera Seer
+Elvish Scout
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Fyndhorn Elves
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Warrior
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Treetop Warden
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cylian Elf
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Mystic
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Nettle Sentinel; Heritage Druid; Llanowar Elves; Priest of Titania; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0

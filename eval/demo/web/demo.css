@@ -219,3 +219,139 @@ body.logonly .board { display: none; }
 @media (min-width: 901px) {
   body.logonly #panes:not(.two) .pane-body { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 }
+
+/* Puzzle mode: the brief, and the intended line behind a reveal (audience only). */
+.puzzle:empty { display: none; }
+.puzzle { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 8px 0; background: var(--panel); }
+.puzzle .ptitle { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.puzzle p { margin: 4px 0; }
+.puzzle .brief { white-space: pre-line; }
+.puzzle details summary { cursor: pointer; color: var(--planned); font-size: 13px; margin-top: 4px; }
+.puzzle .rule { color: var(--muted); font-size: 13px; }
+.puzzle .steps { margin: 4px 0 0; padding-left: 30px; font-family: var(--mono); font-size: 12px; max-height: 180px;
+  overflow: auto; position: relative; }
+.puzzle .steps li.cur { background: color-mix(in srgb, var(--chosen) 25%, transparent); font-weight: 600; }
+
+/* Watch mode (two games, the default): a playmat per game that fits the screen, with the model's decision log in a
+   scrolling panel under it. Opponent on top, the model below, one chip line between them for the stack and combat.
+   Each player: a header (name, life, library and hand counts), labelled rows for HAND and BATTLEFIELD (lands grouped
+   as "×N"), and graveyard and exile as piles of real cards at the side. The cards the model is thinking about are
+   framed in the highlight colours. The one play button runs both games, each on its own clock. */
+body.watch { height: 100vh; display: flex; flex-direction: column; }
+body.watch #first, body.watch #prev, body.watch #next, body.watch #last, body.watch #turn, body.watch #diverge,
+body.watch #logonly, body.watch .transport label:has(#turn), body.watch .transport label:has(#lockstep),
+body.watch .brand .navlink { display: none; }
+body.watch #play { font-size: 15px; padding: 2px 14px; }
+body.watch #panes { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+body.watch #panes.two .pane { display: flex; flex-direction: column; min-height: 0; }
+body.watch #panes.two .pane-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.watch #panes.two .board-col { flex: 1; min-height: 0; overflow: auto; }
+body.watch #panes.two .trace-col { flex: none; padding: 0 10px 10px; }
+body.watch .pane-head { align-items: center; padding: 6px 12px; gap: 6px 10px; flex-wrap: nowrap; }
+body.watch .pane-head .cond { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.watch .pane-head .title { font-size: 15px; white-space: nowrap; }
+body.watch .pane-head .w-turn { margin-left: auto; font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+body.watch .pane-head .pill { white-space: nowrap; }
+body.watch .timeline, body.watch .detail, body.watch .filters, body.watch .summary, body.watch .plan,
+body.watch .puzzle, body.watch .statusbar { display: none; }
+body.watch .board-col { border-right: 0; padding: 6px 10px 4px; }
+body.watch .board { --w: 60px; }
+
+/* The log: a bounded panel with its own scroll; the board above never moves for it. */
+.w-log { display: none; }
+body.watch .w-log { display: flex; flex-direction: column; height: clamp(90px, 18vh, 190px); border: 1px solid var(--line);
+  border-radius: 8px; background: var(--panel); overflow: hidden; }
+.w-loghead { flex: none; display: flex; justify-content: space-between; padding: 3px 10px; font-size: 10px; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--muted); background: var(--code); border-bottom: 1px solid var(--line); }
+.w-log ol { flex: 1; min-height: 0; overflow: auto; list-style: none; margin: 0; padding: 0; font-size: 12px; line-height: 1.35; }
+.w-log li { padding: 3px 10px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; }
+.w-log li.cur { background: color-mix(in srgb, var(--chosen) 10%, transparent); }
+.w-log li.auto { color: var(--muted); }
+.w-log li .t { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.w-log li .k { font-weight: 600; white-space: nowrap; }
+.w-log li .pick { color: var(--chosen); font-weight: 700; flex: 1 1 120px; min-width: 0; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }
+.w-log li .why { width: 100%; color: var(--ink); opacity: .85; }
+.w-log li.auto .pick { color: var(--muted); font-weight: 500; }
+
+/* The two playmats and the line between them. */
+.w-player { display: flex; gap: 8px; border-radius: 10px; padding: 6px 8px; }
+.w-player.OPP { background: var(--opp); }
+.w-player.YOU { background: var(--you); }
+.w-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.w-who { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; padding-bottom: 3px; border-bottom: 1px solid rgba(0,0,0,.1); }
+.w-name { font-weight: 700; font-size: 14px; flex: 1; }
+.w-life { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.w-life b { font-size: 24px; font-weight: 800; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; margin-right: 2px; }
+.w-stat { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line);
+  background: var(--panel); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.w-stat b { font-size: 13px; letter-spacing: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* Rows share a line when both fit (a short hand next to a small battlefield), else each takes its own. */
+.w-rows { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: stretch; }
+.w-row { flex: 1 1 auto; display: flex; gap: 4px; min-width: 0; border-radius: 6px; background: rgba(255,255,255,.35); padding: 3px 4px 3px 2px; }
+.w-row.aud { border: 1.5px dashed var(--warn); position: relative; }
+.w-aud { position: absolute; right: 8px; top: -7px; padding: 0 4px; background: var(--opp); border-radius: 3px; font: 600 9px/1.2 var(--sans); font-style: normal; color: var(--warn);
+  text-transform: uppercase; letter-spacing: .05em; }
+.w-vlab { flex: none; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 9px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted); text-align: center; line-height: 14px; }
+.w-vlab.lands { align-self: stretch; border-left: 1px solid var(--line); margin-left: 4px; padding-left: 2px; }
+.w-tiles { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px; }
+.w-note, .w-empty { color: var(--muted); font-size: 11px; align-self: center; }
+.w-back { width: calc(var(--w) * .8); height: calc(var(--w) * .8 * 680 / 488); border-radius: 4px; border: 2px solid #3a2a1a;
+  background: radial-gradient(ellipse at center, #b5793a 0 28%, #6b3f1c 29% 52%, #2d1c10 53%); margin: 0 -8px 0 0; }
+.w-mid { display: flex; gap: 8px; margin: 4px 2px; min-width: 0; }
+.w-chip { flex: 1 1 0; min-width: 0; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--code); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* the whole text on hover */
+.w-chip b { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+.w-chip:not(.off) { border-color: var(--engine); }
+.w-chip.off { color: var(--muted); }
+
+.w-card { --cw: var(--w); width: var(--cw); display: flex; flex-direction: column; align-items: center; margin-top: 7px; }
+.w-card.tapped { --cw: calc(var(--w) * 680 / 488); }
+.w-art { position: relative; width: var(--w); height: calc(var(--w) * 680 / 488); border-radius: 5px; overflow: visible; }
+.w-card.tapped .w-art { width: var(--cw); height: var(--w); }
+.w-card.tapped .w-art img { position: absolute; left: 50%; top: 50%; width: var(--w); height: calc(var(--w) * 680 / 488);
+  transform: translate(-50%, -50%) rotate(90deg); }
+.w-art img { width: 100%; height: 100%; border-radius: 5px; display: block; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.w-art.none { background: var(--tile); border: 1px solid var(--tile-line); }
+.w-art.none img { display: none; }
+.w-nm { width: calc(var(--cw) + 4px); margin-top: 3px; font-size: 10px; line-height: 1.2; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-pt { position: absolute; right: -3px; bottom: -3px; background: #fff; color: #111; font: 700 10px/1 var(--sans);
+  padding: 2px 3px; border-radius: 4px; border: 1px solid #999; }
+.w-pt.changed { color: #b3261e; border-color: #b3261e; }
+.w-n { position: absolute; left: -3px; bottom: -3px; background: #222; color: #fff; font: 700 10px/1 var(--sans);
+  padding: 2px 5px; border-radius: 9px; }
+.w-badge { position: absolute; left: 50%; top: -8px; transform: translateX(-50%); font: 600 9px/1 var(--sans);
+  padding: 2px 5px; border-radius: 8px; color: #fff; white-space: nowrap; background: var(--chosen); z-index: 1; }
+.w-marks { position: absolute; left: 2px; top: 2px; display: flex; gap: 2px; }
+.w-marks .m { font: 700 10px/14px var(--sans); font-style: normal; min-width: 14px; height: 14px; text-align: center;
+  border-radius: 7px; background: rgba(0,0,0,.72); color: #fff; }
+.w-marks .m.atk { background: #b3261e; } .w-marks .m.blk { background: #2f6fd6; } .w-marks .m.dmg { background: #b3261e; }
+
+/* Graveyard and exile at the side: a labelled pile each, the newest card whole on top. */
+.w-side { --pw: 54px; flex: none; display: flex; gap: 12px; align-items: flex-start; }
+.w-pile { width: var(--pw); display: flex; flex-direction: column; }
+.w-pile .w-lab { font-size: 8px; letter-spacing: 0; text-transform: uppercase; color: var(--muted); white-space: nowrap;
+  margin-bottom: 2px; }
+.w-cards { display: flex; flex-direction: column; }
+/* Each card covers the one before it but its title strip (14px), so the pile reads as a stack of real cards; the newest is whole. */
+.w-sc { position: relative; width: var(--pw); height: calc(var(--pw) * 680 / 488); flex: none; margin-top: calc(var(--pw) * -680 / 488 + 14px);
+  border-radius: 4px; box-shadow: 0 -1px 3px rgba(0,0,0,.35); background: var(--tile); }
+.w-sc:first-child { margin-top: 0; }
+.w-sc img { width: 100%; height: 100%; border-radius: 4px; display: block; }
+.w-cards { position: relative; }
+.w-cnt { position: absolute; right: -4px; top: -6px; background: #222; color: #fff; font: 700 10px/1 var(--sans);
+  padding: 2px 5px; border-radius: 9px; }
+.w-empty { width: var(--pw); height: calc(var(--pw) * 680 / 488); border: 1px dashed var(--tile-line); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; }
+
+/* Highlights: the cards the model is thinking about, framed in the legend colours. */
+.w-card.hl-chosen .w-art img, .w-sc.hl-chosen { outline: 3px solid var(--chosen); outline-offset: 1px; }
+.w-card.hl-planned .w-art img, .w-sc.hl-planned { outline: 3px solid var(--planned); outline-offset: 1px; }
+.w-card.hl-looked .w-art img, .w-sc.hl-looked { outline: 3px solid var(--looked); outline-offset: 1px; }
+.w-card.hl-mentioned .w-art img, .w-sc.hl-mentioned { outline: 2px dashed var(--mentioned); outline-offset: 1px; }
+.w-card.hl-planned .w-badge { background: var(--planned); } .w-card.hl-looked .w-badge { background: var(--looked); }
+.w-card.hl-mentioned .w-badge { background: var(--mentioned); } .w-card.hl-engine .w-badge { background: var(--engine); }
+@media (max-width: 1400px) { .w-side { --pw: 48px; } body.watch .pane-head .cond { display: none; } }
+@media (prefers-color-scheme: dark) { .w-row { background: rgba(255,255,255,.05); } .w-who { border-color: rgba(255,255,255,.12); } }

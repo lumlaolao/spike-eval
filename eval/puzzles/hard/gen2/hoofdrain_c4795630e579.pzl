@@ -1,0 +1,84 @@
+[metadata]
+Name:hoofdrain_c4795630e579
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control three Forests, Heritage Druid, one Nettle Sentinel, Llanowar Elves, Fyndhorn Elves, Priest of Titania, Blood Artist and Viscera Seer, all untapped and none of them summoning sick. Your hand is Treetop Warden, Wirewood Elf, Elvish Lyrist, Cylian Elf, Elvish Mystic and Craterhoof Behemoth. The opponent is at 108 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 108 damage in 13 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 107, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Treetop Warden;Wirewood Elf;Elvish Lyrist;Cylian Elf;Elvish Mystic;Craterhoof Behemoth
+p0battlefield=Forest;Forest;Forest;Heritage Druid;Nettle Sentinel;Llanowar Elves;Fyndhorn Elves;Priest of Titania;Blood Artist;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=108
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"elves": ["Elvish Mystic", "Treetop Warden", "Cylian Elf", "Elvish Lyrist", "Wirewood Elf"], "forests": 3, "mana_elves": ["Llanowar Elves", "Fyndhorn Elves"], "others": ["Blood Artist", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 107, "plans": {"attack_only": 102, "hoof_asap": 68, "keep_druid": 84, "keep_mana_creatures": -1, "never_tap_sentinels": 84, "sac_early": 84, "sac_new_only": 107, "tap_out_first": 82}, "short": 1}
+activate Forest
+activate Forest
+activate Forest
+cast Elvish Mystic
+yes
+cast Elvish Lyrist
+yes
+pass
+activate Priest of Titania
+cast Treetop Warden
+yes
+cast Cylian Elf
+yes
+cast Wirewood Elf
+yes
+pass
+activate Heritage Druid
+Elvish Mystic; Elvish Lyrist; Treetop Warden
+activate Heritage Druid
+Nettle Sentinel; Cylian Elf; Wirewood Elf
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Elvish Mystic
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Lyrist
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Treetop Warden
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cylian Elf
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wirewood Elf
+opponent
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+opponent
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid; Llanowar Elves; Fyndhorn Elves; Blood Artist; Viscera Seer
+[acceptance]
+life p1 <= 0

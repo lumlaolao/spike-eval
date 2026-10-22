@@ -1,0 +1,40 @@
+[metadata]
+Name:ping_a910d3b44aeb
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Fireblast, Shock, Lightning Bolt, Lightning Bolt, Rite of Flame, Chain Lightning and Desperate Ritual. The opponent is at 23 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-ping | 1 Alchemist(s) ping before each of 7 spells and once after; rituals open with the lands, burn spends the pool exactly; Fireblast last, after both Mountains tap
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fireblast;Shock;Lightning Bolt;Lightning Bolt;Rite of Flame;Chain Lightning;Desperate Ritual
+p0battlefield=Thermo-Alchemist;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=23
+p1library=Plains;Plains;Plains
+[solution]
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Rite of Flame
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Shock
+opponent
+activate Thermo-Alchemist
+cast Chain Lightning
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+cast Fireblast
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

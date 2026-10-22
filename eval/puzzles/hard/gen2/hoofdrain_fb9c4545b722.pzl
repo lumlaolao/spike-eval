@@ -1,0 +1,106 @@
+[metadata]
+Name:hoofdrain_fb9c4545b722
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel, Elvish Mystic, Fyndhorn Elves, Priest of Titania, Blood Artist, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Cylian Elf, Wirewood Elf, Arbor Elf, Willow Elf, Elvish Scout, Craterhoof Behemoth and Elvish Lyrist. The opponent is at 146 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 146 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 144, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cylian Elf;Wirewood Elf;Arbor Elf;Willow Elf;Elvish Scout;Craterhoof Behemoth;Elvish Lyrist
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Elvish Mystic;Fyndhorn Elves;Priest of Titania;Blood Artist;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=146
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Elvish Scout", "Wirewood Elf", "Willow Elf", "Arbor Elf", "Elvish Lyrist", "Cylian Elf"], "forests": 2, "mana_elves": ["Elvish Mystic", "Fyndhorn Elves"], "others": ["Blood Artist", "Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 144, "plans": {"attack_only": 132, "hoof_asap": 110, "keep_druid": 105, "keep_mana_creatures": -1, "never_tap_sentinels": 105, "sac_early": 111, "sac_new_only": 144, "tap_out_first": 118}, "short": 2}
+activate Forest
+activate Forest
+cast Elvish Scout
+yes
+cast Willow Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Scout; Willow Elf
+cast Arbor Elf
+yes
+pass
+activate Priest of Titania
+cast Elvish Lyrist
+yes
+cast Wirewood Elf
+yes
+cast Cylian Elf
+yes
+pass
+activate Heritage Druid
+Arbor Elf; Elvish Lyrist; Wirewood Elf
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Elvish Scout
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Willow Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Arbor Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Lyrist
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wirewood Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cylian Elf
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid; Elvish Mystic; Fyndhorn Elves; Blood Artist; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,54 @@
+[metadata]
+Name:storm_2ef0ca14337b
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control three untapped Mountains. Your hand is Lightning Bolt, Lightning Bolt, Lava Spike, Pyretic Ritual, Shock, Grapeshot, Lotus Petal, Shock, Rite of Flame, Lotus Petal, Rite of Flame, Lightning Bolt and Lightning Bolt. The opponent is at 32 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-storm | 12 spells before Grapeshot make 12 copies; rituals paid in order (Rites back to back, Seething Song once three are open), burn before Grapeshot
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Lightning Bolt;Lava Spike;Pyretic Ritual;Shock;Grapeshot;Lotus Petal;Shock;Rite of Flame;Lotus Petal;Rite of Flame;Lightning Bolt;Lightning Bolt
+p0battlefield=Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=32
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Lotus Petal
+cast Lotus Petal
+cast Rite of Flame
+cast Rite of Flame
+cast Pyretic Ritual
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Shock
+opponent
+cast Lightning Bolt
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Lightning Bolt
+opponent
+cast Grapeshot
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+[acceptance]
+life p1 <= 0

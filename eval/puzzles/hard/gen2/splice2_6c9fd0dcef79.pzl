@@ -1,0 +1,54 @@
+[metadata]
+Name:splice2_6c9fd0dcef79
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Thermo-Alchemist, Kiln Fiend and Goblin Electromancer and two untapped Mountains. Your hand is Desperate Ritual, Glacial Ray, Desperate Ritual, Glacial Ray, Gitaxian Probe and Rite of Flame. The opponent is at 38 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-splice2 | the searched best line deals 38, spending every mana; trap 36 (never splicing deals 32, splicing every payable card onto each Arcane spell 36)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Desperate Ritual;Glacial Ray;Desperate Ritual;Glacial Ray;Gitaxian Probe;Rite of Flame
+p0battlefield=Thermo-Alchemist;Kiln Fiend;Goblin Electromancer;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=38
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+activate Thermo-Alchemist
+cast Rite of Flame
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Gitaxian Probe
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Desperate Ritual
+Desperate Ritual
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Desperate Ritual
+Glacial Ray; Glacial Ray
+opponent
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+pass
+pass
+pass
+cast Glacial Ray
+opponent
+Glacial Ray
+opponent
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+Thermo-Alchemist; Kiln Fiend
+activate Thermo-Alchemist
+Kiln Fiend; Goblin Electromancer
+[acceptance]
+life p1 <= 0

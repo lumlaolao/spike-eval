@@ -1,0 +1,42 @@
+[metadata]
+Name:niche_layers_reequip
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Craw Wurm with four +1/+1 counters, equipped with Sword of Body and Mind; Grizzly Bears; an unattached Bonesplitter, Short Sword, Leonin Scimitar and Bone Saw; and 11 untapped Forests. Earlier this turn the opponent cast Turn to Frog on Craw Wurm. Your hand is Giant Growth, Titanic Growth, Might of Old Krosa, Rancor and Forest. The opponent is at 23 life and controls an untapped Giant Spider and two untapped Islands. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-layers-reequip | An Equipment gets a new timestamp each time it becomes attached (CR 613.7) and re-attaching it to the creature it is on does nothing (CR 701.3b): the Sword's protection is older than Turn to Frog, so it is lost (CR 613.1f, 613.7) until the Sword moves to the Bears and back; the counters, the equipment bonuses and the pumps still apply over the Frog's base 1/1 (CR 613.4b, 613.4c); the green pumps must resolve before protection from green returns, and Rancor would fall off the protected Wurm (CR 702.16c, 704.5m): 1 + 4 + 3 + 4 + 4 + 2 + 1 + 1 + 1 + 2 = 23
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth;Titanic Growth;Might of Old Krosa;Rancor;Forest
+p0battlefield=Craw Wurm|Id:1|Counters:P1P1=4;Sword of Body and Mind|AttachedTo:1;Grizzly Bears|Id:2;Bonesplitter;Short Sword;Leonin Scimitar;Bone Saw;Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest
+p0library=Forest;Forest;Forest;Forest
+p1life=23
+p1battlefield=Giant Spider;Island;Island
+p1library=Island;Island;Island;Island;Island;Island;Island;Island;Island;Island;Island;Island
+p1precast=Turn to Frog->1
+[solution]
+activate Sword of Body and Mind
+Grizzly Bears
+cast Giant Growth
+Craw Wurm
+cast Titanic Growth
+Craw Wurm
+cast Might of Old Krosa
+Craw Wurm
+activate Bonesplitter
+Craw Wurm
+activate Short Sword
+Craw Wurm
+activate Leonin Scimitar
+Craw Wurm
+play land Forest
+activate Bone Saw
+Craw Wurm
+activate Sword of Body and Mind
+Craw Wurm
+Craw Wurm; Grizzly Bears
+[acceptance]
+life p1 <= 0

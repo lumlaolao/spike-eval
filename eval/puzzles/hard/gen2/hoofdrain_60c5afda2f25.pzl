@@ -1,0 +1,89 @@
+[metadata]
+Name:hoofdrain_60c5afda2f25
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Heritage Druid, one Nettle Sentinel, Elvish Mystic, Priest of Titania, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Boreal Druid, Wellwisher, Cylian Elf, Wirewood Elf, Elves of Deep Shadow and Craterhoof Behemoth. The opponent is at 65 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 65 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Sentinels untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 62, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Boreal Druid;Wellwisher;Cylian Elf;Wirewood Elf;Elves of Deep Shadow;Craterhoof Behemoth
+p0battlefield=Heritage Druid;Nettle Sentinel;Elvish Mystic;Priest of Titania;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=65
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Boreal Druid", "Elves of Deep Shadow", "Cylian Elf", "Wellwisher", "Wirewood Elf"], "forests": 0, "mana_elves": ["Elvish Mystic"], "others": ["Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 62, "plans": {"attack_only": 57, "hoof_asap": 60, "keep_druid": -1, "keep_mana_creatures": -1, "never_tap_sentinels": -1, "sac_early": 47, "sac_new_only": 62, "tap_out_first": -1}, "short": 3}
+activate Elvish Mystic
+cast Boreal Druid
+yes
+pass
+activate Heritage Druid
+Heritage Druid; Nettle Sentinel; Boreal Druid
+cast Elves of Deep Shadow
+yes
+pass
+activate Priest of Titania
+cast Cylian Elf
+yes
+cast Wellwisher
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elves of Deep Shadow; Cylian Elf
+cast Wirewood Elf
+yes
+pass
+activate Heritage Druid
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Boreal Druid
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elves of Deep Shadow
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cylian Elf
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wellwisher
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wirewood Elf
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Heritage Druid
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Mystic
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0

@@ -59,6 +59,9 @@ the acceptance.
 
 ## 3. Building our own
 
+Authored so far: 25 boards that each turn on one niche rule (banding, replacement ordering, zone changes, layers, the
+stack), with their checks and the bar rows each misses, in `eval/puzzles/hard/niche/README.md`.
+
 Each family names the mechanism that forces the length and the rule that stops the puzzle collapsing into a
 short one. Every family is built in two modes: **authored** (a person writes the board and the script; about
 70% of our authored drafts have passed the gate) and **generated** (the template's numbers drawn at random,
@@ -75,6 +78,40 @@ at a share of the suite so no one trick dominates).
 | **Two-turn survive then win** (the Perplexing Chimera shape) | survive at exactly N, keep the resources the next turn needs | spending a card to survive comfortably loses the kill | `PC_*` boards as models |
 | **Rule stacking** | three or four of the rules puzzles' tricks composed on one board, each needed in order | the line needs every rule; the `RP_*` boards are the parts | the 526 rules puzzles |
 | **Adversarial hand** | the opponent is stated to hold one instant (a counter, a removal spell) with the mana for it | the proof must beat the reply at every window: play around it or bait it | any family above |
+
+Generated drain and elf (`eval/puzzle_gen.py --family drain|elf`, 2026-10-20). Each board's opponent life is the exact
+maximum of an exhaustive search over a model of the board, and the written line is the fewest-step one reaching
+it (10 to 15 steps; Altar, Druid, Forest and mana-elf activations are mana abilities and not counted). **drain**:
+every death drains once per drainer still out (Blood Artist, Zulaport Cutthroat, Cruel Celebrant, each counting its
+own death), Reassembling Skeleton returns for {1}{B}, Gravecrawler is recast from the graveyard only while Carrion
+Feeder (a Zombie) lives, Bloodghast returns on the land drop, Ashnod's Altar's {C}{C} pays generic halves. **elf**:
+Heritage Druid taps the Sentinels before each green spell (which untaps them) and the elves just cast; Craterhoof's
++X/+X goes to the creatures that started untapped, so tapping the Druid or a starting mana elf costs an attacker;
+boards whose best line casts everything and attacks with everything are dropped. The line resolves each object of
+its own on the stack with `pass` only in the windows the seat is asked (one where only a Swamp's or Forest's mana is
+playable is skipped by the seat). They are in the generated hard suite
+(`eval/PUZZLES.md`, "The generated hard suite"; status and the paid model check:
+`docs/harness/history/2026-10-20-generated-hard-puzzles.md`). Not done: the 40 elf boards of seed 2 were generated but
+not gated (on branch `feat/hard-gen`); neither family carries a trap line at 1 to 3 life or a check that no mana
+floats unused at the end.
+
+Super-hard drain2, elf2 and hoofdrain (`--family drain2|elf2|hoofdrain`, 2026-10-22; boards in
+`eval/puzzles/hard/gen2/`, status: `docs/harness/history/2026-10-22-harder-engines.md`). Same searches, a stricter bar:
+13 to 15 steps; no mana unused at the end of the best line (drain: every Swamp tapped and the land drop taken; elf:
+nothing floating past Craterhoof); and a **trap**: each plain plan is one natural habit imposed on the otherwise
+exhaustive search, and the best of those that apply must fall 1 to 3 short (a plan that wins, or a best plan 4 or
+more short, drops the board). Plans, drain: play the land first, cast the drainers last, sacrifice as soon as a death
+drains. Elf: Craterhoof as soon as the mana abilities alone can pay it, never tap a Sentinel, tap the mana creatures
+before anything else, never tap the Druid itself, never tap a mana elf or the Priest. hoofdrain adds sacrifice each
+elf once the Druid has tapped it, attack without sacrificing, and sacrifice only the elves cast this turn. drain2
+draws two or three outlets that differ and more recursion; elf2 adds a starting Priest of Titania ({G} per elf, so
+it taps late or attacks); **hoofdrain** is the cross family: the elf engine with one or two drainers and Viscera
+Seer out, where Craterhoof's trigger counts X on resolution, so every creature that will not attack is sacrificed
+after it, never before. A batch never repeats a life total or a structure (the cards reduced to their roles). The
+trap is written in the Rule line and, with the search inputs, as `# search:` and `# trap:` comments in the
+[solution], which `eval/test_puzzle_gen.py` recomputes for every committed board. Two near-misses dominate (see the
+history note): drain2's "play the land first" (Bloodghast) and hoofdrain's "sacrifice only the elves cast"; elf2
+draws pass rarely (about 1 in 150), because an elf plain plan either matches the loop or misses it by far more than 3.
 
 Rules that apply to every board: no slack (exact mana, exact damage, no spare pump); every card in hand either
 used on the line or a red herring that a trap line uses; the library filled with Colossal Dreadmaw (or stated

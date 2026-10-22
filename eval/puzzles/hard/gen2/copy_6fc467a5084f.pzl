@@ -1,0 +1,74 @@
+[metadata]
+Name:copy_6fc467a5084f
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Firebrand Archer, Guttersnipe and five untapped Mountains. Your hand is Lava Spike, Pyretic Ritual, Lava Spike, Lava Spike, Gitaxian Probe, Rite of Flame, Reverberate, Gitaxian Probe, Lightning Bolt, Lava Spike, Pyretic Ritual, Lightning Bolt, Lava Spike, Reverberate and Pyretic Ritual. Your graveyard is empty. The opponent is at 69 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 69 in 15 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 66
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lava Spike;Pyretic Ritual;Lava Spike;Lava Spike;Gitaxian Probe;Rite of Flame;Reverberate;Gitaxian Probe;Lightning Bolt;Lava Spike;Pyretic Ritual;Lightning Bolt;Lava Spike;Reverberate;Pyretic Ritual
+p0battlefield=Firebrand Archer;Guttersnipe;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=69
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 15
+cast Pyretic Ritual
+Firebrand Archer; Guttersnipe
+pass
+pass
+pass
+cast Pyretic Ritual
+Firebrand Archer; Guttersnipe
+pass
+pass
+pass
+cast Pyretic Ritual
+Firebrand Archer; Guttersnipe
+cast Rite of Flame
+Firebrand Archer; Guttersnipe
+cast Reverberate
+Firebrand Archer; Guttersnipe
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+Firebrand Archer; Guttersnipe
+cast Reverberate
+Firebrand Archer; Guttersnipe
+cast Lightning Bolt
+opponent
+Firebrand Archer; Guttersnipe
+opponent
+cast Lava Spike
+opponent
+Firebrand Archer; Guttersnipe
+cast Lava Spike
+opponent
+Firebrand Archer; Guttersnipe
+cast Lava Spike
+opponent
+Firebrand Archer; Guttersnipe
+cast Lava Spike
+opponent
+Firebrand Archer; Guttersnipe
+cast Lava Spike
+opponent
+Firebrand Archer; Guttersnipe
+cast Gitaxian Probe
+opponent
+Firebrand Archer; Guttersnipe
+cast Gitaxian Probe
+opponent
+Firebrand Archer; Guttersnipe
+[acceptance]
+life p1 <= 0

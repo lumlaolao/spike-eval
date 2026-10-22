@@ -1,0 +1,38 @@
+[metadata]
+Name:niche_combat_marked_lethal
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Hill Giant, Grizzly Bears, an unattached Fireshrieker, an unattached Loxodon Warhammer, eight untapped Mountains and two untapped Forests, and you have not played a land this turn. Your hand is Bonesplitter, Lightning Axe, Giant Growth, Titanic Growth, Mountain and Forest. The opponent is at 30 life and controls an untapped Sapling of Colfenor and three Swamps. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-combat-marked-lethal | Lethal damage for a trampler's assignment counts damage already marked on the blocker (CR 702.19b, 120.6), even on an indestructible one that cannot die: Lightning Axe on the blocking Sapling of Colfenor marks 5, so the Giant (15, double strike and trample with every card on it) assigns 0 to it and 15 to the player in each damage step (CR 510.4), 30 in all, as much as unblocked. Without the Axe the first-strike hit loses 5 to the Sapling and the line ends at 5; the Axe's discard is the land not played, and leaving out any other card falls short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Bonesplitter;Lightning Axe;Giant Growth;Titanic Growth;Mountain;Forest
+p0battlefield=Hill Giant;Grizzly Bears;Fireshrieker;Loxodon Warhammer;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Forest;Forest
+p0library=Mountain;Mountain;Mountain;Mountain
+p1life=30
+p1battlefield=Sapling of Colfenor;Swamp;Swamp;Swamp
+p1library=Swamp;Swamp;Swamp;Swamp
+[solution]
+cast Giant Growth
+Hill Giant
+cast Titanic Growth
+Hill Giant
+play land Mountain
+activate Fireshrieker
+Hill Giant
+activate Loxodon Warhammer
+Hill Giant
+cast Bonesplitter
+activate Bonesplitter
+Hill Giant
+Hill Giant
+at COMBAT_DECLARE_BLOCKERS: cast Lightning Axe
+Sapling of Colfenor
+0 15
+0 15
+[acceptance]
+life p1 <= 0

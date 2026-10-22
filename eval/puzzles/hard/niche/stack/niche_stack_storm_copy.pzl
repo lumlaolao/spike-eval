@@ -1,0 +1,50 @@
+[metadata]
+Name:niche_stack_storm_copy
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control five untapped Mountains. Your hand is Lotus Petal, Rite of Flame, Desperate Ritual, Seething Song, Pyretic Ritual, Lightning Bolt, Gut Shot, Blaze, Reverberate and Grapeshot. Your library holds only Colossal Dreadmaw. The opponent is at 24 life and controls two untapped Islands and an untapped Plains, with no cards in hand. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-stack-storm-copy | Storm counts the spells cast before it this turn (CR 702.40a); a copy is put on the stack, not cast (CR 707.10), so Reverberate on Grapeshot makes one copy that deals 1 and has no storm trigger of its own, while Reverberate cast before Grapeshot counts as a spell. Copying Seething Song while it is on the stack (respond to your own spell) adds five mana and one to the storm count: Gut Shot 1, Bolt 3, Blaze for 10, Grapeshot with storm 9 for 10 = 24; copying Grapeshot instead reaches 19
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lotus Petal;Rite of Flame;Desperate Ritual;Seething Song;Pyretic Ritual;Lightning Bolt;Gut Shot;Blaze;Reverberate;Grapeshot
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=24
+p1battlefield=Island;Island;Plains
+p1library=Island;Island;Island
+[solution]
+# Every spell before Grapeshot; Reverberate answers Seething Song on the stack; Blaze for 10; Grapeshot last,
+# the original and nine storm copies at the opponent.
+cast Gut Shot
+opponent
+pay 1 Phyrexian
+cast Desperate Ritual
+cast Rite of Flame
+cast Lotus Petal
+cast Lightning Bolt
+opponent
+cast Seething Song
+cast Reverberate
+Seething Song
+cast Pyretic Ritual
+cast Blaze
+10
+opponent
+cast Grapeshot
+opponent
+red
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+opponent
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,88 @@
+[metadata]
+Name:drain2_a00faad965ba
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Blood Artist, Bloodghast, Carrion Feeder, Cruel Celebrant and 3 untapped Swamps. Your hand is Gravecrawler, Viscera Seer and Swamp. Your graveyard holds Reassembling Skeleton. The opponent is at 15 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain2 | the exhaustive maximum is 15 drained in 13 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard; the best plain plan (play the land first / sacrifice as soon as a death drains) drains 13, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gravecrawler;Viscera Seer;Swamp
+p0battlefield=Blood Artist;Bloodghast;Carrion Feeder;Cruel Celebrant;Swamp;Swamp;Swamp
+p0graveyard=Reassembling Skeleton
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=15
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"altar": false, "bf": ["Blood Artist", "Bloodghast", "Carrion Feeder", "Cruel Celebrant"], "gy": ["Reassembling Skeleton"], "hand": ["Gravecrawler", "Viscera Seer"], "land": true, "swamps": 3}
+# trap: {"best": 13, "plans": {"land_first": 13, "sac_asap": 13}, "short": 2}
+cast Gravecrawler
+pass
+cast Viscera Seer
+pass
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Carrion Feeder
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+activate Viscera Seer
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Blood Artist
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cruel Celebrant
+[acceptance]
+life p1 <= 0

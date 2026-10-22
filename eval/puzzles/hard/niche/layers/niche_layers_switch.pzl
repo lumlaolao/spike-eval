@@ -1,0 +1,41 @@
+[metadata]
+Name:niche_layers_switch
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Scoria Elemental, Indomitable Ancients, Island, Plains, Mountain, Swamp and 6 Forests, all untapped. Earlier this turn the opponent cast Inside Out on Scoria Elemental, so its power and toughness are switched until end of turn. Your hand is Twisted Image, Humble, Sure Strike, High Stride, Leaping Ambush, Ornamental Courage, Sudden Spinnerets, Dark Remedy and Forest. The opponent is at 21 life and controls an untapped Craw Wurm, a tapped Grizzly Bears, an untapped Mountain and a tapped Plains, and holds Lightning Bolt. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-layers-switch | Switching is applied in layer 7d, after every 7b and 7c effect whatever their timestamps (CR 613.4b-613.4d): Humble resolving after Twisted Image still gives Craw Wurm base 0/1, which the switch turns into 1/0, so it dies; Scoria Elemental, switched since before your turn, gets +3 power from each +1/+3 pump and none from Sure Strike, so Sure Strike goes on the unswitched Ancients; the Bolt finds no toughness below 4: 1 + 3x5 = 16, plus 5 = 21
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Twisted Image;Humble;Sure Strike;High Stride;Leaping Ambush;Ornamental Courage;Sudden Spinnerets;Dark Remedy;Forest
+p0battlefield=Scoria Elemental|Id:1;Indomitable Ancients;Island;Plains;Mountain;Swamp;Forest;Forest;Forest;Forest;Forest;Forest
+p0library=Island;Island;Island;Island
+p1life=21
+p1hand=Lightning Bolt
+p1battlefield=Craw Wurm;Grizzly Bears|Tapped;Mountain;Plains|Tapped
+p1library=Plains;Plains;Plains;Plains
+p1precast=Inside Out->1
+[solution]
+cast Humble
+Craw Wurm
+cast Twisted Image
+Craw Wurm
+cast Sure Strike
+Indomitable Ancients
+cast High Stride
+Scoria Elemental
+cast Leaping Ambush
+Scoria Elemental
+cast Ornamental Courage
+Scoria Elemental
+cast Sudden Spinnerets
+Scoria Elemental
+play land Forest
+cast Dark Remedy
+Scoria Elemental
+Scoria Elemental; Indomitable Ancients
+[acceptance]
+life p1 <= 0

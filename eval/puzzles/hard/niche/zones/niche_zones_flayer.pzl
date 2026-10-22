@@ -1,0 +1,56 @@
+[metadata]
+Name:niche_zones_flayer
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Flayer of the Hatebound, Young Wolf, Butcher Ghoul, Viscera Seer, two Forests, two Plains and two Mountains, all untapped and none of them new this turn. Your hand is Strangleroot Geist, Cloudshift, Ephemerate and Fling. The opponent is at 32 life and controls Wall of Stone and three Mountains. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-zones-flayer | Flayer of the Hatebound triggers only for a creature entering from your graveyard: undying returns a creature from the graveyard and triggers it (CR 702.93a), while Cloudshift and Ephemerate return it from exile and do not, but the flickered card is a new object without its +1/+1 counter (CR 400.7), so it can die to undying again; each returned creature is a new object with summoning sickness (CR 302.6), so the attack comes first; Fling uses the last-known power of the 5-power Flayer (CR 608.2h, 603.10a). Wall of Stone on Flayer leaves 5 combat damage, then 2+2+3 from the small creatures, 5+5+5 from three Flayer returns and 5 from Fling: 32
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Strangleroot Geist;Cloudshift;Ephemerate;Fling
+p0battlefield=Flayer of the Hatebound;Young Wolf;Butcher Ghoul;Viscera Seer;Forest;Forest;Plains;Plains;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=32
+p1battlefield=Wall of Stone;Mountain;Mountain;Mountain
+p1library=Plains;Plains;Plains
+[solution]
+cast Strangleroot Geist
+Flayer of the Hatebound; Young Wolf; Butcher Ghoul; Viscera Seer; Strangleroot Geist
+at MAIN2: activate Viscera Seer
+Young Wolf
+opponent
+Colossal Dreadmaw
+activate Viscera Seer
+Butcher Ghoul
+opponent
+Colossal Dreadmaw
+activate Viscera Seer
+Strangleroot Geist
+opponent
+Colossal Dreadmaw
+activate Viscera Seer
+Flayer of the Hatebound
+opponent
+Colossal Dreadmaw
+cast Cloudshift
+Flayer of the Hatebound
+pass
+activate Viscera Seer
+Flayer of the Hatebound
+opponent
+Colossal Dreadmaw
+cast Ephemerate
+Flayer of the Hatebound
+pass
+activate Viscera Seer
+Flayer of the Hatebound
+opponent
+Colossal Dreadmaw
+cast Fling
+opponent
+Flayer of the Hatebound
+[acceptance]
+life p1 <= 0

@@ -197,13 +197,16 @@ def _rate_ok(b):
 
 
 def has_line(line):
-    """A replayable reference line: a random rollout's draw tape and seed, or a Forge AI solve's seed and
-    game-log hash (the AI's choices are not draws, so its replay must reproduce the same log)."""
+    """A replayable reference line: a random rollout's draw tape and seed, a Forge AI solve's seed and game-log hash
+    (the AI's choices are not draws, so its replay must reproduce the same log), a search proof, or a generated
+    board's written [solution] with the length it was gated at."""
     line = line or {}
     if not isinstance(line.get("seed"), int) or isinstance(line.get("seed"), bool):
         return False
     if line.get("arm") == "search":   # a rules puzzle's search proof, replayed by proving it again
         return bool(line.get("line")) and isinstance(line.get("budget"), int)
+    if line.get("arm") == "written":  # a generated board's own [solution], replayed as written (puzzle_gen.py)
+        return isinstance(line.get("solver_actions"), int) and not isinstance(line.get("solver_actions"), bool)
     return bool(line.get("log_sha256")) if line.get("arm") == "ai" else bool(line.get("tape"))
 
 

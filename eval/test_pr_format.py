@@ -174,6 +174,34 @@ class PrFormatTest(unittest.TestCase):
         self.assertNotIn("(pending", pf.updated_body(pending, "Review", "- pr-review @", "- pr-review @ abc123456: CLEAN"))
         self.assertIsNone(pf.updated_body("## What\n\nx\n", "Review", "- x", "- y"))
 
+    def test_a_model_identifier_is_refused_and_a_trailer_is_not(self):
+        """CLAUDE.md: model specs and priced slugs never go in commits or PRs; a name in prose is fine."""
+        got = pf.commit_problems("fix(a): b\n\nthe seat now plays openrouter:vendor/some-model-1.\n")
+        self.assertEqual(len(got), 1, got)
+        self.assertIn("openrouter:vendor/some-model-1;", got[0])
+        self.assertIn("name the model in prose instead", got[0])
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nLuna played the seat.\n"), [])  # a name in prose passes
+        with open(pf.PRICES, encoding="utf-8") as f:
+            slug = sorted(m for m in json.load(f)["models"] if not m.startswith("fake/"))[0]
+        for prose in ("measured on %s." % slug, "measured on `%s`" % slug.upper()):
+            self.assertTrue(any(slug in p.lower() for p in pf.commit_problems("fix(a): b\n\n%s\n" % prose)), prose)
+        self.assertTrue(any(p.startswith("the title names") for p in pf.pr_problems("fix(a): use " + slug, BODY)))
+        self.assertTrue(any(p.startswith("the body names") for p in
+                            pf.pr_problems("docs: x", BODY.replace("MCP server; see the note.", "`%s` left" % slug))))
+        # Trailers name a model by design; prose that names none, or only the `openrouter:` prefix, passes.
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nwhy it was needed\n\nCo-Authored-By: %s <x@y>\n"
+                                            "Claude-Session: openrouter:%s\n" % (slug, slug)), [])
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nthe authorised model; any `openrouter:` spec is "
+                                            "refused; see eval/pricing/prices.json.\n"), [])
+        # Inside a URL or a path the slug is not prose; the loopback stub is no model; the diff
+        # `git commit -v` appends below the scissors line is not the message.
+        for prose in ("https://openrouter.ai/%s" % slug, "runs/%s/game.jsonl" % slug,
+                      "the `openrouter:fake/harness-model` arm and fake/harness-model games"):
+            self.assertEqual(pf.commit_problems("fix(a): b\n\nsee %s\n" % prose), [], prose)
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nwhy it was needed\n"
+                                            "# ------------------------ >8 ------------------------\n"
+                                            "+  openrouter:%s\n" % slug), [])
+
     def test_latest_verdict_per_agent_is_read(self):
         self.assertEqual(pf.reviews(BODY)["pr-review"], ("abc123456", "LOW", "two nits, fixed"))
 

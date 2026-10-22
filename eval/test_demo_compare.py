@@ -2,8 +2,10 @@
 place it in; both arms play the same conditions; a run never starts without a budget. No game is played here."""
 import contextlib
 import io
+import json
 import os
 import shutil
+import signal
 import subprocess
 import tempfile
 import unittest
@@ -13,6 +15,17 @@ import demo_compare as dc
 
 OBS = "class SeatObservation {\n" + dc.OBS_ANCHOR + "}\n"
 GUI = "class LlmSpikeGui {\n" + dc.CTRL_ANCHOR + dc.WRITE_ANCHOR + "}\n"
+
+
+def pair_args(d, *extra):
+    """Two stand-in arm builds under d, and the `run` arguments that play them on one seed (the worktree's name says
+    "then", which a fake Popen reads to name the arm)."""
+    for name in ("now", "then"):
+        os.makedirs(os.path.join(d, name, "forge-home"))
+        open(os.path.join(d, name, "forge-home", "run-llm-headless.sh"), "w").close()
+    return ["run", "--seed", "1", "--deck-a", "vintage-esper-control", "--deck-b", "burn", "--budget-usd", "0.4",
+            "--out", os.path.join(d, "out"), "--now-build", os.path.join(d, "now"), "--build", os.path.join(d, "then"),
+            "--worktree", os.path.join(d, "harness-then")] + list(extra)
 
 
 class PortTest(unittest.TestCase):
@@ -260,6 +273,73 @@ class ArmTest(unittest.TestCase):
             self.assertIn("worktree", str(cm.exception))
         finally:
             shutil.rmtree(d)
+
+    def test_parallel_starts_both_arms_before_waiting_and_sequential_waits_between(self):
+        for parallel, want in ((True, ["start now", "start then", "wait", "wait"]),
+                               (False, ["start now", "wait", "start then", "wait", "wait", "wait"])):
+            events = []
+
+            class Proc:
+                def __init__(self, cmd, **kw):
+                    events.append("start " + ("then" if "harness-then" in " ".join(cmd) or "/then/" in " ".join(cmd) else "now"))
+
+                def wait(self):
+                    events.append("wait")
+
+                def poll(self):
+                    return 0
+            d = tempfile.mkdtemp()
+            try:
+                args = pair_args(d)
+                out = io.StringIO()
+                with mock.patch.object(dc, "check_pins", lambda *a: None), \
+                        mock.patch.object(dc, "arm_record", lambda repo, name: {"arm": name, "commit": "c0ffee"}), \
+                        mock.patch.object(dc.subprocess, "Popen", Proc), contextlib.redirect_stdout(out):
+                    dc.main(args + (["--parallel"] if parallel else []))
+                with open(os.path.join(d, "out", "then", "arm.json")) as f:  # the viewer names the arm from this
+                    self.assertEqual(json.load(f), {"arm": "then", "commit": "c0ffee"})
+            finally:
+                shutil.rmtree(d)
+            self.assertEqual(events[:len(want)], want)
+            printed = out.getvalue()
+            if parallel:  # the live line comes before the games start, while there is something to watch
+                self.assertLess(printed.index("--live"), printed.index("[now]"))
+            else:
+                self.assertNotIn("--live", printed)
+
+    def test_a_stop_while_the_arms_play_stops_every_arms_process_group(self):
+        killed = []
+
+        class Proc:
+            n = 0
+
+            def __init__(self, cmd, **kw):
+                Proc.n += 1
+                self.pid = 1000 + Proc.n
+
+            def wait(self):
+                raise SystemExit(143)  # a SIGTERM arriving while the arms play
+
+            def poll(self):
+                return None
+        d = tempfile.mkdtemp()
+        try:
+            args = pair_args(d, "--parallel")
+            before = signal.getsignal(signal.SIGINT)
+            with mock.patch.object(dc, "check_pins", lambda *a: None), \
+                    mock.patch.object(dc, "arm_record", lambda repo, name: {"arm": name}), \
+                    mock.patch.object(dc.subprocess, "Popen", Proc), \
+                    mock.patch.object(dc.os, "killpg", lambda pid, sig: killed.append((pid, signal.getsignal(signal.SIGTERM)))), \
+                    contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
+                dc.main(args)
+            self.assertEqual(signal.getsignal(signal.SIGINT), before)  # the handlers are put back
+        finally:
+            shutil.rmtree(d)
+        self.assertEqual(sorted(killed), [(1001, signal.SIG_IGN), (1002, signal.SIG_IGN)])  # a second signal waits
+
+    def test_an_arm_records_the_commit_it_played(self):
+        rec = dc.arm_record(dc.REPO, "now")
+        self.assertEqual((rec["arm"], len(rec["commit"]), len(rec["date"])), ("now", 40, 10))
 
     def test_a_forge_checkout_that_is_a_git_worktree_passes_the_guard(self):
         d = tempfile.mkdtemp()

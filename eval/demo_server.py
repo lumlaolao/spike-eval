@@ -10,7 +10,7 @@ for the [TALLY] line). Card images come from the demo_cards.py cache (filled by 
 <run>`); only with --fetch-images does the server send a missing card's name to api.scryfall.com and write the image
 into that cache. A live pane re-reads its file on every request, so the page follows a game a JVM is writing
 (EVAL_OUT rows are autoflushed per line). The server writes nothing the seat reads, so it cannot change what the seat
-sees or decides; with --highlight-file it writes one display-only file that the Forge window's DemoHighlight polls.
+sees or decides.
 
 What it cannot show: what the JSONL does not hold (the system prompt, library order, and the opponent's hidden hand
 unless the game was played with the audience feed, DEMO_FEED=1).
@@ -27,6 +27,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 import demo_cards
 import demo_eval
 import demo_events
+import demo_puzzle
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo", "web")
 TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
@@ -36,15 +37,15 @@ WAIT_S = 20.0
 class Pane:
     """One game: a run directory or .jsonl (replay), or a directory a JVM is writing into (live)."""
 
-    def __init__(self, path, live=False, highlight_file=None):
+    def __init__(self, path, live=False):
         self.path = path
         self.live = live
-        self.highlight_file = highlight_file  # live: where the Forge window's highlights are written
         self.reader = None
         self.log = None
         self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
         self.lock = threading.Lock()
         self._summary = None
+        self._puzzle = None     # a puzzle run's result (demo_puzzle.info) once its row is written; False: not a puzzle
         self.refresh()
 
     def refresh(self):
@@ -57,18 +58,32 @@ class Pane:
                     self.reader = demo_events.Reader(jsonl)
                     self.gen += 1
                     self._summary = None
+                    self._puzzle = None
                 if jsonl:
                     self.log = log
             if self.reader is not None:
                 was_done = self.done
-                if self.reader.poll() and self.highlight_file:
-                    write_highlights(self.highlight_file, self.reader.events)
+                self.reader.poll()
                 if self.done and not was_done:
                     self._summary = None
 
     @property
     def done(self):
-        return self.reader is not None and self.reader.builder.game is not None
+        """The game row landed, or, for a puzzle, its result row (a puzzle run writes no game row)."""
+        return self.reader is not None and (self.reader.builder.game is not None or self.puzzle() is not None)
+
+    def puzzle(self):
+        """demo_puzzle.info for this pane's game when it is a finished puzzle attempt, else None. Kept once found; a
+        game with no puzzle-results.jsonl beside it is marked not a puzzle and never looked up again."""
+        if self._puzzle is None and self.reader is not None:
+            run = os.path.dirname(self.reader.path) or "."
+            if not os.path.isfile(os.path.join(run, "puzzle-results.jsonl")) and not self.live:
+                self._puzzle = False
+            else:
+                m = demo_events.GAME_FILE.match(os.path.basename(self.reader.path))
+                # a game file without a seed in its name is not paired with any row: no seed's result is borrowed
+                self._puzzle = demo_puzzle.info(run, m.group(1), self.reader.path) if m else False
+        return self._puzzle or None
 
     @property
     def events(self):
@@ -95,30 +110,34 @@ class Pane:
         return built
 
 
-def highlight_ids(ev):
-    """Engine card ids of the objects a decision highlights (not the engine's own frame), through the feed's handle
-    map. Without the audience feed there is no map, and no id."""
-    by_handle = ev.get("feed_handles") or {}
-    return sorted({by_handle[h] for h, v in (ev.get("highlights") or {}).items()
-                   if v.get("kind") != "engine" and h in by_handle})
+def run_decks(run_dir):
+    """The deck names a run_batch run played (its batch-manifest.json), e.g. ["vintage-esper-control", ...]; the game
+    row names the seats only ("Identity-A"). None without a manifest."""
+    try:
+        with open(os.path.join(run_dir, "batch-manifest.json")) as f:
+            cond = json.load(f).get("condition") or {}
+    except (OSError, ValueError):
+        return None
+    names = [os.path.splitext(os.path.basename(cond.get(k) or ""))[0] for k in ("deck_a", "deck_b")]
+    return names if all(names) else None
 
 
-def write_highlights(path, events):
-    """The latest decision's highlights for DemoHighlight (the Forge window). Written whole, then renamed."""
-    ev = next((e for e in reversed(events) if e.get("kind") == "decision"), None)
-    if ev is None:
-        return
-    tmp = path + ".part"
-    with open(tmp, "w") as f:
-        json.dump({"decision": ev["n"], "seat": ev["seat"], "turn": ev["turn"], "ids": highlight_ids(ev)}, f)
-    os.replace(tmp, path)
+def run_arm(run_dir):
+    """The side by side arm a run directory holds (demo_compare's arm.json: arm, commit, date), or None."""
+    try:
+        with open(os.path.join(run_dir, "arm.json")) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
 
 
 def build_summary(pane):
     """The strip under the board: the game row, the [TALLY] line, match_review counts, and the run's cost."""
     out = {"path": pane.path, "live": pane.live, "jsonl": pane.reader.path if pane.reader else None,
            "log": pane.log, "game": pane.reader.builder.game if pane.reader else None,
-           "tally": demo_events.tally(pane.log) if pane.log else {}}
+           "tally": demo_events.tally(pane.log) if pane.log else {}, "puzzle": pane.puzzle(),
+           "decks": run_decks(os.path.dirname(pane.reader.path)) if pane.reader else None,
+           "arm": run_arm(os.path.dirname(pane.reader.path)) if pane.reader else None}
     if pane.reader and pane.done:
         try:
             import match_review
@@ -139,15 +158,15 @@ def build_summary(pane):
 class EvalReport:
     """demo_eval.report for one acceptance dir, built once on first ask (the PUZ bootstraps take a few seconds)."""
 
-    def __init__(self, acceptance_dir=None):
-        self.acceptance_dir = acceptance_dir
+    def __init__(self, acceptance_dir=None, hard_dir=None):
+        self.acceptance_dir, self.hard_dir = acceptance_dir, hard_dir
         self.lock = threading.Lock()
         self.value = None
 
     def get(self):
         with self.lock:
             if self.value is None:
-                self.value = demo_eval.report(self.acceptance_dir)
+                self.value = demo_eval.report(self.acceptance_dir, self.hard_dir)
             return self.value
 
 
@@ -254,29 +273,20 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--image-cache", default=demo_cards.DEFAULT_CACHE, help="card images (demo_cards.py prefetch fills it)")
-    ap.add_argument("--highlight-file", help="live: write the latest decision's highlighted card ids here for the "
-                    "Forge window (the JVM reads it with DEMO_HIGHLIGHT_FILE set to the same path)")
     ap.add_argument("--fetch-images", action="store_true",
                     help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
     ap.add_argument("--acceptance", help="the eval page's gate: an OUT dir of eval/harness_acceptance.sh (/eval.html)")
+    ap.add_argument("--hard-results", help="the eval page's hard-suite pilot: a PUZ check dir (demo-recordings branch: "
+                    "puzzles/hard-gen-luna-check)")
     a = ap.parse_args(argv)
-    panes = [Pane(p) for p in a.game] + [Pane(p, live=True, highlight_file=a.highlight_file) for p in a.live]
+    panes = [Pane(p) for p in a.game] + [Pane(p, live=True) for p in a.live]
     if not panes and not a.acceptance:
         ap.error("give at least one --game or --live (or --acceptance for the eval page alone)")
     for p in panes:
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
     srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images),
-                      EvalReport(a.acceptance))
-    if a.highlight_file:
-        # The Forge window's highlights follow the game whether or not a browser is polling.
-        def follow():
-            while True:
-                for p in panes:
-                    if p.highlight_file:
-                        p.refresh()
-                time.sleep(0.25)
-        threading.Thread(target=follow, daemon=True).start()
+                      EvalReport(a.acceptance, a.hard_results))
     print("DEMO http://%s:%d/  (%s)" % (a.host, srv.server_address[1], ", ".join(p.path for p in panes)), flush=True)
     try:
         srv.serve_forever()

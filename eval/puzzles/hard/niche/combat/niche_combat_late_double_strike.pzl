@@ -1,0 +1,42 @@
+[metadata]
+Name:niche_combat_late_double_strike
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control White Knight, an unattached Sword of Feast and Famine and four untapped Mountains. Your hand is Temur Battle Rage, Brute Force, Brute Force, Lightning Bolt, Lightning Bolt, Lava Spike, Lava Spike, Lava Spike and Lava Spike. The opponent is at 38 life with two cards in hand and controls Hypnotic Specter, Sengir Vampire, Bad Moon and three Swamps. Reduce the opponent to 0 life this turn.
+Rule:authored-niche-combat-late-double-strike | A first striker that gains double strike after it has dealt first-strike damage still deals combat damage again in the regular step (CR 702.4d, 510.4), so Temur Battle Rage is cast in the first-strike damage step with the lands the Sword just untapped (CR 702.4b): equip and both Brute Force use the first four mana (Knight 10 first strike, 10 again), the first untap pays Rage and both Bolts, the second untap the four sorcery Lava Spikes: 10 + 6 + 10 + 12 = 38. Rage before combat leaves no mana for the equip and the pumps and reaches at most 32
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Temur Battle Rage;Brute Force;Brute Force;Lightning Bolt;Lightning Bolt;Lava Spike;Lava Spike;Lava Spike;Lava Spike
+p0battlefield=White Knight;Sword of Feast and Famine;Mountain;Mountain;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain;Mountain
+p1life=38
+p1hand=Swamp;Sengir Vampire
+p1battlefield=Hypnotic Specter;Sengir Vampire;Bad Moon;Swamp;Swamp;Swamp
+p1library=Swamp;Swamp;Swamp;Swamp
+[solution]
+activate Sword of Feast and Famine
+cast Brute Force
+White Knight
+cast Brute Force
+White Knight
+White Knight
+cast Temur Battle Rage
+White Knight
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+[acceptance]
+life p1 <= 0

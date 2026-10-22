@@ -1,0 +1,46 @@
+[metadata]
+Name:copy_be89f5bcb650
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Firebrand Archer and five untapped Mountains. Your hand is Shock, Rite of Flame, Fork, Lava Spike, Rite of Flame, Gitaxian Probe, Shock, Pyretic Ritual, Shock, Pyretic Ritual, Gitaxian Probe, Increasing Vengeance and Shock. Your graveyard is empty. The opponent is at 31 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 31 in 13 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 30
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock;Rite of Flame;Fork;Lava Spike;Rite of Flame;Gitaxian Probe;Shock;Pyretic Ritual;Shock;Pyretic Ritual;Gitaxian Probe;Increasing Vengeance;Shock
+p0battlefield=Firebrand Archer;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=31
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Pyretic Ritual
+pass
+pass
+cast Pyretic Ritual
+cast Rite of Flame
+cast Rite of Flame
+cast Fork
+cast Lava Spike
+opponent
+cast Increasing Vengeance
+opponent
+cast Increasing Vengeance ... Flashback
+Lava Spike
+cast Shock
+opponent
+cast Shock
+opponent
+cast Shock
+opponent
+opponent
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0

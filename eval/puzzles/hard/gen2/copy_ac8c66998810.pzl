@@ -1,0 +1,52 @@
+[metadata]
+Name:copy_ac8c66998810
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice and four untapped Mountains. Your hand is Shock, Shock, Pyretic Ritual, Lightning Bolt, Rite of Flame, Lava Spike, Fork, Lava Spike, Rite of Flame, Shock, Rite of Flame, Lava Spike, Increasing Vengeance and Gitaxian Probe. Your graveyard is empty. The opponent is at 43 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 43 in 14 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 40
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock;Shock;Pyretic Ritual;Lightning Bolt;Rite of Flame;Lava Spike;Fork;Lava Spike;Rite of Flame;Shock;Rite of Flame;Lava Spike;Increasing Vengeance;Gitaxian Probe
+p0battlefield=Witherbloom Apprentice;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=43
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 14
+cast Pyretic Ritual
+cast Rite of Flame
+cast Rite of Flame
+cast Rite of Flame
+cast Fork
+pass
+pass
+pass
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+cast Increasing Vengeance
+opponent
+cast Increasing Vengeance ... Flashback
+Lightning Bolt
+opponent
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Shock
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0

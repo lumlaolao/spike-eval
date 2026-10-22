@@ -1,0 +1,85 @@
+[metadata]
+Name:hoofdrain_4efef57e4436
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel, Elvish Mystic, Fyndhorn Elves, Priest of Titania, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Wirewood Elf, Wellwisher, Elvish Scout, Elvish Warrior, Arbor Elf, Llanowar Elves and Craterhoof Behemoth. The opponent is at 117 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 117 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 116, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Wirewood Elf;Wellwisher;Elvish Scout;Elvish Warrior;Arbor Elf;Llanowar Elves;Craterhoof Behemoth
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Elvish Mystic;Fyndhorn Elves;Priest of Titania;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=117
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Arbor Elf", "Wirewood Elf", "Elvish Warrior", "Llanowar Elves", "Elvish Scout", "Wellwisher"], "forests": 2, "mana_elves": ["Elvish Mystic", "Fyndhorn Elves"], "others": ["Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 1}
+# trap: {"best": 116, "plans": {"attack_only": 110, "hoof_asap": 75, "keep_druid": 82, "keep_mana_creatures": -1, "never_tap_sentinels": 82, "sac_early": 83, "sac_new_only": 116, "tap_out_first": 89}, "short": 1}
+activate Forest
+activate Forest
+cast Arbor Elf
+yes
+cast Llanowar Elves
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Arbor Elf; Llanowar Elves
+cast Elvish Scout
+yes
+cast Wirewood Elf
+yes
+pass
+activate Priest of Titania
+cast Elvish Warrior
+yes
+cast Wellwisher
+yes
+pass
+activate Heritage Druid
+Elvish Scout; Wirewood Elf; Elvish Warrior
+cast Craterhoof Behemoth
+yes
+pass
+pass
+activate Viscera Seer
+Arbor Elf
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Llanowar Elves
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Scout
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wirewood Elf
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Warrior
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Wellwisher
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid; Elvish Mystic; Fyndhorn Elves; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0

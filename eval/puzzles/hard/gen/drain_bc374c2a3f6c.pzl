@@ -1,0 +1,86 @@
+[metadata]
+Name:drain_bc374c2a3f6c
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Blood Artist, Bloodghast, Carrion Feeder, Cruel Celebrant, Zulaport Cutthroat and 2 untapped Swamps. Your hand is Gravecrawler and Swamp. Your graveyard holds nothing. The opponent is at 21 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain | the exhaustive maximum is 21 drained in 12 steps: every death with every drainer still out, so the drainers die last; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gravecrawler;Swamp
+p0battlefield=Blood Artist;Bloodghast;Carrion Feeder;Cruel Celebrant;Zulaport Cutthroat;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=21
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Carrion Feeder
+Blood Artist
+Blood Artist; Zulaport Cutthroat; Cruel Celebrant
+opponent
+pass
+pass
+pass
+pass
+activate Carrion Feeder
+Cruel Celebrant
+Zulaport Cutthroat; Cruel Celebrant
+pass
+pass
+pass
+activate Carrion Feeder
+Carrion Feeder
+[acceptance]
+life p1 <= 0
