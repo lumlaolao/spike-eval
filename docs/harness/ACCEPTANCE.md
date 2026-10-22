@@ -11,7 +11,7 @@ A full run compiles once, then runs the later stages as four child runs side by 
 summaries merged into `OUT/summary.txt`), each JVM held to one core's worth of GC and compiler threads, with the
 keyword sweep split over `SWEEP_SHARDS` (2) JVMs: 7m59s on 4 cores at load 0.5 when it started
 (`runs/harness-acceptance/par-92a2dbf`, 19/19 PASS, 2026-10-22), against 11m05s one after another
-(`runs/harness-acceptance/` of PR #290's 4e5e016 run, `OUT=/tmp/acc-hp-4e5e016`). The longest group then was
+(PR #290's run at 4e5e016, `OUT=/tmp/acc-hp-4e5e016`). The longest group then was
 pytests (2.4 minutes since the generated-puzzle tests) beside the canaries, so `gaming` moved to the lightest
 group. `ACCEPTANCE_JOBS=1` runs every stage in one process with the sweep in one JVM.
 
