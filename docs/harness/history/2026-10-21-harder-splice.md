@@ -58,28 +58,32 @@ records: `/tmp/puzzle-scratch/gen2-splice/gate-b*/gate.json` and `floors.json`.
 | b1 | 101 | 26 | 26 |
 | b2 | 202 | 21 | 21 |
 | b3 | 303 | 20 | 20 |
-| b4 | 404 | 31 | not yet gated (the container restarted mid-gate) |
+| b4a | 404 | 10 (the first 10 of b4 by name) | 10 |
+| b4b | 404 | 21 (the rest of b4) | not gated: the target was met |
 
 Every kept board's line played as written and solved, and every floor failed it: random 0 of 20, PASS, first
 option and greedy 0 of 4 each, and Forge's AI 0 of 4 on every board (the gate allows 1). No board was dropped.
 Batches drawn with different seeds repeat boards (11 of 78 in b1 to b3), so each batch is de-duplicated against
-the earlier ones by board key before it is gated; a single draw of 30,000 finds 283 distinct boards.
+the earlier ones by board key before it is gated; a single draw of 30,000 finds 283 distinct boards. The first
+b1 gate and the first b4 gate were killed mid-run (an interrupted session, then a container restart) and rerun
+from the start; the gate has no resume.
 
-## The kept set (67 boards)
+## The kept set (77 boards)
 
-- Opponent's life 14 to 43 (median 20); steps: 22 boards of 13, 13 of 14, 32 of 15.
-- The trap falls 1 short on 17 boards, 2 on 44, 3 on 6. The binding plain plan is the greedy splicer on 54 boards,
-  never splicing on 5, and both deal the same on 8: splicing is plainly right, but splicing everything is not.
-- 32 lines pass to let a ritual resolve before a splice; 10 splice two copies of one card onto one spell.
-- 54 boards are Thermo-Alchemist alone, 4 add Kiln Fiend, 4 Goblin Electromancer, 5 both.
-- Besides the splices (every board): Rite of Flame on 47, Lava Spike 46, Lightning Bolt 30, Gitaxian Probe 17,
-  Pyretic Ritual 14, Grapeshot 13, Shock 13, Seething Song 3.
+- Opponent's life 14 to 43 (median 20); steps: 22 boards of 13, 17 of 14, 38 of 15.
+- The trap falls 1 short on 17 boards, 2 on 54, 3 on 6. The binding plain plan is the greedy splicer on 61 boards,
+  never splicing on 6, and both deal the same on 10: splicing is plainly right, but splicing everything is not.
+- 41 lines pass to let a ritual resolve before a splice; 14 splice two copies of one card onto one spell.
+- Every board has Thermo-Alchemist; 60 have nothing else, 5 add Kiln Fiend, 7 Goblin Electromancer, 5 both.
+- Besides the splices (every board): Rite of Flame on 56, Lava Spike 48, Lightning Bolt 33, Gitaxian Probe 20,
+  Pyretic Ritual 16, Grapeshot 15, Shock 15, Seething Song 4.
 
 ## Not done
 
 - No model has tried these boards; whether the trap catches a model is unmeasured. A paid check (one attempt a
   board, a few dollars) would say.
 - The gen2 boards are not in a frozen suite (`gen_suite.py`), and have no open / held-out split yet.
+- 21 drawn boards (b4b) were not gated: the target of 70 was met without them.
 - Most boards are Thermo-Alchemist alone; Kiln Fiend and Goblin Electromancer boards are a minority, because those
   boards more often miss the 13-15 steps or the trap bound.
 - Fireblast and Lava Dart's flashback stay out until the search models floating mana before a sacrifice; the red
