@@ -274,6 +274,9 @@ public class KeywordSurfaceSweepTest {
         // sweep (most of the Java tests' time) over n JVMs; together they sweep every card once.
         String[] shard = System.getProperty("harness.keyword.shard", "0/1").split("/");
         int shardIndex = Integer.parseInt(shard[0]), shards = Integer.parseInt(shard[1]);
+        // A shard that names no card (2/2) would sweep nothing and pass.
+        Assert.assertTrue(shards >= 1 && shardIndex >= 0 && shardIndex < shards,
+                "harness.keyword.shard " + shard[0] + "/" + shard[1]);
         for (int ci = 0; ci < cases.size(); ci++) {
             if (ci % shards != shardIndex) continue;
             Map.Entry<Keyword, String> e = cases.get(ci);

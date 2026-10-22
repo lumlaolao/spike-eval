@@ -7,7 +7,7 @@
 #   ACCEPTANCE_JOBS=1 bash eval/harness_acceptance.sh   # every stage in one process, one after another
 #
 # A full run compiles once, then runs the later stages in four child runs side by side (OUT/part<n>, merged
-# into OUT/summary.txt) and the keyword sweep as SWEEP_SHARDS JVMs: about 6 minutes on 4 cores, 11 one after another.
+# into OUT/summary.txt) and the keyword sweep as SWEEP_SHARDS JVMs (docs/harness/ACCEPTANCE.md).
 #
 # Stages, cheapest first (each writes its evidence under $OUT and a PASS/FAIL line to $OUT/summary.txt):
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
@@ -195,7 +195,7 @@ fi
 [ -f "$CP_FILE" ] || CP_FILE="${HARNESS_CLASSPATH_FILE:-$CP_FILE}"
 
 # ---------------------------------------------------------------- compile
-CLASSES="${ACC_CLASSES:-$OUT/classes}"   # a child run (below) shares the parent's compiled classes
+CLASSES="${ACC_BUILD:-$OUT}/classes"   # a child run (below) shares the parent's compiled classes
 if has_stage compile; then
   if [ ! -f "$CP_FILE" ]; then fail compile "no classpath file ($CP_FILE)"; else
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
@@ -216,15 +216,16 @@ fi
 # ---------------------------------------------------------------- parallel
 # Every stage after compile is independent: each writes only under its own directory, and each fake model server
 # takes a free port. So a full run spreads them over child runs of this script that share the compiled classes and
-# the classpath: 11 minutes one after another, about 4 in four groups on 4 cores (2026-10-21). The groups are
-# balanced by measured time (javatests alone is the longest). ACCEPTANCE_JOBS=1 runs every stage in this process.
+# the classpath (timing: docs/harness/ACCEPTANCE.md). The groups are balanced by measured time, javatests the
+# longest. ACCEPTANCE_JOBS=1 runs every stage in this process, one after another.
 ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
 # Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
 # not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
 ACC_JVM=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_JVM="-XX:ActiveProcessorCount=1"; export ACC_JVM
 if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] \
    && [ -f "$CP_FILE" ]; then
-  PIDS=""; PARTS=""; i=0
+  rm -rf "$OUT"/part[0-9]*
+  JOBS=""; i=0
   PARALLEL_GROUPS='javatests surfaces lookahead answertool|pytests canary gaming nativetool|faketool nativerefuse faithful lines|rules turnchat scoring'
   OLDIFS="$IFS"; IFS='|'; set -- $PARALLEL_GROUPS; IFS="$OLDIFS"
   for group in "$@"; do
@@ -232,16 +233,22 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/for
     [ -n "$picked" ] || continue
     i=$((i + 1)); part="$OUT/part$i"
     say "parallel: part$i runs$picked"
-    ACC_CHILD=1 STAGES="${picked# }" ACC_BUILD="$OUT" ACC_CLASSES="$CLASSES" OUT="$part" HARNESS_CLASSPATH_FILE="$CP_FILE" \
+    ACC_CHILD=1 STAGES="${picked# }" ACC_BUILD="$OUT" OUT="$part" HARNESS_CLASSPATH_FILE="$CP_FILE" \
       bash "$0" >"$part.log" 2>&1 &
-    PIDS="$PIDS $!"; PARTS="$PARTS $part"
+    JOBS="$JOBS $!:$part:$(echo $picked | tr ' ' ',')"
   done
-  for pid in $PIDS; do wait "$pid"; done
-  for part in $PARTS; do
-    if [ -s "$part/summary.txt" ]; then
-      cat "$part/summary.txt" | tee -a "$SUMMARY"
-      grep -q '^FAIL' "$part/summary.txt" && FAILED=1
-    else fail parallel "$part wrote no summary (see $part.log)"; fi
+  # A child that died part way (killed, out of memory, an unset variable) has written PASS lines for the stages
+  # before it and nothing for the rest: its exit status and every requested stage's line are both checked, so a
+  # missing line fails the run, never passes it in silence.
+  for job in $JOBS; do
+    pid="${job%%:*}"; rest="${job#*:}"; part="${rest%%:*}"; asked="${rest#*:}"
+    wait "$pid"; rc=$?
+    [ -f "$part/summary.txt" ] && tee -a "$SUMMARY" < "$part/summary.txt"
+    grep -q '^FAIL' "$part/summary.txt" 2>/dev/null && FAILED=1
+    for s in $(echo "$asked" | tr ',' ' '); do
+      grep -Eq "^(PASS|FAIL) $s[-:]" "$part/summary.txt" 2>/dev/null || fail parallel "$s wrote no line (see $part.log)"
+    done
+    case "$rc" in 0|1) ;; *) fail parallel "$(basename "$part") exited $rc (see $part.log)";; esac
   done
   # Those stages ran in the children; the rest of this script runs only a stage no group names.
   GROUPED=" $(echo "$PARALLEL_GROUPS" | tr '|' ' ') "
@@ -270,7 +277,11 @@ PYEOF
     # The keyword sweep is most of this stage's time (247 of 354 s, 2026-10-21) and one loop over 553 cards, so it
     # runs as SWEEP_SHARDS JVMs (harness.keyword.shard) beside one JVM for every other class. Each sweep shard runs
     # the sweep's @Test once, so the declared count grows by the extra shards.
-    SWEEP_SHARDS="${SWEEP_SHARDS:-2}"
+    # One JVM when the run is one stage after another (ACCEPTANCE_JOBS=1), two beside the other groups.
+    SWEEP_SHARDS="${SWEEP_SHARDS:-$([ "$ACCEPTANCE_JOBS" -gt 1 ] && echo 2 || echo 1)}"
+    case "$SWEEP_SHARDS" in ''|*[!0-9]*|0) fail javatests "SWEEP_SHARDS='$SWEEP_SHARDS' must be a number >= 1"; SWEEP_SHARDS=1;; esac
+    # A reused OUT keeps an earlier run's results: a shard that crashed now must not be filled in by one from then.
+    rm -rf "$OUT"/testng-* "$OUT"/surfaces-*.tsv "$OUT"/javatests-*.log "$OUT"/keyword-sweep-*.tsv
     SWEEP=forge.spike.KeywordSurfaceSweepTest
     OTHERS="$(echo "$TCLASSES" | tr ',' '\n' | grep -vx "$SWEEP" | paste -sd, -)"
     SWEEP_TESTS="$(grep -c '^[[:space:]]*@Test' "$OVERLAY/test/java/forge/spike/KeywordSurfaceSweepTest.java")"
