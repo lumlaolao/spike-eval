@@ -17,6 +17,11 @@ loops with Blood Artist and friends), elf (Heritage Druid and Nettle Sentinel in
 (prowess creatures attack, then Fling after combat). The splice, red, drain, elf and fling boards set the opponent's
 life to the exact maximum of an exhaustive search over a model of the board.
 
+The second suite's families (eval/puzzles/hard/gen2) are 13 to 15 steps, set the life to a searched maximum and
+keep a board only when a plain plan, searched to its own best, falls 1 to 3 short: copy (Reverberate, Fork and
+Increasing Vengeance aimed at a ritual on the stack; plain: copy only burn) and grave (Cabal Ritual's threshold and
+Songs of the Damned count the graveyard; plain: every mana spell first).
+
   python3 eval/puzzle_gen.py --family ping --count 40 --seed 1 --out DIR
 """
 import argparse
@@ -1051,8 +1056,501 @@ def fling_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
 
 
+# The second generated suite (eval/puzzles/hard/gen2): lines of 13 to 15 steps, and a trap: a natural plain plan,
+# searched to its own best, falls 1 to 3 short of the board's maximum.
+GEN2_MIN, GEN2_MAX = 13, 15
+
+# The copy family. Rituals: (cost, mana made, sorcery). Fodder (the spells worth copying for damage): (cost, damage,
+# sorcery); every one targets, so each cast and each copy asks for `opponent`. All mana is red.
+COPY_RITUALS = {"Rite of Flame": (1, 2, True), "Pyretic Ritual": (2, 3, False), "Seething Song": (3, 5, False)}
+COPY_FODDER = {"Lightning Bolt": (1, 3, False), "Lava Spike": (1, 3, True), "Shock": (1, 2, False),
+               "Gitaxian Probe": (0, 0, True)}
+COPIERS = ("Fork", "Increasing Vengeance", "Reverberate")      # {R}{R}: copy target instant or sorcery spell
+IV, IV_FLASHBACK = "Increasing Vengeance", 5                    # from the graveyard ({3}{R}{R}) it copies twice
+# Damage a payoff deals for each instant or sorcery cast, and for each one copied (Magecraft counts a copy).
+COPY_PAYOFFS = {"Guttersnipe": (2, 0), "Firebrand Archer": (1, 0), "Witherbloom Apprentice": (1, 1)}
+
+
+def _copy_finish(fodder, copiers, iv_hand, iv_gy, mana, per_cast, per_copy):
+    """The burn half of a copy line, once the stack is empty: which fodder to cast with `mana`, and how many copies
+    to put on the best of it. Every copier aims at one spell; Increasing Vengeance cast from hand first can follow
+    from the graveyard. Returns (damage, steps, plan), plan (fodder cast as ((name, n), ...), copiers from hand, 1 if
+    Vengeance is cast from hand, 1 if it is flashed back, mana left)."""
+    from itertools import product
+    kinds = sorted(set(fodder))
+    best = (0, 0, ((), 0, 0, 0, mana))
+    for ns in product(*[range(fodder.count(k) + 1) for k in kinds]):
+        cast = tuple((k, n) for k, n in zip(kinds, ns) if n)
+        cost = sum(COPY_FODDER[k][0] * n for k, n in cast)
+        nf = sum(ns)
+        top = max([COPY_FODDER[k][1] for k, _ in cast] or [0])
+        base = sum(COPY_FODDER[k][1] * n for k, n in cast) + per_cast * nf
+        for kc in range(len(copiers) + 1):
+            for ih in range(2 if iv_hand else 1):
+                for fb in range(2 if iv_gy or ih else 1):
+                    spent = cost + 2 * (kc + ih) + IV_FLASHBACK * fb
+                    if spent > mana or (kc + ih + fb and not nf):
+                        continue
+                    copies = kc + ih + 2 * fb
+                    d = base + per_cast * (kc + ih + fb) + copies * (top + per_copy)
+                    st = nf + kc + ih + fb
+                    if (d, -st) > (best[0], -best[1]):
+                        best = (d, st, (cast, kc, ih, fb, mana - spent))
+    return best
+
+
+def copy_search(hand, mountains, payoffs, ritual_copies=True):
+    """The most damage the board deals and one line that deals it, by exhaustive search. The line has two halves.
+    First the rituals, and the copiers aimed at a ritual while it is on the stack (the copy makes the mana again),
+    with every order of casts and passes: the stack resolves one object a pass, the pool stays all phase, mana is
+    paid from the pool first, then from untapped Mountains. Then, the stack empty, the fodder and the copiers aimed
+    at it (_copy_finish). That split loses nothing: a fodder spell cast earlier only ties up mana it could be cast
+    with at the end, and a copy of fodder is worth the same then. A copier is never aimed at another copier (a copy
+    of one copies a spell it could have aimed at itself).
+
+    ritual_copies=False is the plain plan: a copier only ever copies burn. Line items: ("cast", card, target),
+    target an index into the stack of rituals and copiers (None for a ritual); ("flashback", Increasing Vengeance,
+    target); ("pass",); ("finish", plan) last. Returns (damage, steps, line); steps count the casts."""
+    from functools import lru_cache
+    per_cast = sum(COPY_PAYOFFS[p][0] for p in payoffs)
+    per_copy = sum(COPY_PAYOFFS[p][1] for p in payoffs)
+    fodder = sorted(c for c in hand if c in COPY_FODDER)
+
+    def better(a, b):
+        return a if (a[0], -a[1]) > (b[0], -b[1]) else b
+
+    @lru_cache(maxsize=None)
+    def go(rituals, copiers, pool, untapped, rites, iv_gy, stack):
+        # stack items: ("r", ritual, is_copy) and ("c", copier, target index, flashback)
+        if not stack:
+            d, st, plan = _copy_finish(fodder, [c for c in copiers if c != IV], IV in copiers, iv_gy,
+                                       pool + untapped, per_cast, per_copy)
+            best = (d, st, (("finish", plan),))
+        else:
+            top, rest_stack = stack[-1], stack[:-1]
+            p, r, iv, gain = pool, rites, iv_gy, 0
+            if top[0] == "r":
+                p += COPY_RITUALS[top[1]][1] + (rites if top[1] == "Rite of Flame" else 0)
+                r += 1 if top[1] == "Rite of Flame" and not top[2] else 0
+            else:
+                n = 2 if top[3] else 1
+                rest_stack += (("r", rest_stack[top[2]][1], True),) * n
+                gain = n * per_copy
+                iv = iv or (top[1] == IV and not top[3])
+            d, st, ln = go(rituals, copiers, p, untapped, r, iv, rest_stack)
+            best = (d + gain, st, (("pass",),) + ln)
+        avail = pool + untapped
+
+        def paid(cost):
+            use = min(pool, cost)
+            return pool - use, untapped - (cost - use)
+
+        for c in sorted(set(rituals)):
+            cost, _, sorcery = COPY_RITUALS[c]
+            if cost > avail or (sorcery and stack):
+                continue
+            left = list(rituals)
+            left.remove(c)
+            d, st, ln = go(tuple(left), copiers, *paid(cost), rites, iv_gy, stack + (("r", c, False),))
+            best = better((d + per_cast, st + 1, (("cast", c, None),) + ln), best)
+        targets = {}
+        for i, o in enumerate(stack):
+            if ritual_copies and o[0] == "r" and not o[2]:
+                targets.setdefault(o[1], i)     # two of one name on the stack: either is the same play
+        plays = [(c, False) for c in sorted(set(copiers))] + ([(IV, True)] if iv_gy else [])
+        for c, flash in plays:
+            cost = IV_FLASHBACK if flash else 2
+            if cost > avail or not targets:
+                continue
+            left = list(copiers)
+            if not flash:
+                left.remove(c)
+            for t in sorted(targets.values()):
+                d, st, ln = go(rituals, tuple(left), *paid(cost), rites, iv_gy and not flash,
+                               stack + (("c", c, t, flash),))
+                best = better((d + per_cast, st + 1, (("flashback" if flash else "cast", c, t),) + ln), best)
+        return best
+
+    return go(tuple(sorted(c for c in hand if c in COPY_RITUALS)), tuple(sorted(c for c in hand if c in COPIERS)),
+              0, mountains, 0, False, ())
+
+
+def copy_lines(hand, mountains, payoffs, line, life):
+    """The written line for a copy_search line, played through a model of the stack as the engine plays it: each
+    cast puts the spell and one trigger per payoff on the stack (two payoffs: their order is asked); a pass resolves
+    the top object; a copy's target is asked when the copier resolves. A card is cast at the first priority it is
+    castable (ScriptBridge), so "pass" is written only where the next card could be cast and the line means to let
+    the stack resolve first; a wait for a card not yet castable needs no line. The line ends where the opponent
+    reaches 0. Returns (lines, damage dealt, casts)."""
+    cast, kc, ih, fb, _ = line[-1][1]
+    plays = [x for x in line if x[0] != "finish"]
+    if cast:
+        order = sorted(cast, key=lambda kn: (-COPY_FODDER[kn[0]][1], COPY_FODDER[kn[0]][2], kn[0]))
+        top = order[0][0]
+        plays.append(("cast", top, None))
+        left = [c for c in sorted(hand) if c in COPIERS and c != IV]
+        for x in plays:
+            if x[0] == "cast" and x[1] in left:
+                left.remove(x[1])
+        plays += [("cast", c, "top") for c in left[:kc]]
+        if ih:
+            plays.append(("cast", IV, "top"))
+        if fb:
+            plays.append(("flashback", IV, "top"))
+        rest = [k for k, n in order for _ in range(n)]
+        rest.remove(top)
+        plays += [("cast", c, None) for c in rest]
+    state = {"pool": 0, "untapped": mountains, "rites": 0, "iv_gy": False, "dmg": 0}
+    held = list(hand)
+    stack = []                         # dicts: {"trig": dmg} or {"name", "copy", "target", "flash"}
+    lines = []
+    marks = {}                         # "top": the fodder spell the finish copies
+
+    def spells():
+        return [o for o in stack if "name" in o]
+
+    def cost_of(play):
+        kind, c = play[0], play[1]
+        if kind == "flashback":
+            return IV_FLASHBACK
+        if c in COPY_RITUALS:
+            return COPY_RITUALS[c][0]
+        if c in COPY_FODDER:
+            return COPY_FODDER[c][0]
+        return 2
+
+    def castable(play):
+        kind, c = play[0], play[1]
+        if kind == "flashback" and not state["iv_gy"]:
+            return False
+        if kind == "cast" and c not in held:
+            return False
+        sorcery = (COPY_RITUALS.get(c) or COPY_FODDER.get(c) or (0, 0, False))[2]
+        if sorcery and stack:
+            return False
+        if c in COPIERS and not spells():
+            return False
+        return cost_of(play) <= state["pool"] + state["untapped"]
+
+    def resolve():
+        o = stack.pop()
+        if "trig" in o:
+            state["dmg"] += o["trig"]
+            return
+        c = o["name"]
+        if c in COPIERS:
+            n = 2 if o["flash"] else 1
+            target = o["target"]
+            for _ in range(n):
+                stack.append({"name": target["name"], "copy": True, "target": None, "flash": False})
+                if target["name"] in COPY_FODDER:
+                    lines.append("opponent")
+            stack.extend({"trig": COPY_PAYOFFS[p][1]} for p in payoffs if COPY_PAYOFFS[p][1] for _ in range(n))
+            if c == IV and not o["flash"]:
+                state["iv_gy"] = True
+        elif c in COPY_RITUALS:
+            state["pool"] += COPY_RITUALS[c][1] + (state["rites"] if c == "Rite of Flame" else 0)
+            if c == "Rite of Flame" and not o["copy"]:
+                state["rites"] += 1
+        else:
+            state["dmg"] += COPY_FODDER[c][1]
+
+    def do_cast(play, search_stack):
+        kind, c, t = play
+        cost = cost_of(play)
+        use = min(state["pool"], cost)
+        state["pool"] -= use
+        state["untapped"] -= cost - use
+        if kind == "flashback":
+            state["iv_gy"] = False
+            lines.append("cast %s ... Flashback" % IV)
+        else:
+            held.remove(c)
+            lines.append("cast " + c)
+        target = None
+        if c in COPY_FODDER:
+            lines.append("opponent")
+        if c in COPIERS:
+            target = marks["top"] if t == "top" else search_stack[t]
+            if len(spells()) > 1:
+                lines.append(target["name"])
+        o = {"name": c, "copy": False, "target": target, "flash": kind == "flashback"}
+        stack.append(o)
+        if t is None and c in COPY_FODDER and "top" not in marks:
+            marks["top"] = o
+        if len(payoffs) > 1:
+            lines.append("; ".join(payoffs))
+        stack.extend({"trig": COPY_PAYOFFS[p][0]} for p in payoffs)
+
+    casts = 0
+    for i, play in enumerate(plays):
+        if state["dmg"] >= life:
+            break
+        if play[0] == "pass":
+            # Resolve up to and including the next spell (the triggers above it first).
+            nxt = next((p for p in plays[i + 1:] if p[0] != "pass"), None)
+            while stack and state["dmg"] < life:
+                if nxt is not None and castable(nxt):
+                    lines.append("pass")
+                spell = "name" in stack[-1]
+                resolve()
+                if spell:
+                    break
+            continue
+        while not castable(play):
+            if not stack:
+                raise ValueError("unplayable: %r" % (play,))
+            resolve()
+        do_cast(play, spells())
+        casts += 1
+    while stack and state["dmg"] < life:
+        resolve()
+    return lines, state["dmg"], casts
+
+
+def copy_board(rng):
+    """Copy a ritual while it is on the stack: Reverberate, Fork and Increasing Vengeance copy any instant or sorcery
+    spell, and a copied Seething Song makes five more mana for {R}{R}, where a copied Bolt deals 3. The copier must
+    be cast while the ritual waits on the stack, so {R}{R} is held back for it, and Vengeance, once in the graveyard,
+    copies twice for {3}{R}{R}. Guttersnipe, Firebrand Archer and Witherbloom Apprentice turn every cast (and, for the
+    Apprentice, every copy) into damage. The opponent's life is the exact maximum of copy_search; a board is kept
+    only when the plain plan (copy only burn) falls 1 to 3 short, the best line takes 13 to 15 casts and leaves no
+    mana unspent."""
+    payoffs = sorted(rng.sample(sorted(COPY_PAYOFFS), rng.choice([1, 1, 2])))
+    mountains = rng.choice([2, 3, 3, 4, 4, 5])
+    copiers = [rng.choice(COPIERS) for _ in range(rng.choice([1, 2, 2, 3]))]
+    if copiers.count(IV) > 1:
+        return None                    # two Vengeances: the hand's cast and the graveyard's read alike
+    hand = copiers + [rng.choice(sorted(COPY_RITUALS)) for _ in range(rng.choice([2, 3, 4, 5]))]
+    hand += [rng.choice(sorted(COPY_FODDER)) for _ in range(rng.randint(GEN2_MIN - len(hand), GEN2_MAX + 1 - len(hand)))]
+    dmg, steps, line = copy_search(hand, mountains, payoffs)
+    if not GEN2_MIN <= steps <= GEN2_MAX or line[-1][1][4]:
+        return None                    # the wrong length, or mana left unspent
+    if not any(x[0] in ("cast", "flashback") and x[1] in COPIERS for x in line[:-1]):
+        return None                    # the best line copies no ritual
+    trap = copy_search(hand, mountains, payoffs, ritual_copies=False)[0]
+    if not 1 <= dmg - trap <= 3:
+        return None
+    lines, dealt, casts = copy_lines(hand, mountains, payoffs, line, dmg)
+    if (dealt, casts) != (dmg, steps):
+        return None                    # the model of the stack and the search disagree: never write such a line
+    rng.shuffle(hand)
+    battlefield = payoffs + ["Mountain"] * mountains
+    lands = "%s untapped Mountain%s" % (["", "one", "two", "three", "four", "five"][mountains],
+                                        "" if mountains == 1 else "s")
+    desc = ("It is your second main phase. You are at 20 life and control %s. Your hand is %s. Your graveyard is "
+            "empty. The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
+            % (_join(payoffs + [lands]), _join(hand), dmg))
+    rule = ("generated-copy | the exhaustive maximum is %d in %d casts, a copier aimed at a ritual on the stack; "
+            "copying only burn deals at most %d" % (dmg, steps, trap))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(hand)), ("p0battlefield", ";".join(battlefield)),
+             ("p0library", ";".join(["Colossal Dreadmaw"] * 10)),
+             ("p1life", dmg), ("p1library", ";".join(["Plains"] * 10))]
+    solution = ["# steps: %d" % steps] + lines
+    return {"family": "copy", "actions": steps, "life": dmg, "trap": trap, "hand": sorted(hand),
+            "battlefield": sorted(battlefield), "phase": "MAIN2",
+            "search": {"hand": sorted(hand), "mountains": mountains, "payoffs": payoffs},
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+# The grave family: black mana that counts the graveyard. (cost, mana made, sacrifices a creature as a cost,
+# sorcery). Cabal Ritual makes 3, or 5 with seven or more cards in the graveyard as it resolves; Songs of the Damned
+# makes one for each creature card there. Every card goes to the graveyard as it resolves. Consume Spirit ({X}{1}{B})
+# is the last cast and spends what is left.
+GRAVE_CARDS = {
+    "Dark Ritual": (1, 3, False, False),
+    "Cabal Ritual": (2, None, False, False),
+    "Songs of the Damned": (1, None, False, False),
+    "Culling the Weak": (1, 4, True, False),
+    "Village Rites": (1, 0, True, False),
+    "Unearth": (1, 0, False, True),
+    "Gitaxian Probe": (0, 0, False, True),
+    "Sign in Blood": (2, 0, False, True),
+}
+GRAVE_MANA = ("Cabal Ritual", "Culling the Weak", "Dark Ritual", "Songs of the Damned")
+CORPSE, APPRENTICE, CONSUME = "Walking Corpse", "Witherbloom Apprentice", "Consume Spirit"
+UNEARTH_CYCLING = 2
+
+
+def grave_search(hand, swamps, corpses, apprentice, gy, gy_corpses, mana_first=False):
+    """The most damage the board deals and the fewest steps that deal it, by exhaustive search over every order of
+    the casts (and Unearth's cycling). Witherbloom Apprentice (on the battlefield when `apprentice` is True, in the
+    graveyard when it is "gy", counted in `gy`) drains 1 for each instant or sorcery cast while it is on the
+    battlefield; sacrificed as a cost, it drains nothing for that cast. Walking Corpses are the other bodies to
+    sacrifice and the creature cards Unearth returns. Each spell resolves before the next is cast: casting one in
+    response only ever has less mana to pay with and adds nothing to the graveyard sooner (a sacrifice is a cost, made
+    as the spell is cast either way). Sign in Blood drains 2; Consume Spirit deals all the mana left but {1}{B}.
+
+    mana_first=True is the plain plan: every mana spell before any other spell. Moves: ("cast", card, choice) with
+    choice the creature sacrificed or returned, or X for Consume Spirit; ("cycle", "Unearth", None). Returns
+    (damage, steps, moves); damage -1 when Consume Spirit cannot be cast."""
+    from functools import lru_cache
+
+    @lru_cache(maxsize=None)
+    def go(hand, mana, gy, gyc, gya, bfc, bfa, spent):
+        if CONSUME in hand:
+            best = (mana - 2 + bfa, 1, (("cast", CONSUME, mana - 2),)) if mana >= 2 else (-1, 0, ())
+        else:
+            best = (0, 0, ())
+        plays = [(c, "cast") for c in sorted(set(hand)) if c != CONSUME]
+        if "Unearth" in hand:
+            plays.append(("Unearth", "cycle"))
+        for c, how in plays:
+            cost, made, sac, _ = GRAVE_CARDS[c]
+            if how == "cycle":
+                cost, made, sac = UNEARTH_CYCLING, 0, False
+            if cost > mana or (mana_first and spent and c in GRAVE_MANA):
+                continue
+            if sac:
+                choices = ([CORPSE] if bfc else []) + ([APPRENTICE] if bfa else [])
+            elif c == "Unearth" and how == "cast":
+                choices = ([CORPSE] if gyc else []) + ([APPRENTICE] if gya else [])
+            else:
+                choices = [None]
+            rest = list(hand)
+            rest.remove(c)
+            for ch in choices:
+                g, gc, ga, bc, ba = gy, gyc, gya, bfc, bfa
+                if sac:                             # the cost: the creature is in the graveyard before anything
+                    g += 1
+                    gc, bc = (gc + 1, bc - 1) if ch == CORPSE else (gc, bc)
+                    ga, ba = (True, False) if ch == APPRENTICE else (ga, ba)
+                dmg = int(ba) if how == "cast" else 0
+                if ch and not sac:                  # Unearth returns it
+                    g -= 1
+                    gc, bc = (gc - 1, bc + 1) if ch == CORPSE else (gc, bc)
+                    ga, ba = (False, True) if ch == APPRENTICE else (ga, ba)
+                if c == "Cabal Ritual":
+                    made = 5 if g >= 7 else 3
+                elif c == "Songs of the Damned":
+                    made = gc + ga
+                dmg += 2 if c == "Sign in Blood" else 0
+                d, st, ln = go(tuple(rest), mana - cost + made, g + 1, gc, ga, bc, ba,
+                               spent or c not in GRAVE_MANA or how == "cycle")
+                if d >= 0 and (d + dmg, -(st + 1)) > (best[0], -best[1]):
+                    best = (d + dmg, st + 1, ((how, c, ch),) + ln)
+        return best
+
+    on = apprentice is True
+    gya = apprentice == "gy"
+    return go(tuple(sorted(hand)), swamps, gy, gy_corpses, gya, corpses, on, False)
+
+
+def grave_lines(hand, swamps, corpses, apprentice, gy, gy_corpses, moves):
+    """The written line for grave_search's moves. Each spell resolves before the next is cast: a card the seat could
+    cast with the last one still on the stack would be cast in response (ScriptBridge), so a "pass" is written for
+    each object on the stack (the spell, and the Apprentice's trigger above it) exactly when the next card is
+    castable; otherwise the line waits by itself. A sacrifice or Unearth's target is named when there are two or more
+    creatures to pick from; Consume Spirit asks X, then its target. Returns (lines, damage, steps)."""
+    mana, bfc, bfa = swamps, corpses, apprentice is True
+    gyc, gya = gy_corpses, apprentice == "gy"
+    lines, dmg = [], 0
+
+    def castable(move):
+        how, c, _ = move
+        cost, _, sac, sorcery = GRAVE_CARDS.get(c, (2, 0, False, True))
+        if how == "cycle":
+            return mana >= UNEARTH_CYCLING
+        return not sorcery and cost <= mana and (not sac or bfc + bfa > 0)
+
+    for i, (how, c, ch) in enumerate(moves):
+        if how == "cycle":
+            lines.append("activate Unearth")
+            mana -= UNEARTH_CYCLING
+            stack = 0                       # cycling is an ability: nothing triggers, it resolves by itself
+            made = 0
+        else:
+            lines.append("cast " + c)
+            cost, made, sac, _ = GRAVE_CARDS.get(c, (2 + ch if c == CONSUME else 0, 0, False, True))
+            if c == CONSUME:
+                lines += [str(ch), "opponent"]
+            if sac:
+                if bfc + bfa > 1:
+                    lines.append(ch)
+                gy += 1
+                gyc, bfc = (gyc + 1, bfc - 1) if ch == CORPSE else (gyc, bfc)
+                gya, bfa = (True, False) if ch == APPRENTICE else (gya, bfa)
+            if c == "Unearth" and gyc + gya > 1:
+                lines.append(ch)
+            if c in ("Gitaxian Probe", "Sign in Blood"):
+                lines.append("opponent")
+            mana -= cost
+            stack = 1 + int(bfa)
+            dmg += int(bfa) + (2 if c == "Sign in Blood" else 0) + (ch if c == CONSUME else 0)
+            if c == "Cabal Ritual":
+                made = 5 if gy >= 7 else 3
+            elif c == "Songs of the Damned":
+                made = gyc + gya
+        nxt = moves[i + 1] if i + 1 < len(moves) else None
+        if nxt and castable(nxt):
+            lines += ["pass"] * stack
+        mana += made                        # the spell resolves
+        gy += 1
+        if c == "Unearth" and how == "cast":
+            gy -= 1
+            gyc, bfc = (gyc - 1, bfc + 1) if ch == CORPSE else (gyc, bfc)
+            gya, bfa = (False, True) if ch == APPRENTICE else (gya, bfa)
+    return lines, dmg, len(moves)
+
+
+def grave_board(rng):
+    """Threshold and Songs: Cabal Ritual makes 5 instead of 3 once seven cards are in the graveyard as it resolves,
+    and Songs of the Damned makes one for each creature card there, so the cheap spells, the sacrifices (Culling the
+    Weak, Village Rites) and Unearth's cycling go first and the big rituals wait. Witherbloom Apprentice drains 1 for
+    each spell, so it is sacrificed only when its body is worth more than the drains left, and Unearth can bring it
+    (or a Walking Corpse) back to be sacrificed again. Consume Spirit spends the rest. The opponent's life is the
+    exact maximum of grave_search; a board is kept only when the plain plan (every mana spell first) falls 1 to 3
+    short and the best line is 13 to 15 steps."""
+    swamps = rng.choice([1, 2, 2, 3])
+    corpses = rng.choice([0, 1, 1, 2])
+    gy_corpses = rng.choice([0, 0, 1, 2])
+    fillers = [rng.choice(["Dark Ritual", "Duress", "Gitaxian Probe", "Sign in Blood"])
+               for _ in range(rng.choice([0, 1, 2, 3, 4]))]
+    pool = ["Dark Ritual", "Cabal Ritual", "Cabal Ritual", "Songs of the Damned", "Culling the Weak", "Village Rites",
+            "Unearth", "Gitaxian Probe", "Sign in Blood"]
+    hand = [CONSUME] + [rng.choice(pool) for _ in range(rng.choice([12, 13, 14]))]
+    apprentice = "gy" if "Unearth" in hand and rng.random() < 0.2 else True
+    gy = gy_corpses + len(fillers) + (apprentice == "gy")
+    dmg, steps, moves = grave_search(hand, swamps, corpses, apprentice, gy, gy_corpses)
+    if not GEN2_MIN <= steps <= GEN2_MAX:
+        return None
+    trap = grave_search(hand, swamps, corpses, apprentice, gy, gy_corpses, mana_first=True)[0]
+    if not 1 <= dmg - trap <= 3:
+        return None
+    lines, dealt, n = grave_lines(hand, swamps, corpses, apprentice, gy, gy_corpses, moves)
+    if (dealt, n) != (dmg, steps):
+        return None
+    rng.shuffle(hand)
+    graveyard = [CORPSE] * gy_corpses + fillers + ([APPRENTICE] if apprentice == "gy" else [])
+    rng.shuffle(graveyard)
+    battlefield = ([APPRENTICE] if apprentice is True else []) + [CORPSE] * corpses + ["Swamp"] * swamps
+    count = ["no", "one", "two", "three"]
+    seen = ([APPRENTICE] if apprentice is True else []) + (["%s Walking Corpse%s" % (count[corpses], "s" * (corpses > 1))]
+                                                           if corpses else [])
+    seen.append("%s untapped Swamp%s" % (count[swamps], "s" * (swamps > 1)))
+    desc = ("It is your second main phase. You are at 20 life and control %s. Your hand is %s. Your graveyard holds "
+            "%s. The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
+            % (_join(seen), _join(hand), _join(graveyard) if graveyard else "nothing", dmg))
+    counters = [c for c in ("Cabal Ritual", "Songs of the Damned") if c in hand] or ["Consume Spirit"]
+    rule = ("generated-grave | the exhaustive maximum is %d in %d steps, the graveyard filled before %s resolve%s; "
+            "every mana spell first deals at most %d" % (dmg, steps, _join(counters), "s" * (len(counters) == 1), trap))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(hand)), ("p0battlefield", ";".join(battlefield)),
+             ("p0graveyard", ";".join(graveyard)),
+             ("p0library", ";".join(["Colossal Dreadmaw"] * 12)),
+             ("p1life", dmg), ("p1library", ";".join(["Plains"] * 12))]
+    state = [kv for kv in state if kv[1] != ""]
+    return {"family": "grave", "actions": steps, "life": dmg, "trap": trap, "hand": sorted(hand),
+            "battlefield": sorted(battlefield + ["gy:" + g for g in graveyard]), "phase": "MAIN2",
+            "search": {"hand": sorted(hand), "swamps": swamps, "corpses": corpses, "apprentice": apprentice,
+                       "gy": gy, "gy_corpses": gy_corpses},
+            "text": lambda name: pzl_text(name, desc, rule, state, ["# steps: %d" % steps] + lines,
+                                          ["life p1 <= 0"])}
+
+
 FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "red": red_board, "drain": drain_board,
-            "elf": elf_board, "fling": fling_board}
+            "elf": elf_board, "fling": fling_board, "grave": grave_board, "copy": copy_board}
 
 
 def board_key(b):
