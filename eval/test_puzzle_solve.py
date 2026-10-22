@@ -21,7 +21,6 @@ class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
         self.assertIn("--memory-tools", str(cm.exception.code))
 
 
-
 class ResumeTest(unittest.TestCase):
     """A run stopped by a container restart is started again with --resume (owner, 2026-10-22): a puzzle whose
     k attempts on this suite are already recorded is not paid for twice; one cut off part way is played again."""
@@ -40,10 +39,29 @@ class ResumeTest(unittest.TestCase):
 
     def test_a_puzzle_cut_off_part_way_keeps_its_paid_rows_aside_and_is_played_again(self):
         out = Path(tempfile.mkdtemp()) / "p"
-        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
-        puzzle_solve.set_aside_partial(out)
+        for _ in range(2):   # cut off twice: neither set of rows overwrites the other
+            self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+            (out / "jvm.log").write_text("the cut-off attempt")
+            self.assertEqual(puzzle_solve.prepare(out, 2, "S", resume=True), "run")
         self.assertFalse((out / "puzzle-results.jsonl").exists(), "a scorer would read the partial rows")
-        self.assertTrue(list(out.glob("puzzle-results.partial*.jsonl")))
+        self.assertEqual(len(list(out.glob("puzzle-results.partial*.jsonl"))), 2)
+        self.assertEqual(len(list(out.glob("jvm.partial*.log"))), 2)
+
+    def test_a_done_puzzle_is_skipped_only_on_resume(self):
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "done")
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=False), "run")
+
+    def test_a_resume_under_another_condition_is_refused(self):
+        # pr-review of #300: a run resumed with --memory-tools on pooled two seats in one score (STANDARDS section 4).
+        root = Path(tempfile.mkdtemp())
+        out = root / "p"
+        cond = {"MEMORY_TOOLS": "0", "CONTEXT_PROFILE": "v4-faithful"}
+        puzzle_solve.write_manifest(out, "m", "S", "p", cond)
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p", "q"], "m", "S", cond), [])
+        for model, sha, c in (("other", "S", cond), ("m", "T", cond), ("m", "S", dict(cond, MEMORY_TOOLS="1"))):
+            self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
 
 
 if __name__ == "__main__":

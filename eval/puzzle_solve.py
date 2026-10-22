@@ -12,8 +12,7 @@ far after each puzzle. Then score it:
 
     python3 eval/puzzle_score.py --suite <suite> --split open runs/puzzles/luna-open
 
-A run stopped part way (a container restart) is started again with the same arguments and --resume: a puzzle
-whose k attempts on this suite are recorded is skipped, one cut off part way is played again.
+--resume continues a stopped run (eval/PUZZLES.md, "Running a model").
 
 An openrouter: model sends each puzzle's position to openrouter.ai: the egress opt-in
 (OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here.
@@ -76,20 +75,59 @@ def already_done(out, k, suite_sha):
 
 
 def set_aside_partial(out):
-    """A puzzle cut off part way is played again from its first seed; its rows so far are renamed, so a scorer
-    never counts them, and its game rows stay, so cost_report still prices what was spent."""
-    f = Path(out) / "puzzle-results.jsonl"
-    if f.is_file():
-        n = len(list(Path(out).glob("puzzle-results.partial*.jsonl")))
-        f.rename(Path(out) / ("puzzle-results.partial%d.jsonl" % n))
+    """A puzzle cut off part way is played again from its first seed; its rows so far and its JVM log are renamed,
+    so a scorer never counts them and the replay does not overwrite them, and its game rows stay, so cost_report
+    still prices what was spent."""
+    out = Path(out)
+    n = len(list(out.glob("puzzle-results.partial*.jsonl")))
+    for name, aside in (("puzzle-results.jsonl", "puzzle-results.partial%d.jsonl"), ("jvm.log", "jvm.partial%d.log")):
+        if (out / name).is_file():
+            (out / name).rename(out / (aside % n))
+
+
+def prepare(out, k, suite_sha, resume):
+    """"done" when a resumed run already has this puzzle's k attempts; otherwise "run", a partial set aside."""
+    if resume and already_done(out, k, suite_sha):
+        return "done"
+    if resume:
+        set_aside_partial(out)
+    return "run"
+
+
+def write_manifest(out, model, suite_sha, puzzle_id, cond):
+    """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
+    game row (a puzzle has none). Written whole, then moved, so a restart never leaves half a manifest."""
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    tmp = out / "batch-manifest.json.tmp"
+    tmp.write_text(json.dumps({"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
+                                             "suite_sha256": suite_sha, "env": cond}}))
+    os.replace(tmp, out / "batch-manifest.json")
+
+
+def resume_conflicts(out_root, ids, model, suite_sha, cond):
+    """The puzzle directories under out_root made under another model, suite or seat condition: a resume into
+    them would pool two conditions in one score (STANDARDS section 4)."""
+    bad = []
+    for pid in ids:
+        f = Path(out_root) / pid / "batch-manifest.json"
+        if not f.is_file():
+            continue
+        try:
+            was = json.loads(f.read_text()).get("condition") or {}
+        except ValueError:
+            bad.append("%s: unreadable batch-manifest.json" % pid)
+            continue
+        now = {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
+        diff = [key for key in now if was.get(key) != now[key]]
+        if diff:
+            bad.append("%s: %s differ" % (pid, ", ".join(diff)))
+    return bad
 
 
 def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
     out = Path(out_root) / rec["id"]
-    out.mkdir(parents=True, exist_ok=True)
-    # cost_report prices a directory's calls from its manifest when there is no game row (a puzzle has none).
-    (out / "batch-manifest.json").write_text(json.dumps(
-        {"condition": {"smart_a": model, "fast_a": model, "puzzle": rec["id"], "suite_sha256": suite_sha, "env": cond}}))
+    write_manifest(out, model, suite_sha, rec["id"], cond)
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000")
@@ -142,14 +180,18 @@ def main(argv=None):
     print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f)"
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root)), flush=True)
 
+    if a.resume:
+        bad = resume_conflicts(out_root, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a))
+        if bad:
+            raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
+                             % (len(bad), "; ".join(bad[:5])))
+
     def work(rec):
         out = out_root / rec["id"]
-        if a.resume and already_done(out, a.k, manifest["suite_sha256"]):
+        if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
             return rec["id"], "done", pb.read_results(out)
         if spent(out_root) >= a.budget_usd:
             return rec["id"], None, []
-        if a.resume:
-            set_aside_partial(out)
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
 
     skipped = 0
