@@ -218,6 +218,20 @@ class EnvReportTest(unittest.TestCase):
         self.assertEqual(scores["empty"]["benchmark"], 0.0)
         self.assertEqual(scores["empty"]["dense"], 0.0)
 
+    def test_any_forge_ai_decision_gates_the_seats_benchmark_to_zero_but_not_its_dense_reward(self):
+        rows = hg.read_env_report(self.path)
+        rows.append(dict(seat="ours", instance="x", family="combat", hook="declareBlockers", ai="2", **{"pass": "0"}))
+        gated = hg.ai_gated(rows)
+        self.assertEqual(gated, {"ours"})
+        scores = hg.env_scores(hg.env_table(rows), gated)
+        self.assertEqual(scores["ours"]["benchmark"], 0.0)
+        self.assertGreater(scores["ours"]["dense"], 0.5)
+        self.assertTrue(scores["ours"]["forge_ai_gate"])
+
+    def test_payment_executor_entries_do_not_gate(self):
+        rows = [dict(seat="ours", instance="x", family="costs", hook="payManaCost", ai="0", ai_payment="9", **{"pass": "1"})]
+        self.assertEqual(hg.ai_gated(rows), set())
+
     def test_by_hook_an_instance_counts_in_its_hooks_ledger_family_not_the_surface_group(self):
         rows = [dict(seat="ours", family="combat", hook="chooseSpellAbilityToPlay", **{"pass": "1"}),
                 dict(seat="ours", family="combat", hook="declareBlockers", **{"pass": "0"})]

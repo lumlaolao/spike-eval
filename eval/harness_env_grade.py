@@ -335,15 +335,25 @@ def _seats(table):
     return sorted(set(seen), key=lambda s: (SEAT_ORDER.index(s) if s in SEAT_ORDER else len(SEAT_ORDER), s))
 
 
-def env_scores(table):
-    """Per seat: the calibrated numbers over the families the report covers. `empty` (no harness: nothing compiles,
-    intake scores 0) is added with every family at zero."""
+def ai_gated(rows):
+    """Seats with any decision handed to Forge's AI (the counter's `ai` column; the payment executor, `ai_payment`,
+    is reported apart and does not gate)."""
+    return {r["seat"] for r in rows if int(r.get("ai") or 0) > 0}
+
+
+def env_scores(table, gated=()):
+    """Per seat: the calibrated numbers over the families the report covers. A seat in `gated` (any Forge-AI decision,
+    ai_gated) has its benchmark set to 0, its dense reward kept. `empty` (no harness: nothing compiles, intake scores
+    0) is added with every family at zero."""
     fams = sorted({f for seat in table.values() for f in seat})
     out = {}
     for seat in _seats(table):
         cells = table.get(seat, {})
         scores = {f: (cells[f]["passed"] / cells[f]["total"]) if cells.get(f, {}).get("total") else 0.0 for f in fams}
         out[seat] = calibrated(scores) if seat != "empty" else {"dense": 0.0, "benchmark": 0.0, "families_at_zero": fams}
+        out[seat]["forge_ai_gate"] = seat in gated
+        if seat in gated:
+            out[seat]["benchmark"] = 0.0
     return out
 
 
@@ -359,7 +369,7 @@ def compile_command(javac, classpath_file, submission, grader_repo, ai_patch, ou
     grader = os.path.join(grader_repo, GRADER_TESTS)
     files += [os.path.join(grader, j) for j in _java_files(grader)]
     files.append(ai_patch)
-    if any(f.endswith("forge/spike/LlmSpikeGui.java") for f in files):
+    if any(f.endswith("forge/spike/LlmSpikeGui.java") for f in files) and not any(f.endswith("/HarnessEnvOurs.java") for f in files):
         files.append(os.path.join(grader_repo, OURS_ADAPTER))
     cp = ""
     if os.path.isfile(classpath_file):
@@ -391,7 +401,7 @@ def instances_command(java, classes, classpath_file, repo, report, only=None, se
                    "-d", os.path.join(os.path.dirname(report), "testng")]
 
 
-def env_markdown(table):
+def env_markdown(table, gated=()):
     """The per-family table, seats as columns, then the dense and benchmark rows."""
     seats = _seats(table)
     fams = sorted({f for seat in table.values() for f in seat})
@@ -403,7 +413,7 @@ def env_markdown(table):
             c = table.get(s, {}).get(f)
             cells.append("%d/%d" % (c["passed"], c["total"]) if c else "0/%d" % n)
         lines.append("| %s | %d | %s |" % (f, n, " | ".join(cells)))
-    scores = env_scores(table)
+    scores = env_scores(table, gated)
     for k in ("dense", "benchmark"):
         lines.append("| %s | | %s |" % (k, " | ".join("%.3f" % scores[s][k] for s in seats)))
     return "\n".join(lines)
@@ -491,14 +501,15 @@ def main(argv):
         with open(os.path.join(out, "run.log"), "w", encoding="utf-8") as log:
             subprocess.run(instances_command(java, classes, cpfile, REPO, report, only, seats, set_file), cwd=os.path.join(forge, "forge-gui-desktop"),
                            stdout=log, stderr=subprocess.STDOUT, timeout=RUN_TIMEOUT_S)
-        table = env_table(read_env_report(report))
-        print(env_markdown(table))
+        rows = read_env_report(report)
+        print(env_markdown(env_table(rows, by="hook"), ai_gated(rows)))
         return 0
     if len(args) == 2 and args[0] == "table":
         rows = read_env_report(args[1])
-        print("By surface (the owner's grouping):\n" + env_markdown(env_table(rows)))
-        print("\nBy hook family (the ledger's; the benchmark gates on this one):\n" + env_markdown(env_table(rows, by="hook")))
-        print(json.dumps(env_scores(env_table(rows, by="hook")), indent=1, sort_keys=True))
+        gated = ai_gated(rows)
+        print("By surface (the owner's grouping):\n" + env_markdown(env_table(rows), gated))
+        print("\nBy hook family (the ledger's; the benchmark gates on this one):\n" + env_markdown(env_table(rows, by="hook"), gated))
+        print(json.dumps(env_scores(env_table(rows, by="hook"), gated), indent=1, sort_keys=True))
         return 0
     if len(args) >= 3 and args[0] == "grade":
         forge, run, busy, rest = None, False, [], args[3:]

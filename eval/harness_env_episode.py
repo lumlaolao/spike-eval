@@ -166,13 +166,9 @@ def jvm_grader(classpath_file=None, forge=None, java_home=None, set_file=None):
         if not os.path.isfile(report):
             return {"benchmark": 0.0, "dense": 0.0, "intake": info, "reason": "the grader wrote no report"}
         rows = hgrade.read_env_report(report)
-        scores = hgrade.env_scores(hgrade.env_table(rows, by="hook"))["candidate"]
+        scores = hgrade.env_scores(hgrade.env_table(rows, by="hook"), hgrade.ai_gated(rows))["candidate"]
         scores["instances"] = len(rows)
         scores["passed"] = sum(1 for r in rows if r.get("pass") == "1")
-        scores["forge_ai_entries"] = sum(max(0, int(r.get("ai", "0"))) for r in rows)
-        if scores["forge_ai_entries"] > 0:
-            scores["benchmark"] = 0.0
-            scores["reason"] = "Forge's AI decided for the seat"
         scores["intake"] = info
         return scores
     return grade
