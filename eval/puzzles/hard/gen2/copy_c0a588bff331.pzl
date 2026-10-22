@@ -1,0 +1,67 @@
+[metadata]
+Name:copy_c0a588bff331
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Guttersnipe, Witherbloom Apprentice and four untapped Mountains. Your hand is Pyretic Ritual, Gitaxian Probe, Pyretic Ritual, Lightning Bolt, Rite of Flame, Shock, Shock, Rite of Flame, Gitaxian Probe, Lava Spike, Lightning Bolt, Lightning Bolt and Increasing Vengeance. Your graveyard is empty. The opponent is at 62 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 62 in 13 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 59
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyretic Ritual;Gitaxian Probe;Pyretic Ritual;Lightning Bolt;Rite of Flame;Shock;Shock;Rite of Flame;Gitaxian Probe;Lava Spike;Lightning Bolt;Lightning Bolt;Increasing Vengeance
+p0battlefield=Guttersnipe;Witherbloom Apprentice;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=62
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Pyretic Ritual
+Guttersnipe; Witherbloom Apprentice
+pass
+pass
+pass
+cast Pyretic Ritual
+Guttersnipe; Witherbloom Apprentice
+cast Rite of Flame
+Guttersnipe; Witherbloom Apprentice
+cast Rite of Flame
+Guttersnipe; Witherbloom Apprentice
+cast Increasing Vengeance
+Guttersnipe; Witherbloom Apprentice
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+Guttersnipe; Witherbloom Apprentice
+cast Increasing Vengeance ... Flashback
+Guttersnipe; Witherbloom Apprentice
+cast Lightning Bolt
+opponent
+Guttersnipe; Witherbloom Apprentice
+cast Lightning Bolt
+opponent
+Guttersnipe; Witherbloom Apprentice
+opponent
+opponent
+cast Lava Spike
+opponent
+Guttersnipe; Witherbloom Apprentice
+cast Shock
+opponent
+Guttersnipe; Witherbloom Apprentice
+cast Gitaxian Probe
+opponent
+Guttersnipe; Witherbloom Apprentice
+cast Gitaxian Probe
+opponent
+Guttersnipe; Witherbloom Apprentice
+[acceptance]
+life p1 <= 0
