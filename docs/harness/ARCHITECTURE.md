@@ -596,8 +596,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - **The harness-building environment (`docs/harness/HARNESS-ENV-FRAMEWORK.md`)** treats building this harness as an
   agent task. `harness_env_sandbox.py` builds the agent's sandbox from an episode spec (`eval/harness_env/`) and
   proves no withheld file, token or history is in it; `harness_env_grade.py` grades a submitted overlay with the
-  hidden tests in a workspace outside it (`surface-v0`, our own classes only). It reads the harness and never changes
-  it. *Why outside:* a grader the candidate can see or run is a target, not a measure.
+  hidden tests in a workspace outside it (`surface-v0`, our own classes only). The instance grader (`EnvGrader`,
+  `EnvInstances`, `EnvGraderSuite` in the overlay's test tree, run by `harness_env_grade.py instances`) drives any
+  seat through `PlayerController` and a scripted wire over 50 surfaces and judges by engine outcomes; it scores ours
+  0.973 and a priority-only bridge 0.002. It reads the harness and never changes it. *Why outside:* a grader the
+  candidate can see or run is a target, not a measure.
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
   via `puzzle_score.score`, a hard-suite check as a labelled pilot (`--hard-results`, never pooled), and the STR
   scores as not yet run with their cost.

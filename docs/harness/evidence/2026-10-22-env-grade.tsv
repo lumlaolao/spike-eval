@@ -1,0 +1,201 @@
+seat	instance	family	hook	legal	reached	min_requests	asked	offered	carried	shown	noparse	pass	ai	note
+ours	combat.attack.choose-attackers	combat	declareAttackers	4	4	1	1	1	1	1	1	1	0	
+default	combat.attack.choose-attackers	combat	declareAttackers	4	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears->Rival, Hill Giant->Rival, no attack] extra []
+ours-minus-combat	combat.attack.choose-attackers	combat	declareAttackers	4	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears->Rival, Hill Giant->Rival, no attack] extra []
+ours-minus-costs	combat.attack.choose-attackers	combat	declareAttackers	4	4	1	1	1	1	1	1	1	0	
+ours	combat.attack.planeswalker	combat	declareAttackers	3	3	1	1	1	1	1	1	1	0	
+default	combat.attack.planeswalker	combat	declareAttackers	3	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears->Rival, no attack] extra []
+ours-minus-combat	combat.attack.planeswalker	combat	declareAttackers	3	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears->Rival, no attack] extra []
+ours-minus-costs	combat.attack.planeswalker	combat	declareAttackers	3	3	1	1	1	1	1	1	1	0	
+ours	combat.attack.battle	combat	declareAttackers	3	3	1	1	1	1	1	1	1	0	
+default	combat.attack.battle	combat	declareAttackers	3	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears->Rival, no attack] extra []
+ours-minus-combat	combat.attack.battle	combat	declareAttackers	3	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears->Rival, no attack] extra []
+ours-minus-costs	combat.attack.battle	combat	declareAttackers	3	3	1	1	1	1	1	1	1	0	
+ours	combat.attack.must-attack	combat	declareAttackers	2	2	1	1	1	1	1	1	1	0	
+default	combat.attack.must-attack	combat	declareAttackers	2	1	0	0	0	0	0	1	0	0	missing [Bloodrock Cyclops->Rival] extra []
+ours-minus-combat	combat.attack.must-attack	combat	declareAttackers	2	1	0	0	0	0	0	1	0	0	missing [Bloodrock Cyclops->Rival] extra []
+ours-minus-costs	combat.attack.must-attack	combat	declareAttackers	2	2	1	1	1	1	1	1	1	0	
+ours	combat.attack.cant-attack	combat	declareAttackers	2	2	1	1	1	1	1	1	1	0	
+default	combat.attack.cant-attack	combat	declareAttackers	2	1	0	0	0	0	0	1	0	0	missing [no attack] extra []
+ours-minus-combat	combat.attack.cant-attack	combat	declareAttackers	2	1	0	0	0	0	0	1	0	0	missing [no attack] extra []
+ours-minus-costs	combat.attack.cant-attack	combat	declareAttackers	2	2	1	1	1	1	1	1	1	0	
+ours	combat.attack.tax	combat	payCombatCost	2	2	1	1	1	1	1	1	1	0	
+default	combat.attack.tax	combat	payCombatCost	2	1	0	0	0	0	0	1	0	0	missing [no attack|tapped=0] extra []
+ours-minus-combat	combat.attack.tax	combat	payCombatCost	2	1	0	0	0	0	0	1	0	0	missing [no attack|tapped=0] extra []
+ours-minus-costs	combat.attack.tax	combat	payCombatCost	2	2	1	1	1	1	1	1	1	0	
+ours	combat.block.choose-blockers	combat	declareBlockers	4	4	1	1	1	1	1	1	1	0	
+default	combat.block.choose-blockers	combat	declareBlockers	4	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears>Savannah Lions, Grizzly Bears>Savannah Lions;Hill Giant>Savannah Lions, no blocks] extra []
+ours-minus-combat	combat.block.choose-blockers	combat	declareBlockers	4	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears>Savannah Lions, Grizzly Bears>Savannah Lions;Hill Giant>Savannah Lions, no blocks] extra []
+ours-minus-costs	combat.block.choose-blockers	combat	declareBlockers	4	4	1	1	1	1	1	1	1	0	
+ours	combat.block.menace	combat	declareBlockers	2	2	1	1	1	1	1	1	1	0	
+default	combat.block.menace	combat	declareBlockers	2	2	0	0	1	1	0	1	0	0	
+ours-minus-combat	combat.block.menace	combat	declareBlockers	2	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears>Boggart Brute;Hill Giant>Boggart Brute] extra []
+ours-minus-costs	combat.block.menace	combat	declareBlockers	2	2	1	1	1	1	1	1	1	0	
+ours	combat.block.flying-and-reach	combat	declareBlockers	2	2	1	1	1	1	1	1	1	0	
+default	combat.block.flying-and-reach	combat	declareBlockers	2	1	0	0	0	0	0	1	0	0	missing [no blocks] extra []
+ours-minus-combat	combat.block.flying-and-reach	combat	declareBlockers	2	1	0	0	0	0	0	1	0	0	missing [no blocks] extra []
+ours-minus-costs	combat.block.flying-and-reach	combat	declareBlockers	2	2	1	1	1	1	1	1	1	0	
+ours	combat.block.cant-block	combat	declareBlockers	2	2	1	1	1	1	1	1	1	0	
+default	combat.block.cant-block	combat	declareBlockers	2	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears>Savannah Lions] extra []
+ours-minus-combat	combat.block.cant-block	combat	declareBlockers	2	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears>Savannah Lions] extra []
+ours-minus-costs	combat.block.cant-block	combat	declareBlockers	2	2	1	1	1	1	1	1	1	0	
+ours	combat.block.must-block	combat	declareBlockers	1	2	1	1	0	1	1	1	0	0	missing [] extra [no blocks]
+default	combat.block.must-block	combat	declareBlockers	1	1	0	1	1	1	0	1	0	0	
+ours-minus-combat	combat.block.must-block	combat	declareBlockers	1	1	0	1	1	1	0	1	0	0	
+ours-minus-costs	combat.block.must-block	combat	declareBlockers	1	2	1	1	0	1	1	1	0	0	missing [] extra [no blocks]
+ours	combat.block.two-attackers	combat	declareBlockers	12	12	1	1	1	1	1	1	1	0	
+default	combat.block.two-attackers	combat	declareBlockers	12	1	0	0	0	0	0	1	0	0	missing [Hill Giant>Grizzly Bears, Hill Giant>Grizzly Bears;Palace Guard>Grizzly Bears, Hill Giant>Grizzly Bears;Palace Guard>Grizzly Bears;Palace Guard>Savannah Lions, Hill Giant>Savannah Lions, Hill Giant>Savannah Lions;Palace Guard>Grizzly Bears, Hill Giant>Savannah Lions;Palace Guard>Grizzly Bears;Palace Guard>Savannah Lions, Hill Giant>Savannah Lions;Palace Guard>Savannah Lions, Palace Guard>Grizzly Bears, Palace Guard>Grizzly Bears;Palace Guard>Savannah Lions, Palace Guard>Savannah Lions, no blocks] extra []
+ours-minus-combat	combat.block.two-attackers	combat	declareBlockers	12	1	0	0	0	0	0	1	0	0	missing [Hill Giant>Grizzly Bears, Hill Giant>Grizzly Bears;Palace Guard>Grizzly Bears, Hill Giant>Grizzly Bears;Palace Guard>Grizzly Bears;Palace Guard>Savannah Lions, Hill Giant>Savannah Lions, Hill Giant>Savannah Lions;Palace Guard>Grizzly Bears, Hill Giant>Savannah Lions;Palace Guard>Grizzly Bears;Palace Guard>Savannah Lions, Hill Giant>Savannah Lions;Palace Guard>Savannah Lions, Palace Guard>Grizzly Bears, Palace Guard>Grizzly Bears;Palace Guard>Savannah Lions, Palace Guard>Savannah Lions, no blocks] extra []
+ours-minus-costs	combat.block.two-attackers	combat	declareBlockers	12	12	1	1	1	1	1	1	1	0	
+ours	combat.damage.order	combat	orderBlockers	2	2	1	1	1	1	1	1	1	0	
+default	combat.damage.order	combat	orderBlockers	2	1	0	0	0	0	0	1	0	0	missing [Savannah Lions>Grizzly Bears] extra []
+ours-minus-combat	combat.damage.order	combat	orderBlockers	2	1	0	0	0	0	0	1	0	0	missing [Savannah Lions>Grizzly Bears] extra []
+ours-minus-costs	combat.damage.order	combat	orderBlockers	2	2	1	1	1	1	1	1	1	0	
+ours	combat.damage.trample	combat	assignCombatDamage	5	5	1	1	1	1	1	1	1	0	
+default	combat.damage.trample	combat	assignCombatDamage	5	0	0	0	0	0	0	0	0	0	error: NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null | answers [{"amounts":[0,6],"number":0,"option":1}]; prose=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null empty=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null
+ours-minus-combat	combat.damage.trample	combat	assignCombatDamage	5	0	0	0	0	0	0	0	0	0	error: NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null | answers [{"amounts":[0,6],"number":0,"option":1}]; prose=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null empty=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null
+ours-minus-costs	combat.damage.trample	combat	assignCombatDamage	5	5	1	1	1	1	1	1	1	0	
+ours	combat.damage.trample-lethal-is-the-rules	combat	assignCombatDamage	6	6	1	1	1	1	1	1	1	0	
+default	combat.damage.trample-lethal-is-the-rules	combat	assignCombatDamage	6	0	0	0	0	0	0	0	0	0	error: NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null | answers [{"amounts":[0,6],"number":0,"option":1}]; prose=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null empty=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null
+ours-minus-combat	combat.damage.trample-lethal-is-the-rules	combat	assignCombatDamage	6	0	0	0	0	0	0	0	0	0	error: NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null | answers [{"amounts":[0,6],"number":0,"option":1}]; prose=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null empty=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null
+ours-minus-costs	combat.damage.trample-lethal-is-the-rules	combat	assignCombatDamage	6	6	1	1	1	1	1	1	1	0	
+ours	combat.damage.divide-among-blockers	combat	assignCombatDamage	7	7	1	1	1	1	1	1	1	0	
+default	combat.damage.divide-among-blockers	combat	assignCombatDamage	7	0	0	0	0	0	0	0	0	0	error: NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null | answers [{"amounts":[0,6],"number":0,"option":1}]; prose=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null empty=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null
+ours-minus-combat	combat.damage.divide-among-blockers	combat	assignCombatDamage	7	0	0	0	0	0	0	0	0	0	error: NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null | answers [{"amounts":[0,6],"number":0,"option":1}]; prose=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null empty=ERROR NullPointerException: Cannot invoke "forge.game.combat.Combat.getDefenderPlayerByAttacker(forge.game.card.Card)" because "combat" is null
+ours-minus-costs	combat.damage.divide-among-blockers	combat	assignCombatDamage	7	7	1	1	1	1	1	1	1	0	
+ours	combat.damage.double-strike-steps	combat	assignCombatDamage	3	3	2	1	1	1	1	1	1	0	
+default	combat.damage.double-strike-steps	combat	assignCombatDamage	3	1	0	0	0	0	0	1	0	0	missing [] extra [dead=Grizzly Bears [Runeclaw Bear d0]]
+ours-minus-combat	combat.damage.double-strike-steps	combat	assignCombatDamage	3	1	0	0	0	0	0	1	0	0	missing [] extra [dead=Grizzly Bears [Runeclaw Bear d0]]
+ours-minus-costs	combat.damage.double-strike-steps	combat	assignCombatDamage	3	3	2	1	1	1	1	1	1	0	
+ours	combat.trick.in-the-blockers-step	combat	chooseSpellAbilityToPlay	3	4	1	1	1	1	1	1	1	0	
+default	combat.trick.in-the-blockers-step	combat	chooseSpellAbilityToPlay	3	2	1	1	0	1	0	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=;Graveyard=Giant Growth;Exile=;Library=;bf=Forest(T),Grizzly Bears(T)5/5 d0|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=Hill Giant3/3 d0|stack=[], Seat life=20 pool=0;Hand=Giant Growth;Graveyard=;Exile=;Library=;bf=Forest,Grizzly Bears(T)2/2 d0|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=Hill Giant3/3 d0|stack=[]]
+ours-minus-combat	combat.trick.in-the-blockers-step	combat	chooseSpellAbilityToPlay	3	4	1	1	1	1	1	1	1	0	
+ours-minus-costs	combat.trick.in-the-blockers-step	combat	chooseSpellAbilityToPlay	3	4	1	1	1	1	1	1	1	0	
+ours	combat.prevention.shield-split	combat	divideShield	3	3	1	1	1	1	1	1	1	0	
+default	combat.prevention.shield-split	combat	divideShield	3	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears=0,Savannah Lions=2, Grizzly Bears=1,Savannah Lions=1, Grizzly Bears=2,Savannah Lions=0] extra [Grizzly Bears=0,Savannah Lions=0]
+ours-minus-combat	combat.prevention.shield-split	combat	divideShield	3	3	1	1	1	1	1	1	1	0	
+ours-minus-costs	combat.prevention.shield-split	combat	divideShield	3	3	1	1	1	1	1	1	1	0	
+ours	combat.replacement.which-applies	combat	chooseSingleReplacementEffect	2	2	1	1	1	1	1	1	1	0	
+default	combat.replacement.which-applies	combat	chooseSingleReplacementEffect	2	1	0	0	0	0	0	1	0	0	missing [Dictate of the Twin Gods] extra []
+ours-minus-combat	combat.replacement.which-applies	combat	chooseSingleReplacementEffect	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	combat.replacement.which-applies	combat	chooseSingleReplacementEffect	2	2	1	1	1	1	1	1	1	0	
+ours	play.choose-a-play	play	chooseSpellAbilityToPlay	3	4	1	1	1	1	1	1	1	0	
+default	play.choose-a-play	play	chooseSpellAbilityToPlay	3	3	1	1	1	1	1	1	1	0	
+ours-minus-combat	play.choose-a-play	play	chooseSpellAbilityToPlay	3	4	1	1	1	1	1	1	1	0	
+ours-minus-costs	play.choose-a-play	play	chooseSpellAbilityToPlay	3	4	1	1	1	1	1	1	1	0	
+ours	targets.any-target	targets	chooseTargetsFor	4	4	1	1	1	1	1	1	1	0	
+default	targets.any-target	targets	chooseTargetsFor	4	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears, Rival, Seat] extra []
+ours-minus-combat	targets.any-target	targets	chooseTargetsFor	4	4	1	1	1	1	1	1	1	0	
+ours-minus-costs	targets.any-target	targets	chooseTargetsFor	4	4	1	1	1	1	1	1	1	0	
+ours	targets.through-a-cast	targets	chooseTargetsFor	4	5	1	1	1	1	1	1	1	0	
+default	targets.through-a-cast	targets	chooseTargetsFor	4	2	1	1	0	1	0	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=;Graveyard=Lightning Bolt;Exile=;Library=;bf=Mountain(T)|Rival life=20 pool=0;Hand=;Graveyard=Hill Giant;Exile=;Library=;bf=|stack=[], Seat life=20 pool=0;Hand=Lightning Bolt;Graveyard=;Exile=;Library=;bf=Mountain|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=Hill Giant3/3 d0|stack=[]]
+ours-minus-combat	targets.through-a-cast	targets	chooseTargetsFor	4	5	1	1	1	1	1	1	1	0	
+ours-minus-costs	targets.through-a-cast	targets	chooseTargetsFor	4	5	1	1	1	1	1	1	1	0	
+ours	modes.choose-two-of-four	modes	chooseModeForAbility	6	12	1	1	1	1	1	1	1	0	
+default	modes.choose-two-of-four	modes	chooseModeForAbility	6	4	1	0	0	0	0	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=;Graveyard=Grizzly Bears,Kolaghan's Command;Exile=;Library=;bf=Badlands(T),Badlands(T),Mountain(T)|Rival life=20 pool=0;Hand=Lightning Bolt;Graveyard=Ornithopter,Savannah Lions;Exile=;Library=;bf=|stack=[], Seat life=20 pool=0;Hand=Grizzly Bears;Graveyard=Kolaghan's Command;Exile=;Library=;bf=Badlands(T),Badlands(T),Mountain(T)|Rival life=20 pool=0;Hand=Lightning Bolt;Graveyard=Ornithopter;Exile=;Library=;bf=Savannah Lions2/1 d0|stack=[], Seat life=20 pool=0;Hand=Grizzly Bears;Graveyard=Kolaghan's Command;Exile=;Library=;bf=Badlands(T),Badlands(T),Mountain(T)|Rival life=20 pool=0;Hand=Lightning Bolt;Graveyard=Savannah Lions;Exile=;Library=;bf=Ornithopter0/2 d0|stack=[], Seat life=20 pool=0;Hand=Kolaghan's Command;Graveyard=Grizzly Bears;Exile=;Library=;bf=Badlands,Badlands,Mountain|Rival life=20 pool=0;Hand=Lightning Bolt;Graveyard=;Exile=;Library=;bf=Ornithopter0/2 d0,Savannah Lions2/1 d0|stack=[]]
+ours-minus-combat	modes.choose-two-of-four	modes	chooseModeForAbility	6	12	1	1	1	1	1	1	1	0	
+ours-minus-costs	modes.choose-two-of-four	modes	chooseModeForAbility	6	12	1	1	1	1	1	1	1	0	
+ours	costs.sacrifice-as-cost	costs	getCostDecisionMaker	3	13	1	1	1	1	1	1	1	0	
+default	costs.sacrifice-as-cost	costs	getCostDecisionMaker	3	1	1	0	0	0	0	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=Goblin Bombardment,Grizzly Bears2/2 d0,Memnite1/1 d0,Savannah Lions2/1 d0|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[]]
+ours-minus-combat	costs.sacrifice-as-cost	costs	getCostDecisionMaker	3	13	1	1	1	1	1	1	1	0	
+ours-minus-costs	costs.sacrifice-as-cost	costs	getCostDecisionMaker	3	13	1	1	1	1	1	1	1	0	
+ours	costs.delve	costs	chooseCardsToDelve	5	7	1	1	1	1	1	1	1	0	
+default	costs.delve	costs	chooseCardsToDelve	5	2	1	0	0	1	0	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=Island,Island,Island;Graveyard=Treasure Cruise;Exile=Brainstorm,Counterspell,Lightning Bolt,Ponder;Library=Island;bf=Island,Island(T),Island(T),Island(T),Island(T)|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[], Seat life=20 pool=0;Hand=Treasure Cruise;Graveyard=Brainstorm,Counterspell,Lightning Bolt,Ponder;Exile=;Library=Island,Island,Island,Island;bf=Island,Island,Island,Island,Island|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[]]
+ours-minus-combat	costs.delve	costs	chooseCardsToDelve	5	7	1	1	1	1	1	1	1	0	
+ours-minus-costs	costs.delve	costs	chooseCardsToDelve	5	3	1	0	0	1	1	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=Island,Island,Island;Graveyard=Treasure Cruise;Exile=Brainstorm,Counterspell,Lightning Bolt,Ponder;Library=Island;bf=Island,Island(T),Island(T),Island(T),Island(T)|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[], Seat life=20 pool=0;Hand=Treasure Cruise;Graveyard=Brainstorm,Counterspell,Lightning Bolt,Ponder;Exile=;Library=Island,Island,Island,Island;bf=Island,Island,Island,Island,Island|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[], Seat life=20 pool=1;Hand=Treasure Cruise;Graveyard=Brainstorm,Counterspell,Lightning Bolt,Ponder;Exile=;Library=Island,Island,Island,Island;bf=Island,Island,Island,Island,Island(T)|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[]]
+ours	costs.kicker	costs	chooseOptionalCosts	2	2	1	1	1	1	1	1	1	0	
+default	costs.kicker	costs	chooseOptionalCosts	2	1	0	0	0	0	0	1	0	0	missing [none] extra []
+ours-minus-combat	costs.kicker	costs	chooseOptionalCosts	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	costs.kicker	costs	chooseOptionalCosts	2	1	0	0	0	0	0	1	0	0	missing [none] extra []
+ours	costs.unless-cost	costs	payCostToPreventEffect	2	2	1	1	1	1	1	1	1	0	
+default	costs.unless-cost	costs	payCostToPreventEffect	2	1	0	0	0	0	0	1	0	0	missing [no|tapped=false] extra []
+ours-minus-combat	costs.unless-cost	costs	payCostToPreventEffect	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	costs.unless-cost	costs	payCostToPreventEffect	2	1	0	0	0	0	0	1	0	0	missing [no|tapped=false] extra []
+ours	costs.pay-life	costs	confirmPayment	2	2	1	1	1	1	1	1	1	0	
+default	costs.pay-life	costs	confirmPayment	2	0	0	0	0	0	0	0	0	0	error: UnsupportedOperationException: AI is not supposed to reach this code at the moment | answers [{"option":1,"options":[1],"number":1}]; prose=ERROR UnsupportedOperationException: AI is not supposed to reach this code at the moment empty=ERROR UnsupportedOperationException: AI is not supposed to reach this code at the moment
+ours-minus-combat	costs.pay-life	costs	confirmPayment	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	costs.pay-life	costs	confirmPayment	2	0	0	0	0	0	0	0	0	0	error: UnsupportedOperationException: AI is not supposed to reach this code at the moment | answers [{"option":1,"options":[1],"number":1}]; prose=ERROR UnsupportedOperationException: AI is not supposed to reach this code at the moment empty=ERROR UnsupportedOperationException: AI is not supposed to reach this code at the moment
+ours	costs.x	costs	announceRequirements	3	5	1	0	0	0	0	1	0	0	error: ReplayLimit: the seat asked 61 times in 694 ms | last ask: DECISION: Select a card from your library -> Battlefield [Green Sun's Zenith: Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle Green Sun's Zenith into its owner's li | answers [{"option":1,"options":[1],"number":1}, {"number":1,"option":2}, {"option":2,"options":[2],"number":2}]
+default	costs.x	costs	announceRequirements	3	2	1	0	0	1	0	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=;Graveyard=;Exile=;Library=Forest,Green Sun's Zenith;bf=Forest,Forest(T),Forest(T),Llanowar Elves1/1 d0|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[], Seat life=20 pool=0;Hand=Green Sun's Zenith;Graveyard=;Exile=;Library=Forest,Llanowar Elves;bf=Forest,Forest,Forest|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=|stack=[]]
+ours-minus-combat	costs.x	costs	announceRequirements	3	5	1	0	0	0	0	1	0	0	error: ReplayLimit: the seat asked 61 times in 403 ms | last ask: DECISION: Select a card from your library -> Battlefield [Green Sun's Zenith: Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle Green Sun's Zenith into its owner's li | answers [{"option":1,"options":[1],"number":1}, {"number":1,"option":2}, {"option":2,"options":[2],"number":2}]
+ours-minus-costs	costs.x	costs	announceRequirements	3	5	1	0	0	0	0	1	0	0	error: ReplayLimit: the seat asked 61 times in 543 ms | last ask: DECISION: Select a card from your library -> Battlefield [Green Sun's Zenith: Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle Green Sun's Zenith into its owner's li | answers [{"option":1,"options":[1],"number":1}, {"number":1,"option":2}, {"option":2,"options":[2],"number":2}]
+ours	triggers.order-simultaneous	triggers-and-replacements	orderSimultaneousSa	2	2	1	1	1	1	1	1	1	0	
+default	triggers.order-simultaneous	triggers-and-replacements	orderSimultaneousSa	2	1	0	0	0	0	0	1	0	0	missing [] extra [Seat life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=Palace Jailer2/2 d0|Rival life=20 pool=0;Hand=;Graveyard=;Exile=;Library=;bf=Savannah Lions2/1 d0|stack=[Palace Jailer->[Savannah Lions (1)], Palace Jailer->[]]]
+ours-minus-combat	triggers.order-simultaneous	triggers-and-replacements	orderSimultaneousSa	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	triggers.order-simultaneous	triggers-and-replacements	orderSimultaneousSa	2	2	1	1	1	1	1	1	1	0	
+ours	triggers.optional	triggers-and-replacements	confirmTrigger	2	2	1	1	1	1	1	1	1	0	
+default	triggers.optional	triggers-and-replacements	confirmTrigger	2	1	0	0	0	0	0	1	0	0	missing [yes] extra []
+ours-minus-combat	triggers.optional	triggers-and-replacements	confirmTrigger	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	triggers.optional	triggers-and-replacements	confirmTrigger	2	2	1	1	1	1	1	1	1	0	
+ours	replacements.optional	triggers-and-replacements	confirmReplacementEffect	2	2	1	1	1	1	1	1	1	0	
+default	replacements.optional	triggers-and-replacements	confirmReplacementEffect	2	1	0	0	0	0	0	1	0	0	missing [no] extra []
+ours-minus-combat	replacements.optional	triggers-and-replacements	confirmReplacementEffect	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	replacements.optional	triggers-and-replacements	confirmReplacementEffect	2	2	1	1	1	1	1	1	1	0	
+ours	game-start.mulligan	game-start	mulliganKeepHand	2	2	1	1	1	1	1	1	1	0	
+default	game-start.mulligan	game-start	mulliganKeepHand	2	1	0	0	0	0	0	1	0	0	missing [mulligan] extra []
+ours-minus-combat	game-start.mulligan	game-start	mulliganKeepHand	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	game-start.mulligan	game-start	mulliganKeepHand	2	2	1	1	1	1	1	1	1	0	
+ours	game-start.bottom-after-mulligan	game-start	tuckCardsViaMulligan	7	7	1	1	1	1	1	1	1	0	
+default	game-start.bottom-after-mulligan	game-start	tuckCardsViaMulligan	7	1	0	0	0	0	0	1	0	0	missing [Brainstorm, Counterspell, Lightning Bolt, Llanowar Elves, Ponder, Savannah Lions] extra []
+ours-minus-combat	game-start.bottom-after-mulligan	game-start	tuckCardsViaMulligan	7	7	1	1	1	1	1	1	1	0	
+ours-minus-costs	game-start.bottom-after-mulligan	game-start	tuckCardsViaMulligan	7	7	1	1	1	1	1	1	1	0	
+ours	game-start.play-or-draw	game-start	chooseStartingPlayer	2	2	1	1	1	1	1	1	1	0	
+default	game-start.play-or-draw	game-start	chooseStartingPlayer	2	1	0	0	0	0	0	1	0	0	missing [Rival] extra []
+ours-minus-combat	game-start.play-or-draw	game-start	chooseStartingPlayer	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	game-start.play-or-draw	game-start	chooseStartingPlayer	2	2	1	1	1	1	1	1	1	0	
+ours	library.scry-two	library	arrangeForScry	4	4	1	1	1	1	1	1	1	0	
+default	library.scry-two	library	arrangeForScry	4	1	0	0	0	0	0	1	0	0	missing [top=Counterspell,Lightning Bolt|bottom=, top=Counterspell|bottom=Lightning Bolt, top=Lightning Bolt|bottom=Counterspell] extra []
+ours-minus-combat	library.scry-two	library	arrangeForScry	4	4	1	1	1	1	1	1	1	0	
+ours-minus-costs	library.scry-two	library	arrangeForScry	4	4	1	1	1	1	1	1	1	0	
+ours	library.surveil-two	library	arrangeForSurveil	4	4	1	1	1	1	1	1	1	0	
+default	library.surveil-two	library	arrangeForSurveil	4	1	0	0	0	0	0	1	0	0	missing [top=Counterspell|grave=Lightning Bolt, top=Lightning Bolt|grave=Counterspell, top=|grave=Counterspell,Lightning Bolt] extra []
+ours-minus-combat	library.surveil-two	library	arrangeForSurveil	4	4	1	1	1	1	1	1	1	0	
+ours-minus-costs	library.surveil-two	library	arrangeForSurveil	4	4	1	1	1	1	1	1	1	0	
+ours	library.search	library	chooseSingleCardForZoneChange	2	2	1	1	1	1	1	1	1	0	
+default	library.search	library	chooseSingleCardForZoneChange	2	2	0	0	1	1	0	1	0	0	
+ours-minus-combat	library.search	library	chooseSingleCardForZoneChange	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	library.search	library	chooseSingleCardForZoneChange	2	2	1	1	1	1	1	1	1	0	
+ours	library.put-back-order	library	orderMoveToZoneList	2	2	1	1	1	1	1	1	1	0	
+default	library.put-back-order	library	orderMoveToZoneList	2	1	0	0	0	0	0	1	0	0	missing [Lightning Bolt>Counterspell] extra []
+ours-minus-combat	library.put-back-order	library	orderMoveToZoneList	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	library.put-back-order	library	orderMoveToZoneList	2	2	1	1	1	1	1	1	1	0	
+ours	choices.sacrifice	choices	choosePermanentsToSacrifice	2	2	1	1	1	1	1	1	1	0	
+default	choices.sacrifice	choices	choosePermanentsToSacrifice	2	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears] extra []
+ours-minus-combat	choices.sacrifice	choices	choosePermanentsToSacrifice	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.sacrifice	choices	choosePermanentsToSacrifice	2	2	1	1	1	1	1	1	1	0	
+ours	choices.discard-two	choices	chooseCardsToDiscardFrom	3	3	1	1	1	1	1	1	1	0	
+default	choices.discard-two	choices	chooseCardsToDiscardFrom	3	1	0	0	0	0	0	1	0	0	missing [Counterspell,Ponder, Lightning Bolt,Ponder] extra []
+ours-minus-combat	choices.discard-two	choices	chooseCardsToDiscardFrom	3	3	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.discard-two	choices	chooseCardsToDiscardFrom	3	3	1	1	1	1	1	1	1	0	
+ours	choices.cleanup-discard	choices	chooseCardsToDiscardToMaximumHandSize	3	3	1	1	1	1	1	1	1	0	
+default	choices.cleanup-discard	choices	chooseCardsToDiscardToMaximumHandSize	3	1	0	0	0	0	0	1	0	0	missing [Lightning Bolt, Ponder] extra []
+ours-minus-combat	choices.cleanup-discard	choices	chooseCardsToDiscardToMaximumHandSize	3	3	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.cleanup-discard	choices	chooseCardsToDiscardToMaximumHandSize	3	3	1	1	1	1	1	1	1	0	
+ours	choices.number	choices	chooseNumber	4	4	1	1	1	1	1	1	1	0	
+default	choices.number	choices	chooseNumber	4	1	0	0	0	0	0	1	0	0	missing [0, 1, 2] extra []
+ours-minus-combat	choices.number	choices	chooseNumber	4	4	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.number	choices	chooseNumber	4	4	1	1	1	1	1	1	1	0	
+ours	choices.binary	choices	chooseBinary	2	2	1	1	1	1	1	1	1	0	
+default	choices.binary	choices	chooseBinary	2	1	0	0	0	0	0	1	0	0	missing [no] extra []
+ours-minus-combat	choices.binary	choices	chooseBinary	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.binary	choices	chooseBinary	2	2	1	1	1	1	1	1	1	0	
+ours	choices.colour	choices	chooseColor	3	3	1	1	1	1	1	1	1	0	
+default	choices.colour	choices	chooseColor	3	1	0	0	0	0	0	1	0	0	missing [2, 8] extra []
+ours-minus-combat	choices.colour	choices	chooseColor	3	3	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.colour	choices	chooseColor	3	3	1	1	1	1	1	1	1	0	
+ours	choices.yes-no	choices	confirmAction	2	2	1	1	1	1	1	1	1	0	
+default	choices.yes-no	choices	confirmAction	2	1	0	0	0	0	0	1	0	0	missing [yes] extra []
+ours-minus-combat	choices.yes-no	choices	confirmAction	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.yes-no	choices	confirmAction	2	2	1	1	1	1	1	1	1	0	
+ours	choices.entity	choices	chooseSingleEntityForEffect	2	2	1	1	1	1	1	1	1	0	
+default	choices.entity	choices	chooseSingleEntityForEffect	2	1	0	0	0	0	0	1	0	0	missing [Grizzly Bears] extra []
+ours-minus-combat	choices.entity	choices	chooseSingleEntityForEffect	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.entity	choices	chooseSingleEntityForEffect	2	2	1	1	1	1	1	1	1	0	
+ours	choices.reveal	choices	chooseCardsToRevealFromHand	3	3	1	1	1	1	1	1	1	0	
+default	choices.reveal	choices	chooseCardsToRevealFromHand	3	1	0	0	0	0	0	1	0	0	missing [Counterspell, none] extra []
+ours-minus-combat	choices.reveal	choices	chooseCardsToRevealFromHand	3	3	1	1	1	1	1	1	1	0	
+ours-minus-costs	choices.reveal	choices	chooseCardsToRevealFromHand	3	3	1	1	1	1	1	1	1	0	
+ours	variants.flip-call	variants	chooseFlipResult	2	2	1	1	1	1	1	1	1	0	
+default	variants.flip-call	variants	chooseFlipResult	2	1	0	0	0	0	0	1	0	0	missing [no] extra []
+ours-minus-combat	variants.flip-call	variants	chooseFlipResult	2	2	1	1	1	1	1	1	1	0	
+ours-minus-costs	variants.flip-call	variants	chooseFlipResult	2	2	1	1	1	1	1	1	1	0	
