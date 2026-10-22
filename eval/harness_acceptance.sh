@@ -191,7 +191,7 @@ fi
 [ -f "$CP_FILE" ] || CP_FILE="${HARNESS_CLASSPATH_FILE:-$CP_FILE}"
 
 # ---------------------------------------------------------------- compile
-CLASSES="$OUT/classes"
+CLASSES="${ACC_CLASSES:-$OUT/classes}"   # a child run (below) shares the parent's compiled classes
 if has_stage compile; then
   if [ ! -f "$CP_FILE" ]; then fail compile "no classpath file ($CP_FILE)"; else
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
@@ -207,6 +207,41 @@ if has_stage compile; then
     elif [ $IRC -ne 0 ]; then fail compile "imports the Forge checkout build rejects: $(head -3 "$OUT/java_imports.log" | tr '\n' ' ')"
     else pass compile "$NC classes from overlay sources (isolated dir; checkout untouched); imports clean"; fi
   fi
+fi
+
+# ---------------------------------------------------------------- parallel
+# Every stage after compile is independent: each writes only under its own directory, and each fake model server
+# takes a free port. So a full run spreads them over child runs of this script that share the compiled classes and
+# the classpath: 11 minutes one after another, about 4 in four groups on 4 cores (2026-10-21). The groups are
+# balanced by measured time (javatests alone is the longest). ACCEPTANCE_JOBS=1 runs every stage in this process.
+ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
+# Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
+# not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
+ACC_JVM=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_JVM="-XX:ActiveProcessorCount=1"; export ACC_JVM
+if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] \
+   && [ -f "$CP_FILE" ]; then
+  PIDS=""; PARTS=""; i=0
+  PARALLEL_GROUPS='javatests surfaces lookahead answertool|pytests canary gaming nativetool|faketool nativerefuse faithful lines|rules turnchat scoring'
+  OLDIFS="$IFS"; IFS='|'; set -- $PARALLEL_GROUPS; IFS="$OLDIFS"
+  for group in "$@"; do
+    picked=""; for s in $group; do has_stage "$s" && picked="$picked $s"; done
+    [ -n "$picked" ] || continue
+    i=$((i + 1)); part="$OUT/part$i"
+    say "parallel: part$i runs$picked"
+    ACC_CHILD=1 STAGES="${picked# }" ACC_BUILD="$OUT" ACC_CLASSES="$CLASSES" OUT="$part" HARNESS_CLASSPATH_FILE="$CP_FILE" \
+      bash "$0" >"$part.log" 2>&1 &
+    PIDS="$PIDS $!"; PARTS="$PARTS $part"
+  done
+  for pid in $PIDS; do wait "$pid"; done
+  for part in $PARTS; do
+    if [ -s "$part/summary.txt" ]; then
+      cat "$part/summary.txt" | tee -a "$SUMMARY"
+      grep -q '^FAIL' "$part/summary.txt" && FAILED=1
+    else fail parallel "$part wrote no summary (see $part.log)"; fi
+  done
+  # Those stages ran in the children; the rest of this script runs only a stage no group names.
+  GROUPED=" $(echo "$PARALLEL_GROUPS" | tr '|' ' ') "
+  STAGES="$(for s in $STAGES; do case "$GROUPED" in *" $s "*) ;; *) echo "$s";; esac; done | tr '\n' ' ')"
 fi
 
 # ---------------------------------------------------------------- javatests
@@ -228,22 +263,45 @@ def total(n, seen=()):
 print(sum(total(n) for n in count))
 PYEOF
 )"
-    ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" -Dapple.awt.UIElement=true \
-        -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
-        org.testng.TestNG -testclass "$TCLASSES" -d "$OUT/testng" ) >"$OUT/javatests.log" 2>&1
-    RES="$(python3 - "$OUT/testng/testng-results.xml" <<'EOF'
+    # The keyword sweep is most of this stage's time (247 of 354 s, 2026-10-21) and one loop over 553 cards, so it
+    # runs as SWEEP_SHARDS JVMs (harness.keyword.shard) beside one JVM for every other class. Each sweep shard runs
+    # the sweep's @Test once, so the declared count grows by the extra shards.
+    SWEEP_SHARDS="${SWEEP_SHARDS:-2}"
+    SWEEP=forge.spike.KeywordSurfaceSweepTest
+    OTHERS="$(echo "$TCLASSES" | tr ',' '\n' | grep -vx "$SWEEP" | paste -sd, -)"
+    SWEEP_TESTS="$(grep -c '^[[:space:]]*@Test' "$OVERLAY/test/java/forge/spike/KeywordSurfaceSweepTest.java")"
+    DECLARED=$((DECLARED + (SWEEP_SHARDS - 1) * SWEEP_TESTS))
+    testng() { # $1 name  $2 test classes  $3.. extra -D options
+      local name="$1" classes="$2"; shift 2
+      ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" $ACC_JVM -Dapple.awt.UIElement=true \
+          -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" "$@" -cp "$CLASSES:$(cat "$CP_FILE")" \
+          org.testng.TestNG -testclass "$classes" -d "$OUT/testng-$name" ) >"$OUT/javatests-$name.log" 2>&1
+    }
+    TPIDS=""
+    testng main "$OTHERS" & TPIDS="$TPIDS $!"
+    k=0; while [ "$k" -lt "$SWEEP_SHARDS" ]; do
+      testng "sweep$k" "$SWEEP" -Dharness.keyword.shard="$k/$SWEEP_SHARDS" -Dharness.keyword.report="$OUT/keyword-sweep-$k.tsv" &
+      TPIDS="$TPIDS $!"; k=$((k + 1))
+    done
+    for pid in $TPIDS; do wait "$pid"; done
+    cat "$OUT"/javatests-*.log > "$OUT/javatests.log"
+    cat "$OUT"/surfaces-*.tsv > "$OUT/surfaces.tsv" 2>/dev/null
+    RES="$(python3 - "$OUT"/testng-*/testng-results.xml <<'EOF'
 import re,sys
-try: x=open(sys.argv[1]).read()
-except Exception as e: print("ERR no results:", e); sys.exit(0)
-m=re.search(r'<testng-results[^>]*\btotal="(\d+)"[^>]*\bpassed="(\d+)"[^>]*\bfailed="(\d+)"[^>]*\bskipped="(\d+)"', x)
-if not m:
-    m2=re.search(r'skipped="(\d+)"[^>]*failed="(\d+)"[^>]*ignored="(\d+)"[^>]*total="(\d+)"[^>]*passed="(\d+)"', x)
-    if not m2: print("ERR unparsed"); sys.exit(0)
-    sk,f,ig,t,p=map(int,m2.groups())
-else:
-    t,p,f,sk=map(int,m.groups())
-fails=re.findall(r'<test-method [^>]*name="([^"]+)"[^>]*status="FAIL"', x)
-print("total=%d passed=%d failed=%d skipped=%d fails=%s"%(t,p,f,sk,",".join(fails)))
+T=P=F=SK=0; fails=[]
+for path in sys.argv[1:]:
+    try: x=open(path).read()
+    except Exception as e: print("ERR no results:", e); sys.exit(0)
+    m=re.search(r'<testng-results[^>]*\btotal="(\d+)"[^>]*\bpassed="(\d+)"[^>]*\bfailed="(\d+)"[^>]*\bskipped="(\d+)"', x)
+    if not m:
+        m2=re.search(r'skipped="(\d+)"[^>]*failed="(\d+)"[^>]*ignored="(\d+)"[^>]*total="(\d+)"[^>]*passed="(\d+)"', x)
+        if not m2: print("ERR unparsed", path); sys.exit(0)
+        sk,f,ig,t,p=map(int,m2.groups())
+    else:
+        t,p,f,sk=map(int,m.groups())
+    T+=t; P+=p; F+=f; SK+=sk
+    fails+=re.findall(r'<test-method [^>]*name="([^"]+)"[^>]*status="FAIL"', x)
+print("total=%d passed=%d failed=%d skipped=%d fails=%s"%(T,P,F,SK,",".join(fails)))
 EOF
 )"
     echo "$RES" > "$OUT/javatests.summary"
@@ -288,7 +346,7 @@ play() { # $1 tag  $2 seed  $3.. extra env (VAR=value)
   local tag="$1" seed="$2"; shift 2
   local dir="$OUT/$tag"; rm -rf "$dir"; mkdir -p "$dir"
   ( cd "$FORGE/forge-gui-desktop" && env GAME_SEED="$seed" EVAL_OUT="$dir" DECK_A="$DECK_A_FILE" DECK_B="$DECK_B_FILE" \
-      GAME_CAP_MS="$GAME_CAP_MS" "$@" "$JAVA" $ADDOPENS -Xmx4096m -Dio.netty.tryReflectionSetAccessible=true \
+      GAME_CAP_MS="$GAME_CAP_MS" "$@" "$JAVA" $ACC_JVM $ADDOPENS -Xmx4096m -Dio.netty.tryReflectionSetAccessible=true \
       -Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dsun.java2d.d3d=false -Dapple.awt.UIElement=true \
       -Xlog:class+load=info:file="$dir/classload.log" -cp "$CLASSES:$(cat "$CP_FILE")" forge.spike.LlmSpikeHeadless ) >"$dir/game.log" 2>&1
   echo $? > "$dir/exit_code"
@@ -977,11 +1035,11 @@ if has_stage lines; then
   if [ ! -f "$CLASSES/forge/spike/ScriptBridge.class" ]; then fail lines "no compiled classes"; else
     dir="$OUT/lines"; rm -rf "$dir"; mkdir -p "$dir"
     sed 's/^Mountain; Mountain$/Mountains; Mountain/' "$REPO/eval/puzzles/hard/h_1.pzl" > "$dir/h_1-typo.pzl"
-    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
         --forge "$FORGE" line --pzl eval/puzzles/hard/h_1.pzl --out-dir "$dir/played" ) >"$dir/played.log" 2>&1; GRC=$?
-    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
         --forge "$FORGE" line --pzl "$dir/h_1-typo.pzl" --out-dir "$dir/typo" ) >"$dir/typo.log" 2>&1; TRC=$?
-    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
         --forge "$FORGE" line --pzl eval/puzzles/hard/h_0.pzl --out-dir "$dir/h_0" ) >"$dir/h_0.log" 2>&1; HRC=$?
     # The model seat's result row carries the epoch puzzle_score.py refuses to pool across, and what the attempt spent
     # (pr-review of #282: nothing failed when either was dropped).
@@ -1030,7 +1088,7 @@ if has_stage scoring; then
       say "scoring: one open puzzle on the loopback model through puzzle_solve.py, scored as a pilot"
       ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" \
           python3 eval/puzzle_solve.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --ids forge-PP20 \
-          --k 1 --model openrouter:fake/harness-model --budget-usd 0.01 --out "$dir/puzzle" --build "$OUT" --forge "$FORGE" -j 1 ) \
+          --k 1 --model openrouter:fake/harness-model --budget-usd 0.01 --out "$dir/puzzle" --build "${ACC_BUILD:-$OUT}" --forge "$FORGE" -j 1 ) \
           >"$dir/puzzle_solve.log" 2>&1; PRC=$?
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       ( cd "$REPO" && python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --k 1 \
