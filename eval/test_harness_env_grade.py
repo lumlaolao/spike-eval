@@ -232,17 +232,38 @@ class EnvReportTest(unittest.TestCase):
 
 class InstancesCommandTest(unittest.TestCase):
     def test_the_instance_grader_runs_the_suite_with_its_report_and_the_harness_properties(self):
-        argv = hg.instances_command("/j/java", "/c/classes", "/c/cp.txt", "/r", "/o/env-grade.tsv", only="combat.")
+        argv = hg.instances_command("/j/java", "/c/classes", "/c/cp.txt", "/r", "/o/env-grade.tsv", only="combat.",
+                                    seats="mine=a.b.Mine")
         self.assertEqual(argv[0], "/j/java")
-        self.assertIn("forge.spike.EnvGraderSuite", argv)
+        self.assertIn("forge.harnessenv.grader.GraderSuite", argv)
         self.assertIn("-Dharness.envgrade.report=/o/env-grade.tsv", argv)
         self.assertIn("-Dharness.envgrade.only=combat.", argv)
+        self.assertIn("-Dharness.envgrade.seats=mine=a.b.Mine", argv)
         self.assertTrue(any(a.startswith("-Dharness.ownership.tsv=/r/") for a in argv))
         self.assertTrue(argv[argv.index("-cp") + 1].startswith("/c/classes:"))
 
-    def test_the_suite_is_outside_the_acceptance_test_glob_but_compiled_with_it(self):
-        self.assertTrue(os.path.isfile(os.path.join(TESTS, "EnvGraderSuite.java")))
-        self.assertFalse(any(f.startswith("EnvGrader") and f.endswith("Test.java") for f in os.listdir(TESTS)))
+    def test_the_build_compiles_the_overlay_the_grader_and_the_ai_counter_patch_together(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            sub = os.path.join(tmp, "sub")
+            write(sub, "forge-gui-desktop/src/main/java/a/Seat.java", "class Seat {}\n")
+            write(sub, "forge-game/src/main/java/forge/game/Game.java", "// ENGINE PATCH: x\nclass Game {}\n")
+            argv = hg.compile_command("/j/javac", "/c/cp.txt", sub, REPO, "/p/forge/ai/PlayerControllerAi.java", "/o/classes")
+            files = [a for a in argv if a.endswith(".java")]
+            self.assertIn(os.path.join(sub, "forge-gui-desktop/src/main/java/a/Seat.java"), files)
+            self.assertIn(os.path.join(sub, "forge-game/src/main/java/forge/game/Game.java"), files)
+            self.assertIn("/p/forge/ai/PlayerControllerAi.java", files)
+            self.assertTrue(any(f.endswith("forge/harnessenv/grader/Grader.java") for f in files))
+            self.assertTrue(any(f.endswith("forge/harnessenv/SeatFactory.java") for f in files))
+            self.assertFalse(any("/src/test/" in f and sub in f for f in files), "a submission's own tests are not compiled")
+            self.assertEqual(argv[argv.index("-d") + 1], "/o/classes")
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_the_grader_suite_is_outside_the_acceptance_test_glob(self):
+        grader = os.path.join(REPO, "forge-overlay", "forge-gui-desktop", "src", "test", "java", "forge", "harnessenv", "grader")
+        self.assertTrue(os.path.isfile(os.path.join(grader, "GraderSuite.java")))
+        self.assertFalse(any(f.endswith("Test.java") for f in os.listdir(grader)))
 
 
 class FamilyTest(unittest.TestCase):

@@ -1,21 +1,22 @@
-package forge.spike;
+package forge.harnessenv.grader;
 
-import static forge.spike.EnvGrader.attacks;
-import static forge.spike.EnvGrader.blocks;
-import static forge.spike.EnvGrader.blocksOf;
-import static forge.spike.EnvGrader.digest;
-import static forge.spike.EnvGrader.json;
-import static forge.spike.EnvGrader.keeps;
-import static forge.spike.EnvGrader.names;
-import static forge.spike.EnvGrader.numbers;
-import static forge.spike.EnvGrader.option;
-import static forge.spike.EnvGrader.ordered;
-import static forge.spike.EnvGrader.orders;
-import static forge.spike.EnvGrader.repeat;
-import static forge.spike.EnvGrader.seq;
-import static forge.spike.EnvGrader.set;
-import static forge.spike.EnvGrader.splits;
-import static forge.spike.EnvGrader.subsets;
+import static forge.harnessenv.grader.Grader.attacks;
+import static forge.harnessenv.grader.Grader.blocks;
+import static forge.harnessenv.grader.Grader.blocksOf;
+import static forge.harnessenv.grader.Grader.digest;
+import static forge.harnessenv.grader.Grader.json;
+import static forge.harnessenv.grader.Grader.keeps;
+import static forge.harnessenv.grader.Grader.names;
+import static forge.harnessenv.grader.Grader.numbers;
+import static forge.harnessenv.grader.Grader.option;
+import static forge.harnessenv.grader.Grader.ordered;
+import static forge.harnessenv.grader.Grader.orders;
+import static forge.harnessenv.grader.Grader.repeat;
+import static forge.harnessenv.grader.Grader.seq;
+import static forge.harnessenv.grader.Grader.set;
+import static forge.harnessenv.grader.Grader.splits;
+import static forge.harnessenv.grader.Grader.subsets;
+import static forge.harnessenv.grader.Grader.subsetsOf;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,16 +58,16 @@ import forge.util.collect.FCollection;
  * (CombatUtil, AttackConstraints) or from the arguments the hook is handed. The families group surfaces as the owner
  * listed them (2026-10-22): damage prevention and replacement choices sit with combat.
  */
-final class EnvInstances {
-    private EnvInstances() { }
+public final class Instances {
+    private Instances() { }
 
     // ------------------------------------------------------------------ board helpers
 
-    static Game bare(PhaseType ph) { return LineFindingProbeTest.bareGame(ph); }
+    static Game bare(PhaseType ph) { return Boards.bareGame(ph); }
     static Player me(Game g) { return g.getPlayers().get(0); }
     static Player rival(Game g) { return g.getPlayers().get(1); }
-    static Card mine(Game g, String name, ZoneType z) { return LineFindingProbeTest.card(name, me(g), z); }
-    static Card theirs(Game g, String name, ZoneType z) { return LineFindingProbeTest.card(name, rival(g), z); }
+    static Card mine(Game g, String name, ZoneType z) { return Boards.card(name, me(g), z); }
+    static Card theirs(Game g, String name, ZoneType z) { return Boards.card(name, rival(g), z); }
 
     static Card find(Game g, String name) {
         for (Card c : g.getCardsInGame()) if (c.getName().equals(name)) return c;
@@ -83,7 +84,7 @@ final class EnvInstances {
     static String play(Game g, PlayerController c) {
         List<SpellAbility> sas = c.chooseSpellAbilityToPlay();
         if (sas != null) for (SpellAbility sa : sas) c.playChosenSpellAbility(sa);
-        KeywordSurfaceSweepTest.resolveAll(g);
+        Boards.resolveAll(g);
         return digest(g);
     }
 
@@ -184,8 +185,8 @@ final class EnvInstances {
 
     // ------------------------------------------------------------------ the catalog
 
-    static List<EnvGrader.Instance> all() {
-        List<EnvGrader.Instance> out = new ArrayList<>();
+    public static List<Grader.Instance> all() {
+        List<Grader.Instance> out = new ArrayList<>();
         combat(out);
         play(out);
         targets(out);
@@ -199,10 +200,10 @@ final class EnvInstances {
         return out;
     }
 
-    private static EnvGrader.Instance inst(String id, String family, String hook, Supplier<Game> board,
+    private static Grader.Instance inst(String id, String family, String hook, Supplier<Game> board,
             BiFunction<Game, PlayerController, String> drive, Function<Game, Set<String>> legal, int minDistinct, int minAsks,
             List<List<String>> profiles, String... show) {
-        return new EnvGrader.Instance(id, family, hook, board, drive, legal, minDistinct, minAsks, profiles, show);
+        return new Grader.Instance(id, family, hook, board, drive, legal, minDistinct, minAsks, profiles, show);
     }
 
     /** The engine's declare-attackers step (PhaseHandler.declareAttackersTurnBasedAction): the game's combat is set,
@@ -225,30 +226,30 @@ final class EnvInstances {
         return (g, c) -> { Combat combat = attack.apply(g); c.declareBlockers(me(g), combat); return blocksOf(combat); };
     }
 
-    static void combat(List<EnvGrader.Instance> out) {
+    static void combat(List<Grader.Instance> out) {
         PhaseType atk = PhaseType.COMBAT_DECLARE_ATTACKERS, blk = PhaseType.COMBAT_DECLARE_BLOCKERS;
         out.add(inst("combat.attack.choose-attackers", "combat", "declareAttackers",
                 board(atk, g -> { mine(g, "Grizzly Bears", ZoneType.Battlefield); mine(g, "Hill Giant", ZoneType.Battlefield); }),
-                declareAttackers(), EnvInstances::legalAttacks, 0, 1, repeat(subsets(2, 1)), "Grizzly Bears", "Hill Giant"));
+                declareAttackers(), Instances::legalAttacks, 0, 1, repeat(subsets(2, 1)), "Grizzly Bears", "Hill Giant"));
         out.add(inst("combat.attack.planeswalker", "combat", "declareAttackers",
                 board(atk, g -> { mine(g, "Grizzly Bears", ZoneType.Battlefield); theirs(g, "Jace, the Mind Sculptor", ZoneType.Battlefield); }),
-                declareAttackers(), EnvInstances::legalAttacks, 0, 1, repeat(subsets(1, 3)), "Grizzly Bears", "Jace, the Mind Sculptor"));
+                declareAttackers(), Instances::legalAttacks, 0, 1, repeat(subsets(1, 3)), "Grizzly Bears", "Jace, the Mind Sculptor"));
         out.add(inst("combat.attack.battle", "combat", "declareAttackers",
                 board(atk, g -> {
                     mine(g, "Grizzly Bears", ZoneType.Battlefield);
                     mine(g, "Invasion of Gobakhan", ZoneType.Battlefield).setProtectingPlayer(rival(g));
                 }),
-                declareAttackers(), EnvInstances::legalAttacks, 0, 1, repeat(subsets(1, 3)), "Grizzly Bears", "Invasion of Gobakhan"));
+                declareAttackers(), Instances::legalAttacks, 0, 1, repeat(subsets(1, 3)), "Grizzly Bears", "Invasion of Gobakhan"));
         out.add(inst("combat.attack.must-attack", "combat", "declareAttackers",
                 board(atk, g -> { mine(g, "Bloodrock Cyclops", ZoneType.Battlefield); mine(g, "Grizzly Bears", ZoneType.Battlefield); }),
-                declareAttackers(), EnvInstances::legalAttacks, 0, 1, repeat(subsets(2, 1)), "Bloodrock Cyclops", "Grizzly Bears"));
+                declareAttackers(), Instances::legalAttacks, 0, 1, repeat(subsets(2, 1)), "Bloodrock Cyclops", "Grizzly Bears"));
         out.add(inst("combat.attack.cant-attack", "combat", "declareAttackers",
                 board(atk, g -> {
                     mine(g, "Wall of Wood", ZoneType.Battlefield);
                     mine(g, "Grizzly Bears", ZoneType.Battlefield);
                     mine(g, "Hill Giant", ZoneType.Battlefield).setSickness(true);
                 }),
-                declareAttackers(), EnvInstances::legalAttacks, 0, 1, repeat(subsets(3, 1)), "Grizzly Bears"));
+                declareAttackers(), Instances::legalAttacks, 0, 1, repeat(subsets(3, 1)), "Grizzly Bears"));
         out.add(inst("combat.attack.tax", "combat", "payCombatCost",
                 board(PhaseType.MAIN1, g -> {
                     theirs(g, "Ghostly Prison", ZoneType.Battlefield);
@@ -295,7 +296,7 @@ final class EnvInstances {
                 declareBlockers(two), g -> legalBlocks(g, two), 0, 1, repeat(blocks(2, 2)), "Palace Guard", "Grizzly Bears", "Savannah Lions"));
 
         List<String> orderAnswers = new ArrayList<>(orders(2));
-        orderAnswers.add(json("options", EnvGrader.ints(List.of(3)), "option", 3));
+        orderAnswers.add(json("options", Grader.ints(List.of(3)), "option", 3));
         out.add(inst("combat.damage.order", "combat", "orderBlockers",
                 board(blk, g -> { mine(g, "Colossal Dreadmaw", ZoneType.Battlefield); theirs(g, "Grizzly Bears", ZoneType.Battlefield);
                     theirs(g, "Savannah Lions", ZoneType.Battlefield); }),
@@ -362,7 +363,7 @@ final class EnvInstances {
                     combat.setBlocked(bears, true);
                     g.getPhaseHandler().setCombat(combat);
                 }),
-                EnvInstances::play, null, 3, 1, seq(option(3), option(3)), "Giant Growth", "Hill Giant"));
+                Instances::play, null, 3, 1, seq(option(3), option(3)), "Giant Growth", "Hill Giant"));
         out.add(inst("combat.prevention.shield-split", "combat", "divideShield",
                 board(PhaseType.MAIN1, g -> { mine(g, "Mana Clash", ZoneType.Hand); mine(g, "Grizzly Bears", ZoneType.Battlefield);
                     mine(g, "Savannah Lions", ZoneType.Battlefield); }),
@@ -387,37 +388,61 @@ final class EnvInstances {
                 g -> set("Furnace of Rath", "Dictate of the Twin Gods"), 0, 1, repeat(option(2)), "Furnace of Rath", "Dictate of the Twin Gods"));
     }
 
-    static void play(List<EnvGrader.Instance> out) {
+    static void play(List<Grader.Instance> out) {
         out.add(inst("play.choose-a-play", "play", "chooseSpellAbilityToPlay",
                 board(PhaseType.MAIN1, g -> { mine(g, "Forest", ZoneType.Battlefield); mine(g, "Forest", ZoneType.Battlefield);
                     mine(g, "Grizzly Bears", ZoneType.Hand); mine(g, "Forest", ZoneType.Hand); }),
-                EnvInstances::play, null, 3, 1, repeat(option(4)), "Grizzly Bears", "Forest"));
+                Instances::play, null, 3, 1, repeat(option(4)), "Grizzly Bears", "Forest"));
+        out.add(inst("play.flashback-from-the-graveyard", "play", "chooseSpellAbilityToPlay",
+                board(PhaseType.MAIN1, g -> { for (int i = 0; i < 3; i++) mine(g, "Island", ZoneType.Battlefield);
+                    mine(g, "Think Twice", ZoneType.Graveyard); mine(g, "Island", ZoneType.Library); mine(g, "Forest", ZoneType.Library); }),
+                Instances::play, null, 2, 1, repeat(option(4)), "Think Twice"));
+        out.add(inst("play.activated-ability", "play", "chooseSpellAbilityToPlay",
+                board(PhaseType.MAIN1, g -> { mine(g, "Prodigal Sorcerer", ZoneType.Battlefield); theirs(g, "Grizzly Bears", ZoneType.Battlefield); }),
+                Instances::play, null, 3, 1, seq(option(3), option(4)), "Prodigal Sorcerer"));
+        out.add(inst("play.creature-or-land", "play", "chooseSpellAbilityToPlay",
+                board(PhaseType.MAIN1, g -> { mine(g, "Mountain", ZoneType.Battlefield); mine(g, "Mountain", ZoneType.Battlefield);
+                    mine(g, "Goblin Raider", ZoneType.Hand); mine(g, "Mountain", ZoneType.Hand); mine(g, "Shock", ZoneType.Hand);
+                    theirs(g, "Llanowar Elves", ZoneType.Battlefield); }),
+                Instances::play, null, 4, 1, seq(option(5), option(4)), "Goblin Raider", "Shock"));
     }
 
-    static void targets(List<EnvGrader.Instance> out) {
-        BiFunction<Game, PlayerController, String> target = (g, c) -> {
-            SpellAbility sa = spell(g, "Lightning Bolt");
+    /** chooseTargetsFor on the named spell, outside any cast: the targets set, or "cancel". */
+    private static BiFunction<Game, PlayerController, String> target(String spellName) {
+        return (g, c) -> {
+            SpellAbility sa = spell(g, spellName);
             if (!c.chooseTargetsFor(sa)) return "cancel";
             List<String> t = new ArrayList<>();
             for (Card x : sa.getTargets().getTargetCards()) t.add(x.getName());
             for (Player p : sa.getTargets().getTargetPlayers()) t.add(p.getName());
             return t.isEmpty() ? "none" : String.join(",", t);
         };
+    }
+
+    static void targets(List<Grader.Instance> out) {
         out.add(inst("targets.any-target", "targets", "chooseTargetsFor",
                 board(PhaseType.MAIN1, g -> { mine(g, "Lightning Bolt", ZoneType.Hand); mine(g, "Grizzly Bears", ZoneType.Battlefield);
                     theirs(g, "Hill Giant", ZoneType.Battlefield); }),
-                target, g -> set("Seat", "Rival", "Grizzly Bears", "Hill Giant", "?cancel"), 0, 1, repeat(option(5)),
+                target("Lightning Bolt"), g -> set("Seat", "Rival", "Grizzly Bears", "Hill Giant", "?cancel"), 0, 1, repeat(option(5)),
                 "Lightning Bolt", "Grizzly Bears", "Hill Giant"));
         out.add(inst("targets.through-a-cast", "targets", "chooseTargetsFor",
                 board(PhaseType.MAIN1, g -> { mine(g, "Mountain", ZoneType.Battlefield); mine(g, "Lightning Bolt", ZoneType.Hand);
                     theirs(g, "Hill Giant", ZoneType.Battlefield); }),
-                EnvInstances::play, null, 4, 1, seq(option(3), option(3)), "Lightning Bolt", "Hill Giant"));
+                Instances::play, null, 4, 1, seq(option(3), option(3)), "Lightning Bolt", "Hill Giant"));
+        out.add(inst("targets.nonblack-creature", "targets", "chooseTargetsFor",
+                board(PhaseType.MAIN1, g -> { mine(g, "Doom Blade", ZoneType.Hand); mine(g, "Grizzly Bears", ZoneType.Battlefield);
+                    theirs(g, "Hill Giant", ZoneType.Battlefield); theirs(g, "Drudge Skeletons", ZoneType.Battlefield); }),
+                target("Doom Blade"), g -> set("Grizzly Bears", "Hill Giant", "?cancel"), 0, 1, repeat(option(4)),
+                "Doom Blade", "Grizzly Bears", "Hill Giant"));
+        out.add(inst("targets.player-only", "targets", "chooseTargetsFor",
+                board(PhaseType.MAIN1, g -> { mine(g, "Lava Spike", ZoneType.Hand); mine(g, "Grizzly Bears", ZoneType.Battlefield); }),
+                target("Lava Spike"), g -> set("Seat", "Rival", "?cancel"), 0, 1, repeat(option(3)), "Lava Spike"));
     }
 
-    static void modes(List<EnvGrader.Instance> out) {
+    static void modes(List<Grader.Instance> out) {
         List<String> pairs = new ArrayList<>();
-        for (int a = 1; a <= 4; a++) for (int b = a + 1; b <= 4; b++) pairs.add(json("options", EnvGrader.ints(List.of(a, b)), "option", a));
-        pairs.add(json("options", EnvGrader.ints(List.of(5)), "option", 5));
+        for (int a = 1; a <= 4; a++) for (int b = a + 1; b <= 4; b++) pairs.add(json("options", Grader.ints(List.of(a, b)), "option", a));
+        pairs.add(json("options", Grader.ints(List.of(5)), "option", 5));
         out.add(inst("modes.choose-two-of-four", "modes", "chooseModeForAbility",
                 board(PhaseType.MAIN1, g -> {
                     mine(g, "Badlands", ZoneType.Battlefield); mine(g, "Badlands", ZoneType.Battlefield); mine(g, "Mountain", ZoneType.Battlefield);
@@ -425,19 +450,42 @@ final class EnvInstances {
                     theirs(g, "Ornithopter", ZoneType.Battlefield); theirs(g, "Savannah Lions", ZoneType.Battlefield);
                     theirs(g, "Lightning Bolt", ZoneType.Hand);
                 }),
-                EnvInstances::play, null, 6, 2, seq(option(2), pairs, option(2)), "Kolaghan's Command"));
+                Instances::play, null, 6, 2, seq(option(2), pairs, option(2)), "Kolaghan's Command"));
+        out.add(inst("modes.choose-one-of-three", "modes", "chooseModeForAbility",
+                board(PhaseType.MAIN1, g -> {
+                    mine(g, "Island", ZoneType.Battlefield); mine(g, "Mountain", ZoneType.Battlefield);
+                    mine(g, "Izzet Charm", ZoneType.Hand);
+                    for (String n : new String[] {"Ponder", "Brainstorm", "Opt"}) mine(g, n, ZoneType.Library);
+                    theirs(g, "Grizzly Bears", ZoneType.Battlefield);
+                }),
+                Instances::play, null, 3, 2, seq(option(2), option(3), option(2), subsetsOf(2, 2)), "Izzet Charm"));
+        out.add(inst("modes.charm-with-counters", "modes", "chooseModeForAbility",
+                board(PhaseType.MAIN1, g -> {
+                    mine(g, "Plains", ZoneType.Battlefield); mine(g, "Swamp", ZoneType.Battlefield); mine(g, "Forest", ZoneType.Battlefield);
+                    mine(g, "Abzan Charm", ZoneType.Hand); mine(g, "Grizzly Bears", ZoneType.Battlefield);
+                    for (String n : new String[] {"Ponder", "Brainstorm"}) mine(g, n, ZoneType.Library);
+                    theirs(g, "Hill Giant", ZoneType.Battlefield);
+                }),
+                Instances::play, null, 3, 2, seq(option(2), option(3), option(3), splits(2)), "Abzan Charm"));
+        out.add(inst("modes.charm-with-a-discard", "modes", "chooseModeForAbility",
+                board(PhaseType.MAIN1, g -> {
+                    mine(g, "Swamp", ZoneType.Battlefield); mine(g, "Funeral Charm", ZoneType.Hand);
+                    mine(g, "Grizzly Bears", ZoneType.Battlefield); theirs(g, "Hill Giant", ZoneType.Battlefield);
+                    theirs(g, "Lightning Bolt", ZoneType.Hand);
+                }),
+                Instances::play, null, 3, 2, seq(option(2), option(3), option(3)), "Funeral Charm"));
     }
 
-    static void costs(List<EnvGrader.Instance> out) {
+    static void costs(List<Grader.Instance> out) {
         out.add(inst("costs.sacrifice-as-cost", "costs", "getCostDecisionMaker",
                 board(PhaseType.MAIN1, g -> { mine(g, "Goblin Bombardment", ZoneType.Battlefield); mine(g, "Grizzly Bears", ZoneType.Battlefield);
                     mine(g, "Memnite", ZoneType.Battlefield); mine(g, "Savannah Lions", ZoneType.Battlefield); }),
-                EnvInstances::play, null, 3, 2, seq(option(2), option(3), option(2)), "Goblin Bombardment", "Memnite"));
+                Instances::play, null, 3, 2, seq(option(2), option(3), option(2)), "Goblin Bombardment", "Memnite"));
         List<String> delve = new ArrayList<>();
         for (int mask = 0; mask < 16; mask++) {
             List<Integer> s = new ArrayList<>();
             for (int i = 0; i < 4; i++) if ((mask & (1 << i)) != 0) s.add(i + 1);
-            if (s.size() >= 3) delve.add(json("options", EnvGrader.ints(s), "number", s.size(), "option", s.get(0)));
+            if (s.size() >= 3) delve.add(json("options", Grader.ints(s), "number", s.size(), "option", s.get(0)));
         }
         out.add(inst("costs.delve", "costs", "chooseCardsToDelve",
                 board(PhaseType.MAIN1, g -> {
@@ -446,7 +494,7 @@ final class EnvInstances {
                     for (String n : new String[] {"Lightning Bolt", "Counterspell", "Ponder", "Brainstorm"}) mine(g, n, ZoneType.Graveyard);
                     for (int i = 0; i < 4; i++) mine(g, "Island", ZoneType.Library);
                 }),
-                EnvInstances::play, null, 5, 2, seq(option(2), delve), "Treasure Cruise", "Counterspell"));
+                Instances::play, null, 5, 2, seq(option(2), delve), "Treasure Cruise", "Counterspell"));
         out.add(inst("costs.kicker", "costs", "chooseOptionalCosts",
                 board(PhaseType.MAIN1, g -> { for (int i = 0; i < 5; i++) mine(g, "Mountain", ZoneType.Battlefield); mine(g, "Burst Lightning", ZoneType.Hand); }),
                 (g, c) -> {
@@ -458,7 +506,7 @@ final class EnvInstances {
                 g -> set("none", "Kicker1"), 0, 1, repeat(subsets(1, 0)), "Burst Lightning"));
         out.add(inst("costs.unless-cost", "costs", "payCostToPreventEffect",
                 board(PhaseType.MAIN1, g -> { mine(g, "Mountain", ZoneType.Battlefield);
-                    LineFindingProbeTest.rivalCasts(g, "Force Spike", mine(g, "Lightning Bolt", ZoneType.Hand)); }),
+                    Boards.rivalCasts(g, "Force Spike", mine(g, "Lightning Bolt", ZoneType.Hand)); }),
                 (g, c) -> yesNo(c.payCostToPreventEffect(new forge.game.cost.Cost("1", false), g.getStack().peekAbility(), false,
                         new FCollection<>(me(g))))
                         + "|tapped=" + find(g, "Mountain").isTapped(),
@@ -470,12 +518,37 @@ final class EnvInstances {
         out.add(inst("costs.x", "costs", "announceRequirements",
                 board(PhaseType.MAIN1, g -> { for (int i = 0; i < 3; i++) mine(g, "Forest", ZoneType.Battlefield);
                     mine(g, "Green Sun's Zenith", ZoneType.Hand); mine(g, "Llanowar Elves", ZoneType.Library); mine(g, "Forest", ZoneType.Library); }),
-                EnvInstances::play, null, 3, 2, seq(option(2), numbers(0, 2), option(2)), "Green Sun's Zenith"));
+                Instances::play, null, 3, 2, seq(option(2), numbers(0, 2), option(2)), "Green Sun's Zenith"));
+        // Mana payment, read from the engine's own record of what paid (SpellAbility.getPayingMana) before the spell
+        // resolves: which colour an any-colour source made for a generic cost leaves no trace on the board.
+        out.add(inst("costs.mana-colour-for-generic", "costs", "payManaCost",
+                board(PhaseType.MAIN1, g -> { mine(g, "Birds of Paradise", ZoneType.Battlefield); mine(g, "Sol Ring", ZoneType.Hand); }),
+                (g, c) -> {
+                    List<SpellAbility> sas = c.chooseSpellAbilityToPlay();
+                    List<String> paid = new ArrayList<>();
+                    if (sas != null) for (SpellAbility sa : sas) {
+                        c.playChosenSpellAbility(sa);
+                        for (forge.game.mana.Mana m : sa.getPayingMana()) paid.add(m.toString());
+                    }
+                    java.util.Collections.sort(paid);
+                    Boards.resolveAll(g);
+                    return "paid=" + paid + " solring=" + me(g).getCardsIn(ZoneType.Battlefield).stream().anyMatch(x -> x.getName().equals("Sol Ring"));
+                },
+                null, 5, 2, seq(option(2), option(6)), "Sol Ring", "Birds of Paradise"));
+        out.add(inst("costs.mana-from-the-pool", "costs", "chooseManaFromPool",
+                board(PhaseType.MAIN1, g -> {
+                    Card island = mine(g, "Island", ZoneType.Battlefield), mountain = mine(g, "Mountain", ZoneType.Battlefield);
+                    mine(g, "Bone Saw", ZoneType.Battlefield); mine(g, "Grizzly Bears", ZoneType.Battlefield);
+                    me(g).getManaPool().addManaNoEvent(new forge.game.mana.Mana(forge.card.MagicColor.BLUE, island, null, me(g)));
+                    me(g).getManaPool().addManaNoEvent(new forge.game.mana.Mana(forge.card.MagicColor.RED, mountain, null, me(g)));
+                    island.setTapped(true); mountain.setTapped(true);
+                }),
+                Instances::play, null, 3, 2, seq(option(2), option(2), option(3)), "Bone Saw"));
     }
 
-    static void triggers(List<EnvGrader.Instance> out) {
+    static void triggers(List<Grader.Instance> out) {
         List<String> two = new ArrayList<>(orders(2));
-        two.add(json("options", EnvGrader.ints(List.of(3)), "option", 3));
+        two.add(json("options", Grader.ints(List.of(3)), "option", 3));
         out.add(inst("triggers.order-simultaneous", "triggers-and-replacements", "orderSimultaneousSa",
                 board(PhaseType.MAIN1, g -> { theirs(g, "Savannah Lions", ZoneType.Battlefield); mine(g, "Palace Jailer", ZoneType.Hand); }),
                 (g, c) -> {
@@ -504,7 +577,7 @@ final class EnvInstances {
                 g -> set("yes", "no"), 0, 1, repeat(option(2)), "Mox Diamond"));
     }
 
-    static void gameStart(List<EnvGrader.Instance> out) {
+    static void gameStart(List<Grader.Instance> out) {
         String[] hand = {"Lightning Bolt", "Ponder", "Brainstorm", "Grizzly Bears", "Savannah Lions", "Llanowar Elves", "Counterspell"};
         out.add(inst("game-start.mulligan", "game-start", "mulliganKeepHand",
                 board(PhaseType.MAIN1, g -> { for (String n : hand) mine(g, n, ZoneType.Hand); }),
@@ -518,9 +591,28 @@ final class EnvInstances {
                 board(PhaseType.MAIN1, g -> { }),
                 (g, c) -> c.chooseStartingPlayer(true).getName(),
                 g -> set("Seat", "Rival"), 0, 1, repeat(option(2))));
+        out.add(inst("game-start.bottom-two", "game-start", "tuckCardsViaMulligan",
+                board(PhaseType.MAIN1, g -> { for (String n : hand) mine(g, n, ZoneType.Hand); }),
+                (g, c) -> names(c.tuckCardsViaMulligan(new CardCollection(me(g).getCardsIn(ZoneType.Hand)), 2)),
+                g -> {
+                    Set<String> s = new java.util.TreeSet<>();
+                    for (int a = 0; a < hand.length; a++) for (int b = a + 1; b < hand.length; b++) {
+                        String x = hand[a], y = hand[b];
+                        s.add(x.compareTo(y) < 0 ? x + "," + y : y + "," + x);
+                    }
+                    return s;
+                },
+                0, 1, repeat(subsetsOf(7, 2)), "Lightning Bolt", "Counterspell"));
+        out.add(inst("game-start.opening-hand-action", "game-start", "chooseSaToActivateFromOpeningHand",
+                board(PhaseType.MAIN1, g -> mine(g, "Lightning Bolt", ZoneType.Hand)),
+                (g, c) -> {
+                    List<SpellAbility> r = c.chooseSaToActivateFromOpeningHand(new ArrayList<>(Arrays.asList(spell(g, "Lightning Bolt"))));
+                    return r == null || r.isEmpty() ? "none" : r.get(0).getHostCard().getName();
+                },
+                g -> set("none", "Lightning Bolt"), 0, 1, repeat(subsets(1, 0)), "Lightning Bolt"));
     }
 
-    static void library(List<EnvGrader.Instance> out) {
+    static void library(List<Grader.Instance> out) {
         Set<String> partitions = set("top=|bottom=Counterspell,Lightning Bolt", "top=Counterspell|bottom=Lightning Bolt",
                 "top=Lightning Bolt|bottom=Counterspell", "top=Counterspell,Lightning Bolt|bottom=");
         out.add(inst("library.scry-two", "library", "arrangeForScry",
@@ -556,9 +648,29 @@ final class EnvInstances {
                 (g, c) -> ordered(c.orderMoveToZoneList(new CardCollection(Arrays.asList(find(g, "Lightning Bolt"), find(g, "Counterspell"))),
                         ZoneType.Library, spell(g, "Brainstorm"))),
                 g -> set("Lightning Bolt>Counterspell", "Counterspell>Lightning Bolt"), 0, 1, repeat(orders(2)), "Lightning Bolt", "Counterspell"));
+        out.add(inst("library.scry-one", "library", "arrangeForScry",
+                board(PhaseType.MAIN1, g -> mine(g, "Lightning Bolt", ZoneType.Library)),
+                (g, c) -> {
+                    org.apache.commons.lang3.tuple.ImmutablePair<CardCollection, CardCollection> r =
+                            c.arrangeForScry(new CardCollection(find(g, "Lightning Bolt")));
+                    return "top=" + names(r.getLeft()) + "|bottom=" + names(r.getRight());
+                },
+                g -> set("top=Lightning Bolt|bottom=", "top=|bottom=Lightning Bolt"), 0, 1, repeat(subsets(1, 0)), "Lightning Bolt"));
+        out.add(inst("library.surveil-one", "library", "arrangeForSurveil",
+                board(PhaseType.MAIN1, g -> mine(g, "Counterspell", ZoneType.Library)),
+                (g, c) -> {
+                    org.apache.commons.lang3.tuple.ImmutablePair<CardCollection, CardCollection> r =
+                            c.arrangeForSurveil(new CardCollection(find(g, "Counterspell")));
+                    return "top=" + names(r.getLeft()) + "|grave=" + names(r.getRight());
+                },
+                g -> set("top=Counterspell|grave=", "top=|grave=Counterspell"), 0, 1, repeat(subsets(1, 0)), "Counterspell"));
+        out.add(inst("library.top-or-bottom", "library", "willPutCardOnTop",
+                board(PhaseType.MAIN1, g -> mine(g, "Lightning Bolt", ZoneType.Library)),
+                (g, c) -> c.willPutCardOnTop(find(g, "Lightning Bolt")) ? "top" : "bottom",
+                g -> set("top", "bottom"), 0, 1, repeat(option(2)), "Lightning Bolt"));
     }
 
-    static void choices(List<EnvGrader.Instance> out) {
+    static void choices(List<Grader.Instance> out) {
         out.add(inst("choices.sacrifice", "choices", "choosePermanentsToSacrifice",
                 board(PhaseType.MAIN1, g -> { theirs(g, "Diabolic Edict", ZoneType.Hand); mine(g, "Grizzly Bears", ZoneType.Battlefield);
                     mine(g, "Savannah Lions", ZoneType.Battlefield); }),
@@ -618,10 +730,26 @@ final class EnvInstances {
                 g -> set("none", "Lightning Bolt", "Counterspell"), 0, 1, repeat(subsets(2, 0)), "Lightning Bolt", "Counterspell"));
     }
 
-    static void variants(List<EnvGrader.Instance> out) {
+    static void variants(List<Grader.Instance> out) {
         out.add(inst("variants.flip-call", "variants", "chooseFlipResult",
                 board(PhaseType.MAIN1, g -> mine(g, "Mana Clash", ZoneType.Hand)),
                 (g, c) -> yesNo(c.chooseFlipResult(find(g, "Mana Clash").getFirstSpellAbility(), me(g), true)),
                 g -> set("yes", "no"), 0, 1, repeat(option(2)), "Mana Clash"));
+        out.add(inst("variants.flip-result-to-keep", "variants", "chooseFlipResult",
+                board(PhaseType.MAIN1, g -> mine(g, "Mana Clash", ZoneType.Hand)),
+                (g, c) -> yesNo(c.chooseFlipResult(find(g, "Mana Clash").getFirstSpellAbility(), me(g), false)),
+                g -> set("yes", "no"), 0, 1, repeat(option(2)), "Mana Clash"));
+        out.add(inst("variants.roll-to-ignore", "variants", "chooseRollToIgnore",
+                board(PhaseType.MAIN1, g -> { }),
+                (g, c) -> String.valueOf(c.chooseRollToIgnore(List.of(3, 15))),
+                g -> set("3", "15"), 0, 1, repeat(option(2))));
+        out.add(inst("variants.dice-to-reroll", "variants", "chooseDiceToReroll",
+                board(PhaseType.MAIN1, g -> { }),
+                (g, c) -> { List<Integer> r = new ArrayList<>(c.chooseDiceToReroll(List.of(3, 15))); java.util.Collections.sort(r); return r.toString(); },
+                g -> set("[]", "[3]", "[15]", "[3, 15]"), 0, 1, repeat(subsets(2, 0))));
+        out.add(inst("variants.roll-to-modify", "variants", "chooseRollToModify",
+                board(PhaseType.MAIN1, g -> { }),
+                (g, c) -> String.valueOf(c.chooseRollToModify(List.of(3, 15))),
+                g -> set("3", "15", "?null"), 0, 1, repeat(option(2))));
     }
 }

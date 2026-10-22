@@ -198,6 +198,7 @@ if has_stage compile; then
     "$JAVAC" --release 17 -encoding UTF-8 -proc:none -nowarn -cp "$(cat "$CP_FILE")" -d "$CLASSES" \
       "$OVERLAY"/main/java/forge/spike/*.java "$OVERLAY"/test/java/forge/spike/*.java \
       $(find "$REPO/forge-overlay" -path '*/src/main/java/*' -name '*.java' -not -path '*/forge/spike/*') \
+      $(find "$OVERLAY/test/java/forge/harnessenv" -name '*.java' 2>/dev/null) \
       >"$OUT/javac.log" 2>&1
     RC=$?
     NC="$(find "$CLASSES" -name '*.class' | wc -l | tr -d ' ')"
