@@ -138,6 +138,113 @@ class ScoreTest(unittest.TestCase):
         self.assertEqual(s["score"], 0.0)
 
 
+class CalibrationTest(unittest.TestCase):
+    """The benchmark number is gated per family (owner, 2026-10-22); the additive credit is the dense reward only."""
+
+    def test_every_family_at_its_ceiling_is_one_both_ways(self):
+        c = hg.calibrated({f: 1.0 for f in hg.FAMILIES})
+        self.assertEqual((c["benchmark"], c["dense"]), (1.0, 1.0))
+
+    def test_one_family_at_zero_halves_the_benchmark_and_barely_moves_the_dense_reward(self):
+        s = {f: 1.0 for f in hg.FAMILIES}
+        s["combat"] = 0.0
+        c = hg.calibrated(s)
+        self.assertAlmostEqual(c["dense"], 8 / 9, places=6)
+        self.assertAlmostEqual(c["benchmark"], hg.FLOOR ** (1 / 9), places=6)
+        self.assertLess(c["benchmark"], 0.5)
+        self.assertEqual(c["families_at_zero"], ["combat"])
+
+    def test_a_seat_that_scores_only_on_play_is_near_zero(self):
+        s = {f: 0.0 for f in hg.FAMILIES}
+        s["play"] = 1.0
+        self.assertLess(hg.calibrated(s)["benchmark"], 0.01)
+
+    def test_partial_credit_in_a_family_still_moves_the_benchmark(self):
+        s = {f: 1.0 for f in hg.FAMILIES}
+        s["combat"] = 0.5
+        self.assertTrue(hg.calibrated(s)["benchmark"] < 1.0)
+        self.assertTrue(hg.calibrated(s)["benchmark"] > hg.calibrated(dict(s, combat=0.0))["benchmark"])
+
+    def test_nothing_at_all_is_zero(self):
+        self.assertEqual(hg.calibrated({})["benchmark"], 0.0)
+
+
+class EvidenceCalibrationTest(unittest.TestCase):
+    def test_an_acceptance_record_with_no_combat_ask_scores_far_below_ours(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            ev = Evidence(tmp)
+            ev.asked -= {h for h in ev.hooks if hg.family(h) == "combat"}
+            s = hg.score_evidence(ev.write(), LEDGER, hg.hidden_classes(TESTS))
+            self.assertLess(s["score"], 0.5)
+            self.assertGreater(s["dense"], 0.9)
+        finally:
+            shutil.rmtree(tmp)
+
+
+REPORT_HEAD = "seat\tinstance\tfamily\thook\tlegal\treached\tmin_requests\tasked\toffered\tcarried\tshown\tnoparse\tpass\tai\tnote\n"
+
+
+def report_row(seat, inst, fam, ok):
+    flag = "1" if ok else "0"
+    return "\t".join([seat, inst, fam, "h", "2", "2", "1", flag, flag, flag, flag, "1", flag, "0", ""]) + "\n"
+
+
+class EnvReportTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        rows = []
+        for fam in ("combat", "play", "costs"):
+            for i in range(2):
+                rows.append(report_row("ours", "%s.%d" % (fam, i), fam, True))
+                rows.append(report_row("default", "%s.%d" % (fam, i), fam, fam == "play"))
+        rows.append(report_row("ours", "combat.2", "combat", False))
+        self.path = write(self.tmp, "env-grade.tsv", REPORT_HEAD + "".join(rows))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_the_table_counts_passes_per_seat_and_family(self):
+        t = hg.env_table(hg.read_env_report(self.path))
+        self.assertEqual(t["ours"]["combat"], {"passed": 2, "total": 3})
+        self.assertEqual(t["default"]["play"], {"passed": 2, "total": 2})
+        self.assertEqual(t["default"]["combat"], {"passed": 0, "total": 2})
+
+    def test_the_default_bridge_scores_where_it_routes_and_nowhere_else(self):
+        scores = hg.env_scores(hg.env_table(hg.read_env_report(self.path)))
+        self.assertGreater(scores["ours"]["benchmark"], 0.5)
+        self.assertLess(scores["default"]["benchmark"], 0.05)
+        self.assertEqual(scores["default"]["families_at_zero"], ["combat", "costs"])
+        self.assertEqual(scores["empty"]["benchmark"], 0.0)
+        self.assertEqual(scores["empty"]["dense"], 0.0)
+
+    def test_by_hook_an_instance_counts_in_its_hooks_ledger_family_not_the_surface_group(self):
+        rows = [dict(seat="ours", family="combat", hook="chooseSpellAbilityToPlay", **{"pass": "1"}),
+                dict(seat="ours", family="combat", hook="declareBlockers", **{"pass": "0"})]
+        t = hg.env_table(rows, by="hook")
+        self.assertEqual(t["ours"], {"play": {"passed": 1, "total": 1}, "combat": {"passed": 0, "total": 1}})
+
+    def test_the_markdown_table_has_a_row_per_family_and_a_column_per_seat(self):
+        text = hg.env_markdown(hg.env_table(hg.read_env_report(self.path)))
+        self.assertIn("| combat | 3 | 2/3 |", text)
+        self.assertIn("| benchmark |", text)
+
+
+class InstancesCommandTest(unittest.TestCase):
+    def test_the_instance_grader_runs_the_suite_with_its_report_and_the_harness_properties(self):
+        argv = hg.instances_command("/j/java", "/c/classes", "/c/cp.txt", "/r", "/o/env-grade.tsv", only="combat.")
+        self.assertEqual(argv[0], "/j/java")
+        self.assertIn("forge.spike.EnvGraderSuite", argv)
+        self.assertIn("-Dharness.envgrade.report=/o/env-grade.tsv", argv)
+        self.assertIn("-Dharness.envgrade.only=combat.", argv)
+        self.assertTrue(any(a.startswith("-Dharness.ownership.tsv=/r/") for a in argv))
+        self.assertTrue(argv[argv.index("-cp") + 1].startswith("/c/classes:"))
+
+    def test_the_suite_is_outside_the_acceptance_test_glob_but_compiled_with_it(self):
+        self.assertTrue(os.path.isfile(os.path.join(TESTS, "EnvGraderSuite.java")))
+        self.assertFalse(any(f.startswith("EnvGrader") and f.endswith("Test.java") for f in os.listdir(TESTS)))
+
+
 class FamilyTest(unittest.TestCase):
     def test_every_decision_hook_in_the_ledger_has_a_family_and_every_family_a_hook(self):
         hooks = surface_coverage.decision_hooks(LEDGER)

@@ -76,8 +76,9 @@ needs:
 | name a card | `card` | its English name |
 
 You may add fields, other functions (lookups, notes) and more rounds. An out-of-range call should be answered with
-the error in the same conversation. The grader's scripted model calls `answer` with exactly one of these fields, or
-with nothing, or with prose only.
+the error in the same conversation. The grader's scripted model may fill several of these fields in one call (for
+example `option` and `options` together); your seat reads the field its decision needs and ignores the rest. It also
+answers with prose only, with an empty reply, or with garbage, and none of those may choose anything.
 
 ### 3.3 Limits
 

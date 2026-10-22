@@ -28,6 +28,10 @@ today's ledger and hidden classes: a run from another epoch whose test classes d
 Usage:
   harness_env_grade.py intake <submission>
   harness_env_grade.py score <acceptance OUT> [--ledger <tsv>]
+  harness_env_grade.py table <env-grade.tsv>      (the instance report EnvGraderSuite writes: per family, per seat)
+  harness_env_grade.py instances <classes> <classpath.txt> <forge> <out> [--only <id part>] [--busy <marker>]...
+      runs the instance grader (EnvGraderSuite: 50 instances x 4 seats, about ten minutes) on compiled overlay
+      classes (an acceptance OUT's classes/ and classpath.txt) and prints the table
   harness_env_grade.py grade <submission> <out> [--forge <checkout>] [--run] [--busy <marker>]...
 Prints JSON. Exit 0 when a score was produced, 1 when the submission was not scorable, 2 on usage.
 """
@@ -56,6 +60,7 @@ GRADER_FILES = ("FORGE_COMMIT", "eval/harness_acceptance.sh", "eval/harness_acce
 FIXED_ROOTS = ("KeywordSurfaceSweepTest", "GoldenChecksTest", "GoldenChecksToolTest", "ControllerOwnershipTest",
                "PromptFidelityTest", "PlanAnytimeTest")
 WEIGHTS = {"hooks": 0.5, "plays": 0.2, "tests": 0.3}
+FLOOR = 0.001  # a family at zero counts as this in the benchmark's geometric mean (calibrated)
 ENGINE_MODULES = ("forge-core", "forge-game", "forge-ai", "forge-gui")
 PATCH_MARKERS = ("ENGINE PATCH:", "HARNESS PATCH")
 FORGE_AI = re.compile(r"\bforge\.ai\.(PlayerControllerAi|AiController|ComputerUtil\w*|AiPlayDecision|AiCostDecision)\b")
@@ -265,10 +270,115 @@ def score_evidence(evidence, ledger, classes):
         reasons.append("Forge's AI decides for the seat (silent strategic hooks: %s)"
                        % ("not proven" if silent is None else silent))
     raw = sum(WEIGHTS[k] * v for k, v in components.items())
-    return {"grader": VERSION, "score": round(raw, 6) if all(gates.values()) else 0.0, "raw": round(raw, 6),
+    gate = 1.0 if all(gates.values()) else 0.0
+    cal = calibrated({k: f["asked"] / f["hooks"] for k, f in families.items()})
+    bench = cal["benchmark"] * components["plays"] * components["tests"]
+    return {"grader": VERSION, "score": round(gate * bench, 6), "dense": round(gate * raw, 6), "raw": round(raw, 6),
             "components": components, "weights": WEIGHTS, "gates": gates, "reasons": reasons,
-            "families": families, "plays": {"known": len(known), "played": len(played)},
-            "tests": {"classes": tests, "missing": missing}}
+            "families": families, "families_at_zero": cal["families_at_zero"],
+            "plays": {"known": len(known), "played": len(played)}, "tests": {"classes": tests, "missing": missing}}
+
+
+def calibrated(family_scores):
+    """The two numbers a family profile makes (owner, 2026-10-22).
+
+    `dense`: the plain mean over families, the RL reward between checkpoints, where every bit of progress counts.
+    `benchmark`: the geometric mean over families with each family floored at FLOOR, so a family at zero costs
+    FLOOR ** (1 / number of families): with nine families and FLOOR 0.001 one missing family leaves 0.46 of the
+    score, two leave 0.22, a seat that maps only plays about 0.002. Equal family weights until corpus weights
+    exist (HARNESS-ENV.md section 3.4)."""
+    if not family_scores:
+        return {"dense": 0.0, "benchmark": 0.0, "families_at_zero": []}
+    n = len(family_scores)
+    product = 1.0
+    for s in family_scores.values():
+        product *= max(FLOOR, s) ** (1.0 / n)
+    return {"dense": round(sum(family_scores.values()) / n, 6), "benchmark": round(product, 6),
+            "families_at_zero": sorted(k for k, s in family_scores.items() if s <= 0)}
+
+
+# The instance report EnvGraderSuite writes (forge-overlay/.../EnvGrader.java): one row per seat and instance.
+ENV_COLUMNS = ("seat", "instance", "family", "hook", "legal", "reached", "min_requests", "asked", "offered",
+               "carried", "shown", "noparse", "pass", "ai", "note")
+SEAT_ORDER = ("ours", "default", "empty", "ours-minus-combat", "ours-minus-costs")
+
+
+def read_env_report(path):
+    rows = []
+    with open(path, encoding="utf-8") as f:
+        head = f.readline().rstrip("\n").split("\t")
+        for line in f:
+            if line.strip():
+                rows.append(dict(zip(head, line.rstrip("\n").split("\t"))))
+    return rows
+
+
+def env_table(rows, by="surface"):
+    """{seat: {family: {"passed", "total"}}}; an instance passes when all five checks pass. `by="surface"` groups by
+    the report's family (the owner's grouping: a combat trick, a damage prevention split sit with combat);
+    `by="hook"` by the ledger family of the hook the instance asks (`family`), the grouping the benchmark gates on,
+    so "never asks a combat hook" is a zero family whatever surface group the hook was tested in."""
+    t = {}
+    for r in rows:
+        fam = family(r["hook"]) if by == "hook" else r["family"]
+        c = t.setdefault(r["seat"], {}).setdefault(fam, {"passed": 0, "total": 0})
+        c["total"] += 1
+        c["passed"] += r.get("pass") == "1"
+    return t
+
+
+def _seats(table):
+    seen = list(table) + ["empty"]
+    return sorted(set(seen), key=lambda s: (SEAT_ORDER.index(s) if s in SEAT_ORDER else len(SEAT_ORDER), s))
+
+
+def env_scores(table):
+    """Per seat: the calibrated numbers over the families the report covers. `empty` (no harness: nothing compiles,
+    intake scores 0) is added with every family at zero."""
+    fams = sorted({f for seat in table.values() for f in seat})
+    out = {}
+    for seat in _seats(table):
+        cells = table.get(seat, {})
+        scores = {f: (cells[f]["passed"] / cells[f]["total"]) if cells.get(f, {}).get("total") else 0.0 for f in fams}
+        out[seat] = calibrated(scores) if seat != "empty" else {"dense": 0.0, "benchmark": 0.0, "families_at_zero": fams}
+    return out
+
+
+def instances_command(java, classes, classpath_file, repo, report, only=None):
+    """argv that runs the instance grader (EnvGraderSuite) on compiled overlay classes, with the system properties
+    the acceptance javatests stage gives the seat. Run it from the engine's forge-gui-desktop directory."""
+    cp = ""
+    if os.path.isfile(classpath_file):
+        with open(classpath_file, encoding="utf-8") as f:
+            cp = f.read().strip()
+    argv = [java, "-Dapple.awt.UIElement=true",
+            "-Dharness.ownership.tsv=" + os.path.join(repo, LEDGER),
+            "-Dharness.rules.file=" + os.path.join(repo, "data", "rules", "MagicCompRules.txt"),
+            "-Dharness.decks.dir=" + os.path.join(repo, "eval", "decks"),
+            "-Dharness.tooluse.json=" + os.path.join(repo, "eval", "tooluse", "tools.json"),
+            "-Dharness.envgrade.report=" + report]
+    if only:
+        argv.append("-Dharness.envgrade.only=" + only)
+    return argv + ["-cp", classes + ":" + cp, "org.testng.TestNG", "-testclass", "forge.spike.EnvGraderSuite",
+                   "-d", os.path.join(os.path.dirname(report), "testng")]
+
+
+def env_markdown(table):
+    """The per-family table, seats as columns, then the dense and benchmark rows."""
+    seats = _seats(table)
+    fams = sorted({f for seat in table.values() for f in seat})
+    lines = ["| family | instances | " + " | ".join(seats) + " |", "|---|---|" + "---|" * len(seats)]
+    for f in fams:
+        n = max(table.get(s, {}).get(f, {}).get("total", 0) for s in seats)
+        cells = []
+        for s in seats:
+            c = table.get(s, {}).get(f)
+            cells.append("%d/%d" % (c["passed"], c["total"]) if c else "0/%d" % n)
+        lines.append("| %s | %d | %s |" % (f, n, " | ".join(cells)))
+    scores = env_scores(table)
+    for k in ("dense", "benchmark"):
+        lines.append("| %s | | %s |" % (k, " | ".join("%.3f" % scores[s][k] for s in seats)))
+    return "\n".join(lines)
 
 
 def grade(submission, grader_repo, out, forge=None, run_jvm=False, busy_markers=()):
@@ -317,6 +427,36 @@ def main(argv):
         ledger = args[3] if len(args) == 4 and args[2] == "--ledger" else os.path.join(REPO, LEDGER)
         s = score_evidence(args[1], ledger, hidden_classes(os.path.join(REPO, TEST_DIR)))
         print(json.dumps(s, indent=1, sort_keys=True, default=sorted))
+        return 0
+    if len(args) >= 5 and args[0] == "instances":
+        classes, cpfile, forge, out, rest = args[1], args[2], args[3], args[4], args[5:]
+        only, busy = None, []
+        while rest:
+            flag = rest.pop(0)
+            if flag == "--only" and rest:
+                only = rest.pop(0)
+            elif flag == "--busy" and rest:
+                busy.append(rest.pop(0))
+            else:
+                print(__doc__)
+                return 2
+        if any(os.path.exists(m) for m in busy):
+            print("refusing a JVM run while a --busy marker exists")
+            return 1
+        os.makedirs(out, exist_ok=True)
+        report = os.path.join(out, "env-grade.tsv")
+        java = os.path.join(os.environ.get("JAVA_HOME", "/usr"), "bin", "java")
+        with open(os.path.join(out, "run.log"), "w", encoding="utf-8") as log:
+            subprocess.run(instances_command(java, classes, cpfile, REPO, report, only), cwd=os.path.join(forge, "forge-gui-desktop"),
+                           stdout=log, stderr=subprocess.STDOUT, timeout=RUN_TIMEOUT_S)
+        table = env_table(read_env_report(report))
+        print(env_markdown(table))
+        return 0
+    if len(args) == 2 and args[0] == "table":
+        rows = read_env_report(args[1])
+        print("By surface (the owner's grouping):\n" + env_markdown(env_table(rows)))
+        print("\nBy hook family (the ledger's; the benchmark gates on this one):\n" + env_markdown(env_table(rows, by="hook")))
+        print(json.dumps(env_scores(env_table(rows, by="hook")), indent=1, sort_keys=True))
         return 0
     if len(args) >= 3 and args[0] == "grade":
         forge, run, busy, rest = None, False, [], args[3:]
