@@ -1,0 +1,46 @@
+[metadata]
+Name:equip_5933c8f08aaa
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fencing Ace, Hill Giant, Savannah Lions, Loxodon Warhammer (unattached) and 9 untapped Jungle Shrines. Your hand is Puresteel Paladin, Bonesplitter, All That Glitters, Foundry Inspector, Leonin Scimitar, Short Sword, Fireshrieker and Grafted Wargear. The opponent is at 41 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 41 in 13 steps; the best plain plan (everything on the creature with the most power) deals 38, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Puresteel Paladin;Bonesplitter;All That Glitters;Foundry Inspector;Leonin Scimitar;Short Sword;Fireshrieker;Grafted Wargear
+p0battlefield=Fencing Ace;Hill Giant;Savannah Lions;Loxodon Warhammer;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=41
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Fencing Ace", "Hill Giant", "Savannah Lions"], "hand": ["All That Glitters", "Bonesplitter", "Fireshrieker", "Foundry Inspector", "Grafted Wargear", "Leonin Scimitar", "Puresteel Paladin", "Short Sword"], "loose": ["Loxodon Warhammer"], "mana": 9, "start": []}
+# trap: {"best": 38, "plans": {"biggest": 38, "cast_all_first": 30, "equip_asap": 35}, "short": 3}
+cast Foundry Inspector
+cast Puresteel Paladin
+cast Bonesplitter
+no
+cast Grafted Wargear
+no
+cast Leonin Scimitar
+no
+cast Short Sword
+no
+cast All That Glitters
+Fencing Ace
+activate Bonesplitter ... Equip {0}
+Fencing Ace
+activate Grafted Wargear ... Equip {0}
+Fencing Ace
+activate Leonin Scimitar ... Equip {0}
+Fencing Ace
+activate Loxodon Warhammer ... Equip {0}
+Fencing Ace
+activate Short Sword ... Equip {0}
+Fencing Ace
+Fencing Ace; Hill Giant; Savannah Lions
+[acceptance]
+life p1 <= 0
