@@ -1,0 +1,56 @@
+[metadata]
+Name:grave_4f059b992f21
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice, one Walking Corpse and two untapped Swamps. Your hand is Dark Ritual, Consume Spirit, Village Rites, Dark Ritual, Gitaxian Probe, Cabal Ritual, Dark Ritual, Gitaxian Probe, Cabal Ritual, Cabal Ritual, Songs of the Damned, Gitaxian Probe, Village Rites, Gitaxian Probe and Village Rites. Your graveyard holds Duress, Sign in Blood, Sign in Blood and Dark Ritual. The opponent is at 27 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 27 in 13 steps, the graveyard filled before Cabal Ritual and Songs of the Damned resolve; every mana spell first deals at most 26
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dark Ritual;Consume Spirit;Village Rites;Dark Ritual;Gitaxian Probe;Cabal Ritual;Dark Ritual;Gitaxian Probe;Cabal Ritual;Cabal Ritual;Songs of the Damned;Gitaxian Probe;Village Rites;Gitaxian Probe;Village Rites
+p0battlefield=Witherbloom Apprentice;Walking Corpse;Swamp;Swamp
+p0graveyard=Duress;Sign in Blood;Sign in Blood;Dark Ritual
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=27
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+pass
+pass
+cast Village Rites
+Walking Corpse
+pass
+pass
+cast Songs of the Damned
+cast Consume Spirit
+14
+opponent
+[acceptance]
+life p1 <= 0

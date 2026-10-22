@@ -1,0 +1,57 @@
+[metadata]
+Name:grave_f569988ef01e
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice, one Walking Corpse and two untapped Swamps. Your hand is Consume Spirit, Gitaxian Probe, Dark Ritual, Unearth, Dark Ritual, Village Rites, Sign in Blood, Culling the Weak, Songs of the Damned, Cabal Ritual, Dark Ritual, Songs of the Damned, Gitaxian Probe and Culling the Weak. Your graveyard holds Walking Corpse and Walking Corpse. The opponent is at 31 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 31 in 13 steps, the graveyard filled before Cabal Ritual and Songs of the Damned resolve; every mana spell first deals at most 29
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Consume Spirit;Gitaxian Probe;Dark Ritual;Unearth;Dark Ritual;Village Rites;Sign in Blood;Culling the Weak;Songs of the Damned;Cabal Ritual;Dark Ritual;Songs of the Damned;Gitaxian Probe;Culling the Weak
+p0battlefield=Witherbloom Apprentice;Walking Corpse;Swamp;Swamp
+p0graveyard=Walking Corpse;Walking Corpse
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=31
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Culling the Weak
+Walking Corpse
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Cabal Ritual
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Sign in Blood
+opponent
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+cast Unearth
+Walking Corpse
+pass
+pass
+cast Culling the Weak
+Walking Corpse
+cast Consume Spirit
+16
+opponent
+[acceptance]
+life p1 <= 0

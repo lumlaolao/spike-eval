@@ -19,8 +19,9 @@ life to the exact maximum of an exhaustive search over a model of the board.
 
 The second suite's families (eval/puzzles/hard/gen2) are 13 to 15 steps, set the life to a searched maximum and
 keep a board only when a plain plan, searched to its own best, falls 1 to 3 short: copy (Reverberate, Fork and
-Increasing Vengeance aimed at a ritual on the stack; plain: copy only burn) and grave (Cabal Ritual's threshold and
-Songs of the Damned count the graveyard; plain: every mana spell first).
+Increasing Vengeance aimed at a ritual on the stack; plain: copy only burn), grave (Cabal Ritual's threshold and
+Songs of the Damned count the graveyard; plain: every mana spell first) and atog (each artifact fed to Atog for
+Fling or to Krark-Clan Ironworks for mana; plain: Atog eats everything).
 
   python3 eval/puzzle_gen.py --family ping --count 40 --seed 1 --out DIR
 """
@@ -1549,8 +1550,245 @@ def grave_board(rng):
                                           ["life p1 <= 0"])}
 
 
+# The atog family. Artifact creatures by (cost, affinity for artifacts, power); the battlefield is counted in
+# ATOG_ORDER, Krark-Clan Ironworks last. Atog ({1}{R}, 1/2) and Disciple of the Vault are not artifacts.
+ATOG_ARTIFACTS = {"Ornithopter": (0, False, 0), "Memnite": (0, False, 1), "Frogmite": (4, True, 2),
+                  "Myr Enforcer": (7, True, 4)}
+KCI = "Krark-Clan Ironworks"
+ATOG_ORDER = ("Ornithopter", "Memnite", "Frogmite", "Myr Enforcer", KCI)
+DISCIPLE = "Disciple of the Vault"
+
+
+def atog_search(hand, mountains, disciples, start, plain=False):
+    """The most damage the board deals and the fewest steps that deal it, by exhaustive search. Every artifact that
+    dies drains 1 for each Disciple of the Vault. It dies to Krark-Clan Ironworks ({C}{C}, a mana ability, not a
+    step) or to Atog (+2/+2, a step); Fling ({1}{R}) then throws Atog, or any creature, for its power. Frogmite and
+    Myr Enforcer cost {1} less for each artifact on the battlefield; Galvanic Blast deals 4 instead of 2 with three
+    artifacts. {R} comes only from Mountains; the Ironworks' {C} pays generic costs first. Each play resolves before
+    the next (casting in response only loses: a sacrifice under Galvanic Blast costs its metalcraft, a Fling under a
+    pump throws a smaller Atog). Atog eats only at the end, after the last cast but Fling: an artifact kept
+    out longer only lowers costs, keeps metalcraft and stays food, so a line that eats early is matched by one
+    that eats late.
+
+    plain=True is the plain plan: Atog eats every artifact, the Ironworks is never used for mana. Moves: ("kci",
+    artifact), ("atog", artifact), ("cast", card), ("fling", creature). Returns (damage, steps, moves)."""
+    from functools import lru_cache
+    from itertools import combinations_with_replacement
+
+    def feeds(bf, k):
+        """Every way to feed the Ironworks k artifacts before a cast: (battlefield after, the artifacts in order,
+        the Ironworks itself last)."""
+        if k == 0:
+            return [(bf, ())]
+        out = []
+        for combo in combinations_with_replacement(range(5), k):
+            left = list(bf)
+            for i in combo:
+                left[i] -= 1
+            if min(left) < 0 or left[4] < 0 or (bf[4] == 0):
+                continue
+            out.append((tuple(left), tuple(ATOG_ORDER[i] for i in combo)))
+        return out
+
+    def payments(bf, pool, mtn, generic, red, affinity=False):
+        """Ways to pay a cast: the Ironworks fed just before it (only as much as the cost needs: mana made earlier
+        would only cost an artifact sooner), then the pool, then Mountains; {R} from a Mountain."""
+        out = []
+        for k in range(0, (sum(bf) if bf[4] and not plain else 0) + 1):
+            for left, fed in feeds(bf, k):
+                cost = max(0, generic - sum(left)) if affinity else generic
+                have = pool + 2 * k
+                taps = max(0, cost - have) + red
+                if taps <= mtn:
+                    out.append((left, fed, have - min(have, cost), mtn - taps))
+            if pool + 2 * k >= (max(0, generic - (sum(bf) - k)) if affinity else generic):
+                break
+        return out
+
+    @lru_cache(maxsize=None)
+    def go(hand, bf, pool, mtn, atog, disc, phase):
+        # phase 0: casts, each fed by the Ironworks as it needs; 1: Atog eats, then Fling; 2: after Fling
+        best = (0, 0, ())
+
+        def consider(d, s, moves, line):
+            nonlocal best
+            if (d, -s) > (best[0], -best[1]):
+                best = (d, s, moves + line)
+
+        if phase:
+            for i, n in enumerate(bf):
+                if not n:
+                    continue
+                left = bf[:i] + (n - 1,) + bf[i + 1:]
+                if bf[-1] and not plain:
+                    d, s, ln = go(hand, left, pool + 2, mtn, atog, disc, phase)
+                    consider(d + disc, s, (("kci", ATOG_ORDER[i]),), ln)
+                if atog is not None:
+                    d, s, ln = go(hand, left, pool, mtn, atog + 2, disc, phase)
+                    consider(d + disc, s + 1, (("atog", ATOG_ORDER[i]),), ln)
+        else:
+            d, s, ln = go(hand, bf, pool, mtn, atog, disc, 1)
+            consider(d, s, (), ln)
+        for c in sorted(set(hand)):
+            if phase == 2 or (phase == 1 and c != "Fling"):
+                continue
+            rest = list(hand)
+            rest.remove(c)
+            rest = tuple(rest)
+            if c in ATOG_ARTIFACTS:
+                generic, affinity, _ = ATOG_ARTIFACTS[c]
+                i = ATOG_ORDER.index(c)
+                for left, fed, np_, nm in payments(bf, pool, mtn, generic, 0, affinity):
+                    d, s, ln = go(rest, left[:i] + (left[i] + 1,) + left[i + 1:], np_, nm, atog, disc, 0)
+                    consider(d + disc * len(fed), s + 1, tuple(("kci", f) for f in fed) + (("cast", c),), ln)
+            elif c == "Galvanic Blast":
+                for left, fed, np_, nm in payments(bf, pool, mtn, 0, 1):
+                    d, s, ln = go(rest, left, np_, nm, atog, disc, 0)
+                    consider(d + (4 if sum(left) >= 3 else 2), s + 1, (("cast", c),), ln)
+            elif c == "Fling":
+                for left, fed, np_, nm in payments(bf, pool, mtn, 1, 1):
+                    victims = ([("Atog", atog, left, disc)] if atog is not None else []) \
+                        + ([(DISCIPLE, 1, left, disc - 1)] if disc else []) \
+                        + [(ATOG_ORDER[i], ATOG_ARTIFACTS[ATOG_ORDER[i]][2], left[:i] + (left[i] - 1,) + left[i + 1:],
+                            disc) for i in range(4) if left[i]]
+                    for v, power, nbf, nd in victims:
+                        d, s, ln = go(rest, nbf, np_, nm, None if v == "Atog" else atog, nd, 2)
+                        consider(d + disc * len(fed) + power + (disc if v in ATOG_ARTIFACTS else 0), s + 1,
+                                 tuple(("kci", f) for f in fed) + (("fling", v),), ln)
+        return best
+
+    return go(tuple(sorted(hand)), tuple(start), 0, mountains, 1, disciples, 0)
+
+
+def atog_lines(mountains, disciples, start, moves, life):
+    """The written line for atog_search's moves, each play resolving before the next. A sacrifice names its artifact
+    when there are two or more to pick from (Fling: two or more creatures), Galvanic Blast and Fling name `opponent`,
+    and each Disciple's trigger is a "yes" when it resolves; a "pass" is written over a pump, a spell or a creature
+    spell exactly when the next play could be made over it (ScriptBridge would make it at once). The line ends where
+    the opponent reaches 0. Returns (lines, damage, steps)."""
+    bf, pool, mtn, atog, disc = list(start), 0, mountains, 1, disciples
+    lines, dmg, steps = [], 0, 0
+
+    def can(move):
+        """The next play is on the menu while something is on the stack (an instant-speed play)."""
+        kind, what = move
+        if kind in ("kci", "atog"):
+            return sum(bf) > 0 and (kind == "atog" and atog is not None or kind == "kci" and bf[-1] > 0)
+        if kind == "cast" and what == "Galvanic Blast":
+            return mtn >= 1
+        if kind == "fling":
+            return mtn >= 1 + (pool < 1)
+        return False                       # an artifact creature is cast at sorcery speed
+
+    def drain():
+        nonlocal dmg
+        for _ in range(disc):
+            if dmg < life:
+                lines.append("yes")
+                dmg += 1
+
+    for j, (kind, what) in enumerate(moves):
+        if dmg >= life:
+            break
+        nxt = moves[j + 1] if j + 1 < len(moves) else None
+        on_stack = False
+        if kind in ("kci", "atog"):
+            lines.append("activate " + (KCI if kind == "kci" else "Atog"))
+            if sum(bf) > 1:
+                lines.append(what)
+            bf[ATOG_ORDER.index(what)] -= 1
+            steps += kind == "atog"
+            if kind == "kci":
+                pool += 2
+            on_stack = kind == "atog"
+            drain()
+            if kind == "atog":
+                atog += 2
+        elif kind == "cast":
+            lines.append("cast " + what)
+            steps += 1
+            arts = sum(bf)
+            if what == "Galvanic Blast":
+                lines.append("opponent")
+                mtn -= 1
+                dmg += 4 if arts >= 3 else 2
+            else:
+                cost, affinity, _ = ATOG_ARTIFACTS[what]
+                cost = max(0, cost - arts) if affinity else cost
+                use = min(pool, cost)
+                pool, mtn = pool - use, mtn - (cost - use)
+                if nxt and can(nxt):       # decided before it resolves: the creature is not out yet
+                    lines.append("pass")
+                bf[ATOG_ORDER.index(what)] += 1
+                continue
+            on_stack = True
+        else:
+            lines += ["cast Fling", "opponent"]
+            steps += 1
+            creatures = (atog is not None) + disc + sum(bf[:4])
+            if creatures > 1:
+                lines.append(what)
+            mtn -= 1 + (pool < 1)
+            pool -= min(pool, 1)
+            if what == "Atog":
+                dmg += atog
+                atog = None
+            elif what == DISCIPLE:
+                dmg += 1
+                disc -= 1
+            else:
+                bf[ATOG_ORDER.index(what)] -= 1
+                drain()
+                dmg += ATOG_ARTIFACTS[what][2]
+        if on_stack and nxt and dmg < life and can(nxt):
+            lines.append("pass")
+    return lines, dmg, steps
+
+
+def atog_board(rng):
+    """Atog eats artifacts for +2/+2 and Fling throws it; Krark-Clan Ironworks eats them for {C}{C} instead, and that
+    mana casts Frogmite and Myr Enforcer (cheaper for each artifact still out) and pays Fling's {1}. Galvanic Blast
+    wants three artifacts as it resolves, and Disciple of the Vault drains for every artifact that dies, whoever eats
+    it. The opponent's life is the exact maximum of atog_search; a board is kept only when the plain plan (Atog eats
+    everything, the Ironworks makes no mana) falls 1 to 3 short and the best line is 13 to 15 steps."""
+    mountains = rng.choice([1, 1, 2, 2, 3])
+    disciples = rng.choice([0, 1, 1, 2])
+    start = (rng.randint(0, 2), rng.randint(0, 2), rng.randint(0, 1), rng.choice([0, 0, 1]), 1)
+    hand = ["Fling"] + [rng.choice(["Ornithopter", "Memnite", "Frogmite", "Frogmite", "Myr Enforcer", "Myr Enforcer",
+                                    "Galvanic Blast"]) for _ in range(rng.choice([4, 5, 6, 7]))]
+    if any(start[ATOG_ORDER.index(c)] for c in hand if c in ATOG_ARTIFACTS):
+        return None                    # one out and one cast read apart ("[sick]"), so a sacrifice by name is ambiguous
+    dmg, steps, moves = atog_search(hand, mountains, disciples, start)
+    if not GEN2_MIN <= steps <= GEN2_MAX:
+        return None
+    trap = atog_search(hand, mountains, disciples, start, plain=True)[0]
+    if not 1 <= dmg - trap <= 3:
+        return None
+    lines, dealt, n = atog_lines(mountains, disciples, start, moves, dmg)
+    if (dealt, n) != (dmg, steps):
+        return None
+    rng.shuffle(hand)
+    arts = [name for name, k in zip(ATOG_ORDER, start) for _ in range(k)]
+    battlefield = ["Atog"] + [DISCIPLE] * disciples + arts + ["Mountain"] * mountains
+    seen = ["Atog"] + ([("two Disciples of the Vault" if disciples == 2 else DISCIPLE)] if disciples else []) + arts \
+        + ["%s untapped Mountain%s" % (["", "one", "two", "three"][mountains], "s" * (mountains > 1))]
+    desc = ("It is your second main phase. You are at 20 life and control %s. Your hand is %s. The opponent is at %d "
+            "life and controls nothing. Reduce the opponent to 0 life this turn." % (_join(seen), _join(hand), dmg))
+    rule = ("generated-atog | the exhaustive maximum is %d in %d steps, the Ironworks' mana paying for what Atog "
+            "cannot; Atog eating every artifact deals at most %d" % (dmg, steps, trap))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(hand)), ("p0battlefield", ";".join(battlefield)),
+             ("p0library", ";".join(["Colossal Dreadmaw"] * 4)),
+             ("p1life", dmg), ("p1library", ";".join(["Plains"] * 4))]
+    return {"family": "atog", "actions": steps, "life": dmg, "trap": trap, "hand": sorted(hand),
+            "battlefield": sorted(battlefield), "phase": "MAIN2",
+            "search": {"hand": sorted(hand), "mountains": mountains, "disciples": disciples, "start": list(start)},
+            "text": lambda name: pzl_text(name, desc, rule, state, ["# steps: %d" % steps] + lines,
+                                          ["life p1 <= 0"])}
+
+
 FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "red": red_board, "drain": drain_board,
-            "elf": elf_board, "fling": fling_board, "grave": grave_board, "copy": copy_board}
+            "elf": elf_board, "fling": fling_board, "atog": atog_board, "grave": grave_board, "copy": copy_board}
 
 
 def board_key(b):

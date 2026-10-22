@@ -1,0 +1,58 @@
+[metadata]
+Name:grave_e4d07b57a6b5
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice, two Walking Corpses and three untapped Swamps. Your hand is Consume Spirit, Dark Ritual, Cabal Ritual, Songs of the Damned, Dark Ritual, Unearth, Cabal Ritual, Gitaxian Probe, Cabal Ritual, Gitaxian Probe, Dark Ritual, Village Rites, Songs of the Damned, Unearth and Cabal Ritual. Your graveyard holds Duress, Gitaxian Probe, Dark Ritual and Walking Corpse. The opponent is at 33 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 33 in 13 steps, the graveyard filled before Cabal Ritual and Songs of the Damned resolve; every mana spell first deals at most 31
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Consume Spirit;Dark Ritual;Cabal Ritual;Songs of the Damned;Dark Ritual;Unearth;Cabal Ritual;Gitaxian Probe;Cabal Ritual;Gitaxian Probe;Dark Ritual;Village Rites;Songs of the Damned;Unearth;Cabal Ritual
+p0battlefield=Witherbloom Apprentice;Walking Corpse;Walking Corpse;Swamp;Swamp;Swamp
+p0graveyard=Duress;Gitaxian Probe;Dark Ritual;Walking Corpse
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=33
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+pass
+pass
+cast Village Rites
+Walking Corpse
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+cast Consume Spirit
+20
+opponent
+[acceptance]
+life p1 <= 0

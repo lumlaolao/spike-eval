@@ -293,5 +293,44 @@ class GraveSearchTest(unittest.TestCase):
             self.assertEqual(stated_life(b["text"]("x")), dmg)
 
 
+class AtogSearchTest(unittest.TestCase):
+    # The battlefield as counts of Ornithopter, Memnite, Frogmite, Myr Enforcer and Krark-Clan Ironworks.
+    def test_ironworks_mana_pays_for_fling(self):
+        # One Mountain, Atog, Ironworks, Ornithopter and Memnite. Atog eating everything leaves Fling unpayable
+        # (it needs two mana): Galvanic Blast with metalcraft is the best of that, 4. Ironworks eats Ornithopter for
+        # {C}{C}, Atog eats Memnite and the Ironworks, and Fling pays {1} from the pool: a 5/6 Atog.
+        dmg, steps, moves = pg.atog_search(["Fling", "Galvanic Blast"], 1, 0, (1, 1, 0, 0, 1))
+        self.assertEqual((dmg, steps), (5, 3))
+        self.assertEqual(moves[0], ("kci", "Ornithopter"))
+        self.assertEqual(moves[-1], ("fling", "Atog"))
+        self.assertEqual(pg.atog_search(["Fling", "Galvanic Blast"], 1, 0, (1, 1, 0, 0, 1), plain=True)[0], 4)
+
+    def test_the_written_line_lets_each_pump_resolve_before_fling(self):
+        moves = pg.atog_search(["Fling", "Galvanic Blast"], 1, 0, (1, 1, 0, 0, 1))[2]
+        lines, dealt, steps = pg.atog_lines(1, 0, (1, 1, 0, 0, 1), moves, 5)
+        # Fling is castable over the last pump: a pass lets it resolve first, or Fling takes a 3/4 Atog.
+        self.assertEqual(lines, ["activate Krark-Clan Ironworks", "Ornithopter", "activate Atog", "Memnite", "pass",
+                                 "activate Atog", "pass", "cast Fling", "opponent"])
+        self.assertEqual((dealt, steps), (5, 3))
+
+    def test_disciple_drains_for_every_artifact_that_dies(self):
+        # Two Disciples, Atog and a lone Ironworks, no mana: Atog eats the Ironworks, 2 drained.
+        self.assertEqual(pg.atog_search([], 0, 2, (0, 0, 0, 0, 1))[0], 2)
+
+    def test_an_atog_board_is_the_searched_maximum_with_a_near_miss_trap(self):
+        boards = pg.generate("atog", 2, 7)
+        self.assertEqual(len(boards), 2)
+        for b in boards:
+            s = b["search"]
+            start = tuple(s["start"])
+            dmg, steps, _ = pg.atog_search(s["hand"], s["mountains"], s["disciples"], start)
+            self.assertEqual((dmg, steps), (b["life"], b["actions"]))
+            self.assertTrue(13 <= steps <= 15, steps)
+            trap = pg.atog_search(s["hand"], s["mountains"], s["disciples"], start, plain=True)[0]
+            self.assertEqual(trap, b["trap"])
+            self.assertTrue(1 <= dmg - trap <= 3, (dmg, trap))
+            self.assertEqual(stated_life(b["text"]("x")), dmg)
+
+
 if __name__ == "__main__":
     unittest.main()

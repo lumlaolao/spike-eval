@@ -232,7 +232,7 @@ its reason.
 
 The second set, `eval/puzzles/hard/gen2/`, holds families whose line is 13 to 15 steps and whose board also has a
 trap: a natural plain plan, searched to its own best, that falls 1 to 3 short of the maximum (copy: copy only burn;
-grave: every mana spell first). They pass the same gate; no suite freezes them yet.
+grave: every mana spell first; atog: Atog eats every artifact). They pass the same gate; no suite freezes them yet.
 
 ```bash
 FORGE_HOME=/root/forge python3 scripts/puzzle-gate/gen_gate.py --build B --forge /root/forge \
