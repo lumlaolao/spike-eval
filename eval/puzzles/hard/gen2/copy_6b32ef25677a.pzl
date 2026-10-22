@@ -1,0 +1,54 @@
+[metadata]
+Name:copy_6b32ef25677a
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Firebrand Archer and three untapped Mountains. Your hand is Pyretic Ritual, Lightning Bolt, Gitaxian Probe, Rite of Flame, Gitaxian Probe, Lightning Bolt, Gitaxian Probe, Shock, Increasing Vengeance, Lava Spike, Shock, Shock, Lightning Bolt, Shock, Seething Song and Pyretic Ritual. Your graveyard is empty. The opponent is at 37 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 37 in 15 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 35
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyretic Ritual;Lightning Bolt;Gitaxian Probe;Rite of Flame;Gitaxian Probe;Lightning Bolt;Gitaxian Probe;Shock;Increasing Vengeance;Lava Spike;Shock;Shock;Lightning Bolt;Shock;Seething Song;Pyretic Ritual
+p0battlefield=Firebrand Archer;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=37
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 15
+cast Pyretic Ritual
+cast Pyretic Ritual
+cast Rite of Flame
+pass
+pass
+cast Seething Song
+cast Increasing Vengeance
+pass
+pass
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+cast Increasing Vengeance ... Flashback
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+opponent
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Shock
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0

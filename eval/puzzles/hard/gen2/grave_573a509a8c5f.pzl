@@ -1,0 +1,59 @@
+[metadata]
+Name:grave_573a509a8c5f
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice, two Walking Corpses and one untapped Swamp. Your hand is Gitaxian Probe, Cabal Ritual, Culling the Weak, Cabal Ritual, Culling the Weak, Songs of the Damned, Dark Ritual, Sign in Blood, Dark Ritual, Sign in Blood, Unearth, Culling the Weak, Songs of the Damned and Consume Spirit. Your graveyard holds Dark Ritual, Sign in Blood, Duress, Walking Corpse and Walking Corpse. The opponent is at 37 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 37 in 14 steps, the graveyard filled before Cabal Ritual and Songs of the Damned resolve; every mana spell first deals at most 35
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gitaxian Probe;Cabal Ritual;Culling the Weak;Cabal Ritual;Culling the Weak;Songs of the Damned;Dark Ritual;Sign in Blood;Dark Ritual;Sign in Blood;Unearth;Culling the Weak;Songs of the Damned;Consume Spirit
+p0battlefield=Witherbloom Apprentice;Walking Corpse;Walking Corpse;Swamp
+p0graveyard=Dark Ritual;Sign in Blood;Duress;Walking Corpse;Walking Corpse
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=37
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 14
+cast Culling the Weak
+Walking Corpse
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Culling the Weak
+Walking Corpse
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+cast Gitaxian Probe
+opponent
+cast Sign in Blood
+opponent
+cast Sign in Blood
+opponent
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+cast Unearth
+Walking Corpse
+pass
+pass
+cast Culling the Weak
+Walking Corpse
+cast Consume Spirit
+19
+opponent
+[acceptance]
+life p1 <= 0

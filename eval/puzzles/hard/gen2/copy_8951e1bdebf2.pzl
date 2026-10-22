@@ -1,0 +1,54 @@
+[metadata]
+Name:copy_8951e1bdebf2
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Guttersnipe and five untapped Mountains. Your hand is Lightning Bolt, Gitaxian Probe, Gitaxian Probe, Rite of Flame, Lava Spike, Fork, Lightning Bolt, Lightning Bolt, Fork, Lava Spike, Gitaxian Probe, Gitaxian Probe, Lightning Bolt, Pyretic Ritual and Pyretic Ritual. Your graveyard is empty. The opponent is at 51 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 51 in 15 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 49
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Gitaxian Probe;Gitaxian Probe;Rite of Flame;Lava Spike;Fork;Lightning Bolt;Lightning Bolt;Fork;Lava Spike;Gitaxian Probe;Gitaxian Probe;Lightning Bolt;Pyretic Ritual;Pyretic Ritual
+p0battlefield=Guttersnipe;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=51
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 15
+cast Pyretic Ritual
+pass
+pass
+cast Pyretic Ritual
+cast Rite of Flame
+cast Fork
+pass
+pass
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+cast Fork
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0

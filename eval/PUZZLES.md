@@ -233,6 +233,10 @@ played as written and solved, and random (0 of 20), PASS, first option and greed
 Forge's AI solved it at most once in 4. Every other board the gate measured stays in the file as dropped, with
 its reason.
 
+The second set, `eval/puzzles/hard/gen2/`, holds families whose line is 13 to 15 steps and whose board also has a
+trap: a natural plain plan, searched to its own best, that falls 1 to 3 short of the maximum (copy: copy only burn;
+grave: every mana spell first; atog: Atog eats every artifact). They pass the same gate; no suite freezes them yet.
+
 ```bash
 FORGE_HOME=/root/forge python3 scripts/puzzle-gate/gen_gate.py --build B --forge /root/forge \
   --boards eval/puzzles/hard/gen --out runs/puzzles/hard-gen-gate -j 3

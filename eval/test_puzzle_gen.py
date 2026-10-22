@@ -415,5 +415,146 @@ class GenGateResumeTest(unittest.TestCase):
         self.assertNotIn("dropped", row)
 
 
+class CopySearchTest(unittest.TestCase):
+    def test_copying_the_ritual_beats_copying_the_bolt(self):
+        # Guttersnipe and four Mountains. Pyretic Ritual takes two, Reverberate the other two while the Ritual is on
+        # the stack: six mana for five Bolts, seven casts: 14 + 15. Without a ritual copy the best is the Ritual and
+        # five Bolts: 12 + 15.
+        hand = ["Pyretic Ritual", "Reverberate"] + ["Lightning Bolt"] * 5
+        dmg, steps, line = pg.copy_search(hand, 4, ["Guttersnipe"])
+        self.assertEqual((dmg, steps), (29, 7))
+        self.assertEqual(line[:2], (("cast", "Pyretic Ritual", None), ("cast", "Reverberate", 0)))
+        self.assertEqual(pg.copy_search(hand, 4, ["Guttersnipe"], ritual_copies=False)[:2], (27, 6))
+
+    def test_the_written_line_passes_only_where_the_seat_would_cast(self):
+        board = {"hand": ["Pyretic Ritual", "Reverberate"] + ["Lightning Bolt"] * 5, "mountains": 4,
+                 "payoffs": ["Guttersnipe"]}
+        dmg, steps, line = pg.copy_search(board["hand"], 4, board["payoffs"])
+        lines, dealt, casts = pg.copy_lines(board["hand"], 4, board["payoffs"], line, dmg)
+        # The copy resolves first and its mana makes a Bolt castable over the Ritual: two passes resolve Guttersnipe's
+        # trigger and the Ritual before the first Bolt.
+        self.assertEqual(lines[:6], ["cast Pyretic Ritual", "cast Reverberate", "pass", "pass", "cast Lightning Bolt",
+                                     "opponent"])
+        self.assertEqual((dealt, casts), (29, 7))
+
+    def test_increasing_vengeance_copies_twice_from_the_graveyard(self):
+        # Five Mountains: Seething Song, and Increasing Vengeance on it while it is on the stack, make ten. Then a
+        # Bolt, Vengeance's flashback (five) on the other Bolt for two copies: 3 + 3 + 6. Without the Song's copy no
+        # flashback is payable: 9 at most.
+        hand = ["Seething Song", "Increasing Vengeance", "Lightning Bolt", "Lightning Bolt"]
+        dmg, _, line = pg.copy_search(hand, 5, [])
+        self.assertEqual(dmg, 12)
+        self.assertEqual(line[1], ("cast", "Increasing Vengeance", 0))
+        self.assertEqual(pg.copy_search(hand, 5, [], ritual_copies=False)[0], 9)
+
+    def test_a_copy_board_is_the_searched_maximum_with_a_near_miss_trap(self):
+        boards = pg.generate("copy", 3, 7)
+        self.assertGreaterEqual(len(boards), 3)
+        for b in boards:
+            s = b["search"]
+            dmg, steps, _ = pg.copy_search(s["hand"], s["mountains"], s["payoffs"])
+            self.assertEqual((dmg, steps), (b["life"], b["actions"]))
+            self.assertTrue(13 <= steps <= 15, steps)
+            trap = pg.copy_search(s["hand"], s["mountains"], s["payoffs"], ritual_copies=False)[0]
+            self.assertEqual(trap, b["trap"])
+            self.assertTrue(1 <= dmg - trap <= 3, (dmg, trap))
+            lines = solution(b["text"]("x"))
+            self.assertEqual(lines[0], "# steps: %d" % steps)
+            self.assertEqual(sum(l.startswith("cast ") for l in lines), steps)
+            self.assertEqual(stated_life(b["text"]("x")), dmg)
+
+
+class GraveSearchTest(unittest.TestCase):
+    def test_threshold_waits_for_the_probe_and_the_ritual(self):
+        # Two Swamps, five cards in the graveyard, Witherbloom Apprentice. Probe and Dark Ritual first put seven in
+        # the graveyard, so Cabal Ritual makes five: Consume Spirit for 5, and a drain for each of the four casts.
+        # Mana first, Cabal Ritual sees six and makes three: Consume Spirit for 3.
+        hand = ["Dark Ritual", "Gitaxian Probe", "Cabal Ritual", "Consume Spirit"]
+        dmg, steps, moves = pg.grave_search(hand, 2, 0, True, 5, 0)
+        self.assertEqual((dmg, steps), (9, 4))
+        self.assertEqual([m[1] for m in moves][-2:], ["Cabal Ritual", "Consume Spirit"])
+        self.assertEqual(pg.grave_search(hand, 2, 0, True, 5, 0, mana_first=True)[0], 7)
+
+    def test_the_apprentice_sacrificed_drains_no_more(self):
+        # One Swamp and only the Apprentice to sacrifice: it is Culling the Weak's cost, so that cast drains nothing
+        # and Consume Spirit is cast without it: X = 2.
+        self.assertEqual(pg.grave_search(["Culling the Weak", "Consume Spirit"], 1, 0, True, 0, 0)[0], 2)
+
+    def test_songs_counts_the_creature_sacrificed_before_it(self):
+        # One Swamp, a Walking Corpse on the battlefield and one in the graveyard. Songs first makes one; Culling the
+        # Weak first puts the second Corpse in the graveyard, then Songs makes two: X = 3, not 2.
+        hand = ["Songs of the Damned", "Culling the Weak", "Consume Spirit"]
+        dmg, steps, moves = pg.grave_search(hand, 1, 1, False, 1, 1)
+        self.assertEqual((dmg, steps), (3, 3))
+        self.assertEqual([m[1] for m in moves], ["Culling the Weak", "Songs of the Damned", "Consume Spirit"])
+
+    def test_unearth_brings_the_apprentice_back_for_the_casts_after_it(self):
+        # Two Swamps, the Apprentice in the graveyard: Unearth (no drain, it is not back yet), Dark Ritual and
+        # Consume Spirit drain once each: 1 + 1 + X = 1. Without Unearth: X = 2. Dark Ritual could be cast over
+        # Unearth, so one pass lets Unearth resolve first; the Apprentice's trigger then sits over each spell.
+        hand = ["Unearth", "Dark Ritual", "Consume Spirit"]
+        dmg, steps, moves = pg.grave_search(hand, 2, 0, "gy", 1, 0)
+        self.assertEqual((dmg, steps), (3, 3))
+        lines, dealt, n = pg.grave_lines(hand, 2, 0, "gy", 1, 0, moves)
+        self.assertEqual(lines, ["cast Unearth", "pass", "cast Dark Ritual", "cast Consume Spirit", "1", "opponent"])
+        self.assertEqual((dealt, n), (3, 3))
+
+    def test_a_grave_board_is_the_searched_maximum_with_a_near_miss_trap(self):
+        boards = pg.generate("grave", 6, 7)
+        self.assertGreaterEqual(len(boards), 3)
+        for b in boards:
+            s = b["search"]
+            dmg, steps, _ = pg.grave_search(s["hand"], s["swamps"], s["corpses"], s["apprentice"], s["gy"],
+                                            s["gy_corpses"])
+            self.assertEqual((dmg, steps), (b["life"], b["actions"]))
+            self.assertTrue(13 <= steps <= 15, steps)
+            trap = pg.grave_search(s["hand"], s["swamps"], s["corpses"], s["apprentice"], s["gy"], s["gy_corpses"],
+                                   mana_first=True)[0]
+            self.assertEqual(trap, b["trap"])
+            self.assertTrue(1 <= dmg - trap <= 3, (dmg, trap))
+            lines = solution(b["text"]("x"))
+            self.assertEqual(sum(l.startswith(("cast ", "activate ")) for l in lines), steps)
+            self.assertEqual(stated_life(b["text"]("x")), dmg)
+
+
+class AtogSearchTest(unittest.TestCase):
+    # The battlefield as counts of Ornithopter, Memnite, Frogmite, Myr Enforcer and Krark-Clan Ironworks.
+    def test_ironworks_mana_pays_for_fling(self):
+        # One Mountain, Atog, Ironworks, Ornithopter and Memnite. Atog eating everything leaves Fling unpayable
+        # (it needs two mana): Galvanic Blast with metalcraft is the best of that, 4. Ironworks eats Ornithopter for
+        # {C}{C}, Atog eats Memnite and the Ironworks, and Fling pays {1} from the pool: a 5/6 Atog.
+        dmg, steps, moves = pg.atog_search(["Fling", "Galvanic Blast"], 1, 0, (1, 1, 0, 0, 1))
+        self.assertEqual((dmg, steps), (5, 3))
+        self.assertEqual(moves[0], ("kci", "Ornithopter"))
+        self.assertEqual(moves[-1], ("fling", "Atog"))
+        self.assertEqual(pg.atog_search(["Fling", "Galvanic Blast"], 1, 0, (1, 1, 0, 0, 1), plain=True)[0], 4)
+
+    def test_the_written_line_lets_each_pump_resolve_before_fling(self):
+        moves = pg.atog_search(["Fling", "Galvanic Blast"], 1, 0, (1, 1, 0, 0, 1))[2]
+        lines, dealt, steps = pg.atog_lines(1, 0, (1, 1, 0, 0, 1), moves, 5)
+        # Fling is castable over the last pump: a pass lets it resolve first, or Fling takes a 3/4 Atog.
+        self.assertEqual(lines, ["activate Krark-Clan Ironworks", "Ornithopter", "activate Atog", "Memnite", "pass",
+                                 "activate Atog", "pass", "cast Fling", "opponent"])
+        self.assertEqual((dealt, steps), (5, 3))
+
+    def test_disciple_drains_for_every_artifact_that_dies(self):
+        # Two Disciples, Atog and a lone Ironworks, no mana: Atog eats the Ironworks, 2 drained.
+        self.assertEqual(pg.atog_search([], 0, 2, (0, 0, 0, 0, 1))[0], 2)
+
+    def test_an_atog_board_is_the_searched_maximum_with_a_near_miss_trap(self):
+        boards = pg.generate("atog", 2, 7)
+        self.assertEqual(len(boards), 2)
+        for b in boards:
+            s = b["search"]
+            start = tuple(s["start"])
+            dmg, steps, _ = pg.atog_search(s["hand"], s["mountains"], s["disciples"], start)
+            self.assertEqual((dmg, steps), (b["life"], b["actions"]))
+            self.assertTrue(13 <= steps <= 15, steps)
+            trap = pg.atog_search(s["hand"], s["mountains"], s["disciples"], start, plain=True)[0]
+            self.assertEqual(trap, b["trap"])
+            self.assertTrue(1 <= dmg - trap <= 3, (dmg, trap))
+            self.assertEqual(stated_life(b["text"]("x")), dmg)
+
+
 if __name__ == "__main__":
     unittest.main()

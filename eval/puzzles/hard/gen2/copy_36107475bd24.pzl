@@ -1,0 +1,57 @@
+[metadata]
+Name:copy_36107475bd24
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Firebrand Archer and five untapped Mountains. Your hand is Pyretic Ritual, Reverberate, Lightning Bolt, Shock, Increasing Vengeance, Pyretic Ritual, Pyretic Ritual, Gitaxian Probe, Shock, Lava Spike, Lava Spike, Pyretic Ritual and Fork. Your graveyard is empty. The opponent is at 33 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 33 in 13 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 31
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyretic Ritual;Reverberate;Lightning Bolt;Shock;Increasing Vengeance;Pyretic Ritual;Pyretic Ritual;Gitaxian Probe;Shock;Lava Spike;Lava Spike;Pyretic Ritual;Fork
+p0battlefield=Firebrand Archer;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=33
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Pyretic Ritual
+pass
+pass
+cast Pyretic Ritual
+pass
+pass
+cast Pyretic Ritual
+pass
+pass
+cast Pyretic Ritual
+cast Fork
+pass
+pass
+pass
+cast Increasing Vengeance
+pass
+pass
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+cast Reverberate
+cast Increasing Vengeance ... Flashback
+Lightning Bolt
+opponent
+opponent
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Shock
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0
