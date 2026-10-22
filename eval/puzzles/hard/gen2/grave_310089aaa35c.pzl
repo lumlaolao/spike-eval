@@ -1,0 +1,54 @@
+[metadata]
+Name:grave_310089aaa35c
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control one Walking Corpse and two untapped Swamps. Your hand is Sign in Blood, Songs of the Damned, Consume Spirit, Gitaxian Probe, Culling the Weak, Gitaxian Probe, Unearth, Sign in Blood, Songs of the Damned, Dark Ritual, Songs of the Damned, Village Rites, Songs of the Damned and Songs of the Damned. Your graveyard holds Walking Corpse, Witherbloom Apprentice, Sign in Blood, Gitaxian Probe, Duress and Duress. The opponent is at 21 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 21 in 13 steps, the graveyard filled before Songs of the Damned resolves; every mana spell first deals at most 19
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Sign in Blood;Songs of the Damned;Consume Spirit;Gitaxian Probe;Culling the Weak;Gitaxian Probe;Unearth;Sign in Blood;Songs of the Damned;Dark Ritual;Songs of the Damned;Village Rites;Songs of the Damned;Songs of the Damned
+p0battlefield=Walking Corpse;Swamp;Swamp
+p0graveyard=Walking Corpse;Witherbloom Apprentice;Sign in Blood;Gitaxian Probe;Duress;Duress
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=21
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Unearth
+Witherbloom Apprentice
+pass
+cast Culling the Weak
+Walking Corpse
+cast Dark Ritual
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Sign in Blood
+opponent
+cast Sign in Blood
+opponent
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+cast Consume Spirit
+5
+opponent
+[acceptance]
+life p1 <= 0

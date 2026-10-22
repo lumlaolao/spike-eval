@@ -1,0 +1,58 @@
+[metadata]
+Name:grave_168d25c1e389
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice, one Walking Corpse and two untapped Swamps. Your hand is Village Rites, Dark Ritual, Consume Spirit, Dark Ritual, Gitaxian Probe, Gitaxian Probe, Cabal Ritual, Gitaxian Probe, Dark Ritual, Cabal Ritual, Cabal Ritual, Gitaxian Probe, Gitaxian Probe, Village Rites and Songs of the Damned. Your graveyard holds Walking Corpse, Dark Ritual, Walking Corpse and Dark Ritual. The opponent is at 30 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 30 in 14 steps, the graveyard filled before Cabal Ritual and Songs of the Damned resolve; every mana spell first deals at most 29
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Village Rites;Dark Ritual;Consume Spirit;Dark Ritual;Gitaxian Probe;Gitaxian Probe;Cabal Ritual;Gitaxian Probe;Dark Ritual;Cabal Ritual;Cabal Ritual;Gitaxian Probe;Gitaxian Probe;Village Rites;Songs of the Damned
+p0battlefield=Witherbloom Apprentice;Walking Corpse;Swamp;Swamp
+p0graveyard=Walking Corpse;Dark Ritual;Walking Corpse;Dark Ritual
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=30
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 14
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+pass
+pass
+cast Village Rites
+Walking Corpse
+pass
+pass
+cast Songs of the Damned
+cast Consume Spirit
+16
+opponent
+[acceptance]
+life p1 <= 0
