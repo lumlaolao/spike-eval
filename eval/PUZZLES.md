@@ -138,8 +138,8 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   (`activate Smuggler's Copter @27`) tells twins apart; `0 6` (space-separated numbers) answers a damage or
   amount split; `yes` / `no` answer a confirm (`ScriptBridge.java` holds the full grammar).
   The section is in the file the solver never reads; it is a public answer, so a held-out puzzle keeps its line out
-  of the public repository. The generated hard suite is the exception while the repository is private (owner,
-  2026-10-21): its held-out boards carry their `[solution]` and `Rule:` lines, which must be stripped (and kept
+  of the public repository. The generated hard suites are the exception while the repository is private (owner,
+  2026-10-21): their held-out boards carry their `[solution]` and `Rule:` lines, which must be stripped (and kept
   outside the repository) before it is made public.
 - It is played by the model seat with `SMART_MODEL_A=script:<file>` (`ScriptBridge.java`) under the condition a
   paid run pins with the tools off, so the line meets the menus a model meets. A priority menu the next line does
@@ -238,6 +238,37 @@ FORGE_HOME=/root/forge python3 scripts/puzzle-gate/gen_gate.py --build B --forge
   --boards eval/puzzles/hard/gen --out runs/puzzles/hard-gen-gate -j 3
 python3 scripts/puzzle-gate/gen_suite.py --gate runs/puzzles/hard-gen-gate --boards eval/puzzles/hard/gen \
   --out eval/suites/puzzles-hard-gen-v1.json
+```
+
+### The second hard suite
+
+`eval/suites/puzzles-hard-gen2-v1.json` (236 boards in `eval/puzzles/hard/gen2/`; 156 open, 80 held out) raises the
+bar: a line of 13 to 15 steps, the opponent's life the exact maximum of an exhaustive search over a model of the
+board, no mana left unused at the end of the best line where the model can check it, and a trap: a natural plain
+plan, searched to its own best, falls 1 to 3 short. Families and their traps:
+
+| Family | Boards | Trap (the plain plan that falls short) |
+|---|---|---|
+| splice2 | 77 | never splice, or splice every payable card onto each Arcane spell |
+| hoofdrain | 51 | sacrifice only the elves cast this turn |
+| copy | 35 | copy only burn, never the ritual on the stack |
+| grave | 35 | cast every mana spell first |
+| drain2 | 21 | play the land first; cast the drainers last; sacrifice as soon as a death drains |
+| atog | 15 | Atog eats every artifact; the Ironworks makes no mana |
+| elf2 | 2 | cast Craterhoof as soon as payable; tap the mana creatures first |
+
+Every board passed the gate (random 0 of 20; PASS, first, greedy and Forge's AI 0 of 4 each), each family on a build
+of main 96caa9b's overlay (unchanged by this suite) with its family's generator, at harness-epoch-70; the gate's rows
+are in `runs/puzzles/hard-gen2-gate`. "Maximum" means the maximum within the generator's model of the board: the gate
+replays only the written line, so a line the engine allows and the model leaves out is not caught.
+`eval/test_puzzle_gen.py` re-derives each committed splice2, drain2, elf2 and hoofdrain board's life, steps and trap
+from its .pzl; copy, grave and atog are tested on freshly drawn boards only. Notes:
+`docs/harness/history/2026-10-21-harder-splice.md`, `docs/harness/history/2026-10-22-harder-engines.md`,
+`docs/harness/history/2026-10-20-generated-hard-puzzles.md` ("second set").
+
+```bash
+python3 scripts/puzzle-gate/gen_suite.py --name hard-gen2 --gate G1 G2 ... --boards eval/puzzles/hard/gen2 \
+  --out eval/suites/puzzles-hard-gen2-v1.json
 ```
 
 ## Running a model

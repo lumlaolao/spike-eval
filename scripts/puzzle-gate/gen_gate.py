@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gate generated boards (eval/puzzle_gen.py): a board is kept only when the engine agrees it is a hard puzzle.
 
-  python3 scripts/puzzle-gate/gen_gate.py --build B --forge F --boards DIR --out DIR [-j 2]
+  python3 scripts/puzzle-gate/gen_gate.py --build B --forge F --boards DIR --out DIR [-j 2] [--resume]
 
 1. Its written line plays as written and solves (`puzzle_baselines.py line`), with 10 to 15 solver actions.
 2. Every floor fails it: random 0 of 20, PASS 0 of 4, first option 0 of 4, greedy 0 of 4, and Forge's AI solves
@@ -33,10 +33,14 @@ def last_row(out_dir):
 
 def play_line(a, pzl):
     out = Path(a.out) / "line" / pzl.stem
-    shutil.rmtree(out, ignore_errors=True)
-    subprocess.run([sys.executable, str(REPO / "eval/puzzle_baselines.py"), "--build", a.build, "--forge", a.forge,
-                    "line", "--pzl", str(pzl), "--out-dir", str(out)], cwd=REPO, capture_output=True, text=True,
-                   timeout=1800)
+    # A resumed gate reuses a line result only when it ran on this very file: a board redrawn under the same name
+    # (its key is its cards, not its line) is played again (pr-review of #299).
+    done = last_row(out) if a.resume else None
+    if not (done and done.get("pzl_sha256") == pf.sha256_file(pzl)):
+        shutil.rmtree(out, ignore_errors=True)
+        subprocess.run([sys.executable, str(REPO / "eval/puzzle_baselines.py"), "--build", a.build, "--forge", a.forge,
+                        "line", "--pzl", str(pzl), "--out-dir", str(out)], cwd=REPO, capture_output=True,
+                       text=True, timeout=1800)
     r = last_row(out) or {}
     # The generator writes the board's real step count ("# steps: N"): the engine also counts a storm copy as a
     # cast, which is not a decision.
@@ -72,6 +76,8 @@ def main(argv=None):
     ap.add_argument("--boards", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("-j", "--jobs", type=int, default=2)
+    ap.add_argument("--resume", action="store_true",
+                    help="reuse a board's line result and the floors' rows already in --out (a gate that was stopped)")
     a = ap.parse_args(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -86,7 +92,8 @@ def main(argv=None):
         subprocess.run([sys.executable, str(REPO / "eval/puzzle_baselines.py"), "--build", a.build, "--forge",
                         a.forge, "run", "--suite", str(suite), "--arms", ",".join(FLOORS), "--baselines-only",
                         "--rollouts", "20", "-j", str(a.jobs), "--out-dir", str(out / "floors"), "--write",
-                        str(out / "floors.json")], cwd=REPO, capture_output=True, text=True, timeout=6 * 3600)
+                        str(out / "floors.json")] + (["--resume"] if a.resume else []), cwd=REPO,
+                       capture_output=True, text=True, timeout=6 * 3600)
         for rec in json.loads((out / "floors.json").read_text())["puzzles"]:
             r = by_id[rec["id"]]
             base = rec.get("baselines") or {}

@@ -1,0 +1,67 @@
+[metadata]
+Name:elf2_3441e77f47f8
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel and Priest of Titania, all untapped and none of them summoning sick. Your hand is Llanowar Elves, Boreal Druid, Wirewood Elf, Elvish Mystic, Elves of Deep Shadow, Wellwisher, Arbor Elf, Elvish Lyrist, Fyndhorn Elves, Treetop Warden, Craterhoof Behemoth and Elvish Scout. The opponent is at 53 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf2 | the exhaustive maximum is 53 damage in 13 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; the best plain plan (Craterhoof as soon as the mana for it can be made / tap the mana creatures before anything else) deals 50, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Llanowar Elves;Boreal Druid;Wirewood Elf;Elvish Mystic;Elves of Deep Shadow;Wellwisher;Arbor Elf;Elvish Lyrist;Fyndhorn Elves;Treetop Warden;Craterhoof Behemoth;Elvish Scout
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Priest of Titania
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=53
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"elves": ["Boreal Druid", "Llanowar Elves", "Fyndhorn Elves", "Arbor Elf", "Elves of Deep Shadow", "Elvish Scout", "Elvish Lyrist", "Wellwisher", "Wirewood Elf", "Elvish Mystic", "Treetop Warden"], "forests": 2, "mana_elves": [], "others": [], "priest": true, "sentinels": 1}
+# trap: {"best": 50, "plans": {"hoof_asap": 50, "keep_druid": -1, "keep_mana_creatures": -1, "never_tap_sentinels": -1, "tap_out_first": 50}, "short": 3}
+activate Forest
+activate Forest
+cast Boreal Druid
+yes
+cast Llanowar Elves
+yes
+pass
+activate Priest of Titania
+cast Fyndhorn Elves
+yes
+cast Arbor Elf
+yes
+cast Elves of Deep Shadow
+yes
+cast Elvish Scout
+yes
+cast Elvish Lyrist
+yes
+pass
+activate Heritage Druid
+Boreal Druid; Llanowar Elves; Fyndhorn Elves
+cast Elvish Mystic
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Arbor Elf; Elves of Deep Shadow
+cast Wellwisher
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Scout; Elvish Lyrist
+cast Wirewood Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Mystic; Wellwisher
+cast Treetop Warden
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Wirewood Elf; Treetop Warden
+cast Craterhoof Behemoth
+yes
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid
+[acceptance]
+life p1 <= 0

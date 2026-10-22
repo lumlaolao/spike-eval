@@ -1,0 +1,76 @@
+[metadata]
+Name:atog_eb43cf29c072
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Atog, two Disciples of the Vault, Ornithopter, Ornithopter, Memnite, Krark-Clan Ironworks and two untapped Mountains. Your hand is Frogmite, Galvanic Blast, Galvanic Blast, Frogmite, Myr Enforcer, Fling, Myr Enforcer and Frogmite. The opponent is at 39 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-atog | the exhaustive maximum is 39 in 15 steps, the Ironworks' mana paying for what Atog cannot; Atog eating every artifact deals at most 37
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Frogmite;Galvanic Blast;Galvanic Blast;Frogmite;Myr Enforcer;Fling;Myr Enforcer;Frogmite
+p0battlefield=Atog;Disciple of the Vault;Disciple of the Vault;Ornithopter;Ornithopter;Memnite;Krark-Clan Ironworks;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=39
+p1library=Plains;Plains;Plains;Plains
+[solution]
+# steps: 15
+cast Frogmite
+cast Frogmite
+cast Frogmite
+pass
+cast Galvanic Blast
+opponent
+cast Myr Enforcer
+cast Myr Enforcer
+pass
+activate Krark-Clan Ironworks
+Ornithopter
+yes
+yes
+activate Atog
+Ornithopter
+yes
+yes
+pass
+activate Atog
+Memnite
+yes
+yes
+pass
+activate Atog
+Frogmite
+yes
+yes
+pass
+activate Atog
+Frogmite
+yes
+yes
+pass
+activate Atog
+Frogmite
+yes
+yes
+pass
+activate Atog
+Myr Enforcer
+yes
+yes
+pass
+activate Atog
+Myr Enforcer
+yes
+yes
+pass
+activate Atog
+yes
+yes
+pass
+cast Fling
+opponent
+Atog
+[acceptance]
+life p1 <= 0

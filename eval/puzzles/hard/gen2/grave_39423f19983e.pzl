@@ -1,0 +1,56 @@
+[metadata]
+Name:grave_39423f19983e
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice, two Walking Corpses and three untapped Swamps. Your hand is Village Rites, Consume Spirit, Gitaxian Probe, Culling the Weak, Gitaxian Probe, Sign in Blood, Unearth, Songs of the Damned, Gitaxian Probe, Dark Ritual, Village Rites, Songs of the Damned, Cabal Ritual, Sign in Blood and Cabal Ritual. Your graveyard holds Gitaxian Probe, Duress, Dark Ritual, Walking Corpse, Gitaxian Probe and Walking Corpse. The opponent is at 30 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 30 in 13 steps, the graveyard filled before Cabal Ritual and Songs of the Damned resolve; every mana spell first deals at most 28
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Village Rites;Consume Spirit;Gitaxian Probe;Culling the Weak;Gitaxian Probe;Sign in Blood;Unearth;Songs of the Damned;Gitaxian Probe;Dark Ritual;Village Rites;Songs of the Damned;Cabal Ritual;Sign in Blood;Cabal Ritual
+p0battlefield=Witherbloom Apprentice;Walking Corpse;Walking Corpse;Swamp;Swamp;Swamp
+p0graveyard=Gitaxian Probe;Duress;Dark Ritual;Walking Corpse;Gitaxian Probe;Walking Corpse
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=30
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Culling the Weak
+Walking Corpse
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Dark Ritual
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Sign in Blood
+opponent
+cast Sign in Blood
+opponent
+pass
+pass
+cast Village Rites
+Walking Corpse
+pass
+pass
+cast Songs of the Damned
+pass
+pass
+cast Songs of the Damned
+cast Consume Spirit
+13
+opponent
+[acceptance]
+life p1 <= 0

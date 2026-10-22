@@ -1,0 +1,95 @@
+[metadata]
+Name:drain2_39aa630dc83f
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Bloodghast, Carrion Feeder, Gravecrawler, Reassembling Skeleton, Viscera Seer and 5 untapped Swamps. Your hand is Blood Artist, Zulaport Cutthroat and Swamp. Your graveyard holds nothing. The opponent is at 17 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain2 | the exhaustive maximum is 17 drained in 14 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard; the best plain plan (play the land first) drains 15, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blood Artist;Zulaport Cutthroat;Swamp
+p0battlefield=Bloodghast;Carrion Feeder;Gravecrawler;Reassembling Skeleton;Viscera Seer;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=17
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+# search: {"altar": false, "bf": ["Bloodghast", "Carrion Feeder", "Gravecrawler", "Reassembling Skeleton", "Viscera Seer"], "gy": [], "hand": ["Blood Artist", "Zulaport Cutthroat"], "land": true, "swamps": 5}
+# trap: {"best": 15, "plans": {"land_first": 15, "sac_asap": 8}, "short": 2}
+cast Blood Artist
+pass
+cast Zulaport Cutthroat
+pass
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Carrion Feeder
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+activate Viscera Seer
+Gravecrawler
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Reassembling Skeleton
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Blood Artist
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Viscera Seer
+[acceptance]
+life p1 <= 0

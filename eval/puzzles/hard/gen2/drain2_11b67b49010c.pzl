@@ -1,0 +1,74 @@
+[metadata]
+Name:drain2_11b67b49010c
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Bloodghast, Carrion Feeder, Cruel Celebrant, Gravecrawler, Reassembling Skeleton, Viscera Seer and 3 untapped Swamps. Your hand is Swamp. Your graveyard holds nothing. The opponent is at 10 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain2 | the exhaustive maximum is 10 drained in 15 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard; the best plain plan (play the land first) drains 9, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Swamp
+p0battlefield=Bloodghast;Carrion Feeder;Cruel Celebrant;Gravecrawler;Reassembling Skeleton;Viscera Seer;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=10
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"altar": false, "bf": ["Bloodghast", "Carrion Feeder", "Cruel Celebrant", "Gravecrawler", "Reassembling Skeleton", "Viscera Seer"], "gy": [], "hand": [], "land": true, "swamps": 3}
+# trap: {"best": 9, "plans": {"land_first": 9, "sac_asap": 5}, "short": 1}
+activate Carrion Feeder
+Bloodghast
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Carrion Feeder
+pass
+pass
+activate Viscera Seer
+Gravecrawler
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Reassembling Skeleton
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Cruel Celebrant
+[acceptance]
+life p1 <= 0

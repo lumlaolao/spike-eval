@@ -1,0 +1,48 @@
+[metadata]
+Name:copy_ee11baede7aa
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Firebrand Archer and three untapped Mountains. Your hand is Lightning Bolt, Fork, Gitaxian Probe, Gitaxian Probe, Lava Spike, Gitaxian Probe, Lava Spike, Pyretic Ritual, Gitaxian Probe, Lava Spike, Lightning Bolt, Rite of Flame and Reverberate. Your graveyard is empty. The opponent is at 28 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-copy | the exhaustive maximum is 28 in 13 casts, a copier aimed at a ritual on the stack; copying only burn deals at most 26
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Fork;Gitaxian Probe;Gitaxian Probe;Lava Spike;Gitaxian Probe;Lava Spike;Pyretic Ritual;Gitaxian Probe;Lava Spike;Lightning Bolt;Rite of Flame;Reverberate
+p0battlefield=Firebrand Archer;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=28
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 13
+cast Pyretic Ritual
+cast Rite of Flame
+cast Fork
+cast Reverberate
+pass
+pass
+pass
+pass
+pass
+cast Lightning Bolt
+opponent
+cast Lightning Bolt
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Lava Spike
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+[acceptance]
+life p1 <= 0

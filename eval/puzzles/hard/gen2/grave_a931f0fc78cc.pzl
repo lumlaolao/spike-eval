@@ -1,0 +1,55 @@
+[metadata]
+Name:grave_a931f0fc78cc
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Witherbloom Apprentice, one Walking Corpse and two untapped Swamps. Your hand is Sign in Blood, Sign in Blood, Gitaxian Probe, Cabal Ritual, Dark Ritual, Sign in Blood, Cabal Ritual, Sign in Blood, Consume Spirit, Culling the Weak, Gitaxian Probe, Unearth, Culling the Weak, Unearth and Dark Ritual. Your graveyard holds Duress, Duress, Duress, Walking Corpse, Gitaxian Probe and Walking Corpse. The opponent is at 29 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-grave | the exhaustive maximum is 29 in 14 steps, the graveyard filled before Cabal Ritual resolves; every mana spell first deals at most 27
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Sign in Blood;Sign in Blood;Gitaxian Probe;Cabal Ritual;Dark Ritual;Sign in Blood;Cabal Ritual;Sign in Blood;Consume Spirit;Culling the Weak;Gitaxian Probe;Unearth;Culling the Weak;Unearth;Dark Ritual
+p0battlefield=Witherbloom Apprentice;Walking Corpse;Swamp;Swamp
+p0graveyard=Duress;Duress;Duress;Walking Corpse;Gitaxian Probe;Walking Corpse
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=29
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[solution]
+# steps: 14
+cast Culling the Weak
+Walking Corpse
+cast Cabal Ritual
+pass
+pass
+cast Cabal Ritual
+pass
+pass
+cast Dark Ritual
+pass
+pass
+cast Dark Ritual
+cast Gitaxian Probe
+opponent
+cast Gitaxian Probe
+opponent
+cast Sign in Blood
+opponent
+cast Sign in Blood
+opponent
+cast Sign in Blood
+opponent
+cast Sign in Blood
+opponent
+cast Unearth
+Walking Corpse
+pass
+pass
+cast Culling the Weak
+Walking Corpse
+cast Consume Spirit
+7
+opponent
+[acceptance]
+life p1 <= 0

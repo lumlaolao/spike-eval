@@ -1,0 +1,112 @@
+[metadata]
+Name:hoofdrain_c07b63c8d619
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Heritage Druid, two Nettle Sentinels, Fyndhorn Elves, Llanowar Elves, Priest of Titania, Blood Artist, Zulaport Cutthroat and Viscera Seer, all untapped and none of them summoning sick. Your hand is Boreal Druid, Craterhoof Behemoth, Elvish Mystic, Elvish Lyrist, Elvish Warrior, Elves of Deep Shadow and Norwood Ranger. The opponent is at 172 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-hoofdrain | the exhaustive maximum is 172 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; after Craterhoof's trigger has counted X, Viscera Seer sacrifices every creature that will not attack, each death draining once per drainer; the best plain plan (sacrifice only the elves cast this turn) deals 170, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Boreal Druid;Craterhoof Behemoth;Elvish Mystic;Elvish Lyrist;Elvish Warrior;Elves of Deep Shadow;Norwood Ranger
+p0battlefield=Heritage Druid;Nettle Sentinel;Nettle Sentinel;Fyndhorn Elves;Llanowar Elves;Priest of Titania;Blood Artist;Zulaport Cutthroat;Viscera Seer
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=172
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Elvish Mystic", "Elvish Warrior", "Elves of Deep Shadow", "Norwood Ranger", "Elvish Lyrist", "Boreal Druid"], "forests": 0, "mana_elves": ["Fyndhorn Elves", "Llanowar Elves"], "others": ["Blood Artist", "Zulaport Cutthroat", "Viscera Seer"], "priest": true, "sentinels": 2}
+# trap: {"best": 170, "plans": {"attack_only": 158, "hoof_asap": 157, "keep_druid": 106, "keep_mana_creatures": -1, "never_tap_sentinels": 106, "sac_early": 149, "sac_new_only": 170, "tap_out_first": 142}, "short": 2}
+activate Priest of Titania
+cast Elvish Mystic
+yes
+yes
+cast Elves of Deep Shadow
+yes
+yes
+cast Norwood Ranger
+yes
+yes
+cast Elvish Lyrist
+yes
+yes
+cast Boreal Druid
+yes
+yes
+pass
+activate Heritage Druid
+Elvish Mystic; Elves of Deep Shadow; Norwood Ranger
+activate Heritage Druid
+Nettle Sentinel; Elvish Lyrist; Boreal Druid
+cast Elvish Warrior
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Elvish Warrior
+cast Craterhoof Behemoth
+yes
+yes
+pass
+pass
+activate Viscera Seer
+Elvish Mystic
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elves of Deep Shadow
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Norwood Ranger
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Lyrist
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Boreal Druid
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Elvish Warrior
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+activate Viscera Seer
+Priest of Titania
+Blood Artist; Zulaport Cutthroat
+opponent
+pass
+pass
+pass
+Colossal Dreadmaw
+Craterhoof Behemoth; Nettle Sentinel; Nettle Sentinel; Heritage Druid; Fyndhorn Elves; Llanowar Elves; Blood Artist; Zulaport Cutthroat; Viscera Seer
+[acceptance]
+life p1 <= 0
