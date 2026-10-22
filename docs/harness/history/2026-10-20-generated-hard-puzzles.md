@@ -94,6 +94,36 @@ solves it, and its life total is not a searched maximum.
 The active set is not filtered on the model's result: keeping only the boards one model fails would make the suite
 hard for that model by construction.
 
+## The second set (`eval/puzzles/hard/gen2/`, 2026-10-22)
+
+Luna's misses in the first suite came where the line needs an order nobody would try first and a near miss
+waits for the obvious plan. The copy, grave and atog families are built for that: each line is 13 to 15 steps,
+the opponent's life is the exact maximum of a search over a model of the board, and a board is kept only when a
+plain plan, searched to its own best, falls 1 to 3 short of it (`Rule:` names both numbers). The copy and atog
+searches fix an order that cannot lose damage (burn after the rituals; Atog eats last, the Ironworks fed just
+before the cast it pays) and were checked against the unpruned search: 9,798 and 11,122 small boards, no
+difference. A written line is replayed through a model of the stack that writes `pass` only where the seat
+would otherwise cast in response (ScriptBridge casts each card at its first chance).
+
+What the engine taught: a copy's target is asked as the copier resolves, not as it is cast; Increasing
+Vengeance from the hand and from the graveyard read alike unless the flashback is named (`cast Increasing
+Vengeance ... Flashback`), so a board holds one; X is asked before Consume Spirit's target; Disciple of the
+Vault's "may" is asked as each trigger resolves; an artifact out from the start and one just cast read apart
+(`[sick]`), so a sacrifice by name is ambiguous and a board never holds both.
+
+Gated on a build of this branch (`gen_gate.py -j 1`, output under `/tmp/puzzle-scratch/gen2-newfam/gate-*`),
+2026-10-22. Every board drawn was kept: each written line replayed and solved, and random (0 of 20), PASS,
+first option, greedy and Forge's AI (0 of 4 each) solved none.
+
+| Family | Seeds | Gated / kept | Steps | Opponent's life | Plain plan short by 1 / 2 / 3 |
+|---|---|---|---|---|---|
+| copy | 101, 102 | 35 / 35 | 13-15 | 27-69 | 6 / 21 / 8 |
+| grave | 201, 202 | 35 / 35 | 13-15 | 21-41 | 3 / 28 / 4 |
+| atog | 301 | 15 / 15 | 13-15 | 15-39 | 0 / 15 / 0 (each Atog meal is +2) |
+
+Nothing paid ran and no model was called: the floors say no blind or one-move-deep player wins; whether the
+traps catch a model is not measured yet.
+
 ## Not done
 
 - Boards generated and never gated (red 60, ping 60, storm 50, fling 55, elf 40) are on branch `feat/hard-gen` at
@@ -112,3 +142,8 @@ hard for that model by construction.
 - Run faster next time (owner, 2026-10-21): a model check waits on the provider, not the CPU (about 15 s a call),
   so run it 8 to 12 attempts at a time, not 3; split the engine gates into batches run side by side rather than in
   one queue. This check took about two hours at 3 at a time.
+- The second set (copy, grave, atog) is not frozen into a suite and no model has played it. The gate kept every
+  board, so the floors do not separate these boards; only a model check can say whether the traps bite. Where the
+  line leaves mana unspent is checked for copy only (grave spends it all on Consume Spirit; an atog line can float
+  one {C} from the Ironworks). Every atog trap is exactly 2 short, and Firebrand Archer is the payoff on most copy
+  boards: more variety before more boards.
