@@ -1,0 +1,74 @@
+[metadata]
+Name:elf2_2753b3ca0d06
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel and Priest of Titania, all untapped and none of them summoning sick. Your hand is Elvish Scout, Willow Elf, Craterhoof Behemoth, Arbor Elf, Llanowar Elves, Elvish Mystic, Wirewood Elf, Norwood Ranger, Cylian Elf, Wellwisher, Elvish Warrior, Elves of Deep Shadow, Boreal Druid and Elvish Lyrist. The opponent is at 59 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf2 | the exhaustive maximum is 59 damage in 15 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped; Priest of Titania taps for one per elf out, or attacks; the best plain plan (Craterhoof as soon as the mana for it can be made / tap the mana creatures before anything else) deals 56, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Elvish Scout;Willow Elf;Craterhoof Behemoth;Arbor Elf;Llanowar Elves;Elvish Mystic;Wirewood Elf;Norwood Ranger;Cylian Elf;Wellwisher;Elvish Warrior;Elves of Deep Shadow;Boreal Druid;Elvish Lyrist
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Priest of Titania
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=59
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"elves": ["Elvish Lyrist", "Norwood Ranger", "Wirewood Elf", "Cylian Elf", "Elvish Mystic", "Arbor Elf", "Elves of Deep Shadow", "Boreal Druid", "Elvish Warrior", "Elvish Scout", "Willow Elf", "Llanowar Elves", "Wellwisher"], "forests": 2, "mana_elves": [], "others": [], "priest": true, "sentinels": 1}
+# trap: {"best": 56, "plans": {"hoof_asap": 56, "keep_druid": -1, "keep_mana_creatures": -1, "never_tap_sentinels": -1, "tap_out_first": 56}, "short": 3}
+activate Forest
+activate Forest
+cast Elvish Lyrist
+yes
+cast Norwood Ranger
+yes
+pass
+activate Priest of Titania
+cast Elvish Mystic
+yes
+cast Arbor Elf
+yes
+cast Elves of Deep Shadow
+yes
+cast Boreal Druid
+yes
+cast Elvish Scout
+yes
+pass
+activate Heritage Druid
+Elvish Lyrist; Norwood Ranger; Elvish Mystic
+cast Willow Elf
+yes
+cast Llanowar Elves
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Arbor Elf; Elves of Deep Shadow
+cast Wirewood Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Boreal Druid; Elvish Scout
+cast Cylian Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Willow Elf; Llanowar Elves
+cast Elvish Warrior
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Wirewood Elf; Cylian Elf
+cast Wellwisher
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Warrior; Wellwisher
+cast Craterhoof Behemoth
+yes
+Craterhoof Behemoth; Nettle Sentinel; Heritage Druid
+[acceptance]
+life p1 <= 0
