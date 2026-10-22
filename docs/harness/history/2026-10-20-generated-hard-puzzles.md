@@ -111,7 +111,7 @@ Vengeance ... Flashback`), so a board holds one; X is asked before Consume Spiri
 Vault's "may" is asked as each trigger resolves; an artifact out from the start and one just cast read apart
 (`[sick]`), so a sacrifice by name is ambiguous and a board never holds both.
 
-Gated on a build of this branch (`gen_gate.py -j 1`, output under `/tmp/puzzle-scratch/gen2-newfam/gate-*`),
+Gated on a build of this branch (`gen_gate.py -j 1`; the rows are in `runs/puzzles/hard-gen2-gate`),
 2026-10-22. Every board drawn was kept: each written line replayed and solved, and random (0 of 20), PASS,
 first option, greedy and Forge's AI (0 of 4 each) solved none.
 
@@ -144,7 +144,7 @@ traps catch a model is not measured yet.
 - Run faster next time (owner, 2026-10-21): a model check waits on the provider, not the CPU (about 15 s a call),
   so run it 8 to 12 attempts at a time, not 3; split the engine gates into batches run side by side rather than in
   one queue. This check took about two hours at 3 at a time.
-- The second set (copy, grave, atog) is not frozen into a suite and no model has played it. The gate kept every
+- The second set is frozen as `eval/suites/puzzles-hard-gen2-v1.json` (`eval/PUZZLES.md`); no model has played it. The gate kept every
   board, so the floors do not separate these boards; only a model check can say whether the traps bite. Where the
   line leaves mana unspent is checked for copy only (grave spends it all on Consume Spirit; an atog line can float
   one {C} from the Ironworks). Every atog trap is exactly 2 short, and Firebrand Archer is the payoff on most copy

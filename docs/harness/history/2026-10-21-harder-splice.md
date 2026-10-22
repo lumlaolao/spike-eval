@@ -50,8 +50,8 @@ trap as stated).
 
 ## The gate (`scripts/puzzle-gate/gen_gate.py`, one board at a time)
 
-Build: the overlay of this branch's base (main at 96caa9b) compiled to `/tmp/puzzle-scratch/build-splice`. Gate
-records: `/tmp/puzzle-scratch/gen2-splice/gate-b*/gate.json` and `floors.json`.
+Build: the overlay of this branch's base (main at 96caa9b) compiled for the gate. Gate
+records: `runs/puzzles/hard-gen2-gate/gen2-splice-gate-b*/gate.json` and `floors.json`.
 
 | Batch | Seed | Drawn (after de-duplication) | Kept |
 |---|---|---|---|

@@ -44,6 +44,10 @@ import sys
 from pathlib import Path
 
 MIN_ACTIONS, MAX_ACTIONS = 10, 15
+# The second suite (eval/puzzles/hard/gen2): a line of 13 to 15 steps, and a trap: the best plain plan, searched to
+# its own best, falls 1 to 3 short of the board's maximum.
+HARD_MIN, HARD_MAX = 13, 15
+TRAP_MIN, TRAP_MAX = 1, 3
 
 # Instants and sorceries for the ping family: (name, generic cost, red cost, mana added, damage, target kind).
 # Target kinds: "any" (players and creatures), "player", "creature", "none". Phyrexian spells cost nothing here:
@@ -606,8 +610,6 @@ def red_board(rng):
 # Mountain tapped first, which the search models only by order, not by floating mana).
 SPLICE2_OTHERS = ("Lava Spike", "Lava Spike", "Lightning Bolt", "Shock", "Pyretic Ritual", "Rite of Flame",
                   "Seething Song", "Gitaxian Probe", "Grapeshot")
-SPLICE2_STEPS = (13, 15)
-SPLICE2_TRAP = (1, 3)        # how far short the better plain plan must fall
 
 
 def splice2_board(rng):
@@ -628,15 +630,15 @@ def splice2_board(rng):
     dmg, steps, line, _, left = red_search(hand, mountains, alchemist, reducer, kiln=kiln)
     base = attack_base(kiln, reducer)
     total, steps = dmg + base, steps + (1 if base else 0)
-    if left or not SPLICE2_STEPS[0] <= steps <= SPLICE2_STEPS[1] \
+    if left or not HARD_MIN <= steps <= HARD_MAX \
             or not any(x != "ping" and x[2] for x in line):
         return None
     never = red_search(hand, mountains, alchemist, reducer, False, kiln)[0] + base
-    if not SPLICE2_TRAP[0] <= total - never:
+    if not TRAP_MIN <= total - never:
         return None
     greedy = red_search(hand, mountains, alchemist, reducer, "max", kiln)[0] + base
     trap = max(never, greedy)
-    if not SPLICE2_TRAP[0] <= total - trap <= SPLICE2_TRAP[1]:
+    if not TRAP_MIN <= total - trap <= TRAP_MAX:
         return None
     why = ("the searched best line deals %d, spending every mana; trap %d (never splicing deals %d, splicing every "
            "payable card onto each Arcane spell %d)" % (total, trap, never, greedy))
@@ -992,8 +994,6 @@ def _drain_board(swamps, land, bf, gy, hand, altar, drain, steps, moves, trap=No
 
 
 
-HARD_MIN, HARD_MAX = 13, 15            # drain2 and elf2: the "super hard" length
-TRAP_MIN, TRAP_MAX = 1, 3              # how far short the best plain plan must fall
 
 
 def _trap(best, plain):
@@ -1536,10 +1536,6 @@ def fling_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
 
 
-# The second generated suite (eval/puzzles/hard/gen2): lines of 13 to 15 steps, and a trap: a natural plain plan,
-# searched to its own best, falls 1 to 3 short of the board's maximum.
-GEN2_MIN, GEN2_MAX = 13, 15
-
 # The copy family. Rituals: (cost, mana made, sorcery). Fodder (the spells worth copying for damage): (cost, damage,
 # sorcery); every one targets, so each cast and each copy asks for `opponent`. All mana is red.
 COPY_RITUALS = {"Rite of Flame": (1, 2, True), "Pyretic Ritual": (2, 3, False), "Seething Song": (3, 5, False)}
@@ -1556,10 +1552,9 @@ def _copy_finish(fodder, copiers, iv_hand, iv_gy, mana, per_cast, per_copy):
     to put on the best of it. Every copier aims at one spell; Increasing Vengeance cast from hand first can follow
     from the graveyard. Returns (damage, steps, plan), plan (fodder cast as ((name, n), ...), copiers from hand, 1 if
     Vengeance is cast from hand, 1 if it is flashed back, mana left)."""
-    from itertools import product
     kinds = sorted(set(fodder))
     best = (0, 0, ((), 0, 0, 0, mana))
-    for ns in product(*[range(fodder.count(k) + 1) for k in kinds]):
+    for ns in itertools.product(*[range(fodder.count(k) + 1) for k in kinds]):
         cast = tuple((k, n) for k, n in zip(kinds, ns) if n)
         cost = sum(COPY_FODDER[k][0] * n for k, n in cast)
         nf = sum(ns)
@@ -1802,14 +1797,14 @@ def copy_board(rng):
     if copiers.count(IV) > 1:
         return None                    # two Vengeances: the hand's cast and the graveyard's read alike
     hand = copiers + [rng.choice(sorted(COPY_RITUALS)) for _ in range(rng.choice([2, 3, 4, 5]))]
-    hand += [rng.choice(sorted(COPY_FODDER)) for _ in range(rng.randint(GEN2_MIN - len(hand), GEN2_MAX + 1 - len(hand)))]
+    hand += [rng.choice(sorted(COPY_FODDER)) for _ in range(rng.randint(HARD_MIN - len(hand), HARD_MAX + 1 - len(hand)))]
     dmg, steps, line = copy_search(hand, mountains, payoffs)
-    if not GEN2_MIN <= steps <= GEN2_MAX or line[-1][1][4]:
+    if not HARD_MIN <= steps <= HARD_MAX or line[-1][1][4]:
         return None                    # the wrong length, or mana left unspent
     if not any(x[0] in ("cast", "flashback") and x[1] in COPIERS for x in line[:-1]):
         return None                    # the best line copies no ritual
     trap = copy_search(hand, mountains, payoffs, ritual_copies=False)[0]
-    if not 1 <= dmg - trap <= 3:
+    if not TRAP_MIN <= dmg - trap <= TRAP_MAX:
         return None
     lines, dealt, casts = copy_lines(hand, mountains, payoffs, line, dmg)
     if (dealt, casts) != (dmg, steps):
@@ -1993,10 +1988,10 @@ def grave_board(rng):
     apprentice = "gy" if "Unearth" in hand and rng.random() < 0.2 else True
     gy = gy_corpses + len(fillers) + (apprentice == "gy")
     dmg, steps, moves = grave_search(hand, swamps, corpses, apprentice, gy, gy_corpses)
-    if not GEN2_MIN <= steps <= GEN2_MAX:
+    if not HARD_MIN <= steps <= HARD_MAX:
         return None
     trap = grave_search(hand, swamps, corpses, apprentice, gy, gy_corpses, mana_first=True)[0]
-    if not 1 <= dmg - trap <= 3:
+    if not TRAP_MIN <= dmg - trap <= TRAP_MAX:
         return None
     lines, dealt, n = grave_lines(hand, swamps, corpses, apprentice, gy, gy_corpses, moves)
     if (dealt, n) != (dmg, steps):
@@ -2052,7 +2047,6 @@ def atog_search(hand, mountains, disciples, start, plain=False):
     plain=True is the plain plan: Atog eats every artifact, the Ironworks is never used for mana. Moves: ("kci",
     artifact), ("atog", artifact), ("cast", card), ("fling", creature). Returns (damage, steps, moves)."""
     from functools import lru_cache
-    from itertools import combinations_with_replacement
 
     def feeds(bf, k):
         """Every way to feed the Ironworks k artifacts before a cast: (battlefield after, the artifacts in order,
@@ -2060,7 +2054,7 @@ def atog_search(hand, mountains, disciples, start, plain=False):
         if k == 0:
             return [(bf, ())]
         out = []
-        for combo in combinations_with_replacement(range(5), k):
+        for combo in itertools.combinations_with_replacement(range(5), k):
             left = list(bf)
             for i in combo:
                 left[i] -= 1
@@ -2238,10 +2232,10 @@ def atog_board(rng):
     if any(start[ATOG_ORDER.index(c)] for c in hand if c in ATOG_ARTIFACTS):
         return None                    # one out and one cast read apart ("[sick]"), so a sacrifice by name is ambiguous
     dmg, steps, moves = atog_search(hand, mountains, disciples, start)
-    if not GEN2_MIN <= steps <= GEN2_MAX:
+    if not HARD_MIN <= steps <= HARD_MAX:
         return None
     trap = atog_search(hand, mountains, disciples, start, plain=True)[0]
-    if not 1 <= dmg - trap <= 3:
+    if not TRAP_MIN <= dmg - trap <= TRAP_MAX:
         return None
     lines, dealt, n = atog_lines(mountains, disciples, start, moves, dmg)
     if (dealt, n) != (dmg, steps):

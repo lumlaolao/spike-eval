@@ -33,7 +33,10 @@ def last_row(out_dir):
 
 def play_line(a, pzl):
     out = Path(a.out) / "line" / pzl.stem
-    if not (getattr(a, "resume", False) and last_row(out)):
+    # A resumed gate reuses a line result only when it ran on this very file: a board redrawn under the same name
+    # (its key is its cards, not its line) is played again (pr-review of #299).
+    done = last_row(out) if a.resume else None
+    if not (done and done.get("pzl_sha256") == pf.sha256_file(pzl)):
         shutil.rmtree(out, ignore_errors=True)
         subprocess.run([sys.executable, str(REPO / "eval/puzzle_baselines.py"), "--build", a.build, "--forge", a.forge,
                         "line", "--pzl", str(pzl), "--out-dir", str(out)], cwd=REPO, capture_output=True,

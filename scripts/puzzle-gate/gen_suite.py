@@ -69,7 +69,7 @@ def board_record(floor_rec, gate_row, line_row, pzl, repo=REPO, engine="unknown"
 
 def build_suite(gate_dirs, boards_dir, repo=REPO, engine="unknown", date=None, name="hard-gen"):
     """The frozen suite `name` from one gate's output, or several (a set gated in batches, family by family)."""
-    recs = []
+    recs = {}   # by board id: a board gated again in a later directory keeps only that later run
     for gate_dir in [gate_dirs] if isinstance(gate_dirs, (str, Path)) else gate_dirs:
         gate_dir = Path(gate_dir)
         rows = json.loads((gate_dir / "gate.json").read_text())
@@ -81,9 +81,9 @@ def build_suite(gate_dirs, boards_dir, repo=REPO, engine="unknown", date=None, n
                 print("  not in the suite %-24s %s" % (row["board"], row.get("dropped", "no floors record")))
                 continue
             line_rows = pb.read_results(gate_dir / "line" / row["board"])
-            recs.append(board_record(floors[pid], row, line_rows[-1] if line_rows else None, pzl, repo, engine,
-                                     date))
-    m = pf.candidate_suite(name, "1", engine, recs)
+            recs[pid] = board_record(floors[pid], row, line_rows[-1] if line_rows else None, pzl, repo, engine,
+                                     date)
+    m = pf.candidate_suite(name, "1", engine, list(recs.values()))
     return pf.freeze(m)
 
 
@@ -99,13 +99,15 @@ def main(argv=None):
     problems = pf.validate_suite(m)
     for x in problems:
         print("PROBLEM", x)
+    if problems:
+        return 1
     Path(a.out).write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
     act = [r for r in m["puzzles"] if r["status"] == "active"]
     print("%s: %d active of %d, suite_sha256 %s" % (a.out, len(act), len(m["puzzles"]), m["suite_sha256"]))
     for r in m["puzzles"]:
         if r["status"] != "active":
             print("  dropped %-28s %s" % (r["id"], "; ".join(r["flags"])))
-    return 1 if problems else 0
+    return 0
 
 
 if __name__ == "__main__":

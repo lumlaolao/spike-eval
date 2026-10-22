@@ -403,7 +403,8 @@ class GenGateResumeTest(unittest.TestCase):
         done = tmp / "out" / "line" / "drain2_x" / "a"
         done.mkdir(parents=True)
         (done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
-                                                               "solver_actions": 20}) + "\n")
+                                                               "solver_actions": 20,
+                                                               "pzl_sha256": pf.sha256_file(pzl)}) + "\n")
         a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True)
         real = gen_gate.subprocess.run
         gen_gate.subprocess.run = lambda *x, **k: self.fail("the line was played again")
@@ -413,6 +414,30 @@ class GenGateResumeTest(unittest.TestCase):
             gen_gate.subprocess.run = real
         self.assertEqual((row["solved"], row["actions"]), (True, 13))
         self.assertNotIn("dropped", row)
+
+    def test_a_resumed_gate_plays_again_a_board_edited_since_its_line_ran(self):
+        # pr-review of #299: a board regenerated under the same name (its key is the cards, not the line) kept the
+        # old line's verdict. A row is reused only when it ran on this very file.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "puzzle-gate"))
+        import argparse
+        import json
+        import gen_gate
+        tmp = Path(tempfile.mkdtemp())
+        pzl = tmp / "drain2_x.pzl"
+        pzl.write_text("[solution]\n# steps: 13\npass\n", encoding="utf-8")
+        done = tmp / "out" / "line" / "drain2_x" / "a"
+        done.mkdir(parents=True)
+        (done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
+                                                               "pzl_sha256": "an older file"}) + "\n")
+        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True)
+        played = []
+        real = gen_gate.subprocess.run
+        gen_gate.subprocess.run = lambda *x, **k: played.append(x)
+        try:
+            gen_gate.play_line(a, pzl)
+        finally:
+            gen_gate.subprocess.run = real
+        self.assertEqual(len(played), 1, "the stale row was reused")
 
 
 class CopySearchTest(unittest.TestCase):

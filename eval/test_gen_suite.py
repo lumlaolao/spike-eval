@@ -96,6 +96,14 @@ class GenSuiteTest(unittest.TestCase):
             self.assertEqual({r["id"]: r["status"] for r in suite["puzzles"]},
                              {"hard-ping-a": "active", "hard-ping-b": "dropped"})
 
+    def test_a_board_gated_in_two_runs_is_one_record_from_the_later_run(self):
+        # pr-review of #299: a board re-gated into a new directory came out twice, and the suite was written anyway.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, g1, bdir = gate(tmp, {"ping_a": (dict(FLOORS_OK, ai=(3, 4)), PLAYED)}, "gate1")
+            _, g2, _ = gate(tmp, {"ping_a": (FLOORS_OK, PLAYED)}, "gate2")
+            recs = gs.build_suite([g1, g2], bdir, repo=repo, engine="abc")["puzzles"]
+            self.assertEqual([(r["id"], r["status"]) for r in recs], [("hard-ping-a", "active")])
+
 
 if __name__ == "__main__":
     unittest.main()

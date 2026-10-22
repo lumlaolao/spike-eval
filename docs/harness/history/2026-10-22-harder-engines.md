@@ -58,7 +58,7 @@ Every written line played as written and solved; every floor (random 0 of 20, PA
 AI 0 of 4) failed every board. Kept: drain2 lives 9 to 27 (9 distinct), traps 1/2/3 short on 5/9/7 boards; elf2 53
 and 59, 3 short; hoofdrain lives 60 to 172 (34 distinct over three batches), 1/2/3 short on 27/21/3. Steps 13/14/15:
 32/6/36. No board was dropped by the gate: as for the first suite, the gate does not separate
-these families; the bar above is the generator's. Gate output: `/tmp/puzzle-scratch/gen2-engines/{A,B,C}/gate`.
+these families; the bar above is the generator's. Gate output: `runs/puzzles/hard-gen2-gate/gen2-engines-{A,B,C}-gate`.
 `gen_gate.py --resume` continues a gate stopped by a time limit from its line results and floor rows.
 
 ## Not done
