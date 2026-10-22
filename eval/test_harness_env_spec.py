@@ -77,6 +77,12 @@ class SpecProblemsTest(unittest.TestCase):
         s["copy"] = [c for c in s["copy"] if c["from"] != s["task"]]
         self.assertTrue(any("task statement" in p for p in hs.problems(s)))
 
+    def test_the_dev_slice_is_off_unless_said_and_said_as_a_boolean(self):
+        self.assertIs(shipped()["grader"]["dev_slice"], False)
+        s = shipped()
+        s["grader"]["dev_slice"] = "yes"
+        self.assertTrue(any("dev_slice" in p for p in hs.problems(s)))
+
     def test_a_done_signal_is_required(self):
         s = shipped()
         s["done"] = {"on_cap": "grade-last-checkpoint"}

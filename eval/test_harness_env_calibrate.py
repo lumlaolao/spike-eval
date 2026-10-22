@@ -82,6 +82,13 @@ class SettingsTest(unittest.TestCase):
                 continue
             self.assertEqual(self.result["scores"][s]["toy-ai"], 0.0, s)
 
+    def test_without_the_gate_the_family_rule_alone_is_what_separates(self):
+        ungated = cal.evaluate(report(), self.weights, gate=False)
+        geo = ungated["scores"]["geometric-equal-0.001"]
+        self.assertGreater(geo["toy-ai"], 0.0, "the AI delegator's own profile, as if the counter had missed it")
+        self.assertLess(geo["ours-minus-combat"], 0.5 * geo["ours"])
+        self.assertNotIn("Forge AI gated", ungated["criteria"]["geometric-equal-0.001"])
+
     def test_the_recommendation_meets_every_criterion(self):
         rec = self.result["recommended"]
         self.assertTrue(all(self.result["criteria"][rec].values()), self.result["criteria"][rec])

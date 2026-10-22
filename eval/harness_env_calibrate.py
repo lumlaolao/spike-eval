@@ -131,9 +131,17 @@ def family_scores(table):
     return out
 
 
-def evaluate(rows, weights):
+CHECKS = ("asked", "offered", "carried", "shown", "noparse")
+
+
+def evaluate(rows, weights, gate=True):
+    """Every setting on every seat, the criteria, the recommendation. gate=False shows the family rule alone: no run-wide
+    Forge-AI gate, and an instance passes on its five checks (as if the counter had seen nothing)."""
+    if not gate:
+        rows = [dict(r, **{"pass": "1" if all(r.get(c) == "1" for c in CHECKS) else "0"}) if all(c in r for c in CHECKS) else r
+                for r in rows]
     table = hg.env_table(rows, by="hook")
-    gated = hg.ai_gated(rows)
+    gated = hg.ai_gated(rows) if gate else set()
     fs = family_scores(table)
     scores = {}
     for s in SETTINGS:
@@ -161,7 +169,7 @@ def evaluate(rows, weights):
             worse[small] = max(0, cells[small]["passed"] - 1) / cells[small]["total"]
             v = score(s, worse, weights)
             c["one failure is not a cliff"] = sc["ours"] - v <= 0.25 * sc["ours"]
-        if "toy-ai" in sc and not s.startswith("dense"):
+        if gate and "toy-ai" in sc and not s.startswith("dense"):
             c["Forge AI gated"] = sc["toy-ai"] == 0.0
         criteria[s] = c
     benchmark_settings = [s for s in SETTINGS if not s.startswith("dense")]
@@ -191,9 +199,12 @@ def main(argv):
     fams = sorted({hg.family(r["hook"]) for r in rows})
     runs = argv[argv.index("--runs") + 1] if "--runs" in argv else None
     weights = corpus_weights(decision_counts(runs), fams) if runs else {f: 1.0 / len(fams) for f in fams}
-    result = evaluate(rows, weights)
-    print(markdown(result))
-    print(json.dumps({"recommended": result["recommended"], "criteria": result["criteria"][result["recommended"]]}, indent=1))
+    for gate in (True, False):
+        result = evaluate(rows, weights, gate=gate)
+        print("\n%s\n" % ("With the run-wide Forge-AI gate (the published benchmark):" if gate
+                          else "Without it (the family rule alone, as if the counter had seen nothing):"))
+        print(markdown(result))
+        print(json.dumps({"recommended": result["recommended"], "criteria": result["criteria"][result["recommended"]]}, indent=1))
     return 0
 
 

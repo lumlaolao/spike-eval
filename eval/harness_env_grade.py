@@ -324,6 +324,11 @@ def env_table(rows, by="surface"):
     t = {}
     for r in rows:
         fam = family(r["hook"]) if by == "hook" else r["family"]
+        # One legal answer tests only that the seat does nothing illegal: failing it costs (an illegal block stands),
+        # passing it earns nothing, so a forced pass cannot keep a family whose real choices all failed off zero
+        # (measured 2026-10-22: one forced block kept a seat that never asked combat at 1/17, benchmark 0.72).
+        if int(r.get("legal") or 2) < 2 and r.get("pass") == "1":
+            continue
         c = t.setdefault(r["seat"], {}).setdefault(fam, {"passed": 0, "total": 0})
         c["total"] += 1
         c["passed"] += r.get("pass") == "1"

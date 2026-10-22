@@ -228,6 +228,16 @@ class EnvReportTest(unittest.TestCase):
         self.assertGreater(scores["ours"]["dense"], 0.5)
         self.assertTrue(scores["ours"]["forge_ai_gate"])
 
+    def test_an_instance_with_one_legal_answer_can_cost_credit_but_never_earn_it(self):
+        forced_pass = dict(seat="s", instance="a", family="combat", hook="declareBlockers", legal="1", **{"pass": "1"})
+        forced_fail = dict(forced_pass, seat="t", **{"pass": "0"})
+        choice_fail = dict(seat="s", instance="b", family="combat", hook="declareBlockers", legal="4", **{"pass": "0"})
+        choice_pass = dict(choice_fail, seat="t", **{"pass": "1"})
+        for by in ("hook", "surface"):
+            t = hg.env_table([forced_pass, choice_fail, forced_fail, choice_pass], by=by)
+            self.assertEqual(t["s"]["combat"], {"passed": 0, "total": 1}, "a forced pass does not keep combat off zero")
+            self.assertEqual(t["t"]["combat"], {"passed": 1, "total": 2}, "an illegal answer where one was legal still costs")
+
     def test_payment_executor_entries_do_not_gate(self):
         rows = [dict(seat="ours", instance="x", family="costs", hook="payManaCost", ai="0", ai_payment="9", **{"pass": "1"})]
         self.assertEqual(hg.ai_gated(rows), set())

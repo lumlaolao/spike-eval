@@ -90,8 +90,9 @@
     "factory_property_file": "overlay/harness-env.properties"
   },
   "grader": {
-    "version": "surface-v0",
+    "version": "instances-v1",
     "secret_seed_env": "HARNESS_ENV_SEED",
+    "dev_slice": false,
     "runs_outside_the_sandbox": true
   }
 }

@@ -146,6 +146,8 @@ def problems(spec, repo=None):
         out.append("done needs a `file` or a `tool`: the episode ends only when the agent says so")
     if done.get("on_cap") not in ON_CAP:
         out.append("done.on_cap must be one of %s" % (ON_CAP,))
+    if not isinstance(spec["grader"].get("dev_slice", False), bool):
+        out.append("grader.dev_slice must be true or false (a public dev slice is off unless the owner says so)")
     if not spec["submission"].get("path") or _escapes(spec["submission"]["path"]):
         out.append("submission.path must be a sandbox-relative directory")
     elif spec["submission"]["path"] not in spec["make_dirs"]:
