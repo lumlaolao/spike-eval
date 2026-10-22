@@ -46,6 +46,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | history/2026-10-20-benchmark-v2-research.md | the reading behind BENCHMARK-V2.md and the sample-v1 measurements |
 | history/2026-10-20-generated-hard-puzzles.md | the generated hard puzzles: research, families, gate, the first suite and its paid model check |
 | history/2026-10-21-harder-splice.md | the super-hard splice family (splice2): the splice line defect, multiset splices, the trap, the gen2 boards |
+| history/2026-10-22-harder-engines.md | the super-hard drain2, elf2 and hoofdrain families: traps, search bar, gate |
 | history/HANDOFF-PERFECT-HARNESS.md | the 2026-10-14 handoff that started the "model is the bottleneck" work |
 | history/COMPLETION-GATES.md | the gates G1 to G10 as first written |
 | history/EVAL-IMPLEMENTATION.md, history/EVAL-IDENTITY-IMPLEMENTATION.md | reports on eval work orders B and identity |
