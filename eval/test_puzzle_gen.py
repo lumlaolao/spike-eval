@@ -684,6 +684,13 @@ class TokenSearchTest(unittest.TestCase):
         self.assertEqual(pg.token_search(s), (4, 0, (("sweep", ("Mogg War Marshal", "Goblin Token",
                                                                 "Skirk Prospector")),)))
 
+    def test_mayhem_devil_in_hand_is_never_cast(self):
+        # {1}{B}{R}: Mountains cannot pay it (gate B: five lines that cast it were never offered it).
+        s = {"mountains": 5, "bf": ["Skirk Prospector"], "hand": ["Mayhem Devil"]}
+        self.assertEqual(pg.token_search(s), (0, 0, ()))
+        rng = random.Random(1)
+        self.assertFalse(any("Mayhem Devil" in pg.token_draw(rng)["hand"] for _ in range(300)))
+
     def test_siege_gang_is_asked_its_target_before_the_goblin(self):
         # Siege-Gang alone sacrifices itself (the only Goblin: the engine picks it); the target comes first.
         s = {"mountains": 2, "bf": ["Siege-Gang Commander"], "hand": []}

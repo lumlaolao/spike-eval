@@ -2683,10 +2683,12 @@ BEETLEBACK, SIEGE = "Beetleback Chief", "Siege-Gang Commander"
 ROASTMASTER, DEVIL, TREMORS = "Witty Roastmaster", "Mayhem Devil", "Impact Tremors"
 TK_CREATURES = {SKIRK: (1, True, 0), INSTIGATOR: (2, True, 1), MARSHAL: (2, True, 1), BEETLEBACK: (4, True, 2),
                 SIEGE: (5, True, 3), ROASTMASTER: (3, False, 0), KRENKO: (4, True, 0),
-                DEVIL: (3, False, 0), GOBLIN_TOKEN: (0, True, 0)}       # (mana value, a Goblin, tokens on entering)
+                DEVIL: (None, False, 0), GOBLIN_TOKEN: (0, True, 0)}    # (mana value, a Goblin, tokens on entering)
+# Mayhem Devil costs {1}{B}{R} and Krenko {2}{R}{R}: the Mountains never cast the Devil, so it only starts out (the gate
+# caught five boards that cast it from hand: the seat was never offered it).
 TK_SORCERIES = {"Hordeling Outburst": (3, 3), "Dragon Fodder": (2, 2), "Krenko's Command": (2, 2)}
-TK_COST = dict([(c, v[0]) for c, v in TK_CREATURES.items()] + [(c, v[0]) for c, v in TK_SORCERIES.items()]
-               + [(TREMORS, 2)])
+TK_COST = dict([(c, v[0]) for c, v in TK_CREATURES.items() if v[0] is not None]
+               + [(c, v[0]) for c, v in TK_SORCERIES.items()] + [(TREMORS, 2)])
 TK_PAYOFFS = (TREMORS, ROASTMASTER, DEVIL)
 TOKEN_PLANS = {
     "tokens_first": "sacrifice a token whenever there is one, never a creature card",
@@ -2777,7 +2779,7 @@ def token_search(start, plan=None):
     @lru_cache(maxsize=None)
     def best(m, hand, b, tremors, kr):
         moves = []
-        for c in sorted(set(hand)):
+        for c in sorted(set(hand) & set(TK_COST)):          # Mayhem Devil's {B}: never cast
             rest = list(hand)
             rest.remove(c)
             rest = tuple(rest)
@@ -2993,7 +2995,7 @@ def token_draw(rng):
     """A tokens board's search inputs: Skirk Prospector out on most, a hand of cheap Goblins and token makers, and at
     most one of each payoff (two copies' triggers would be asked in an order the line does not write)."""
     bf = [KRENKO] if rng.random() < 0.5 else []
-    payoffs = {TREMORS: rng.choice(["bf", "bf", "hand", None]), DEVIL: rng.choice(["bf", "hand", None, None]),
+    payoffs = {TREMORS: rng.choice(["bf", "bf", "hand", None]), DEVIL: rng.choice(["bf", None, None]),
                ROASTMASTER: rng.choice(["bf", "hand", None, None, None])}
     bf += [c for c, z in payoffs.items() if z == "bf"]
     bf += [c for c, p in ((SKIRK, 0.8), (SIEGE, 0.2)) if rng.random() < p]

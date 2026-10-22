@@ -1,0 +1,94 @@
+[metadata]
+Name:landfall_7788b13782e0
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Retreat to Coralhelm, Prodigal Pyromancer and four Mountains and two Forests, all untapped. Your hand is Blaze, Evolving Wilds, Exploration, Harrow, Lotus Cobra, Mountain, Tunneling Geopede, Valakut, the Molten Pinnacle and Wooded Foothills. Your library holds five Mountains and five Forests. The opponent is at 22 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-landfall | the exhaustive maximum is 22 damage in 13 steps: every land a landfall trigger; Lotus Cobra's mana for each land after it; Valakut only for a Mountain with five others out; Retreat to Coralhelm untaps Prodigal Pyromancer for another ping; Blaze for all the mana left; the best plain plan (play a land before anything else / cast each landfall creature as soon as it can be paid) deals 21, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blaze;Evolving Wilds;Exploration;Harrow;Lotus Cobra;Mountain;Tunneling Geopede;Valakut, the Molten Pinnacle;Wooded Foothills
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Forest;Forest;Retreat to Coralhelm;Prodigal Pyromancer
+p0library=Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest
+p1life=22
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"cobra": "hand", "coralhelm": true, "forests": 2, "geopede": false, "hand": ["Blaze", "Evolving Wilds", "Exploration", "Harrow", "Lotus Cobra", "Mountain", "Tunneling Geopede", "Valakut, the Molten Pinnacle", "Wooded Foothills"], "hellkite": false, "lib": [5, 5], "mountains": 4, "valakut": "hand"}
+# trap: {"best": 21, "plans": {"land_first": 21, "payoff_first": 21}, "short": 1}
+activate Prodigal Pyromancer
+opponent
+activate Forest
+cast Exploration
+activate Mountain
+activate Forest
+cast Lotus Cobra
+play land Valakut, the Molten Pinnacle
+Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+Untap
+activate Prodigal Pyromancer
+opponent
+red
+play land Wooded Foothills
+Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+pass
+green
+activate Mountain
+cast Harrow
+Forest
+pass
+Mountain
+Mountain
+Valakut, the Molten Pinnacle; Retreat to Coralhelm; Lotus Cobra; Valakut, the Molten Pinnacle; Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+opponent
+You may tap or untap
+Prodigal Pyromancer
+opponent
+pass
+yes
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+pass
+red
+pass
+yes
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+pass
+red
+activate Wooded Foothills
+Mountain
+Valakut, the Molten Pinnacle; Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+opponent
+yes
+Untap
+activate Prodigal Pyromancer
+opponent
+red
+cast Blaze
+7
+opponent
+[acceptance]
+life p1 <= 0

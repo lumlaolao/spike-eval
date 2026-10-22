@@ -1,0 +1,93 @@
+[metadata]
+Name:landfall_94f1dcf86efd
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Valakut, the Molten Pinnacle and four Mountains and one Forest, all untapped. Your hand is Akoum Hellkite, Azusa, Lost but Seeking, Blaze, Evolving Wilds, Exploration, Harrow, Lotus Cobra, Mountain, Tunneling Geopede, Wooded Foothills and Wooded Foothills. Your library holds five Mountains and five Forests. The opponent is at 32 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-landfall | the exhaustive maximum is 32 damage in 13 steps: every land a landfall trigger; Lotus Cobra's mana for each land after it; Valakut only for a Mountain with five others out; Blaze for all the mana left; the best plain plan (cast each landfall creature as soon as it can be paid) deals 31, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Akoum Hellkite;Azusa, Lost but Seeking;Blaze;Evolving Wilds;Exploration;Harrow;Lotus Cobra;Mountain;Tunneling Geopede;Wooded Foothills;Wooded Foothills
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Forest;Valakut, the Molten Pinnacle
+p0library=Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest
+p1life=32
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"cobra": "hand", "coralhelm": false, "forests": 1, "geopede": false, "hand": ["Akoum Hellkite", "Azusa, Lost but Seeking", "Blaze", "Evolving Wilds", "Exploration", "Harrow", "Lotus Cobra", "Mountain", "Tunneling Geopede", "Wooded Foothills", "Wooded Foothills"], "hellkite": false, "lib": [5, 5], "mountains": 4, "valakut": "bf"}
+# trap: {"best": 31, "plans": {"land_first": 29, "payoff_first": 31}, "short": 1}
+activate Mountain
+activate Forest
+cast Lotus Cobra
+play land Evolving Wilds
+pass
+green
+activate Mountain
+activate Mountain
+cast Harrow
+Forest
+Mountain
+Mountain
+Valakut, the Molten Pinnacle; Lotus Cobra; Valakut, the Molten Pinnacle; Lotus Cobra
+opponent
+opponent
+yes
+red
+yes
+red
+activate Mountain
+activate Mountain
+activate Mountain
+activate Valakut, the Molten Pinnacle
+cast Akoum Hellkite
+pass
+activate Evolving Wilds
+Mountain
+Akoum Hellkite; Valakut, the Molten Pinnacle; Lotus Cobra
+opponent
+opponent
+yes
+green
+cast Exploration
+play land Wooded Foothills
+Akoum Hellkite; Lotus Cobra
+opponent
+pass
+pass
+red
+activate Wooded Foothills
+Mountain
+Akoum Hellkite; Valakut, the Molten Pinnacle; Lotus Cobra
+opponent
+opponent
+yes
+green
+activate Mountain
+cast Azusa, Lost but Seeking
+play land Mountain
+Akoum Hellkite; Valakut, the Molten Pinnacle; Lotus Cobra
+opponent
+opponent
+yes
+red
+play land Wooded Foothills
+Akoum Hellkite; Lotus Cobra
+opponent
+pass
+pass
+red
+activate Wooded Foothills
+Mountain
+Akoum Hellkite; Valakut, the Molten Pinnacle; Lotus Cobra
+opponent
+opponent
+yes
+red
+cast Blaze
+4
+opponent
+[acceptance]
+life p1 <= 0
