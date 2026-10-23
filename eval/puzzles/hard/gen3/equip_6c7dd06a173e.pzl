@@ -1,0 +1,51 @@
+[metadata]
+Name:equip_6c7dd06a173e
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Boros Swiftblade, Hill Giant, Puresteel Paladin, Loxodon Warhammer (unattached), Vulshok Morningstar (unattached) and 8 untapped Jungle Shrines. Your hand is Cranial Plating, Leonin Scimitar, Grafted Wargear, Ethereal Armor, Bonesplitter, Foundry Inspector, Fireshrieker, All That Glitters and Short Sword. The opponent is at 65 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 65 in 15 steps; the best plain plan (everything on the creature with the most power) deals 62, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cranial Plating;Leonin Scimitar;Grafted Wargear;Ethereal Armor;Bonesplitter;Foundry Inspector;Fireshrieker;All That Glitters;Short Sword
+p0battlefield=Boros Swiftblade;Hill Giant;Puresteel Paladin;Loxodon Warhammer;Vulshok Morningstar;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=65
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"creatures": ["Boros Swiftblade", "Hill Giant", "Puresteel Paladin"], "hand": ["All That Glitters", "Bonesplitter", "Cranial Plating", "Ethereal Armor", "Fireshrieker", "Foundry Inspector", "Grafted Wargear", "Leonin Scimitar", "Short Sword"], "loose": ["Loxodon Warhammer", "Vulshok Morningstar"], "mana": 8, "start": ["Puresteel Paladin"]}
+# trap: {"best": 62, "plans": {"biggest": 62, "cast_all_first": 52, "equip_asap": 55}, "short": 3}
+cast Foundry Inspector
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Grafted Wargear
+no
+cast Leonin Scimitar
+no
+cast Short Sword
+no
+cast All That Glitters
+Boros Swiftblade
+activate Bonesplitter ... Equip {0}
+Boros Swiftblade
+activate Cranial Plating ... Equip {0}
+Boros Swiftblade
+activate Grafted Wargear ... Equip {0}
+Boros Swiftblade
+activate Leonin Scimitar ... Equip {0}
+Boros Swiftblade
+activate Loxodon Warhammer ... Equip {0}
+Boros Swiftblade
+activate Short Sword ... Equip {0}
+Boros Swiftblade
+activate Vulshok Morningstar ... Equip {0}
+Boros Swiftblade
+Boros Swiftblade; Hill Giant; Puresteel Paladin
+[acceptance]
+life p1 <= 0

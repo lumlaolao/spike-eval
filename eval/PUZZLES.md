@@ -271,6 +271,19 @@ python3 scripts/puzzle-gate/gen_suite.py --name hard-gen2 --gate G1 G2 ... --boa
   --out eval/suites/puzzles-hard-gen2-v1.json
 ```
 
+### The third hard suite
+
+`eval/puzzles/hard/gen3/` holds two families mechanically unlike the earlier ones, to the second suite's bar (13 to
+15 steps, the goal the exact searched maximum, no mana unused, a plain plan 1 to 3 short):
+
+| Family | Goal | Trap (the plain plans) |
+|---|---|---|
+| infect | the opponent's tenth poison counter (`p1counters=POISON=N`, `Goal:Win`, `winner p0`: acceptance has no poison condition) | Become Immense as soon as it can be paid; pump only in combat; proliferate only after combat; never proliferate; Inkmoth Nexus always attacks; the land first |
+| equip | life, in one combat with no blockers | everything on the creature with the most power; cast every Equipment before equipping; Embercleave in the main phase; equip each Equipment at once |
+
+Searches, line rules and gate results: `docs/harness/history/2026-10-22-infect-equip.md`. `eval/test_puzzle_gen.py`
+(`Gen3BoardsTest`) re-derives every committed board from its `# search:` and `# trap:` lines.
+
 ## Running a model
 
 ```bash

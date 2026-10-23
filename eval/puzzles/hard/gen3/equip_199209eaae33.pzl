@@ -1,0 +1,47 @@
+[metadata]
+Name:equip_199209eaae33
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fencing Ace, Glory Seeker, Puresteel Paladin, Grafted Wargear (unattached), Short Sword (unattached) and 7 untapped Jungle Shrines. Your hand is Leonin Scimitar, Cranial Plating, All That Glitters, Rancor, Loxodon Warhammer, Bonesplitter, Foundry Inspector, Vulshok Morningstar and Fireshrieker. The opponent is at 54 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 54 in 13 steps; the best plain plan (equip each Equipment as soon as it is on the battlefield) deals 52, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Leonin Scimitar;Cranial Plating;All That Glitters;Rancor;Loxodon Warhammer;Bonesplitter;Foundry Inspector;Vulshok Morningstar;Fireshrieker
+p0battlefield=Fencing Ace;Glory Seeker;Puresteel Paladin;Grafted Wargear;Short Sword;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=54
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Fencing Ace", "Glory Seeker", "Puresteel Paladin"], "hand": ["All That Glitters", "Bonesplitter", "Cranial Plating", "Fireshrieker", "Foundry Inspector", "Leonin Scimitar", "Loxodon Warhammer", "Rancor", "Vulshok Morningstar"], "loose": ["Grafted Wargear", "Short Sword"], "mana": 7, "start": ["Puresteel Paladin"]}
+# trap: {"best": 52, "plans": {"biggest": 42, "cast_all_first": 42, "equip_asap": 52}, "short": 2}
+cast Foundry Inspector
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Leonin Scimitar
+no
+cast Vulshok Morningstar
+no
+cast All That Glitters
+Fencing Ace
+activate Bonesplitter ... Equip {0}
+Fencing Ace
+activate Cranial Plating ... Equip {0}
+Fencing Ace
+activate Grafted Wargear ... Equip {0}
+Fencing Ace
+activate Leonin Scimitar ... Equip {0}
+Fencing Ace
+activate Short Sword ... Equip {0}
+Fencing Ace
+activate Vulshok Morningstar ... Equip {0}
+Fencing Ace
+Fencing Ace; Glory Seeker; Puresteel Paladin
+[acceptance]
+life p1 <= 0

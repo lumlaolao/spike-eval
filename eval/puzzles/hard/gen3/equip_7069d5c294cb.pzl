@@ -1,0 +1,47 @@
+[metadata]
+Name:equip_7069d5c294cb
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fencing Ace, Hill Giant, Puresteel Paladin, Short Sword (unattached), Vulshok Morningstar (unattached) and 7 untapped Jungle Shrines. Your hand is Ethereal Armor, Cranial Plating, Leonin Scimitar, Bonesplitter, Fireshrieker, Foundry Inspector, Loxodon Warhammer, Grafted Wargear and Sigarda's Aid. The opponent is at 41 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 41 in 13 steps; the best plain plan (everything on the creature with the most power / cast every Equipment that can be paid before equipping) deals 38, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Ethereal Armor;Cranial Plating;Leonin Scimitar;Bonesplitter;Fireshrieker;Foundry Inspector;Loxodon Warhammer;Grafted Wargear;Sigarda's Aid
+p0battlefield=Fencing Ace;Hill Giant;Puresteel Paladin;Short Sword;Vulshok Morningstar;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=41
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Fencing Ace", "Hill Giant", "Puresteel Paladin"], "hand": ["Bonesplitter", "Cranial Plating", "Ethereal Armor", "Fireshrieker", "Foundry Inspector", "Grafted Wargear", "Leonin Scimitar", "Loxodon Warhammer", "Sigarda's Aid"], "loose": ["Short Sword", "Vulshok Morningstar"], "mana": 7, "start": ["Puresteel Paladin"]}
+# trap: {"best": 38, "plans": {"biggest": 38, "cast_all_first": 38, "equip_asap": 35}, "short": 3}
+cast Foundry Inspector
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Leonin Scimitar
+no
+cast Loxodon Warhammer
+no
+cast Ethereal Armor
+Fencing Ace
+activate Bonesplitter ... Equip {0}
+Fencing Ace
+activate Cranial Plating ... Equip {0}
+Fencing Ace
+activate Leonin Scimitar ... Equip {0}
+Fencing Ace
+activate Loxodon Warhammer ... Equip {0}
+Fencing Ace
+activate Short Sword ... Equip {0}
+Fencing Ace
+activate Vulshok Morningstar ... Equip {0}
+Fencing Ace
+Fencing Ace; Hill Giant; Puresteel Paladin
+[acceptance]
+life p1 <= 0
