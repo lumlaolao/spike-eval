@@ -28,7 +28,7 @@ today's ledger and hidden classes: a run from another epoch whose test classes d
 Usage:
   harness_env_grade.py intake <submission>
   harness_env_grade.py score <acceptance OUT> [--ledger <tsv>]
-  harness_env_grade.py table <env-grade.tsv>      (the instance report EnvGraderSuite writes: per family, per seat)
+  harness_env_grade.py table <env-grade.tsv>      (the instance report GraderSuite writes: per family, per seat)
   harness_env_grade.py build <submission overlay> <classpath.txt> <forge> <out>
       compiles the submission's main sources, the grader and its Forge-AI counter patch into <out>/classes
   harness_env_grade.py instances <classes> <classpath.txt> <forge> <out> [--only <id part>] [--seats name=class,...]
@@ -300,7 +300,7 @@ def calibrated(family_scores):
             "families_at_zero": sorted(k for k, s in family_scores.items() if s <= 0)}
 
 
-# The instance report EnvGraderSuite writes (forge-overlay/.../EnvGrader.java): one row per seat and instance.
+# The instance report GraderSuite writes (forge-overlay/.../forge/harnessenv/grader/Grader.java): one row per seat and instance.
 ENV_COLUMNS = ("seat", "instance", "family", "hook", "legal", "reached", "min_requests", "asked", "offered",
                "carried", "shown", "noparse", "pass", "ai", "ai_payment", "note")
 SEAT_ORDER = ("ours", "default", "empty", "ours-minus-combat", "ours-minus-costs")

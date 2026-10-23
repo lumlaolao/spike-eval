@@ -3,9 +3,10 @@
 **Status: a framework with a skeleton, for the owner.** 2026-10-22. `HARNESS-ENV.md` argued that building this
 harness is the RL task (GBA Eval's "build the bike"), graded first by a hidden surface test. This document makes it
 concrete: what the agent starts with, how an episode ends, what the hidden grader is and how it reaches a harness it
-has never seen, how the environment itself is validated, and a pilot. Section 9 lists what is built today
-(`eval/harness_env*.py`, `eval/harness_env/`, and the instance grader in the overlay's test tree, section 4.9) and
-what it measured. Nothing here changes the harness.
+has never seen, how the environment itself is validated, and a pilot. Sections 4.9 to 4.12 say what is built and
+what it measured: the `harness-env-abi/1` grader with four candidates, the engine-side Forge-AI counter, 69 hand
+instances and a generator over the card scripts, the episode runner and the calibration report; section 9 lists the
+files. Nothing here changes the harness.
 
 The owner's frame (2026-10-22): the agent builds the engine-to-model bridge; it may run anything for as long as it
 likes; it may never check its work against the grading criteria (what "the perfect harness" does); the episode ends
@@ -90,6 +91,11 @@ generic loopback model is open question 3.
   `abi_check` (to build) answers "compiles over the engine, the factory loads, `create` returns a controller, one
   request reached the endpoint", or the first error; never a score, never an instance.
 
+**Built** (section 4.11, `eval/harness_env_episode.py`): the sandbox, the fresh repository, the agent command, the
+`DONE` file, the cap, timed checkpoints copied outside and graded after the end, export and grading outside, the
+report. Not built: the idle reminder, `abi_check` and `finish` as tools (the agent writes `DONE` itself), and the
+container split (the runner uses a directory and a scrubbed environment on this machine, not an image).
+
 ## 4. The hidden grader
 
 ### 4.1 The interface contract (`harness-env-abi/1`, `eval/harness_env/SPEC.md` section 3)
@@ -111,7 +117,9 @@ as `HARNESS-ENV.md` sections 3.1 and 3.2 enumerate them (the 44 ways to play, th
 combat shapes, trigger and replacement counts, the sweep's four moments and five zones), boards from
 `KeywordSurfaceSweepTest.board(Moment)` parameterised by the card's own cost. Each grading run draws a stratified
 sample per (family, context) cell with a secret seed (`HARNESS_ENV_SEED`, never in the repository), discarding an
-instance where the engine offers fewer than two legal answers.
+instance where the engine offers fewer than two legal answers. **Built** (section 4.10): six templates over the
+34,086 scripts, the secret seed, a dev pool kept out of every held-out set, versioned sets; the full cell grid above
+is not yet built, and the 69 hand instances (section 4.9) cover the cells the templates do not.
 
 ### 4.3 Driving an unknown harness: enumerate and replay
 
@@ -139,12 +147,15 @@ The grader's classes come first on the classpath and its engine patch set is app
 submission's own engine patches, so a submission cannot shadow them (one that ships a class in `forge.harnessenv` or
 a grader package is rejected at intake). The patch replaces what `Player.getController()` hands the engine with a
 generated wrapper that delegates every `PlayerController` method to the candidate and records entry, exit and wall
-time per hook and thread. This is safe for the rules engine: `forge-game` has no `instanceof` test on a controller at
+time per hook and thread (designed, not built). This is safe for the rules engine: `forge-game` has no `instanceof` test on a controller at
 the pin (the files that have one are `forge-ai`'s `ComputerUtil*` helpers and `forge-gui`'s match and network code). Forge's AI is counted
 the same way: any `PlayerControllerAi` decision method, `AiController` or `AiPlayDecision` entry on the seat's thread
 while a seat hook is open fails the instance and the run-wide gate. A static scan cannot do this job: our own overlay
 references `forge.ai` in four files for legitimate reasons (it subclasses the AI controller and reads state through
-`ComputerUtil`), measured by `harness_env_grade.py intake`.
+`ComputerUtil`), measured by `harness_env_grade.py intake`. **Built** instead of the wrapper's AI count: the
+grader's patch of a pristine `PlayerControllerAi` counts every decision hook on a watched player, with the payment
+executor counted apart (section 4.9); a seat that builds its own AI controller is caught, a seat that calls
+`ComputerUtil` helpers directly is not (open question 9).
 
 ### 4.5 Scoring and partial credit
 
@@ -158,9 +169,14 @@ of the 89 ledger hooks to one, tested). Two numbers come from the family profile
   and a seat that only routes plays about 0.002. This is the published number.
 - **dense**: the plain mean over families, the RL reward between checkpoints, where every instance gained counts.
 
-Both are gated to 0 by any Forge-AI decision, a hang past the per-decision budget (10 s beyond model latency,
-`SPEC.md` section 3.3), an unmarked engine patch, or a rejected intake. Families are weighted equally until weights
-from recorded play exist (`HARNESS-ENV.md` section 3.4), versioned apart from the instances. The per-family profile
+A pass needs all five checks and no Forge-AI decision; an instance with fewer than two legal answers earns no
+credit by passing and loses it by failing (section 4.9). Any Forge-AI decision gates the benchmark to 0 run-wide and
+leaves the dense reward (built); so, by design, do a hang past the per-decision budget (10 s beyond model latency,
+`SPEC.md` section 3.3; today a hang fails its instance) and an unmarked engine patch (today intake reports it, the
+score does not yet gate on it); a submission with no Java, no factory or a failed build scores 0 (built).
+Families are weighted equally: the calibration (section 4.12) measured corpus weights from 204,451 recorded
+decisions and rejects them, since play is two thirds of decisions and a seat missing combat then keeps 0.839.
+Weights are versioned apart from the instances. The per-family profile
 is printed beside both numbers, as GBA Eval reports gameplay apart from audio.
 
 ### 4.6 Determinism, versions, held-out
@@ -204,93 +220,150 @@ with that reason, not a 0. Its record of which hooks were asked comes from the c
 (`LlmSpikeGui.SURFACE_REPORT`). And our harness defines its tests, so ours scores 1 by construction (section 6).
 `surface-v1` is sections 4.1 to 4.5.
 
-### 4.9 What is built: the instance grader (`EnvGrader`), every surface, any seat
+### 4.9 What is built: the ABI instance grader, every surface, any seat
 
-`forge-overlay/forge-gui-desktop/src/test/java/forge/spike/EnvGrader.java`, `EnvInstances.java` and
-`EnvGraderSuite.java` are sections 4.3 and 4.5 run inside one JVM: the grader drives a seat only through
-`PlayerController` and a scripted wire, so it grades ours, a naive bridge and ablations alike. It lives in the test
-tree (never production code), named `Suite` so acceptance compiles it but does not run it; `harness_env_grade.py
-instances` runs it (about ten minutes on this machine for 50 instances and four seats) and `table` reads its report.
+The grader of sections 4.1 to 4.5, driving a candidate only through `harness-env-abi/1`. It lives in the overlay's
+test tree (never production code) under `forge/harnessenv/`; acceptance compiles it, and a submission class of the
+same name fails the grader's build (one javac over both), so it scores 0. `harness_env_grade.py build` compiles a submission's `src/main` beside it and the
+generated AI-counter patch; `instances` runs `GraderSuite` (TestNG) and `table` reads its report.
 
-- **The wire** (`EnvGrader.Wire`, an `LLMBridge` with function calling): a decision is a conversation; decision k is
-  answered with the k-th scripted `answer` call, a correction round in the same conversation with the same one. One
-  call may fill several fields (`option`, `options`, `number`, `blocks`, `amounts`, `keep`), and each decision reads
-  its own; this is how a fixed answer grid reaches a seat whose labels the grader never reads (`SPEC.md` 3.2 says so).
-  Prose (which carries `CHOICE: 2` and `PICKS: 2` lines), an empty reply and garbage are the no-parse replies. A replay
-  that asks more than 60 times or runs 30 s ends with an `Error`, which a seat's `catch (Exception)` cannot swallow.
-- **Answer grids**: every option 1..n plus one out of range; every subset; every order; every split of an amount;
-  every set of (blocker, attacker) pairs; numbers from one below to one above the range; per-decision sequences for a
-  play that is followed by its cost, mode, X or target.
-- **Outcomes by engine identity**: the attack (`attacker->defender` pairs from the `Combat`), the blocks, the damage
-  map, the returned card, number, colour or yes/no, or a digest of every zone, life, tapped state, power, toughness,
-  damage, pool and the stack with its targets. **Legal sets from the engine**: attacks enumerated over
-  `CombatUtil.getAllPossibleDefenders` and kept by `AttackConstraints.countViolations` against the best attack (what
-  `CombatUtil.validateAttackers` tests), blocks added through `CombatUtil.canBlock` and kept by
-  `CombatUtil.validateBlocks`; elsewhere the set the hook is handed, or the rule (lethal before trample, 702.19c). A
-  play followed by more decisions states how many legal outcomes its decision has (`minDistinct`). A legal outcome
-  written `?x` may be reached and need not be (cancelling a cast not yet committed).
-- **The engine's own loops are mirrored**: an attack `validateAttackers` refuses is asked again (three tries, where
-  `PhaseHandler` asks forever); blocks are not, because the engine checks a non-GUI controller's blocks only in its
-  GUI (the comment on `GoldenChecksTest.aMenaceAttackerBlockedByOneCreatureIsSentBack`), so an illegal block stands
-  in a game and fails here. Damage steps run as `PhaseHandler.onPhaseBegin` runs them: first strike, state-based
-  actions, regular damage.
-- **The seats**: `ours` (`PlayerControllerLLM` on the answer tool, faithful profile); `default`, a naive bridge
-  (`PlayerControllerAi` with only `chooseSpellAbilityToPlay` routed to the wire: every ability it can pay for, and
-  Forge's AI fills in targets as its cast path needs); `ours-minus-combat` and `ours-minus-costs`, ours with the
-  combat hooks (attack, block, damage assignment, damage order, attack cost) or the cost hooks (cost decision maker,
-  optional costs, unless costs, payments, delve, mana) handed to a `PlayerControllerAi`. `empty` (no harness) is
-  intake's 0.
+- **The interface** (`forge/harnessenv/SeatFactory.java`, `ModelEndpoint.java`): `create(game, player, lobbyPlayer,
+  endpoint)` returns a `PlayerController`; the endpoint is a base URL, a model name and a log directory. The class is
+  named by `seat.factory` in the submission's `harness-env.properties`.
+- **The scripted model** (`grader/ScriptedModel.java`): an OpenAI-compatible HTTP server on loopback, one URL per
+  replay (`/r/<id>/chat/completions`). A request with no assistant message opens a new decision; decision k gets the
+  k-th scripted `answer` call, and a correction round inside the same conversation gets the same one. One call may
+  fill several fields (`option`, `options`, `number`, `keep`, `blocks`, `amounts`); each decision reads its own, so a
+  fixed grid reaches a seat whose labels the grader never reads. Modes CALL, PROSE (prose carrying `CHOICE: 2`),
+  EMPTY and GARBAGE. After 60 requests a replay's requests are parked and its thread abandoned at 30 s: the HTTP
+  boundary means a seat's `catch (Exception)` can no longer swallow the ceiling and loop.
+- **Forge's AI, counted in the engine** (`grader/AiCounter.java`, `eval/harness_env_aicount.py`): the grader patches
+  the pristine `PlayerControllerAi.java` (`git show HEAD:` of the pinned checkout, never the working copy) with
+  `AiCounter.enter("<hook>", this)` at the top of the 88 ledger decision hooks it overrides (93 counters with the
+  overloads). A count is kept per watched player; the counter is probed at suite start, the run prints "ai counter on"
+  or "OFF", and the validation run fails if it is off. `payManaCost` and `payCombatCost` are the payment executor (the
+  ledger: "model+ai-fallback", "payment itself is engine mechanics"): counted apart as `ai_payment`, not gated.
+  Any other count fails the instance (`pass` requires `ai = 0`) and gates the seat's benchmark to 0 run-wide
+  (`harness_env_grade.ai_gated`); its dense reward is kept so training still sees a gradient.
+- **Answer grids, outcomes, legal sets, the engine's loops** as before: every option plus one out of range, every
+  subset, order, split and block set, numbers one past each bound, per-decision sequences for a play followed by its
+  cost, mode, X or target; outcomes by engine identity (attack pairs, blocks, damage map, returned object, or a digest
+  of zones, life, tapped state, power, toughness, damage, pool and stack); legal sets from `CombatUtil`,
+  `AttackConstraints`, the hook's own list or the rule (lethal before trample, 702.19c). The attack re-ask loop is
+  mirrored (three tries); blocks are not, because the engine validates a non-GUI controller's blocks only in its GUI.
+- **Forced instances** (fewer than two legal answers): a pass is left out of family credit, a failure counts
+  (`env_table`). A forced pass proves nothing about asking; an illegal answer where one was legal still costs. This
+  rule is what keeps a seat that never asks combat at zero there (one forced block kept it at 1/17 before).
+- **The seats**: four candidates prove the interface, built only from `SPEC.md` and the ABI.
+  - `ours`: `PlayerControllerLLM` adapted by `forge/spike/HarnessEnvOurs.java` (`$Ours`), our OpenRouter bridge
+    pointed at the endpoint, faithful profile; `$MinusCombat` and `$MinusCosts` hand the combat or cost hooks to a
+    `PlayerControllerAi` of the same player (ablations).
+  - `default` (`toys/Toys$PriorityOnly`): asks the model only for priority; everything else is Forge's AI.
+  - `toy-text` (`Toys$TextParser`): routes eleven decisions but reads the reply's prose, never a tool call.
+  - `toy-ai` (`Toys$AiDelegate`): asks the model, then lets Forge's AI decide (or uses it as a hint).
+  - `empty` (no Java in the submission): intake's 0, no JVM.
 
-**The catalog (50 instances, `EnvInstances.all`)**, by the owner's grouping:
+**The catalog (69 instances, `grader/Instances.java`)**, by the owner's grouping:
 
 | Family | Instances |
 |---|---|
-| combat (20) | attack: choose among two creatures, a planeswalker, a battle, must attack (Bloodrock Cyclops), cannot attack (defender, summoning sick), the Ghostly Prison tax through the engine's declare step; block: choose blockers, menace, flying against reach, cannot block (Goblin Raider, tapped), must block (Prized Unicorn), one blocker on two attackers (Palace Guard); damage: order of blockers, a trampler's split, lethal by the rule on an indestructible blocker, free division among two blockers, double strike asked in both damage steps; a combat trick in the declare-blockers step; a prevention shield split; which of two damage replacements applies |
-| play (1) | land, creature, pass or float mana |
-| targets (2) | any target (players, creatures, cancel), a target through a real cast |
-| modes (1) | Kolaghan's Command, two of four modes, through a cast |
-| costs (6) | sacrifice as a cost, delve, kicker, an unless cost, pay life, X (Green Sun's Zenith, through the cast and the search) |
-| triggers and replacements (3) | order of two simultaneous triggers, an optional trigger, an optional replacement |
-| game start (3) | mulligan, the card put on the bottom, play or draw |
-| library (4) | scry 2, surveil 2, a tutor's search, a put-back order |
-| choices (9) | edict sacrifice, discard two of three, cleanup discard, a number, tap or untap, a colour, yes or no, a creature to choose, reveal from hand |
-| variants (1) | a coin-flip call |
+| combat (20) | attack: two creatures, a planeswalker, a battle, must attack, cannot attack (defender, summoning sick), the Ghostly Prison tax; block: choose, menace, flying against reach, cannot block, must block (Prized Unicorn), one blocker on two attackers; damage: blocker order, trample split, lethal on an indestructible blocker, division among two blockers, double strike in both steps; a trick in declare blockers; a prevention split; which of two damage replacements |
+| play (4) | land, creature or pass; flashback; an activated ability; creature or land |
+| targets (4) | any target, through a real cast, Doom Blade (nonblack only), Lava Spike (player only) |
+| modes (4) | Kolaghan's Command, Izzet Charm, Abzan Charm, Funeral Charm, each through a cast |
+| costs (8) | sacrifice, delve, kicker, an unless cost, pay life, X (Green Sun's Zenith), mana colour for generic (Birds of Paradise and Sol Ring, from the engine's payment log `sa.getPayingMana()`), mana from the pool (Bone Saw) |
+| triggers and replacements (3) | order of two triggers, an optional trigger, an optional replacement |
+| game start (5) | mulligan, bottom one, bottom two, play or draw, an opening-hand action |
+| library (7) | scry 2, scry 1, surveil 2, surveil 1, a tutor's search, a put-back order, top or bottom |
+| choices (9) | edict, discard two of three, cleanup discard, a number, tap or untap, a colour, yes or no, a creature, reveal |
+| variants (5) | a coin-flip call, a flip result to keep, a roll to ignore, dice to reroll, a roll to modify |
 
-**Measured** (2026-10-22, `docs/harness/evidence/2026-10-22-env-grade.tsv`, read by `harness_env_grade.py table`):
+**Measured** (2026-10-22, all 69 instances x six seats, counter on, `docs/harness/evidence/2026-10-22-env-grade-abi.tsv`,
+`harness_env_grade.py table`), by hook family, the grouping the benchmark gates on:
 
-| family (by hook) | instances | ours | default | empty | ours-minus-combat | ours-minus-costs |
-|---|---|---|---|---|---|---|
-| combat | 17 | 16/17 | 0/17 | 0/17 | 0/17 | 16/17 |
-| costs | 6 | 5/6 | 0/6 | 0/6 | 5/6 | 1/6 |
-| targets | 3 | 3/3 | 0/3 | 0/3 | 3/3 | 3/3 |
-| choices (modes included) | 11 | 11/11 | 0/11 | 0/11 | 11/11 | 11/11 |
-| triggers and replacements | 5 | 5/5 | 0/5 | 0/5 | 5/5 | 5/5 |
-| game start | 3 | 3/3 | 0/3 | 0/3 | 3/3 | 3/3 |
-| library | 2 | 2/2 | 0/2 | 0/2 | 2/2 | 2/2 |
-| play | 2 | 2/2 | 1/2 | 0/2 | 2/2 | 2/2 |
-| variants | 1 | 1/1 | 0/1 | 0/1 | 1/1 | 1/1 |
-| **dense** (mean) | | 0.975 | 0.056 | 0 | 0.870 | 0.901 |
-| **benchmark** (gated) | | **0.973** | **0.002** | **0** | **0.455** | **0.814** |
+| family (by hook) | n | ours | default | empty | minus-combat | minus-costs | toy-ai | toy-text |
+|---|---|---|---|---|---|---|---|---|
+| choices (modes included) | 14 | 14 | 0 | 0 | 14 | 14 | 3 | 0 |
+| combat | 17 | 16 | 0 | 0 | 0 | 16 | 0 | 0 |
+| costs | 8 | 7 | 0 | 0 | 7 | 2 | 0 | 0 |
+| game start | 4 | 4 | 0 | 0 | 4 | 4 | 1 | 0 |
+| library | 5 | 5 | 0 | 0 | 5 | 5 | 0 | 0 |
+| play | 6 | 6 | 1 | 0 | 6 | 6 | 1 | 0 |
+| targets | 5 | 5 | 0 | 0 | 5 | 5 | 0 | 0 |
+| triggers and replacements | 5 | 5 | 0 | 0 | 5 | 5 | 1 | 0 |
+| variants | 5 | 5 | 0 | 0 | 5 | 5 | 2 | 0 |
+| **dense** | | 0.980 | 0.019 | 0 | 0.875 | 0.910 | 0.137 | 0 |
+| **benchmark** (gated) | | **0.979** | **0** | **0** | **0** | **0** | **0** | **0** |
+| benchmark without the AI gate | | 0.979 | 0.002 | 0.001 | 0.457 | 0.851 | 0.023 | 0.002 |
 
-By the owner's surface grouping the same run reads combat 19/20 for ours, 0/20 default, 3/20 minus-combat (the trick,
-the shield split and the replacement choice use no combat hook), costs 5/6, 0/6, 5/6, 1/6, benchmark 0.977, 0.002,
-0, 0.812, 0.832. The default bridge earns its credit only where it routes: one of the two play instances (a land, a
-creature or a pass; it loses the cast whose target Forge's AI picks). Ours earns combat (16 instances the default
-fails), costs (5), choices and modes (11), triggers and replacements (5), targets (3), game start (3), library (2),
-variants (1). `ours-minus-combat` loses exactly its 17 combat-hook instances and keeps the rest; `ours-minus-costs`
-keeps one cost instance, the sacrifice, because our seat pays that cost inside its own play path
-(`LlmCostDecision`), which overriding a `PlayerController` hook cannot reach: the cost ablation is partial, and an
-external grader cannot ablate further.
+The ablations and the default are gated to 0 because they really hand decisions to Forge's AI, and the counter sees
+it; the last row is the family rule alone, as if the counter had missed them. `toy-ai` passes all five checks on
+`choices.colour` and is caught only by the counter (8 counted calls); `toy-text` fails only the no-parse check (prose
+answered 2, empty answered 1). By the owner's surface grouping ours reads 0.982, combat 19/20.
 
-**What it found in ours** (the two instances ours fails; both reproduce with
+**What it found in ours** (kept as known failing instances by the owner's instruction; both reproduce with
 `harness_env_grade.py instances ... --only <id>`):
-1. `combat.block.must-block`: against Prized Unicorn ("all creatures able to block it do so"), a model that answers
-   "no blocks" twice gets "no blocks": the seat sends the illegal set back once with the reason, then takes its fixed
-   fallback, which is no blocks, and the engine does not validate it. The fallback should be a legal block set.
-2. `costs.x`: Green Sun's Zenith with X = 1, a model that declines the search and then answers no to the engine's
-   "Cancel Search? Up to 1 more card(s) can be selected." is shown the search again, without end: the seat asked 61
-   times in under a second. No loop guard bounds that pair (`MODEL-LIMITS.md` lists the kept guards).
-Neither is fixed on this branch (a harness change, out of scope here); both are candidates for `defect-hunt`.
+1. `combat.block.must-block`: against Prized Unicorn, a model that answers "no blocks" twice gets "no blocks": the
+   seat sends the illegal set back once with the reason, then takes its fixed fallback, no blocks, and the engine does
+   not validate it. The fallback should be a legal block set.
+2. `costs.x`: Green Sun's Zenith with X = 1, a model that declines the search and then answers no to "Cancel Search?"
+   is shown the search again without end (61 requests, then parked and abandoned). No loop guard bounds that pair.
+
+### 4.10 What is built: the instance generator (`eval/harness_env_generate.py`)
+
+Instances from the card scripts, not a hand list. Six templates read features from every script in
+`res/cardsfolder` (34,086): `attacker-keyword` and `blocker-keyword` (a keyword creature in a block; 5,193 and 4,358
+cards), `attacker` (17,620), `single-target-spell` (3,452), `sac-outlet` (38), `charm` (512). Each generated
+instance is built in the JVM by `grader/GeneratedInstances.java` on a template board; one that cannot be built (the
+engine offers fewer than two answers, the card does not load) is discarded and listed in `<report>.discarded`.
+
+- **Secret seed.** `HARNESS_ENV_SEED` picks the cards; only `sha256(seed)` is written into the set. Without it the
+  generator refuses.
+- **Dev slice, off by default.** A fixed 10% of cards (`sha256("dev-pool|" + name) % 10 == 0`) is the dev pool; a
+  dev set uses only it and the public seed `dev`; a held-out set never uses it. `grader.dev_slice` in the episode
+  spec is `false`, so the box gets nothing.
+- **Versioned sets.** A set file carries its format, the generator version, its template list, the seed hash and
+  the set's own sha; scores across versions are not compared (section 4.6).
+- **Determinism.** The same seed gives the same set byte for byte (tested); the same set graded twice gives the same
+  report (measured below, section 6).
+
+### 4.11 What is built: the episode runner (`eval/harness_env_episode.py`)
+
+One command runs an episode end to end: build the sandbox from the spec and leak-check it; give it a fresh one-commit
+git repository (no history to read the answer from; hooks pointed at an empty directory); run the agent command in
+the box with a scrubbed environment; end on the agent's `DONE` file, its exit, or the cap (reported apart as
+`ended_by`); copy checkpoints out of the box on a timer (`--checkpoint-s`) and grade them only after the episode
+ends, never during, so no in-episode score exists to hack (RE-Bench's lesson); export the submission, grade it
+outside (intake, build, the instance grader with `candidate=<the submission's factory>`, scores with the AI gate),
+and write `report.json`.
+
+Two dry-run agents (`eval/harness_env_agents.py`) calibrate it: `nothing` writes `DONE` and scores 0 (ended by the
+agent in 1 s, "no Java"); `copy-ours` copies our overlay's `src/main` and the adapter and should score about ours
+(section 6).
+
+### 4.12 What is built: the calibration report (`eval/harness_env_calibrate.py`)
+
+Seven ways to turn the family profile into one number, scored on the same report, and six criteria written from the
+owner's sentences: ours at least 0.9, the default at most 0.05, a seat missing a family at most half of ours, a
+seat missing part of one below ours by more than 0.05, one more failure in ours' smallest family costing at most a
+quarter, the AI delegator at 0. Corpus weights come from 204,451 recorded decisions (play 0.675, choices 0.097,
+targets 0.075, triggers 0.043, costs 0.027, combat 0.025, game start, library and variants floored at 0.019).
+
+| setting | ours | default | minus-combat | minus-costs | toy-ai | criteria (gated) | criteria (no AI gate) |
+|---|---|---|---|---|---|---|---|
+| geometric, equal weights, floor 0.001 | 0.979 | 0.002 | 0.457 | 0.851 | 0.023 | 6/6 | 5/5 |
+| geometric, half equal half corpus | 0.987 | 0.010 | 0.619 | 0.905 | 0.056 | 6/6 | 4/5 |
+| geometric, equal, floor 0.01 | 0.979 | 0.015 | 0.591 | 0.851 | 0.064 | 6/6 | 4/5 |
+| geometric, corpus weights | 0.995 | 0.050 | 0.839 | 0.962 | 0.137 | 6/6 | 2/5 |
+| dense mean, 0 if any family is 0 | 0.980 | 0 | 0 | 0.910 | 0 | 6/6 | 5/5 |
+| dense, equal | 0.980 | 0.037 | 0.875 | 0.910 | 0.163 | 4/5 | 4/5 |
+| dense, corpus | 0.995 | 0.225 | 0.972 | 0.978 | 0.274 | 2/5 | 2/5 |
+
+(Scores shown are without the AI gate; with it every seat but ours reads 0 under the benchmark settings.) The gate
+alone makes every benchmark setting pass, so the family rule is judged without it. **Recommended: geometric, equal
+weights, floor 0.001**, the first setting meeting every criterion both ways. Corpus weights fail because play is
+two thirds of recorded decisions: a seat that never asks combat keeps 0.839. The strict any-zero rule also passes but
+is a cliff by construction (one instance more lost in a one-instance family zeroes the seat).
 
 ## 5. Secondary graders, and how the three combine
 
@@ -308,81 +381,91 @@ Neither is fixed on this branch (a harness change, out of scope here); both are 
 
 ## 6. Validating the environment
 
-Each row is a test of the grader: it must hold before a model's score means anything.
+Each row is a test of the grader: it must hold before a model's score means anything. "Instance grader" numbers are
+the ABI run of section 4.9 (69 instances, counter on) unless a row says otherwise.
 
 | Candidate | Expected | Today |
 |---|---|---|
-| our overlay at main | near the ceiling | instance grader: 0.973 benchmark, 48 of 50 instances (section 4.9; the two it fails are harness findings). `surface-v0`: 1.0 on four recorded green acceptance runs (`/tmp/puzzle-scratch/acc-1eb9718b0`, `acc-fe8d609e3`, `acc-53c290a97`, `acc-goalfix-build`, 2026-10-20), scored by `harness_env_grade.py score` |
-| our overlay with a real defect | below ours | `surface-v0`: 0.9994 benchmark (0.9998 dense) on `acc-9dad7b479` (2 of 853 failed: `everyOwnedDecisionTypeIsExercisedHere`, a decision type the golden list lacked); strictly below, but barely |
-| a seat that never asks one family | far below ours | instance grader, `ours-minus-combat`: 0.455 (dense 0.870). `surface-v0`, `acc-1eb9718b0` with the combat (9 hooks) or cost (15 hooks) asks removed: 0.464 benchmark, 0.944 dense. Before the per-family gate both read 0.944 |
-| a seat missing part of a family | below ours, above the zero-family case | `ours-minus-costs`: 0.814 (cost family 1/6) |
-| the default bridge: priority to the model, everything else Forge's AI | near 0, credit only in play | 0.002 benchmark, 0.056 dense; 1 of 50 instances (a play) |
-| an empty overlay | 0 | 0.0 with "no Java in the submission", no JVM (`grade` on a built sandbox's `overlay/`) |
-| a compile that dies | 0 | 0.0 on `acc-e8792a4b4` (javac killed, rc=143) |
-| a text-parsing seat, a first-option-only seat | low on no-parse, offered | not built; the no-parse check passes every seat that is never asked (one outcome), so it only bites with the asked check beside it |
-| SWE-smith mutants of our overlay (remove a menu kind, call `super` in a hook, swap the executed option, cut an option label, read a reply's prose) | each scores below ours; a survivor is equivalent or a grader gap, which becomes an instance family | `surface-v0` can run them (pilot step 1) |
-| our history at epoch tags 4 to 70 | the score rises with the epochs that `surfaces` 69 to 89 records | `surface-v0` on each tag's overlay |
-| the same submission twice, and on two seeds | identical; within the interval | `surface-v1` |
+| our overlay at main, through the ABI adapter | near the ceiling | 0.979 benchmark, 67 of 69 (the two it fails are harness findings, kept). `surface-v0`: 1.0 on four recorded green acceptance runs (`/tmp/puzzle-scratch/acc-1eb9718b0`, `acc-fe8d609e3`, `acc-53c290a97`, `acc-goalfix-build`) |
+| an episode whose agent copies our overlay (`harness_env_agents.py copy-ours`) | about ours | 0.979, 67 of 69, the same two failures: sandbox, `DONE`, export, build, grade outside (`ended_by=agent`) |
+| an episode whose agent does nothing | 0 | 0, "no Java", `ended_by=agent` in 1 s |
+| our overlay with a real defect | below ours | `surface-v0`: 0.9994 on `acc-9dad7b479`; the instance grader: the two kept defects already hold ours below 1 |
+| a seat that never asks one family (`ours-minus-combat`) | far below ours | 0 gated (it calls Forge's AI); 0.457 on the family rule alone (dense 0.875) |
+| a seat missing part of a family (`ours-minus-costs`, cost family 2 of 8) | below ours | 0 gated; 0.851 on the family rule alone |
+| the default bridge: priority to the model, everything else Forge's AI | near 0 | 0 gated; 0.002 alone; dense 0.019 (1 of 69, a play) |
+| a seat that asks the model then lets Forge's AI decide (`toy-ai`) | 0 | 0, caught only by the engine-side counter on the instances it otherwise passes; dense 0.137 |
+| a text-parsing seat (`toy-text`) | low, failing no-parse | 0 of 69; wherever it is asked, it fails no-parse |
+| an empty overlay | 0 | 0, "no Java in the submission", no JVM |
+| a compile that dies | 0 | 0 (`surface-v0` on `acc-e8792a4b4`; the episode grader on a javac failure) |
+| the same seed twice | the same instance set | byte-identical (`test_harness_env_generate.py`) |
+| the same set graded twice | the same scores | identical scores; ours byte-identical (note below) |
+| SWE-smith mutants of our overlay, our history at epoch tags | each below ours; rising with the epochs | not run |
+
+**Determinism and the held-out set.** A held-out set from a secret seed (24 instances, four per template, none
+discarded, set `dd7139ba3fd8294d`) graded twice for ours and the default bridge, 2026-10-23: ours passes all 24 (the
+two forced target instances are left out of credit), benchmark 1.0 both times, its rows byte-identical; the default
+passes none, benchmark 0 both times. One default row differed between the runs in its `carried` check (Forge's AI
+breaks ties at random), never in `pass`, so the scores are identical. A seat that is itself random gives a
+different profile per run; the score is deterministic in the grader, not in the seat. Before the grader fixes of
+this branch the same set read ours 17 of 24.
 
 ## 7. Pilot
 
 All free: no model call, no egress. Each step says what makes it fail.
 
-1. **`surface-v0` end to end on our main and three hand mutants** (`harness_env_grade.py grade forge-overlay <out>
-   --forge <clean checkout> --run --busy /tmp/puzzle-scratch/ACCEPTANCE_RUNNING`): about 15 to 25 minutes a run
-   (javatests ran 3m47s in `acc-1eb9718b0`, compile and classpath on top). Fails if ours scores below 0.99, if any mutant
-   scores 1.0, or if a second run of ours differs. Not run on this branch: the machine was measuring timing.
-2. **`surface-v1`**. Done in one JVM (section 4.9): enumerate-and-replay, the scripted wire, 50 hand-chosen instances
-   over every family, four seats; ours 0.973, the default bridge 0.002, minus-combat 0.455. Left: the same through
-   `SeatFactory` and an HTTP endpoint (the candidate's own bridge, not our `LLMBridge`); the delegating wrapper that
-   counts Forge-AI calls engine-side (here a seat that hands a decision to the AI fails only because it is never
-   asked); a text-parsing toy seat to prove the no-parse check bites; several instances per family (game start,
-   library, variants and modes have one to four). About three days.
-3. **The generator**: instances from card-script features, 2,000 a run, the secret seed, weights from a corpus; the
-   mutants and the history of section 6 graded. About a week.
-4. **The containers**: task, grader and runner split (GBA Eval's compose shape), the fresh engine clone, `abi_check`,
-   the checkpoint mirror, `finish`. Fails if a planted leak in the image passes `leak_problems`.
-5. **One episode**: an agent model the owner names builds from scratch for up to 72 hours. This is the first paid
-   step; its cost is the agent model's tokens (GBA Eval's graded runs used 8.71M to 2.35B tokens,
-   `HARNESS-ENV.md` section 6). Nothing here prices it until the model is named.
+1. **`surface-v0` end to end on our main and three hand mutants**: not run (the machine was measuring timing); it is
+   now a validation grader only.
+2. **`surface-v1`, the ABI grader**: done (section 4.9). Four candidates through `SeatFactory` and an HTTP endpoint,
+   the engine-side counter, 69 instances, every family at least four.
+3. **The generator**: six templates done (section 4.10); left: the full (family, context) grid, 2,000 instances a
+   run (today a set is 24 to 30), renamed-card pairs (section 4.7), the mutants and history of section 6.
+4. **The episode runner**: done without containers (section 4.11). Left: the image split (GBA Eval's compose
+   shape), a fresh engine clone built clean in the image, `abi_check` and `finish` as tools, the idle reminder.
+5. **One episode with a real agent**: the first paid step; its cost is the agent model's tokens, unpriced until the
+   model is named.
 
 ## 8. Open questions for the owner
 
-1. **Which agent model and budget for episodes?** The game-model rule (Luna, `CLAUDE.md`) names the seat's player;
-   the builder is a different role and, unless the owner says otherwise, needs its own decision.
-2. **A dev split?** GBA Eval gives five dev ROMs that are not graded. A public dev slice of the surface test would
-   let the agent check method, which the frame forbids as written. Default here: none.
-3. **A generic loopback model in the box?** It would save the agent writing one and fix the wire it targets; it also
-   hints at what the grader sends. Default here: none, the wire is specified in `SPEC.md`.
-4. **One "are you sure" turn at `finish`?** It counters early finishes (PaperBench) without information; it also
-   nudges. Default here: no.
-5. **Calibration, done provisionally; two parameters are the owner's**: the benchmark is now a geometric mean over
-   families with a floor (section 4.5), the additive mean is kept as the dense reward. A seat that never asks combat
-   reads 0.455 instead of 0.944. Open: the floor (0.001 makes one missing family cost about half the score; 0.01
-   would cost 40%), and whether families stay equal or take corpus weights (play 69% of recorded rows, combat about
-   5%, which would make a missing combat family cheap again unless the floor is per family).
-   Also small families: with one instance, one failure zeroes the family (the first run's modes instance did); each
-   family needs several instances before its gate is fair.
-6. **How much of the interface to fix.** The `answer` field names in `SPEC.md` are ours; fixing them makes grading
-   possible without parsing, and also tells the agent one design choice we made. The alternative (the candidate
-   declares its answer schema and the grader fills it) is more open and harder to validate.
-7. **Owner decisions as a file** (`HARNESS-ENV.md` section 5, `DECISIONS.jsonl` behind `ask_owner`): in the box or not?
-   This framework gives the rules in `SPEC.md` section 2 instead.
-8. **The public repository.** Any later model may have read it. Keep the hidden instances and the weights out of it
-   from now (`HARNESS-ENV.md` section 7), and decide whether a score from a model trained after today is reported
-   with a contamination flag.
+1. **Which agent model and budget for episodes?** The builder is a different role from the seat's player.
+2. **Calibration: adopt geometric, equal weights, floor 0.001?** Section 4.12 recommends it: the only benchmark
+   setting meeting all six criteria with the AI gate and all five without it. Corpus weights fail (a seat missing
+   combat keeps 0.839). The criteria are the owner's sentences written as tests; changing one changes the answer.
+3. **Gate on the payment executor?** `payManaCost` and `payCombatCost` reach Forge's AI on every paid cast in ours,
+   as the ledger documents. Today they are counted (`ai_payment`) and not gated. Gating them would zero ours until
+   the harness pays its own mana.
+4. **The forced-instance rule.** An instance with one legal answer earns nothing by passing and costs by failing.
+   Alternative: drop forced instances entirely (then ours' must-block defect would not count).
+5. **A seat calling `ComputerUtil` helpers directly** escapes the counter, which patches only `PlayerControllerAi`.
+   Patch `AiController` and `ComputerUtil*` too (wider, more false positives on legitimate state reads), or accept it.
+6. **Scarce templates.** Only 38 cards are sacrifice outlets the template can build, 4 of them in the dev pool; a
+   held-out set draws from 34. Fine for now; a bigger generator needs more template shapes, not more cards.
+7. **Where the grader lives and what it costs.** It is in the overlay's test tree so acceptance compiles it; the
+   full catalog takes about 16 minutes for six seats on four loaded cores, and an episode's build and grade of one
+   seat about 6. Move it to its own source root when the
+   images are built?
+8. **A dev split?** Built and off (`grader.dev_slice: false`): 10% of cards and a public seed. Turn it on?
+9. **A generic loopback model in the box?** Default none; the wire is in `SPEC.md`.
+10. **The two harness defects** the grader found (`combat.block.must-block`, `costs.x`) are kept failing here by the
+    owner's instruction, for `defect-hunt`.
+11. **The public repository.** Keep hidden instances, seeds and weights out of it; flag contamination for models
+    trained after today.
 
 ## 9. Files
 
 | File | What |
 |---|---|
-| `eval/harness_env/episode-v0.json` | the episode spec: released files with reasons, withheld globs, forbidden tokens and path fragments, engine, agent, caps, done, submission, grader |
-| `eval/harness_env/TASK.md`, `eval/harness_env/SPEC.md` | what the agent reads (released into the sandbox; scanned by the leak check) |
-| `eval/harness_env_spec.py` | spec parser and consistency check (`test_harness_env_spec.py`, 14 tests) |
-| `eval/harness_env_sandbox.py` | `build`, `check` (the five nets), `engine` (`test_harness_env_sandbox.py`, 18 tests, each leak planted) |
-| `eval/harness_env_grade.py` | `intake`, `score` (any acceptance OUT), `grade` (assemble, run, score) for `surface-v0`; `instances` (run the instance grader) and `table` (its per-family table, both groupings, calibrated scores); `calibrated` (`test_harness_env_grade.py`, 34 tests) |
-| `forge-overlay/.../test/java/forge/spike/EnvGrader.java`, `EnvInstances.java`, `EnvGraderSuite.java` | the instance grader: wire, seats, checks, answer grids, 50 instances; compiled by acceptance, run on demand |
-| `docs/harness/evidence/2026-10-22-env-grade.tsv` | the measured report of section 4.9 (200 rows: 50 instances x 4 seats) |
+| `eval/harness_env/episode-v0.json` | the episode spec (grader version `instances-v1`, `dev_slice` false) |
+| `eval/harness_env/TASK.md`, `eval/harness_env/SPEC.md` | what the agent reads; SPEC section 3 is `harness-env-abi/1` |
+| `eval/harness_env_spec.py`, `eval/harness_env_sandbox.py` | spec check; sandbox build, leak check, engine check |
+| `eval/harness_env_grade.py` | intake, `surface-v0`, `build` (submission + grader + AI patch), `instances`, `table`, the gates and scores |
+| `eval/harness_env_aicount.py` | the Forge-AI counter patch of a pristine `PlayerControllerAi` |
+| `eval/harness_env_generate.py` | instance sets from the card scripts: secret seed, dev pool, versions |
+| `eval/harness_env_episode.py`, `eval/harness_env_agents.py` | the episode runner; the copy-ours and do-nothing agents |
+| `eval/harness_env_calibrate.py` | the seven settings, six criteria and the recommendation |
+| `eval/test_harness_env_*.py` | the tests of each |
+| `forge-overlay/forge-gui-desktop/src/test/java/forge/harnessenv/` | `SeatFactory`, `ModelEndpoint`; `grader/` (scripted model, counter, boards, checks, 69 instances, generated instances, suite); `toys/` (priority-only, text parser, AI delegate) |
+| `forge-overlay/forge-gui-desktop/src/test/java/forge/spike/HarnessEnvOurs.java` | our seat on the ABI, and the two ablations |
+| `docs/harness/evidence/2026-10-22-env-grade-abi.tsv` | the measured report of section 4.9 (414 rows: 69 instances x 6 seats) |
 
 Reading list behind section 1: GBA Eval at commit 92b585e (`quickstart/README.md`, `quickstart/docker-compose.yml`,
 `quickstart/task/Dockerfile`, `quickstart/services/oracle-server.py`, `quickstart/task/TASK.md`, `corpus/grader.yaml`,

@@ -596,10 +596,14 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - **The harness-building environment (`docs/harness/HARNESS-ENV-FRAMEWORK.md`)** treats building this harness as an
   agent task. `harness_env_sandbox.py` builds the agent's sandbox from an episode spec (`eval/harness_env/`) and
   proves no withheld file, token or history is in it; `harness_env_grade.py` grades a submitted overlay with the
-  hidden tests in a workspace outside it (`surface-v0`, our own classes only). The instance grader (`EnvGrader`,
-  `EnvInstances`, `EnvGraderSuite` in the overlay's test tree, run by `harness_env_grade.py instances`) drives any
-  seat through `PlayerController` and a scripted wire over 50 surfaces and judges by engine outcomes; it scores ours
-  0.973 and a priority-only bridge 0.002. It reads the harness and never changes it. *Why outside:* a grader the
+  hidden tests in a workspace outside it (`surface-v0`, our own classes only). The instance grader
+  (`forge/harnessenv/` in the overlay's test tree, run by `harness_env_grade.py instances`) drives any seat built
+  through `harness-env-abi/1` (`SeatFactory`, an OpenAI-compatible scripted model on loopback) over 69 hand
+  instances and sets generated from the card scripts (`harness_env_generate.py`), judges by engine outcomes, and
+  counts Forge's AI inside a patched pristine `PlayerControllerAi` (any count gates the benchmark to 0). Ours
+  (`HarnessEnvOurs`) scores 0.979; the default bridge, the ablations and the toys 0.
+  `harness_env_episode.py` runs an episode end to end and `harness_env_calibrate.py` compares scoring settings.
+  It reads the harness and never changes it. *Why outside:* a grader the
   candidate can see or run is a target, not a measure.
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
   via `puzzle_score.score`, a hard-suite check as a labelled pilot (`--hard-results`, never pooled), and the STR
