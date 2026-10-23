@@ -2663,7 +2663,8 @@ def landfall_board(rng):
         dmg, steps, "; ".join(notes), trap_note)
     state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
              ("p0hand", ";".join(s["hand"])), ("p0battlefield", ";".join(bf)),
-             ("p0library", ";".join(["Mountain", "Forest"] * 5)), ("p1life", dmg), ("p1library", "Plains;Plains;Plains")]
+             ("p0library", ";".join(["Mountain", "Forest"] * 5)), ("p1life", dmg),
+             ("p1library", "Plains;Plains;Plains")]
     solution = ["# steps: %d" % steps] + _record_lines(s, trap) + lines
     shape = ("landfall", s["mountains"], s["forests"], s["valakut"], s["hellkite"], s["geopede"], s["coralhelm"],
              s["cobra"], tuple(s["hand"]))
@@ -2706,10 +2707,11 @@ def token_search(start, plan=None):
     red: Mountains, and Skirk Prospector's {R} for a Goblin. A sacrifice is made as late as it can be (an earlier one
     only loses a Goblin Krenko would count or a payoff cast later), so Skirk Prospector pays only what the Mountains
     left cannot, and at the end every Goblin goes to it while a Mayhem Devil drains for each (Mogg War Marshal's token
-    too). Goblins with nothing left to do (a token, Goblin Instigator, Beetleback Chief once in play) are one kind: a sacrifice takes a token while there is one. `start`: mountains, bf (Krenko, Impact Tremors
-    and the creatures, none summoning sick), hand. Moves: ("cast", card, sacrificed), ("krenko", X), ("siege",
-    sacrificed for the cost, sacrificed for mana), ("sweep", sacrificed); steps are the casts and the activations of
-    Krenko and Siege-Gang (Skirk Prospector's is a mana ability)."""
+    too). Goblins with nothing left to do (a token, Goblin Instigator, Beetleback Chief once in play) are one kind:
+    a sacrifice takes a token while there is one. `start`: mountains, bf (Krenko, Impact Tremors and the creatures,
+    none summoning sick), hand. Moves: ("cast", card, sacrificed for mana), ("krenko", X), ("siege", sacrificed for
+    the cost, sacrificed for mana), ("sweep", sacrificed); steps are the casts and the activations of Krenko and
+    Siege-Gang (Skirk Prospector's is a mana ability). `plan` holds the search to a plain plan (TOKEN_PLANS)."""
     from functools import lru_cache
     # bodies: (tokens, plain Goblin cards, Marshals, Prospectors, Siege-Gangs, Krenko, Devils, Roastmasters)
     T, V, M, S, G, K, D, R = range(8)
@@ -2927,7 +2929,7 @@ def token_lines(start, moves, life):
             label += " %s [untapped] [sick]" % ("1/1" if b["name"] == SKIRK else "2/2")
         return b, label
 
-    def sacrifice(kind, outlet):
+    def sacrifice(kind):
         b, label = victim_label(kind)
         goblins = [x for x in bodies if _goblin(x["name"])]
         if len(goblins) > 1:
@@ -2941,7 +2943,7 @@ def token_lines(start, moves, life):
 
     def skirk(kind):
         L.append("activate " + SKIRK)
-        sacrifice(kind, SKIRK)
+        sacrifice(kind)
         st["pool"] += 1
 
     def float_(n):
@@ -2980,14 +2982,14 @@ def token_lines(start, moves, life):
                 L.extend(["activate " + SIEGE, "opponent"])   # the target is asked before the Goblin sacrificed
                 st["steps"] += 1
                 stack.append(("siege",))
-                sacrifice(mv[1], SIEGE)
+                sacrifice(mv[1])
             else:
                 for kind in mv[1]:
                     skirk(kind)
                     resolve(True)
         resolve(False)
     except Over:
-        return L, st["dmg"], st["steps"], st["m"]
+        pass
     return L, st["dmg"], st["steps"], st["m"]
 
 

@@ -74,8 +74,44 @@ Prospector as a source.
 
 ## The gate (`scripts/puzzle-gate/gen_gate.py -j 1`, build of this branch)
 
-GATE-TABLE
+Build: this branch's overlay (unchanged from main) compiled for the gate. Rows: `runs/puzzles/hard-gen3-gate/gate-{lf-a,
+b,c,d}` (gate.json, floors.json, line/). Each batch was de-duplicated against the earlier ones by its search inputs.
+
+| Batch | landfall | tokens | Kept |
+|---|---|---|---|
+| A (lf-a) | 9 | - | 9 of 9 |
+| B | 8 | 5 | 13 of 18 |
+| C | - | 10 | 10 of 10 |
+| D | - | 9 | 9 of 9 |
+| **all** | **17** | **24** | **41 of 46** |
+
+Every kept board's line played as written and solved, and every floor failed it: random 0 of 20, PASS, first option,
+greedy and Forge's AI 0 of 4 each. The five dropped (batch B) all cast Mayhem Devil from hand: its cost is {1}{B}{R},
+not all red as the first model took it, so the seat was never offered the cast and the line stalled. The model now
+never casts the Devil and the draw only starts it out (a test pins both); batch C's boards, drawn before the fix, had
+every board with a Devil in hand removed and each re-derived from its record before the gate. The tokens payoff_first
+wording still names Mayhem Devil, kept so the boards gated before the fix and after read alike; it is never in hand.
+
+The kept set:
+- landfall 17: lives 13 to 33 (13 distinct), steps 13/14/15 on 10/3/4; every trap 1 short. The binding plan: the land
+  first on 10, the landfall creature as soon as paid on 4, both on 3. 16 have Coralhelm and the Pyromancer (their pings
+  are what brings a line to 13 steps), 16 Valakut, 11 Akoum Hellkite, 14 Harrow, 9 Azusa; Lotus Cobra starts in hand on
+  all 17 (the land-first trap is mostly Cobra's mana for the first land).
+- tokens 24: lives 12 to 109 (21 distinct), steps 13/14/15 on 9/6/9; traps 1/2/3 short on 12/9/3, all bound by
+  "sacrifice a token whenever there is one" (Mogg War Marshal should go first: its death token enters and is fodder
+  again). Every board has Krenko, Skirk Prospector, Siege-Gang and Mogg War Marshal; Impact Tremors 18, Mayhem Devil 7,
+  Witty Roastmaster 4.
 
 ## Not done
 
-NOT-DONE
+- No model has tried these boards, and they are not in a frozen suite (`gen_suite.py --name hard-gen3`).
+- Variety is narrow: nearly every landfall board is a Coralhelm board with Cobra in hand, and every tokens board a
+  Krenko/Siege-Gang/Skirk/Marshal board. Without Coralhelm the landfall lines rarely reach 13 steps, and without
+  Siege-Gang the tokens lines rarely do; a wider draw needs more step-making cards.
+- The landfall traps are all 1 short; "crack each fetch as soon as it lands" was tried as a third plan and dropped: it
+  almost never loses (cracking is free and instant, and order among Mountains does not change Valakut's count).
+- The tokens family has no combat: Goblin Bushwhacker (anthem timing) was dropped because whether its kicker is asked
+  depends on how the engine prices Skirk Prospector as a mana source, and a written line must know.
+- "Maximum" is within each model: landfall's refuses payments where the engine would ask which floating colour pays,
+  tokens' assumes sacrifices as late as possible and at most one copy of each payoff.
+- 0 candidate boards are left ungated; the generators draw more (`--family landfall|tokens`).

@@ -282,8 +282,9 @@ search, nothing left unused, the best plain plan 1 to 3 short), each re-derived 
 | landfall | play a land before anything else; cast each landfall creature as soon as it can be paid |
 | tokens | sacrifice a token whenever there is one; cast the payoffs as soon as the lands pay for them |
 
-They are gated like gen2 (rows in `runs/puzzles/hard-gen3-gate`) and not yet in a frozen suite. Notes, the search
-models and their limits: `docs/harness/history/2026-10-22-landfall-tokens.md`.
+They are gated like gen2 (rows in `runs/puzzles/hard-gen3-gate`; 17 landfall and 24 tokens boards kept, 41 of 46)
+and not yet in a frozen suite. Notes, the search models and their limits:
+`docs/harness/history/2026-10-22-landfall-tokens.md`.
 
 ## Running a model
 

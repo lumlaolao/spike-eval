@@ -558,7 +558,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     generated board is 10 to 15 steps with the opponent at exactly what its line deals, and is fresh, so it
     cannot be memorised.
     A second suite (`eval/suites/puzzles-hard-gen2-v1.json`) adds a trap to each board: a natural plain plan,
-    searched to its own best, falls 1 to 3 short of the searched maximum.
+    searched to its own best, falls 1 to 3 short of the searched maximum. A third set (`eval/puzzles/hard/gen3`,
+    not yet frozen) adds land sequencing (landfall) and Goblin token engines (tokens) at the same bar.
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a
   deck-matchup term and cluster-bootstrap CIs.
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,
