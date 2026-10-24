@@ -134,9 +134,15 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply
   is asked once more with the engine's reason; an arm draws again (a legal first draw keeps its stream). When the
   seat's blocks are still illegal after that, or its answer is lost (two invalid calls, no call, no reply, an error),
-  the fixed fallback is no blocks unless a requirement forbids it; then it is the smallest legal block set, logged
-  `[BLOCK-INVALID] ... took the legal set` (`fallbackBlocks`, epoch 71, issue #311: "no blocks" under Prized Unicorn
-  stood illegal, found by the harness-env grader's `combat.block.must-block`).
+  the fixed fallback is no blocks unless a requirement forbids it; then it is a legal block set chosen without
+  randomness (`legalBlockSet`): up to 4096 combinations the smallest legal one; past that the smaller legal one of two
+  whole-board sets (each creature on the first attacker it can block; every creature able to block one attacker on
+  it), else the first found by a search by increasing size capped at 4096 checks. It is an auto row
+  (`blockers(illegal-twice)`, `blockers(unparsed)`, `blockers(no-model)`, ...) with a `[BLOCK-INVALID] ... took the
+  legal set` line (epoch 71, issue #311: "no blocks" under Prized Unicorn stood illegal, found by the harness-env
+  grader's `combat.block.must-block`). If none is found, no blocks stands, illegal, and the log says
+  `[BLOCK-INVALID] ... no legal set was found`, which `defect_analyzer.py` counts. A random arm whose 64 draws
+  found no legal set and that is past the 4096 limit takes the same set.
 - The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
   one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no
   trigger on a tap or on mana added. Floating that does change the game (a creature tapped and unable to block,
