@@ -1,10 +1,12 @@
 """puzzle_baselines.py: the `line` command (a written solution played through the model seat), the greedy arm's
 condition, and the commands that write a record's difficulty and v2 tier (prove, retier, run --baselines-only)."""
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import puzzle_baselines as pb  # noqa: E402
@@ -345,6 +347,89 @@ class DifficultyCommandsTest(unittest.TestCase):
         finally:
             pb.run_arm = real
         self.assertIsNone(out["tier"])
+
+
+class BuildFreshnessTest(unittest.TestCase):
+    """A build runs only when its compiled overlay is this checkout's (the build's overlay-sha.txt, written by
+    harness_acceptance.sh's compile stage, equals benchmark_version.overlay_sha_of_checkout). Before, the default
+    was the last NAME under runs/harness-acceptance (an old ps-* build) and --build was never checked, so a paid
+    puzzle run could play a stale or unmerged harness under this checkout's provenance."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.forge = self.tmp / "forge"
+        (self.forge / "forge-gui-desktop").mkdir(parents=True)
+        self.root = self.tmp / "acceptance"
+        self.patches = [mock.patch.object(pb, "checkout_overlay_sha", return_value="aaaaaaaaaaaa"),
+                        mock.patch.object(pb, "ACCEPTANCE_ROOT", self.root)]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+
+    def make(self, name, sha, mtime=None):
+        d = self.root / name
+        (d / "classes/forge/spike").mkdir(parents=True)
+        (d / "classes/forge/spike/LlmSpikePuzzle.class").write_bytes(b"")
+        (d / "classpath.txt").write_text("/x.jar\n")
+        if sha is not None:
+            (d / pb.BUILD_SHA_FILE).write_text(sha + "\n")
+            if mtime is not None:
+                os.utime(d / pb.BUILD_SHA_FILE, (mtime, mtime))
+        return d
+
+    def test_a_build_of_this_checkout_is_accepted(self):
+        d = self.make("b1", "aaaaaaaaaaaa")
+        b = pb.Build(d, self.forge)
+        self.assertEqual(b.dir, d.resolve())
+        self.assertEqual(b.provenance(), {"build_dir": str(d.resolve()), "build_overlay_sha": "aaaaaaaaaaaa",
+                                          "checkout_overlay_sha": "aaaaaaaaaaaa", "stale_build_allowed": False})
+
+    def test_a_build_of_other_sources_or_unrecorded_is_refused(self):
+        for name, sha in (("other", "bbbbbbbbbbbb"), ("unrecorded", None), ("empty", "")):
+            with self.assertRaises(SystemExit, msg=name) as cm:
+                pb.Build(self.make(name, sha), self.forge)
+            self.assertIn("--allow-stale-build", str(cm.exception.code), name)
+
+    def test_a_checkout_whose_overlay_cannot_be_hashed_matches_nothing(self):
+        with mock.patch.object(pb, "checkout_overlay_sha", return_value="unknown"):
+            with self.assertRaises(SystemExit):
+                pb.Build(self.make("u", "unknown"), self.forge)
+
+    def test_the_default_is_the_newest_matching_build_by_mtime_not_by_name(self):
+        self.make("a-new", "aaaaaaaaaaaa", mtime=2_000_000)
+        self.make("b-old", "aaaaaaaaaaaa", mtime=1_000_000)
+        self.make("z-stale", "bbbbbbbbbbbb", mtime=3_000_000)
+        self.make("zz-unrecorded", None)
+        self.assertEqual(pb.Build(None, self.forge).dir.name, "a-new")
+
+    def test_the_default_refuses_when_no_build_matches_and_says_how_to_build_one(self):
+        self.make("z-stale", "bbbbbbbbbbbb")
+        with self.assertRaises(SystemExit) as cm:
+            pb.Build(None, self.forge)
+        self.assertIn('STAGES="classpath compile"', str(cm.exception.code))
+        with self.assertRaises(SystemExit):  # the override names one build; it never picks a stale one itself
+            pb.Build(None, self.forge, allow_stale=True)
+
+    def test_the_override_runs_a_stale_build_and_says_so_in_every_run_dir(self):
+        d = self.make("old", "bbbbbbbbbbbb")
+        b = pb.Build(d, self.forge, java="true", allow_stale=True)
+        self.assertEqual(b.provenance()["stale_build_allowed"], True)
+        self.assertEqual(b.provenance()["build_overlay_sha"], "bbbbbbbbbbbb")
+        out = self.tmp / "out"
+        b.run({}, out)
+        self.assertEqual(json.loads((out / "build.json").read_text()), b.provenance())
+        # A build that matches is not called stale even with the flag.
+        self.assertFalse(pb.Build(self.make("fresh", "aaaaaaaaaaaa"), self.forge,
+                                  allow_stale=True).provenance()["stale_build_allowed"])
+
+    def test_the_cli_flag_reaches_the_build(self):
+        with mock.patch.object(pb, "Build", side_effect=SystemExit("stop")) as build:
+            with self.assertRaises(SystemExit):
+                pb.main(["--build", "/x", "--allow-stale-build", "line", "--pzl", "/x.pzl"])
+        self.assertEqual(build.call_args, mock.call("/x", None, allow_stale=True))
 
 
 if __name__ == "__main__":

@@ -2,12 +2,17 @@
 what its line deals (the exhaustive search's maximum for splice, drain, elf and fling), no two boards of a draw are
 one board, the splice search finds a line no unspliced line matches, and the fling search plays the way a written
 line plays."""
+import argparse
+import json
+import os
 import random
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import puzzle_gen as pg  # noqa: E402
@@ -390,54 +395,117 @@ class HardEnginesTest(unittest.TestCase):
 
 
 class GenGateResumeTest(unittest.TestCase):
+    BUILD = type("B", (), {"overlay_sha": "aaaaaaaaaaaa"})()
+
+    def setUp(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "puzzle-gate"))
+        import gen_gate
+        self.gg = gen_gate
+        tmp = Path(tempfile.mkdtemp())
+        self.pzl = tmp / "drain2_x.pzl"
+        self.pzl.write_text("[solution]\n# steps: 13\npass\n", encoding="utf-8")
+        self.done = tmp / "out" / "line" / "drain2_x" / "a"
+        self.done.mkdir(parents=True)
+        self.a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True, allow_stale_build=False)
+
+    def line_ran(self, pzl_sha, overlay_sha="aaaaaaaaaaaa"):
+        """A line result left by an earlier gate; overlay_sha None: by a run from before builds were recorded."""
+        (self.done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
+                                                                    "solver_actions": 20,
+                                                                    "pzl_sha256": pzl_sha}) + "\n")
+        if overlay_sha:
+            (self.done / "build.json").write_text(json.dumps({"build_overlay_sha": overlay_sha}))
+
+    def plays(self):
+        """How many times play_line ran the line, and its row."""
+        with mock.patch.object(self.gg.subprocess, "run") as run:
+            row = self.gg.play_line(self.a, self.pzl, self.BUILD)
+        return run.call_count, row
+
     def test_a_resumed_gate_reuses_a_boards_line_result(self):
         # A gate stopped by a time limit is run again with --resume: a board whose line already has a result is
         # not played again.
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "puzzle-gate"))
-        import argparse
-        import json
-        import gen_gate
-        tmp = Path(tempfile.mkdtemp())
-        pzl = tmp / "drain2_x.pzl"
-        pzl.write_text("[solution]\n# steps: 13\npass\n", encoding="utf-8")
-        done = tmp / "out" / "line" / "drain2_x" / "a"
-        done.mkdir(parents=True)
-        (done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
-                                                               "solver_actions": 20,
-                                                               "pzl_sha256": pf.sha256_file(pzl)}) + "\n")
-        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True)
-        real = gen_gate.subprocess.run
-        gen_gate.subprocess.run = lambda *x, **k: self.fail("the line was played again")
-        try:
-            row = gen_gate.play_line(a, pzl)
-        finally:
-            gen_gate.subprocess.run = real
+        self.line_ran(pf.sha256_file(self.pzl))
+        n, row = self.plays()
+        self.assertEqual(n, 0, "the line was played again")
         self.assertEqual((row["solved"], row["actions"]), (True, 13))
         self.assertNotIn("dropped", row)
 
     def test_a_resumed_gate_plays_again_a_board_edited_since_its_line_ran(self):
         # pr-review of #299: a board regenerated under the same name (its key is the cards, not the line) kept the
         # old line's verdict. A row is reused only when it ran on this very file.
+        self.line_ran("an older file")
+        self.assertEqual(self.plays()[0], 1, "the stale row was reused")
+
+    def test_a_resumed_gate_plays_again_a_line_another_build_ran(self):
+        # pr-review of #319: a gate resumed on a rebuilt harness kept the old harness's verdicts.
+        self.line_ran(pf.sha256_file(self.pzl), "bbbbbbbbbbbb")
+        self.assertEqual(self.plays()[0], 1, "another overlay's row was reused")
+
+    def test_a_resumed_gate_plays_again_a_line_with_no_build_recorded(self):
+        self.line_ran(pf.sha256_file(self.pzl), None)
+        self.assertEqual(self.plays()[0], 1, "an unrecorded build's row was reused")
+
+
+class GenGateBuildTest(unittest.TestCase):
+    """gen_gate runs puzzle_baselines.py with its output captured and its exit code unread, so a build that
+    puzzle_baselines.Build refuses (not this checkout's overlay) dropped every board as "line: solved=False"."""
+
+    def setUp(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "puzzle-gate"))
-        import argparse
-        import json
         import gen_gate
+        self.gg = gen_gate
+        self.tmp = Path(tempfile.mkdtemp())
+        (self.tmp / "boards").mkdir()
+        (self.tmp / "boards" / "b.pzl").write_text("[solution]\n# steps: 12\npass\n", encoding="utf-8")
+
+    def test_a_refused_build_stops_the_gate_before_any_board_is_played(self):
+        with mock.patch.object(self.gg.pb, "Build", side_effect=SystemExit("stale build")), \
+                mock.patch.object(self.gg.subprocess, "run", side_effect=AssertionError("a board was played")):
+            with self.assertRaises(SystemExit) as cm:
+                self.gg.main(["--build", "B", "--forge", "F", "--boards", str(self.tmp / "boards"),
+                              "--out", str(self.tmp / "out")])
+        self.assertEqual(str(cm.exception.code), "stale build")
+
+    def test_allow_stale_build_reaches_the_check_and_every_puzzle_baselines_call(self):
+        with mock.patch.object(self.gg.pb, "Build") as build, \
+                mock.patch.object(self.gg.subprocess, "run") as run:
+            self.gg.main(["--build", "B", "--forge", "F", "--boards", str(self.tmp / "boards"),
+                          "--out", str(self.tmp / "out"), "--allow-stale-build"])
+        self.assertEqual(build.call_args, mock.call("B", "F", allow_stale=True))
+        self.assertTrue(run.call_args_list, "the line was played")
+        for c in run.call_args_list:
+            self.assertIn("--allow-stale-build", c.args[0])
+
+
+class RunOneBuildTest(unittest.TestCase):
+    """scripts/puzzle-gate/run_one.py makes its own puzzle_baselines.Build: ALLOW_STALE_BUILD=1 is its
+    --allow-stale-build (pr-review of #319). The JVM is `true`, so nothing is played."""
+
+    def run_one(self, extra_env):
         tmp = Path(tempfile.mkdtemp())
-        pzl = tmp / "drain2_x.pzl"
-        pzl.write_text("[solution]\n# steps: 13\npass\n", encoding="utf-8")
-        done = tmp / "out" / "line" / "drain2_x" / "a"
-        done.mkdir(parents=True)
-        (done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
-                                                               "pzl_sha256": "an older file"}) + "\n")
-        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True)
-        played = []
-        real = gen_gate.subprocess.run
-        gen_gate.subprocess.run = lambda *x, **k: played.append(x)
-        try:
-            gen_gate.play_line(a, pzl)
-        finally:
-            gen_gate.subprocess.run = real
-        self.assertEqual(len(played), 1, "the stale row was reused")
+        build = tmp / "build"
+        (build / "classes/forge/spike").mkdir(parents=True)
+        (build / "classes/forge/spike/LlmSpikePuzzle.class").write_bytes(b"")
+        (build / "classpath.txt").write_text("/x.jar\n")
+        (build / "overlay-sha.txt").write_text("0ld0ld0ld0ld\n")
+        (tmp / "forge" / "forge-gui-desktop").mkdir(parents=True)
+        env = {k: v for k, v in os.environ.items() if k != "ALLOW_STALE_BUILD"}
+        env.update(FORGE_HOME=str(tmp / "forge"), JAVA="true", **extra_env)
+        script = Path(__file__).resolve().parents[1] / "scripts" / "puzzle-gate" / "run_one.py"
+        res = subprocess.run([sys.executable, str(script), str(build), str(tmp / "x.pzl"), str(tmp / "out"), "ai",
+                              "ai"], env=env, capture_output=True, text=True, timeout=60)
+        prov = tmp / "out" / "build.json"
+        return res, (json.loads(prov.read_text()) if prov.is_file() else None)
+
+    def test_a_stale_build_is_refused_unless_allowed(self):
+        res, prov = self.run_one({})
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("--allow-stale-build", res.stderr)
+        self.assertIsNone(prov)
+        res, prov = self.run_one({"ALLOW_STALE_BUILD": "1"})
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertTrue(prov["stale_build_allowed"])
 
 
 class CopySearchTest(unittest.TestCase):

@@ -20,6 +20,7 @@ jev: decision model (OpenRouter's Decisions API, DecisionsBridge), which also ca
 """
 
 import argparse
+import functools
 import json
 import os
 import sys
@@ -35,6 +36,8 @@ import puzzle_score as ps  # noqa: E402
 # The attempt seeds: k distinct seeds per puzzle, the same for every solver, outside every reserved band.
 ATTEMPT_BASE = 1
 RUN_FILE = "puzzle-run.json"
+# What makes two builds one harness for --resume: the overlay compiled, and whether a stale build was let run.
+BUILD_KEYS = ("build_overlay_sha", "stale_build_allowed")
 
 
 def load_secrets():
@@ -113,37 +116,45 @@ def write_json(path, obj):
     os.replace(tmp, path)
 
 
-def write_manifest(out, model, suite_sha, puzzle_id, cond):
+def write_manifest(out, model, suite_sha, puzzle_id, cond, build=None):
     """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
-    game row (a puzzle has none)."""
+    game row (a puzzle has none). `build`: puzzle_baselines.Build.provenance(), the build it ran on."""
     write_json(Path(out) / "batch-manifest.json", {"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
-                                                                 "suite_sha256": suite_sha, "env": cond}})
+                                                                 "suite_sha256": suite_sha, "env": cond},
+                                                   "build": build})
 
 
-def write_run(out_root, ids, k, budget_usd, finished, stopped=None):
+def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None):
     """RUN_FILE: what this invocation will play, so eval/puzzle_watch.py can show the puzzles not started yet, tell
     when each is done (k result rows) and when the run is over (`finished`, written after the last puzzle) or was
-    stopped part way (`stopped`: the exception or interrupt that ended it)."""
+    stopped part way (`stopped`: the exception or interrupt that ended it). `build`: the build the whole run uses
+    (Build.provenance(), with stale_build_allowed when --allow-stale-build let an old one run)."""
     run = {"ids": ids, "k": k, "budget_usd": budget_usd, "finished": finished}
     if stopped is not None:
         run["stopped"] = stopped
+    if build is not None:
+        run["build"] = build
     write_json(Path(out_root) / RUN_FILE, run)
 
 
-def resume_conflicts(out_root, ids, model, suite_sha, cond):
-    """The puzzle directories under out_root made under another model, suite or seat condition: a resume into
-    them would pool two conditions in one score (STANDARDS section 4)."""
+def resume_conflicts(out_root, ids, model, suite_sha, cond, build):
+    """The puzzle directories under out_root made under another model, suite or seat condition, or on another
+    build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale): a resume into them
+    would pool two conditions in one score (STANDARDS section 4). A directory from before builds were recorded is
+    another build."""
     bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
     for pid in ids:
         f = Path(out_root) / pid / "batch-manifest.json"
         if not f.is_file():
             continue
         try:
-            was = json.loads(f.read_text()).get("condition") or {}
+            manifest = json.loads(f.read_text())
         except ValueError:
             bad.append("%s: unreadable batch-manifest.json" % pid)
             continue
+        was, was_build = manifest.get("condition") or {}, manifest.get("build") or {}
         diff = [key for key in now if was.get(key) != now[key]]
+        diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
@@ -151,7 +162,7 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond):
 
 def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
     out = Path(out_root) / rec["id"]
-    write_manifest(out, model, suite_sha, rec["id"], cond)
+    write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance())
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000")
@@ -177,6 +188,8 @@ def main(argv=None):
     ap.add_argument("--memory-tools", action="store_true")
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--build", default=None)
+    ap.add_argument("--allow-stale-build", action="store_true",
+                    help="run --build although it was not compiled from this checkout's overlay (recorded)")
     ap.add_argument("--forge", default=None)
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
@@ -205,12 +218,13 @@ def main(argv=None):
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
+    build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)
+    prov = build.provenance()
     if a.resume:
-        bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a))
+        bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov)
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
-    build = pb.Build(a.build, a.forge)
     out_root = Path(a.out)
     out_root.mkdir(parents=True, exist_ok=True)
     print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f; $%.2f at the dearest "
@@ -218,7 +232,8 @@ def main(argv=None):
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root), spent(out_root, bound=True)), flush=True)
 
     ids = [r["id"] for r in todo]
-    write_run(out_root, ids, a.k, a.budget_usd, finished=False)
+    run_file = functools.partial(write_run, out_root, ids, a.k, a.budget_usd, build=prov)
+    run_file(finished=False)
 
     def work(rec):
         out = out_root / rec["id"]
@@ -241,9 +256,9 @@ def main(argv=None):
                 print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f"
                       % (pid, rc, len(rows), solved, spent(out_root)), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
-        write_run(out_root, ids, a.k, a.budget_usd, finished=False, stopped=repr(e))
+        run_file(finished=False, stopped=repr(e))
         raise
-    write_run(out_root, ids, a.k, a.budget_usd, finished=True)
+    run_file(finished=True)
     print("[cost] $%.3f over %d puzzles (%d not started for budget)" % (spent(out_root), len(todo) - skipped, skipped))
     return 0
 

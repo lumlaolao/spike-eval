@@ -12,6 +12,9 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import puzzle_solve  # noqa: E402
 
+# A stand-in for puzzle_baselines.Build whose provenance() main() can write into puzzle-run.json.
+STUB_BUILD = {"return_value.provenance.return_value": {}}
+
 
 class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
     """The seat wires the rules lookup only with MEMORY_TOOLS=1, so --rules-tool alone ran puzzles that
@@ -70,7 +73,7 @@ class BudgetAtTheBoundTest(unittest.TestCase):
         self.assertLess(listed, bound)
         out = io.StringIO()
         with mock.patch.object(puzzle_solve, "solve_puzzle", return_value=(pid, 0, [])) as solve, \
-                mock.patch.object(puzzle_solve.pb, "Build"), mock.patch.object(puzzle_solve, "load_secrets"), \
+                mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(out):
             puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
                                "--budget-usd", str((listed + bound) / 2), "--ids", pid, "--out", str(root)])
@@ -116,10 +119,9 @@ class ResumeTest(unittest.TestCase):
         pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
         root = Path(tempfile.mkdtemp())
         puzzle_solve.write_manifest(root / pid, "fake:another-model", suite["suite_sha256"], pid, {})
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD):
             puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
-                               "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume",
-                               "--build", "/nonexistent/build"])
+                               "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume"])
         self.assertIn("another condition", str(cm.exception.code))
 
     def test_two_cut_offs_before_any_row_keep_both_logs(self):
@@ -135,10 +137,82 @@ class ResumeTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         out = root / "p"
         cond = {"MEMORY_TOOLS": "0", "CONTEXT_PROFILE": "v4-faithful"}
-        puzzle_solve.write_manifest(out, "m", "S", "p", cond)
-        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p", "q"], "m", "S", cond), [])
+        puzzle_solve.write_manifest(out, "m", "S", "p", cond, self.BUILD)
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p", "q"], "m", "S", cond, self.BUILD), [])
         for model, sha, c in (("other", "S", cond), ("m", "T", cond), ("m", "S", dict(cond, MEMORY_TOOLS="1"))):
-            self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
+            self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c, self.BUILD)), 1,
+                             (model, sha, c))
+
+    BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
+             "stale_build_allowed": False}
+
+    def test_a_resume_on_another_build_is_refused(self):
+        # pr-review of #319: the attempts of two harnesses pooled in one score when a resume ran on another build.
+        root = Path(tempfile.mkdtemp())
+        cond = {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, self.BUILD)
+        puzzle_solve.write_manifest(root / "old", "m", "S", "old", cond)   # a run from before builds were recorded
+        # Another directory holding the same compiled overlay is the same harness.
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, dict(self.BUILD, build_dir="/c")),
+                         [])
+        for other in (dict(self.BUILD, build_overlay_sha="bbbbbbbbbbbb"), dict(self.BUILD, stale_build_allowed=True)):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, other)
+            self.assertEqual(len(bad), 1, other)
+            self.assertIn("build", bad[0])
+        self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["old"], "m", "S", cond, self.BUILD)), 1)
+
+    def test_main_checks_the_build_before_the_resume(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        root = Path(tempfile.mkdtemp())
+        argv = ["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1", "--budget-usd", "1",
+                "--ids", pid, "--out", str(root), "--resume"]
+        import argparse
+        cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False,
+                                                          rules_tool=False))
+        puzzle_solve.write_manifest(root / pid, "fake:m", suite["suite_sha256"], pid, cond,
+                                    dict(self.BUILD, build_overlay_sha="bbbbbbbbbbbb"))
+        stub = {"return_value.provenance.return_value": self.BUILD}
+        with mock.patch.object(puzzle_solve.pb, "Build", **stub), \
+                mock.patch.object(puzzle_solve, "solve_puzzle", side_effect=AssertionError("played")), \
+                mock.patch.object(puzzle_solve, "load_secrets"):
+            with self.assertRaises(SystemExit) as cm:
+                puzzle_solve.main(argv)
+        self.assertIn("build_overlay_sha", str(cm.exception.code))
+
+
+class BuildProvenanceTest(unittest.TestCase):
+    """The build a puzzle ran on is named in its directory's manifest, with --allow-stale-build when that let an old
+    build run (puzzle_baselines.Build refuses one whose overlay is not this checkout's otherwise)."""
+
+    def test_the_flag_reaches_the_build_and_the_manifest_records_it(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        prov = {"build_dir": "/b", "build_overlay_sha": "bbbbbbbbbbbb", "checkout_overlay_sha": "aaaaaaaaaaaa",
+                "stale_build_allowed": True}
+        seen = []
+
+        class FakeBuild:
+            def __init__(self, build_dir, forge, allow_stale=False):
+                seen.append((build_dir, allow_stale))
+
+            def provenance(self):
+                return prov
+
+            def run(self, env, out, **kw):
+                return 0
+
+        root = Path(tempfile.mkdtemp())
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(io.StringIO()):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                               "--budget-usd", "1", "--ids", pid, "--out", str(root), "--build", "/b",
+                               "--allow-stale-build"])
+        self.assertEqual(seen, [("/b", True)])
+        self.assertEqual(json.loads((root / pid / "batch-manifest.json").read_text())["build"], prov)
+        self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text())["build"], prov, "the run file too")
 
 
 class RunFileTest(unittest.TestCase):
@@ -159,7 +233,7 @@ class RunFileTest(unittest.TestCase):
         suite = json.loads(suite_path.read_text())
         pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
         root = Path(tempfile.mkdtemp())
-        with mock.patch.object(puzzle_solve.pb, "Build"), \
+        with mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD), \
                 mock.patch.object(puzzle_solve, "solve_puzzle", side_effect=KeyboardInterrupt()), \
                 mock.patch.object(puzzle_solve, "spent", return_value=0.0), \
                 contextlib.redirect_stdout(io.StringIO()):

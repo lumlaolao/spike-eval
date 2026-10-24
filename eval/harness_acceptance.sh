@@ -12,7 +12,8 @@
 # Stages, cheapest first (each writes its evidence under $OUT and a PASS/FAIL line to $OUT/summary.txt):
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
 #   classpath  offline Maven dependency classpath (module target/classes FIRST, then jars); Forge tree untouched
-#   compile    overlay main+test sources -> $OUT/classes with javac --release 17 (the checkout is never rebuilt)
+#   compile    overlay main+test sources -> $OUT/classes with javac --release 17 (the checkout is never rebuilt),
+#              and $OUT/overlay-sha.txt, the overlay hash compiled (puzzle_baselines.Build refuses another)
 #   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1 and EVAL_OUT unset; fails on any
 #              failure OR skip, and when the number of tests RUN differs from the number DECLARED (a runner that
 #              matches no tests reports a green nothing -- that happened once with `make jtest`)
@@ -198,6 +199,13 @@ fi
 CLASSES="${ACC_BUILD:-$OUT}/classes"   # a child run (below) shares the parent's compiled classes
 if has_stage compile; then
   if [ ! -f "$CP_FILE" ]; then fail compile "no classpath file ($CP_FILE)"; else
+    # overlay-sha.txt: the overlay these classes were compiled from (run_batch.py's overlay_sha), hashed before and
+    # after javac (a source edited meanwhile leaves classes of either version, so the stage fails); puzzle_baselines.
+    # Build runs only a build whose hash is the checkout's. Written on a pass only.
+    overlay_sha() { python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b
+print(b.overlay_sha_of_checkout())' "$REPO/eval"; }
+    SRC_SHA_FILE="$(dirname "$CLASSES")/overlay-sha.txt"; rm -f "$SRC_SHA_FILE"
+    SRC_SHA="$(overlay_sha)"
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
     "$JAVAC" --release 17 -encoding UTF-8 -proc:none -nowarn -cp "$(cat "$CP_FILE")" -d "$CLASSES" \
       "$OVERLAY"/main/java/forge/spike/*.java "$OVERLAY"/test/java/forge/spike/*.java \
@@ -209,8 +217,10 @@ if has_stage compile; then
     # The checkout build (checkstyle) rejects unused and duplicate imports; this javac does not.
     python3 "$REPO/eval/java_imports.py" "$OVERLAY" >"$OUT/java_imports.log" 2>&1; IRC=$?
     if [ $RC -ne 0 ] || [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail compile "javac rc=$RC (see $OUT/javac.log)"
+    elif [ "$(overlay_sha)" != "$SRC_SHA" ]; then fail compile "overlay sources changed during the compile (was $SRC_SHA): compile again"
     elif [ $IRC -ne 0 ]; then fail compile "imports the Forge checkout build rejects: $(head -3 "$OUT/java_imports.log" | tr '\n' ' ')"
-    else pass compile "$NC classes from overlay sources (isolated dir; checkout untouched); imports clean"; fi
+    else echo "$SRC_SHA" > "$SRC_SHA_FILE"
+      pass compile "$NC classes from overlay sources $SRC_SHA (isolated dir; checkout untouched); imports clean"; fi
   fi
 fi
 
