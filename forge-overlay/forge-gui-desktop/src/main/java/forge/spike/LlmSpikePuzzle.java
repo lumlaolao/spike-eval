@@ -911,10 +911,13 @@ public final class LlmSpikePuzzle {
         // Either tier, as the game line's jevA (LlmSpikeGui): a fast-tier jev: solver is a jev: solver too.
         if ("llm".equals(ctlA) && (DecisionsBridge.isSpec(smartA) || DecisionsBridge.isSpec(fastA)))
             row.put("decisions_bridge_version", DecisionsBridge.VERSION);
-        // A claude-cli: solver (ClaudeCliBridge): the bridge and the effort it ran at, which puzzle_score.py never pools.
+        // A claude-cli: solver (ClaudeCliBridge): the bridge and the effort and thinking budget it ran at, which
+        // puzzle_score.py never pools, and the development-lane label it prints instead of calling the run a score.
         if ("llm".equals(ctlA) && (ClaudeCliBridge.isSpec(smartA) || ClaudeCliBridge.isSpec(fastA))) {
             row.put("claude_cli_bridge_version", ClaudeCliBridge.VERSION);
             row.put("claude_cli_effort", ClaudeCliBridge.effortStamp());
+            row.put("claude_cli_thinking_tokens", ClaudeCliBridge.thinkingStamp());
+            row.put("dev_lane", ClaudeCliBridge.DEV_LANE);
         }
         row.putAll(extra);
         String line = toJson(row);

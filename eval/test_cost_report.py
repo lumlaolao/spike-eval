@@ -149,6 +149,31 @@ class CostReportTest(unittest.TestCase):
                 self.assertAlmostEqual(r["usd"], 0.0224, places=12)
                 self.assertEqual((r["models"], r["unpriced"], r["checked"]), ({spec}, set(), {"CLI-reported"}))
 
+    def test_a_name_shared_by_a_claude_cli_seat_and_a_token_priced_seat_is_never_priced_at_zero(self):
+        # Both identities named "Burn": one on the CLI, one on openrouter. The bucket is priced at the larger of the
+        # CLI's reported cost and the token price of the other seat's spec (an upper bound), never at $0 for it.
+        spec = "claude-cli:claude-opus-5-5"
+        prices = {"deepseek/deepseek-v4.1-flash": {"prompt": 1e-06, "completion": 0, "checked": "2026-10-24"}}
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [
+                {"t": "context_call", "seat": "Burn", "tier": "smart", "prompt_tokens": 1000000, "completion_tokens": 0,
+                 "cost_usd": 0.25},
+                {"t": "game", "deck_a": "Burn", "deck_b": "Burn", "smart_a": spec, "fast_a": spec, "smart_b": OR, "fast_b": OR}])
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 1.0, places=9)
+            prices["deepseek/deepseek-v4.1-flash"]["prompt"] = 1e-08
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 0.25, places=9)
+
+    def test_the_opt_in_names_the_lane_and_its_purpose(self):
+        spec = "claude-cli:claude-opus-5-5"
+        msg = cr.cli_opt_in_refusal([spec, None], {})
+        self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertIn("local development", msg)
+        self.assertIsNone(cr.cli_opt_in_refusal([spec], {"CLAUDE_CLI_SEAT": "1"}))
+        self.assertIsNone(cr.cli_opt_in_refusal([OR, "jev:typesafe/jev-1.14"], {}))
+        self.assertEqual(cr.lane_of(spec), "claude-cli:")
+        self.assertEqual(cr.lane_of("jev:typesafe/jev-1.14"), "jev:")
+        self.assertIsNone(cr.lane_of(OR))
+
     def test_the_claude_cli_prefix_is_the_bridges_own(self):
         java = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "forge-overlay", "forge-gui-desktop",
                             "src", "main", "java", "forge", "spike", "ClaudeCliBridge.java")
@@ -156,6 +181,7 @@ class CostReportTest(unittest.TestCase):
             m = re.search(r'static final String PREFIX = "([^"]*)";', f.read())
         self.assertIsNotNone(m, "ClaudeCliBridge.PREFIX not found")
         self.assertEqual(cr.CLI_PREFIX, m.group(1))
+        self.assertIn('static final String OPT_IN = "%s";' % cr.CLI_OPT_IN, open(java, encoding="utf-8").read())
 
     def test_a_budget_is_checked_at_the_dearest_endpoint_and_a_report_at_the_list_price(self):
         # Latency routing may land on a priority tier: gpt-6.1-sol's "ultrafast" endpoint lists 6x its list price

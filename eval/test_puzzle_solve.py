@@ -208,12 +208,14 @@ class ClaudeCliSeatTest(unittest.TestCase):
     SUITE = DecisionModelSeatTest.SUITE
     CLI = "claude-cli:claude-opus-5-5"
 
-    def run_main(self, model, *extra):
+    def run_main(self, model, *extra, opted_in=True):
         argv = ["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1", "--budget-usd", "0",
                 "--out", tempfile.mkdtemp(), "--build", "/nonexistent/build"] + list(extra)
         with mock.patch.dict(os.environ, {}, clear=False), mock.patch.object(puzzle_solve, "load_secrets"):
-            for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
+            for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL", "CLAUDE_CLI_SEAT"):
                 os.environ.pop(k, None)
+            if opted_in:
+                os.environ["CLAUDE_CLI_SEAT"] = "1"
             with self.assertRaises(SystemExit) as cm:
                 puzzle_solve.main(argv)
         return str(cm.exception.code)
@@ -228,15 +230,23 @@ class ClaudeCliSeatTest(unittest.TestCase):
         self.assertIn("claude-cli:", msg)
         self.assertIn("-j 1", self.run_main(self.CLI))   # the default is 2
 
-    def test_its_effort_is_pinned_and_no_other_model_takes_one(self):
-        self.assertIn("--effort", self.run_main("openrouter:openai/gpt-6-luna", "--effort", "high"))
+    def test_it_is_refused_without_its_explicit_opt_in(self):
+        msg = self.run_main(self.CLI, "-j", "1", opted_in=False)
+        self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertIn("local development", msg)
+
+    def test_its_effort_and_thinking_budget_are_pinned_and_no_other_model_takes_them(self):
+        for flag, v in (("--claude-cli-effort", "high"), ("--claude-cli-thinking-tokens", "16000")):
+            self.assertIn(flag, self.run_main("openrouter:openai/gpt-6-luna", flag, v))
         a = puzzle_solve.argparse.Namespace(model=self.CLI, context_profile="v4-faithful", memory_tools=False,
-                                            rules_tool=False, effort="high")
+                                            rules_tool=False, claude_cli_effort="high", claude_cli_thinking_tokens=16000)
         cond = puzzle_solve.condition(a)
-        self.assertEqual((cond["CLAUDE_BRIDGE_EFFORT"], cond["CLAUDE_BRIDGE_EFFORT_SMART"], cond["CLAUDE_BRIDGE_EFFORT_FAST"]),
-                         ("high", "", ""))
-        a.effort = None
-        self.assertEqual(puzzle_solve.condition(a)["CLAUDE_BRIDGE_EFFORT"], "")
+        self.assertEqual((cond["CLAUDE_BRIDGE_EFFORT"], cond["CLAUDE_BRIDGE_EFFORT_SMART"], cond["CLAUDE_BRIDGE_EFFORT_FAST"],
+                          cond["CLAUDE_CLI_THINKING_TOKENS"]), ("high", "", "", "16000"))
+        a.claude_cli_effort = None
+        a.claude_cli_thinking_tokens = None
+        self.assertEqual((puzzle_solve.condition(a)["CLAUDE_BRIDGE_EFFORT"], puzzle_solve.condition(a)["CLAUDE_CLI_THINKING_TOKENS"]),
+                         ("", ""))
         a.model = "openrouter:openai/gpt-6-luna"
         self.assertFalse(any(k.startswith("CLAUDE") for k in puzzle_solve.condition(a)), "another model's condition moved")
 

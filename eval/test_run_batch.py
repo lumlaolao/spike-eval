@@ -9,12 +9,14 @@ condition-aware resume. Nothing here launches a JVM or contacts a model.
 """
 
 import argparse
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 from unittest import mock
 
@@ -396,11 +398,63 @@ class TestAnswerTool(unittest.TestCase):
                              ("--text-answers", "only through the `answer` call"),
                              ("--text-tools", "only through the `answer` call"),
                              ("--one-chat", "fresh process"), ("--turn-chat", "fresh process")):
-            with self.assertRaises(SystemExit) as cm:
+            with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
                 run_batch.main(["--seeds", "1", "--smart-a", self.CLI, "--fast-a", self.CLI, "--controller-b", "ai", flag])
             self.assertIn(flag, str(cm.exception.code))
             self.assertIn("claude-cli:", str(cm.exception.code))
             self.assertIn(reason, str(cm.exception.code))
+
+    def test_a_claude_cli_seat_is_refused_without_its_explicit_opt_in(self):
+        # Owner, 2026-10-24: the lane is local development on the owner's subscription, chosen explicitly.
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CLAUDE_CLI_SEAT", None)
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", self.CLI, "--fast-a", self.CLI,
+                                "--controller-b", "ai"])
+        msg = str(cm.exception.code)
+        self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertIn("local development", msg)
+
+    def test_the_lane_refusals_cover_every_lane_present(self):
+        # A jev: seat and a claude-cli: seat in one batch: each lane's refusal is named, not only the first.
+        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            run_batch.main(["--seeds", "1", "--smart-a", "jev:typesafe/jev-1.14", "--fast-a", "jev:typesafe/jev-1.14",
+                            "--smart-b", self.CLI, "--fast-b", self.CLI, "--memory-tools", "--one-chat"])
+        msg = str(cm.exception.code)
+        self.assertIn("jev:", msg)
+        self.assertIn("claude-cli:", msg)
+        self.assertIn("--one-chat", msg)
+
+    def test_a_claude_cli_seat_is_never_in_a_cited_run_or_a_panel(self):
+        args = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai", exploratory=False)
+        err = io.StringIO()
+        with self.assertRaises(SystemExit), redirect_stderr(err):
+            run_batch.cited_pre_guards(args)
+        self.assertIn("development lane", err.getvalue())
+        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            run_batch.main(["--panel", "mirror", "--budget-usd", "1", "--smart-a", self.CLI, "--fast-a", self.CLI])
+        self.assertIn("benchmark", str(cm.exception.code))
+
+    def test_a_claude_cli_batch_pins_its_effort_and_thinking_budget_never_the_shells(self):
+        shell = {"CLAUDE_BRIDGE_EFFORT": "max", "CLAUDE_BRIDGE_EFFORT_SMART": "low", "CLAUDE_CLI_THINKING_TOKENS": "999"}
+        with mock.patch.dict(os.environ, shell), tempfile.TemporaryDirectory() as d:
+            a = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai", claude_cli_effort="high",
+                          claude_cli_thinking_tokens=16000)
+            env = run_batch.build_env(a, 1, False, Path(d))
+            self.assertEqual((env["CLAUDE_BRIDGE_EFFORT"], env["CLAUDE_BRIDGE_EFFORT_SMART"], env["CLAUDE_BRIDGE_EFFORT_FAST"],
+                              env["CLAUDE_CLI_THINKING_TOKENS"]), ("high", "", "", "16000"))
+            unset = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai")
+            env = run_batch.build_env(unset, 1, False, Path(d))
+            self.assertEqual((env["CLAUDE_BRIDGE_EFFORT"], env["CLAUDE_CLI_THINKING_TOKENS"]), ("", ""))
+            cond = run_batch.batch_condition(a, cited=False)
+            self.assertEqual((cond["claude_cli_effort"], cond["claude_cli_thinking_tokens"]), ("high", "16000"))
+            self.assertEqual(run_batch.batch_condition(unset, cited=False)["claude_cli_thinking_tokens"], "cli-default")
+            self.assertIn("claude_cli_effort", [k for k, _, _ in run_batch.condition_diff(cond,
+                                                                                         run_batch.batch_condition(unset, False))])
+            # Another model's batch is untouched: no claude-cli key in its condition or its environment.
+            other = make_args(smart_a=self.OR, fast_a=self.OR, controller_b="ai")
+            self.assertIsNone(run_batch.batch_condition(other, cited=False).get("claude_cli_effort"))
+            self.assertEqual(run_batch.build_env(other, 1, False, Path(d)).get("CLAUDE_BRIDGE_EFFORT"), "max")
 
     def test_only_the_flags_set_it_and_lines_keep_it_apart(self):
         with mock.patch.dict(os.environ, {"ANSWER_TOOL": "1", "ANSWER_TOOL_STRICT": "1"}, clear=False), \

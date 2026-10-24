@@ -40,8 +40,10 @@ API_PREFIXES = ("openrouter:", DECISIONS_PREFIX)
 
 
 # A Claude model through the local Claude Code CLI, answering by structured output (ClaudeCliBridge.PREFIX). It
-# sends the game state to Anthropic, not to openrouter.ai.
+# sends the game state to Anthropic, not to openrouter.ai. Owner, 2026-10-24: a development lane on the owner's own
+# subscription, used only with its explicit opt-in (ClaudeCliBridge.OPT_IN) and never in a benchmark score.
 CLI_PREFIX = "claude-cli:"
+CLI_OPT_IN = "CLAUDE_CLI_SEAT"
 
 
 def is_decisions(spec):
@@ -54,10 +56,32 @@ def is_cli(spec):
     return str(spec or "").startswith(CLI_PREFIX)
 
 
+def lane_of(spec):
+    """The prefix of a seat whose backend gives only the `answer` call (`jev:` or `claude-cli:`: no lookups, no preview,
+    no text answers), or None."""
+    return DECISIONS_PREFIX if is_decisions(spec) else CLI_PREFIX if is_cli(spec) else None
+
+
 def answer_only(spec):
-    """True for a seat whose backend gives only the `answer` call (a `jev:` or `claude-cli:` seat): no lookups, no
-    preview, no text answers."""
-    return is_decisions(spec) or is_cli(spec)
+    return lane_of(spec) is not None
+
+
+def cli_env(effort, thinking_tokens):
+    """A claude-cli: seat's CLI settings as the JVM's environment, pinned for both tiers ("" is the CLI's own default),
+    so the operator's shell (CLAUDE_BRIDGE_EFFORT_SMART, MAX_THINKING_TOKENS ...) never reaches it. run_batch.py and
+    puzzle_solve.py both launch with these."""
+    return {"CLAUDE_BRIDGE_EFFORT": effort or "", "CLAUDE_BRIDGE_EFFORT_SMART": "", "CLAUDE_BRIDGE_EFFORT_FAST": "",
+            "CLAUDE_CLI_THINKING_TOKENS": str(thinking_tokens) if thinking_tokens else ""}
+
+
+def cli_opt_in_refusal(specs, environ):
+    """Why a launch with a `claude-cli:` seat is refused (the JVM's own refusal, said before anything starts), or
+    None: no such seat, or the operator chose the lane with CLI_OPT_IN=1."""
+    if not any(is_cli(s) for s in specs) or environ.get(CLI_OPT_IN) == "1":
+        return None
+    return ("a %s seat runs the Claude Code CLI on the operator's own Claude subscription: it is for local development "
+            "only and never part of a benchmark score (owner, 2026-10-24). Set %s=1 to choose it."
+            % (CLI_PREFIX, CLI_OPT_IN))
 
 
 def budget_prices(prices):
@@ -150,19 +174,18 @@ def report_dir(run_dir, prices):
             # --budget-usd never stops it. A name both seats share is priced at the dearer spec (an upper bound).
             specs = [g.get("%s_%s" % ("smart" if tier == "smart" else "fast", i)) for i in identities_of(g, seat)]
             cli = [s for s in specs if is_cli(s)]
-            if cli:
-                # The CLI's own figure for every call it answered (ClaudeCliBridge): no token price to look up.
-                out["models"].add(cli[0])
-                out["checked"].add("CLI-reported")
-                out["usd"] += reported
-                continue
             priced = {s: p for s, p in ((s, price_of(prices, s)) for s in specs) if p is not None}
             out["unpriced"].update(model_id(s) for s in specs if s not in priced and model_id(s))
-            if not priced:
-                continue
             usd = {s: usd_of(p, pin, pout, cached, written) for s, p in priced.items()}
+            if cli:
+                # The CLI's own figure for every call it answered (ClaudeCliBridge): no token price to look up. A name
+                # a token-priced seat shares is priced at the larger of the two (an upper bound), never at $0 for it.
+                usd[cli[0]] = reported
+                priced[cli[0]] = {"checked": "CLI-reported"}
+            if not usd:
+                continue
             spec = max(usd, key=usd.get)
-            out["models"].add(model_id(spec))
+            out["models"].add(model_id(spec) or spec)
             out["checked"].add(priced[spec].get("checked", "?"))
             out["usd"] += usd[spec]
     return out

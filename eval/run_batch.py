@@ -121,7 +121,7 @@ CONDITION_KEYS = (
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
     "lookahead", "one_tier", "no_coaching", "one_chat", "turn_chat",
-    "plan_execute", "tier_fast_types",
+    "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
 )
@@ -287,6 +287,10 @@ def build_env(args, seed, swap, out_dir):
     env.pop("SHADOW_AI", None)
     if getattr(args, "shadow_ai", False):
         env["SHADOW_AI"] = "1"
+    # A claude-cli: seat's effort and thinking budget are the flags', never the shell's (cost_report.cli_env).
+    if has_cli_seat(args):
+        env.update(cost_report.cli_env(getattr(args, "claude_cli_effort", None),
+                                       getattr(args, "claude_cli_thinking_tokens", None)))
 
     passthrough = {
         "SMART_MODEL_A": args.smart_a,
@@ -550,6 +554,10 @@ def batch_condition(args, cited):
         "turn_chat": bool(getattr(args, "turn_chat", False)),
         "plan_execute": bool(getattr(args, "plan_execute", False)),
         "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
+        # A claude-cli: seat's pinned CLI settings ("cli-default" when unset); absent for every other batch.
+        "claude_cli_effort": (getattr(args, "claude_cli_effort", None) or "cli-default") if has_cli_seat(args) else None,
+        "claude_cli_thinking_tokens": (str(getattr(args, "claude_cli_thinking_tokens", None) or "cli-default")
+                                       if has_cli_seat(args) else None),
         "ctx_overrides": ctx,
         "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
         "engine_sha": forced.get("ENGINE_SHA"),
@@ -590,6 +598,28 @@ def answer_tool_requested(args):
              (getattr(args, "controller_b", None), getattr(args, "smart_b", None), getattr(args, "fast_b", None))]
     return any((c or "llm") == "llm" and (spec or "").startswith(cost_report.API_PREFIXES + (cost_report.CLI_PREFIX,))
                for c, smart, fast in seats for spec in (smart, fast))
+
+
+def has_cli_seat(args):
+    """True when an llm seat of this batch is a claude-cli: one (the development lane, ClaudeCliBridge)."""
+    return any(cost_report.is_cli(m) for m in effective_llm_models(args))
+
+
+def lane_refusals(args):
+    """Every flag a jev: or claude-cli: seat of this batch cannot take, for every such lane present (the JVM refuses
+    each too): [] when none."""
+    no_lookup = "cannot call a lookup, so the games would record a condition the seat never had"
+    no_text = "answers only through the `answer` call, so every decision would be lost"
+    no_chat = "is asked each decision in a fresh process, so the games would record a conversation the seat never had"
+    lanes = sorted({cost_report.lane_of(m) for m in (args.smart_a, args.fast_a, args.smart_b, args.fast_b)} - {None})
+    out = []
+    for lane in lanes:
+        flags = [("--memory-tools", args.memory_tools, no_lookup), ("--lookahead", args.lookahead, no_lookup),
+                 ("--text-answers", args.text_answers, no_text), ("--text-tools", args.text_tools, no_text)]
+        if lane == cost_report.CLI_PREFIX:
+            flags += [("--one-chat", args.one_chat, no_chat), ("--turn-chat", args.turn_chat, no_chat)]
+        out += ["%s with a %s seat: such a seat %s" % (flag, lane, reason) for flag, on, reason in flags if on]
+    return out
 
 
 def spent_usd(out_dir):
@@ -871,6 +901,10 @@ def format_guard(args):
 def cited_pre_guards(args):
     """Guards 1-3 (spec C). Pure — no forge-home, no dir creation. Runs
     FIRST so a misconfigured cited run refuses before anything launches."""
+    # --- guard 0: no development lane in a cited number (owner, 2026-10-24) ---
+    if has_cli_seat(args):
+        _refuse("a %s seat is a development lane on the operator's own Claude subscription and is never part of a "
+                "benchmark score; run it with --exploratory." % cost_report.CLI_PREFIX)
     # --- guard 1: mirror deck ---
     da, db = args.deck_a, args.deck_b
     if not da or not db:
@@ -1294,6 +1328,12 @@ def build_parser():
                          "as its calls, results and reasoning) and starts over each turn, so a multi-step "
                          "line stays in one train of thought. A separate condition (stamped turn_chat); "
                          "its own --out.")
+    ap.add_argument("--claude-cli-effort", choices=("low", "medium", "high", "xhigh", "max"), default=None,
+                    help="a claude-cli: seat only: the CLI's --effort (CLAUDE_BRIDGE_EFFORT); unset is the CLI's "
+                         "default. Pinned, never inherited from the shell")
+    ap.add_argument("--claude-cli-thinking-tokens", type=int, default=None, metavar="N",
+                    help="a claude-cli: seat only: the CLI's MAX_THINKING_TOKENS; unset is the CLI's default. "
+                         "Pinned, never inherited from the shell")
     ap.add_argument("--lookahead", action="store_true",
                     help="LOOKAHEAD=1: LLM seats may preview a play option (`simulate`) before "
                          "choosing. Default off; a separate condition from unassisted play and must "
@@ -1339,19 +1379,22 @@ def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
     specs = (args.smart_a, args.fast_a, args.smart_b, args.fast_b)
-    lane = next((p for p in (cost_report.DECISIONS_PREFIX, cost_report.CLI_PREFIX)
-                 if any(str(m or "").startswith(p) for m in specs)), None)
-    no_lookup = "cannot call a lookup, so the games would record a condition the seat never had"
-    no_text = "answers only through the `answer` call, so every decision would be lost"
-    no_chat = "is asked each decision in a fresh process, so the games would record a conversation the seat never had"
-    flags = [("--memory-tools", args.memory_tools, no_lookup), ("--lookahead", args.lookahead, no_lookup),
-             ("--text-answers", args.text_answers, no_text), ("--text-tools", args.text_tools, no_text)]
-    if lane == cost_report.CLI_PREFIX:
-        flags += [("--one-chat", args.one_chat, no_chat), ("--turn-chat", args.turn_chat, no_chat)]
-    for flag, on, reason in flags:
-        if on and lane:
-            raise SystemExit("run_batch: %s with a %s seat: such a seat %s (the JVM refuses it too)"
-                             % (flag, lane, reason))
+    refusal = cost_report.cli_opt_in_refusal(specs, os.environ)
+    if refusal:
+        raise SystemExit("run_batch: " + refusal)
+    if args.panel and any(cost_report.is_cli(m) for m in specs):
+        raise SystemExit("run_batch: a %s seat is a development lane and never part of a benchmark score: a panel is "
+                         "one (owner, 2026-10-24)" % cost_report.CLI_PREFIX)
+    for flag, v in (("--claude-cli-effort", args.claude_cli_effort),
+                    ("--claude-cli-thinking-tokens", args.claude_cli_thinking_tokens)):
+        if v is not None and not any(cost_report.is_cli(m) for m in specs):
+            raise SystemExit("run_batch: %s is the Claude CLI's (a %s seat); no other seat reads it"
+                             % (flag, cost_report.CLI_PREFIX))
+    if args.claude_cli_thinking_tokens is not None and args.claude_cli_thinking_tokens < 1:
+        raise SystemExit("run_batch: --claude-cli-thinking-tokens must be a positive number")
+    refused = lane_refusals(args)
+    if refused:
+        raise SystemExit("run_batch: " + "; ".join(refused) + " (the JVM refuses it too)")
     if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")

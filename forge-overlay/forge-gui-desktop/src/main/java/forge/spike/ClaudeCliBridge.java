@@ -1,7 +1,6 @@
 package forge.spike;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,20 +22,23 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * A seat played by a Claude model through the Claude Code CLI in print mode (`claude-cli:<model>` specs, owner decision
- * 2026-10-24: Opus 5.5 "with harnesses"). The CLI has no function calls of its own to offer, but `--json-schema` makes
- * Claude Code end the model's turn with a forced structured-output tool call whose input is validated against the
- * schema. That schema is built from the ask's own `answer` and `set_plan` definitions (the ones every
- * `openrouter:` seat gets, read from the tool list the seat sends, never copied), and the returned
- * `structured_output` becomes the harness's `answer` (and `set_plan`) call, so AnswerTool validates it, re-asks and
- * falls back exactly as for any model (docs/harness/ARCHITECTURE.md, "The Claude CLI answer bridge").
+ * A seat played by a Claude model through the Claude Code CLI in print mode (`claude-cli:<model>` specs). Owner
+ * decisions 2026-10-24: Opus 5.5 may be tested "with harnesses" this way, as a development lane on the owner's own
+ * Claude subscription, used only when the operator opts in ({@link #OPT_IN}=1) and never part of a benchmark score.
+ *
+ * <p>The CLI has no function calls of its own to offer, but `--json-schema` makes Claude Code end the model's turn with
+ * a forced structured-output tool call whose input is validated against the schema. That schema is built from the
+ * ask's own `answer` and `set_plan` definitions (the ones every `openrouter:` seat gets, read from the tool list the
+ * seat sends, never copied), and the returned `structured_output` becomes the harness's `answer` (and `set_plan`)
+ * call, so AnswerTool validates it, re-asks and falls back exactly as for any model (docs/harness/ARCHITECTURE.md,
+ * "The Claude CLI answer bridge").
  *
  * <p>One CLI process per model turn: the harness renders every decision fresh (ARCHITECTURE section 8), so there is no
  * conversation to keep across decisions; a correction or reminder round within one decision is a new process whose
  * prompt carries that decision's earlier turns as text. The process is isolated from the machine it runs on: no
  * built-in tools, no MCP servers, no skills, slash commands, hooks, CLAUDE.md or settings files, no saved session, an
- * empty working directory, the seat's own system prompt in place of Claude Code's, and an environment without the
- * launching session's CLAUDE* variables.
+ * empty working directory, the seat's own system prompt in place of Claude Code's, and an allow-listed environment
+ * ({@link #childEnv}).
  *
  * <p>What it cannot do in phase 1: look anything up or preview (refused when built, like a `jev:` seat), and answer a
  * plain text ask.
@@ -45,42 +48,68 @@ final class ClaudeCliBridge implements LLMBridge {
     /** v1 (2026-10-24): one `claude -p --output-format json --json-schema` process per model turn; the schema is
      *  {answer, set_plan} from the ask's own definitions. Stamped on the game line of a game with a claude-cli: seat
      *  and on a claude-cli: solver's puzzle row (eval/versions.py); pinned in ClaudeCliBridgeTest and in
-     *  eval/harness_acceptance.sh. */
-    static final String VERSION = "claude-cli-bridge-v1";
-    /** The launching environment's variables a child keeps although they start with CLAUDE: how it authenticates and
-     *  which provider it uses. Every other CLAUDE* variable (the parent session's id, entrypoint, effort, sockets,
-     *  CLAUDECODE ...) is removed, and so is OPENROUTER_*: the harness's key is not the CLI's business. */
+     *  eval/harness_acceptance.sh.
+     *  v2 (2026-10-24, pr-review of #320): the child's environment is an allow-list (v1 passed on MAX_THINKING_TOKENS
+     *  and ANTHROPIC_MODEL from the launching shell, unstamped), its thinking budget is CLAUDE_CLI_THINKING_TOKENS
+     *  (stamped), and a seat is built only with CLAUDE_CLI_SEAT=1. */
+    static final String VERSION = "claude-cli-bridge-v2";
+    /** The operator's explicit choice of this lane: the factory refuses a claude-cli: spec unless it is "1", and so do
+     *  run_batch.py and puzzle_solve.py (eval/cost_report.py CLI_OPT_IN). */
+    static final String OPT_IN = "CLAUDE_CLI_SEAT";
+    /** The seat's thinking budget, set by run_batch.py / puzzle_solve.py --claude-cli-thinking-tokens and passed to the
+     *  child as MAX_THINKING_TOKENS; unset or empty is the CLI's own default. Stamped. */
+    static final String THINKING_ENV = "CLAUDE_CLI_THINKING_TOKENS";
+    /** The development-lane label on the game line and the puzzle row. */
+    static final String DEV_LANE = "claude-cli";
+    /** What the child may inherit, by name: how it runs, reaches the network and logs in. None of them chooses the model,
+     *  its thinking or its effort (those are argv or {@link #THINKING_ENV}, both stamped); everything else, among it
+     *  MAX_THINKING_TOKENS, ANTHROPIC_MODEL and its per-tier defaults, the launching session's CLAUDE* variables and the
+     *  harness's OPENROUTER* ones, is dropped (pr-review of #320). */
     static final Set<String> KEEP_ENV = Collections.unmodifiableSet(new java.util.TreeSet<>(Arrays.asList(
-            "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY",
-            "CLAUDE_CONFIG_DIR")));
+            "PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "LANG", "TZ", "TMPDIR",
+            "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "https_proxy", "http_proxy", "no_proxy", "all_proxy",
+            "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "NODE_OPTIONS",
+            "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR",
+            "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY",
+            "AWS_REGION", "AWS_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+            "AWS_BEARER_TOKEN_BEDROCK", "GOOGLE_APPLICATION_CREDENTIALS", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID",
+            "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE", "ANTHROPIC_FOUNDRY_BASE_URL")));
+    /** Test hook: variables added to the launching environment before it is filtered, so a test proves the filter in
+     *  a JVM whatever its own environment holds. Null outside tests. */
+    static volatile Map<String, String> plantedEnv;
+    /** Characters of the child's stderr kept for the no-answer log line. */
+    private static final int STDERR_TAIL = 400;
 
     private final String label, model, preamble, bin;
     private final long deadlineMs;
-    private final String effort;
+    private final String effort, thinking;
     private Path home;           // the bridge's own temp directory: the system prompt file and the empty cwd
     private long totalMs = 0;
     private int calls = 0;
     private volatile int lastPromptTokens = -1, lastCompletionTokens = -1, lastCachedTokens = -1, lastCacheWriteTokens = -1;
-    private volatile double lastCostUsd = -1;
+    /** The cost of this ask's attempts so far: every billed process since the last one that was not a retry. */
+    private volatile double askCostUsd = -1;
+    /** The next call is the seat's bridge retry of the last ({@link #restart}), so its cost adds to the same ask. */
+    private volatile boolean retrying = false;
     private volatile long billedPromptTokens = 0, billedCompletionTokens = 0;
     private volatile double costUsd = 0;
-    /** The argv of the last process started, for the tests and the log. */
-    volatile List<String> lastArgv;
 
     ClaudeCliBridge(String label, String model, String preamble) {
         this(label, model, preamble, System.getenv().getOrDefault("CLAUDE_BIN", "claude"),
                 LlmSpikeGui.ClaudeBridge.deadlineFor(model),
-                LlmSpikeGui.ClaudeBridge.effortFor(label != null && label.endsWith("/fast")));
+                LlmSpikeGui.ClaudeBridge.effortFor(label != null && label.endsWith("/fast")),
+                thinkingTokens(System.getenv(THINKING_ENV)));
     }
 
     /** Every input passed in, so a test can point it at a fake binary with a short deadline. */
-    ClaudeCliBridge(String label, String model, String preamble, String bin, long deadlineMs, String effort) {
+    ClaudeCliBridge(String label, String model, String preamble, String bin, long deadlineMs, String effort, String thinking) {
         this.label = label;
         this.model = model;
         this.preamble = preamble;
         this.bin = bin;
         this.deadlineMs = deadlineMs;
         this.effort = effort;
+        this.thinking = thinking;
     }
 
     static boolean isSpec(String spec) { return spec != null && spec.startsWith(PREFIX); }
@@ -92,6 +121,34 @@ final class ClaudeCliBridge implements LLMBridge {
         return smart.equals(fast) ? smart : "smart=" + smart + ",fast=" + fast;
     }
 
+    /** {@link #THINKING_ENV}'s value: a positive number of tokens, or null (unset or empty: the CLI's default). A value
+     *  that is neither is fatal here, not a per-call failure mid-game. */
+    static String thinkingTokens(String v) {
+        if (v == null || v.trim().isEmpty()) return null;
+        try {
+            if (Integer.parseInt(v.trim()) > 0) return Integer.toString(Integer.parseInt(v.trim()));
+        } catch (NumberFormatException ignore) { }
+        throw new IllegalArgumentException("invalid " + THINKING_ENV + " '" + v.trim() + "': a positive number of tokens");
+    }
+
+    /** What the game line and the puzzle row record of the thinking budget. */
+    static String thinkingStamp(String tokens) { return tokens == null ? "cli-default" : tokens; }
+
+    /** The budget this JVM's claude-cli: seats run with, as stamped. */
+    static String thinkingStamp() { return thinkingStamp(thinkingTokens(System.getenv(THINKING_ENV))); }
+
+    /** True when the child may inherit {@code name} ({@link #KEEP_ENV}, or a locale variable). */
+    static boolean kept(String name) { return KEEP_ENV.contains(name) || name.startsWith("LC_"); }
+
+    /** The child's environment: the allow-listed part of {@code parent}, and MAX_THINKING_TOKENS only when the harness
+     *  sets a budget ({@code thinking}), never the parent's own. */
+    static Map<String, String> childEnv(Map<String, String> parent, String thinking) {
+        Map<String, String> env = new HashMap<>();
+        for (Map.Entry<String, String> e : parent.entrySet()) if (kept(e.getKey())) env.put(e.getKey(), e.getValue());
+        if (thinking != null) env.put("MAX_THINKING_TOKENS", thinking);
+        return env;
+    }
+
     /** The seat offers `answer` only to a bridge that answers by call; this one's answer is always that call. */
     @Override public boolean supportsNativeTools() { return true; }
 
@@ -101,7 +158,13 @@ final class ClaudeCliBridge implements LLMBridge {
         return null;
     }
 
+    /** The seat's bridge retry (LlmSpikeGui askModel) restarts the bridge before asking again: that attempt's cost is
+     *  the same ask's. There is no session to reset. */
+    @Override public void restart() { retrying = true; }
+
     @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+        if (!retrying) askCostUsd = -1;
+        retrying = false;
         JsonObject schema = schema(toolsJson);
         if (schema == null) { noAnswer("an ask that offers no `answer`"); return null; }
         long t0 = System.currentTimeMillis();
@@ -109,7 +172,8 @@ final class ClaudeCliBridge implements LLMBridge {
         JsonObject result = run(argv(schema.toString()), prompt);
         totalMs += System.currentTimeMillis() - t0;
         if (result == null) return null;
-        if (result.has("is_error") && result.get("is_error").getAsBoolean()) {
+        JsonElement err = result.get("is_error");
+        if (err != null && err.isJsonPrimitive() && err.getAsBoolean()) {
             noAnswer("the CLI reported an error (" + str(result, "subtype") + "): " + LlmSpikeGui.oneLine(str(result, "result")));
             return null;
         }
@@ -202,7 +266,8 @@ final class ClaudeCliBridge implements LLMBridge {
     }
 
     /** The CLI's structured output as the assistant turn a calling model would have served: `set_plan` (when given)
-     *  and `answer` (when given) as calls; no call at all when it holds no `answer` object, so AnswerTool reminds. */
+     *  and `answer` (when given) as calls, with the CLI's `result` text as its content; no call at all when it holds no
+     *  `answer` object, so AnswerTool reminds. */
     static NativeTools.Turn turn(JsonElement structured, String text, int seq) {
         List<NativeTools.Call> cs = new ArrayList<>();
         JsonObject so = structured != null && structured.isJsonObject() ? structured.getAsJsonObject() : null;
@@ -210,19 +275,14 @@ final class ClaudeCliBridge implements LLMBridge {
             JsonElement args = so == null ? null : so.get(name);
             if (args != null && args.isJsonObject()) cs.add(new NativeTools.Call("cli" + seq + "-" + name, name, args.toString()));
         }
-        if (!cs.isEmpty()) {
-            NativeTools.Turn calls = NativeTools.Turn.ofCalls(cs);
-            if (text == null || text.trim().isEmpty()) return calls;
-            JsonObject msg = JsonParser.parseString(calls.messageJson).getAsJsonObject();
-            msg.addProperty("content", text);
-            return new NativeTools.Turn(text, msg.toString(), cs);
-        }
-        String content = text != null && !text.trim().isEmpty() ? text
-                : so != null ? "structured output without `answer`: " + so : "(no reply)";
+        boolean said = text != null && !text.trim().isEmpty();
+        String content = said ? text : cs.isEmpty() ? (so != null ? "structured output without `answer`: " + so : "(no reply)") : null;
         JsonObject msg = new JsonObject();
         msg.addProperty("role", "assistant");
-        msg.addProperty("content", content);
-        return new NativeTools.Turn(content, msg.toString(), new ArrayList<>());
+        if (content != null) msg.addProperty("content", content);
+        if (!cs.isEmpty()) msg.add("tool_calls", JsonParser.parseString(NativeTools.Turn.ofCalls(cs).messageJson)
+                .getAsJsonObject().get("tool_calls"));
+        return new NativeTools.Turn(content, msg.toString(), cs);
     }
 
     // ------------------------------------------------------------------ the process
@@ -249,38 +309,46 @@ final class ClaudeCliBridge implements LLMBridge {
         }
     }
 
-    /** Removes from {@code env} every variable the child must not inherit (see {@link #KEEP_ENV}). */
-    static void scrub(Map<String, String> env) {
-        env.keySet().removeIf(k -> (k.startsWith("CLAUDE") && !KEEP_ENV.contains(k)) || k.startsWith("OPENROUTER"));
+    /** A daemon thread copying {@code in} to {@code out}. */
+    private Thread drain(InputStream in, ByteArrayOutputStream out, String what) {
+        Thread t = new Thread(() -> {
+            try { in.transferTo(out); } catch (IOException ignore) { }
+        }, "claude-cli-" + what + "-" + label);
+        t.setDaemon(true);
+        t.start();
+        return t;
     }
 
-    /** One process: the prompt on stdin, the JSON result from stdout; null (logged) on a timeout, a non-zero exit, or
-     *  output that is not a result object. A result is billed whether or not it answers. */
+    /** One process: the prompt on stdin (written on its own thread, so a child that never reads it cannot hold the call
+     *  past its deadline), the JSON result from stdout; null (logged, with the tail of stderr) on a timeout, a non-zero
+     *  exit, or output that is not a result object. A result is billed whether or not it answers. */
     private JsonObject run(List<String> argv, String prompt) {
         lastPromptTokens = -1; lastCompletionTokens = -1; lastCachedTokens = -1; lastCacheWriteTokens = -1;
-        lastCostUsd = -1;
-        lastArgv = argv;
         Process proc = null;
         try {
             ProcessBuilder pb = new ProcessBuilder(argv);
             pb.directory(home().resolve("cwd").toFile());
-            scrub(pb.environment());
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            Map<String, String> parent = new HashMap<>(System.getenv());
+            Map<String, String> planted = plantedEnv;
+            if (planted != null) parent.putAll(planted);
+            pb.environment().clear();
+            pb.environment().putAll(childEnv(parent, thinking));
             proc = pb.start();
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            final InputStream stdout = proc.getInputStream();
-            Thread reader = new Thread(() -> {
-                try { stdout.transferTo(out); } catch (IOException ignore) { }
-            }, "claude-cli-stdout-" + label);
-            reader.setDaemon(true);
-            reader.start();
-            try (OutputStream in = proc.getOutputStream()) {
-                in.write(prompt.getBytes(StandardCharsets.UTF_8));
-            } catch (IOException e) {
-                // The process may exit before reading its stdin; its exit code and output say why.
-            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream(), err = new ByteArrayOutputStream();
+            Thread reader = drain(proc.getInputStream(), out, "stdout");
+            drain(proc.getErrorStream(), err, "stderr");
+            final OutputStream stdin = proc.getOutputStream();
+            Thread writer = new Thread(() -> {
+                try (OutputStream in = stdin) {
+                    in.write(prompt.getBytes(StandardCharsets.UTF_8));
+                } catch (IOException ignore) {
+                    // The process may exit, or be killed, before reading its stdin; its exit and output say why.
+                }
+            }, "claude-cli-stdin-" + label);
+            writer.setDaemon(true);
+            writer.start();
             if (!proc.waitFor(deadlineMs, TimeUnit.MILLISECONDS)) {
-                noAnswer("no result within " + deadlineMs + " ms");
+                noAnswer("no result within " + deadlineMs + " ms" + stderrTail(err));
                 return null;
             }
             reader.join(5000);
@@ -288,10 +356,10 @@ final class ClaudeCliBridge implements LLMBridge {
             JsonObject result = resultOf(text);
             if (result != null) bill(result);
             if (proc.exitValue() != 0 && (result == null || !result.has("structured_output"))) {
-                noAnswer("exit " + proc.exitValue() + ": " + LlmSpikeGui.oneLine(text));
+                noAnswer("exit " + proc.exitValue() + ": " + LlmSpikeGui.oneLine(text) + stderrTail(err));
                 return null;
             }
-            if (result == null) { noAnswer("no JSON result: " + LlmSpikeGui.oneLine(text)); return null; }
+            if (result == null) { noAnswer("no JSON result: " + LlmSpikeGui.oneLine(text) + stderrTail(err)); return null; }
             return result;
         } catch (Exception e) {
             noAnswer("error: " + e);
@@ -302,6 +370,12 @@ final class ClaudeCliBridge implements LLMBridge {
                 proc.destroyForcibly();
             }
         }
+    }
+
+    private static String stderrTail(ByteArrayOutputStream err) {
+        String s = err.toString(StandardCharsets.UTF_8).replaceAll("\\s+", " ").trim();
+        if (s.isEmpty()) return "";
+        return " (stderr: " + (s.length() > STDERR_TAIL ? "..." + s.substring(s.length() - STDERR_TAIL) : s) + ")";
     }
 
     /** The result object: stdout as one JSON object, else its last line that parses as one, with `"type":"result"`. */
@@ -324,7 +398,8 @@ final class ClaudeCliBridge implements LLMBridge {
 
     /** `usage` is the seat's model's tokens (input plus both cache counts is the prompt, cache reads the cached part,
      *  cache writes the written part); `total_cost_usd`, which also counts the CLI's own side calls to another model,
-     *  is the call's `cost_usd`. The served model is the `modelUsage` key that names the requested one. */
+     *  adds to the ask's cost. The served model is the `modelUsage` key with the most output tokens: the one that
+     *  answered, whether the spec names it in full or by an alias. */
     private void bill(JsonObject r) {
         JsonObject u = r.has("usage") && r.get("usage").isJsonObject() ? r.getAsJsonObject("usage") : null;
         if (u != null) {
@@ -337,12 +412,19 @@ final class ClaudeCliBridge implements LLMBridge {
             billedCompletionTokens += Math.max(0, lastCompletionTokens);
         }
         if (r.has("total_cost_usd") && r.get("total_cost_usd").isJsonPrimitive()) {
-            lastCostUsd = r.get("total_cost_usd").getAsDouble();
-            costUsd += lastCostUsd;
+            double c = r.get("total_cost_usd").getAsDouble();
+            askCostUsd = Math.max(0, askCostUsd) + c;
+            costUsd += c;
         }
         if (r.has("modelUsage") && r.get("modelUsage").isJsonObject()) {
-            for (String k : r.getAsJsonObject("modelUsage").keySet())
-                if (k.startsWith(model)) { LlmSpikeGui.servedModels.put(label, k); break; }
+            JsonObject mu = r.getAsJsonObject("modelUsage");
+            String best = null;
+            int most = -1;
+            for (String k : mu.keySet()) {
+                int o = mu.get(k).isJsonObject() ? intOf(mu.getAsJsonObject(k), "outputTokens") : -1;
+                if (o > most) { most = o; best = k; }
+            }
+            if (best != null) LlmSpikeGui.servedModels.put(label, best);
         }
     }
 
@@ -359,10 +441,9 @@ final class ClaudeCliBridge implements LLMBridge {
     /** The CLI's own reported cost of every process that returned a result, in USD. */
     double getCostUsd() { return costUsd; }
 
-    /** The process's working directory (empty), for the tests. */
-    File workDir() throws IOException { return home().resolve("cwd").toFile(); }
-
-    @Override public double getLastCostUsd() { return lastCostUsd; }
+    /** The cost of the current ask's attempts (its first and the seat's retries of it), each process that reported one;
+     *  -1 when none did. Written on the ask's context_call row as `cost_usd`. */
+    @Override public double getLastCostUsd() { return askCostUsd; }
     @Override public String getLabel() { return label; }
     @Override public String getModel() { return model; }
     @Override public long getTotalMs() { return totalMs; }

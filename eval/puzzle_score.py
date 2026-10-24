@@ -44,7 +44,10 @@ from aggregate import wilson_ci  # noqa: E402
 # Puzzle-row fields only some solvers carry, each a condition two attempts must share (key, what it is called).
 BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      ("claude_cli_bridge_version", "claude-cli bridge versions"),
-                     ("claude_cli_effort", "claude-cli efforts"))
+                     ("claude_cli_effort", "claude-cli efforts"),
+                     ("claude_cli_thinking_tokens", "claude-cli thinking budgets"),
+                     # A development lane (owner, 2026-10-24: claude-cli:) is labelled so and never pooled with a score.
+                     ("dev_lane", "development lanes"))
 
 
 class Refused(Exception):
@@ -415,7 +418,9 @@ def _ci(c):
 
 def render(rep):
     a = rep["aggregate"]
-    lines = ["PUZ  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
+    lines = ["DEVELOPMENT LANE (%s): local development on the owner's subscription, not a benchmark score"
+             % rep["dev_lane"]] if rep.get("dev_lane") else []
+    lines += ["PUZ  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
              % (rep["suite"], rep["suite_version"], rep["suite_sha256"][:12], rep["split"], rep["solver"],
                 rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
     h = a["headline"]

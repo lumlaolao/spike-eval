@@ -33,8 +33,9 @@ public class ClaudeCliBridgeTest {
 
     private Path dir;
 
-    /** The fake CLI: call n records argv.n (NUL-separated), env.n, cwd.n, ls.n (the cwd's entries) and stdin.n, then
-     *  prints reply.n (else reply), after `sleep` seconds when that file exists, and exits with `exit` (else 0). */
+    /** The fake CLI: call n records argv.n (NUL-separated), env.n, cwd.n, ls.n (the cwd's entries), its pid (self.pid)
+     *  and stdin.n (unless `noread` exists), copies `stderr` to its stderr, waits on a child sleeping `sleep` seconds
+     *  (child.pid) when that file exists, then prints reply.n (else reply) and exits with `exit` (else 0). */
     private static final String FAKE = "#!/bin/bash\n"
             + "d=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n"
             + "n=$(cat \"$d/count\" 2>/dev/null || echo 0); n=$((n+1)); echo $n > \"$d/count\"\n"
@@ -42,8 +43,10 @@ public class ClaudeCliBridgeTest {
             + "env > \"$d/env.$n\"\n"
             + "pwd > \"$d/cwd.$n\"\n"
             + "ls -A > \"$d/ls.$n\"\n"
-            + "cat > \"$d/stdin.$n\"\n"
-            + "if [ -f \"$d/sleep\" ]; then sleep \"$(cat \"$d/sleep\")\"; fi\n"
+            + "echo $$ > \"$d/self.pid\"\n"
+            + "[ -f \"$d/noread\" ] || cat > \"$d/stdin.$n\"\n"
+            + "[ -f \"$d/stderr\" ] && cat \"$d/stderr\" >&2\n"
+            + "if [ -f \"$d/sleep\" ]; then sleep \"$(cat \"$d/sleep\")\" & echo $! > \"$d/child.pid\"; wait; fi\n"
             + "r=\"$d/reply.$n\"; [ -f \"$r\" ] || r=\"$d/reply\"\n"
             + "[ -f \"$r\" ] && cat \"$r\"\n"
             + "exit \"$(cat \"$d/exit\" 2>/dev/null || echo 0)\"\n";
@@ -72,9 +75,10 @@ public class ClaudeCliBridgeTest {
     }
 
     private ClaudeCliBridge bridge() { return bridge(null, 20000); }
-    private ClaudeCliBridge bridge(String effort, long deadlineMs) {
-        return new ClaudeCliBridge("Seat/smart", "claude-opus-5-5", "PREAMBLE: you pilot the seat.",
-                dir.resolve("claude").toString(), deadlineMs, effort);
+    private ClaudeCliBridge bridge(String effort, long deadlineMs) { return bridge("claude-opus-5-5", effort, deadlineMs); }
+    private ClaudeCliBridge bridge(String model, String effort, long deadlineMs) {
+        return new ClaudeCliBridge("Seat/smart", model, "PREAMBLE: you pilot the seat.", dir.resolve("claude").toString(),
+                deadlineMs, effort, null);
     }
 
     private static final String USER = "== Turn 3 MAIN1 ==\nDECISION: Choose ONE action:\n  1) CAST Lava Spike\n  2) PASS";
@@ -147,27 +151,70 @@ public class ClaudeCliBridgeTest {
         Assert.assertEquals(a.get(a.indexOf("--effort") + 1), "high", a.toString());
     }
 
-    /** The child gets no CLAUDE* variable of the session that launched it (its id, entrypoint, effort, sockets) and no
-     *  OPENROUTER* one; how it authenticates is kept. */
+    /** The child's environment is an allow-list: what the CLI needs to run, reach the network and log in. Anything that
+     *  could change how the model decides (MAX_THINKING_TOKENS, ANTHROPIC_MODEL and its per-tier defaults), the
+     *  launching session's CLAUDE* variables and the harness's OPENROUTER* ones are dropped. The variables are planted
+     *  through the test hook, so the drop is proved in any JVM, also one launched from a clean shell. */
     @Test
-    public void theChildEnvironmentIsScrubbed() throws IOException {
-        Map<String, String> env = new HashMap<>();
-        for (String k : new String[] {"CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_EFFORT",
-                "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CONFIG_DIR", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "PATH", "HOME"})
-            env.put(k, "x");
-        ClaudeCliBridge.scrub(env);
-        Assert.assertEquals(new java.util.TreeSet<>(env.keySet()), new java.util.TreeSet<>(List.of(
-                "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CONFIG_DIR", "ANTHROPIC_API_KEY", "PATH", "HOME")));
+    public void theChildEnvironmentIsAnAllowList() throws IOException {
+        String[] dropped = {"MAX_THINKING_TOKENS", "ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_SMALL_FAST_MODEL",
+                "CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_EFFORT", "CLAUDE_CLI_SEAT",
+                "OPENROUTER_API_KEY", "SOME_TOOL_SETTING"};
+        String[] kept = {"PATH", "HOME", "LANG", "LC_ALL", "HTTPS_PROXY", "no_proxy", "SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS",
+                "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR"};
+        Map<String, String> planted = new HashMap<>();
+        for (String k : dropped) planted.put(k, "planted");
+        for (String k : kept) planted.put(k, "planted");
+        Assert.assertEquals(new java.util.TreeSet<>(ClaudeCliBridge.childEnv(planted, null).keySet()),
+                new java.util.TreeSet<>(Arrays.asList(kept)));
 
         reply(result("{\"answer\":{\"option\":1}}"));
         AnswerTool.Spec spec = AnswerTool.Spec.one(2);
-        bridge().chat(messages(USER), tools(spec, false), true, spec);
-        for (String line : read("env.1").split("\n")) {
-            String k = line.contains("=") ? line.substring(0, line.indexOf('=')) : line;
-            if (!k.matches("[A-Za-z_][A-Za-z0-9_]*")) continue;
-            Assert.assertFalse(k.startsWith("OPENROUTER"), k);
-            Assert.assertTrue(!k.startsWith("CLAUDE") || ClaudeCliBridge.KEEP_ENV.contains(k), "inherited " + k);
+        Map<String, String> plant = new HashMap<>();
+        for (String k : dropped) plant.put(k, "planted");
+        ClaudeCliBridge.plantedEnv = plant;
+        try {
+            Assert.assertNotNull(bridge().chat(messages(USER), tools(spec, false), true, spec));
+        } finally {
+            ClaudeCliBridge.plantedEnv = null;
         }
+        java.util.Set<String> seen = new java.util.TreeSet<>();
+        for (String line : read("env.1").split("\n"))
+            if (line.matches("[A-Za-z_][A-Za-z0-9_]*=.*")) seen.add(line.substring(0, line.indexOf('=')));
+        for (String k : dropped) Assert.assertFalse(seen.contains(k), "the child inherited " + k + ": " + seen);
+        for (String k : seen)
+            Assert.assertTrue(ClaudeCliBridge.kept(k) || List.of("PWD", "OLDPWD", "SHLVL", "_").contains(k),
+                    "the child got " + k + ", which is not on the allow-list");
+    }
+
+    /** The thinking budget is the harness's own setting (CLAUDE_CLI_THINKING_TOKENS, from run_batch / puzzle_solve
+     *  --claude-cli-thinking-tokens), set in the child as MAX_THINKING_TOKENS, never the operator's shell value. */
+    @Test
+    public void theThinkingBudgetIsSetExplicitlyNeverInherited() throws IOException {
+        Map<String, String> shell = new HashMap<>();
+        shell.put("MAX_THINKING_TOKENS", "999");
+        shell.put("PATH", "/bin");
+        Assert.assertFalse(ClaudeCliBridge.childEnv(shell, null).containsKey("MAX_THINKING_TOKENS"));
+        Assert.assertEquals(ClaudeCliBridge.childEnv(shell, "16000").get("MAX_THINKING_TOKENS"), "16000");
+        Assert.assertEquals(ClaudeCliBridge.thinkingStamp(null), "cli-default");
+        Assert.assertEquals(ClaudeCliBridge.thinkingStamp("16000"), "16000");
+        for (String bad : new String[] {"x", "-5", "0"}) {
+            try {
+                ClaudeCliBridge.thinkingTokens(bad);
+                Assert.fail("accepted thinking tokens " + bad);
+            } catch (IllegalArgumentException e) {
+                Assert.assertTrue(e.getMessage().contains("CLAUDE_CLI_THINKING_TOKENS"), e.getMessage());
+            }
+        }
+        Assert.assertNull(ClaudeCliBridge.thinkingTokens(null));
+        Assert.assertNull(ClaudeCliBridge.thinkingTokens(" "), "an empty value (the drivers' unset) is the CLI's default");
+
+        reply(result("{\"answer\":{\"option\":1}}"));
+        AnswerTool.Spec spec = AnswerTool.Spec.one(2);
+        new ClaudeCliBridge("Seat/smart", "claude-opus-5-5", "p", dir.resolve("claude").toString(), 20000, null, "12345")
+                .chat(messages(USER), tools(spec, false), true, spec);
+        Assert.assertTrue(read("env.1").contains("\nMAX_THINKING_TOKENS=12345\n") || read("env.1").startsWith("MAX_THINKING_TOKENS=12345\n"),
+                read("env.1"));
     }
 
     // ------------------------------------------------------------------ the answer
@@ -221,12 +268,17 @@ public class ClaudeCliBridgeTest {
     }
 
     /** A CLI that fails, reports an error, prints no result or runs past its deadline gives no answer (null: the seat's
-     *  bridge retry, then its fixed legal option), and the late process is killed. */
-    @Test(timeOut = 20000)
-    public void aCliErrorOrTimeoutGivesNoAnswer() throws IOException {
+     *  bridge retry, then its fixed legal option); the failure's stderr is in the log line, and a late process and its
+     *  child are killed, even one that never reads its stdin. */
+    @Test(timeOut = 30000)
+    public void aCliErrorOrTimeoutGivesNoAnswer() throws Exception {
         AnswerTool.Spec spec = AnswerTool.Spec.one(2);
         write("exit", "1");
-        Assert.assertNull(bridge().chat(messages(USER), tools(spec, false), true, spec), "a failed process answered");
+        write("stderr", "boom: not logged in");
+        String log = LineFindingProbeTest.logOf(() -> Assert.assertNull(bridge().chat(messages(USER), tools(spec, false), true,
+                spec), "a failed process answered"));
+        Assert.assertTrue(log.contains("[CLAUDE-CLI-NO-ANSWER] exit 1") && log.contains("boom: not logged in"), log);
+        Files.delete(dir.resolve("stderr"));
         write("exit", "0");
         reply("{\"type\":\"result\",\"subtype\":\"error_max_structured_output_retries\",\"is_error\":true,\"result\":\"\","
                 + "\"total_cost_usd\":0.01}");
@@ -235,9 +287,28 @@ public class ClaudeCliBridgeTest {
         Assert.assertNull(bridge().chat(messages(USER), tools(spec, false), true, spec), "garbage answered");
         reply(result("{\"answer\":{\"option\":1}}"));
         write("sleep", "30");
+        write("noread", "");
+        // A prompt larger than a pipe's buffer, to a process that never reads it: the deadline must still hold.
+        String big = USER + "\n" + "x".repeat(4 << 20);
         long t0 = System.currentTimeMillis();
-        Assert.assertNull(bridge(null, 700).chat(messages(USER), tools(spec, false), true, spec), "a late process answered");
+        Assert.assertNull(bridge(null, 1500).chat(messages(big), tools(spec, false), true, spec), "a late process answered");
         Assert.assertTrue(System.currentTimeMillis() - t0 < 10000, "the deadline was not kept");
+        long self = Long.parseLong(read("self.pid").trim()), child = Long.parseLong(read("child.pid").trim());
+        for (int i = 0; i < 50 && (alive(self) || alive(child)); i++) Thread.sleep(100);
+        Assert.assertFalse(alive(self), "the timed-out CLI is still running");
+        Assert.assertFalse(alive(child), "the timed-out CLI's child is still running");
+    }
+
+    private static boolean alive(long pid) { return ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false); }
+
+    /** A null `is_error` is not an error: the answer is read. */
+    @Test
+    public void aNullIsErrorIsNotAnError() throws IOException {
+        reply(result("{\"answer\":{\"option\":2}}").replace("\"is_error\":false", "\"is_error\":null"));
+        AnswerTool.Spec spec = AnswerTool.Spec.one(2);
+        NativeTools.Turn t = bridge().chat(messages(USER), tools(spec, false), true, spec);
+        Assert.assertNotNull(t);
+        Assert.assertEquals(t.calls.get(0).arguments, "{\"option\":2}");
     }
 
     /** Through the live controller: a CLI that never answers costs the seat its decision, which goes to the fixed legal
@@ -290,6 +361,10 @@ public class ClaudeCliBridgeTest {
         Assert.assertEquals(b.getBilledCompletionTokens(), 280L);
         Assert.assertEquals(b.getCalls(), 2);
         Assert.assertEquals(LlmSpikeGui.servedModels.get("Seat/smart"), "claude-opus-5-5");
+        // An alias spec records the model that answered: the modelUsage key with the most output tokens.
+        LlmSpikeGui.servedModels.remove("Seat/smart");
+        bridge("opus", null, 20000).chat(messages(USER), tools(spec, false), true, spec);
+        Assert.assertEquals(LlmSpikeGui.servedModels.get("Seat/smart"), "claude-opus-5-5");
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.costField(b), ",\"cost_usd\":0.0123");
         // A call that fails reports no cost or usage of its own.
         write("exit", "1");
@@ -300,23 +375,51 @@ public class ClaudeCliBridgeTest {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.costField(b), "");
     }
 
+    /** A failed attempt that was billed (an error result after real turns) counts toward the row of the ask it was
+     *  part of: the seat's bridge retry (restart, then the call again) sums both; the next ask starts afresh. */
+    @Test
+    public void aBilledFailedAttemptIsCountedWithTheRetryThatAnswered() throws IOException {
+        write("reply.1", "{\"type\":\"result\",\"subtype\":\"error_max_turns\",\"is_error\":true,\"result\":\"\","
+                + "\"total_cost_usd\":0.01}");
+        reply(result("{\"answer\":{\"option\":1}}"));
+        AnswerTool.Spec spec = AnswerTool.Spec.one(2);
+        ClaudeCliBridge b = bridge();
+        Assert.assertNull(b.chat(messages(USER), tools(spec, false), true, spec));
+        Assert.assertEquals(b.getLastCostUsd(), 0.01, 1e-12);
+        b.restart();
+        Assert.assertNotNull(b.chat(messages(USER), tools(spec, false), true, spec));
+        Assert.assertEquals(b.getLastCostUsd(), 0.0223, 1e-12);
+        Assert.assertNotNull(b.chat(messages(USER), tools(spec, false), true, spec));
+        Assert.assertEquals(b.getLastCostUsd(), 0.0123, 1e-12);
+        Assert.assertEquals(b.getCostUsd(), 0.0346, 1e-12);
+    }
+
     /** The log line names the bridge version and the answer (acceptance pins the literal from this test's log). */
     @Test
     public void theLogLineStampsTheVersionAndTheAnswer() throws IOException {
         reply(result("{\"answer\":{\"option\":2}}"));
         AnswerTool.Spec spec = AnswerTool.Spec.one(2);
         String log = LineFindingProbeTest.logOf(() -> bridge().chat(messages(USER), tools(spec, false), true, spec));
-        Assert.assertTrue(log.contains("[CLAUDE-CLI Seat/smart] claude-cli-bridge-v1 -> TOOL CALL answer {\"option\":2}"), log);
+        Assert.assertTrue(log.contains("[CLAUDE-CLI Seat/smart] claude-cli-bridge-v2 -> TOOL CALL answer {\"option\":2}"), log);
     }
 
     // ------------------------------------------------------------------ the seat's conditions
 
-    /** The spec names the lane; a bare spec is still the text lane. Phase 1 offers no lookups and no preview, needs the
-     *  answer tool, and keeps no conversation, so a seat built otherwise is refused. */
+    /** The lane is chosen explicitly (owner, 2026-10-24: local development on the owner's subscription, never a benchmark
+     *  score), so without CLAUDE_CLI_SEAT=1 it is refused first. The spec names the lane; a bare spec is still the text
+     *  lane. Phase 1 offers no lookups and no preview, needs the answer tool, and keeps no conversation. */
     @Test
     public void theFactoryRoutesTheSpecAndRefusesLookupsLookaheadTextAnswersAndChat() {
-        Assert.assertEquals(ClaudeCliBridge.VERSION, "claude-cli-bridge-v1", "move this pin WITH ClaudeCliBridge.VERSION");
-        LLMBridge b = LlmSpikeGui.LLMBridgeFactory.claudeCli("Seat/smart", "claude-cli:claude-opus-5-5", "p", false, false, true, false);
+        Assert.assertEquals(ClaudeCliBridge.VERSION, "claude-cli-bridge-v2", "move this pin WITH ClaudeCliBridge.VERSION");
+        try {
+            LlmSpikeGui.LLMBridgeFactory.claudeCli("Seat/smart", "claude-cli:claude-opus-5-5", "p", false, false, false, true, false);
+            Assert.fail("a claude-cli: seat was built without its opt-in");
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1") && e.getMessage().contains("local development")
+                    && e.getMessage().contains("benchmark"), e.getMessage());
+        }
+        LLMBridge b = LlmSpikeGui.LLMBridgeFactory.claudeCli("Seat/smart", "claude-cli:claude-opus-5-5", "p", true, false, false, true,
+                false);
         Assert.assertTrue(b instanceof ClaudeCliBridge, String.valueOf(b));
         Assert.assertEquals(b.getModel(), "claude-opus-5-5");
         Assert.assertTrue(b.supportsNativeTools(), "the seat offers `answer` only to a bridge that takes a call");
@@ -331,7 +434,7 @@ public class ClaudeCliBridgeTest {
         for (int i = 0; i < flags.length; i++) {
             boolean[] f = flags[i];
             try {
-                LlmSpikeGui.LLMBridgeFactory.claudeCli("Seat/smart", "claude-cli:claude-opus-5-5", "p", f[0], f[1], f[2], f[3]);
+                LlmSpikeGui.LLMBridgeFactory.claudeCli("Seat/smart", "claude-cli:claude-opus-5-5", "p", true, f[0], f[1], f[2], f[3]);
                 Assert.fail("accepted " + Arrays.toString(f));
             } catch (IllegalStateException e) {
                 Assert.assertTrue(e.getMessage().contains(named[i]) && e.getMessage().contains("claude-cli:"), e.getMessage());

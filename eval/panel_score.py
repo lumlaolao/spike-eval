@@ -139,6 +139,10 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
     games = rating.tag_fake_policy(exp["games"], p)
     problems = []
     for g in games:
+        # Owner, 2026-10-24: a development lane (a claude-cli: seat) is never part of a benchmark score.
+        if g.get("dev_lane") or g.get("claude_cli_bridge_version_a") or g.get("claude_cli_bridge_version_b"):
+            problems.append("a development lane (%s) played here; it is never part of a benchmark score"
+                            % (g.get("dev_lane") or "claude-cli"))
         if expected_b and g.get("controller_b") != expected_b:
             problems.append("identity B is %r, not %r" % (g.get("controller_b"), expected_b))
         if expected_a and g.get("controller_a") != expected_a:

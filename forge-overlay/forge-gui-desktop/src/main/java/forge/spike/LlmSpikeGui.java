@@ -11235,17 +11235,22 @@ public final class LlmSpikeGui {
             // A Claude model through the Claude Code CLI, answering by structured output (ClaudeCliBridge). Its own prefix,
             // so a bare spec still means the text lane below, unchanged.
             if (ClaudeCliBridge.isSpec(spec))
-                return claudeCli(label, spec, preamble, PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.lookaheadEnabled(),
+                return claudeCli(label, spec, preamble, "1".equals(System.getenv(ClaudeCliBridge.OPT_IN)), PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.lookaheadEnabled(),
                         AnswerTool.enabled() && NativeTools.enabled(), ChatSessionBridge.ON || ChatSessionBridge.TURN);
             // Legacy/default: bare model name -> Claude CLI bridge.
             return new ClaudeBridge(label, spec, preamble);
         }
 
-        /** A `claude-cli:` seat. Phase 1 offers it no lookups and no preview, and asks each decision in a fresh process
-         *  (ONE_CHAT and TURN_CHAT wrap only an OpenRouterBridge), so a seat run with any of them on is refused here rather
-         *  than recorded as a condition it never had. Package-private so a test can pass the flags. */
-        static LLMBridge claudeCli(String label, String spec, String preamble, boolean memoryTools, boolean lookahead,
-                                   boolean answerTool, boolean chat) {
+        /** A `claude-cli:` seat: a development lane on the operator's own Claude subscription (owner, 2026-10-24), so it is
+         *  refused first unless the operator chose it ({@code optedIn}: ClaudeCliBridge.OPT_IN=1). Phase 1 offers it no
+         *  lookups and no preview, and asks each decision in a fresh process (ONE_CHAT and TURN_CHAT wrap only an
+         *  OpenRouterBridge), so a seat run with any of them on is refused rather than recorded as a condition it never
+         *  had. Package-private so a test can pass the flags. */
+        static LLMBridge claudeCli(String label, String spec, String preamble, boolean optedIn, boolean memoryTools,
+                                   boolean lookahead, boolean answerTool, boolean chat) {
+            if (!optedIn) throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat runs the Claude Code CLI on the "
+                    + "operator's own Claude subscription: it is for local development only and never part of a benchmark "
+                    + "score (owner, 2026-10-24). Set " + ClaudeCliBridge.OPT_IN + "=1 to choose it (" + label + ")");
             refuseAnswerOnly(ClaudeCliBridge.PREFIX, memoryTools, lookahead, answerTool, label);
             if (chat) throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat asks each decision in a fresh "
                     + "process: run it with ONE_CHAT=0 and TURN_CHAT=0 (no --one-chat, no --turn-chat) (" + label + ")");
@@ -11271,7 +11276,7 @@ public final class LlmSpikeGui {
             // Consent first: a refusal for the seat's flags must never hide a missing consent (pr-review of #305).
             DecisionsBridge b = new DecisionsBridge(label, spec.substring(DecisionsBridge.PREFIX.length()), preamble, baseUrl,
                     apiKey, consent);
-            DecisionsBridge.refuseConditions(memoryTools, lookahead, answerTool, label);
+            refuseAnswerOnly(DecisionsBridge.PREFIX, memoryTools, lookahead, answerTool, label);
             return b;
         }
 
@@ -11577,9 +11582,13 @@ public final class LlmSpikeGui {
                 // its opponent's condition and every other seat's line are unchanged.
                 + (jevA ? ",\"decisions_bridge_version_a\":\"" + DecisionsBridge.VERSION + "\"" : "")
                 + (jevB ? ",\"decisions_bridge_version_b\":\"" + DecisionsBridge.VERSION + "\"" : "")
-                // A claude-cli: seat's bridge (ClaudeCliBridge), per identity and only for such a seat, as above.
-                + (cliA ? ",\"claude_cli_bridge_version_a\":\"" + ClaudeCliBridge.VERSION + "\"" : "")
-                + (cliB ? ",\"claude_cli_bridge_version_b\":\"" + ClaudeCliBridge.VERSION + "\"" : "")
+                // A claude-cli: seat's bridge (ClaudeCliBridge) and thinking budget, per identity and only for such a
+                // seat, as above; and the game's development-lane label (owner, 2026-10-24: never a benchmark score).
+                + (cliA ? ",\"claude_cli_bridge_version_a\":\"" + ClaudeCliBridge.VERSION + "\""
+                        + ",\"claude_cli_thinking_tokens_a\":\"" + ClaudeCliBridge.thinkingStamp() + "\"" : "")
+                + (cliB ? ",\"claude_cli_bridge_version_b\":\"" + ClaudeCliBridge.VERSION + "\""
+                        + ",\"claude_cli_thinking_tokens_b\":\"" + ClaudeCliBridge.thinkingStamp() + "\"" : "")
+                + (cliA || cliB ? ",\"dev_lane\":\"" + ClaudeCliBridge.DEV_LANE + "\"" : "")
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""

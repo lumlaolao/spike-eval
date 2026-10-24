@@ -85,11 +85,6 @@ final class DecisionsBridge implements LLMBridge {
         return b + "/alpha/decisions";
     }
 
-    /** A decision model cannot call a lookup, nor answer without the answer tool (LLMBridgeFactory.refuseAnswerOnly). */
-    static void refuseConditions(boolean memoryTools, boolean lookahead, boolean answerTool, String label) {
-        LlmSpikeGui.LLMBridgeFactory.refuseAnswerOnly(PREFIX, memoryTools, lookahead, answerTool, label);
-    }
-
     /** The seat offers `answer` only to a bridge that answers by call; this one's answer is always that call. */
     @Override public boolean supportsNativeTools() { return true; }
 

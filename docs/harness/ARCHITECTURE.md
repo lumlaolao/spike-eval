@@ -399,7 +399,7 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
 - **The one exception (owner, 2026-10-24):** a decision model (`jev:`) cannot call anything. Its typed answer is
   converted into the `answer` call before validation, so everything downstream is unchanged (section 9, "The
   Decisions bridge").
-- **The Claude CLI seat (`claude-cli:`, owner, 2026-10-24)** answers by a call too: Claude Code's forced
+- **The Claude CLI seat (`claude-cli:`, owner, 2026-10-24, a development lane)** answers by a call too: Claude Code's forced
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
@@ -484,16 +484,17 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     bytes and then silence, for that long, inside the ask's deadline.
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full
     timeout, 15-25 minutes a game; a fresh connection answers in seconds.
-- **`ClaudeBridge`** (bare Claude CLI names such as `opus`): text only, kept for the CLI; under the answer-tool rule its
-  text answers are refused (`[TEXT-PARSE]`), so it plays only the `ANSWER_TOOL=0` arm.
+- **`ClaudeBridge`** (bare Claude CLI names such as `opus`): answers in text, which the owner's tool-call rule forbids for
+  a backend that can call. It is never offered `answer` (`supportsNativeTools` is false), so the `[TEXT-PARSE]` guard
+  does not fire for it; it is kept for the text-protocol arms only.
 - **`ClaudeCliBridge`** (`claude-cli:<model>` specs): a Claude model through Claude Code in print mode, answering by
-  structured output. See "The Claude CLI answer bridge" below.
+  structured output; a development lane, used only with `CLAUDE_CLI_SEAT=1` and never in a benchmark score. See "The
+  Claude CLI answer bridge" below.
 - **`DecisionsBridge`** (`jev:<model>` specs, first TypeSafe's Jev 1.14): a decision model on OpenRouter's Decisions
   API. See "The Decisions bridge" below.
 - **Egress boundary:** an `openrouter:` model receives the game state. Nothing starts unless
-  `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it. A `claude-cli:` seat sends the game state to
-  Anthropic through the owner's own Claude Code login, not to openrouter.ai, and is not gated by that flag (an open
-  question for the owner: see "The Claude CLI answer bridge").
+  `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it. A `claude-cli:` seat's consent is its own
+  opt-in (see "The Claude CLI answer bridge").
 - **The game model:** GPT-6 Luna (`openrouter:openai/gpt-6-luna`) for every game unless the owner names
   another, at about $0.06–0.07 a game (one tier, every decision reasoning).
 - *Why OpenRouter:* one API for many providers, so a model comparison changes one string.
@@ -575,66 +576,102 @@ What Jev cannot do, by construction:
 
 ### The Claude CLI answer bridge (`claude-cli:` seats)
 
-**Owner decision, 2026-10-24:** Claude Opus 5.5 plays a seat through the Claude Code CLI in print mode
-(`claude-cli:claude-opus-5-5`), so it can be tested "with harnesses". The owner named Opus for this lane only;
-`CLAUDE.md`'s default game model is unchanged. The lane answers under the owner rule "every decision is answered by a
-tool call": `claude -p --json-schema <schema>` makes Claude Code end the model's turn with a forced structured-output
-tool call whose input it validates against the schema, and returns that input as `structured_output`. No text is
-parsed.
+**Owner decisions, 2026-10-24:** Claude Opus 5.5 may play a seat through the Claude Code CLI in print mode
+(`claude-cli:claude-opus-5-5`), so it can be tested "with harnesses". This is a **development lane** on the owner's
+own Claude subscription:
+- **used only when the operator chooses it**: `CLAUDE_CLI_SEAT=1`. The JVM factory
+  (`LLMBridgeFactory.claudeCli`), `run_batch.py` and `puzzle_solve.py` refuse a `claude-cli:` spec without it, and
+  say what the lane is for (`eval/cost_report.py` `cli_opt_in_refusal`). No tool sets it;
+- **never part of a benchmark score**: `run_batch.py`'s cited mode and `--panel` refuse it. `panel_score.py` refuses
+  a cell where such a seat played. The game line and the puzzle row carry `dev_lane: "claude-cli"`, so such a game
+  never pools with a benchmark game (`aggregate.PROVENANCE_FIELDS`, an environment field in `rating.py`), and
+  `puzzle_score.py` heads its report "DEVELOPMENT LANE ... not a benchmark score".
 
-- **The schema** is built from the ask's own tool list (`ClaudeCliBridge.schema`), never copied: an object whose
-  required `answer` property is the `answer` function's parameters and description, and whose optional `set_plan`
-  property is `set_plan`'s. The same fixed definitions every `openrouter:` seat gets (`AnswerTool.fixedDefinition`,
-  `setPlanDefinition`), so the schema is the same on every ask of a game.
+`CLAUDE.md` names this exception under "Owner rules"; its default game model is unchanged. The lane answers under the
+owner rule "every decision is answered by a tool call". `claude -p --json-schema <schema>` makes Claude Code end the
+model's turn with a forced structured-output tool call. Claude Code validates that call's input against the schema
+and returns it as `structured_output`. No text is parsed.
+
+- **The schema** is built from the ask's own tool list (`ClaudeCliBridge.schema`), never copied:
+  - an object whose required `answer` property is the `answer` function's parameters and description;
+  - and whose optional `set_plan` property is `set_plan`'s.
+  - These are the fixed definitions every `openrouter:` seat gets (`AnswerTool.fixedDefinition`, `setPlanDefinition`),
+    so the schema is the same on every ask of a game.
 - **The answer:** `structured_output.answer` becomes the `answer` call and `structured_output.set_plan` the `set_plan`
-  call (`ClaudeCliBridge.turn`); `AnswerTool.converse` validates them, so an illegal answer gets its one correction, a
-  result with no `answer` is reminded `AnswerTool.MAX_NUDGES` times, a lost decision takes the fixed legal option, and
-  every row and stamp is as for any tool seat. The `result` text the CLI returns beside it is kept as the turn's
-  content (the row's reasoning), never read for the answer.
-- **One process per model turn.** Each decision is rendered fresh (section 8), so no conversation is kept across
-  decisions, and a persistent CLI session would add one the other seats do not have. A correction or reminder round is
-  a new process whose stdin carries the decision, then each earlier turn of that decision as text ("YOUR EARLIER REPLY
-  TO THIS DECISION", the answer it gave, "THE HARNESS REPLIED: ..."). Not determined: whether a persistent
-  `--input-format stream-json` session returns `structured_output` on every `result` event (it was not probed without
-  a real model call).
+  call (`ClaudeCliBridge.turn`). `AnswerTool.converse` validates them, so everything after is as for any tool seat:
+  - an illegal answer gets its one correction;
+  - a result with no `answer` is reminded `AnswerTool.MAX_NUDGES` times;
+  - a lost decision takes the fixed legal option;
+  - every row and stamp is written the same way.
+
+  The `result` text the CLI returns beside it is kept as the turn's content (the row's reasoning) and is never read
+  for the answer.
+- **One process per model turn.**
+  - *Why:* each decision is rendered fresh (section 8), so no conversation is kept across decisions. A persistent CLI
+    session would add one that the other seats do not have.
+  - A correction or reminder round is a new process. Its stdin carries the decision, then each earlier turn of that
+    decision as text ("YOUR EARLIER REPLY TO THIS DECISION", the answer it gave, "THE HARNESS REPLIED: ...").
+  - Not determined: whether a persistent `--input-format stream-json` session returns `structured_output` on every
+    `result` event. It was not probed without a real model call.
 - **The argv** (`ClaudeCliBridge.argv`): `claude -p --model <model> --output-format json --json-schema <schema>
   --system-prompt-file <file> --tools "" --strict-mcp-config --no-session-persistence --safe-mode --setting-sources ""
-  --disable-slash-commands [--effort <level>]`, the decision on stdin. The seat's own system prompt replaces Claude
-  Code's, so the condition is this harness, not Claude Code's coding prompt. A probe of CLI 2.1.310 with all egress
-  blackholed showed its `init` event with only `StructuredOutput` as a tool and no MCP server, skill or slash command.
-  `--bare` is not used: it accepts only `ANTHROPIC_API_KEY` auth, and the owner's CLI logs in by OAuth.
-- **Isolation of the process:** it runs in an empty temp directory; its environment drops every `CLAUDE*` variable of
-  the session that launched it (session id, entrypoint, `CLAUDE_EFFORT`, sockets, `CLAUDECODE`) except how it
-  authenticates (`ClaudeCliBridge.KEEP_ENV`), and every `OPENROUTER*` one. No key is put on its command line.
-- **Effort and deadline:** `CLAUDE_BRIDGE_EFFORT[_SMART|_FAST]` as for the text lane (stamped `claude_effort_smart` /
-  `_fast`; `puzzle_solve.py --effort` pins it and the puzzle row stamps `claude_cli_effort`); the call deadline is
-  `CLAUDE_DEADLINE_MS` or the model's `ModelCfg` timeout, after which the process (and its children) is killed and
-  the decision has no answer.
-- **Failure:** a non-zero exit, an `is_error` result, output that is no result, or the deadline gives no answer
-  (`[CLAUDE-CLI-NO-ANSWER]` in the log): the seat's bridge retry runs, then the caller takes its fixed legal option,
-  never Forge's AI.
-- **Bill:** the CLI's `total_cost_usd` is the `context_call` row's `cost_usd`, and `eval/cost_report.py` prices a
-  `claude-cli:` seat by the sum of those, at list price and budget alike (it includes the CLI's own side calls to a
-  smaller model; a process killed at its deadline reports nothing). `usage` gives the prompt, cached, cache-write and
-  completion tokens.
-- **Version:** `ClaudeCliBridge.VERSION` (`claude-cli-bridge-v1`) is stamped per identity on the game line,
+  --disable-slash-commands [--effort <level>]`, with the decision on stdin.
+  - The seat's own system prompt replaces Claude Code's, so the condition is this harness, not Claude Code's coding
+    prompt.
+  - `--bare` is not used: it accepts only `ANTHROPIC_API_KEY` auth, and the owner's CLI logs in by OAuth.
+  - That argv was probed on CLI 2.1.310 with `HTTPS_PROXY` and `ANTHROPIC_BASE_URL` pointed at a closed loopback port,
+    so no request left the machine. Its `init` event listed `StructuredOutput` as the only tool, and no MCP server,
+    skill or slash command.
+- **Isolation of the process:**
+  - It runs in an empty temp directory, and no key is put on its command line.
+  - Its environment is an allow-list (`ClaudeCliBridge.KEEP_ENV`, `childEnv`). It holds what the CLI needs to run,
+    reach the network and log in: PATH, HOME, locale, proxy and CA variables, `CLAUDE_CODE_OAUTH_TOKEN`,
+    `ANTHROPIC_API_KEY` / `AUTH_TOKEN` / `BASE_URL`, `CLAUDE_CONFIG_DIR`, and the Bedrock / Vertex / Foundry switches
+    and credentials.
+  - Everything else is dropped. That includes `MAX_THINKING_TOKENS`, `ANTHROPIC_MODEL` and its per-tier defaults, the
+    launching session's `CLAUDE*` variables and the harness's `OPENROUTER*` ones. None of the kept variables chooses
+    the model, its thinking or its effort.
+- **Settings the seat needs are set, never inherited.** Each is pinned by `run_batch.py` and `puzzle_solve.py` (both
+  tiers; unset is the CLI's own default, recorded as "cli-default"), stamped, and refused on a resume or a pool that
+  mixes values:
+  - effort: `--claude-cli-effort` → `CLAUDE_BRIDGE_EFFORT` → the CLI's `--effort`. It is stamped `claude_effort_smart`
+    / `_fast`, and `claude_cli_effort` on the puzzle row.
+  - thinking budget: `--claude-cli-thinking-tokens` → `CLAUDE_CLI_THINKING_TOKENS` → the child's `MAX_THINKING_TOKENS`.
+    It is stamped `claude_cli_thinking_tokens_a` / `_b` on the game line, and `claude_cli_thinking_tokens` on the puzzle
+    row.
+- **Deadline:** `CLAUDE_DEADLINE_MS`, else the model's `ModelCfg` timeout (`timeoutMs`, the same for both tiers on this
+  lane). After it the process and its children are killed. The prompt is written to stdin on its own thread, so a
+  process that never reads it cannot hold the call past its deadline.
+- **Failure:** any of these gives no answer (`[CLAUDE-CLI-NO-ANSWER]` in the log, with the tail of the process's
+  stderr): a non-zero exit, an `is_error` result, output that is no result, or the deadline. The seat's bridge retry
+  runs, then the caller takes its fixed legal option, never Forge's AI.
+- **Bill:** the CLI's `total_cost_usd` (which includes its own side calls to a smaller model) is summed over an ask's
+  attempts. A billed attempt that failed and the retry that answered both count, and that sum is the `context_call`
+  row's `cost_usd`.
+  - `eval/cost_report.py` prices a `claude-cli:` seat by the sum of those rows, at list price and budget alike.
+  - A name a token-priced seat shares is priced at the larger of the two.
+  - A process killed at its deadline reports nothing.
+  - `usage` gives the prompt, cached, cache-write and completion tokens. The served model is the `modelUsage` key with
+    the most output tokens.
+- **Version:** `ClaudeCliBridge.VERSION` (`claude-cli-bridge-v2`). It is stamped per identity on the game line,
   `claude_cli_bridge_version_a` / `_b`, only for a `claude-cli:` seat (`aggregate.PROVENANCE_FIELDS`, default "none";
-  per-identity player fields in `rating.py`), and on a `claude-cli:` solver's puzzle row, where `puzzle_score.py`
-  refuses to pool two versions or two efforts. The spec names the lane, so it never pools with a bare `opus` or an
-  `openrouter:` Opus. No existing seat's prompt or answer path changed, so no other stamp and not `HARNESS_EPOCH`
-  moved.
+  per-identity player fields in `rating.py`). It is also on a `claude-cli:` solver's puzzle row, where `puzzle_score.py`
+  refuses to pool two versions, efforts or thinking budgets.
+  - The spec names the lane, so it never pools with a bare `opus` or an `openrouter:` Opus.
+  - No existing seat's prompt or answer path changed, so no other stamp moved, and neither did `HARNESS_EPOCH`.
 
 What it cannot do in phase 1, by construction (refused when built, and by `run_batch.py` and `puzzle_solve.py` before
 anything runs):
 - **No lookups, no `simulate`:** `MEMORY_TOOLS=1` or `LOOKAHEAD=1` is refused. Phase 2 would expose `NativeTools`
-  through an MCP stdio server the CLI calls (`--mcp-config`), which needs the seat's lookup executor reachable from a
-  separate process.
-- **No text answer:** `ANSWER_TOOL=0` or `NATIVE_TOOLS=0` is refused, as is a kept conversation (`ONE_CHAT`,
+  through an MCP stdio server the CLI calls (`--mcp-config`). That needs the seat's lookup executor to be reachable from
+  a separate process.
+- **No text answer:** `ANSWER_TOOL=0` or `NATIVE_TOOLS=0` is refused. So is a kept conversation (`ONE_CHAT`,
   `TURN_CHAT`), which wraps only an OpenRouter bridge.
-- **Parallel CLIs:** `run_batch.py`'s cited mode and `puzzle_solve.py` require one JVM at a time for it.
+- **Parallel CLIs:** `puzzle_solve.py` requires one JVM at a time for it (`-j 1`).
 
-Open owner question: the lane sends the game state to Anthropic under the CLI's login. `OPENROUTER_ALLOW_EGRESS` is
-consent for openrouter.ai and is not asked for here, as it never was for the bare-name CLI lane.
+**Egress:** the lane sends the game state to Anthropic under the operator's own CLI login, not to openrouter.ai.
+`OPENROUTER_ALLOW_EGRESS` is consent for openrouter.ai and is not asked for. The lane's own consent is its explicit
+opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
 
 ## 10. Costs
 

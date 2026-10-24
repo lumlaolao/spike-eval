@@ -110,13 +110,15 @@ no Jev game has been played yet. `DB` is `DecisionsBridge.java`.
 ### A Claude CLI seat (`claude-cli:`, `ClaudeCliBridge`, 2026-10-24)
 
 The seat answers through Claude Code's structured output (`docs/harness/ARCHITECTURE.md` section 9, "The Claude CLI
-answer bridge"). No `claude-cli:` game or puzzle has been played yet, so no bound is counted.
+answer bridge"); it is a development lane, never a benchmark score. One puzzle has been played on it, at
+claude-cli-bridge-v1: `runs/puzzles/opus-cli-smoke` (Opus 5.5, solved, 60 decisions, $2.18 by the CLI's reported
+cost). No limit below was reached there.
 
 | Limit | Where | Bound | Decision | Value |
 |---|---|---|---|---|
 | No lookups, no `simulate`, no kept conversation (ONE_CHAT, TURN_CHAT) | `LLMBridgeFactory.claudeCli` (`refuseAnswerOnly`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept for phase 1**, a condition that defines the arm (STANDARDS section 8); the lookups need an MCP server the CLI can call (phase 2) | refused at launch |
 | A plain text ask (no `answer` offered) is not sent | `ClaudeCliBridge.ask` | 0: every decision site offers `answer` to a tool seat | **kept**: there is no schema to answer it with, and text is never parsed | never asked |
-| A CLI call that runs past its deadline is killed and gives no answer | `ClaudeCliBridge.run`, `CLAUDE_DEADLINE_MS` or `ModelCfg` | not measured | **kept**: the same deadline as the text lane's; the seat's bridge retry and then its fixed legal option follow | 300 s (smart) |
+| A CLI call that runs past its deadline is killed and gives no answer | `ClaudeCliBridge.run`, `CLAUDE_DEADLINE_MS` or `ModelCfg` | 0 in `runs/puzzles/opus-cli-smoke` | **kept**: the same deadline as the text lane's; the seat's bridge retry and then its fixed legal option follow | `ModelCfg.timeoutMs`, 300 s, on both tiers |
 
 ### Wall clock
 
