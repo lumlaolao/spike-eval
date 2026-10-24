@@ -62,7 +62,6 @@ class PinsetTest(unittest.TestCase):
         self.assertEqual(run(other, "pinset random"), "plain (Mac) pins")
 
 
-
 def testng_function():
     """The javatests stage's `testng() {...}` function, as the script defines it."""
     with open(SCRIPT, encoding="utf-8") as f:
@@ -81,18 +80,19 @@ class JavatestsEnvironmentTest(unittest.TestCase):
             os.makedirs(os.path.join(d, "forge-gui-desktop"))
             java = os.path.join(d, "java")
             with open(java, "w") as f:
-                f.write("#!/bin/sh\necho \"EVAL_OUT=${EVAL_OUT-unset} MEMORY_TOOLS=${MEMORY_TOOLS-unset}\"\n")
+                f.write("#!/bin/sh\necho \"EVAL_OUT=${EVAL_OUT-unset} MEMORY_TOOLS=${MEMORY_TOOLS-unset} KEEP_ME=${KEEP_ME-unset}\"\n")
             os.chmod(java, 0o755)
             cp = os.path.join(d, "cp.txt")
             with open(cp, "w") as f:
                 f.write("x.jar")
             script = ('FORGE="$1"; OUT="$1"; JAVA="$1/java"; CP_FILE="$1/cp.txt"; CLASSES=c; LEDGER=l; REPO=r\n'
                       '%s\ntestng main SomeTest\ncat "$OUT/javatests-main.log"\n' % testng_function())
-            env = dict(os.environ, EVAL_OUT=os.path.join(d, "real-run"))
+            env = dict(os.environ, EVAL_OUT=os.path.join(d, "real-run"), KEEP_ME="1")
             out = subprocess.run(["bash", "-c", script, "x", d], check=True, stdout=subprocess.PIPE, env=env,
                                  universal_newlines=True).stdout
         self.assertIn("MEMORY_TOOLS=1", out, "the stub ran")
         self.assertIn("EVAL_OUT=unset", out)
+        self.assertIn("KEEP_ME=1", out, "every other variable still reaches the JVM")
 
 
 if __name__ == "__main__":

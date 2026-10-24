@@ -37,7 +37,7 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 - **The 25 hand-authored niche-rules puzzles** (PR #298) are not frozen into a suite and have no held-out split;
   torbran is provisional because Forge orders its damage replacements from a `HashMap`
   ([eval/puzzles/hard/niche/README.md](../../eval/puzzles/hard/niche/README.md), "Known limits"), which also lists
-  the bar rows each puzzle missed.
+  the puzzles short of the bar and the row each missed.
 - **The third hard suite** (`puzzles-hard-gen3-v1`): no model has played it. A Luna run of the 44 open boards,
   about $1, waits on the owner (PR #302).
 - **Harness-building environment:** no real episode has run. The owner's twelve questions are in
@@ -55,7 +55,7 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 - **Two older owner questions:**
   - from PR #294: a STANDARDS rule that a doc's command runs as written from the repository root;
   - from PR #301: acceptance under 5 minutes, which needs more cores or running only the stages a change can
-    affect; the second changes the gate rule (STANDARDS section 5), so it is the owner's.
+    affect; the second changes the gate rule (STANDARDS sections 1 and 5), so it is the owner's.
 - **Repository housekeeping:** the remote branches already merged into main were not deleted (it needs the
   owner's permission).
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop

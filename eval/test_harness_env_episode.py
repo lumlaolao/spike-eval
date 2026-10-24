@@ -191,14 +191,15 @@ class JvmGraderTest(unittest.TestCase):
             "forge-game/src/main/java/forge/game/zone/MagicStack.java": "class MagicStack {}\n"})
         self.calls, self.ai = [], "0"
         self.real = hg.subprocess.run
-        hg.subprocess.run = self.fake
+        runner = mock.patch.object(hg.subprocess, "run", self.fake)
+        runner.start()
+        self.addCleanup(runner.stop)
         patcher = mock.patch.object(hg.harness_env_aicount, "write", lambda forge, ledger, out, source=None: (
             write(out, "PlayerControllerAi.java", "x"), collections.Counter()))
         patcher.start()
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
-        hg.subprocess.run = self.real
         shutil.rmtree(self.tmp)
 
     def fake(self, cmd, **kw):
@@ -307,7 +308,9 @@ class JvmGraderTest(unittest.TestCase):
             self.assertEqual(rc, 2)
             self.assertIn("PlayerControllerAi", printed.getvalue())
             self.assertFalse(os.path.exists(os.path.join(out, "sandbox")), "the agent's sandbox was built")
-        with self.assertRaises(ValueError) as cm:
+        # git's English message, and no walk up into a work tree that holds the temp dir
+        quiet = {"LC_ALL": "C", "GIT_CEILING_DIRECTORIES": self.tmp}
+        with self.assertRaises(ValueError) as cm, mock.patch.dict(os.environ, quiet):
             ep.jvm_grader(self.cp, not_git, "/jdk", set_file=self.set)
         self.assertIn("not a git repository", str(cm.exception), "git's own reason")
 

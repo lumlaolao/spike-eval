@@ -131,7 +131,8 @@ class PatchTest(unittest.TestCase):
     def test_the_pinned_engine_file_gets_a_counter_in_every_decision_method_it_defines(self):
         src = subprocess.run(["git", "-C", FORGE, "show", "HEAD:" + ac.ENGINE_PATH], capture_output=True, text=True).stdout
         hooks = surface_coverage.decision_hooks(LEDGER)
-        out, counted = ac.patch(src, hooks), sorted(ac.counts(src, hooks))
+        found = ac.counts(src, hooks)
+        out, counted = ac.patch(src, hooks), sorted(found)
         self.assertGreater(len(counted), 60)
         self.assertIn("declareAttackers", counted)
         self.assertIn("chooseSpellAbilityToPlay", counted)
@@ -139,8 +140,7 @@ class PatchTest(unittest.TestCase):
         for name in counted:  # overloads (chooseBinary, chooseNumber, ...) each get their own counter
             self.assertIn(ac.CALL % name, out)
         self.assertGreaterEqual(out.count(ac.CALL.split("(")[0]), len(counted))
-        self.assertEqual(sum(ac.counts(src, hooks).values()),
-                         out.count("AiCounter.enter("))
+        self.assertEqual(sum(found.values()), out.count("AiCounter.enter("))
 
 
 if __name__ == "__main__":
