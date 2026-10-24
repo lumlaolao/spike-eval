@@ -6,7 +6,13 @@
       "completion": 0.000001,
       "input_cache_read": 0.000000015,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.0000006,
+        "completion": 0.0000024,
+        "input_cache_read": 0.000000033
+      },
+      "max_note": "the dearest of 41 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "anthropic/claude-opus-5.5": {
       "prompt": 0.000004,
@@ -22,7 +28,13 @@
       "input_cache_read": 0.00000001,
       "input_cache_write": 0.000000125,
       "checked": "2026-10-15",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.00000011,
+        "completion": 0.00000055,
+        "input_cache_read": 0.000000011
+      },
+      "max_note": "the dearest of 10 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "anthropic/claude-sonnet-5.5": {
       "prompt": 0.000002,
@@ -30,7 +42,13 @@
       "input_cache_read": 0.0000001,
       "input_cache_write": 0.0000025,
       "checked": "2026-10-15",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.0000022,
+        "completion": 0.000011,
+        "input_cache_read": 0.00000011
+      },
+      "max_note": "the dearest of 8 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "fake/harness-model": {
       "prompt": 0.0,
@@ -44,7 +62,13 @@
       "completion": 0.0000005,
       "input_cache_read": 0.00000001,
       "checked": "2026-10-15",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.0000002,
+        "completion": 0.000001,
+        "input_cache_read": 0.00000002
+      },
+      "max_note": "the dearest of 7 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "x-ai/grok-4.7": {
       "prompt": 0.000002,
@@ -52,7 +76,13 @@
       "input_cache_read": 0.0000005,
       "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.000004,
+        "completion": 0.000012,
+        "input_cache_read": 0.000001
+      },
+      "max_note": "the dearest of 5 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "x-ai/grok-4.6": {
       "prompt": 0.000002,
@@ -60,7 +90,13 @@
       "input_cache_read": 0.0000005,
       "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.000004,
+        "completion": 0.000012,
+        "input_cache_read": 0.000001
+      },
+      "max_note": "the dearest of 6 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "x-ai/grok-build-0.1": {
       "prompt": 0.000001,
@@ -68,7 +104,13 @@
       "input_cache_read": 0.0000002,
       "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.000002,
+        "completion": 0.000004,
+        "input_cache_read": 0.0000004
+      },
+      "max_note": "the dearest of 4 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "x-ai/grok-4.3": {
       "prompt": 0.00000125,
@@ -76,7 +118,13 @@
       "input_cache_read": 0.0000002,
       "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.0000025,
+        "completion": 0.000005,
+        "input_cache_read": 0.0000004
+      },
+      "max_note": "the dearest of 4 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "openai/gpt-6.1-sol-pro": {
       "prompt": 0.000002,
@@ -85,7 +133,13 @@
       "input_cache_write": 0.0000025,
       "note": "a higher tier applies above 272000 prompt tokens a call; a puzzle call is far below it",
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.000012,
+        "completion": 0.00006,
+        "input_cache_read": 0.0000006
+      },
+      "max_note": "the dearest of 7 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "openai/gpt-6.1-sol": {
       "prompt": 0.000002,
@@ -94,23 +148,39 @@
       "input_cache_write": 0.0000025,
       "note": "a higher tier applies above 272000 prompt tokens a call; a puzzle call is far below it",
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.000012,
+        "completion": 0.00006,
+        "input_cache_read": 0.0000006
+      },
+      "max_note": "the dearest of 8 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "google/gemini-4-argon": {
       "prompt": 0.000002,
       "completion": 0.00001,
       "input_cache_read": 0.0000001,
-      "input_cache_write": 0.0000001875,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.0000036,
+        "completion": 0.000018,
+        "input_cache_read": 0.00000018
+      },
+      "max_note": "the dearest of 6 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "google/gemini-3.8-flash": {
       "prompt": 0.000000825,
       "completion": 0.000004125,
       "input_cache_read": 0.0000000825,
-      "input_cache_write": 0.0000000416666666666667,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.00000135,
+        "completion": 0.00000675,
+        "input_cache_read": 0.000000135
+      },
+      "max_note": "the dearest of 7 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "meta/muse-wonder": {
       "prompt": 0.000004,
@@ -131,21 +201,39 @@
       "completion": 0.00000110142,
       "input_cache_read": 0.0000000458925,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.00000191,
+        "completion": 0.00000383,
+        "input_cache_read": 0.00000033
+      },
+      "max_note": "the dearest of 15 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "moonshotai/kimi-k3": {
       "prompt": 0.000000239,
       "completion": 0.0000108,
       "input_cache_read": 0.00000021,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.0000045,
+        "completion": 0.0000225,
+        "input_cache_read": 0.0000012
+      },
+      "max_note": "the dearest of 27 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "moonshotai/kimi-k2.6": {
       "prompt": 0.00000065,
       "completion": 0.00000341,
       "input_cache_read": 0.00000015,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.00000109,
+        "completion": 0.0000046,
+        "input_cache_read": 0.00000037
+      },
+      "max_note": "the dearest of 17 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "z-ai/glm-5.3-prime": {
       "prompt": 0.0000028,
@@ -159,20 +247,37 @@
       "completion": 0.0000014,
       "input_cache_read": 0.000000078,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.0000028,
+        "completion": 0.0000088,
+        "input_cache_read": 0.00000056
+      },
+      "max_note": "the dearest of 48 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "mistralai/mistral-large-4-0": {
       "prompt": 0.00000136,
       "completion": 0.00000418,
       "input_cache_read": 0.00000014,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.000001496,
+        "completion": 0.000004598,
+        "input_cache_read": 0.000000154
+      },
+      "max_note": "the dearest of 3 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     },
     "mistralai/mistral-medium-3-5": {
       "prompt": 0.0000015,
       "completion": 0.0000075,
       "checked": "2026-10-24",
-      "source": "https://openrouter.ai/api/v1/models"
+      "source": "https://openrouter.ai/api/v1/models",
+      "max": {
+        "prompt": 0.00000165,
+        "completion": 0.00000825
+      },
+      "max_note": "the dearest of 3 endpoints that take tools (priority tiers included), 2026-10-24; budgets check against it"
     }
   }
 }

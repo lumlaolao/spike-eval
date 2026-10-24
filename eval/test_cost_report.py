@@ -106,6 +106,27 @@ class CostReportTest(unittest.TestCase):
         self.assertTrue(0 < p["prompt"] < p["completion"] < 0.001)
         self.assertRegex(p["checked"], r"^\d{4}-\d\d-\d\d$")
 
+    def test_a_budget_is_checked_at_the_dearest_endpoint_and_a_report_at_the_list_price(self):
+        # Latency routing may land on a priority tier: gpt-6.1-sol's "ultrafast" endpoint lists 6x its list price
+        # (OpenRouter /models/.../endpoints, 2026-10-24), so a budget priced at the list rate could be overrun 6x.
+        prices = {"m/x": {"prompt": 1e-06, "completion": 2e-06, "checked": "2026-10-24",
+                          "max": {"prompt": 6e-06, "completion": 1.2e-05}}}
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1-0.jsonl", [
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 1000, "completion_tokens": 100},
+                {"t": "game", "smart_a": "openrouter:m/x", "fast_a": "openrouter:m/x"}])
+            listed = cr.report_dir(d, prices)["usd"]
+            bound = cr.report_dir(d, cr.budget_prices(prices))["usd"]
+        self.assertAlmostEqual(listed, 1000 * 1e-06 + 100 * 2e-06)
+        self.assertAlmostEqual(bound, 1000 * 6e-06 + 100 * 1.2e-05)
+        self.assertEqual(cr.budget_prices({"m/y": {"prompt": 1.0, "completion": 2.0}})["m/y"]["prompt"], 1.0,
+                         "an entry with no max is its own bound")
+
+    def test_every_multi_endpoint_price_states_its_bound_and_the_bound_is_not_below_the_list(self):
+        for mid, p in cr.load_prices().items():
+            for k, v in (p.get("max") or {}).items():
+                self.assertGreaterEqual(v, p.get(k, 0), (mid, k))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -593,7 +593,7 @@ def answer_tool_requested(args):
 def spent_usd(out_dir):
     """Estimated spend recorded in a batch directory so far (cost_report: finished and unfinished games),
     crashed attempts set aside under crashed/ included: they were billed all the same."""
-    prices = cost_report.load_prices()
+    prices = cost_report.budget_prices(cost_report.load_prices())
     crashed = Path(out_dir) / CRASHED_DIR
     return (cost_report.report_dir(str(out_dir), prices)["usd"]
             + (cost_report.report_dir(str(crashed), prices)["usd"] if crashed.is_dir() else 0.0))

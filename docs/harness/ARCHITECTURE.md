@@ -445,13 +445,15 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - routing by latency (`provider.sort`, `OPENROUTER_PROVIDER_SORT`, default `latency`), and the provider
     that served each call on its row. A tool request adds `require_parameters` to the same `provider` object (one
     key: a body with it twice is read differently by different parsers, and a last-wins one drops the latency sort).
-  - a reasoning model truncated with no answer is retried with reasoning off; a model whose reasoning cannot be
-    turned off (`MANDATORY_REASONING_FLOOR`: Grok 4.7, 4.6 and build, Sonnet 5.5, GPT-6.1 Sol and Sol Pro, the
-    Gemini, Muse and GLM models; `reasoning.mandatory` on OpenRouter's model list, 2026-10-24) is asked for its
-    lowest effort instead, since it refuses `enabled:false` and the decision would be lost.
   - *Why latency routing:* Luna calls stalled for up to 6 minutes while answering in ordinary length (646
     output tokens in 352 s, against a median of 253 in 9 s). The time was the endpoint's, not the model's
     thinking. OpenRouter's default routing weighs price; the model is the same on every endpoint.
+  - a model whose reasoning cannot be turned off (`reasoning.mandatory` on OpenRouter's model list, 2026-10-24; the
+    list is `MANDATORY_REASONING_FLOOR` in `LlmSpikeGui.java`, hashed into `model_cfg_sha`) is never sent
+    `enabled:false`, which it refuses: wherever "none" would be sent (the fast tier, the truncation retry) it gets its
+    lowest effort, and its truncation retry keeps the whole token budget, since it still reasons.
+  - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
+    endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
     bytes and then silence, for that long, inside the ask's deadline.
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full

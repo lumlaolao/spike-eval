@@ -981,13 +981,18 @@ public class LlmSpikeTest {
                     + "of which ~800 were hidden reasoning for a ~50-token answer, and \"low\"/\"minimal\" "
                     + "do not reliably reduce it -- only disabling does (65 tokens, 1.3s vs ~7s)");
         }
-        // grok is the exception that shows the rule is a MODEL CAPABILITY, not harness steering:
-        // x-ai/grok-4.7 reports reasoning.mandatory=true, so it cannot be told to stop reasoning at
-        // all and gets the lowest effort it supports on the fast tier instead of the disable sentinel.
+        // The exception is a MODEL CAPABILITY, not harness steering: a model whose reasoning is mandatory
+        // (OpenRouter reasoning.mandatory=true) cannot be sent reasoning:{enabled:false}, so send() replaces
+        // the disable sentinel with its lowest effort; one that can turn reasoning off keeps the sentinel.
         LlmSpikeGui.ModelCfg grok = LlmSpikeGui.ModelCfg.forModel("x-ai/grok-4.7");
-        Assert.assertEquals(grok.fastReasoningEffort, "low",
-                "a mandatory-reasoning model must not be sent reasoning:{enabled:false}");
+        Assert.assertEquals(grok.fastReasoningEffort, "none", "grok takes the uniform row");
         Assert.assertEquals(grok.maxTokens, deepseek.maxTokens, "grok still shares the budget");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.reasoningFloor("x-ai/grok-4.7"), "low");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.reasoningFloor("X-AI/Grok-4.7"), "low", "case-blind");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.reasoningFloor("x-ai/grok-build-0.1"), "",
+                "mandatory and lists no efforts: send no reasoning field");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.reasoningFloor("x-ai/grok-4.3"), "none",
+                "grok-4.3 can turn reasoning off");
         Assert.assertTrue(deepseek.maxTokens >= 16000,
                 "the smart cap covers reasoning AND the answer now. 8000 (2x the cross-run p99, 3811 of "
                 + "5346) still truncated 3 of 33 smart calls on g06, whose completions run median 2042 "

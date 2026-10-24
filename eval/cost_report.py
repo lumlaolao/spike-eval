@@ -29,6 +29,13 @@ def load_prices(path=PRICES):
         return json.load(f)["models"]
 
 
+def budget_prices(prices):
+    """The prices a budget is checked at: each model's `max` (its dearest endpoint that takes tools) where it
+    states one. A report prices at the list rate; a budget must not be overrun when latency routing lands on a
+    dearer endpoint, a priority tier or another provider (provider audit, 2026-10-24)."""
+    return {m: dict(p, **(p.get("max") or {})) for m, p in prices.items()}
+
+
 def model_id(spec):
     """`openrouter:deepseek/deepseek-v4.1-flash` -> `deepseek/deepseek-v4.1-flash`; None for a non-API spec."""
     if not spec or not str(spec).startswith("openrouter:"):

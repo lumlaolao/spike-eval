@@ -58,10 +58,12 @@ public class OpenRouterRequestTest {
         if (server != null) server.stop(0);
     }
 
-    private List<String> twoBodies(String model, boolean tools) {
+    private List<String> twoBodies(String model, boolean tools) { return twoBodies("test/smart", model, tools); }
+
+    private List<String> twoBodies(String label, String model, boolean tools) {
         bodies.clear();
         calls.set(0);
-        LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge("test/smart", model, null, base, 5000);
+        LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge(label, model, null, base, 5000);
         if (tools) bridge.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         else bridge.ask("play");
         Assert.assertEquals(bodies.size(), 2, "the original request and its truncation retry");
@@ -105,6 +107,23 @@ public class OpenRouterRequestTest {
         Assert.assertTrue(twoBodies("meta/muse-wonder", true).get(1).contains("\"effort\":\"minimal\""));
         // grok-build-0.1 is mandatory and lists no efforts: no reasoning field at all.
         Assert.assertFalse(twoBodies("x-ai/grok-build-0.1", true).get(1).contains("\"reasoning\""));
+    }
+
+    /** A floored model still reasons at its lowest effort, so its retry keeps the whole budget, not the 4096 an
+     *  answer with reasoning off needs (pr-review of #303); a model that turns reasoning off keeps 4096. */
+    @Test
+    public void aFlooredRetryKeepsTheWholeBudget() {
+        Assert.assertTrue(twoBodies("google/gemini-4-argon", true).get(1).contains("\"max_tokens\":32000"));
+        Assert.assertTrue(twoBodies("openai/gpt-6-luna", true).get(1).contains("\"max_tokens\":4096"));
+    }
+
+    /** The fast tier sends "none" on every call (two-tier runs): a mandatory reasoner gets its floor there too, and
+     *  grok-4.3, which can turn reasoning off, is no longer sent "low" by a grok-wide row. */
+    @Test
+    public void theFastTierSendsEachModelWhatItAccepts() {
+        Assert.assertTrue(twoBodies("test/fast", "google/gemini-4-argon", true).get(0).contains("\"reasoning\":{\"effort\":\"low\"}"));
+        Assert.assertFalse(twoBodies("test/fast", "x-ai/grok-build-0.1", true).get(0).contains("\"reasoning\""));
+        Assert.assertTrue(twoBodies("test/fast", "x-ai/grok-4.3", true).get(0).contains("\"reasoning\":{\"enabled\":false}"));
     }
 
     /** A model that can turn reasoning off keeps the measured fast retry (65 tokens, 1.3 s). */

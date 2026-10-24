@@ -280,8 +280,11 @@ public class ContextProfileTest {
     public void modelCfgCanonicalCoversEveryRowAndField() {
         String c = LlmSpikeGui.ModelCfg.canonical();
         Assert.assertTrue(c.startsWith("modelcfg.v1|"), "canonical form must carry its version: " + c);
-        for (String key : new String[] {"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "grok", "default"})
+        for (String key : new String[] {"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "default"})
             Assert.assertTrue(c.contains(key + ":"), "row missing from canonical form: " + key);
+        // The mandatory-reasoning floor changes what "none" sends, so model_cfg_sha must move with it.
+        for (java.util.Map.Entry<String, String> e : LlmSpikeGui.OpenRouterBridge.MANDATORY_REASONING_FLOOR.entrySet())
+            Assert.assertTrue(c.contains(":" + e.getKey() + "=" + e.getValue()), "floor entry missing: " + e);
         // Every row renders field-for-field. Since 2026-10-13 there is ONE uniform row, so the check
         // is that all seven fields reach the hash on a row that has a value in every slot (deepseek),
         // and that the row the run_batch.py grace budget is pinned against renders identically (opus).

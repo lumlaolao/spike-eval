@@ -56,7 +56,7 @@ def is_loopback(url):
 
 
 def spent(out_root):
-    prices = cost_report.load_prices()
+    prices = cost_report.budget_prices(cost_report.load_prices())
     return sum(cost_report.report_dir(str(d), prices)["usd"] for d in Path(out_root).glob("*") if d.is_dir())
 
 
