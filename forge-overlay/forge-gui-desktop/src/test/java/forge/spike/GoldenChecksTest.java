@@ -2912,8 +2912,10 @@ public class GoldenChecksTest {
 
     /** restrictionError is a copy of the restriction half of CombatUtil.validateBlocks (follow-up to #314). With no
      *  block requirement in play validateBlocks' requirement half finds nothing, so the two must agree on every set:
-     *  legal or not, and word for word where both object. A drift in either (an engine bump, an edit to the copy) fails
-     *  here instead of in a game at the block cap. */
+     *  legal or not, and word for word where both object. Each branch of the copy is reached on both sides of its
+     *  bound (the two "alone" keywords, "at least two other creatures", "greater power", menace), and Mogg Flunkies
+     *  alone on the menace Brute breaks both rules at once, so the order of the two loops is pinned too. A drift in a
+     *  branch these sets reach (an engine bump, an edit to the copy) fails here, not in a game at the block cap. */
     @Test
     public void theBlockRestrictionCopyAgreesWithTheEngine() {
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
@@ -2921,6 +2923,10 @@ public class GoldenChecksTest {
         Card flunkies = card("Mogg Flunkies", me, ZoneType.Battlefield);
         Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
         Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card hulk = card("Craven Hulk", me, ZoneType.Battlefield);              // can't block alone
+        Card conscripts = card("Orcish Conscripts", me, ZoneType.Battlefield);  // unless two others block
+        Card okk = card("Okk", me, ZoneType.Battlefield);                       // unless greater power blocks
+        Card wurm = card("Craw Wurm", me, ZoneType.Battlefield);
         Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
         Card brute = card("Boggart Brute", rival, ZoneType.Battlefield);
         Combat combat = new Combat(rival);
@@ -2936,6 +2942,13 @@ public class GoldenChecksTest {
             {{bears, brute}, {giant, brute}},
             {{flunkies, brute}, {bears, brute}},
             {{bears, lions}, {giant, brute}},
+            {{hulk, lions}},
+            {{hulk, lions}, {bears, lions}},
+            {{conscripts, lions}, {bears, lions}},
+            {{conscripts, lions}, {bears, lions}, {giant, lions}},
+            {{okk, lions}, {bears, lions}},
+            {{okk, lions}, {wurm, lions}},
+            {{flunkies, brute}},
         };
         int objected = 0;
         for (Card[][] set : sets) {
@@ -2950,7 +2963,8 @@ public class GoldenChecksTest {
                 for (Card[] pr : set) combat.removeBlockAssignment(pr[1], pr[0]);
             }
         }
-        Assert.assertEquals(objected, 4, "both answers are covered: Flunkies alone once, menace by one three times");
+        Assert.assertEquals(objected, 8, "Flunkies, Hulk, Conscripts and Okk refused once each, menace by one"
+                + " three times, Flunkies alone on the Brute once");
     }
 
     /** pr-review of #311: the no-model branch (the floor seat, or a spent budget) declared no blocks under a block
