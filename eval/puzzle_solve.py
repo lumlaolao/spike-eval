@@ -55,9 +55,17 @@ def is_loopback(url):
         return False
 
 
-def spent(out_root):
+def spent(out_root, bound=False):
+    """What the run's directories cost at the list price; `bound`: at each model's dearest endpoint, as the budget
+    is checked."""
     prices = cost_report.load_prices()
+    prices = cost_report.budget_prices(prices) if bound else prices
     return sum(cost_report.report_dir(str(d), prices)["usd"] for d in Path(out_root).glob("*") if d.is_dir())
+
+
+def over_budget(out_root, budget_usd):
+    """The budget is checked at each model's dearest endpoint, never at the list price."""
+    return spent(out_root, bound=True) >= budget_usd
 
 
 def condition(a):
@@ -159,6 +167,10 @@ def main(argv=None):
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
+    # cost_report prices an unpriced model at $0, so --budget-usd would never stop it (run_batch.py refuses too).
+    if cost_report.model_id(a.model) and cost_report.price_of(cost_report.load_prices(), a.model) is None:
+        raise SystemExit("--budget-usd needs a price for %s in eval/pricing/prices.json"
+                         % cost_report.model_id(a.model))
 
     manifest = pf.load_suite(a.suite)
     problems = pf.validate_suite(manifest)
@@ -181,14 +193,15 @@ def main(argv=None):
     build = pb.Build(a.build, a.forge)
     out_root = Path(a.out)
     out_root.mkdir(parents=True, exist_ok=True)
-    print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f)"
-          % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root)), flush=True)
+    print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f; $%.2f at the dearest "
+          "endpoint, which the budget is checked at)"
+          % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root), spent(out_root, bound=True)), flush=True)
 
     def work(rec):
         out = out_root / rec["id"]
         if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
             return rec["id"], "done", pb.read_results(out)
-        if spent(out_root) >= a.budget_usd:
+        if over_budget(out_root, a.budget_usd):
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
 
@@ -197,7 +210,8 @@ def main(argv=None):
         for pid, rc, rows in ex.map(work, todo):
             if rc is None:
                 skipped += 1
-                print("[budget] not started: %s" % pid, flush=True)
+                print("[budget] not started: %s ($%.2f at the dearest endpoint)" % (pid, spent(out_root, bound=True)),
+                      flush=True)
                 continue
             solved = sum(1 for r in rows if ps.attempt_success(r)[0]) if rows else 0
             print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f" % (pid, rc, len(rows), solved, spent(out_root)),
