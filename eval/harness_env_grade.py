@@ -67,7 +67,10 @@ FLOOR = 0.001  # a family at zero counts as this in the benchmark's geometric me
 ENGINE_MODULES = ("forge-core", "forge-game", "forge-ai", "forge-gui")
 PATCH_MARKERS = ("ENGINE PATCH:", "HARNESS PATCH")
 # A submission may not declare a class in the grader's package (it would share the grader's package-private state).
-GRADER_PACKAGE = re.compile(r"^\s*package\s+forge\.harnessenv\b", re.M)
+# Read after declares_grader_package has undone \uXXXX escapes and blanked comments, as javac would.
+GRADER_PACKAGE = re.compile(r"^\s*package\s+forge\s*\.\s*harnessenv\b", re.M)
+UNICODE_ESCAPE = re.compile(r"\\u+([0-9a-fA-F]{4})")
+COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
 # What javac and java of a grade inherit: nothing secret (the instance seed, a provider key, the egress consent).
 KEEP_ENV = ("PATH", "LANG", "LC_ALL", "JAVA_HOME", "TZ")
 FORGE_AI = re.compile(r"\bforge\.ai\.(PlayerControllerAi|AiController|ComputerUtil\w*|AiPlayDecision|AiCostDecision)\b")
@@ -138,6 +141,12 @@ def _java_files(root):
     return sorted(out)
 
 
+def declares_grader_package(text):
+    """True when Java source `text` declares its class in forge.harnessenv or a package under it."""
+    text = UNICODE_ESCAPE.sub(lambda m: chr(int(m.group(1), 16)), text)
+    return bool(GRADER_PACKAGE.search(COMMENT.sub(" ", text)))
+
+
 def intake(submission, forge=None):
     """What the submission is, read without compiling it."""
     java = _java_files(submission)
@@ -168,7 +177,7 @@ def intake(submission, forge=None):
     for j in java:
         with open(os.path.join(submission, j), encoding="utf-8", errors="replace") as f:
             text = f.read()
-        if "forge/harnessenv/" in "/" + j or GRADER_PACKAGE.search(text):
+        if "forge/harnessenv/" in "/" + j or declares_grader_package(text):
             grader.append(j)
         if j not in main:
             continue
@@ -423,19 +432,33 @@ def compile_command(javac, classpath_file, submission, grader_repo, ai_patch, ou
             "-d", out_classes] + files
 
 
+def counter_patch(submission, forge, out):
+    """(patched PlayerControllerAi path, hooks counted, hooks missing). A submission that ships its own (marked)
+    PlayerControllerAi.java has the counter put into that copy, so the one javac sees one PlayerControllerAi; any
+    hook the pinned engine's file gets a counter in but that copy does not is missing (a counter that cannot see a
+    hook would read a delegation there as zero)."""
+    ledger = os.path.join(REPO, LEDGER)
+    own = os.path.join(submission, harness_env_aicount.ENGINE_PATH)
+    if not os.path.isfile(own):
+        patch, counted = harness_env_aicount.write(forge, ledger, os.path.join(out, "aipatch"))
+        return patch, counted, []
+    patch, counted = harness_env_aicount.write(forge, ledger, os.path.join(out, "aipatch"), source=own)
+    _, engine = harness_env_aicount.patch(harness_env_aicount.engine_source(forge), surface_coverage.decision_hooks(ledger))
+    return patch, counted, sorted(set(engine) - set(counted))
+
+
 def build_classes(submission, classpath_file, forge, out, javac, env=None):
     """Compile the submission with the grader and the Forge-AI counter into <out>/classes; (javac rc, classes dir,
-    hooks counted). A submission that ships its own (marked) PlayerControllerAi.java has the counter put into that
-    copy, so the one javac sees one PlayerControllerAi."""
-    own = os.path.join(submission, harness_env_aicount.ENGINE_PATH)
-    patch, counted = harness_env_aicount.write(forge, os.path.join(REPO, LEDGER), os.path.join(out, "aipatch"),
-                                               source=own if os.path.isfile(own) else None)
+    hooks counted, hooks missing). With a hook missing (counter_patch) nothing is compiled and rc is None."""
+    patch, counted, missing = counter_patch(submission, forge, out)
     classes = os.path.join(out, "classes")
+    if missing:
+        return None, classes, counted, missing
     os.makedirs(classes, exist_ok=True)
     with open(os.path.join(out, "javac.log"), "w", encoding="utf-8") as log:
         rc = subprocess.run(compile_command(javac, classpath_file, submission, REPO, patch, classes), stdout=log,
                             stderr=subprocess.STDOUT, env=env).returncode
-    return rc, classes, counted
+    return rc, classes, counted, []
 
 
 def run_instances(java, classes, classpath_file, forge, out, only=None, seats=None, set_file=None, env=None):
@@ -540,7 +563,10 @@ def main(argv):
             print("refused: declares a class in the grader's package forge.harnessenv: " + ", ".join(grader))
             return 1
         javac = os.path.join(os.environ.get("JAVA_HOME", "/usr"), "bin", "javac")
-        rc, classes, counted = build_classes(submission, cpfile, forge, out, javac)
+        rc, classes, counted, missing = build_classes(submission, cpfile, forge, out, javac)
+        if missing:
+            print("refused: counter incomplete: " + ", ".join(missing))
+            return 1
         print("build %s: javac rc=%d, Forge-AI counter in %d decision methods, classes %s" % (submission, rc, len(counted), classes))
         return 0 if rc == 0 else 1
     if len(args) >= 5 and args[0] == "instances":

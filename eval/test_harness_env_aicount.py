@@ -61,6 +61,13 @@ class PatchTest(unittest.TestCase):
         i = next(n for n, l in enumerate(lines) if "Player targetedPlayer, Map<String, Object> params) {" in l)
         self.assertEqual(lines[i + 1].strip(), ac.CALL % "chooseEntitiesForEffect")
 
+    def test_tabs_and_a_signature_split_before_its_name_still_count(self):
+        src = FIXTURE.replace("    ", "\t").replace("public void declareBlockers(", "public void\n\t\tdeclareBlockers(")
+        out, counted = ac.patch(src, HOOKS)
+        self.assertEqual(counted, ["chooseEntitiesForEffect", "declareBlockers"])
+        self.assertNotIn(ac.CALL % "confirmTrigger", out)
+        self.assertEqual(out.count("AiCounter.enter("), 2)
+
     def test_an_abstract_method_has_no_body_to_count_in(self):
         self.assertNotIn(ac.CALL % "confirmTrigger", ac.patch(FIXTURE, HOOKS)[0])
 

@@ -5,6 +5,7 @@ What would make them fail: an episode that ends before DONE, one that runs past 
 anywhere but the sandbox's overlay, a checkpoint graded while the agent still runs, a sandbox with history or a leak
 handed to the agent, or a dev slice copied in that the spec did not ask for.
 """
+import inspect
 import json
 import os
 import shutil
@@ -15,6 +16,7 @@ import time
 import unittest
 
 import harness_env_episode as ep
+import harness_env_generate as hgen
 import harness_env_grade as hg
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -124,6 +126,11 @@ class EpisodeTest(unittest.TestCase):
         report, _ = self.run_ep("open('DONE','w').write('d')\n", dev_set=dev, dev_slice=True)
         self.assertEqual(report["ended_by"], "agent", report.get("leaks"))
         self.assertTrue(os.path.isfile(os.path.join(self.out, "sandbox", "dev", "instances.json")))
+        with open(os.path.join(self.out, "manifest.json"), encoding="utf-8") as f:
+            self.assertIn("dev/instances.json", json.load(f)["files"], "the manifest written is the one checked")
+
+    def test_an_episode_cannot_be_run_without_a_grader(self):
+        self.assertIs(inspect.signature(ep.run_episode).parameters["grade_fn"].default, inspect.Parameter.empty)
 
     def test_the_sandbox_is_checked_again_after_the_repository_is_made_and_a_leak_then_refuses(self):
         seen = []
@@ -160,7 +167,8 @@ class JvmGraderTest(unittest.TestCase):
         self.sub = os.path.join(self.tmp, "sub")
         write(self.sub, "harness-env.properties", "seat.factory=a.b.MySeat\n")
         write(self.sub, "forge-gui-desktop/src/main/java/a/b/MySeat.java", "package a.b;\nclass MySeat {}\n")
-        self.set = write(self.tmp, "set.json", "{}")
+        self.set = write(self.tmp, "set.json", json.dumps({"split": "heldout", "set_sha": "abc"}))
+        self.cp = write(self.tmp, "cp.txt", "/x.jar")
         self.calls, self.ai = [], "0"
         self.real = hg.subprocess.run
         hg.subprocess.run = self.fake
@@ -184,7 +192,8 @@ class JvmGraderTest(unittest.TestCase):
         return subprocess.CompletedProcess(cmd, 0)
 
     def grade(self, **kw):
-        return ep.jvm_grader("/nope/cp.txt", self.tmp, "/jdk", set_file=self.set, **kw)(self.sub, os.path.join(self.tmp, "g"))
+        kw.setdefault("set_file", self.set)
+        return ep.jvm_grader(self.cp, self.tmp, "/jdk", **kw)(self.sub, os.path.join(self.tmp, "g"))
 
     def test_an_unmarked_engine_patch_scores_zero_with_the_reason_and_builds_nothing(self):
         write(self.sub, "forge-game/src/main/java/forge/game/zone/MagicStack.java", "class MagicStack {}\n")
@@ -236,14 +245,61 @@ class JvmGraderTest(unittest.TestCase):
             self.assertEqual(env["JAVA_HOME"], "/jdk")
             self.assertFalse([k for k in env if k.startswith("OPENROUTER") or k == "HARNESS_ENV_SEED"], env)
 
+    def test_a_held_out_set_is_drawn_at_grade_time_from_the_secret_seed(self):
+        cards = os.path.join(self.tmp, "cards")
+        for i in range(12):
+            write(cards, "c/card%d.txt" % i, "Name:Card %d\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nK:Flying\n" % i)
+        old = os.environ.get("HARNESS_ENV_SEED")
+        os.environ["HARNESS_ENV_SEED"] = "s3cret"
+        try:
+            s = self.grade(set_file=None, cards=cards, trust_candidate=True)
+        finally:
+            if old is None:
+                del os.environ["HARNESS_ENV_SEED"]
+            else:
+                os.environ["HARNESS_ENV_SEED"] = old
+        drawn = os.path.join(self.tmp, "g", "set.json")
+        with open(drawn, encoding="utf-8") as f:
+            st = json.load(f)
+        self.assertEqual(st["split"], "heldout")
+        self.assertEqual(st["seed_sha"], hgen.sha("s3cret")[:16])
+        self.assertTrue(st["instances"])
+        self.assertEqual(s["set_sha"], st["set_sha"])
+        java = self.calls[-1][0]
+        self.assertIn("-Dharness.envgrade.set=" + drawn, java)
+        self.assertNotIn("s3cret", json.dumps([c for c, _ in self.calls]))
+
+    def test_a_set_that_is_not_held_out_is_refused(self):
+        dev = write(self.tmp, "dev.json", json.dumps({"split": "dev"}))
+        with self.assertRaises(ValueError):
+            ep.jvm_grader(self.cp, self.tmp, "/jdk", set_file=dev)
+
+    def test_the_classpath_and_engine_are_required_before_the_agent_runs(self):
+        for cp, forge in ((None, self.tmp), ("/nope/cp.txt", self.tmp), (self.cp, None), (self.cp, "/nope/forge")):
+            with self.assertRaises(ValueError, msg=(cp, forge)):
+                ep.jvm_grader(cp, forge, "/jdk", set_file=self.set)
+        out = os.path.join(self.tmp, "o")
+        self.assertEqual(ep.main(["ep", SPEC, out, "--set", self.set, "--forge", self.tmp, "--", "true"]), 2)
+        self.assertFalse(os.path.exists(os.path.join(out, "sandbox")), "the agent's sandbox was built")
+
+    def test_a_counter_that_misses_a_hook_in_the_submissions_copy_scores_zero(self):
+        real = hg.build_classes
+        hg.build_classes = lambda *a, **k: (None, "/c", ["declareBlockers"], ["chooseSpellAbilityToPlay"])
+        try:
+            s = self.grade(trust_candidate=True)
+        finally:
+            hg.build_classes = real
+        self.assertEqual((s["benchmark"], s["dense"]), (0.0, 0.0))
+        self.assertEqual(s["reason"], "counter incomplete: chooseSpellAbilityToPlay")
+
     def test_an_episode_grade_needs_a_generated_set(self):
         with self.assertRaises(ValueError):
-            ep.jvm_grader("/nope/cp.txt", self.tmp, "/jdk")
+            ep.jvm_grader(self.cp, self.tmp, "/jdk")
         self.assertEqual(ep.main(["ep", SPEC, os.path.join(self.tmp, "o"), "--", "true"]), 2)
         seed = os.environ.pop("HARNESS_ENV_SEED", None)
         try:
             with self.assertRaises(ValueError):
-                ep.jvm_grader("/nope/cp.txt", self.tmp, "/jdk", cards=self.tmp)
+                ep.jvm_grader(self.cp, self.tmp, "/jdk", cards=self.tmp)
         finally:
             if seed is not None:
                 os.environ["HARNESS_ENV_SEED"] = seed

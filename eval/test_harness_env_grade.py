@@ -458,6 +458,19 @@ class GraderPackageTest(unittest.TestCase):
         self.assertEqual(hg.intake(self.sub)["grader_package"], ["forge-gui-desktop/src/test/java/forge/harnessenv/Helper.java"])
         self.assertIsNotNone(hg.refusal(hg.intake(self.sub)))
 
+    def test_comments_spaces_and_unicode_escapes_do_not_hide_the_package(self):
+        for i, decl in enumerate(("package forge . harnessenv . grader;", "/* x */ package forge.harnessenv;",
+                                  "package/**/forge.harnessenv.toys;", "\\u0070ackage forge.\\u0068arnessenv;",
+                                  "package forge // why\n  .harnessenv;")):
+            rel = "forge-gui-desktop/src/main/java/a/b/S%d.java" % i
+            write(self.sub, rel, "// header\n%s\npublic class S%d {}\n" % (decl, i))
+            self.assertIn(rel, hg.intake(self.sub)["grader_package"], decl)
+
+    def test_a_package_named_only_in_a_comment_or_a_lookalike_is_not_refused(self):
+        write(self.sub, "forge-gui-desktop/src/main/java/a/b/C.java",
+              "// package forge.harnessenv;\n/* package forge.harnessenv; */\npackage forge.harnessenvx;\nclass C {}\n")
+        self.assertEqual(hg.intake(self.sub)["grader_package"], [])
+
     def test_importing_the_abi_is_not_declaring_a_class_in_it(self):
         write(self.sub, "forge-gui-desktop/src/main/java/a/b/Factory.java",
               "package a.b;\nimport forge.harnessenv.SeatFactory;\nclass Factory implements SeatFactory {}\n")
@@ -473,24 +486,42 @@ class GraderPackageTest(unittest.TestCase):
         self.assertEqual([f for f in found if "/src/main/" in f], [])
 
 
+ENGINE_PCAI = ("package forge.ai;\n"
+               "public class PlayerControllerAi extends PlayerController {\n"
+               "    @Override\n    public void declareBlockers(Player defender, Combat combat) {\n"
+               "        brains.declareBlockersFor(defender, combat);\n    }\n\n"
+               "    @Override\n    public List<SpellAbility> chooseSpellAbilityToPlay() {\n"
+               "        return brains.chooseSpellAbilityToPlay();\n    }\n}\n")
+# The same file as a submission might ship it: re-indented with tabs, one signature split over two lines.
+OWN_PCAI = ("// HARNESS PATCH: the submission's own change\npackage forge.ai;\n"
+            "public class PlayerControllerAi extends PlayerController {\n"
+            "\t@Override\n\tpublic void declareBlockers(Player defender, Combat combat) {\n"
+            "\t\tmine();\n\t}\n\n"
+            "\t@Override\n\tpublic List<SpellAbility>\n\t\t\tchooseSpellAbilityToPlay() {\n"
+            "\t\treturn null;\n\t}\n}\n")
+
+
 class SubmissionAiControllerTest(unittest.TestCase):
     """A marked engine patch of PlayerControllerAi.java must not meet the grader's counter copy in one javac: the
-    counter is generated from the submission's copy instead, and the submission's raw copy is not compiled."""
+    counter is generated from the submission's copy instead, and the submission's raw copy is not compiled. Every
+    hook the engine's own file counts must be counted in that copy too, or the grade is refused."""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
+        self.forge = os.path.join(self.tmp, "forge")
+        write(self.forge, "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java", ENGINE_PCAI)
+        for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "pin"]):
+            subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", *args], cwd=self.forge, check=True)
         self.sub = os.path.join(self.tmp, "sub")
         write(self.sub, "harness-env.properties", "seat.factory=a.b.MySeat\n")
         write(self.sub, "forge-gui-desktop/src/main/java/a/b/MySeat.java", "class MySeat {}\n")
-        self.own = write(self.sub, "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java",
-                         "// HARNESS PATCH: the submission's own change\npackage forge.ai;\n"
-                         "public class PlayerControllerAi extends PlayerController {\n"
-                         "    @Override\n    public void declareBlockers(Player defender, Combat combat) {\n"
-                         "        mine();\n    }\n}\n")
+        self.own = write(self.sub, "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java", OWN_PCAI)
         self.real = hg.subprocess.run
         self.calls = []
 
         def fake(cmd, **kw):
+            if cmd[0] == "git":
+                return self.real(cmd, **kw)
             self.calls.append((cmd, kw))
             return subprocess.CompletedProcess(cmd, 0)
 
@@ -500,10 +531,14 @@ class SubmissionAiControllerTest(unittest.TestCase):
         hg.subprocess.run = self.real
         shutil.rmtree(self.tmp)
 
+    def build(self):
+        return hg.build_classes(self.sub, "/nope/cp.txt", self.forge, os.path.join(self.tmp, "out"), "javac")
+
     def test_the_counter_is_built_from_the_submissions_copy_and_compiled_once(self):
-        rc, classes, counted = hg.build_classes(self.sub, "/nope/cp.txt", None, os.path.join(self.tmp, "out"), "javac")
+        rc, classes, counted, missing = self.build()
         self.assertEqual(rc, 0)
-        self.assertIn("declareBlockers", counted)
+        self.assertEqual(missing, [])
+        self.assertEqual(counted, ["chooseSpellAbilityToPlay", "declareBlockers"], "tabs and a split signature count")
         argv = self.calls[0][0]
         pcai = [a for a in argv if a.endswith("PlayerControllerAi.java")]
         self.assertEqual(len(pcai), 1, pcai)
@@ -512,6 +547,15 @@ class SubmissionAiControllerTest(unittest.TestCase):
             text = f.read()
         self.assertIn("mine();", text, "the submission's change survives")
         self.assertIn('AiCounter.enter("declareBlockers", this);', text)
+        self.assertIn('AiCounter.enter("chooseSpellAbilityToPlay", this);', text)
+
+    def test_a_copy_where_a_hook_the_engine_counts_goes_uncounted_is_refused_before_javac(self):
+        write(self.sub, "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java",
+              OWN_PCAI.replace("chooseSpellAbilityToPlay()", "pickSomething()"))
+        rc, _, counted, missing = self.build()
+        self.assertIsNone(rc)
+        self.assertEqual(missing, ["chooseSpellAbilityToPlay"])
+        self.assertEqual(self.calls, [], "nothing is compiled")
 
     def test_the_grader_environment_carries_no_secret_or_provider_variable(self):
         old = dict(os.environ)

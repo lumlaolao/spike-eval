@@ -25,32 +25,31 @@ import surface_coverage
 
 ENGINE_PATH = "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java"
 CALL = 'forge.harnessenv.grader.AiCounter.enter("%s", this);'
-SIGNATURE = re.compile(r"^    (?:public|protected)\s+(?!abstract\b)(?:final\s+)?(?:<[^>]*>\s+)?[\w.<>\[\], ?]+?\s+(\w+)\s*\(")
+# A method that is not abstract, at any indentation, its name possibly on the line after its return type, its
+# parameters over any number of lines (one level of nested parentheses, for annotations), up to its opening brace.
+SIGNATURE = re.compile(r"^[ \t]*(?:public|protected)\s+(?!abstract\b)(?:(?:final|synchronized)\s+)*(?:<[^>]*>\s+)?"
+                       r"[\w.<>\[\], ?]+?\s+(\w+)\s*\((?:[^()]|\([^()]*\))*\)[^{;]*\{", re.M)
 
 
 def patch(source, hooks):
-    """(patched source, sorted hook names counted). A counter goes on the line after the brace that opens each
-    hook method's body; abstract methods and everything else are untouched."""
-    lines = source.split("\n")
-    out, counted, i = [], [], 0
-    while i < len(lines):
-        line = lines[i]
-        m = SIGNATURE.match(line)
-        if m and m.group(1) in hooks and "abstract " not in line:
-            j = i
-            while j < len(lines) and not lines[j].rstrip().endswith("{"):
-                if lines[j].rstrip().endswith(";"):
-                    break
-                j += 1
-            if j < len(lines) and lines[j].rstrip().endswith("{"):
-                out.extend(lines[i:j + 1])
-                out.append(" " * 8 + CALL % m.group(1))
-                counted.append(m.group(1))
-                i = j + 1
-                continue
-        out.append(line)
-        i += 1
-    return "\n".join(out), sorted(set(counted))
+    """(patched source, sorted hook names counted). A counter goes on a new line right after the brace that opens
+    each hook method's body; abstract methods and everything else are untouched."""
+    out, counted, last = [], [], 0
+    for m in SIGNATURE.finditer(source):
+        if m.group(1) not in hooks:
+            continue
+        out.append(source[last:m.end()])
+        out.append("\n" + " " * 8 + CALL % m.group(1))
+        counted.append(m.group(1))
+        last = m.end()
+    out.append(source[last:])
+    return "".join(out), sorted(set(counted))
+
+
+def engine_source(forge):
+    """The pinned engine's PlayerControllerAi.java (HEAD of the checkout, never its working tree)."""
+    return subprocess.run(["git", "-C", forge, "show", "HEAD:" + ENGINE_PATH], capture_output=True, text=True,
+                          check=True).stdout
 
 
 def write(forge, ledger, out_dir, source=None):
@@ -59,8 +58,7 @@ def write(forge, ledger, out_dir, source=None):
         with open(source, encoding="utf-8") as f:
             src = f.read()
     else:
-        src = subprocess.run(["git", "-C", forge, "show", "HEAD:" + ENGINE_PATH], capture_output=True, text=True,
-                             check=True).stdout
+        src = engine_source(forge)
     patched, counted = patch(src, surface_coverage.decision_hooks(ledger))
     dest = os.path.join(out_dir, "forge", "ai", "PlayerControllerAi.java")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
