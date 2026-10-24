@@ -32,6 +32,15 @@ Increasing Vengeance aimed at a ritual on the stack; plain: copy only burn), gra
 Songs of the Damned count the graveyard; plain: every mana spell first) and atog (each artifact fed to Atog for
 Fling or to Krark-Clan Ironworks for mana; plain: Atog eats everything).
 
+The third suite's families (eval/puzzles/hard/gen3) hold the same bar and state their search inputs and trap as
+`# search:` / `# trap:` lines: infect (poison, not life: the opponent starts at 10 minus the searched maximum, the
+board's goal is Win; INFECT_PLANS), equip (Equipment and Auras on attackers, one combat; EQUIP_PLANS), landfall
+(land drops, fetch cracks and Harrow feeding Akoum Hellkite, Valakut, Lotus Cobra and Retreat to Coralhelm's
+Pyromancer, Blaze for the mana left; plain: the land first, or each landfall creature as soon as it is paid for) and
+tokens (Goblins entering under Impact Tremors and Witty Roastmaster and dying to Skirk Prospector and Siege-Gang under
+Mayhem Devil, Krenko counting them; plain: sacrifice tokens first, or the payoffs as soon as the lands pay); a test
+also rewrites each committed board's line from its record (written_from_record).
+
   python3 eval/puzzle_gen.py --family ping --count 40 --seed 1 --out DIR
   python3 eval/puzzle_gen.py --family drain2 --count 40 --seed 2 --tries 40000 --out DIR
 """
@@ -67,8 +76,8 @@ def _join(names):
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
-def pzl_text(name, description, rule, state, solution, acceptance):
-    lines = ["[metadata]", "Name:" + name, "Goal:Survive", "Turns:1", "Difficulty:Hard", "Description:" + description,
+def pzl_text(name, description, rule, state, solution, acceptance, goal="Survive"):
+    lines = ["[metadata]", "Name:" + name, "Goal:" + goal, "Turns:1", "Difficulty:Hard", "Description:" + description,
              "Rule:" + rule, "[state]"]
     lines += ["%s=%s" % kv for kv in state]
     lines += ["[solution]"] + solution + ["[acceptance]"] + acceptance
@@ -922,9 +931,11 @@ def _record_lines(search, trap):
 
 
 def board_record(text):
-    """The family, life, steps, search inputs and trap a drain2, elf2 or hoofdrain board states."""
+    """The family, life (and the opponent's poison counters), steps, search inputs and trap a generated gen2 or gen3
+    board states (its `# steps:`, `# search:` and `# trap:` lines)."""
     rec = {"family": text.split("Rule:generated-", 1)[1].split()[0],
-           "life": int(text.split("\np1life=", 1)[1].split()[0])}
+           "life": int(text.split("\np1life=", 1)[1].split()[0]),
+           "poison": int(text.split("\np1counters=POISON=", 1)[1].split()[0]) if "\np1counters=POISON=" in text else 0}
     for line in text.splitlines():
         for key in ("steps", "search", "trap"):
             if line.startswith("# %s: " % key):
@@ -935,6 +946,15 @@ def board_record(text):
 def research(rec):
     """Recompute a board from its stated search inputs: (best, steps, unused mana, {plan: value})."""
     s = rec["search"]
+    if rec["family"] in ("infect", "equip"):
+        search, plain = (infect_search, infect_plain) if rec["family"] == "infect" else (equip_search, equip_plain)
+        return search(s)[:3] + (plain(s),)
+    if rec["family"] == "landfall":
+        d, st, moves = landfall_search(s)
+        return d, st, landfall_unused(moves), landfall_plain(s)
+    if rec["family"] == "tokens":
+        d, st, moves = token_search(s)
+        return d, st, token_lines(s, moves, d)[3], token_plain(s)
     if rec["family"] == "drain2":
         args = (s["swamps"], s["land"], set(s["bf"]), set(s["gy"]), set(s["hand"]), s["altar"])
         d, st, moves = drain_search(*args, spend=True)
@@ -945,6 +965,21 @@ def research(rec):
               drain=sum(o in DRAINERS for o in s["others"]))
     d, st, moves = elf_search(*args, spend=True, **kw)
     return d, st, elf_unused(*args, moves, s["priest"]), elf_plain(*args, **kw)
+
+
+def written_from_record(rec):
+    """The line a gen3 board's stated search inputs write (landfall, tokens, infect, equip)."""
+    s, family = rec["search"], rec["family"]
+    if family == "landfall":
+        return landfall_lines(s, landfall_search(s)[2])[0]
+    if family == "tokens":
+        d, _, moves = token_search(s)
+        return token_lines(s, moves, d)[0]
+    if family == "infect":
+        return infect_lines(s, infect_search(s)[3], rec["poison"])[0]
+    if family == "equip":
+        return equip_lines(s, equip_search(s)[3])
+    raise ValueError("no gen3 line writer for family %r" % family)
 
 
 def _trap_note(trap, plans, unit):
@@ -2259,10 +2294,1491 @@ def atog_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, ["# steps: %d" % steps] + lines,
                                           ["life p1 <= 0"])}
 
+
+# The infect family (the third suite, eval/puzzles/hard/gen3): poison counters, not life. Each hand card: (speed,
+# generic, green, Phyrexian, effect). Phyrexian "choice" is {G/P} (a Forest or 2 life), "life" a {U/P} the seat
+# pays with 2 life (no blue source). Every draw is a Forest (the library is all Forests).
+INFECT_CARDS = {
+    "Mutagenic Growth": ("instant", 0, 0, "choice", ("pump", 2)),
+    "Groundswell": ("instant", 0, 1, None, ("pump", "landfall")),
+    "Might of Old Krosa": ("instant", 0, 1, None, ("pump", "main")),
+    "Become Immense": ("instant", 5, 1, None, ("pump", 6)),
+    "Battlegrowth": ("instant", 0, 1, None, ("counter",)),
+    "Rancor": ("sorcery", 0, 1, None, ("pump", 2)),
+    "Travel Preparations": ("sorcery", 1, 1, None, ("counters",)),
+    "Courage in Crisis": ("sorcery", 2, 1, None, ("counter", "proliferate")),
+    "Thirsting Roots": ("sorcery", 0, 1, None, ("roots",)),
+    "Tezzeret's Gambit": ("sorcery", 3, 0, "life", ("draw", 2, "proliferate")),
+    "Gitaxian Probe": ("sorcery", 0, 0, "life", ("draw", 1)),
+    "Mishra's Bauble": ("artifact", 0, 0, None, ("bauble",)),
+    "Land Grant": ("sorcery", 1, 1, None, ("fetch",)),
+    "Unnatural Restoration": ("sorcery", 1, 1, None, ("restore", "proliferate")),
+}
+INFECT_ATTACKERS = ("Glistener Elf", "Blighted Agent", "Ichorclaw Myr")   # 1/1 infect, on the battlefield, not sick
+INKMOTH = "Inkmoth Nexus"
+BAUBLE = "Mishra's Bauble"
+PROLIFERATORS = ("Courage in Crisis", "Tezzeret's Gambit", "Unnatural Restoration", "Thirsting Roots")
+INFECT_PLANS = {
+    "bi_asap": "Become Immense as soon as it can be paid",
+    "combat_pumps": "pump only after attackers are declared",
+    "prolif_after_combat": "proliferate only after combat damage",
+    "never_proliferate": "never proliferate",
+    "inkmoth_attacks": "Inkmoth Nexus always attacks",
+    "land_first": "play the land first",
+}
+# Inkmoth Nexus: 0 none, 1 an untapped land, 2 animated (it attacks), 3 tapped for mana, 4 tapped by its attack.
+INK_NONE, INK_LAND, INK_ANIMATED, INK_SPENT, INK_ATTACKED = range(5)
+
+
+def _infect_plan_applies(plan, s):
+    hand = set(s["hand"])
+    prolif = bool(hand & set(PROLIFERATORS))
+    return {"bi_asap": "Become Immense" in hand, "combat_pumps": "Might of Old Krosa" in hand,
+            "prolif_after_combat": prolif and bool(hand & {"Battlegrowth", "Travel Preparations", "Courage in Crisis"}),
+            "never_proliferate": prolif, "inkmoth_attacks": s["inkmoth"],
+            "land_first": s["hand_forests"] > 0 and "Land Grant" in hand}[plan]
+
+
+def infect_search(s, plan=None):
+    """The most poison the turn gives the opponent, and one line that gives it, by exhaustive search over a model of
+    the board. The attackers (and Inkmoth Nexus once animated for {1}) deal their power in poison; every pump and
+    +1/+1 counter lands on an attacker. Groundswell gives +4 after the land drop, Might of Old Krosa +4 in a main
+    phase (+2 in combat), Become Immense delves the graveyard (each instant or sorcery that resolved, each Bauble
+    cracked). Proliferate gives the opponent one more counter once it has one (s["poisoned"]: before combat too) and,
+    before combat, each creature with a +1/+1 counter one more. Mana: Forests ({G}), Inkmoth Nexus ({C}, generic only,
+    then it cannot attack); the pool empties between phases, so mana for after combat is an untapped land. Each play
+    resolves before the next. Among the lines that give the most it takes the fewest steps, then the least mana
+    unused. `plan` (INFECT_PLANS) holds the search to one plain habit. Returns (poison, steps, unused, moves)."""
+    from functools import lru_cache
+    n = len(s["attackers"])
+
+    @lru_cache(maxsize=None)
+    def go(phase, F, ink, drop, hf, hand, gy, bfb, gyb, counters, pump, life):
+        best = None
+        pois = s["poisoned"] or phase == 2
+
+        def consider(v, steps, unused, moves):
+            nonlocal best
+            if best is None or (v, -steps, -unused) > best[0]:
+                best = ((v, -steps, -unused), v, steps, unused, moves)
+
+        def sub(gain, step, move, *st):
+            r = go(*st)
+            consider(r[0] + gain, r[1] + step, r[2], (move,) + r[3])
+
+        creatures = list(range(n)) + ([n] if ink == INK_ANIMATED else [])
+        if phase == 2:
+            consider(0, 0, F + (ink == INK_LAND) + (drop == 0 and hf > 0), ())
+        elif phase == 1:
+            dmg = sum(1 + counters[i] for i in creatures) + pump
+            sub(dmg, 0, ("damage",), 2, F, INK_ATTACKED if ink == INK_ANIMATED else ink, drop, hf, hand, gy, bfb, gyb,
+                counters, pump, life)
+        elif not (plan == "inkmoth_attacks" and ink == INK_LAND and F >= 1):
+            sub(0, 1, ("attack",), 1, F, ink, drop, hf, hand, gy, bfb, gyb, counters, pump, life)
+        if plan == "land_first" and phase == 0 and drop == 0 and hf > 0:
+            best = None
+        if phase != 1 and drop == 0 and hf > 0:
+            sub(0, 1, ("land",), phase, F + 1, ink, 1, hf - 1, hand, gy, bfb, gyb, counters, pump, life)
+            if plan == "land_first" and phase == 0:
+                return best[1:]
+        if phase == 0 and ink == INK_LAND and F >= 1:
+            sub(0, 1, ("animate",), phase, F - 1, INK_ANIMATED, drop, hf, hand, gy, bfb, gyb, counters, pump, life)
+        if bfb:
+            sub(0, 1, ("bauble",), phase, F, ink, drop, hf, hand, gy + 1, bfb - 1, gyb + 1, counters, pump, life)
+
+        def pays(generic, green, phyrexian):
+            """Every way to pay: (Forests left, Inkmoth state, life left, paid with life, Inkmoth paid)."""
+            out = []
+            ways = [(green, 0)]
+            if phyrexian == "choice":
+                ways = ([(1, 0)] if F >= 1 else []) + ([(0, 2)] if life > 2 else [])
+            elif phyrexian == "life":
+                ways = [(green, 2)] if life > 2 else []
+            for g, lf in ways:
+                for use_ink in ((0, 1) if ink == INK_LAND and generic >= 1 else (0,)):
+                    need = g + generic - use_ink
+                    if need <= F:
+                        out.append((F - need, INK_SPENT if use_ink else ink, life - lf, lf > 0, bool(use_ink)))
+            return out
+
+        cards = sorted(set(hand))
+        bi_cost = 5 - min(gy, 5)
+        if plan == "bi_asap" and phase < 2 and "Become Immense" in hand and pays(bi_cost, 1, None):
+            best, cards = None, ["Become Immense"]
+        for c in cards:
+            speed, generic, green, phyrexian, eff = INFECT_CARDS[c]
+            if phase == 1 and speed != "instant":
+                continue
+            if plan == "combat_pumps" and phase == 0 and speed == "instant" and eff[0] in ("pump", "counter"):
+                continue
+            if c in ("Courage in Crisis", "Tezzeret's Gambit", "Unnatural Restoration") and (
+                    plan == "never_proliferate" or plan == "prolif_after_combat" and phase == 0):
+                continue
+            if c == "Unnatural Restoration" and not gyb:
+                continue
+            rest = list(hand)
+            rest.remove(c)
+            rest = tuple(rest)
+            delve = min(gy, 5) if c == "Become Immense" else 0
+            free = c == "Land Grant" and hf == 0
+            options = [(F, ink, life, False, False)] if free else pays(generic - delve, green, phyrexian)
+            for nF, nink, nlife, bylife, inkpaid in options:
+                ngyb = gyb - max(0, delve - (gy - gyb))          # delve exiles the other cards first
+                ngy = gy - delve + (speed != "artifact" and c != "Rancor")
+                info = {"life": bylife, "ink": inkpaid, "delve": delve, "free": free}
+                st = dict(F=nF, ink=nink, hf=hf, hand=rest, gy=ngy, bfb=bfb, gyb=ngyb, counters=counters, pump=pump,
+                          life=nlife)
+
+                def after(gain, extra, **chg):
+                    t = dict(st, **chg)
+                    sub(gain, 1, ("cast", c, dict(info, **extra)), phase, t["F"], t["ink"], drop, t["hf"], t["hand"],
+                        t["gy"], t["bfb"], t["gyb"], t["counters"], t["pump"], t["life"])
+
+                def proliferated(cs):
+                    return tuple(x + 1 if x and phase == 0 else x for x in cs), 1 if pois else 0
+
+                kind = eff[0]
+                if kind == "bauble":
+                    after(0, {}, bfb=bfb + 1)
+                elif kind == "pump":
+                    v = eff[1]
+                    v = (4 if drop else 2) if v == "landfall" else (2 if phase == 1 else 4) if v == "main" else v
+                    after(0, {"t": (0,)}, pump=pump + (v if phase < 2 else 0))
+                elif kind in ("counter", "counters"):
+                    k = 2 if kind == "counters" else 1
+                    if len(creatures) < k:
+                        continue
+                    seen = set()
+                    for ts in itertools.combinations(creatures, k):
+                        key = tuple(sorted((counters[t], t == n) for t in ts))
+                        if key in seen:
+                            continue                 # two attackers alike: one target stands for both
+                        seen.add(key)
+                        cs = tuple(x + (i in ts) for i, x in enumerate(counters))
+                        gain = 0
+                        if len(eff) > 1:
+                            cs, gain = proliferated(cs)
+                        after(gain, {"t": ts}, counters=cs)
+                elif kind == "roots":
+                    after(0, {"mode": "fetch"}, hf=hf + 1)
+                    if not (plan == "never_proliferate" or plan == "prolif_after_combat" and phase == 0):
+                        cs, gain = proliferated(counters)
+                        after(gain, {"mode": "proliferate"}, counters=cs)
+                elif kind == "draw":
+                    cs, gain = proliferated(counters) if len(eff) > 2 else (counters, 0)
+                    after(gain, {}, hf=hf + eff[1], counters=cs)
+                elif kind == "fetch":
+                    after(0, {}, hf=hf + 1)
+                elif kind == "restore":
+                    cs, gain = proliferated(counters)
+                    after(gain, {}, hand=rest + (BAUBLE,), gy=ngy - 1, gyb=ngyb - 1, counters=cs)
+        return best[1:]
+
+    ink0 = INK_LAND if s["inkmoth"] else INK_NONE
+    return go(0, s["forests"], ink0, 0, s["hand_forests"], tuple(sorted(s["hand"])), s["graveyard"], 0, 0,
+              (0,) * (n + 1), 0, s["life"])
+
+
+def infect_plain(s):
+    """What each plain plan that applies to the board gives: {plan: poison}."""
+    return {p: infect_search(s, plan=p)[0] for p in INFECT_PLANS if _infect_plan_applies(p, s)}
+
+
+def infect_lines(s, moves, poison):
+    """The written line for infect_search's moves, in the seat's menu words, starting from the opponent's `poison`.
+    Each play resolves before the next: a "pass" is written over an object on the stack exactly when the next play
+    could be made over it (ScriptBridge would make it at once). What the seat is asked, in order: a creature target
+    when two or more creatures could be named; Gitaxian Probe's and Mishra's Bauble's player (opponent); Mutagenic
+    Growth's Phyrexian split when both a Forest and life could pay; Become Immense's delve (the Bolts and spells
+    first, the Baubles last); which sources stay untapped when Inkmoth Nexus and a Forest are both untapped and some
+    would stay ("untap: ..."); Thirsting Roots' mode; the Forest a search finds; and proliferate's picks one at a time
+    (the opponent once it is poisoned, each permanent with a +1/+1 counter). The first play after combat waits for the
+    second main phase. Returns (lines, poison at the end, steps)."""
+    n = len(s["attackers"])
+    names = list(s["attackers"]) + [INKMOTH]
+    F, ink, drop, hf, life = s["forests"], INK_LAND if s["inkmoth"] else INK_NONE, 0, s["hand_forests"], s["life"]
+    gy = ["Lightning Bolt"] * s["graveyard"]
+    bfb, counters, pump, phase, stack, animated = 0, [0] * (n + 1), 0, 0, 0, False
+    pending = []         # what the spell on the stack adds when it resolves: its card to the graveyard, a Bauble
+    lines, steps, main2 = [], 0, False
+
+    def creatures():
+        return list(range(n)) + ([n] if animated else [])
+
+    def available(m):
+        """The play `m` could be made now, over what is on the stack."""
+        if m[0] == "animate":
+            return F >= 1 or ink == INK_LAND
+        if m[0] == "bauble":
+            return bfb >= 1
+        if m[0] != "cast" or INFECT_CARDS[m[1]][0] != "instant":
+            return False
+        c = m[1]
+        if c == "Mutagenic Growth":
+            return F >= 1 or life > 2
+        generic = max(0, 5 - len(gy)) if c == "Become Immense" else INFECT_CARDS[c][1]
+        return F >= 1 and F + (ink in (INK_LAND, INK_ANIMATED)) >= 1 + generic
+
+    def untap(need, inkpaid):
+        """The untapped-sources question: asked when Inkmoth Nexus and a Forest are both untapped and some stay."""
+        if need > 0 and ink in (INK_LAND, INK_ANIMATED) and F >= 1 and F + 1 - need > 0:
+            keep = ([] if inkpaid else [INKMOTH]) + ["Forest"] * (F - (need - inkpaid))
+            lines.append("untap: " + "; ".join(keep))
+
+    def proliferate():
+        nonlocal poison
+        picks = (["opponent"] if poison > 0 else []) + [names[i] for i in range(n + 1) if counters[i]]
+        lines.extend(picks)
+        if phase == 0:
+            for i in range(n + 1):
+                counters[i] += counters[i] > 0
+        poison += poison > 0
+
+    for m in moves:
+        if poison >= 10:
+            break
+        kind = m[0]
+        if kind == "damage":
+            poison += sum(1 + counters[i] for i in creatures()) + pump
+            phase = 2
+            continue
+        if stack and available(m):
+            lines.append("pass")
+        stack = 0
+        # The spell below resolved before this play (a pass, or the seat waited for it).
+        gy += [g for g in pending if g != "bauble out"]
+        bfb += pending.count("bauble out")
+        pending = []
+        at = ""
+        if phase == 2 and not main2:
+            at, main2 = "at MAIN2: ", True
+        steps += 1
+        if kind == "attack":
+            lines.append("; ".join(names[i] for i in creatures()))
+            phase = 1
+            if ink == INK_ANIMATED:
+                ink = INK_ATTACKED
+            continue
+        if kind == "land":
+            lines.append(at + "play land Forest")
+            F, drop, hf = F + 1, 1, hf - 1
+            continue
+        if kind == "animate":
+            lines.append(at + "activate Inkmoth Nexus ... becomes")
+            F, ink, animated, stack = F - 1, INK_ANIMATED, True, 1
+            continue
+        if kind == "bauble":
+            lines += [at + "activate " + BAUBLE, "opponent"]
+            bfb -= 1
+            gy.append(BAUBLE)
+            stack = 1
+            continue
+        c, info = m[1], m[2]
+        speed, generic, green, phyrexian, eff = INFECT_CARDS[c]
+        if c == "Land Grant":
+            lines.append(at + "cast Land Grant ... " + ("Reveal your hand" if info["free"] else "1{G} [Search"))
+        else:
+            lines.append(at + "cast " + c)
+        ts = info.get("t", ())
+        if eff[0] == "counters":
+            lines.append("; ".join(names[t] for t in ts))
+        elif ts and len(creatures()) >= 2:
+            lines.append(names[ts[0]])
+        if c == "Gitaxian Probe":
+            lines.append("opponent")
+        if c == "Unnatural Restoration" and gy.count(BAUBLE) >= 2:
+            lines.append(BAUBLE)
+        if phyrexian == "choice" and F >= 1 and life > 2:
+            lines.append("pay 1 Phyrexian symbol with 2 life" if info["life"]
+                         else "pay every Phyrexian symbol with mana (no life)")
+        if info["delve"]:
+            ex = sorted(range(len(gy)), key=lambda i: gy[i] == BAUBLE)[:info["delve"]]
+            lines.append("; ".join(gy[i] for i in ex))
+            gy = [g for i, g in enumerate(gy) if i not in ex]
+        if info["free"]:
+            need = 0
+        else:
+            need = generic - info["delve"] + (green if phyrexian != "choice" else (not info["life"]))
+        untap(need, info["ink"])
+        F -= need - info["ink"]
+        if info["ink"]:
+            ink = INK_SPENT
+        if phyrexian and (phyrexian == "life" or info["life"]):
+            life -= 2
+        stack = 1
+        kind = eff[0]
+        if kind == "pump":
+            v = eff[1]
+            v = (4 if drop else 2) if v == "landfall" else (2 if phase == 1 else 4) if v == "main" else v
+            pump += v if phase < 2 else 0
+        elif kind in ("counter", "counters"):
+            for t in ts:
+                counters[t] += 1
+        if c == "Thirsting Roots":
+            lines.append("Proliferate" if info["mode"] == "proliferate" else "Search your library")
+            if info["mode"] == "fetch":
+                lines.append("Forest")
+                hf += 1
+            stack = 0
+        if c == "Land Grant":
+            lines.append("Forest")
+            hf, stack = hf + 1, 0
+        if eff[0] == "draw":
+            hf += eff[1]
+        if c == "Unnatural Restoration":
+            gy.remove(BAUBLE)
+        if eff[-1] == "proliferate" or info.get("mode") == "proliferate":
+            before = len(lines)
+            proliferate()
+            stack = 0 if len(lines) > before else stack
+        if speed != "artifact" and c != "Rancor":
+            (pending if stack else gy).append(c)
+        if c == BAUBLE:
+            pending.append("bauble out")
+    return lines, poison, steps
+
+
+def infect_board(rng):
+    """Infect: one or two 1/1 infect attackers and sometimes Inkmoth Nexus, few Forests, a hand built around Become
+    Immense (Mishra's Bauble, Gitaxian Probe, Land Grant and Unnatural Restoration fill the graveyard) and two or
+    three small pumps or proliferators. The opponent starts with 10 minus the searched maximum poison counters (none
+    when only a line that proliferates after combat reaches 10). Kept only at 13 to 15 steps, every land used, and
+    when the best plain plan (INFECT_PLANS) falls 1 to 3 short."""
+    s = {"attackers": sorted(rng.sample(INFECT_ATTACKERS, rng.choice([1, 1, 1, 2]))), "inkmoth": rng.random() < 0.5,
+         "forests": rng.choice([1, 1, 1, 2, 2, 3]), "hand_forests": rng.choice([0, 0, 1]),
+         "graveyard": rng.choice([0, 0, 1, 2]), "life": rng.choice([3, 5, 5, 7, 9])}
+    hand = ["Become Immense"]
+    for c, lo, hi in ((BAUBLE, 2, 4), ("Gitaxian Probe", 0, 2), ("Land Grant", 0, 1),
+                      ("Unnatural Restoration", 0, 2)):
+        hand += [c] * rng.randint(lo, hi)
+    hand += rng.sample(["Mutagenic Growth", "Mutagenic Growth", "Battlegrowth", "Thirsting Roots", "Thirsting Roots",
+                        "Might of Old Krosa", "Groundswell", "Rancor", "Courage in Crisis", "Tezzeret's Gambit",
+                        "Travel Preparations"], rng.choice([1, 2, 2, 3]))
+    s["hand"] = sorted(hand)
+    best = None
+    for poisoned in (True, False):
+        r = infect_search(dict(s, poisoned=poisoned))
+        if poisoned and r[0] <= 9 or not poisoned and r[0] == 10:
+            best = (poisoned, r)
+            break
+    if best is None:
+        return None
+    s["poisoned"], (total, steps, unused, moves) = best
+    if not HARD_MIN <= steps <= HARD_MAX or unused:
+        return None
+    trap = _trap(total, infect_plain(s))
+    if trap is None:
+        return None
+    start = 10 - total
+    lines, end, n = infect_lines(s, moves, start)
+    if (end, n) != (10, steps):
+        return None
+    shown = list(s["hand"]) + ["Forest"] * s["hand_forests"]
+    rng.shuffle(shown)
+    battlefield = list(s["attackers"]) + ([INKMOTH] if s["inkmoth"] else []) + ["Forest"] * s["forests"]
+    graveyard = ["Lightning Bolt"] * s["graveyard"]
+    lands = "%d untapped Forest%s" % (s["forests"], "s" * (s["forests"] > 1))
+    desc = ("It is your first main phase. You are at %d life and control %s. Your hand is %s. Your graveyard holds %s. "
+            "Your library is all Forests. The opponent has %d poison counter%s, is at 20 life and controls nothing. "
+            "Give the opponent ten poison counters this turn."
+            % (s["life"], _join(list(s["attackers"]) + ([INKMOTH] if s["inkmoth"] else []) + [lands]), _join(shown),
+               _join(graveyard) if graveyard else "nothing", start, "" if start == 1 else "s"))
+    rule = ("generated-infect | the exhaustive maximum is %d poison in %d steps%s" % (total, steps,
+                                                                                    _trap_note(trap, INFECT_PLANS,
+                                                                                               "gives")))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN1"), ("p0life", s["life"]),
+             ("p0hand", ";".join(shown)), ("p0battlefield", ";".join(battlefield)),
+             ("p0graveyard", ";".join(graveyard)), ("p0library", ";".join(["Forest"] * 8)),
+             ("p1life", 20), ("p1counters", "POISON=%d" % start), ("p1library", ";".join(["Plains"] * 3))]
+    state = [kv for kv in state if kv[1] != ""]
+    solution = ["# steps: %d" % steps] + _record_lines(s, trap) + lines
+    return {"family": "infect", "actions": steps, "life": start, "trap": trap, "hand": sorted(shown),
+            "battlefield": sorted(battlefield + ["gy:" + g for g in graveyard]) + ["life:%d" % s["life"]],
+            "phase": "MAIN1", "search": s,
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["winner p0"], goal="Win")}
+
+
+# The equip family (gen3): Equipment and Auras on attackers, no blockers, one combat. Creatures: (power, double
+# strike). Equipment: (generic, coloured, equip cost, bonus: power, "arts" for Cranial Plating's +1 per artifact,
+# "ds" for Fireshrieker's double strike, "cleave" for Embercleave's +1 and double strike). Auras: (generic, coloured,
+# bonus: power, "ench" for Ethereal Armor's +1 per enchantment, "both" for All That Glitters' +1 per artifact and
+# enchantment). Every land is a Jungle Shrine ({R}, {G} or {W}): one land name, so no payment asks which stay
+# untapped, and mana is a count.
+EQUIP_CREATURES = {"Savannah Lions": (2, False), "Glory Seeker": (2, False), "Hill Giant": (3, False),
+                   "Fencing Ace": (1, True), "Boros Swiftblade": (1, True), "Puresteel Paladin": (2, False)}
+EQUIP_GEAR = {"Bonesplitter": (1, 0, 1, 2), "Short Sword": (1, 0, 1, 1), "Leonin Scimitar": (1, 0, 1, 1),
+              "Vulshok Morningstar": (2, 0, 2, 2), "Cranial Plating": (2, 0, 1, "arts"),
+              "Fireshrieker": (3, 0, 2, "ds"), "Loxodon Warhammer": (3, 0, 3, 3), "Grafted Wargear": (3, 0, 0, 3),
+              "Embercleave": (4, 2, 3, "cleave")}
+EQUIP_AURAS = {"Ethereal Armor": (0, 1, "ench"), "All That Glitters": (1, 1, "both"), "Rancor": (0, 1, 2)}
+EQUIP_OTHER = {"Foundry Inspector": (3, 0), "Sigarda's Aid": (0, 1), "Puresteel Paladin": (0, 2)}
+EQUIP_ARTIFACTS = set(EQUIP_GEAR) | {"Foundry Inspector"}
+EQUIP_ENCHANTMENTS = set(EQUIP_AURAS) | {"Sigarda's Aid"}
+AID, PALADIN, INSPECTOR, CLEAVE = "Sigarda's Aid", "Puresteel Paladin", "Foundry Inspector", "Embercleave"
+EQUIP_PLANS = {
+    "biggest": "everything on the creature with the most power",
+    "cast_all_first": "cast every Equipment that can be paid before equipping",
+    "cleave_main": "Embercleave in the main phase",
+    "equip_asap": "equip each Equipment as soon as it is on the battlefield",
+}
+
+
+def _equip_assign(creatures, items, perm, only=None):
+    """The most damage the attackers deal with `items` attached, and where each item goes: (damage, {item: creature
+    index}). Every bonus but double strike adds to one creature's power, so they all go on the creature that
+    doubles them best; Fireshrieker and Embercleave are placed by trying each creature. `only`: everything on that
+    creature."""
+    arts = sum(p in EQUIP_ARTIFACTS for p in perm)
+    ench = sum(p in EQUIP_ENCHANTMENTS for p in perm)
+
+    def value(it):
+        k = EQUIP_GEAR[it][3] if it in EQUIP_GEAR else EQUIP_AURAS[it][2]
+        return {"arts": arts, "ds": 0, "cleave": 1, "ench": ench, "both": arts + ench}.get(k, k)
+
+    n = len(creatures)
+    cands = [only] if only is not None else list(range(n))
+    granters = [it for it in items if it in ("Fireshrieker", CLEAVE)]
+    others = [it for it in items if it not in granters]
+    add = sum(value(it) for it in others)
+    best = None
+    for place in itertools.product(cands, repeat=len(granters)):
+        ds = [EQUIP_CREATURES[c][1] for c in creatures]
+        bonus = [0] * n
+        for g, c in zip(granters, place):
+            ds[c] = True
+            bonus[c] += value(g)
+        for c in cands:
+            total = sum((EQUIP_CREATURES[creatures[i]][0] + bonus[i] + (add if i == c else 0)) * (1 + ds[i])
+                        for i in range(n))
+            if best is None or total > best[0]:
+                where = dict(zip(granters, place))
+                where.update({it: c for it in others})
+                best = (total, where)
+    return best
+
+
+def _equip_cost(card, perm):
+    insp = perm.count(INSPECTOR)
+    if card in EQUIP_GEAR:
+        return max(0, EQUIP_GEAR[card][0] - insp) + EQUIP_GEAR[card][1]
+    if card in EQUIP_AURAS:
+        return sum(EQUIP_AURAS[card][:2])
+    return max(0, EQUIP_OTHER[card][0] - insp) + EQUIP_OTHER[card][1]
+
+
+def _equip_plan_applies(plan, s):
+    creatures, hand = s["creatures"], s["hand"]
+    if plan == "biggest":
+        top = max(creatures, key=lambda c: EQUIP_CREATURES[c][0])
+        return not EQUIP_CREATURES[top][1] and len({EQUIP_CREATURES[c][0] for c in creatures}) > 1
+    if plan == "cast_all_first":
+        need = sum(sum(EQUIP_GEAR[c][:3]) for c in hand if c in EQUIP_GEAR) + sum(EQUIP_GEAR[c][2] for c in s["loose"])
+        return sum(c in EQUIP_GEAR for c in hand) >= 2 and need > s["mana"]
+    if plan == "cleave_main":
+        return CLEAVE in hand
+    arts = sum(c in EQUIP_ARTIFACTS for c in s["start"] + s["loose"])
+    return PALADIN in s["start"] + hand and arts < 3
+
+
+def equip_search(s, plan=None):
+    """The most combat damage, and one line that deals it, by exhaustive search over a model of the board. Every
+    creature in s["creatures"] attacks; nothing blocks. The plays go in a fixed order that loses nothing: Foundry
+    Inspector, Sigarda's Aid and Puresteel Paladin first (each makes the later plays cheaper or free), then the
+    Equipment (Inspector: {1} less each; Aid attaches each as it enters; Embercleave attaches itself), the Auras, the
+    equip activations (Paladin's equip {0} with three artifacts out), the attack, and Embercleave in combat ({1} less
+    for each attacker). Which creature carries what is chosen last (_equip_assign), as no cost depends on it. Among
+    the lines that deal the most it takes the fewest steps, then the least mana unused. `plan` (EQUIP_PLANS) holds the
+    search to one plain habit. Returns (damage, steps, unused, moves): ("cast", card, target or None), ("equip", item,
+    target), ("attack",)."""
+    from functools import lru_cache
+    creatures = list(s["creatures"])
+    n = len(creatures)
+    only = max(range(n), key=lambda i: (EQUIP_CREATURES[creatures[i]][0], -i)) if plan == "biggest" else None
+    hand = sorted(s["hand"])
+    casts = ([("other", c) for c in EQUIP_OTHER for _ in range(hand.count(c))]
+             + [("eq", c) for c in sorted(EQUIP_GEAR) for _ in range(hand.count(c))]
+             + [("aura", c) for c in sorted(EQUIP_AURAS) for _ in range(hand.count(c))])
+    ops = ([("equips",)] + casts if plan == "equip_asap" else casts + [("equips",)]) + [("attack",)]
+
+    def better(a, b):
+        return b is None or (a[0], -a[1], -a[2]) > (b[0], -b[1], -b[2])
+
+    @lru_cache(maxsize=None)
+    def go(i, m, perm, loose, items, held):
+        kind = ops[i][0]
+        if kind == "attack":
+            best = (_equip_assign(creatures, items, perm, only)[0], 1, m, (("attack",),))
+            cost = max(0, 4 - n - perm.count(INSPECTOR)) + 2
+            if held and plan != "cleave_main" and cost <= m:
+                np_ = tuple(sorted(perm + (CLEAVE,)))
+                cand = (_equip_assign(creatures, items + (CLEAVE,), np_, only)[0], 2, m - cost,
+                        (("attack",), ("cast", CLEAVE)))
+                if better(cand, best):
+                    best = cand
+            return best
+        if kind == "equips":
+            free = PALADIN in perm and sum(p in EQUIP_ARTIFACTS for p in perm) >= 3
+
+            def equips(j, m, items):
+                if j >= len(loose):
+                    return go(i + 1, m, perm, (), items, held)
+                best = equips(j + 1, m, items)
+                cost = 0 if free else EQUIP_GEAR[loose[j]][2]
+                if cost <= m:
+                    r = equips(j + 1, m - cost, tuple(sorted(items + (loose[j],))))
+                    cand = (r[0], r[1] + 1, r[2], (("equip", loose[j]),) + r[3])
+                    if better(cand, best):
+                        best = cand
+                return best
+            return equips(0, m, items)
+        card = ops[i][1]
+        cost = _equip_cost(card, perm)
+        best = None
+        if not (plan == "cast_all_first" and kind == "eq" and card != CLEAVE and cost <= m):
+            best = go(i + 1, m, perm, loose, items, held or card == CLEAVE)
+        if cost > m:
+            return best
+        np_ = tuple(sorted(perm + (card,)))
+        cands = []
+        if kind == "aura" or kind == "eq" and (card == CLEAVE or AID in perm):
+            r = go(i + 1, m - cost, np_, loose, tuple(sorted(items + (card,))), held)
+            cands.append((r[0], r[1] + 1, r[2], (("cast", card),) + r[3]))
+        elif kind == "eq" and plan == "equip_asap":
+            r = go(i + 1, m - cost, np_, loose, items, held)
+            cands.append((r[0], r[1] + 1, r[2], (("cast", card),) + r[3]))
+            ecost = 0 if PALADIN in perm and sum(p in EQUIP_ARTIFACTS for p in np_) >= 3 else EQUIP_GEAR[card][2]
+            if cost + ecost <= m:
+                r = go(i + 1, m - cost - ecost, np_, loose, tuple(sorted(items + (card,))), held)
+                cands.append((r[0], r[1] + 2, r[2], (("cast", card), ("equip", card)) + r[3]))
+        elif kind == "eq":
+            r = go(i + 1, m - cost, np_, tuple(sorted(loose + (card,))), items, held)
+            cands.append((r[0], r[1] + 1, r[2], (("cast", card),) + r[3]))
+        else:
+            r = go(i + 1, m - cost, np_, loose, items, held)
+            cands.append((r[0], r[1] + 1, r[2], (("cast", card),) + r[3]))
+        for cand in cands:
+            if better(cand, best):
+                best = cand
+        return best
+
+    perm0 = tuple(sorted(list(s["start"]) + list(s["loose"])))
+    dmg, steps, unused, moves = go(0, s["mana"], perm0, tuple(sorted(s["loose"])), (), False)
+    # Where each attached item goes: the final board's assignment.
+    perm, items = list(perm0), []
+    for m in moves:
+        if m[0] == "cast":
+            perm.append(m[1])
+            if m[1] in EQUIP_AURAS or m[1] == CLEAVE or (m[1] in EQUIP_GEAR and AID in perm):
+                items.append(m[1])
+        elif m[0] == "equip":
+            items.append(m[1])
+    where = _equip_assign(creatures, tuple(sorted(items)), tuple(sorted(perm)), only)[1]
+    return dmg, steps, unused, tuple(m + (where.get(m[1]),) if m[0] != "attack" else m for m in moves)
+
+
+def equip_plain(s):
+    """What each plain plan that applies to the board deals: {plan: damage}."""
+    return {p: equip_search(s, plan=p)[0] for p in EQUIP_PLANS if _equip_plan_applies(p, s)}
+
+
+def equip_lines(s, moves):
+    """The written line for equip_search's moves, in the seat's menu words. A target is named when two or more
+    creatures could be (sick ones too: a Paladin or Inspector cast this turn). An Equipment entering sets off
+    Embercleave's attach, Sigarda's Aid's attach and Puresteel Paladin's draw: two or more are put in that order
+    (the first named resolves first), each attach names its creature, Aid's is accepted ("yes") and Paladin's draw
+    declined ("no"). An equip names its cost ("Equip {0}" once Paladin has three artifacts beside it). A "pass" is
+    written over a spell on the stack exactly when the next play could be made over it (an Equipment or Aura with Aid
+    out, Embercleave). The attack names every attacker."""
+    creatures = list(s["creatures"])
+    perm = list(s["start"]) + list(s["loose"])
+    others = []          # creatures cast this turn: targets, not attackers
+    m_left, stack, pending, lines = s["mana"], 0, None, []
+
+    def resolved():
+        """The permanents out, without the spell still on the stack."""
+        out = list(perm)
+        if stack and pending in out:
+            out.remove(pending)
+        return out
+
+    def flash(card):
+        return card == CLEAVE or AID in resolved() and (card in EQUIP_GEAR or card in EQUIP_AURAS)
+
+    def name_target(c):
+        if len(creatures) + len(others) >= 2:
+            lines.append(creatures[c])
+
+    for m in moves:
+        if m[0] == "attack":
+            lines.append("; ".join(creatures))
+            stack = 0
+            continue
+        card, target = m[1], m[2]
+        if m[0] == "equip":
+            free = PALADIN in perm and sum(p in EQUIP_ARTIFACTS for p in perm) >= 3
+            cost = 0 if free else EQUIP_GEAR[card][2]
+            lines.append("activate %s ... Equip {%d}" % (card, cost))
+            name_target(target)
+            m_left -= cost
+            stack = 0
+            continue
+        cost = _equip_cost(card, perm)
+        if card == CLEAVE and moves.index(m) > [x[0] for x in moves].index("attack"):
+            cost = max(0, 4 - len(creatures) - perm.count(INSPECTOR)) + 2
+        if stack and flash(card) and _equip_cost(card, resolved()) <= m_left:
+            lines.append("pass")
+        lines.append("cast " + card)
+        m_left -= cost
+        stack, pending = 1, card
+        if card in EQUIP_AURAS:
+            name_target(target)
+        elif card in EQUIP_GEAR:
+            triggers = ([CLEAVE] if card == CLEAVE else []) + ([AID] if AID in perm else []) + (
+                [PALADIN] if PALADIN in perm else [])
+            if len(triggers) >= 2:
+                lines.append("; ".join(triggers))
+            for t in triggers:
+                if t != PALADIN:
+                    name_target(target)
+            for t in triggers:
+                if t == AID:
+                    lines.append("yes")
+                elif t == PALADIN:
+                    lines.append("no")
+            if AID in triggers or PALADIN in triggers:
+                stack = 0
+        perm.append(card)
+        if card in (INSPECTOR, PALADIN):
+            others.append(card)
+    return lines
+
+
+def equip_board(rng):
+    """Equipment and Auras: a double striker and one or two other attackers, Equipment on the battlefield and in
+    hand, Sigarda's Aid, Puresteel Paladin and Foundry Inspector sometimes, Embercleave and Fireshrieker often, and
+    5 to 9 Jungle Shrines. The opponent's life is the exact maximum of equip_search; kept only at 13 to 15 steps with
+    every mana spent and when the best plain plan (EQUIP_PLANS) falls 1 to 3 short."""
+    creatures = sorted([rng.choice(["Fencing Ace", "Boros Swiftblade"])]
+                       + rng.sample(["Savannah Lions", "Glory Seeker", "Hill Giant"], rng.choice([1, 1, 2])))
+    start, hand = [], []
+    for c, p_bf, p_hand in ((PALADIN, 0.45, 0.25), (AID, 0.2, 0.3), (INSPECTOR, 0.15, 0.2)):
+        r = rng.random()
+        if r < p_bf:
+            start.append(c)
+        elif r < p_bf + p_hand:
+            hand.append(c)
+    if PALADIN in start:
+        creatures = sorted(creatures + [PALADIN])
+    gear = sorted(EQUIP_GEAR)
+    loose = sorted(rng.sample([g for g in gear if g != CLEAVE], rng.choice([1, 2, 2, 3])))
+    hand += [c for c in rng.sample(gear, rng.choice([5, 6, 6, 7])) if c not in loose]
+    for c, pr in (("Fireshrieker", 0.6), (CLEAVE, 0.5)):
+        if c not in hand and c not in loose and rng.random() < pr:
+            hand.append(c)
+    hand += rng.sample(sorted(EQUIP_AURAS), rng.choice([0, 1, 1, 2]))
+    s = {"creatures": creatures, "start": sorted(start), "loose": loose, "hand": sorted(hand),
+         "mana": rng.choice([5, 6, 7, 8, 9])}
+    dmg, steps, unused, moves = equip_search(s)
+    if not HARD_MIN <= steps <= HARD_MAX or unused:
+        return None
+    trap = _trap(dmg, equip_plain(s))
+    if trap is None:
+        return None
+    shown = list(s["hand"])
+    rng.shuffle(shown)
+    battlefield = creatures + [c for c in start if c != PALADIN] + loose + ["Jungle Shrine"] * s["mana"]
+    seen = creatures + [c for c in start if c != PALADIN] + ["%s (unattached)" % g for g in loose] + [
+        "%d untapped Jungle Shrines" % s["mana"]]
+    desc = ("It is your first main phase. You are at 20 life and control %s. Your hand is %s. The opponent is at %d "
+            "life and controls nothing. Reduce the opponent to 0 life this turn." % (_join(seen), _join(shown), dmg))
+    rule = "generated-equip | the exhaustive maximum is %d in %d steps%s" % (
+        dmg, steps, _trap_note(trap, EQUIP_PLANS, "deals"))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN1"), ("p0life", 20),
+             ("p0hand", ";".join(shown)), ("p0battlefield", ";".join(battlefield)),
+             ("p0library", ";".join(["Colossal Dreadmaw"] * 4)),
+             ("p1life", dmg), ("p1library", ";".join(["Plains"] * 3))]
+    solution = ["# steps: %d" % steps] + _record_lines(s, trap) + equip_lines(s, moves)
+    return {"family": "equip", "actions": steps, "life": dmg, "trap": trap, "hand": sorted(shown),
+            "battlefield": sorted(battlefield), "phase": "MAIN1", "search": s,
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+# The landfall family (eval/puzzles/hard/gen3). Lands enter and payoffs fire: Akoum Hellkite (1, 2 for a Mountain, any
+# target), Tunneling Geopede (1), Valakut (3 for a Mountain with five other Mountains out), Retreat to Coralhelm
+# untapping Prodigal Pyromancer (one more ping per land) and Lotus Cobra (one mana of any colour per land). Wooded
+# Foothills and Evolving Wilds are two landfalls each (Wilds' land enters tapped), Harrow two at once for a land
+# sacrificed, Azusa and Exploration more land drops, and Blaze turns every mana left into damage.
+LF_FETCH, LF_WILDS, VALAKUT = "Wooded Foothills", "Evolving Wilds", "Valakut, the Molten Pinnacle"
+HELLKITE, GEOPEDE, COBRA, AZUSA = "Akoum Hellkite", "Tunneling Geopede", "Lotus Cobra", "Azusa, Lost but Seeking"
+PYROMANCER, CORALHELM = "Prodigal Pyromancer", "Retreat to Coralhelm"
+LF_SPELLS = {COBRA: (1, 1, 0), AZUSA: (2, 1, 0), "Exploration": (0, 1, 0), "Harrow": (2, 1, 0),
+             HELLKITE: (4, 0, 2), GEOPEDE: (2, 0, 1)}            # (generic, green, red)
+LF_DROPS = {AZUSA: 2, "Exploration": 1}
+LF_LANDS = ("Mountain", "Forest", LF_FETCH, LF_WILDS, VALAKUT)
+LF_PAYOFFS = (HELLKITE, GEOPEDE, COBRA)
+LF_LAND_MANA = {"Mountain": "R", VALAKUT: "R", "Forest": "G"}
+LANDFALL_PLANS = {
+    "land_first": "play a land before anything else",
+    "payoff_first": "cast each landfall creature as soon as it can be paid",
+}
+
+
+def landfall_pay(pr, pg, um, uv, uf, gen, green, red):
+    """Every way the engine pays (gen, green, red) once the line floats untapped lands: floating mana pays first
+    (pr red, pg green; ManaPool.payManaCostFromPool), and the line floats only what the cost needs beyond it (um
+    Mountains, uv Valakut, uf Forests untapped). Floating mana of both colours left for a generic part is refused: the
+    engine would ask which pays (LlmSpikeGui.chooseManaFromPool), a question a written line does not answer.
+    Yields ((Mountains, Valakut, Forests) floated, pr', pg', um', uv', uf')."""
+    short = max(0, gen + green + red - pr - pg)
+    for fr in range(short + 1):
+        ff = short - fr
+        if ff > uf or fr > um + uv:
+            continue
+        fm = min(fr, um)
+        r, g = pr + fr - red, pg + ff - green
+        if r < 0 or g < 0 or (gen and r and g):
+            continue
+        if gen:
+            if r >= gen:
+                r -= gen
+            elif g >= gen:
+                g -= gen
+            else:
+                continue
+        yield (fm, fr - fm, ff), r, g, um - fm, uv - (fr - fm), uf - ff
+
+
+def _landfall_plan_applies(plan, start):
+    if plan == "land_first":
+        return any(c in LF_LANDS for c in start["hand"])
+    return any(c in LF_PAYOFFS for c in start["hand"])
+
+
+def landfall_search(start, plan=None):
+    """The most damage the board deals, and the fewest steps that deal it: (damage, steps, moves), an exhaustive
+    search over every order of land drops, fetch cracks and casts, every fetch's and Harrow's choice of basic, Harrow's
+    sacrifice and the colour of each Lotus Cobra mana, ending with Blaze for everything left. Prodigal Pyromancer
+    (with Retreat to Coralhelm) is not searched: it pings at every chance, once to start and once more for each land,
+    each ping a step. `start`: mountains, forests (untapped, on the battlefield), valakut ("bf", "hand" or None),
+    hellkite, geopede, coralhelm (on the battlefield), cobra ("bf", "hand" or None), hand, lib ([Mountains, Forests]).
+    Moves: ("land", card, greens), ("crack", fetch, basic, greens), ("cast", card, floats[, sacrificed, basics,
+    greens]), ("blaze", X); `greens` is how many of Lotus Cobra's mana are named green. `plan` holds the search to a
+    plain plan (LANDFALL_PLANS)."""
+    from functools import lru_cache
+    cor = int(start["coralhelm"])
+
+    @lru_cache(maxsize=None)
+    def best(st, first):
+        pr, pg, um, uv, uf, drops, hand, ff, fw, mtn, frs, lm, lf, crt, val, vt = st
+        hk, geo, cob = crt
+        moves = []
+
+        def fall(types, mtn_after, val_on):
+            d = 0
+            for t in types:
+                d += hk * (2 if t == "Mountain" else 1) + geo + cor
+                if val_on and t == "Mountain" and mtn_after - 1 >= 5:
+                    d += 3
+            return d, len(types) * cob, len(types) * cor
+
+        def cobra(n, r, g):
+            return [(k, r + n - k, g + k) for k in range(n + 1)]
+
+        for c in sorted(set(hand)):
+            rest = list(hand)
+            rest.remove(c)
+            rest = tuple(rest)
+            if c in LF_LANDS:
+                if drops < 1:
+                    continue
+                m2, f2 = mtn + (c == "Mountain"), frs + (c == "Forest")
+                d, n, p = fall([c if c in ("Mountain", "Forest") else "-"], m2, val)
+                for k, r2, g2 in cobra(n, pr, pg):
+                    nst = (r2, g2, um + (c == "Mountain"), uv, uf + (c == "Forest"), drops - 1, rest,
+                           ff + (c == LF_FETCH), fw + (c == LF_WILDS), m2, f2, lm, lf, crt, val or c == VALAKUT,
+                           vt or c == VALAKUT)
+                    moves.append((("land", c, k), nst, d, 1 + p))
+                continue
+            if c not in LF_SPELLS:
+                continue
+            for fl, r1, g1, um1, uv1, uf1 in landfall_pay(pr, pg, um, uv, uf, *LF_SPELLS[c]):
+                if c in LF_PAYOFFS:
+                    crt2 = tuple(x + (j == LF_PAYOFFS.index(c)) for j, x in enumerate(crt))
+                    moves.append((("cast", c, fl), (r1, g1, um1, uv1, uf1, drops, rest, ff, fw, mtn, frs, lm, lf, crt2,
+                                                    val, vt), 0, 1))
+                elif c in LF_DROPS:
+                    moves.append((("cast", c, fl), (r1, g1, um1, uv1, uf1, drops + LF_DROPS[c], rest, ff, fw, mtn, frs,
+                                                    lm, lf, crt, val, vt), 0, 1))
+                else:
+                    # Harrow sacrifices a basic already tapped (its mana spent or floating), a fetch not yet cracked,
+                    # or Valakut once tapped; an untapped basic would be a floated one, which `fl` already offers.
+                    sacs = [s for s, ok in (("Mountain", mtn > um1), ("Forest", frs > uf1), (LF_FETCH, ff),
+                                            (LF_WILDS, fw), (VALAKUT, val and (vt or not uv1))) if ok]
+                    for s in sacs:
+                        m2, f2, v2 = mtn - (s == "Mountain"), frs - (s == "Forest"), val and s != VALAKUT
+                        for nm in (2, 1, 0):
+                            if nm > lm or 2 - nm > lf:
+                                continue
+                            pick = ("Mountain",) * nm + ("Forest",) * (2 - nm)
+                            d, n, p = fall(list(pick), m2 + nm, v2)
+                            for k, r2, g2 in cobra(n, r1, g1):
+                                nst = (r2, g2, um1 + nm, uv1 if v2 else 0, uf1 + 2 - nm, drops, rest,
+                                       ff - (s == LF_FETCH), fw - (s == LF_WILDS), m2 + nm, f2 + 2 - nm, lm - nm,
+                                       lf - (2 - nm), crt, v2, vt and v2)
+                                moves.append((("cast", c, fl, s, pick, k), nst, d, 1 + p))
+        for kind, on in ((LF_FETCH, ff), (LF_WILDS, fw)):
+            for t in ("Mountain", "Forest") if on else ():
+                if not (lm if t == "Mountain" else lf):
+                    continue
+                live = kind == LF_FETCH                 # Evolving Wilds' land enters tapped
+                m2, f2 = mtn + (t == "Mountain"), frs + (t == "Forest")
+                d, n, p = fall([t], m2, val)
+                for k, r2, g2 in cobra(n, pr, pg):
+                    nst = (r2, g2, um + (t == "Mountain" and live), uv, uf + (t == "Forest" and live), drops, hand,
+                           ff - (kind == LF_FETCH), fw - (kind == LF_WILDS), m2, f2, lm - (t == "Mountain"),
+                           lf - (t == "Forest"), crt, val, vt)
+                    moves.append((("crack", kind, t, k), nst, d, 1 + p))
+        if plan == "land_first" and first and any(m[0][0] == "land" for m in moves):
+            moves = [m for m in moves if m[0][0] == "land"]
+        if plan == "payoff_first" and any(m[0][0] == "cast" and m[0][1] in LF_PAYOFFS for m in moves):
+            moves = [m for m in moves if m[0][0] == "cast" and m[0][1] in LF_PAYOFFS]
+        # The end: Blaze for everything left. Its {R} from floating red or a red land; the floating mana its X takes
+        # must be one colour.
+        tot = pr + pg + um + uv + uf
+        top = (0, 0, ())
+        if "Blaze" in hand and (pr or um or uv) and not (pg and pr > 1) and tot >= 2:
+            top = (tot - 1, 1, (("blaze", tot - 1),))
+        for move, nst, d, s in moves:
+            dd, ss, ln = best(nst, False)
+            if (dd + d, -(ss + s)) > (top[0], -top[1]):
+                top = (dd + d, ss + s, (move,) + ln)
+        return top
+
+    vb = start["valakut"] == "bf"
+    st = (0, 0, start["mountains"], int(vb), start["forests"], 1, tuple(sorted(start["hand"])), 0, 0,
+          start["mountains"], start["forests"], start["lib"][0], start["lib"][1],
+          (int(start["hellkite"]), int(start["geopede"]), int(start["cobra"] == "bf")), vb, False)
+    d, s, ln = best(st, True)
+    return d + cor, s + cor, ln
+
+
+def landfall_plain(start):
+    """What each plain plan that applies to the board deals: {plan: damage}."""
+    return {p: landfall_search(start, plan=p)[0] for p in LANDFALL_PLANS if _landfall_plan_applies(p, start)}
+
+
+def landfall_unused(moves):
+    """Mana the line leaves: none when it ends with Blaze for everything left (Blaze's X is all of it); else all of
+    it, counted as one."""
+    return 0 if moves and moves[-1][0] == "blaze" and moves[-1][1] >= 1 else 1
+
+
+class LineUnwritable(Exception):
+    """The engine would ask something here that a written line does not answer."""
+
+
+def landfall_lines(start, moves):
+    """The written line for landfall_search's moves: (lines, damage, steps). Each move is made with the stack empty;
+    the triggers of a land entering are put in order (by source: Hellkite, Geopede, Valakut, Coralhelm, Cobra) and
+    their choices named as they go on the stack (in reverse: Coralhelm's mode and target, a damage target), then
+    resolved: Valakut's "yes", Coralhelm's "Untap", Cobra's colour. Prodigal Pyromancer pings at every priority it is
+    untapped. A "pass" is written only before a move the seat could make at once with the stack not empty (a crack,
+    Harrow) and only where the seat is asked (the Pyromancer, a fetch out or Harrow castable; a priority where only a
+    land's mana could be made is passed by the seat itself). Each cast floats exactly the lands its move names, so the
+    engine pays from floating mana alone. A fetch or Harrow names its basic from the library; Blaze its X."""
+    L = []
+    lands = [["Mountain", False] for _ in range(start["mountains"])] + \
+        [["Forest", False] for _ in range(start["forests"])] + ([[VALAKUT, False]] if start["valakut"] == "bf" else [])
+    creatures = ([PYROMANCER] if start["coralhelm"] else []) + ([HELLKITE] if start["hellkite"] else []) + \
+        ([GEOPEDE] if start["geopede"] else []) + ([COBRA] if start["cobra"] == "bf" else [])
+    hand = list(start["hand"])
+    pool = {"R": 0, "G": 0}
+    cor = int(start["coralhelm"])
+    st = {"pyro": bool(cor), "dmg": 0, "steps": 0, "greens": 0}
+    stack = []
+
+    def mountains():
+        return sum(1 for n, _ in lands if n == "Mountain")
+
+    def untapped(*names):
+        return [land for nm in names for land in lands if land[0] == nm and not land[1]]
+
+    def asked():
+        if st["pyro"] or any(n in (LF_FETCH, LF_WILDS) for n, _ in lands):
+            return True
+        tot = pool["R"] + pool["G"] + len(untapped("Mountain", "Forest", VALAKUT))
+        return "Harrow" in hand and tot >= 3 and bool(pool["G"] or untapped("Forest"))
+
+    def fall(entered):
+        trig = []
+        for t in entered:
+            trig += [(HELLKITE, t)] * creatures.count(HELLKITE) + [(GEOPEDE, t)] * creatures.count(GEOPEDE)
+            if t == "Mountain" and mountains() >= 6 and any(n == VALAKUT for n, _ in lands):
+                trig.append((VALAKUT, t))
+            trig += [(CORALHELM, t)] * cor + [(COBRA, t)] * creatures.count(COBRA)
+        if len(set(k for k, _ in trig)) > 1:
+            L.append("; ".join(k for k, _ in trig))
+        for k, _ in reversed(trig):
+            if k == CORALHELM:
+                L.append("You may tap or untap")
+                if len(creatures) > 1:
+                    L.append(PYROMANCER)
+            elif k in (HELLKITE, VALAKUT):
+                L.append("opponent")
+        stack.extend(("trigger",) + kt for kt in reversed(trig))
+
+    def resolve(need_pass):
+        while stack or st["pyro"]:
+            if st["pyro"]:
+                L.extend(["activate " + PYROMANCER, "opponent"])
+                st["pyro"] = False
+                st["steps"] += 1
+                stack.append(("ping",))
+                continue
+            if need_pass and asked():
+                L.append("pass")
+            obj = stack.pop()
+            if obj[0] == "ping":
+                st["dmg"] += 1
+            elif obj[0] == "spell":
+                if obj[1] in LF_PAYOFFS + (AZUSA,):
+                    creatures.append(obj[1])
+            elif obj[0] == "trigger":
+                k, t = obj[1], obj[2]
+                if k == HELLKITE:
+                    st["dmg"] += 2 if t == "Mountain" else 1
+                elif k == GEOPEDE:
+                    st["dmg"] += 1
+                elif k == VALAKUT:
+                    if mountains() < 6:
+                        raise LineUnwritable("Valakut's condition fails as it resolves")
+                    L.append("yes")
+                    st["dmg"] += 3
+                elif k == CORALHELM:
+                    L.append("Untap")
+                    st["pyro"] = True
+                else:
+                    col = "G" if st["greens"] else "R"
+                    st["greens"] -= col == "G"
+                    L.append("green" if col == "G" else "red")
+                    pool[col] += 1
+            else:                                   # a fetch's or Harrow's search
+                for t in obj[2]:
+                    L.append(t)
+                for t in obj[2]:
+                    lands.append([t, obj[1] == LF_WILDS])
+                fall(list(obj[2]))
+
+    def pay(fl, gen, green, red):
+        for name, n in zip(("Mountain", VALAKUT, "Forest"), fl):
+            for _ in range(n):
+                untapped(name)[0][1] = True
+                L.append("activate " + name)
+                pool[LF_LAND_MANA[name]] += 1
+        pool["R"] -= red
+        pool["G"] -= green
+        col = "R" if pool["R"] >= gen else "G"
+        if pool["R"] < 0 or pool["G"] < 0 or (gen and pool["R"] and pool["G"]) or pool[col] < gen:
+            raise LineUnwritable("the floating mana does not pay %s" % ((gen, green, red),))
+        pool[col] -= gen
+
+    resolve(False)
+    for mv in moves:
+        resolve(mv[0] == "crack" or mv[:2] == ("cast", "Harrow"))
+        st["steps"] += 1
+        if mv[0] == "land":
+            L.append("play land " + mv[1])
+            hand.remove(mv[1])
+            st["greens"] = mv[2]
+            lands.append([mv[1], mv[1] == VALAKUT])
+            fall([mv[1] if mv[1] in ("Mountain", "Forest") else "-"])
+        elif mv[0] == "crack":
+            L.append("activate " + mv[1])
+            st["greens"] = mv[3]
+            lands.remove(next(land for land in lands if land[0] == mv[1]))
+            stack.append(("search", mv[1], (mv[2],)))
+        elif mv[0] == "cast":
+            c = mv[1]
+            pay(mv[2], *LF_SPELLS[c])
+            L.append("cast " + c)
+            hand.remove(c)
+            if c == "Harrow":
+                s = mv[3]
+                gone = next(land for land in lands if land[0] == s and (land[1] or s not in LF_LAND_MANA))
+                lands.remove(gone)
+                # A tapped and an untapped land of one name read apart ("[tapped]"): the line names which.
+                L.append(s + (" [tapped]" if s in LF_LAND_MANA and untapped(s) else ""))
+                st["greens"] = mv[5]
+                stack.append(("search", "Harrow", mv[4]))
+            else:
+                stack.append(("spell", c))
+        else:
+            tot = pool["R"] + pool["G"] + len(untapped("Mountain", "Forest", VALAKUT))
+            if mv[1] != tot - 1:
+                raise LineUnwritable("Blaze's X %d of %d mana" % (mv[1], tot))
+            L.extend(["cast Blaze", str(mv[1]), "opponent"])
+            st["dmg"] += mv[1]
+    resolve(False)
+    return L, st["dmg"], st["steps"]
+
+
+def landfall_draw(rng):
+    """A landfall board's search inputs, drawn toward boards where the order matters: Lotus Cobra out or in hand,
+    fetches, a payoff in hand, and the extra land drops."""
+    s = {"mountains": rng.choice([3, 3, 4, 4, 5]), "forests": rng.choice([0, 1, 1, 2]),
+         "valakut": rng.choice([None, "bf", "bf", "hand"]), "hellkite": rng.random() < 0.15,
+         "geopede": rng.random() < 0.15, "coralhelm": rng.random() < 0.2,
+         "cobra": rng.choice(["bf", "hand", "hand"]), "lib": [5, 5]}
+    hand = ["Blaze"] + ([VALAKUT] if s["valakut"] == "hand" else [])
+    hand += [rng.choice([LF_FETCH, LF_FETCH, LF_WILDS]) for _ in range(rng.choice([1, 2, 2, 3]))]
+    hand += [rng.choice(["Mountain", "Forest"]) for _ in range(rng.choice([0, 1, 1, 2]))]
+    hand += [c for c, p in ((AZUSA, 0.5), ("Exploration", 0.5), ("Harrow", 0.5)) if rng.random() < p]
+    if not s["hellkite"] and rng.random() < 0.6:
+        hand.append(HELLKITE)
+    if not s["geopede"] and rng.random() < 0.3:
+        hand.append(GEOPEDE)
+    if s["cobra"] == "hand":
+        hand.append(COBRA)
+    s["hand"] = sorted(hand)
+    return s
+
+
+def _count_words(n, word):
+    return "%s %s%s" % (["no", "one", "two", "three", "four", "five", "six"][n], word, "s" if n != 1 else "")
+
+
+def landfall_board(rng):
+    """Lands and their triggers: the opponent's life is the exhaustive maximum of landfall_search, the line 13 to 15
+    steps ending in Blaze for every mana left, and the best plain plan (LANDFALL_PLANS) falls 1 to 3 short."""
+    s = landfall_draw(rng)
+    dmg, steps, moves = landfall_search(s)
+    if not HARD_MIN <= steps <= HARD_MAX or landfall_unused(moves):
+        return None
+    trap = _trap(dmg, landfall_plain(s))
+    if trap is None:
+        return None
+    try:
+        lines, dealt, n = landfall_lines(s, moves)
+    except LineUnwritable:
+        return None
+    if (dealt, n) != (dmg, steps):
+        return None
+    bf = (["Mountain"] * s["mountains"] + ["Forest"] * s["forests"] + ([VALAKUT] if s["valakut"] == "bf" else [])
+          + [c for c, on in ((HELLKITE, s["hellkite"]), (GEOPEDE, s["geopede"]), (COBRA, s["cobra"] == "bf")) if on]
+          + ([CORALHELM, PYROMANCER] if s["coralhelm"] else []))
+    seen = ([c for c in bf if c not in ("Mountain", "Forest")]
+            + ["%s and %s, all untapped" % (_count_words(s["mountains"], "Mountain"), _count_words(s["forests"],
+                                                                                                   "Forest"))])
+    desc = ("It is your second main phase. You are at 20 life and control %s. Your hand is %s. Your library holds five "
+            "Mountains and five Forests. The opponent is at %d life and controls nothing. Reduce the opponent to 0 "
+            "life this turn." % (_join(seen), _join(s["hand"]), dmg))
+    notes = ["every land a landfall trigger"]
+    if s["cobra"]:
+        notes.append("Lotus Cobra's mana for each land after it")
+    if s["valakut"]:
+        notes.append("Valakut only for a Mountain with five others out")
+    if s["coralhelm"]:
+        notes.append("Retreat to Coralhelm untaps Prodigal Pyromancer for another ping")
+    notes.append("Blaze for all the mana left")
+    trap_note = _trap_note(trap, LANDFALL_PLANS, "deals")
+    rule = "generated-landfall | the exhaustive maximum is %d damage in %d steps: %s%s" % (
+        dmg, steps, "; ".join(notes), trap_note)
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(s["hand"])), ("p0battlefield", ";".join(bf)),
+             ("p0library", ";".join(["Mountain", "Forest"] * 5)), ("p1life", dmg),
+             ("p1library", "Plains;Plains;Plains")]
+    solution = ["# steps: %d" % steps] + _record_lines(s, trap) + lines
+    shape = ("landfall", s["mountains"], s["forests"], s["valakut"], s["hellkite"], s["geopede"], s["coralhelm"],
+             s["cobra"], tuple(s["hand"]))
+    return {"family": "landfall", "trap": trap, "unused": 0, "actions": steps, "life": dmg, "hand": s["hand"],
+            "battlefield": sorted(bf), "phase": "MAIN2", "search": s, "shape": shape,
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+# The tokens family (eval/puzzles/hard/gen3). Goblins enter and die in one main phase: Impact Tremors deals 1 for each
+# creature entering, Witty Roastmaster 1 for each other one, Mayhem Devil 1 for each sacrifice (Skirk Prospector's
+# for {R}, Siege-Gang Commander's for 2 damage); Krenko, Mob Boss makes a Goblin for each Goblin out; Mogg War Marshal
+# leaves a token when it dies. Goblin Bushwhacker is left out: whether its kicker is offered depends on how the engine
+# prices Skirk Prospector as a source, a question the written line cannot predict.
+GOBLIN_TOKEN = "Goblin Token"
+KRENKO, SKIRK, INSTIGATOR, MARSHAL = "Krenko, Mob Boss", "Skirk Prospector", "Goblin Instigator", "Mogg War Marshal"
+BEETLEBACK, SIEGE = "Beetleback Chief", "Siege-Gang Commander"
+ROASTMASTER, DEVIL, TREMORS = "Witty Roastmaster", "Mayhem Devil", "Impact Tremors"
+TK_CREATURES = {SKIRK: (1, True, 0), INSTIGATOR: (2, True, 1), MARSHAL: (2, True, 1), BEETLEBACK: (4, True, 2),
+                SIEGE: (5, True, 3), ROASTMASTER: (3, False, 0), KRENKO: (4, True, 0),
+                DEVIL: (None, False, 0), GOBLIN_TOKEN: (0, True, 0)}    # (mana value, a Goblin, tokens on entering)
+# Mayhem Devil costs {1}{B}{R} and Krenko {2}{R}{R}: the Mountains never cast the Devil, so it only starts out (the gate
+# caught five boards that cast it from hand: the seat was never offered it).
+TK_SORCERIES = {"Hordeling Outburst": (3, 3), "Dragon Fodder": (2, 2), "Krenko's Command": (2, 2)}
+TK_COST = dict([(c, v[0]) for c, v in TK_CREATURES.items() if v[0] is not None]
+               + [(c, v[0]) for c, v in TK_SORCERIES.items()] + [(TREMORS, 2)])
+TK_PAYOFFS = (TREMORS, ROASTMASTER, DEVIL)
+TOKEN_PLANS = {
+    "tokens_first": "sacrifice a token whenever there is one, never a creature card",
+    "payoff_first": "cast Impact Tremors, Witty Roastmaster and Mayhem Devil as soon as the lands pay for them",
+}
+
+
+def _goblin(name):
+    return TK_CREATURES[name][1]
+
+
+def token_search(start, plan=None):
+    """The most damage the board deals and the fewest steps that deal it: (damage, steps, moves), an exhaustive search
+    over every order of casts, Krenko's activation and Siege-Gang's, and every kind of Goblin sacrificed. All mana is
+    red: Mountains, and Skirk Prospector's {R} for a Goblin. A sacrifice is made as late as it can be (an earlier one
+    only loses a Goblin Krenko would count or a payoff cast later), so Skirk Prospector pays only what the Mountains
+    left cannot, and at the end every Goblin goes to it while a Mayhem Devil drains for each (Mogg War Marshal's token
+    too). Goblins with nothing left to do (a token, Goblin Instigator, Beetleback Chief once in play) are one kind:
+    a sacrifice takes a token while there is one. `start`: mountains, bf (Krenko, Impact Tremors and the creatures,
+    none summoning sick), hand. Moves: ("cast", card, sacrificed for mana), ("krenko", X), ("siege", sacrificed for
+    the cost, sacrificed for mana), ("sweep", sacrificed); steps are the casts and the activations of Krenko and
+    Siege-Gang (Skirk Prospector's is a mana ability). `plan` holds the search to a plain plan (TOKEN_PLANS)."""
+    from functools import lru_cache
+    # bodies: (tokens, plain Goblin cards, Marshals, Prospectors, Siege-Gangs, Krenko, Devils, Roastmasters)
+    T, V, M, S, G, K, D, R = range(8)
+    kind_of = {GOBLIN_TOKEN: T, INSTIGATOR: V, BEETLEBACK: V, MARSHAL: M, SKIRK: S, SIEGE: G,
+               KRENKO: K, DEVIL: D, ROASTMASTER: R}
+    name_of = {T: GOBLIN_TOKEN, V: "a Goblin card", M: MARSHAL, S: SKIRK, G: SIEGE, K: KRENKO}
+
+    def add(bodies, i, n=1):
+        b = list(bodies)
+        b[i] += n
+        return tuple(b)
+
+    def goblins(b):
+        return b[T] + b[V] + b[M] + b[S] + b[G] + b[K]
+
+    def enter(b, names, tremors):
+        d = 0
+        for nm in names:
+            d += tremors + b[R]
+            b = add(b, kind_of[nm])
+            for _ in range(TK_CREATURES[nm][2]):
+                d += tremors + b[R]
+                b = add(b, T)
+        return b, d
+
+    def sacrifice(b, i, tremors):
+        b = add(b, i, -1)
+        d = b[D]
+        if i == M:
+            b, d2 = enter(b, [GOBLIN_TOKEN], tremors)
+            d += d2
+        return b, d
+
+    def victims(b, kr):
+        """The kinds of Goblin worth telling apart as a sacrifice: a token (or, with none, a plain Goblin card),
+        a Marshal, a Prospector, a Siege-Gang, Krenko once he has made his tokens."""
+        if b[T] and plan == "tokens_first":
+            return [T]
+        return ([T] if b[T] else [V] if b[V] else []) + [i for i in (M, S, G) if b[i]] + ([K] if b[K] and not kr
+                                                                                          else [])
+
+    def sacs(b, k, tremors, kr):
+        out = {(b, 0): ()}
+        for _ in range(k):
+            nxt = {}
+            for (bs, d), vs in sorted(out.items()):
+                if not bs[S]:
+                    continue
+                for v in victims(bs, kr):
+                    bs2, d2 = sacrifice(bs, v, tremors)
+                    nxt.setdefault((bs2, d + d2), vs + (name_of[v],))
+            out = nxt
+        return [(bs, d, vs) for (bs, d), vs in sorted(out.items())]
+
+    def sweep(b, tremors):
+        d, vs = 0, []
+        while b[S] and (b[D] or b[M]):
+            order = [M] + ([T, V, G, K, S] if b[D] else [])
+            v = next((i for i in order if b[i]), None)
+            if v is None:
+                break
+            b, d2 = sacrifice(b, v, tremors)
+            d += d2
+            vs.append(name_of[v])
+        return d, tuple(vs)
+
+    @lru_cache(maxsize=None)
+    def best(m, hand, b, tremors, kr):
+        moves = []
+        for c in sorted(set(hand) & set(TK_COST)):          # Mayhem Devil's {B}: never cast
+            rest = list(hand)
+            rest.remove(c)
+            rest = tuple(rest)
+            need = TK_COST[c]
+            for bs, d, vs in sacs(b, max(0, need - m), tremors, kr):
+                if c in TK_CREATURES:
+                    bs2, d2 = enter(bs, [c], tremors)
+                    nxt = (max(0, m - need), rest, bs2, tremors, kr)
+                elif c in TK_SORCERIES:
+                    bs2, d2 = enter(bs, [GOBLIN_TOKEN] * TK_SORCERIES[c][1], tremors)
+                    nxt = (max(0, m - need), rest, bs2, tremors, kr)
+                else:
+                    d2, nxt = 0, (max(0, m - need), rest, bs, tremors + 1, kr)
+                moves.append((("cast", c, vs), nxt, d + d2, 1))
+        if kr:
+            x = goblins(b)
+            bs, d = enter(b, [GOBLIN_TOKEN] * x, tremors)
+            moves.append((("krenko", x), (m, hand, bs, tremors, False), d, 1))
+        if b[G]:
+            # The mana is floated first (Skirk's sacrifices among it), then the Goblin sacrificed as the cost: a
+            # Marshal's token comes only once its trigger resolves, after the activation. Siege-Gang may sacrifice
+            # itself: the ability still resolves.
+            for bs, d, vs in sacs(b, max(0, 2 - m), tremors, kr):
+                for v in (victims(bs, kr) if bs[G] else []):
+                    bs2, d2 = sacrifice(bs, v, tremors)
+                    moves.append((("siege", name_of[v], vs), (max(0, m - 2), hand, bs2, tremors, kr), 2 + d + d2, 1))
+        if plan == "payoff_first":
+            pay = [mv for mv in moves if mv[0][0] == "cast" and mv[0][1] in TK_PAYOFFS and TK_COST[mv[0][1]] <= m]
+            moves = pay or moves
+        d, vs = sweep(b, tremors)
+        top = (d, 0, (("sweep", vs),) if vs else ())
+        for move, nst, d, s in moves:
+            dd, ss, ln = best(*nst)
+            if (dd + d, -(ss + s)) > (top[0], -top[1]):
+                top = (dd + d, ss + s, (move,) + ln)
+        return top
+
+    b = [0] * 8
+    for c in start["bf"]:
+        if c in kind_of:
+            b[kind_of[c]] += 1
+    return best(start["mountains"], tuple(sorted(start["hand"])), tuple(b), start["bf"].count(TREMORS),
+                KRENKO in start["bf"])
+
+
+def _token_plan_applies(plan, start):
+    cards = start["bf"] + start["hand"]
+    if plan == "tokens_first":
+        return SKIRK in cards or SIEGE in cards
+    return any(c in TK_PAYOFFS for c in start["hand"])
+
+
+def token_plain(start):
+    """What each plain plan that applies to the board deals: {plan: damage}."""
+    return {p: token_search(start, plan=p)[0] for p in TOKEN_PLANS if _token_plan_applies(p, start)}
+
+
+def token_lines(start, moves, life):
+    """The written line for token_search's moves: (lines, damage, steps, Mountains left untapped). Each move starts
+    with the stack empty: a "pass" is written for each object still on it only when the move starts with something
+    the seat could do at once (a sacrifice, Krenko, Siege-Gang) and the seat is asked (a Prospector or Krenko out, or
+    Siege-Gang payable). A cast's Skirk sacrifices come first, then the Mountains it still needs are floated, so the
+    engine pays from floating mana alone. Triggers going on the stack together are put in order by source (Impact
+    Tremors, Witty Roastmaster, Mayhem Devil, then a maker's token or Mogg War Marshal's), each Devil's target named as
+    it goes on. A sacrificed card is named so that one summoning sick goes before one that started out. The line ends
+    where the opponent reaches 0: the game is over there."""
+    L = []
+    bodies = [{"name": c, "sick": False} for c in start["bf"] if c in TK_CREATURES]
+    st = {"m": start["mountains"], "pool": 0, "tremors": start["bf"].count(TREMORS), "kr": KRENKO in start["bf"],
+          "dmg": 0, "steps": 0}
+    stack = []
+
+    class Over(Exception):
+        pass
+
+    def names():
+        return [b["name"] for b in bodies]
+
+    def deal(n):
+        st["dmg"] += n
+        if st["dmg"] >= life:
+            raise Over()
+
+    def asked():
+        ns = names()
+        return SKIRK in ns or st["kr"] or (SIEGE in ns and st["m"] + st["pool"] >= 2)
+
+    def triggers(sources):
+        """Put triggers (source names) on the stack together: the order, then each Devil's target in reverse."""
+        order = sorted(sources, key=lambda k: (TREMORS, ROASTMASTER, DEVIL).index(k)
+                       if k in (TREMORS, ROASTMASTER, DEVIL) else 3)
+        if len(set(order)) > 1:
+            L.append("; ".join(order))
+        for k in reversed(order):
+            if k == DEVIL:
+                L.append("opponent")
+        stack.extend(("trigger", k) for k in reversed(order))
+
+    def enter(new):
+        """Creatures enter together (a spell's tokens, Krenko's): each's Tremors and Roastmaster triggers, and a
+        maker's own token trigger."""
+        srcs = []
+        for nm in new:
+            srcs += [TREMORS] * st["tremors"] + [ROASTMASTER] * sum(1 for b in bodies if b["name"] == ROASTMASTER)
+            bodies.append({"name": nm, "sick": True})
+            if TK_CREATURES[nm][2]:
+                srcs.append(nm)
+        if srcs:
+            triggers(srcs)
+
+    def resolve(need_pass):
+        while stack:
+            if need_pass and asked():
+                L.append("pass")
+            obj = stack.pop()
+            if obj[0] == "trigger":
+                k = obj[1]
+                if k in (TREMORS, ROASTMASTER, DEVIL):
+                    deal(1)
+                else:
+                    enter([GOBLIN_TOKEN] * (1 if k == MARSHAL else TK_CREATURES[k][2]))
+            elif obj[0] == "spell":
+                c = obj[1]
+                if c in TK_CREATURES:
+                    enter([c])
+                elif c in TK_SORCERIES:
+                    enter([GOBLIN_TOKEN] * TK_SORCERIES[c][1])
+                else:
+                    st["tremors"] += 1
+            elif obj[0] == "krenko":
+                enter([GOBLIN_TOKEN] * obj[1])
+            elif obj[0] == "siege":
+                deal(2)
+
+    def victim_label(kind):
+        """The sacrifice to name: a token, or the plain Goblin card, or the card named; one summoning sick first."""
+        if kind == "a Goblin card":
+            pool = [b for b in bodies if b["name"] in (INSTIGATOR, BEETLEBACK)]
+        else:
+            pool = [b for b in bodies if b["name"] == kind]
+        b = sorted(pool, key=lambda x: not x["sick"])[0]
+        same = [x for x in bodies if x["name"] == b["name"]]
+        label = b["name"]
+        if len(set(x["sick"] for x in same)) > 1:
+            label += " %s [untapped] [sick]" % ("1/1" if b["name"] == SKIRK else "2/2")
+        return b, label
+
+    def sacrifice(kind):
+        b, label = victim_label(kind)
+        goblins = [x for x in bodies if _goblin(x["name"])]
+        if len(goblins) > 1:
+            L.append(label)
+        bodies.remove(b)
+        srcs = [DEVIL] * sum(1 for x in bodies if x["name"] == DEVIL) + ([MARSHAL] if b["name"] == MARSHAL else [])
+        if b["name"] == KRENKO:
+            st["kr"] = False
+        if srcs:
+            triggers(srcs)
+
+    def skirk(kind):
+        L.append("activate " + SKIRK)
+        sacrifice(kind)
+        st["pool"] += 1
+
+    def float_(n):
+        for _ in range(n):
+            L.append("activate Mountain")
+            st["m"] -= 1
+            st["pool"] += 1
+
+    try:
+        for mv in moves:
+            instant = mv[0] in ("krenko", "siege", "sweep") or (mv[0] == "cast" and mv[2])
+            resolve(instant)
+            if mv[0] == "cast":
+                c = mv[1]
+                for kind in mv[2]:
+                    skirk(kind)
+                    resolve(True)
+                float_(max(0, TK_COST[c] - st["pool"]))
+                if st["pool"] != TK_COST[c] or st["m"] < 0:
+                    raise LineUnwritable("%s paid with %d" % (c, st["pool"]))
+                st["pool"] = 0
+                L.append("cast " + c)
+                st["steps"] += 1
+                stack.append(("spell", c))
+            elif mv[0] == "krenko":
+                L.append("activate " + KRENKO)
+                st["kr"] = False
+                st["steps"] += 1
+                stack.append(("krenko", mv[1]))
+            elif mv[0] == "siege":
+                for kind in mv[2]:
+                    skirk(kind)
+                    resolve(True)
+                float_(max(0, 2 - st["pool"]))
+                st["pool"] = 0
+                L.extend(["activate " + SIEGE, "opponent"])   # the target is asked before the Goblin sacrificed
+                st["steps"] += 1
+                stack.append(("siege",))
+                sacrifice(mv[1])
+            else:
+                for kind in mv[1]:
+                    skirk(kind)
+                    resolve(True)
+        resolve(False)
+    except Over:
+        pass
+    return L, st["dmg"], st["steps"], st["m"]
+
+
+def token_draw(rng):
+    """A tokens board's search inputs: Skirk Prospector out on most, a hand of cheap Goblins and token makers, and at
+    most one of each payoff (two copies' triggers would be asked in an order the line does not write)."""
+    bf = [KRENKO] if rng.random() < 0.5 else []
+    payoffs = {TREMORS: rng.choice(["bf", "bf", "hand", None]), DEVIL: rng.choice(["bf", None, None]),
+               ROASTMASTER: rng.choice(["bf", "hand", None, None, None])}
+    bf += [c for c, z in payoffs.items() if z == "bf"]
+    bf += [c for c, p in ((SKIRK, 0.8), (SIEGE, 0.2)) if rng.random() < p]
+    hand = [rng.choice([INSTIGATOR, MARSHAL, MARSHAL, MARSHAL, "Dragon Fodder", "Krenko's Command", SKIRK,
+                        "Hordeling Outburst", BEETLEBACK]) for _ in range(rng.choice([6, 7, 8, 9, 10]))]
+    hand += [c for c, z in payoffs.items() if z == "hand"]
+    return {"mountains": rng.choice([1, 2, 2, 3, 4]), "bf": sorted(bf), "hand": sorted(hand)}
+
+
+def tokens_board(rng):
+    """Goblins entering and dying: the opponent's life is the exhaustive maximum of token_search, the line 13 to 15
+    steps with every Mountain tapped, and the best plain plan (TOKEN_PLANS) falls 1 to 3 short."""
+    s = token_draw(rng)
+    dmg, steps, moves = token_search(s)
+    if not HARD_MIN <= steps <= HARD_MAX:
+        return None
+    trap = _trap(dmg, token_plain(s))
+    if trap is None:
+        return None
+    try:
+        lines, dealt, n, left = token_lines(s, moves, dmg)
+    except LineUnwritable:
+        return None
+    if (dealt, n, left) != (dmg, steps, 0):
+        return None
+    bf = sorted(s["bf"]) + ["Mountain"] * s["mountains"]
+    seen = sorted(s["bf"]) + [_count_words(s["mountains"], "untapped Mountain")]
+    desc = ("It is your second main phase. You are at 20 life and control %s, none of them summoning sick. Your hand "
+            "is %s. The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
+            % (_join(seen), _join(s["hand"]), dmg))
+    cards = s["bf"] + s["hand"]
+    notes = []
+    if TREMORS in cards or ROASTMASTER in cards:
+        notes.append("every creature entering deals damage")
+    if DEVIL in cards:
+        notes.append("Mayhem Devil drains for every sacrifice, Skirk Prospector's too")
+    if SKIRK in cards:
+        notes.append("Skirk Prospector turns a Goblin into {R}")
+    if KRENKO in cards:
+        notes.append("Krenko counts every Goblin out")
+    if MARSHAL in cards:
+        notes.append("Mogg War Marshal leaves a token when it dies")
+    rule = "generated-tokens | the exhaustive maximum is %d damage in %d steps: %s%s" % (
+        dmg, steps, "; ".join(notes), _trap_note(trap, TOKEN_PLANS, "deals"))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(s["hand"])), ("p0battlefield", ";".join(bf)),
+             ("p0library", ";".join(["Colossal Dreadmaw"] * 4)), ("p1life", dmg), ("p1library", "Plains;Plains;Plains")]
+    solution = ["# steps: %d" % steps] + _record_lines(s, trap) + lines
+    shape = ("tokens", s["mountains"], tuple(s["bf"]), tuple(s["hand"]))
+    return {"family": "tokens", "trap": trap, "unused": 0, "actions": steps, "life": dmg, "hand": s["hand"],
+            "battlefield": bf, "phase": "MAIN2", "search": s, "shape": shape,
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
 FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board, "splice2": splice2_board,
             "red": red_board, "drain": drain_board, "elf": elf_board, "fling": fling_board, "drain2": drain2_board,
             "elf2": elf2_board, "hoofdrain": hoofdrain_board, "atog": atog_board, "grave": grave_board,
-            "copy": copy_board}
+            "copy": copy_board, "infect": infect_board, "equip": equip_board, "landfall": landfall_board,
+            "tokens": tokens_board}
 
 
 def board_key(b):
@@ -2272,9 +3788,9 @@ def board_key(b):
 
 
 def iter_boards(family, count, seed, tries=20000):
-    """`count` boards of a family, each yielded as it is drawn. A board that states its structure (drain2, elf2,
-    hoofdrain: `shape`, the cards reduced to their roles) is also one board with any other of that structure or of
-    the same life total, so a batch never repeats a life total."""
+    """`count` boards of a family, each yielded as it is drawn. A board that states its structure (`shape`:
+    drain2, elf2, hoofdrain, landfall, tokens; the cards reduced to their roles) is also one board with any
+    other of that structure or of the same life total, so a batch never repeats a life total."""
     rng = random.Random(seed)
     seen, n = set(), 0
     for _ in range(tries):

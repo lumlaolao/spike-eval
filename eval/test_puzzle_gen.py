@@ -581,5 +581,327 @@ class AtogSearchTest(unittest.TestCase):
             self.assertEqual(stated_life(b["text"]("x")), dmg)
 
 
+def infect_start(**kw):
+    """An infect search input: one Glistener Elf, no Inkmoth Nexus, at 20 life, the opponent poisoned already."""
+    s = {"attackers": ["Glistener Elf"], "inkmoth": False, "forests": 1, "hand": [], "hand_forests": 0,
+         "graveyard": 0, "life": 20, "poisoned": True}
+    s.update(kw)
+    return s
+
+
+def landfall_start(**kw):
+    s = {"mountains": 0, "forests": 0, "valakut": None, "hellkite": False, "geopede": False, "coralhelm": False,
+         "cobra": None, "hand": ["Blaze"], "lib": [5, 5]}
+    s.update(kw)
+    return s
+
+
+class InfectSearchTest(unittest.TestCase):
+    def test_might_of_old_krosa_gives_four_only_in_a_main_phase(self):
+        # The land, then Might of Old Krosa in the first main phase (+4) and Thirsting Roots proliferating: 1 + 4 + 1.
+        # Cast after the attack (the plain plan that pumps in combat) Might gives +2: 4.
+        s = infect_start(hand=["Might of Old Krosa", "Thirsting Roots"], hand_forests=1)
+        poison, steps, unused, moves = pg.infect_search(s)
+        self.assertEqual((poison, steps, unused), (6, 4, 0))
+        self.assertEqual(pg.infect_search(s, plan="combat_pumps")[0], 4)
+
+    def test_proliferate_waits_for_the_first_poison_counter(self):
+        # The opponent has no poison: Thirsting Roots before combat gives nothing, so a Forest is held for it after.
+        s = infect_start(hand=["Might of Old Krosa", "Thirsting Roots"], hand_forests=1, poisoned=False)
+        poison, steps, unused, moves = pg.infect_search(s)
+        self.assertEqual(poison, 6)
+        kinds = [m[0] if m[0] != "cast" else m[1] for m in moves]
+        self.assertLess(kinds.index("attack"), kinds.index("Thirsting Roots"))
+
+    def test_counters_on_two_creatures_proliferate_twice_before_combat(self):
+        # A +1/+1 counter on each attacker, then Roots before combat: each creature and the opponent get one more,
+        # 3 + 3 + 1. Both counters on one creature: 4 + 1 + 1; Roots after combat: 2 + 2 + 1.
+        s = infect_start(attackers=["Blighted Agent", "Glistener Elf"], forests=3,
+                         hand=["Battlegrowth", "Battlegrowth", "Thirsting Roots"])
+        self.assertEqual(pg.infect_search(s)[0], 7)
+        self.assertEqual(pg.infect_search(s, plan="prolif_after_combat")[0], 5)
+
+    def test_become_immense_delves_five(self):
+        self.assertEqual(pg.infect_search(infect_start(hand=["Become Immense"], graveyard=5))[0], 7)
+        self.assertEqual(pg.infect_search(infect_start(hand=["Become Immense"], graveyard=4))[0], 1)
+
+    def test_land_grant_is_free_with_no_land_in_hand(self):
+        # No mana at all: Land Grant for free, the Forest it finds played, Groundswell with landfall: 1 + 4.
+        s = infect_start(forests=0, hand=["Land Grant", "Groundswell"])
+        self.assertEqual(pg.infect_search(s)[:2], (5, 4))
+
+    def test_inkmoth_nexus_attacks_for_one_mana_and_mutagenic_growth_costs_life(self):
+        s = infect_start(inkmoth=True, hand=["Mutagenic Growth"])
+        self.assertEqual(pg.infect_search(s)[:2], (4, 3))
+        # At 2 life the Phyrexian symbol takes the Forest, and Inkmoth Nexus stays a land.
+        self.assertEqual(pg.infect_search(dict(s, life=2))[0], 3)
+
+    def test_mishras_bauble_comes_back_with_unnatural_restoration(self):
+        # Bauble, cracked; Restoration returns it and proliferates (+1); Bauble again: three cards in the graveyard
+        # (the Bolt, Restoration, Bauble) and Become Immense for {2}{G}: 1 + 1 + 6. Without Restoration the
+        # graveyard holds two and Become Immense costs {3}{G}: 7.
+        s = infect_start(forests=5, graveyard=1, hand=["Mishra's Bauble", "Unnatural Restoration",
+                                                         "Become Immense"])
+        poison, steps, unused, moves = pg.infect_search(s)
+        self.assertEqual(poison, 8)
+        self.assertEqual(sum(m == ("bauble",) for m in moves), 2)
+
+    def test_the_written_line_proliferates_onto_the_opponent_and_each_countered_creature(self):
+        s = infect_start(attackers=["Blighted Agent", "Glistener Elf"], forests=3,
+                         hand=["Battlegrowth", "Battlegrowth", "Thirsting Roots"])
+        poison, steps, unused, moves = pg.infect_search(s)
+        lines = pg.infect_lines(s, moves, 10 - poison)[0]
+        i = lines.index("Proliferate")
+        self.assertEqual(sorted(lines[i + 1:i + 4]), ["Blighted Agent", "Glistener Elf", "opponent"])
+        self.assertEqual(lines[-1], "Blighted Agent; Glistener Elf")
+
+    def test_an_infect_board_is_the_searched_maximum_with_a_near_miss_trap(self):
+        b = next(iter(pg.iter_boards("infect", 1, 2, tries=150)))
+        rec = pg.board_record(b["text"]("x"))
+        self.assertEqual(rec["family"], "infect")
+        best, steps, unused, plain = pg.research(rec)
+        self.assertEqual((best, steps, unused), (10 - rec["poison"], rec["steps"], 0))
+        self.assertTrue(13 <= steps <= 15, steps)
+        self.assertEqual(plain, rec["trap"]["plans"])
+        self.assertTrue(1 <= best - max(plain.values()) <= 3, (best, plain))
+        self.assertIn("Goal:Win", b["text"]("x"))
+
+
+def equip_start(**kw):
+    s = {"creatures": ["Fencing Ace", "Hill Giant"], "start": [], "loose": [], "hand": [], "mana": 0}
+    s.update(kw)
+    return s
+
+
+class EquipSearchTest(unittest.TestCase):
+    def test_equipment_goes_on_the_double_striker(self):
+        # Bonesplitter and Short Sword on Fencing Ace: (1 + 2 + 1) x 2 + Hill Giant's 3. On the biggest creature,
+        # the Giant: 3 + 3 + Ace's 2.
+        s = equip_start(loose=["Bonesplitter", "Short Sword"], mana=2)
+        dmg, steps, unused, moves = pg.equip_search(s)
+        self.assertEqual((dmg, steps, unused), (11, 3, 0))
+        self.assertEqual(pg.equip_search(s, plan="biggest")[0], 8)
+
+    def test_embercleave_costs_one_less_for_each_attacker(self):
+        # Two attackers: Embercleave costs {2}{R}{R} after attacks are declared, and goes on the Giant: 4 x 2 + 2.
+        s = equip_start(hand=["Embercleave"], mana=4)
+        dmg, steps, unused, moves = pg.equip_search(s)
+        self.assertEqual((dmg, steps, unused), (10, 2, 0))
+        self.assertEqual(moves[0], ("attack",))
+        self.assertEqual(pg.equip_search(s, plan="cleave_main")[0], 5)
+
+    def test_puresteel_paladin_equips_for_free_with_three_artifacts(self):
+        s = equip_start(creatures=["Fencing Ace", "Puresteel Paladin"], start=["Puresteel Paladin"],
+                        hand=["Bonesplitter", "Leonin Scimitar", "Short Sword"], mana=3)
+        dmg, steps, unused, moves = pg.equip_search(s)
+        self.assertEqual((dmg, steps, unused), (12, 7, 0))
+        self.assertEqual(pg.equip_search(s, plan="equip_asap")[0], 8)
+
+    def test_sigardas_aid_attaches_as_the_equipment_enters(self):
+        s = equip_start(creatures=["Fencing Ace", "Savannah Lions"], hand=["Bonesplitter", "Sigarda's Aid"], mana=2)
+        self.assertEqual(pg.equip_search(s)[:3], (8, 3, 0))
+
+    def test_the_written_line_equips_by_menu_words(self):
+        s = equip_start(loose=["Bonesplitter", "Short Sword"], mana=2)
+        moves = pg.equip_search(s)[3]
+        lines = pg.equip_lines(s, moves)
+        self.assertEqual(lines, ["activate Bonesplitter ... Equip {1}", "Fencing Ace",
+                                 "activate Short Sword ... Equip {1}", "Fencing Ace", "Fencing Ace; Hill Giant"])
+
+    def test_the_written_line_orders_the_triggers_of_an_equipment_entering(self):
+        s = equip_start(creatures=["Fencing Ace", "Puresteel Paladin"], start=["Puresteel Paladin", "Sigarda's Aid"],
+                        hand=["Bonesplitter"], mana=1)
+        lines = pg.equip_lines(s, pg.equip_search(s)[3])
+        self.assertEqual(lines, ["cast Bonesplitter", "Sigarda's Aid; Puresteel Paladin", "Fencing Ace", "yes", "no",
+                                 "Fencing Ace; Puresteel Paladin"])
+
+    def test_an_equip_board_is_the_searched_maximum_with_a_near_miss_trap(self):
+        b = next(iter(pg.iter_boards("equip", 1, 3, tries=600)))
+        rec = pg.board_record(b["text"]("x"))
+        best, steps, unused, plain = pg.research(rec)
+        self.assertEqual((best, steps, unused), (rec["life"], rec["steps"], 0))
+        self.assertTrue(13 <= steps <= 15, steps)
+        self.assertEqual(plain, rec["trap"]["plans"])
+        self.assertTrue(1 <= best - max(plain.values()) <= 3, (best, plain))
+
+
+GEN3 = Path(__file__).resolve().parent / "puzzles" / "hard" / "gen3"
+
+
+class Gen3BoardsTest(unittest.TestCase):
+    """Every committed infect and equip board, re-derived from the search inputs it states (check_gen3_family)."""
+
+    def test_infect_boards(self):
+        for p in check_gen3_family(self, "infect"):
+            self.assertIn("Goal:Win", p.read_text(encoding="utf-8"))
+
+    def test_equip_boards(self):
+        check_gen3_family(self, "equip")
+
+    def test_a_family_with_no_gen3_writer_is_refused(self):
+        with self.assertRaises(ValueError):
+            pg.written_from_record({"family": "drain2", "search": {}})
+
+
+class LandfallSearchTest(unittest.TestCase):
+    def test_lotus_cobra_before_the_land_drop(self):
+        # Two Mountains, a Forest and Akoum Hellkite out. Lotus Cobra first (a Mountain and the Forest); the Mountain:
+        # Hellkite 2, Cobra's green casts Exploration; Wooded Foothills: Hellkite 1, red; cracked for a Mountain:
+        # Hellkite 2, red. Two red floating and three Mountains: Blaze for 4. 9 in 6 steps. The land first leaves Cobra
+        # one land fewer to see: 8.
+        s = landfall_start(mountains=2, forests=1, hellkite=True, cobra="hand",
+                           hand=["Blaze", "Exploration", "Lotus Cobra", "Mountain", "Wooded Foothills"])
+        dmg, steps, moves = pg.landfall_search(s)
+        self.assertEqual((dmg, steps), (9, 6))
+        self.assertEqual(moves[0][:2], ("cast", "Lotus Cobra"))
+        self.assertEqual(pg.landfall_plain(s), {"land_first": 8, "payoff_first": 9})
+
+    def test_valakut_needs_five_other_mountains(self):
+        self.assertEqual(pg.landfall_search(landfall_start(mountains=5, valakut="bf", hand=["Blaze", "Mountain"]))[0],
+                         3 + 6)
+        self.assertEqual(pg.landfall_search(landfall_start(mountains=4, valakut="bf", hand=["Blaze", "Mountain"]))[0],
+                         5)
+
+    def test_harrow_sacrifices_the_tapped_forest_and_both_mountains_count(self):
+        # Four Mountains, Valakut and a Forest: Harrow paid with the Forest and two Mountains sacrifices the Forest and
+        # fetches two Mountains, each with five others (6); Blaze for the 5 left, X = 4. Sacrificing a Mountain
+        # leaves each new one four others.
+        s = landfall_start(mountains=4, forests=1, valakut="bf", hand=["Blaze", "Harrow"])
+        dmg, steps, moves = pg.landfall_search(s)
+        self.assertEqual((dmg, steps), (10, 2))
+        self.assertEqual(moves[0][3:5], ("Forest", ("Mountain", "Mountain")))
+
+    def test_floating_mana_of_two_colours_never_pays_a_generic_cost(self):
+        # A red and a green floating, a {1}{G} spell: green pays the {G}, red the {1}: allowed. Two of each floating
+        # and a {2}: the engine would ask which pays, so the model refuses it.
+        self.assertEqual(list(pg.landfall_pay(1, 1, 0, 0, 0, 1, 1, 0)), [((0, 0, 0), 0, 0, 0, 0, 0)])
+        self.assertEqual(list(pg.landfall_pay(2, 2, 0, 0, 0, 2, 0, 0)), [])
+
+    def test_the_written_line_names_each_trigger_and_cobras_colour(self):
+        # The fetch's triggers resolve before its crack: the seat could crack at once, so the line passes twice.
+        s = landfall_start(mountains=2, forests=1, hellkite=True, cobra="hand",
+                           hand=["Blaze", "Exploration", "Lotus Cobra", "Mountain", "Wooded Foothills"])
+        dmg, steps, moves = pg.landfall_search(s)
+        lines, dealt, n = pg.landfall_lines(s, moves)
+        self.assertEqual(lines, ["activate Mountain", "activate Forest", "cast Lotus Cobra", "play land Mountain",
+                                 "Akoum Hellkite; Lotus Cobra", "opponent", "green", "cast Exploration",
+                                 "play land Wooded Foothills", "Akoum Hellkite; Lotus Cobra", "opponent", "pass",
+                                 "pass", "red", "activate Wooded Foothills", "Mountain", "Akoum Hellkite; Lotus Cobra",
+                                 "opponent", "red", "cast Blaze", "4", "opponent"])
+        self.assertEqual((dealt, n), (9, 6))
+
+    def test_a_pass_resolves_the_stack_before_a_fetch_is_cracked(self):
+        # Prodigal Pyromancer pings at every chance (Retreat to Coralhelm untaps it on each land); the second fetch's
+        # crack waits for the first fetch's triggers, so the line passes while the seat could crack.
+        s = landfall_start(mountains=3, coralhelm=True, geopede=True,
+                           hand=["Blaze", "Wooded Foothills", "Exploration", "Forest"])
+        dmg, steps, moves = pg.landfall_search(s)
+        lines, dealt, n = pg.landfall_lines(s, moves)
+        self.assertEqual((dealt, n), (dmg, steps))
+        self.assertEqual(lines[:2], ["activate Prodigal Pyromancer", "opponent"])
+        self.assertIn("Untap", lines)
+        self.assertEqual(lines.count("activate Prodigal Pyromancer"), 1 + sum(
+            1 for m in moves if m[0] in ("land", "crack")))
+
+    def test_a_landfall_board_holds_the_bar(self):
+        b = next(pg.iter_boards("landfall", 1, 5, tries=3000))
+        rec = pg.board_record(b["text"]("x"))
+        best, steps, unused, plain = pg.research(rec)
+        self.assertEqual((best, steps, unused), (b["life"], b["actions"], 0))
+        self.assertTrue(13 <= steps <= 15)
+        self.assertEqual(plain, b["trap"]["plans"])
+        self.assertTrue(1 <= best - max(plain.values()) <= 3)
+
+    def test_every_committed_landfall_board_holds_its_bar(self):
+        check_gen3_family(self, "landfall")
+
+
+class TokenSearchTest(unittest.TestCase):
+    def test_the_payoff_waits_for_the_bodies_that_pay_for_it(self):
+        # Krenko and two Mountains; Goblin Instigator, Impact Tremors and Skirk Prospector in hand. Skirk first (one
+        # Mountain), Krenko makes two tokens, Tremors is paid with the last Mountain and a token, Instigator with the
+        # other token and Skirk itself: Instigator and its token enter, 2. Tremors first leaves no mana for Skirk and
+        # Krenko makes one token: 1.
+        s = {"mountains": 2, "bf": ["Krenko, Mob Boss"],
+             "hand": ["Goblin Instigator", "Impact Tremors", "Skirk Prospector"]}
+        dmg, steps, moves = pg.token_search(s)
+        self.assertEqual((dmg, steps), (2, 4))
+        self.assertEqual([m[0] for m in moves], ["cast", "krenko", "cast", "cast"])
+        self.assertEqual(pg.token_plain(s), {"tokens_first": 2, "payoff_first": 1})
+
+    def test_mogg_war_marshal_leaves_a_token_for_the_devil(self):
+        # The end: Marshal to Skirk Prospector (Devil 1, its token enters: Tremors 1), the token (1), Skirk itself (1).
+        s = {"mountains": 0, "bf": ["Impact Tremors", "Mayhem Devil", "Mogg War Marshal", "Skirk Prospector"],
+             "hand": []}
+        self.assertEqual(pg.token_search(s), (4, 0, (("sweep", ("Mogg War Marshal", "Goblin Token",
+                                                                "Skirk Prospector")),)))
+
+    def test_mayhem_devil_in_hand_is_never_cast(self):
+        # {1}{B}{R}: Mountains cannot pay it (gate B: five lines that cast it were never offered it).
+        s = {"mountains": 5, "bf": ["Skirk Prospector"], "hand": ["Mayhem Devil"]}
+        self.assertEqual(pg.token_search(s), (0, 0, ()))
+        rng = random.Random(1)
+        self.assertFalse(any("Mayhem Devil" in pg.token_draw(rng)["hand"] for _ in range(300)))
+
+    def test_siege_gang_is_asked_its_target_before_the_goblin(self):
+        # Siege-Gang alone sacrifices itself (the only Goblin: the engine picks it); the target comes first.
+        s = {"mountains": 2, "bf": ["Siege-Gang Commander"], "hand": []}
+        dmg, steps, moves = pg.token_search(s)
+        self.assertEqual((dmg, steps), (2, 1))
+        lines, dealt, n, left = pg.token_lines(s, moves, dmg)
+        self.assertEqual(lines, ["activate Mountain", "activate Mountain", "activate Siege-Gang Commander",
+                                 "opponent"])
+        self.assertEqual((dealt, n, left), (2, 1, 0))
+
+    def test_the_written_line_orders_the_triggers_and_names_the_sacrifice(self):
+        s = {"mountains": 2, "bf": ["Krenko, Mob Boss"],
+             "hand": ["Goblin Instigator", "Impact Tremors", "Skirk Prospector"]}
+        dmg, steps, moves = pg.token_search(s)
+        lines, dealt, n, left = pg.token_lines(s, moves, dmg)
+        self.assertEqual(lines, ["activate Mountain", "cast Skirk Prospector", "pass", "activate Krenko, Mob Boss",
+                                 "pass", "activate Skirk Prospector", "Goblin Token", "activate Mountain",
+                                 "cast Impact Tremors", "pass", "activate Skirk Prospector", "Goblin Token",
+                                 "activate Skirk Prospector", "Skirk Prospector", "cast Goblin Instigator",
+                                 "Impact Tremors; Goblin Instigator"])
+        self.assertEqual((dealt, n, left), (2, 4, 0))
+
+    def test_a_tokens_board_holds_the_bar(self):
+        b = next(pg.iter_boards("tokens", 1, 3, tries=3000))
+        rec = pg.board_record(b["text"]("x"))
+        best, steps, unused, plain = pg.research(rec)
+        self.assertEqual((best, steps, unused), (b["life"], b["actions"], 0))
+        self.assertTrue(13 <= steps <= 15)
+        self.assertEqual(plain, b["trap"]["plans"])
+        self.assertTrue(1 <= best - max(plain.values()) <= 3)
+
+    def test_every_committed_tokens_board_holds_its_bar(self):
+        check_gen3_family(self, "tokens")
+
+
+def check_gen3_family(test, family):
+    """Every committed gen3 board of the family, recomputed from the search inputs it states: the goal (poison for
+    infect, life otherwise) is the exhaustive maximum, the steps are the line's, nothing is left unused, the best plain
+    plan falls 1 to 3 short, and the written line is the one the record writes."""
+    paths = sorted(GEN3.glob(family + "_*.pzl"))
+    test.assertTrue(paths, "no %s boards in %s" % (family, GEN3))
+    for p in paths:
+        text = p.read_text(encoding="utf-8")
+        rec = pg.board_record(text)
+        test.assertEqual(rec["family"], family, p.name)
+        test.assertTrue(13 <= rec["steps"] <= 15, (p.name, rec["steps"]))
+        best, steps, unused, plain = pg.research(rec)
+        goal = 10 - rec["poison"] if family == "infect" else rec["life"]
+        test.assertEqual((best, steps), (goal, rec["steps"]), "%s: the goal is the search's maximum" % p.name)
+        test.assertEqual(unused, 0, "%s: nothing is left unused" % p.name)
+        test.assertEqual(plain, rec["trap"]["plans"], "%s: the plain plans are recomputed" % p.name)
+        test.assertEqual(max(plain.values()), rec["trap"]["best"], "%s: the trap's best is the plans' best" % p.name)
+        test.assertTrue(1 <= goal - rec["trap"]["best"] <= 3, (p.name, rec["trap"]))
+        rule = [l for l in text.splitlines() if l.startswith("Rule:")][0]
+        test.assertIn("%d short" % (goal - rec["trap"]["best"]), rule)
+        written = [l for l in solution(text) if not l.startswith("#")]
+        test.assertEqual(written, pg.written_from_record(rec), "%s: the line is the writer's" % p.name)
+    return paths
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,47 @@
+[metadata]
+Name:infect_2762944deafe
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 9 life and control Ichorclaw Myr and 3 untapped Forests. Your hand is Rancor, Unnatural Restoration, Mishra's Bauble, Unnatural Restoration, Mishra's Bauble, Become Immense, Mishra's Bauble, Land Grant and Mishra's Bauble. Your graveyard holds Lightning Bolt. Your library is all Forests. The opponent has 0 poison counters, is at 20 life and controls nothing. Give the opponent ten poison counters this turn.
+Rule:generated-infect | the exhaustive maximum is 10 poison in 14 steps; the best plain plan (Become Immense as soon as it can be paid / never proliferate) gives 9, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=9
+p0hand=Rancor;Unnatural Restoration;Mishra's Bauble;Unnatural Restoration;Mishra's Bauble;Become Immense;Mishra's Bauble;Land Grant;Mishra's Bauble
+p0battlefield=Ichorclaw Myr;Forest;Forest;Forest
+p0graveyard=Lightning Bolt
+p0library=Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest
+p1life=20
+p1counters=POISON=0
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+# search: {"attackers": ["Ichorclaw Myr"], "forests": 3, "graveyard": 1, "hand": ["Become Immense", "Land Grant", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Rancor", "Unnatural Restoration", "Unnatural Restoration"], "hand_forests": 0, "inkmoth": false, "life": 9, "poisoned": false}
+# trap: {"best": 9, "plans": {"bi_asap": 9, "never_proliferate": 9}, "short": 1}
+cast Land Grant ... Reveal your hand
+Forest
+play land Forest
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+pass
+cast Become Immense
+Lightning Bolt; Land Grant; Mishra's Bauble; Mishra's Bauble; Mishra's Bauble
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Rancor
+Ichorclaw Myr
+at MAIN2: cast Unnatural Restoration
+opponent
+[acceptance]
+winner p0
