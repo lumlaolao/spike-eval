@@ -198,8 +198,9 @@ class ToolUseSuiteTest(unittest.TestCase):
 
 class MandatoryReasoningFloorTest(unittest.TestCase):
     """A model whose reasoning cannot be turned off refuses reasoning:{enabled:false}; the suite sent it on the fast
-    tier and the truncation retry to every model, so those calls failed where the seat's (OpenRouterBridge) ask
-    its lowest effort instead. The suite measures the seat's protocol, so it sends what the seat sends."""
+    tier and the truncation retry to every model, so those calls failed where the seat (OpenRouterBridge) asks
+    its lowest effort instead. The suite now sends the seat's reasoning field wherever "none" is sent, and its floored
+    retry keeps its budget; its budgets themselves are its own, not the seat's."""
 
     def test_the_floor_table_is_the_seats(self):
         src = (SPIKE / "LlmSpikeGui.java").read_text()
@@ -215,6 +216,7 @@ class MandatoryReasoningFloorTest(unittest.TestCase):
         self.assertEqual(tu.request_body("meta/muse-wonder", "fast")["reasoning"], {"effort": "minimal"})
         self.assertNotIn("reasoning", tu.request_body("x-ai/grok-build-0.1", "fast"), "lists no effort: no field")
         self.assertEqual(tu.request_body("x-ai/grok-4.7", "smart")["reasoning"], {"effort": "medium"})
+        self.assertNotIn("reasoning", tu.request_body("x-ai/grok-build-0.1", "smart"), "no effort it does not list")
 
     def replies_to(self, model_id, replies):
         sent = []
@@ -233,13 +235,16 @@ class MandatoryReasoningFloorTest(unittest.TestCase):
     def test_the_truncation_retry_keeps_a_mandatory_reasoner_at_its_floor_and_its_budget(self):
         empty = {"choices": [{"message": {"content": ""}, "finish_reason": "length"}]}
         ok = {"choices": [{"message": {"content": "CHOICE: 1"}, "finish_reason": "stop"}]}
-        sent, out = self.replies_to("openai/gpt-6.1-sol", [empty, ok])
-        self.assertEqual(out["content"], "CHOICE: 1")
-        self.assertEqual([b["reasoning"] for b in sent], [{"effort": "medium"}, {"effort": "low"}])
-        self.assertEqual(sent[1]["max_tokens"], sent[0]["max_tokens"], "it still reasons: the whole budget")
-        sent, _ = self.replies_to("deepseek/deepseek-v4.1-flash", [empty, ok])
-        self.assertEqual(sent[1]["reasoning"], {"enabled": False})
-        sent, out = self.replies_to("openai/gpt-6.1-sol", [empty, empty, ok])
+        # A budget above the 4096 clamp, or the floored budget and the clamped one are the same number.
+        with mock.patch.dict(tu.TIER_CFG["smart"], max_tokens=8000):
+            sent, out = self.replies_to("openai/gpt-6.1-sol", [empty, ok])
+            self.assertEqual(out["content"], "CHOICE: 1")
+            self.assertEqual([b["reasoning"] for b in sent], [{"effort": "medium"}, {"effort": "low"}])
+            self.assertEqual([b["max_tokens"] for b in sent], [8000, 8000], "it still reasons: the whole budget")
+            sent, _ = self.replies_to("deepseek/deepseek-v4.1-flash", [empty, ok])
+            self.assertEqual(sent[1]["reasoning"], {"enabled": False})
+            self.assertEqual(sent[1]["max_tokens"], 4096, "reasoning off: room for the answer only")
+        sent, _ = self.replies_to("openai/gpt-6.1-sol", [empty, empty, ok])
         self.assertEqual(len(sent), 2, "retried once, not until the floor answers")
 
 

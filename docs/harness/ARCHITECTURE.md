@@ -455,7 +455,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     list is `MANDATORY_REASONING_FLOOR` in `LlmSpikeGui.java`, hashed into `model_cfg_sha`) is never sent
     `enabled:false`, which it refuses: wherever "none" would be sent (the fast tier, the truncation retry) it gets its
     lowest effort, and its truncation retry keeps the whole token budget, since it still reasons.
-    `eval/tool_use_suite.py` sends the same (its copy of the table is pinned to the Java map by its test).
+    `eval/tool_use_suite.py` sends the same reasoning field wherever "none" is sent, and its floored retry keeps its
+    budget (its copy of the table is pinned to the Java map by its test); its budgets are its own.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
     Neither counts a long-context tier; the file's `comment` names the models that have one and where it starts
