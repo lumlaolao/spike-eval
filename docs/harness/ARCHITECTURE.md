@@ -459,9 +459,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     budget (its copy of the table is pinned to the Java map by its test); its budgets are its own.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
-    Neither counts a long-context tier; the file's `comment` names the models that have one and where it starts
-    (Haiku 5.5 above 100K prompt tokens a call, the Grok models above 200K, Luna and Sol above 272K), all far
-    above a decision's prompt.
+    The file's `comment` names the models with a long-context tier and where each starts. Haiku 5.5's `max` is its
+    long-context rate (above 100K prompt tokens a call); the other tiers start at 200K or more, and the largest
+    prompt recorded in one call is 69,326 tokens (`runs/c3/ant-storm-turn/game-4101-1792129038688.jsonl`).
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
     bytes and then silence, for that long, inside the ask's deadline.
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full
