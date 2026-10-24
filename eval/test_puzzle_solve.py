@@ -1,4 +1,6 @@
 """puzzle_solve.py refuses a condition the seat would not honour."""
+import contextlib
+import io
 import json
 import os
 import sys
@@ -52,6 +54,28 @@ class BudgetAtTheBoundTest(unittest.TestCase):
         budget = (listed + bound) / 2
         self.assertTrue(puzzle_solve.over_budget(root, budget), "checked at the bound")
         self.assertFalse(puzzle_solve.over_budget(root, bound * 2))
+
+    def test_main_does_not_start_a_puzzle_once_the_bound_reaches_the_budget(self):
+        # The helper alone passes even if main() goes back to checking the list price; drive main() itself.
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        spec = "openrouter:deepseek/deepseek-v4.1-flash"
+        root = Path(tempfile.mkdtemp())
+        (root / "earlier").mkdir()
+        (root / "earlier" / "game-1-0.jsonl").write_text(
+            json.dumps({"t": "context_call", "tier": "smart", "prompt_tokens": 100000, "completion_tokens": 1000}) + "\n"
+            + json.dumps({"t": "game", "smart_a": spec, "fast_a": spec}) + "\n")
+        listed, bound = puzzle_solve.spent(root), puzzle_solve.spent(root, bound=True)
+        self.assertLess(listed, bound)
+        out = io.StringIO()
+        with mock.patch.object(puzzle_solve, "solve_puzzle", return_value=(pid, 0, [])) as solve, \
+                mock.patch.object(puzzle_solve.pb, "Build"), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(out):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                               "--budget-usd", str((listed + bound) / 2), "--ids", pid, "--out", str(root)])
+        solve.assert_not_called()
+        self.assertIn("[budget] not started: %s" % pid, out.getvalue())
 
 
 class ResumeTest(unittest.TestCase):
