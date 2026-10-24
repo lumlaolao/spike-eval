@@ -2794,6 +2794,56 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
     }
 
+    /** Round-2 review of #314: Silent Arbiter's "No more than one creature can block each combat" is enforced only by
+     *  CombatUtil.canBlock against the combat so far (CombatUtil.java:434); validateBlocks never counts blockers. A model
+     *  that blocks the Unicorn with both creatures is refused, and the fallback declares one. */
+    @Test
+    public void aBlockCapIsKeptByTheSeatAndByItsFallback() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> { asks.add(p);
+            return asks.size() == 1 ? "BLOCKS: Grizzly Bears->Prized Unicorn, Hill Giant->Prized Unicorn" : "BLOCKS: NONE"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.declareBlockers(me, combat);
+        Assert.assertEquals(combat.getBlockers(unicorn).size(), 1, "one creature blocks under Silent Arbiter");
+        // Not CombatUtil.validateBlocks: its requirement test ignores the cap, so here it refuses every block set.
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, new ArrayList<>()), "the block is legal");
+        // The answer tool's check is blocksError, so the two-creature set is sent back with the cap; the text path
+        // drops the pair past the cap (CombatUtil.canBlock against the combat so far).
+        List<Card[]> both = new ArrayList<>();
+        for (Card c : me.getCreaturesInPlay()) both.add(new Card[] {c, unicorn});
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, both),
+                "no more than 1 creature can block each combat.");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
+    }
+
+    /** Round-2 review of #314: the increasing-size search. Thirteen Bears under Prized Unicorn are 8192 sets, past
+     *  MAX_BLOCK_SETS, and Silent Arbiter makes both whole-board sets (every Bear on the Unicorn) illegal; the search
+     *  finds the one-Bear block. */
+    @Test
+    public void pastTheSetLimitTheSearchFindsTheSmallLegalBlock() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 13; i++) card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        List<Card[]> set = LlmSpikeGui.PlayerControllerLLM.legalBlockSet(combat, me);
+        Assert.assertNotNull(set, "a legal set is found");
+        Assert.assertEquals(set.size(), 1, "the one-Bear block");
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, set), "and it is legal");
+    }
+
     /** pr-review of #311: the no-model branch (the floor seat, or a spent budget) declared no blocks under a block
      *  requirement too. It takes the same fixed legal set, as an auto row. */
     @Test
