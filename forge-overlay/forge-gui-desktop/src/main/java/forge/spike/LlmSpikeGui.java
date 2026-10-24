@@ -349,8 +349,11 @@ public final class LlmSpikeGui {
      *  by the stack for want of a target is rolled back by the engine's own rollback: a cast from hand returns to the
      *  hand, the mana paid is refunded and the stack is unfrozen. The engine routine's recovery left the card in the
      *  Stack zone with nothing on the stack.
+     *  Epoch 71 (2026-10-24, issue #311, harness-env grader combat.block.must-block): when the seat's blocks are lost or
+     *  still illegal after the re-ask with the engine's reason, and a block requirement forbids no blocks (Prized
+     *  Unicorn, a lure), the smallest legal block set is taken; "no blocks" stood illegal.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-70";
+    static final String HARNESS_EPOCH = "harness-epoch-71";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3561,7 +3564,7 @@ public final class LlmSpikeGui {
         static final int MAX_BLOCK_SETS = 4096;
 
         /** Blocks the seat declared that the engine objects to are removed and the seat is asked once more with the
-         *  reason; a second illegal set is logged and left as no blocks. */
+         *  reason; a second illegal set is logged and replaced by {@link #fallbackBlocks}. */
         private void illegalBlocks(Player defender, Combat combat, String err) {
             for (Card b : CardLists.filterControlledBy(combat.getAllBlockers(), defender)) combat.undoBlockingAssignment(b);
             if (blockCorrection == null) {
@@ -3569,7 +3572,34 @@ public final class LlmSpikeGui {
                 try { declareBlockers(defender, combat); } finally { blockCorrection = null; }
                 return;
             }
-            p("[BLOCK-INVALID] the second block set was not legal either (" + err + "): no blocks");
+            p("[BLOCK-INVALID] the second block set was not legal either (" + err + ")");
+            fallbackBlocks(defender, combat);
+        }
+
+        /** A failure branch's blocks: none, unless a block requirement (a lure, "all creatures able to block it do so",
+         *  "blocks each combat if able") forbids that; then the smallest block set the engine accepts, the first in
+         *  {@link #legalBlockSets}' order. The engine checks blocks only for its own GUI, so "no blocks" under Prized
+         *  Unicorn stood illegal (issue #311, harness-env grader combat.block.must-block). Returns what was declared. */
+        private String fallbackBlocks(Player defender, Combat combat) {
+            String err = blocksError(combat, defender, new ArrayList<>());
+            if (err == null) return "none";
+            List<Card> able = new ArrayList<>();
+            for (Card c : defender.getCreaturesInPlay())
+                for (Card atk : combat.getAttackers()) if (CombatUtil.canBlock(atk, c, combat)) { able.add(c); break; }
+            List<List<Card[]>> legal = legalBlockSets(combat, defender, able, combat.getAttackers());
+            if (legal == null || legal.isEmpty()) {
+                p("[BLOCK-INVALID] no blocks is not legal (" + err + ") and no legal set was found: none");
+                return "none";
+            }
+            List<Card[]> pick = legal.get(0);
+            for (List<Card[]> set : legal) if (set.size() < pick.size()) pick = set;
+            StringBuilder took = new StringBuilder();
+            for (Card[] pr : pick) {
+                combat.addBlocker(pr[1], pr[0]);
+                took.append(took.length() > 0 ? ", " : "").append(pr[0].getName()).append("->").append(pr[1].getName());
+            }
+            p("[BLOCK-INVALID] no blocks is not legal (" + err + "): took the legal set " + took);
+            return "legal " + pick.size();
         }
 
         @Override
@@ -3623,7 +3653,7 @@ public final class LlmSpikeGui {
                     }
                 }
                 // No model available -> deterministic NO BLOCKS (the fallback policy), never the engine AI.
-                if (!smartOk()) { auto("blockers(no-model)->none"); return; }
+                if (!smartOk()) { auto("blockers(no-model)->" + fallbackBlocks(defender, combat)); return; }
                 StringBuilder atk = new StringBuilder();
                 for (Card a : attackers) { if (atk.length() > 0) atk.append(", "); atk.append(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")"); }
                 StringBuilder blk = new StringBuilder();
@@ -3672,8 +3702,8 @@ public final class LlmSpikeGui {
                     offerAnswer(smart, blockSpec);
                     String reply = ask(smart, nextAnswer != null ? text + numbered : text);
                     noteAnswerVia(attempt);
-                    if (answerLost()) { auto("blockers(unparsed)->none"); return; }
-                    if (reply == null) { auto("blockers(bridge-down)->none"); return; }
+                    if (answerLost()) { auto("blockers(unparsed)->" + fallbackBlocks(defender, combat)); return; }
+                    if (reply == null) { auto("blockers(bridge-down)->" + fallbackBlocks(defender, combat)); return; }
                     AnswerTool.Answer ta = toolAnswer();
                     if (ta != null) {
                         int assigned = 0;
@@ -3688,7 +3718,7 @@ public final class LlmSpikeGui {
                     }
                     line = textSegment(reply, "BLOCKS:");
                 }
-                if (line == null) { auto("blockers(unparsed)->none"); return; }
+                if (line == null) { auto("blockers(unparsed)->" + fallbackBlocks(defender, combat)); return; }
                 line = line.split("\\R", 2)[0];
                 if (line.trim().replaceAll("[^A-Za-z]", "").equalsIgnoreCase("NONE")) {
                     // A genuine model-consulted decision (the reply came back fine) — must log exactly
@@ -3722,8 +3752,9 @@ public final class LlmSpikeGui {
                 if (err != null) illegalBlocks(defender, combat, err);
             } catch (Exception e) {
                 // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
-                // Declaring no blockers is legal.
-                auto("blockers(err)->none");
+                String took = "none";
+                try { took = fallbackBlocks(defender, combat); } catch (Exception ignore) { }
+                auto("blockers(err)->" + took);
             }
         }
 

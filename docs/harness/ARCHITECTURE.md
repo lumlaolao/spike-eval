@@ -132,7 +132,11 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
   to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
   block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply
-  is asked once more with the engine's reason; an arm draws again (a legal first draw keeps its stream).
+  is asked once more with the engine's reason; an arm draws again (a legal first draw keeps its stream). When the
+  seat's blocks are still illegal after that, or its answer is lost (two invalid calls, no call, no reply, an error),
+  the fixed fallback is no blocks unless a requirement forbids it; then it is the smallest legal block set, logged
+  `[BLOCK-INVALID] ... took the legal set` (`fallbackBlocks`, epoch 71, issue #311: "no blocks" under Prized Unicorn
+  stood illegal, found by the harness-env grader's `combat.block.must-block`).
 - The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
   one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no
   trigger on a tap or on mana added. Floating that does change the game (a creature tapped and unable to block,
