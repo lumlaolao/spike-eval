@@ -358,8 +358,19 @@ class TestAnswerTool(unittest.TestCase):
         self.assertTrue(run_batch.answer_tool_requested(make_args(smart_a="jev:typesafe/jev-1.14")))
         self.assertFalse(run_batch.native_tools_requested(make_args(smart_a="jev:typesafe/jev-1.14", memory_tools=True)))
 
+    def test_a_decision_model_seat_is_not_a_claude_cli_spec(self):
+        # pr-review of #305: the cited --jobs guard, the parallel warning and the key preflight read jev: as a
+        # bare claude-CLI spec.
+        jev = "jev:typesafe/jev-1.14"
+        self.assertEqual(run_batch.cli_specs(make_args(smart_a=jev, fast_a=jev, controller_b="ai")), [])
+        self.assertEqual(run_batch.cli_specs(make_args(smart_a=jev, fast_a="haiku", controller_b="ai")), ["haiku"])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}, clear=False):
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.preflight_openrouter(make_args(smart_a=jev, fast_a=jev, controller_b="ai"))
+        self.assertIn("OPENROUTER_API_KEY", str(cm.exception.code))
+
     def test_a_decision_model_seat_refuses_lookups_and_lookahead(self):
-        for flag in ("--memory-tools", "--lookahead"):
+        for flag in ("--memory-tools", "--lookahead", "--text-answers", "--text-tools"):
             with self.assertRaises(SystemExit) as cm:
                 run_batch.main(["--seeds", "1", "--smart-a", "jev:typesafe/jev-1.14", "--fast-a", "jev:typesafe/jev-1.14",
                                 "--controller-b", "ai", flag])

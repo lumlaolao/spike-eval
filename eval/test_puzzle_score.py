@@ -190,6 +190,16 @@ class ScoreV2Test(unittest.TestCase):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
         ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)  # none stamped: older runs still score
 
+    def test_attempts_from_two_decisions_bridge_versions_are_never_pooled(self):
+        # A jev: solver's questions are versioned like the interface (DecisionsBridge.VERSION).
+        rows = self.rows([4, 2, 0], decisions_bridge_version="decisions-bridge-v1")
+        rep = ps.score(self.m, rows, "open", k=4, n_boot=20)
+        self.assertEqual(rep["decisions_bridge_version"], "decisions-bridge-v1")
+        rows[0]["decisions_bridge_version"] = "decisions-bridge-v2"
+        with self.assertRaisesRegex(ps.Refused, "decisions bridge versions"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+        self.assertIsNone(ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)["decisions_bridge_version"])
+
     def test_no_spread_gives_no_smallest_difference(self):
         # pr-review of #282: three puzzles all solved 4/4 printed "detect: 0.000", the opposite of what they show.
         a = ps.score(self.m, self.rows([4, 4, 4]), "open", k=4, n_boot=20)["aggregate"]
