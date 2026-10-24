@@ -192,13 +192,13 @@ class JvmGraderTest(unittest.TestCase):
         self.calls, self.ai = [], "0"
         self.real = hg.subprocess.run
         hg.subprocess.run = self.fake
-        self.real_write = hg.harness_env_aicount.write
-        hg.harness_env_aicount.write = lambda forge, ledger, out, source=None: (
-            write(out, "PlayerControllerAi.java", "x"), collections.Counter())
+        patcher = mock.patch.object(hg.harness_env_aicount, "write", lambda forge, ledger, out, source=None: (
+            write(out, "PlayerControllerAi.java", "x"), collections.Counter()))
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self):
         hg.subprocess.run = self.real
-        hg.harness_env_aicount.write = self.real_write
         shutil.rmtree(self.tmp)
 
     def fake(self, cmd, **kw):
@@ -307,6 +307,20 @@ class JvmGraderTest(unittest.TestCase):
             self.assertEqual(rc, 2)
             self.assertIn("PlayerControllerAi", printed.getvalue())
             self.assertFalse(os.path.exists(os.path.join(out, "sandbox")), "the agent's sandbox was built")
+        with self.assertRaises(ValueError) as cm:
+            ep.jvm_grader(self.cp, not_git, "/jdk", set_file=self.set)
+        self.assertIn("not a git repository", str(cm.exception), "git's own reason")
+
+    def test_the_engine_refusal_says_what_git_said(self):
+        # A checkout another user owns fails `git show` with "dubious ownership"; reported as "not a checkout"
+        # it sends the operator looking for the wrong fault.
+        said = "fatal: detected dubious ownership in repository at '%s'" % self.forge
+        failed = subprocess.CalledProcessError(128, ["git", "show"], output="", stderr=said + "\n")
+        with mock.patch.object(ep.harness_env_aicount, "engine_source", side_effect=failed), \
+                self.assertRaises(ValueError) as cm:
+            ep.jvm_grader(self.cp, self.forge, "/jdk", set_file=self.set)
+        self.assertIn(said, str(cm.exception))
+        self.assertIn(self.forge, str(cm.exception))
 
     def test_a_missing_or_malformed_set_file_exits_cleanly_before_the_agent_runs(self):
         bad = write(self.tmp, "bad.json", "{not json")

@@ -173,9 +173,11 @@ def jvm_grader(classpath_file, forge, java_home=None, set_file=None, cards=None,
         raise ValueError("grading needs --forge <the engine checkout>: %s" % forge)
     try:
         harness_env_aicount.engine_source(forge)
-    except (OSError, subprocess.CalledProcessError):
-        raise ValueError("--forge must be a git checkout whose HEAD has %s: %s"
-                         % (harness_env_aicount.ENGINE_PATH, forge)) from None
+    except (OSError, subprocess.CalledProcessError) as e:
+        # git's own reason, so a checkout git refuses for "dubious ownership" does not read as no checkout.
+        said = (e.stderr or "").strip() if isinstance(e, subprocess.CalledProcessError) else str(e)
+        raise ValueError("--forge must be a git checkout whose HEAD has %s: %s (git: %s)"
+                         % (harness_env_aicount.ENGINE_PATH, forge, said)) from None
     seed = None
     if set_file:
         try:
