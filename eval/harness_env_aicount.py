@@ -34,18 +34,17 @@ SIGNATURE = re.compile(r"^[ \t]*(?:public|protected)\s+(?!abstract\b)(?:(?:final
 
 
 def patch(source, hooks):
-    """(patched source, sorted hook names counted). A counter goes on a new line right after the brace that opens
-    each hook method's body; abstract methods and everything else are untouched."""
-    out, counted, last = [], [], 0
+    """The patched source. A counter goes on a new line right after the brace that opens each hook method's body;
+    abstract methods and everything else are untouched. counts() says which hooks got one."""
+    out, last = [], 0
     for m in SIGNATURE.finditer(source):
         if m.group(1) not in hooks:
             continue
         out.append(source[last:m.end()])
         out.append("\n" + " " * 8 + CALL % m.group(1))
-        counted.append(m.group(1))
         last = m.end()
     out.append(source[last:])
-    return "".join(out), sorted(set(counted))
+    return "".join(out)
 
 
 def counts(source, hooks):
@@ -72,7 +71,7 @@ def write(forge, ledger, out_dir, source=None):
     dest = os.path.join(out_dir, "forge", "ai", "PlayerControllerAi.java")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "w", encoding="utf-8") as f:
-        f.write(patch(src, hooks)[0])
+        f.write(patch(src, hooks))
     return dest, counts(src, hooks)
 
 
