@@ -46,6 +46,15 @@ def patch(source, hooks):
     return "".join(out), sorted(set(counted))
 
 
+def counts(source, hooks):
+    """How many counters patch() puts on each hook name in `source` (an overload is a second count)."""
+    found = {}
+    for m in SIGNATURE.finditer(source):
+        if m.group(1) in hooks:
+            found[m.group(1)] = found.get(m.group(1), 0) + 1
+    return found
+
+
 def engine_source(forge):
     """The pinned engine's PlayerControllerAi.java (HEAD of the checkout, never its working tree)."""
     return subprocess.run(["git", "-C", forge, "show", "HEAD:" + ENGINE_PATH], capture_output=True, text=True,

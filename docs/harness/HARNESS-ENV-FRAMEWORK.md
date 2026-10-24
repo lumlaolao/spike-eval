@@ -149,11 +149,12 @@ The grader's classes come first on the classpath and its engine patch set is app
 submission's own engine patches, so a submission cannot shadow them (built: intake refuses a submission that
 declares any class in `forge.harnessenv` or a package under it, or ships a file under a `forge/harnessenv` path,
 and scores it 0; the Forge-AI counter is written into the submission's own marked `PlayerControllerAi.java` when it
-ships one; a copy in which a hook NAME the engine's own file counts gets no counter is refused, "counter
-incomplete"). The check is by name, so it does not see an uncounted overload of a counted hook, a decoy method
-with a hook's name, or a signature hidden by a comment; that copy runs in the grader's JVM anyway (section 4.7,
-open), and closing both is the same change: the seat in its own process, or a parsed signature check.
-The candidate still runs in the grader's JVM (section 4.7). The patch replaces what `Player.getController()` hands the engine with a
+ships one; a copy in which a hook name gets fewer counters than in the engine's own file (an overload left
+uncounted) is refused, "counter incomplete"). The check counts by name, so a decoy method with a hook's name or a
+signature hidden by a comment can still stand in for an uncounted one: a parsed signature check would close that.
+The copy runs in the grader's JVM anyway (section 4.7, open), and that hole needs the seat in its own process, with
+the counter outside code the submission ships.
+The patch replaces what `Player.getController()` hands the engine with a
 generated wrapper that delegates every `PlayerController` method to the candidate and records entry, exit and wall
 time per hook and thread (designed, not built). This is safe for the rules engine: `forge-game` has no `instanceof` test on a controller at
 the pin (the files that have one are `forge-ai`'s `ComputerUtil*` helpers and `forge-gui`'s match and network code). Forge's AI is counted
@@ -161,8 +162,8 @@ the same way: any `PlayerControllerAi` decision method, `AiController` or `AiPla
 while a seat hook is open fails the instance and the run-wide gate. A static scan cannot do this job: our own overlay
 references `forge.ai` in four files for legitimate reasons (it subclasses the AI controller and reads state through
 `ComputerUtil`), measured by `harness_env_grade.py intake`. **Built** instead of the wrapper's AI count: the
-grader's patch of `PlayerControllerAi` (the engine's, or the submission's own marked copy) counts every decision
-hook on a watched player, with the payment executor counted apart (section 4.9); a seat that builds its own AI controller is caught, a seat that calls
+grader's patch of `PlayerControllerAi` counts every decision hook on a watched player, with the payment
+executor counted apart (section 4.9); a seat that builds its own AI controller is caught, a seat that calls
 `ComputerUtil` helpers directly is not (open question 9).
 
 ### 4.5 Scoring and partial credit
@@ -268,7 +269,8 @@ compiles a submission's `src/main` beside it and the generated AI-counter patch;
   EMPTY and GARBAGE. After 60 requests a replay's requests are parked and its thread abandoned at 30 s: the HTTP
   boundary means a seat's `catch (Exception)` can no longer swallow the ceiling and loop.
 - **Forge's AI, counted in the engine** (`grader/AiCounter.java`, `eval/harness_env_aicount.py`): the grader patches
-  the pristine `PlayerControllerAi.java` (`git show HEAD:` of the pinned checkout, never the working copy) with
+  `PlayerControllerAi.java`, the pinned engine's (`git show HEAD:`, never the working copy) or the submission's own
+  marked copy (section 4.4), with
   `AiCounter.enter("<hook>", this)` at the top of the 88 ledger decision hooks it overrides (93 counters with the
   overloads). A count is kept per watched player; the counter is probed at suite start, the run prints "ai counter on"
   or "OFF", and the validation run fails if it is off. Off, every row's `ai` reads -1, which gates the seat

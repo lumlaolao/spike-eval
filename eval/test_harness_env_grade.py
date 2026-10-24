@@ -557,6 +557,21 @@ class SubmissionAiControllerTest(unittest.TestCase):
         self.assertEqual(missing, ["chooseSpellAbilityToPlay"])
         self.assertEqual(self.calls, [], "nothing is compiled")
 
+    def test_an_overload_the_copy_leaves_uncounted_is_missing_though_its_name_is_counted(self):
+        # An honest reformat: the copy writes one overload's signature on its @Override line, which the counter
+        # does not match, while the name is still counted on the other overload.
+        second = ("    @Override\n    public void declareBlockers(Player defender) {\n"
+                  "        brains.declareBlockersFor(defender, null);\n    }\n}\n")
+        write(self.forge, "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java", ENGINE_PCAI[:-2] + second)
+        subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qam", "two"],
+                       cwd=self.forge, check=True)
+        write(self.sub, "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java", OWN_PCAI[:-2]
+              + "\t@Override public void declareBlockers(Player defender) {\n\t\tmine();\n\t}\n}\n")
+        rc, _, counted, missing = self.build()
+        self.assertIsNone(rc)
+        self.assertEqual(missing, ["declareBlockers"])
+        self.assertEqual(self.calls, [], "nothing is compiled")
+
     def test_the_grader_environment_carries_no_secret_or_provider_variable(self):
         old = dict(os.environ)
         os.environ.update(HARNESS_ENV_SEED="s3cret", OPENROUTER_API_KEY="k", OPENROUTER_ALLOW_EGRESS="1", PATH="/bin")
