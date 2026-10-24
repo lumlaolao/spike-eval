@@ -34,6 +34,7 @@ import puzzle_score as ps  # noqa: E402
 
 # The attempt seeds: k distinct seeds per puzzle, the same for every solver, outside every reserved band.
 ATTEMPT_BASE = 1
+RUN_FILE = "puzzle-run.json"
 
 
 def load_secrets():
@@ -103,16 +104,34 @@ def prepare(out, k, suite_sha, resume):
     return "run"
 
 
+def write_json(path, obj):
+    """Written whole, then moved, so a restart (or a reader, eval/puzzle_watch.py) never sees half a file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(obj))
+    os.replace(tmp, path)
+
+
 def write_manifest(out, model, suite_sha, puzzle_id, cond, build=None):
     """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
-    game row (a puzzle has none). Written whole, then moved, so a restart never leaves half a manifest."""
-    out = Path(out)
-    out.mkdir(parents=True, exist_ok=True)
-    tmp = out / "batch-manifest.json.tmp"
-    tmp.write_text(json.dumps({"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
-                                             "suite_sha256": suite_sha, "env": cond},
-                                "build": build}))
-    os.replace(tmp, out / "batch-manifest.json")
+    game row (a puzzle has none). `build`: puzzle_baselines.Build.provenance(), the build it ran on."""
+    write_json(Path(out) / "batch-manifest.json", {"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
+                                                                 "suite_sha256": suite_sha, "env": cond},
+                                                   "build": build})
+
+
+def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None):
+    """RUN_FILE: what this invocation will play, so eval/puzzle_watch.py can show the puzzles not started yet, tell
+    when each is done (k result rows) and when the run is over (`finished`, written after the last puzzle) or was
+    stopped part way (`stopped`: the exception or interrupt that ended it). `build`: the build the whole run uses
+    (Build.provenance(), with stale_build_allowed when --allow-stale-build let an old one run)."""
+    run = {"ids": ids, "k": k, "budget_usd": budget_usd, "finished": finished}
+    if stopped is not None:
+        run["stopped"] = stopped
+    if build is not None:
+        run["build"] = build
+    write_json(Path(out_root) / RUN_FILE, run)
 
 
 def resume_conflicts(out_root, ids, model, suite_sha, cond):
@@ -198,11 +217,15 @@ def main(argv=None):
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
     build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)
+    prov = build.provenance()
     out_root = Path(a.out)
     out_root.mkdir(parents=True, exist_ok=True)
     print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f; $%.2f at the dearest "
           "endpoint, which the budget is checked at)"
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root), spent(out_root, bound=True)), flush=True)
+
+    ids = [r["id"] for r in todo]
+    write_run(out_root, ids, a.k, a.budget_usd, finished=False, build=prov)
 
     def work(rec):
         out = out_root / rec["id"]
@@ -213,16 +236,21 @@ def main(argv=None):
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
 
     skipped = 0
-    with ThreadPoolExecutor(max(1, a.jobs)) as ex:
-        for pid, rc, rows in ex.map(work, todo):
-            if rc is None:
-                skipped += 1
-                print("[budget] not started: %s ($%.2f at the dearest endpoint)" % (pid, spent(out_root, bound=True)),
-                      flush=True)
-                continue
-            solved = sum(1 for r in rows if ps.attempt_success(r)[0]) if rows else 0
-            print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f" % (pid, rc, len(rows), solved, spent(out_root)),
-                  flush=True)
+    try:
+        with ThreadPoolExecutor(max(1, a.jobs)) as ex:
+            for pid, rc, rows in ex.map(work, todo):
+                if rc is None:
+                    skipped += 1
+                    print("[budget] not started: %s ($%.2f at the dearest endpoint)"
+                          % (pid, spent(out_root, bound=True)), flush=True)
+                    continue
+                solved = sum(1 for r in rows if ps.attempt_success(r)[0]) if rows else 0
+                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f"
+                      % (pid, rc, len(rows), solved, spent(out_root)), flush=True)
+    except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
+        write_run(out_root, ids, a.k, a.budget_usd, finished=False, stopped=repr(e), build=prov)
+        raise
+    write_run(out_root, ids, a.k, a.budget_usd, finished=True, build=prov)
     print("[cost] $%.3f over %d puzzles (%d not started for budget)" % (spent(out_root), len(todo) - skipped, skipped))
     return 0
 

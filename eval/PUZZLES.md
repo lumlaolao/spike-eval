@@ -99,8 +99,9 @@ python3 eval/puzzle_format.py check eval/suites/puzzles-forge-builtin-v1.json
   missing, and with no `--build` the newest matching build under `runs/harness-acceptance/` (by compile time, not
   name) is used, or none and the command to build one is printed. `--allow-stale-build` runs a named old build
   anyway; each JVM's run directory gets `build.json` (build dir, its hash, the checkout's, whether it was stale),
-  `puzzle_solve.py` copies it into each puzzle's `batch-manifest.json`, and the game line's `overlay_sha` is the
-  build's.
+  `puzzle_solve.py` copies it into `puzzle-run.json` and each puzzle's `batch-manifest.json`, and the game line's
+  `overlay_sha` is the build's. `scripts/puzzle-gate/gen_gate.py` checks its `--build` the same way before playing
+  any board and passes `--allow-stale-build` on.
 - `run` can be split into stages with `--arms` and `--ids`, since baselines accumulate in the record.
 - `run` writes the manifest after every puzzle. `--resume` with the same `--out-dir` and `--build`
   reuses each arm whose rows that build already wrote for exactly the requested seeds, so a killed run
@@ -333,6 +334,15 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
+
+### Watching a run
+
+```bash
+python3 eval/puzzle_watch.py runs/puzzles/luna-open             # one row per puzzle, then the totals
+python3 eval/puzzle_watch.py runs/puzzles/luna-open --follow    # one line per event until the run is over
+```
+
+What each column, flag and exit code means: `python3 eval/puzzle_watch.py --help`.
 
 ## Scoring
 

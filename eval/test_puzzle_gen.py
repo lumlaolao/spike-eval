@@ -405,7 +405,7 @@ class GenGateResumeTest(unittest.TestCase):
         (done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
                                                                "solver_actions": 20,
                                                                "pzl_sha256": pf.sha256_file(pzl)}) + "\n")
-        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True)
+        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True, allow_stale_build=False)
         real = gen_gate.subprocess.run
         gen_gate.subprocess.run = lambda *x, **k: self.fail("the line was played again")
         try:
@@ -429,7 +429,7 @@ class GenGateResumeTest(unittest.TestCase):
         done.mkdir(parents=True)
         (done / "puzzle-results.jsonl").write_text(json.dumps({"solved": True, "script_played": True,
                                                                "pzl_sha256": "an older file"}) + "\n")
-        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True)
+        a = argparse.Namespace(out=str(tmp / "out"), build="b", forge="f", resume=True, allow_stale_build=False)
         played = []
         real = gen_gate.subprocess.run
         gen_gate.subprocess.run = lambda *x, **k: played.append(x)
@@ -438,6 +438,39 @@ class GenGateResumeTest(unittest.TestCase):
         finally:
             gen_gate.subprocess.run = real
         self.assertEqual(len(played), 1, "the stale row was reused")
+
+
+class GenGateBuildTest(unittest.TestCase):
+    """gen_gate runs puzzle_baselines.py with its output captured and its exit code unread, so a build that
+    puzzle_baselines.Build refuses (not this checkout's overlay) dropped every board as "line: solved=False"."""
+
+    def setUp(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "puzzle-gate"))
+        import gen_gate
+        self.gg = gen_gate
+        self.tmp = Path(tempfile.mkdtemp())
+        (self.tmp / "boards").mkdir()
+        (self.tmp / "boards" / "b.pzl").write_text("[solution]\n# steps: 12\npass\n", encoding="utf-8")
+
+    def test_a_refused_build_stops_the_gate_before_any_board_is_played(self):
+        from unittest import mock
+        with mock.patch.object(self.gg.pb, "Build", side_effect=SystemExit("stale build")), \
+                mock.patch.object(self.gg.subprocess, "run", side_effect=AssertionError("a board was played")):
+            with self.assertRaises(SystemExit) as cm:
+                self.gg.main(["--build", "B", "--forge", "F", "--boards", str(self.tmp / "boards"),
+                              "--out", str(self.tmp / "out")])
+        self.assertEqual(str(cm.exception.code), "stale build")
+
+    def test_allow_stale_build_reaches_the_check_and_every_puzzle_baselines_call(self):
+        from unittest import mock
+        with mock.patch.object(self.gg.pb, "Build") as build, \
+                mock.patch.object(self.gg.subprocess, "run") as run:
+            self.gg.main(["--build", "B", "--forge", "F", "--boards", str(self.tmp / "boards"),
+                          "--out", str(self.tmp / "out"), "--allow-stale-build"])
+        self.assertEqual(build.call_args, mock.call("B", "F", allow_stale=True))
+        self.assertTrue(run.call_args_list, "the line was played")
+        for c in run.call_args_list:
+            self.assertIn("--allow-stale-build", c.args[0])
 
 
 class CopySearchTest(unittest.TestCase):

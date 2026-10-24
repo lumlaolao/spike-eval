@@ -666,6 +666,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     searched to its own best, falls 1 to 3 short of the searched maximum. A third
     (`eval/suites/puzzles-hard-gen3-v1.json`, 68 boards) adds Goblin token engines, land sequencing
     (landfall), Equipment and infect at the same bar.
+- **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, and writes nothing (`eval/PUZZLES.md`, "Watching a run").
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a
   deck-matchup term and cluster-bootstrap CIs.
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,

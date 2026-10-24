@@ -12,6 +12,9 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import puzzle_solve  # noqa: E402
 
+# A stand-in for puzzle_baselines.Build whose provenance() main() can write into puzzle-run.json.
+STUB_BUILD = {"return_value.provenance.return_value": {}}
+
 
 class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
     """The seat wires the rules lookup only with MEMORY_TOOLS=1, so --rules-tool alone ran puzzles that
@@ -70,7 +73,7 @@ class BudgetAtTheBoundTest(unittest.TestCase):
         self.assertLess(listed, bound)
         out = io.StringIO()
         with mock.patch.object(puzzle_solve, "solve_puzzle", return_value=(pid, 0, [])) as solve, \
-                mock.patch.object(puzzle_solve.pb, "Build"), mock.patch.object(puzzle_solve, "load_secrets"), \
+                mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(out):
             puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
                                "--budget-usd", str((listed + bound) / 2), "--ids", pid, "--out", str(root)])
@@ -171,6 +174,37 @@ class BuildProvenanceTest(unittest.TestCase):
                                "--allow-stale-build"])
         self.assertEqual(seen, [("/b", True)])
         self.assertEqual(json.loads((root / pid / "batch-manifest.json").read_text())["build"], prov)
+        self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text())["build"], prov, "the run file too")
+
+
+class RunFileTest(unittest.TestCase):
+    """eval/puzzle_watch.py reads puzzle-run.json to show the puzzles not started, when each is done (k rows) and
+    when the run is over; without it a watcher cannot tell a finished run from a dead one."""
+
+    def test_the_run_file_names_the_puzzles_k_the_budget_and_whether_the_run_is_over(self):
+        root = Path(tempfile.mkdtemp())
+        puzzle_solve.write_run(root, ["a", "b"], 4, 1.5, finished=False)
+        self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text()),
+                         {"ids": ["a", "b"], "k": 4, "budget_usd": 1.5, "finished": False})
+        puzzle_solve.write_run(root, ["a", "b"], 4, 1.5, finished=True)
+        self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
+        self.assertEqual(sorted(p.name for p in root.iterdir()), [puzzle_solve.RUN_FILE], "no .tmp left behind")
+
+    def test_a_run_stopped_by_an_exception_says_so_in_the_run_file_and_still_raises(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        root = Path(tempfile.mkdtemp())
+        with mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD), \
+                mock.patch.object(puzzle_solve, "solve_puzzle", side_effect=KeyboardInterrupt()), \
+                mock.patch.object(puzzle_solve, "spent", return_value=0.0), \
+                contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(KeyboardInterrupt):
+                puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                                   "--budget-usd", "1", "--ids", pid, "--out", str(root)])
+        run = json.loads((root / puzzle_solve.RUN_FILE).read_text())
+        self.assertFalse(run["finished"])
+        self.assertIn("KeyboardInterrupt", run["stopped"])
 
 
 class DecisionModelSeatTest(unittest.TestCase):
