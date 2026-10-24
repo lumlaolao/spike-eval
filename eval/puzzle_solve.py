@@ -159,6 +159,10 @@ def main(argv=None):
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
+    # cost_report prices an unpriced model at $0, so --budget-usd would never stop it (run_batch.py refuses too).
+    if cost_report.model_id(a.model) and cost_report.price_of(cost_report.load_prices(), a.model) is None:
+        raise SystemExit("--budget-usd needs a price for %s in eval/pricing/prices.json"
+                         % cost_report.model_id(a.model))
 
     manifest = pf.load_suite(a.suite)
     problems = pf.validate_suite(manifest)

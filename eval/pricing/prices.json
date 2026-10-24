@@ -2,10 +2,10 @@
   "comment": "USD per token, as the provider lists it. Checked by hand against the source on the date given; cost_report.py prints the date so a stale price is visible. Add a model here before running it.",
   "models": {
     "deepseek/deepseek-v4.1-flash": {
-      "prompt": 0.00000001368,
-      "completion": 0.000000891,
-      "input_cache_read": 0.0000000054,
-      "checked": "2026-10-15",
+      "prompt": 0.00000002,
+      "completion": 0.000001,
+      "input_cache_read": 0.000000015,
+      "checked": "2026-10-24",
       "source": "https://openrouter.ai/api/v1/models"
     },
     "anthropic/claude-opus-5.5": {
@@ -44,6 +44,134 @@
       "completion": 0.0000005,
       "input_cache_read": 0.00000001,
       "checked": "2026-10-15",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "x-ai/grok-4.7": {
+      "prompt": 0.000002,
+      "completion": 0.000006,
+      "input_cache_read": 0.0000005,
+      "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "x-ai/grok-4.6": {
+      "prompt": 0.000002,
+      "completion": 0.000006,
+      "input_cache_read": 0.0000005,
+      "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "x-ai/grok-build-0.1": {
+      "prompt": 0.000001,
+      "completion": 0.000002,
+      "input_cache_read": 0.0000002,
+      "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "x-ai/grok-4.3": {
+      "prompt": 0.00000125,
+      "completion": 0.0000025,
+      "input_cache_read": 0.0000002,
+      "note": "a higher tier applies above 200000 prompt tokens a call; a puzzle call is far below it",
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "openai/gpt-6.1-sol-pro": {
+      "prompt": 0.000002,
+      "completion": 0.00001,
+      "input_cache_read": 0.0000001,
+      "input_cache_write": 0.0000025,
+      "note": "a higher tier applies above 272000 prompt tokens a call; a puzzle call is far below it",
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "openai/gpt-6.1-sol": {
+      "prompt": 0.000002,
+      "completion": 0.00001,
+      "input_cache_read": 0.0000001,
+      "input_cache_write": 0.0000025,
+      "note": "a higher tier applies above 272000 prompt tokens a call; a puzzle call is far below it",
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "google/gemini-4-argon": {
+      "prompt": 0.000002,
+      "completion": 0.00001,
+      "input_cache_read": 0.0000001,
+      "input_cache_write": 0.0000001875,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "google/gemini-3.8-flash": {
+      "prompt": 0.000000825,
+      "completion": 0.000004125,
+      "input_cache_read": 0.0000000825,
+      "input_cache_write": 0.0000000416666666666667,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "meta/muse-wonder": {
+      "prompt": 0.000004,
+      "completion": 0.00002,
+      "input_cache_read": 0.0000002,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "meta/muse-spark-1.3": {
+      "prompt": 0.00000125,
+      "completion": 0.00000425,
+      "input_cache_read": 0.00000015,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "deepseek/deepseek-v4-pro": {
+      "prompt": 0.00000055071,
+      "completion": 0.00000110142,
+      "input_cache_read": 0.0000000458925,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "moonshotai/kimi-k3": {
+      "prompt": 0.000000239,
+      "completion": 0.0000108,
+      "input_cache_read": 0.00000021,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "moonshotai/kimi-k2.6": {
+      "prompt": 0.00000065,
+      "completion": 0.00000341,
+      "input_cache_read": 0.00000015,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "z-ai/glm-5.3-prime": {
+      "prompt": 0.0000028,
+      "completion": 0.0000088,
+      "input_cache_read": 0.00000056,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "z-ai/glm-5.3": {
+      "prompt": 0.000000079,
+      "completion": 0.0000014,
+      "input_cache_read": 0.000000078,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "mistralai/mistral-large-4-0": {
+      "prompt": 0.00000136,
+      "completion": 0.00000418,
+      "input_cache_read": 0.00000014,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "mistralai/mistral-medium-3-5": {
+      "prompt": 0.0000015,
+      "completion": 0.0000075,
+      "checked": "2026-10-24",
       "source": "https://openrouter.ai/api/v1/models"
     }
   }

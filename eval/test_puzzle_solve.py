@@ -21,6 +21,20 @@ class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
         self.assertIn("--memory-tools", str(cm.exception.code))
 
 
+class UnpricedModelTest(unittest.TestCase):
+    """The budget is the only thing that stops a paid run, and cost_report prices a model it has no price for at
+    $0, so a budget over an unpriced model never stopped anything (provider audit, 2026-10-24: 18 of the 22
+    frontier models were unpriced). run_batch.py already refuses; puzzle_solve.py must too."""
+
+    def test_an_unpriced_model_is_refused_before_anything_runs(self):
+        with self.assertRaises(SystemExit) as cm:
+            puzzle_solve.main(["--suite", "/nonexistent/suite.json", "--split", "open",
+                               "--model", "openrouter:nobody/unpriced-model", "--budget-usd", "1",
+                               "--out", "/nonexistent/out"])
+        self.assertIn("prices.json", str(cm.exception.code))
+        self.assertIn("nobody/unpriced-model", str(cm.exception.code))
+
+
 class ResumeTest(unittest.TestCase):
     """A run stopped by a container restart is started again with --resume (owner, 2026-10-22): a puzzle whose
     k attempts on this suite are already recorded is not paid for twice; one cut off part way is played again."""
