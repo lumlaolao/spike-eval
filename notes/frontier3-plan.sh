@@ -77,4 +77,8 @@ printf "%s\n%s\n" "$MODELS" "$JEV" | while read -r m cap; do
   run_one "$m" "$cap" &
 done
 wait
-python3 "$REPO/eval/puzzle_score.py" --suite "$SUITE" --split open "$OUT"/*/ 2>&1 | tail -30
+# One score per model (never pooled), k=1, on the 3 boards: a pilot line, not a suite score.
+for d in "$OUT"/*/; do
+  echo "== $(basename "$d")"
+  python3 "$REPO/eval/puzzle_score.py" --suite "$SUITE" --split open --k 1 --ids "$IDS" "$d" 2>&1 | tail -3
+done
