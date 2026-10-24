@@ -459,9 +459,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     budget (its copy of the table is pinned to the Java map by its test); its budgets are its own.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
-    The file's `comment` names the models with a long-context tier and where each starts. Haiku 5.5's `max` is its
-    long-context rate (above 100K prompt tokens a call); the other tiers start at 200K or more, and the largest
-    prompt recorded in one call is 69,326 tokens (`runs/c3/ant-storm-turn/game-4101-1792129038688.jsonl`).
+    The file's `comment` names the models with a long-context tier, where each starts, and which `max` counts one,
+    with the largest prompt recorded in one call.
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
     bytes and then silence, for that long, inside the ask's deadline.
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full
@@ -503,10 +502,11 @@ and the correction round and the fixed legal option apply exactly as for any mod
   reports a cost). A call that fails reports no usage of its own. `model_id` resolves the `jev:` prefix.
 - **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped per identity on the game line,
   `decisions_bridge_version_a` / `_b`, only for a `jev:` seat (keyed in `aggregate.PROVENANCE_FIELDS` with default
-  "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on the
-  puzzle row of a solver with a `jev:` tier (smart or fast, as on the game line), where `puzzle_score.py` refuses to pool two versions. Acceptance pins the literal from a
-  loopback answer in the javatests log, and checks that a game with no `jev:` seat carries no such key. No existing seat's prompt or answer path
-  changed, so no other stamp and not `HARNESS_EPOCH` moved.
+  "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on the puzzle
+  row of a solver with a `jev:` tier (smart or fast, as on the game line), where `puzzle_score.py` refuses to pool two
+  versions. Acceptance pins the literal from a loopback answer in the javatests log, and checks that a game with no
+  `jev:` seat carries no such key. No existing seat's prompt or answer path changed, so no other stamp and not
+  `HARNESS_EPOCH` moved.
 
 How each decision kind (`AnswerTool.Kind`) is asked:
 
