@@ -351,7 +351,10 @@ public final class LlmSpikeGui {
      *  Stack zone with nothing on the stack.
      *  Epoch 71 (2026-10-24, issue #311, harness-env grader combat.block.must-block): when the seat's blocks are lost or
      *  still illegal after the re-ask with the engine's reason, and a block requirement forbids no blocks (Prized
-     *  Unicorn, a lure), the smallest legal block set is taken; "no blocks" stood illegal.
+     *  Unicorn, a lure), the smallest legal block set is taken; "no blocks" stood illegal. It also changes how the
+     *  model's own block answers are judged: a set above a global block cap (Silent Arbiter) is refused, and an
+     *  at-cap set the engine's requirement check wrongly refuses is accepted when each blocker obeys a requirement
+     *  and the block restrictions hold (blocksError).
      */
     static final String HARNESS_EPOCH = "harness-epoch-71";
 
@@ -3528,11 +3531,15 @@ public final class LlmSpikeGui {
          *  CombatUtil.validateBlocks), so every other controller's blocks stood whatever they were (rules pilot
          *  RP_007). The pairs (blocker, attacker) are added, checked and removed again. validateBlocks never counts the
          *  blockers against a global cap (Silent Arbiter: "No more than one creature can block each combat"), which
-         *  the engine enforces only in CombatUtil.canBlock against the combat so far, so the cap is checked here. At the
-         *  cap, a requirement on a creature that is not blocking cannot be obeyed without breaking the restriction
-         *  (CR 509.1c), but validateBlocks still names it (its requirement test ignores the cap: under Silent Arbiter
-         *  and Prized Unicorn it refused every set), so that objection is not one. Being validateBlocks' first
-         *  objection, it can hide a later one. */
+         *  the engine enforces only in CombatUtil.canBlock against the combat so far, so the cap is checked here.
+         *  <p>validateBlocks' requirement test also ignores the cap: under Silent Arbiter and Prized Unicorn it refused
+         *  every set, naming a creature left unblocking whose requirement the cap forbids obeying. At the cap that
+         *  objection is dropped only when (1) every creature in the set blocks an attacker it has a requirement toward,
+         *  so no swap obeys more requirements (CR 509.1c, as near as one requirement per blocker can tell), and (2) the
+         *  restriction half of validateBlocks holds ({@link #restrictionError}), which its first objection hid. Otherwise
+         *  the objection stands (round-3 review of #314: Elves on Lions while Hill Giant must block the Bears; Mogg
+         *  Flunkies blocking alone). Counting requirements exactly would mean modelling every lure and must-block form
+         *  the engine checks one by one; it has no counter to reuse. */
         static String blocksError(Combat combat, Player defender, List<Card[]> pairs) {
             for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
             try {
@@ -3540,13 +3547,54 @@ public final class LlmSpikeGui {
                 int cap = forge.game.staticability.StaticAbilityBlockRestrict.blockRestrictNum(defender);
                 if (blocking.size() > cap) return "no more than " + cap + " creature" + (cap == 1 ? "" : "s") + " can block each combat.";
                 String err = CombatUtil.validateBlocks(combat, defender);
-                if (err != null && blocking.size() == cap)
-                    for (Card c : defender.getCreaturesInPlay())
-                        if (!blocking.contains(c) && err.startsWith(c + " ")) return null;
-                return err;
+                if (err == null || blocking.size() < cap || !namesANonBlocker(err, defender, blocking)) return err;
+                for (Card b : blocking) {
+                    boolean obeys = false;
+                    for (Card a : combat.getAttackersBlockedBy(b)) obeys |= requiredToward(b, a, combat, defender);
+                    if (!obeys) return err;
+                }
+                return restrictionError(combat, blocking);
             }
             catch (Exception e) { return null; }
             finally { for (Card[] pr : pairs) combat.removeBlockAssignment(pr[1], pr[0]); }
+        }
+
+        private static boolean namesANonBlocker(String err, Player defender, CardCollection blocking) {
+            for (Card c : defender.getCreaturesInPlay()) if (!blocking.contains(c) && err.startsWith(c + " ")) return true;
+            return false;
+        }
+
+        /** Whether the blocker has a requirement to block this attacker: it blocks each combat if able, it must block
+         *  this attacker (provoke), or the attacker's lure covers it. The last two are the engine's own test
+         *  (CombatUtil.mustBlockAnAttacker) on a scratch combat holding only this attacker. */
+        private static boolean requiredToward(Card blocker, Card attacker, Combat combat, Player defender) {
+            if (forge.game.staticability.StaticAbilityMustBlock.blocksEachCombatIfAble(blocker)) return true;
+            Combat scratch = new Combat(combat.getAttackingPlayer());
+            scratch.addAttacker(attacker, combat.getDefenderByAttacker(attacker));
+            return CombatUtil.mustBlockAnAttacker(blocker, scratch, null);
+        }
+
+        /** The restriction half of CombatUtil.validateBlocks (CombatUtil.java:701-728 at the pinned engine), which runs
+         *  only after its requirement half finds nothing: the "can't block alone" family, then each blocked attacker's
+         *  allowed number of blockers (menace). */
+        private static String restrictionError(Combat combat, CardCollection blockers) {
+            for (Card b : blockers) {
+                boolean alone = b.hasKeyword("CARDNAME can't attack or block alone.") || b.hasKeyword("CARDNAME can't block alone.");
+                if (blockers.size() < 2 && alone) return b + " can't block alone.";
+                if (blockers.size() < 3 && b.hasKeyword("CARDNAME can't block unless at least two other creatures block."))
+                    return b + " can't block unless at least two other creatures block.";
+                if (b.hasKeyword("CARDNAME can't block unless a creature with greater power also blocks.")) {
+                    boolean found = false;
+                    for (Card o : blockers) found |= o.getNetPower() > b.getNetPower();
+                    if (!found) return b + " can't block unless a creature with greater power also blocks.";
+                }
+            }
+            for (Card a : combat.getAttackers()) {
+                int n = combat.getBlockers(a).size();
+                if (n > 0 && !CombatUtil.canAttackerBeBlockedWithAmount(a, n, combat))
+                    return a + " cannot be blocked with " + n + " creatures you've assigned";
+            }
+            return null;
         }
 
         /** Every block set the engine accepts (CombatUtil.validateBlocks) where each blocker blocks one attacker or none,
