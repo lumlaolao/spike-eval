@@ -141,6 +141,38 @@ class ResumeTest(unittest.TestCase):
             self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
 
 
+class BuildProvenanceTest(unittest.TestCase):
+    """The build a puzzle ran on is named in its directory's manifest, with --allow-stale-build when that let an old
+    build run (puzzle_baselines.Build refuses one whose overlay is not this checkout's otherwise)."""
+
+    def test_the_flag_reaches_the_build_and_the_manifest_records_it(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        prov = {"build_dir": "/b", "build_overlay_sha": "bbbbbbbbbbbb", "checkout_overlay_sha": "aaaaaaaaaaaa",
+                "stale_build_allowed": True}
+        seen = []
+
+        class FakeBuild:
+            def __init__(self, build_dir, forge, allow_stale=False):
+                seen.append((build_dir, allow_stale))
+
+            def provenance(self):
+                return prov
+
+            def run(self, env, out, **kw):
+                return 0
+
+        root = Path(tempfile.mkdtemp())
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(io.StringIO()):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                               "--budget-usd", "1", "--ids", pid, "--out", str(root), "--build", "/b",
+                               "--allow-stale-build"])
+        self.assertEqual(seen, [("/b", True)])
+        self.assertEqual(json.loads((root / pid / "batch-manifest.json").read_text())["build"], prov)
+
+
 class DecisionModelSeatTest(unittest.TestCase):
     """A jev: seat (DecisionsBridge) sends each position to openrouter.ai like an openrouter: one, and it cannot call
     a lookup, so a run with them would record a condition it never had."""

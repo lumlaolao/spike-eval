@@ -723,7 +723,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 ## 13. How a change is checked
 
 1. **`eval/harness_acceptance.sh`:**
-   - an isolated compile;
+   - an isolated compile, which records the overlay hash it compiled in `overlay-sha.txt`; the puzzle launchers
+     (`puzzle_baselines.Build`) run only a build whose hash is the checkout's (`eval/PUZZLES.md`);
    - every Java and Python test, with a declared-vs-run count;
    - the pinned canaries, with a class-load proof that the new build ran;
    - loopback fake-model games for tools, answers, the faithful profile, lookahead and rules;

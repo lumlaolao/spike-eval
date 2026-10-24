@@ -103,14 +103,15 @@ def prepare(out, k, suite_sha, resume):
     return "run"
 
 
-def write_manifest(out, model, suite_sha, puzzle_id, cond):
+def write_manifest(out, model, suite_sha, puzzle_id, cond, build=None):
     """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
     game row (a puzzle has none). Written whole, then moved, so a restart never leaves half a manifest."""
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     tmp = out / "batch-manifest.json.tmp"
     tmp.write_text(json.dumps({"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
-                                             "suite_sha256": suite_sha, "env": cond}}))
+                                             "suite_sha256": suite_sha, "env": cond},
+                                "build": build}))
     os.replace(tmp, out / "batch-manifest.json")
 
 
@@ -135,7 +136,7 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond):
 
 def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
     out = Path(out_root) / rec["id"]
-    write_manifest(out, model, suite_sha, rec["id"], cond)
+    write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance())
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000")
@@ -161,6 +162,8 @@ def main(argv=None):
     ap.add_argument("--memory-tools", action="store_true")
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--build", default=None)
+    ap.add_argument("--allow-stale-build", action="store_true",
+                    help="run --build although it was not compiled from this checkout's overlay (recorded)")
     ap.add_argument("--forge", default=None)
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
@@ -194,7 +197,7 @@ def main(argv=None):
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
-    build = pb.Build(a.build, a.forge)
+    build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     out_root = Path(a.out)
     out_root.mkdir(parents=True, exist_ok=True)
     print("[puzzles] %d active %s puzzles, k=%d, model %s, budget $%.2f (spent $%.2f; $%.2f at the dearest "

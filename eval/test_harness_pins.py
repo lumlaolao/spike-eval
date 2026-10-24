@@ -9,10 +9,12 @@ function is run the same way, with a stub in place of java that prints its envir
 """
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 
-SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "harness_acceptance.sh")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+SCRIPT =os.path.join(os.path.dirname(os.path.abspath(__file__)), "harness_acceptance.sh")
 
 
 def functions():
@@ -93,6 +95,56 @@ class JavatestsEnvironmentTest(unittest.TestCase):
         self.assertIn("MEMORY_TOOLS=1", out, "the stub ran")
         self.assertIn("EVAL_OUT=unset", out)
         self.assertIn("KEEP_ME=1", out, "every other variable still reaches the JVM")
+
+
+def compile_stage():
+    """The script's compile stage, `if has_stage compile; then` through its closing `fi`."""
+    with open(SCRIPT, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage compile; then"))
+    end = next(i for i in range(start + 1, len(lines)) if lines[i] == "fi")
+    return "\n".join(lines[start:end + 1])
+
+
+class CompileRecordsItsSourcesTest(unittest.TestCase):
+    """The compile stage writes overlay-sha.txt beside classes/, the hash run_batch.py stamps as overlay_sha, so
+    puzzle_baselines.Build can refuse a build that is not this checkout's (puzzle-build-staleness). A failed
+    compile leaves none, and an old one does not survive a recompile. javac is a stub; the hash and the import
+    check are real."""
+
+    def compile(self, javac_rc):
+        repo = os.path.dirname(os.path.dirname(SCRIPT))
+        with tempfile.TemporaryDirectory() as d:
+            javac = os.path.join(d, "javac")
+            with open(javac, "w") as f:
+                f.write('#!/bin/sh\nwhile [ "$1" != -d ]; do shift; done\nmkdir -p "$2/forge/spike"\n'
+                        'touch "$2/forge/spike/LlmSpikeGui.class"\nexit %d\n' % javac_rc)
+            os.chmod(javac, 0o755)
+            out = os.path.join(d, "out")
+            os.makedirs(out)
+            with open(os.path.join(out, "cp.txt"), "w") as f:
+                f.write("x.jar")
+            with open(os.path.join(out, "overlay-sha.txt"), "w") as f:
+                f.write("0ld0ld0ld0ld\n")
+            script = ('REPO="$1"; OUT="$2"; JAVAC="$3"; CP_FILE="$2/cp.txt"; CLASSES="$2/classes"\n'
+                      'OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"\n'
+                      'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n'
+                      % compile_stage())
+            res = subprocess.run(["bash", "-c", script, "x", repo, out, javac], check=True,
+                                 stdout=subprocess.PIPE, universal_newlines=True).stdout
+            sha = os.path.join(out, "overlay-sha.txt")
+            return res, (open(sha).read().strip() if os.path.exists(sha) else None)
+
+    def test_a_compile_records_the_overlay_it_compiled(self):
+        import benchmark_version
+        res, sha = self.compile(0)
+        self.assertIn("PASS compile", res)
+        self.assertEqual(sha, benchmark_version.overlay_sha_of_checkout())
+
+    def test_a_failed_compile_records_nothing(self):
+        res, sha = self.compile(1)
+        self.assertIn("FAIL compile", res)
+        self.assertIsNone(sha)
 
 
 if __name__ == "__main__":

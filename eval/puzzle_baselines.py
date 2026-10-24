@@ -37,8 +37,10 @@ removal is a game played out and lost. A drift, the cap, a deck-out or a stalled
 "necessary": it cannot show an action is needed, only fail to.
 
 The Java side runs against an ISOLATED build: --build DIR holding classes/ and classpath.txt, as
-eval/harness_acceptance.sh writes them under runs/harness-acceptance/<stamp>/ (the newest one is the
-default). It never compiles and never touches the Forge checkout beyond reading it.
+eval/harness_acceptance.sh writes them under runs/harness-acceptance/<stamp>/ with overlay-sha.txt, the hash of the
+overlay sources it compiled. A build whose hash is not this checkout's is refused unless --allow-stale-build (recorded
+in each run directory's build.json); with no --build, the newest matching build by compile time is used. It never
+compiles and never touches the Forge checkout beyond reading it.
 """
 
 import argparse
@@ -52,6 +54,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import benchmark_version  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 
 REPO = pf.REPO
@@ -73,6 +76,23 @@ ARM_CONTROLLER = {"random": "random", "pass": "pass", "first": "first", "floor":
 GREEDY_SPEC = "greedy:"  # GreedyBridge.PREFIX
 DEFAULT_SEEDS = {"pass": "1..4", "first": "1..4", "floor": "1..4", "ai": "1..4", "greedy": "1..4"}
 SEARCH_BASE = 1_000_000
+ACCEPTANCE_ROOT = REPO / "runs/harness-acceptance"
+# What a build was compiled from: benchmark_version.overlay_sha_of_checkout at compile time, the hash run_batch.py
+# stamps as a game line's overlay_sha (eval/harness_acceptance.sh, compile stage).
+BUILD_SHA_FILE = "overlay-sha.txt"
+BUILD_HOW = 'STAGES="classpath compile" FORGE_HOME=<forge> bash eval/harness_acceptance.sh'
+
+
+def checkout_overlay_sha():
+    return benchmark_version.overlay_sha_of_checkout(REPO)
+
+
+def recorded_overlay_sha(build_dir):
+    """The overlay hash a build recorded when it was compiled, or None (a build from before it recorded one)."""
+    try:
+        return (Path(build_dir) / BUILD_SHA_FILE).read_text().strip() or None
+    except OSError:
+        return None
 
 
 # ------------------------------------------------------------------ Java launcher
@@ -80,10 +100,14 @@ SEARCH_BASE = 1_000_000
 class Build:
     """An isolated compiled build: classes dir + classpath file + the Forge checkout to run from."""
 
-    def __init__(self, build_dir=None, forge=None, java=None):
+    def __init__(self, build_dir=None, forge=None, java=None, allow_stale=False):
+        """Only a build compiled from this checkout's overlay runs: --build DIR is refused when its recorded hash is
+        missing or another, unless allow_stale (--allow-stale-build, recorded in provenance()); with no DIR, the
+        newest matching build under ACCEPTANCE_ROOT, by when it was compiled."""
+        self.checkout_sha = checkout_overlay_sha()
         # Absolute: the JVM runs from the Forge checkout, where a relative classes path would miss and
         # the stale classes installed there would load in its place.
-        self.dir = (Path(build_dir) if build_dir else newest_acceptance_build()).resolve()
+        self.dir = (Path(build_dir) if build_dir else newest_acceptance_build(self.checkout_sha)).resolve()
         self.classes = self.dir / "classes"
         cp_file = self.dir / "classpath.txt"
         if not (self.classes / "forge/spike/LlmSpikePuzzle.class").is_file():
@@ -91,11 +115,23 @@ class Build:
                              "STAGES=\"classpath compile\" first)" % self.classes)
         if not cp_file.is_file():
             raise SystemExit("no classpath.txt in %s" % self.dir)
+        recorded = recorded_overlay_sha(self.dir)
+        self.overlay_sha = recorded or "unknown"
+        self.stale = recorded != self.checkout_sha or self.checkout_sha == "unknown"
+        if self.stale and not allow_stale:
+            raise SystemExit("build %s was compiled from overlay %s, this checkout's is %s: it would run another "
+                             "harness under this checkout's name. Build one (%s) or pass --allow-stale-build"
+                             % (self.dir, recorded or "(not recorded)", self.checkout_sha, BUILD_HOW))
         self.classpath = cp_file.read_text().strip()
         self.forge = Path(forge or os.environ.get("FORGE_HOME") or Path.home() / "code/forge")
         if not (self.forge / "forge-gui-desktop").is_dir():
             raise SystemExit("Forge checkout not found at %s (set FORGE_HOME)" % self.forge)
         self.java = java or os.environ.get("JAVA", "java")
+
+    def provenance(self):
+        """Which build ran, what it was compiled from, and whether --allow-stale-build let a mismatch run."""
+        return {"build_dir": str(self.dir), "build_overlay_sha": self.overlay_sha,
+                "checkout_overlay_sha": self.checkout_sha, "stale_build_allowed": self.stale}
 
     def argfile(self, workdir):
         args = []
@@ -123,6 +159,8 @@ class Build:
             env.update({"SMART_MODEL": "openrouter:zero-model/none", "FAST_MODEL": "openrouter:zero-model/none",
                         "OPENROUTER_BASE_URL": "http://127.0.0.1:9/v1"})
         env.update({k: str(v) for k, v in env_extra.items()})
+        env["OVERLAY_SHA"] = self.overlay_sha  # the game line's overlay_sha: what this build holds, not the shell's
+        (out_dir / "build.json").write_text(json.dumps(self.provenance()) + "\n")
         argfile = self.argfile(out_dir)
         with open(out_dir / "jvm.log", "w") as log:
             try:
@@ -133,13 +171,16 @@ class Build:
                 return -9
 
 
-def newest_acceptance_build():
-    root = REPO / "runs/harness-acceptance"
-    cands = sorted(p for p in root.glob("*") if (p / "classes/forge/spike/LlmSpikePuzzle.class").is_file()
-                   and (p / "classpath.txt").is_file()) if root.is_dir() else []
-    if not cands:
-        raise SystemExit("no isolated build under %s; pass --build DIR" % root)
-    return cands[-1]
+def newest_acceptance_build(want):
+    """The most recently compiled complete build under ACCEPTANCE_ROOT whose recorded overlay hash is `want`.
+    By compile time, never by name: the last name was an old ps-* build (puzzle-build-staleness)."""
+    root = ACCEPTANCE_ROOT
+    cands = [p for p in root.glob("*") if (p / "classes/forge/spike/LlmSpikePuzzle.class").is_file()
+             and (p / "classpath.txt").is_file() and recorded_overlay_sha(p) == want] if root.is_dir() else []
+    if not cands or want == "unknown":
+        raise SystemExit("no build under %s compiled from this checkout's overlay (%s); build one: OUT=%s/<name> %s"
+                         % (root, want, root, BUILD_HOW))
+    return max(cands, key=lambda p: (p / BUILD_SHA_FILE).stat().st_mtime)
 
 
 def read_results(out_dir):
@@ -467,7 +508,7 @@ def cmd_prove(a):
     out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-proofs" % manifest["suite"]))
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
     refuse_unproven(todo, "played")
-    build = Build(a.build, a.forge)
+    build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     manifest = dict(manifest, frozen=False, suite_sha256=None)
     target = Path(a.write or a.suite)
     done = {}
@@ -663,7 +704,7 @@ def minimality(build, pzl, script, out, seed):
 
 
 def cmd_line(a):
-    build = Build(a.build, a.forge)
+    build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     pzl = Path(a.pzl).resolve()
     out = Path(a.out_dir or REPO / "runs/puzzles/lines" / pzl.stem)
     seeds = sorted(expand_seeds(a.seeds))
@@ -695,7 +736,7 @@ def cmd_run(a):
     arms = [x for x in a.arms.split(",") if x]
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
     refuse_unproven(todo, "played")
-    build = Build(a.build, a.forge)
+    build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
 
     def work(rec):
         try:
@@ -748,7 +789,7 @@ def cmd_retier(a):
 
 
 def cmd_verify(a):
-    build = Build(a.build, a.forge)
+    build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     manifest = pf.load_suite(a.suite)
     out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-verify" % manifest["suite"]))
     todo = [r for r in manifest["puzzles"] if pf.has_line(r.get("reference_line"))]
@@ -767,7 +808,10 @@ def cmd_verify(a):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--build", default=None, help="dir with classes/ and classpath.txt (default: newest acceptance build)")
+    ap.add_argument("--build", default=None,
+                    help="dir with classes/ and classpath.txt (default: the newest acceptance build of this checkout)")
+    ap.add_argument("--allow-stale-build", action="store_true",
+                    help="run --build although it was not compiled from this checkout's overlay (recorded in build.json)")
     ap.add_argument("--forge", default=None, help="Forge checkout (default $FORGE_HOME or ~/code/forge)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
