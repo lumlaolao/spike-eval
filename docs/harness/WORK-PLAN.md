@@ -21,45 +21,32 @@ saturated (130/145 with and without tools at epoch 66; 119/145 off and 127/145 o
 naming the trick); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
 puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner reviews it.
 
-**Done since (2026-10-21 to 2026-10-24):**
-- **Hard puzzles:** three generated suites, every board gated against every floor:
-  - `puzzles-hard-gen-v1`: 116 boards (PR #290);
-  - `puzzles-hard-gen2-v1`: 236 boards, with a trap 1 to 3 short (PR #299);
-  - `puzzles-hard-gen3-v1`: 68 boards in tokens, landfall, equip and infect (PR #302).
-
-  [eval/PUZZLES.md](../../eval/PUZZLES.md) covers them. Luna solved 15 of 156 on gen2's open split.
-- **Engineering:**
-  - acceptance in parallel (PR #301);
-  - `puzzle_solve.py --resume` (PR #300);
-  - provider compatibility for the frontier models: prices with a dearest-endpoint bound for budgets, one
-    `provider` object, and a reasoning floor for models that cannot turn it off (PR #303);
-  - a Jev 1.14 seat through OpenRouter's Decisions API (PR #305);
-  - the harness-building environment (PR #304, [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md)).
+Landed 2026-10-21 to 24: PRs #290 and #299 to #305. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
+the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
 ## Open work, after the benchmark
 
 - **The frontier comparison on the 3 hardest puzzles** waits on the owner's go and a budget-cap choice:
-  - the plan is `notes/frontier3-plan.sh` on branch `docs/writeup-notes`: 21 chat models plus Jev 1.14, about
-    $37 expected;
+  - the plan is `notes/frontier3-plan.sh` on branch `docs/writeup-notes`: 21 chat models plus Jev 1.14, whose
+    bridge is on main (PR #305), about $37 expected;
   - caps at the dearest endpoint come to about $291, or about $125 if the bridge sends `provider.max_price` at the
-    list price.
-- **Harness-building environment, owner questions** (HARNESS-ENV-FRAMEWORK.md section 8):
-  - the builder model and budget;
-  - the scoring setting;
-  - gating the payment executor;
-  - question 12: run the candidate seat in its own process. Until then a candidate's score is withheld unless
-    the operator passes `--trust-candidate`.
-
-  No real episode has run.
+    list price;
+  - no paid Jev call has been made, so the Decisions API's response shape is confirmed only by its docs.
+- **The third hard suite** (`puzzles-hard-gen3-v1`): no model has played it. A Luna run of the 44 open boards,
+  about $1, waits on the owner (PR #302).
+- **Harness-building environment:** no real episode has run. The owner's twelve questions are in
+  HARNESS-ENV-FRAMEWORK.md section 8:
+  - first, the builder model and budget;
+  - question 12: run the candidate seat in its own process. Until then a candidate's score is withheld without
+    `--trust-candidate`.
 - **Seat defects the environment found**, kept failing for `defect-hunt`: an illegal block stands under a
   must-block requirement (`combat.block.must-block`), and the X-cost instance (`costs.x`).
 - **Jev, owner questions:**
-  - multi-picks and trigger order from independent yes/no questions;
+  - multi-picks and trigger order are built from independent yes/no questions;
   - the 40-option cap;
   - whether CLAUDE.md states the tool-call exception (recorded in ARCHITECTURE.md section 9).
 - **Repository housekeeping:** the remote branches already merged into main were not deleted (it needs the
   owner's permission).
-
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop
   unfinished games), E5 (freeze a measurement epoch), then E7 (the first mirror block, paid, cost first); which
   models to compare ([eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md), decision 4); the headline score.
