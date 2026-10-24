@@ -1,4 +1,4 @@
-# Work plan: what is left (updated 2026-10-20)
+# Work plan: what is left (updated 2026-10-24)
 
 The living to-do list. Only open work is listed here; what is done is in git history,
 [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md), [ACCEPTANCE.md](ACCEPTANCE.md) and the run reports. The plan as it stood
@@ -21,8 +21,37 @@ saturated (130/145 with and without tools at epoch 66; 119/145 off and 127/145 o
 naming the trick); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
 puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner reviews it.
 
+Landed 2026-10-21 to 24: PRs #290 to #305. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
+the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
+
 ## Open work, after the benchmark
 
+- **The frontier comparison on the 3 hardest puzzles** waits on the owner's go and a budget-cap choice:
+  - the plan is `notes/frontier3-plan.sh` on branch `docs/writeup-notes`: 21 chat models plus Jev 1.14, whose
+    bridge is on main (PR #305), about $37 expected;
+  - caps at the dearest endpoint come to about $291, or about $125 if the bridge sends `provider.max_price` at the
+    list price;
+  - no paid Jev call has been made, so the Decisions API's response shape is confirmed only by its docs;
+  - the owner decisions in PR #303's Not done bear on it: each model runs at its own default reasoning effort (max
+    for Kimi K3 and GLM 5.3), Mistral may refuse a user message after a tool result, and caching is unmeasured.
+- **The 25 hand-authored niche-rules puzzles** (PR #298) are not frozen into a suite and have no held-out split;
+  torbran is provisional (its README lists the bar rows each missed).
+- **The third hard suite** (`puzzles-hard-gen3-v1`): no model has played it. A Luna run of the 44 open boards,
+  about $1, waits on the owner (PR #302).
+- **Harness-building environment:** no real episode has run. The owner's twelve questions are in
+  HARNESS-ENV-FRAMEWORK.md section 8:
+  - first, the builder model and budget;
+  - question 12: run the candidate seat in its own process. Until then a candidate's score is withheld without
+    `--trust-candidate`.
+- **Seat defects the environment found**, kept failing for `defect-hunt`: an illegal block stands under a
+  must-block requirement (`combat.block.must-block`), and the X-cost instance (`costs.x`).
+- **Jev, owner questions:**
+  - multi-picks and trigger order are built from independent yes/no questions;
+  - the 40-option cap;
+  - the Decisions endpoint is derived from `OPENROUTER_BASE_URL`, with a 120 s deadline and no env var of its own;
+  - whether CLAUDE.md states the tool-call exception (recorded in ARCHITECTURE.md section 9).
+- **Repository housekeeping:** the remote branches already merged into main were not deleted (it needs the
+  owner's permission).
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop
   unfinished games), E5 (freeze a measurement epoch), then E7 (the first mirror block, paid, cost first); which
   models to compare ([eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md), decision 4); the headline score.
@@ -43,12 +72,13 @@ puzzle contract, the hard sources and the measurement protocol. Nothing in it is
 
 - **Game model: GPT-6 Luna** (`openrouter:openai/gpt-6-luna`) for every seat and tier unless the owner names another.
   Never Opus. Paid runs always carry `--budget-usd`; say the cost first. Never set `OPENROUTER_ALLOW_EGRESS`.
-- **Tool calls, not text parsing**, for every decision and note (`CLAUDE.md`).
+- **Tool calls, not text parsing**, for every decision and note (`CLAUDE.md`). One exception (owner, 2026-10-24):
+  a `jev:` decision model, whose typed choice is turned into the `answer` call before validation.
 - **No heuristics deciding for the model.** The only skips: the menu is PASS only, or the identical spot was
   already passed. Never Forge's AI for a choice the seat owns.
 - **Edit `forge-overlay/` only**; engine patches through the overlay, listed in
   [ENGINE-PATCHES.md](ENGINE-PATCHES.md).
 - **Tests first**, watched failing. Acceptance and the gauntlets only when the owner asks, except the full
   acceptance run a merge needs.
-- **Subagents only with the owner's explicit permission.**
+- **Subagents are allowed** (owner, 2026-10-23); they never message the live-demo session.
 - **Compound actions (`PLAN_EXECUTE`) stay off** (2026-10-16): the plan is a note, re-read at every decision.
