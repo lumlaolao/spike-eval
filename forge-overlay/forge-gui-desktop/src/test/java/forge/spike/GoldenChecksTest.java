@@ -2747,6 +2747,27 @@ public class GoldenChecksTest {
         Assert.assertTrue(asks.size() == 2 && asks.get(1).contains("must block"), "sent back with the reason: " + asks);
     }
 
+    /** Issue #311 (harness-env grader, combat.block.must-block): a seat told the requirement that still declares no
+     *  blocks kept "no blocks", which the requirement forbids, and the engine checks blocks only for its own GUI. After
+     *  the re-ask the declaration stands only if it is legal; otherwise a fixed legal set is taken, never Forge's AI. */
+    @Test
+    public void aSeatThatKeepsIgnoringABlockRequirementStillDeclaresALegalBlock() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> { asks.add(p); return "BLOCKS: NONE"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        seat(g, model, model).declareBlockers(me, combat);
+        Assert.assertTrue(asks.size() >= 2 && asks.get(asks.size() - 1).contains("must"), "told the requirement first: " + asks);
+        Assert.assertNull(forge.game.combat.CombatUtil.validateBlocks(combat, me), "the declared blocks are legal");
+        Assert.assertTrue(combat.getBlockers(unicorn).containsAll(Arrays.asList(bears, giant)), "both block the Unicorn");
+    }
+
     /** A creature that can block any number of creatures may block both attackers (each blocker blocked once,
      *  whatever the card said): the label says so, and both blocks stand. */
     @Test
