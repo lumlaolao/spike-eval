@@ -69,8 +69,11 @@ final class AnswerTool {
      *  default; it is kept so the two can be measured against each other. */
     static boolean perDecision() { return "per-decision".equals(System.getenv("ANSWER_SCHEMA")); }
 
-    /** True when a seat on this model spec answers through the tool. */
-    static boolean usedBy(String modelSpec) { return enabled() && NativeTools.usedBy(modelSpec); }
+    /** True when a seat on this model spec answers through the tool. A decision model (`jev:`, DecisionsBridge) has
+     *  no lookups but answers through `answer` too: its typed answer is turned into the call. */
+    static boolean usedBy(String modelSpec) {
+        return enabled() && (NativeTools.usedBy(modelSpec) || NativeTools.enabled() && DecisionsBridge.isSpec(modelSpec));
+    }
 
     /** The version stamped on the game line: what a tool-answer game was played under. */
     static String protocolVersion() {

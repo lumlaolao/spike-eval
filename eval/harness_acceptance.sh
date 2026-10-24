@@ -332,6 +332,9 @@ EOF
     elif [ "$T" != "$DECLARED" ]; then fail javatests "ran $T tests but $DECLARED @Test methods are declared (discovery gap)"
     elif [ -n "$OWN_EXP" ] && [ "$OWN_N" != "$OWN_EXP" ]; then
       fail javatests "ownership count $OWN_N != pinned $OWN_EXP (update harness_acceptance.expected AND ControllerOwnershipTest deliberately)"
+    # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
+    elif ! grep -qF "] decisions-bridge-v1 ONE -> answer" "$OUT/javatests.log"; then
+      fail javatests "no [JEV] answer stamped decisions-bridge-v1 (move this pin WITH DecisionsBridge.VERSION)"
     else pass javatests "$T/$DECLARED declared tests passed, 0 skipped. $OWN"; fi
   fi
 fi
@@ -627,6 +630,8 @@ if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
     if game.get("native_tools_version")!="seat-tools-v11": problems.append("native_tools_version=%r (expected seat-tools-v11; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    for k in ("decisions_bridge_version_a", "decisions_bridge_version_b"):
+        if k in game: problems.append("%s=%r on a game with no jev: seat (it is stamped only where one plays)"%(k, game.get(k)))
     if game.get("memory_tools_version")!="evidence-tools-v4": problems.append("memory_tools_version=%r (expected evidence-tools-v4; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v15" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v15; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))

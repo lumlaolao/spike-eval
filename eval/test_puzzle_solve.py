@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -114,6 +115,36 @@ class ResumeTest(unittest.TestCase):
         self.assertEqual(puzzle_solve.resume_conflicts(root, ["p", "q"], "m", "S", cond), [])
         for model, sha, c in (("other", "S", cond), ("m", "T", cond), ("m", "S", dict(cond, MEMORY_TOOLS="1"))):
             self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
+
+
+class DecisionModelSeatTest(unittest.TestCase):
+    """A jev: seat (DecisionsBridge) sends each position to openrouter.ai like an openrouter: one, and it cannot call
+    a lookup, so a run with them would record a condition it never had."""
+
+    SUITE = str(Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json")
+
+    def run_main(self, env, *extra):
+        argv = ["--suite", self.SUITE, "--split", "open", "--model", "jev:typesafe/jev-1.14", "--k", "1",
+                "--budget-usd", "0", "--out", tempfile.mkdtemp(), "--build", "/nonexistent/build"] + list(extra)
+        with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(puzzle_solve, "load_secrets"):
+            for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
+                if k not in env:
+                    os.environ.pop(k, None)
+            with self.assertRaises(SystemExit) as cm:
+                puzzle_solve.main(argv)
+        return str(cm.exception.code)
+
+    def test_a_jev_spec_needs_the_egress_opt_in(self):
+        self.assertIn("OPENROUTER_ALLOW_EGRESS", self.run_main({}))
+
+    def test_a_jev_spec_on_loopback_needs_no_opt_in(self):
+        # Past the egress check, it stops at the missing build: nothing ran.
+        self.assertIn("no compiled overlay", self.run_main({"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}))
+
+    def test_a_jev_spec_refuses_the_lookup_tools(self):
+        msg = self.run_main({"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}, "--memory-tools")
+        self.assertIn("--memory-tools", msg)
+        self.assertIn("jev:", msg)
 
 
 if __name__ == "__main__":

@@ -59,6 +59,13 @@
       },
       "max_note": "the dearest of 8 endpoints that take tools (priority tiers included; long-context tiers above 100K-272K prompt tokens excluded), 2026-10-24; budgets check against it"
     },
+    "typesafe/jev-1.14": {
+      "prompt": 0.000000042,
+      "completion": 0,
+      "checked": "2026-10-24",
+      "source": "https://openrouter.ai/api/v1/models?output_modalities=decisions",
+      "max_note": "one provider (TypeSafe, routed through OpenRouter; docs hub, 2026-10-24): the listed rate is the bound"
+    },
     "fake/harness-model": {
       "prompt": 0.0,
       "completion": 0.0,

@@ -89,6 +89,24 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 | `first_failed_reply` cut at 500 in the jsonl | `LSG:4881` | n/a | **kept**: a diagnostic field, never read by the model | 500 |
 | Legacy-profile caps (hand list 40, graveyard/exile 30, cast history 25, INTEL 16, RECENT EVENTS 10, `saLabel` 160) | `LSG:472, 1939, 5412` | not in use | **kept**: `v1-compat`..`v3-compact` are frozen measurement definitions (ContextProfileTest); the faithful profile is the one with no limits | unchanged |
 
+### A decision model's seat (`jev:`, `DecisionsBridge`, 2026-10-24)
+
+A decision model answers only typed questions over a closed list of keys (`docs/harness/ARCHITECTURE.md` section 9,
+"The Decisions bridge"). Where a decision cannot be put that way it is not sent: the bridge gives no answer, logs
+`[JEV-NO-ANSWER]` with the reason, and the seat takes its fixed legal option. "Bound" counts the asks of the three
+puzzles of the first Jev run, read from Luna's rows (`runs/puzzles/hard-gen2-luna/<id>/game-*.jsonl`, 116 asks);
+no Jev game has been played yet. `DB` is `DecisionsBridge.java`.
+
+| Limit | Where | Bound | Decision | Value |
+|---|---|---|---|---|
+| A number from a range of more than `MAX_LISTED` values is not asked | `DB.compose`, `NUMBER` | 0 of 116 | **kept**: a choice lists every value as a key; `chooseWideKeywordCost` asks for 0 through 2^31-1 (Squad, Multikicker, Replicate), which cannot be listed | 40 values |
+| A division with more than `MAX_LISTED` splits is not asked | `DB.compose`, `ALLOC` | 0 of 116 | **kept**: the same reason; a split is one listed key | 40 splits |
+| A repeatable mode picked up to more than `MAX_LISTED - 1` times is not asked | `DB.compose`, `MANY_REPEAT` | 0 of 116 | **kept**: each mode's count is a choice over 0 through the maximum | 39 picks |
+| Naming a card is not asked | `DB.compose`, `CARD` | 0 of 116 | **kept**: there is no closed list of names to put as keys | never asked |
+| A decision whose options have no labels is not asked | `DB.compose` (`ONE`, `MANY`, `MANY_REPEAT`, `ALLOC`) | 0 of 116 | **kept**: a key with no text would be a blind question; every current site labels its options | never asked |
+| Several picks are assembled from one yes/no per option, answered independently; an ordered pick list is ordered by probability | `DB.compose` (`MANY`), `DB.topPicks`; blockers that may block several attackers the same way | 6 of 116 (cards-for-effect 1, trigger-order 5) | **kept**: the API answers the questions of one request in parallel and has no "choose a set" primitive; listing every subset as a choice grows as 2^n | the decision's own min and max |
+| No lookups, no `simulate`, no plan, no yield, no reason | `LLMBridgeFactory.decisions` (`refuseConditions`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept**: a condition that defines the arm; the model cannot call anything | refused at launch |
+
 ### Wall clock
 
 | Limit | Where | Bound | Decision | New value |
