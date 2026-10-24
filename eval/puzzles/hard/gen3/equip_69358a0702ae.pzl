@@ -1,0 +1,50 @@
+[metadata]
+Name:equip_69358a0702ae
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fencing Ace, Hill Giant, Puresteel Paladin, Savannah Lions, Fireshrieker (unattached), Loxodon Warhammer (unattached) and 9 untapped Jungle Shrines. Your hand is Short Sword, Sigarda's Aid, Bonesplitter, All That Glitters, Embercleave, Vulshok Morningstar, Grafted Wargear and Leonin Scimitar. The opponent is at 50 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 50 in 13 steps; the best plain plan (everything on the creature with the most power / Embercleave in the main phase) deals 48, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Short Sword;Sigarda's Aid;Bonesplitter;All That Glitters;Embercleave;Vulshok Morningstar;Grafted Wargear;Leonin Scimitar
+p0battlefield=Fencing Ace;Hill Giant;Puresteel Paladin;Savannah Lions;Fireshrieker;Loxodon Warhammer;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=50
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Fencing Ace", "Hill Giant", "Puresteel Paladin", "Savannah Lions"], "hand": ["All That Glitters", "Bonesplitter", "Embercleave", "Grafted Wargear", "Leonin Scimitar", "Short Sword", "Sigarda's Aid", "Vulshok Morningstar"], "loose": ["Fireshrieker", "Loxodon Warhammer"], "mana": 9, "start": ["Puresteel Paladin"]}
+# trap: {"best": 48, "plans": {"biggest": 48, "cast_all_first": 36, "cleave_main": 48, "equip_asap": 42}, "short": 2}
+cast Bonesplitter
+no
+cast Leonin Scimitar
+no
+cast Short Sword
+no
+cast Vulshok Morningstar
+no
+cast All That Glitters
+Fencing Ace
+activate Bonesplitter ... Equip {0}
+Fencing Ace
+activate Fireshrieker ... Equip {0}
+Puresteel Paladin
+activate Leonin Scimitar ... Equip {0}
+Fencing Ace
+activate Loxodon Warhammer ... Equip {0}
+Fencing Ace
+activate Short Sword ... Equip {0}
+Fencing Ace
+activate Vulshok Morningstar ... Equip {0}
+Fencing Ace
+Fencing Ace; Hill Giant; Puresteel Paladin; Savannah Lions
+cast Embercleave
+Embercleave; Puresteel Paladin
+Hill Giant
+no
+[acceptance]
+life p1 <= 0

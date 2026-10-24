@@ -1,0 +1,150 @@
+[metadata]
+Name:tokens_3392deda5d41
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Krenko, Mob Boss, Siege-Gang Commander, Witty Roastmaster and three untapped Mountains, none of them summoning sick. Your hand is Goblin Instigator, Mogg War Marshal, Mogg War Marshal, Mogg War Marshal, Mogg War Marshal, Mogg War Marshal and Skirk Prospector. The opponent is at 40 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-tokens | the exhaustive maximum is 40 damage in 14 steps: every creature entering deals damage; Skirk Prospector turns a Goblin into {R}; Krenko counts every Goblin out; Mogg War Marshal leaves a token when it dies; the best plain plan (sacrifice a token whenever there is one, never a creature card) deals 38, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Goblin Instigator;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal;Skirk Prospector
+p0battlefield=Krenko, Mob Boss;Siege-Gang Commander;Witty Roastmaster;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=40
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+# search: {"bf": ["Krenko, Mob Boss", "Siege-Gang Commander", "Witty Roastmaster"], "hand": ["Goblin Instigator", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal", "Skirk Prospector"], "mountains": 3}
+# trap: {"best": 38, "plans": {"tokens_first": 38}, "short": 2}
+activate Mountain
+activate Mountain
+cast Mogg War Marshal
+Witty Roastmaster; Mogg War Marshal
+activate Mountain
+cast Skirk Prospector
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+cast Mogg War Marshal
+pass
+Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+cast Mogg War Marshal
+pass
+Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+cast Mogg War Marshal
+pass
+Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+cast Mogg War Marshal
+pass
+Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+cast Goblin Instigator
+pass
+Witty Roastmaster; Goblin Instigator
+pass
+pass
+pass
+activate Krenko, Mob Boss
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Instigator
+activate Siege-Gang Commander
+opponent
+Skirk Prospector
+[acceptance]
+life p1 <= 0

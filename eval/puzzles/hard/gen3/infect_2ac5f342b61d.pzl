@@ -1,0 +1,47 @@
+[metadata]
+Name:infect_2ac5f342b61d
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 5 life and control Ichorclaw Myr and 2 untapped Forests. Your hand is Mutagenic Growth, Become Immense, Tezzeret's Gambit, Unnatural Restoration, Unnatural Restoration, Mishra's Bauble, Gitaxian Probe, Land Grant, Gitaxian Probe, Mishra's Bauble, Mishra's Bauble and Mishra's Bauble. Your graveyard holds nothing. Your library is all Forests. The opponent has 0 poison counters, is at 20 life and controls nothing. Give the opponent ten poison counters this turn.
+Rule:generated-infect | the exhaustive maximum is 10 poison in 13 steps; the best plain plan (Become Immense as soon as it can be paid / never proliferate) gives 9, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=5
+p0hand=Mutagenic Growth;Become Immense;Tezzeret's Gambit;Unnatural Restoration;Unnatural Restoration;Mishra's Bauble;Gitaxian Probe;Land Grant;Gitaxian Probe;Mishra's Bauble;Mishra's Bauble;Mishra's Bauble
+p0battlefield=Ichorclaw Myr;Forest;Forest
+p0library=Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest
+p1life=20
+p1counters=POISON=0
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"attackers": ["Ichorclaw Myr"], "forests": 2, "graveyard": 0, "hand": ["Become Immense", "Gitaxian Probe", "Gitaxian Probe", "Land Grant", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Mutagenic Growth", "Tezzeret's Gambit", "Unnatural Restoration", "Unnatural Restoration"], "hand_forests": 0, "inkmoth": false, "life": 5, "poisoned": false}
+# trap: {"best": 9, "plans": {"bi_asap": 9, "never_proliferate": 9}, "short": 1}
+cast Gitaxian Probe
+opponent
+play land Forest
+cast Land Grant ... Reveal your hand
+Forest
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Mishra's Bauble
+Ichorclaw Myr
+activate Mishra's Bauble
+opponent
+pass
+cast Mutagenic Growth
+pay 1 Phyrexian symbol with 2 life
+pass
+cast Become Immense
+Gitaxian Probe; Land Grant; Mutagenic Growth; Mishra's Bauble; Mishra's Bauble
+at MAIN2: cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Unnatural Restoration
+opponent
+[acceptance]
+winner p0

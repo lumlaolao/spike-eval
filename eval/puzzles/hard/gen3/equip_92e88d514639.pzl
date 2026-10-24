@@ -1,0 +1,46 @@
+[metadata]
+Name:equip_92e88d514639
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fencing Ace, Glory Seeker, Hill Giant, Cranial Plating (unattached) and 9 untapped Jungle Shrines. Your hand is Short Sword, Rancor, Ethereal Armor, Foundry Inspector, Loxodon Warhammer, Fireshrieker, Bonesplitter, Grafted Wargear, Vulshok Morningstar and Puresteel Paladin. The opponent is at 39 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 39 in 13 steps; the best plain plan (everything on the creature with the most power) deals 36, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Short Sword;Rancor;Ethereal Armor;Foundry Inspector;Loxodon Warhammer;Fireshrieker;Bonesplitter;Grafted Wargear;Vulshok Morningstar;Puresteel Paladin
+p0battlefield=Fencing Ace;Glory Seeker;Hill Giant;Cranial Plating;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=39
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Fencing Ace", "Glory Seeker", "Hill Giant"], "hand": ["Bonesplitter", "Ethereal Armor", "Fireshrieker", "Foundry Inspector", "Grafted Wargear", "Loxodon Warhammer", "Puresteel Paladin", "Rancor", "Short Sword", "Vulshok Morningstar"], "loose": ["Cranial Plating"], "mana": 9, "start": []}
+# trap: {"best": 36, "plans": {"biggest": 36, "cast_all_first": 34, "equip_asap": 35}, "short": 3}
+cast Foundry Inspector
+cast Puresteel Paladin
+cast Bonesplitter
+no
+cast Loxodon Warhammer
+no
+cast Short Sword
+no
+cast Vulshok Morningstar
+no
+cast Rancor
+Fencing Ace
+activate Bonesplitter ... Equip {0}
+Fencing Ace
+activate Cranial Plating ... Equip {0}
+Fencing Ace
+activate Loxodon Warhammer ... Equip {0}
+Fencing Ace
+activate Short Sword ... Equip {0}
+Fencing Ace
+activate Vulshok Morningstar ... Equip {0}
+Fencing Ace
+Fencing Ace; Glory Seeker; Hill Giant
+[acceptance]
+life p1 <= 0

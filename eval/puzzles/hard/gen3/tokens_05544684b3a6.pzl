@@ -1,0 +1,138 @@
+[metadata]
+Name:tokens_05544684b3a6
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Krenko, Mob Boss, Siege-Gang Commander, Skirk Prospector and three untapped Mountains, none of them summoning sick. Your hand is Goblin Instigator, Impact Tremors, Krenko's Command, Mogg War Marshal, Mogg War Marshal, Mogg War Marshal and Mogg War Marshal. The opponent is at 32 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-tokens | the exhaustive maximum is 32 damage in 13 steps: every creature entering deals damage; Skirk Prospector turns a Goblin into {R}; Krenko counts every Goblin out; Mogg War Marshal leaves a token when it dies; the best plain plan (sacrifice a token whenever there is one, never a creature card) deals 31, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Goblin Instigator;Impact Tremors;Krenko's Command;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal
+p0battlefield=Krenko, Mob Boss;Siege-Gang Commander;Skirk Prospector;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=32
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"bf": ["Krenko, Mob Boss", "Siege-Gang Commander", "Skirk Prospector"], "hand": ["Goblin Instigator", "Impact Tremors", "Krenko's Command", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal"], "mountains": 3}
+# trap: {"best": 31, "plans": {"payoff_first": 25, "tokens_first": 31}, "short": 1}
+activate Mountain
+activate Mountain
+cast Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Mountain
+cast Impact Tremors
+pass
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+cast Goblin Instigator
+pass
+Impact Tremors; Goblin Instigator
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Instigator
+cast Mogg War Marshal
+pass
+Impact Tremors; Mogg War Marshal
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+cast Mogg War Marshal
+pass
+Impact Tremors; Mogg War Marshal
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+cast Mogg War Marshal
+pass
+Impact Tremors; Mogg War Marshal
+pass
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+pass
+pass
+cast Krenko's Command
+pass
+pass
+pass
+activate Krenko, Mob Boss
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Goblin Token
+activate Siege-Gang Commander
+opponent
+Goblin Token
+pass
+activate Skirk Prospector
+Goblin Token
+activate Skirk Prospector
+Skirk Prospector
+activate Siege-Gang Commander
+opponent
+Siege-Gang Commander
+[acceptance]
+life p1 <= 0

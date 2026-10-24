@@ -1,0 +1,168 @@
+[metadata]
+Name:tokens_582c0f43b3e9
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Krenko, Mob Boss, Mayhem Devil, Siege-Gang Commander, Skirk Prospector and two untapped Mountains, none of them summoning sick. Your hand is Dragon Fodder, Mogg War Marshal, Mogg War Marshal, Mogg War Marshal, Mogg War Marshal and Skirk Prospector. The opponent is at 39 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-tokens | the exhaustive maximum is 39 damage in 13 steps: Mayhem Devil drains for every sacrifice, Skirk Prospector's too; Skirk Prospector turns a Goblin into {R}; Krenko counts every Goblin out; Mogg War Marshal leaves a token when it dies; the best plain plan (sacrifice a token whenever there is one, never a creature card) deals 36, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dragon Fodder;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal;Skirk Prospector
+p0battlefield=Krenko, Mob Boss;Mayhem Devil;Siege-Gang Commander;Skirk Prospector;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=39
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"bf": ["Krenko, Mob Boss", "Mayhem Devil", "Siege-Gang Commander", "Skirk Prospector"], "hand": ["Dragon Fodder", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal", "Skirk Prospector"], "mountains": 2}
+# trap: {"best": 36, "plans": {"tokens_first": 36}, "short": 3}
+activate Mountain
+activate Mountain
+cast Dragon Fodder
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+cast Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+cast Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+cast Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+cast Mogg War Marshal
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+cast Skirk Prospector
+pass
+activate Krenko, Mob Boss
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Skirk Prospector 1/1 [untapped] [sick]
+opponent
+pass
+pass
+activate Skirk Prospector
+Krenko, Mob Boss
+opponent
+pass
+activate Skirk Prospector
+Skirk Prospector
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+opponent
+[acceptance]
+life p1 <= 0

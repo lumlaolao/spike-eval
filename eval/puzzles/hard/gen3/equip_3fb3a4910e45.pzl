@@ -1,0 +1,47 @@
+[metadata]
+Name:equip_3fb3a4910e45
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Boros Swiftblade, Hill Giant, Puresteel Paladin, Short Sword (unattached), Vulshok Morningstar (unattached) and 7 untapped Jungle Shrines. Your hand is Leonin Scimitar, Ethereal Armor, Rancor, Cranial Plating, Fireshrieker, Bonesplitter, Loxodon Warhammer and Foundry Inspector. The opponent is at 43 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 43 in 13 steps; the best plain plan (everything on the creature with the most power / cast every Equipment that can be paid before equipping) deals 40, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Leonin Scimitar;Ethereal Armor;Rancor;Cranial Plating;Fireshrieker;Bonesplitter;Loxodon Warhammer;Foundry Inspector
+p0battlefield=Boros Swiftblade;Hill Giant;Puresteel Paladin;Short Sword;Vulshok Morningstar;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=43
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Boros Swiftblade", "Hill Giant", "Puresteel Paladin"], "hand": ["Bonesplitter", "Cranial Plating", "Ethereal Armor", "Fireshrieker", "Foundry Inspector", "Leonin Scimitar", "Loxodon Warhammer", "Rancor"], "loose": ["Short Sword", "Vulshok Morningstar"], "mana": 7, "start": ["Puresteel Paladin"]}
+# trap: {"best": 40, "plans": {"biggest": 40, "cast_all_first": 40, "equip_asap": 37}, "short": 3}
+cast Foundry Inspector
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Leonin Scimitar
+no
+cast Loxodon Warhammer
+no
+cast Rancor
+Boros Swiftblade
+activate Bonesplitter ... Equip {0}
+Boros Swiftblade
+activate Cranial Plating ... Equip {0}
+Boros Swiftblade
+activate Leonin Scimitar ... Equip {0}
+Boros Swiftblade
+activate Loxodon Warhammer ... Equip {0}
+Boros Swiftblade
+activate Short Sword ... Equip {0}
+Boros Swiftblade
+activate Vulshok Morningstar ... Equip {0}
+Boros Swiftblade
+Boros Swiftblade; Hill Giant; Puresteel Paladin
+[acceptance]
+life p1 <= 0

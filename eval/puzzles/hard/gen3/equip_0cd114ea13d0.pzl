@@ -1,0 +1,46 @@
+[metadata]
+Name:equip_0cd114ea13d0
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fencing Ace, Glory Seeker, Grafted Wargear (unattached), Leonin Scimitar (unattached) and 9 untapped Jungle Shrines. Your hand is Cranial Plating, Short Sword, Ethereal Armor, Bonesplitter, Loxodon Warhammer, Foundry Inspector, All That Glitters, Fireshrieker and Puresteel Paladin. The opponent is at 50 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 50 in 13 steps; the best plain plan (equip each Equipment as soon as it is on the battlefield) deals 48, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cranial Plating;Short Sword;Ethereal Armor;Bonesplitter;Loxodon Warhammer;Foundry Inspector;All That Glitters;Fireshrieker;Puresteel Paladin
+p0battlefield=Fencing Ace;Glory Seeker;Grafted Wargear;Leonin Scimitar;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=50
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Fencing Ace", "Glory Seeker"], "hand": ["All That Glitters", "Bonesplitter", "Cranial Plating", "Ethereal Armor", "Fireshrieker", "Foundry Inspector", "Loxodon Warhammer", "Puresteel Paladin", "Short Sword"], "loose": ["Grafted Wargear", "Leonin Scimitar"], "mana": 9, "start": []}
+# trap: {"best": 48, "plans": {"biggest": 36, "cast_all_first": 36, "equip_asap": 48}, "short": 2}
+cast Foundry Inspector
+cast Puresteel Paladin
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Short Sword
+no
+cast All That Glitters
+Fencing Ace
+cast Ethereal Armor
+Fencing Ace
+activate Bonesplitter ... Equip {0}
+Fencing Ace
+activate Cranial Plating ... Equip {0}
+Fencing Ace
+activate Grafted Wargear ... Equip {0}
+Fencing Ace
+activate Leonin Scimitar ... Equip {0}
+Fencing Ace
+activate Short Sword ... Equip {0}
+Fencing Ace
+Fencing Ace; Glory Seeker
+[acceptance]
+life p1 <= 0

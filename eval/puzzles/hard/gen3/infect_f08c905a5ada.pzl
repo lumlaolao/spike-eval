@@ -1,0 +1,47 @@
+[metadata]
+Name:infect_f08c905a5ada
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 7 life and control Blighted Agent and 2 untapped Forests. Your hand is Mishra's Bauble, Become Immense, Mutagenic Growth, Unnatural Restoration, Gitaxian Probe, Unnatural Restoration, Mishra's Bauble, Mishra's Bauble, Gitaxian Probe and Mishra's Bauble. Your graveyard holds nothing. Your library is all Forests. The opponent has 0 poison counters, is at 20 life and controls nothing. Give the opponent ten poison counters this turn.
+Rule:generated-infect | the exhaustive maximum is 10 poison in 13 steps; the best plain plan (Become Immense as soon as it can be paid / never proliferate) gives 9, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=7
+p0hand=Mishra's Bauble;Become Immense;Mutagenic Growth;Unnatural Restoration;Gitaxian Probe;Unnatural Restoration;Mishra's Bauble;Mishra's Bauble;Gitaxian Probe;Mishra's Bauble
+p0battlefield=Blighted Agent;Forest;Forest
+p0library=Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest
+p1life=20
+p1counters=POISON=0
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"attackers": ["Blighted Agent"], "forests": 2, "graveyard": 0, "hand": ["Become Immense", "Gitaxian Probe", "Gitaxian Probe", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Mutagenic Growth", "Unnatural Restoration", "Unnatural Restoration"], "hand_forests": 0, "inkmoth": false, "life": 7, "poisoned": false}
+# trap: {"best": 9, "plans": {"bi_asap": 9, "never_proliferate": 9}, "short": 1}
+cast Gitaxian Probe
+opponent
+play land Forest
+cast Gitaxian Probe
+opponent
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Mishra's Bauble
+Blighted Agent
+activate Mishra's Bauble
+opponent
+pass
+cast Mutagenic Growth
+pay 1 Phyrexian symbol with 2 life
+pass
+cast Become Immense
+Gitaxian Probe; Gitaxian Probe; Mutagenic Growth; Mishra's Bauble; Mishra's Bauble
+at MAIN2: cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Unnatural Restoration
+opponent
+[acceptance]
+winner p0
