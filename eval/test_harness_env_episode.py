@@ -60,13 +60,26 @@ class EpisodeTest(unittest.TestCase):
 
     def test_done_ends_the_episode_only_once_its_line_is_written(self):
         # Creating DONE and writing its line are two steps; under load the poll can land between them.
-        # Ending there killed the agent and recorded "" (acceptance @ 725bbd5, part2/pytests.log).
+        # Ending there killed the agent and recorded "" (acceptance @ 725bbd5, OUT=/tmp/acc-pw-725bbd5, part2/pytests.log).
         report, _ = self.run_ep(
             "import time\nopen('DONE','w').close()\ntime.sleep(1)\n"
             "open('DONE','w').write('submit HEAD')\ntime.sleep(30)\n")
         self.assertEqual(report["ended_by"], "agent")
         self.assertEqual(report["done"], "submit HEAD")
         self.assertLess(report["wall_s"], 15)
+
+    def test_a_done_line_written_in_two_parts_is_recorded_whole(self):
+        report, _ = self.run_ep(
+            "import time\nf = open('DONE','w')\nf.write('submit '); f.flush()\ntime.sleep(1)\n"
+            "f.write('HEAD\\n'); f.close()\ntime.sleep(30)\n")
+        self.assertEqual(report["done"], "submit HEAD")
+
+    def test_an_empty_done_left_unchanged_still_ends_the_episode(self):
+        # A finished agent that only touches DONE and stays alive is the agent's end, not the cap's.
+        report, _ = self.run_ep("import time\nopen('DONE','w').close()\ntime.sleep(30)\n", done_grace_s=1)
+        self.assertEqual(report["ended_by"], "agent")
+        self.assertEqual(report["done"], "")
+        self.assertLess(report["wall_s"], 10)
 
     def test_an_agent_that_writes_done_ends_the_episode_and_its_overlay_is_graded(self):
         report, stub = self.run_ep(

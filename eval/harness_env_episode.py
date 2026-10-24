@@ -8,7 +8,8 @@ it built, grade it outside the sandbox, write a scored report.
 2. It becomes a fresh git repository with one commit and no remote, hooks pointed at an empty directory.
 3. The agent command runs with the sandbox as its working directory and a scrubbed environment (no provider key,
    no egress flag). The episode ends only when the agent has written DONE (`ended_by: agent`, its one line recorded;
-   an empty DONE is one still being written); an agent that exits without it is `exit`; one still running at the
+   DONE counts once its line ends in a newline or it has sat unchanged for 5 s, so a line still being written is not
+   cut short); an agent that exits without it is `exit`; one still running at the
    cap is stopped (`cap`) and its last state graded. These are reported apart and never pooled.
 4. Every checkpoint interval the overlay is copied outside the sandbox. Checkpoints are graded only after the
    episode ends (the dense reward between them), never while the agent can see a score.
@@ -70,15 +71,30 @@ def snapshot(src, dest):
         os.makedirs(dest)
 
 
-def done_written(path):
-    try:
-        return os.path.getsize(path) > 0
-    except OSError:
-        return False
+class DoneWatch:
+    """DONE counts once its line ends in a newline, or once it has sat unchanged for grace_s: creating the
+    file and writing its line are separate writes, and a poll between them must not end the episode."""
+
+    def __init__(self, path, grace_s):
+        self.path, self.grace_s, self.seen, self.since = path, grace_s, None, None
+
+    def settled(self, now):
+        try:
+            st = os.stat(self.path)
+            with open(self.path, "rb") as f:
+                text = f.read()
+        except OSError:
+            self.seen = None
+            return False
+        if text.endswith(b"\n"):
+            return True
+        if (st.st_size, st.st_mtime_ns) != self.seen:
+            self.seen, self.since = (st.st_size, st.st_mtime_ns), now
+        return now - self.since >= self.grace_s
 
 
 def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoint_s=None, poll_s=1.0,
-                grade_checkpoints=False, dev_set=None, dev_slice=None, leak_check=None):
+                grade_checkpoints=False, dev_set=None, dev_slice=None, leak_check=None, done_grace_s=5.0):
     """Run one episode; return the report (also written to out/report.json)."""
     spec = hs.load(spec_path, repo)
     cap_s = cap_s if cap_s is not None else spec["caps"]["wall_hours"] * 3600
@@ -110,6 +126,7 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoin
         return _write(out, report)
     overlay = os.path.join(sandbox, spec["submission"]["path"])
     done_file = os.path.join(sandbox, spec["done"]["file"])
+    done = DoneWatch(done_file, done_grace_s)
     started = time.time()
     checkpoints, next_cp = [], started + checkpoint_s
     with open(os.path.join(out, "agent.log"), "w", encoding="utf-8") as log:
@@ -117,7 +134,7 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoin
         ended_by = None
         while ended_by is None:
             now = time.time()
-            if done_written(done_file):  # an empty DONE is one the agent is still writing
+            if done.settled(now):
                 ended_by = "agent"
             elif proc.poll() is not None:
                 ended_by = "agent" if os.path.exists(done_file) else "exit"
