@@ -107,6 +107,17 @@ no Jev game has been played yet. `DB` is `DecisionsBridge.java`.
 | Several picks are assembled from one yes/no per option, answered independently; an ordered pick list is ordered by probability | `DB.compose` (`MANY`), `DB.topPicks`; blockers that may block several attackers the same way | 6 of 116 (cards-for-effect 1, trigger-order 5) | **kept**: the API answers the questions of one request in parallel and has no "choose a set" primitive; listing every subset as a choice grows as 2^n | the decision's own min and max |
 | No lookups, no `simulate`, no plan, no yield, no reason | `LLMBridgeFactory.decisions` (`refuseConditions`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept**, a condition that defines the arm (STANDARDS section 8): see `docs/harness/ARCHITECTURE.md` section 9, "What Jev cannot do" | refused at launch |
 
+### A Claude CLI seat (`claude-cli:`, `ClaudeCliBridge`, 2026-10-24)
+
+The seat answers through Claude Code's structured output (`docs/harness/ARCHITECTURE.md` section 9, "The Claude CLI
+answer bridge"). No `claude-cli:` game or puzzle has been played yet, so no bound is counted.
+
+| Limit | Where | Bound | Decision | Value |
+|---|---|---|---|---|
+| No lookups, no `simulate`, no kept conversation (ONE_CHAT, TURN_CHAT) | `LLMBridgeFactory.claudeCli` (`refuseAnswerOnly`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept for phase 1**, a condition that defines the arm (STANDARDS section 8); the lookups need an MCP server the CLI can call (phase 2) | refused at launch |
+| A plain text ask (no `answer` offered) is not sent | `ClaudeCliBridge.ask` | 0: every decision site offers `answer` to a tool seat | **kept**: there is no schema to answer it with, and text is never parsed | never asked |
+| A CLI call that runs past its deadline is killed and gives no answer | `ClaudeCliBridge.run`, `CLAUDE_DEADLINE_MS` or `ModelCfg` | not measured | **kept**: the same deadline as the text lane's; the seat's bridge retry and then its fixed legal option follow | 300 s (smart) |
+
 ### Wall clock
 
 | Limit | Where | Bound | Decision | New value |

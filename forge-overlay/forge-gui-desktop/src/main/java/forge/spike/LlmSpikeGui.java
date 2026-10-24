@@ -10382,7 +10382,12 @@ public final class LlmSpikeGui {
             this.label = label;
             this.model = model; // per-seat/per-tier; no global CLAUDE_MODEL clobber (it broke A/B comparisons)
             this.preamble = preamble;
-            this.deadlineMs = (DEADLINE_ENV != null && !DEADLINE_ENV.isEmpty()) ? DEADLINE_MS : ModelCfg.forModel(model).timeoutMs;
+            this.deadlineMs = deadlineFor(model);
+        }
+
+        /** A CLI call's deadline for {@code model}: CLAUDE_DEADLINE_MS when an operator pins one, else ModelCfg's. */
+        static long deadlineFor(String model) {
+            return (DEADLINE_ENV != null && !DEADLINE_ENV.isEmpty()) ? DEADLINE_MS : ModelCfg.forModel(model).timeoutMs;
         }
 
         private void ensureStarted() throws Exception {
@@ -11227,8 +11232,36 @@ public final class LlmSpikeGui {
                 return decisions(label, spec, preamble, System.getenv("OPENROUTER_BASE_URL"), System.getenv("OPENROUTER_API_KEY"),
                         System.getenv("OPENROUTER_ALLOW_EGRESS"), PlayerControllerLLM.MEMORY_TOOLS,
                         PlayerControllerLLM.lookaheadEnabled(), AnswerTool.enabled() && NativeTools.enabled());
+            // A Claude model through the Claude Code CLI, answering by structured output (ClaudeCliBridge). Its own prefix,
+            // so a bare spec still means the text lane below, unchanged.
+            if (ClaudeCliBridge.isSpec(spec))
+                return claudeCli(label, spec, preamble, PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.lookaheadEnabled(),
+                        AnswerTool.enabled() && NativeTools.enabled(), ChatSessionBridge.ON || ChatSessionBridge.TURN);
             // Legacy/default: bare model name -> Claude CLI bridge.
             return new ClaudeBridge(label, spec, preamble);
+        }
+
+        /** A `claude-cli:` seat. Phase 1 offers it no lookups and no preview, and asks each decision in a fresh process
+         *  (ONE_CHAT and TURN_CHAT wrap only an OpenRouterBridge), so a seat run with any of them on is refused here rather
+         *  than recorded as a condition it never had. Package-private so a test can pass the flags. */
+        static LLMBridge claudeCli(String label, String spec, String preamble, boolean memoryTools, boolean lookahead,
+                                   boolean answerTool, boolean chat) {
+            refuseAnswerOnly(ClaudeCliBridge.PREFIX, memoryTools, lookahead, answerTool, label);
+            if (chat) throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat asks each decision in a fresh "
+                    + "process: run it with ONE_CHAT=0 and TURN_CHAT=0 (no --one-chat, no --turn-chat) (" + label + ")");
+            return new ClaudeCliBridge(label, spec.substring(ClaudeCliBridge.PREFIX.length()), preamble);
+        }
+
+        /** A seat whose backend can give only the `answer` (and `set_plan`) call: a lookup offered to it would record a
+         *  condition it never had, and without the answer tool (ANSWER_TOOL=0 or NATIVE_TOOLS=0) every decision would be
+         *  a text ask it cannot take, so every decision would be lost. */
+        static void refuseAnswerOnly(String prefix, boolean memoryTools, boolean lookahead, boolean answerTool, String label) {
+            if (memoryTools) throw new IllegalStateException("a " + prefix + " seat cannot call lookups: run it with "
+                    + "MEMORY_TOOLS=0 (no --memory-tools) (" + label + ")");
+            if (lookahead) throw new IllegalStateException("a " + prefix + " seat cannot call simulate: run it with "
+                    + "LOOKAHEAD=0 (no --lookahead) (" + label + ")");
+            if (!answerTool) throw new IllegalStateException("a " + prefix + " seat answers only through the `answer` call: run "
+                    + "it with ANSWER_TOOL and NATIVE_TOOLS on (no --text-answers, no --text-tools) (" + label + ")");
         }
 
         /** A `jev:` seat. It cannot call a lookup, so a seat run with them on is refused here rather than recorded
@@ -11474,6 +11507,8 @@ public final class LlmSpikeGui {
         boolean jevA = DecisionsBridge.isSpec(smartASpec) || DecisionsBridge.isSpec(fastASpec);
         boolean jevB = DecisionsBridge.isSpec(smartBSpec) || DecisionsBridge.isSpec(fastBSpec);
         boolean anyDecisions = jevA || jevB;
+        boolean cliA = ClaudeCliBridge.isSpec(smartASpec) || ClaudeCliBridge.isSpec(fastASpec);
+        boolean cliB = ClaudeCliBridge.isSpec(smartBSpec) || ClaudeCliBridge.isSpec(fastBSpec);
         // Gate the accessor so a zero-model floor/random run doesn't class-init the OpenRouter bridge
         // just to report an endpoint it never contacted.
         String baseUrl = anyOpenRouter || anyDecisions ? OpenRouterBridge.baseUrl() : "n/a";
@@ -11542,6 +11577,9 @@ public final class LlmSpikeGui {
                 // its opponent's condition and every other seat's line are unchanged.
                 + (jevA ? ",\"decisions_bridge_version_a\":\"" + DecisionsBridge.VERSION + "\"" : "")
                 + (jevB ? ",\"decisions_bridge_version_b\":\"" + DecisionsBridge.VERSION + "\"" : "")
+                // A claude-cli: seat's bridge (ClaudeCliBridge), per identity and only for such a seat, as above.
+                + (cliA ? ",\"claude_cli_bridge_version_a\":\"" + ClaudeCliBridge.VERSION + "\"" : "")
+                + (cliB ? ",\"claude_cli_bridge_version_b\":\"" + ClaudeCliBridge.VERSION + "\"" : "")
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""

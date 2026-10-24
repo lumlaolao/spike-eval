@@ -85,16 +85,9 @@ final class DecisionsBridge implements LLMBridge {
         return b + "/alpha/decisions";
     }
 
-    /** A decision model cannot call a lookup: a seat offered them would record a condition it never had. Nor can it
-     *  answer without the answer tool (ANSWER_TOOL=0 or NATIVE_TOOLS=0): every decision would be a text ask, which a
-     *  decision model cannot take, so every decision would be lost. */
+    /** A decision model cannot call a lookup, nor answer without the answer tool (LLMBridgeFactory.refuseAnswerOnly). */
     static void refuseConditions(boolean memoryTools, boolean lookahead, boolean answerTool, String label) {
-        if (memoryTools) throw new IllegalStateException("a " + PREFIX + " seat cannot call lookups: run it with "
-                + "MEMORY_TOOLS=0 (no --memory-tools) (" + label + ")");
-        if (lookahead) throw new IllegalStateException("a " + PREFIX + " seat cannot call simulate: run it with "
-                + "LOOKAHEAD=0 (no --lookahead) (" + label + ")");
-        if (!answerTool) throw new IllegalStateException("a " + PREFIX + " seat answers only through the `answer` call: run "
-                + "it with ANSWER_TOOL and NATIVE_TOOLS on (no --text-answers, no --text-tools) (" + label + ")");
+        LlmSpikeGui.LLMBridgeFactory.refuseAnswerOnly(PREFIX, memoryTools, lookahead, answerTool, label);
     }
 
     /** The seat offers `answer` only to a bridge that answers by call; this one's answer is always that call. */

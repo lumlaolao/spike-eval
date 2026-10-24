@@ -69,10 +69,12 @@ final class AnswerTool {
      *  default; it is kept so the two can be measured against each other. */
     static boolean perDecision() { return "per-decision".equals(System.getenv("ANSWER_SCHEMA")); }
 
-    /** True when a seat on this model spec answers through the tool. A decision model (`jev:`, DecisionsBridge) has
-     *  no lookups but answers through `answer` too: its typed answer is turned into the call. */
+    /** True when a seat on this model spec answers through the tool. A decision model (`jev:`, DecisionsBridge) and a
+     *  Claude CLI seat (`claude-cli:`, ClaudeCliBridge) have no lookups but answer through `answer` too: the typed
+     *  answer, or the CLI's structured output, is turned into the call. */
     static boolean usedBy(String modelSpec) {
-        return enabled() && (NativeTools.usedBy(modelSpec) || NativeTools.enabled() && DecisionsBridge.isSpec(modelSpec));
+        return enabled() && (NativeTools.usedBy(modelSpec)
+                || NativeTools.enabled() && (DecisionsBridge.isSpec(modelSpec) || ClaudeCliBridge.isSpec(modelSpec)));
     }
 
     /** The version stamped on the game line: what a tool-answer game was played under. */
