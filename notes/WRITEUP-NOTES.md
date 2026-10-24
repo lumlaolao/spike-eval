@@ -18,7 +18,7 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
 |---|---|---|---|---|
 | `puzzles-hard-gen-v1` | 116 | 84 / 32 | 10-15 steps, life = exactly what the line deals | merged (PR #290) |
 | `puzzles-hard-gen2-v1` | 236 | 156 / 80 | 13-15 steps, life = searched maximum, trap 1-3 short, no mana unused | merged (PR #299) |
-| `puzzles-hard-gen3-v1` | 68 | 44 / 24 | gen2's bar, four new families | PR #302, in review |
+| `puzzles-hard-gen3-v1` | 68 | 44 / 24 | gen2's bar, four new families | merged (PR #302) |
 
 - gen2 families: splice2 77, hoofdrain 51, copy 35, grave 35, drain2 21, atog 15, elf2 2.
 - gen3 families: tokens 24, landfall 17, equip 15, infect 12 (infect is a poison win, not life).
@@ -54,24 +54,28 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   - GPT-6 Astra and Astra Pro, and Claude Fable 5.1 (owner, 2026-10-24);
   - Jev Router (owner, 2026-10-24: "I want jev");
   - Claude Opus 5.5 (CLAUDE.md game-model rule).
-- **Jev 1.14** answers through its own bridge to OpenRouter's Decisions API (branch `feat/jev-decisions-bridge`, in
-  progress). Its typed choice becomes the harness's `answer` call. This is an owner-approved exception to "every
+- **Jev 1.14** answers through its own bridge to OpenRouter's Decisions API (PR #305, in review). Its typed choice becomes the harness's `answer` call. This is an owner-approved exception to "every
   answer is a tool call", because Jev makes no tool calls. It gets no lookup tools.
 - **Estimated cost:** about $37 typical. Each model is capped at its "high" estimate, $125 at most.
   - Chart: `cost-table-3.png` (scratchpad).
   - Script: `notes/frontier3-plan.sh`. It refuses without the owner's egress flag, runs 5 at a time and resumes.
-- **Provider audit (2026-10-24), fixed on `fix/provider-compat`:**
+- **Provider audit (2026-10-24), merged as PR #303:**
   - every planned model is now priced, and `puzzle_solve` refuses an unpriced one (unpriced was billed at $0, so
     the budget never stopped it);
+  - budgets are checked at each model's dearest tool-taking endpoint (`max` in prices.json), because latency
+    routing may land on a priority tier (GPT-6.1 Sol's "ultrafast" is 6x list; GLM 5.3's dearest provider 35x);
+    reports keep the list price;
   - one `provider` object per request;
-  - 12 models whose reasoning cannot be turned off get their lowest effort on a truncation retry, instead of a
-    request they refuse.
+  - 13 models whose reasoning cannot be turned off get their lowest effort wherever "none" would be sent (fast
+    tier, truncation retry), hashed into `model_cfg_sha`.
+- **Before the run:** the plan's per-model caps were sized from list prices. Budgets now check at `max`, so re-derive
+  each cap from the `max` prices, or a model is stopped early.
 - **Still open from the audit (owner decisions):**
   - reasoning effort is each model's default, which differs (max for Kimi K3 and GLM);
   - Mistral may refuse a user message right after a tool result (plausible, unverified);
   - Anthropic caching has never been measured working.
 
-## 5. Harness-building eval (branch `feat/harness-env-framework`, no PR yet)
+## 5. Harness-building eval (PR #304, in review)
 
 - **What it measures:** whether an agent can BUILD a working Magic-playing harness without seeing the grading
   criteria.
@@ -84,6 +88,9 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   - the default bridge, the toy harnesses and the ablations: 0;
   - an "agent" that copies our harness: 0.979;
   - one that does nothing: 0.
+- **Open hole (owner question 12):** a candidate's code runs inside the grader's JVM, so it could rewrite its own
+  report or switch off the AI counter. Until the seat runs in its own process, the episode grader withholds a
+  candidate's score unless the operator passes `--trust-candidate`.
 - **Seat defects it found:**
   - an illegal block stands against a must-block requirement;
   - Green Sun's Zenith's "Cancel Search?" loops forever.
@@ -94,6 +101,8 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   false PASS (killtest proven).
 - **`puzzle_solve.py --resume`** continues a stopped paid run, and refuses a different model, suite or seat
   (PR #300).
+- **New hard suite merged:** gen3, 68 boards (PR #302).
+- **Provider fixes merged:** PR #303 (above).
 - **Jev Router pilot:** $0.92 for 18 decisions, stopped by the budget watcher. Projected $1.5-2.5 per attempt,
   because it reasons heavily and caches little.
 
@@ -101,12 +110,13 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
 
 - The frontier run: go / no-go, and the model list (above).
 - Opus in or out (CLAUDE.md says out unless the owner names it).
-- A Jev 1.14 decision bridge: it answers with a structured choice, not the `answer` tool call that CLAUDE.md
-  requires.
+- Jev 1.14 (approved 2026-10-24; PR #305): add the tool-call exception to CLAUDE.md? Multi-picks and trigger order
+  are built from independent yes/no questions; a 40-option cap on listed numbers is a guess.
 - Harness eval:
   - the builder model and budget;
   - whether to adopt the scoring setting;
   - whether handing mana payment to Forge's AI is penalized (that would zero our own score today);
-  - a contamination flag.
+  - a contamination flag;
+  - question 12: run the candidate seat in its own process (closes the in-JVM hole) or keep it in-JVM.
 - Whether to fix the two seat defects before the frontier run. They are game paths, not puzzle paths, so they
   likely don't affect these 3 boards; to verify.
