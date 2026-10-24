@@ -580,8 +580,12 @@ class SubmissionAiControllerTest(unittest.TestCase):
         self.assertEqual(self.calls, [], "nothing is compiled")
 
     def test_the_submissions_copy_is_read_once_and_that_text_is_what_gets_patched(self):
-        with mock.patch.object(hg.harness_env_aicount, "write", wraps=hg.harness_env_aicount.write) as w:
+        own = os.path.join(self.sub, hg.harness_env_aicount.ENGINE_PATH)
+        with mock.patch.object(hg.harness_env_aicount, "write", wraps=hg.harness_env_aicount.write) as w, \
+                mock.patch("builtins.open", wraps=open) as opened:
             self.build()
+        self.assertEqual([c for c in opened.call_args_list if c.args and c.args[0] == own],
+                         [mock.call(own, encoding="utf-8")], "one read of the submission's copy")
         self.assertEqual(w.call_count, 1)
         self.assertEqual(w.call_args.kwargs.get("source"), OWN_PCAI)
 

@@ -105,7 +105,7 @@ no Jev game has been played yet. `DB` is `DecisionsBridge.java`.
 | Naming a card is not asked | `DB.compose`, `CARD` | 0 of 116 | **kept**: there is no closed list of names to put as keys | never asked |
 | A decision whose options have no labels is not asked | `DB.compose` (`ONE`, `MANY`, `MANY_REPEAT`, `ALLOC`) | 0 of 116 | **kept**: a key with no text would be a blind question; every current site labels its options | never asked |
 | Several picks are assembled from one yes/no per option, answered independently; an ordered pick list is ordered by probability | `DB.compose` (`MANY`), `DB.topPicks`; blockers that may block several attackers the same way | 6 of 116 (cards-for-effect 1, trigger-order 5) | **kept**: the API answers the questions of one request in parallel and has no "choose a set" primitive; listing every subset as a choice grows as 2^n | the decision's own min and max |
-| No lookups, no `simulate`, no plan, no yield, no reason | `LLMBridgeFactory.decisions` (`refuseConditions`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept**: see `docs/harness/ARCHITECTURE.md` section 9, "What Jev cannot do" | refused at launch |
+| No lookups, no `simulate`, no plan, no yield, no reason | `LLMBridgeFactory.decisions` (`refuseConditions`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept**, a condition that defines the arm (STANDARDS section 8): see `docs/harness/ARCHITECTURE.md` section 9, "What Jev cannot do" | refused at launch |
 
 ### Wall clock
 
