@@ -329,13 +329,13 @@ def summarize(pairs, label):
                 entry["files"].append({"file": p["jsonl"], "log": p["log"],
                                        "log_asks": a, "jsonl_rows": j, "gap": gap})
     silent_drop_seats = sorted(s for s, v in silent_drop.items() if v["gap"] > 0)
+    total_silent_drops = sum(max(0, v["gap"]) for v in silent_drop.values())
 
     # --- block declarations that stood illegal (paired logs only)
     illegal_blocks = Counter()
     for p in pairs:
         if p["log_events"] is not None:
             illegal_blocks.update(p["log_events"].get("illegal_blocks") or {})
-    total_silent_drops = sum(max(0, v["gap"]) for v in silent_drop.values())
 
     # --- no-CHOICE / parse-fail counts by model (seat), over genuinely
     # model-answered lines only (prompt+raw_reply both present, tier
