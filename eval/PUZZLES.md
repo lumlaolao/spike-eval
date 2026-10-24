@@ -94,18 +94,21 @@ python3 eval/puzzle_format.py check eval/suites/puzzles-forge-builtin-v1.json
 - Everything here is free: the baseline JVMs point the model at a closed loopback port and carry no
   API key.
 - The compile stage writes `overlay-sha.txt` beside `classes/`: the hash of the overlay sources it compiled
-  (`benchmark_version.overlay_sha_of_checkout`, the `overlay_sha` run_batch.py stamps). `puzzle_baselines.py` and
-  `puzzle_solve.py` run only a build whose hash is this checkout's: `--build DIR` is refused when it is another or
-  missing, and with no `--build` the newest matching build under `runs/harness-acceptance/` (by compile time, not
-  name) is used, or none and the command to build one is printed. `--allow-stale-build` runs a named old build
-  anyway; each JVM's run directory gets `build.json` (build dir, its hash, the checkout's, whether it was stale),
-  `puzzle_solve.py` copies it into `puzzle-run.json` and each puzzle's `batch-manifest.json`, and the game line's
-  `overlay_sha` is the build's. `scripts/puzzle-gate/gen_gate.py` checks its `--build` the same way before playing
-  any board and passes `--allow-stale-build` on.
+  (`benchmark_version.overlay_sha_of_checkout`, the `overlay_sha` run_batch.py stamps), the same before and after
+  javac or the stage fails. `puzzle_baselines.py` and `puzzle_solve.py` run only a build whose hash is this
+  checkout's: `--build DIR` is refused when it is another or missing, and with no `--build` the newest matching
+  build under `runs/harness-acceptance/` (by compile time, not name) is used, or none and the command to build one
+  is printed. `--allow-stale-build` runs a named old build anyway (`ALLOW_STALE_BUILD=1` for
+  `scripts/puzzle-gate/run_one.py`). The build is recorded in `build.json` in each JVM's run directory (build dir,
+  its hash, the checkout's, whether it was stale) and by `puzzle_solve.py` in `puzzle-run.json` and each puzzle's
+  `batch-manifest.json`, only there: a puzzle result row carries no overlay hash. `scripts/puzzle-gate/gen_gate.py`
+  checks its `--build` the same way before playing any board and passes `--allow-stale-build` on.
 - `run` can be split into stages with `--arms` and `--ids`, since baselines accumulate in the record.
 - `run` writes the manifest after every puzzle. `--resume` with the same `--out-dir` and `--build`
   reuses each arm whose rows that build already wrote for exactly the requested seeds, so a killed run
-  continues where it stopped. Rows from another build or a partial seed set are run again.
+  continues where it stopped. Rows from another build (another classes dir, or a `build.json` naming another
+  compiled overlay or none) or a partial seed set are run again; `gen_gate.py --resume` reuses a line on the same
+  terms.
 - A frozen suite carries `suite_sha256`, computed over everything that defines a score: ids, file
   hashes, goals, splits, statuses, tiers, the random rate and the engine commit. Editing a frozen
   suite breaks the hash, and every tool then refuses it.

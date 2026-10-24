@@ -199,11 +199,13 @@ fi
 CLASSES="${ACC_BUILD:-$OUT}/classes"   # a child run (below) shares the parent's compiled classes
 if has_stage compile; then
   if [ ! -f "$CP_FILE" ]; then fail compile "no classpath file ($CP_FILE)"; else
-    # overlay-sha.txt: the overlay these classes were compiled from (run_batch.py's overlay_sha), hashed before
-    # javac reads it; puzzle_baselines.Build runs only a build whose hash is the checkout's. Written on a pass only.
+    # overlay-sha.txt: the overlay these classes were compiled from (run_batch.py's overlay_sha), hashed before and
+    # after javac (a source edited meanwhile leaves classes of either version, so the stage fails); puzzle_baselines.
+    # Build runs only a build whose hash is the checkout's. Written on a pass only.
+    overlay_sha() { python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b
+print(b.overlay_sha_of_checkout())' "$REPO/eval"; }
     SRC_SHA_FILE="$(dirname "$CLASSES")/overlay-sha.txt"; rm -f "$SRC_SHA_FILE"
-    SRC_SHA="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b
-print(b.overlay_sha_of_checkout())' "$REPO/eval")"
+    SRC_SHA="$(overlay_sha)"
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
     "$JAVAC" --release 17 -encoding UTF-8 -proc:none -nowarn -cp "$(cat "$CP_FILE")" -d "$CLASSES" \
       "$OVERLAY"/main/java/forge/spike/*.java "$OVERLAY"/test/java/forge/spike/*.java \
@@ -215,6 +217,7 @@ print(b.overlay_sha_of_checkout())' "$REPO/eval")"
     # The checkout build (checkstyle) rejects unused and duplicate imports; this javac does not.
     python3 "$REPO/eval/java_imports.py" "$OVERLAY" >"$OUT/java_imports.log" 2>&1; IRC=$?
     if [ $RC -ne 0 ] || [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail compile "javac rc=$RC (see $OUT/javac.log)"
+    elif [ "$(overlay_sha)" != "$SRC_SHA" ]; then fail compile "overlay sources changed during the compile (was $SRC_SHA): compile again"
     elif [ $IRC -ne 0 ]; then fail compile "imports the Forge checkout build rejects: $(head -3 "$OUT/java_imports.log" | tr '\n' ' ')"
     else echo "$SRC_SHA" > "$SRC_SHA_FILE"
       pass compile "$NC classes from overlay sources $SRC_SHA (isolated dir; checkout untouched); imports clean"; fi

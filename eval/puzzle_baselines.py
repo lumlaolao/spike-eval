@@ -159,7 +159,6 @@ class Build:
             env.update({"SMART_MODEL": "openrouter:zero-model/none", "FAST_MODEL": "openrouter:zero-model/none",
                         "OPENROUTER_BASE_URL": "http://127.0.0.1:9/v1"})
         env.update({k: str(v) for k, v in env_extra.items()})
-        env["OVERLAY_SHA"] = self.overlay_sha  # the game line's overlay_sha: what this build holds, not the shell's
         (out_dir / "build.json").write_text(json.dumps(self.provenance()) + "\n")
         argfile = self.argfile(out_dir)
         with open(out_dir / "jvm.log", "w") as log:
@@ -174,13 +173,25 @@ class Build:
 def newest_acceptance_build(want):
     """The most recently compiled complete build under ACCEPTANCE_ROOT whose recorded overlay hash is `want`.
     By compile time, never by name: the last name was an old ps-* build (puzzle-build-staleness)."""
-    root = ACCEPTANCE_ROOT
-    cands = [p for p in root.glob("*") if (p / "classes/forge/spike/LlmSpikePuzzle.class").is_file()
-             and (p / "classpath.txt").is_file() and recorded_overlay_sha(p) == want] if root.is_dir() else []
-    if not cands or want == "unknown":
+    cands = [] if want == "unknown" or not ACCEPTANCE_ROOT.is_dir() else [
+        p for p in ACCEPTANCE_ROOT.glob("*") if (p / "classes/forge/spike/LlmSpikePuzzle.class").is_file()
+        and (p / "classpath.txt").is_file() and recorded_overlay_sha(p) == want]
+    if not cands:
         raise SystemExit("no build under %s compiled from this checkout's overlay (%s); build one: OUT=%s/<name> %s"
-                         % (root, want, root, BUILD_HOW))
+                         % (ACCEPTANCE_ROOT, want, ACCEPTANCE_ROOT, BUILD_HOW))
     return max(cands, key=lambda p: (p / BUILD_SHA_FILE).stat().st_mtime)
+
+
+def ran_on(out_dir, build):
+    """True when every Build.run under out_dir (its build.json) ran this build's compiled overlay, and one did: a
+    resume reuses rows only then. A build with no recorded hash is never known to be the one that ran."""
+    runs = list(Path(out_dir).rglob("build.json"))
+    if not runs or build.overlay_sha == "unknown":
+        return False
+    try:
+        return all(json.loads(p.read_text()).get("build_overlay_sha") == build.overlay_sha for p in runs)
+    except ValueError:
+        return False
 
 
 def read_results(out_dir):
@@ -194,11 +205,12 @@ RESUME = False
 
 
 def reusable(build, out_dir, seeds):
-    """The rows an earlier run left in out_dir, when the same build ran exactly these seeds; else None."""
+    """The rows an earlier run left in out_dir, when the same build (its classes dir and the overlay compiled into
+    it) ran exactly these seeds; else None."""
     args = Path(out_dir) / "java.args"
     rows = read_results(out_dir)
     if not args.is_file() or not any(l.startswith(str(build.classes) + ":")
-                                                      for l in args.read_text().splitlines()):
+                                     for l in args.read_text().splitlines()) or not ran_on(out_dir, build):
         return None
     want = sorted(expand_seeds(seeds))
     return rows if sorted(r.get("seed") for r in rows) == want else None

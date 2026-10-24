@@ -119,10 +119,9 @@ class ResumeTest(unittest.TestCase):
         pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
         root = Path(tempfile.mkdtemp())
         puzzle_solve.write_manifest(root / pid, "fake:another-model", suite["suite_sha256"], pid, {})
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD):
             puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
-                               "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume",
-                               "--build", "/nonexistent/build"])
+                               "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume"])
         self.assertIn("another condition", str(cm.exception.code))
 
     def test_two_cut_offs_before_any_row_keep_both_logs(self):
@@ -138,10 +137,49 @@ class ResumeTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         out = root / "p"
         cond = {"MEMORY_TOOLS": "0", "CONTEXT_PROFILE": "v4-faithful"}
-        puzzle_solve.write_manifest(out, "m", "S", "p", cond)
-        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p", "q"], "m", "S", cond), [])
+        puzzle_solve.write_manifest(out, "m", "S", "p", cond, self.BUILD)
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p", "q"], "m", "S", cond, self.BUILD), [])
         for model, sha, c in (("other", "S", cond), ("m", "T", cond), ("m", "S", dict(cond, MEMORY_TOOLS="1"))):
-            self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
+            self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c, self.BUILD)), 1,
+                             (model, sha, c))
+
+    BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
+             "stale_build_allowed": False}
+
+    def test_a_resume_on_another_build_is_refused(self):
+        # pr-review of #319: the attempts of two harnesses pooled in one score when a resume ran on another build.
+        root = Path(tempfile.mkdtemp())
+        cond = {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, self.BUILD)
+        puzzle_solve.write_manifest(root / "old", "m", "S", "old", cond)   # a run from before builds were recorded
+        # Another directory holding the same compiled overlay is the same harness.
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, dict(self.BUILD, build_dir="/c")),
+                         [])
+        for other in (dict(self.BUILD, build_overlay_sha="bbbbbbbbbbbb"), dict(self.BUILD, stale_build_allowed=True)):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, other)
+            self.assertEqual(len(bad), 1, other)
+            self.assertIn("build", bad[0])
+        self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["old"], "m", "S", cond, self.BUILD)), 1)
+
+    def test_main_checks_the_build_before_the_resume(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        root = Path(tempfile.mkdtemp())
+        argv = ["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1", "--budget-usd", "1",
+                "--ids", pid, "--out", str(root), "--resume"]
+        import argparse
+        cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False,
+                                                          rules_tool=False))
+        puzzle_solve.write_manifest(root / pid, "fake:m", suite["suite_sha256"], pid, cond,
+                                    dict(self.BUILD, build_overlay_sha="bbbbbbbbbbbb"))
+        stub = {"return_value.provenance.return_value": self.BUILD}
+        with mock.patch.object(puzzle_solve.pb, "Build", **stub), \
+                mock.patch.object(puzzle_solve, "solve_puzzle", side_effect=AssertionError("played")), \
+                mock.patch.object(puzzle_solve, "load_secrets"):
+            with self.assertRaises(SystemExit) as cm:
+                puzzle_solve.main(argv)
+        self.assertIn("build_overlay_sha", str(cm.exception.code))
 
 
 class BuildProvenanceTest(unittest.TestCase):

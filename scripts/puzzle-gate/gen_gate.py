@@ -40,12 +40,13 @@ def build_args(a):
     return ["--build", a.build, "--forge", a.forge] + (["--allow-stale-build"] if a.allow_stale_build else [])
 
 
-def play_line(a, pzl):
+def play_line(a, pzl, build):
     out = Path(a.out) / "line" / pzl.stem
-    # A resumed gate reuses a line result only when it ran on this very file: a board redrawn under the same name
-    # (its key is its cards, not its line) is played again (pr-review of #299).
+    # A resumed gate reuses a line result only when it ran on this very file and this build's overlay: a board
+    # redrawn under the same name (its key is its cards, not its line) is played again (pr-review of #299), and
+    # so is one a rebuilt harness has not played (pr-review of #319).
     done = last_row(out) if a.resume else None
-    if not (done and done.get("pzl_sha256") == pf.sha256_file(pzl)):
+    if not (done and done.get("pzl_sha256") == pf.sha256_file(pzl) and pb.ran_on(out, build)):
         shutil.rmtree(out, ignore_errors=True)
         subprocess.run([sys.executable, str(REPO / "eval/puzzle_baselines.py")] + build_args(a)
                        + ["line", "--pzl", str(pzl), "--out-dir", str(out)], cwd=REPO, capture_output=True,
@@ -90,12 +91,12 @@ def main(argv=None):
     ap.add_argument("--allow-stale-build", action="store_true",
                     help="gate on --build although it was not compiled from this checkout's overlay")
     a = ap.parse_args(argv)
-    pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)   # refuses a stale build before any board is played
+    build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)   # refuses a stale build before any board
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     boards = sorted(Path(a.boards).glob("*.pzl"))
     with ThreadPoolExecutor(max(1, a.jobs)) as ex:
-        rows = list(ex.map(lambda p: play_line(a, p), boards))
+        rows = list(ex.map(lambda p: play_line(a, p, build), boards))
     passed = [p for p, r in zip(boards, rows) if "dropped" not in r]
     by_id = {"hard-" + r["board"].replace("_", "-"): r for r in rows}
     if passed:

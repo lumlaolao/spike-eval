@@ -425,24 +425,11 @@ class BuildFreshnessTest(unittest.TestCase):
         self.assertFalse(pb.Build(self.make("fresh", "aaaaaaaaaaaa"), self.forge,
                                   allow_stale=True).provenance()["stale_build_allowed"])
 
-    def test_the_game_line_is_stamped_with_the_overlay_the_build_holds(self):
-        d = self.make("old", "bbbbbbbbbbbb")
-        b = pb.Build(d, self.forge, java="true", allow_stale=True)
-        with mock.patch.object(pb.subprocess, "call", return_value=0) as call, \
-                mock.patch.dict(os.environ, {"OVERLAY_SHA": "cccccccccccc"}):
-            b.run({}, self.tmp / "out2")
-        self.assertEqual(call.call_args.kwargs["env"]["OVERLAY_SHA"], "bbbbbbbbbbbb")
-
     def test_the_cli_flag_reaches_the_build(self):
-        seen = []
-        real = pb.Build
-        pb.Build = lambda *a, **k: seen.append(k.get("allow_stale")) or (_ for _ in ()).throw(SystemExit("stop"))
-        try:
+        with mock.patch.object(pb, "Build", side_effect=SystemExit("stop")) as build:
             with self.assertRaises(SystemExit):
                 pb.main(["--build", "/x", "--allow-stale-build", "line", "--pzl", "/x.pzl"])
-        finally:
-            pb.Build = real
-        self.assertEqual(seen, [True])
+        self.assertEqual(build.call_args, mock.call("/x", None, allow_stale=True))
 
 
 if __name__ == "__main__":
