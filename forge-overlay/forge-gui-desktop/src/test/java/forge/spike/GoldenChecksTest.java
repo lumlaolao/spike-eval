@@ -2762,10 +2762,58 @@ public class GoldenChecksTest {
         Combat combat = new Combat(rival);
         combat.addAttacker(unicorn, me);
         g.getAction().checkStaticAbilities();
-        seat(g, model, model).declareBlockers(me, combat);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String log = LineFindingProbeTest.logOf(() -> ctrl.declareBlockers(me, combat));
         Assert.assertTrue(asks.size() >= 2 && asks.get(asks.size() - 1).contains("must"), "told the requirement first: " + asks);
         Assert.assertNull(forge.game.combat.CombatUtil.validateBlocks(combat, me), "the declared blocks are legal");
         Assert.assertTrue(combat.getBlockers(unicorn).containsAll(Arrays.asList(bears, giant)), "both block the Unicorn");
+        // The set the harness took is its decision, so it has an auto row (text: illegal twice; tool: the answer lost).
+        Assert.assertTrue(log.matches("(?s).*\\[AUTO-LEGAL\\] blockers\\((illegal-twice|unparsed)\\)->legal 2.*"), log);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
+    }
+
+    /** pr-review of #311: past MAX_BLOCK_SETS combinations legalBlockSets gives up, and the fallback kept "no blocks"
+     *  again. Thirteen Bears under Prized Unicorn are 2^13 = 8192 sets (a Bear that must block the Unicorn cannot block
+     *  the Lions, CombatUtil.canBlock); the fallback still finds the legal one, every Bear on the Unicorn. */
+    @Test
+    public void aBlockRequirementPastTheSetLimitStillGetsALegalFallback() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 13; i++) card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> "BLOCKS: NONE");
+        Combat combat = new Combat(rival);
+        combat.addAttacker(lions, me);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.declareBlockers(me, combat);
+        Assert.assertNull(forge.game.combat.CombatUtil.validateBlocks(combat, me), "the declared blocks are legal");
+        Assert.assertEquals(combat.getBlockers(unicorn).size(), 13, "every Bear blocks the Unicorn");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
+    }
+
+    /** pr-review of #311: the no-model branch (the floor seat, or a spent budget) declared no blocks under a block
+     *  requirement too. It takes the same fixed legal set, as an auto row. */
+    @Test
+    public void aSeatWithNoModelBlocksLegallyUnderABlockRequirement() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                new forge.ai.LobbyPlayerAi("Seat", null), "Seat", "", model, model, "floor");
+        me.dangerouslySetController(ctrl);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        String log = LineFindingProbeTest.logOf(() -> ctrl.declareBlockers(me, combat));
+        Assert.assertNull(forge.game.combat.CombatUtil.validateBlocks(combat, me), "the declared blocks are legal");
+        Assert.assertTrue(combat.getBlockers(unicorn).contains(bears), "the Bears block the Unicorn");
+        Assert.assertTrue(log.contains("[AUTO-LEGAL] blockers(no-model)->legal 1"), log);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
     }
 
     /** A creature that can block any number of creatures may block both attackers (each blocker blocked once,
