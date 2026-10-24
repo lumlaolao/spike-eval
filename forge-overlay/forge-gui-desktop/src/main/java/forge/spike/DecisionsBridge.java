@@ -85,18 +85,14 @@ final class DecisionsBridge implements LLMBridge {
         return b + "/alpha/decisions";
     }
 
-    /** A decision model cannot call a lookup: a seat offered them would record a condition it never had. */
-    static void refuseLookups(boolean memoryTools, boolean lookahead, String label) {
+    /** A decision model cannot call a lookup: a seat offered them would record a condition it never had. Nor can it
+     *  answer without the answer tool (ANSWER_TOOL=0 or NATIVE_TOOLS=0): every decision would be a text ask, which a
+     *  decision model cannot take, so every decision would be lost. */
+    static void refuseConditions(boolean memoryTools, boolean lookahead, boolean answerTool, String label) {
         if (memoryTools) throw new IllegalStateException("a " + PREFIX + " seat cannot call lookups: run it with "
                 + "MEMORY_TOOLS=0 (no --memory-tools) (" + label + ")");
         if (lookahead) throw new IllegalStateException("a " + PREFIX + " seat cannot call simulate: run it with "
                 + "LOOKAHEAD=0 (no --lookahead) (" + label + ")");
-    }
-
-    /** {@link #refuseLookups}, and the answer tool: without it (ANSWER_TOOL=0 or NATIVE_TOOLS=0) every decision is a
-     *  text ask, which a decision model cannot take, so every decision would be lost. */
-    static void refuseConditions(boolean memoryTools, boolean lookahead, boolean answerTool, String label) {
-        refuseLookups(memoryTools, lookahead, label);
         if (!answerTool) throw new IllegalStateException("a " + PREFIX + " seat answers only through the `answer` call: run "
                 + "it with ANSWER_TOOL and NATIVE_TOOLS on (no --text-answers, no --text-tools) (" + label + ")");
     }
@@ -205,9 +201,7 @@ final class DecisionsBridge implements LLMBridge {
                             + " one of them. Which?", s.labels, s.min == 0));
                     c.read = a -> {
                         int k = choiceOf(a, "decision", s.min == 0 ? 0 : 1, s.n);
-                        JsonArray picks = new JsonArray();
-                        if (k > 0) picks.add(k);
-                        return args("options", picks);
+                        return args("options", ints(k > 0 ? Collections.singletonList(k) : Collections.emptyList()));
                     };
                     return c;
                 }

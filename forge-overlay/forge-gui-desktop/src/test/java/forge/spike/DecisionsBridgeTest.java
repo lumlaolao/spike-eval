@@ -482,16 +482,20 @@ public class DecisionsBridgeTest {
 
     // ------------------------------------------------------------------ the seat's conditions
 
-    /** Jev cannot call a lookup, so a seat that offers them would be a condition it never had. */
+    /** Jev cannot call a lookup, so a seat that offers them would be a condition it never had; without the answer
+     *  tool every decision would be a text ask it cannot take. */
     @Test
-    public void aJevSeatRefusesLookupsAndLookahead() {
-        DecisionsBridge.refuseLookups(false, false, "Seat/smart");
-        for (boolean[] f : new boolean[][] {{true, false}, {false, true}}) {
+    public void aJevSeatRefusesLookupsLookaheadAndTextAnswers() {
+        DecisionsBridge.refuseConditions(false, false, true, "Seat/smart");
+        String[] named = {"MEMORY_TOOLS", "LOOKAHEAD", "ANSWER_TOOL"};
+        boolean[][] flags = {{true, false, true}, {false, true, true}, {false, false, false}};
+        for (int i = 0; i < flags.length; i++) {
+            boolean[] f = flags[i];
             try {
-                DecisionsBridge.refuseLookups(f[0], f[1], "Seat/smart");
+                DecisionsBridge.refuseConditions(f[0], f[1], f[2], "Seat/smart");
                 Assert.fail("accepted " + Arrays.toString(f));
             } catch (IllegalStateException e) {
-                Assert.assertTrue(e.getMessage().contains(f[0] ? "MEMORY_TOOLS" : "LOOKAHEAD"), e.getMessage());
+                Assert.assertTrue(e.getMessage().contains(named[i]), e.getMessage());
             }
         }
     }
