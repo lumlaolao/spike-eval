@@ -189,6 +189,11 @@ class EngineCheckTest(unittest.TestCase):
         found = sb.engine_problems(self.forge, pin)
         self.assertTrue(any("forge/spike" in p for p in found), found)
 
+    def test_the_graders_package_installed_in_the_engine_is_caught(self):
+        write(self.forge, "forge-gui-desktop/src/test/java/forge/harnessenv/grader/Grader.java", "class Grader {}\n")
+        found = sb.engine_problems(self.forge, self.pin)
+        self.assertTrue(any("forge/harnessenv" in p and "src/test" in p for p in found), found)
+
 
 class RealRepoTest(unittest.TestCase):
     def test_the_shipped_spec_builds_a_sandbox_from_this_repo_with_no_leak(self):

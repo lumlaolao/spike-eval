@@ -51,7 +51,12 @@
     "surface_coverage",
     "controller-ownership",
     "fake_model_server",
-    "[TALLY]"
+    "[TALLY]",
+    "harnessenv.grader",
+    "GraderSuite",
+    "ScriptedModel",
+    "HARNESS_ENV_SEED",
+    "harness.envgrade"
   ],
   "forbidden_path_fragments": [
     "forge/spike",

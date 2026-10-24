@@ -12,7 +12,9 @@ Settings (every benchmark setting is gated to 0 for a seat with any Forge-AI dec
   geometric-mixed-0.001     weights half equal, half corpus
   strict-any-zero           the dense mean, or 0 when any family is at zero
 Corpus weights come from every "t":"decision" row under a runs directory (decision type -> family, family_of_type),
-each family floored at 2% so a rare family still counts.
+each family floored at 2% so a rare family still counts. A runs directory grows, so the counts are saved with
+`--counts <json>` beside `--runs` and read back from that file alone without it: the committed counts
+(docs/harness/evidence/2026-10-24-corpus-decision-counts.json) are what the framework's table was computed from.
 
 Criteria, each a statement about the validation seats that the number must make true:
   ours near the ceiling          ours >= 0.9
@@ -26,7 +28,7 @@ The recommendation is the first setting, in the order above, that meets every cr
 What it cannot do: say which criteria are right. They are the owner's sentences (2026-10-22) written as tests;
 a different sentence is a different recommendation.
 
-Usage: harness_env_calibrate.py <env-grade.tsv> [--runs <dir>]
+Usage: harness_env_calibrate.py <env-grade.tsv> [--runs <dir>] [--counts <json>]
 """
 import collections
 import json
@@ -37,9 +39,6 @@ import harness_env_grade as hg
 
 SETTINGS = ("geometric-equal-0.001", "geometric-mixed-0.001", "geometric-equal-0.01", "geometric-corpus-0.001",
             "strict-any-zero", "dense-equal", "dense-corpus")
-HOOK_OF = {"play": "chooseSpellAbilityToPlay", "combat": "declareBlockers", "targets": "chooseTargetsFor",
-           "costs": "payManaCost", "triggers-and-replacements": "confirmTrigger", "game-start": "mulliganKeepHand",
-           "library": "arrangeForScry", "variants": "chooseFlipResult", "choices": "chooseColor"}
 TYPE_FAMILY = [
     ("play", ("play", "ability-to-play", "play-from-effect")),
     ("targets", ("target", "targets", "attack-target")),
@@ -79,6 +78,18 @@ def decision_counts(root):
                     if isinstance(d, dict) and d.get("t") == "decision":
                         counts[d.get("type", "?")] += 1
     return counts
+
+
+def load_counts(runs, counts_file):
+    """Decision counts from `runs` (saved to `counts_file` when one is named), or read back from `counts_file`."""
+    if runs:
+        counts = dict(sorted(decision_counts(runs).items()))
+        if counts_file:
+            with open(counts_file, "w", encoding="utf-8") as f:
+                json.dump(counts, f, indent=1, sort_keys=True)
+        return counts
+    with open(counts_file, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def corpus_weights(counts, families, floor=0.02):
@@ -123,12 +134,9 @@ def score(setting, fam_scores, weights):
 
 
 def family_scores(table):
+    """{seat: {family: pass rate}}, with `empty` (no harness) at zero everywhere."""
     fams = sorted({f for seat in table.values() for f in seat})
-    out = {}
-    for seat, cells in table.items():
-        out[seat] = {f: (cells[f]["passed"] / cells[f]["total"]) if cells.get(f, {}).get("total") else 0.0 for f in fams}
-    out["empty"] = {f: 0.0 for f in fams}
-    return out
+    return {seat: hg.family_rates(table.get(seat, {}), fams) for seat in hg._seats(table)}
 
 
 CHECKS = ("asked", "offered", "carried", "shown", "noparse")
@@ -179,7 +187,7 @@ def evaluate(rows, weights, gate=True):
 
 
 def markdown(result):
-    seats = sorted(result["scores"][SETTINGS[0]], key=lambda s: (hg.SEAT_ORDER.index(s) if s in hg.SEAT_ORDER else 99, s))
+    seats = hg._seats(result["scores"][SETTINGS[0]])
     lines = ["| setting | " + " | ".join(seats) + " | criteria met |", "|---|" + "---|" * (len(seats) + 1)]
     for s in SETTINGS:
         c = result["criteria"][s]
@@ -198,7 +206,11 @@ def main(argv):
     rows = hg.read_env_report(argv[1])
     fams = sorted({hg.family(r["hook"]) for r in rows})
     runs = argv[argv.index("--runs") + 1] if "--runs" in argv else None
-    weights = corpus_weights(decision_counts(runs), fams) if runs else {f: 1.0 / len(fams) for f in fams}
+    counts_file = argv[argv.index("--counts") + 1] if "--counts" in argv else None
+    if runs or counts_file:
+        weights = corpus_weights(load_counts(runs, counts_file), fams)
+    else:
+        weights = {f: 1.0 / len(fams) for f in fams}
     for gate in (True, False):
         result = evaluate(rows, weights, gate=gate)
         print("\n%s\n" % ("With the run-wide Forge-AI gate (the published benchmark):" if gate

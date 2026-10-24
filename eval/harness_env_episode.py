@@ -12,15 +12,22 @@ it built, grade it outside the sandbox, write a scored report.
    graded. These are reported apart and never pooled.
 4. Every checkpoint interval the overlay is copied outside the sandbox. Checkpoints are graded only after the
    episode ends (the dense reward between them), never while the agent can see a score.
-5. The overlay is exported and graded by `grade_fn(submission, out_dir)`; the default builds the submission with the
-   hidden grader and its Forge-AI counter (harness_env_grade.compile_command) and runs the instance grader on the
-   seat its harness-env.properties names (GraderSuite), scoring by hook family (harness_env_grade.calibrated).
+5. The overlay is exported and graded by `grade_fn(submission, out_dir)`; the default (jvm_grader) refuses at
+   intake what scores 0 (no Java, no factory, an unmarked engine patch, a class in the grader's package), builds
+   the submission with the hidden grader and its Forge-AI counter (harness_env_grade.build_classes) and, only when
+   the operator passes --trust-candidate, runs the instance grader on the seat its harness-env.properties names
+   (GraderSuite) on a generated set (--set, or --cards with $HARNESS_ENV_SEED, drawn at grade time), scoring by hook
+   family (harness_env_grade.calibrated).
 
-What it does not do: contain the agent. The runner is the episode's bookkeeping; the isolation (no network, the
-read-only engine, a uid that cannot read the grader) is the container's (framework section 2), not this process's.
+What it does not do: contain the agent, or keep the candidate away from the grader. The runner is the episode's
+bookkeeping; the isolation (no network, the read-only engine, a uid that cannot read the grader) is the container's
+(framework section 2), not this process's. The candidate's seat runs inside the grader's JVM, where it could rewrite
+the report (framework section 4.7, an open hole): without --trust-candidate a submission gets no score, only
+`status: unscored`.
 
-Usage: harness_env_episode.py <episode.json> <out> -- <agent command...>
-       [--cap-s N] [--checkpoint-s N] [--grade-checkpoints] [--classpath <txt>] [--forge <checkout>] [--set <json>]
+Usage: harness_env_episode.py <episode.json> <out> (--set <json> | --cards <cardsfolder>) -- <agent command...>
+       [--cap-s N] [--checkpoint-s N] [--grade-checkpoints] [--classpath <txt>] [--forge <checkout>]
+       [--trust-candidate]
 """
 import json
 import os
@@ -29,11 +36,12 @@ import subprocess
 import sys
 import time
 
+import harness_env_generate as hgen
 import harness_env_grade as hgrade
 import harness_env_sandbox as sb
 import harness_env_spec as hs
 
-KEEP_ENV = ("PATH", "LANG", "LC_ALL", "JAVA_HOME", "TZ")
+UNSCORED = "unscored: in-JVM grader, see HARNESS-ENV-FRAMEWORK.md 4.7 (pass --trust-candidate to accept the hole)"
 
 
 def _git(cwd, *args):
@@ -51,7 +59,7 @@ def fresh_repository(sandbox, hooks_dir):
 
 
 def agent_env(out):
-    env = {k: os.environ[k] for k in KEEP_ENV if k in os.environ}
+    env = {k: os.environ[k] for k in hgrade.KEEP_ENV if k in os.environ}
     home = os.path.join(out, "agent-home")
     os.makedirs(home, exist_ok=True)
     env["HOME"] = home
@@ -86,9 +94,16 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn=None, cap_s=None, chec
         with open(dev_set, encoding="utf-8") as f:
             if json.load(f).get("split") != "dev":
                 raise ValueError("a dev slice must be a dev split (harness_env_generate.py --split dev)")
-        os.makedirs(os.path.join(sandbox, "dev"), exist_ok=True)
-        shutil.copyfile(dev_set, os.path.join(sandbox, "dev", "instances.json"))
+        dest = os.path.join(sandbox, "dev", "instances.json")
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.copyfile(dev_set, dest)
+        manifest["files"]["dev/instances.json"] = sb.sha256(dest)
     fresh_repository(sandbox, os.path.join(out, "empty-hooks"))
+    # Checked again as handed over: the dev slice and the repository were added after the first check.
+    leaks = (leak_check or sb.leak_problems)(spec, repo, sandbox, manifest)
+    if leaks:
+        report.update(ended_by="refused", leaks=leaks)
+        return _write(out, report)
     overlay = os.path.join(sandbox, spec["submission"]["path"])
     done_file = os.path.join(sandbox, spec["done"]["file"])
     started = time.time()
@@ -140,36 +155,51 @@ def _write(out, report):
     return report
 
 
-def jvm_grader(classpath_file=None, forge=None, java_home=None, set_file=None):
-    """The hidden grader as a grade_fn: intake, then (when the submission names a seat factory) build and run the
-    instance grader on that seat, scored by hook family. A submission with no Java, or no factory, scores 0."""
+def jvm_grader(classpath_file=None, forge=None, java_home=None, set_file=None, cards=None, trust_candidate=False):
+    """The hidden grader as a grade_fn, on a generated set: `set_file`, or one drawn from `cards` (a cardsfolder) with
+    $HARNESS_ENV_SEED when grading, after the agent has stopped. Never the committed hand catalog, which the agent
+    could have read in the public repository.
+
+    Intake refuses what scores 0 (harness_env_grade.refusal); the submission is built with the grader; then, only
+    with `trust_candidate`, its seat is run in the grader's JVM and scored by hook family. Without it the result is
+    `status: unscored` with no number: the seat shares the grader's JVM and could rewrite the report (framework
+    section 4.7). javac and java get harness_env_grade.grader_env, never the operator's environment."""
+    if not set_file and not cards:
+        raise ValueError("an episode is graded on a generated set: pass --set <json> or --cards <cardsfolder>")
+    if cards and not set_file and not os.environ.get("HARNESS_ENV_SEED"):
+        raise ValueError("--cards draws a held-out set and needs $HARNESS_ENV_SEED")
+    seed = os.environ.get("HARNESS_ENV_SEED") if cards and not set_file else None
+
     def grade(submission, out):
         os.makedirs(out, exist_ok=True)
         info = hgrade.intake(submission, forge)
-        if info["java_files"] == 0 or not info["factory"]:
-            return {"benchmark": 0.0, "dense": 0.0, "intake": info,
-                    "reason": "no Java" if info["java_files"] == 0 else "no seat.factory in harness-env.properties"}
+        base = {"intake": info, "trust_candidate": trust_candidate}
+        refused = hgrade.refusal(info)
+        if refused:
+            return dict(base, benchmark=0.0, dense=0.0, reason=refused)
         jh = java_home or os.environ.get("JAVA_HOME", "/usr")
-        aipatch, _ = hgrade.harness_env_aicount.write(forge, os.path.join(hgrade.REPO, hgrade.LEDGER), os.path.join(out, "aipatch"))
-        classes = os.path.join(out, "classes")
-        os.makedirs(classes, exist_ok=True)
-        with open(os.path.join(out, "javac.log"), "w", encoding="utf-8") as log:
-            rc = subprocess.run(hgrade.compile_command(os.path.join(jh, "bin", "javac"), classpath_file, submission, hgrade.REPO,
-                                                       aipatch, classes), stdout=log, stderr=subprocess.STDOUT).returncode
+        env = hgrade.grader_env(jh)
+        rc, classes, _ = hgrade.build_classes(submission, classpath_file, forge, out, os.path.join(jh, "bin", "javac"), env)
         if rc != 0:
-            return {"benchmark": 0.0, "dense": 0.0, "intake": info, "reason": "did not compile with the grader (javac rc=%d)" % rc}
-        report = os.path.join(out, "env-grade.tsv")
-        with open(os.path.join(out, "run.log"), "w", encoding="utf-8") as log:
-            subprocess.run(hgrade.instances_command(os.path.join(jh, "bin", "java"), classes, classpath_file, hgrade.REPO, report,
-                                                    seats="candidate=" + info["factory"], set_file=set_file),
-                           cwd=os.path.join(forge, "forge-gui-desktop"), stdout=log, stderr=subprocess.STDOUT, timeout=hgrade.RUN_TIMEOUT_S)
+            return dict(base, benchmark=0.0, dense=0.0, reason="did not compile with the grader (javac rc=%d)" % rc)
+        if not trust_candidate:
+            return dict(base, benchmark=None, dense=None, status=UNSCORED)
+        sf = set_file
+        if seed:
+            sf = os.path.join(out, "set.json")
+            with open(sf, "w", encoding="utf-8") as f:
+                json.dump(hgen.generate(hgen.index(cards), seed), f, indent=1, sort_keys=True)
+        with open(sf, encoding="utf-8") as f:
+            base["set_sha"] = json.load(f).get("set_sha")
+        report = hgrade.run_instances(os.path.join(jh, "bin", "java"), classes, classpath_file, forge, out,
+                                      seats="candidate=" + info["factory"], set_file=sf, env=env)
         if not os.path.isfile(report):
-            return {"benchmark": 0.0, "dense": 0.0, "intake": info, "reason": "the grader wrote no report"}
+            return dict(base, benchmark=0.0, dense=0.0, reason="the grader wrote no report")
         rows = hgrade.read_env_report(report)
+        if hgrade.counter_off(rows):
+            return dict(base, benchmark=0.0, dense=0.0, reason="counter off: the Forge-AI counter was not loaded (ai=-1)")
         scores = hgrade.env_scores(hgrade.env_table(rows, by="hook"), hgrade.ai_gated(rows))["candidate"]
-        scores["instances"] = len(rows)
-        scores["passed"] = sum(1 for r in rows if r.get("pass") == "1")
-        scores["intake"] = info
+        scores.update(base, instances=len(rows), passed=sum(1 for r in rows if r.get("pass") == "1"))
         return scores
     return grade
 
@@ -185,7 +215,8 @@ def main(argv):
         return 2
     spec, out, rest = head[0], head[1], head[2:]
     opts = {"cap_s": None, "checkpoint_s": None, "grade_checkpoints": False}
-    cpfile = forge = set_file = None
+    cpfile = forge = set_file = cards = None
+    trust = False
     while rest:
         flag = rest.pop(0)
         if flag == "--cap-s":
@@ -200,10 +231,19 @@ def main(argv):
             forge = rest.pop(0)
         elif flag == "--set":
             set_file = rest.pop(0)
+        elif flag == "--cards":
+            cards = rest.pop(0)
+        elif flag == "--trust-candidate":
+            trust = True
         else:
             print(__doc__)
             return 2
-    report = run_episode(spec, hgrade.REPO, agent_cmd, out, grade_fn=jvm_grader(cpfile, forge, set_file=set_file), **opts)
+    try:
+        grade_fn = jvm_grader(cpfile, forge, set_file=set_file, cards=cards, trust_candidate=trust)
+    except ValueError as e:
+        print(e)
+        return 2
+    report = run_episode(spec, hgrade.REPO, agent_cmd, out, grade_fn=grade_fn, **opts)
     print(json.dumps({k: report.get(k) for k in ("episode", "ended_by", "wall_s", "done", "score")}, indent=1, default=str))
     return 0
 

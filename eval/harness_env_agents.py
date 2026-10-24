@@ -6,6 +6,12 @@
              harness-env.properties and writes DONE: the submission should score about what ours scores.
   nothing    writes DONE and nothing else: the submission should score 0.
 
+What these dry runs cannot establish: anything about an agent that builds a seat. They check the runner's plumbing
+(sandbox, DONE, export, build, grading outside) on a submission we already know; they say nothing about whether the
+sandbox holds enough to build a seat from, whether TASK.md and SPEC.md are understood, how long a real episode runs
+or how an agent ends one, nor whether the hidden grader is robust to a seat written to fool it (copy-ours is our own
+trusted code, graded with --trust-candidate; framework section 4.7).
+
 Run with the sandbox as the working directory, as the runner does.
 Usage: harness_env_agents.py copy-ours <repo> | nothing
 """
@@ -13,24 +19,21 @@ import os
 import shutil
 import sys
 
-ADAPTER = os.path.join("forge-overlay", "forge-gui-desktop", "src", "test", "java", "forge", "spike", "HarnessEnvOurs.java")
+import harness_env_grade as hg
+
 FACTORY = "forge.spike.HarnessEnvOurs$Ours"
 
 
 def copy_ours(repo, box):
     overlay = os.path.join(box, "overlay")
     src_root = os.path.join(repo, "forge-overlay")
-    for root, _, files in os.walk(src_root):
-        rel = os.path.relpath(root, src_root)
-        if "/src/main/" not in "/" + rel.replace(os.sep, "/") + "/":
-            continue
-        for f in files:
-            if f.endswith(".java"):
-                dest = os.path.join(overlay, rel, f)
-                os.makedirs(os.path.dirname(dest), exist_ok=True)
-                shutil.copyfile(os.path.join(root, f), dest)
+    for j in hg._java_files(src_root):
+        if "/src/main/" in "/" + j:
+            dest = os.path.join(overlay, j)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            shutil.copyfile(os.path.join(src_root, j), dest)
     dest = os.path.join(overlay, "forge-gui-desktop", "src", "main", "java", "forge", "spike", "HarnessEnvOurs.java")
-    shutil.copyfile(os.path.join(repo, ADAPTER), dest)
+    shutil.copyfile(os.path.join(repo, hg.OURS_ADAPTER), dest)
     with open(os.path.join(overlay, "harness-env.properties"), "w", encoding="utf-8") as f:
         f.write("seat.factory=%s\n" % FACTORY)
     with open(os.path.join(box, "DONE"), "w", encoding="utf-8") as f:

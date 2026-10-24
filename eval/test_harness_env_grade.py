@@ -429,5 +429,111 @@ class RunGuardTest(unittest.TestCase):
             shutil.rmtree(tmp)
 
 
+class GraderPackageTest(unittest.TestCase):
+    """A submission cannot ship a class in the grader's package: same-name classes would collide in the one javac, and
+    a new one could reach the grader's package-private state (framework 4.7, the open in-JVM hole)."""
+
+    def setUp(self):
+        self.sub = tempfile.mkdtemp()
+        write(self.sub, "harness-env.properties", "seat.factory=a.b.MySeat\n")
+        write(self.sub, "forge-gui-desktop/src/main/java/a/b/MySeat.java", "package a.b;\nclass MySeat {}\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.sub)
+
+    def test_a_clean_submission_is_not_refused(self):
+        info = hg.intake(self.sub)
+        self.assertEqual(info["grader_package"], [])
+        self.assertIsNone(hg.refusal(info))
+
+    def test_a_class_declared_in_the_grader_package_is_refused_wherever_it_lives(self):
+        write(self.sub, "forge-gui-desktop/src/main/java/a/b/Sneak.java",
+              "// a comment\npackage forge.harnessenv.grader;\npublic class Sneak {}\n")
+        info = hg.intake(self.sub)
+        self.assertEqual(info["grader_package"], ["forge-gui-desktop/src/main/java/a/b/Sneak.java"])
+        self.assertIn("forge.harnessenv", hg.refusal(info))
+
+    def test_a_file_under_a_forge_harnessenv_path_is_refused_even_in_its_tests(self):
+        write(self.sub, "forge-gui-desktop/src/test/java/forge/harnessenv/Helper.java", "class Helper {}\n")
+        self.assertEqual(hg.intake(self.sub)["grader_package"], ["forge-gui-desktop/src/test/java/forge/harnessenv/Helper.java"])
+        self.assertIsNotNone(hg.refusal(hg.intake(self.sub)))
+
+    def test_importing_the_abi_is_not_declaring_a_class_in_it(self):
+        write(self.sub, "forge-gui-desktop/src/main/java/a/b/Factory.java",
+              "package a.b;\nimport forge.harnessenv.SeatFactory;\nclass Factory implements SeatFactory {}\n")
+        self.assertEqual(hg.intake(self.sub)["grader_package"], [])
+
+    def test_an_unmarked_engine_patch_is_refused(self):
+        write(self.sub, "forge-game/src/main/java/forge/game/zone/MagicStack.java", "class MagicStack {}\n")
+        self.assertIn("unmarked engine patch", hg.refusal(hg.intake(self.sub)))
+
+    def test_our_seats_main_sources_declare_nothing_in_the_grader_package(self):
+        found = hg.intake(os.path.join(REPO, "forge-overlay"))["grader_package"]
+        self.assertTrue(found, "the overlay holds the grader itself, under src/test")
+        self.assertEqual([f for f in found if "/src/main/" in f], [])
+
+
+class SubmissionAiControllerTest(unittest.TestCase):
+    """A marked engine patch of PlayerControllerAi.java must not meet the grader's counter copy in one javac: the
+    counter is generated from the submission's copy instead, and the submission's raw copy is not compiled."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.sub = os.path.join(self.tmp, "sub")
+        write(self.sub, "harness-env.properties", "seat.factory=a.b.MySeat\n")
+        write(self.sub, "forge-gui-desktop/src/main/java/a/b/MySeat.java", "class MySeat {}\n")
+        self.own = write(self.sub, "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java",
+                         "// HARNESS PATCH: the submission's own change\npackage forge.ai;\n"
+                         "public class PlayerControllerAi extends PlayerController {\n"
+                         "    @Override\n    public void declareBlockers(Player defender, Combat combat) {\n"
+                         "        mine();\n    }\n}\n")
+        self.real = hg.subprocess.run
+        self.calls = []
+
+        def fake(cmd, **kw):
+            self.calls.append((cmd, kw))
+            return subprocess.CompletedProcess(cmd, 0)
+
+        hg.subprocess.run = fake
+
+    def tearDown(self):
+        hg.subprocess.run = self.real
+        shutil.rmtree(self.tmp)
+
+    def test_the_counter_is_built_from_the_submissions_copy_and_compiled_once(self):
+        rc, classes, counted = hg.build_classes(self.sub, "/nope/cp.txt", None, os.path.join(self.tmp, "out"), "javac")
+        self.assertEqual(rc, 0)
+        self.assertIn("declareBlockers", counted)
+        argv = self.calls[0][0]
+        pcai = [a for a in argv if a.endswith("PlayerControllerAi.java")]
+        self.assertEqual(len(pcai), 1, pcai)
+        self.assertNotEqual(pcai[0], self.own)
+        with open(pcai[0], encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("mine();", text, "the submission's change survives")
+        self.assertIn('AiCounter.enter("declareBlockers", this);', text)
+
+    def test_the_grader_environment_carries_no_secret_or_provider_variable(self):
+        old = dict(os.environ)
+        os.environ.update(HARNESS_ENV_SEED="s3cret", OPENROUTER_API_KEY="k", OPENROUTER_ALLOW_EGRESS="1", PATH="/bin")
+        try:
+            env = hg.grader_env("/jdk")
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+        self.assertEqual(env["JAVA_HOME"], "/jdk")
+        self.assertEqual(env["PATH"], "/bin")
+        self.assertFalse([k for k in env if k.startswith("OPENROUTER") or k == "HARNESS_ENV_SEED"], env)
+
+
+class CounterOffTest(unittest.TestCase):
+    def test_a_missing_counter_gates_the_seat_and_is_named(self):
+        rows = [dict(seat="ours", instance="x", family="combat", hook="declareBlockers", ai="-1", ai_payment="-1",
+                     **{"pass": "1"})]
+        self.assertEqual(hg.counter_off(rows), {"ours"})
+        self.assertEqual(hg.ai_gated(rows), {"ours"}, "ai=-1 is not proof of no Forge-AI decision")
+        self.assertEqual(hg.counter_off([dict(rows[0], ai="0")]), set())
+
+
 if __name__ == "__main__":
     unittest.main()

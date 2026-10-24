@@ -17,8 +17,8 @@ It cannot see a leak by paraphrase (a released document explaining our design in
 released is the remaining net, and the spec releases five named things.
 
 `engine_problems` checks the engine the agent gets: a checkout at the pin, no local edit, and none of our overlay
-installed (the working checkout has both: `install.sh` copies the overlay into it, and its engine patches are
-compiled into target/, which git ignores).
+installed, neither our seat (`forge/spike`) nor the grader (`forge/harnessenv`). The working checkout has both:
+`install.sh` copies the overlay into it, and its engine patches are compiled into target/, which git ignores.
 
 Usage:
   harness_env_sandbox.py build <episode.json> <repo> <dest> <manifest.json>
@@ -131,13 +131,13 @@ def leak_problems(spec, repo, dest, manifest):
         for frag in spec["forbidden_path_fragments"]:
             if frag in rel:
                 out.append("%s: the path holds the forbidden fragment %r" % (rel, frag))
+        digest = sha256(full)
         if rel.startswith(agent_dirs):
             out.append("%s: the agent's directories must start empty" % rel)
         elif rel not in manifest["files"]:
             out.append("%s is not in the manifest" % rel)
-        elif sha256(full) != manifest["files"][rel]:
+        elif digest != manifest["files"][rel]:
             out.append("%s differs from the manifest" % rel)
-        digest = sha256(full)
         if digest in withheld:
             out.append("%s has the same bytes as withheld %s" % (rel, withheld[digest]))
         with open(full, "rb") as fh:
@@ -164,10 +164,11 @@ def engine_problems(forge, pin):
     for top in sorted(os.listdir(forge)):
         if not top.startswith("forge"):
             continue
-        for sub in ("src/main/java/forge/spike", "src/test/java/forge/spike", "target/classes/forge/spike",
-                    "target/test-classes/forge/spike"):
-            if os.path.isdir(os.path.join(forge, top, sub)):
-                out.append("our overlay is installed in the engine: %s/%s" % (top, sub))
+        for pkg in ("forge/spike", "forge/harnessenv"):
+            for root in ("src/main/java", "src/test/java", "target/classes", "target/test-classes"):
+                sub = root + "/" + pkg
+                if os.path.isdir(os.path.join(forge, top, sub)):
+                    out.append("our overlay is installed in the engine: %s/%s" % (top, sub))
     return out
 
 

@@ -13,6 +13,9 @@ import unittest
 import harness_env_calibrate as cal
 import harness_env_grade as hg
 
+HOOK_OF = {"play": "chooseSpellAbilityToPlay", "combat": "declareBlockers", "targets": "chooseTargetsFor",
+           "costs": "payManaCost", "triggers-and-replacements": "confirmTrigger", "game-start": "mulliganKeepHand",
+           "library": "arrangeForScry", "variants": "chooseFlipResult", "choices": "chooseColor"}
 FAMS = ["choices", "combat", "costs", "game-start", "library", "play", "targets", "triggers-and-replacements", "variants"]
 
 
@@ -21,7 +24,7 @@ def rows_for(seat, passing, per=4, ai=0):
     out = []
     for f in FAMS:
         for i in range(per):
-            out.append({"seat": seat, "instance": "%s.%d" % (f, i), "family": f, "hook": cal.HOOK_OF[f],
+            out.append({"seat": seat, "instance": "%s.%d" % (f, i), "family": f, "hook": HOOK_OF[f],
                         "pass": "1" if passing(f, i) else "0", "ai": str(ai if (f == "choices" and i == 0) else 0)})
     return out
 
@@ -58,6 +61,22 @@ class CorpusTest(unittest.TestCase):
         for t in ("play", "target", "attackers", "blockers", "damage-assign", "trigger-order", "mulligan", "scry",
                   "mana-sources", "phyrexian", "counter-type", "delve", "modes"):
             self.assertIn(cal.family_of_type(t), FAMS, t)
+
+
+class CountsFileTest(unittest.TestCase):
+    def test_counts_saved_from_a_runs_directory_give_the_same_weights_when_read_back(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            with open(os.path.join(tmp, "g.jsonl"), "w", encoding="utf-8") as f:
+                for t, n in (("play", 7), ("blockers", 2), ("scry", 1)):
+                    f.write((json.dumps({"t": "decision", "type": t}) + "\n") * n)
+            saved = os.path.join(tmp, "counts.json")
+            a = cal.load_counts(tmp, saved)
+            b = cal.load_counts(None, saved)
+            self.assertEqual(a, b)
+            self.assertEqual(b["play"], 7)
+        finally:
+            shutil.rmtree(tmp)
 
 
 class SettingsTest(unittest.TestCase):

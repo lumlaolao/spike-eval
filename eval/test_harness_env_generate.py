@@ -6,6 +6,7 @@ another, or the seed itself written into the set.
 """
 import json
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -93,6 +94,18 @@ class GeneratorTest(unittest.TestCase):
         idx = hg.index(hg.CARDSFOLDER)
         for t in hg.TEMPLATES:
             self.assertGreater(len(idx[t]), 20, t)
+
+
+class JavaSideTest(unittest.TestCase):
+    def test_every_template_names_the_family_and_hook_the_java_builder_uses(self):
+        java = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "forge-overlay",
+                            "forge-gui-desktop", "src", "test", "java", "forge", "harnessenv", "grader",
+                            "GeneratedInstances.java")
+        with open(java, encoding="utf-8") as f:
+            text = f.read()
+        built = {t: (fam, hook) for t, fam, hook in
+                 re.findall(r'case "([a-z-]+)":.*?inst\(id, "([\w-]+)", "(\w+)"', text, re.S)}
+        self.assertEqual(built, hg.TEMPLATES)
 
 
 if __name__ == "__main__":

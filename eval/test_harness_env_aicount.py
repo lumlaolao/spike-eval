@@ -5,10 +5,13 @@ small fixture (a decision method, a non-decision method, a generic method whose 
 pinned engine file when this machine has it.
 """
 import os
+import shutil
 import subprocess
+import tempfile
 import unittest
 
 import harness_env_aicount as ac
+import surface_coverage
 
 FIXTURE = '''package forge.ai;
 
@@ -61,10 +64,27 @@ class PatchTest(unittest.TestCase):
     def test_an_abstract_method_has_no_body_to_count_in(self):
         self.assertNotIn(ac.CALL % "confirmTrigger", ac.patch(FIXTURE, HOOKS)[0])
 
+    def test_a_given_source_is_patched_instead_of_the_engines(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            src = os.path.join(tmp, "PlayerControllerAi.java")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write(FIXTURE)
+            ledger = os.path.join(tmp, "ledger.tsv")
+            with open(ledger, "w", encoding="utf-8") as f:
+                f.write("signature\timpl\tkind\townership\tlegacy_reach\tnotes\n"
+                        "declareBlockers[x]\tLLM\tstrategic\tmodel\tcore\tn\n")
+            dest, counted = ac.write("/no/engine/here", ledger, os.path.join(tmp, "out"), source=src)
+            self.assertEqual(counted, ["declareBlockers"])
+            with open(dest, encoding="utf-8") as f:
+                self.assertIn(ac.CALL % "declareBlockers", f.read())
+        finally:
+            shutil.rmtree(tmp)
+
     @unittest.skipUnless(os.path.isdir(os.path.join(FORGE, ".git")), "no engine checkout here")
     def test_the_pinned_engine_file_gets_a_counter_in_every_decision_method_it_defines(self):
         src = subprocess.run(["git", "-C", FORGE, "show", "HEAD:" + ac.ENGINE_PATH], capture_output=True, text=True).stdout
-        out, counted = ac.patch(src, ac.decision_hooks(LEDGER))
+        out, counted = ac.patch(src, surface_coverage.decision_hooks(LEDGER))
         self.assertGreater(len(counted), 60)
         self.assertIn("declareAttackers", counted)
         self.assertIn("chooseSpellAbilityToPlay", counted)

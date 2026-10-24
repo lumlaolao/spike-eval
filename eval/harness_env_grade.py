@@ -66,6 +66,10 @@ WEIGHTS = {"hooks": 0.5, "plays": 0.2, "tests": 0.3}
 FLOOR = 0.001  # a family at zero counts as this in the benchmark's geometric mean (calibrated)
 ENGINE_MODULES = ("forge-core", "forge-game", "forge-ai", "forge-gui")
 PATCH_MARKERS = ("ENGINE PATCH:", "HARNESS PATCH")
+# A submission may not declare a class in the grader's package (it would share the grader's package-private state).
+GRADER_PACKAGE = re.compile(r"^\s*package\s+forge\.harnessenv\b", re.M)
+# What javac and java of a grade inherit: nothing secret (the instance seed, a provider key, the egress consent).
+KEEP_ENV = ("PATH", "LANG", "LC_ALL", "JAVA_HOME", "TZ")
 FORGE_AI = re.compile(r"\bforge\.ai\.(PlayerControllerAi|AiController|ComputerUtil\w*|AiPlayDecision|AiCostDecision)\b")
 
 # Hook families (provisional weights: equal; HARNESS-ENV.md section 3.4 derives them from recorded play).
@@ -160,10 +164,14 @@ def intake(submission, forge=None):
             return path in committed
         return path.split("/", 1)[0] in ENGINE_MODULES
 
-    patches, unmarked, ai = [], [], []
-    for j in main:
+    patches, unmarked, ai, grader = [], [], [], []
+    for j in java:
         with open(os.path.join(submission, j), encoding="utf-8", errors="replace") as f:
             text = f.read()
+        if "forge/harnessenv/" in "/" + j or GRADER_PACKAGE.search(text):
+            grader.append(j)
+        if j not in main:
+            continue
         if is_engine(j):
             patches.append(j)
             if not any(m in text for m in PATCH_MARKERS):
@@ -172,7 +180,20 @@ def intake(submission, forge=None):
             ai.append(j)
     return {"java_files": len(java), "main_files": len(main), "own_test_files": len(java) - len(main), "abi": abi,
             "factory": factory, "engine_patches": patches, "unmarked_engine_patches": unmarked,
-            "forge_ai_references": ai}
+            "forge_ai_references": ai, "grader_package": grader}
+
+
+def refusal(info):
+    """Why intake alone scores a submission 0 for the instance grader, or None."""
+    if info["java_files"] == 0:
+        return "no Java"
+    if not info["factory"]:
+        return "no seat.factory in harness-env.properties"
+    if info["unmarked_engine_patches"]:
+        return "unmarked engine patch: " + ", ".join(info["unmarked_engine_patches"])
+    if info["grader_package"]:
+        return "declares a class in the grader's package forge.harnessenv: " + ", ".join(info["grader_package"])
+    return None
 
 
 def assemble(submission, grader_repo, ws):
@@ -300,9 +321,6 @@ def calibrated(family_scores):
             "families_at_zero": sorted(k for k, s in family_scores.items() if s <= 0)}
 
 
-# The instance report GraderSuite writes (forge-overlay/.../forge/harnessenv/grader/Grader.java): one row per seat and instance.
-ENV_COLUMNS = ("seat", "instance", "family", "hook", "legal", "reached", "min_requests", "asked", "offered",
-               "carried", "shown", "noparse", "pass", "ai", "ai_payment", "note")
 SEAT_ORDER = ("ours", "default", "empty", "ours-minus-combat", "ours-minus-costs")
 
 
@@ -342,8 +360,18 @@ def _seats(table):
 
 def ai_gated(rows):
     """Seats with any decision handed to Forge's AI (the counter's `ai` column; the payment executor, `ai_payment`,
-    is reported apart and does not gate)."""
-    return {r["seat"] for r in rows if int(r.get("ai") or 0) > 0}
+    is reported apart and does not gate), or with no counter at all (`ai` -1: nothing proves zero)."""
+    return {r["seat"] for r in rows if int(r.get("ai") or 0) != 0}
+
+
+def counter_off(rows):
+    """Seats whose rows say the Forge-AI counter was not loaded (GraderSuite writes ai = -1)."""
+    return {r["seat"] for r in rows if int(r.get("ai") or 0) < 0}
+
+
+def family_rates(cells, fams):
+    """{family: pass rate} for one seat's table cells; a family with no instance is 0."""
+    return {f: (cells[f]["passed"] / cells[f]["total"]) if cells.get(f, {}).get("total") else 0.0 for f in fams}
 
 
 def env_scores(table, gated=()):
@@ -353,9 +381,7 @@ def env_scores(table, gated=()):
     fams = sorted({f for seat in table.values() for f in seat})
     out = {}
     for seat in _seats(table):
-        cells = table.get(seat, {})
-        scores = {f: (cells[f]["passed"] / cells[f]["total"]) if cells.get(f, {}).get("total") else 0.0 for f in fams}
-        out[seat] = calibrated(scores) if seat != "empty" else {"dense": 0.0, "benchmark": 0.0, "families_at_zero": fams}
+        out[seat] = calibrated(family_rates(table.get(seat, {}), fams)) if seat != "empty" else {"dense": 0.0, "benchmark": 0.0, "families_at_zero": fams}
         out[seat]["forge_ai_gate"] = seat in gated
         if seat in gated:
             out[seat]["benchmark"] = 0.0
@@ -366,30 +392,66 @@ GRADER_TESTS = os.path.join("forge-overlay", "forge-gui-desktop", "src", "test",
 OURS_ADAPTER = os.path.join("forge-overlay", "forge-gui-desktop", "src", "test", "java", "forge", "spike", "HarnessEnvOurs.java")
 
 
+def _classpath(classpath_file):
+    if classpath_file and os.path.isfile(classpath_file):
+        with open(classpath_file, encoding="utf-8") as f:
+            return f.read().strip()
+    return ""
+
+
+def grader_env(java_home=None):
+    """The environment javac and java of a grade run with: KEEP_ENV only, plus JAVA_HOME."""
+    env = {k: os.environ[k] for k in KEEP_ENV if k in os.environ}
+    if java_home:
+        env["JAVA_HOME"] = java_home
+    return env
+
+
 def compile_command(javac, classpath_file, submission, grader_repo, ai_patch, out_classes):
-    """argv that compiles, into one directory first on the classpath: the submission's main sources (never its tests),
-    the grader (harness-env-abi/1, the scripted model, the instances, the toys), the grader's Forge-AI counter patch
-    of PlayerControllerAi, and, when the submission is our own overlay, its ABI adapter (HarnessEnvOurs)."""
-    files = [os.path.join(submission, j) for j in _java_files(submission) if "/src/main/java/" in j]
+    """argv that compiles, into one directory first on the classpath: the submission's main sources (never its tests,
+    never its own PlayerControllerAi.java, which the counter patch replaces), the grader (harness-env-abi/1, the
+    scripted model, the instances, the toys), the grader's Forge-AI counter patch of PlayerControllerAi, and, when
+    the submission is our own overlay, its ABI adapter (HarnessEnvOurs)."""
+    files = [os.path.join(submission, j) for j in _java_files(submission)
+             if "/src/main/java/" in j and j != harness_env_aicount.ENGINE_PATH]
     grader = os.path.join(grader_repo, GRADER_TESTS)
     files += [os.path.join(grader, j) for j in _java_files(grader)]
     files.append(ai_patch)
     if any(f.endswith("forge/spike/LlmSpikeGui.java") for f in files) and not any(f.endswith("/HarnessEnvOurs.java") for f in files):
         files.append(os.path.join(grader_repo, OURS_ADAPTER))
-    cp = ""
-    if os.path.isfile(classpath_file):
-        with open(classpath_file, encoding="utf-8") as f:
-            cp = f.read().strip()
-    return [javac, "--release", "17", "-encoding", "UTF-8", "-proc:none", "-nowarn", "-cp", cp, "-d", out_classes] + files
+    return [javac, "--release", "17", "-encoding", "UTF-8", "-proc:none", "-nowarn", "-cp", _classpath(classpath_file),
+            "-d", out_classes] + files
+
+
+def build_classes(submission, classpath_file, forge, out, javac, env=None):
+    """Compile the submission with the grader and the Forge-AI counter into <out>/classes; (javac rc, classes dir,
+    hooks counted). A submission that ships its own (marked) PlayerControllerAi.java has the counter put into that
+    copy, so the one javac sees one PlayerControllerAi."""
+    own = os.path.join(submission, harness_env_aicount.ENGINE_PATH)
+    patch, counted = harness_env_aicount.write(forge, os.path.join(REPO, LEDGER), os.path.join(out, "aipatch"),
+                                               source=own if os.path.isfile(own) else None)
+    classes = os.path.join(out, "classes")
+    os.makedirs(classes, exist_ok=True)
+    with open(os.path.join(out, "javac.log"), "w", encoding="utf-8") as log:
+        rc = subprocess.run(compile_command(javac, classpath_file, submission, REPO, patch, classes), stdout=log,
+                            stderr=subprocess.STDOUT, env=env).returncode
+    return rc, classes, counted
+
+
+def run_instances(java, classes, classpath_file, forge, out, only=None, seats=None, set_file=None, env=None):
+    """Run GraderSuite on built classes from the engine's forge-gui-desktop; return the report path it writes."""
+    os.makedirs(out, exist_ok=True)
+    report = os.path.join(out, "env-grade.tsv")
+    with open(os.path.join(out, "run.log"), "w", encoding="utf-8") as log:
+        subprocess.run(instances_command(java, classes, classpath_file, REPO, report, only, seats, set_file),
+                       cwd=os.path.join(forge, "forge-gui-desktop"), stdout=log, stderr=subprocess.STDOUT,
+                       timeout=RUN_TIMEOUT_S, env=env)
+    return report
 
 
 def instances_command(java, classes, classpath_file, repo, report, only=None, seats=None, set_file=None):
     """argv that runs the instance grader (GraderSuite) on compiled classes, with the system properties the
     acceptance javatests stage gives a seat. Run it from the engine's forge-gui-desktop directory."""
-    cp = ""
-    if os.path.isfile(classpath_file):
-        with open(classpath_file, encoding="utf-8") as f:
-            cp = f.read().strip()
     argv = [java, "-Dapple.awt.UIElement=true",
             "-Dharness.ownership.tsv=" + os.path.join(repo, LEDGER),
             "-Dharness.rules.file=" + os.path.join(repo, "data", "rules", "MagicCompRules.txt"),
@@ -402,7 +464,7 @@ def instances_command(java, classes, classpath_file, repo, report, only=None, se
         argv.append("-Dharness.envgrade.seats=" + seats)
     if set_file:
         argv.append("-Dharness.envgrade.set=" + set_file)
-    return argv + ["-cp", classes + ":" + cp, "org.testng.TestNG", "-testclass", "forge.harnessenv.grader.GraderSuite",
+    return argv + ["-cp", classes + ":" + _classpath(classpath_file), "org.testng.TestNG", "-testclass", "forge.harnessenv.grader.GraderSuite",
                    "-d", os.path.join(os.path.dirname(report), "testng")]
 
 
@@ -473,12 +535,12 @@ def main(argv):
         return 0
     if len(args) == 5 and args[0] == "build":
         submission, cpfile, forge, out = args[1:]
-        patch, counted = harness_env_aicount.write(forge, os.path.join(REPO, LEDGER), os.path.join(out, "aipatch"))
-        classes = os.path.join(out, "classes")
-        os.makedirs(classes, exist_ok=True)
+        grader = intake(submission, forge)["grader_package"]
+        if grader:
+            print("refused: declares a class in the grader's package forge.harnessenv: " + ", ".join(grader))
+            return 1
         javac = os.path.join(os.environ.get("JAVA_HOME", "/usr"), "bin", "javac")
-        with open(os.path.join(out, "javac.log"), "w", encoding="utf-8") as log:
-            rc = subprocess.run(compile_command(javac, cpfile, submission, REPO, patch, classes), stdout=log, stderr=subprocess.STDOUT).returncode
+        rc, classes, counted = build_classes(submission, cpfile, forge, out, javac)
         print("build %s: javac rc=%d, Forge-AI counter in %d decision methods, classes %s" % (submission, rc, len(counted), classes))
         return 0 if rc == 0 else 1
     if len(args) >= 5 and args[0] == "instances":
@@ -500,12 +562,8 @@ def main(argv):
         if any(os.path.exists(m) for m in busy):
             print("refusing a JVM run while a --busy marker exists")
             return 1
-        os.makedirs(out, exist_ok=True)
-        report = os.path.join(out, "env-grade.tsv")
         java = os.path.join(os.environ.get("JAVA_HOME", "/usr"), "bin", "java")
-        with open(os.path.join(out, "run.log"), "w", encoding="utf-8") as log:
-            subprocess.run(instances_command(java, classes, cpfile, REPO, report, only, seats, set_file), cwd=os.path.join(forge, "forge-gui-desktop"),
-                           stdout=log, stderr=subprocess.STDOUT, timeout=RUN_TIMEOUT_S)
+        report = run_instances(java, classes, cpfile, forge, out, only, seats, set_file)
         rows = read_env_report(report)
         print(env_markdown(env_table(rows, by="hook"), ai_gated(rows)))
         return 0

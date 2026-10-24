@@ -8,7 +8,8 @@ This writes a copy of the engine's own PlayerControllerAi.java (from the pinned 
 one line at the top of every method whose name is a decision hook in the ownership ledger:
 `forge.harnessenv.grader.AiCounter.enter("<hook>", this);`. The grader compiles it first on the classpath, and
 AiCounter counts an entry when `this` controls the seat being graded. It also counts a seat that asks the model and
-then lets the AI decide anyway.
+then lets the AI decide anyway. A submission that ships its own marked patch of PlayerControllerAi.java has the
+counter written into that copy instead (`write(..., source=)`), so one javac never sees two PlayerControllerAi.
 
 What it cannot see: a seat that calls Forge's AI helper classes directly (ComputerUtilCard.getBestCreatureAI and
 such) without entering a PlayerControllerAi method; the offered and carried-out checks are the net for those.
@@ -25,10 +26,6 @@ import surface_coverage
 ENGINE_PATH = "forge-ai/src/main/java/forge/ai/PlayerControllerAi.java"
 CALL = 'forge.harnessenv.grader.AiCounter.enter("%s", this);'
 SIGNATURE = re.compile(r"^    (?:public|protected)\s+(?!abstract\b)(?:final\s+)?(?:<[^>]*>\s+)?[\w.<>\[\], ?]+?\s+(\w+)\s*\(")
-
-
-def decision_hooks(ledger):
-    return surface_coverage.decision_hooks(ledger)
 
 
 def patch(source, hooks):
@@ -56,9 +53,15 @@ def patch(source, hooks):
     return "\n".join(out), sorted(set(counted))
 
 
-def write(forge, ledger, out_dir):
-    src = subprocess.run(["git", "-C", forge, "show", "HEAD:" + ENGINE_PATH], capture_output=True, text=True, check=True).stdout
-    patched, counted = patch(src, decision_hooks(ledger))
+def write(forge, ledger, out_dir, source=None):
+    """Patch `source` (a submission's own marked copy) or, without it, the pinned engine's file."""
+    if source:
+        with open(source, encoding="utf-8") as f:
+            src = f.read()
+    else:
+        src = subprocess.run(["git", "-C", forge, "show", "HEAD:" + ENGINE_PATH], capture_output=True, text=True,
+                             check=True).stdout
+    patched, counted = patch(src, surface_coverage.decision_hooks(ledger))
     dest = os.path.join(out_dir, "forge", "ai", "PlayerControllerAi.java")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "w", encoding="utf-8") as f:
