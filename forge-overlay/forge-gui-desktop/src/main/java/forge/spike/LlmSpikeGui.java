@@ -9934,7 +9934,8 @@ public final class LlmSpikeGui {
          *  deepseek-v4.1-flash: a fast-tier decision burned 4000 tokens of reasoning, retried at 8000,
          *  and took 182s for one number.
          *
-         *  "none" is the sentinel that DISABLES reasoning (reasoning:{enabled:false}); measured 1.3s /
+         *  "none" is the sentinel that DISABLES reasoning (reasoning:{enabled:false}), except for a
+         *  MANDATORY_REASONING_FLOOR model, which refuses that and is sent its lowest effort; measured 1.3s /
          *  65 completion tokens vs ~7s / ~850 with any effort value, because ~95% of the completion was
          *  hidden reasoning for a ~50-token answer. Effort values ("low"/"minimal") do NOT reliably cut
          *  it. Reasoning is kept ON for the smart tier, where planning and timing actually need it. */
@@ -9986,7 +9987,11 @@ public final class LlmSpikeGui {
                   .append(c.fastMaxTokens).append(',').append(c.fastTimeoutMs).append(',')
                   .append(c.fastReasoningEffort).append('|');
             }
-            return sb.toString();
+            // The floor changes the reasoning sent wherever "none" is, so it is part of the condition.
+            sb.append("floor");
+            for (Map.Entry<String, String> e : new java.util.TreeMap<>(OpenRouterBridge.MANDATORY_REASONING_FLOOR).entrySet())
+                sb.append(':').append(e.getKey()).append('=').append(e.getValue());
+            return sb.append('|').toString();
         }
 
         private static Map<String, ModelCfg> buildTable() {
@@ -10013,7 +10018,8 @@ public final class LlmSpikeGui {
             // already report per game, so the tail is visible rather than silent.
             //
             // The fast tier (two-tier runs only; ONE_TIER uses this smart row everywhere) keeps reasoning
-            // off -- that is what the two-tier arm IS -- but its answer is no longer cut: 1024 tokens
+            // off -- that is what the two-tier arm IS; a model that refuses that gets its lowest effort
+            // (MANDATORY_REASONING_FLOOR) -- but its answer is no longer cut: 1024 tokens
             // truncated 2 of 170 fast calls in runs/compare/two-tier, and the retry then asked again
             // at the same 1024. 8192 tokens and 120s (docs/harness/MODEL-LIMITS.md).
             ModelCfg uniform = new ModelCfg(32000, 300000, null, null, 8192, 120000, "none");
@@ -10026,12 +10032,10 @@ public final class LlmSpikeGui {
             // asserts this mechanically so it cannot be forgotten.
             for (String key : new String[]{"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "default"})
                 t.put(key, uniform);
-            // grok cannot be told to stop reasoning: x-ai/grok-4.7 reports reasoning.mandatory=true
-            // and supported_efforts xhigh/high/medium/low (OpenRouter /api/v1/models, read
-            // 2026-10-13), so the "none" sentinel -- reasoning:{enabled:false} -- is REJECTED on every
-            // fast-tier call, which is high-frequency. It asks for the lowest effort it has instead:
-            // still cheap on a mechanical answer, and legal. Every other row can be disabled outright.
-            t.put("grok", new ModelCfg(32000, 300000, null, null, 8192, 120000, "low"));
+            // A model that cannot be told to stop reasoning (grok-4.7, Sonnet 5.5, the Gemini models, ...)
+            // takes this row too: send() replaces its "none" with MANDATORY_REASONING_FLOOR's lowest effort,
+            // on the fast tier and the truncation retry alike. Keep it per model id, never per family: a
+            // grok-wide row would send "low" to grok-build-0.1 (no efforts) and to grok-4.3 (can turn it off).
             try { applyEnvOverride(t); }
             catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
             return t;
@@ -10751,7 +10755,8 @@ public final class LlmSpikeGui {
             try {
                 int maxTokens = fastTier ? cfg.fastMaxTokens : cfg.maxTokens;
                 // reasoning_effort/temperature are smart-tier-only hints — the fast tier's contract is
-                // "terse, no extended reasoning" (see framing()), so never ask a model to reason harder there.
+                // "terse, no extended reasoning" (see framing()), so never ask a model to reason harder there
+                // (a model that cannot stop reasoning is held at its lowest effort, MANDATORY_REASONING_FLOOR).
                 String reasoningEffort = fastTier ? cfg.fastReasoningEffort : cfg.reasoningEffort;
                 Double temperature = cfg.temperature;
 
@@ -10784,14 +10789,17 @@ public final class LlmSpikeGui {
                             && (reasoningEffort != null || cfg.fastReasoningEffort != null);
                     int retryTokens = Math.min(maxTokens * 2, 64000);
                     String retryEffort = reasoningEffort;
+                    // A model that refuses reasoning-off is sent its lowest effort instead (send()), and still
+                    // reasons there, so its retry keeps the whole budget rather than the 4096 an answer needs.
+                    boolean floored = !"none".equals(reasoningFloor(model));
                     if (reasoner) {
-                        retryTokens = Math.min(Math.max(maxTokens, 1024), 4096);
+                        retryTokens = floored ? maxTokens : Math.min(Math.max(maxTokens, 1024), 4096);
                         retryEffort = "none";
                     }
                     System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY"
-                            + (reasoner ? "-NO-REASONING" : "") + "] finish_reason=length @ max_tokens="
-                            + maxTokens + " -> retrying at " + retryTokens
-                            + (reasoner ? " with reasoning disabled" : ""));
+                            + (reasoner ? (floored ? "-LOW-REASONING" : "-NO-REASONING") : "")
+                            + "] finish_reason=length @ max_tokens=" + maxTokens + " -> retrying at " + retryTokens
+                            + (reasoner ? (floored ? " with its lowest reasoning effort" : " with reasoning disabled") : ""));
                     OrResult retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
                     if (retry != null) bill(retry);
                     // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
@@ -10844,12 +10852,22 @@ public final class LlmSpikeGui {
             // Route by latency, not price (OpenRouter's default weighs price): the same model on every
             // endpoint, but Luna calls stalled for 5 minutes with ordinary-sized answers (runs/luna-v8/g3,
             // runs/luna-v9). OPENROUTER_PROVIDER_SORT=default sends no preference.
-            if (!PROVIDER_SORT.isEmpty()) body.append(",\"provider\":{\"sort\":\"").append(jsonEscape(PROVIDER_SORT)).append("\"}");
+            // A tool request also routes only to endpoints that honour every parameter sent: without it
+            // OpenRouter may pick one that ignores tool_choice "none" (the seat-tools-v5 defect, a call made
+            // on a round that offered none). An endpoint that refuses is the existing 404 downgrade path.
+            // ONE "provider" object: a body with the key twice is read last-wins by some parsers, which
+            // drops the latency sort on every tool request (provider audit, 2026-10-24).
+            List<String> provider = new ArrayList<>();
+            if (!PROVIDER_SORT.isEmpty()) provider.add("\"sort\":\"" + jsonEscape(PROVIDER_SORT) + "\"");
+            if (toolsJson != null) provider.add("\"require_parameters\":true");
+            if (!provider.isEmpty()) body.append(",\"provider\":{").append(String.join(",", provider)).append("}");
             // Every ask resends the same preamble, tools and chat history, and nothing marked it
             // cacheable, so Anthropic models billed all of it at the full input rate (a Haiku 5.5 game
             // averaged 10K prompt tokens a call). Top-level cache_control is automatic caching: the
             // breakpoint follows the end of the conversation. DeepSeek and OpenAI cache on their own.
             if (cachesPrompt(model)) body.append(",\"cache_control\":{\"type\":\"ephemeral\"}");
+            if ("none".equals(reasoningEffort))
+                reasoningEffort = reasoningFloor(model);   // "" sends no reasoning field
             if ("none".equals(reasoningEffort))
                 // Measured 2026-10-13: a mechanical answer costs ~848 completion tokens of which ~800 are
                 // hidden reasoning, and "low"/"minimal" do not reduce that -- only disabling does (65
@@ -10864,11 +10882,7 @@ public final class LlmSpikeGui {
                     // An answer ask (it offers `answer`) is forced where that keeps the model's reasoning
                     // (AnswerTool.toolChoiceFor): then a call is the only way to reply.
                     .append(",\"tool_choice\":\"").append(!allowCalls ? "none"
-                            : toolsJson.contains("\"name\":\"" + AnswerTool.NAME + "\"") ? AnswerTool.toolChoiceFor(model) : "auto").append("\"")
-                    // Route only to endpoints that honour every parameter sent: without it OpenRouter may
-                    // pick one that ignores tool_choice "none" (the seat-tools-v5 defect, a call made on a
-                    // round that offered none). An endpoint that refuses is the existing 404 downgrade path.
-                    .append(",\"provider\":{\"require_parameters\":true}");
+                            : toolsJson.contains("\"name\":\"" + AnswerTool.NAME + "\"") ? AnswerTool.toolChoiceFor(model) : "auto").append("\"");
             body.append("}");
 
             HttpRequest.Builder rb = HttpRequest.newBuilder()
@@ -10945,6 +10959,24 @@ public final class LlmSpikeGui {
         /** Anthropic models cache only a prefix marked with cache_control; others cache on their own. */
         static boolean cachesPrompt(String model) {
             return PROMPT_CACHE && model != null && model.startsWith("anthropic/");
+        }
+
+        /** Models whose reasoning cannot be turned off (reasoning.mandatory=true, OpenRouter /api/v1/models, read
+         *  2026-10-24), mapped to the lowest effort each lists; "" for one that lists none (send no field). A
+         *  reasoning:{enabled:false} is refused by these, so the truncation retry and the fast tier ask for this. */
+        static final Map<String, String> MANDATORY_REASONING_FLOOR = Map.ofEntries(
+                Map.entry("x-ai/grok-4.7", "low"), Map.entry("x-ai/grok-4.6", "low"),
+                Map.entry("x-ai/grok-build-0.1", ""),
+                Map.entry("anthropic/claude-sonnet-5.5", "low"), Map.entry("anthropic/claude-opus-5.5", "low"),
+                Map.entry("openai/gpt-6.1-sol-pro", "low"), Map.entry("openai/gpt-6.1-sol", "low"),
+                Map.entry("google/gemini-4-argon", "low"), Map.entry("google/gemini-3.8-flash", "low"),
+                Map.entry("meta/muse-wonder", "minimal"), Map.entry("meta/muse-spark-1.3", "minimal"),
+                Map.entry("z-ai/glm-5.3-prime", "low"), Map.entry("z-ai/glm-5.3", "low"));
+
+        /** What "none" becomes for {@code model}: "none" itself, or a mandatory reasoner's floor. */
+        static String reasoningFloor(String model) {
+            return model == null ? "none"
+                    : MANDATORY_REASONING_FLOOR.getOrDefault(model.toLowerCase(java.util.Locale.ROOT), "none");
         }
 
         private static final class OrResult {

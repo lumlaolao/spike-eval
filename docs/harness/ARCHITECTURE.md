@@ -443,10 +443,18 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - per-model settings (`ModelCfg`): token caps and timeouts;
   - readable reasoning, kept on the call row where the provider returns it;
   - routing by latency (`provider.sort`, `OPENROUTER_PROVIDER_SORT`, default `latency`), and the provider
-    that served each call on its row.
+    that served each call on its row. A tool request adds `require_parameters` to the same `provider` object (one
+    key: a body with it twice is read differently by different parsers, and a last-wins one drops the latency sort).
   - *Why latency routing:* Luna calls stalled for up to 6 minutes while answering in ordinary length (646
     output tokens in 352 s, against a median of 253 in 9 s). The time was the endpoint's, not the model's
     thinking. OpenRouter's default routing weighs price; the model is the same on every endpoint.
+  - a model whose reasoning cannot be turned off (`reasoning.mandatory` on OpenRouter's model list, 2026-10-24; the
+    list is `MANDATORY_REASONING_FLOOR` in `LlmSpikeGui.java`, hashed into `model_cfg_sha`) is never sent
+    `enabled:false`, which it refuses: wherever "none" would be sent (the fast tier, the truncation retry) it gets its
+    lowest effort, and its truncation retry keeps the whole token budget, since it still reasons.
+  - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
+    endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier;
+    long-context tiers, above 100K to 272K prompt tokens a call, are left out: a decision's prompt stays far below).
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
     bytes and then silence, for that long, inside the ask's deadline.
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full

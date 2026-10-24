@@ -106,6 +106,37 @@ class CostReportTest(unittest.TestCase):
         self.assertTrue(0 < p["prompt"] < p["completion"] < 0.001)
         self.assertRegex(p["checked"], r"^\d{4}-\d\d-\d\d$")
 
+    def test_a_budget_is_checked_at_the_dearest_endpoint_and_a_report_at_the_list_price(self):
+        # Latency routing may land on a priority tier: gpt-6.1-sol's "ultrafast" endpoint lists 6x its list price
+        # (OpenRouter /models/.../endpoints, 2026-10-24), so a budget priced at the list rate could be overrun 6x.
+        prices = {"m/x": {"prompt": 1e-06, "completion": 2e-06, "checked": "2026-10-24",
+                          "max": {"prompt": 6e-06, "completion": 1.2e-05}}}
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1-0.jsonl", [
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 1000, "completion_tokens": 100},
+                {"t": "game", "smart_a": "openrouter:m/x", "fast_a": "openrouter:m/x"}])
+            listed = cr.report_dir(d, prices)["usd"]
+            bound = cr.report_dir(d, cr.budget_prices(prices))["usd"]
+        self.assertAlmostEqual(listed, 1000 * 1e-06 + 100 * 2e-06)
+        self.assertAlmostEqual(bound, 1000 * 6e-06 + 100 * 1.2e-05)
+        self.assertEqual(cr.budget_prices({"m/y": {"prompt": 1.0, "completion": 2.0}})["m/y"]["prompt"], 1.0,
+                         "an entry with no max is its own bound")
+
+    def test_every_paid_price_states_its_bound_and_the_bound_covers_every_listed_rate(self):
+        # A budget is checked at `max`; a model with no `max` must say why (`max_note`: one endpoint), and a `max`
+        # that leaves out a rate the entry lists (cache writes) would check that rate at the list price. A rate the
+        # entry does not list falls back to the prompt rate, so `max` holds it only where an endpoint charges more.
+        for mid, p in cr.load_prices().items():
+            if mid.startswith("fake/"):
+                continue
+            self.assertTrue("max" in p or "max_note" in p, mid)
+            bound = p.get("max") or {}
+            for k in ("prompt", "completion", "input_cache_read", "input_cache_write"):
+                if k in p and bound:
+                    self.assertIn(k, bound, (mid, k))
+                if k in bound:
+                    self.assertGreaterEqual(bound[k], p.get(k, 0), (mid, k))
+
 
 if __name__ == "__main__":
     unittest.main()
