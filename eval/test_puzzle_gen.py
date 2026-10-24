@@ -738,6 +738,10 @@ class Gen3BoardsTest(unittest.TestCase):
     def test_equip_boards(self):
         check_gen3_family(self, "equip")
 
+    def test_a_family_with_no_gen3_writer_is_refused(self):
+        with self.assertRaises(ValueError):
+            pg.written_from_record({"family": "drain2", "search": {}})
+
 
 class LandfallSearchTest(unittest.TestCase):
     def test_lotus_cobra_before_the_land_drop(self):

@@ -3789,8 +3789,8 @@ def board_key(b):
 
 def iter_boards(family, count, seed, tries=20000):
     """`count` boards of a family, each yielded as it is drawn. A board that states its structure (`shape`:
-    drain2, elf2, hoofdrain, landfall, tokens; the cards reduced to their roles) is also one board with any other of that structure or of
-    the same life total, so a batch never repeats a life total."""
+    drain2, elf2, hoofdrain, landfall, tokens; the cards reduced to their roles) is also one board with any
+    other of that structure or of the same life total, so a batch never repeats a life total."""
     rng = random.Random(seed)
     seen, n = set(), 0
     for _ in range(tries):

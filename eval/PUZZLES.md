@@ -285,9 +285,9 @@ maximum, no mana unused, the best plain plan 1 to 3 short):
 | infect | 12 | the opponent's tenth poison counter (`p1counters=POISON=N`, `Goal:Win`, `winner p0`: acceptance has no poison condition) | Become Immense as soon as it can be paid; pump only in combat; proliferate only after combat; never proliferate; Inkmoth Nexus always attacks; the land first |
 
 Every board passed the gate (random 0 of 20; PASS, first, greedy and Forge's AI 0 of 4 each, against a gate bar of
-at most 1 of 4 for the AI); the rows are in `runs/puzzles/hard-gen3-gate` (six gate runs). Five tokens boards whose written line did not play were left out of
-the folder before freezing. `eval/test_puzzle_gen.py` re-derives every committed board from its `# search:` and
-`# trap:` lines, the written line included. Searches, line rules and limits:
+at most 1 of 4 for the AI); the rows are in `runs/puzzles/hard-gen3-gate` (six gate runs). Five tokens boards whose
+written line did not play were left out of the folder before freezing. `eval/test_puzzle_gen.py` re-derives every
+committed board from its `# search:` and `# trap:` lines, the written line included. Searches, line rules and limits:
 `docs/harness/history/2026-10-22-infect-equip.md`, `docs/harness/history/2026-10-22-landfall-tokens.md`.
 
 ```bash
