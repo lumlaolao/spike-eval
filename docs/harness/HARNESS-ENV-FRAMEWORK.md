@@ -487,7 +487,8 @@ All free: no model call, no egress. Each step says what makes it fail.
    as the ledger documents. Today they are counted (`ai_payment`) and not gated. Gating them would zero ours until
    the harness pays its own mana.
 4. **The forced-instance rule.** An instance with one legal answer earns nothing by passing and costs by failing.
-   Alternative: drop forced instances entirely (then ours' must-block defect would not count).
+   Alternative: drop forced instances entirely (then ours' must-block defect would not have counted before
+   harness-epoch-71).
 5. **A seat calling `ComputerUtil` helpers directly** escapes the counter, which patches only `PlayerControllerAi`.
    Patch `AiController` and `ComputerUtil*` too (wider, more false positives on legitimate state reads), or accept it.
 6. **Scarce templates.** Only 38 cards are sacrifice outlets the template can build, 4 of them in the dev pool; a

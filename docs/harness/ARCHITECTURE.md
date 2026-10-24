@@ -132,9 +132,11 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A block set is checked as a whole (`blocksError`), by the engine's `CombatUtil.validateBlocks`: requirements ("all
   creatures able to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before
   epoch 52 any block set the seat or an arm declared stood. `validateBlocks` never counts blockers against a global
-  cap (Silent Arbiter, Caverns of Despair), so `blocksError` checks the cap too; and at the cap it does not hold a
-  requirement against a creature that is not blocking, which cannot be obeyed without breaking the cap (CR 509.1c;
-  the engine's requirement test ignores the cap and refused every set under Silent Arbiter and Prized Unicorn). The
+  cap (Silent Arbiter, Caverns of Despair), so `blocksError` checks the cap too. Its requirement test also ignores
+  the cap (it refused every set under Silent Arbiter and Prized Unicorn), so at the cap an objection naming a creature
+  that is not blocking is dropped only when every blocker in the set blocks an attacker it has a requirement toward
+  (no swap obeys more requirements, CR 509.1c, as near as one requirement per blocker can tell) and the restriction
+  half of `validateBlocks` ("can't block alone", menace), which that objection hid, holds; otherwise it stands. The
   `answer` call is corrected in the same conversation; a text reply is asked once more with the engine's reason; an
   arm draws again (a legal first draw keeps its stream). When the seat's blocks are still illegal after that, or its
   answer is lost (two invalid calls, no call, no reply, an error), the fixed fallback is no blocks unless a
