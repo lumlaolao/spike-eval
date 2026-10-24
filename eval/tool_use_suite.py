@@ -108,8 +108,8 @@ ANSWER_FORMAT = {
     "smart": "FORMAT: at most two short sentences of reasoning, then call `answer` with your choice.",
     "fast": "FORMAT: call `answer` at once; no reasoning text — every extra token slows the game down.",
 }
-# The suite's own budgets, not the seat's ModelCfg (uniform 32000 / 8192): smart 4000 tokens at medium effort, fast
-# 1024 with reasoning off ("none").
+# The suite's own budgets, not the seat's ModelCfg: smart 4000 tokens at medium effort, fast 1024 with reasoning off
+# ("none").
 TIER_CFG = {"smart": {"max_tokens": 4000, "effort": "medium"},
             "fast": {"max_tokens": 1024, "effort": "none"}}
 # OpenRouterBridge.MANDATORY_REASONING_FLOOR (LlmSpikeGui.java; test_tool_use_suite pins the copy): a model whose
@@ -662,9 +662,10 @@ def openrouter_model(model_id, base_url, timeout=120):
                     # its lowest effort instead and still reasons there, so it keeps the whole budget.
                     retried = True
                     n = body["max_tokens"]
+                    floored = reasoning_floor(model_id) != "none"
                     body.pop("reasoning", None)
                     body.update(request_body(model_id, meta["tier"], "none",
-                                             n if reasoning_floor(model_id) != "none" else min(max(n, 1024), 4096)))
+                                             n if floored else min(max(n, 1024), 4096)))
                     data = json.dumps(body).encode()
                     last = "empty reply (finish_reason=%s)" % ch.get("finish_reason")
                     continue
