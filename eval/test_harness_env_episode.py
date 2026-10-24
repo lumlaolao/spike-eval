@@ -324,6 +324,12 @@ class JvmGraderTest(unittest.TestCase):
             ep.jvm_grader(self.cp, self.forge, "/jdk", set_file=self.set)
         self.assertIn(said, str(cm.exception))
         self.assertIn(self.forge, str(cm.exception))
+        # git that writes nothing to stderr still leaves a reason: the exit status, not an empty "(git: )".
+        silent = subprocess.CalledProcessError(128, ["git", "show"], output="", stderr="")
+        with mock.patch.object(ep.harness_env_aicount, "engine_source", side_effect=silent), \
+                self.assertRaises(ValueError) as cm:
+            ep.jvm_grader(self.cp, self.forge, "/jdk", set_file=self.set)
+        self.assertIn("exit status", str(cm.exception))
 
     def test_a_missing_or_malformed_set_file_exits_cleanly_before_the_agent_runs(self):
         bad = write(self.tmp, "bad.json", "{not json")
