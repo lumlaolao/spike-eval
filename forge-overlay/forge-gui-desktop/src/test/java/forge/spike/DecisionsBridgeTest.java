@@ -129,7 +129,8 @@ public class DecisionsBridgeTest {
         Assert.assertEquals(paths.get(0), "/api/alpha/decisions");
         JsonObject req = JsonParser.parseString(bodies.get(0)).getAsJsonObject();
         Assert.assertEquals(req.get("model").getAsString(), "typesafe/jev-1.14");
-        String state = req.get("state").getAsString();
+        Assert.assertTrue(req.get("state").isJsonObject(), "the docs send state as an object: " + req.get("state"));
+        String state = req.getAsJsonObject("state").get("game").getAsString();
         Assert.assertTrue(state.startsWith("PREAMBLE: you pilot the seat."), state);
         Assert.assertTrue(state.contains(USER), state);
         Assert.assertFalse(req.has("tools") || req.has("messages") || req.has("tool_choice"), bodies.get(0));
@@ -234,6 +235,16 @@ public class DecisionsBridgeTest {
         Assert.assertEquals(bodies.size(), 1, "a decision it cannot ask must not be sent");
     }
 
+    /** chooseWideKeywordCost asks for 0..Integer.MAX_VALUE (Squad, Multikicker, Replicate): the range's size overflowed
+     *  an int, went negative, passed the cap and listed values until the heap ran out. */
+    @Test(timeOut = 10000)
+    public void anUnboundedNumberIsRefusedWithoutListingIt() {
+        Assert.assertNotNull(DecisionsBridge.compose(AnswerTool.Spec.number(0, Integer.MAX_VALUE)).refusal);
+        Assert.assertNotNull(DecisionsBridge.compose(AnswerTool.Spec.number(Integer.MIN_VALUE, Integer.MAX_VALUE)).refusal);
+        Assert.assertNull(bridge().chat(messages(USER), "[]", true, AnswerTool.Spec.number(0, Integer.MAX_VALUE)));
+        Assert.assertTrue(bodies.isEmpty());
+    }
+
     /** Naming a card has no closed list of options: no answer, nothing sent, the harness's fixed option follows. */
     @Test
     public void namingACardGetsNoAnswerAndSendsNothing() {
@@ -264,6 +275,45 @@ public class DecisionsBridgeTest {
         Assert.assertEquals(qs.keySet(), new java.util.LinkedHashSet<>(List.of("blocker1", "blocker2")));
         Assert.assertEquals(qs.getAsJsonObject("blocker1").getAsJsonObject("criteria").keySet(),
                 new java.util.LinkedHashSet<>(List.of("0", "1", "2")));
+    }
+
+    /** Modes that may repeat: one choice per mode of how many times to pick it, so a repeat and a total above the
+     *  number of modes are both answers it can give; the total is held within the decision's bounds. */
+    @Test
+    public void repeatableModesAreAskedAsACountPerMode() {
+        AnswerTool.Spec spec = AnswerTool.Spec.repeat(2, 3, 3).labels(List.of("Deal 1 damage", "Gain 2 life"));
+        reply = q -> {
+            JsonObject qs = q.getAsJsonObject("questions");
+            Assert.assertEquals(qs.keySet(), new java.util.LinkedHashSet<>(List.of("count1", "count2")), qs.toString());
+            Assert.assertEquals(qs.getAsJsonObject("count1").getAsJsonObject("criteria").keySet(),
+                    new java.util.LinkedHashSet<>(List.of("0", "1", "2", "3")));
+            return "{\"answers\":{\"count1\":{\"type\":\"choice\",\"choice\":\"2\",\"probabilities\":{\"2\":0.7}},"
+                    + "\"count2\":{\"type\":\"choice\",\"choice\":\"1\",\"probabilities\":{\"1\":0.6}}}}";
+        };
+        NativeTools.Call c = onlyAnswer(bridge().chat(messages(USER), "[]", true, spec));
+        Assert.assertEquals(AnswerTool.validate(spec, c.arguments).answer.options, List.of(1, 1, 2));
+        // Too many: the surer counts are kept. Too few: the likeliest mode is repeated up to the minimum.
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3), List.of(1, 1, 1));
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3), List.of(2, 2, 2));
+    }
+
+    /** A blocker that may block several attackers gets a yes/no per attacker, so it can block two. */
+    @Test
+    public void aBlockerThatCanBlockSeveralIsAskedPerAttacker() {
+        AnswerTool.Spec spec = AnswerTool.Spec.blocks(List.of("Hundred-Handed One", "Bear"), List.of("Goblin", "Ogre"),
+                List.of(2, 1));
+        reply = q -> {
+            JsonObject qs = q.getAsJsonObject("questions");
+            Assert.assertEquals(qs.keySet(), new java.util.LinkedHashSet<>(List.of("block1_1", "block1_2", "blocker2")),
+                    qs.toString());
+            return "{\"answers\":{\"block1_1\":{\"type\":\"noul\",\"noul\":0.8},\"block1_2\":{\"type\":\"noul\",\"noul\":0.7},"
+                    + "\"blocker2\":{\"type\":\"choice\",\"choice\":\"0\"}}}";
+        };
+        NativeTools.Call c = onlyAnswer(bridge().chat(messages(USER), "[]", true, spec));
+        List<int[]> blocks = AnswerTool.validate(spec, c.arguments).answer.blocks;
+        Assert.assertEquals(blocks.size(), 2, c.arguments);
+        Assert.assertEquals(blocks.get(0), new int[] {1, 1});
+        Assert.assertEquals(blocks.get(1), new int[] {1, 2});
     }
 
     /** Dividing an amount among a few targets is a choice over every split; a split that cannot be listed gets none. */
@@ -334,14 +384,16 @@ public class DecisionsBridgeTest {
         }
         // A loopback endpoint needs no consent and no key.
         new DecisionsBridge("Seat/smart", "typesafe/jev-1.14", "p", base, 5000, null, null);
-        // The factory routes jev: through the same gate (only checkable when this shell has not consented).
-        if ("1".equals(System.getenv("OPENROUTER_ALLOW_EGRESS"))
-                || LlmSpikeGui.LLMBridgeFactory.isLoopbackEndpoint(System.getenv("OPENROUTER_BASE_URL"))) return;
-        try {
-            LlmSpikeGui.LLMBridgeFactory.create("Seat/smart", DecisionsBridge.PREFIX + "typesafe/jev-1.14", "p");
-            Assert.fail("the factory built a jev: seat without consent");
-        } catch (IllegalStateException e) {
-            Assert.assertTrue(e.getMessage().contains("OPENROUTER_ALLOW_EGRESS"), e.getMessage());
+        // The factory's path checks consent first, whatever else the seat is refused for (acceptance runs the tests with
+        // MEMORY_TOOLS=1, which a jev: seat refuses: that refusal must not hide a missing consent).
+        for (boolean memoryTools : new boolean[] {false, true}) {
+            try {
+                LlmSpikeGui.LLMBridgeFactory.decisions("Seat/smart", DecisionsBridge.PREFIX + "typesafe/jev-1.14", "p",
+                        "https://openrouter.ai/api/v1", "sk-or-x", null, memoryTools, false, true);
+                Assert.fail("the factory built a jev: seat without consent");
+            } catch (IllegalStateException e) {
+                Assert.assertTrue(e.getMessage().contains("OPENROUTER_ALLOW_EGRESS"), e.getMessage());
+            }
         }
     }
 
@@ -349,14 +401,28 @@ public class DecisionsBridgeTest {
     @Test
     public void theFactoryRoutesAJevSpecToTheDecisionsBridge() {
         LLMBridge b = LlmSpikeGui.LLMBridgeFactory.decisions("Seat/smart", DecisionsBridge.PREFIX + "typesafe/jev-1.14", "p",
-                base, false, false);
+                base, null, null, false, false, true);
         Assert.assertTrue(b instanceof DecisionsBridge, String.valueOf(b));
         Assert.assertEquals(b.getModel(), "typesafe/jev-1.14");
         try {
-            LlmSpikeGui.LLMBridgeFactory.decisions("Seat/smart", DecisionsBridge.PREFIX + "typesafe/jev-1.14", "p", base, true, false);
+            LlmSpikeGui.LLMBridgeFactory.decisions("Seat/smart", DecisionsBridge.PREFIX + "typesafe/jev-1.14", "p", base,
+                    null, null, true, false, true);
             Assert.fail("a jev: seat was built with MEMORY_TOOLS on");
         } catch (IllegalStateException e) {
             Assert.assertTrue(e.getMessage().contains("MEMORY_TOOLS"), e.getMessage());
+        }
+    }
+
+    /** Without the answer tool (ANSWER_TOOL=0 or NATIVE_TOOLS=0) a jev: seat is never offered `answer`, so every
+     *  decision would be a text ask it cannot take: lost, silently. It is refused when built. */
+    @Test
+    public void aJevSeatWithoutTheAnswerToolIsRefused() {
+        try {
+            LlmSpikeGui.LLMBridgeFactory.decisions("Seat/smart", DecisionsBridge.PREFIX + "typesafe/jev-1.14", "p", base,
+                    null, null, false, false, false);
+            Assert.fail("a jev: seat was built with the answer tool off");
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().contains("ANSWER_TOOL") && e.getMessage().contains("NATIVE_TOOLS"), e.getMessage());
         }
     }
 
@@ -384,8 +450,34 @@ public class DecisionsBridgeTest {
         Assert.assertEquals(b.getCostUsd(), 2 * 0.000019992, 1e-12);
         Assert.assertEquals(b.getLastProvider(), "TypeSafe");
         Assert.assertEquals(b.getCalls(), 2);
-        // The price file's rate reproduces the provider's own figure: 476 input tokens at $0.042/M.
-        Assert.assertEquals(476 * 0.000000042, 0.000019992, 1e-12);
+        Assert.assertEquals(b.getLastCostUsd(), 0.000019992, 1e-12);
+        // The context_call row carries the provider's own figure for the call.
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.costField(b), ",\"cost_usd\":0.000019992");
+    }
+
+    /** A call that fails after one that answered leaves no usage of its own: its row must not repeat the last bill. */
+    @Test
+    public void aFailedCallReportsNoUsageOfItsOwn() {
+        reply = q -> choice("decision", "1");
+        DecisionsBridge b = bridge();
+        AnswerTool.Spec spec = AnswerTool.Spec.one(2).labels(List.of("a", "b"));
+        b.chat(messages(USER), "[]", true, spec);
+        status = 503;
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertEquals(b.getLastPromptTokens(), -1);
+        Assert.assertEquals(b.getLastCompletionTokens(), -1);
+        Assert.assertEquals(b.getLastCostUsd(), -1.0);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.costField(b), "");
+        Assert.assertEquals(b.getBilledPromptTokens(), 476L);
+    }
+
+    /** The [JEV] line says how large the state was, so a prompt's size can be read from the log. */
+    @Test
+    public void theLogLineGivesTheStateSize() {
+        reply = q -> choice("decision", "1");
+        String log = LineFindingProbeTest.logOf(() -> bridge().chat(messages(USER), "[]", true,
+                AnswerTool.Spec.one(2).labels(List.of("a", "b"))));
+        Assert.assertTrue(log.matches("(?s).*\\[JEV Seat/smart\\].*state_bytes=\\d+.*"), log);
     }
 
     // ------------------------------------------------------------------ the seat's conditions

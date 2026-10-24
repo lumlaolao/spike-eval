@@ -115,6 +115,9 @@ interface LLMBridge {
     default NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls, AnswerTool.Spec spec) {
         return chat(messagesJson, toolsJson, allowCalls);
     }
+    /** The provider's own cost of the most recent call in USD (the Decisions API reports `usage.cost`), or -1 when it
+     *  reports none. Written on the context_call row as `cost_usd`. */
+    default double getLastCostUsd() { return -1; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -7882,7 +7885,11 @@ public final class LlmSpikeGui {
             return r == null ? "" : ",\"reasoning\":\"" + jsonEscape(r) + "\"";
         }
 
-        private ContextMemory.NativeModel nativeModel(LLMBridge b) { return nativeModel(b, null); }
+        /** The additive `cost_usd` field of a context_call row: the provider's own cost of the call, when it reports one. */
+        static String costField(LLMBridge b) {
+            double c = b.getLastCostUsd();
+            return c < 0 ? "" : ",\"cost_usd\":" + java.math.BigDecimal.valueOf(c).toPlainString();
+        }
 
         /** {@code spec}: the answer ask's typed legal values, handed to the bridge beside the messages (a decision
          *  model answers from them, DecisionsBridge); null on a lookup-only ask. */
@@ -7893,7 +7900,7 @@ public final class LlmSpikeGui {
                 long start = System.currentTimeMillis();
                 NativeTools.Turn[] got = new NativeTools.Turn[1];
                 String text = askModel(b, user, () -> {
-                    got[0] = spec == null ? b.chat(messages, tools, allowCalls) : b.chat(messages, tools, allowCalls, spec);
+                    got[0] = b.chat(messages, tools, allowCalls, spec);
                     return got[0] == null ? null : got[0].text();
                 });
                 EvalLog.write("{\"t\":\"context_call\",\"version\":\"" + ContextMemory.VERSION
@@ -7902,7 +7909,7 @@ public final class LlmSpikeGui {
                         + ",\"call\":" + (++contextCallSeq) + ",\"round\":" + round
                         + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
                         + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
-                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens)
+                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens) + costField(b)
                         + (lastProvider == null ? "" : ",\"provider\":\"" + jsonEscape(lastProvider) + "\"")
                         + ",\"prompt\":\"" + jsonEscape(user) + "\""
                         // Later rounds carry the tool exchanges; the first is just the prompt above.
@@ -7925,7 +7932,7 @@ public final class LlmSpikeGui {
                 // structured call instead of a line of text the reply must consist of.
                 // If the provider refuses tools mid-ask, this one decision gets no model answer (its
                 // caller takes the deterministic fallback); the seat's later decisions use the text loop.
-                return contextMemory.askNative(prompt, nativeModel(b), simulate, audit);
+                return contextMemory.askNative(prompt, nativeModel(b, null), simulate, audit);
             }
             return contextMemory.ask(prompt, request -> {
                 if (!(b == smart ? smartOk() : fastOk())) return null;
@@ -10613,12 +10620,13 @@ public final class LlmSpikeGui {
      *  entire game state. */
     static final class OpenRouterBridge implements ChatSessionBridge.MessagesBridge {
         private static final String API_KEY = System.getenv("OPENROUTER_API_KEY");
-        private static final String BASE_URL = System.getenv().getOrDefault("OPENROUTER_BASE_URL",
-                "https://openrouter.ai/api/v1");
+        /** The real endpoint, when OPENROUTER_BASE_URL is unset (DecisionsBridge derives its own from it). */
+        static final String DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
+        private static final String BASE_URL = System.getenv().getOrDefault("OPENROUTER_BASE_URL", DEFAULT_BASE_URL);
         // Explicit operator override: when set, pins EVERY model's timeout to this one value
         // (matches prior behavior exactly). Unset -> each bridge uses its own per-tier/per-model
         // default from ModelCfg instead of one flat number — Infra-1/Infra-2.
-        private static final Long TIMEOUT_MS_ENV = parseLongOrNull(System.getenv("OPENROUTER_TIMEOUT_MS"));
+        static final Long TIMEOUT_MS_ENV = parseLongOrNull(System.getenv("OPENROUTER_TIMEOUT_MS"));
         private static final String HTTP_REFERER = System.getenv("OPENROUTER_HTTP_REFERER");
         /** OpenRouter provider sort ("latency", "throughput", "price"); empty = OpenRouter's default routing. */
         static final String PROVIDER_SORT = providerSort(System.getenv("OPENROUTER_PROVIDER_SORT"));
@@ -10684,10 +10692,7 @@ public final class LlmSpikeGui {
             // free to repeat. Any non-loopback endpoint still requires the key.
             // Enforced here, not only at the factory, so no construction path can egress without
             // consent -- including the package-private test constructor above.
-            LLMBridgeFactory.requireEgressConsent(baseUrl, System.getenv("OPENROUTER_ALLOW_EGRESS"), label);
-            if ((API_KEY == null || API_KEY.isEmpty())
-                    && !LLMBridgeFactory.isLoopbackEndpoint(baseUrl))
-                throw new IllegalStateException("OPENROUTER_API_KEY env var is required for OpenRouter backend");
+            LLMBridgeFactory.requireOpenRouterAccess(baseUrl, System.getenv("OPENROUTER_ALLOW_EGRESS"), API_KEY, label);
             this.label = label;
             this.model = model;
             this.preamble = preamble;
@@ -11035,18 +11040,30 @@ public final class LlmSpikeGui {
             }
             // A decision model on OpenRouter's Decisions API (DecisionsBridge): the same egress gate and key rules.
             if (DecisionsBridge.isSpec(spec))
-                return decisions(label, spec, preamble, System.getenv("OPENROUTER_BASE_URL"),
-                        PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.lookaheadEnabled());
+                return decisions(label, spec, preamble, System.getenv("OPENROUTER_BASE_URL"), System.getenv("OPENROUTER_API_KEY"),
+                        System.getenv("OPENROUTER_ALLOW_EGRESS"), PlayerControllerLLM.MEMORY_TOOLS,
+                        PlayerControllerLLM.lookaheadEnabled(), AnswerTool.enabled() && NativeTools.enabled());
             // Legacy/default: bare model name -> Claude CLI bridge.
             return new ClaudeBridge(label, spec, preamble);
         }
 
         /** A `jev:` seat. It cannot call a lookup, so a seat run with them on is refused here rather than recorded
          *  as a condition it never had. Package-private so a test can pass the endpoint and the flags. */
-        static LLMBridge decisions(String label, String spec, String preamble, String baseUrl,
-                                   boolean memoryTools, boolean lookahead) {
-            DecisionsBridge.refuseLookups(memoryTools, lookahead, label);
-            return new DecisionsBridge(label, spec.substring(DecisionsBridge.PREFIX.length()), preamble, baseUrl);
+        static LLMBridge decisions(String label, String spec, String preamble, String baseUrl, String apiKey, String consent,
+                                   boolean memoryTools, boolean lookahead, boolean answerTool) {
+            // Consent first: a refusal for the seat's flags must never hide a missing consent (pr-review of #305).
+            DecisionsBridge b = new DecisionsBridge(label, spec.substring(DecisionsBridge.PREFIX.length()), preamble, baseUrl,
+                    apiKey, consent);
+            DecisionsBridge.refuseConditions(memoryTools, lookahead, answerTool, label);
+            return b;
+        }
+
+        /** The egress consent ({@link #requireEgressConsent}) and, for a real endpoint, a key: what any bridge to
+         *  OpenRouter needs before it is built. */
+        static void requireOpenRouterAccess(String baseUrl, String consent, String apiKey, String label) {
+            requireEgressConsent(baseUrl, consent, label);
+            if ((apiKey == null || apiKey.isEmpty()) && !isLoopbackEndpoint(baseUrl))
+                throw new IllegalStateException("OPENROUTER_API_KEY env var is required for an OpenRouter backend (" + label + ")");
         }
 
         /**
@@ -11270,8 +11287,9 @@ public final class LlmSpikeGui {
         boolean anyOpenRouter = smartASpec.startsWith("openrouter:") || smartBSpec.startsWith("openrouter:")
                 || fastASpec.startsWith("openrouter:") || fastBSpec.startsWith("openrouter:");
         // A jev: seat (DecisionsBridge) talks to the same base, at its Decisions endpoint; it sends no provider sort.
-        boolean anyDecisions = DecisionsBridge.isSpec(smartASpec) || DecisionsBridge.isSpec(smartBSpec)
-                || DecisionsBridge.isSpec(fastASpec) || DecisionsBridge.isSpec(fastBSpec);
+        boolean jevA = DecisionsBridge.isSpec(smartASpec) || DecisionsBridge.isSpec(fastASpec);
+        boolean jevB = DecisionsBridge.isSpec(smartBSpec) || DecisionsBridge.isSpec(fastBSpec);
+        boolean anyDecisions = jevA || jevB;
         // Gate the accessor so a zero-model floor/random run doesn't class-init the OpenRouter bridge
         // just to report an endpoint it never contacted.
         String baseUrl = anyOpenRouter || anyDecisions ? OpenRouterBridge.baseUrl() : "n/a";
@@ -11336,9 +11354,10 @@ public final class LlmSpikeGui {
                 + ",\"one_chat_version\":\"" + ChatSessionBridge.VERSION + "\""
                 + ",\"turn_chat\":" + (ChatSessionBridge.TURN && !ChatSessionBridge.ON)
                 + ",\"turn_chat_version\":\"" + ChatSessionBridge.TURN_VERSION + "\""
-                // The questions a jev: seat is asked, by DecisionsBridge. Only on a game with one, so the lines of
-                // every other seat keep their keys and pool with the runs before it.
-                + (anyDecisions ? ",\"decisions_bridge_version\":\"" + DecisionsBridge.VERSION + "\"" : "")
+                // The questions a jev: seat is asked, by DecisionsBridge: per identity, and only for a jev: one, so
+                // its opponent's condition and every other seat's line are unchanged.
+                + (jevA ? ",\"decisions_bridge_version_a\":\"" + DecisionsBridge.VERSION + "\"" : "")
+                + (jevB ? ",\"decisions_bridge_version_b\":\"" + DecisionsBridge.VERSION + "\"" : "")
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""

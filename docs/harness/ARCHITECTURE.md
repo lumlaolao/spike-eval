@@ -475,21 +475,25 @@ an exception to "every decision is answered by a tool call" (`CLAUDE.md`) for it
 the harness's own `answer` call**, so `AnswerTool` validates it, the decision row records it (`answer_via: "tool"`),
 and the correction round and the fixed legal option apply exactly as for any model.
 
-- **One request per ask.** `state` is the seat's system preamble followed by the ask's messages as the harness
-  renders them (the observation and the DECISION, and on a correction round the reason the last answer was
-  refused). The questions are built from the decision's typed legal values (`AnswerTool.Spec`, handed to the bridge
+- **One request per ask.** `state` is an object, `{"game": <text>}` (the Decisions API docs send an object or an
+  array), whose text is the seat's system preamble followed by the ask's messages as the harness renders them (the
+  observation and the DECISION, and on a correction round the reason the last answer was refused). The `[JEV]` log
+  line gives its size (`state_bytes`). The questions are built from the decision's typed legal values (`AnswerTool.Spec`, handed to the bridge
   by `LLMBridge.chat(..., spec)`), never parsed out of the prompt text; option keys are the option numbers the
   prompt shows.
-- **Endpoint, egress, key:** `OPENROUTER_BASE_URL` with its `/v1` replaced by `/alpha/decisions`. The bridge is
-  built through `LLMBridgeFactory.requireEgressConsent`, so a `jev:` seat sends nothing without
-  `OPENROUTER_ALLOW_EGRESS=1` unless the endpoint is loopback, and `OpenRouterBridge.authorizationHeader` never sends
-  the key to loopback. `puzzle_solve.py` refuses a `jev:` model without the opt-in as it does an `openrouter:` one.
+- **Endpoint, egress, key:** `OPENROUTER_BASE_URL` with its `/v1` replaced by `/alpha/decisions`. Both bridges are
+  built through `LLMBridgeFactory.requireOpenRouterAccess` (egress consent, then a key for a real endpoint), checked
+  before any other refusal, so a `jev:` seat sends nothing without `OPENROUTER_ALLOW_EGRESS=1` unless the endpoint is
+  loopback, and `OpenRouterBridge.authorizationHeader` never sends the key to loopback. `puzzle_solve.py` refuses a `jev:` model without the opt-in as it does an `openrouter:` one.
 - **Bill:** `usage.input_tokens` and `usage.output_tokens` become the call's `prompt_tokens` and `completion_tokens`
   (priced by `eval/cost_report.py`: `typesafe/jev-1.14` is $0.042 per million input tokens, output free), and the
-  provider's `usage.cost` is summed beside them (`[JEV]` log line). `model_id` resolves the `jev:` prefix.
-- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped on the game line of a game with a `jev:`
-  seat (keyed in `aggregate.PROVENANCE_FIELDS`) and on a `jev:` solver's puzzle row. Any other game line carries no
-  such key (acceptance checks it), so it pools with the runs before it. No existing seat's prompt or answer path
+  provider's `usage.cost` is the `context_call` row's `cost_usd` (an additive key, written only by a bridge that
+  reports a cost). A call that fails reports no usage of its own. `model_id` resolves the `jev:` prefix.
+- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped per identity on the game line,
+  `decisions_bridge_version_a` / `_b`, only for a `jev:` seat (keyed in `aggregate.PROVENANCE_FIELDS` with default
+  "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on a `jev:`
+  solver's puzzle row, where `puzzle_score.py` refuses to pool two versions. Acceptance pins the literal from a
+  loopback answer in the javatests log, and checks that a game with no `jev:` seat carries no such key. No existing seat's prompt or answer path
   changed, so no other stamp and not `HARNESS_EPOCH` moved.
 
 How each decision kind (`AnswerTool.Kind`) is asked:
@@ -499,14 +503,15 @@ How each decision kind (`AnswerTool.Kind`) is asked:
 | `ONE` | play menu, target, optional trigger, mode | one `choice`, criteria `"1".."n"` = the option labels | `option` = the chosen key |
 | `MANY`, at most one pick | splice, sacrifice one, scry 1, attack with one creature, a cost of one | one `choice` over the options, plus `"0"` = none when none is legal | `options` = `[k]`, or `[]` for `"0"` |
 | `MANY`, more than one pick | tap three creatures, trigger order, attackers, discard two | one `noul` per option ("should option i be one of the picks?") | every option at p >= 0.5, likeliest first, clamped to the decision's min and max; a CANCEL option is taken alone only when it is at p >= 0.5 and the likeliest, else never (`DecisionsBridge.topPicks`). An ordering decision reads the picks in that order |
-| `MANY_REPEAT` | modes that may repeat | as `MANY` | distinct picks only: Jev never repeats a mode |
+| `MANY_REPEAT` | modes that may repeat | one `choice` per mode: how many times, `"0".."max"` (up to 39) | the modes, each its count of times; above the maximum the surest counts are kept, below the minimum the surest picked mode is repeated (`DecisionsBridge.repeatPicks`) |
 | `KEEP` | mulligan | one `noul` ("keep this hand?") | `keep` = p >= 0.5 |
 | `NUMBER` | X, a number of counters, a wide keyword cost | one `choice` over every value, when the range has at most 40 | `number` = the chosen key; a wider range is not asked |
-| `BLOCKS` | declare blockers | one `choice` per blocker: `"0"` = no block, `"j"` = attacker j | the pairs; one attacker per blocker (a blocker that can block several blocks one) |
+| `BLOCKS` | declare blockers | one `choice` per blocker: `"0"` = no block, `"j"` = attacker j; a blocker that may block several attackers gets one `noul` per attacker instead | the pairs; a multi-blocker blocks every attacker at p >= 0.5, up to its limit |
 | `ALLOC` | divide damage | one `choice` over every split, when there are at most 40 | `amounts` = that split; more splits are not asked |
 | `CARD` | name a card | none: there is no closed list of options | not asked |
 
-A decision that is not asked (a card name, a range or division over 40 values, an option list without labels), a
+A decision that is not asked (a card name, a range or division over 40 values, a mode count over 39, an option list
+without labels; each listed in `docs/harness/MODEL-LIMITS.md`), a
 non-200, a timeout, and an answer that is malformed or names a key the criteria do not have, all give **no answer**:
 the bridge logs `[JEV-NO-ANSWER]` with the reason, the seat's bridge retry runs, and then the caller takes its fixed
 legal option, never Forge's AI. A plain text ask (a decision site that offered no `answer`) is not asked either.
@@ -523,6 +528,9 @@ What Jev cannot do, by construction:
 - **No lookups.** It cannot call `inspect`, the memory tools, `rules_lookup` or `simulate`, so a `jev:` seat with
   `MEMORY_TOOLS=1` or `LOOKAHEAD=1` is refused when it is built, and `run_batch.py` (`--memory-tools`, `--lookahead`)
   and `puzzle_solve.py` (`--memory-tools`) refuse those flags for it before anything runs.
+- **No text answer.** Without the answer tool (`ANSWER_TOOL=0` or `NATIVE_TOOLS=0`) every decision would be a text
+  ask it cannot take and would be lost, so such a seat is refused when built, and `run_batch.py` refuses
+  `--text-answers` and `--text-tools` for it.
 - **No plan, no notes, no yield, no `lines` or `profile`:** the play answer's optional fields are never given, and
   `set_plan` is never called; every decision is made on the state then.
 - **No reasoning text:** the row's `raw_reply` is the answer rendered for the record, with no reason before it.

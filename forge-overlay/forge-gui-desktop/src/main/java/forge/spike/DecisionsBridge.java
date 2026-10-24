@@ -7,6 +7,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
@@ -27,7 +28,8 @@ import com.google.gson.JsonPrimitive;
  * <p>Each ask is one request: the state is the seat's system preamble and the ask's messages as the harness renders
  * them; the questions come from the decision's typed legal values ({@link AnswerTool.Spec}), never from the prompt
  * text. A decision with no closed option list (a card name, a wide number range, a large division) is not sent: the
- * bridge gives no answer, says so in the log, and the seat takes its fixed legal option (never Forge's AI).
+ * bridge gives no answer, says so in the log, and the seat takes its fixed legal option (never Forge's AI). Every such
+ * bound is listed in docs/harness/MODEL-LIMITS.md.
  *
  * <p>What it cannot do: look anything up (the seat runs without MEMORY_TOOLS and LOOKAHEAD, refused at construction),
  * state a plan, yield, or write a reason. Egress, key and loopback rules are OpenRouterBridge's.
@@ -35,11 +37,15 @@ import com.google.gson.JsonPrimitive;
 final class DecisionsBridge implements LLMBridge {
     static final String PREFIX = "jev:";
     /** v1 (2026-10-24): one request per ask; choice / noul composition per decision kind. Stamped on the game line of a
-     *  game with a jev: seat and on a jev: solver's puzzle row (eval/versions.py); pinned in DecisionsBridgeTest. */
+     *  game with a jev: seat and on a jev: solver's puzzle row (eval/versions.py); pinned in DecisionsBridgeTest and in
+     *  eval/harness_acceptance.sh. */
     static final String VERSION = "decisions-bridge-v1";
-    /** The most values a number or a division is listed as. A wider one is not asked (no answer, logged). */
+    /** The most values a number, a division or a mode's count is listed as. A wider one is not asked (no answer,
+     *  logged). docs/harness/MODEL-LIMITS.md. */
     static final int MAX_LISTED = 40;
-    private static final long TIMEOUT_MS = parseLong(System.getenv("OPENROUTER_TIMEOUT_MS"), 120000L);
+    /** The call deadline: OPENROUTER_TIMEOUT_MS when an operator pins one, else two minutes. */
+    private static final long TIMEOUT_MS = LlmSpikeGui.OpenRouterBridge.TIMEOUT_MS_ENV != null
+            ? LlmSpikeGui.OpenRouterBridge.TIMEOUT_MS_ENV : 120000L;
 
     private final String label, model, preamble, endpoint, apiKey;
     private final long timeoutMs;
@@ -47,21 +53,18 @@ final class DecisionsBridge implements LLMBridge {
     private long totalMs = 0;
     private int calls = 0;
     private volatile int lastPromptTokens = -1, lastCompletionTokens = -1;
+    private volatile double lastCostUsd = -1;
     private volatile long billedPromptTokens = 0, billedCompletionTokens = 0;
     private volatile double costUsd = 0;
     private volatile String lastProvider;
 
-    /** Production: OPENROUTER_API_KEY and OPENROUTER_ALLOW_EGRESS from the environment. */
-    DecisionsBridge(String label, String model, String preamble, String baseUrl) {
-        this(label, model, preamble, baseUrl, TIMEOUT_MS, System.getenv("OPENROUTER_API_KEY"),
-                System.getenv("OPENROUTER_ALLOW_EGRESS"));
+    DecisionsBridge(String label, String model, String preamble, String baseUrl, String apiKey, String consent) {
+        this(label, model, preamble, baseUrl, TIMEOUT_MS, apiKey, consent);
     }
 
-    /** Test seam: every input passed in, so the egress refusal is reachable whatever the shell carries. */
+    /** Every input passed in, so the egress refusal is reachable whatever the shell carries. */
     DecisionsBridge(String label, String model, String preamble, String baseUrl, long timeoutMs, String apiKey, String consent) {
-        LlmSpikeGui.LLMBridgeFactory.requireEgressConsent(baseUrl, consent, label);
-        if ((apiKey == null || apiKey.isEmpty()) && !LlmSpikeGui.LLMBridgeFactory.isLoopbackEndpoint(baseUrl))
-            throw new IllegalStateException("OPENROUTER_API_KEY env var is required for the Decisions backend (" + label + ")");
+        LlmSpikeGui.LLMBridgeFactory.requireOpenRouterAccess(baseUrl, consent, apiKey, label);
         this.label = label;
         this.model = model;
         this.preamble = preamble;
@@ -76,7 +79,7 @@ final class DecisionsBridge implements LLMBridge {
     /** The Decisions endpoint beside the chat one: `<base without /v1>/alpha/decisions` (OpenRouter serves chat at
      *  /api/v1 and decisions at /api/alpha/decisions). Unset is the real openrouter.ai, as for OpenRouterBridge. */
     static String endpoint(String baseUrl) {
-        String b = baseUrl == null || baseUrl.trim().isEmpty() ? "https://openrouter.ai/api/v1" : baseUrl.trim();
+        String b = baseUrl == null || baseUrl.trim().isEmpty() ? LlmSpikeGui.OpenRouterBridge.DEFAULT_BASE_URL : baseUrl.trim();
         while (b.endsWith("/")) b = b.substring(0, b.length() - 1);
         if (b.endsWith("/v1")) b = b.substring(0, b.length() - 3);
         return b + "/alpha/decisions";
@@ -88,6 +91,14 @@ final class DecisionsBridge implements LLMBridge {
                 + "MEMORY_TOOLS=0 (no --memory-tools) (" + label + ")");
         if (lookahead) throw new IllegalStateException("a " + PREFIX + " seat cannot call simulate: run it with "
                 + "LOOKAHEAD=0 (no --lookahead) (" + label + ")");
+    }
+
+    /** {@link #refuseLookups}, and the answer tool: without it (ANSWER_TOOL=0 or NATIVE_TOOLS=0) every decision is a
+     *  text ask, which a decision model cannot take, so every decision would be lost. */
+    static void refuseConditions(boolean memoryTools, boolean lookahead, boolean answerTool, String label) {
+        refuseLookups(memoryTools, lookahead, label);
+        if (!answerTool) throw new IllegalStateException("a " + PREFIX + " seat answers only through the `answer` call: run "
+                + "it with ANSWER_TOOL and NATIVE_TOOLS on (no --text-answers, no --text-tools) (" + label + ")");
     }
 
     /** The seat offers `answer` only to a bridge that answers by call; this one's answer is always that call. */
@@ -109,10 +120,14 @@ final class DecisionsBridge implements LLMBridge {
         Composed q = compose(spec);
         if (q.refusal != null) { noAnswer(spec.kind + " (" + q.refusal + ")"); return null; }
         long t0 = System.currentTimeMillis();
+        // The docs send `state` as an object or an array (hub.md, tutorial.md); the game is one text field of it.
+        JsonObject state = new JsonObject();
+        state.addProperty("game", state(messagesJson));
         JsonObject body = new JsonObject();
         body.addProperty("model", model);
-        body.addProperty("state", state(messagesJson));
+        body.add("state", state);
         body.add("questions", q.questions);
+        int stateBytes = state.toString().getBytes(StandardCharsets.UTF_8).length;
         JsonObject resp = send(body.toString());
         totalMs += System.currentTimeMillis() - t0;
         if (resp == null) return null;
@@ -129,8 +144,9 @@ final class DecisionsBridge implements LLMBridge {
             return null;
         }
         calls++;
-        System.out.println("[JEV " + label + "] " + VERSION + " " + spec.kind + " -> answer " + args + " (input_tokens="
-                + lastPromptTokens + ", cost so far $" + String.format(java.util.Locale.ROOT, "%.6f", costUsd) + ")");
+        System.out.println("[JEV " + label + "] " + VERSION + " " + spec.kind + " -> answer " + args + " (state_bytes="
+                + stateBytes + ", input_tokens=" + lastPromptTokens + ", cost so far $"
+                + String.format(java.util.Locale.ROOT, "%.6f", costUsd) + ")");
         List<NativeTools.Call> one = new ArrayList<>();
         one.add(new NativeTools.Call("jev" + calls, AnswerTool.NAME, args.toString()));
         return NativeTools.Turn.ofCalls(one);
@@ -141,7 +157,7 @@ final class DecisionsBridge implements LLMBridge {
                 + "no answer; the seat takes its fixed legal option");
     }
 
-    /** The state: the system preamble, then each message's text in order (the decision, and on a correction round
+    /** The game text: the system preamble, then each message's text in order (the decision, and on a correction round
      *  the harness's reason the last answer was refused). */
     private String state(String messagesJson) {
         StringBuilder b = new StringBuilder(preamble == null ? "" : preamble);
@@ -180,8 +196,7 @@ final class DecisionsBridge implements LLMBridge {
                 c.read = a -> args("option", new JsonPrimitive(choiceOf(a, "decision", 1, s.n)));
                 return c;
             }
-            case MANY:
-            case MANY_REPEAT: {
+            case MANY: {
                 if (s.labels.size() != s.n) return Composed.refused("its options have no labels");
                 int max = Math.min(s.max, s.n);
                 if (max <= 1) {
@@ -208,9 +223,31 @@ final class DecisionsBridge implements LLMBridge {
                 c.read = a -> {
                     double[] p = new double[s.n];
                     for (int i = 1; i <= s.n; i++) p[i - 1] = noulOf(a, "option" + i);
-                    JsonArray picks = new JsonArray();
-                    for (int k : topPicks(p, s.min, max, s.cancel)) picks.add(k);
-                    return args("options", picks);
+                    return args("options", ints(topPicks(p, s.min, max, s.cancel)));
+                };
+                return c;
+            }
+            case MANY_REPEAT: {
+                // A mode may be picked more than once: one choice per mode of how many times.
+                if (s.labels.size() != s.n) return Composed.refused("its options have no labels");
+                if (s.max + 1L > MAX_LISTED) return Composed.refused("up to " + s.max + " picks of a mode is more than "
+                        + MAX_LISTED + " counts");
+                for (int i = 1; i <= s.n; i++) {
+                    JsonObject crit = new JsonObject();
+                    for (int k = 0; k <= s.max; k++)
+                        crit.addProperty(Integer.toString(k), k == 0 ? "Do not pick it." : "Pick it " + k + (k == 1 ? " time." : " times."));
+                    c.questions.add("count" + i, question("choice", SITUATION + " The player picks between " + s.min + " and "
+                            + s.max + " in all, and the same option may be picked more than once. How many times should "
+                            + "option " + i + " (" + s.labels.get(i - 1) + ") be picked?", crit));
+                }
+                c.read = a -> {
+                    int[] counts = new int[s.n];
+                    double[] sure = new double[s.n];
+                    for (int i = 1; i <= s.n; i++) {
+                        counts[i - 1] = choiceOf(a, "count" + i, 0, s.max);
+                        sure[i - 1] = probabilityOf(a, "count" + i, counts[i - 1]);
+                    }
+                    return args("options", ints(repeatPicks(counts, sure, s.min, s.max)));
                 };
                 return c;
             }
@@ -223,7 +260,8 @@ final class DecisionsBridge implements LLMBridge {
                 return c;
             }
             case NUMBER: {
-                if (s.max - s.min + 1 > MAX_LISTED)
+                // Long arithmetic: chooseWideKeywordCost asks for 0..Integer.MAX_VALUE, whose int size overflows.
+                if ((long) s.max - (long) s.min + 1L > MAX_LISTED)
                     return Composed.refused("a number from " + s.min + " through " + s.max + " has more than " + MAX_LISTED + " values");
                 JsonObject crit = new JsonObject();
                 for (int v = s.min; v <= s.max; v++) crit.addProperty(Integer.toString(v), "The number " + v + ".");
@@ -234,22 +272,45 @@ final class DecisionsBridge implements LLMBridge {
             }
             case BLOCKS: {
                 for (int b = 1; b <= s.n; b++) {
+                    String blocker = s.labels.get(b - 1);
+                    if (s.blockLimit(b) > 1) {
+                        // A blocker that may block several attackers: a yes/no for each, so it can block more than one.
+                        for (int at = 1; at <= s.m; at++) {
+                            JsonObject crit = new JsonObject();
+                            crit.addProperty("true", blocker + " blocks " + s.labels2.get(at - 1) + ".");
+                            crit.addProperty("false", blocker + " does not block " + s.labels2.get(at - 1) + ".");
+                            c.questions.add("block" + b + "_" + at, question("noul", GAME + "the player's declare-blockers "
+                                    + "decision. The player's " + blocker + " can block up to " + s.blockLimit(b) + " attackers. "
+                                    + "Should it block " + s.labels2.get(at - 1) + "? Every blocker is decided at once.", crit));
+                        }
+                        continue;
+                    }
                     JsonObject crit = new JsonObject();
-                    crit.addProperty("0", "Do not block with " + s.labels.get(b - 1) + ".");
+                    crit.addProperty("0", "Do not block with " + blocker + ".");
                     for (int at = 1; at <= s.m; at++) crit.addProperty(Integer.toString(at), "Block " + s.labels2.get(at - 1) + ".");
                     c.questions.add("blocker" + b, question("choice", GAME + "the player's declare-blockers decision. Which "
-                            + "attacker, if any, should the player's blocker " + s.labels.get(b - 1) + " block? Every blocker "
+                            + "attacker, if any, should the player's blocker " + blocker + " block? Every blocker "
                             + "is decided at once.", crit));
                 }
                 c.read = a -> {
                     JsonArray blocks = new JsonArray();
                     for (int b = 1; b <= s.n; b++) {
-                        int at = choiceOf(a, "blocker" + b, 0, s.m);
-                        if (at == 0) continue;
-                        JsonObject pair = new JsonObject();
-                        pair.addProperty("blocker", b);
-                        pair.addProperty("attacker", at);
-                        blocks.add(pair);
+                        List<Integer> ats = new ArrayList<>();
+                        if (s.blockLimit(b) > 1) {
+                            double[] p = new double[s.m];
+                            for (int at = 1; at <= s.m; at++) p[at - 1] = noulOf(a, "block" + b + "_" + at);
+                            ats = topPicks(p, 0, Math.min(s.blockLimit(b), s.m), -1);
+                            Collections.sort(ats);
+                        } else {
+                            int at = choiceOf(a, "blocker" + b, 0, s.m);
+                            if (at > 0) ats.add(at);
+                        }
+                        for (int at : ats) {
+                            JsonObject pair = new JsonObject();
+                            pair.addProperty("blocker", b);
+                            pair.addProperty("attacker", at);
+                            blocks.add(pair);
+                        }
                     }
                     return args("blocks", blocks);
                 };
@@ -322,6 +383,16 @@ final class DecisionsBridge implements LLMBridge {
         return k;
     }
 
+    /** The probability a choice answer gave its chosen key; its `confidence` when it lists none, else 1. */
+    private static double probabilityOf(JsonObject answers, String key, int chosen) {
+        JsonObject a = answers.getAsJsonObject(key);
+        JsonElement probs = a.get("probabilities");
+        if (probs != null && probs.isJsonObject() && probs.getAsJsonObject().has(Integer.toString(chosen)))
+            return probs.getAsJsonObject().get(Integer.toString(chosen)).getAsDouble();
+        JsonElement conf = a.get("confidence");
+        return conf != null && conf.isJsonPrimitive() ? conf.getAsDouble() : 1.0;
+    }
+
     /** A noul answer's probability of yes; throws (no answer) when it is missing or not a probability. */
     private static double noulOf(JsonObject answers, String key) {
         JsonObject a = answers.getAsJsonObject(key);
@@ -331,6 +402,12 @@ final class DecisionsBridge implements LLMBridge {
         double p = v.getAsDouble();
         if (!(p >= 0 && p <= 1)) throw new IllegalArgumentException("noul " + p + " is not a probability");
         return p;
+    }
+
+    private static JsonArray ints(List<Integer> xs) {
+        JsonArray a = new JsonArray();
+        for (int x : xs) a.add(x);
+        return a;
     }
 
     private static JsonObject args(String field, JsonElement v) {
@@ -356,10 +433,38 @@ final class DecisionsBridge implements LLMBridge {
         return new ArrayList<>(cands.subList(0, Math.min(k, cands.size())));
     }
 
+    /**
+     * The picks of a repeatable choice from each option's count ({@code counts[0]} is option 1) and the probability the
+     * model gave that count, in option order. Above {@code max}, the surest counts are kept first; below {@code min},
+     * the surest option picked at least once (else option 1) is picked again until the minimum.
+     */
+    static List<Integer> repeatPicks(int[] counts, double[] sure, int min, int max) {
+        List<Integer> order = new ArrayList<>();
+        for (int i = 1; i <= counts.length; i++) order.add(i);
+        order.sort(Comparator.comparingDouble((Integer i) -> -sure[i - 1]).thenComparingInt(i -> i));
+        int[] kept = new int[counts.length];
+        int total = 0;
+        for (int i : order) {
+            int take = Math.min(counts[i - 1], max - total);
+            kept[i - 1] = take;
+            total += take;
+        }
+        int pad = 1;
+        for (int i : order) if (counts[i - 1] > 0) { pad = i; break; }
+        while (total < min) { kept[pad - 1]++; total++; }
+        List<Integer> out = new ArrayList<>();
+        for (int i = 1; i <= kept.length; i++) for (int k = 0; k < kept[i - 1]; k++) out.add(i);
+        return out;
+    }
+
     // ------------------------------------------------------------------ the request
 
     /** One POST; the parsed body, or null (non-200, timeout, unparseable), logged. Usage is billed when present. */
     private JsonObject send(String body) {
+        // A call that fails has no usage of its own: its row must not repeat the last call's bill.
+        lastPromptTokens = -1;
+        lastCompletionTokens = -1;
+        lastCostUsd = -1;
         try {
             HttpRequest.Builder rb = HttpRequest.newBuilder().uri(URI.create(endpoint))
                     .header("Content-Type", "application/json");
@@ -388,28 +493,28 @@ final class DecisionsBridge implements LLMBridge {
     }
 
     /** usage.input_tokens / output_tokens are the seat's prompt / completion tokens (eval/cost_report.py prices them);
-     *  usage.cost, the provider's own figure, is summed beside them. A response is billed whether or not its answers
-     *  are usable. */
+     *  usage.cost, the provider's own figure, is the call's `cost_usd` and summed beside them. A response is billed
+     *  whether or not its answers are usable. */
     private void bill(JsonObject o) {
         if (o.has("provider") && o.get("provider").isJsonPrimitive()) lastProvider = o.get("provider").getAsString();
         if (o.has("model") && o.get("model").isJsonPrimitive()) LlmSpikeGui.servedModels.put(label, o.get("model").getAsString());
         JsonElement u = o.get("usage");
-        if (u == null || !u.isJsonObject()) { lastPromptTokens = -1; lastCompletionTokens = -1; return; }
+        if (u == null || !u.isJsonObject()) return;
         JsonObject us = u.getAsJsonObject();
         lastPromptTokens = us.has("input_tokens") ? us.get("input_tokens").getAsInt() : -1;
         lastCompletionTokens = us.has("output_tokens") ? us.get("output_tokens").getAsInt() : -1;
         billedPromptTokens += Math.max(0, lastPromptTokens);
         billedCompletionTokens += Math.max(0, lastCompletionTokens);
-        if (us.has("cost") && us.get("cost").isJsonPrimitive()) costUsd += us.get("cost").getAsDouble();
-    }
-
-    private static long parseLong(String v, long dflt) {
-        try { return v == null ? dflt : Long.parseLong(v.trim()); } catch (NumberFormatException e) { return dflt; }
+        if (us.has("cost") && us.get("cost").isJsonPrimitive()) {
+            lastCostUsd = us.get("cost").getAsDouble();
+            costUsd += lastCostUsd;
+        }
     }
 
     /** The provider's own reported cost of every request that came back, in USD. */
     double getCostUsd() { return costUsd; }
 
+    @Override public double getLastCostUsd() { return lastCostUsd; }
     @Override public String getLabel() { return label; }
     @Override public String getModel() { return model; }
     @Override public long getTotalMs() { return totalMs; }
