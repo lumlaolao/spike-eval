@@ -76,6 +76,26 @@ def test_parse_log_text():
     check("auto_legal count model-a", ev["auto_legal"]["model-a"] == 1)
 
 
+def test_a_block_set_that_stood_illegal_is_counted():
+    """Issue #311: a seat's fallback that found no legal block set under a requirement, and an arm's 64 illegal draws,
+    leave an illegal declaration standing; the log says so and the report counts it. A set the fallback took is not."""
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-1-1000.jsonl", [game_line(seed=1, swap=False),
+                                                  dec(seat="model-a", dtype="mulligan", n_options=2, choice=0)])
+        write_text(dpath / "game-1-0.log", "\n".join([
+            "[model-a] [ROUTER] mulligan: 2/7 lands -> asking x/model-a...",
+            "[model-a] [BLOCK-INVALID] no blocks is not legal (Bears must block): took the legal set Bears->Unicorn",
+            "[model-a] [BLOCK-INVALID] no blocks is not legal (Bears must block) and no legal set was found: none",
+            "[model-b] [BLOCK-INVALID] arm: no legal block set in 64 draws (Bears must block)",
+        ]))
+        c = da.build_report([dpath])["combined"]
+        check("illegal block sets that stood are counted", c.get("illegal_blocks_total") == 2, str(c.get("illegal_blocks_total")))
+        check("per seat", c.get("illegal_blocks_by_seat") == {"model-a": 1, "model-b": 1}, str(c.get("illegal_blocks_by_seat")))
+        text = da.render_text(da.build_report([dpath]))
+        check("and rendered", "illegal block sets that stood: 2" in text)
+
+
 def test_normalize_fallback_matches_analyze_corpus_convention():
     n = da.normalize_fallback
     check("norm strips ->payload", n("mulligan(no-model)->KEEP") == "mulligan(no-model)")
@@ -337,6 +357,7 @@ def main():
     test_malformed_lines_and_no_log_are_tolerated()
     test_shadow_choice_field_invisible_to_merge_gate()
     test_crashed_game_fails_the_invariants()
+    test_a_block_set_that_stood_illegal_is_counted()
     print()
     if FAILURES:
         print("FAILED: %s" % ", ".join(FAILURES))

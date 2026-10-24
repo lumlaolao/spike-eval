@@ -129,10 +129,26 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
   attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
   among the legal sets (epoch 59, rules pilot RP_185).
-- A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
-  to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
-  block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply
-  is asked once more with the engine's reason; an arm draws again (a legal first draw keeps its stream).
+- A block set is checked as a whole (`blocksError`), by the engine's `CombatUtil.validateBlocks`: requirements ("all
+  creatures able to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before
+  epoch 52 any block set the seat or an arm declared stood. `validateBlocks` never counts blockers against a global
+  cap (Silent Arbiter, Caverns of Despair), so `blocksError` checks the cap too. Its requirement test also ignores
+  the cap (it refused every set under Silent Arbiter and Prized Unicorn), so at the cap an objection naming a creature
+  that is not blocking is dropped only when every blocker in the set blocks an attacker it has a requirement toward
+  (no swap obeys more requirements, CR 509.1c, as near as one requirement per blocker can tell) and the restriction
+  half of `validateBlocks` ("can't block alone", menace), which that objection hid, holds; otherwise it stands. The
+  `answer` call is corrected in the same conversation; a text reply is asked once more with the engine's reason; an
+  arm draws again (a legal first draw keeps its stream). When the seat's blocks are still illegal after that, or its
+  answer is lost (two invalid calls, no call, no reply, an error), the fixed fallback is no blocks unless a
+  requirement forbids it; then it is a legal block set chosen without randomness (`legalBlockSet`): up to 4096
+  combinations the smallest legal one; past that the smallest legal one of the first-attacker set (each creature on
+  the first attacker it can block) and one all-on-it set per attacker, else the first found by a search by
+  increasing size capped at 4096 checks. It is an auto row (`blockers(illegal-twice)`, `blockers(unparsed)`,
+  `blockers(no-model)`, ...) with a `[BLOCK-INVALID] ... took the legal set` line (epoch 71, issue #311: "no blocks"
+  under Prized Unicorn stood illegal, found by the harness-env grader's `combat.block.must-block`). If none is found,
+  no blocks stands, illegal (an arm keeps its last draw), and the log says `[BLOCK-INVALID] ... no legal set was
+  found` (an arm: `no legal block set in 64 draws`), which `defect_analyzer.py` counts. A random arm whose 64 draws
+  found no legal set and that is past the 4096 limit takes the same set.
 - The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
   one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no
   trigger on a tap or on mana added. Floating that does change the game (a creature tapped and unable to block,
@@ -158,7 +174,7 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   a second decline answers the next "Cancel Search?" YES, as an auto row. That YES carries out the seat's own
   second decline, made after it was told what that decline does. Only the confirm that follows a declined pick
   counts: an Optional search's "Search your library?" has the same confirm mode and is not a "Cancel Search?"
-  (harness-epoch-71, issue #312: the grader's `costs.x`, Green Sun's Zenith, looped 61 asks with no outcome).
+  (harness-epoch-72, issue #312: the grader's `costs.x`, Green Sun's Zenith, looped 61 asks with no outcome).
 
 Anything new asks again: an opponent's spell or ability, every attack and block, a trigger, a new option.
 - *Why:* skipping a window the model could act in, keeping a hand for it, or picking its play is a

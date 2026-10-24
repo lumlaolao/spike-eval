@@ -337,14 +337,15 @@ it; the last row is the family rule alone, as if the counter had missed them. `t
 `choices.colour` and is caught only by the counter (8 counted calls); `toy-text` fails only the no-parse check (prose
 answered 2, empty answered 1). By the owner's surface grouping ours reads 0.982, combat 19/20.
 
-**What it found in ours** (kept as known failing instances by the owner's instruction; both reproduce with
+**What it found in ours** (kept as instances by the owner's instruction, for `defect-hunt`; each reproduces with
 `harness_env_grade.py instances ... --only <id>`):
-1. `combat.block.must-block`: against Prized Unicorn, a model that answers "no blocks" twice gets "no blocks": the
-   seat sends the illegal set back once with the reason, then takes its fixed fallback, no blocks, and the engine does
-   not validate it. The fallback should be a legal block set.
+1. `combat.block.must-block`: against Prized Unicorn, the seat sends an illegal block set back once with the engine's
+   reason; a model that answers "no blocks" twice gets a legal block set (harness-epoch-71, issue #311); the engine
+   does not validate a non-GUI controller's blocks. The evidence TSV (`evidence/2026-10-22-env-grade-abi.tsv`)
+   predates that epoch and the grader was not re-run.
 2. `costs.x`: Green Sun's Zenith with X = 1, a model that declines the search and then answers no to "Cancel Search?"
    is shown the search again without end (61 requests, then parked and abandoned). No loop guard bounds that pair.
-   Filed as issue #312 and fixed in harness-epoch-71 (the NO is heard once, a second decline ends the search;
+   Filed as issue #312 and fixed in harness-epoch-72 (the NO is heard once, a second decline ends the search;
    `GoldenChecksTest.aSearchDeclinedAgainAfterKeepSearchingEnds`); the grade above is from before the fix.
 
 ### 4.10 What is built: the instance generator (`eval/harness_env_generate.py`)
@@ -488,7 +489,8 @@ All free: no model call, no egress. Each step says what makes it fail.
    as the ledger documents. Today they are counted (`ai_payment`) and not gated. Gating them would zero ours until
    the harness pays its own mana.
 4. **The forced-instance rule.** An instance with one legal answer earns nothing by passing and costs by failing.
-   Alternative: drop forced instances entirely (then ours' must-block defect would not count).
+   Alternative: drop forced instances entirely (then ours' must-block defect would not have counted before
+   harness-epoch-71).
 5. **A seat calling `ComputerUtil` helpers directly** escapes the counter, which patches only `PlayerControllerAi`.
    Patch `AiController` and `ComputerUtil*` too (wider, more false positives on legitimate state reads), or accept it.
 6. **Scarce templates.** Only 38 cards are sacrifice outlets the template can build, 4 of them in the dev pool; a
@@ -499,8 +501,7 @@ All free: no model call, no egress. Each step says what makes it fail.
    one seat about 6 (20:08 to 20:14). Move it to its own source root when the images are built?
 8. **A dev split?** Built and off (`grader.dev_slice: false`): 10% of cards and a public seed. Turn it on?
 9. **A generic loopback model in the box?** Default none; the wire is in `SPEC.md`.
-10. **The two harness defects** the grader found (`combat.block.must-block`, `costs.x`) are kept failing here by the
-    owner's instruction, for `defect-hunt`. `costs.x` is now issue #312, fixed in harness-epoch-71.
+10. **The harness defects** the grader found in ours: section 4.9, "What it found in ours".
 11. **A seen copy (section 2).** Keep hidden instances, seeds and weights out of the repository; flag contamination
     for models trained after today.
 12. **A separate process for the candidate's seat, or the grader in-JVM?** Today the seat runs in the grader's JVM
