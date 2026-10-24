@@ -149,7 +149,10 @@ The grader's classes come first on the classpath and its engine patch set is app
 submission's own engine patches, so a submission cannot shadow them (built: intake refuses a submission that
 declares any class in `forge.harnessenv` or a package under it, or ships a file under a `forge/harnessenv` path,
 and scores it 0; the Forge-AI counter is written into the submission's own marked `PlayerControllerAi.java` when it
-ships one; a copy in which any hook the engine's own file counts goes uncounted is refused, "counter incomplete").
+ships one; a copy in which a hook NAME the engine's own file counts gets no counter is refused, "counter
+incomplete"). The check is by name, so it does not see an uncounted overload of a counted hook, a decoy method
+with a hook's name, or a signature hidden by a comment; that copy runs in the grader's JVM anyway (section 4.7,
+open), and closing both is the same change: the seat in its own process, or a parsed signature check.
 The candidate still runs in the grader's JVM (section 4.7). The patch replaces what `Player.getController()` hands the engine with a
 generated wrapper that delegates every `PlayerController` method to the candidate and records entry, exit and wall
 time per hook and thread (designed, not built). This is safe for the rules engine: `forge-game` has no `instanceof` test on a controller at
@@ -158,8 +161,8 @@ the same way: any `PlayerControllerAi` decision method, `AiController` or `AiPla
 while a seat hook is open fails the instance and the run-wide gate. A static scan cannot do this job: our own overlay
 references `forge.ai` in four files for legitimate reasons (it subclasses the AI controller and reads state through
 `ComputerUtil`), measured by `harness_env_grade.py intake`. **Built** instead of the wrapper's AI count: the
-grader's patch of a pristine `PlayerControllerAi` counts every decision hook on a watched player, with the payment
-executor counted apart (section 4.9); a seat that builds its own AI controller is caught, a seat that calls
+grader's patch of `PlayerControllerAi` (the engine's, or the submission's own marked copy) counts every decision
+hook on a watched player, with the payment executor counted apart (section 4.9); a seat that builds its own AI controller is caught, a seat that calls
 `ComputerUtil` helpers directly is not (open question 9).
 
 ### 4.5 Scoring and partial credit
@@ -507,7 +510,7 @@ All free: no model call, no egress. Each step says what makes it fail.
 | `eval/harness_env/TASK.md`, `eval/harness_env/SPEC.md` | what the agent reads; SPEC section 3 is `harness-env-abi/1` |
 | `eval/harness_env_spec.py`, `eval/harness_env_sandbox.py` | spec check; sandbox build, leak check, engine check |
 | `eval/harness_env_grade.py` | intake, `surface-v0`, `build` (submission + grader + AI patch), `instances`, `table`, the gates and scores |
-| `eval/harness_env_aicount.py` | the Forge-AI counter patch of a pristine `PlayerControllerAi` |
+| `eval/harness_env_aicount.py` | the Forge-AI counter patch of `PlayerControllerAi` (the engine's, or the submission's own marked copy) |
 | `eval/harness_env_generate.py` | instance sets from the card scripts: secret seed, dev pool, versions |
 | `eval/harness_env_episode.py`, `eval/harness_env_agents.py` | the episode runner; the copy-ours and do-nothing agents |
 | `eval/harness_env_calibrate.py` | the seven settings, six criteria and the recommendation |
