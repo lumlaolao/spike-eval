@@ -13,9 +13,9 @@
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
 #   classpath  offline Maven dependency classpath (module target/classes FIRST, then jars); Forge tree untouched
 #   compile    overlay main+test sources -> $OUT/classes with javac --release 17 (the checkout is never rebuilt)
-#   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1; fails on any failure OR skip, and
-#              when the number of tests RUN differs from the number DECLARED (a runner that matches no tests
-#              reports a green nothing -- that happened once with `make jtest`)
+#   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1 and EVAL_OUT unset; fails on any
+#              failure OR skip, and when the number of tests RUN differs from the number DECLARED (a runner that
+#              matches no tests reports a green nothing -- that happened once with `make jtest`)
 #   surfaces   every engine hook the seat answers (ledger kind strategic/payment) was reached by a test that asked
 #              the model (the javatests JVM records each decision row's hooks), and every way the engine lists to
 #              play a card (AlternativeCost, OptionalCost) was played by a test; eval/surface_gaps.txt and
@@ -289,7 +289,7 @@ PYEOF
     DECLARED=$((DECLARED + (SWEEP_SHARDS - 1) * SWEEP_TESTS))
     testng() { # $1 name  $2 test classes  $3.. extra -D options
       local name="$1" classes="$2"; shift 2
-      ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" $ACC_JVM -Dapple.awt.UIElement=true \
+      ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT MEMORY_TOOLS=1 "$JAVA" $ACC_JVM -Dapple.awt.UIElement=true \
           -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" "$@" -cp "$CLASSES:$(cat "$CP_FILE")" \
           org.testng.TestNG -testclass "$classes" -d "$OUT/testng-$name" ) >"$OUT/javatests-$name.log" 2>&1
     }
