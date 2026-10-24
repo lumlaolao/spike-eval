@@ -369,7 +369,7 @@ class TestAnswerTool(unittest.TestCase):
                 run_batch.preflight_openrouter(make_args(smart_a=jev, fast_a=jev, controller_b="ai"))
         self.assertIn("OPENROUTER_API_KEY", str(cm.exception.code))
 
-    def test_a_decision_model_seat_refuses_lookups_and_lookahead(self):
+    def test_a_decision_model_seat_refuses_lookups_lookahead_and_text_answers(self):
         for flag, reason in (("--memory-tools", "cannot call a lookup"), ("--lookahead", "cannot call a lookup"),
                              ("--text-answers", "only through the `answer` call"),
                              ("--text-tools", "only through the `answer` call")):
