@@ -1,4 +1,4 @@
-# Work plan: what is left (updated 2026-10-20)
+# Work plan: what is left (updated 2026-10-24)
 
 The living to-do list. Only open work is listed here; what is done is in git history,
 [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md), [ACCEPTANCE.md](ACCEPTANCE.md) and the run reports. The plan as it stood
@@ -21,7 +21,44 @@ saturated (130/145 with and without tools at epoch 66; 119/145 off and 127/145 o
 naming the trick); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
 puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner reviews it.
 
+**Done since (2026-10-21 to 2026-10-24):**
+- **Hard puzzles:** three generated suites, every board gated against every floor:
+  - `puzzles-hard-gen-v1`: 116 boards (PR #290);
+  - `puzzles-hard-gen2-v1`: 236 boards, with a trap 1 to 3 short (PR #299);
+  - `puzzles-hard-gen3-v1`: 68 boards in tokens, landfall, equip and infect (PR #302).
+
+  [eval/PUZZLES.md](../../eval/PUZZLES.md) covers them. Luna solved 15 of 156 on gen2's open split.
+- **Engineering:**
+  - acceptance in parallel (PR #301);
+  - `puzzle_solve.py --resume` (PR #300);
+  - provider compatibility for the frontier models: prices with a dearest-endpoint bound for budgets, one
+    `provider` object, and a reasoning floor for models that cannot turn it off (PR #303);
+  - a Jev 1.14 seat through OpenRouter's Decisions API (PR #305);
+  - the harness-building environment (PR #304, [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md)).
+
 ## Open work, after the benchmark
+
+- **The frontier comparison on the 3 hardest puzzles** waits on the owner's go and a budget-cap choice:
+  - the plan is `notes/frontier3-plan.sh` on branch `docs/writeup-notes`: 21 chat models plus Jev 1.14, about
+    $37 expected;
+  - caps at the dearest endpoint come to about $291, or about $125 if the bridge sends `provider.max_price` at the
+    list price.
+- **Harness-building environment, owner questions** (HARNESS-ENV-FRAMEWORK.md section 8):
+  - the builder model and budget;
+  - the scoring setting;
+  - gating the payment executor;
+  - question 12: run the candidate seat in its own process. Until then a candidate's score is withheld unless
+    the operator passes `--trust-candidate`.
+
+  No real episode has run.
+- **Seat defects the environment found**, kept failing for `defect-hunt`: an illegal block stands under a
+  must-block requirement (`combat.block.must-block`), and the X-cost instance (`costs.x`).
+- **Jev, owner questions:**
+  - multi-picks and trigger order from independent yes/no questions;
+  - the 40-option cap;
+  - whether CLAUDE.md states the tool-call exception (recorded in ARCHITECTURE.md section 9).
+- **Repository housekeeping:** the remote branches already merged into main were not deleted (it needs the
+  owner's permission).
 
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop
   unfinished games), E5 (freeze a measurement epoch), then E7 (the first mirror block, paid, cost first); which
@@ -43,12 +80,13 @@ puzzle contract, the hard sources and the measurement protocol. Nothing in it is
 
 - **Game model: GPT-6 Luna** (`openrouter:openai/gpt-6-luna`) for every seat and tier unless the owner names another.
   Never Opus. Paid runs always carry `--budget-usd`; say the cost first. Never set `OPENROUTER_ALLOW_EGRESS`.
-- **Tool calls, not text parsing**, for every decision and note (`CLAUDE.md`).
+- **Tool calls, not text parsing**, for every decision and note (`CLAUDE.md`). One exception (owner, 2026-10-24):
+  a `jev:` decision model, whose typed choice is turned into the `answer` call before validation.
 - **No heuristics deciding for the model.** The only skips: the menu is PASS only, or the identical spot was
   already passed. Never Forge's AI for a choice the seat owns.
 - **Edit `forge-overlay/` only**; engine patches through the overlay, listed in
   [ENGINE-PATCHES.md](ENGINE-PATCHES.md).
 - **Tests first**, watched failing. Acceptance and the gauntlets only when the owner asks, except the full
   acceptance run a merge needs.
-- **Subagents only with the owner's explicit permission.**
+- **Subagents are allowed** (owner, 2026-10-23); they never message the live-demo session.
 - **Compound actions (`PLAN_EXECUTE`) stay off** (2026-10-16): the plan is a note, re-read at every decision.
