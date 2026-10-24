@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Frontier run on our 3 hardest puzzles, 1 attempt each, every model but Astra, Fable and Opus.
-# Jev 1.14 runs through its own bridge (spec jev:typesafe/jev-1.14, branch feat/jev-decisions-bridge, not merged
-# yet); it is listed as JEV below and runs only once that bridge is on main. Jev Router is out (owner, 2026-10-24).
+# Jev 1.14 runs through its own bridge (spec jev:typesafe/jev-1.14, on main since PR #305), listed as JEV below.
+# Jev Router is out (owner, 2026-10-24).
 # Nothing runs until the owner starts it. Needs OPENROUTER_ALLOW_EGRESS=1 (the owner's, never set here).
 #   bash notes/frontier3-plan.sh            # all models, 5 at a time
 #   RESUME=1 bash notes/frontier3-plan.sh   # pick up where a stopped run left off
 #   ONLY="x-ai/grok-4.7 openai/gpt-6-luna" bash notes/frontier3-plan.sh
 # The 3 boards (gen2 suite, open split): Luna failed each, furthest from the goal, three families.
 set -u
-REPO=${REPO:-/home/user/hpv3}
+REPO=${REPO:-$(git rev-parse --show-toplevel)}   # a checkout of main
 SUITE=$REPO/eval/suites/puzzles-hard-gen2-v1.json
 IDS=hard-splice2-325cd33e0a57,hard-hoofdrain-60c5afda2f25,hard-drain2-0ab6f6ae05d9
 OUT=${OUT:-$REPO/runs/puzzles/frontier3}
