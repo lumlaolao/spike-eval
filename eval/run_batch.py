@@ -581,12 +581,13 @@ def answer_tool_requested(args):
     """The answer tool (AnswerTool: every decision answered by a function call) is the standard decision
     protocol: in effect whenever some LLM seat is on a backend with function calling (openrouter:),
     unless --text-answers (or --text-tools, no function calling at all) opted out. Unlike the lookups it
-    does not need --memory-tools. Mirrors AnswerTool.seats + the game line's answer_tool stamp."""
+    does not need --memory-tools. A jev: decision model answers through it too (its typed answer becomes
+    the call). Mirrors AnswerTool.seats + the game line's answer_tool stamp."""
     if getattr(args, "text_answers", False) or getattr(args, "text_tools", False):
         return False
     seats = [(getattr(args, "controller_a", None), getattr(args, "smart_a", None), getattr(args, "fast_a", None)),
              (getattr(args, "controller_b", None), getattr(args, "smart_b", None), getattr(args, "fast_b", None))]
-    return any((c or "llm") == "llm" and (spec or "").startswith("openrouter:")
+    return any((c or "llm") == "llm" and (spec or "").startswith(cost_report.API_PREFIXES)
                for c, smart, fast in seats for spec in (smart, fast))
 
 
@@ -1330,6 +1331,10 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
+    for flag, on in (("--memory-tools", args.memory_tools), ("--lookahead", args.lookahead)):
+        if on and any(cost_report.is_decisions(m) for m in (args.smart_a, args.fast_a, args.smart_b, args.fast_b)):
+            raise SystemExit("run_batch: %s with a %s seat: a decision model cannot call a lookup, so the games would "
+                             "record a condition the seat never had (the JVM refuses it too)" % (flag, cost_report.DECISIONS_PREFIX))
     if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")

@@ -15,7 +15,8 @@ far after each puzzle. Then score it:
 --resume continues a stopped run (eval/PUZZLES.md, "Running a model").
 
 An openrouter: model sends each puzzle's position to openrouter.ai: the egress opt-in
-(OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here.
+(OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here. So does a
+jev: decision model (OpenRouter's Decisions API, DecisionsBridge), which also cannot take --memory-tools.
 """
 
 import argparse
@@ -156,6 +157,9 @@ def main(argv=None):
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
+    if cost_report.is_decisions(a.model) and a.memory_tools:
+        raise SystemExit("--memory-tools with a %s model: a decision model cannot call a lookup, so the run would record "
+                         "MEMORY_TOOLS=1 for a seat that never used it (the JVM refuses it too)" % cost_report.DECISIONS_PREFIX)
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
@@ -166,9 +170,9 @@ def main(argv=None):
         raise SystemExit("suite does not validate or is not frozen: %s" % "; ".join(problems[:5]))
     load_secrets()
     # A loopback endpoint (the acceptance fake model) sends nothing off the machine, as the JVM's own check says.
-    if (a.model.startswith("openrouter:") and os.environ.get("OPENROUTER_ALLOW_EGRESS") != "1"
+    if (a.model.startswith(cost_report.API_PREFIXES) and os.environ.get("OPENROUTER_ALLOW_EGRESS") != "1"
             and not is_loopback(os.environ.get("OPENROUTER_BASE_URL", ""))):
-        raise SystemExit("OPENROUTER_ALLOW_EGRESS=1 is not set: an openrouter: model sends each position to "
+        raise SystemExit("OPENROUTER_ALLOW_EGRESS=1 is not set: an openrouter: or jev: model sends each position to "
                          "openrouter.ai, and that needs the owner's opt-in (secrets.env)")
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"

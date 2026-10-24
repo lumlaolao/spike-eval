@@ -135,6 +135,9 @@ PROVENANCE_FIELDS = (
     # The conversation bounded by the game turn (TURN_CHAT).
     ("turn_chat", MISSING),
     ("turn_chat_version", MISSING),
+    # The questions a jev: decision-model seat is asked (DecisionsBridge); stamped only on a game with one,
+    # so a line without it had no such seat, before the stamp or after.
+    ("decisions_bridge_version", "none"),
     # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
     ("harness_epoch", MISSING),
     # Prompt caching (Anthropic models): changes what a run costs, not what the model answers.

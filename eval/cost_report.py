@@ -29,9 +29,21 @@ def load_prices(path=PRICES):
         return json.load(f)["models"]
 
 
+# The spec prefixes that reach openrouter.ai: a chat model, and a decision model on the Decisions API
+# (`jev:`, LlmSpikeGui's DecisionsBridge). Both send the game state and need the egress opt-in.
+DECISIONS_PREFIX = "jev:"
+API_PREFIXES = ("openrouter:", DECISIONS_PREFIX)
+
+
+def is_decisions(spec):
+    """True for a decision-model spec: a seat with no lookups, answering typed questions."""
+    return str(spec or "").startswith(DECISIONS_PREFIX)
+
+
 def model_id(spec):
-    """`openrouter:deepseek/deepseek-v4.1-flash` -> `deepseek/deepseek-v4.1-flash`; None for a non-API spec."""
-    if not spec or not str(spec).startswith("openrouter:"):
+    """`openrouter:deepseek/deepseek-v4.1-flash` -> `deepseek/deepseek-v4.1-flash`, `jev:typesafe/jev-1.14` ->
+    `typesafe/jev-1.14`; None for a non-API spec."""
+    if not spec or not str(spec).startswith(API_PREFIXES):
         return None
     return str(spec).split(":", 1)[1]
 
