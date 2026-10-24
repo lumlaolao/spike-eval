@@ -9,8 +9,8 @@ it built, grade it outside the sandbox, write a scored report.
 3. The agent command runs with the sandbox as its working directory and a scrubbed environment (no provider key,
    no egress flag). The episode ends only when the agent has written DONE (`ended_by: agent`, its one line recorded;
    DONE counts once its line ends in a newline or it has sat unchanged for 5 s, so a line still being written is not
-   cut short); an agent that exits without it is `exit`; one still running at the
-   cap is stopped (`cap`) and its last state graded. These are reported apart and never pooled.
+   cut short); an agent that exits without it is `exit`; one still running at the cap is stopped (`cap`) and its
+   last state graded. These are reported apart and never pooled.
 4. Every checkpoint interval the overlay is copied outside the sandbox. Checkpoints are graded only after the
    episode ends (the dense reward between them), never while the agent can see a score.
 5. The overlay is exported and graded by `grade_fn(submission, out_dir)`: from the command line, jvm_grader (its
@@ -29,6 +29,7 @@ Usage: harness_env_episode.py <episode.json> <out> --classpath <classpath.txt> -
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -81,12 +82,16 @@ class DoneWatch:
     def settled(self, now):
         try:
             st = os.stat(self.path)
+            if not stat.S_ISREG(st.st_mode):  # opening a FIFO would block past the cap
+                self.seen = None
+                return False
             with open(self.path, "rb") as f:
-                text = f.read()
+                f.seek(max(st.st_size - 1, 0))
+                last = f.read(1)
         except OSError:
             self.seen = None
             return False
-        if text.endswith(b"\n"):
+        if last == b"\n":
             return True
         if (st.st_size, st.st_mtime_ns) != self.seen:
             self.seen, self.since = (st.st_size, st.st_mtime_ns), now
@@ -155,7 +160,7 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoin
                 proc.kill()
     ended_at = time.time()
     report.update(ended_by=ended_by, wall_s=round(ended_at - started, 3), ended_at=ended_at)
-    if os.path.exists(done_file):
+    if os.path.isfile(done_file):
         with open(done_file, encoding="utf-8", errors="replace") as f:
             text = f.read().strip()
         report["done"] = text.splitlines()[0] if text else ""

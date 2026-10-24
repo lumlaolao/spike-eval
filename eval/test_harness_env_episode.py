@@ -74,6 +74,16 @@ class EpisodeTest(unittest.TestCase):
             "f.write('HEAD\\n'); f.close()\ntime.sleep(30)\n")
         self.assertEqual(report["done"], "submit HEAD")
 
+    def test_a_done_line_ending_in_a_newline_ends_the_episode_at_once(self):
+        report, _ = self.run_ep("import time\nopen('DONE','w').write('submit HEAD\\n')\ntime.sleep(30)\n",
+                                done_grace_s=30)
+        self.assertEqual((report["ended_by"], report["done"]), ("agent", "submit HEAD"))
+        self.assertLess(report["wall_s"], 15, "ended on the newline, not after the grace")
+
+    def test_a_done_that_is_not_a_regular_file_never_blocks_the_cap(self):
+        report, _ = self.run_ep("import os, time\nos.mkfifo('DONE')\ntime.sleep(30)\n", cap_s=2)
+        self.assertEqual(report["ended_by"], "cap")
+
     def test_an_empty_done_left_unchanged_still_ends_the_episode(self):
         # A finished agent that only touches DONE and stays alive is the agent's end, not the cap's.
         report, _ = self.run_ep("import time\nopen('DONE','w').close()\ntime.sleep(30)\n", done_grace_s=1)
