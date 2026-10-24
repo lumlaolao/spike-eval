@@ -54,7 +54,7 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   - GPT-6 Astra and Astra Pro, and Claude Fable 5.1 (owner, 2026-10-24);
   - Jev Router (owner, 2026-10-24: "I want jev");
   - Claude Opus 5.5 (CLAUDE.md game-model rule).
-- **Jev 1.14** answers through its own bridge to OpenRouter's Decisions API (PR #305, in review). Its typed choice becomes the harness's `answer` call. This is an owner-approved exception to "every
+- **Jev 1.14** answers through its own bridge to OpenRouter's Decisions API (merged, PR #305). Its typed choice becomes the harness's `answer` call. This is an owner-approved exception to "every
   answer is a tool call", because Jev makes no tool calls. It gets no lookup tools.
 - **Estimated cost:** about $37 typical. Each model is capped at its "high" estimate, $125 at most.
   - Chart: `cost-table-3.png` (scratchpad).
@@ -78,7 +78,7 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   - Mistral may refuse a user message right after a tool result (plausible, unverified);
   - Anthropic caching has never been measured working.
 
-## 5. Harness-building eval (PR #304, in review)
+## 5. Harness-building eval (merged, PR #304)
 
 - **What it measures:** whether an agent can BUILD a working Magic-playing harness without seeing the grading
   criteria.
@@ -106,6 +106,9 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   (PR #300).
 - **New hard suite merged:** gen3, 68 boards (PR #302).
 - **Provider fixes merged:** PR #303 (above).
+- **Jev 1.14 bridge merged:** PR #305.
+- **Harness-building eval merged:** PR #304, with the in-JVM hole stated open and candidate scores withheld
+  unless `--trust-candidate`.
 - **Jev Router pilot:** $0.92 for 18 decisions, stopped by the budget watcher. Projected $1.5-2.5 per attempt,
   because it reasons heavily and caches little.
 
