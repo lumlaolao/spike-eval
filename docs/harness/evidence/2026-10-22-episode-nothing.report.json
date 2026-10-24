@@ -1,0 +1,28 @@
+{
+ "agent": [
+  "python3",
+  "/home/user/mtg-forge-llm-agent/.claude/worktrees/agent-a0b41b34a9a5080ee/eval/harness_env_agents.py",
+  "nothing"
+ ],
+ "checkpoints": [],
+ "done": "nothing",
+ "ended_at": 1792698881.7616796,
+ "ended_by": "agent",
+ "episode": "build-the-seat-v0",
+ "score": {
+  "benchmark": 0.0,
+  "dense": 0.0,
+  "intake": {
+   "abi": null,
+   "engine_patches": [],
+   "factory": null,
+   "forge_ai_references": [],
+   "java_files": 0,
+   "main_files": 0,
+   "own_test_files": 0,
+   "unmarked_engine_patches": []
+  },
+  "reason": "no Java"
+ },
+ "wall_s": 1.004
+}

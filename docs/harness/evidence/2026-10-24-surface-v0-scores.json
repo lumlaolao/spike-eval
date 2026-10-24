@@ -1,0 +1,127 @@
+{
+ "invocation": "python3 eval/harness_env_grade.py score /tmp/puzzle-scratch/<dir> (re-scored 2026-10-24 against this branch's ledger and hidden classes)",
+ "retained": "the acceptance OUT directories were scratch directories under /tmp/puzzle-scratch on the machine that ran them (2026-10-20); they are not in the repository, these scores are",
+ "scores": {
+  "acc-1eb9718b0": {
+   "components": {
+    "hooks": 1.0,
+    "plays": 1.0,
+    "tests": 1.0
+   },
+   "dense": 1.0,
+   "gates": {
+    "compiled": true,
+    "no_forge_ai": true
+   },
+   "missing_classes": [],
+   "raw": 1.0,
+   "reasons": [],
+   "score": 1.0
+  },
+  "acc-53c290a97": {
+   "components": {
+    "hooks": 1.0,
+    "plays": 1.0,
+    "tests": 1.0
+   },
+   "dense": 1.0,
+   "gates": {
+    "compiled": true,
+    "no_forge_ai": true
+   },
+   "missing_classes": [],
+   "raw": 1.0,
+   "reasons": [],
+   "score": 1.0
+  },
+  "acc-9dad7b479": {
+   "components": {
+    "hooks": 1.0,
+    "plays": 1.0,
+    "tests": 0.9993730345911949
+   },
+   "dense": 0.999812,
+   "gates": {
+    "compiled": true,
+    "no_forge_ai": true
+   },
+   "missing_classes": [],
+   "raw": 0.999812,
+   "reasons": [],
+   "score": 0.999373
+  },
+  "acc-e8792a4b4": {
+   "components": {
+    "hooks": 0.0,
+    "plays": 0.0,
+    "tests": 0.0
+   },
+   "dense": 0.0,
+   "gates": {
+    "compiled": false,
+    "no_forge_ai": false
+   },
+   "missing_classes": [
+    "ContextProfileTest",
+    "ControllerOwnershipTest",
+    "GoldenChecksTest",
+    "GoldenChecksToolTest",
+    "KeywordSurfaceSweepTest",
+    "LineFindingProbeTest",
+    "LlmSpikeTest",
+    "PlanAnytimeTest",
+    "PromptFidelityTest",
+    "SeatObservationTest",
+    "SurfaceCombatSurfacesTest",
+    "SurfaceCombatSurfacesToolTest",
+    "SurfaceCostChoicesTest",
+    "SurfaceCostChoicesToolTest",
+    "SurfaceEffectChoicesTest",
+    "SurfaceEffectChoicesToolTest",
+    "SurfaceResolutionChoicesTest",
+    "SurfaceResolutionChoicesToolTest",
+    "SurfaceStaticAbilityChoicesTest",
+    "SurfaceStaticAbilityChoicesToolTest"
+   ],
+   "raw": 0.0,
+   "reasons": [
+    "did not compile against the hidden tests: FAIL compile: javac rc=143 (see /tmp/puzzle-scratch/acc-e8792a4b4/javac.log)",
+    "Forge's AI decides for the seat (silent strategic hooks: not proven)"
+   ],
+   "score": 0.0
+  },
+  "acc-fe8d609e3": {
+   "components": {
+    "hooks": 1.0,
+    "plays": 1.0,
+    "tests": 1.0
+   },
+   "dense": 1.0,
+   "gates": {
+    "compiled": true,
+    "no_forge_ai": true
+   },
+   "missing_classes": [],
+   "raw": 1.0,
+   "reasons": [],
+   "score": 1.0
+  },
+  "acc-goalfix-build": {
+   "components": {
+    "hooks": 1.0,
+    "plays": 1.0,
+    "tests": 1.0
+   },
+   "dense": 1.0,
+   "gates": {
+    "compiled": true,
+    "no_forge_ai": true
+   },
+   "missing_classes": [],
+   "raw": 1.0,
+   "reasons": [],
+   "score": 1.0
+  }
+ },
+ "what": "surface-v0 scores of six recorded acceptance OUT directories (HARNESS-ENV-FRAMEWORK.md section 6)"
+}

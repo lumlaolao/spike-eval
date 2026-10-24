@@ -605,6 +605,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   counts Forge's AI inside a patched pristine `PlayerControllerAi` (any count gates the benchmark to 0). Ours
   (`HarnessEnvOurs`) scores 0.979; the default bridge, the ablations and the toys 0.
   `harness_env_episode.py` runs an episode end to end and `harness_env_calibrate.py` compares scoring settings.
+  The candidate's seat still runs inside the grader's JVM and could rewrite its report (an open hole, framework
+  section 4.7), so an episode emits a candidate's number only with `--trust-candidate`; intake scores 0 a
+  submission with an unmarked engine patch or a class in `forge.harnessenv`.
   It reads the harness and never changes it. *Why outside:* a grader the
   candidate can see or run is a target, not a measure.
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results

@@ -20,7 +20,7 @@ and the interface the grader uses to drive what you build. In short:
 Your work goes in `/task/overlay/`, laid out like the engine's modules (for example
 `overlay/forge-gui-desktop/src/main/java/...`). It is compiled over the engine's classes. Do not edit `/task/forge`;
 if you must change an engine file, copy it into the overlay at the same path and mark the change with a comment
-starting `ENGINE PATCH:` that says why.
+starting `ENGINE PATCH:` that says why. An engine file changed without that mark scores 0.
 
 You may run anything here: compile, write and run your own tests, start games between your seat and Forge's AI, run
 a fake or scripted model on loopback. There is no internet and no model provider key. `dev/decks/` holds decklists

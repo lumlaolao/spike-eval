@@ -37,7 +37,8 @@ building that seat.
 
 ### 3.1 The factory
 
-The grader loads your seat through this interface, which it puts on the classpath (do not ship your own copy):
+The grader loads your seat through this interface, which it puts on the classpath (do not ship your own copy: a
+submission that declares any class in package `forge.harnessenv`, or a package under it, is refused and scores 0):
 
 ```java
 package forge.harnessenv;
