@@ -68,8 +68,8 @@ payoff cast later), so Skirk pays only what the Mountains cannot and every Gobli
 drains; and Goblins with nothing left to do (a token, Instigator or Beetleback in play) are one kind, a token taken
 first. Siege-Gang's mana is floated before its Goblin is sacrificed (a Marshal's token comes only after the
 activation); its target is asked before the Goblin (probe). A sacrificed card is named so that one summoning sick goes
-first; a single Goblin to sacrifice is picked by the engine, unasked (probe). The line ends where the opponent reaches 0.
-Goblin Bushwhacker was dropped after a probe: whether its kicker is offered depends on how the engine prices Skirk
+first; a single Goblin to sacrifice is picked by the engine, unasked (probe). The line ends where the opponent reaches
+0. Goblin Bushwhacker was dropped after a probe: whether its kicker is offered depends on how the engine prices Skirk
 Prospector as a source.
 
 ## The gate (`scripts/puzzle-gate/gen_gate.py -j 1`, build of this branch)

@@ -656,15 +656,7 @@ class InfectSearchTest(unittest.TestCase):
         self.assertEqual(lines[-1], "Blighted Agent; Glistener Elf")
 
     def test_an_infect_board_is_the_searched_maximum_with_a_near_miss_trap(self):
-        b = next(iter(pg.iter_boards("infect", 1, 2, tries=150)))
-        rec = pg.board_record(b["text"]("x"))
-        self.assertEqual(rec["family"], "infect")
-        best, steps, unused, plain = pg.research(rec)
-        self.assertEqual((best, steps, unused), (10 - rec["poison"], rec["steps"], 0))
-        self.assertTrue(13 <= steps <= 15, steps)
-        self.assertEqual(plain, rec["trap"]["plans"])
-        self.assertTrue(1 <= best - max(plain.values()) <= 3, (best, plain))
-        self.assertIn("Goal:Win", b["text"]("x"))
+        check_drawn_board(self, "infect", 2, 150)
 
 
 def equip_start(**kw):
@@ -716,20 +708,15 @@ class EquipSearchTest(unittest.TestCase):
                                  "Fencing Ace; Puresteel Paladin"])
 
     def test_an_equip_board_is_the_searched_maximum_with_a_near_miss_trap(self):
-        b = next(iter(pg.iter_boards("equip", 1, 3, tries=600)))
-        rec = pg.board_record(b["text"]("x"))
-        best, steps, unused, plain = pg.research(rec)
-        self.assertEqual((best, steps, unused), (rec["life"], rec["steps"], 0))
-        self.assertTrue(13 <= steps <= 15, steps)
-        self.assertEqual(plain, rec["trap"]["plans"])
-        self.assertTrue(1 <= best - max(plain.values()) <= 3, (best, plain))
+        check_drawn_board(self, "equip", 3, 600)
 
 
 GEN3 = Path(__file__).resolve().parent / "puzzles" / "hard" / "gen3"
 
 
 class Gen3BoardsTest(unittest.TestCase):
-    """Every committed infect and equip board, re-derived from the search inputs it states (check_gen3_family)."""
+    """Every committed infect, equip, landfall and tokens board, re-derived from the search inputs it states
+    (check_gen3_family)."""
 
     def test_infect_boards(self):
         for p in check_gen3_family(self, "infect"):
@@ -737,6 +724,12 @@ class Gen3BoardsTest(unittest.TestCase):
 
     def test_equip_boards(self):
         check_gen3_family(self, "equip")
+
+    def test_landfall_boards(self):
+        check_gen3_family(self, "landfall")
+
+    def test_tokens_boards(self):
+        check_gen3_family(self, "tokens")
 
     def test_a_family_with_no_gen3_writer_is_refused(self):
         with self.assertRaises(ValueError):
@@ -804,16 +797,7 @@ class LandfallSearchTest(unittest.TestCase):
             1 for m in moves if m[0] in ("land", "crack")))
 
     def test_a_landfall_board_holds_the_bar(self):
-        b = next(pg.iter_boards("landfall", 1, 5, tries=3000))
-        rec = pg.board_record(b["text"]("x"))
-        best, steps, unused, plain = pg.research(rec)
-        self.assertEqual((best, steps, unused), (b["life"], b["actions"], 0))
-        self.assertTrue(13 <= steps <= 15)
-        self.assertEqual(plain, b["trap"]["plans"])
-        self.assertTrue(1 <= best - max(plain.values()) <= 3)
-
-    def test_every_committed_landfall_board_holds_its_bar(self):
-        check_gen3_family(self, "landfall")
+        check_drawn_board(self, "landfall", 5, 3000)
 
 
 class TokenSearchTest(unittest.TestCase):
@@ -866,16 +850,28 @@ class TokenSearchTest(unittest.TestCase):
         self.assertEqual((dealt, n, left), (2, 4, 0))
 
     def test_a_tokens_board_holds_the_bar(self):
-        b = next(pg.iter_boards("tokens", 1, 3, tries=3000))
-        rec = pg.board_record(b["text"]("x"))
-        best, steps, unused, plain = pg.research(rec)
-        self.assertEqual((best, steps, unused), (b["life"], b["actions"], 0))
-        self.assertTrue(13 <= steps <= 15)
-        self.assertEqual(plain, b["trap"]["plans"])
-        self.assertTrue(1 <= best - max(plain.values()) <= 3)
+        check_drawn_board(self, "tokens", 3, 3000)
 
-    def test_every_committed_tokens_board_holds_its_bar(self):
-        check_gen3_family(self, "tokens")
+
+def check_drawn_board(test, family, seed, tries):
+    """The first board the family draws from the seed holds the bar: its goal (poison for infect, life otherwise) is
+    the exhaustive maximum in the steps it states with nothing left unused, 13 to 15 steps, and the best plain plan
+    falls 1 to 3 short. An infect board's goal is a win."""
+    b = next(iter(pg.iter_boards(family, 1, seed, tries=tries)))
+    text = b["text"]("x")
+    rec = pg.board_record(text)
+    test.assertEqual(rec["family"], family)
+    best, steps, unused, plain = pg.research(rec)
+    goal = 10 - rec["poison"] if family == "infect" else rec["life"]
+    test.assertEqual((best, steps, unused), (goal, rec["steps"], 0))
+    test.assertEqual((steps, plain), (b["actions"], b["trap"]["plans"]))
+    if family != "infect":
+        test.assertEqual(best, b["life"])
+    test.assertTrue(13 <= steps <= 15, steps)
+    test.assertEqual(plain, rec["trap"]["plans"])
+    test.assertTrue(1 <= best - max(plain.values()) <= 3, (best, plain))
+    if family == "infect":
+        test.assertIn("Goal:Win", text)
 
 
 def check_gen3_family(test, family):
