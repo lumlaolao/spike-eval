@@ -10844,12 +10844,22 @@ public final class LlmSpikeGui {
             // Route by latency, not price (OpenRouter's default weighs price): the same model on every
             // endpoint, but Luna calls stalled for 5 minutes with ordinary-sized answers (runs/luna-v8/g3,
             // runs/luna-v9). OPENROUTER_PROVIDER_SORT=default sends no preference.
-            if (!PROVIDER_SORT.isEmpty()) body.append(",\"provider\":{\"sort\":\"").append(jsonEscape(PROVIDER_SORT)).append("\"}");
+            // A tool request also routes only to endpoints that honour every parameter sent: without it
+            // OpenRouter may pick one that ignores tool_choice "none" (the seat-tools-v5 defect, a call made
+            // on a round that offered none). An endpoint that refuses is the existing 404 downgrade path.
+            // ONE "provider" object: a body with the key twice is read last-wins by some parsers, which
+            // drops the latency sort on every tool request (provider audit, 2026-10-24).
+            java.util.List<String> provider = new java.util.ArrayList<>();
+            if (!PROVIDER_SORT.isEmpty()) provider.add("\"sort\":\"" + jsonEscape(PROVIDER_SORT) + "\"");
+            if (toolsJson != null) provider.add("\"require_parameters\":true");
+            if (!provider.isEmpty()) body.append(",\"provider\":{").append(String.join(",", provider)).append("}");
             // Every ask resends the same preamble, tools and chat history, and nothing marked it
             // cacheable, so Anthropic models billed all of it at the full input rate (a Haiku 5.5 game
             // averaged 10K prompt tokens a call). Top-level cache_control is automatic caching: the
             // breakpoint follows the end of the conversation. DeepSeek and OpenAI cache on their own.
             if (cachesPrompt(model)) body.append(",\"cache_control\":{\"type\":\"ephemeral\"}");
+            if ("none".equals(reasoningEffort) && MANDATORY_REASONING_FLOOR.containsKey(model))
+                reasoningEffort = MANDATORY_REASONING_FLOOR.get(model);   // "" sends no reasoning field
             if ("none".equals(reasoningEffort))
                 // Measured 2026-10-13: a mechanical answer costs ~848 completion tokens of which ~800 are
                 // hidden reasoning, and "low"/"minimal" do not reduce that -- only disabling does (65
@@ -10864,11 +10874,7 @@ public final class LlmSpikeGui {
                     // An answer ask (it offers `answer`) is forced where that keeps the model's reasoning
                     // (AnswerTool.toolChoiceFor): then a call is the only way to reply.
                     .append(",\"tool_choice\":\"").append(!allowCalls ? "none"
-                            : toolsJson.contains("\"name\":\"" + AnswerTool.NAME + "\"") ? AnswerTool.toolChoiceFor(model) : "auto").append("\"")
-                    // Route only to endpoints that honour every parameter sent: without it OpenRouter may
-                    // pick one that ignores tool_choice "none" (the seat-tools-v5 defect, a call made on a
-                    // round that offered none). An endpoint that refuses is the existing 404 downgrade path.
-                    .append(",\"provider\":{\"require_parameters\":true}");
+                            : toolsJson.contains("\"name\":\"" + AnswerTool.NAME + "\"") ? AnswerTool.toolChoiceFor(model) : "auto").append("\"");
             body.append("}");
 
             HttpRequest.Builder rb = HttpRequest.newBuilder()
@@ -10946,6 +10952,18 @@ public final class LlmSpikeGui {
         static boolean cachesPrompt(String model) {
             return PROMPT_CACHE && model != null && model.startsWith("anthropic/");
         }
+
+        /** Models whose reasoning cannot be turned off (reasoning.mandatory=true, OpenRouter /api/v1/models, read
+         *  2026-10-24), mapped to the lowest effort each lists; "" for one that lists none (send no field). A
+         *  reasoning:{enabled:false} is refused by these, so the truncation retry and the fast tier ask for this. */
+        static final Map<String, String> MANDATORY_REASONING_FLOOR = Map.ofEntries(
+                Map.entry("x-ai/grok-4.7", "low"), Map.entry("x-ai/grok-4.6", "low"),
+                Map.entry("x-ai/grok-build-0.1", ""),
+                Map.entry("anthropic/claude-sonnet-5.5", "low"),
+                Map.entry("openai/gpt-6.1-sol-pro", "low"), Map.entry("openai/gpt-6.1-sol", "low"),
+                Map.entry("google/gemini-4-argon", "low"), Map.entry("google/gemini-3.8-flash", "low"),
+                Map.entry("meta/muse-wonder", "minimal"), Map.entry("meta/muse-spark-1.3", "minimal"),
+                Map.entry("z-ai/glm-5.3-prime", "low"), Map.entry("z-ai/glm-5.3", "low"));
 
         private static final class OrResult {
             final String content, finishReason;

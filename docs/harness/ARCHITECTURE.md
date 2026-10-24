@@ -443,7 +443,12 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - per-model settings (`ModelCfg`): token caps and timeouts;
   - readable reasoning, kept on the call row where the provider returns it;
   - routing by latency (`provider.sort`, `OPENROUTER_PROVIDER_SORT`, default `latency`), and the provider
-    that served each call on its row.
+    that served each call on its row. A tool request adds `require_parameters` to the same `provider` object (one
+    key: a body with it twice is read differently by different parsers, and a last-wins one drops the latency sort).
+  - a reasoning model truncated with no answer is retried with reasoning off; a model whose reasoning cannot be
+    turned off (`MANDATORY_REASONING_FLOOR`: Grok 4.7, 4.6 and build, Sonnet 5.5, GPT-6.1 Sol and Sol Pro, the
+    Gemini, Muse and GLM models; `reasoning.mandatory` on OpenRouter's model list, 2026-10-24) is asked for its
+    lowest effort instead, since it refuses `enabled:false` and the decision would be lost.
   - *Why latency routing:* Luna calls stalled for up to 6 minutes while answering in ordinary length (646
     output tokens in 352 s, against a median of 253 in 9 s). The time was the endpoint's, not the model's
     thinking. OpenRouter's default routing weighs price; the model is the same on every endpoint.
