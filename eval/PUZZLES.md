@@ -323,6 +323,8 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
+- A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
+  the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 
 ## Scoring
 

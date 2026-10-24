@@ -581,12 +581,13 @@ def answer_tool_requested(args):
     """The answer tool (AnswerTool: every decision answered by a function call) is the standard decision
     protocol: in effect whenever some LLM seat is on a backend with function calling (openrouter:),
     unless --text-answers (or --text-tools, no function calling at all) opted out. Unlike the lookups it
-    does not need --memory-tools. Mirrors AnswerTool.seats + the game line's answer_tool stamp."""
+    does not need --memory-tools. A jev: decision model answers through it too (its typed answer becomes
+    the call). Mirrors AnswerTool.seats + the game line's answer_tool stamp."""
     if getattr(args, "text_answers", False) or getattr(args, "text_tools", False):
         return False
     seats = [(getattr(args, "controller_a", None), getattr(args, "smart_a", None), getattr(args, "fast_a", None)),
              (getattr(args, "controller_b", None), getattr(args, "smart_b", None), getattr(args, "fast_b", None))]
-    return any((c or "llm") == "llm" and (spec or "").startswith("openrouter:")
+    return any((c or "llm") == "llm" and (spec or "").startswith(cost_report.API_PREFIXES)
                for c, smart, fast in seats for spec in (smart, fast))
 
 
@@ -918,7 +919,7 @@ def cited_pre_guards(args):
     # --- guard 3: single JVM when a seat runs on the local claude CLI ---
     # Parallel JVMs starve the CLI and inflate fallbacks. An openrouter: game waits on the network
     # (eval/CONCURRENCY.md section 7), so it may run in parallel; warn_parallel_jobs still caps by RAM.
-    bare = sorted(set(m for m in effective_llm_models(args) if not m.startswith("openrouter:")))
+    bare = cli_specs(args)
     if args.jobs != 1 and bare:
         _refuse("cited mode requires --jobs 1 with claude-CLI model specs %s (got --jobs %d); "
                 "parallel JVMs starve the claude CLI and inflate fallbacks." % (bare, args.jobs))
@@ -1037,6 +1038,12 @@ def effective_llm_models(args):
     return models
 
 
+def cli_specs(args):
+    """The llm seats' specs that run on the local claude CLI: every one that does not reach openrouter.ai (an
+    openrouter: chat model or a jev: decision model), sorted and distinct."""
+    return sorted(set(m for m in effective_llm_models(args) if not m.startswith(cost_report.API_PREFIXES)))
+
+
 def unpinned_llm_tiers(args):
     """Flags an llm seat leaves unset (issue #234). A seat with no controller is an llm seat, and an unset
     tier falls through to the in-JVM default model (Opus for the smart tier), which no stamp flags: a Luna
@@ -1058,7 +1065,7 @@ def warn_parallel_jobs(args):
     if args.jobs <= 1:
         return
     models = effective_llm_models(args)
-    bare = sorted(set(m for m in models if not m.startswith("openrouter:")))
+    bare = cli_specs(args)
     if bare:
         log("WARNING: --jobs=%d with bare (claude-CLI) model spec(s) %s — "
             "parallel games starve the local claude CLI (decisions time out "
@@ -1159,7 +1166,7 @@ def load_secrets():
 def preflight_openrouter(args):
     """Refuse up front, with one clear message, instead of spawning a batch of
     JVMs that each crash at LLMBridgeFactory.create()'s key/egress checks."""
-    if not any(m.startswith("openrouter:") for m in effective_llm_models(args)):
+    if not any(m.startswith(cost_report.API_PREFIXES) for m in effective_llm_models(args)):
         return
     if not os.environ.get("OPENROUTER_API_KEY"):
         sys.exit("OPENROUTER_API_KEY not set (secrets.env missing?) — an "
@@ -1330,6 +1337,15 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
+    jev = any(cost_report.is_decisions(m) for m in (args.smart_a, args.fast_a, args.smart_b, args.fast_b))
+    for flag, on in (("--memory-tools", args.memory_tools), ("--lookahead", args.lookahead)):
+        if on and jev:
+            raise SystemExit("run_batch: %s with a %s seat: a decision model cannot call a lookup, so the games would "
+                             "record a condition the seat never had (the JVM refuses it too)" % (flag, cost_report.DECISIONS_PREFIX))
+    for flag, on in (("--text-answers", args.text_answers), ("--text-tools", args.text_tools)):
+        if on and jev:
+            raise SystemExit("run_batch: %s with a %s seat: a decision model answers only through the `answer` call, so "
+                             "every decision would be lost (the JVM refuses it too)" % (flag, cost_report.DECISIONS_PREFIX))
     if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")

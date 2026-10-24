@@ -106,6 +106,21 @@ class CostReportTest(unittest.TestCase):
         self.assertTrue(0 < p["prompt"] < p["completion"] < 0.001)
         self.assertRegex(p["checked"], r"^\d{4}-\d\d-\d\d$")
 
+    def test_a_decision_model_spec_is_priced_by_its_slug(self):
+        # A jev: seat (DecisionsBridge) bills input tokens only; its rows carry them as prompt_tokens. The tutorial's
+        # recorded call, 476 input tokens, cost $0.000019992 by the provider's own usage.cost.
+        spec = "jev:typesafe/jev-1.14"
+        self.assertEqual(cr.model_id(spec), "typesafe/jev-1.14")
+        p = cr.load_prices()["typesafe/jev-1.14"]
+        self.assertEqual((p["prompt"], p["completion"], p["checked"]), (0.000000042, 0, "2026-10-24"))
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [{"t": "context_call", "tier": "smart", "prompt_tokens": 476, "completion_tokens": 70}])
+            write(d, "batch-manifest.json", [{"condition": {"smart_a": spec, "fast_a": spec}}])
+            r = cr.report_dir(d, cr.load_prices())
+        self.assertAlmostEqual(r["usd"], 0.000019992, places=12)
+        self.assertEqual((r["models"], r["unpriced"]), ({"typesafe/jev-1.14"}, set()))
+
+
     def test_a_budget_is_checked_at_the_dearest_endpoint_and_a_report_at_the_list_price(self):
         # Latency routing may land on a priority tier: gpt-6.1-sol's "ultrafast" endpoint lists 6x its list price
         # (OpenRouter /models/.../endpoints, 2026-10-24), so a budget priced at the list rate could be overrun 6x.

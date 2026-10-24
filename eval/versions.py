@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Every version stamp the harness carries, read from the code, and the page that lists them.
 
-A result is comparable only to results from the same versions, and they live in eight constants across seven Java
-files plus the pinned engine commit. This reads them from the source (never a hand-kept copy) and writes
+A result is comparable only to results from the same versions, and they live in constants across the Java
+files listed in STAMPS, plus the pinned engine commit. This reads them from the source (never a hand-kept copy) and writes
 docs/harness/VERSIONS.md; `--check` fails when that page no longer matches the code, so it cannot go stale.
 
 Versions are not put in the model's prompt: the model gains nothing from them, and a changing prefix would break the
@@ -35,6 +35,9 @@ STAMPS = (
     ("RulesTool.java", "VERSION", "rules_tool_version", "the comprehensive-rules lookup."),
     ("ChatSessionBridge.java", "VERSION", "one_chat_version", "the one-conversation-per-seat arm (ONE_CHAT)."),
     ("ChatSessionBridge.java", "TURN_VERSION", "turn_chat_version", "the conversation bounded by the turn (TURN_CHAT)."),
+    ("DecisionsBridge.java", "VERSION", "(`decisions_bridge_version_a` / `_b`; puzzle row `decisions_bridge_version`)",
+     "the typed questions a `jev:` decision-model seat is asked and how its answers become `answer` calls "
+     "(on a game line or puzzle row only where a `jev:` seat plays)."),
 )
 
 

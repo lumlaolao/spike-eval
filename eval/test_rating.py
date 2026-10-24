@@ -66,6 +66,12 @@ class TestPartition(unittest.TestCase):
         self.assertIn("harness_epoch", rating.ENV_FIELDS)
         self.assertIn("one_tier", rating.PLAYER_FIELDS)
 
+    def test_the_decisions_bridge_version_belongs_to_the_seat_that_used_it(self):
+        # pr-review of #305: a game-wide stamp in PLAYER_FIELDS split Luna's condition in a Luna-vs-jev game.
+        self.assertNotIn("decisions_bridge_version", aggregate.CONDITION_FIELDS)
+        self.assertIn("decisions_bridge_version_a", rating.PLAYER_FIELDS_BY_IDENT["a"])
+        self.assertIn("decisions_bridge_version_b", rating.PLAYER_FIELDS_BY_IDENT["b"])
+
 
 class TestFit(unittest.TestCase):
     def test_a_known_gap_to_the_anchor_is_recovered(self):
