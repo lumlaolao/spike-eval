@@ -9,13 +9,15 @@ one line at the top of every method whose name is a decision hook in the ownersh
 `forge.harnessenv.grader.AiCounter.enter("<hook>", this);`. The grader compiles it first on the classpath, and
 AiCounter counts an entry when `this` controls the seat being graded. It also counts a seat that asks the model and
 then lets the AI decide anyway. A submission that ships its own marked patch of PlayerControllerAi.java has the
-counter written into that copy instead (`write(..., source=)`), so one javac never sees two PlayerControllerAi.
+counter written into that copy's text instead (`write(..., source=)`), so one javac never sees two
+PlayerControllerAi.
 
 What it cannot see: a seat that calls Forge's AI helper classes directly (ComputerUtilCard.getBestCreatureAI and
 such) without entering a PlayerControllerAi method; the offered and carried-out checks are the net for those.
 
 Usage: harness_env_aicount.py <forge checkout> <ledger tsv> <out dir>   writes <out>/forge/ai/PlayerControllerAi.java
 """
+import collections
 import os
 import re
 import subprocess
@@ -47,12 +49,13 @@ def patch(source, hooks):
 
 
 def counts(source, hooks):
-    """How many counters patch() puts on each hook name in `source` (an overload is a second count)."""
-    found = {}
-    for m in SIGNATURE.finditer(source):
-        if m.group(1) in hooks:
-            found[m.group(1)] = found.get(m.group(1), 0) + 1
-    return found
+    """A Counter of the counters patch() puts on each hook name in `source` (an overload is a second count)."""
+    return collections.Counter(m.group(1) for m in SIGNATURE.finditer(source) if m.group(1) in hooks)
+
+
+def summary(counted):
+    """'N hooks, M methods' for a counts() Counter: hook names, and methods with each overload apart."""
+    return "%d hooks, %d methods" % (len(counted), sum(counted.values()))
 
 
 def engine_source(forge):
@@ -62,18 +65,15 @@ def engine_source(forge):
 
 
 def write(forge, ledger, out_dir, source=None):
-    """Patch `source` (a submission's own marked copy) or, without it, the pinned engine's file."""
-    if source:
-        with open(source, encoding="utf-8") as f:
-            src = f.read()
-    else:
-        src = engine_source(forge)
-    patched, counted = patch(src, surface_coverage.decision_hooks(ledger))
+    """Patch `source` (the text of a submission's own marked copy) or, without it, the pinned engine's file;
+    (patched file, counts() of the source patched)."""
+    src = engine_source(forge) if source is None else source
+    hooks = surface_coverage.decision_hooks(ledger)
     dest = os.path.join(out_dir, "forge", "ai", "PlayerControllerAi.java")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "w", encoding="utf-8") as f:
-        f.write(patched)
-    return dest, counted
+        f.write(patch(src, hooks)[0])
+    return dest, counts(src, hooks)
 
 
 def main(argv):
@@ -81,7 +81,7 @@ def main(argv):
         print(__doc__)
         return 2
     dest, counted = write(argv[1], argv[2], argv[3])
-    print("%s: %d decision methods counted" % (dest, len(counted)))
+    print("%s: %s counted" % (dest, summary(counted)))
     return 0
 
 

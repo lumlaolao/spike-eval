@@ -4,11 +4,15 @@ The evidence here is synthetic but has the acceptance OUT layout the grader read
 testng/testng-results.xml, javatests.log). Each test removes one thing a perfect harness has and asserts the score
 drops in the component that thing belongs to, and only there.
 """
+import collections
+import contextlib
+import io
 import os
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 import harness_env_grade as hg
 import surface_coverage
@@ -503,8 +507,10 @@ OWN_PCAI = ("// HARNESS PATCH: the submission's own change\npackage forge.ai;\n"
 
 class SubmissionAiControllerTest(unittest.TestCase):
     """A marked engine patch of PlayerControllerAi.java must not meet the grader's counter copy in one javac: the
-    counter is generated from the submission's copy instead, and the submission's raw copy is not compiled. Every
-    hook the engine's own file counts must be counted in that copy too, or the grade is refused."""
+    counter is generated from the submission's copy instead, and the submission's raw copy is not compiled. The
+    check is per name: for every hook name, the copy must get at least as many counters as the engine's own file
+    gives that name (an overload left uncounted is missing even when the name is counted elsewhere), or the grade
+    is refused before javac."""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -538,7 +544,8 @@ class SubmissionAiControllerTest(unittest.TestCase):
         rc, classes, counted, missing = self.build()
         self.assertEqual(rc, 0)
         self.assertEqual(missing, [])
-        self.assertEqual(counted, ["chooseSpellAbilityToPlay", "declareBlockers"], "tabs and a split signature count")
+        self.assertEqual(sorted(counted), ["chooseSpellAbilityToPlay", "declareBlockers"],
+                         "tabs and a split signature count")
         argv = self.calls[0][0]
         pcai = [a for a in argv if a.endswith("PlayerControllerAi.java")]
         self.assertEqual(len(pcai), 1, pcai)
@@ -572,14 +579,25 @@ class SubmissionAiControllerTest(unittest.TestCase):
         self.assertEqual(missing, ["declareBlockers"])
         self.assertEqual(self.calls, [], "nothing is compiled")
 
+    def test_the_submissions_copy_is_read_once_and_that_text_is_what_gets_patched(self):
+        with mock.patch.object(hg.harness_env_aicount, "write", wraps=hg.harness_env_aicount.write) as w:
+            self.build()
+        self.assertEqual(w.call_count, 1)
+        self.assertEqual(w.call_args.kwargs.get("source"), OWN_PCAI)
+
+    def test_the_build_command_says_how_many_hooks_and_how_many_methods(self):
+        counted = collections.Counter(declareBlockers=2, chooseSpellAbilityToPlay=1)
+        printed = io.StringIO()
+        with mock.patch.object(hg, "build_classes", return_value=(0, "/c", counted, [])), \
+                contextlib.redirect_stdout(printed):
+            rc = hg.main(["grade", "build", self.sub, "/nope/cp.txt", self.forge, os.path.join(self.tmp, "out")])
+        self.assertEqual(rc, 0)
+        self.assertIn("Forge-AI counter in 2 hooks, 3 methods", printed.getvalue())
+
     def test_the_grader_environment_carries_no_secret_or_provider_variable(self):
-        old = dict(os.environ)
-        os.environ.update(HARNESS_ENV_SEED="s3cret", OPENROUTER_API_KEY="k", OPENROUTER_ALLOW_EGRESS="1", PATH="/bin")
-        try:
+        with mock.patch.dict(os.environ, HARNESS_ENV_SEED="s3cret", OPENROUTER_API_KEY="k",
+                             OPENROUTER_ALLOW_EGRESS="1", PATH="/bin"):
             env = hg.grader_env("/jdk")
-        finally:
-            os.environ.clear()
-            os.environ.update(old)
         self.assertEqual(env["JAVA_HOME"], "/jdk")
         self.assertEqual(env["PATH"], "/bin")
         self.assertFalse([k for k in env if k.startswith("OPENROUTER") or k == "HARNESS_ENV_SEED"], env)
