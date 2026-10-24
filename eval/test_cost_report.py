@@ -131,6 +131,32 @@ class CostReportTest(unittest.TestCase):
         self.assertIsNotNone(m, "DecisionsBridge.PREFIX not found")
         self.assertEqual(cr.DECISIONS_PREFIX, m.group(1))
 
+    def test_a_claude_cli_seat_is_priced_at_the_cost_the_cli_reported(self):
+        # ClaudeCliBridge writes the CLI's total_cost_usd (its side call to another model included) as each row's
+        # cost_usd; the tokens are not priced, and the budget's dearest-endpoint prices change nothing.
+        spec = "claude-cli:claude-opus-5-5"
+        self.assertTrue(cr.is_cli(spec) and cr.answer_only(spec) and cr.answer_only("jev:typesafe/jev-1.14"))
+        self.assertFalse(cr.answer_only(OR) or cr.answer_only("claude-opus-5-5"))
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 3512, "completion_tokens": 140, "cost_usd": 0.0123},
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 3600, "completion_tokens": 90, "cost_usd": 0.0101},
+                {"t": "context_call", "tier": "smart", "prompt_tokens": -1, "completion_tokens": -1},   # killed at its deadline
+                {"t": "decision", "tier": "smart", "prompt_tokens": 3600, "completion_tokens": 90},
+                {"t": "game", "smart_a": spec, "fast_a": spec}])
+            for prices in (cr.load_prices(), cr.budget_prices(cr.load_prices())):
+                r = cr.report_dir(d, prices)
+                self.assertAlmostEqual(r["usd"], 0.0224, places=12)
+                self.assertEqual((r["models"], r["unpriced"], r["checked"]), ({spec}, set(), {"CLI-reported"}))
+
+    def test_the_claude_cli_prefix_is_the_bridges_own(self):
+        java = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "forge-overlay", "forge-gui-desktop",
+                            "src", "main", "java", "forge", "spike", "ClaudeCliBridge.java")
+        with open(java, encoding="utf-8") as f:
+            m = re.search(r'static final String PREFIX = "([^"]*)";', f.read())
+        self.assertIsNotNone(m, "ClaudeCliBridge.PREFIX not found")
+        self.assertEqual(cr.CLI_PREFIX, m.group(1))
+
     def test_a_budget_is_checked_at_the_dearest_endpoint_and_a_report_at_the_list_price(self):
         # Latency routing may land on a priority tier: gpt-6.1-sol's "ultrafast" endpoint lists 6x its list price
         # (OpenRouter /models/.../endpoints, 2026-10-24), so a budget priced at the list rate could be overrun 6x.

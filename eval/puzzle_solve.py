@@ -17,6 +17,11 @@ far after each puzzle. Then score it:
 An openrouter: model sends each puzzle's position to openrouter.ai: the egress opt-in
 (OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here. So does a
 jev: decision model (OpenRouter's Decisions API, DecisionsBridge), which also cannot take --memory-tools.
+
+A claude-cli: model (the local Claude Code CLI, ClaudeCliBridge) sends each position to Anthropic under the CLI's own
+login, not to openrouter.ai, so it needs no OPENROUTER_ALLOW_EGRESS; it cannot take --memory-tools either, runs with
+-j 1 (each JVM shells out to the one local CLI), and its spend is the CLI's own reported cost. --effort pins its
+CLAUDE_BRIDGE_EFFORT (unset: the CLI's default), which the puzzle row stamps as claude_cli_effort.
 """
 
 import argparse
@@ -72,10 +77,15 @@ def over_budget(out_root, budget_usd):
 
 def condition(a):
     """Every setting that changes what the seat sees, pinned explicitly (never inherited from the shell),
-    as run_batch.py pins a game's: the same seat as the games it is compared with."""
-    return {"CONTEXT_PROFILE": a.context_profile, "MEMORY_TOOLS": "1" if a.memory_tools else "0",
+    as run_batch.py pins a game's: the same seat as the games it is compared with. A claude-cli: model's effort is
+    pinned too (both tiers, so a shell's CLAUDE_BRIDGE_EFFORT_SMART cannot leak in); no other model's condition has it."""
+    cond = {"CONTEXT_PROFILE": a.context_profile, "MEMORY_TOOLS": "1" if a.memory_tools else "0",
             "RULES_TOOL": "1" if a.rules_tool else "0", "NATIVE_TOOLS": "1", "ANSWER_TOOL": "1",
             "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
+    if cost_report.is_cli(getattr(a, "model", None)):
+        cond.update({"CLAUDE_BRIDGE_EFFORT": getattr(a, "effort", None) or "", "CLAUDE_BRIDGE_EFFORT_SMART": "",
+                     "CLAUDE_BRIDGE_EFFORT_FAST": ""})
+    return cond
 
 
 def already_done(out, k, suite_sha):
@@ -178,12 +188,19 @@ def main(argv=None):
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--build", default=None)
     ap.add_argument("--forge", default=None)
+    ap.add_argument("--effort", choices=("low", "medium", "high", "xhigh", "max"), default=None,
+                    help="a claude-cli: model only: the CLI's --effort (CLAUDE_BRIDGE_EFFORT); unset is the CLI's default")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
-    if cost_report.is_decisions(a.model) and a.memory_tools:
-        raise SystemExit("--memory-tools with a %s model: a decision model cannot call a lookup, so the run would record "
-                         "MEMORY_TOOLS=1 for a seat that never used it (the JVM refuses it too)" % cost_report.DECISIONS_PREFIX)
+    if cost_report.answer_only(a.model) and a.memory_tools:
+        raise SystemExit("--memory-tools with a %s: model: such a seat cannot call a lookup, so the run would record "
+                         "MEMORY_TOOLS=1 for a seat that never used it (the JVM refuses it too)" % a.model.split(":", 1)[0])
+    if a.effort and not cost_report.is_cli(a.model):
+        raise SystemExit("--effort is the Claude CLI's (a %s model); no other model reads it" % cost_report.CLI_PREFIX)
+    if cost_report.is_cli(a.model) and a.jobs != 1:
+        raise SystemExit("-j 1 with a %s model: each puzzle's JVM shells out to the one local Claude CLI, and parallel ones "
+                         "contend for it, so decisions time out and are lost (run_batch.py's cited rule)" % cost_report.CLI_PREFIX)
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")

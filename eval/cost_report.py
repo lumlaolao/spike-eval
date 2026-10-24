@@ -11,6 +11,10 @@ It is an ESTIMATE of spend. Prompt tokens a row reports as read from the provide
 has no such rate. Rows from before 2026-10-15 carry neither, so their input is an upper bound. It
 cannot see calls that left no row (a request that timed out is still billed).
 
+A `claude-cli:` seat (the Claude Code CLI, ClaudeCliBridge) is not priced from tokens: each of its rows carries the
+CLI's own `total_cost_usd` as `cost_usd` (its side calls to another model included), and that sum is its spend at
+list price and at the budget alike. A CLI process killed at its deadline reports nothing, so it is not counted.
+
   python3 eval/cost_report.py runs/lines/ctl2/native runs/lines/ctl2/native-lookahead
   python3 eval/cost_report.py --plan 16 runs/lines/ctl2/native     # what 16 more games like these would cost
 """
@@ -35,9 +39,25 @@ DECISIONS_PREFIX = "jev:"
 API_PREFIXES = ("openrouter:", DECISIONS_PREFIX)
 
 
+# A Claude model through the local Claude Code CLI, answering by structured output (ClaudeCliBridge.PREFIX). It
+# sends the game state to Anthropic, not to openrouter.ai.
+CLI_PREFIX = "claude-cli:"
+
+
 def is_decisions(spec):
     """True for a decision-model spec: a seat with no lookups, answering typed questions."""
     return str(spec or "").startswith(DECISIONS_PREFIX)
+
+
+def is_cli(spec):
+    """True for a `claude-cli:` spec: priced from the CLI's reported cost, not from tokens."""
+    return str(spec or "").startswith(CLI_PREFIX)
+
+
+def answer_only(spec):
+    """True for a seat whose backend gives only the `answer` call (a `jev:` or `claude-cli:` seat): no lookups, no
+    preview, no text answers."""
+    return is_decisions(spec) or is_cli(spec)
 
 
 def budget_prices(prices):
@@ -56,17 +76,19 @@ def model_id(spec):
 
 
 def game_usage(path):
-    """{'game': the game row or None, 'tiers': {(seat, tier): [calls, prompt, completion, cached, cache_write]}} for one
-    file. `seat` is the row's player name (None on a row that has none)."""
+    """{'game': the game row or None, 'tiers': {(seat, tier): [calls, prompt, completion, cached, cache_write,
+    reported_usd]}} for one file. `seat` is the row's player name (None on a row that has none); `reported_usd` sums the
+    rows' own `cost_usd`."""
     ctx, dec, game = {}, {}, None
 
     def add(bucket, tier, r):
-        b = bucket.setdefault((r.get("seat"), tier), [0, 0, 0, 0, 0])
+        b = bucket.setdefault((r.get("seat"), tier), [0, 0, 0, 0, 0, 0.0])
         b[0] += 1
         b[1] += max(0, r.get("prompt_tokens") or 0)
         b[2] += max(0, r.get("completion_tokens") or 0)
         b[3] += max(0, r.get("cached_tokens") or 0)
         b[4] += max(0, r.get("cache_write_tokens") or 0)
+        b[5] += max(0.0, r.get("cost_usd") or 0.0)
     with open(path, errors="replace") as f:
         for line in f:
             try:
@@ -119,7 +141,7 @@ def report_dir(run_dir, prices):
         g = u["game"] or manifest
         out["games"] += 1 if u["game"] else 0
         out["unfinished"] += 0 if u["game"] or not u["tiers"] else 1
-        for (seat, tier), (calls, pin, pout, cached, written) in u["tiers"].items():
+        for (seat, tier), (calls, pin, pout, cached, written, reported) in u["tiers"].items():
             out["calls"] += calls
             out["prompt_tokens"] += pin
             out["cached_tokens"] += cached
@@ -127,6 +149,13 @@ def report_dir(run_dir, prices):
             # Priced by the calling seat's own spec: under seat A's, a model-B-vs-ai batch reads as $0 and
             # --budget-usd never stops it. A name both seats share is priced at the dearer spec (an upper bound).
             specs = [g.get("%s_%s" % ("smart" if tier == "smart" else "fast", i)) for i in identities_of(g, seat)]
+            cli = [s for s in specs if is_cli(s)]
+            if cli:
+                # The CLI's own figure for every call it answered (ClaudeCliBridge): no token price to look up.
+                out["models"].add(cli[0])
+                out["checked"].add("CLI-reported")
+                out["usd"] += reported
+                continue
             priced = {s: p for s, p in ((s, price_of(prices, s)) for s in specs) if p is not None}
             out["unpriced"].update(model_id(s) for s in specs if s not in priced and model_id(s))
             if not priced:

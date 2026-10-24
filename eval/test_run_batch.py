@@ -380,6 +380,28 @@ class TestAnswerTool(unittest.TestCase):
             self.assertIn("jev:", str(cm.exception.code))
             self.assertIn(reason, str(cm.exception.code))
 
+    CLI = "claude-cli:claude-opus-5-5"
+
+    def test_a_claude_cli_seat_answers_through_the_tool_on_the_local_cli(self):
+        # Its structured output becomes the `answer` call (ClaudeCliBridge); it runs on the local CLI, so the cited
+        # --jobs 1 rule and the parallel warning cover it, and it needs no OpenRouter key.
+        self.assertTrue(run_batch.answer_tool_requested(make_args(smart_a=self.CLI, fast_a=self.CLI)))
+        self.assertFalse(run_batch.native_tools_requested(make_args(smart_a=self.CLI, fast_a=self.CLI, memory_tools=True)))
+        self.assertEqual(run_batch.cli_specs(make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai")), [self.CLI])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "", "OPENROUTER_ALLOW_EGRESS": ""}, clear=False):
+            run_batch.preflight_openrouter(make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai"))
+
+    def test_a_claude_cli_seat_refuses_lookups_text_answers_and_a_kept_conversation(self):
+        for flag, reason in (("--memory-tools", "cannot call a lookup"), ("--lookahead", "cannot call a lookup"),
+                             ("--text-answers", "only through the `answer` call"),
+                             ("--text-tools", "only through the `answer` call"),
+                             ("--one-chat", "fresh process"), ("--turn-chat", "fresh process")):
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.main(["--seeds", "1", "--smart-a", self.CLI, "--fast-a", self.CLI, "--controller-b", "ai", flag])
+            self.assertIn(flag, str(cm.exception.code))
+            self.assertIn("claude-cli:", str(cm.exception.code))
+            self.assertIn(reason, str(cm.exception.code))
+
     def test_only_the_flags_set_it_and_lines_keep_it_apart(self):
         with mock.patch.dict(os.environ, {"ANSWER_TOOL": "1", "ANSWER_TOOL_STRICT": "1"}, clear=False), \
                 tempfile.TemporaryDirectory() as d:

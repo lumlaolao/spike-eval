@@ -41,6 +41,12 @@ import puzzle_format as pf  # noqa: E402
 from aggregate import wilson_ci  # noqa: E402
 
 
+# Puzzle-row fields only some solvers carry, each a condition two attempts must share (key, what it is called).
+BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
+                     ("claude_cli_bridge_version", "claude-cli bridge versions"),
+                     ("claude_cli_effort", "claude-cli efforts"))
+
+
 class Refused(Exception):
     """A request the scorer will not answer, because the answer would not mean what it says."""
 
@@ -132,11 +138,13 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
     solvers = {solver_of(r) for r in rows}
     if len(solvers) > 1:
         raise Refused("results mix solvers %s; pass --solver to pick one" % sorted(solvers))
-    # A jev: solver's questions are versioned (DecisionsBridge.VERSION, absent on every other solver's rows).
-    bridges = {r.get("decisions_bridge_version") for r in rows}
-    if len(bridges) > 1:
-        raise Refused("results come from decisions bridge versions %s; the questions the solver was asked differ, "
-                      "so score each separately" % sorted(bridges, key=str))
+    # A bridge-specific solver condition, absent on every other solver's rows: a jev: solver's questions
+    # (DecisionsBridge.VERSION), a claude-cli: solver's bridge (ClaudeCliBridge.VERSION) and the effort it ran at.
+    for key, what in BRIDGE_CONDITIONS:
+        seen = {r.get(key) for r in rows}
+        if len(seen) > 1:
+            raise Refused("results come from %s %s; what the solver was asked or how it ran differs, so score each "
+                          "separately" % (what, sorted(seen, key=str)))
 
     out = defaultdict(list)
     for r in rows:
@@ -298,10 +306,12 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     solvers = sorted({solver_of(r) for att in attempts.values() for r in att})
     flat = [r for att in attempts.values() for r in att]
     epochs = {r.get("harness_epoch") for r in flat}
-    bridges = {r.get("decisions_bridge_version") for r in flat}
-    return {
-        # A jev: solver's question version; None for any other solver (group_attempts refuses a mix).
-        "decisions_bridge_version": bridges.pop() if len(bridges) == 1 else None,
+    # Each BRIDGE_CONDITIONS key: the solver's value, None for a solver without it (group_attempts refuses a mix).
+    conditions = {}
+    for key, _ in BRIDGE_CONDITIONS:
+        seen = {r.get(key) for r in flat}
+        conditions[key] = seen.pop() if len(seen) == 1 else None
+    return dict(conditions, **{
         # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
@@ -312,7 +322,7 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         "budget": budget(flat),
         "integrity": integrity(flat),
         "puzzles": sorted(puzzles, key=lambda r: r["id"]),
-    }
+    })
 
 
 def _mean_se(values):

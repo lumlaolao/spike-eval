@@ -582,12 +582,13 @@ def answer_tool_requested(args):
     protocol: in effect whenever some LLM seat is on a backend with function calling (openrouter:),
     unless --text-answers (or --text-tools, no function calling at all) opted out. Unlike the lookups it
     does not need --memory-tools. A jev: decision model answers through it too (its typed answer becomes
-    the call). Mirrors AnswerTool.seats + the game line's answer_tool stamp."""
+    the call), and so does a claude-cli: seat (its structured output becomes the call). Mirrors AnswerTool.seats +
+    the game line's answer_tool stamp."""
     if getattr(args, "text_answers", False) or getattr(args, "text_tools", False):
         return False
     seats = [(getattr(args, "controller_a", None), getattr(args, "smart_a", None), getattr(args, "fast_a", None)),
              (getattr(args, "controller_b", None), getattr(args, "smart_b", None), getattr(args, "fast_b", None))]
-    return any((c or "llm") == "llm" and (spec or "").startswith(cost_report.API_PREFIXES)
+    return any((c or "llm") == "llm" and (spec or "").startswith(cost_report.API_PREFIXES + (cost_report.CLI_PREFIX,))
                for c, smart, fast in seats for spec in (smart, fast))
 
 
@@ -1337,14 +1338,20 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
-    jev = any(cost_report.is_decisions(m) for m in (args.smart_a, args.fast_a, args.smart_b, args.fast_b))
+    specs = (args.smart_a, args.fast_a, args.smart_b, args.fast_b)
+    lane = next((p for p in (cost_report.DECISIONS_PREFIX, cost_report.CLI_PREFIX)
+                 if any(str(m or "").startswith(p) for m in specs)), None)
     no_lookup = "cannot call a lookup, so the games would record a condition the seat never had"
     no_text = "answers only through the `answer` call, so every decision would be lost"
-    for flag, on, reason in (("--memory-tools", args.memory_tools, no_lookup), ("--lookahead", args.lookahead, no_lookup),
-                             ("--text-answers", args.text_answers, no_text), ("--text-tools", args.text_tools, no_text)):
-        if on and jev:
-            raise SystemExit("run_batch: %s with a %s seat: a decision model %s (the JVM refuses it too)"
-                             % (flag, cost_report.DECISIONS_PREFIX, reason))
+    no_chat = "is asked each decision in a fresh process, so the games would record a conversation the seat never had"
+    flags = [("--memory-tools", args.memory_tools, no_lookup), ("--lookahead", args.lookahead, no_lookup),
+             ("--text-answers", args.text_answers, no_text), ("--text-tools", args.text_tools, no_text)]
+    if lane == cost_report.CLI_PREFIX:
+        flags += [("--one-chat", args.one_chat, no_chat), ("--turn-chat", args.turn_chat, no_chat)]
+    for flag, on, reason in flags:
+        if on and lane:
+            raise SystemExit("run_batch: %s with a %s seat: such a seat %s (the JVM refuses it too)"
+                             % (flag, lane, reason))
     if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")

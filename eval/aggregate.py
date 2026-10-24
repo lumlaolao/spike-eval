@@ -139,6 +139,10 @@ PROVENANCE_FIELDS = (
     # jev: seat, so a line without it had no such seat, before the stamp or after.
     ("decisions_bridge_version_a", "none"),
     ("decisions_bridge_version_b", "none"),
+    # The Claude CLI answer bridge (ClaudeCliBridge) a claude-cli: seat plays through, per identity; stamped only for
+    # such a seat.
+    ("claude_cli_bridge_version_a", "none"),
+    ("claude_cli_bridge_version_b", "none"),
     # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
     ("harness_epoch", MISSING),
     # Prompt caching (Anthropic models): changes what a run costs, not what the model answers.

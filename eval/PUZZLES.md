@@ -325,6 +325,9 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
+- A `claude-cli:` model (Claude Code in print mode, `docs/harness/ARCHITECTURE.md` section 9) sends each position to
+  Anthropic under the CLI's own login and needs no OpenRouter opt-in. It runs without `--memory-tools`, with `-j 1`,
+  and `--effort` pins its CLI effort (the row's `claude_cli_effort`); its spend is the CLI's reported cost.
 
 ### Watching a run
 

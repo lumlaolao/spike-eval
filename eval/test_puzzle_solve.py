@@ -201,5 +201,45 @@ class DecisionModelSeatTest(unittest.TestCase):
         self.assertIn("jev:", msg)
 
 
+class ClaudeCliSeatTest(unittest.TestCase):
+    """A claude-cli: seat (ClaudeCliBridge) runs on the local Claude CLI: it needs no OpenRouter opt-in, takes no
+    lookups, runs one JVM at a time, and its effort is pinned and recorded (never inherited from the shell)."""
+
+    SUITE = DecisionModelSeatTest.SUITE
+    CLI = "claude-cli:claude-opus-5-5"
+
+    def run_main(self, model, *extra):
+        argv = ["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1", "--budget-usd", "0",
+                "--out", tempfile.mkdtemp(), "--build", "/nonexistent/build"] + list(extra)
+        with mock.patch.dict(os.environ, {}, clear=False), mock.patch.object(puzzle_solve, "load_secrets"):
+            for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
+                os.environ.pop(k, None)
+            with self.assertRaises(SystemExit) as cm:
+                puzzle_solve.main(argv)
+        return str(cm.exception.code)
+
+    def test_it_needs_no_openrouter_opt_in(self):
+        # Past every refusal, it stops at the missing build: nothing ran.
+        self.assertIn("no compiled overlay", self.run_main(self.CLI, "-j", "1"))
+
+    def test_it_refuses_the_lookup_tools_and_parallel_jvms(self):
+        msg = self.run_main(self.CLI, "-j", "1", "--memory-tools")
+        self.assertIn("--memory-tools", msg)
+        self.assertIn("claude-cli:", msg)
+        self.assertIn("-j 1", self.run_main(self.CLI))   # the default is 2
+
+    def test_its_effort_is_pinned_and_no_other_model_takes_one(self):
+        self.assertIn("--effort", self.run_main("openrouter:openai/gpt-6-luna", "--effort", "high"))
+        a = puzzle_solve.argparse.Namespace(model=self.CLI, context_profile="v4-faithful", memory_tools=False,
+                                            rules_tool=False, effort="high")
+        cond = puzzle_solve.condition(a)
+        self.assertEqual((cond["CLAUDE_BRIDGE_EFFORT"], cond["CLAUDE_BRIDGE_EFFORT_SMART"], cond["CLAUDE_BRIDGE_EFFORT_FAST"]),
+                         ("high", "", ""))
+        a.effort = None
+        self.assertEqual(puzzle_solve.condition(a)["CLAUDE_BRIDGE_EFFORT"], "")
+        a.model = "openrouter:openai/gpt-6-luna"
+        self.assertFalse(any(k.startswith("CLAUDE") for k in puzzle_solve.condition(a)), "another model's condition moved")
+
+
 if __name__ == "__main__":
     unittest.main()

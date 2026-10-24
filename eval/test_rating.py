@@ -71,6 +71,11 @@ class TestPartition(unittest.TestCase):
         self.assertNotIn("decisions_bridge_version", aggregate.CONDITION_FIELDS)
         self.assertIn("decisions_bridge_version_a", rating.PLAYER_FIELDS_BY_IDENT["a"])
         self.assertIn("decisions_bridge_version_b", rating.PLAYER_FIELDS_BY_IDENT["b"])
+        # The same for a claude-cli: seat's bridge (ClaudeCliBridge).
+        self.assertNotIn("claude_cli_bridge_version", aggregate.CONDITION_FIELDS)
+        self.assertIn("claude_cli_bridge_version_a", rating.PLAYER_FIELDS_BY_IDENT["a"])
+        self.assertIn("claude_cli_bridge_version_b", rating.PLAYER_FIELDS_BY_IDENT["b"])
+        self.assertIn("claude_cli_bridge_version_a", aggregate.CONDITION_FIELDS)
 
 
 class TestFit(unittest.TestCase):
