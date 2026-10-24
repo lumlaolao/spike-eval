@@ -370,12 +370,15 @@ class TestAnswerTool(unittest.TestCase):
         self.assertIn("OPENROUTER_API_KEY", str(cm.exception.code))
 
     def test_a_decision_model_seat_refuses_lookups_and_lookahead(self):
-        for flag in ("--memory-tools", "--lookahead", "--text-answers", "--text-tools"):
+        for flag, reason in (("--memory-tools", "cannot call a lookup"), ("--lookahead", "cannot call a lookup"),
+                             ("--text-answers", "only through the `answer` call"),
+                             ("--text-tools", "only through the `answer` call")):
             with self.assertRaises(SystemExit) as cm:
                 run_batch.main(["--seeds", "1", "--smart-a", "jev:typesafe/jev-1.14", "--fast-a", "jev:typesafe/jev-1.14",
                                 "--controller-b", "ai", flag])
             self.assertIn(flag, str(cm.exception.code))
             self.assertIn("jev:", str(cm.exception.code))
+            self.assertIn(reason, str(cm.exception.code))
 
     def test_only_the_flags_set_it_and_lines_keep_it_apart(self):
         with mock.patch.dict(os.environ, {"ANSWER_TOOL": "1", "ANSWER_TOOL_STRICT": "1"}, clear=False), \
