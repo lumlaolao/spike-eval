@@ -666,6 +666,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     searched to its own best, falls 1 to 3 short of the searched maximum. A third
     (`eval/suites/puzzles-hard-gen3-v1.json`, 68 boards) adds Goblin token engines, land sequencing
     (landfall), Equipment and infect at the same bar.
+- **Watching a puzzle run (`puzzle_watch.py`, `eval/PUZZLES.md`)**: one row per puzzle of a `puzzle_solve.py` run
+  (state, solves, decisions by tier, cost so far, last answer, defect flags), or with `--follow` one line per event
+  until the run is over, exiting nonzero on a run where nothing has grown for `--stall` minutes. It reads the run
+  (and the `puzzle-run.json` that `puzzle_solve.py` writes for it) and writes nothing. *Why:* a paid run is watched
+  live, and a defect is cheaper stopped at its first puzzle than found in the score.
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a
   deck-matchup term and cluster-bootstrap CIs.
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,

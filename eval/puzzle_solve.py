@@ -34,6 +34,7 @@ import puzzle_score as ps  # noqa: E402
 
 # The attempt seeds: k distinct seeds per puzzle, the same for every solver, outside every reserved band.
 ATTEMPT_BASE = 1
+RUN_FILE = "puzzle-run.json"
 
 
 def load_secrets():
@@ -103,15 +104,26 @@ def prepare(out, k, suite_sha, resume):
     return "run"
 
 
+def write_json(path, obj):
+    """Written whole, then moved, so a restart (or a reader, eval/puzzle_watch.py) never sees half a file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(obj))
+    os.replace(tmp, path)
+
+
 def write_manifest(out, model, suite_sha, puzzle_id, cond):
     """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
-    game row (a puzzle has none). Written whole, then moved, so a restart never leaves half a manifest."""
-    out = Path(out)
-    out.mkdir(parents=True, exist_ok=True)
-    tmp = out / "batch-manifest.json.tmp"
-    tmp.write_text(json.dumps({"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
-                                             "suite_sha256": suite_sha, "env": cond}}))
-    os.replace(tmp, out / "batch-manifest.json")
+    game row (a puzzle has none)."""
+    write_json(Path(out) / "batch-manifest.json", {"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
+                                                                 "suite_sha256": suite_sha, "env": cond}})
+
+
+def write_run(out_root, ids, k, budget_usd, finished):
+    """RUN_FILE: what this invocation will play, so eval/puzzle_watch.py can show the puzzles not started yet, tell
+    when each is done (k result rows) and when the run is over (`finished`, written after the last puzzle)."""
+    write_json(Path(out_root) / RUN_FILE, {"ids": ids, "k": k, "budget_usd": budget_usd, "finished": finished})
 
 
 def resume_conflicts(out_root, ids, model, suite_sha, cond):
@@ -201,6 +213,8 @@ def main(argv=None):
           "endpoint, which the budget is checked at)"
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root), spent(out_root, bound=True)), flush=True)
 
+    write_run(out_root, [r["id"] for r in todo], a.k, a.budget_usd, finished=False)
+
     def work(rec):
         out = out_root / rec["id"]
         if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
@@ -220,6 +234,7 @@ def main(argv=None):
             solved = sum(1 for r in rows if ps.attempt_success(r)[0]) if rows else 0
             print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f" % (pid, rc, len(rows), solved, spent(out_root)),
                   flush=True)
+    write_run(out_root, [r["id"] for r in todo], a.k, a.budget_usd, finished=True)
     print("[cost] $%.3f over %d puzzles (%d not started for budget)" % (spent(out_root), len(todo) - skipped, skipped))
     return 0
 

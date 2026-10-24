@@ -326,6 +326,27 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 
+### Watching a run
+
+```bash
+python3 eval/puzzle_watch.py runs/puzzles/luna-open             # one row per puzzle, then the totals
+python3 eval/puzzle_watch.py runs/puzzles/luna-open --follow    # one line per event, for a line-based monitor
+```
+
+- Each row: state (waiting, running, done, not started), attempts solved, decisions by tier
+  (smart/fast/auto/ai), text parses, cost so far, the last decision and its answer, elapsed time, and a flag for each
+  defect acceptance fails on: `ai` (Forge's AI decided), `TEXT-PARSE`, `LOST` or `NO-ANSWER`, `EXCEPTION`,
+  `BLOCK-INVALID` (no legal set), `UNSCOREABLE`, and `STALLED?` for a running puzzle whose files have not grown for
+  `--stall` minutes (default 10). The totals line counts done and solved puzzles and the cost against the budget.
+- Cost: a `jev:` seat's own running cost from its bridge's log lines; an `openrouter:` seat logs none, so its rows
+  are priced by `eval/cost_report.py`, as the budget is.
+- `--follow` prints each new decision with its answer and the running cost, each flag as it grows and each puzzle as
+  it finishes, and exits 0 when `puzzle_solve.py` has marked the run finished, or 3 when nothing in the run has grown
+  for `--stall` minutes while it is not (a dead or hung run).
+- `puzzle_solve.py` writes `puzzle-run.json` at the top of `--out` (the puzzle ids, k, the budget, `finished`) for
+  this; a run made before it has no not-started rows or budget, and a puzzle there is done once its log ends on a
+  result line and has been quiet for a minute. The watcher only reads, and calls no network.
+
 ## Scoring
 
 With c solves in k attempts:

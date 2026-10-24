@@ -141,6 +141,20 @@ class ResumeTest(unittest.TestCase):
             self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
 
 
+class RunFileTest(unittest.TestCase):
+    """eval/puzzle_watch.py reads puzzle-run.json to show the puzzles not started, when each is done (k rows) and
+    when the run is over; without it a watcher cannot tell a finished run from a dead one."""
+
+    def test_the_run_file_names_the_puzzles_k_the_budget_and_whether_the_run_is_over(self):
+        root = Path(tempfile.mkdtemp())
+        puzzle_solve.write_run(root, ["a", "b"], 4, 1.5, finished=False)
+        self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text()),
+                         {"ids": ["a", "b"], "k": 4, "budget_usd": 1.5, "finished": False})
+        puzzle_solve.write_run(root, ["a", "b"], 4, 1.5, finished=True)
+        self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
+        self.assertEqual(sorted(p.name for p in root.iterdir()), [puzzle_solve.RUN_FILE], "no .tmp left behind")
+
+
 class DecisionModelSeatTest(unittest.TestCase):
     """A jev: seat (DecisionsBridge) sends each position to openrouter.ai like an openrouter: one, and it cannot call
     a lookup, so a run with them would record a condition it never had."""
