@@ -2675,13 +2675,14 @@ def infect_board(rng):
         return None
     shown = list(s["hand"]) + ["Forest"] * s["hand_forests"]
     rng.shuffle(shown)
-    battlefield = list(s["attackers"]) + ([INKMOTH] if s["inkmoth"] else []) + ["Forest"] * s["forests"]
+    attackers = list(s["attackers"]) + ([INKMOTH] if s["inkmoth"] else [])
+    battlefield = attackers + ["Forest"] * s["forests"]
     graveyard = ["Lightning Bolt"] * s["graveyard"]
     lands = "%d untapped Forest%s" % (s["forests"], "s" * (s["forests"] > 1))
     desc = ("It is your first main phase. You are at %d life and control %s. Your hand is %s. Your graveyard holds %s. "
             "Your library is all Forests. The opponent has %d poison counter%s, is at 20 life and controls nothing. "
             "Give the opponent ten poison counters this turn."
-            % (s["life"], _join(list(s["attackers"]) + ([INKMOTH] if s["inkmoth"] else []) + [lands]), _join(shown),
+            % (s["life"], _join(attackers + [lands]), _join(shown),
                _join(graveyard) if graveyard else "nothing", start, "" if start == 1 else "s"))
     rule = ("generated-infect | the exhaustive maximum is %d poison in %d steps%s" % (total, steps,
                                                                                     _trap_note(trap, INFECT_PLANS,
@@ -3419,10 +3420,6 @@ TOKEN_PLANS = {
 }
 
 
-def _goblin(name):
-    return TK_CREATURES[name][1]
-
-
 def token_search(start, plan=None):
     """The most damage the board deals and the fewest steps that deal it: (damage, steps, moves), an exhaustive search
     over every order of casts, Krenko's activation and Siege-Gang's, and every kind of Goblin sacrificed. All mana is
@@ -3653,7 +3650,7 @@ def token_lines(start, moves, life):
 
     def sacrifice(kind):
         b, label = victim_label(kind)
-        goblins = [x for x in bodies if _goblin(x["name"])]
+        goblins = [x for x in bodies if TK_CREATURES[x["name"]][1]]
         if len(goblins) > 1:
             L.append(label)
         bodies.remove(b)
