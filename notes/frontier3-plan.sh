@@ -13,29 +13,33 @@ SUITE=$REPO/eval/suites/puzzles-hard-gen2-v1.json
 IDS=hard-splice2-325cd33e0a57,hard-hoofdrain-60c5afda2f25,hard-drain2-0ab6f6ae05d9
 OUT=${OUT:-$REPO/runs/puzzles/frontier3}
 PAR=${PAR:-5}   # each JVM takes 2 GB; this box has 15
-# model  cap-in-USD (the chart's "high" for 3 puzzles, rounded up)
+# model  cap-in-USD: 3 attempts at the "high" profile (730K prompt half cached, 212K output) priced at each
+# model's `max` in eval/pricing/prices.json (its dearest endpoint; budgets check there since PR #303), +10%.
+# Sum of caps: about $291 (was $125 at list prices). Expected spend is unchanged (about $37 at list). The gap is
+# mostly priority tiers (GPT-6.1 Sol's "ultrafast" is 6x list). Owner choice: keep these caps, or have the bridge
+# send provider.max_price at list so routing never lands on a dearer tier, and size the caps at list again.
 MODELS="
-x-ai/grok-4.7 7.00
-x-ai/grok-4.6 7.00
-x-ai/grok-build-0.1 3.00
-x-ai/grok-4.3 3.50
-anthropic/claude-sonnet-5.5 9.00
-anthropic/claude-haiku-5.5 0.50
-openai/gpt-6.1-sol-pro 9.00
-openai/gpt-6.1-sol 9.00
-openai/gpt-6-luna 0.50
-google/gemini-4-argon 9.00
-google/gemini-3.8-flash 4.00
-meta/muse-wonder 18.00
-meta/muse-spark-1.3 4.50
-deepseek/deepseek-v4-pro 1.20
-deepseek/deepseek-v4.1-flash 1.20
-moonshotai/kimi-k3 9.00
-moonshotai/kimi-k2.6 3.50
-z-ai/glm-5.3-prime 10.00
-z-ai/glm-5.3 2.50
-mistralai/mistral-large-4-0 4.50
-mistralai/mistral-medium-3-5 9.00
+x-ai/grok-4.7 14.50
+x-ai/grok-4.6 14.50
+x-ai/grok-build-0.1 6.00
+x-ai/grok-4.3 7.00
+anthropic/claude-sonnet-5.5 10.50
+anthropic/claude-haiku-5.5 1.00
+openai/gpt-6.1-sol-pro 57.50
+openai/gpt-6.1-sol 57.50
+openai/gpt-6-luna 1.00
+google/gemini-4-argon 17.50
+google/gemini-3.8-flash 7.00
+meta/muse-wonder 19.50
+meta/muse-spark-1.3 5.00
+deepseek/deepseek-v4-pro 5.50
+deepseek/deepseek-v4.1-flash 2.50
+moonshotai/kimi-k3 23.00
+moonshotai/kimi-k2.6 5.00
+z-ai/glm-5.3-prime 10.50
+z-ai/glm-5.3 10.50
+mistralai/mistral-large-4-0 5.50
+mistralai/mistral-medium-3-5 10.00
 "
 JEV="typesafe/jev-1.14 0.50"   # $0.042/M input, output free: about $0.05 for 3 puzzles
 [ "${OPENROUTER_ALLOW_EGRESS:-}" = 1 ] || { echo "refused: the owner's egress opt-in is not set"; exit 2; }

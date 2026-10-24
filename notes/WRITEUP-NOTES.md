@@ -68,8 +68,11 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   - one `provider` object per request;
   - 13 models whose reasoning cannot be turned off get their lowest effort wherever "none" would be sent (fast
     tier, truncation retry), hashed into `model_cfg_sha`.
-- **Before the run:** the plan's per-model caps were sized from list prices. Budgets now check at `max`, so re-derive
-  each cap from the `max` prices, or a model is stopped early.
+- **Caps re-derived at `max` prices** (`notes/frontier3-plan.sh`): the ceiling across all models is now about $291
+  (was $125 at list). Expected spend is unchanged, about $37. The gap is mostly priority tiers (GPT-6.1 Sol and
+  Sol Pro: 6x list).
+- **Owner choice:** keep those caps, or have the bridge send OpenRouter's `provider.max_price` at the list price
+  so routing never lands on a dearer tier, and size the caps at list again.
 - **Still open from the audit (owner decisions):**
   - reasoning effort is each model's default, which differs (max for Kimi K3 and GLM);
   - Mistral may refuse a user message right after a tool result (plausible, unverified);
