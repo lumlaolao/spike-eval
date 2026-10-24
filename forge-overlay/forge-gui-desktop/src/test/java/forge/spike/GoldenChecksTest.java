@@ -2166,6 +2166,78 @@ public class GoldenChecksTest {
         source(gsz);
     }
 
+    /** The decline that is heard once is a declined pick, not any NO the effect asks with the same confirm mode: an
+     *  Optional search asks "Search your library?" as ChangeZoneGeneral too (ChangeZoneEffect.java:982). A NO there,
+     *  then a later activation that does search: its pick says nothing about a decline, and declining it asks
+     *  "Cancel Search?" (pr-review of PR #315). */
+    @Test(timeOut = 120000)
+    public void aNoToAnOptionalSearchIsNotAKeptSearch() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card gm = card("Grand Master of Flowers", me, ZoneType.Battlefield);
+        Card monk = card("Monk of the Open Hand", me, ZoneType.Library);
+        SpellAbility plus = null;
+        for (SpellAbility a : gm.getSpellAbilities()) if (a.getApi() == forge.game.ability.ApiType.ChangeZone) plus = a;
+        Assert.assertNotNull(plus, "Grand Master of Flowers' +1");
+        plus.setActivatingPlayer(me);
+        int[] cancels = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("Select a card", choice("Decline / none"))
+                .on("Cancel Search?", p -> { cancels[0]++; return "CHOICE: " + opt(p, "NO"); })
+                .on("Search your library?", p -> "CHOICE: " + opt(p, "NO"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertFalse(ctrl.confirmAction(plus, PlayerActionConfirmMode.ChangeZoneGeneral, "Search your library?", null, null, null));
+        // A later activation searches: the pick is its first, and a decline asks "Cancel Search?".
+        Assert.assertNull(ctrl.chooseSingleCardForZoneChange(ZoneType.Hand, Arrays.asList(ZoneType.Library), plus,
+                new CardCollection(Arrays.asList(monk)), null, "Select a card", true, me));
+        String pick = model.prompts.get(model.prompts.size() - 1);
+        pick = pick.substring(Math.max(0, pick.lastIndexOf("DECISION:")));
+        Assert.assertTrue(pick.contains("Select a card"), pick);
+        Assert.assertFalse(pick.contains("declined this pick"), pick);
+        Assert.assertFalse(ctrl.confirmAction(plus, PlayerActionConfirmMode.ChangeZoneGeneral,
+                "Cancel Search? Up to 1 more card(s) can be selected.", null, null, null));
+        Assert.assertEquals(cancels[0], 1, "the first decline's \"Cancel Search?\" was the model's");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+    }
+
+    /** A pick asked again after "keep searching" may take the card: it is fetched, and the next search of the same
+     *  ability starts clean (no "declined" line, its decline asks "Cancel Search?"). */
+    @Test(timeOut = 120000)
+    public void aSearchKeptGoingCanStillFetchAndLeavesNothingBehind() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Forest", me, ZoneType.Battlefield);
+        Card gsz = card("Green Sun's Zenith", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Library);
+        card("Forest", me, ZoneType.Library);
+        int[] cancels = {0}, picks = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Green Sun's Zenith"))
+                .on("Choose X for", choice("1"))
+                .on("Cancel Search?", p -> { cancels[0]++; return "CHOICE: " + opt(p, "NO"); })
+                .on("Select a card", p -> "CHOICE: " + opt(p, ++picks[0] == 2 ? "Llanowar Elves" : "Decline / none"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        Assert.assertEquals(picks[0], 2, "declined, kept searching, then picked");
+        Assert.assertEquals(cancels[0], 1);
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().anyMatch(c -> c.getName().equals("Llanowar Elves")),
+                "the card picked on the second ask was fetched");
+        // The next search of the same ability: a first pick, and its decline is the model's to cancel.
+        Card more = card("Llanowar Elves", me, ZoneType.Library);
+        Assert.assertNull(ctrl.chooseSingleCardForZoneChange(ZoneType.Battlefield, Arrays.asList(ZoneType.Library), r.get(0),
+                new CardCollection(Arrays.asList(more)), null, "Select a card", true, me));
+        String pick = model.prompts.get(model.prompts.size() - 1);
+        Assert.assertFalse(pick.substring(Math.max(0, pick.lastIndexOf("DECISION:"))).contains("declined this pick"), pick);
+        Assert.assertFalse(ctrl.confirmAction(r.get(0), PlayerActionConfirmMode.ChangeZoneGeneral,
+                "Cancel Search? Up to 1 more card(s) can be selected.", null, null, null));
+        Assert.assertEquals(cancels[0], 2, "that \"Cancel Search?\" was asked");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+        source(gsz);
+    }
+
     /** Which cast mode of a card with two (a split card's halves). */
     @Test
     public void whichWayToPlayACardIsTheModels() {
