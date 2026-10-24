@@ -58,6 +58,39 @@ class EpisodeTest(unittest.TestCase):
         report = ep.run_episode(SPEC, REPO, agent(code), self.out, grade_fn=stub, poll_s=0.05, **kw)
         return report, stub
 
+    def test_done_ends_the_episode_only_once_its_line_is_written(self):
+        # Creating DONE and writing its line are two steps; under load the poll can land between them.
+        # Ending there killed the agent and recorded "" (acceptance @ 725bbd5, OUT=/tmp/acc-pw-725bbd5, part2/pytests.log).
+        report, _ = self.run_ep(
+            "import time\nopen('DONE','w').close()\ntime.sleep(1)\n"
+            "open('DONE','w').write('submit HEAD')\ntime.sleep(30)\n")
+        self.assertEqual(report["ended_by"], "agent")
+        self.assertEqual(report["done"], "submit HEAD")
+        self.assertLess(report["wall_s"], 15)
+
+    def test_a_done_line_written_in_two_parts_is_recorded_whole(self):
+        report, _ = self.run_ep(
+            "import time\nf = open('DONE','w')\nf.write('submit '); f.flush()\ntime.sleep(1)\n"
+            "f.write('HEAD\\n'); f.close()\ntime.sleep(30)\n")
+        self.assertEqual(report["done"], "submit HEAD")
+
+    def test_a_done_line_ending_in_a_newline_ends_the_episode_at_once(self):
+        report, _ = self.run_ep("import time\nopen('DONE','w').write('submit HEAD\\n')\ntime.sleep(30)\n",
+                                done_grace_s=30)
+        self.assertEqual((report["ended_by"], report["done"]), ("agent", "submit HEAD"))
+        self.assertLess(report["wall_s"], 15, "ended on the newline, not after the grace")
+
+    def test_a_done_that_is_not_a_regular_file_never_blocks_the_cap(self):
+        report, _ = self.run_ep("import os, time\nos.mkfifo('DONE')\ntime.sleep(30)\n", cap_s=2)
+        self.assertEqual(report["ended_by"], "cap")
+
+    def test_an_empty_done_left_unchanged_still_ends_the_episode(self):
+        # A finished agent that only touches DONE and stays alive is the agent's end, not the cap's.
+        report, _ = self.run_ep("import time\nopen('DONE','w').close()\ntime.sleep(30)\n", done_grace_s=1)
+        self.assertEqual(report["ended_by"], "agent")
+        self.assertEqual(report["done"], "")
+        self.assertLess(report["wall_s"], 10)
+
     def test_an_agent_that_writes_done_ends_the_episode_and_its_overlay_is_graded(self):
         report, stub = self.run_ep(
             "import os\nos.makedirs('overlay/forge-gui-desktop/src/main/java/a', exist_ok=True)\n"
@@ -324,6 +357,12 @@ class JvmGraderTest(unittest.TestCase):
             ep.jvm_grader(self.cp, self.forge, "/jdk", set_file=self.set)
         self.assertIn(said, str(cm.exception))
         self.assertIn(self.forge, str(cm.exception))
+        # git that writes nothing to stderr still leaves a reason: the exit status, not an empty "(git: )".
+        silent = subprocess.CalledProcessError(128, ["git", "show"], output="", stderr="")
+        with mock.patch.object(ep.harness_env_aicount, "engine_source", side_effect=silent), \
+                self.assertRaises(ValueError) as cm:
+            ep.jvm_grader(self.cp, self.forge, "/jdk", set_file=self.set)
+        self.assertIn("exit status", str(cm.exception))
 
     def test_a_missing_or_malformed_set_file_exits_cleanly_before_the_agent_runs(self):
         bad = write(self.tmp, "bad.json", "{not json")

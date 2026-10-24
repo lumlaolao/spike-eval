@@ -2128,6 +2128,116 @@ public class GoldenChecksTest {
         Assert.assertNotNull(rival); Assert.assertNotNull(rival2);
     }
 
+    /** "Cancel Search?" is the engine's question after a declined optional search, and a NO searches again
+     *  (ChangeZoneEffect: i--; continue). The harness-env grader's costs.x (docs/harness/evidence/
+     *  2026-10-22-env-grade-abi.tsv) declined and answered NO every time: 61 asks, no outcome. The seat hears the
+     *  NO once; the pick asked again says a second decline ends the search, and a second decline does. */
+    @Test(timeOut = 120000)
+    public void aSearchDeclinedAgainAfterKeepSearchingEnds() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Forest", me, ZoneType.Battlefield);
+        Card gsz = card("Green Sun's Zenith", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Library);
+        card("Forest", me, ZoneType.Library);
+        int[] cancels = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Green Sun's Zenith"))
+                .on("Choose X for", choice("1"))
+                // Six NOs at most, then YES: the loop the grader saw would otherwise hang the test.
+                .on("Cancel Search?", p -> "CHOICE: " + opt(p, ++cancels[0] > 6 ? "YES" : "NO"))
+                .on("Select a card", choice("Decline / none"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        List<String> picks = new ArrayList<>();
+        for (String p : model.prompts) {
+            String d = p.substring(Math.max(0, p.lastIndexOf("DECISION:")));
+            if (d.contains("Select a card")) picks.add(d);
+        }
+        Assert.assertEquals(cancels[0], 1, "\"Cancel Search?\" was asked once, not until the model said yes");
+        Assert.assertEquals(picks.size(), 2, "the pick was asked again once after the NO");
+        Assert.assertTrue(picks.get(1).contains("declining again ends the search"), picks.get(1));
+        Assert.assertTrue(me.getCardsIn(ZoneType.Library).stream().anyMatch(c -> c.getName().equals("Llanowar Elves")),
+                "nothing was fetched");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+        source(gsz);
+    }
+
+    /** The decline that is heard once is a declined pick, not any NO the effect asks with the same confirm mode: an
+     *  Optional search asks "Search your library?" as ChangeZoneGeneral too (ChangeZoneEffect.java:982). A NO there,
+     *  then a later activation that does search: its pick says nothing about a decline, and declining it asks
+     *  "Cancel Search?" (pr-review of PR #315). */
+    @Test(timeOut = 120000)
+    public void aNoToAnOptionalSearchIsNotAKeptSearch() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card gm = card("Grand Master of Flowers", me, ZoneType.Battlefield);
+        Card monk = card("Monk of the Open Hand", me, ZoneType.Library);
+        SpellAbility plus = null;
+        for (SpellAbility a : gm.getSpellAbilities()) if (a.getApi() == forge.game.ability.ApiType.ChangeZone) plus = a;
+        Assert.assertNotNull(plus, "Grand Master of Flowers' +1");
+        plus.setActivatingPlayer(me);
+        int[] cancels = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("Select a card", choice("Decline / none"))
+                .on("Cancel Search?", p -> { cancels[0]++; return "CHOICE: " + opt(p, "NO"); })
+                .on("Search your library?", p -> "CHOICE: " + opt(p, "NO"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertFalse(ctrl.confirmAction(plus, PlayerActionConfirmMode.ChangeZoneGeneral, "Search your library?", null, null, null));
+        // A later activation searches: the pick is its first, and a decline asks "Cancel Search?".
+        Assert.assertNull(ctrl.chooseSingleCardForZoneChange(ZoneType.Hand, Arrays.asList(ZoneType.Library), plus,
+                new CardCollection(Arrays.asList(monk)), null, "Select a card", true, me));
+        String pick = model.prompts.get(model.prompts.size() - 1);
+        pick = pick.substring(Math.max(0, pick.lastIndexOf("DECISION:")));
+        Assert.assertTrue(pick.contains("Select a card"), pick);
+        Assert.assertFalse(pick.contains("declined this pick"), pick);
+        Assert.assertFalse(ctrl.confirmAction(plus, PlayerActionConfirmMode.ChangeZoneGeneral,
+                "Cancel Search? Up to 1 more card(s) can be selected.", null, null, null));
+        Assert.assertEquals(cancels[0], 1, "the first decline's \"Cancel Search?\" was the model's");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+    }
+
+    /** A pick asked again after "keep searching" may take the card: it is fetched, and the next search of the same
+     *  ability starts clean (no "declined" line, its decline asks "Cancel Search?"). */
+    @Test(timeOut = 120000)
+    public void aSearchKeptGoingCanStillFetchAndLeavesNothingBehind() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Forest", me, ZoneType.Battlefield);
+        Card gsz = card("Green Sun's Zenith", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Library);
+        card("Forest", me, ZoneType.Library);
+        int[] cancels = {0}, picks = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Green Sun's Zenith"))
+                .on("Choose X for", choice("1"))
+                .on("Cancel Search?", p -> { cancels[0]++; return "CHOICE: " + opt(p, "NO"); })
+                .on("Select a card", p -> "CHOICE: " + opt(p, ++picks[0] == 2 ? "Llanowar Elves" : "Decline / none"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        Assert.assertEquals(picks[0], 2, "declined, kept searching, then picked");
+        Assert.assertEquals(cancels[0], 1);
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().anyMatch(c -> c.getName().equals("Llanowar Elves")),
+                "the card picked on the second ask was fetched");
+        // The next search of the same ability: a first pick, and its decline is the model's to cancel.
+        Card more = card("Llanowar Elves", me, ZoneType.Library);
+        Assert.assertNull(ctrl.chooseSingleCardForZoneChange(ZoneType.Battlefield, Arrays.asList(ZoneType.Library), r.get(0),
+                new CardCollection(Arrays.asList(more)), null, "Select a card", true, me));
+        String pick = model.prompts.get(model.prompts.size() - 1);
+        Assert.assertFalse(pick.substring(Math.max(0, pick.lastIndexOf("DECISION:"))).contains("declined this pick"), pick);
+        Assert.assertFalse(ctrl.confirmAction(r.get(0), PlayerActionConfirmMode.ChangeZoneGeneral,
+                "Cancel Search? Up to 1 more card(s) can be selected.", null, null, null));
+        Assert.assertEquals(cancels[0], 2, "that \"Cancel Search?\" was asked");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+        source(gsz);
+    }
+
     /** Which cast mode of a card with two (a split card's halves). */
     @Test
     public void whichWayToPlayACardIsTheModels() {
@@ -2831,7 +2941,10 @@ public class GoldenChecksTest {
     /** Round-3 review of #314 (CR 509.1c): under Silent Arbiter, Hill Giant must block Grizzly Bears (a creature-side
      *  requirement) and Llanowar Elves has none. Elves on Savannah Lions obeys no requirement where Giant on the Bears
      *  obeys one, so it is refused, though validateBlocks' first objection is only about the Giant not blocking. The
-     *  seat answers it, then no blocks; the fallback takes Giant on the Bears. */
+     *  seat answers it, then no blocks; the fallback takes Giant on the Bears. Silent Arbiter also says "No more than
+     *  one creature can attack each combat"; the fixture puts two attackers in combat with combat.addAttacker, which
+     *  never checks attack restrictions, on purpose: only the block cap is under test, and a block-only cap (Mirri,
+     *  Weatherlight Duelist) exists only as the effect her attack trigger creates. */
     @Test
     public void atTheCapABlockThatObeysFewerRequirementsIsRefused() {
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
@@ -2905,6 +3018,63 @@ public class GoldenChecksTest {
         Assert.assertNotNull(set, "a legal set is found");
         Assert.assertEquals(set.size(), 1, "the one-Bear block");
         Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, set), "and it is legal");
+    }
+
+    /** restrictionError is a copy of the restriction half of CombatUtil.validateBlocks (follow-up to #314). With no
+     *  block requirement in play validateBlocks' requirement half finds nothing, so the two must agree on every set:
+     *  legal or not, and word for word where both object. Each branch of the copy is reached on both sides of its
+     *  bound (the two "alone" keywords, "at least two other creatures", "greater power", menace), and Mogg Flunkies
+     *  alone on the menace Brute breaks both rules at once, so the order of the two loops is pinned too. A drift in a
+     *  branch these sets reach (an engine bump, an edit to the copy) fails here, not in a game at the block cap. */
+    @Test
+    public void theBlockRestrictionCopyAgreesWithTheEngine() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card flunkies = card("Mogg Flunkies", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card hulk = card("Craven Hulk", me, ZoneType.Battlefield);              // can't block alone
+        Card conscripts = card("Orcish Conscripts", me, ZoneType.Battlefield);  // unless two others block
+        Card okk = card("Okk", me, ZoneType.Battlefield);                       // unless greater power blocks
+        Card wurm = card("Craw Wurm", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card brute = card("Boggart Brute", rival, ZoneType.Battlefield);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(lions, me);
+        combat.addAttacker(brute, me);
+        g.getAction().checkStaticAbilities();
+        Card[][][] sets = {
+            {},
+            {{flunkies, lions}},
+            {{flunkies, lions}, {bears, lions}},
+            {{flunkies, lions}, {bears, brute}},
+            {{bears, brute}},
+            {{bears, brute}, {giant, brute}},
+            {{flunkies, brute}, {bears, brute}},
+            {{bears, lions}, {giant, brute}},
+            {{hulk, lions}},
+            {{hulk, lions}, {bears, lions}},
+            {{conscripts, lions}, {bears, lions}},
+            {{conscripts, lions}, {bears, lions}, {giant, lions}},
+            {{okk, lions}, {bears, lions}},
+            {{okk, lions}, {wurm, lions}},
+            {{flunkies, brute}},
+        };
+        int objected = 0;
+        for (Card[][] set : sets) {
+            for (Card[] pr : set) combat.addBlocker(pr[1], pr[0]);
+            try {
+                CardCollection blocking = new CardCollection(combat.getAllBlockers());
+                String copy = LlmSpikeGui.PlayerControllerLLM.restrictionError(combat, blocking);
+                String engine = CombatUtil.validateBlocks(combat, me);
+                Assert.assertEquals(copy, engine, "set " + Arrays.deepToString(set));
+                if (engine != null) objected++;
+            } finally {
+                for (Card[] pr : set) combat.removeBlockAssignment(pr[1], pr[0]);
+            }
+        }
+        Assert.assertEquals(objected, 8, "Flunkies, Hulk, Conscripts and Okk refused once each, menace by one"
+                + " three times, Flunkies alone on the Brute once");
     }
 
     /** pr-review of #311: the no-model branch (the floor seat, or a spent budget) declared no blocks under a block

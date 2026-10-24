@@ -345,6 +345,8 @@ answered 2, empty answered 1). By the owner's surface grouping ours reads 0.982,
    predates that epoch and the grader was not re-run.
 2. `costs.x`: Green Sun's Zenith with X = 1, a model that declines the search and then answers no to "Cancel Search?"
    is shown the search again without end (61 requests, then parked and abandoned). No loop guard bounds that pair.
+   Filed as issue #312 and fixed in harness-epoch-72 (the NO is heard once, a second decline ends the search;
+   `GoldenChecksTest.aSearchDeclinedAgainAfterKeepSearchingEnds`); the grade above is from before the fix.
 
 ### 4.10 What is built: the instance generator (`eval/harness_env_generate.py`)
 

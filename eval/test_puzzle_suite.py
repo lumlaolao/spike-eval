@@ -348,14 +348,31 @@ class ResumeTest(unittest.TestCase):
     def test_reuse_needs_the_same_build_and_the_same_seeds(self):
         with tempfile.TemporaryDirectory() as d:
             out = Path(d)
-            build = type("B", (), {"classes": Path("/b/one/classes")})()
+            build = type("B", (), {"classes": Path("/b/one/classes"), "overlay_sha": "aaaaaaaaaaaa"})()
             (out / "java.args").write_text("-Xmx2048m\n-cp\n/b/one/classes:/forge/x.jar\n")
+            (out / "build.json").write_text(json.dumps({"build_overlay_sha": "aaaaaaaaaaaa"}))
             rows = [{"seed": s, "status": "failed"} for s in (1, 2, 3)]
             (out / "puzzle-results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
             self.assertEqual(pb.reusable(build, out, "1..3"), rows)
             self.assertIsNone(pb.reusable(build, out, "1..4"), "a partial run is run again")
-            other = type("B", (), {"classes": Path("/b/one/classes-old")})()
+            other = type("B", (), {"classes": Path("/b/one/classes-old"), "overlay_sha": "aaaaaaaaaaaa"})()
             self.assertIsNone(pb.reusable(other, out, "1..3"), "another build's rows are not reused")
+
+    def test_reuse_needs_the_same_compiled_overlay_too(self):
+        # pr-review of #319: the classes path is the same when a build dir is recompiled from other sources.
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d)
+            build = type("B", (), {"classes": Path("/b/one/classes"), "overlay_sha": "aaaaaaaaaaaa"})()
+            (out / "java.args").write_text("-Xmx2048m\n-cp\n/b/one/classes:/forge/x.jar\n")
+            (out / "puzzle-results.jsonl").write_text(json.dumps({"seed": 1}) + "\n")
+            self.assertIsNone(pb.reusable(build, out, "1"), "no build.json: rows from before builds were recorded")
+            (out / "build.json").write_text(json.dumps({"build_overlay_sha": "bbbbbbbbbbbb"}))
+            self.assertIsNone(pb.reusable(build, out, "1"), "recompiled from other sources")
+            (out / "build.json").write_text(json.dumps({"build_overlay_sha": "aaaaaaaaaaaa"}))
+            self.assertIsNotNone(pb.reusable(build, out, "1"))
+            unknown = type("B", (), {"classes": Path("/b/one/classes"), "overlay_sha": "unknown"})()
+            (out / "build.json").write_text(json.dumps({"build_overlay_sha": "unknown"}))
+            self.assertIsNone(pb.reusable(unknown, out, "1"), "two unrecorded builds are not known to be one")
 
     def test_seed_specs_expand(self):
         self.assertEqual(pb.expand_seeds("1..3,7"), [1, 2, 3, 7])

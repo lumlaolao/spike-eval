@@ -355,8 +355,10 @@ public final class LlmSpikeGui {
      *  model's own block answers are judged: a set above a global block cap (Silent Arbiter) is refused, and an
      *  at-cap set the engine's requirement check wrongly refuses is accepted when each blocker obeys a requirement
      *  and the block restrictions hold (blocksError).
+     *  Epoch 72 (2026-10-24, issue #312, the grader's costs.x): a declined search answered NO at "Cancel Search?" is
+     *  asked again once, saying a second decline ends the search; a second decline does (the engine re-asked forever).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-71";
+    static final String HARNESS_EPOCH = "harness-epoch-72";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3530,7 +3532,8 @@ public final class LlmSpikeGui {
          *  restrictions such as menace), or null. The engine checks them only for its own GUI (InputBlock calls
          *  CombatUtil.validateBlocks), so every other controller's blocks stood whatever they were (rules pilot
          *  RP_007). The pairs (blocker, attacker) are added, checked and removed again. validateBlocks never counts the
-         *  blockers against a global cap (Silent Arbiter: "No more than one creature can block each combat"), which
+         *  blockers against a global cap (Silent Arbiter: "No more than one creature can block each combat"; Mirri,
+         *  Weatherlight Duelist's attack trigger: "each opponent can't block with more than one creature"), which
          *  the engine enforces only in CombatUtil.canBlock against the combat so far, so the cap is checked here.
          *  <p>validateBlocks' requirement test also ignores the cap: under Silent Arbiter and Prized Unicorn it refused
          *  every set, naming a creature left unblocking whose requirement the cap forbids obeying. At the cap that
@@ -3550,7 +3553,7 @@ public final class LlmSpikeGui {
                 if (err == null || blocking.size() < cap || !namesANonBlocker(err, defender, blocking)) return err;
                 for (Card b : blocking) {
                     boolean obeys = false;
-                    for (Card a : combat.getAttackersBlockedBy(b)) obeys |= requiredToward(b, a, combat, defender);
+                    for (Card a : combat.getAttackersBlockedBy(b)) obeys |= requiredToward(b, a, combat);
                     if (!obeys) return err;
                 }
                 return restrictionError(combat, blocking);
@@ -3567,7 +3570,7 @@ public final class LlmSpikeGui {
         /** Whether the blocker has a requirement to block this attacker: it blocks each combat if able, it must block
          *  this attacker (provoke), or the attacker's lure covers it. The last two are the engine's own test
          *  (CombatUtil.mustBlockAnAttacker) on a scratch combat holding only this attacker. */
-        private static boolean requiredToward(Card blocker, Card attacker, Combat combat, Player defender) {
+        private static boolean requiredToward(Card blocker, Card attacker, Combat combat) {
             if (forge.game.staticability.StaticAbilityMustBlock.blocksEachCombatIfAble(blocker)) return true;
             Combat scratch = new Combat(combat.getAttackingPlayer());
             scratch.addAttacker(attacker, combat.getDefenderByAttacker(attacker));
@@ -3577,7 +3580,7 @@ public final class LlmSpikeGui {
         /** The restriction half of CombatUtil.validateBlocks (CombatUtil.java:701-728 at the pinned engine), which runs
          *  only after its requirement half finds nothing: the "can't block alone" family, then each blocked attacker's
          *  allowed number of blockers (menace). */
-        private static String restrictionError(Combat combat, CardCollection blockers) {
+        static String restrictionError(Combat combat, CardCollection blockers) {
             for (Card b : blockers) {
                 boolean alone = b.hasKeyword("CARDNAME can't attack or block alone.") || b.hasKeyword("CARDNAME can't block alone.");
                 if (blockers.size() < 2 && alone) return b + " can't block alone.";
@@ -4448,10 +4451,27 @@ public final class LlmSpikeGui {
         /** The cards picked so far by the effect asking one pick at a time ({@link #chooseSingleCardForZoneChange}). */
         private final List<String> zonePicks = new ArrayList<>();
         private SpellAbility zonePicksFor;
+        /** A declined search answered NO at "Cancel Search?" is asked again by the engine, as often as the pair is
+         *  repeated (ChangeZoneEffect: i--; continue). The grader's costs.x looped 61 times (issue #312). The NO is
+         *  heard once. {@code declinedPick} is the effect whose last pick was declined: only a confirm about that
+         *  pick is its "Cancel Search?" (an Optional search's "Search your library?" has the same mode). A NO to it
+         *  sets {@code keptSearching}, the effect whose pick comes back; declined again, it stays set, and that
+         *  effect's next "Cancel Search?" is YES. Every pick and every confirm consumes both. */
+        private SpellAbility declinedPick, keptSearching;
 
         @Override
         public Card chooseSingleCardForZoneChange(ZoneType destination, List<ZoneType> origin, SpellAbility sa,
                 CardCollection fetchList, DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, Player decider) {
+            boolean again = isOptional && sa != null && sa == keptSearching;
+            Card r = pickForZoneChange(destination, sa, fetchList, delayedReveal, selectPrompt, isOptional, again);
+            boolean declined = r == null && fetchList != null && !fetchList.isEmpty();
+            declinedPick = declined ? sa : null;
+            keptSearching = declined && again ? sa : null;
+            return r;
+        }
+
+        private Card pickForZoneChange(ZoneType destination, SpellAbility sa, CardCollection fetchList,
+                DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, boolean again) {
             clearLast();
             // Nothing to fetch: nothing to choose. A pick this controller is asked to make is the seat's, whoever
             // the engine names as decider (it was Forge's AI's when decider was another player). A delayedReveal
@@ -4475,7 +4495,8 @@ public final class LlmSpikeGui {
                         // "reanimate your biggest threat" was appended to Brainstorm, Aether Vial and
                         // Stoneforge picks alike; the faithful profile states the choice and nothing else.
                         + (observer != null ? "." : " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).")
-                        + (observer != null && later && !zonePicks.isEmpty() ? " Already picked for this effect: " + String.join(", ", zonePicks) + "." : "");
+                        + (observer != null && later && !zonePicks.isEmpty() ? " Already picked for this effect: " + String.join(", ", zonePicks) + "." : "")
+                        + (again ? " You declined this pick and then chose to keep searching; declining again ends the search." : "");
                 int c = decideOne(bridgeFor("zone-change"), "zone-change", q, labels, isOptional ? "Decline / none" : null);
                 if (c >= 0) zonePicks.add(labels.get(c));
                 if (c == -2) { auto("zone-change(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
@@ -6070,6 +6091,23 @@ public final class LlmSpikeGui {
         @Override
         public boolean confirmAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
                 List<String> options, Card cardToShow, Map<String, Object> params) {
+            // "Cancel Search?" is the confirm about the pick just declined; after a NO that sent the pick back and a
+            // second decline, the decline stands (issue #312).
+            boolean cancelSearch = mode == PlayerActionConfirmMode.ChangeZoneGeneral && sa != null && sa == declinedPick;
+            boolean declinedTwice = cancelSearch && sa == keptSearching;
+            declinedPick = null; keptSearching = null;
+            if (declinedTwice) {
+                clearLast();
+                lastTopOrderSa = null;
+                auto("confirm(declined-again)->YES cancel search" + srcOf(sa));
+                return true;
+            }
+            boolean yes = askConfirm(sa, mode, message, cardToShow);
+            if (cancelSearch && !yes) keptSearching = sa;
+            return yes;
+        }
+
+        private boolean askConfirm(SpellAbility sa, PlayerActionConfirmMode mode, String message, Card cardToShow) {
             clearLast();
             // The "may shuffle" after an ordering goes to the fast tier, a separate conversation that never
             // saw the order: in runs/loop/g10 it answered YES to Ponder's shuffle and undid the order the

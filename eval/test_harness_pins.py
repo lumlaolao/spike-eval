@@ -8,9 +8,14 @@ stage uses the label; that is one `case` line beside the seed check. The javates
 function is run the same way, with a stub in place of java that prints its environment.
 """
 import os
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import benchmark_version  # noqa: E402
 
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "harness_acceptance.sh")
 
@@ -93,6 +98,74 @@ class JavatestsEnvironmentTest(unittest.TestCase):
         self.assertIn("MEMORY_TOOLS=1", out, "the stub ran")
         self.assertIn("EVAL_OUT=unset", out)
         self.assertIn("KEEP_ME=1", out, "every other variable still reaches the JVM")
+
+
+def compile_stage():
+    """The script's compile stage, `if has_stage compile; then` through its closing `fi`."""
+    with open(SCRIPT, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage compile; then"))
+    end = next(i for i in range(start + 1, len(lines)) if lines[i] == "fi")
+    return "\n".join(lines[start:end + 1])
+
+
+class CompileRecordsItsSourcesTest(unittest.TestCase):
+    """The compile stage writes overlay-sha.txt beside classes/, the hash run_batch.py stamps as overlay_sha, so
+    puzzle_baselines.Build can refuse a build that is not this checkout's (puzzle-build-staleness). A failed
+    compile leaves none, and an old one does not survive a recompile. javac is a stub and the repository a
+    temporary one-file overlay (so a source can change mid-compile); the hash and the import check are the real
+    scripts."""
+
+    def compile(self, javac_rc, edit_during_compile=False):
+        """(stage output, the recorded hash or None, the overlay's hash before the compile)."""
+        with tempfile.TemporaryDirectory() as d:
+            repo = os.path.join(d, "repo")
+            os.makedirs(os.path.join(repo, "eval"))
+            for name in ("benchmark_version.py", "java_imports.py"):
+                shutil.copy(os.path.join(os.path.dirname(SCRIPT), name), os.path.join(repo, "eval"))
+            src = os.path.join(repo, "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/A.java")
+            os.makedirs(os.path.dirname(src))
+            with open(src, "w") as f:
+                f.write("package forge.spike;\nclass A {}\n")
+            before = benchmark_version.overlay_sha_of_checkout(repo)
+            javac = os.path.join(d, "javac")
+            with open(javac, "w") as f:
+                f.write('#!/bin/sh\n%swhile [ "$1" != -d ]; do shift; done\nmkdir -p "$2/forge/spike"\n'
+                        'touch "$2/forge/spike/LlmSpikeGui.class"\nexit %d\n'
+                        % ('echo "// edited" >> "%s"\n' % src if edit_during_compile else "", javac_rc))
+            os.chmod(javac, 0o755)
+            out = os.path.join(d, "out")
+            os.makedirs(out)
+            with open(os.path.join(out, "cp.txt"), "w") as f:
+                f.write("x.jar")
+            with open(os.path.join(out, "overlay-sha.txt"), "w") as f:
+                f.write("0ld0ld0ld0ld\n")
+            script = ('REPO="$1"; OUT="$2"; JAVAC="$3"; CP_FILE="$2/cp.txt"; CLASSES="$2/classes"\n'
+                      'OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"\n'
+                      'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n'
+                      % compile_stage())
+            res = subprocess.run(["bash", "-c", script, "x", repo, out, javac], check=True,
+                                 stdout=subprocess.PIPE, universal_newlines=True).stdout
+            sha = os.path.join(out, "overlay-sha.txt")
+            return res, (open(sha).read().strip() if os.path.exists(sha) else None), before
+
+    def test_a_compile_records_the_overlay_it_compiled(self):
+        res, sha, before = self.compile(0)
+        self.assertIn("PASS compile", res)
+        self.assertEqual(sha, before)
+        self.assertNotEqual(sha, "unknown")
+
+    def test_a_failed_compile_records_nothing(self):
+        res, sha, _ = self.compile(1)
+        self.assertIn("FAIL compile", res)
+        self.assertIsNone(sha)
+
+    def test_an_overlay_edited_during_the_compile_fails_the_stage_and_records_nothing(self):
+        # pr-review of #319: the classes may hold either version, so neither hash names them.
+        res, sha, _ = self.compile(0, edit_during_compile=True)
+        self.assertIn("FAIL compile", res)
+        self.assertIn("changed during the compile", res)
+        self.assertIsNone(sha)
 
 
 if __name__ == "__main__":
