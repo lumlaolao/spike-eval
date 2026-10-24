@@ -110,7 +110,7 @@ public class OpenRouterRequestTest {
     }
 
     /** A floored model still reasons at its lowest effort, so its retry keeps the whole budget, not the 4096 an
-     *  answer with reasoning off needs (pr-review of #303); a model that turns reasoning off keeps 4096. */
+     *  answer with reasoning off needs; a model that turns reasoning off keeps 4096. */
     @Test
     public void aFlooredRetryKeepsTheWholeBudget() {
         Assert.assertTrue(twoBodies("google/gemini-4-argon", true).get(1).contains("\"max_tokens\":32000"));
@@ -118,7 +118,7 @@ public class OpenRouterRequestTest {
     }
 
     /** The fast tier sends "none" on every call (two-tier runs): a mandatory reasoner gets its floor there too, and
-     *  grok-4.3, which can turn reasoning off, is no longer sent "low" by a grok-wide row. */
+     *  grok-4.3, which can turn reasoning off, keeps enabled:false. */
     @Test
     public void theFastTierSendsEachModelWhatItAccepts() {
         Assert.assertTrue(twoBodies("test/fast", "google/gemini-4-argon", true).get(0).contains("\"reasoning\":{\"effort\":\"low\"}"));

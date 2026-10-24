@@ -55,8 +55,11 @@ def is_loopback(url):
         return False
 
 
-def spent(out_root):
-    prices = cost_report.budget_prices(cost_report.load_prices())
+def spent(out_root, bound=False):
+    """What the run's directories cost at the list price; `bound`: at each model's dearest endpoint, as the budget
+    is checked."""
+    prices = cost_report.load_prices()
+    prices = cost_report.budget_prices(prices) if bound else prices
     return sum(cost_report.report_dir(str(d), prices)["usd"] for d in Path(out_root).glob("*") if d.is_dir())
 
 
@@ -192,7 +195,7 @@ def main(argv=None):
         out = out_root / rec["id"]
         if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
             return rec["id"], "done", pb.read_results(out)
-        if spent(out_root) >= a.budget_usd:
+        if spent(out_root, bound=True) >= a.budget_usd:
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
 

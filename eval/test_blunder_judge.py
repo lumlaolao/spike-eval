@@ -51,7 +51,8 @@ class BlunderJudgeTest(unittest.TestCase):
                             '{"verdict":"ok","question_ok":false,"question_problem":"option 1 is not castable"}'])
             fake = lambda spec, prompt, mt: (next(answers), 100000, 1000)   # noqa: E731
             spec = "openrouter:deepseek/deepseek-v4.1-flash"
-            price = bj.cost_report.price_of(bj.cost_report.load_prices(), spec)
+            # The budget is checked at the dearest endpoint's price (cost_report.budget_prices).
+            price = bj.cost_report.price_of(bj.cost_report.budget_prices(bj.cost_report.load_prices()), spec)
             one = bj.cost(price, 100000, 1000)
             results, spent, sheet = bj.judge_run(d, spec, one * 1.5, bj.DEFAULT_TYPES, 0, 100, call=fake, out=io.StringIO())
             self.assertEqual(len(results), 2, "the third call would pass the budget")

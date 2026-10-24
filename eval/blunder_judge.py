@@ -191,24 +191,26 @@ def judge_run(run, spec, budget, types, limit, max_tokens, call=openrouter, out=
     price = cost_report.price_of(prices, spec)
     if price is None:
         raise SystemExit("%s is not in eval/pricing/prices.json; add it before judging with it" % spec)
+    # The budget is checked at the dearest endpoint (cost_report.budget_prices); the reported spend is the list price.
+    bound_price = cost_report.price_of(cost_report.budget_prices(prices), spec)
     tag = re.sub(r"[^A-Za-z0-9.-]+", "_", cost_report.model_id(spec))
     sheet = os.path.join(run, "judge-%s.jsonl" % tag)
-    spent, results = 0.0, []
+    spent, bound, results = 0.0, 0.0, []
     with open(sheet, "w") as f:
         for path in sorted(glob.glob(os.path.join(run, "*.jsonl"))):
             if os.path.basename(path).startswith("judge-"):
                 continue
             rows = rows_of(path)
             for r in list(judged(rows, types))[:limit or None]:
-                if spent >= budget:
-                    out.write("[budget] $%.2f reached; stopping\n" % spent)
+                if bound >= budget:
+                    out.write("[budget] $%.2f reached at the dearest endpoint's price; stopping\n" % bound)
                     return results, spent, sheet
                 prompt = judge_prompt(rows, r)
                 text, pt, ct = call(spec, prompt, max_tokens)
-                spent += cost(price, pt, ct)
-                if parse_verdict(text) is None and spent < budget:      # one retry: an empty or cut reply
+                spent, bound = spent + cost(price, pt, ct), bound + cost(bound_price, pt, ct)
+                if parse_verdict(text) is None and bound < budget:      # one retry: an empty or cut reply
                     text, pt, ct = call(spec, prompt, max_tokens)
-                    spent += cost(price, pt, ct)
+                    spent, bound = spent + cost(price, pt, ct), bound + cost(bound_price, pt, ct)
                 v = parse_verdict(text) or {"verdict": "unparsed", "raw": text[:500]}
                 rec = {"t": "judgement", "version": VERSION, "judge": spec, "file": os.path.basename(path),
                        "line": r["_line"], "turn": r.get("turn"), "phase": r.get("phase"), "type": r.get("type"),

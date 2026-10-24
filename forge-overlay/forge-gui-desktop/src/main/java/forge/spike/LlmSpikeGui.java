@@ -10034,9 +10034,8 @@ public final class LlmSpikeGui {
                 t.put(key, uniform);
             // A model that cannot be told to stop reasoning (grok-4.7, Sonnet 5.5, the Gemini models, ...)
             // takes this row too: send() replaces its "none" with MANDATORY_REASONING_FLOOR's lowest effort,
-            // on the fast tier and the truncation retry alike. The grok row that did this for grok alone
-            // (fast "low") is gone: it also sent "low" to grok-build-0.1, which lists no efforts, and to
-            // grok-4.3, which can turn reasoning off (pr-review of #303).
+            // on the fast tier and the truncation retry alike. Keep it per model id, never per family: a
+            // grok-wide row would send "low" to grok-build-0.1 (no efforts) and to grok-4.3 (can turn it off).
             try { applyEnvOverride(t); }
             catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
             return t;
@@ -10782,8 +10781,7 @@ public final class LlmSpikeGui {
                     // ~3 minutes of the 8-minute game cap) does not need MORE room to think -- that is
                     // exactly what it just spent. Asking it to stop reasoning gets an answer in ~1s
                     // (measured: enabled=false -> 65 completion tokens, 1.3s). So for a row we know is
-                    // a reasoner, the retry DISABLES reasoning (a MANDATORY_REASONING_FLOOR model, which refuses
-                    // that, gets its lowest effort and its whole budget instead); every other model keeps the historic
+                    // a reasoner, the retry DISABLES reasoning; every other model keeps the historic
                     // double-the-budget retry, which is right for a genuinely long answer.
                     // A call whose reasoning was already off ("none": the fast tier) gets nothing from
                     // turning it off again; it needs room for its answer, so it takes the doubled budget.

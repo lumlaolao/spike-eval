@@ -122,10 +122,19 @@ class CostReportTest(unittest.TestCase):
         self.assertEqual(cr.budget_prices({"m/y": {"prompt": 1.0, "completion": 2.0}})["m/y"]["prompt"], 1.0,
                          "an entry with no max is its own bound")
 
-    def test_every_multi_endpoint_price_states_its_bound_and_the_bound_is_not_below_the_list(self):
+    def test_every_paid_price_states_its_bound_and_the_bound_covers_every_listed_rate(self):
+        # A budget is checked at `max`; a model with no `max` must say why (`max_note`: one endpoint), and a `max`
+        # that leaves a listed rate out (cache writes) would check that rate at the list price.
         for mid, p in cr.load_prices().items():
-            for k, v in (p.get("max") or {}).items():
-                self.assertGreaterEqual(v, p.get(k, 0), (mid, k))
+            if mid.startswith("fake/"):
+                continue
+            self.assertTrue("max" in p or "max_note" in p, mid)
+            bound = p.get("max") or {}
+            for k in ("prompt", "completion", "input_cache_read", "input_cache_write"):
+                if k in p and bound:
+                    self.assertIn(k, bound, (mid, k))
+                if k in bound:
+                    self.assertGreaterEqual(bound[k], p.get(k, 0), (mid, k))
 
 
 if __name__ == "__main__":
