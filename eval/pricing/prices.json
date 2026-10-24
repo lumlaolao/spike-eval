@@ -232,7 +232,7 @@
       "source": "https://openrouter.ai/api/v1/models",
       "max": {
         "prompt": 0.0000045,
-        "completion": 0.0000225,
+        "completion": 0.000024,
         "input_cache_read": 0.0000012
       },
       "max_note": "the dearest of 27 endpoints that take tools, 2026-10-24"
