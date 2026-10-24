@@ -273,31 +273,28 @@ python3 scripts/puzzle-gate/gen_suite.py --name hard-gen2 --gate G1 G2 ... --boa
 
 ### The third hard suite
 
-`eval/puzzles/hard/gen3/` holds two families mechanically unlike the earlier ones, to the second suite's bar (13 to
-15 steps, the goal the exact searched maximum, no mana unused, a plain plan 1 to 3 short):
+`eval/suites/puzzles-hard-gen3-v1.json` (68 boards in `eval/puzzles/hard/gen3/`; 44 open, 24 held out) adds four
+families mechanically unlike the earlier ones, to the second suite's bar (13 to 15 steps, the goal the exact searched
+maximum, no mana unused, the best plain plan 1 to 3 short):
 
-| Family | Goal | Trap (the plain plans) |
-|---|---|---|
-| infect | the opponent's tenth poison counter (`p1counters=POISON=N`, `Goal:Win`, `winner p0`: acceptance has no poison condition) | Become Immense as soon as it can be paid; pump only in combat; proliferate only after combat; never proliferate; Inkmoth Nexus always attacks; the land first |
-| equip | life, in one combat with no blockers | everything on the creature with the most power; cast every Equipment before equipping; Embercleave in the main phase; equip each Equipment at once |
+| Family | Boards | Goal | Trap (the plain plans that fall short) |
+|---|---|---|---|
+| tokens | 24 | life | sacrifice a token whenever there is one; cast the payoffs as soon as the lands pay for them |
+| landfall | 17 | life | play a land before anything else; cast each landfall creature as soon as it can be paid |
+| equip | 15 | life, in one combat with no blockers | everything on the creature with the most power; cast every Equipment before equipping; Embercleave in the main phase; equip each Equipment at once |
+| infect | 12 | the opponent's tenth poison counter (`p1counters=POISON=N`, `Goal:Win`, `winner p0`: acceptance has no poison condition) | Become Immense as soon as it can be paid; pump only in combat; proliferate only after combat; never proliferate; Inkmoth Nexus always attacks; the land first |
 
-Searches, line rules and gate results: `docs/harness/history/2026-10-22-infect-equip.md`. `eval/test_puzzle_gen.py`
-(`Gen3BoardsTest`) re-derives every committed board from its `# search:` and `# trap:` lines.
+Every board passed the gate (random 0 of 20; PASS, first, greedy 0 of 4; Forge's AI at most 1 of 4); the rows are in
+`runs/puzzles/hard-gen3-gate` (six gate runs). Five tokens boards whose written line did not play were left out of
+the folder before freezing. `eval/test_puzzle_gen.py` re-derives every committed board from its `# search:` and
+`# trap:` lines, the written line included. Searches, line rules and limits:
+`docs/harness/history/2026-10-22-infect-equip.md`, `docs/harness/history/2026-10-22-landfall-tokens.md`.
 
-### The third hard boards (landfall, tokens)
-
-`eval/puzzles/hard/gen3/` holds two more families at the gen2 bar (13 to 15 steps, the life the exact maximum of the
-search, nothing left unused, the best plain plan 1 to 3 short), each re-derived from its own .pzl by
-`eval/test_puzzle_gen.py`, the written line included:
-
-| Family | Trap (the plain plan that falls short) |
-|---|---|
-| landfall | play a land before anything else; cast each landfall creature as soon as it can be paid |
-| tokens | sacrifice a token whenever there is one; cast the payoffs as soon as the lands pay for them |
-
-They are gated like gen2 (rows in `runs/puzzles/hard-gen3-gate`; 17 landfall and 24 tokens boards kept, 41 of 46)
-and not yet in a frozen suite. Notes, the search models and their limits:
-`docs/harness/history/2026-10-22-landfall-tokens.md`.
+```bash
+G=runs/puzzles/hard-gen3-gate
+python3 scripts/puzzle-gate/gen_suite.py --name hard-gen3 --gate $G/gen3-gate-A $G/gen3-gate-B $G/gate-lf-a \
+  $G/gate-b $G/gate-c $G/gate-d --boards eval/puzzles/hard/gen3 --out eval/suites/puzzles-hard-gen3-v1.json
+```
 
 ## Running a model
 
