@@ -35,6 +35,24 @@ class UnpricedModelTest(unittest.TestCase):
         self.assertIn("nobody/unpriced-model", str(cm.exception.code))
 
 
+class BudgetAtTheBoundTest(unittest.TestCase):
+    """The budget is checked at each model's dearest endpoint (cost_report.budget_prices): latency routing may land on
+    a dearer endpoint than the list price, so a run checked at the list price could overrun its budget."""
+
+    def test_a_run_under_budget_at_list_price_but_over_at_the_bound_is_stopped(self):
+        spec = "openrouter:deepseek/deepseek-v4.1-flash"
+        root = Path(tempfile.mkdtemp())
+        (root / "p1").mkdir()
+        (root / "p1" / "game-1-0.jsonl").write_text(
+            json.dumps({"t": "context_call", "tier": "smart", "prompt_tokens": 100000, "completion_tokens": 1000}) + "\n"
+            + json.dumps({"t": "game", "smart_a": spec, "fast_a": spec}) + "\n")
+        listed, bound = puzzle_solve.spent(root), puzzle_solve.spent(root, bound=True)
+        self.assertLess(listed, bound)
+        budget = (listed + bound) / 2
+        self.assertTrue(puzzle_solve.over_budget(root, budget), "checked at the bound")
+        self.assertFalse(puzzle_solve.over_budget(root, bound * 2))
+
+
 class ResumeTest(unittest.TestCase):
     """A run stopped by a container restart is started again with --resume (owner, 2026-10-22): a puzzle whose
     k attempts on this suite are already recorded is not paid for twice; one cut off part way is played again."""

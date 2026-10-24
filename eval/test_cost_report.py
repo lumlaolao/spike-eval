@@ -124,7 +124,8 @@ class CostReportTest(unittest.TestCase):
 
     def test_every_paid_price_states_its_bound_and_the_bound_covers_every_listed_rate(self):
         # A budget is checked at `max`; a model with no `max` must say why (`max_note`: one endpoint), and a `max`
-        # that leaves a listed rate out (cache writes) would check that rate at the list price.
+        # that leaves out a rate the entry lists (cache writes) would check that rate at the list price. A rate the
+        # entry does not list falls back to the prompt rate, so `max` holds it only where an endpoint charges more.
         for mid, p in cr.load_prices().items():
             if mid.startswith("fake/"):
                 continue
