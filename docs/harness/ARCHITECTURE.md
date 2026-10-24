@@ -154,7 +154,10 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   Stack zone).
 - a declined optional search is followed by the engine's "Cancel Search?", and a NO asks the same pick again, for
   as long as the pair repeats (`ChangeZoneEffect`). The NO is heard once: the pick asked again says that declining
-  again ends the search, and a second decline answers the next "Cancel Search?" YES, as an auto row
+  again ends the search (under every context profile, legacy included, as the auto YES applies to all of them), and
+  a second decline answers the next "Cancel Search?" YES, as an auto row. That YES carries out the seat's own
+  second decline, made after it was told what that decline does. Only the confirm that follows a declined pick
+  counts: an Optional search's "Search your library?" has the same confirm mode and is not a "Cancel Search?"
   (harness-epoch-71, issue #312: the grader's `costs.x`, Green Sun's Zenith, looped 61 asks with no outcome).
 
 Anything new asks again: an opponent's spell or ability, every attack and block, a trigger, a new option.

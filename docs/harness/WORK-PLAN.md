@@ -44,7 +44,8 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
   - question 12: run the candidate seat in its own process. Until then a candidate's score is withheld without
     `--trust-candidate`.
 - **Seat defects the environment found**, kept failing for `defect-hunt`: an illegal block stands under a
-  must-block requirement (`combat.block.must-block`), and the X-cost instance (`costs.x`).
+  must-block requirement (`combat.block.must-block`). The X-cost instance (`costs.x`) is issue #312, fixed in
+  harness-epoch-71; the grader re-run is pending.
 - **Jev, owner questions:**
   - multi-picks and trigger order are built from independent yes/no questions;
   - the 40-option cap;
