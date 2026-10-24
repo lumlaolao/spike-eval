@@ -326,6 +326,15 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 
+### Watching a run
+
+```bash
+python3 eval/puzzle_watch.py runs/puzzles/luna-open             # one row per puzzle, then the totals
+python3 eval/puzzle_watch.py runs/puzzles/luna-open --follow    # one line per event until the run is over
+```
+
+What each column, flag and exit code means: `python3 eval/puzzle_watch.py --help`.
+
 ## Scoring
 
 With c solves in k attempts:

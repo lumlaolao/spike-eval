@@ -141,6 +141,36 @@ class ResumeTest(unittest.TestCase):
             self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c)), 1, (model, sha, c))
 
 
+class RunFileTest(unittest.TestCase):
+    """eval/puzzle_watch.py reads puzzle-run.json to show the puzzles not started, when each is done (k rows) and
+    when the run is over; without it a watcher cannot tell a finished run from a dead one."""
+
+    def test_the_run_file_names_the_puzzles_k_the_budget_and_whether_the_run_is_over(self):
+        root = Path(tempfile.mkdtemp())
+        puzzle_solve.write_run(root, ["a", "b"], 4, 1.5, finished=False)
+        self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text()),
+                         {"ids": ["a", "b"], "k": 4, "budget_usd": 1.5, "finished": False})
+        puzzle_solve.write_run(root, ["a", "b"], 4, 1.5, finished=True)
+        self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
+        self.assertEqual(sorted(p.name for p in root.iterdir()), [puzzle_solve.RUN_FILE], "no .tmp left behind")
+
+    def test_a_run_stopped_by_an_exception_says_so_in_the_run_file_and_still_raises(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        root = Path(tempfile.mkdtemp())
+        with mock.patch.object(puzzle_solve.pb, "Build"), \
+                mock.patch.object(puzzle_solve, "solve_puzzle", side_effect=KeyboardInterrupt()), \
+                mock.patch.object(puzzle_solve, "spent", return_value=0.0), \
+                contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(KeyboardInterrupt):
+                puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                                   "--budget-usd", "1", "--ids", pid, "--out", str(root)])
+        run = json.loads((root / puzzle_solve.RUN_FILE).read_text())
+        self.assertFalse(run["finished"])
+        self.assertIn("KeyboardInterrupt", run["stopped"])
+
+
 class DecisionModelSeatTest(unittest.TestCase):
     """A jev: seat (DecisionsBridge) sends each position to openrouter.ai like an openrouter: one, and it cannot call
     a lookup, so a run with them would record a condition it never had."""
