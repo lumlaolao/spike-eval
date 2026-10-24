@@ -1,0 +1,47 @@
+[metadata]
+Name:infect_e377544bafe3
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 3 life and control Ichorclaw Myr and 3 untapped Forests. Your hand is Unnatural Restoration, Mishra's Bauble, Become Immense, Mishra's Bauble, Mishra's Bauble, Gitaxian Probe, Mishra's Bauble, Mutagenic Growth and Unnatural Restoration. Your graveyard holds nothing. Your library is all Forests. The opponent has 0 poison counters, is at 20 life and controls nothing. Give the opponent ten poison counters this turn.
+Rule:generated-infect | the exhaustive maximum is 10 poison in 14 steps; the best plain plan (Become Immense as soon as it can be paid / never proliferate) gives 9, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=3
+p0hand=Unnatural Restoration;Mishra's Bauble;Become Immense;Mishra's Bauble;Mishra's Bauble;Gitaxian Probe;Mishra's Bauble;Mutagenic Growth;Unnatural Restoration
+p0battlefield=Ichorclaw Myr;Forest;Forest;Forest
+p0library=Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest
+p1life=20
+p1counters=POISON=0
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+# search: {"attackers": ["Ichorclaw Myr"], "forests": 3, "graveyard": 0, "hand": ["Become Immense", "Gitaxian Probe", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Mishra's Bauble", "Mutagenic Growth", "Unnatural Restoration", "Unnatural Restoration"], "hand_forests": 0, "inkmoth": false, "life": 3, "poisoned": false}
+# trap: {"best": 9, "plans": {"bi_asap": 9, "never_proliferate": 9}, "short": 1}
+cast Gitaxian Probe
+opponent
+play land Forest
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Mishra's Bauble
+Ichorclaw Myr
+activate Mishra's Bauble
+opponent
+pass
+cast Mutagenic Growth
+pass
+cast Become Immense
+Gitaxian Probe; Mutagenic Growth; Mishra's Bauble; Mishra's Bauble; Mishra's Bauble
+at MAIN2: cast Mishra's Bauble
+activate Mishra's Bauble
+opponent
+cast Unnatural Restoration
+opponent
+[acceptance]
+winner p0

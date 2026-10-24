@@ -1,0 +1,48 @@
+[metadata]
+Name:equip_774a4338101e
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Boros Swiftblade, Glory Seeker, Hill Giant, Puresteel Paladin, Foundry Inspector, Leonin Scimitar (unattached), Loxodon Warhammer (unattached) and 6 untapped Jungle Shrines. Your hand is Sigarda's Aid, Fireshrieker, All That Glitters, Rancor, Grafted Wargear, Bonesplitter, Short Sword and Cranial Plating. The opponent is at 65 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 65 in 13 steps; the best plain plan (everything on the creature with the most power) deals 62, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Sigarda's Aid;Fireshrieker;All That Glitters;Rancor;Grafted Wargear;Bonesplitter;Short Sword;Cranial Plating
+p0battlefield=Boros Swiftblade;Glory Seeker;Hill Giant;Puresteel Paladin;Foundry Inspector;Leonin Scimitar;Loxodon Warhammer;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=65
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Boros Swiftblade", "Glory Seeker", "Hill Giant", "Puresteel Paladin"], "hand": ["All That Glitters", "Bonesplitter", "Cranial Plating", "Fireshrieker", "Grafted Wargear", "Rancor", "Short Sword", "Sigarda's Aid"], "loose": ["Leonin Scimitar", "Loxodon Warhammer"], "mana": 6, "start": ["Foundry Inspector", "Puresteel Paladin"]}
+# trap: {"best": 62, "plans": {"biggest": 62, "cast_all_first": 52}, "short": 3}
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Grafted Wargear
+no
+cast Short Sword
+no
+cast All That Glitters
+Boros Swiftblade
+cast Rancor
+Boros Swiftblade
+activate Bonesplitter ... Equip {0}
+Boros Swiftblade
+activate Cranial Plating ... Equip {0}
+Boros Swiftblade
+activate Grafted Wargear ... Equip {0}
+Boros Swiftblade
+activate Leonin Scimitar ... Equip {0}
+Boros Swiftblade
+activate Loxodon Warhammer ... Equip {0}
+Boros Swiftblade
+activate Short Sword ... Equip {0}
+Boros Swiftblade
+Boros Swiftblade; Glory Seeker; Hill Giant; Puresteel Paladin
+[acceptance]
+life p1 <= 0

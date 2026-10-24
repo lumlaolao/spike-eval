@@ -1,0 +1,83 @@
+[metadata]
+Name:landfall_505dee9a1bc6
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Retreat to Coralhelm, Prodigal Pyromancer and four Mountains and one Forest, all untapped. Your hand is Azusa, Lost but Seeking, Blaze, Evolving Wilds, Evolving Wilds, Forest, Lotus Cobra, Tunneling Geopede and Valakut, the Molten Pinnacle. Your library holds five Mountains and five Forests. The opponent is at 13 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-landfall | the exhaustive maximum is 13 damage in 14 steps: every land a landfall trigger; Lotus Cobra's mana for each land after it; Valakut only for a Mountain with five others out; Retreat to Coralhelm untaps Prodigal Pyromancer for another ping; Blaze for all the mana left; the best plain plan (play a land before anything else) deals 12, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Azusa, Lost but Seeking;Blaze;Evolving Wilds;Evolving Wilds;Forest;Lotus Cobra;Tunneling Geopede;Valakut, the Molten Pinnacle
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Forest;Retreat to Coralhelm;Prodigal Pyromancer
+p0library=Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest
+p1life=13
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+# search: {"cobra": "hand", "coralhelm": true, "forests": 1, "geopede": false, "hand": ["Azusa, Lost but Seeking", "Blaze", "Evolving Wilds", "Evolving Wilds", "Forest", "Lotus Cobra", "Tunneling Geopede", "Valakut, the Molten Pinnacle"], "hellkite": false, "lib": [5, 5], "mountains": 4, "valakut": "hand"}
+# trap: {"best": 12, "plans": {"land_first": 12, "payoff_first": 6}, "short": 1}
+activate Prodigal Pyromancer
+opponent
+activate Mountain
+activate Forest
+cast Lotus Cobra
+play land Evolving Wilds
+Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+pass
+red
+activate Evolving Wilds
+Mountain
+Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+Untap
+activate Prodigal Pyromancer
+opponent
+green
+activate Mountain
+cast Azusa, Lost but Seeking
+play land Evolving Wilds
+Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+Untap
+activate Prodigal Pyromancer
+opponent
+red
+play land Valakut, the Molten Pinnacle
+Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+pass
+red
+activate Evolving Wilds
+Mountain
+Valakut, the Molten Pinnacle; Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+opponent
+yes
+Untap
+activate Prodigal Pyromancer
+opponent
+red
+cast Blaze
+4
+opponent
+[acceptance]
+life p1 <= 0

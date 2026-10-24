@@ -1,0 +1,50 @@
+[metadata]
+Name:equip_c2240b0f215b
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Fencing Ace, Glory Seeker, Hill Giant, Puresteel Paladin, Fireshrieker (unattached), Vulshok Morningstar (unattached) and 8 untapped Jungle Shrines. Your hand is Embercleave, Short Sword, Cranial Plating, Rancor, Leonin Scimitar, Sigarda's Aid, Loxodon Warhammer and Bonesplitter. The opponent is at 46 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 46 in 13 steps; the best plain plan (everything on the creature with the most power / cast every Equipment that can be paid before equipping / Embercleave in the main phase) deals 44, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Embercleave;Short Sword;Cranial Plating;Rancor;Leonin Scimitar;Sigarda's Aid;Loxodon Warhammer;Bonesplitter
+p0battlefield=Fencing Ace;Glory Seeker;Hill Giant;Puresteel Paladin;Fireshrieker;Vulshok Morningstar;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=46
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Fencing Ace", "Glory Seeker", "Hill Giant", "Puresteel Paladin"], "hand": ["Bonesplitter", "Cranial Plating", "Embercleave", "Leonin Scimitar", "Loxodon Warhammer", "Rancor", "Short Sword", "Sigarda's Aid"], "loose": ["Fireshrieker", "Vulshok Morningstar"], "mana": 8, "start": ["Puresteel Paladin"]}
+# trap: {"best": 44, "plans": {"biggest": 44, "cast_all_first": 44, "cleave_main": 44, "equip_asap": 40}, "short": 2}
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Leonin Scimitar
+no
+cast Short Sword
+no
+cast Rancor
+Fencing Ace
+activate Bonesplitter ... Equip {0}
+Fencing Ace
+activate Cranial Plating ... Equip {0}
+Fencing Ace
+activate Fireshrieker ... Equip {0}
+Hill Giant
+activate Leonin Scimitar ... Equip {0}
+Fencing Ace
+activate Short Sword ... Equip {0}
+Fencing Ace
+activate Vulshok Morningstar ... Equip {0}
+Fencing Ace
+Fencing Ace; Glory Seeker; Hill Giant; Puresteel Paladin
+cast Embercleave
+Embercleave; Puresteel Paladin
+Glory Seeker
+no
+[acceptance]
+life p1 <= 0

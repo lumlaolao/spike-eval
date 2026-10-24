@@ -1,0 +1,46 @@
+[metadata]
+Name:equip_42cd35a5ba6d
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Boros Swiftblade, Hill Giant, Savannah Lions, Cranial Plating (unattached), Short Sword (unattached) and 8 untapped Jungle Shrines. Your hand is Leonin Scimitar, Grafted Wargear, Vulshok Morningstar, Foundry Inspector, Bonesplitter, Fireshrieker, Loxodon Warhammer and Puresteel Paladin. The opponent is at 39 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 39 in 13 steps; the best plain plan (everything on the creature with the most power / cast every Equipment that can be paid before equipping) deals 36, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Leonin Scimitar;Grafted Wargear;Vulshok Morningstar;Foundry Inspector;Bonesplitter;Fireshrieker;Loxodon Warhammer;Puresteel Paladin
+p0battlefield=Boros Swiftblade;Hill Giant;Savannah Lions;Cranial Plating;Short Sword;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=39
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Boros Swiftblade", "Hill Giant", "Savannah Lions"], "hand": ["Bonesplitter", "Fireshrieker", "Foundry Inspector", "Grafted Wargear", "Leonin Scimitar", "Loxodon Warhammer", "Puresteel Paladin", "Vulshok Morningstar"], "loose": ["Cranial Plating", "Short Sword"], "mana": 8, "start": []}
+# trap: {"best": 36, "plans": {"biggest": 36, "cast_all_first": 36, "equip_asap": 31}, "short": 3}
+cast Foundry Inspector
+cast Puresteel Paladin
+cast Bonesplitter
+no
+cast Leonin Scimitar
+no
+cast Loxodon Warhammer
+no
+cast Vulshok Morningstar
+no
+activate Bonesplitter ... Equip {0}
+Boros Swiftblade
+activate Cranial Plating ... Equip {0}
+Boros Swiftblade
+activate Leonin Scimitar ... Equip {0}
+Boros Swiftblade
+activate Loxodon Warhammer ... Equip {0}
+Boros Swiftblade
+activate Short Sword ... Equip {0}
+Boros Swiftblade
+activate Vulshok Morningstar ... Equip {0}
+Boros Swiftblade
+Boros Swiftblade; Hill Giant; Savannah Lions
+[acceptance]
+life p1 <= 0

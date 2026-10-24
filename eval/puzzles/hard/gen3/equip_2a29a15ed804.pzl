@@ -1,0 +1,48 @@
+[metadata]
+Name:equip_2a29a15ed804
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Boros Swiftblade, Hill Giant, Puresteel Paladin, Grafted Wargear (unattached), Short Sword (unattached) and 8 untapped Jungle Shrines. Your hand is Fireshrieker, Rancor, Vulshok Morningstar, Bonesplitter, Leonin Scimitar, Ethereal Armor, Loxodon Warhammer and Cranial Plating. The opponent is at 45 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-equip | the exhaustive maximum is 45 in 13 steps; the best plain plan (equip each Equipment as soon as it is on the battlefield) deals 43, 2 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fireshrieker;Rancor;Vulshok Morningstar;Bonesplitter;Leonin Scimitar;Ethereal Armor;Loxodon Warhammer;Cranial Plating
+p0battlefield=Boros Swiftblade;Hill Giant;Puresteel Paladin;Grafted Wargear;Short Sword;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine;Jungle Shrine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=45
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"creatures": ["Boros Swiftblade", "Hill Giant", "Puresteel Paladin"], "hand": ["Bonesplitter", "Cranial Plating", "Ethereal Armor", "Fireshrieker", "Leonin Scimitar", "Loxodon Warhammer", "Rancor", "Vulshok Morningstar"], "loose": ["Grafted Wargear", "Short Sword"], "mana": 8, "start": ["Puresteel Paladin"]}
+# trap: {"best": 43, "plans": {"biggest": 40, "cast_all_first": 40, "equip_asap": 43}, "short": 2}
+cast Bonesplitter
+no
+cast Cranial Plating
+no
+cast Leonin Scimitar
+no
+cast Vulshok Morningstar
+no
+cast Ethereal Armor
+Boros Swiftblade
+cast Rancor
+Boros Swiftblade
+activate Bonesplitter ... Equip {0}
+Boros Swiftblade
+activate Cranial Plating ... Equip {0}
+Boros Swiftblade
+activate Grafted Wargear ... Equip {0}
+Boros Swiftblade
+activate Leonin Scimitar ... Equip {0}
+Boros Swiftblade
+activate Short Sword ... Equip {0}
+Boros Swiftblade
+activate Vulshok Morningstar ... Equip {0}
+Boros Swiftblade
+Boros Swiftblade; Hill Giant; Puresteel Paladin
+[acceptance]
+life p1 <= 0
