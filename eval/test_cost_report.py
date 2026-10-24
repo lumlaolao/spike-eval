@@ -1,6 +1,7 @@
 """cost_report: token counts priced from the price file; the figures are ones recomputed by hand."""
 import json
 import os
+import re
 import tempfile
 import unittest
 
@@ -120,6 +121,15 @@ class CostReportTest(unittest.TestCase):
         self.assertAlmostEqual(r["usd"], 0.000019992, places=12)
         self.assertEqual((r["models"], r["unpriced"]), ({"typesafe/jev-1.14"}, set()))
 
+    def test_the_decision_model_prefix_is_the_bridges_own(self):
+        # run_batch.py refuses lookups and text answers for a seat cost_report calls a decision model; a prefix that
+        # drifted from DecisionsBridge.PREFIX would let such a seat launch and be refused only inside the JVM.
+        java = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "forge-overlay", "forge-gui-desktop",
+                            "src", "main", "java", "forge", "spike", "DecisionsBridge.java")
+        with open(java, encoding="utf-8") as f:
+            m = re.search(r'static final String PREFIX = "([^"]*)";', f.read())
+        self.assertIsNotNone(m, "DecisionsBridge.PREFIX not found")
+        self.assertEqual(cr.DECISIONS_PREFIX, m.group(1))
 
     def test_a_budget_is_checked_at_the_dearest_endpoint_and_a_report_at_the_list_price(self):
         # Latency routing may land on a priority tier: gpt-6.1-sol's "ultrafast" endpoint lists 6x its list price
