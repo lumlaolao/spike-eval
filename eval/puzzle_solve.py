@@ -12,6 +12,8 @@ far after each puzzle. Then score it:
 
     python3 eval/puzzle_score.py --suite <suite> --split open runs/puzzles/luna-open
 
+--resume continues a stopped run (eval/PUZZLES.md, "Running a model").
+
 An openrouter: model sends each puzzle's position to openrouter.ai: the egress opt-in
 (OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here.
 """
@@ -66,12 +68,65 @@ def condition(a):
             "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
 
 
+def already_done(out, k, suite_sha):
+    """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it."""
+    seeds = {r.get("seed") for r in pb.read_results(out) if r.get("suite_sha256") == suite_sha}
+    return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
+
+
+def set_aside_partial(out):
+    """A puzzle cut off part way is played again from its first seed; its rows so far and its JVM log are renamed,
+    so a scorer never counts them and the replay does not overwrite them, and its game rows stay, so cost_report
+    still prices what was spent."""
+    out = Path(out)
+    n = max(len(list(out.glob("puzzle-results.partial*.jsonl"))), len(list(out.glob("jvm.partial*.log"))))
+    for name, aside in (("puzzle-results.jsonl", "puzzle-results.partial%d.jsonl"), ("jvm.log", "jvm.partial%d.log")):
+        if (out / name).is_file():
+            (out / name).rename(out / (aside % n))
+
+
+def prepare(out, k, suite_sha, resume):
+    """"done" when a resumed run already has this puzzle's k attempts; otherwise "run", a partial set aside."""
+    if resume and already_done(out, k, suite_sha):
+        return "done"
+    if resume:
+        set_aside_partial(out)
+    return "run"
+
+
+def write_manifest(out, model, suite_sha, puzzle_id, cond):
+    """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
+    game row (a puzzle has none). Written whole, then moved, so a restart never leaves half a manifest."""
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    tmp = out / "batch-manifest.json.tmp"
+    tmp.write_text(json.dumps({"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
+                                             "suite_sha256": suite_sha, "env": cond}}))
+    os.replace(tmp, out / "batch-manifest.json")
+
+
+def resume_conflicts(out_root, ids, model, suite_sha, cond):
+    """The puzzle directories under out_root made under another model, suite or seat condition: a resume into
+    them would pool two conditions in one score (STANDARDS section 4)."""
+    bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
+    for pid in ids:
+        f = Path(out_root) / pid / "batch-manifest.json"
+        if not f.is_file():
+            continue
+        try:
+            was = json.loads(f.read_text()).get("condition") or {}
+        except ValueError:
+            bad.append("%s: unreadable batch-manifest.json" % pid)
+            continue
+        diff = [key for key in now if was.get(key) != now[key]]
+        if diff:
+            bad.append("%s: %s differ" % (pid, ", ".join(diff)))
+    return bad
+
+
 def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
     out = Path(out_root) / rec["id"]
-    out.mkdir(parents=True, exist_ok=True)
-    # cost_report prices a directory's calls from its manifest when there is no game row (a puzzle has none).
-    (out / "batch-manifest.json").write_text(json.dumps(
-        {"condition": {"smart_a": model, "fast_a": model, "puzzle": rec["id"], "suite_sha256": suite_sha, "env": cond}}))
+    write_manifest(out, model, suite_sha, rec["id"], cond)
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000")
@@ -98,6 +153,8 @@ def main(argv=None):
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--build", default=None)
     ap.add_argument("--forge", default=None)
+    ap.add_argument("--resume", action="store_true",
+                    help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
@@ -116,6 +173,11 @@ def main(argv=None):
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
+    if a.resume:
+        bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a))
+        if bad:
+            raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
+                             % (len(bad), "; ".join(bad[:5])))
     build = pb.Build(a.build, a.forge)
     out_root = Path(a.out)
     out_root.mkdir(parents=True, exist_ok=True)
@@ -123,6 +185,9 @@ def main(argv=None):
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root)), flush=True)
 
     def work(rec):
+        out = out_root / rec["id"]
+        if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
+            return rec["id"], "done", pb.read_results(out)
         if spent(out_root) >= a.budget_usd:
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
