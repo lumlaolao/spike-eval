@@ -199,7 +199,7 @@ class ToolUseSuiteTest(unittest.TestCase):
 class MandatoryReasoningFloorTest(unittest.TestCase):
     """A model whose reasoning cannot be turned off refuses reasoning:{enabled:false}; the suite sent it on the fast
     tier and the truncation retry to every model, so those calls failed where the seat (OpenRouterBridge) asks
-    its lowest effort instead. The suite now sends the seat's reasoning field wherever "none" is sent, and its floored
+    its lowest effort instead. The suite sends the seat's reasoning field wherever "none" is sent, and its floored
     retry keeps its budget; its budgets themselves are its own, not the seat's."""
 
     def test_the_floor_table_is_the_seats(self):
@@ -218,7 +218,7 @@ class MandatoryReasoningFloorTest(unittest.TestCase):
         self.assertEqual(tu.request_body("x-ai/grok-4.7", "smart")["reasoning"], {"effort": "medium"})
         self.assertNotIn("reasoning", tu.request_body("x-ai/grok-build-0.1", "smart"), "no effort it does not list")
 
-    def replies_to(self, model_id, replies):
+    def replies_to(self, model_id, replies, tier="smart"):
         sent = []
 
         def urlopen(req, timeout=None):
@@ -229,7 +229,7 @@ class MandatoryReasoningFloorTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), \
                 mock.patch.object(tu.urllib.request, "urlopen", urlopen), mock.patch.object(tu.time, "sleep"):
             call = tu.openrouter_model(model_id, "http://127.0.0.1:9")
-            out = call([{"role": "user", "content": "x"}], None, {"tier": "smart"})
+            out = call([{"role": "user", "content": "x"}], None, {"tier": tier})
         return sent, out
 
     def test_the_truncation_retry_keeps_a_mandatory_reasoner_at_its_floor_and_its_budget(self):
@@ -246,6 +246,15 @@ class MandatoryReasoningFloorTest(unittest.TestCase):
             self.assertEqual(sent[1]["max_tokens"], 4096, "reasoning off: room for the answer only")
         sent, _ = self.replies_to("openai/gpt-6.1-sol", [empty, empty, ok])
         self.assertEqual(len(sent), 2, "retried once, not until the floor answers")
+
+    def test_the_fast_tier_is_never_retried(self):
+        # Its reasoning is already off (or at the floor), so a retry would resend the same request.
+        empty = {"choices": [{"message": {"content": ""}, "finish_reason": "length"}]}
+        ok = {"choices": [{"message": {"content": "CHOICE: 1"}, "finish_reason": "stop"}]}
+        for model_id in ("deepseek/deepseek-v4.1-flash", "openai/gpt-6.1-sol"):
+            sent, out = self.replies_to(model_id, [empty, ok], tier="fast")
+            self.assertEqual(len(sent), 1, model_id)
+            self.assertFalse(out["content"], model_id)
 
 
 if __name__ == "__main__":
