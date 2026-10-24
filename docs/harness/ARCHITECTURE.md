@@ -129,19 +129,23 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
   attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
   among the legal sets (epoch 59, rules pilot RP_185).
-- A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
-  to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
-  block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply
-  is asked once more with the engine's reason; an arm draws again (a legal first draw keeps its stream). When the
-  seat's blocks are still illegal after that, or its answer is lost (two invalid calls, no call, no reply, an error),
-  the fixed fallback is no blocks unless a requirement forbids it; then it is a legal block set chosen without
-  randomness (`legalBlockSet`): up to 4096 combinations the smallest legal one; past that the smaller legal one of two
-  whole-board sets (each creature on the first attacker it can block; every creature able to block one attacker on
-  it), else the first found by a search by increasing size capped at 4096 checks. It is an auto row
-  (`blockers(illegal-twice)`, `blockers(unparsed)`, `blockers(no-model)`, ...) with a `[BLOCK-INVALID] ... took the
-  legal set` line (epoch 71, issue #311: "no blocks" under Prized Unicorn stood illegal, found by the harness-env
-  grader's `combat.block.must-block`). If none is found, no blocks stands, illegal, and the log says
-  `[BLOCK-INVALID] ... no legal set was found`, which `defect_analyzer.py` counts. A random arm whose 64 draws
+- A block set is checked as a whole (`blocksError`), by the engine's `CombatUtil.validateBlocks`: requirements ("all
+  creatures able to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before
+  epoch 52 any block set the seat or an arm declared stood. `validateBlocks` never counts blockers against a global
+  cap (Silent Arbiter, Caverns of Despair), so `blocksError` checks the cap too; and at the cap it does not hold a
+  requirement against a creature that is not blocking, which cannot be obeyed without breaking the cap (CR 509.1c;
+  the engine's requirement test ignores the cap and refused every set under Silent Arbiter and Prized Unicorn). The
+  `answer` call is corrected in the same conversation; a text reply is asked once more with the engine's reason; an
+  arm draws again (a legal first draw keeps its stream). When the seat's blocks are still illegal after that, or its
+  answer is lost (two invalid calls, no call, no reply, an error), the fixed fallback is no blocks unless a
+  requirement forbids it; then it is a legal block set chosen without randomness (`legalBlockSet`): up to 4096
+  combinations the smallest legal one; past that the smallest legal one of the first-attacker set (each creature on
+  the first attacker it can block) and one all-on-it set per attacker, else the first found by a search by
+  increasing size capped at 4096 checks. It is an auto row (`blockers(illegal-twice)`, `blockers(unparsed)`,
+  `blockers(no-model)`, ...) with a `[BLOCK-INVALID] ... took the legal set` line (epoch 71, issue #311: "no blocks"
+  under Prized Unicorn stood illegal, found by the harness-env grader's `combat.block.must-block`). If none is found,
+  no blocks stands, illegal (an arm keeps its last draw), and the log says `[BLOCK-INVALID] ... no legal set was
+  found` (an arm: `no legal block set in 64 draws`), which `defect_analyzer.py` counts. A random arm whose 64 draws
   found no legal set and that is past the 4096 limit takes the same set.
 - The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
   one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no

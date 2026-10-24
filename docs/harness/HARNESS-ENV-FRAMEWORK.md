@@ -337,12 +337,12 @@ it; the last row is the family rule alone, as if the counter had missed them. `t
 `choices.colour` and is caught only by the counter (8 counted calls); `toy-text` fails only the no-parse check (prose
 answered 2, empty answered 1). By the owner's surface grouping ours reads 0.982, combat 19/20.
 
-**What it found in ours** (kept as known failing instances by the owner's instruction, for `defect-hunt`; each
-reproduces with `harness_env_grade.py instances ... --only <id>`):
+**What it found in ours** (kept as instances by the owner's instruction, for `defect-hunt`; each reproduces with
+`harness_env_grade.py instances ... --only <id>`):
 1. `combat.block.must-block`: against Prized Unicorn, the seat sends an illegal block set back once with the engine's
-   reason; a model that answers "no blocks" twice now gets the smallest legal block set (harness-epoch-71, issue
-   #311). The engine does not validate a non-GUI controller's blocks, so before that fix "no blocks" stood. The
-   evidence TSV (`evidence/2026-10-22-env-grade-abi.tsv`) predates the fix and the grader was not re-run.
+   reason; a model that answers "no blocks" twice gets a legal block set (harness-epoch-71, issue #311); the engine
+   does not validate a non-GUI controller's blocks. The evidence TSV (`evidence/2026-10-22-env-grade-abi.tsv`)
+   predates that epoch and the grader was not re-run.
 2. `costs.x`: Green Sun's Zenith with X = 1, a model that declines the search and then answers no to "Cancel Search?"
    is shown the search again without end (61 requests, then parked and abandoned). No loop guard bounds that pair.
 
