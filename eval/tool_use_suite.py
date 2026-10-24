@@ -108,9 +108,41 @@ ANSWER_FORMAT = {
     "smart": "FORMAT: at most two short sentences of reasoning, then call `answer` with your choice.",
     "fast": "FORMAT: call `answer` at once; no reasoning text — every extra token slows the game down.",
 }
-# ModelCfg row for deepseek: smart = 4000 tokens with medium reasoning, fast = 1024 with reasoning off.
-TIER_CFG = {"smart": {"max_tokens": 4000, "reasoning": {"effort": "medium"}},
-            "fast": {"max_tokens": 1024, "reasoning": {"enabled": False}}}
+# The suite's own budgets, not the seat's ModelCfg (uniform 32000 / 8192): smart 4000 tokens at medium effort, fast
+# 1024 with reasoning off ("none").
+TIER_CFG = {"smart": {"max_tokens": 4000, "effort": "medium"},
+            "fast": {"max_tokens": 1024, "effort": "none"}}
+# OpenRouterBridge.MANDATORY_REASONING_FLOOR (LlmSpikeGui.java; test_tool_use_suite pins the copy): a model whose
+# reasoning cannot be turned off refuses reasoning:{enabled:false}, so "none" becomes its lowest effort ("": it lists
+# none, so it is sent no reasoning field on any tier).
+MANDATORY_REASONING_FLOOR = {
+    "x-ai/grok-4.7": "low", "x-ai/grok-4.6": "low", "x-ai/grok-build-0.1": "",
+    "anthropic/claude-sonnet-5.5": "low", "anthropic/claude-opus-5.5": "low",
+    "openai/gpt-6.1-sol-pro": "low", "openai/gpt-6.1-sol": "low",
+    "google/gemini-4-argon": "low", "google/gemini-3.8-flash": "low",
+    "meta/muse-wonder": "minimal", "meta/muse-spark-1.3": "minimal",
+    "z-ai/glm-5.3-prime": "low", "z-ai/glm-5.3": "low"}
+
+
+def reasoning_floor(model_id):
+    return MANDATORY_REASONING_FLOOR.get(model_id.lower(), "none")
+
+
+def request_body(model_id, tier, effort=None, max_tokens=None):
+    """The model, budget and reasoning fields for this tier; `effort` and `max_tokens` override the tier's (the
+    truncation retry). Wherever "none" is sent, the reasoning field is OpenRouterBridge.send()'s; the budgets are the
+    suite's own."""
+    cfg = TIER_CFG[tier]
+    effort = cfg["effort"] if effort is None else effort
+    body = {"model": model_id, "max_tokens": cfg["max_tokens"] if max_tokens is None else max_tokens}
+    floor = reasoning_floor(model_id)
+    if effort == "none" or floor == "":
+        effort = floor
+    if effort == "none":
+        body["reasoning"] = {"enabled": False}
+    elif effort:
+        body["reasoning"] = {"effort": effort}
+    return body
 
 
 def load_suite():
@@ -604,8 +636,8 @@ def openrouter_model(model_id, base_url, timeout=120):
     key = os.environ["OPENROUTER_API_KEY"]
 
     def call(messages, tools, meta):
-        body = {"model": model_id, "messages": messages}
-        body.update(TIER_CFG[meta["tier"]])
+        body = dict(request_body(model_id, meta["tier"]), messages=messages)
+        retried = False
         if tools is not None:
             body["tools"] = tools
             body["tool_choice"] = meta.get("tool_choice", "auto")
@@ -623,12 +655,16 @@ def openrouter_model(model_id, base_url, timeout=120):
                 ch = j["choices"][0]
                 msg = ch.get("message") or {}
                 u = j.get("usage") or {}
-                if not msg.get("content") and not msg.get("tool_calls") and "reasoning" in body \
-                        and body["reasoning"].get("enabled") is not False:
+                if not msg.get("content") and not msg.get("tool_calls") and not retried \
+                        and TIER_CFG[meta["tier"]]["effort"] != "none":
                     # OpenRouterBridge's TRUNCATED->RETRY-NO-REASONING: a reasoner that spent the whole
-                    # budget thinking is asked again with reasoning off, once.
-                    body["reasoning"] = {"enabled": False}
-                    body["max_tokens"] = min(max(body["max_tokens"], 1024), 4096)
+                    # budget thinking is asked again with reasoning off, once. A mandatory reasoner is held at
+                    # its lowest effort instead and still reasons there, so it keeps the whole budget.
+                    retried = True
+                    n = body["max_tokens"]
+                    body.pop("reasoning", None)
+                    body.update(request_body(model_id, meta["tier"], "none",
+                                             n if reasoning_floor(model_id) != "none" else min(max(n, 1024), 4096)))
                     data = json.dumps(body).encode()
                     last = "empty reply (finish_reason=%s)" % ch.get("finish_reason")
                     continue

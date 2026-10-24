@@ -161,6 +161,9 @@ class CostReportTest(unittest.TestCase):
                     self.assertIn(k, bound, (mid, k))
                 if k in bound:
                     self.assertGreaterEqual(bound[k], p.get(k, 0), (mid, k))
+                if k in bound and k not in p:
+                    # The list price bills this rate at the prompt rate; a bound below it would lower the check.
+                    self.assertGreaterEqual(bound[k], bound["prompt"], (mid, k))
 
 
 if __name__ == "__main__":
