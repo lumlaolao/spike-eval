@@ -1338,14 +1338,13 @@ def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
     jev = any(cost_report.is_decisions(m) for m in (args.smart_a, args.fast_a, args.smart_b, args.fast_b))
-    for flag, on in (("--memory-tools", args.memory_tools), ("--lookahead", args.lookahead)):
+    no_lookup = "cannot call a lookup, so the games would record a condition the seat never had"
+    no_text = "answers only through the `answer` call, so every decision would be lost"
+    for flag, on, reason in (("--memory-tools", args.memory_tools, no_lookup), ("--lookahead", args.lookahead, no_lookup),
+                             ("--text-answers", args.text_answers, no_text), ("--text-tools", args.text_tools, no_text)):
         if on and jev:
-            raise SystemExit("run_batch: %s with a %s seat: a decision model cannot call a lookup, so the games would "
-                             "record a condition the seat never had (the JVM refuses it too)" % (flag, cost_report.DECISIONS_PREFIX))
-    for flag, on in (("--text-answers", args.text_answers), ("--text-tools", args.text_tools)):
-        if on and jev:
-            raise SystemExit("run_batch: %s with a %s seat: a decision model answers only through the `answer` call, so "
-                             "every decision would be lost (the JVM refuses it too)" % (flag, cost_report.DECISIONS_PREFIX))
+            raise SystemExit("run_batch: %s with a %s seat: a decision model %s (the JVM refuses it too)"
+                             % (flag, cost_report.DECISIONS_PREFIX, reason))
     if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
