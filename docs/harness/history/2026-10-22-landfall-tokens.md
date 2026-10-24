@@ -104,7 +104,8 @@ The kept set:
 
 ## Not done
 
-- No model has tried these boards, and they are not in a frozen suite (`gen_suite.py --name hard-gen3`).
+- No model has tried these boards. Not frozen when this note was written; frozen since as
+  `eval/suites/puzzles-hard-gen3-v1.json` (`eval/PUZZLES.md`, "The third hard suite").
 - Variety is narrow: nearly every landfall board is a Coralhelm board with Cobra in hand, and every tokens board a
   Krenko/Siege-Gang/Skirk/Marshal board. Without Coralhelm the landfall lines rarely reach 13 steps, and without
   Siege-Gang the tokens lines rarely do; a wider draw needs more step-making cards.

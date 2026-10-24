@@ -34,12 +34,12 @@ Fling or to Krark-Clan Ironworks for mana; plain: Atog eats everything).
 
 The third suite's families (eval/puzzles/hard/gen3) hold the same bar and state their search inputs and trap as
 `# search:` / `# trap:` lines: infect (poison, not life: the opponent starts at 10 minus the searched maximum, the
-board's goal is Win; INFECT_PLANS), equip (Equipment and Auras on attackers, one combat; EQUIP_PLANS), landfall (land drops, fetch cracks and Harrow feeding Akoum
-Hellkite, Valakut, Lotus Cobra and Retreat to Coralhelm's Pyromancer, Blaze for the mana left; plain: the land first,
-or each landfall creature as soon as it is paid for) and tokens (Goblins entering under Impact Tremors and Witty
-Roastmaster and dying to Skirk Prospector and Siege-Gang under Mayhem Devil, Krenko counting them; plain: sacrifice
-tokens first, or the payoffs as soon as the lands pay); for landfall and tokens a test also rewrites each committed
-board's line from its record (written_from_record).
+board's goal is Win; INFECT_PLANS), equip (Equipment and Auras on attackers, one combat; EQUIP_PLANS), landfall
+(land drops, fetch cracks and Harrow feeding Akoum Hellkite, Valakut, Lotus Cobra and Retreat to Coralhelm's
+Pyromancer, Blaze for the mana left; plain: the land first, or each landfall creature as soon as it is paid for) and
+tokens (Goblins entering under Impact Tremors and Witty Roastmaster and dying to Skirk Prospector and Siege-Gang under
+Mayhem Devil, Krenko counting them; plain: sacrifice tokens first, or the payoffs as soon as the lands pay); a test
+also rewrites each committed board's line from its record (written_from_record).
 
   python3 eval/puzzle_gen.py --family ping --count 40 --seed 1 --out DIR
   python3 eval/puzzle_gen.py --family drain2 --count 40 --seed 2 --tries 40000 --out DIR
@@ -931,8 +931,8 @@ def _record_lines(search, trap):
 
 
 def board_record(text):
-    """The family, life (and the opponent's poison counters), steps, search inputs and trap a board of drain2, elf2,
-    hoofdrain, infect or equip states."""
+    """The family, life (and the opponent's poison counters), steps, search inputs and trap a generated gen2 or gen3
+    board states (its `# steps:`, `# search:` and `# trap:` lines)."""
     rec = {"family": text.split("Rule:generated-", 1)[1].split()[0],
            "life": int(text.split("\np1life=", 1)[1].split()[0]),
            "poison": int(text.split("\np1counters=POISON=", 1)[1].split()[0]) if "\np1counters=POISON=" in text else 0}
@@ -949,10 +949,9 @@ def research(rec):
     if rec["family"] in ("infect", "equip"):
         search, plain = (infect_search, infect_plain) if rec["family"] == "infect" else (equip_search, equip_plain)
         return search(s)[:3] + (plain(s),)
-
     if rec["family"] == "landfall":
         d, st, moves = landfall_search(s)
-        return d, st, landfall_unused(s, moves), landfall_plain(s)
+        return d, st, landfall_unused(moves), landfall_plain(s)
     if rec["family"] == "tokens":
         d, st, moves = token_search(s)
         return d, st, token_lines(s, moves, d)[3], token_plain(s)
@@ -969,12 +968,18 @@ def research(rec):
 
 
 def written_from_record(rec):
-    """The line a gen3 board's stated search inputs write (landfall, tokens)."""
-    s = rec["search"]
-    if rec["family"] == "landfall":
+    """The line a gen3 board's stated search inputs write (landfall, tokens, infect, equip)."""
+    s, family = rec["search"], rec["family"]
+    if family == "landfall":
         return landfall_lines(s, landfall_search(s)[2])[0]
-    d, _, moves = token_search(s)
-    return token_lines(s, moves, d)[0]
+    if family == "tokens":
+        d, _, moves = token_search(s)
+        return token_lines(s, moves, d)[0]
+    if family == "infect":
+        return infect_lines(s, infect_search(s)[3], rec["poison"])[0]
+    if family == "equip":
+        return equip_lines(s, equip_search(s)[3])
+    raise ValueError("no gen3 line writer for family %r" % family)
 
 
 def _trap_note(trap, plans, unit):
@@ -3162,7 +3167,7 @@ def landfall_plain(start):
     return {p: landfall_search(start, plan=p)[0] for p in LANDFALL_PLANS if _landfall_plan_applies(p, start)}
 
 
-def landfall_unused(start, moves):
+def landfall_unused(moves):
     """Mana the line leaves: none when it ends with Blaze for everything left (Blaze's X is all of it); else all of
     it, counted as one."""
     return 0 if moves and moves[-1][0] == "blaze" and moves[-1][1] >= 1 else 1
@@ -3347,7 +3352,7 @@ def landfall_board(rng):
     steps ending in Blaze for every mana left, and the best plain plan (LANDFALL_PLANS) falls 1 to 3 short."""
     s = landfall_draw(rng)
     dmg, steps, moves = landfall_search(s)
-    if not HARD_MIN <= steps <= HARD_MAX or landfall_unused(s, moves):
+    if not HARD_MIN <= steps <= HARD_MAX or landfall_unused(moves):
         return None
     trap = _trap(dmg, landfall_plain(s))
     if trap is None:
@@ -3783,8 +3788,8 @@ def board_key(b):
 
 
 def iter_boards(family, count, seed, tries=20000):
-    """`count` boards of a family, each yielded as it is drawn. A board that states its structure (drain2, elf2,
-    hoofdrain: `shape`, the cards reduced to their roles) is also one board with any other of that structure or of
+    """`count` boards of a family, each yielded as it is drawn. A board that states its structure (`shape`:
+    drain2, elf2, hoofdrain, landfall, tokens; the cards reduced to their roles) is also one board with any other of that structure or of
     the same life total, so a batch never repeats a life total."""
     rng = random.Random(seed)
     seen, n = set(), 0

@@ -111,8 +111,8 @@ The kept set:
 
 ## Not done
 
-- No model has tried these boards; they are not in a frozen suite (`gen_suite.py --name hard-gen3 --gate ...`) and
-  have no open / held-out split.
+- No model has tried these boards. They were not in a frozen suite when this note was written; they are frozen
+  since as `eval/suites/puzzles-hard-gen3-v1.json` (`eval/PUZZLES.md`, "The third hard suite").
 - **infect is one shape.** Every kept board is "fill the graveyard for Become Immense, hold a land for the last
   proliferate"; none starts poisoned, and Inkmoth Nexus, the +1/+1 counters (Battlegrowth, Travel Preparations,
   Courage in Crisis), Groundswell, Might of Old Krosa and Tezzeret's Gambit are in the search but in no kept line.
