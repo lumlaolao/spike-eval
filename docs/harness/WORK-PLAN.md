@@ -21,7 +21,7 @@ saturated (130/145 with and without tools at epoch 66; 119/145 off and 127/145 o
 naming the trick); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
 puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner reviews it.
 
-Landed 2026-10-21 to 24: PRs #290 and #299 to #305. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
+Landed 2026-10-21 to 24: PRs #290 to #305. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
 the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
 ## Open work, after the benchmark
@@ -31,7 +31,11 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
     bridge is on main (PR #305), about $37 expected;
   - caps at the dearest endpoint come to about $291, or about $125 if the bridge sends `provider.max_price` at the
     list price;
-  - no paid Jev call has been made, so the Decisions API's response shape is confirmed only by its docs.
+  - no paid Jev call has been made, so the Decisions API's response shape is confirmed only by its docs;
+  - the owner decisions in PR #303's Not done bear on it: each model runs at its own default reasoning effort (max
+    for Kimi K3 and GLM 5.3), Mistral may refuse a user message after a tool result, and caching is unmeasured.
+- **The 25 hand-authored niche-rules puzzles** (PR #298) are not frozen into a suite and have no held-out split;
+  torbran is provisional (its README lists the bar rows each missed).
 - **The third hard suite** (`puzzles-hard-gen3-v1`): no model has played it. A Luna run of the 44 open boards,
   about $1, waits on the owner (PR #302).
 - **Harness-building environment:** no real episode has run. The owner's twelve questions are in
@@ -44,6 +48,7 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 - **Jev, owner questions:**
   - multi-picks and trigger order are built from independent yes/no questions;
   - the 40-option cap;
+  - the Decisions endpoint is derived from `OPENROUTER_BASE_URL`, with a 120 s deadline and no env var of its own;
   - whether CLAUDE.md states the tool-call exception (recorded in ARCHITECTURE.md section 9).
 - **Repository housekeeping:** the remote branches already merged into main were not deleted (it needs the
   owner's permission).
