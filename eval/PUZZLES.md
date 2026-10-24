@@ -271,6 +271,31 @@ python3 scripts/puzzle-gate/gen_suite.py --name hard-gen2 --gate G1 G2 ... --boa
   --out eval/suites/puzzles-hard-gen2-v1.json
 ```
 
+### The third hard suite
+
+`eval/suites/puzzles-hard-gen3-v1.json` (68 boards in `eval/puzzles/hard/gen3/`; 44 open, 24 held out) adds four
+families mechanically unlike the earlier ones, to the second suite's bar (13 to 15 steps, the goal the exact searched
+maximum, no mana unused, the best plain plan 1 to 3 short):
+
+| Family | Boards | Goal | Trap (the plain plans that fall short) |
+|---|---|---|---|
+| tokens | 24 | life | sacrifice a token whenever there is one; cast the payoffs as soon as the lands pay for them |
+| landfall | 17 | life | play a land before anything else; cast each landfall creature as soon as it can be paid |
+| equip | 15 | life, in one combat with no blockers | everything on the creature with the most power; cast every Equipment before equipping; Embercleave in the main phase; equip each Equipment at once |
+| infect | 12 | the opponent's tenth poison counter (`p1counters=POISON=N`, `Goal:Win`, `winner p0`: acceptance has no poison condition) | Become Immense as soon as it can be paid; pump only in combat; proliferate only after combat; never proliferate; Inkmoth Nexus always attacks; the land first |
+
+Every board passed the gate (random 0 of 20; PASS, first, greedy and Forge's AI 0 of 4 each, against a gate bar of
+at most 1 of 4 for the AI); the rows are in `runs/puzzles/hard-gen3-gate` (six gate runs). Five tokens boards whose
+written line did not play were left out of the folder before freezing. `eval/test_puzzle_gen.py` re-derives every
+committed board from its `# search:` and `# trap:` lines, the written line included. Searches, line rules and limits:
+`docs/harness/history/2026-10-22-infect-equip.md`, `docs/harness/history/2026-10-22-landfall-tokens.md`.
+
+```bash
+G=runs/puzzles/hard-gen3-gate
+python3 scripts/puzzle-gate/gen_suite.py --name hard-gen3 --gate $G/gen3-gate-A $G/gen3-gate-B $G/gate-lf-a \
+  $G/gate-b $G/gate-c $G/gate-d --boards eval/puzzles/hard/gen3 --out eval/suites/puzzles-hard-gen3-v1.json
+```
+
 ## Running a model
 
 ```bash

@@ -1,0 +1,91 @@
+[metadata]
+Name:landfall_52a232588a68
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Retreat to Coralhelm, Prodigal Pyromancer and five Mountains and no Forests, all untapped. Your hand is Akoum Hellkite, Blaze, Exploration, Harrow, Lotus Cobra, Tunneling Geopede, Wooded Foothills and Wooded Foothills. Your library holds five Mountains and five Forests. The opponent is at 14 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-landfall | the exhaustive maximum is 14 damage in 15 steps: every land a landfall trigger; Lotus Cobra's mana for each land after it; Retreat to Coralhelm untaps Prodigal Pyromancer for another ping; Blaze for all the mana left; the best plain plan (play a land before anything else) deals 13, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Akoum Hellkite;Blaze;Exploration;Harrow;Lotus Cobra;Tunneling Geopede;Wooded Foothills;Wooded Foothills
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Mountain;Retreat to Coralhelm;Prodigal Pyromancer
+p0library=Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest
+p1life=14
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 15
+# search: {"cobra": "hand", "coralhelm": true, "forests": 0, "geopede": false, "hand": ["Akoum Hellkite", "Blaze", "Exploration", "Harrow", "Lotus Cobra", "Tunneling Geopede", "Wooded Foothills", "Wooded Foothills"], "hellkite": false, "lib": [5, 5], "mountains": 5, "valakut": null}
+# trap: {"best": 13, "plans": {"land_first": 13, "payoff_first": 7}, "short": 1}
+activate Prodigal Pyromancer
+opponent
+activate Mountain
+activate Mountain
+activate Mountain
+cast Tunneling Geopede
+play land Wooded Foothills
+Tunneling Geopede; Retreat to Coralhelm
+You may tap or untap
+Prodigal Pyromancer
+pass
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+activate Wooded Foothills
+Forest
+Tunneling Geopede; Retreat to Coralhelm
+You may tap or untap
+Prodigal Pyromancer
+Untap
+activate Prodigal Pyromancer
+opponent
+activate Forest
+cast Exploration
+play land Wooded Foothills
+Tunneling Geopede; Retreat to Coralhelm
+You may tap or untap
+Prodigal Pyromancer
+pass
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+activate Wooded Foothills
+Forest
+Tunneling Geopede; Retreat to Coralhelm
+You may tap or untap
+Prodigal Pyromancer
+pass
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+activate Mountain
+activate Mountain
+activate Forest
+cast Harrow
+Mountain
+Mountain
+Mountain
+Tunneling Geopede; Retreat to Coralhelm; Tunneling Geopede; Retreat to Coralhelm
+You may tap or untap
+Prodigal Pyromancer
+You may tap or untap
+Prodigal Pyromancer
+Untap
+activate Prodigal Pyromancer
+opponent
+Untap
+activate Prodigal Pyromancer
+opponent
+cast Blaze
+1
+opponent
+[acceptance]
+life p1 <= 0
