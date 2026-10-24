@@ -1,9 +1,14 @@
 """harness_env_aicount.py: the grader's engine patch counts every Forge-AI decision method a seat enters.
 
 The patch is generated from the engine's own PlayerControllerAi source, so these tests check the insertion on a
-small fixture (a decision method, a non-decision method, a generic method whose signature spans lines) and on the
-pinned engine file when this machine has it.
+small fixture (a decision method and its overload, a non-decision method, a generic method whose signature spans
+lines) and on the pinned engine file when this machine has it. counts() is what the grader compares a submission's
+copy against the engine with, so it is pinned equal to the counters patch() writes: if they drifted apart, an
+uncounted overload would pass the "counter incomplete" check.
 """
+import collections
+import contextlib
+import io
 import os
 import shutil
 import subprocess
@@ -25,6 +30,11 @@ public class PlayerControllerAi extends PlayerController {
         brains.declareBlockersFor(defender, combat);
     }
 
+    @Override
+    public void declareBlockers(Player defender) {
+        brains.declareBlockersFor(defender, null);
+    }
+
     public AiController getAi() {
         return brains;
     }
@@ -43,6 +53,15 @@ HOOKS = {"declareBlockers", "chooseEntitiesForEffect", "confirmTrigger"}
 FORGE = os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "/root/forge")))
 LEDGER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "harness",
                       "controller-ownership.tsv")
+
+
+def ledger_file(root):
+    path = os.path.join(root, "ledger.tsv")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("signature\timpl\tkind\townership\tlegacy_reach\tnotes\n"
+                "declareBlockers[x]\tLLM\tstrategic\tmodel\tcore\tn\n"
+                "chooseEntitiesForEffect[x]\tLLM\tstrategic\tmodel\tcore\tn\n")
+    return path
 
 
 class PatchTest(unittest.TestCase):
@@ -66,25 +85,44 @@ class PatchTest(unittest.TestCase):
         out, counted = ac.patch(src, HOOKS)
         self.assertEqual(counted, ["chooseEntitiesForEffect", "declareBlockers"])
         self.assertNotIn(ac.CALL % "confirmTrigger", out)
-        self.assertEqual(out.count("AiCounter.enter("), 2)
+        self.assertEqual(out.count("AiCounter.enter("), 3)
 
     def test_an_abstract_method_has_no_body_to_count_in(self):
         self.assertNotIn(ac.CALL % "confirmTrigger", ac.patch(FIXTURE, HOOKS)[0])
 
-    def test_a_given_source_is_patched_instead_of_the_engines(self):
+    def test_a_given_source_text_is_patched_instead_of_the_engines(self):
         tmp = tempfile.mkdtemp()
         try:
-            src = os.path.join(tmp, "PlayerControllerAi.java")
-            with open(src, "w", encoding="utf-8") as f:
-                f.write(FIXTURE)
-            ledger = os.path.join(tmp, "ledger.tsv")
-            with open(ledger, "w", encoding="utf-8") as f:
-                f.write("signature\timpl\tkind\townership\tlegacy_reach\tnotes\n"
-                        "declareBlockers[x]\tLLM\tstrategic\tmodel\tcore\tn\n")
-            dest, counted = ac.write("/no/engine/here", ledger, os.path.join(tmp, "out"), source=src)
-            self.assertEqual(counted, ["declareBlockers"])
+            dest, counted = ac.write("/no/engine/here", ledger_file(tmp), os.path.join(tmp, "out"), source=FIXTURE)
+            self.assertEqual(counted, collections.Counter(declareBlockers=2, chooseEntitiesForEffect=1))
             with open(dest, encoding="utf-8") as f:
-                self.assertIn(ac.CALL % "declareBlockers", f.read())
+                self.assertEqual(f.read().count(ac.CALL % "declareBlockers"), 2)
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_counts_is_a_counter_of_exactly_the_counters_patch_writes(self):
+        found = ac.counts(FIXTURE, HOOKS)
+        self.assertIsInstance(found, collections.Counter)
+        self.assertEqual(found, collections.Counter(declareBlockers=2, chooseEntitiesForEffect=1))
+        out = ac.patch(FIXTURE, HOOKS)[0]
+        self.assertEqual(sum(found.values()), out.count("AiCounter.enter("))
+        for name, n in found.items():
+            self.assertEqual(out.count(ac.CALL % name), n, name)
+
+    def test_the_command_line_says_how_many_hooks_and_how_many_methods(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            forge = os.path.join(tmp, "forge")
+            os.makedirs(os.path.join(forge, os.path.dirname(ac.ENGINE_PATH)))
+            with open(os.path.join(forge, ac.ENGINE_PATH), "w", encoding="utf-8") as f:
+                f.write(FIXTURE)
+            for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "pin"]):
+                subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", *args], cwd=forge, check=True)
+            printed = io.StringIO()
+            with contextlib.redirect_stdout(printed):
+                rc = ac.main(["aicount", forge, ledger_file(tmp), os.path.join(tmp, "out")])
+            self.assertEqual(rc, 0)
+            self.assertIn(": 2 hooks, 3 methods counted", printed.getvalue())
         finally:
             shutil.rmtree(tmp)
 
@@ -99,6 +137,8 @@ class PatchTest(unittest.TestCase):
         for name in counted:  # overloads (chooseBinary, chooseNumber, ...) each get their own counter
             self.assertIn(ac.CALL % name, out)
         self.assertGreaterEqual(out.count(ac.CALL.split("(")[0]), len(counted))
+        self.assertEqual(sum(ac.counts(src, surface_coverage.decision_hooks(LEDGER)).values()),
+                         out.count("AiCounter.enter("))
 
 
 if __name__ == "__main__":

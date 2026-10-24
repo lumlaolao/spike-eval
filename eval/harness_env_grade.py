@@ -433,26 +433,28 @@ def compile_command(javac, classpath_file, submission, grader_repo, ai_patch, ou
 
 
 def counter_patch(submission, forge, out):
-    """(patched PlayerControllerAi path, hooks counted, hooks missing). A submission that ships its own (marked)
-    PlayerControllerAi.java has the counter put into that copy, so the one javac sees one PlayerControllerAi; a hook
-    name that gets fewer counters in that copy than in the pinned engine's file is missing (an uncounted overload
-    would read a delegation through it as zero)."""
+    """(patched PlayerControllerAi path, counters per hook (a Counter), hooks missing). A submission that ships its
+    own (marked) PlayerControllerAi.java has the counter put into that copy, so the one javac sees one
+    PlayerControllerAi; a hook name that gets fewer counters in that copy than in the pinned engine's file is
+    missing (an uncounted overload would read a delegation through it as zero). The copy is read once: the text
+    patched is the text counted."""
     ledger = os.path.join(REPO, LEDGER)
     own = os.path.join(submission, harness_env_aicount.ENGINE_PATH)
-    if not os.path.isfile(own):
-        patch, counted = harness_env_aicount.write(forge, ledger, os.path.join(out, "aipatch"))
+    text = None
+    if os.path.isfile(own):
+        with open(own, encoding="utf-8") as f:
+            text = f.read()
+    patch, counted = harness_env_aicount.write(forge, ledger, os.path.join(out, "aipatch"), source=text)
+    if text is None:
         return patch, counted, []
-    patch, counted = harness_env_aicount.write(forge, ledger, os.path.join(out, "aipatch"), source=own)
     hooks = surface_coverage.decision_hooks(ledger)
     engine = harness_env_aicount.counts(harness_env_aicount.engine_source(forge), hooks)
-    with open(own, encoding="utf-8") as f:
-        copy = harness_env_aicount.counts(f.read(), hooks)
-    return patch, counted, sorted(h for h, n in engine.items() if copy.get(h, 0) < n)
+    return patch, counted, sorted(h for h, n in engine.items() if counted[h] < n)
 
 
 def build_classes(submission, classpath_file, forge, out, javac, env=None):
     """Compile the submission with the grader and the Forge-AI counter into <out>/classes; (javac rc, classes dir,
-    hooks counted, hooks missing). With a hook missing (counter_patch) nothing is compiled and rc is None."""
+    counters per hook, hooks missing). With a hook missing (counter_patch) nothing is compiled and rc is None."""
     patch, counted, missing = counter_patch(submission, forge, out)
     classes = os.path.join(out, "classes")
     if missing:
@@ -570,7 +572,8 @@ def main(argv):
         if missing:
             print("refused: counter incomplete: " + ", ".join(missing))
             return 1
-        print("build %s: javac rc=%d, Forge-AI counter in %d decision methods, classes %s" % (submission, rc, len(counted), classes))
+        print("build %s: javac rc=%d, Forge-AI counter in %s, classes %s"
+              % (submission, rc, harness_env_aicount.summary(counted), classes))
         return 0 if rc == 0 else 1
     if len(args) >= 5 and args[0] == "instances":
         classes, cpfile, forge, out, rest = args[1], args[2], args[3], args[4], args[5:]

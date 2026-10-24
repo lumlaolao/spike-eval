@@ -4,7 +4,7 @@ sections 2, 3 and 4): build the sandbox, hand it to an agent, wait for the agent
 it built, grade it outside the sandbox, write a scored report.
 
 1. The sandbox is built from the episode spec (harness_env_sandbox.build) and checked for leaks; a sandbox that
-   leaks is never handed to an agent (`ended_by: refused`).
+   leaks is never handed to an agent (`ended_by: refused`). manifest.json, what was checked, is written either way.
 2. It becomes a fresh git repository with one commit and no remote, hooks pointed at an empty directory.
 3. The agent command runs with the sandbox as its working directory and a scrubbed environment (no provider key,
    no egress flag). The episode ends only when the agent writes DONE (`ended_by: agent`, its one line recorded);
@@ -32,6 +32,7 @@ import subprocess
 import sys
 import time
 
+import harness_env_aicount
 import harness_env_generate as hgen
 import harness_env_grade as hgrade
 import harness_env_sandbox as sb
@@ -80,6 +81,7 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoin
     sandbox = os.path.join(out, "sandbox")
     report = {"episode": spec["id"], "agent": agent_cmd}
     manifest = sb.build(spec, repo, sandbox)
+    _write_manifest(out, manifest)
     leaks = (leak_check or sb.leak_problems)(spec, repo, sandbox, manifest)
     if leaks:
         report.update(ended_by="refused", leaks=leaks)
@@ -93,8 +95,7 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoin
         shutil.copyfile(dev_set, dest)
         manifest["files"]["dev/instances.json"] = sb.sha256(dest)
     fresh_repository(sandbox, os.path.join(out, "empty-hooks"))
-    with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=1, sort_keys=True)
+    _write_manifest(out, manifest)
     # Checked again as handed over: the dev slice and the repository were added after the first check.
     leaks = (leak_check or sb.leak_problems)(spec, repo, sandbox, manifest)
     if leaks:
@@ -144,17 +145,23 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoin
     return _write(out, report)
 
 
+def _write_manifest(out, manifest):
+    with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=1, sort_keys=True)
+
+
 def _write(out, report):
     with open(os.path.join(out, "report.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=1, sort_keys=True, default=str)
     return report
 
 
-def jvm_grader(classpath_file=None, forge=None, java_home=None, set_file=None, cards=None, trust_candidate=False):
+def jvm_grader(classpath_file, forge, java_home=None, set_file=None, cards=None, trust_candidate=False):
     """The hidden grader as a grade_fn, on a generated held-out set: `set_file` (split "heldout"), or one drawn from
     `cards` (a cardsfolder) with $HARNESS_ENV_SEED when grading, after the agent has stopped. Never the committed
-    hand catalog, which is in any copy of the repository the agent's model may have seen. The classpath file and
-    the engine checkout are checked here, so a missing one stops the episode before the agent starts.
+    hand catalog, which is in a seen copy of the repository (HARNESS-ENV-FRAMEWORK.md section 2).
+    The classpath file, the engine checkout (a git checkout whose HEAD holds PlayerControllerAi.java, which the
+    counter patches) and the set file are checked here, so a wrong one stops the episode before the agent starts.
 
     Intake refuses what scores 0 (harness_env_grade.refusal); the submission is built with the grader; then, only
     with `trust_candidate`, its seat is run in the grader's JVM and scored by hook family. Without it the result is
@@ -164,10 +171,19 @@ def jvm_grader(classpath_file=None, forge=None, java_home=None, set_file=None, c
         raise ValueError("grading needs --classpath <classpath.txt> (an acceptance run's): %s" % classpath_file)
     if not (forge and os.path.isdir(forge)):
         raise ValueError("grading needs --forge <the engine checkout>: %s" % forge)
+    try:
+        harness_env_aicount.engine_source(forge)
+    except (OSError, subprocess.CalledProcessError):
+        raise ValueError("--forge must be a git checkout whose HEAD has %s: %s"
+                         % (harness_env_aicount.ENGINE_PATH, forge)) from None
     seed = None
     if set_file:
-        with open(set_file, encoding="utf-8") as f:
-            split = json.load(f).get("split")
+        try:
+            with open(set_file, encoding="utf-8") as f:
+                loaded = json.load(f)
+        except (OSError, ValueError) as e:
+            raise ValueError("--set %s is not a readable JSON set: %s" % (set_file, e)) from None
+        split = loaded.get("split") if isinstance(loaded, dict) else None
         if split != "heldout":
             raise ValueError("an episode is graded on a held-out set; %s is split %r" % (set_file, split))
     elif cards:

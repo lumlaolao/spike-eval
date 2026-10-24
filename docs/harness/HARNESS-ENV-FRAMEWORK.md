@@ -61,9 +61,11 @@ engine files, the overlay's avatar sprite, `data/`, both launchers, and `forge/s
 working checkout can never be the agent's engine; it must be a fresh clone built clean.
 
 **Not provable by a scan:** a paraphrase of our design in a released document (the third net is reading the five
-released files, which this branch did), and the repository itself: any copy of the repository the agent's model
-may have seen. The defences are the hidden instances (section 4.6), the similarity check (section 4.7) and the time-stamped
-contamination risk stated with every score, as GBA Eval states for its public corpus.
+released files, which this branch did), and the repository itself. **A seen copy** (the term the rest of this
+document uses) is any copy of the repository the agent's model may have seen: a public mirror, a crawl, training
+data. It holds everything withheld above, so nothing committed here is secret from the agent. The defences are the
+hidden instances (section 4.6), the similarity check (section 4.7) and the time-stamped contamination risk stated
+with every score, as GBA Eval states for its public corpus.
 
 **Tools, compute, network.** Shell, editor, JDK 17, Maven offline, python3, git (the fresh repository, hooks dir
 root-owned and empty as in GBA Eval's `task/Dockerfile`). 8 CPUs, 32 GB, 60 GB disk (one game JVM is about 1 GB,
@@ -150,8 +152,9 @@ submission's own engine patches, so a submission cannot shadow them (built: inta
 declares any class in `forge.harnessenv` or a package under it, or ships a file under a `forge/harnessenv` path,
 and scores it 0; the Forge-AI counter is written into the submission's own marked `PlayerControllerAi.java` when it
 ships one; a copy in which a hook name gets fewer counters than in the engine's own file (an overload left
-uncounted) is refused, "counter incomplete"). The check counts by name, so a decoy method with a hook's name or a
-signature hidden by a comment can still stand in for an uncounted one: a parsed signature check would close that.
+uncounted) is refused, "counter incomplete"). The check counts per name (`harness_env_aicount.counts`, pinned equal
+to the counters the patch writes), so a decoy method with a hook's name or a signature hidden by a comment can
+still stand in for an uncounted one: a parsed signature check would close that.
 The copy runs in the grader's JVM anyway (section 4.7, open), and that hole needs the seat in its own process, with
 the counter outside code the submission ships.
 The patch replaces what `Player.getController()` hands the engine with a
@@ -198,8 +201,8 @@ is printed beside both numbers, as GBA Eval reports gameplay apart from audio.
 - Held-out: the agent sees no instance (no dev split by default, open question 2). The generator's seed is secret
   and fresh per run; a reported score names its seed's hash. A fixed private split is kept for comparing models.
   An episode is graded only on a generated set (`--set`, or `--cards` with the secret seed, drawn after the agent
-  stops); the episode runner refuses to grade on the hand catalog, which is in any copy of the repository the
-  agent's model may have seen, and refuses a `--set` whose split is not `heldout`.
+  stops); the episode runner refuses to grade on the hand catalog, which is in a seen copy (section 2), and refuses
+  a `--set` whose split is not `heldout`.
 
 ### 4.7 Reward hacks and their defences
 
@@ -214,7 +217,7 @@ is printed beside both numbers, as GBA Eval reports gameplay apart from audio.
 | fabricates its own log or surface record | the candidate's own files are not read; asks are counted at the grader's endpoint, outcomes in the engine. But the grader's report is written from the JVM the candidate runs in: see the next row |
 | **rewrites the grader's verdict from inside the grading JVM** | **OPEN, not defended** (below). Cheap hardening only: a submission declaring a class in `forge.harnessenv` is refused, and the episode grader emits no score unless the operator passes `--trust-candidate` |
 | detects the grader (thread names, classpath) and behaves differently | the secondary graders (section 5) run the seat in whole games through the same factory; a seat that scores on surfaces and fails games is flagged for reading |
-| copies our repository from memory (any copy of the repository the agent's model may have seen) | similarity of the submission to our overlay (token-level, MLE-bench's Dolos rule), reported, and above a threshold the episode is read by a person |
+| copies our repository from memory (a seen copy, section 2) | similarity of the submission to our overlay (token-level, MLE-bench's Dolos rule), reported, and above a threshold the episode is read by a person |
 | edits the engine | intake scores an unmarked engine patch 0 (built); the grader's counter patch is written into the submission's own `PlayerControllerAi.java` when it ships one (built); the rest of the grader's patch set applies after the submission's (designed: the wrapper is not built) |
 | reads files outside the overlay at grading time | the grader runs with no network and a read-only filesystem outside its scratch directory (designed; today javac and java get only `PATH`, `LANG`, `LC_ALL`, `JAVA_HOME`, `TZ`, so no seed and no provider key, but the filesystem is the operator's) |
 
@@ -371,8 +374,10 @@ outside the sandbox and write `report.json`. Grading (`jvm_grader`): intake refu
 factory, an unmarked engine patch, a class in `forge.harnessenv`); the build runs with a scrubbed environment
 (`grader_env`: no `HARNESS_ENV_SEED`, no provider variable); the instance grader runs with
 `candidate=<the submission's factory>` on a generated set (`--set`, or `--cards` drawing one with the secret seed
-after the agent stops; without either, or without `--classpath` and `--forge`, the runner refuses before the
-agent starts), and only with `--trust-candidate` (section 4.7).
+after the agent stops; without either, without `--classpath`, with a `--set` that is not readable JSON, or with a
+`--forge` that is not a git checkout whose HEAD holds `PlayerControllerAi.java`, the runner exits 2 before the
+agent starts), and only with `--trust-candidate` (section 4.7). A refused sandbox still leaves `manifest.json`
+beside `report.json`, so the record says what was checked.
 
 Two dry-run agents (`eval/harness_env_agents.py`) calibrate it: `nothing` writes `DONE` and scores 0 (ended by the
 agent in 1 s, "no Java"); `copy-ours` copies our overlay's `src/main` and the adapter and should score about ours
@@ -494,8 +499,8 @@ All free: no model call, no egress. Each step says what makes it fail.
 9. **A generic loopback model in the box?** Default none; the wire is in `SPEC.md`.
 10. **The two harness defects** the grader found (`combat.block.must-block`, `costs.x`) are kept failing here by the
     owner's instruction, for `defect-hunt`.
-11. **Any copy of the repository the agent's model may have seen.** Keep hidden instances, seeds and weights out of
-    the repository; flag contamination for models trained after today.
+11. **A seen copy (section 2).** Keep hidden instances, seeds and weights out of the repository; flag contamination
+    for models trained after today.
 12. **A separate process for the candidate's seat, or the grader in-JVM?** Today the seat runs in the grader's JVM
     and can rewrite its verdict (section 4.7, open). Options: the seat in its own JVM behind a small RPC that the
     grader drives (the engine stays in the grader's process; every `PlayerController` call crosses the boundary,
