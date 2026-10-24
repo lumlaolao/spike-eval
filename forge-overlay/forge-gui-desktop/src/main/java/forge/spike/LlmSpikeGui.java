@@ -3530,7 +3530,8 @@ public final class LlmSpikeGui {
          *  restrictions such as menace), or null. The engine checks them only for its own GUI (InputBlock calls
          *  CombatUtil.validateBlocks), so every other controller's blocks stood whatever they were (rules pilot
          *  RP_007). The pairs (blocker, attacker) are added, checked and removed again. validateBlocks never counts the
-         *  blockers against a global cap (Silent Arbiter: "No more than one creature can block each combat"), which
+         *  blockers against a global cap (Silent Arbiter: "No more than one creature can block each combat"; Mirri,
+         *  Weatherlight Duelist's attack trigger: "each opponent can't block with more than one creature"), which
          *  the engine enforces only in CombatUtil.canBlock against the combat so far, so the cap is checked here.
          *  <p>validateBlocks' requirement test also ignores the cap: under Silent Arbiter and Prized Unicorn it refused
          *  every set, naming a creature left unblocking whose requirement the cap forbids obeying. At the cap that
@@ -3550,7 +3551,7 @@ public final class LlmSpikeGui {
                 if (err == null || blocking.size() < cap || !namesANonBlocker(err, defender, blocking)) return err;
                 for (Card b : blocking) {
                     boolean obeys = false;
-                    for (Card a : combat.getAttackersBlockedBy(b)) obeys |= requiredToward(b, a, combat, defender);
+                    for (Card a : combat.getAttackersBlockedBy(b)) obeys |= requiredToward(b, a, combat);
                     if (!obeys) return err;
                 }
                 return restrictionError(combat, blocking);
@@ -3567,7 +3568,7 @@ public final class LlmSpikeGui {
         /** Whether the blocker has a requirement to block this attacker: it blocks each combat if able, it must block
          *  this attacker (provoke), or the attacker's lure covers it. The last two are the engine's own test
          *  (CombatUtil.mustBlockAnAttacker) on a scratch combat holding only this attacker. */
-        private static boolean requiredToward(Card blocker, Card attacker, Combat combat, Player defender) {
+        private static boolean requiredToward(Card blocker, Card attacker, Combat combat) {
             if (forge.game.staticability.StaticAbilityMustBlock.blocksEachCombatIfAble(blocker)) return true;
             Combat scratch = new Combat(combat.getAttackingPlayer());
             scratch.addAttacker(attacker, combat.getDefenderByAttacker(attacker));
@@ -3577,7 +3578,7 @@ public final class LlmSpikeGui {
         /** The restriction half of CombatUtil.validateBlocks (CombatUtil.java:701-728 at the pinned engine), which runs
          *  only after its requirement half finds nothing: the "can't block alone" family, then each blocked attacker's
          *  allowed number of blockers (menace). */
-        private static String restrictionError(Combat combat, CardCollection blockers) {
+        static String restrictionError(Combat combat, CardCollection blockers) {
             for (Card b : blockers) {
                 boolean alone = b.hasKeyword("CARDNAME can't attack or block alone.") || b.hasKeyword("CARDNAME can't block alone.");
                 if (blockers.size() < 2 && alone) return b + " can't block alone.";

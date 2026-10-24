@@ -2831,7 +2831,10 @@ public class GoldenChecksTest {
     /** Round-3 review of #314 (CR 509.1c): under Silent Arbiter, Hill Giant must block Grizzly Bears (a creature-side
      *  requirement) and Llanowar Elves has none. Elves on Savannah Lions obeys no requirement where Giant on the Bears
      *  obeys one, so it is refused, though validateBlocks' first objection is only about the Giant not blocking. The
-     *  seat answers it, then no blocks; the fallback takes Giant on the Bears. */
+     *  seat answers it, then no blocks; the fallback takes Giant on the Bears. Silent Arbiter also says "No more than
+     *  one creature can attack each combat"; the fixture puts two attackers in combat with combat.addAttacker, which
+     *  never checks attack restrictions, on purpose: only the block cap is under test, and a block-only cap (Mirri,
+     *  Weatherlight Duelist) exists only as the effect her attack trigger creates. */
     @Test
     public void atTheCapABlockThatObeysFewerRequirementsIsRefused() {
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
@@ -2905,6 +2908,63 @@ public class GoldenChecksTest {
         Assert.assertNotNull(set, "a legal set is found");
         Assert.assertEquals(set.size(), 1, "the one-Bear block");
         Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, set), "and it is legal");
+    }
+
+    /** restrictionError is a copy of the restriction half of CombatUtil.validateBlocks (follow-up to #314). With no
+     *  block requirement in play validateBlocks' requirement half finds nothing, so the two must agree on every set:
+     *  legal or not, and word for word where both object. Each branch of the copy is reached on both sides of its
+     *  bound (the two "alone" keywords, "at least two other creatures", "greater power", menace), and Mogg Flunkies
+     *  alone on the menace Brute breaks both rules at once, so the order of the two loops is pinned too. A drift in a
+     *  branch these sets reach (an engine bump, an edit to the copy) fails here, not in a game at the block cap. */
+    @Test
+    public void theBlockRestrictionCopyAgreesWithTheEngine() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card flunkies = card("Mogg Flunkies", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card hulk = card("Craven Hulk", me, ZoneType.Battlefield);              // can't block alone
+        Card conscripts = card("Orcish Conscripts", me, ZoneType.Battlefield);  // unless two others block
+        Card okk = card("Okk", me, ZoneType.Battlefield);                       // unless greater power blocks
+        Card wurm = card("Craw Wurm", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card brute = card("Boggart Brute", rival, ZoneType.Battlefield);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(lions, me);
+        combat.addAttacker(brute, me);
+        g.getAction().checkStaticAbilities();
+        Card[][][] sets = {
+            {},
+            {{flunkies, lions}},
+            {{flunkies, lions}, {bears, lions}},
+            {{flunkies, lions}, {bears, brute}},
+            {{bears, brute}},
+            {{bears, brute}, {giant, brute}},
+            {{flunkies, brute}, {bears, brute}},
+            {{bears, lions}, {giant, brute}},
+            {{hulk, lions}},
+            {{hulk, lions}, {bears, lions}},
+            {{conscripts, lions}, {bears, lions}},
+            {{conscripts, lions}, {bears, lions}, {giant, lions}},
+            {{okk, lions}, {bears, lions}},
+            {{okk, lions}, {wurm, lions}},
+            {{flunkies, brute}},
+        };
+        int objected = 0;
+        for (Card[][] set : sets) {
+            for (Card[] pr : set) combat.addBlocker(pr[1], pr[0]);
+            try {
+                CardCollection blocking = new CardCollection(combat.getAllBlockers());
+                String copy = LlmSpikeGui.PlayerControllerLLM.restrictionError(combat, blocking);
+                String engine = CombatUtil.validateBlocks(combat, me);
+                Assert.assertEquals(copy, engine, "set " + Arrays.deepToString(set));
+                if (engine != null) objected++;
+            } finally {
+                for (Card[] pr : set) combat.removeBlockAssignment(pr[1], pr[0]);
+            }
+        }
+        Assert.assertEquals(objected, 8, "Flunkies, Hulk, Conscripts and Okk refused once each, menace by one"
+                + " three times, Flunkies alone on the Brute once");
     }
 
     /** pr-review of #311: the no-model branch (the floor seat, or a spent budget) declared no blocks under a block
