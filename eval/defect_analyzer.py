@@ -4,7 +4,9 @@ game-file pairs from an eval/improve-loop batch and reports harness-defect
 metrics: fallback counts, the tier=ai hard invariant, silent decision-drop
 reconciliation (log-side ask events vs jsonl rows), no-CHOICE/parse-fail
 counts, latency percentiles, finish_reason=length counts, forced-pick
-mislabels, and per-seat mulligan coverage.
+mislabels, per-seat mulligan coverage, and block declarations that stood
+illegal (a `[BLOCK-INVALID] ... no legal set` log line; reported, not an
+invariant).
 
 Signatures are grounded in runs/tournament-1/HARNESS-ANALYSIS.md sections
 2-4 (C1 tier=ai delegation, C5 silent reactive-window drops, C6 forced
@@ -48,6 +50,10 @@ _BRIDGE_NO_REPLY_RE = re.compile(r'^\[BRIDGE ([^\]]+)\]\s*no reply')
 _PASS_RE = re.compile(r'^\[([^\]]+)\]\s*\[ROUTER\]\s*play:\s*PASS\b')
 _AUTO_LEGAL_RE = re.compile(r'^\[([^\]]+)\]\s*\[AUTO-LEGAL\]')
 _REPLIED_RE = re.compile(r'^\[OPENROUTER ([^/\]]+)/(\w+)\]\s*replied in (\d+)\s*ms')
+# A block declaration the engine objects to that stood: the seat's fallback found no legal set, or an arm's 64 draws
+# did not (issue #311). A set the fallback took ("took the legal set") is legal and not counted.
+_ILLEGAL_BLOCKS_RE = re.compile(
+    r'^\[([^\]]+)\]\s*\[BLOCK-INVALID\].*(no legal set was found|no legal block set in 64 draws)')
 
 
 # Decision types whose answer is a SUBSET of the options (zero to all of them), so one option still
@@ -65,7 +71,12 @@ def parse_log_text(text):
     non_answers = Counter()
     passes = Counter()
     auto_legal = Counter()
+    illegal_blocks = Counter()
     for line in text.splitlines():
+        m = _ILLEGAL_BLOCKS_RE.match(line)
+        if m:
+            illegal_blocks[m.group(1)] += 1
+            continue
         m = _ASK_RE.match(line)
         if m:
             seat, ty = m.group(1), m.group(2)
@@ -89,7 +100,8 @@ def parse_log_text(text):
             auto_legal[m.group(1)] += 1
             continue
     return {"asks": asks, "ask_types": {k: dict(v) for k, v in ask_types.items()},
-            "non_answers": non_answers, "passes": passes, "auto_legal": auto_legal}
+            "non_answers": non_answers, "passes": passes, "auto_legal": auto_legal,
+            "illegal_blocks": illegal_blocks}
 
 
 # ------------------------------------------------------------ jsonl parsing
@@ -319,6 +331,12 @@ def summarize(pairs, label):
     silent_drop_seats = sorted(s for s, v in silent_drop.items() if v["gap"] > 0)
     total_silent_drops = sum(max(0, v["gap"]) for v in silent_drop.values())
 
+    # --- block declarations that stood illegal (paired logs only)
+    illegal_blocks = Counter()
+    for p in pairs:
+        if p["log_events"] is not None:
+            illegal_blocks.update(p["log_events"].get("illegal_blocks") or {})
+
     # --- no-CHOICE / parse-fail counts by model (seat), over genuinely
     # model-answered lines only (prompt+raw_reply both present, tier
     # smart/fast — a fallback-decided row's raw_reply is the dead first
@@ -387,6 +405,8 @@ def summarize(pairs, label):
         "silent_drop_by_seat": silent_drop,
         "silent_drop_seats": silent_drop_seats,
         "silent_drop_total": total_silent_drops,
+        "illegal_blocks_by_seat": dict(sorted(illegal_blocks.items())),
+        "illegal_blocks_total": sum(illegal_blocks.values()),
         "parse_fail_by_model": parse_fail_by_model,
         "latency_by_tier_model": latency_by_tier_model,
         "finish_reason_length_count": finish_reason_length,
@@ -482,6 +502,12 @@ def _render_scope(name, s):
             L.append("      %s (log=%s) asks=%d rows=%d gap=%d"
                      % (f["file"], f["log"], f["log_asks"], f["jsonl_rows"], f["gap"]))
     L.append("total silent drops=%d" % s["silent_drop_total"])
+
+    L.append("")
+    L.append("--- illegal block sets that stood: %d ([BLOCK-INVALID] no legal set found) ---"
+             % s["illegal_blocks_total"])
+    for seat, n in s["illegal_blocks_by_seat"].items():
+        L.append("  %-20s %d" % (seat, n))
 
     L.append("")
     L.append("--- no-CHOICE / parse-fail counts by model ---")
