@@ -2128,6 +2128,44 @@ public class GoldenChecksTest {
         Assert.assertNotNull(rival); Assert.assertNotNull(rival2);
     }
 
+    /** "Cancel Search?" is the engine's question after a declined optional search, and a NO searches again
+     *  (ChangeZoneEffect: i--; continue). The harness-env grader's costs.x (docs/harness/evidence/
+     *  2026-10-22-env-grade-abi.tsv) declined and answered NO every time: 61 asks, no outcome. The seat hears the
+     *  NO once; the pick asked again says a second decline ends the search, and a second decline does. */
+    @Test(timeOut = 120000)
+    public void aSearchDeclinedAgainAfterKeepSearchingEnds() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Forest", me, ZoneType.Battlefield);
+        Card gsz = card("Green Sun's Zenith", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Library);
+        card("Forest", me, ZoneType.Library);
+        int[] cancels = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Green Sun's Zenith"))
+                .on("Choose X for", choice("1"))
+                // Six NOs at most, then YES: the loop the grader saw would otherwise hang the test.
+                .on("Cancel Search?", p -> "CHOICE: " + opt(p, ++cancels[0] > 6 ? "YES" : "NO"))
+                .on("Select a card", choice("Decline / none"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        List<String> picks = new ArrayList<>();
+        for (String p : model.prompts) {
+            String d = p.substring(Math.max(0, p.lastIndexOf("DECISION:")));
+            if (d.contains("Select a card")) picks.add(d);
+        }
+        Assert.assertEquals(cancels[0], 1, "\"Cancel Search?\" was asked once, not until the model said yes");
+        Assert.assertEquals(picks.size(), 2, "the pick was asked again once after the NO");
+        Assert.assertTrue(picks.get(1).contains("declining again ends the search"), picks.get(1));
+        Assert.assertTrue(me.getCardsIn(ZoneType.Library).stream().anyMatch(c -> c.getName().equals("Llanowar Elves")),
+                "nothing was fetched");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+        source(gsz);
+    }
+
     /** Which cast mode of a card with two (a split card's halves). */
     @Test
     public void whichWayToPlayACardIsTheModels() {
