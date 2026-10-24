@@ -5,18 +5,28 @@
     python3 eval/puzzle_watch.py runs/puzzles/luna-open --follow         # one line per event until the run is over
 
 Per puzzle: state (waiting / running / done / not started, when the run ended first, e.g. on its budget), attempts
-solved, decisions by tier, text parses, cost so far, the last decision and its answer, elapsed time, and flags for
-what acceptance treats as a defect: a decision Forge's AI made (ai>0), a [TEXT-PARSE], a lost answer, an exception,
-a block set left illegal ([BLOCK-INVALID] ... no legal set), a result row the scorer refuses (unscoreable), and a
-running puzzle whose files have not grown for --stall minutes (possibly stuck).
+solved, decisions by tier, text parses, cost so far, the last decision and its answer, elapsed time, and these flags:
+  ai               a decision Forge's AI made (a decision row with tier ai, or ai>0 in a [TALLY] line)
+  <gauntlet line>  each kind of line eval/gauntlet_scan.py fails on (FALLBACK->AI, (unparsed, TEXT-PARSE,
+                   TEXT-FORMAT-LEAK, Couldn't add to stack, failed to target, FAILED to pay, AI looped), and EXCEPTION
+                   for its Exception / Error / threw lines (stack frames not counted)
+  NO-ANSWER        a model reply that was no answer (defect_analyzer's non-answer and no-reply lines, [JEV-NO-ANSWER])
+  LOST, TAKEN      a decision whose answer was lost, or that the harness took (match_review.classify_auto)
+  TOOL-REFUSED, TOOL-FAILED   a lookup eval/tool_audit.py classes so (a --memory-tools run)
+  BLOCK-INVALID    a block set left illegal (defect_analyzer: no legal set was found)
+  CAP-OUTLIVED     the game thread outlived the cap, so the JVM played no further attempts
+  SHORT            a done puzzle with fewer than k result rows: puzzle_score refuses it, so its score is lost
+  UNSCOREABLE      a result row puzzle_score refuses (the goal was not enforced)
+  STALLED          a running puzzle whose files have not grown for --stall minutes (possibly stuck)
 
-Cost: a jev: seat's bridge logs the provider's own running cost on every answer (DecisionsBridge, "cost so far $x"),
-and that is summed. An openrouter: seat logs no cost line ("replied in N ms"), so its rows are priced by
-eval/cost_report.py, the estimate puzzle_solve.py checks the budget against (at the list price, not the dearest).
+Cost: the provider's own cost of each call (`cost_usd` on the context_call rows, written for a jev: seat), or
+eval/cost_report.py's pricing of the rows at each model's dearest endpoint, whichever is higher, so it is never below
+the figure puzzle_solve.py checks --budget-usd against (an openrouter: seat reports no cost on its rows).
 
 --follow exits 0 when the run is over (puzzle_solve.py wrote `finished` to puzzle-run.json, or, for a run made before
-that file, every puzzle directory is done), and 3 when nothing in the run has grown for --stall minutes while it is
-not over (a dead or hung run). It reads only: it never writes into the run directory and calls no network.
+that file, every puzzle directory is done), 4 at once when puzzle_solve.py wrote that it was stopped (an exception or
+an interrupt), and 3 when nothing in the run has grown for --stall minutes while it is not over (a dead or hung run).
+It reads only: it never writes into the run directory and calls no network.
 
 What it cannot see: a JVM killed before it wrote anything, a call that left no row, and (for a run without
 puzzle-run.json) the puzzles not started yet or how many attempts each will make; such a puzzle is called done when
@@ -36,13 +46,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cost_report  # noqa: E402
 import defect_analyzer  # noqa: E402
 import demo_events  # noqa: E402
+import gauntlet_scan  # noqa: E402
 import match_review  # noqa: E402
 import puzzle_score  # noqa: E402
 import puzzle_solve  # noqa: E402
+import tool_audit  # noqa: E402
 
-JEV_COST = re.compile(r"^\[JEV ([^\]]+)\] \S+ \S+ -> answer .*cost so far \$([0-9.]+)\)\s*$")
-EXCEPTION = re.compile(r"Exception|Error\b|threw")
-NO_ANSWER = re.compile(r"\[JEV-NO-ANSWER\]|^\[OPENROUTER [^\]]+\] non-answer")
+NO_ANSWER = (defect_analyzer._NON_ANSWER_RE, defect_analyzer._BRIDGE_NO_REPLY_RE, re.compile(r"\[JEV-NO-ANSWER\]"))
+CAP_OUTLIVED = "outlived the cap"
 # A log of a run without puzzle-run.json is done when it ends on its last result line and stays quiet this long.
 QUIET_DONE_S = 60
 TIERS = ("smart", "fast", "auto", "ai")
@@ -64,18 +75,22 @@ def log_lines(path):
         return []
 
 
-def decision_rows(d):
-    """The decision rows of every attempt, in file order (one game-*.jsonl per seed); a half-written line is skipped."""
-    rows = []
-    for path in sorted(glob.glob(os.path.join(d, "game-*.jsonl")), key=os.path.getmtime):
+def game_files(d):
+    """One game-*.jsonl per attempt, oldest first."""
+    return sorted(glob.glob(os.path.join(d, "game-*.jsonl")), key=os.path.getmtime)
+
+
+def provider_cost(paths):
+    """The provider's own cost summed over every context_call row that reports one."""
+    usd = 0.0
+    for path in paths:
         for line in log_lines(path):
-            try:
-                r = json.loads(line)
-            except ValueError:
-                continue
-            if r.get("t") == "decision":
-                rows.append(r)
-    return rows
+            if '"cost_usd"' in line:
+                try:
+                    usd += json.loads(line).get("cost_usd") or 0.0
+                except ValueError:
+                    pass
+    return usd
 
 
 def results(d):
@@ -98,43 +113,37 @@ def answer_of(row):
     return ", ".join(chosen) if chosen else "PASS / none"
 
 
-def jev_cost(lines):
-    """The provider's cost summed over each bridge (label) of the log. A bridge's figure is its own running total, and
-    each attempt builds new bridges, so a figure lower than the one before it starts a new total."""
-    done, now = collections.Counter(), {}
-    for line in lines:
-        m = JEV_COST.match(line)
-        if m:
-            label, usd = m.group(1), float(m.group(2))
-            if usd < now.get(label, 0.0):
-                done[label] += now[label]
-            now[label] = usd
-    return sum(done.values()) + sum(now.values()) if now else None
-
-
-def flags_of(lines, rows):
-    """{kind: (count, the latest line that shows it)} for every defect acceptance fails on."""
+def flags_of(lines, rows, tools):
+    """{kind: (count, the latest line that shows it)} for each flag in the module docstring read from the files."""
     found = collections.OrderedDict()
 
-    def add(kind, n, example):
-        if n:
-            found[kind] = (n, example[:160])
-    ai_rows = [r for r in rows if r.get("tier") == "ai"]
+    def add(kind, items, example=lambda x: x):
+        if items:
+            found[kind] = (len(items), example(items[-1])[:160])
     tallies = [l for l in lines if "[TALLY]" in l]
     ai_tally = max([int(m.group(1)) for m in (re.search(r"\bai=(\d+)", l) for l in tallies) if m] or [0])
-    add("ai", max(len(ai_rows), ai_tally), tallies[-1] if ai_tally else "a decision row with tier ai")
-    text = [l for l in lines if "[TEXT-PARSE]" in l]
-    add("TEXT-PARSE", len(text), text[-1] if text else "")
-    lost = [r for r in rows if r.get("answer_via") == "lost"
-            or (r.get("tier") == "auto" and match_review.classify_auto(r) == "LOST")]
-    add("LOST", len(lost), "%s decision: %s" % (lost[-1].get("type"), lost[-1].get("fallback") or "answer lost")
-        if lost else "")
-    no_answer = [l for l in lines if NO_ANSWER.search(l)]
-    add("NO-ANSWER", len(no_answer), no_answer[-1] if no_answer else "")
-    exc = [l for l in lines if EXCEPTION.search(l) and "JAVA_TOOL" not in l and not l.lstrip().startswith("at ")]
-    add("EXCEPTION", len(exc), exc[-1] if exc else "")
-    blocks = [l for l in lines if defect_analyzer._ILLEGAL_BLOCKS_RE.match(l)]
-    add("BLOCK-INVALID", len(blocks), blocks[-1] if blocks else "")
+    ai_rows = [r for r in rows if r.get("tier") == "ai"]
+    if ai_rows or ai_tally:
+        found["ai"] = (max(len(ai_rows), ai_tally), tallies[-1] if ai_tally else "a decision row with tier ai")
+    bad = collections.OrderedDict()
+    for l in lines:
+        m = gauntlet_scan.BAD.search(l)
+        if m and "JAVA_TOOL" not in l and not l.lstrip().startswith("at "):
+            kind = "EXCEPTION" if m.group(0) in ("Exception", "Error", "threw") else m.group(0)
+            bad.setdefault(kind, []).append(l)
+    for kind, ls in bad.items():
+        add(kind, ls)
+    add("NO-ANSWER", [l for l in lines if any(r.search(l) for r in NO_ANSWER)])
+    auto = [(r, match_review.classify_auto(r)) for r in rows if r.get("tier") == "auto"]
+    decision = lambda r: "%s decision: %s" % (r.get("type"), r.get("fallback") or "answer lost")  # noqa: E731
+    add("LOST", [r for r in rows if r.get("answer_via") == "lost"] + [r for r, c in auto if c == "LOST"], decision)
+    add("TAKEN", [r for r, c in auto if c == "TAKEN"], decision)
+    for kind in ("REFUSED", "FAILED"):
+        n = tools["by_outcome"][kind]
+        if n:
+            found["TOOL-" + kind] = (n, tools["examples"].get(kind, "")[:160])
+    add("BLOCK-INVALID", [l for l in lines if defect_analyzer._ILLEGAL_BLOCKS_RE.match(l)])
+    add("CAP-OUTLIVED", [l for l in lines if CAP_OUTLIVED in l])
     return found
 
 
@@ -145,37 +154,39 @@ def activity(d):
 
 
 def puzzle(d, k, finished, now, stall_s, prices):
-    lines = log_lines(os.path.join(d, "jvm.log"))
-    rows = decision_rows(d)
+    log = os.path.join(d, "jvm.log")
+    lines = log_lines(log)
+    files = game_files(d)
+    rows = [r for f in files for r in defect_analyzer.parse_jsonl_file(f)[0]]
     res = results(d)
     last = activity(d)
     manifest = os.path.join(d, "batch-manifest.json")
     start = os.path.getmtime(manifest) if os.path.isfile(manifest) else last
     tail = next((l for l in reversed(lines) if l.strip()), "")
-    if not lines and not rows:
+    # Build.run opens jvm.log as the JVM starts, and a resume renames it (set_aside_partial) until the replay starts.
+    if not os.path.isfile(log):
         state = "not started" if finished else "waiting"
-    elif finished or (k and len(res) >= k) or "outlived the cap" in tail:
+    elif finished or (k and len(res) >= k):
         state = "done"
     elif not k and res and tail.startswith("PZL_RESULT") and now - last >= QUIET_DONE_S:
         state = "done"
     else:
         state = "running"
-    flags = flags_of(lines, rows)
+    flags = flags_of(lines, rows, tool_audit.audit(files))
     if state == "running" and last and now - last > stall_s:
         flags["STALLED"] = (1, "no new log line for %d min" % ((now - last) // 60))
-    cost = jev_cost(lines)
-    if cost is None:
-        cost = cost_report.report_dir(d, prices)["usd"]
-    tiers = collections.Counter(r.get("tier") for r in rows)
-    text_parses = sum(1 for l in lines if "[TEXT-PARSE]" in l)
+    if state == "done" and k and len(res) < k:
+        flags["SHORT"] = (k - len(res), "%d of %d attempts: puzzle_score refuses the puzzle" % (len(res), k))
     solved = 0
     for r in res:
         try:
             solved += 1 if puzzle_score.attempt_success(r)[0] else 0
         except puzzle_score.Refused as e:  # a goal the engine did not enforce: a harness defect, not a result
             flags["UNSCOREABLE"] = (flags.get("UNSCOREABLE", (0, ""))[0] + 1, str(e)[:160])
+    tiers = collections.Counter(r.get("tier") for r in rows)
     return {"id": os.path.basename(d), "state": state, "attempts": len(res), "solved": solved,
-            "tiers": {t: tiers.get(t, 0) for t in TIERS}, "text_parses": text_parses, "cost": cost,
+            "tiers": {t: tiers.get(t, 0) for t in TIERS}, "text_parses": flags.get("TEXT-PARSE", (0,))[0],
+            "cost": max(provider_cost(files), cost_report.report_dir(d, prices)["usd"]),
             "rows": rows, "flags": flags, "last": last,
             "elapsed": ((last if state == "done" else now) - start) if start else 0}
 
@@ -183,7 +194,7 @@ def puzzle(d, k, finished, now, stall_s, prices):
 def snapshot(out, stall_s, now=None):
     now = time.time() if now is None else now
     run = read_json(os.path.join(out, puzzle_solve.RUN_FILE)) or {}
-    prices = cost_report.load_prices()
+    prices = cost_report.budget_prices(cost_report.load_prices())
     dirs = sorted(p for p in glob.glob(os.path.join(out, "*")) if os.path.isdir(p))
     ids = [os.path.basename(p) for p in dirs]
     ids += [i for i in run.get("ids") or [] if i not in ids]
@@ -212,6 +223,8 @@ def totals(snap):
         sum(1 for p in ps if p["state"] == "done"), len(ps), sum(1 for p in ps if p["solved"]),
         sum(p["solved"] for p in ps), sum(p["attempts"] for p in ps), cost)
     line += (" of the $%.2f budget" % budget) if budget is not None else " (no budget recorded: no puzzle-run.json)"
+    if run.get("stopped"):
+        line += "; puzzle_solve.py STOPPED: %s" % run["stopped"]
     flagged = sum(1 for p in ps if p["flags"])
     return line + ("; %d puzzle(s) flagged" % flagged if flagged else "; no flags")
 
@@ -235,7 +248,8 @@ def table(snap):
 
 
 def events(before, snap):
-    """The lines for what changed between two snapshots: each new decision, each flag that grew, each puzzle done."""
+    """The lines for what changed between two snapshots: each new decision, each flag that grew, the cost when it
+    moved, each puzzle done. A decision line carries no cost: one read late would show a later total."""
     was = {p["id"]: p for p in (before or {"puzzles": []})["puzzles"]}
     stamp = time.strftime("%H:%M:%S", time.localtime(snap["now"]))
     lines = []
@@ -243,14 +257,16 @@ def events(before, snap):
         old = was.get(p["id"])
         seen = len(old["rows"]) if old and len(old["rows"]) <= len(p["rows"]) else 0
         for i, r in enumerate(p["rows"][seen:], seen + 1):
-            lines.append("%s %s decision %d %s %s -> %s  [cost $%.4f]" % (
-                stamp, p["id"], i, r.get("tier"), r.get("type"), answer_of(r)[:80], p["cost"]))
+            lines.append("%s %s decision %d %s %s -> %s" % (
+                stamp, p["id"], i, r.get("tier"), r.get("type"), answer_of(r)[:80]))
         for k, (n, example) in p["flags"].items():
             if not old or old["flags"].get(k, (0, ""))[0] < n:
                 lines.append("%s %s FLAG %s x%d: %s" % (stamp, p["id"], k, n, example))
         if p["state"] == "done" and (not old or old["state"] != "done"):
             lines.append("%s %s DONE %s: solved %d/%d attempts, $%.4f" % (
                 stamp, p["id"], "solved" if p["solved"] else "failed", p["solved"], p["attempts"], p["cost"]))
+        elif old and abs(p["cost"] - old["cost"]) > 1e-12:
+            lines.append("%s %s cost $%.4f" % (stamp, p["id"], p["cost"]))
     return lines
 
 
@@ -261,28 +277,33 @@ def over(snap):
     return bool(snap["puzzles"]) and all(p["state"] == "done" for p in snap["puzzles"])
 
 
-def dead_for(out, snap):
-    """Seconds since anything in the run grew, or None while it is over."""
+def dead_for(out, snap, since):
+    """Seconds since anything in the run grew (since the watcher started, for a run with nothing in it yet), or None
+    while it is over."""
     if over(snap):
         return None
     times = [p["last"] for p in snap["puzzles"] if p["last"]]
     run_file = os.path.join(out, puzzle_solve.RUN_FILE)
     if os.path.isfile(run_file):
         times.append(os.path.getmtime(run_file))
-    return snap["now"] - max(times) if times else None
+    return snap["now"] - max(times or [since])
 
 
 def follow(out, interval, stall_s, emit=print, sleep=time.sleep):
+    since = time.time()
     before = None
     while True:
         snap = snapshot(out, stall_s)
         for line in events(before, snap):
             emit(line)
         before = snap
+        if snap["run"].get("stopped"):
+            emit("[watch] STOPPED: " + totals(snap))
+            return 4
         if over(snap):
             emit("[watch] run over: " + totals(snap))
             return 0
-        quiet = dead_for(out, snap)
+        quiet = dead_for(out, snap, since)
         if quiet is not None and quiet > stall_s:
             emit("[watch] DEAD? nothing in the run has grown for %d min and it is not over: %s"
                  % (quiet // 60, totals(snap)))

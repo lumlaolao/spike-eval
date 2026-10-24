@@ -1,6 +1,7 @@
 """puzzle_watch.py reads a puzzle_solve.py run as it is written: each puzzle's state, spend and defects, and when the
 run is over or dead. Fixture lines are copied from runs/puzzles/jev-test-1 (a jev: seat) and from the log lines
-LlmSpikeGui.java prints (TALLY, TEXT-PARSE, BLOCK-INVALID)."""
+LlmSpikeGui.java prints (TALLY, TEXT-PARSE, BLOCK-INVALID). A context_call row's `cost_usd` is the provider's own cost
+of the call (jev-test-1: 15 rows, $0.002322)."""
 import io
 import json
 import os
@@ -32,6 +33,13 @@ def decision(i, tier="smart", via="tool", fallback=None):
             "options": ["CAST Shock @2 {R}", "PASS (do nothing)"], "prompt_tokens": 4000, "completion_tokens": 50}
 
 
+def call(cost_usd=None, tokens=1000):
+    r = {"t": "context_call", "seat": "Solver", "tier": "smart", "prompt_tokens": tokens, "completion_tokens": 10}
+    if cost_usd is not None:
+        r["cost_usd"] = cost_usd
+    return r
+
+
 def result(seed, status):
     return {"schema": "pzl-result-v1", "id": "x", "seed": seed, "status": status, "solved": status == "solved"}
 
@@ -45,7 +53,8 @@ class Run:
         puzzle_solve.write_run(self.root, self.ids, k, 0.5, finished=finished)
         self.puzzle("done", ["[EVAL] jsonl game-1-1.jsonl", JEV % (1, 0.001), JEV % (2, 0.002), "PZL_RESULT {}",
                              "[EVAL] jsonl game-2-2.jsonl", JEV % (1, 0.0005), "PZL_RESULT {}"],
-                    [decision(0), decision(1)], [result(1, "solved"), result(2, "failed")])
+                    [call(0.001), decision(0), call(0.001), call(0.0005), decision(1)],
+                    [result(1, "solved"), result(2, "failed")])
         self.puzzle("running", ["[EVAL] jsonl game-1-1.jsonl", JEV % (1, 0.001)], [decision(0)], [])
         self.puzzle("stalled", ["[EVAL] jsonl game-1-1.jsonl", JEV % (1, 0.001)], [decision(0)], [])
         self.age("stalled", 20 * 60)
@@ -91,9 +100,43 @@ class EachPuzzleTest(unittest.TestCase):
     def test_decisions_are_counted_by_tier(self):
         self.assertEqual(self.p["bad"]["tiers"], {"smart": 1, "fast": 0, "auto": 1, "ai": 1})
 
-    def test_the_jev_bridge_cost_is_summed_over_attempts(self):
-        # Each attempt builds a new bridge, whose running total starts again: 0.002 + 0.0005, not 0.0005.
+    def test_the_providers_cost_is_summed_over_every_call_row(self):
+        # The jvm.log figure is one bridge's running total and resets with each attempt: the rows do not.
         self.assertAlmostEqual(self.p["done"]["cost"], 0.0025, places=9)
+
+    def test_the_cost_survives_a_resume_that_set_the_log_aside(self):
+        puzzle_solve.set_aside_partial(self.run.root / "done")
+        self.assertAlmostEqual(self.run.by_id()["done"]["cost"], 0.0025, places=9)
+
+    def test_a_provider_that_reports_no_cost_is_priced_as_the_budget_is(self):
+        d = self.run.root / "running"
+        (d / "game-1-1.jsonl").write_text(json.dumps(call(tokens=10 ** 6)) + "\n" + json.dumps(decision(0)) + "\n")
+        want = cost_report.report_dir(str(d), cost_report.budget_prices(cost_report.load_prices()))["usd"]
+        self.assertGreater(want, 0)
+        self.assertAlmostEqual(self.run.by_id()["running"]["cost"], want, places=12)
+
+    def test_a_done_puzzle_with_fewer_than_k_results_is_flagged_short(self):
+        # puzzle_score refuses a puzzle with fewer than k attempts: a crashed or capped JVM loses its score.
+        p = Run(finished=True).by_id()
+        self.assertEqual(p["running"]["state"], "done")
+        self.assertIn("SHORT", p["running"]["flags"])
+        self.assertNotIn("SHORT", p["done"]["flags"])
+
+    def test_a_game_thread_that_outlived_the_cap_is_a_defect_not_done(self):
+        with open(self.run.root / "running" / "jvm.log", "a") as f:
+            f.write("[PZL] the game thread outlived the cap at seed 1; later rollouts would share the JVM with it, "
+                    "so the run stops here\n")
+        p = self.run.by_id()["running"]
+        self.assertEqual(p["state"], "running")
+        self.assertIn("CAP-OUTLIVED", p["flags"])
+
+    def test_a_set_aside_puzzle_not_yet_restarted_on_resume_is_waiting(self):
+        d = self.run.root / "stalled"
+        puzzle_solve.set_aside_partial(d)
+        puzzle_solve.write_run(self.run.root, self.run.ids, 2, 0.5, finished=False)
+        p = self.run.by_id()["stalled"]
+        self.assertEqual(p["state"], "waiting")
+        self.assertNotIn("STALLED", p["flags"])
 
     def test_a_clean_puzzle_has_no_flags(self):
         self.assertEqual(dict(self.p["done"]["flags"]), {})
@@ -121,14 +164,48 @@ class EachPuzzleTest(unittest.TestCase):
             f.write(json.dumps(result(1, "unscoreable")) + "\n")
         self.assertIn("UNSCOREABLE", self.run.by_id()["running"]["flags"])
 
-    def test_an_openrouter_seat_is_priced_by_cost_report(self):
-        # OpenRouterBridge logs "replied in N ms" and no cost: the rows are priced as the budget prices them.
-        d = self.run.root / "running"
-        puzzle_solve.write_manifest(d, "openrouter:openai/gpt-6-luna", "S", "running", {})
+    def test_an_openrouter_seat_is_priced_at_the_dearest_endpoint_as_the_budget_is(self):
+        # OpenRouterBridge logs "replied in N ms" and no cost; puzzle_solve checks the budget at budget_prices.
+        root = Path(tempfile.mkdtemp())
+        d = root / "p"
+        puzzle_solve.write_manifest(d, "openrouter:openai/gpt-6-luna", "S", "p", {})
         (d / "jvm.log").write_text("[OPENROUTER Solver/smart] replied in 900 ms\n")
-        want = cost_report.report_dir(str(d), cost_report.load_prices())["usd"]
-        self.assertGreater(want, 0)
-        self.assertAlmostEqual(self.run.by_id()["running"]["cost"], want, places=12)
+        (d / "game-1-1.jsonl").write_text(json.dumps(call(tokens=10 ** 6)) + "\n")
+        want = puzzle_solve.spent(root, bound=True)
+        self.assertGreater(want, puzzle_solve.spent(root))
+        self.assertAlmostEqual(puzzle_watch.snapshot(str(root), 600)["puzzles"][0]["cost"], want, places=12)
+
+    def test_each_defect_line_the_gauntlet_and_the_analyzer_know_is_flagged(self):
+        d = self.run.root / "running"
+        cases = {
+            "FALLBACK->AI": "[Solver] [FALLBACK->AI] chooseSingleEntity",
+            "TEXT-FORMAT-LEAK": "[Solver] [TEXT-FORMAT-LEAK] CHOICE: in a tool reply",
+            "(unparsed": "[Solver] [ROUTER] play: (unparsed reply)",
+            "FAILED to pay": "[Solver] [ROUTER] Shock FAILED to pay",
+            "failed to target": "[Solver] [ROUTER] Shock failed to target",
+            "Couldn't add to stack": "Couldn't add to stack: Shock",
+            "AI looped": "[Opponent] AI looped 999 times",
+            "EXCEPTION": "java.lang.IllegalStateException: boom",
+            "NO-ANSWER": "[OPENROUTER Solver/smart] non-answer -> treating as bridge-down",
+        }
+        for kind, line in cases.items():
+            (d / "jvm.log").write_text(line + "\n")
+            self.assertIn(kind, self.run.by_id()["running"]["flags"], line)
+        for line in ("[BRIDGE Solver/smart] no reply", "[JEV Solver/smart] [JEV-NO-ANSWER] HTTP 500: x"):
+            (d / "jvm.log").write_text(line + "\n")
+            self.assertIn("NO-ANSWER", self.run.by_id()["running"]["flags"], line)
+
+    def test_a_choice_the_harness_took_and_a_refused_lookup_are_flagged(self):
+        d = self.run.root / "running"
+        rows = [decision(0, tier="auto", fallback="heuristic(mulligan)"),
+                {"t": "context_tool", "seat": "Solver", "request": "TOOL CALL inspect {}",
+                 "result": "ERROR: unknown tool inspect"},
+                {"t": "context_tool", "seat": "Solver", "request": "TOOL CALL simulate {}",
+                 "result": "ERROR: preview threw"}]
+        (d / "game-1-1.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        flags = self.run.by_id()["running"]["flags"]
+        for kind in ("TAKEN", "TOOL-REFUSED", "TOOL-FAILED"):
+            self.assertIn(kind, flags)
 
 
 class AnswerTest(unittest.TestCase):
@@ -190,8 +267,40 @@ class FollowTest(unittest.TestCase):
         lines = puzzle_watch.events(before, puzzle_watch.snapshot(str(run.root), 600))
         self.assertEqual(len(lines), 3, lines)
         self.assertIn("running decision 2 smart play -> CAST Shock @2 {R}", lines[0])
+        self.assertNotIn("$", lines[0], "a backlog line must not show the cost of a later moment")
         self.assertIn("running FLAG TEXT-PARSE x1", lines[1])
         self.assertIn("running DONE solved: solved 2/2", lines[2])
+        self.assertIn("$", lines[2])
+
+    def test_the_running_cost_is_a_line_of_its_own_when_it_moves(self):
+        run = Run()
+        before = puzzle_watch.snapshot(str(run.root), 600)
+        with open(run.root / "running" / "game-1-1.jsonl", "a") as f:
+            f.write(json.dumps(call(0.003)) + "\n")
+        lines = puzzle_watch.events(before, puzzle_watch.snapshot(str(run.root), 600))
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn("running cost $0.0030", lines[0])
+
+    def test_follow_on_an_empty_directory_gives_up_after_the_stall(self):
+        root = tempfile.mkdtemp()
+        out = []
+        looks = []
+
+        def sleep(s):
+            looks.append(s)
+            if len(looks) > 50:
+                raise AssertionError("still looking at an empty directory")
+            time.sleep(0.02)
+        self.assertEqual(puzzle_watch.follow(root, 0, 0.01, emit=out.append, sleep=sleep), 3)
+        self.assertTrue(out[-1].startswith("[watch] DEAD?"), out[-1])
+
+    def test_follow_reports_a_puzzle_solve_that_stopped_at_once_with_its_own_code(self):
+        run = Run()
+        puzzle_solve.write_run(run.root, run.ids, 2, 0.5, finished=False, stopped="KeyboardInterrupt()")
+        out = []
+        self.assertEqual(puzzle_watch.follow(str(run.root), 0, 600, emit=out.append, sleep=no_second_look), 4)
+        self.assertTrue(out[-1].startswith("[watch] STOPPED"), out[-1])
+        self.assertIn("KeyboardInterrupt", out[-1])
 
     def test_follow_exits_0_once_puzzle_solve_wrote_finished(self):
         run = Run(finished=True)
