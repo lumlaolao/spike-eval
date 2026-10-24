@@ -2796,9 +2796,12 @@ public class GoldenChecksTest {
 
     /** Round-2 review of #314: Silent Arbiter's "No more than one creature can block each combat" is enforced only by
      *  CombatUtil.canBlock against the combat so far (CombatUtil.java:434); validateBlocks never counts blockers. A model
-     *  that blocks the Unicorn with both creatures is refused, and the fallback declares one. */
+     *  that blocks the Unicorn with both creatures does not get both: the answer tool's check refuses the set, the text
+     *  path drops the pair past the cap; one creature blocks, and that one-creature block is accepted although the
+     *  engine's requirement check (which ignores the cap) refuses it. The fallback under a cap is reached by the two
+     *  tests after this one. */
     @Test
-    public void aBlockCapIsKeptByTheSeatAndByItsFallback() {
+    public void aBlockOverTheGlobalCapIsNotDeclared() {
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
         Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
         card("Grizzly Bears", me, ZoneType.Battlefield);
@@ -2822,6 +2825,66 @@ public class GoldenChecksTest {
         for (Card c : me.getCreaturesInPlay()) both.add(new Card[] {c, unicorn});
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, both),
                 "no more than 1 creature can block each combat.");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
+    }
+
+    /** Round-3 review of #314 (CR 509.1c): under Silent Arbiter, Hill Giant must block Grizzly Bears (a creature-side
+     *  requirement) and Llanowar Elves has none. Elves on Savannah Lions obeys no requirement where Giant on the Bears
+     *  obeys one, so it is refused, though validateBlocks' first objection is only about the Giant not blocking. The
+     *  seat answers it, then no blocks; the fallback takes Giant on the Bears. */
+    @Test
+    public void atTheCapABlockThatObeysFewerRequirementsIsRefused() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card elves = card("Llanowar Elves", me, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        giant.addMustBlockCard(g.getNextTimestamp(), bears);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> { asks.add(p);
+            return asks.size() == 1 ? "BLOCKS: Llanowar Elves->Savannah Lions" : "BLOCKS: NONE"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(bears, me);
+        combat.addAttacker(lions, me);
+        g.getAction().checkStaticAbilities();
+        List<Card[]> swap = new ArrayList<>();
+        swap.add(new Card[] {elves, lions});
+        Assert.assertNotNull(LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, swap), "Elves on the Lions is refused");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String log = LineFindingProbeTest.logOf(() -> ctrl.declareBlockers(me, combat));
+        Assert.assertEquals(combat.getBlockers(bears), Arrays.asList(giant), "the Giant blocks the Bears");
+        Assert.assertTrue(combat.getBlockers(lions).isEmpty(), "nothing blocks the Lions");
+        Assert.assertTrue(log.contains("->legal 1"), "the fallback took it: " + log);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
+    }
+
+    /** Round-3 review of #314: under Silent Arbiter with Prized Unicorn attacking, Mogg Flunkies ("can't attack or block
+     *  alone") blocking alone is illegal, but validateBlocks' first objection is the Bears' requirement (its requirement
+     *  loop runs before its restriction loop), which hid the Flunkies'. The fallback takes the Bears. */
+    @Test
+    public void atTheCapAHiddenBlockRestrictionIsStillSeen() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card flunkies = card("Mogg Flunkies", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> { asks.add(p);
+            return asks.size() == 1 ? "BLOCKS: Mogg Flunkies->Prized Unicorn" : "BLOCKS: NONE"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        List<Card[]> alone = new ArrayList<>();
+        alone.add(new Card[] {flunkies, unicorn});
+        String err = LlmSpikeGui.PlayerControllerLLM.blocksError(combat, me, alone);
+        Assert.assertTrue(err != null && err.contains("can't block alone"), "the Flunkies alone is refused: " + err);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String log = LineFindingProbeTest.logOf(() -> ctrl.declareBlockers(me, combat));
+        Assert.assertEquals(combat.getBlockers(unicorn), Arrays.asList(bears), "the Bears block the Unicorn");
+        Assert.assertTrue(log.contains("->legal 1"), "the fallback took it: " + log);
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI is never asked");
     }
 
