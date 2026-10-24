@@ -56,6 +56,9 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   - Claude Opus 5.5 (CLAUDE.md game-model rule).
 - **Jev 1.14** answers through its own bridge to OpenRouter's Decisions API (merged, PR #305). Its typed choice becomes the harness's `answer` call. This is an owner-approved exception to "every
   answer is a tool call", because Jev makes no tool calls. It gets no lookup tools.
+- **Jev smoke test (2026-10-24, owner-authorized):** one attempt on gen2 `hard-copy-0d9fdb568ba4`, main b129c05
+  (harness-epoch-71): 15 decisions through the Decisions bridge, about 1 s each, `ai=0`, no text parse, no lost answer;
+  not solved (opponent 31 -> 15); $0.0023. Run dir `runs/puzzles/jev-test-1` (local, not committed).
 - **Estimated cost:** about $37 typical. Each model is capped at its "high" estimate, $125 at most.
   - Chart: `cost-table-3.png` (scratchpad).
   - Script: `notes/frontier3-plan.sh`. It refuses without the owner's egress flag, runs 5 at a time and resumes.

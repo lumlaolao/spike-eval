@@ -6,13 +6,19 @@
 #   bash notes/frontier3-plan.sh            # all models, 5 at a time
 #   RESUME=1 bash notes/frontier3-plan.sh   # pick up where a stopped run left off
 #   ONLY="x-ai/grok-4.7 openai/gpt-6-luna" bash notes/frontier3-plan.sh
+#   REPO=/path/to/main-checkout bash notes/frontier3-plan.sh   # REPO must be at origin/main
+# Watch it (one table per model; --follow streams decisions, flags and finished puzzles):
+#   for d in runs/puzzles/frontier3/*/; do python3 eval/puzzle_watch.py "$d"; done
 # The 3 boards (gen2 suite, open split): Luna failed each, furthest from the goal, three families.
 set -u
 REPO=${REPO:-$(git rev-parse --show-toplevel)}   # a checkout of main
+BUILD=${BUILD:-}   # an isolated build of REPO; built below when unset
+FORGE=${FORGE_HOME:-$HOME/forge}; FORGE=${FORGE//\$HOME/$HOME}   # an environment may hold a literal "$HOME/forge"
+[ -d "$FORGE/forge-gui-desktop" ] || { echo "refused: no Forge checkout at $FORGE (set FORGE_HOME)"; exit 2; }
 SUITE=$REPO/eval/suites/puzzles-hard-gen2-v1.json
 IDS=hard-splice2-325cd33e0a57,hard-hoofdrain-60c5afda2f25,hard-drain2-0ab6f6ae05d9
 OUT=${OUT:-$REPO/runs/puzzles/frontier3}
-PAR=${PAR:-5}   # each JVM takes 2 GB; this box has 15
+PAR=${PAR:-5}   # each JVM takes 2 GB (-Xmx2048m); this box has 15; one JVM per model (--jobs 1)
 # model  cap-in-USD: 3 attempts at the "high" profile (730K prompt half cached, 212K output) priced at each
 # model's `max` in eval/pricing/prices.json (its dearest endpoint; budgets check there since PR #303), +10%.
 # Sum of caps: about $291 (was $125 at list prices). Expected spend is unchanged (about $37 at list). The gap is
@@ -43,10 +49,23 @@ mistralai/mistral-medium-3-5 10.00
 "
 JEV="typesafe/jev-1.14 0.50"   # $0.042/M input, output free: about $0.05 for 3 puzzles
 [ "${OPENROUTER_ALLOW_EGRESS:-}" = 1 ] || { echo "refused: the owner's egress opt-in is not set"; exit 2; }
+# The run must play main's harness: puzzle_solve.py otherwise takes the newest build under
+# runs/harness-acceptance, which can be an unmerged branch's.
+git -C "$REPO" fetch -q origin main || { echo "refused: cannot fetch origin/main"; exit 2; }
+HEAD_SHA=$(git -C "$REPO" rev-parse HEAD)
+[ "$HEAD_SHA" = "$(git -C "$REPO" rev-parse origin/main)" ] && [ -z "$(git -C "$REPO" status --porcelain -- eval forge-overlay)" ] \
+  || { echo "refused: $REPO is not a clean checkout of origin/main"; exit 2; }
+if [ -z "$BUILD" ]; then
+  BUILD=/tmp/frontier3-build-${HEAD_SHA:0:7}
+  ( cd "$REPO" && STAGES="preflight classpath compile" OUT=$BUILD FORGE_HOME=$FORGE \
+      bash eval/harness_acceptance.sh > "$BUILD.log" 2>&1 ) || { echo "refused: build failed, see $BUILD.log"; exit 2; }
+fi
+echo "main $HEAD_SHA, build $BUILD"
 run_one() {
   local model=$1 cap=$2 dir=$OUT/${1//\//_}
   local spec="openrouter:$model"; [[ $model == typesafe/jev-* ]] && spec="jev:$model"
-  python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 \
+  python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 --jobs 1 \
+    --build "$BUILD" --forge "$FORGE" \
     --model "$spec" --budget-usd "$cap" --out "$dir" ${RESUME:+--resume} > "$dir.log" 2>&1
   echo "$model exit $? ($(python3 "$REPO/eval/cost_report.py" "$dir" 2>/dev/null | tail -1))"
 }
