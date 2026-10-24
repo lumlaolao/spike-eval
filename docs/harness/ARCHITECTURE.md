@@ -680,6 +680,22 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   onto decisions only for a clean written-line run (no wait, untap fallback, drift or exhaustion in the script) of
   the file that was played (`pzl_changed` when the .pzl's hash no longer matches the row's); another seed's result is
   never borrowed. A puzzle pane is finished on its result row (a puzzle writes no game row).
+- **The harness-building environment (`docs/harness/HARNESS-ENV-FRAMEWORK.md`)** treats building this harness as an
+  agent task. `harness_env_sandbox.py` builds the agent's sandbox from an episode spec (`eval/harness_env/`) and
+  proves no withheld file, token or history is in it; `harness_env_grade.py` grades a submitted overlay with the
+  hidden tests in a workspace outside it (`surface-v0`, our own classes only). The instance grader
+  (`forge/harnessenv/` in the overlay's test tree, run by `harness_env_grade.py instances`) drives any seat built
+  through `harness-env-abi/1` (`SeatFactory`, an OpenAI-compatible scripted model on loopback) over 69 hand
+  instances and sets generated from the card scripts (`harness_env_generate.py`), judges by engine outcomes, and
+  counts Forge's AI inside a patched `PlayerControllerAi`, the engine's or the submission's own marked copy, which is
+  refused when it counts a hook name fewer times than the engine's file (any count gates the benchmark to 0). Ours
+  (`HarnessEnvOurs`) scores 0.979; the default bridge, the ablations and the toys 0.
+  `harness_env_episode.py` runs an episode end to end and `harness_env_calibrate.py` compares scoring settings.
+  The candidate's seat still runs inside the grader's JVM and could rewrite its report (an open hole, framework
+  section 4.7), so an episode emits a candidate's number only with `--trust-candidate`; intake scores 0 a
+  submission with an unmarked engine patch or a class in `forge.harnessenv`.
+  It reads the harness and never changes it. *Why outside:* a grader the
+  candidate can see or run is a target, not a measure.
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
   via `puzzle_score.score`, a hard-suite check as a labelled pilot (`--hard-results`, never pooled), and the STR
   scores as not yet run with their cost.

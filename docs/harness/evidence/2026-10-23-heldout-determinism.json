@@ -1,0 +1,66 @@
+{
+ "date": "2026-10-23",
+ "invocation": "for n in 1 2: harness_env_grade.py instances <ep-ours/grade/classes> <acc-1eb9718b0/classpath.txt> /root/forge det<n> --seats 'ours=forge.spike.HarnessEnvOurs$Ours,default=forge.harnessenv.toys.Toys$PriorityOnly' --set set-heldout.json (scratchpad det.sh, 2026-10-23)",
+ "retained": "the set file and the two reports are not committed (the set names held-out cards); this summary is",
+ "rows_differing": [
+  {
+   "columns": [
+    "carried"
+   ],
+   "instance": "attacker-keyword.37162eebed3fa71b",
+   "seat": "default"
+  }
+ ],
+ "runs": {
+  "det1": {
+   "default": {
+    "benchmark": 0.0,
+    "dense": 0.0,
+    "passed": 0,
+    "rows": 24,
+    "rows_sha256": "b6018a5e34625075"
+   },
+   "ours": {
+    "benchmark": 1.0,
+    "dense": 1.0,
+    "passed": 24,
+    "rows": 24,
+    "rows_sha256": "b18bf5e02615c2e6"
+   }
+  },
+  "det2": {
+   "default": {
+    "benchmark": 0.0,
+    "dense": 0.0,
+    "passed": 0,
+    "rows": 24,
+    "rows_sha256": "3a6842bdf169ae98"
+   },
+   "ours": {
+    "benchmark": 1.0,
+    "dense": 1.0,
+    "passed": 24,
+    "rows": 24,
+    "rows_sha256": "b18bf5e02615c2e6"
+   }
+  }
+ },
+ "set": {
+  "format": "harness-env-instances/1",
+  "generator": "gen-v1",
+  "per_template": 4,
+  "seed_sha": "1cb1909a18c6e835",
+  "set_sha": "dd7139ba3fd8294d",
+  "split": "heldout",
+  "templates": [
+   "attacker",
+   "attacker-keyword",
+   "blocker-keyword",
+   "charm",
+   "sac-outlet",
+   "single-target-spell"
+  ]
+ },
+ "set_instances": 24,
+ "what": "the held-out determinism run of HARNESS-ENV-FRAMEWORK.md section 6: one generated set graded twice for ours and the default bridge"
+}

@@ -1,0 +1,309 @@
+"""harness_env_episode.py: an episode ends when the agent says so (or at the cap), and is graded outside the sandbox.
+
+The agents here are small scripts; grading is a stub that records what it was handed, so these tests need no JVM.
+What would make them fail: an episode that ends before DONE, one that runs past its cap, a submission taken from
+anywhere but the sandbox's overlay, a checkpoint graded while the agent still runs, a sandbox with history or a leak
+handed to the agent, or a dev slice copied in that the spec did not ask for.
+"""
+import inspect
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+
+import harness_env_episode as ep
+import harness_env_generate as hgen
+import harness_env_grade as hg
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SPEC = os.path.join(REPO, "eval", "harness_env", "episode-v0.json")
+
+
+def agent(code):
+    return [sys.executable, "-c", code]
+
+
+class Stub:
+    """A grader that records each call and when it came."""
+
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self, submission, out):
+        files = sorted(os.path.relpath(os.path.join(r, f), submission) for r, _, fs in os.walk(submission) for f in fs)
+        self.calls.append({"submission": submission, "files": files, "at": time.time()})
+        return {"benchmark": 0.5 if files else 0.0, "dense": 0.5 if files else 0.0}
+
+
+class EpisodeTest(unittest.TestCase):
+    def setUp(self):
+        self.out = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.out)
+
+    def run_ep(self, code, **kw):
+        stub = Stub()
+        kw.setdefault("cap_s", 20)
+        report = ep.run_episode(SPEC, REPO, agent(code), self.out, grade_fn=stub, poll_s=0.05, **kw)
+        return report, stub
+
+    def test_an_agent_that_writes_done_ends_the_episode_and_its_overlay_is_graded(self):
+        report, stub = self.run_ep(
+            "import os\nos.makedirs('overlay/forge-gui-desktop/src/main/java/a', exist_ok=True)\n"
+            "open('overlay/forge-gui-desktop/src/main/java/a/Seat.java','w').write('class Seat {}')\n"
+            "open('DONE','w').write('submit HEAD')\n"
+            "import time\ntime.sleep(30)\n")
+        self.assertEqual(report["ended_by"], "agent")
+        self.assertEqual(report["done"], "submit HEAD")
+        self.assertLess(report["wall_s"], 15, "the episode ended at DONE, not at the cap")
+        self.assertEqual(stub.calls[0]["files"], ["forge-gui-desktop/src/main/java/a/Seat.java"])
+        self.assertTrue(stub.calls[0]["submission"].startswith(self.out))
+        self.assertNotIn("sandbox", os.path.relpath(stub.calls[0]["submission"], self.out).split(os.sep)[0])
+        self.assertEqual(report["score"]["benchmark"], 0.5)
+        with open(os.path.join(self.out, "report.json"), encoding="utf-8") as f:
+            self.assertEqual(json.load(f)["ended_by"], "agent")
+
+    def test_an_agent_that_never_finishes_is_stopped_at_the_cap_and_its_last_state_graded(self):
+        report, stub = self.run_ep("import time\nopen('overlay/x.txt','w').write('x')\nwhile True: time.sleep(0.1)\n", cap_s=1.5)
+        self.assertEqual(report["ended_by"], "cap")
+        self.assertLess(report["wall_s"], 10)
+        self.assertEqual(stub.calls[0]["files"], ["x.txt"])
+
+    def test_an_agent_that_exits_without_done_is_graded_and_says_so(self):
+        report, stub = self.run_ep("pass\n")
+        self.assertEqual(report["ended_by"], "exit")
+        self.assertEqual(report["score"]["benchmark"], 0.0)
+
+    def test_checkpoints_are_taken_while_the_agent_works_and_graded_only_after_it_ends(self):
+        report, stub = self.run_ep(
+            "import time, os\nfor i in range(4):\n    open('overlay/f%d.txt' % i,'w').write('x')\n    time.sleep(0.4)\n"
+            "open('DONE','w').write('done')\n", checkpoint_s=0.3, grade_checkpoints=True)
+        self.assertGreaterEqual(len(report["checkpoints"]), 2)
+        ended = report["ended_at"]
+        self.assertTrue(all(c["at"] >= ended for c in stub.calls), "a checkpoint was graded while the agent ran")
+        sizes = [len(c["files"]) for c in stub.calls[1:]]
+        self.assertEqual(sizes, sorted(sizes), "checkpoints are in time order and only grow here")
+        self.assertTrue(all("score" in c for c in report["checkpoints"]))
+
+    def test_the_agent_starts_in_a_fresh_repository_with_one_commit_and_no_remote(self):
+        self.run_ep("import subprocess\nn = subprocess.run(['git','rev-list','--count','--all'],capture_output=True,text=True).stdout\n"
+                    "r = subprocess.run(['git','remote'],capture_output=True,text=True).stdout\n"
+                    "open('notes/git.txt','w').write(n.strip() + '|' + r.strip())\nopen('DONE','w').write('d')\n")
+        with open(os.path.join(self.out, "sandbox", "notes", "git.txt"), encoding="utf-8") as f:
+            self.assertEqual(f.read(), "1|")
+
+    def test_a_sandbox_that_leaks_is_never_handed_to_an_agent(self):
+        stub = Stub()
+        report = ep.run_episode(SPEC, REPO, agent("open('DONE','w').write('d')\n"), self.out, grade_fn=stub, poll_s=0.05,
+                                leak_check=lambda *a: ["TASK.md holds the forbidden token 'PlayerControllerLLM'"])
+        self.assertEqual(report["ended_by"], "refused")
+        self.assertIn("leaks", report)
+        self.assertEqual(stub.calls, [])
+        self.assertFalse(os.path.exists(os.path.join(self.out, "sandbox", "DONE")), "the agent was started")
+
+    def test_the_dev_slice_is_copied_in_only_when_the_spec_asks_and_only_a_dev_split(self):
+        dev = os.path.join(self.out, "dev.json")
+        with open(dev, "w", encoding="utf-8") as f:
+            json.dump({"split": "dev", "instances": []}, f)
+        self.run_ep("open('DONE','w').write('d')\n", dev_set=dev)
+        self.assertFalse(os.path.exists(os.path.join(self.out, "sandbox", "dev", "instances.json")), "the spec's dev_slice is off")
+        shutil.rmtree(self.out)
+        os.makedirs(self.out)
+        with open(dev, "w", encoding="utf-8") as f:
+            json.dump({"split": "heldout", "instances": []}, f)
+        with self.assertRaises(ValueError):
+            ep.run_episode(SPEC, REPO, agent("pass\n"), self.out, grade_fn=Stub(), dev_set=dev, dev_slice=True)
+
+    def test_the_dev_slice_is_released_when_the_spec_asks_and_the_sandbox_is_checked_again(self):
+        dev = os.path.join(self.out, "dev.json")
+        with open(dev, "w", encoding="utf-8") as f:
+            json.dump({"split": "dev", "instances": [{"card": "Grizzly Bears"}]}, f)
+        report, _ = self.run_ep("open('DONE','w').write('d')\n", dev_set=dev, dev_slice=True)
+        self.assertEqual(report["ended_by"], "agent", report.get("leaks"))
+        self.assertTrue(os.path.isfile(os.path.join(self.out, "sandbox", "dev", "instances.json")))
+        with open(os.path.join(self.out, "manifest.json"), encoding="utf-8") as f:
+            self.assertIn("dev/instances.json", json.load(f)["files"], "the manifest written is the one checked")
+
+    def test_an_episode_cannot_be_run_without_a_grader(self):
+        self.assertIs(inspect.signature(ep.run_episode).parameters["grade_fn"].default, inspect.Parameter.empty)
+
+    def test_the_sandbox_is_checked_again_after_the_repository_is_made_and_a_leak_then_refuses(self):
+        seen = []
+
+        def check(spec, repo, sandbox, manifest):
+            seen.append(os.path.isdir(os.path.join(sandbox, ".git")))
+            return ["late leak"] if len(seen) == 2 else []
+
+        stub = Stub()
+        report = ep.run_episode(SPEC, REPO, agent("open('DONE','w').write('d')\n"), self.out, grade_fn=stub,
+                                poll_s=0.05, leak_check=check)
+        self.assertEqual(seen, [False, True])
+        self.assertEqual(report["ended_by"], "refused")
+        self.assertEqual(stub.calls, [])
+        self.assertFalse(os.path.exists(os.path.join(self.out, "sandbox", "DONE")), "the agent was started")
+
+
+def write(root, rel, text):
+    path = os.path.join(root, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    return path
+
+
+HEAD = "seat\tinstance\tfamily\thook\tlegal\treached\tmin_requests\tasked\toffered\tcarried\tshown\tnoparse\tpass\tai\tai_payment\tnote\n"
+
+
+class JvmGraderTest(unittest.TestCase):
+    """The episode's grade path, with javac and java stubbed: what it refuses, what it withholds, what it hands on."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.sub = os.path.join(self.tmp, "sub")
+        write(self.sub, "harness-env.properties", "seat.factory=a.b.MySeat\n")
+        write(self.sub, "forge-gui-desktop/src/main/java/a/b/MySeat.java", "package a.b;\nclass MySeat {}\n")
+        self.set = write(self.tmp, "set.json", json.dumps({"split": "heldout", "set_sha": "abc"}))
+        self.cp = write(self.tmp, "cp.txt", "/x.jar")
+        self.calls, self.ai = [], "0"
+        self.real = hg.subprocess.run
+        hg.subprocess.run = self.fake
+        self.real_write = hg.harness_env_aicount.write
+        hg.harness_env_aicount.write = lambda forge, ledger, out, source=None: (write(out, "PlayerControllerAi.java", "x"), [])
+
+    def tearDown(self):
+        hg.subprocess.run = self.real
+        hg.harness_env_aicount.write = self.real_write
+        shutil.rmtree(self.tmp)
+
+    def fake(self, cmd, **kw):
+        if cmd[0] == "git":
+            return self.real(cmd, **kw)
+        self.calls.append((cmd, kw))
+        report = [a.split("=", 1)[1] for a in cmd if a.startswith("-Dharness.envgrade.report=")]
+        if report:
+            with open(report[0], "w", encoding="utf-8") as f:
+                f.write(HEAD + "\t".join(["candidate", "i", "combat", "declareBlockers", "2", "2", "1", "1", "1", "1",
+                                           "1", "1", "1", self.ai, self.ai, ""]) + "\n")
+        return subprocess.CompletedProcess(cmd, 0)
+
+    def grade(self, **kw):
+        kw.setdefault("set_file", self.set)
+        return ep.jvm_grader(self.cp, self.tmp, "/jdk", **kw)(self.sub, os.path.join(self.tmp, "g"))
+
+    def test_an_unmarked_engine_patch_scores_zero_with_the_reason_and_builds_nothing(self):
+        write(self.sub, "forge-game/src/main/java/forge/game/zone/MagicStack.java", "class MagicStack {}\n")
+        s = self.grade(trust_candidate=True)
+        self.assertEqual((s["benchmark"], s["dense"]), (0.0, 0.0))
+        self.assertIn("unmarked engine patch", s["reason"])
+        self.assertEqual(self.calls, [])
+
+    def test_a_class_in_the_grader_package_scores_zero(self):
+        write(self.sub, "forge-gui-desktop/src/main/java/forge/harnessenv/grader/AiCounter.java",
+              "package forge.harnessenv.grader;\npublic final class AiCounter {}\n")
+        s = self.grade(trust_candidate=True)
+        self.assertEqual(s["benchmark"], 0.0)
+        self.assertIn("forge.harnessenv", s["reason"])
+
+    def test_without_trust_the_candidate_is_built_but_never_run_and_gets_no_score(self):
+        s = self.grade()
+        self.assertIsNone(s["benchmark"])
+        self.assertIsNone(s["dense"])
+        self.assertTrue(s["status"].startswith("unscored: in-JVM grader"), s)
+        self.assertFalse(s["trust_candidate"])
+        self.assertEqual(len(self.calls), 1, "javac only")
+        self.assertTrue(self.calls[0][0][0].endswith("javac"))
+
+    def test_with_trust_it_is_scored_and_the_trust_is_recorded(self):
+        s = self.grade(trust_candidate=True)
+        self.assertEqual(s["benchmark"], 1.0)
+        self.assertTrue(s["trust_candidate"])
+        self.assertEqual(s["passed"], 1)
+
+    def test_a_missing_counter_scores_zero_not_ungated(self):
+        self.ai = "-1"
+        s = self.grade(trust_candidate=True)
+        self.assertEqual((s["benchmark"], s["dense"]), (0.0, 0.0))
+        self.assertIn("counter off", s["reason"])
+
+    def test_javac_and_java_get_a_scrubbed_environment(self):
+        old = dict(os.environ)
+        os.environ.update(HARNESS_ENV_SEED="s3cret", OPENROUTER_API_KEY="k", OPENROUTER_ALLOW_EGRESS="1")
+        try:
+            self.grade(trust_candidate=True)
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+        self.assertEqual(len(self.calls), 2)
+        for cmd, kw in self.calls:
+            env = kw.get("env")
+            self.assertIsNotNone(env, cmd[0])
+            self.assertEqual(env["JAVA_HOME"], "/jdk")
+            self.assertFalse([k for k in env if k.startswith("OPENROUTER") or k == "HARNESS_ENV_SEED"], env)
+
+    def test_a_held_out_set_is_drawn_at_grade_time_from_the_secret_seed(self):
+        cards = os.path.join(self.tmp, "cards")
+        for i in range(12):
+            write(cards, "c/card%d.txt" % i, "Name:Card %d\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nK:Flying\n" % i)
+        old = os.environ.get("HARNESS_ENV_SEED")
+        os.environ["HARNESS_ENV_SEED"] = "s3cret"
+        try:
+            s = self.grade(set_file=None, cards=cards, trust_candidate=True)
+        finally:
+            if old is None:
+                del os.environ["HARNESS_ENV_SEED"]
+            else:
+                os.environ["HARNESS_ENV_SEED"] = old
+        drawn = os.path.join(self.tmp, "g", "set.json")
+        with open(drawn, encoding="utf-8") as f:
+            st = json.load(f)
+        self.assertEqual(st["split"], "heldout")
+        self.assertEqual(st["seed_sha"], hgen.sha("s3cret")[:16])
+        self.assertTrue(st["instances"])
+        self.assertEqual(s["set_sha"], st["set_sha"])
+        java = self.calls[-1][0]
+        self.assertIn("-Dharness.envgrade.set=" + drawn, java)
+        self.assertNotIn("s3cret", json.dumps([c for c, _ in self.calls]))
+
+    def test_a_set_that_is_not_held_out_is_refused(self):
+        dev = write(self.tmp, "dev.json", json.dumps({"split": "dev"}))
+        with self.assertRaises(ValueError):
+            ep.jvm_grader(self.cp, self.tmp, "/jdk", set_file=dev)
+
+    def test_the_classpath_and_engine_are_required_before_the_agent_runs(self):
+        for cp, forge in ((None, self.tmp), ("/nope/cp.txt", self.tmp), (self.cp, None), (self.cp, "/nope/forge")):
+            with self.assertRaises(ValueError, msg=(cp, forge)):
+                ep.jvm_grader(cp, forge, "/jdk", set_file=self.set)
+        out = os.path.join(self.tmp, "o")
+        self.assertEqual(ep.main(["ep", SPEC, out, "--set", self.set, "--forge", self.tmp, "--", "true"]), 2)
+        self.assertFalse(os.path.exists(os.path.join(out, "sandbox")), "the agent's sandbox was built")
+
+    def test_a_counter_that_misses_a_hook_in_the_submissions_copy_scores_zero(self):
+        real = hg.build_classes
+        hg.build_classes = lambda *a, **k: (None, "/c", ["declareBlockers"], ["chooseSpellAbilityToPlay"])
+        try:
+            s = self.grade(trust_candidate=True)
+        finally:
+            hg.build_classes = real
+        self.assertEqual((s["benchmark"], s["dense"]), (0.0, 0.0))
+        self.assertEqual(s["reason"], "counter incomplete: chooseSpellAbilityToPlay")
+
+    def test_an_episode_grade_needs_a_generated_set(self):
+        with self.assertRaises(ValueError):
+            ep.jvm_grader(self.cp, self.tmp, "/jdk")
+        self.assertEqual(ep.main(["ep", SPEC, os.path.join(self.tmp, "o"), "--", "true"]), 2)
+        seed = os.environ.pop("HARNESS_ENV_SEED", None)
+        try:
+            with self.assertRaises(ValueError):
+                ep.jvm_grader(self.cp, self.tmp, "/jdk", cards=self.tmp)
+        finally:
+            if seed is not None:
+                os.environ["HARNESS_ENV_SEED"] = seed
+
+
+if __name__ == "__main__":
+    unittest.main()

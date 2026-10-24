@@ -1,0 +1,103 @@
+{
+  "format": "harness-env-episode/0",
+  "id": "build-the-seat-v0",
+  "about": "One episode of the harness-building task (docs/harness/HARNESS-ENV-FRAMEWORK.md). Read by eval/harness_env_spec.py; built into a sandbox by eval/harness_env_sandbox.py; graded by eval/harness_env_grade.py.",
+  "task": "eval/harness_env/TASK.md",
+  "copy": [
+    {"from": "eval/harness_env/TASK.md", "to": "TASK.md", "why": "the task statement"},
+    {"from": "eval/harness_env/SPEC.md", "to": "spec/SPEC.md", "why": "the goal, the owner rules and the interface contract the grader drives"},
+    {"from": "data/rules/MagicCompRules.txt", "to": "spec/MagicCompRules.txt", "why": "the comprehensive rules, as GBATEK is given"},
+    {"from": "FORGE_COMMIT", "to": "spec/FORGE_COMMIT", "why": "the engine pin the grader builds against"},
+    {"from": "eval/decks/*.txt", "exclude": ["eval/decks/hook-*"], "to": "dev/decks/", "why": "playable decklists for the agent's own games; the hook probe decks name the hard hooks and stay out"}
+  ],
+  "make_dirs": ["overlay", "notes"],
+  "withheld": [
+    ".git/**",
+    "forge-overlay/**",
+    "eval/**",
+    "docs/**",
+    ".claude/**",
+    "scripts/**",
+    "runs/**",
+    "datasets/**",
+    "puzzles/**",
+    "data/cards/**",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "README.md",
+    "CONTRIBUTING.md",
+    "install.sh",
+    "run-llm-*.sh",
+    "secrets.env.example"
+  ],
+  "forbidden_tokens": [
+    "mtg-forge-llm-agent",
+    "PlayerControllerLLM",
+    "LlmSpikeGui",
+    "LlmSpikeHeadless",
+    "LlmCostDecision",
+    "SeatObservation",
+    "AnswerTool",
+    "NativeTools",
+    "PlayerLookahead",
+    "ScriptBridge",
+    "AskContract",
+    "KeywordSurfaceSweep",
+    "GoldenChecks",
+    "SurfaceCostChoices",
+    "HARNESS PATCH",
+    "HARNESS_EPOCH",
+    "harness_acceptance",
+    "surface_coverage",
+    "controller-ownership",
+    "fake_model_server",
+    "[TALLY]",
+    "harnessenv.grader",
+    "GraderSuite",
+    "ScriptedModel",
+    "HARNESS_ENV_SEED",
+    "harness.envgrade"
+  ],
+  "forbidden_path_fragments": [
+    "forge/spike",
+    "controller-ownership",
+    "surface_gaps",
+    "play_gaps",
+    "keyword_gaps",
+    "harness_acceptance"
+  ],
+  "engine": {
+    "pin_file": "FORGE_COMMIT",
+    "mount": "forge",
+    "read_only": true,
+    "built_from": "a fresh clone at the pin, built once with the offline Maven repository; never the working checkout, which carries our overlay and engine patches"
+  },
+  "agent": {
+    "user": "uid 1000, no sudo",
+    "tools": ["shell", "file edit", "JDK 17 (javac, java)", "Maven offline (the engine's dependency repository, pre-fetched)", "python3 (stdlib)", "git (a fresh repository with one commit)"],
+    "network": "loopback",
+    "model_endpoint": "none: the agent runs its own fake or scripted model on loopback; no provider key is in the container",
+    "compute": {"cpus": 8, "ram_gb": 32, "disk_gb": 60}
+  },
+  "caps": {
+    "wall_hours": 72,
+    "idle_minutes": 180,
+    "checkpoint_minutes": 30
+  },
+  "done": {
+    "file": "DONE",
+    "tool": "finish",
+    "on_cap": "grade-last-checkpoint"
+  },
+  "submission": {
+    "path": "overlay",
+    "abi": "harness-env-abi/1",
+    "factory_property_file": "overlay/harness-env.properties"
+  },
+  "grader": {
+    "version": "instances-v1",
+    "secret_seed_env": "HARNESS_ENV_SEED",
+    "dev_slice": false,
+    "runs_outside_the_sandbox": true
+  }
+}

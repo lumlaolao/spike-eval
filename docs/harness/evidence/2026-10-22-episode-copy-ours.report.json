@@ -1,0 +1,43 @@
+{
+ "agent": [
+  "python3",
+  "/home/user/mtg-forge-llm-agent/.claude/worktrees/agent-a0b41b34a9a5080ee/eval/harness_env_agents.py",
+  "copy-ours",
+  "/home/user/mtg-forge-llm-agent/.claude/worktrees/agent-a0b41b34a9a5080ee"
+ ],
+ "checkpoints": [],
+ "done": "copied our overlay and its ABI adapter",
+ "ended_at": 1792699703.6753118,
+ "ended_by": "agent",
+ "episode": "build-the-seat-v0",
+ "score": {
+  "benchmark": 0.978658,
+  "dense": 0.979575,
+  "families_at_zero": [],
+  "forge_ai_gate": false,
+  "instances": 69,
+  "intake": {
+   "abi": "harness-env-abi/1",
+   "engine_patches": [
+    "forge-ai/src/main/java/forge/ai/ComputerUtilMana.java",
+    "forge-ai/src/main/java/forge/ai/simulation/GameCopier.java",
+    "forge-game/src/main/java/forge/game/player/Player.java",
+    "forge-game/src/main/java/forge/game/zone/MagicStack.java"
+   ],
+   "factory": "forge.spike.HarnessEnvOurs$Ours",
+   "forge_ai_references": [
+    "forge-gui-desktop/src/main/java/forge/spike/HarnessEnvOurs.java",
+    "forge-gui-desktop/src/main/java/forge/spike/LlmCostDecision.java",
+    "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-gui-desktop/src/main/java/forge/spike/PlayerLookahead.java",
+    "forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java"
+   ],
+   "java_files": 25,
+   "main_files": 25,
+   "own_test_files": 0,
+   "unmarked_engine_patches": []
+  },
+  "passed": 67
+ },
+ "wall_s": 1.001
+}
