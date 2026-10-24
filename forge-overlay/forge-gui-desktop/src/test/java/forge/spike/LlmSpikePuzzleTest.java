@@ -216,4 +216,31 @@ public class LlmSpikePuzzleTest {
                 "COMBAT: Opponent assigned Ogre (5) and Goblin (4) to attack Solver."), "Solver");
         org.testng.Assert.assertEquals(acts, java.util.Collections.singletonList("COMBAT: Solver assigned Wall (2) to block Ogre (5)."));
     }
+
+    /** The puzzle row stamps the Decisions bridge when either tier is a jev: spec, as the game line does (the review
+     *  of PR #305): a fast-tier jev: solver's rows must not pool with rows of another bridge version. */
+    @Test
+    public void aJevTierOnEitherSideStampsTheDecisionsBridgeOnThePuzzleRow() {
+        String jev = DecisionsBridge.PREFIX + "typesafe/jev-1.14", or = "openrouter:x/y";
+        String stamp = "\"decisions_bridge_version\":\"" + DecisionsBridge.VERSION + "\"";
+        Assert.assertTrue(row("llm", jev, or).contains(stamp), "a smart jev: tier");
+        Assert.assertTrue(row("llm", or, jev).contains(stamp), "a fast jev: tier");
+        Assert.assertFalse(row("llm", or, or).contains("decisions_bridge_version"), "no jev: tier");
+        Assert.assertFalse(row("random", jev, jev).contains("decisions_bridge_version"), "no llm solver");
+    }
+
+    /** The PZL_RESULT line writeRow prints (EVAL_OUT unset, so nothing is written to disk). */
+    private static String row(String ctlA, String smartA, String fastA) {
+        Assert.assertNull(System.getenv("EVAL_OUT"), "the test would append to a real puzzle-results.jsonl");
+        java.io.PrintStream old = System.out;
+        java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+        System.setOut(new java.io.PrintStream(buf, true));
+        try {
+            LlmSpikePuzzle.writeRow("p", new java.io.File("p.pzl"), "solved", true, 1, "Win", 1L, 1L, ctlA, "ai",
+                    smartA, fastA, true, "", "Win", new HashMap<>());
+        } finally {
+            System.setOut(old);
+        }
+        return buf.toString();
+    }
 }

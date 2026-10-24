@@ -499,8 +499,8 @@ and the correction round and the fixed legal option apply exactly as for any mod
   reports a cost). A call that fails reports no usage of its own. `model_id` resolves the `jev:` prefix.
 - **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped per identity on the game line,
   `decisions_bridge_version_a` / `_b`, only for a `jev:` seat (keyed in `aggregate.PROVENANCE_FIELDS` with default
-  "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on a `jev:`
-  solver's puzzle row, where `puzzle_score.py` refuses to pool two versions. Acceptance pins the literal from a
+  "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on the
+  puzzle row of a solver with a `jev:` tier (smart or fast, as on the game line), where `puzzle_score.py` refuses to pool two versions. Acceptance pins the literal from a
   loopback answer in the javatests log, and checks that a game with no `jev:` seat carries no such key. No existing seat's prompt or answer path
   changed, so no other stamp and not `HARNESS_EPOCH` moved.
 

@@ -550,7 +550,7 @@ public final class LlmSpikePuzzle {
                 + " rollouts, " + r.opponentBranches + " opponent replies beaten") + " (" + (durMs / 1000) + "s)");
         writeRow(id, file, status, "proven".equals(status), main == null ? -1 : main.turns,
                 main == null ? "?" : main.winCond, durMs, seed, written ? ctlA : "search", ctlB, written ? smartA : "",
-                main != null && main.goalInstalled, main == null ? "" : main.goalOracle, goal, extra);
+                written ? fastA : "", main != null && main.goalInstalled, main == null ? "" : main.goalOracle, goal, extra);
     }
 
     /** One search rollout: the engine re-seeded as for a fresh launch, both search seats drawing from {@code line}. */
@@ -814,7 +814,7 @@ public final class LlmSpikePuzzle {
         }
         if (keepTape || solved) extra.put("actions", actions);
         writeRow(id, file, status, solved, turns, winCond, durMs, seed, ctlA, ctlB,
-                smartA, pl.goalInstalled, pl.goalOracle, goal, extra);
+                smartA, fastA, pl.goalInstalled, pl.goalOracle, goal, extra);
         return pl.healthy;
     }
 
@@ -887,7 +887,7 @@ public final class LlmSpikePuzzle {
      *  contract as the match summaries: consumers read via .get(). */
     static void writeRow(String id, File file, String status, boolean solved, int turns,
                          String winCond, long durMs, long seed, String ctlA, String ctlB,
-                         String smartA, boolean goalInstalled, String goalOracle, String goal,
+                         String smartA, String fastA, boolean goalInstalled, String goalOracle, String goal,
                          Map<String, Object> extra) {
         String out = System.getenv("EVAL_OUT");
         Map<String, Object> row = new LinkedHashMap<>();
@@ -908,7 +908,9 @@ public final class LlmSpikePuzzle {
         row.put("goal", goal);
         // Which interface the attempt saw: puzzle_score.py refuses to pool epochs (pr-review of PR #273).
         row.put("harness_epoch", LlmSpikeGui.HARNESS_EPOCH);
-        if ("llm".equals(ctlA) && DecisionsBridge.isSpec(smartA)) row.put("decisions_bridge_version", DecisionsBridge.VERSION);
+        // Either tier, as the game line's jevA (LlmSpikeGui): a fast-tier jev: solver is a jev: solver too.
+        if ("llm".equals(ctlA) && (DecisionsBridge.isSpec(smartA) || DecisionsBridge.isSpec(fastA)))
+            row.put("decisions_bridge_version", DecisionsBridge.VERSION);
         row.putAll(extra);
         String line = toJson(row);
         System.out.println("PZL_RESULT " + line);
