@@ -1,8 +1,12 @@
 """tool_use_suite: the text arm must be the grammar the harness ships, every scenario must be
 solvable through every protocol, and the deciding fact must really be behind a tool."""
+import io
+import json
+import os
 import re
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import tool_use_suite as tu
 
@@ -190,6 +194,53 @@ class ToolUseSuiteTest(unittest.TestCase):
         self.assertEqual(old.execute("MEMORY SEARCH 0 Rival's library"), "Matches=0 next=END\n")
         older = old.brief()
         self.assertNotIn("Pale Lantern", older)                          # pushed out of the 4-reveal brief
+
+
+class MandatoryReasoningFloorTest(unittest.TestCase):
+    """A model whose reasoning cannot be turned off refuses reasoning:{enabled:false}; the suite sent it on the fast
+    tier and the truncation retry to every model, so those calls failed where the seat's (OpenRouterBridge) ask
+    its lowest effort instead. The suite measures the seat's protocol, so it sends what the seat sends."""
+
+    def test_the_floor_table_is_the_seats(self):
+        src = (SPIKE / "LlmSpikeGui.java").read_text()
+        m = re.search(r"MANDATORY_REASONING_FLOOR\s*=\s*Map\.ofEntries\((.*?)\);", src, re.S)
+        self.assertIsNotNone(m, "MANDATORY_REASONING_FLOOR not found in LlmSpikeGui.java")
+        java = dict(re.findall(r'Map\.entry\("([^"]+)",\s*"([^"]*)"\)', m.group(1)))
+        self.assertTrue(java)
+        self.assertEqual(tu.MANDATORY_REASONING_FLOOR, java)
+
+    def test_reasoning_off_becomes_the_lowest_effort_for_a_mandatory_reasoner(self):
+        self.assertEqual(tu.request_body("deepseek/deepseek-v4.1-flash", "fast")["reasoning"], {"enabled": False})
+        self.assertEqual(tu.request_body("x-ai/grok-4.7", "fast")["reasoning"], {"effort": "low"})
+        self.assertEqual(tu.request_body("meta/muse-wonder", "fast")["reasoning"], {"effort": "minimal"})
+        self.assertNotIn("reasoning", tu.request_body("x-ai/grok-build-0.1", "fast"), "lists no effort: no field")
+        self.assertEqual(tu.request_body("x-ai/grok-4.7", "smart")["reasoning"], {"effort": "medium"})
+
+    def replies_to(self, model_id, replies):
+        sent = []
+
+        def urlopen(req, timeout=None):
+            sent.append(json.loads(req.data.decode()))
+            resp = mock.MagicMock()
+            resp.__enter__.return_value = io.BytesIO(json.dumps(replies[len(sent) - 1]).encode())
+            return resp
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), \
+                mock.patch.object(tu.urllib.request, "urlopen", urlopen), mock.patch.object(tu.time, "sleep"):
+            call = tu.openrouter_model(model_id, "http://127.0.0.1:9")
+            out = call([{"role": "user", "content": "x"}], None, {"tier": "smart"})
+        return sent, out
+
+    def test_the_truncation_retry_keeps_a_mandatory_reasoner_at_its_floor_and_its_budget(self):
+        empty = {"choices": [{"message": {"content": ""}, "finish_reason": "length"}]}
+        ok = {"choices": [{"message": {"content": "CHOICE: 1"}, "finish_reason": "stop"}]}
+        sent, out = self.replies_to("openai/gpt-6.1-sol", [empty, ok])
+        self.assertEqual(out["content"], "CHOICE: 1")
+        self.assertEqual([b["reasoning"] for b in sent], [{"effort": "medium"}, {"effort": "low"}])
+        self.assertEqual(sent[1]["max_tokens"], sent[0]["max_tokens"], "it still reasons: the whole budget")
+        sent, _ = self.replies_to("deepseek/deepseek-v4.1-flash", [empty, ok])
+        self.assertEqual(sent[1]["reasoning"], {"enabled": False})
+        sent, out = self.replies_to("openai/gpt-6.1-sol", [empty, empty, ok])
+        self.assertEqual(len(sent), 2, "retried once, not until the floor answers")
 
 
 if __name__ == "__main__":
