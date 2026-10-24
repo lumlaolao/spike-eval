@@ -49,15 +49,27 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
 
 - **How they were picked:** Luna failed every attempt and fell furthest short of the goal, and each comes from a
   family where Luna solved 0.
-- **Models:** 21 chat models plus Jev Router.
+- **Models:** 21 chat models plus Jev 1.14.
 - **Left out:**
   - GPT-6 Astra and Astra Pro, and Claude Fable 5.1 (owner, 2026-10-24);
-  - Claude Opus 5.5 (CLAUDE.md game-model rule);
-  - Jev 1.14 (Decisions API, no bridge yet).
-- **Estimated cost:** about $43 typical. Each model is capped at its "high" estimate, $133 at most.
+  - Jev Router (owner, 2026-10-24: "I want jev");
+  - Claude Opus 5.5 (CLAUDE.md game-model rule).
+- **Jev 1.14** answers through its own bridge to OpenRouter's Decisions API (branch `feat/jev-decisions-bridge`, in
+  progress). Its typed choice becomes the harness's `answer` call. This is an owner-approved exception to "every
+  answer is a tool call", because Jev makes no tool calls. It gets no lookup tools.
+- **Estimated cost:** about $37 typical. Each model is capped at its "high" estimate, $125 at most.
   - Chart: `cost-table-3.png` (scratchpad).
   - Script: `notes/frontier3-plan.sh`. It refuses without the owner's egress flag, runs 5 at a time and resumes.
-- **Pending first:** a provider-compatibility audit, so that each model gets a fair seat.
+- **Provider audit (2026-10-24), fixed on `fix/provider-compat`:**
+  - every planned model is now priced, and `puzzle_solve` refuses an unpriced one (unpriced was billed at $0, so
+    the budget never stopped it);
+  - one `provider` object per request;
+  - 12 models whose reasoning cannot be turned off get their lowest effort on a truncation retry, instead of a
+    request they refuse.
+- **Still open from the audit (owner decisions):**
+  - reasoning effort is each model's default, which differs (max for Kimi K3 and GLM);
+  - Mistral may refuse a user message right after a tool result (plausible, unverified);
+  - Anthropic caching has never been measured working.
 
 ## 5. Harness-building eval (branch `feat/harness-env-framework`, no PR yet)
 

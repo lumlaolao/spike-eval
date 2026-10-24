@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Frontier run on our 3 hardest puzzles, 1 attempt each, every model but Astra, Fable and Opus.
+# Jev 1.14 runs through its own bridge (spec jev:typesafe/jev-1.14, branch feat/jev-decisions-bridge, not merged
+# yet); it is listed as JEV below and runs only once that bridge is on main. Jev Router is out (owner, 2026-10-24).
 # Nothing runs until the owner starts it. Needs OPENROUTER_ALLOW_EGRESS=1 (the owner's, never set here).
 #   bash notes/frontier3-plan.sh            # all models, 5 at a time
 #   RESUME=1 bash notes/frontier3-plan.sh   # pick up where a stopped run left off
@@ -34,17 +36,18 @@ z-ai/glm-5.3-prime 10.00
 z-ai/glm-5.3 2.50
 mistralai/mistral-large-4-0 4.50
 mistralai/mistral-medium-3-5 9.00
-typesafe/jev-router 8.00
 "
+JEV="typesafe/jev-1.14 0.50"   # $0.042/M input, output free: about $0.05 for 3 puzzles
 [ "${OPENROUTER_ALLOW_EGRESS:-}" = 1 ] || { echo "refused: the owner's egress opt-in is not set"; exit 2; }
 run_one() {
   local model=$1 cap=$2 dir=$OUT/${1//\//_}
+  local spec="openrouter:$model"; [[ $model == typesafe/jev-* ]] && spec="jev:$model"
   python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 \
-    --model "openrouter:$model" --budget-usd "$cap" --out "$dir" ${RESUME:+--resume} > "$dir.log" 2>&1
+    --model "$spec" --budget-usd "$cap" --out "$dir" ${RESUME:+--resume} > "$dir.log" 2>&1
   echo "$model exit $? ($(python3 "$REPO/eval/cost_report.py" "$dir" 2>/dev/null | tail -1))"
 }
 mkdir -p "$OUT"
-echo "$MODELS" | while read -r m cap; do
+printf "%s\n%s\n" "$MODELS" "$JEV" | while read -r m cap; do
   [ -n "$m" ] || continue
   [ -z "${ONLY:-}" ] || [[ " $ONLY " == *" $m "* ]] || continue
   while [ "$(jobs -rp | wc -l)" -ge "$PAR" ]; do wait -n; done
