@@ -109,6 +109,12 @@ interface LLMBridge {
      *  `toolsJson` offered. `allowCalls=false` still declares the tools (the list already holds tool
      *  calls) but forbids another call. Null on failure/non-answer, like {@link #ask}. */
     default NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) { return null; }
+    /** {@link #chat} for an ask that offers `answer`, with that decision's typed legal values. A backend that answers
+     *  from them instead of from a conversation ({@link DecisionsBridge}) overrides this; every other bridge ignores
+     *  {@code spec}, so what it is sent is unchanged. */
+    default NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls, AnswerTool.Spec spec) {
+        return chat(messagesJson, toolsJson, allowCalls);
+    }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -7836,7 +7842,7 @@ public final class LlmSpikeGui {
             } else if (simulate != null || lookaheadEnabled()) {
                 lookups = AnswerTool.previewOnly(simulate);
             }
-            String reply = AnswerTool.converse(user, answer, nativeModel(b), lookups, contextAudit());
+            String reply = AnswerTool.converse(user, answer, nativeModel(b, answer.spec), lookups, contextAudit());
             if (answer.answered()) lastReply = reply;   // the row records the answer, not the call's markup
             return reply;
         }
@@ -7876,14 +7882,18 @@ public final class LlmSpikeGui {
             return r == null ? "" : ",\"reasoning\":\"" + jsonEscape(r) + "\"";
         }
 
-        private ContextMemory.NativeModel nativeModel(LLMBridge b) {
+        private ContextMemory.NativeModel nativeModel(LLMBridge b) { return nativeModel(b, null); }
+
+        /** {@code spec}: the answer ask's typed legal values, handed to the bridge beside the messages (a decision
+         *  model answers from them, DecisionsBridge); null on a lookup-only ask. */
+        private ContextMemory.NativeModel nativeModel(LLMBridge b, AnswerTool.Spec spec) {
             return (user, messages, tools, allowCalls, round) -> {
                 if (!b.supportsNativeTools()) return null;
                 if (!(b == smart ? smartOk() : fastOk())) return null;
                 long start = System.currentTimeMillis();
                 NativeTools.Turn[] got = new NativeTools.Turn[1];
                 String text = askModel(b, user, () -> {
-                    got[0] = b.chat(messages, tools, allowCalls);
+                    got[0] = spec == null ? b.chat(messages, tools, allowCalls) : b.chat(messages, tools, allowCalls, spec);
                     return got[0] == null ? null : got[0].text();
                 });
                 EvalLog.write("{\"t\":\"context_call\",\"version\":\"" + ContextMemory.VERSION
@@ -11023,8 +11033,20 @@ public final class LlmSpikeGui {
                 String model = spec.substring("openrouter:".length());
                 return new OpenRouterBridge(label, model, preamble);
             }
+            // A decision model on OpenRouter's Decisions API (DecisionsBridge): the same egress gate and key rules.
+            if (DecisionsBridge.isSpec(spec))
+                return decisions(label, spec, preamble, System.getenv("OPENROUTER_BASE_URL"),
+                        PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.lookaheadEnabled());
             // Legacy/default: bare model name -> Claude CLI bridge.
             return new ClaudeBridge(label, spec, preamble);
+        }
+
+        /** A `jev:` seat. It cannot call a lookup, so a seat run with them on is refused here rather than recorded
+         *  as a condition it never had. Package-private so a test can pass the endpoint and the flags. */
+        static LLMBridge decisions(String label, String spec, String preamble, String baseUrl,
+                                   boolean memoryTools, boolean lookahead) {
+            DecisionsBridge.refuseLookups(memoryTools, lookahead, label);
+            return new DecisionsBridge(label, spec.substring(DecisionsBridge.PREFIX.length()), preamble, baseUrl);
         }
 
         /**
@@ -11247,9 +11269,12 @@ public final class LlmSpikeGui {
                 System.getenv().getOrDefault("CONTROLLER_B", "llm"), smartBSpec, fastBSpec);
         boolean anyOpenRouter = smartASpec.startsWith("openrouter:") || smartBSpec.startsWith("openrouter:")
                 || fastASpec.startsWith("openrouter:") || fastBSpec.startsWith("openrouter:");
+        // A jev: seat (DecisionsBridge) talks to the same base, at its Decisions endpoint; it sends no provider sort.
+        boolean anyDecisions = DecisionsBridge.isSpec(smartASpec) || DecisionsBridge.isSpec(smartBSpec)
+                || DecisionsBridge.isSpec(fastASpec) || DecisionsBridge.isSpec(fastBSpec);
         // Gate the accessor so a zero-model floor/random run doesn't class-init the OpenRouter bridge
         // just to report an endpoint it never contacted.
-        String baseUrl = anyOpenRouter ? OpenRouterBridge.baseUrl() : "n/a";
+        String baseUrl = anyOpenRouter || anyDecisions ? OpenRouterBridge.baseUrl() : "n/a";
 
         EvalLog.write("{\"t\":\"game\",\"seed\":" + seed
                 + ",\"swap\":" + "1".equals(System.getenv("SWAP_SEATS"))
@@ -11311,6 +11336,9 @@ public final class LlmSpikeGui {
                 + ",\"one_chat_version\":\"" + ChatSessionBridge.VERSION + "\""
                 + ",\"turn_chat\":" + (ChatSessionBridge.TURN && !ChatSessionBridge.ON)
                 + ",\"turn_chat_version\":\"" + ChatSessionBridge.TURN_VERSION + "\""
+                // The questions a jev: seat is asked, by DecisionsBridge. Only on a game with one, so the lines of
+                // every other seat keep their keys and pool with the runs before it.
+                + (anyDecisions ? ",\"decisions_bridge_version\":\"" + DecisionsBridge.VERSION + "\"" : "")
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""

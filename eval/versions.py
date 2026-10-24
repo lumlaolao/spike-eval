@@ -35,6 +35,9 @@ STAMPS = (
     ("RulesTool.java", "VERSION", "rules_tool_version", "the comprehensive-rules lookup."),
     ("ChatSessionBridge.java", "VERSION", "one_chat_version", "the one-conversation-per-seat arm (ONE_CHAT)."),
     ("ChatSessionBridge.java", "TURN_VERSION", "turn_chat_version", "the conversation bounded by the turn (TURN_CHAT)."),
+    ("DecisionsBridge.java", "VERSION", "decisions_bridge_version",
+     "the typed questions a `jev:` decision-model seat is asked and how its answers become `answer` calls "
+     "(on a game line or puzzle row only where a `jev:` seat plays)."),
 )
 
 

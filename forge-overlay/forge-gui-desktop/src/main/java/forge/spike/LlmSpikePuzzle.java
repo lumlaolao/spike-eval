@@ -908,6 +908,7 @@ public final class LlmSpikePuzzle {
         row.put("goal", goal);
         // Which interface the attempt saw: puzzle_score.py refuses to pool epochs (pr-review of PR #273).
         row.put("harness_epoch", LlmSpikeGui.HARNESS_EPOCH);
+        if ("llm".equals(ctlA) && DecisionsBridge.isSpec(smartA)) row.put("decisions_bridge_version", DecisionsBridge.VERSION);
         row.putAll(extra);
         String line = toJson(row);
         System.out.println("PZL_RESULT " + line);

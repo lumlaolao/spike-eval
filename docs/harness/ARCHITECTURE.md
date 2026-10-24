@@ -380,6 +380,9 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
 - *Why:* if a prompt offers another way to answer, a model will use it. The text grammar remains only
   for a backend with no function calling (the Claude CLI lane) and for the `ANSWER_TOOL=0` measurement
   arm.
+- **The one exception (owner, 2026-10-24):** a decision model (`jev:`) cannot call anything. Its typed answer is
+  converted into the `answer` call before validation, so everything downstream is unchanged (section 9, "The
+  Decisions bridge").
 
 **The tool list never changes within a game:** `answer`, `set_plan`, the lookups, and `simulate` on a
 lookahead seat, declared on every ask. A call that does not apply gets an error saying why.
@@ -452,6 +455,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full
     timeout, 15-25 minutes a game; a fresh connection answers in seconds.
 - **`ClaudeBridge`** (the Claude CLI lane): text only, kept for the CLI.
+- **`DecisionsBridge`** (`jev:<model>` specs, first TypeSafe's Jev 1.14): a decision model on OpenRouter's Decisions
+  API. See "The Decisions bridge" below.
 - **Egress boundary:** an `openrouter:` model receives the game state. Nothing starts unless
   `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it.
 - **The game model:** GPT-6 Luna (`openrouter:openai/gpt-6-luna`) for every game unless the owner names
@@ -459,6 +464,70 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - *Why OpenRouter:* one API for many providers, so a model comparison changes one string.
 - *Why the cache matters:* nearly all input is the same system prompt, tools and history. Recorded Luna
   asks read 54% of their prompt tokens from the cache on an ask's first round, and 92% on later rounds.
+
+### The Decisions bridge (`jev:` seats)
+
+**Owner decision, 2026-10-24:** TypeSafe's Jev 1.14 joins the frontier comparison on the hardest puzzles
+(`eval/puzzle_solve.py`). Jev is not a chat model: it is served only on OpenRouter's Decisions API
+(`POST /api/alpha/decisions`), writes no text and calls no tool. It answers typed questions about a `state`: a
+`choice` among keyed options (with a probability for each) or a `noul` (the probability of yes). The owner approved
+an exception to "every decision is answered by a tool call" (`CLAUDE.md`) for it: **Jev's typed answer is turned into
+the harness's own `answer` call**, so `AnswerTool` validates it, the decision row records it (`answer_via: "tool"`),
+and the correction round and the fixed legal option apply exactly as for any model.
+
+- **One request per ask.** `state` is the seat's system preamble followed by the ask's messages as the harness
+  renders them (the observation and the DECISION, and on a correction round the reason the last answer was
+  refused). The questions are built from the decision's typed legal values (`AnswerTool.Spec`, handed to the bridge
+  by `LLMBridge.chat(..., spec)`), never parsed out of the prompt text; option keys are the option numbers the
+  prompt shows.
+- **Endpoint, egress, key:** `OPENROUTER_BASE_URL` with its `/v1` replaced by `/alpha/decisions`. The bridge is
+  built through `LLMBridgeFactory.requireEgressConsent`, so a `jev:` seat sends nothing without
+  `OPENROUTER_ALLOW_EGRESS=1` unless the endpoint is loopback, and `OpenRouterBridge.authorizationHeader` never sends
+  the key to loopback. `puzzle_solve.py` refuses a `jev:` model without the opt-in as it does an `openrouter:` one.
+- **Bill:** `usage.input_tokens` and `usage.output_tokens` become the call's `prompt_tokens` and `completion_tokens`
+  (priced by `eval/cost_report.py`: `typesafe/jev-1.14` is $0.042 per million input tokens, output free), and the
+  provider's `usage.cost` is summed beside them (`[JEV]` log line). `model_id` resolves the `jev:` prefix.
+- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped on the game line of a game with a `jev:`
+  seat (keyed in `aggregate.PROVENANCE_FIELDS`) and on a `jev:` solver's puzzle row. Any other game line carries no
+  such key (acceptance checks it), so it pools with the runs before it. No existing seat's prompt or answer path
+  changed, so no other stamp and not `HARNESS_EPOCH` moved.
+
+How each decision kind (`AnswerTool.Kind`) is asked:
+
+| Kind | Example decisions | Questions | Becomes |
+|---|---|---|---|
+| `ONE` | play menu, target, optional trigger, mode | one `choice`, criteria `"1".."n"` = the option labels | `option` = the chosen key |
+| `MANY`, at most one pick | splice, sacrifice one, scry 1, attack with one creature, a cost of one | one `choice` over the options, plus `"0"` = none when none is legal | `options` = `[k]`, or `[]` for `"0"` |
+| `MANY`, more than one pick | tap three creatures, trigger order, attackers, discard two | one `noul` per option ("should option i be one of the picks?") | every option at p >= 0.5, likeliest first, clamped to the decision's min and max; a CANCEL option is taken alone only when it is at p >= 0.5 and the likeliest, else never (`DecisionsBridge.topPicks`). An ordering decision reads the picks in that order |
+| `MANY_REPEAT` | modes that may repeat | as `MANY` | distinct picks only: Jev never repeats a mode |
+| `KEEP` | mulligan | one `noul` ("keep this hand?") | `keep` = p >= 0.5 |
+| `NUMBER` | X, a number of counters, a wide keyword cost | one `choice` over every value, when the range has at most 40 | `number` = the chosen key; a wider range is not asked |
+| `BLOCKS` | declare blockers | one `choice` per blocker: `"0"` = no block, `"j"` = attacker j | the pairs; one attacker per blocker (a blocker that can block several blocks one) |
+| `ALLOC` | divide damage | one `choice` over every split, when there are at most 40 | `amounts` = that split; more splits are not asked |
+| `CARD` | name a card | none: there is no closed list of options | not asked |
+
+A decision that is not asked (a card name, a range or division over 40 values, an option list without labels), a
+non-200, a timeout, and an answer that is malformed or names a key the criteria do not have, all give **no answer**:
+the bridge logs `[JEV-NO-ANSWER]` with the reason, the seat's bridge retry runs, and then the caller takes its fixed
+legal option, never Forge's AI. A plain text ask (a decision site that offered no `answer`) is not asked either.
+
+The three puzzles of the first Jev run (`eval/suites/puzzles-hard-gen2-v1.json`: `hard-splice2-325cd33e0a57`,
+`hard-hoofdrain-60c5afda2f25`, `hard-drain2-0ab6f6ae05d9`) asked Luna these decision types
+(`runs/puzzles/hard-gen2-luna/<id>/game-*.jsonl`, 122 decision rows, 116 of them asked): play, target and
+confirm-trigger (`ONE`, 81); splice, attackers and scry (`MANY`, 0 or 1 of them, 13) and sacrifice (`MANY`, exactly 1
+with CANCEL, 16), each one `choice`; cards-for-effect (tap exactly 3 of 4, with CANCEL, 1) and trigger-order (both of 2,
+in order, 5), each a `noul` per option. Every one maps; none is a `CARD`, `NUMBER`, `ALLOC` or `BLOCKS` decision (the
+6 splice and counter-type rows at `tier=auto` were never asked).
+
+What Jev cannot do, by construction:
+- **No lookups.** It cannot call `inspect`, the memory tools, `rules_lookup` or `simulate`, so a `jev:` seat with
+  `MEMORY_TOOLS=1` or `LOOKAHEAD=1` is refused when it is built, and `run_batch.py` (`--memory-tools`, `--lookahead`)
+  and `puzzle_solve.py` (`--memory-tools`) refuse those flags for it before anything runs.
+- **No plan, no notes, no yield, no `lines` or `profile`:** the play answer's optional fields are never given, and
+  `set_plan` is never called; every decision is made on the state then.
+- **No reasoning text:** the row's `raw_reply` is the answer rendered for the record, with no reason before it.
+- **Independent questions:** the nouls of a multi-pick are answered in parallel and cannot see each other, so a
+  pick list is assembled from separate yes/no judgements, not chosen as a set.
 
 ## 10. Costs
 

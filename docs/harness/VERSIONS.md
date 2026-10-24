@@ -15,6 +15,7 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 | `RulesTool.VERSION` | `rules-tool-v1` | `rules_tool_version` | the comprehensive-rules lookup. |
 | `ChatSessionBridge.VERSION` | `one-chat-v3` | `one_chat_version` | the one-conversation-per-seat arm (ONE_CHAT). |
 | `ChatSessionBridge.TURN_VERSION` | `turn-chat-v1` | `turn_chat_version` | the conversation bounded by the turn (TURN_CHAT). |
+| `DecisionsBridge.VERSION` | `decisions-bridge-v1` | `decisions_bridge_version` | the typed questions a `jev:` decision-model seat is asked and how its answers become `answer` calls (on a game line or puzzle row only where a `jev:` seat plays). |
 | `FORGE_COMMIT` | `34a8662b7966` | `engine_sha` | the pinned Forge engine; results compare only within one engine version. |
 
 Also on every game line: `context_profile` and `context_sha` (the observation profile and a hash of its template), `overlay_sha` (every overlay source), `deck_sha`, and, for a panel, the benchmark version (`eval/benchmark_version.py`).
