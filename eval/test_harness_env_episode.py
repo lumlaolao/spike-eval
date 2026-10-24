@@ -58,6 +58,16 @@ class EpisodeTest(unittest.TestCase):
         report = ep.run_episode(SPEC, REPO, agent(code), self.out, grade_fn=stub, poll_s=0.05, **kw)
         return report, stub
 
+    def test_done_ends_the_episode_only_once_its_line_is_written(self):
+        # Creating DONE and writing its line are two steps; under load the poll can land between them.
+        # Ending there killed the agent and recorded "" (acceptance @ 725bbd5, part2/pytests.log).
+        report, _ = self.run_ep(
+            "import time\nopen('DONE','w').close()\ntime.sleep(1)\n"
+            "open('DONE','w').write('submit HEAD')\ntime.sleep(30)\n")
+        self.assertEqual(report["ended_by"], "agent")
+        self.assertEqual(report["done"], "submit HEAD")
+        self.assertLess(report["wall_s"], 15)
+
     def test_an_agent_that_writes_done_ends_the_episode_and_its_overlay_is_graded(self):
         report, stub = self.run_ep(
             "import os\nos.makedirs('overlay/forge-gui-desktop/src/main/java/a', exist_ok=True)\n"

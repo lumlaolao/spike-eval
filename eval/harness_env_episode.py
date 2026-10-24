@@ -7,9 +7,9 @@ it built, grade it outside the sandbox, write a scored report.
    leaks is never handed to an agent (`ended_by: refused`). manifest.json, what was checked, is written either way.
 2. It becomes a fresh git repository with one commit and no remote, hooks pointed at an empty directory.
 3. The agent command runs with the sandbox as its working directory and a scrubbed environment (no provider key,
-   no egress flag). The episode ends only when the agent writes DONE (`ended_by: agent`, its one line recorded);
-   an agent that exits without it is `exit`; one still running at the cap is stopped (`cap`) and its last state
-   graded. These are reported apart and never pooled.
+   no egress flag). The episode ends only when the agent has written DONE (`ended_by: agent`, its one line recorded;
+   an empty DONE is one still being written); an agent that exits without it is `exit`; one still running at the
+   cap is stopped (`cap`) and its last state graded. These are reported apart and never pooled.
 4. Every checkpoint interval the overlay is copied outside the sandbox. Checkpoints are graded only after the
    episode ends (the dense reward between them), never while the agent can see a score.
 5. The overlay is exported and graded by `grade_fn(submission, out_dir)`: from the command line, jvm_grader (its
@@ -70,6 +70,13 @@ def snapshot(src, dest):
         os.makedirs(dest)
 
 
+def done_written(path):
+    try:
+        return os.path.getsize(path) > 0
+    except OSError:
+        return False
+
+
 def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoint_s=None, poll_s=1.0,
                 grade_checkpoints=False, dev_set=None, dev_slice=None, leak_check=None):
     """Run one episode; return the report (also written to out/report.json)."""
@@ -110,7 +117,7 @@ def run_episode(spec_path, repo, agent_cmd, out, grade_fn, cap_s=None, checkpoin
         ended_by = None
         while ended_by is None:
             now = time.time()
-            if os.path.exists(done_file):
+            if done_written(done_file):  # an empty DONE is one the agent is still writing
                 ended_by = "agent"
             elif proc.poll() is not None:
                 ended_by = "agent" if os.path.exists(done_file) else "exit"
