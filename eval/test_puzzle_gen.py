@@ -589,6 +589,13 @@ def infect_board(**kw):
     return s
 
 
+def landfall_start(**kw):
+    s = {"mountains": 0, "forests": 0, "valakut": None, "hellkite": False, "geopede": False, "coralhelm": False,
+         "cobra": None, "hand": ["Blaze"], "lib": [5, 5]}
+    s.update(kw)
+    return s
+
+
 class InfectSearchTest(unittest.TestCase):
     def test_might_of_old_krosa_gives_four_only_in_a_main_phase(self):
         # The land, then Might of Old Krosa in the first main phase (+4) and Thirsting Roots proliferating: 1 + 4 + 1.
@@ -752,6 +759,164 @@ class Gen3BoardsTest(unittest.TestCase):
 
     def test_equip_boards(self):
         self.check_family("equip")
+
+
+
+
+class LandfallSearchTest(unittest.TestCase):
+    def test_lotus_cobra_before_the_land_drop(self):
+        # Two Mountains, a Forest and Akoum Hellkite out. Lotus Cobra first (a Mountain and the Forest); the Mountain:
+        # Hellkite 2, Cobra's green casts Exploration; Wooded Foothills: Hellkite 1, red; cracked for a Mountain:
+        # Hellkite 2, red. Two red floating and three Mountains: Blaze for 4. 9 in 6 steps. The land first leaves Cobra
+        # one land fewer to see: 8.
+        s = landfall_start(mountains=2, forests=1, hellkite=True, cobra="hand",
+                           hand=["Blaze", "Exploration", "Lotus Cobra", "Mountain", "Wooded Foothills"])
+        dmg, steps, moves = pg.landfall_search(s)
+        self.assertEqual((dmg, steps), (9, 6))
+        self.assertEqual(moves[0][:2], ("cast", "Lotus Cobra"))
+        self.assertEqual(pg.landfall_plain(s), {"land_first": 8, "payoff_first": 9})
+
+    def test_valakut_needs_five_other_mountains(self):
+        self.assertEqual(pg.landfall_search(landfall_start(mountains=5, valakut="bf", hand=["Blaze", "Mountain"]))[0],
+                         3 + 6)
+        self.assertEqual(pg.landfall_search(landfall_start(mountains=4, valakut="bf", hand=["Blaze", "Mountain"]))[0],
+                         5)
+
+    def test_harrow_sacrifices_the_tapped_forest_and_both_mountains_count(self):
+        # Four Mountains, Valakut and a Forest: Harrow paid with the Forest and two Mountains sacrifices the Forest and
+        # fetches two Mountains, each with five others (6); Blaze for the 5 left, X = 4. Sacrificing a Mountain
+        # leaves each new one four others.
+        s = landfall_start(mountains=4, forests=1, valakut="bf", hand=["Blaze", "Harrow"])
+        dmg, steps, moves = pg.landfall_search(s)
+        self.assertEqual((dmg, steps), (10, 2))
+        self.assertEqual(moves[0][3:5], ("Forest", ("Mountain", "Mountain")))
+
+    def test_floating_mana_of_two_colours_never_pays_a_generic_cost(self):
+        # A red and a green floating, a {1}{G} spell: green pays the {G}, red the {1}: allowed. Two of each floating
+        # and a {2}: the engine would ask which pays, so the model refuses it.
+        self.assertEqual(list(pg.landfall_pay(1, 1, 0, 0, 0, 1, 1, 0)), [((0, 0, 0), 0, 0, 0, 0, 0)])
+        self.assertEqual(list(pg.landfall_pay(2, 2, 0, 0, 0, 2, 0, 0)), [])
+
+    def test_the_written_line_names_each_trigger_and_cobras_colour(self):
+        # The fetch's triggers resolve before its crack: the seat could crack at once, so the line passes twice.
+        s = landfall_start(mountains=2, forests=1, hellkite=True, cobra="hand",
+                           hand=["Blaze", "Exploration", "Lotus Cobra", "Mountain", "Wooded Foothills"])
+        dmg, steps, moves = pg.landfall_search(s)
+        lines, dealt, n = pg.landfall_lines(s, moves)
+        self.assertEqual(lines, ["activate Mountain", "activate Forest", "cast Lotus Cobra", "play land Mountain",
+                                 "Akoum Hellkite; Lotus Cobra", "opponent", "green", "cast Exploration",
+                                 "play land Wooded Foothills", "Akoum Hellkite; Lotus Cobra", "opponent", "pass",
+                                 "pass", "red", "activate Wooded Foothills", "Mountain", "Akoum Hellkite; Lotus Cobra",
+                                 "opponent", "red", "cast Blaze", "4", "opponent"])
+        self.assertEqual((dealt, n), (9, 6))
+
+    def test_a_pass_resolves_the_stack_before_a_fetch_is_cracked(self):
+        # Prodigal Pyromancer pings at every chance (Retreat to Coralhelm untaps it on each land); the second fetch's
+        # crack waits for the first fetch's triggers, so the line passes while the seat could crack.
+        s = landfall_start(mountains=3, coralhelm=True, geopede=True,
+                           hand=["Blaze", "Wooded Foothills", "Exploration", "Forest"])
+        dmg, steps, moves = pg.landfall_search(s)
+        lines, dealt, n = pg.landfall_lines(s, moves)
+        self.assertEqual((dealt, n), (dmg, steps))
+        self.assertEqual(lines[:2], ["activate Prodigal Pyromancer", "opponent"])
+        self.assertIn("Untap", lines)
+        self.assertEqual(lines.count("activate Prodigal Pyromancer"), 1 + sum(
+            1 for m in moves if m[0] in ("land", "crack")))
+
+    def test_a_landfall_board_holds_the_bar(self):
+        b = next(pg.iter_boards("landfall", 1, 5, tries=3000))
+        rec = pg.board_record(b["text"]("x"))
+        best, steps, unused, plain = pg.research(rec)
+        self.assertEqual((best, steps, unused), (b["life"], b["actions"], 0))
+        self.assertTrue(13 <= steps <= 15)
+        self.assertEqual(plain, b["trap"]["plans"])
+        self.assertTrue(1 <= best - max(plain.values()) <= 3)
+
+    def test_every_committed_landfall_board_holds_its_bar(self):
+        check_gen3_family(self, "landfall")
+
+
+class TokenSearchTest(unittest.TestCase):
+    def test_the_payoff_waits_for_the_bodies_that_pay_for_it(self):
+        # Krenko and two Mountains; Goblin Instigator, Impact Tremors and Skirk Prospector in hand. Skirk first (one
+        # Mountain), Krenko makes two tokens, Tremors is paid with the last Mountain and a token, Instigator with the
+        # other token and Skirk itself: Instigator and its token enter, 2. Tremors first leaves no mana for Skirk and
+        # Krenko makes one token: 1.
+        s = {"mountains": 2, "bf": ["Krenko, Mob Boss"],
+             "hand": ["Goblin Instigator", "Impact Tremors", "Skirk Prospector"]}
+        dmg, steps, moves = pg.token_search(s)
+        self.assertEqual((dmg, steps), (2, 4))
+        self.assertEqual([m[0] for m in moves], ["cast", "krenko", "cast", "cast"])
+        self.assertEqual(pg.token_plain(s), {"tokens_first": 2, "payoff_first": 1})
+
+    def test_mogg_war_marshal_leaves_a_token_for_the_devil(self):
+        # The end: Marshal to Skirk Prospector (Devil 1, its token enters: Tremors 1), the token (1), Skirk itself (1).
+        s = {"mountains": 0, "bf": ["Impact Tremors", "Mayhem Devil", "Mogg War Marshal", "Skirk Prospector"],
+             "hand": []}
+        self.assertEqual(pg.token_search(s), (4, 0, (("sweep", ("Mogg War Marshal", "Goblin Token",
+                                                                "Skirk Prospector")),)))
+
+    def test_mayhem_devil_in_hand_is_never_cast(self):
+        # {1}{B}{R}: Mountains cannot pay it (gate B: five lines that cast it were never offered it).
+        s = {"mountains": 5, "bf": ["Skirk Prospector"], "hand": ["Mayhem Devil"]}
+        self.assertEqual(pg.token_search(s), (0, 0, ()))
+        rng = random.Random(1)
+        self.assertFalse(any("Mayhem Devil" in pg.token_draw(rng)["hand"] for _ in range(300)))
+
+    def test_siege_gang_is_asked_its_target_before_the_goblin(self):
+        # Siege-Gang alone sacrifices itself (the only Goblin: the engine picks it); the target comes first.
+        s = {"mountains": 2, "bf": ["Siege-Gang Commander"], "hand": []}
+        dmg, steps, moves = pg.token_search(s)
+        self.assertEqual((dmg, steps), (2, 1))
+        lines, dealt, n, left = pg.token_lines(s, moves, dmg)
+        self.assertEqual(lines, ["activate Mountain", "activate Mountain", "activate Siege-Gang Commander",
+                                 "opponent"])
+        self.assertEqual((dealt, n, left), (2, 1, 0))
+
+    def test_the_written_line_orders_the_triggers_and_names_the_sacrifice(self):
+        s = {"mountains": 2, "bf": ["Krenko, Mob Boss"],
+             "hand": ["Goblin Instigator", "Impact Tremors", "Skirk Prospector"]}
+        dmg, steps, moves = pg.token_search(s)
+        lines, dealt, n, left = pg.token_lines(s, moves, dmg)
+        self.assertEqual(lines, ["activate Mountain", "cast Skirk Prospector", "pass", "activate Krenko, Mob Boss",
+                                 "pass", "activate Skirk Prospector", "Goblin Token", "activate Mountain",
+                                 "cast Impact Tremors", "pass", "activate Skirk Prospector", "Goblin Token",
+                                 "activate Skirk Prospector", "Skirk Prospector", "cast Goblin Instigator",
+                                 "Impact Tremors; Goblin Instigator"])
+        self.assertEqual((dealt, n, left), (2, 4, 0))
+
+    def test_a_tokens_board_holds_the_bar(self):
+        b = next(pg.iter_boards("tokens", 1, 3, tries=3000))
+        rec = pg.board_record(b["text"]("x"))
+        best, steps, unused, plain = pg.research(rec)
+        self.assertEqual((best, steps, unused), (b["life"], b["actions"], 0))
+        self.assertTrue(13 <= steps <= 15)
+        self.assertEqual(plain, b["trap"]["plans"])
+        self.assertTrue(1 <= best - max(plain.values()) <= 3)
+
+    def test_every_committed_tokens_board_holds_its_bar(self):
+        check_gen3_family(self, "tokens")
+
+
+def check_gen3_family(test, family):
+    """Every committed gen3 board of the family, recomputed from the search inputs it states: the life is the
+    exhaustive maximum, the steps are the line's, nothing is left unused, and the best plain plan falls 1 to 3 short."""
+    paths = sorted(GEN3.glob(family + "_*.pzl"))
+    test.assertTrue(paths, "no %s boards in %s" % (family, GEN3))
+    for p in paths:
+        text = p.read_text(encoding="utf-8")
+        rec = pg.board_record(text)
+        test.assertEqual(rec["family"], family, p.name)
+        test.assertTrue(13 <= rec["steps"] <= 15, (p.name, rec["steps"]))
+        best, steps, unused, plain = pg.research(rec)
+        test.assertEqual((best, steps), (rec["life"], rec["steps"]), "%s: the life is the search's maximum" % p.name)
+        test.assertEqual(unused, 0, "%s: nothing is left unused" % p.name)
+        test.assertEqual(plain, rec["trap"]["plans"], "%s: the plain plans are recomputed" % p.name)
+        test.assertTrue(1 <= rec["life"] - rec["trap"]["best"] <= 3, (p.name, rec["trap"]))
+        rule = [l for l in text.splitlines() if l.startswith("Rule:")][0]
+        test.assertIn("%d short" % (rec["life"] - rec["trap"]["best"]), rule)
+        written = [l for l in solution(text) if not l.startswith("#")]
+        test.assertEqual(written, pg.written_from_record(rec), "%s: the line is the writer's" % p.name)
 
 
 if __name__ == "__main__":

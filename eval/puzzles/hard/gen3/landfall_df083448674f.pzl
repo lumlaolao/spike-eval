@@ -1,0 +1,90 @@
+[metadata]
+Name:landfall_df083448674f
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Valakut, the Molten Pinnacle, Akoum Hellkite, Retreat to Coralhelm, Prodigal Pyromancer and three Mountains and one Forest, all untapped. Your hand is Blaze, Evolving Wilds, Exploration, Harrow, Lotus Cobra, Mountain and Tunneling Geopede. Your library holds five Mountains and five Forests. The opponent is at 30 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-landfall | the exhaustive maximum is 30 damage in 13 steps: every land a landfall trigger; Lotus Cobra's mana for each land after it; Valakut only for a Mountain with five others out; Retreat to Coralhelm untaps Prodigal Pyromancer for another ping; Blaze for all the mana left; the best plain plan (play a land before anything else / cast each landfall creature as soon as it can be paid) deals 29, 1 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blaze;Evolving Wilds;Exploration;Harrow;Lotus Cobra;Mountain;Tunneling Geopede
+p0battlefield=Mountain;Mountain;Mountain;Forest;Valakut, the Molten Pinnacle;Akoum Hellkite;Retreat to Coralhelm;Prodigal Pyromancer
+p0library=Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest;Mountain;Forest
+p1life=30
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+# search: {"cobra": "hand", "coralhelm": true, "forests": 1, "geopede": false, "hand": ["Blaze", "Evolving Wilds", "Exploration", "Harrow", "Lotus Cobra", "Mountain", "Tunneling Geopede"], "hellkite": true, "lib": [5, 5], "mountains": 3, "valakut": "bf"}
+# trap: {"best": 29, "plans": {"land_first": 29, "payoff_first": 29}, "short": 1}
+activate Prodigal Pyromancer
+opponent
+activate Mountain
+activate Forest
+cast Lotus Cobra
+play land Evolving Wilds
+Akoum Hellkite; Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+opponent
+pass
+pass
+Untap
+activate Prodigal Pyromancer
+opponent
+pass
+pass
+red
+activate Evolving Wilds
+Mountain
+Akoum Hellkite; Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+opponent
+Untap
+activate Prodigal Pyromancer
+opponent
+green
+activate Mountain
+cast Harrow
+Forest
+Mountain
+Mountain
+Akoum Hellkite; Valakut, the Molten Pinnacle; Retreat to Coralhelm; Lotus Cobra; Akoum Hellkite; Valakut, the Molten Pinnacle; Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+opponent
+opponent
+You may tap or untap
+Prodigal Pyromancer
+opponent
+opponent
+yes
+Untap
+activate Prodigal Pyromancer
+opponent
+green
+yes
+Untap
+activate Prodigal Pyromancer
+opponent
+red
+cast Exploration
+play land Mountain
+Akoum Hellkite; Valakut, the Molten Pinnacle; Retreat to Coralhelm; Lotus Cobra
+You may tap or untap
+Prodigal Pyromancer
+opponent
+opponent
+yes
+Untap
+activate Prodigal Pyromancer
+opponent
+red
+cast Blaze
+6
+opponent
+[acceptance]
+life p1 <= 0

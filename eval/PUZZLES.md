@@ -284,6 +284,21 @@ python3 scripts/puzzle-gate/gen_suite.py --name hard-gen2 --gate G1 G2 ... --boa
 Searches, line rules and gate results: `docs/harness/history/2026-10-22-infect-equip.md`. `eval/test_puzzle_gen.py`
 (`Gen3BoardsTest`) re-derives every committed board from its `# search:` and `# trap:` lines.
 
+### The third hard boards (landfall, tokens)
+
+`eval/puzzles/hard/gen3/` holds two more families at the gen2 bar (13 to 15 steps, the life the exact maximum of the
+search, nothing left unused, the best plain plan 1 to 3 short), each re-derived from its own .pzl by
+`eval/test_puzzle_gen.py`, the written line included:
+
+| Family | Trap (the plain plan that falls short) |
+|---|---|
+| landfall | play a land before anything else; cast each landfall creature as soon as it can be paid |
+| tokens | sacrifice a token whenever there is one; cast the payoffs as soon as the lands pay for them |
+
+They are gated like gen2 (rows in `runs/puzzles/hard-gen3-gate`; 17 landfall and 24 tokens boards kept, 41 of 46)
+and not yet in a frozen suite. Notes, the search models and their limits:
+`docs/harness/history/2026-10-22-landfall-tokens.md`.
+
 ## Running a model
 
 ```bash

@@ -1,0 +1,286 @@
+[metadata]
+Name:tokens_32c10e705d41
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Impact Tremors, Krenko, Mob Boss, Mayhem Devil, Siege-Gang Commander, Skirk Prospector, Witty Roastmaster and two untapped Mountains, none of them summoning sick. Your hand is Beetleback Chief, Dragon Fodder, Hordeling Outburst, Hordeling Outburst, Mogg War Marshal, Mogg War Marshal, Mogg War Marshal and Mogg War Marshal. The opponent is at 109 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-tokens | the exhaustive maximum is 109 damage in 14 steps: every creature entering deals damage; Mayhem Devil drains for every sacrifice, Skirk Prospector's too; Skirk Prospector turns a Goblin into {R}; Krenko counts every Goblin out; Mogg War Marshal leaves a token when it dies; the best plain plan (sacrifice a token whenever there is one, never a creature card) deals 106, 3 short
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Beetleback Chief;Dragon Fodder;Hordeling Outburst;Hordeling Outburst;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal;Mogg War Marshal
+p0battlefield=Impact Tremors;Krenko, Mob Boss;Mayhem Devil;Siege-Gang Commander;Skirk Prospector;Witty Roastmaster;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=109
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 14
+# search: {"bf": ["Impact Tremors", "Krenko, Mob Boss", "Mayhem Devil", "Siege-Gang Commander", "Skirk Prospector", "Witty Roastmaster"], "hand": ["Beetleback Chief", "Dragon Fodder", "Hordeling Outburst", "Hordeling Outburst", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal", "Mogg War Marshal"], "mountains": 2}
+# trap: {"best": 106, "plans": {"tokens_first": 106}, "short": 3}
+activate Mountain
+activate Mountain
+cast Dragon Fodder
+pass
+Impact Tremors; Impact Tremors; Witty Roastmaster; Witty Roastmaster
+pass
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+cast Mogg War Marshal
+pass
+Impact Tremors; Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+cast Hordeling Outburst
+pass
+Impact Tremors; Impact Tremors; Impact Tremors; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster
+pass
+pass
+pass
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+cast Mogg War Marshal
+pass
+Impact Tremors; Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+cast Mogg War Marshal
+pass
+Impact Tremors; Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+cast Mogg War Marshal
+pass
+Impact Tremors; Witty Roastmaster; Mogg War Marshal
+pass
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+activate Skirk Prospector
+Mogg War Marshal
+Mayhem Devil; Mogg War Marshal
+opponent
+pass
+pass
+Impact Tremors; Witty Roastmaster
+pass
+pass
+cast Hordeling Outburst
+pass
+Impact Tremors; Impact Tremors; Impact Tremors; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster
+pass
+pass
+pass
+pass
+pass
+pass
+activate Krenko, Mob Boss
+pass
+Impact Tremors; Impact Tremors; Impact Tremors; Impact Tremors; Impact Tremors; Impact Tremors; Impact Tremors; Impact Tremors; Impact Tremors; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster; Witty Roastmaster
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+cast Beetleback Chief
+pass
+Impact Tremors; Witty Roastmaster; Beetleback Chief
+pass
+pass
+pass
+Impact Tremors; Impact Tremors; Witty Roastmaster; Witty Roastmaster
+pass
+pass
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Goblin Token
+opponent
+pass
+pass
+activate Skirk Prospector
+Goblin Token
+opponent
+pass
+activate Skirk Prospector
+Beetleback Chief
+opponent
+pass
+activate Siege-Gang Commander
+opponent
+Siege-Gang Commander
+opponent
+pass
+pass
+activate Skirk Prospector
+Krenko, Mob Boss
+opponent
+pass
+activate Skirk Prospector
+opponent
+[acceptance]
+life p1 <= 0
