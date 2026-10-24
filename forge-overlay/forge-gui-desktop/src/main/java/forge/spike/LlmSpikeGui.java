@@ -4298,17 +4298,20 @@ public final class LlmSpikeGui {
         private SpellAbility zonePicksFor;
         /** A declined search answered NO at "Cancel Search?" is asked again by the engine, as often as the pair is
          *  repeated (ChangeZoneEffect: i--; continue). The grader's costs.x looped 61 times (issue #312). The NO is
-         *  heard once: {@code keptSearching} is the effect whose pick comes back after it, and
-         *  {@code declinedAgain} the effect whose pick was declined again, whose "Cancel Search?" is then YES. */
-        private SpellAbility keptSearching, declinedAgain;
+         *  heard once. {@code declinedPick} is the effect whose last pick was declined: only a confirm about that
+         *  pick is its "Cancel Search?" (an Optional search's "Search your library?" has the same mode). A NO to it
+         *  sets {@code keptSearching}, the effect whose pick comes back; declined again, it stays set, and that
+         *  effect's next "Cancel Search?" is YES. Every pick and every confirm consumes both. */
+        private SpellAbility declinedPick, keptSearching;
 
         @Override
         public Card chooseSingleCardForZoneChange(ZoneType destination, List<ZoneType> origin, SpellAbility sa,
                 CardCollection fetchList, DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, Player decider) {
             boolean again = isOptional && sa != null && sa == keptSearching;
-            keptSearching = null; declinedAgain = null;
             Card r = pickForZoneChange(destination, sa, fetchList, delayedReveal, selectPrompt, isOptional, again);
-            if (r == null && again) declinedAgain = sa;
+            boolean declined = r == null && fetchList != null && !fetchList.isEmpty();
+            declinedPick = declined ? sa : null;
+            keptSearching = declined && again ? sa : null;
             return r;
         }
 
@@ -5933,18 +5936,19 @@ public final class LlmSpikeGui {
         @Override
         public boolean confirmAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
                 List<String> options, Card cardToShow, Map<String, Object> params) {
-            // "Cancel Search?" after the pick it sent back was declined again: the decline stands (issue #312).
-            SpellAbility endsSearch = declinedAgain;
-            declinedAgain = null;
-            boolean search = mode == PlayerActionConfirmMode.ChangeZoneGeneral && sa != null;
-            if (search && sa == endsSearch) {
+            // "Cancel Search?" is the confirm about the pick just declined; after a NO that sent the pick back and a
+            // second decline, the decline stands (issue #312).
+            boolean cancelSearch = mode == PlayerActionConfirmMode.ChangeZoneGeneral && sa != null && sa == declinedPick;
+            boolean declinedTwice = cancelSearch && sa == keptSearching;
+            declinedPick = null; keptSearching = null;
+            if (declinedTwice) {
                 clearLast();
                 lastTopOrderSa = null;
                 auto("confirm(declined-again)->YES cancel search" + srcOf(sa));
                 return true;
             }
             boolean yes = askConfirm(sa, mode, message, cardToShow);
-            if (search && !yes) keptSearching = sa;
+            if (cancelSearch && !yes) keptSearching = sa;
             return yes;
         }
 
