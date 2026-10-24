@@ -3573,26 +3573,79 @@ public final class LlmSpikeGui {
                 return;
             }
             p("[BLOCK-INVALID] the second block set was not legal either (" + err + ")");
-            fallbackBlocks(defender, combat);
+            // The set taken is the harness's decision, so it has its own row (the model's answer has the one before).
+            auto("blockers(illegal-twice)->" + fallbackBlocks(defender, combat));
         }
 
-        /** A failure branch's blocks: none, unless a block requirement (a lure, "all creatures able to block it do so",
-         *  "blocks each combat if able") forbids that; then the smallest block set the engine accepts, the first in
-         *  {@link #legalBlockSets}' order. The engine checks blocks only for its own GUI, so "no blocks" under Prized
-         *  Unicorn stood illegal (issue #311, harness-env grader combat.block.must-block). Returns what was declared. */
-        private String fallbackBlocks(Player defender, Combat combat) {
-            String err = blocksError(combat, defender, new ArrayList<>());
-            if (err == null) return "none";
+        /** The defender's creatures that can block at least one attacker, as a fresh list. */
+        static List<Card> ableBlockers(Player defender, Combat combat) {
             List<Card> able = new ArrayList<>();
             for (Card c : defender.getCreaturesInPlay())
                 for (Card atk : combat.getAttackers()) if (CombatUtil.canBlock(atk, c, combat)) { able.add(c); break; }
-            List<List<Card[]>> legal = legalBlockSets(combat, defender, able, combat.getAttackers());
-            if (legal == null || legal.isEmpty()) {
+            return able;
+        }
+
+        /** A block set the engine accepts, chosen without randomness, or null when none was found. Up to
+         *  {@link #MAX_BLOCK_SETS} combinations, the smallest of every legal set. Past that (a Lure against thirteen
+         *  creatures, pr-review of #311), the smallest legal one of two whole-board sets (each creature on the first
+         *  attacker it can block; for each attacker, every creature that can block it on it), else a search by
+         *  increasing size that stops after {@link #MAX_BLOCK_SETS} checks. */
+        static List<Card[]> legalBlockSet(Combat combat, Player defender, List<Card> able, List<Card> attackers) {
+            List<List<Card[]>> legal = legalBlockSets(combat, defender, able, attackers);
+            if (legal == null) {
+                legal = new ArrayList<>();
+                List<Card[]> first = new ArrayList<>();
+                for (Card b : able)
+                    for (Card a : attackers) if (CombatUtil.canBlock(a, b, combat)) { first.add(new Card[] {b, a}); break; }
+                if (blocksError(combat, defender, first) == null) legal.add(first);
+                for (Card a : attackers) {
+                    List<Card[]> all = new ArrayList<>();
+                    for (Card b : able) if (CombatUtil.canBlock(a, b, combat)) all.add(new Card[] {b, a});
+                    if (blocksError(combat, defender, all) == null) legal.add(all);
+                }
+                if (legal.isEmpty()) {
+                    int[] budget = {MAX_BLOCK_SETS};
+                    for (int k = 1; k <= able.size() && budget[0] > 0; k++) {
+                        List<Card[]> found = searchBlocks(combat, defender, able, attackers, k, 0, new ArrayList<>(), budget);
+                        if (found != null) return found;
+                    }
+                }
+            }
+            return legal.isEmpty() ? null : java.util.Collections.min(legal, java.util.Comparator.comparingInt(List::size));
+        }
+
+        /** The first legal set of exactly k blockers from able[from..], each on an attacker it can block; every check
+         *  spends one of budget[0], and the search stops when it is spent. */
+        private static List<Card[]> searchBlocks(Combat combat, Player defender, List<Card> able, List<Card> attackers,
+                                                 int k, int from, List<Card[]> chosen, int[] budget) {
+            if (chosen.size() == k) {
+                budget[0]--;
+                return blocksError(combat, defender, chosen) == null ? new ArrayList<>(chosen) : null;
+            }
+            for (int i = from; i < able.size() && budget[0] > 0; i++)
+                for (Card a : attackers) {
+                    if (budget[0] <= 0) return null;
+                    if (!CombatUtil.canBlock(a, able.get(i), combat)) continue;
+                    chosen.add(new Card[] {able.get(i), a});
+                    List<Card[]> found = searchBlocks(combat, defender, able, attackers, k, i + 1, chosen, budget);
+                    chosen.remove(chosen.size() - 1);
+                    if (found != null) return found;
+                }
+            return null;
+        }
+
+        /** A failure branch's blocks: none, unless a block requirement (a lure, "all creatures able to block it do so",
+         *  "blocks each combat if able") forbids that; then {@link #legalBlockSet}. The engine checks blocks only for
+         *  its own GUI, so "no blocks" under Prized Unicorn stood illegal (issue #311, harness-env grader
+         *  combat.block.must-block). Returns what was declared. */
+        private String fallbackBlocks(Player defender, Combat combat) {
+            String err = blocksError(combat, defender, new ArrayList<>());
+            if (err == null) return "none";
+            List<Card[]> pick = legalBlockSet(combat, defender, ableBlockers(defender, combat), combat.getAttackers());
+            if (pick == null) {
                 p("[BLOCK-INVALID] no blocks is not legal (" + err + ") and no legal set was found: none");
                 return "none";
             }
-            List<Card[]> pick = legal.get(0);
-            for (List<Card[]> set : legal) if (set.size() < pick.size()) pick = set;
             StringBuilder took = new StringBuilder();
             for (Card[] pr : pick) {
                 combat.addBlocker(pr[1], pr[0]);
@@ -3608,9 +3661,7 @@ public final class LlmSpikeGui {
             try {
                 CardCollection attackers = combat.getAttackers();
                 if (attackers == null || attackers.isEmpty()) return;
-                CardCollection blockers = new CardCollection();
-                for (Card c : defender.getCreaturesInPlay())
-                    for (Card atk : attackers) if (CombatUtil.canBlock(atk, c, combat)) { blockers.add(c); break; }
+                CardCollection blockers = new CardCollection(ableBlockers(defender, combat));
                 if (blockers.isEmpty()) return;
                 // D4 shadow: capture pool size NOW (the assignment loop below mutates `blockers`), compute
                 // the AI's block count into a scratch combat carrying the real attackers (real combat untouched).
@@ -3644,6 +3695,10 @@ public final class LlmSpikeGui {
                             List<List<Card[]>> legal = legalBlockSets(combat, defender, new ArrayList<>(blockers), attackers);
                             if (legal != null && !legal.isEmpty()) { pairs = legal.get(rnd.nextInt(legal.size())); err = null; }
                         }
+                        if (err != null && draw >= 63) {   // past MAX_BLOCK_SETS: the seat's fixed legal set
+                            List<Card[]> legal = legalBlockSet(combat, defender, new ArrayList<>(blockers), attackers);
+                            if (legal != null) { pairs = legal; err = null; }
+                        }
                         if (err == null || draw >= 63) {
                             for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
                             if (err != null) p("[BLOCK-INVALID] arm: no legal block set in 64 draws (" + err + ")");
@@ -3652,7 +3707,7 @@ public final class LlmSpikeGui {
                         }
                     }
                 }
-                // No model available -> deterministic NO BLOCKS (the fallback policy), never the engine AI.
+                // No model available -> the fixed fallback (fallbackBlocks), never the engine AI.
                 if (!smartOk()) { auto("blockers(no-model)->" + fallbackBlocks(defender, combat)); return; }
                 StringBuilder atk = new StringBuilder();
                 for (Card a : attackers) { if (atk.length() > 0) atk.append(", "); atk.append(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")"); }
@@ -3753,7 +3808,10 @@ public final class LlmSpikeGui {
             } catch (Exception e) {
                 // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
                 String took = "none";
-                try { took = fallbackBlocks(defender, combat); } catch (Exception ignore) { }
+                try {
+                    for (Card b : CardLists.filterControlledBy(combat.getAllBlockers(), defender)) combat.undoBlockingAssignment(b);
+                    took = fallbackBlocks(defender, combat);
+                } catch (Exception ignore) { }
                 auto("blockers(err)->" + took);
             }
         }
@@ -9717,9 +9775,7 @@ public final class LlmSpikeGui {
             try {
                 CardCollection attackers = combat.getAttackers();
                 if (attackers != null && !attackers.isEmpty()) {
-                    CardCollection blockers = new CardCollection();
-                    for (Card c : defender.getCreaturesInPlay())
-                        for (Card atk : attackers) if (CombatUtil.canBlock(atk, c, combat)) { blockers.add(c); break; }
+                    List<Card> blockers = PlayerControllerLLM.ableBlockers(defender, combat);
                     nPool = blockers.size();
                     if (nPool > 0) {
                         labels = new ArrayList<>();
