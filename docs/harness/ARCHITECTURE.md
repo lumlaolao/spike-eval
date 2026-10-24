@@ -152,6 +152,10 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   was cast from and the mana paid is refunded; a non-mana cost already paid (a tap, life) is not, as the copied
   payment records none (harness-epoch-70; the copied engine routine's recovery left a card cast from hand in the
   Stack zone).
+- a declined optional search is followed by the engine's "Cancel Search?", and a NO asks the same pick again, for
+  as long as the pair repeats (`ChangeZoneEffect`). The NO is heard once: the pick asked again says that declining
+  again ends the search, and a second decline answers the next "Cancel Search?" YES, as an auto row
+  (harness-epoch-71, issue #312: the grader's `costs.x`, Green Sun's Zenith, looped 61 asks with no outcome).
 
 Anything new asks again: an opponent's spell or ability, every attack and block, a trigger, a new option.
 - *Why:* skipping a window the model could act in, keeping a hand for it, or picking its play is a

@@ -344,6 +344,8 @@ answered 2, empty answered 1). By the owner's surface grouping ours reads 0.982,
    not validate it. The fallback should be a legal block set.
 2. `costs.x`: Green Sun's Zenith with X = 1, a model that declines the search and then answers no to "Cancel Search?"
    is shown the search again without end (61 requests, then parked and abandoned). No loop guard bounds that pair.
+   Filed as issue #312 and fixed in harness-epoch-71 (the NO is heard once, a second decline ends the search;
+   `GoldenChecksTest.aSearchDeclinedAgainAfterKeepSearchingEnds`); the grade above is from before the fix.
 
 ### 4.10 What is built: the instance generator (`eval/harness_env_generate.py`)
 
@@ -498,7 +500,7 @@ All free: no model call, no egress. Each step says what makes it fail.
 8. **A dev split?** Built and off (`grader.dev_slice: false`): 10% of cards and a public seed. Turn it on?
 9. **A generic loopback model in the box?** Default none; the wire is in `SPEC.md`.
 10. **The two harness defects** the grader found (`combat.block.must-block`, `costs.x`) are kept failing here by the
-    owner's instruction, for `defect-hunt`.
+    owner's instruction, for `defect-hunt`. `costs.x` is now issue #312, fixed in harness-epoch-71.
 11. **A seen copy (section 2).** Keep hidden instances, seeds and weights out of the repository; flag contamination
     for models trained after today.
 12. **A separate process for the candidate's seat, or the grader in-JVM?** Today the seat runs in the grader's JVM
