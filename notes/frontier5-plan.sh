@@ -72,9 +72,10 @@ prices = json.load(open(sys.argv[1]))["models"]
 bad = []
 for m in sys.stdin.read().split():
     eps = json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models/%s/endpoints" % m, timeout=30))
-    ok = [e for e in eps["data"]["endpoints"] if "tools" in (e.get("supported_parameters") or [])
+    # require_parameters is sent too: the endpoint must take tools and tool_choice, not tools alone.
+    ok = [e for e in eps["data"]["endpoints"] if {"tools", "tool_choice"} <= set(e.get("supported_parameters") or [])
           and float(e["pricing"]["prompt"]) <= prices[m]["prompt"] and float(e["pricing"]["completion"]) <= prices[m]["completion"]]
-    print("%-32s %d endpoint(s) that take tools at or under list" % (m, len(ok)))
+    print("%-32s %d endpoint(s) that take tools and tool_choice at or under list" % (m, len(ok)))
     bad += [] if ok else [m]
 sys.exit("refused: no endpoint at list for %s (update eval/pricing/prices.json or drop the model)" % bad if bad else 0)
 ' "$REPO/eval/pricing/prices.json" || exit 2
