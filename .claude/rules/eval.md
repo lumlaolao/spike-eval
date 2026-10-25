@@ -37,7 +37,7 @@ training corpora (`--cap-per-source`).
 
 ## Free checks before a paid game
 
-`bash eval/keyword_gauntlet.sh` (553 cards, 28 fake-model games), with `GAUNTLET_POLICY=random`, `GAUNTLET_SEED=<salt>`
+`bash eval/keyword_gauntlet.sh` (552 cards, 28 fake-model games), with `GAUNTLET_POLICY=random`, `GAUNTLET_SEED=<salt>`
 and `GAUNTLET_TOOLS=1`; `python3 eval/gauntlet_scan.py <run>` fails on any defect. Never edit the script while it runs.
 After a game: `match_review.py` (TAKEN / LOST / SKIP / TOOL / TIME), `tool_audit.py`, `plan_audit.py`,
 `defect_analyzer.py`, `cost_report.py`.

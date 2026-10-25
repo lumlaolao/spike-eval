@@ -113,6 +113,9 @@ trap is written in the Rule line and, with the search inputs, as `# search:` and
 history note): drain2's "play the land first" (Bloodghast) and hoofdrain's "sacrifice only the elves cast"; elf2
 draws pass rarely (about 1 in 150), because an elf plain plan either matches the loop or misses it by far more than 3.
 
+A third generated suite (tokens, landfall, equip and infect, in `eval/puzzles/hard/gen3/`) holds the same bar; its
+families, traps and gate are in `eval/PUZZLES.md`, "The third hard suite".
+
 Rules that apply to every board: no slack (exact mana, exact damage, no spare pump); every card in hand either
 used on the line or a red herring that a trap line uses; the library filled with Colossal Dreadmaw (or stated
 known cards) so draws decide nothing; the opponent with no mana abilities on its blockers (a pointless tap
