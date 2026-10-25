@@ -87,7 +87,9 @@ GREP=PASSED bash scripts/puzzle-gate/gtest.sh -testclass forge.spike.PuzzleSearc
 ```
 
 The pinned build must be compiled from this checkout's overlay (its `overlay-sha.txt`): `run_one.py` refuses another
-unless `ALLOW_STALE_BUILD=1` (`eval/PUZZLES.md`). `gate10.sh` runs at most two JVMs and waits while `$SCRATCH/HOLD` exists (create it before
+unless `ALLOW_STALE_BUILD=1` (`eval/PUZZLES.md`).
+
+`gate10.sh` runs at most two JVMs and waits while `$SCRATCH/HOLD` exists (create it before
 `install.sh` or a rebuild, delete it after). Accept a puzzle only when the search arm is `proven` and `accepted`
 and the pass arm is `rejected`; a pass that wins means the puzzle is trivial.
 

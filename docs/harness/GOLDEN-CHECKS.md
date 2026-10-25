@@ -88,9 +88,8 @@ under the legacy profile, where the contract does not run; they are not counted.
 | convoke, new-targets | the convoke payment, chooseNewTargetsFor | - | no | convokeAndANewTargetAreTheModels |
 | mana-from-pool | chooseManaFromPool (floating mana of different kinds) | 0 / 0 | yes (SurfaceResolutionChoicesTest) | delveMustExileWhatTheManaCannotPay |
 
-Before this work (2026-10-15), 12 of the 42 types then listed had a contract-checked live test.
-`GoldenChecksTest.OWNED` now holds 78 types, and every one is driven by a test there; rows marked
-`-` were added after the 2026-10-15 count of recorded rows.
+`GoldenChecksTest.OWNED` holds 78 types, each driven by a test there; before 2026-10-15, 12 of the 42 types
+then listed had a contract-checked live test. `-`: no recorded-row count.
 
 Ledger rows with impl LLM that are not a model ask of their own: `isGuiPlayer` (a marker),
 `reveal` and `notifyOfValue` (information shown in the seat stream), `playChosenSpellAbility`,

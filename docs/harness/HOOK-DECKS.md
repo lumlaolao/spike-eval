@@ -109,8 +109,7 @@ top level only).
 
 ## Not done
 
-- As of 2026-10-14 no model game had been read on these decks, so no defect was filed from a game;
-  issues #126 and #127 were fixed from the inventory and #128 was open.
+- No model game on these decks is in `GAME-LOOP-LOG.md`, so no defect has been filed from one.
 - Six hooks are not one-card hooks; each is an edge of the engine, so no probe deck is built:
   - `confirmStaticApplication` — `Combat.java:733/811/823`, the damage-assignment static
     (`AlternativeDamageAssignment`); reached in ordinary combat, not by a named card.

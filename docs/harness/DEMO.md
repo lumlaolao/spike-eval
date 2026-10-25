@@ -175,7 +175,8 @@ python3 eval/demo_server.py --game runs/demo/puzzle-line --game runs/demo/puzzle
 ```
 
 Both commands use the newest acceptance build under `runs/harness-acceptance` compiled from this checkout's overlay
-(its `overlay-sha.txt`), or `--build DIR`; a build of another overlay is refused unless `--allow-stale-build`. The paid attempt
+(its `overlay-sha.txt`), or `--build DIR`; a build of another overlay is refused unless `--allow-stale-build`.
+The paid attempt
 needs the owner's egress consent; `--model openrouter:fake/...` with a loopback `OPENROUTER_BASE_URL` rehearses it
 for free. Side by side, **first divergence** jumps to the first decision where the model left the written line.
 Copy a recording with its file times kept (a clone, `cp -p`, `rsync -t`): where a directory holds several games of one

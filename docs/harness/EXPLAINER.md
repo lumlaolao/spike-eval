@@ -75,7 +75,7 @@ shows the game faithfully, asks every decision, carries out the answer, and deci
 | Memory | `ContextMemory` archive, `set_plan` | Each decision gets a fresh render of the true state plus a searchable archive of everything the seat saw, not an ever-growing chat: models do worse as a conversation grows. The plan is shown back as "a note, not a commitment", because each decision is re-made on the state then. |
 | The record | `EvalLog` → `game-<seed>-<ms>.jsonl` | Every decision row, model call (tokens, latency, provider, reasoning), tool call and result, plus the version stamps (`VERSIONS.md`). Every score, review sheet and demo pane is computed from these files. |
 | Eval and scoring | `eval/*.py`, Python 3 stdlib only | `run_batch.py` pins a condition, prices it and stops at `--budget-usd`; `panel_score.py` and `puzzle_score.py` score with intervals and floors; `aggregate.py` refuses to pool results from different conditions or versions. Stdlib only, so it runs anywhere. |
-| The gate | `eval/harness_acceptance.sh`: 18 stages (19 PASS lines: one per canary arm), about 8 minutes on an idle 4-core machine (`ACCEPTANCE.md`) | An isolated compile, every Java and Python test (929 and 528 at PR #287), two bit-reproducible zero-model canaries, and loopback fake-model games for every tool path. No model, no cost, no network, and it never touches the Forge checkout. |
+| The gate | `eval/harness_acceptance.sh` (`ACCEPTANCE.md`) | An isolated compile, every Java and Python test (929 and 528 at PR #287), two bit-reproducible zero-model canaries, and loopback fake-model games for every tool path. No model, no cost, no network, and it never touches the Forge checkout. |
 | The demo | `demo_server.py` (stdlib HTTP), `eval/demo/web/` (plain HTML, CSS, JS) | It reads the JSONL and writes nothing into a run, so it can never change what the seat sees or decides, needs no engine and no model, and replays any recorded game offline. |
 
 ## One decision, end to end
@@ -205,7 +205,7 @@ The ten-minute walkthrough, with the decision numbers to open, is in `DEMO.md`.
 4. The three rules that make it a measurement: the engine owns legality, the seat owns every decision (`ai=0`),
    and the prompt carries facts only.
 5. The benchmark: three scores, each with a floor; the 88% lesson; PUZ recorded, STR costed and waiting.
-6. The gate: 18 stages in about 8 minutes with no model and no cost, and how a change gets in.
+6. The gate: no model, no cost, and how a change gets in.
 7. Close on the side by side's first divergence: two harnesses, one seed, where the games parted.
 
 ## Words

@@ -742,8 +742,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      the run's provenance records (`eval/PUZZLES.md`);
    - every Java and Python test, with a declared-vs-run count;
    - the pinned canaries, with a class-load proof that the new build ran;
-   - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules, the turn chat and a
-     written puzzle line (the stage table is in `docs/harness/ACCEPTANCE.md`);
+   - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules and the turn chat,
+     and a written puzzle line played by a script seat (`ScriptBridge`; the stage table is in
+     `docs/harness/ACCEPTANCE.md`);
    - `scoring`: a puzzle and a panel cell played through the launchers a paid run uses and scored by
      `puzzle_score.py` and `panel_score.py` (since 2026-10-16, review M4).
    - It never touches the Forge checkout.
@@ -769,8 +770,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      keywords with no card to sweep are pinned (no card uses Absorb, Frenzy or Poisonous; the agendas are
      Conspiracy draft only).
    - **The keyword gauntlet (`eval/keyword_gauntlet.sh`, on demand, no model cost):** the sweep's cards (552 of its
-     553; 1996 World Champion is left out, as the script says) in 28 decks (`eval/gauntlet/`), each deck's LLM seat on the loopback fake model (`--policy first --answer-tool`:
-     the first option of every ask) against the next deck's Forge AI, in full games. Triggers, combat, upkeep and
+     553; 1996 World Champion is left out, as the script says) in 28 decks (`eval/gauntlet/`), each deck's
+     LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
+     the next deck's Forge AI, in full games. Triggers, combat, upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
      AI made, an unreadable answer, a play that failed to pay, a crash or an unfinished game. *Why both:* the
      sweep proves each play is reachable and plays once; only games bring the states in between. The first run
