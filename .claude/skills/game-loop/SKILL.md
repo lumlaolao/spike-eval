@@ -33,10 +33,9 @@ questions (Elves: 29 decisions in one turn) take hours; vary them, and pick fast
 Before paying for a game, the free checks find most defects: `bash eval/keyword_gauntlet.sh` (553 cards in 28
 fake-model games), with `GAUNTLET_POLICY=random` (random legal answers; `GAUNTLET_SEED=<salt>` for new ones) and
 `GAUNTLET_TOOLS=1` (lookups and previews too). Never edit `eval/keyword_gauntlet.sh` while it runs: bash reads the
-script as it goes. The cap is 120 minutes: since
-harness-epoch-7 the seat may think for 32000 tokens (up to 300 s a call) and make 16 tool calls a
-decision, and a capped game is scored invalid, so the cap must not end a game while the model thinks
-(docs/harness/MODEL-LIMITS.md).
+script as it goes. The cap is 120 minutes: the seat may think for 32000 tokens (up to 300 s a call)
+and make 16 tool calls a decision, and a capped game is scored invalid, so the cap must not end a
+game while the model thinks (docs/harness/MODEL-LIMITS.md).
 
 ## 1. Play one game
 
