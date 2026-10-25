@@ -338,6 +338,48 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 
+- Every run keeps its full record (owner, 2026-10-25): see "Keeping a run".
+
+### Keeping a run
+
+Every `puzzle_solve.py` run records everything needed to reconstruct each model conversation and each game, in the
+run directory, with nothing cut:
+
+| File | Holds |
+|---|---|
+| `suite.json` (run root) | the suite the run was played on, byte for byte (`puzzle-run.json` names it) |
+| `<puzzle>/<name>.pzl` | the position the JVM read, byte for byte; `batch-manifest.json` `record` gives its sha256 |
+| `<puzzle>/transcripts/http-<ms>-<pid>.jsonl` | one `t:"http"` row per HTTP round-trip to the model, retries and refusals included: the request body exactly as sent (system prompt, every message, tools, `tool_choice`, reasoning and token settings, the `provider` object, the model) and the response body exactly as received (content, tool calls, `reasoning` and `reasoning_details`, finish reasons, provider, generation id, usage and cost), each with its sha256, the status and the non-secret headers. Rows name the seat (`label`) and the game file. |
+| `<puzzle>/transcripts/engine-<id>-seed<s>-r<n>-<ms>.jsonl` | the game's whole Forge game log, one row per entry in the engine's order |
+| `<puzzle>/game-*.jsonl`, `jvm.log`, `puzzle-results.jsonl`, `batch-manifest.json`, `build.json`, `java.args` | as before: the decision and call rows, the JVM's log, the result rows, the condition, the build |
+
+Each result row names its record (`transcript_version`, `transcript_http_file`, `transcript_engine_file`) and counts
+the rows that could not be written (`transcript_errors`, also printed as `[TRANSCRIPT] FAILED`): a row is written
+whole or not at all. No Authorization header, cookie or key is written; a row that would hold the key is refused.
+The record changes nothing the model is sent (`TranscriptTest`), so it is not a condition. It is the `Transcript`
+class (`TRANSCRIPTS=1` with `EVAL_OUT`), which `puzzle_solve.py` always turns on; the Claude CLI lane has no HTTP
+of its own and is not covered.
+
+Size: a Luna attempt on the third hard suite made 29 calls and about 120,000 prompt and 22,000 completion tokens
+(`runs/puzzles/gen3-luna`, 18 attempts), about 0.65 to 0.85 MB of http rows; 110 attempts of a model like it
+are 70 to 95 MB, and a model that makes more calls or reasons longer scales with its tokens. Engine logs are a few
+KB a game. The archive compresses the JSON text about tenfold.
+
+To keep a finished run, pack it and keep the archive somewhere outside the checkout:
+
+```bash
+python3 eval/archive_run.py runs/puzzles/frontier-1 --out /keep/frontier-1.tar.gz   # pack, then re-verify
+python3 eval/archive_run.py --verify /keep/frontier-1.tar.gz                       # later, anywhere
+```
+
+`archive_run.py` refuses a run still writing (`finished` false in `puzzle-run.json`), a gap in the record (a missing
+transcript or `.pzl`, a body whose sha256 differs, a row that could not be written; `--allow-gaps` packs it and lists
+them), and any file holding an OpenRouter key. Beside the archive it writes `<out>.manifest.sha256` (`sha256sum -c`
+format, one line per file) and `<out>.sha256`; then it re-reads every member against both. `runs/` is never
+committed. A run that should live with the repository goes on a data-only branch that is never merged, as the
+`demo-recordings` branch holds `puzzles/hard-gen2-luna` (a README with what was run and its scores, then the run's
+files); a run too large for git keeps only its archive's `.sha256` and manifest there, with where the archive is.
+
 ### Watching a run
 
 ```bash
