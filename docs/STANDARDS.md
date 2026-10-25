@@ -124,8 +124,8 @@ most log questions).
   in `$( )` — bash 3.2 scans for the closing paren before parsing the heredoc (issue #219).
   Check: `eval/test_gate_parses.py` runs `bash -n` over the `eval` and `scripts` shell
   scripts and the root launchers (`*.sh`) under the bash that runs it, and reads each script for
-  a heredoc inside `$( )` whose apostrophes or backticks do not pair up, so the bash 3.2 case
-  fails on Linux too. It cannot see run-time behaviour.
+  a heredoc inside `$( )` that bash 3.2 would end early, reading its quotes in order as bash 3.2
+  does, so the bash 3.2 case fails on Linux too. It cannot see run-time behaviour.
 - **Delete what a change makes dead** in the same PR: the unused flag, the helper with no caller,
   the comment about code that is gone.
 
