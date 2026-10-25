@@ -12,10 +12,10 @@ into a Forge checkout; it does not redistribute Forge (GPL).
 - **What the model sees:** the faithful observation (`SeatObservation.java`): the state from the engine, Forge's game
   log, the opponent's cards it has seen, and its own notes, each block labelled by its source.
 - **The benchmark:** STR-AI (win rate against Forge's AI on frozen panels), STR-HELDOUT (the same on held-out seeds),
-  PUZ (Forge's puzzles). `eval/EVAL-DESIGN.md`, `eval/SCORING.md`, `eval/PUZZLES.md`.
-- **Status (2026-10-17):** the harness is complete by its own gates (`docs/harness/ACCEPTANCE.md`); real Luna games are
-  being played and read one at a time (`docs/harness/GAME-LOOP-LOG.md`); the paid benchmark blocks wait on the owner's
-  scoring decisions (`docs/harness/WORK-PLAN.md`).
+  PUZ (frozen puzzle suites, each attempt judged by Forge's own puzzle mode). `eval/EVAL-DESIGN.md`,
+  `eval/SCORING.md`, `eval/PUZZLES.md`.
+- **Status:** the gate records are in `docs/harness/ACCEPTANCE.md`, what each real game found in
+  `docs/harness/GAME-LOOP-LOG.md`, and the open work and what waits on the owner in `docs/harness/WORK-PLAN.md`.
 
 ## Build and check
 
@@ -26,7 +26,7 @@ git clone https://github.com/Card-Forge/forge.git /root/forge && git -C /root/fo
 FORGE_HOME=/root/forge bash install.sh                                   # copy the overlay in
 (cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests) # build (checkstyle runs here)
 FORGE_HOME=/root/forge bash eval/harness_acceptance.sh                   # compile, every test, canaries, fake-model games
-bash eval/keyword_gauntlet.sh                                            # 28 free games over 553 cards
+bash eval/keyword_gauntlet.sh                                            # 28 free games over 552 cards
 ```
 
 `eval/harness_acceptance.sh` never touches the checkout (it builds into `runs/harness-acceptance/<ts>/`). Its zero-model

@@ -24,7 +24,8 @@ model identifiers in commits. Skip acceptance and the gauntlets unless asked (ow
 
 ## State of the code
 
-harness-epoch-69 (`docs/harness/VERSIONS.md` has every stamp). The epochs made on the puzzle branches, newest first:
+The puzzle branches ended at harness-epoch-69; main has moved on since (`HARNESS_EPOCH` in `LlmSpikeGui.java`;
+`docs/harness/VERSIONS.md` has every stamp). The epochs made on the puzzle branches, newest first:
 69, a Forge puzzle's brief starts at its goal line, without its name and difficulty label (PR #282); 68, a Phyrexian
 spell the AI will not pay life for (Gitaxian Probe) is on the seat's menu and paid with life (PR #277,
 h_0); 67, a rules puzzle's brief and Puzzle Goal card carry only its description and turn limit (PR #273); 66, an attack the
@@ -84,6 +85,9 @@ bash scripts/puzzle-gate/gate10.sh V_draft         # a scratch variant at $SCRAT
 bash scripts/puzzle-gate/gate10.sh R_RP_214 1,2,3  # random arm, logs only
 GREP=PASSED bash scripts/puzzle-gate/gtest.sh -testclass forge.spike.PuzzleSearchTest   # compile + TestNG
 ```
+
+The pinned build must be compiled from this checkout's overlay (its `overlay-sha.txt`): `run_one.py` refuses another
+unless `ALLOW_STALE_BUILD=1` (`eval/PUZZLES.md`).
 
 `gate10.sh` runs at most two JVMs and waits while `$SCRATCH/HOLD` exists (create it before
 `install.sh` or a rebuild, delete it after). Accept a puzzle only when the search arm is `proven` and `accepted`

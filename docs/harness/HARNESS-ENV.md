@@ -1,7 +1,8 @@
 # Building the bike: the harness as an RL environment, in the shape of GBA Eval
 
-**Status: a proposal for the owner.** Design note, 2026-10-20. The framework that makes it concrete, and the
-skeleton built so far, are in `HARNESS-ENV-FRAMEWORK.md`. The question: is building this
+**Status: a proposal for the owner.** Design note, 2026-10-20; its counts are as of that date. The framework that
+makes it concrete, and what is built of it (the sandbox, the grader, the episode runner), are in
+`HARNESS-ENV-FRAMEWORK.md`. The question: is building this
 harness itself the interesting RL environment, the way Mechanize means it? This note answers with Mechanize's own
 public instance, GBA Eval, mapped point by point onto our repository, and keeps the deterministic **surface test** as
 the primary grader.
@@ -229,7 +230,7 @@ amounts, order), never by the candidate's label, and records it; over the wire i
 **Spec** (given): SPEC-0 the goal (`CLAUDE.md`), SPEC-1 the owner rules (`CLAUDE.md`, `STANDARDS.md` section 8's
 twenty rows), SPEC-2 the interface contract, proposed and not yet written (CLI environment, rows, `[TALLY]`, wire
 protocol, `.pzl` sections, what a seat may know, tools, fallbacks: `ARCHITECTURE.md` with the "why" and the file names
-removed). **Withheld**: our code, its Java tests (924 in `ACCEPTANCE.md`'s latest recorded run) and Python tests, the
+removed). **Withheld**: our code, its Java tests (924 at PR #284, `ACCEPTANCE.md`) and Python tests, the
 history, the game-loop log, acceptance records, canary pins, lines, generator seeds. **Reference**:
 instrumented Forge plus our seat at a pinned epoch as a service, consulted not copied.
 

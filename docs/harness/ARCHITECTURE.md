@@ -45,9 +45,11 @@ them and refuses to pool what is not comparable.
 - *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a patched copy of an engine file at
   its own path in the overlay, every change marked `HARNESS PATCH`, the upstream original's sha256 recorded
   in `docs/harness/ENGINE-PATCHES.md` and checked by `eval/test_engine_patches.py`, so a re-pin forces a
-  re-diff. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Two so far:
-  the colour an any-colour source makes for a generic shard (`ComputerUtilMana`), and a companion the seat
-  declines is no companion rather than a crash (`Player.assignCompanion`).
+  re-diff. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Four files are
+  patched (the table in `ENGINE-PATCHES.md`): `ComputerUtilMana` (the colour an any-colour source makes for a generic
+  shard, a lethal-tap source, a card paying for its own ability), `Player.assignCompanion` (a declined companion is no
+  companion rather than a crash), `MagicStack` (a resolve line read before the effect) and `GameCopier` (a card no
+  copied zone holds).
 
 ## 3. The seat: `PlayerControllerLLM`
 
@@ -474,7 +476,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     that served each call on its row. A tool request adds `require_parameters` to the same `provider` object (one
     key: a body with it twice is read differently by different parsers, and a last-wins one drops the latency sort).
   - *Why latency routing:* Luna calls stalled for up to 6 minutes while answering in ordinary length (646
-    output tokens in 352 s, against a median of 253 in 9 s). The time was the endpoint's, not the model's
+    output tokens in 352 s, against a median of 253 in 9 s; after latency routing a game's 153 calls had p50
+    6.7 s and max 28 s, `GAME-LOOP-LOG.md`, seed 86 of 2026-10-15). The time was the endpoint's, not the model's
     thinking. OpenRouter's default routing weighs price; the model is the same on every endpoint.
   - a model whose reasoning cannot be turned off (`reasoning.mandatory` on OpenRouter's model list, 2026-10-24; the
     list is `MANDATORY_REASONING_FLOOR` in `LlmSpikeGui.java`, hashed into `model_cfg_sha`) is never sent
@@ -509,10 +512,11 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it. A `claude-cli:` seat's consent is its own
   opt-in (see "The Claude CLI answer bridge").
 - **The game model:** GPT-6 Luna (`openrouter:openai/gpt-6-luna`) for every game unless the owner names
-  another, at about $0.06–0.07 a game (one tier, every decision reasoning).
+  another, one tier (every decision reasoning); what a game costs is in `CLAUDE.md` ("Cost of paid runs").
 - *Why OpenRouter:* one API for many providers, so a model comparison changes one string.
 - *Why the cache matters:* nearly all input is the same system prompt, tools and history. Recorded Luna
-  asks read 54% of their prompt tokens from the cache on an ask's first round, and 92% on later rounds.
+  asks read 54% of their prompt tokens from the cache on an ask's first round, and 92% on later rounds (the four
+  Luna games of `runs/prompt-ab/new`, 2026-10-15).
 
 ### The Decisions bridge (`jev:` seats)
 
@@ -790,7 +794,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     searched to its own best, falls 1 to 3 short of the searched maximum. A third
     (`eval/suites/puzzles-hard-gen3-v1.json`, 68 boards) adds Goblin token engines, land sequencing
     (landfall), Equipment and infect at the same bar.
-- **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, and writes nothing (`eval/PUZZLES.md`, "Watching a run").
+- **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, from the run's `puzzle-run.json` and result
+  rows, and writes nothing (`eval/PUZZLES.md`, "Watching a run").
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a
   deck-matchup term and cluster-bootstrap CIs.
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,
@@ -834,7 +839,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   instances and sets generated from the card scripts (`harness_env_generate.py`), judges by engine outcomes, and
   counts Forge's AI inside a patched `PlayerControllerAi`, the engine's or the submission's own marked copy, which is
   refused when it counts a hook name fewer times than the engine's file (any count gates the benchmark to 0). Ours
-  (`HarnessEnvOurs`) scores 0.979; the default bridge, the ablations and the toys 0.
+  (`HarnessEnvOurs`) scores 0.979; the default bridge, the ablations and the toys 0 (2026-10-22,
+  `HARNESS-ENV-FRAMEWORK.md` section 4.9).
   `harness_env_episode.py` runs an episode end to end and `harness_env_calibrate.py` compares scoring settings.
   The candidate's seat still runs inside the grader's JVM and could rewrite its report (an open hole, framework
   section 4.7), so an episode emits a candidate's number only with `--trust-candidate`; intake scores 0 a
@@ -849,10 +855,13 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 
 1. **`eval/harness_acceptance.sh`:**
    - an isolated compile, which records the overlay hash it compiled in `overlay-sha.txt`; the puzzle launchers
-     (`puzzle_baselines.Build`) run only a build whose hash is the checkout's (`eval/PUZZLES.md`);
+     (`puzzle_baselines.Build`) run only a build whose hash is the checkout's, unless `--allow-stale-build`, which
+     the run's provenance records (`eval/PUZZLES.md`);
    - every Java and Python test, with a declared-vs-run count;
    - the pinned canaries, with a class-load proof that the new build ran;
-   - loopback fake-model games for tools, answers, the faithful profile, lookahead and rules;
+   - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules and the turn chat,
+     and a written puzzle line played by a script seat (`ScriptBridge`; the stage table is in
+     `docs/harness/ACCEPTANCE.md`);
    - `scoring`: a puzzle and a panel cell played through the launchers a paid run uses and scored by
      `puzzle_score.py` and `panel_score.py` (since 2026-10-16, review M4).
    - It never touches the Forge checkout.
@@ -877,9 +886,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      reads no answer it cannot parse and keeps `AskContract` on every ask. Any gap fails the test. The five
      keywords with no card to sweep are pinned (no card uses Absorb, Frenzy or Poisonous; the agendas are
      Conspiracy draft only).
-   - **The keyword gauntlet (`eval/keyword_gauntlet.sh`, on demand, no model cost):** the sweep's 553 cards in 28
-     decks (`eval/gauntlet/`), each deck's LLM seat on the loopback fake model (`--policy first --answer-tool`:
-     the first option of every ask) against the next deck's Forge AI, in full games. Triggers, combat, upkeep and
+   - **The keyword gauntlet (`eval/keyword_gauntlet.sh`, on demand, no model cost):** the sweep's cards (552 of its
+     553; 1996 World Champion is left out, as the script says) in 28 decks (`eval/gauntlet/`), each deck's
+     LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
+     the next deck's Forge AI, in full games. Triggers, combat, upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
      AI made, an unreadable answer, a play that failed to pay, a crash or an unfinished game. *Why both:* the
      sweep proves each play is reachable and plays once; only games bring the states in between. The first run

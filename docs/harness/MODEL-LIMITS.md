@@ -2,7 +2,7 @@
 
 The owner's goal: **the harness does not limit the model at all.** This is the audit of every place the
 harness capped, truncated, budgeted or cut short what the seat can think, see, look up or do; whether
-each limit bound in recorded games; and what was done about it. It lands with harness-epoch-7
+each limit bound in recorded games; and what was done about it. It landed with harness-epoch-7
 (observation-faithful-v24, evidence-tools-v3, seat-tools-v7, lookahead-preview-v5, one-chat-v2).
 
 The rule the decisions follow (docs/STANDARDS.md section 8): cost is not a reason to cap thinking, seeing
@@ -71,9 +71,9 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 
 | Limit | Where | Bound | Decision | New value |
 |---|---|---|---|---|
-| Smart-tier `max_tokens` (the thinking budget) | `LSG:6601` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: no game has run at 32000 yet, and providers reject a `max_tokens` above their own output limit, which would turn every call into an error | 32000 |
-| Per-call timeout | `LSG:6601` | at 150s: 2 calls timed out | 300s by `acf6f2e`; kept (it couples to the post-cap grace and run_batch.py's `GRACE_S = 1000`) | 300s |
-| Truncation retry: a reasoning row retries at 4096 tokens with reasoning off | `LSG:7331-7335` | fired 7 times (smart) | **kept for the smart tier**: it fires only after the model spent the whole 32000-token budget, and the alternative is the deterministic fallback, not more thought. **Fixed for the fast tier**: its reasoning is already off, so the retry asked again at the same 1024 tokens; it now doubles the budget | smart unchanged; fast 2x |
+| Smart-tier `max_tokens` (the thinking budget) | `ModelCfg.buildTable` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: providers reject a `max_tokens` above their own output limit, which would turn every call into an error | 32000 |
+| Per-call timeout | `ModelCfg.buildTable` | at 150s: 2 calls timed out | 300s by `acf6f2e`; kept (it couples to the post-cap grace and run_batch.py's `GRACE_S = 1000`) | 300s |
+| Truncation retry: a reasoning row retries at 4096 tokens with reasoning off | the OpenRouter bridge's truncation retry (`LSG`) | fired 7 times (smart) | **kept for the smart tier**: it fires only after the model spent the whole 32000-token budget, and the alternative is the deterministic fallback, not more thought. **Fixed for the fast tier**: its reasoning is already off, so the retry asked again at the same 1024 tokens; it now doubles the budget | smart unchanged; fast 2x |
 | Fast tier: 1024 tokens, 45s, reasoning `none` | `LSG:6601, 6616` | 2 of 170 fast calls truncated | tokens and time raised; reasoning **kept** `none`: that is what the two-tier arm is (a condition, `one_tier` on the game line). `ONE_TIER=1` uses the smart row everywhere and is the no-limit arm the game-loop skill already plays | 8192 tokens, 120s |
 | `SMART_BUDGET` / `FAST_BUDGET` calls a game (`play(no-budget)` once spent) | `LSG:607-608` | 0 llm seats (most: 137 smart calls in a 17-turn game; every `no-budget` line in `runs/` is a floor seat) | raised to loop guards; a 40-turn one-tier game reaches 320 | 10000 / 10000 |
 | Play decisions per turn, faithful: 80 (`play(turn-cap)`) | `LSG:606` | 0 (most in one turn: 15) | raised: a storm turn counts both players' windows | 500 (loop guard) |
@@ -95,7 +95,7 @@ A decision model answers only typed questions over a closed list of keys (`docs/
 "The Decisions bridge"). Where a decision cannot be put that way it is not sent: the bridge gives no answer, logs
 `[JEV-NO-ANSWER]` with the reason, and the seat takes its fixed legal option. "Bound" counts the asks of the three
 puzzles of the first Jev run, read from Luna's rows (`runs/puzzles/hard-gen2-luna/<id>/game-*.jsonl`, 116 asks);
-no Jev game has been played yet. `DB` is `DecisionsBridge.java`.
+the first Jev game (`runs/puzzles/jev-test-1`, 2026-10-24) is not counted here. `DB` is `DecisionsBridge.java`.
 
 | Limit | Where | Bound | Decision | Value |
 |---|---|---|---|---|
@@ -124,9 +124,9 @@ cost). No limit below was reached there.
 
 | Limit | Where | Bound | Decision | New value |
 |---|---|---|---|---|
-| 45-minute game cap in the game-loop skill (`--cap-minutes 45`; a capped game is scored `invalid`) | `.claude/skills/game-loop/SKILL.md:41` | 0 of 14 games capped; the longest ran 37.2 minutes (83% of the cap) with 16000-token thinking and 2 tools an ask | raised: with 32000-token thinking at up to 300s a call and 16 tool calls a decision, a 45-minute cap would end games while the model thinks | 120 minutes |
-| run_batch.py's derived default cap | `eval/run_batch.py:929-933` | n/a | kept: 240 minutes for any non-Haiku model, 120 for Haiku | unchanged |
-| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py:319` | n/a | kept: the largest timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s | unchanged |
+| 45-minute game cap in the game-loop skill (`--cap-minutes 45`; a capped game is scored `invalid`) | `.claude/skills/game-loop/SKILL.md` | 0 of 14 games capped; the longest ran 37.2 minutes (83% of the cap) with 16000-token thinking and 2 tools an ask | raised: with 32000-token thinking at up to 300s a call and 16 tool calls a decision, a 45-minute cap would end games while the model thinks | 120 minutes |
+| run_batch.py's derived default cap | `eval/run_batch.py` `derive_cap_minutes` | n/a | kept: 240 minutes for any non-Haiku model, 120 for Haiku | unchanged |
+| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py` `GRACE_S` | n/a | kept: the largest timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s | unchanged |
 
 ## What it costs
 
@@ -148,6 +148,6 @@ still stops a batch at its budget.
 - `eval/test_tool_use_suite.py` keeps the suite's mirror of the executor in step (16 calls, 20000-character
   pages, 50 results, 2100-character command lines)
 
-Not measured yet: a game at harness-epoch-7. The next game read with `game-loop` should check the
-prompt size late in a long game, whether any seat uses more than 2 tool calls in an ask, and whether
-any call reaches the 32000-token cap.
+Not determined here: this audit has not been repeated since harness-epoch-7, so late-game prompt size, tool calls
+an ask above 2, and calls reaching the 32000-token cap in the games since are not counted on this page. The games
+since are read in [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md).
