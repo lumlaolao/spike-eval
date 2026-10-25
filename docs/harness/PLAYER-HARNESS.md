@@ -1,4 +1,10 @@
-# Player harness: direction and implementation record
+# Player harness: the information contract and the implementation record
+
+The **required information contract** below is the standing goal for the seat. Everything after it is a dated
+implementation record (2026-09-06 to 2026-10-15): each entry says what a change did when it landed, and the
+grammars, budgets and version stamps it names have moved since. What is true now is in
+[ARCHITECTURE.md](ARCHITECTURE.md); the current limits are in [MODEL-LIMITS.md](MODEL-LIMITS.md) and the current
+stamps in [VERSIONS.md](VERSIONS.md).
 
 The goal is a trustworthy MTG-playing evaluation environment. The agent must be
 able to understand the current position, distinguish individual objects, remember
@@ -64,7 +70,7 @@ Compilation and tests do not certify their strategic correctness or fairness.
    it does not certify that an agent made every strategic choice. Keep decisions,
    parsing failures, deterministic fallbacks and engine rejection distinguishable.
 
-## Implemented in this continuation
+## Implemented in this continuation (2026-09-06)
 
 `MEMORY_TOOLS=1` enables `ContextMemory` for LLM seats. Default is off. It is shared
 by that seat's smart/fast calls, but never by opponents. It archives the existing
@@ -567,19 +573,21 @@ Now every decision is answered by calling `answer` (`AnswerTool.java`), and the 
   per-decision arm (`ANSWER_SCHEMA=per-decision`) is kept for a side-by-side measurement of
   illegal-call rate and cost.
 
-## Next implementation gates
+## Implementation gates
 
-| Priority | Work | Evidence required before claiming complete | Status 2026-09-07 |
+The status column is as of 2026-10-25, read from the code and the documents it links.
+
+| Priority | Work | Evidence required before claiming complete | Status |
 | --- | --- | --- | --- |
-| P0 | Seat-aware visibility audit and structured observation schema | Two worlds differing only in hidden state produce identical observations and tool results; reveal, face-down, exile, shuffle and controller-change fixtures | Text observation done under `v4-faithful` with paired-world, face-down, hidden-path, control-change and reveal tests (`SeatObservationTest`); no structured schema yet; exile fixtures thin |
-| P0 | Structured action/outcome event capture | Agent sees intervening actions exactly once or receives explicit loss metadata; proposed actions cannot be mistaken for resolved ones | Seat stream captures the engine log once per entry with redaction; proposals vs resolutions still not separated |
-| P0 | Controller ownership and legal-menu audit | Inventory every hook; tests for omitted legal alternatives and silent AI choices; attributable fallback records | Ledger + test done; 13 silent AI decisions remain (numeric/binary/confirmation routed); payment execution, trigger targeting and legal-menu completeness untested |
-| P1 | Object registry and object inspection | Same-name copies, blink/new incarnation, control change, tokens, attachments, target and combat references; no hidden-zone identity tracking | Done for copies, zone re-entry, control change, attachments, targets, combat, INSPECT; tokens untested |
-| P1 | Durable knowledge and bounded summarization | Full-game reset/restart recovery, source-preserving compression, explicit stale knowledge, bounded prompts and retrievable full reveals | Reveals retrievable in full; archive still in-JVM; prompts not yet bounded independent of game length |
-| P1 | Tool protocol and eval accounting | Native typed adapters or strict equivalent, per-decision budgets across retries, exact request/token accounting, disjoint experiment grouping | Eval grouping/accounting done (history/EVAL-IMPLEMENTATION.md); tools remain text commands; INSPECT added to the shared budget |
-| P2 | Strategy notebook and optional archetype evidence library | Contradiction/update tests, no opponent deck-label leakage, assistance version and ablations | Notes only |
-| P2 | Player-safe simulation adapter | Live-state/RNG equality before/after calls, hidden-world invariance, disclosed rollout policy and assumptions, unsupported cases refused | Not started |
-| P3 | Frozen harness evaluation suite | Observation/comprehension, identity, memory/retrieval, legal actions, puzzles and full-game play; fixed seeds, baselines, confidence intervals | Substantially covered: the acceptance suite (10 stages, fixed seed-42 canaries + loopback games) plus `SeatObservationTest` (observation/identity/tokens/face-down), `ContextMemoryTest` (memory/retrieval/notes), `LlmSpikeTest` (routing/parsing) and the ownership ledger test; **full-game play baselines with CIs** remain the piece not yet frozen as a suite |
+| P0 | Seat-aware visibility audit and structured observation schema | Two worlds differing only in hidden state produce identical observations and tool results; reveal, face-down, exile, shuffle and controller-change fixtures | Text observation under `v4-faithful` with paired-world, face-down, hidden-path, control-change and reveal tests (`SeatObservationTest`); no structured (non-text) schema |
+| P0 | Structured action/outcome event capture | Agent sees intervening actions exactly once or receives explicit loss metadata; proposed actions cannot be mistaken for resolved ones | Seat stream captures the engine log once per entry with redaction; whether proposals and resolutions are separated is not checked here |
+| P0 | Controller ownership and legal-menu audit | Inventory every hook; tests for omitted legal alternatives and silent AI choices; attributable fallback records | Ledger and `ControllerOwnershipTest`: 0 silent Forge-AI strategic or payment hooks ([OWNERSHIP.md](OWNERSHIP.md)); acceptance stage `surfaces` proves every decision hook and every way to play a card |
+| P1 | Object registry and object inspection | Same-name copies, blink/new incarnation, control change, tokens, attachments, target and combat references; no hidden-zone identity tracking | Done for copies, zone re-entry, control change, attachments, targets, combat and `inspect` |
+| P1 | Durable knowledge and bounded summarization | Full-game reset/restart recovery, source-preserving compression, explicit stale knowledge, bounded prompts and retrievable full reveals | Reveals retrievable in full; the archive lives in JVM memory; prompts grow with the game (MODEL-LIMITS.md, "What it costs") |
+| P1 | Tool protocol and eval accounting | Native typed adapters or strict equivalent, per-decision budgets across retries, exact request/token accounting, disjoint experiment grouping | Eval grouping and accounting done (history/EVAL-IMPLEMENTATION.md); lookups are native function calls, the text grammar only for a backend without them; every decision is an `answer` call |
+| P2 | Strategy notebook and optional archetype evidence library | Contradiction/update tests, no opponent deck-label leakage, assistance version and ablations | `set_plan`, `memory_note` and the opponent profile, each labelled as the seat's own; no archetype library |
+| P2 | Player-safe simulation adapter | Live-state/RNG equality before/after calls, hidden-world invariance, disclosed rollout policy and assumptions, unsupported cases refused | `simulate` preview built and its safety contract tested ([LOOKAHEAD-DESIGN.md](LOOKAHEAD-DESIGN.md)); no sampled rollout |
+| P3 | Frozen harness evaluation suite | Observation/comprehension, identity, memory/retrieval, legal actions, puzzles and full-game play; fixed seeds, baselines, confidence intervals | The acceptance suite ([ACCEPTANCE.md](ACCEPTANCE.md): fixed seed-42 canaries, loopback games, golden checks) and the frozen puzzle suites (`eval/PUZZLES.md`); the headline scores with their baselines are open owner decisions ([WORK-PLAN.md](WORK-PLAN.md)) |
 
 The harness is **not yet certified fair**. Recovery plus memory tools are a concrete
 first stage, not completion of this entire contract.
