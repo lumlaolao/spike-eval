@@ -71,8 +71,8 @@ out="$REPO/runs/human/$(date -u +%Y%m%dT%H%M%SZ)"
 # The pilot condition, from the panels file. Every other key a batch scrubs (run_batch.build_env: the run-defining
 # keys, the heuristic shortcuts and plans, CTX_* overrides) is unset, and the further keys below (ones the overlay
 # reads that a batch sets from its own flags), so the caller's shell does not change what the seat is asked or shown.
-# No apostrophe or backtick inside the heredoc below: bash 3.2 would not parse this script (STANDARDS section 4). Kept: the seed, the operator's own Claude CLI effort and
-# thinking settings, and infrastructure (endpoint, timeouts, recording, DEMO_FEED).
+# Kept: the seed, the operator's own Claude CLI effort and thinking settings, and infrastructure (endpoint,
+# timeouts, recording, DEMO_FEED). No apostrophe or backtick inside the heredoc: bash 3.2 (STANDARDS section 4).
 condition="$(python3 - "$REPO" <<'PY'
 import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/eval")
@@ -121,7 +121,8 @@ fi
 # it here, the reason run-llm-spike.sh only refuses).
 if [ ! -s /tmp/forge_cp.txt ] && [ -f "$FORGE_HOME/pom.xml" ]; then
   echo "play-vs-llm: rebuilding Forge's classpath list (/tmp/forge_cp.txt), once after a reboot"
-  (cd "$FORGE_HOME" && mvn -q -o -pl forge-gui-desktop dependency:build-classpath -Dmdep.outputFile=/tmp/forge_cp.txt)
+  (cd "$FORGE_HOME" && mvn -q -o -pl forge-gui-desktop -am dependency:build-classpath \
+      -Dmdep.outputFile=/tmp/forge_cp.txt)
 fi
 mkdir -p "$out"
 if [ "$commentary" = 1 ]; then

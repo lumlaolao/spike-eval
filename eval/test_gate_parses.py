@@ -7,9 +7,9 @@ quote-scan, the file dies at parse time, and every stage list runs at most
 preflight + classpath while the rest silently never executes — a broken gate
 that still prints PASS lines.
 
-bash -n is the cheapest rung that reaches that class, on the bash that runs it: the hazard is
-bash 3.2's (macOS), and bash 4+ (Linux) parses such a file cleanly, so this test guards it only
-where it runs under bash 3.2. It cannot see run-time
+bash -n parses each script on the bash that runs it, which catches the hazard only under bash 3.2
+(macOS): bash 4+ (Linux) parses such a file cleanly. heredoc_quotes_in_substitution reads each
+script for the same hazard, so it fails on Linux too. Neither can see run-time
 behaviour: a script that parses but dies mid-stage, or a stage list naming a
 stage the gate never runs. The scanned set is the top-level eval/ and scripts/
 gate scripts and the root launchers (install.sh, setup.sh, run-llm-*.sh, play-vs-llm.sh).

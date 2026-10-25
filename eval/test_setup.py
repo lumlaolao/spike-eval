@@ -86,7 +86,9 @@ class SetupTest(unittest.TestCase):
         calls = self.calls()
         self.assertIn("fetch --depth 1 origin %s" % PIN, calls)
         self.assertIn("mvn -q -pl forge-gui-desktop -am install -DskipTests (in %s)" % self.forge, calls)
-        self.assertIn("dependency:build-classpath", calls)
+        # With -am, as run-llm-spike.sh's own hint has it: without it Maven resolves the sibling modules from the
+        # repository, whose installed poms name an unresolvable ${revision} parent (a real fresh setup, 2026-10-25).
+        self.assertIn("mvn -q -pl forge-gui-desktop -am dependency:build-classpath", calls)
         self.assertLess(calls.index("fetch"), calls.index("install -DskipTests"))
         self.assertTrue((self.forge / "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java").exists(),
                         "the overlay is laid on the checkout")

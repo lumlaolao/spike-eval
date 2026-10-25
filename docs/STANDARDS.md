@@ -123,9 +123,9 @@ most log questions).
   what it cannot. **Shell**: bash 3.2 (macOS); no apostrophe **or backtick** inside a heredoc
   in `$( )` — bash 3.2 scans for the closing paren before parsing the heredoc (issue #219).
   Check: `eval/test_gate_parses.py` runs `bash -n` over the `eval` and `scripts` shell
-  scripts and the root launchers (`*.sh`); it parses under the bash that runs it, so it also
-  reads each script for a heredoc inside `$( )` whose apostrophes or backticks do not pair up,
-  which fails on Linux too. It cannot see run-time behaviour.
+  scripts and the root launchers (`*.sh`) under the bash that runs it, and reads each script for
+  a heredoc inside `$( )` whose apostrophes or backticks do not pair up, so the bash 3.2 case
+  fails on Linux too. It cannot see run-time behaviour.
 - **Delete what a change makes dead** in the same PR: the unused flag, the helper with no caller,
   the comment about code that is gone.
 

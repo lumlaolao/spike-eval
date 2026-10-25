@@ -46,7 +46,8 @@ jv="$(java -version 2>&1 | grep -v '^Picked up' | head -1 | sed -E 's/.*version 
 major="${jv%% *}"; [ "$major" = 1 ] && major="${jv##* }"
 case "$major" in ''|*[!0-9]*) major=0 ;; esac
 if [ "$major" -lt 17 ]; then
-  echo "setup: Forge needs Java 17 or newer; 'java -version' says $(java -version 2>&1 | grep -v '^Picked up' | head -1)." >&2
+  echo "setup: Forge needs Java 17 or newer; 'java -version' says" \
+    "$(java -version 2>&1 | grep -v '^Picked up' | head -1)." >&2
   echo "    $hint" >&2; exit 3
 fi
 step "tools: git, Java $major, Maven, Python 3"
@@ -61,7 +62,9 @@ if [ ! -e "$forge" ]; then
   git -C "$forge" checkout -q -f FETCH_HEAD
   : > "$marker"
 else
-  [ -d "$forge/.git" ] || { echo "setup: $forge exists and is not a git checkout; pick another --forge-dir" >&2; exit 4; }
+  if [ ! -d "$forge/.git" ]; then
+    echo "setup: $forge exists and is not a git checkout; pick another --forge-dir" >&2; exit 4
+  fi
   head="$(git -C "$forge" rev-parse HEAD 2>/dev/null || echo unknown)"
   if [ "$head" != "$PIN" ]; then
     if [ ! -e "$marker" ]; then
@@ -83,7 +86,7 @@ step "laying this repository's changes on Forge"
 FORGE_HOME="$forge" bash "$REPO/install.sh" > /dev/null
 step "building (the first build downloads Forge's libraries; later ones take a minute or two)"
 (cd "$forge" && mvn -q -pl forge-gui-desktop -am install -DskipTests)
-(cd "$forge" && mvn -q -pl forge-gui-desktop dependency:build-classpath -Dmdep.outputFile=/tmp/forge_cp.txt)
+(cd "$forge" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=/tmp/forge_cp.txt)
 echo "$forge" > "$REPO/.forge-home"           # where play-vs-llm.sh finds Forge
 
 # ---- 4. the OpenRouter key and the consent ----------------------------------------------------------------------
@@ -101,8 +104,9 @@ else
   printf "Allow that? [y/N] "
   read -r yes || yes=""
   case "$yes" in y|Y|yes|YES) consent="OPENROUTER_ALLOW_EGRESS=1" ;; *) consent="# OPENROUTER_ALLOW_EGRESS=1" ;; esac
-  (umask 077; printf '# Written by setup.sh. Never committed (.gitignore).\nOPENROUTER_API_KEY=%s\n%s\n' "$key" "$consent" \
-    > "$secrets")
+  (umask 077
+   printf '# Written by setup.sh. Never committed (.gitignore).\nOPENROUTER_API_KEY=%s\n%s\n' "$key" "$consent" \
+     > "$secrets")
   chmod 600 "$secrets"
   [ -n "$key" ] || echo "setup: no key given; add it to secrets.env (OPENROUTER_API_KEY=...) before playing" >&2
   case "$consent" in \#*) echo "setup: consent not given; play-vs-llm.sh will refuse an openrouter: model until you" \
