@@ -1,7 +1,8 @@
 # The RULES tool — the model looks the rules up, it does not recall them
 
-**Status:** built and validated (acceptance stage `rules`, 11 stages total). **Off by default**
-(`RULES_TOOL=1` to enable), so a run without it is byte-identical to one from before it existed.
+**Status:** built and validated (acceptance stage `rules`). Off in the JVM and in `run_batch.py` unless asked
+(`RULES_TOOL=1`, `run_batch.py --rules-tool`); the play scripts `run-llm-headless.sh` and `run-llm-spike.sh` turn it
+on. A run without it sends the same prompt bytes as one from before it existed.
 
 ## Why
 
@@ -19,12 +20,13 @@ Comprehensive Rules text (`data/rules/MagicCompRules.txt`, effective 2026-09-25;
 is no derived index to drift — into rules (id → text), section/chapter headings, a table of contents,
 and the Glossary.
 
-The tool is surfaced to the seat through the same tool loop as `MEMORY`/`INSPECT`
-(`ContextMemory.ask`). It is **public, static reference text**: no engine state, no hidden
+The seat calls it as the native function `rules_lookup` (`action`: search, read, section, term or toc; `query`;
+`offset`), which `NativeTools` turns into the executor's grammar below; that grammar is sent as text only to a
+backend without function calling. It is **public, static reference text**: no engine state, no hidden
 information, no network, no per-game mutation — which is precisely why it is safe to expose where the
 other channels are seat-private.
 
-## Grammar (one line; shares the MEMORY tool budget)
+## The executor's grammar (shares the lookup budget)
 
 | Command | Returns |
 |---|---|
@@ -38,26 +40,26 @@ other channels are seat-private.
 
 The whole point is that this must not flood the prompt:
 
-- **Every reply is bounded** at ~1200 characters (tighter than MEMORY's 2000) and self-describing:
+- **Every reply is bounded** at about 1200 characters (`RulesTool.PAGE_CHARS`) and self-describing:
   `... chars a..b/N next=<offset|END>`. The model pages with the `next=` offset.
 - **Digest first, full text second.** `SECTION`/`SEARCH` return ids + one-liners; the model `READ`s
   only the specific rules in question. So the common case costs a few hundred characters, not a
   chapter.
-- **Tool budget.** It rides the existing per-ask (2) and per-game (64) tool budget, so a rules-happy
-  model is bounded by construction. The acceptance asserts **no single RULES result exceeds the page
-  cap** in a real game (`rules_tool_rows=1/1 first_result=1310_chars`).
-- **The envelope is labelled honestly**: a rules result is framed as `RULES RESULT (public rules
-  text)`, never `MEMORY RESULT (historical data)` — the model is told it is reading universal
-  reference text, not this seat's history or current game state.
+- **Tool budget.** It shares the lookups' loop guards (`ContextMemory.TOOLS_PER_ASK` and `TOOLS_PER_GAME`,
+  [MODEL-LIMITS.md](MODEL-LIMITS.md)). The acceptance stage `rules` checks that no rules result exceeds the page cap
+  in a real game.
+- **The envelope is labelled honestly**: on the text path a rules result is framed as a result of public rules
+  text, never as historical data (`ContextMemory`), and the function's description says the same — the
+  model is told it is reading universal reference text, not this seat's history or current game state.
 
 Nothing is written to the archive: a lookup is stateless reference data, not an observation.
 
 ## Provenance and the with/without toggle
 
 - Off by default. When off, no grammar line is added and `RULES` is not a tool request → the prompt
-  bytes are **unchanged**, so a demonstration of the tool's value is a clean A/B:
-  `MEMORY_TOOLS=1 RULES_TOOL=0` vs `MEMORY_TOOLS=1 RULES_TOOL=1`.
-- The game row stamps `rules_tool`, `rules_tool_version` (`rules-tool-v1`), and `rules_effective`
+  bytes are **unchanged**, so a demonstration of the tool's value is a clean A/B: `run_batch.py --memory-tools`
+  against `run_batch.py --memory-tools --rules-tool`.
+- The game row stamps `rules_tool`, `rules_tool_version` (`RulesTool.VERSION`), and `rules_effective`
   (the CR date). The acceptance `faithful` stage also asserts that **no prompt advertises the rules
   grammar without `RULES_TOOL=1`** — the default-off promise is a gate, not a comment.
 - A new CR text is a provenance event (like an engine or context-profile bump): update the pins in

@@ -1,14 +1,15 @@
 # The match model — persistent state, continuity, and memory for the LLM seat
 
-**Status:** built and acceptance-gated (PRs #46–#58, #77). Observation version `observation-faithful-v24`.
+**Status:** built and acceptance-gated. The observation it describes is `SeatObservation.VERSION`
+([VERSIONS.md](VERSIONS.md)); memory and the plan are in [ARCHITECTURE.md](ARCHITECTURE.md) section 8.
 
 ## Why
 
 The seat could already *see* the board, but it played like a stranger to its own game: it could not
 follow a card across a zone change, replayed land drops, dropped its plan the moment the turn passed,
 re-derived combat arithmetic, forgot what the opponent kept doing, and confused the log with what it
-could do now. Each of those is a **harness** failure, not a model failure, and each now has a
-harness-side answer.
+could do now. Each of those is a **harness** failure, not a model failure, and each has a harness-side
+answer below.
 
 ## What the seat is told (all deterministic, all labelled)
 
@@ -19,11 +20,11 @@ harness-side answer.
 | `SPENT THIS TURN` | land drop AVAILABLE/USED, spells cast, attackers declared | `Player.getLandsPlayedThisTurn` etc. |
 | `FACTS` | both next-combat clocks + their instant-speed mana | `ComputerUtilCombat` / `ComputerUtilMana` |
 | `RECURRING (cast 2+ times)` | what the opponent keeps doing | the seat's cast stream |
-| `YOUR PLAN` | the model's own goal and next steps, kept across the turn boundary; a `PLAN:` line at ANY decision replaces it (v22); says when it was stated, so what happened since is readable | model-authored |
-| `YOUR OPPONENT PROFILE` | the model's own read of them (labelled unverified) | model-authored |
-| `GAME HISTORY (Forge game log, compacted)` | verbatim recent + per-turn digests, each citing `[E<n>]` | `GameHistory.Mode.TIERED` |
+| `YOUR PLAN` | the model's own goal and next steps, kept across the turn boundary and replaced by any later `set_plan` call; says when it was stated, so what happened since is readable | model-authored (`set_plan`) |
+| `YOUR OPPONENT PROFILE` | the model's own read of them (labelled unverified) | model-authored (a field of the play answer) |
+| `GAME HISTORY (Forge game log, compacted; ...)` | verbatim recent + per-turn digests, each citing `[E<n>]` | `GameHistory.Mode.TIERED` |
 | `INSPECT @N` → `history:` | where an object has been | the per-object trail |
-| `YOUR CARD INTERACTIONS` | the model's own statement of how its cards combine (labelled unverified) | model-authored, asked at most twice |
+| `YOUR CARD INTERACTIONS` | the model's own statement of how its cards combine (labelled unverified) | model-authored (a field of the play answer), asked at most twice |
 | option labels | what each option costs and which zone it is cast from | the ability's own cost (`getPayCosts`) |
 | `OPPONENT CARDS YOU HAVE SEEN` | what each opponent card the seat has identified actually does | card database text, first seen onward |
 
@@ -72,12 +73,12 @@ python3 eval/run_batch.py --deck-a eval/decks/grixis-reanimator.txt \
   --deck-b eval/decks/mardu-energy.txt --seeds 42,43 --pairs --exploratory \
   --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
   --smart-b openrouter:openai/gpt-6-luna --fast-b openrouter:openai/gpt-6-luna \
-  --context-profile v4-faithful --memory-tools --out runs/ab/match-on
+  --context-profile v4-faithful --memory-tools --budget-usd 0.40 --out runs/ab/match-on
 python3 eval/run_batch.py --deck-a eval/decks/grixis-reanimator.txt \
   --deck-b eval/decks/mardu-energy.txt --seeds 42,43 --pairs --exploratory \
   --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
   --smart-b openrouter:openai/gpt-6-luna --fast-b openrouter:openai/gpt-6-luna \
-  --context-profile v1-compat             --out runs/ab/match-off
+  --context-profile v1-compat --budget-usd 0.40 --out runs/ab/match-off
 python3 eval/aggregate.py runs/ab/match-on runs/ab/match-off
 ```
 
@@ -90,14 +91,12 @@ priced.
 pooled average, because the runs are a paired design). Pairing across an observation-version bump is
 **invalid** — `context_sha` differs, so the two arms are different measurements by construction.
 
-**Knowing–doing check** (cheap error detector): `run_batch.py` stores the model's `PLAN`/`PROFILE`
-and its chosen action per decision. A decision whose stated plan and action disagree is worth an
-audit — PokerSkill/ToolPoker found this gap is where models look competent and play badly.
+**Knowing–doing check** (cheap error detector): `eval/plan_audit.py` joins each stated turn plan with the
+actions the same seat took that turn, from the game lines or a game log, and flags a card the plan says to hold
+that was played the same turn. It is lexical, reports a rate beside its trivial baseline, and is not an acceptance
+gate. PokerSkill/ToolPoker found this gap is where models look competent and play badly.
 
 ## Not done (explicit)
 
-- The multi-turn sampled rollout (EVAL-DESIGN Phase 1.6) is still open; `PlayerLookahead` is the
-  foundation.
-- The knowing–doing check is now a tool, `eval/plan_audit.py` (plan-vs-action over recorded JSONL or a
-  game log; flags a card the plan says to hold that was played the same turn). It is lexical and
-  reports a rate with its trivial baseline; it is not an acceptance gate.
+- The multi-turn sampled rollout (EVAL-DESIGN Phase 1.6, [LOOKAHEAD-DESIGN.md](LOOKAHEAD-DESIGN.md), "Not
+  built"); `PlayerLookahead` is the foundation.
