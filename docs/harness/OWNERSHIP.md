@@ -30,6 +30,13 @@ Counted from `controller-ownership.tsv`:
 | AI | 18 | 17 ai-inherited, 1 wrapper |
 | BASE | 13 | 11 base-inherited, 2 wrapper |
 
+**Known ledger drift:** six `model+ai-fallback` rows (`declareAttackers`, `declareBlockers`, `chooseCardsForEffect`,
+`chooseCardsToDiscardFrom`, `chooseSingleCardForZoneChange`, `chooseSingleEntityForEffect`) say a failure branch
+calls `super`. `PlayerControllerLLM` no longer does: a failure or a null defender declares nothing (an auto row,
+#126), blocks take `fallbackBlocks`, an empty list returns nothing, and a forced pick is an auto row. The `super`
+calls in `LlmSpikeGui.java` for these hooks are in `PlayerControllerAiLogging`, the ai-teacher seat. The rows are to
+be corrected with a code change that `ControllerOwnershipTest` checks, not by a hand edit here.
+
 The **silent count** (a strategic or payment hook reachable in Legacy play that Forge's AI decides with no row,
 or one whose notes say `PARTLY OWNED`) is **0**. `ControllerOwnershipTest` prints it as `[OWNERSHIP] ...` and fails
 if it grows. The 17 `ai-inherited` hooks are no-ops, engine placeholders the AI path never calls, ante, the

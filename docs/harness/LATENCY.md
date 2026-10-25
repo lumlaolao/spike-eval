@@ -1,27 +1,20 @@
 # Per-decision latency: the 2026-10-13 measurements and the knobs
 
+The 2026-10-13 run directories were not kept; these numbers cannot be reproduced and are kept as a dated record.
+
 A turn can hold dozens of model decisions, so seconds per decision decide whether a game finishes. This page
 records what was measured on 2026-10-13, on `deepseek/deepseek-v4.1-flash` through OpenRouter, mirror Burn, one game
-per arm (so read the throughput columns as indicative, not as rates), and says which knobs exist now. The budgets and
-caps themselves, and why each is a loop guard, live in [MODEL-LIMITS.md](MODEL-LIMITS.md).
+per arm (so read the throughput columns as indicative, not as rates), and says which knobs exist now.
 
 ## What is set now
 
 - **One tier is the default** (owner, 2026-10-15): every decision goes to the smart row. `run_batch.py --two-tier`
   (`ONE_TIER=0`) is the measured opt-out that sends minor decisions to a fast tier.
-- **The smart row** (`ModelCfg`, one uniform row for every model, `LlmSpikeGui.java`): 32000 tokens, 300 s, no
-  reasoning-effort hint (OpenRouter derives the thinking budget from `max_tokens`).
-- **The fast tier** (two-tier runs only): 8192 tokens, 120 s, reasoning `"none"`, sent as
-  `reasoning:{enabled:false}`. A model that cannot turn reasoning off gets its lowest effort instead
-  (`OpenRouterBridge.MANDATORY_REASONING_FLOOR`).
-- **The truncation retry:** a reply cut at `finish_reason=length` with no answer is retried once. A reasoning call is
-  retried with reasoning off at up to 4096 tokens (`[TRUNCATED->RETRY-NO-REASONING]`), or, for a model on the floor,
-  at its lowest effort with the same budget (`[TRUNCATED->RETRY-LOW-REASONING]`); a call whose reasoning was already
-  off is retried at double the budget (`[TRUNCATED->RETRY]`, at most 64000).
-- **Every field is tunable without a rebuild** through `OPENROUTER_MODEL_CFG` (JSON, per row: `maxTokens`,
-  `timeoutMs`, `reasoningEffort`, `temperature`, `fastMaxTokens`, `fastTimeoutMs`, `fastReasoningEffort`), for
-  example `OPENROUTER_MODEL_CFG='{"gpt":{"fastMaxTokens":1024}}'`. The effective table is hashed into
-  `model_cfg_sha` (`ModelCfg.canonical()`, the floor included), so runs configured differently do not pool.
+- **Token budgets, timeouts, reasoning settings and the truncation retry** are set in `ModelCfg.buildTable` and the
+  OpenRouter bridge's truncation retry (`LlmSpikeGui.java`); [MODEL-LIMITS.md](MODEL-LIMITS.md) gives the values and
+  why each is a loop guard. Every field is tunable without a rebuild through `OPENROUTER_MODEL_CFG` (JSON per row),
+  and the effective table is hashed into `model_cfg_sha` (`ModelCfg.canonical()`), so runs configured differently
+  do not pool.
 - **Opt-in routing levers:** `TIER_FAST_TYPES` (`run_batch.py --tier-fast-types`, for example `play-single`, which
   sends an own-main-phase window with exactly one play to the fast tier) and `PLAN_EXECUTE`
   (`--plan-execute`). Compound actions stay off (owner, 2026-10-16): the plan is a note, re-read at every decision.
@@ -30,14 +23,9 @@ caps themselves, and why each is a loop guard, live in [MODEL-LIMITS.md](MODEL-L
 
 The fast tier answered mechanical questions (which target? keep or mulligan?) but sent no `reasoning` parameter, so
 a reasoning model spent its whole 4000-token budget on hidden reasoning before any answer token:
-`finish_reason=length`, a retry at double the budget, two calls and 182 seconds for one number. Turning reasoning off on the fast tier took
-the truncation retries from 4 to 0.
-
-| arm (2026-10-13) | turns in the 8-min cap | decisions | smart calls | truncation retries | retry time |
-|---|---|---|---|---|---|
-| fast tier sent no reasoning parameter | 7 | 40 | 26 | 4 | 182,518 ms |
-| fast tier `reasoning.effort="minimal"` | 8 | 40 | 30 | 0 | 0 ms |
-| plus smart tier `effort="low"` | 9 | 54 | 39 | 3 | not recorded |
+`finish_reason=length`, a retry at double the budget, two calls and 182 seconds for one number. Setting the fast
+tier's effort to minimal (reasoning is off there now) took retries from 4 to 0. The arms are in the levers table
+below.
 
 Prompt about 5.1k to 5.5k tokens; smart-tier completion mean about 1.3k to 2.3k, max about 8.5k to 13k.
 
@@ -67,12 +55,15 @@ its budget thinking is the wrong response, which is why a reasoning call's retry
 
 ## The levers, one seed each (2026-10-13)
 
-Per-decision columns are the signal; with one seed per arm the turn counts are noise.
+Per-decision columns are the signal; with one seed per arm the turn counts are noise. The two records of these arms
+disagree on the baseline's retries (4 in the prose above, 1 here); with the run directories gone, which is right
+cannot be checked.
 
 | arm | turns | decisions | smart | fast | plan | auto | completion median | completion max | retries |
 |---|---|---|---|---|---|---|---|---|---|
 | baseline | 7 | 40 | 26 | 5 | - | 9 | 720 | 6,564 | 1 |
 | + fast tier disables reasoning | 8 | 40 | 30 | 1 | - | 9 | 488 | 8,519 | 0 |
+| + smart tier `effort=low` | 9 | 54 | 39 | not recorded | - | not recorded | not recorded | not recorded | 3 |
 | + tier routing | 9 | 58 | 24 | 23 | - | 11 | 103 | 15,539 | 2 |
 | + smart budget 4000 | 8 | 44 | 20 | 11 | - | 13 | 175 | 3,784 | 1 |
 | A: + `play-single` routing | 11 | 65 | 18 | 37 | - | 10 | 49 | 3,314 | not recorded |
@@ -102,13 +93,13 @@ show that an arm is broken, not that it is 5% weaker. Neither lever has a qualit
 ## How to measure a change
 
 Single games are dominated by variance (on the same seed one arm made 54 decisions and another 40). Use paired seeds,
-enough of them that the per-decision distribution is stable, and state the cost first (`python3 eval/cost_report.py
-<runs> --plan N`):
+state the cost first (`python3 eval/cost_report.py <runs> --plan N`), start with a small block, and read the block
+before buying the next:
 
 ```bash
-python3 eval/run_batch.py --seeds 42..51 --pairs --jobs 1 --deck eval/decks/burn.txt \
+python3 eval/run_batch.py --seeds 42..44 --pairs --jobs 1 --deck eval/decks/burn.txt \
   --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
-  --controller-a llm --controller-b ai --memory-tools --budget-usd 1.00 \
+  --controller-a llm --controller-b ai --memory-tools --budget-usd 0.40 \
   --out runs/perf/<arm> --cap-minutes 120
 ```
 

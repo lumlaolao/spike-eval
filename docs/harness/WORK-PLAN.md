@@ -8,10 +8,11 @@ a new one is agreed, so the next session can pick up from it.
 
 ## Awaiting the owner: benchmark v2
 
-**[BENCHMARK-V2.md](BENCHMARK-V2.md)** (proposed 2026-10-20): measured difficulty tiers, a closed-book headline,
-the seat's puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner
-reviews it. Why: Luna on the sample suite's 29 active puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272)
-saturated, 130/145 with and without tools at epoch 66, 119/145 off and 127/145 on at epoch 67
+**[BENCHMARK-V2.md](BENCHMARK-V2.md)** (proposed 2026-10-20): measured difficulty tiers, a closed-book headline, the
+seat's puzzle contract, the hard sources and the measurement protocol. Phase 2 and phase 1's difficulty fields are
+built (#280-#282); nothing else is built until the owner reviews it. Why: Luna on the sample suite's 29 active
+puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145 with and without tools at epoch 66,
+119/145 off and 127/145 on at epoch 67
 ([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
 Landed 2026-10-21 to 24: PRs #290 to #319. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
@@ -28,8 +29,10 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
   - caps at the dearest endpoint come to about $486; the alternative is the bridge sending `provider.max_price`
     at the list price and caps sized at list;
   - the owner requires full logs for this run, from the model chats to the engine logs: the full-transcript and
-    archive change on branch `feat/full-transcripts` must land on main before it starts;
-  - no paid Jev call has been made, so the Decisions API's response shape is confirmed only by its docs;
+    archive change (PR #324, open) must land on main before it starts;
+  - one paid Jev smoke test (2026-10-24, one gen2 puzzle, $0.0023, `runs/puzzles/jev-test-1`, WRITEUP-NOTES
+    section 4 on `docs/writeup-notes`): 15 decisions through the Decisions bridge, ai=0; the response shape is
+    confirmed on that run only;
   - the owner decisions in PR #303's Not done bear on it: each model runs at its own default reasoning effort (max
     for Kimi K3 and GLM 5.3), Mistral may refuse a user message after a tool result, and caching is unmeasured.
 - **The 25 hand-authored niche-rules puzzles** (PR #298) are not frozen into a suite and have no held-out split;
@@ -86,5 +89,7 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 - **Tests first**, watched failing. Acceptance and the gauntlets only when the owner asks, except the full
   acceptance run a merge needs.
 - **Subagents are allowed** (owner, 2026-10-23); they never message the live-demo session.
-- **The `claude-cli:` lane is a local-development opt-in lane** (owner, 2026-10-24; PR #320, open).
+- **The `claude-cli:` lane is a local-development opt-in lane** (owner, 2026-10-24; PR #320, open). Its one paid
+  smoke run (Claude Opus 5.5 via `claude -p`, owner-requested test, 2026-10-24, solved, $2.18) is recorded in
+  PR #320.
 - **Compound actions (`PLAN_EXECUTE`) stay off** (2026-10-16): the plan is a note, re-read at every decision.

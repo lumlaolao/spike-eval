@@ -28,9 +28,8 @@ them. What holds now, with its home in [ARCHITECTURE.md](ARCHITECTURE.md):
   `set_plan` for the plan (section 6). `tool_choice` is "required" for OpenAI models and "auto" elsewhere
   (`AnswerTool.toolChoiceFor`); a reply that calls nothing is reminded `AnswerTool.MAX_NUDGES` times, then lost to a
   fixed legal option.
-- **The system prompt is fixed for the game and holds facts only** (rules 9-15, 17): role, deck, how the interface
-  works, how to read the state, a reference of terms (`seatFraming`, section 5). The faithful profile sends no
-  PRINCIPLES, no reasoning cap, no worked examples and no text answer contract; the legacy profiles keep their bytes.
+- **The system prompt is fixed for the game and holds facts only** (rules 9-15, 17): what was removed and where is
+  PROMPT-AUDIT.md, "Where the findings were closed".
 - **Caching** (rules 17-20): `cache_control` is sent for Anthropic models (`cachesPrompt`); cached and cache-write
   tokens are recorded per call and priced by `eval/cost_report.py`.
 - **Reasoning across tool rounds** (rule 8): the served assistant message goes back whole
