@@ -1,4 +1,4 @@
-# Work plan: what is left (updated 2026-10-24)
+# Work plan: what is left (updated 2026-10-25)
 
 The living to-do list. Only open work is listed here; what is done is in git history,
 [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md), [ACCEPTANCE.md](ACCEPTANCE.md) and the run reports. The plan as it stood
@@ -6,47 +6,49 @@ through 2026-10-19, with every finished item and its evidence, is
 [history/WORK-PLAN-2026-10-19.md](history/WORK-PLAN-2026-10-19.md). Update this file when an item is finished or
 a new one is agreed, so the next session can pick up from it.
 
-## The plan (owner, 2026-10-19)
+## Awaiting the owner: benchmark v2
 
-1. **Digitize 500 puzzles: done.** 526 converted rules puzzles on 2026-10-20 (RP_001-RP_548 in
-   `eval/puzzles/rules-pilot/manifest.jsonl`; RP_300, RP_402, RP_454 and RP_521 are near-duplicates kept but not
-   counted), landed with harness-epoch-66 (PR #270). How they were made and the gate's lessons:
-   [HANDOFF-PUZZLES.md](HANDOFF-PUZZLES.md).
-2. **Done: the benchmark on a sample** (PR #272): Luna 5 times on each of 29 frozen sample puzzles
-   (`eval/suites/puzzles-rules-sample-v1.json`), tools off and on, at epochs 66 and 67. Results and the paired
-   comparisons: [eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md).
+**[BENCHMARK-V2.md](BENCHMARK-V2.md)** (proposed 2026-10-20): measured difficulty tiers, a closed-book headline, the
+seat's puzzle contract, the hard sources and the measurement protocol. Phase 2 and phase 1's difficulty fields are
+built (#280-#282); nothing else is built until the owner reviews it. Why: Luna on the sample suite's 29 active
+puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145 with and without tools at epoch 66,
+119/145 off and 127/145 on at epoch 67
+([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
-**Proposed next (2026-10-20, awaiting the owner): [BENCHMARK-V2.md](BENCHMARK-V2.md).** Sample v1
-saturated (130/145 with and without tools at epoch 66; 119/145 off and 127/145 on at epoch 67, once the brief stopped
-naming the trick); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
-puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner reviews it.
-
-Landed 2026-10-21 to 24: PRs #290 to #305. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
+Landed 2026-10-21 to 24: PRs #290 to #319. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
 the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
-## Open work, after the benchmark
+## Open work
 
-- **The frontier comparison on the 3 hardest puzzles** waits on the owner's go and a budget-cap choice:
-  - the plan is `notes/frontier3-plan.sh` on branch `docs/writeup-notes`: 21 chat models plus Jev 1.14, whose
-    bridge is on main (PR #305), about $37 expected;
-  - caps at the dearest endpoint come to about $291, or about $125 if the bridge sends `provider.max_price` at the
-    list price;
-  - no paid Jev call has been made, so the Decisions API's response shape is confirmed only by its docs;
+- **The frontier comparison on the 5 hardest puzzles** (owner, 2026-10-25; it replaces the 3-board plan) waits on
+  the owner's go and a budget-cap choice:
+  - the plan is `notes/frontier5-plan.sh` on branch `docs/writeup-notes`: the 5 boards of the gen2 suite's open
+    split named in `notes/WRITEUP-NOTES.md` section 4b (with the rule that picked them), 1 attempt each, for 21
+    chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
+    are not in it, and Jev Router is out (owner, 2026-10-24);
+  - caps at the dearest endpoint come to about $486; the alternative is the bridge sending `provider.max_price`
+    at the list price and caps sized at list;
+  - the owner requires full logs for this run, from the model chats to the engine logs: the full-transcript and
+    archive change (PR #324, open) must land on main before it starts;
+  - one paid Jev smoke test (2026-10-24, one gen2 puzzle, $0.0023, `runs/puzzles/jev-test-1`, WRITEUP-NOTES
+    section 4 on `docs/writeup-notes`): 15 decisions through the Decisions bridge, ai=0; the response shape is
+    confirmed on that run only;
   - the owner decisions in PR #303's Not done bear on it: each model runs at its own default reasoning effort (max
     for Kimi K3 and GLM 5.3), Mistral may refuse a user message after a tool result, and caching is unmeasured.
 - **The 25 hand-authored niche-rules puzzles** (PR #298) are not frozen into a suite and have no held-out split;
   torbran is provisional because Forge orders its damage replacements from a `HashMap`
   ([eval/puzzles/hard/niche/README.md](../../eval/puzzles/hard/niche/README.md), "Known limits"), which also lists
   the puzzles short of the bar and the row each missed.
-- **The third hard suite** (`puzzles-hard-gen3-v1`): no model has played it. A Luna run of the 44 open boards,
-  about $1, waits on the owner (PR #302).
+- **The third hard suite** (`puzzles-hard-gen3-v1`, PR #302): a Luna run of its 44 open boards, about $1, is running
+  (owner-authorized, 2026-10-24). Read it when it finishes (`eval/puzzle_watch.py` follows it live).
 - **Harness-building environment:** no real episode has run. The owner's twelve questions are in
   HARNESS-ENV-FRAMEWORK.md section 8:
   - first, the builder model and budget;
   - question 12: run the candidate seat in its own process. Until then a candidate's score is withheld without
     `--trust-candidate`.
-- **Seat defects the environment found** (`combat.block.must-block`, issue #311, harness-epoch-71; `costs.x`,
-  issue #312, harness-epoch-72): the grader has not been re-run on the fixed build.
+- **Seat defects the environment found** (`combat.block.must-block`, issue #311, fixed in PR #314 at
+  harness-epoch-71; `costs.x`, issue #312, fixed in PR #315 at harness-epoch-72): the grader has not been re-run
+  on the fixed build.
 - **Jev, owner questions:**
   - multi-picks and trigger order are built from independent yes/no questions;
   - the 40-option cap;
@@ -87,4 +89,7 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 - **Tests first**, watched failing. Acceptance and the gauntlets only when the owner asks, except the full
   acceptance run a merge needs.
 - **Subagents are allowed** (owner, 2026-10-23); they never message the live-demo session.
+- **The `claude-cli:` lane is a local-development opt-in lane** (owner, 2026-10-24; PR #320, open). Its one paid
+  smoke run (Claude Opus 5.5 via `claude -p`, owner-requested test, 2026-10-24, solved, $2.18) is recorded in
+  PR #320.
 - **Compound actions (`PLAN_EXECUTE`) stay off** (2026-10-16): the plan is a note, re-read at every decision.

@@ -1,33 +1,34 @@
-# Hook decks: probe decks that make the AI-owned decisions reachable
+# Hook decks: probe decks that make rare decisions reachable
 
-`ROOT-INTERFACES.md` lists the decision hooks the Forge AI still answers (the 29 `strategic`
-`ai-inherited` rows, plus the seat's three partial-override scope-outs). Most are dormant in the
-16-deck archetype pool: nothing in it casts a "choose a pile" spell, so `chooseCardsPile` never runs.
-These decks exist to change that — one per hook, each built so the hook's card is actually castable,
-so a game read (or a `defect-hunter`) can exercise it.
+These decks were built when `ROOT-INTERFACES.md` listed 29 `strategic` `ai-inherited` hooks the Forge AI
+still answered, most of them dormant in the 16-deck archetype pool: nothing in it casts a "choose a pile"
+spell, so `chooseCardsPile` never ran. One deck per hook, each built so the hook's card is actually castable,
+so a game read (or a `defect-hunt` game) can exercise it. Every hook in the table is the seat's now
+(`docs/harness/controller-ownership.tsv`, ownership `model`; the silent Forge-AI count is 0,
+`ControllerOwnershipTest`), so the decks are regression probes for those decisions.
 
 They are **probe decks, not tuned archetypes**: use them to reach a hook and read the decision, not
 to compute a win rate. Each is exactly 60 cards and every card name resolves in Forge's own card DB
 (the `Name:` line of its script under `forge-gui/res/cardsfolder/`).
 
-| Deck (`eval/decks/`) | Hook it reaches | Where the decision is today | Engine effect that calls it | Issue |
+| Deck (`eval/decks/`) | Hook it reaches | Who decides (ledger) | Engine effect that calls it | Issue |
 |---|---|---|---|---|
-| `hook-piles` | `chooseCardsPile` | Forge AI | `TwoPilesEffect` | — |
-| `hook-redirect-copy` | `chooseSingleSpellForEffect`, `chooseNewTargetsFor`, `chooseTarget` | Forge AI | `CopySpellAbilityEffect`, `ChangeTargetsEffect` | — |
-| `hook-repeat-modes` | `allowRepeat` modes | **fixed (#127)** — routed via `decideModesRepeat` | `Charm` with `CanRepeatModes$ True` | **#127** (this deck is its repro) |
-| `hook-clash` | `willPutCardOnTop` | Forge AI | `ClashEffect` | — |
-| `hook-exert` | `exertAttackers`, `enlistAttackers` | Forge AI | `PhaseHandler` | (with the map) |
-| `hook-flip` | `chooseFlipResult` | Forge AI | `FlipCoinEffect` | — |
-| `hook-discard-unless` | `chooseCardsToDiscardUnlessType` | Forge AI | `DiscardEffect` (`UnlessType`) | — |
-| `hook-destroy-choice` | `choosePermanentsToDestroy` | Forge AI | `SacrificeEffect` (`Destroy$ True`) | — |
-| `hook-play-exile` | `playSaFromPlayEffect` | Forge AI | `PlayEffect` (`DB$ Play`) | — |
-| `hook-venture` | `chooseSingleCardFace` | Forge AI | `VentureEffect` | — |
-| `hook-counter-type` | `chooseCounterType` | Forge AI | `CountersPutOrRemoveEffect` / `CountersMoveEffect` | — |
-| `hook-two-colors` | `chooseColors` | Forge AI | `ChooseColorEffect` (`TwoColors$ True`) | — |
-| `hook-dig-multiple` | `chooseCardsForEffectMultiple` | Forge AI | `DigMultipleEffect` | — |
-| `hook-splice` | `chooseCardsForSplice` | Forge AI | `AbilityUtils` (splice) | — |
-| `hook-opening-hand` | `chooseSaToActivateFromOpeningHand` | Forge AI | `GameAction` | — |
-| `hook-villainous-choice` | `chooseSpellAbilitiesForEffect` | Forge AI | `VillainousChoiceEffect` | — |
+| `hook-piles` | `chooseCardsPile` | the seat | `TwoPilesEffect` | — |
+| `hook-redirect-copy` | `chooseSingleSpellForEffect`, `chooseNewTargetsFor`, `chooseTarget` | the seat | `CopySpellAbilityEffect`, `ChangeTargetsEffect` | — |
+| `hook-repeat-modes` | `allowRepeat` modes | the seat (`decideModesRepeat`, #127) | `Charm` with `CanRepeatModes$ True` | **#127** (this deck is its repro) |
+| `hook-clash` | `willPutCardOnTop` | the seat | `ClashEffect` | — |
+| `hook-exert` | `exertAttackers`, `enlistAttackers` | the seat | `PhaseHandler` | (with the map) |
+| `hook-flip` | `chooseFlipResult` | the seat | `FlipCoinEffect` | — |
+| `hook-discard-unless` | `chooseCardsToDiscardUnlessType` | the seat | `DiscardEffect` (`UnlessType`) | — |
+| `hook-destroy-choice` | `choosePermanentsToDestroy` | the seat | `SacrificeEffect` (`Destroy$ True`) | — |
+| `hook-play-exile` | `playSaFromPlayEffect` | the seat | `PlayEffect` (`DB$ Play`) | — |
+| `hook-venture` | `chooseSingleCardFace` | the seat | `VentureEffect` | — |
+| `hook-counter-type` | `chooseCounterType` | the seat | `CountersPutOrRemoveEffect` / `CountersMoveEffect` | — |
+| `hook-two-colors` | `chooseColors` | the seat | `ChooseColorEffect` (`TwoColors$ True`) | — |
+| `hook-dig-multiple` | `chooseCardsForEffectMultiple` | the seat | `DigMultipleEffect` | — |
+| `hook-splice` | `chooseCardsForSplice` | the seat | `AbilityUtils` (splice) | — |
+| `hook-opening-hand` | `chooseSaToActivateFromOpeningHand` | the seat | `GameAction` | — |
+| `hook-villainous-choice` | `chooseSpellAbilitiesForEffect` | the seat | `VillainousChoiceEffect` | — |
 | `hook-divided-targets` | a **divided** target set (`DividedAsYouChoose`) | the seat | `DamageDealEffect` reads the per-target split | **#124** (regression deck) |
 | `hook-multitarget` | a **multi-target** set (`Hex`, six targets) | the seat | `TargetRestrictions` | **#124** (regression deck) |
 | `hook-number-choice` | the `chooseNumber` decision (`Galvanic Discharge`: how much `{E}` to pay) | the seat (`chooseNumber` is routed) | `ChooseNumberEffect` | — |
@@ -40,17 +41,17 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 - **`hook-redirect-copy`** — `Fork`/`Twincast`/`Reiterate` (`CopySpellAbilityEffect`) and
   `Bolt Bend`/`Misdirection`/`Wild Ricochet` (`ChangeTargetsEffect`).
 - **`hook-repeat-modes`** — `Fiery Confluence` and `Eldrazi Confluence` are `Charm` with
-  `CharmNum$ 3` and `CanRepeatModes$ True`; the seat's router bails on `allowRepeat`.
+  `CharmNum$ 3` and `CanRepeatModes$ True`, the decision `decideModesRepeat` asks.
 - **`hook-clash`** — `Lash Out`, `Broken Ambitions`, `Release the Ants` each clash (`ClashEffect`).
-- **`hook-exert`** — six Amonkhet exert creatures and an enlist soldier split `declareAttackers`
-  (owned) from `exertAttackers`/`enlistAttackers` (not).
+- **`hook-exert`** — six Amonkhet exert creatures and an enlist soldier reach `exertAttackers` and
+  `enlistAttackers`, asked after `declareAttackers`.
 - **`hook-flip`** — `Fiery Gambit`, `Desperate Gambit`, `Mana Clash`, `Chance Encounter` flip coins;
   `Krark's Thumb` makes the flip a choice (`chooseFlipResult`).
 - **`hook-discard-unless`** — `Thirst for Knowledge` / `Thirst for Discovery` / `Compulsive Research`
   are "discard a card unless you discard an artifact" (`DiscardEffect` with `UnlessType`).
 - **`hook-destroy-choice`** — `Imperial Edict`, `Wei Assassins`, `Burning of Xinye` use
   `DB$ Sacrifice` with `Destroy$ True`, which takes the `choosePermanentsToDestroy` branch of
-  `SacrificeEffect:146` instead of the owned `choosePermanentsToSacrifice`.
+  `SacrificeEffect:146` instead of `choosePermanentsToSacrifice`.
 - **`hook-play-exile`** — `Light Up the Stage` and `Outpost Siege` use `DB$ Play`; `Conspicuous Snoop`
   and `Bomat Courier` do the same from exile, all through `PlayEffect -> playSaFromPlayEffect`.
 - **`hook-venture`** — the dungeon cards (`Radiant Solar`, `Triumphant Adventurer`, `Nadaar`,
@@ -58,8 +59,7 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 - **`hook-counter-type`** — `Nesting Grounds` and `Resourceful Defense` move counters, so the counter
   type is a choice (`CountersMoveEffect:300`); `Walking Ballista` supplies real counters.
 - **`hook-two-colors`** — `Seal of the Guildpact`, `Tablet of the Guilds`, `Desert Cenote` use
-  `DB$ ChooseColor` with `TwoColors$ True`, i.e. `chooseColors` (two), not the single `chooseColor`
-  the seat owns.
+  `DB$ ChooseColor` with `TwoColors$ True`, i.e. `chooseColors` (two), not the single `chooseColor`.
 - **`hook-dig-multiple`** — `Harper Recruiter` and `Ojer Kaslem, Deepest Growth` use `DB$ DigMultiple`
   (look at the top N, split into hand and library), i.e. `chooseCardsForEffectMultiple`.
 - **`hook-splice`** — `Glacial Ray`, `Into the Fray`, `Roar of Jukai` and `Ich-Tekik` are Arcane with
@@ -73,7 +73,7 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
   a value among targets (`DividedAsYouChoose`): a fixed total allocates at targeting, an `{X}` total
   when the engine asks (`DamageDealEffect` reads the per-target split, and a missing allocation NPEs).
 - **`hook-multitarget`** — `Hex` destroys six target creatures, so `chooseTargetsFor` sees
-  `getMaxTargets() > 1` rather than bailing to the AI.
+  `getMaxTargets() > 1` and asks the set.
 - **`hook-number-choice`** — `Galvanic Discharge` asks how much `{E}` to pay through `DB$ ChooseNumber`
   (prompt "amount of energy to pay"), and the answer decides whether the damage is lethal; the
   observation renders the player's energy counters (`energy N`) and every creature's toughness. The
@@ -87,11 +87,11 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 # zero-model smoke (does the deck load?): floor mirror, ~12s
 GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor \
   DECK_A=$PWD/eval/decks/hook-piles.txt DECK_B=$PWD/eval/decks/hook-piles.txt \
-  bash run-llm-headless.sh
+  bash /root/forge/run-llm-headless.sh   # the copy install.sh puts in the checkout
 # reach the hook itself (floor short-circuits plays): the random arm has budget and the full menu
 GAME_SEED=42 CONTROLLER_A=random CONTROLLER_B=random \
   DECK_A=$PWD/eval/decks/hook-piles.txt DECK_B=$PWD/eval/decks/hook-piles.txt \
-  bash run-llm-headless.sh
+  bash /root/forge/run-llm-headless.sh   # the copy install.sh puts in the checkout
 ```
 
 `eval/tournament.py` pairs every `eval/decks/*.txt` with its `.plan` blurb, so these decks join the
@@ -109,7 +109,7 @@ top level only).
 
 ## Not done
 
-- No model game has been read on these decks yet, so no defect is filed from a game — issues #126 and #127 are fixed from the inventory; #128 is still open.
+- No model game on these decks is in `GAME-LOOP-LOG.md`, so no defect has been filed from one.
 - Six hooks are not one-card hooks; each is an edge of the engine, so no probe deck is built:
   - `confirmStaticApplication` — `Combat.java:733/811/823`, the damage-assignment static
     (`AlternativeDamageAssignment`); reached in ordinary combat, not by a named card.

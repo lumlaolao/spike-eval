@@ -3,7 +3,8 @@
 `MagicCompRules.txt` is the **exact official Wizards text** of the Magic: The Gathering
 Comprehensive Rules, vendored here so the harness can look rules up **offline** with no network and
 no per-query cost. It is read by `RulesTool` (overlay `forge.spike.RulesTool`), which serves the
-`RULES` tool to a seat when `RULES_TOOL=1`.
+`rules_lookup` native tool (the `RULES` text command on a backend without function calling) to a
+seat when `RULES_TOOL=1` and the lookup tools are on (`MEMORY_TOOLS=1`).
 
 | | |
 |---|---|

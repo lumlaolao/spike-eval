@@ -1,5 +1,12 @@
 # EVAL-DESIGN — a five-axis evaluation system for student vs. frontier MTG play
 
+> Status (2026-10-24): the project's goal is the benchmark in `CLAUDE.md` (STR-AI, STR-HELDOUT, PUZ), not a
+> stronger student, so this design is read for its reasoning, not as the plan. What is built and current:
+> [PUZZLES.md](PUZZLES.md) (it replaces §3), [SCORING.md](SCORING.md) (panels and ratings) and
+> [BENCHMARK-V1.md](BENCHMARK-V1.md). Still in force from here: the 88% lesson (§1.1) and seed governance
+> (§6.5, enforced by `eval/seed_policy.py`). Files this design proposed (`puzzle_run.py`, `blunder_flags.py`,
+> `plan_adherence.py`, `scorecard.py`) were never written.
+
 > 2026-10-15: [BENCHMARK-RESEARCH.md](BENCHMARK-RESEARCH.md) revisits the scoring (strict score,
 > anchors, Bradley–Terry, puzzle rating, harness-gaming arms) from a second round of research.
 
