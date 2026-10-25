@@ -15,7 +15,8 @@ PLAY = {"t": "decision", "seat": "Seat", "tier": "smart", "type": "play", "turn"
 PASS = dict(PLAY, choice=-1, raw_reply="WHY: Nothing worth doing.\nCHOICE: 3")
 PICKS = {"t": "decision", "seat": "Seat", "tier": "smart", "type": "sacrifice", "turn": 5, "phase": "MAIN2",
          "options": ["Krenko, Mob Boss 3/3 [untapped] @8", "Skirk Prospector 1/1 [untapped] @10",
-                     "Mogg War Marshal 1/1 @11"], "raw_reply": "WHY: The token comes back.\nPICKS: 1,3"}
+                     "Mogg War Marshal 1/1 @11"], "picks": [0, 2],
+         "raw_reply": "WHY: The token comes back.\nPICKS: 1,3"}
 AUTO = dict(PLAY, tier="auto", raw_reply=None)
 OTHER_SEAT = dict(PLAY, seat="Human")
 WINDOW = {"t": "window", "seat": "Seat", "reason": "pass-only"}
@@ -31,6 +32,11 @@ class LineTest(unittest.TestCase):
 
     def test_several_picks_are_each_named(self):
         self.assertEqual(pc.line(PICKS), "T5 MAIN2  Seat sacrifice: Krenko, Mob Boss 3/3 + Mogg War Marshal 1/1")
+
+    def test_the_move_the_row_records_is_shown_not_the_one_the_reply_asked_for(self):
+        # The model's reply was not used (refused, then a fixed legal option): the game did option 1, not 2.
+        lost = dict(PLAY, choice=0, raw_reply="WHY: Haste.\nCHOICE: 2")
+        self.assertEqual(pc.line(lost), "T3 MAIN1  Seat: PLAY LAND Mountain")
 
     def test_the_reasoning_only_when_asked(self):
         self.assertNotIn("why", pc.line(PLAY))
@@ -88,6 +94,53 @@ class FeedTest(unittest.TestCase):
         self.assertNotIn("thinking", "\n".join(self._thinking(done)))
         other = [{"seq": 1, "phase": "sent", "label": "Human/smart"}]
         self.assertNotIn("thinking", "\n".join(self._thinking(other)))
+
+    def _game(self, d, rows=(), raw=b""):
+        with open(os.path.join(d, "game-42-1.jsonl"), "ab") as f:
+            for r in rows:
+                f.write(json.dumps(r).encode() + b"\n")
+            f.write(raw)
+
+    def test_each_poll_prints_only_what_is_new_and_a_torn_row_once_it_is_whole(self):
+        with tempfile.TemporaryDirectory() as d:
+            c = pc.Commentary(d, "Seat", why=False)
+            self.assertEqual(c.poll(), [])
+            row = json.dumps(PLAY).encode()
+            self._game(d, raw=row[:20])
+            self.assertEqual(c.poll(), [])
+            self._game(d, raw=row[20:] + b"\n")
+            self.assertEqual(c.poll(), ["T3 MAIN1  Seat: CAST Goblin Guide 2/2 {R}"])
+            self._game(d, [PASS])
+            self.assertEqual(c.poll(), ["T3 MAIN1  Seat: PASS (do nothing)"])
+            self.assertEqual(c.poll(), [])
+
+    def test_a_card_name_split_inside_a_character_between_writes_reads_whole(self):
+        with tempfile.TemporaryDirectory() as d:
+            c = pc.Commentary(d, "Seat", why=False)
+            row = json.dumps(dict(PLAY, options=["PASS (do nothing)", "CAST \u00c6ther Vial @3"]),
+                             ensure_ascii=False).encode()
+            cut = row.index("\u00c6".encode()) + 1
+            self._game(d, raw=row[:cut])
+            c.poll()
+            self._game(d, raw=row[cut:] + b"\n")
+            self.assertEqual(c.poll(), ["T3 MAIN1  Seat: CAST \u00c6ther Vial"])
+
+    def test_a_match_s_next_game_is_marked_when_the_turns_start_again(self):
+        with tempfile.TemporaryDirectory() as d:
+            self._game(d, [dict(PLAY, turn=9), dict(PLAY, turn=0, phase="null", type="mulligan", options=[],
+                                                     raw_reply="KEEP: yes")])
+            self.assertEqual(pc.Commentary(d, "Seat", why=False).poll(),
+                             ["T9 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", "-- next game --",
+                              "T0  Seat mulligan: KEEP: yes"])
+
+    def test_a_response_written_to_the_next_transcript_file_still_ends_the_thinking(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.mkdir(os.path.join(d, "transcripts"))
+            for name, row in (("http-1-2-0.jsonl", {"seq": 4, "phase": "sent", "label": "Seat/smart"}),
+                              ("http-1-2-1.jsonl", {"seq": 4, "phase": "response", "label": "Seat/smart"})):
+                with open(os.path.join(d, "transcripts", name), "w") as f:
+                    f.write(json.dumps(dict(row, t="http")) + "\n")
+            self.assertEqual(pc.Commentary(d, "Seat", why=False).poll(), [])
 
     def test_an_empty_directory_prints_nothing(self):
         with tempfile.TemporaryDirectory() as d:

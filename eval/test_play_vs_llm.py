@@ -67,6 +67,16 @@ class PlayVsLlmTest(unittest.TestCase):
         self.assertEqual(e["LOOKAHEAD"], "1")
         self.assertEqual(e["RULES_TOOL"], "0")
 
+    def test_shortcuts_plans_and_overrides_from_the_shell_never_reach_the_seat(self):
+        e = self.dry_env(self.consented(MULLIGAN_HEURISTIC="1", SKIP_HEURISTICS="1", PLAN_B="win", CTX_RECENT="9",
+                                        SHADOW_AI="1", AUTO_EXIT="1", SMART_MODEL="other", GAME_SEED="42",
+                                        CLAUDE_BRIDGE_EFFORT="high"))
+        for k in ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_B", "CTX_RECENT", "SHADOW_AI", "AUTO_EXIT",
+                  "SMART_MODEL"):
+            self.assertNotIn(k, e)
+        self.assertEqual(e["GAME_SEED"], "42", "a seed changes no condition")
+        self.assertEqual(e["CLAUDE_BRIDGE_EFFORT"], "high", "the operator's claude-cli settings stay")
+
     def test_an_openrouter_model_without_consent_is_refused_and_consent_is_never_set(self):
         p = self.run_script()
         self.assertEqual(p.returncode, 3)
@@ -111,6 +121,26 @@ class PlayVsLlmTest(unittest.TestCase):
         feed = "python3 %s %s --follow --why" % (self.repo / "eval/play_commentary.py", self.dry_env(p)["EVAL_OUT"])
         self.assertIn("would also run: " + feed, p.stdout)
         self.assertNotIn("would also run", self.consented().stdout)
+
+    def test_a_game_keeps_its_exit_status_and_leaves_no_commentary_running(self):
+        forge = self.repo / "stub-forge"
+        forge.mkdir()
+        (forge / "run-llm-spike.sh").write_text("#!/bin/bash\nsleep 2\nexit 7\n")
+        (forge / "run-llm-spike.sh").chmod(0o755)
+        env = {k: v for k, v in os.environ.items() if k not in ("FORGE_HOME", "CLAUDE_CLI_SEAT")}
+        env.update(FORGE_HOME=str(forge), OPENROUTER_ALLOW_EGRESS="1")
+        p = subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--commentary"], capture_output=True, text=True,
+                           env=env, cwd=tempfile.gettempdir(), timeout=60)
+        self.assertEqual(p.returncode, 7, p.stderr)
+        self.assertIn("what the model did and why", p.stdout)
+        left = subprocess.run(["pgrep", "-f", str(self.repo / "eval/play_commentary.py")], capture_output=True)
+        self.assertEqual(left.returncode, 1, "the commentary feed outlived the game")
+        # A feed that died first (a crash, a closed terminal) must not turn a clean game into a failure.
+        (forge / "run-llm-spike.sh").write_text('#!/bin/bash\nsleep 2\npkill -f "play_commentary.py $EVAL_OUT"\n'
+                                                 'sleep 1\nexit 0\n')
+        p = subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--commentary"], capture_output=True, text=True,
+                           env=env, cwd=tempfile.gettempdir(), timeout=60)
+        self.assertEqual(p.returncode, 0, p.stderr)
 
     def test_run_batch_offers_no_human_seat(self):
         p = subprocess.run([sys.executable, str(REPO / "eval/run_batch.py"), "--controller-a", "human", "--seeds", "1"],

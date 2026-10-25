@@ -6,10 +6,12 @@
     python3 eval/play_commentary.py runs/human/<time> --why       # and the reason the model gave for each
 
 It reads the game JSONL the GUI writes under EVAL_OUT: a decision row of the seat answered by the model (tier smart or
-fast) becomes one line, "T3 MAIN1  Seat: CAST Goblin Guide 2/2 {R}". What the model chose in its hidden zones (a scry,
+fast) becomes one line, "T3 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", naming the move the row records (what the game
+did; demo_events.chosen_indexes), never a reply that was not used. What the model chose in its hidden zones (a scry,
 a discard, a search) is shown too, and --why shows its reasoning, which names its hand: it is for watching, not for a
 fair game. While a call of the seat's is unanswered (TRANSCRIPTS=1, as play-vs-llm.sh sets) it says the seat is
-thinking. It reads only, and calls no network.
+thinking. A match's games share one file; a turn count that starts again marks the next game. It reads only, and calls
+no network.
 """
 import argparse
 import glob
@@ -19,43 +21,30 @@ import re
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import demo_events  # noqa: E402
+
 MODEL_TIERS = ("smart", "fast")
 REASON_KEYS = ("WHY", "PROFILE", "LINES", "PLAN")
 
 
-def clean(option):
-    """An option without its handle (@7) or bracketed rules text and states."""
-    text = re.sub(r"\s*\[[^\]]*\]", "", option)
-    return re.sub(r"\s*@\d+\b", "", text).strip()
-
-
 def _fields(raw):
+    """The KEY: value lines of a reply, the last of each kept (the answer used is the reply's last)."""
     out = {}
     for ln in (raw or "").splitlines():
         m = re.match(r"\s*([A-Z_]+):\s*(.*)", ln)
-        if m and m.group(1) not in out:
+        if m:
             out[m.group(1)] = m.group(2).strip()
     return out
 
 
-def _numbers(s):
-    return [int(n) for n in re.findall(r"\d+", s or "")]
-
-
 def answer(row):
-    """What the seat chose, in words: the options it named, else its answer line."""
+    """What the seat chose, in words: the options the row records, else (a number, a keep) its answer line."""
     options = row.get("options") or []
-    f = _fields(row.get("raw_reply"))
-    for key in ("CHOICE", "PICKS"):
-        picked = [options[n - 1] for n in _numbers(f.get(key)) if 1 <= n <= len(options)]
-        if picked:
-            return " + ".join(clean(o) for o in picked)
-    choice = row.get("choice")
-    if isinstance(choice, int) and 0 <= choice < len(options):
-        return clean(options[choice])
-    if choice == -1 and options and options[-1].startswith("PASS"):
-        return clean(options[-1])
-    for k, v in f.items():
+    picked = [demo_events._norm(options[i]) for i in demo_events.chosen_indexes(row) if i < len(options)]
+    if picked:
+        return " + ".join(picked)
+    for k, v in _fields(row.get("raw_reply")).items():
         if k not in REASON_KEYS:
             return "%s: %s" % (k, v)
     return "(no answer read)"
@@ -75,53 +64,71 @@ def line(row, why=False, seat="Seat"):
     return text
 
 
-def _newest(directory):
-    games = glob.glob(os.path.join(directory, "game-*.jsonl"))
-    return max(games, key=os.path.getmtime) if games else None
-
-
-class _Tail:
-    """The complete JSON rows appended to one file since the last read; a torn last line waits for the rest."""
+class _Rows:
+    """The JSON rows appended to one file since the last read (demo_events.read_lines: bytes, a torn row waits)."""
 
     def __init__(self, path):
-        self.path, self.offset, self.buf = path, 0, ""
+        self.path, self.offset = path, 0
 
-    def rows(self):
-        with open(self.path, encoding="utf-8", errors="replace") as f:
-            f.seek(self.offset)
-            self.buf += f.read()
-            self.offset = f.tell()
-        *complete, self.buf = self.buf.split("\n")
-        for raw in complete:
+    def read(self):
+        for raw, _ in demo_events.read_lines(self.path, self):
             try:
                 yield json.loads(raw)
             except ValueError:
                 continue
 
 
+def _turn(row):
+    try:
+        return int(row.get("turn"))
+    except (TypeError, ValueError):
+        return None
+
+
+class Commentary:
+    """The commentary of one play-vs-llm.sh directory; each poll() returns the lines that are new since the last."""
+
+    def __init__(self, directory, seat, why):
+        self.directory, self.seat, self.why = directory, seat, why
+        self.game, self.http, self.announced, self.last_turn = None, {}, False, None
+        self.sent, self.answered = set(), set()     # (jvm, seq): files are read in any order, so kept apart
+
+    def _thinking(self):
+        for path in glob.glob(os.path.join(self.directory, "transcripts", "http-*.jsonl")):
+            jvm = os.path.basename(path).rsplit("-", 1)[0]     # a JVM's files share one seq: a retry file continues it
+            for row in self.http.setdefault(path, _Rows(path)).read():
+                if str(row.get("label", "")).split("/")[0] == self.seat:
+                    (self.sent if row.get("phase") == "sent" else self.answered).add((jvm, row.get("seq")))
+
+    def poll(self):
+        out = []
+        self._thinking()
+        if self.game is None:
+            path = demo_events.find_game(self.directory)[0]
+            self.game = _Rows(path) if path else None
+        for row in self.game.read() if self.game else ():
+            text = line(row, self.why, self.seat)
+            if not text:
+                continue
+            turn = _turn(row)
+            if turn is not None and self.last_turn is not None and turn < self.last_turn:
+                out.append("-- next game --")
+            if turn is not None:
+                self.last_turn = turn
+            out.append(text)
+            self.announced = False
+        if self.sent - self.answered and not self.announced:
+            out.append("          ... %s is thinking" % self.seat)
+            self.announced = True
+        return out
+
+
 def feed(directory, seat, why, follow, out=sys.stdout, poll=1.0):
-    """Print the newest game's model decisions for `seat`, and "... is thinking" while a call of its is unanswered
-    (the transcript's write-ahead rows, TRANSCRIPTS=1). With follow, keep going, onto the match's next game too."""
-    game, http, waiting, announced = None, {}, set(), False
+    """Print the commentary; with follow, keep polling until interrupted."""
+    c = Commentary(directory, seat, why)
     while True:
-        newest = _newest(directory)
-        if newest and (game is None or newest != game.path):
-            if game:
-                out.write("-- next game --\n")
-            game = _Tail(newest)
-        for path in glob.glob(os.path.join(directory, "transcripts", "http-*.jsonl")):
-            for row in http.setdefault(path, _Tail(path)).rows():
-                if str(row.get("label", "")).split("/")[0] != seat:
-                    continue
-                (waiting.add if row.get("phase") == "sent" else waiting.discard)((path, row.get("seq")))
-        for row in game.rows() if game else ():
-            text = line(row, why, seat)
-            if text:
-                out.write(text + "\n")
-                announced = False
-        if waiting and not announced:
-            out.write("          ... %s is thinking\n" % seat)
-            announced = True
+        for text in c.poll():
+            out.write(text + "\n")
         out.flush()
         if not follow:
             return

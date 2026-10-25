@@ -66,16 +66,19 @@ case "$model" in
 esac
 
 out="$REPO/runs/human/$(date -u +%Y%m%dT%H%M%SZ)"
-# The pilot condition, from the panels file, over any condition the caller's shell holds (its Claude CLI effort and
-# thinking settings stay: they are the operator's for a claude-cli: seat).
+# The pilot condition, from the panels file. Every other key a batch scrubs (run_batch.build_env: the run-defining
+# keys, the heuristic shortcuts and plans, CTX_* overrides) is unset, so nothing in the caller's shell changes what
+# the seat is asked or shown. Kept: the seed, and the operator's own Claude CLI effort and thinking settings.
 condition="$(python3 - "$REPO" <<'PY'
-import json, sys
+import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/eval")
 import run_batch
 fields = json.load(open(sys.argv[1] + "/eval/suites/panels-v1.json"))["pilot_condition"]["fields"]
 cond = {k.upper(): ("1" if v else "0") if isinstance(v, bool) else str(v) for k, v in fields.items()}
-for k in run_batch.CONDITION_ENV_KEYS:
-    if not k.startswith("CLAUDE_"):
+scrub = list(run_batch.RUN_DEFINING_KEYS + run_batch.CITED_FORCED_KEYS) + ["SHADOW_AI", "AUTO_EXIT"]
+scrub += [k for k in os.environ if k.startswith(run_batch.CTX_OVERRIDE_PREFIX)]
+for k in dict.fromkeys(scrub):
+    if not k.startswith("CLAUDE_") and k != "GAME_SEED":
         print("%s=%s" % (k, cond.get(k, "")))
 PY
 )"
@@ -84,8 +87,8 @@ while IFS='=' read -r k v; do
   cond_vars="$cond_vars $k"
   if [ -n "$v" ]; then export "$k=$v"; else unset "$k"; fi
 done <<< "$condition"
-vars="CONTROLLER_A CONTROLLER_B DECK_A DECK_B DECK_A_NAME DECK_B_NAME SMART_MODEL_B FAST_MODEL_B MATCH_GAMES EVAL_OUT
-TRANSCRIPTS RECORD RECORD_OUT $cond_vars"
+vars="$cond_vars MATCH_GAMES TRANSCRIPTS RECORD RECORD_OUT GAME_SEED CLAUDE_BRIDGE_EFFORT CLAUDE_BRIDGE_EFFORT_SMART
+CLAUDE_BRIDGE_EFFORT_FAST CLAUDE_CLI_THINKING_TOKENS"
 export CONTROLLER_A=human CONTROLLER_B=llm
 export DECK_A="$deck_a" DECK_B="$deck_b"
 # The model's seat keeps the name the benchmark's games give it ("Seat"); the person is "Human".
@@ -111,7 +114,11 @@ fi
 mkdir -p "$out"
 if [ "$commentary" = 1 ]; then
   "${feed[@]}" & feed_pid=$!
-  trap 'kill $feed_pid 2>/dev/null' EXIT
+  # `|| true`: a feed that already died must not turn the game's status into 1 under set -e. TERM and HUP exit
+  # through the EXIT trap, so a closed terminal stops the feed too.
+  trap 'kill $feed_pid 2>/dev/null || true' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 129' HUP
 fi
 status=0; "$FORGE_HOME/run-llm-spike.sh" || status=$?
 echo "play-vs-llm: what the model did and why: python3 eval/play_commentary.py $out --why"
