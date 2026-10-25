@@ -45,7 +45,8 @@ the bar in `docs/harness/HARD-PUZZLES.md` section 1:
 `-minimality` and `-minimality2`).
 
 The `runs/` outputs are not committed; each command above reproduces them (not the hand-written variant lines), with `B`
-an isolated acceptance build and `FORGE_HOME` the pinned checkout.
+an isolated acceptance build compiled from this checkout's overlay (another is refused without `--allow-stale-build`;
+`eval/PUZZLES.md`, "Building a suite") and `FORGE_HOME` the pinned checkout.
 
 A held-out split and a frozen suite are not made yet: these files are open answers.
 

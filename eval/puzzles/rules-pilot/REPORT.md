@@ -1,5 +1,10 @@
 # Rules pilot: first 20 triage conversions
 
+A batch-by-batch log, dated, that ends with batch 12 (204 converted). Batches 13 and 14 and the rest of the
+conversions to 526 are summarised in [HANDOFF-PUZZLES.md](../../../docs/harness/HANDOFF-PUZZLES.md); the
+current count of every result is `manifest.jsonl` (526 converted, 10 Forge disagreements, 8 multiple-review,
+761 dropped).
+
 Source: the ranked list in `eval/puzzles/rules/TRIAGE.md`. #2 was skipped by the constraints (its deciding choice
 is how trample damage is divided, which the search arm splits evenly), so #21 was taken instead. Twenty questions
 were attempted as `RP_001` to `RP_020`. One line per question is in `manifest.jsonl`; #2 has its own line too.

@@ -78,7 +78,7 @@ The issue was filed against an older `main`. Before writing any fix:
    - **b. A zero-model game** when the defect needs a real game to reach: the random arm
      (`--controller-a random`, zero cost, deterministic on one OS) with a deck holding the card,
      then grep the log or the rows for the decision. Floor never builds a play menu, so it proves
-     nothing about plays, attacks or blocks (`CLAUDE.md`, validation ladder).
+     nothing about plays, attacks or blocks (`CLAUDE.md`, "Commands").
    - **c. One model-lane game** only when a and b cannot reach it, on a lane `defect-hunt` step 2
      allows (the egress opt-in must already be in `secrets.env`; never set it yourself). Never
      opus, never a batch.
