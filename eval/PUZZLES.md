@@ -327,7 +327,7 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   k attempts on this suite are already in `--out` is skipped; one cut off part way is played again from seed 1,
   its rows so far and its JVM log renamed `puzzle-results.partial<n>.jsonl` and `jvm.partial<n>.log` (never
   scored, still priced). A resume into a directory made under another model, suite or seat condition, or on
-  another build (another compiled overlay, or a stale build let run where the first was not), is refused.
+  another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`

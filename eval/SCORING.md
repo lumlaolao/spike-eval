@@ -16,9 +16,9 @@ standard library, and every piece has a `test_<name>.py`.
 
 ## The panels (`suites/panels-v1.json`)
 
-The deck pool is the 16 archetype lists the panels file names in `deck_pool` (the other lists in `decks/`
-are not in it; the `hook-*` lists are mechanics probes), each pinned by `sha12` (sha256[:12] of the file, the same hash `run_batch.py` stamps as
-`deck_sha`).
+The deck pool is the 16 archetype lists the panels file names in `deck_pool` (which lists, and why:
+its `deck_pool_note`), each pinned by `sha12` (sha256[:12] of the file, the same hash `run_batch.py`
+stamps as `deck_sha`).
 
 - **Mirror panel** (the headline): 16 cells, the pilot on deck *d* against the Forge AI on deck *d*.
   Deck strength cancels and the Forge-AI mirror is 50% by symmetry.

@@ -1,14 +1,14 @@
 # eval/: the batch driver, scoring and review tools
 
-Every script here is stdlib-only Python 3 and has its tests in `eval/test_<name>.py` (or is listed in
+Every Python script here is stdlib-only and has its tests in `eval/test_<name>.py` (or is listed in
 `eval/UNTESTED.txt`). Where the rest is described:
 
-- the benchmark and its three scores: `eval/EVAL-DESIGN.md`, `eval/SCORING.md`, `eval/BENCHMARK-V1.md`;
+- the benchmark and its three scores: `eval/SCORING.md`, `eval/BENCHMARK-V1.md`;
 - the puzzle suite (`puzzle_*.py`): `eval/PUZZLES.md`;
 - the review sheet after a game (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`,
   `cost_report.py`): `.claude/skills/game-loop/SKILL.md`;
 - how many games run at once: `eval/CONCURRENCY.md`;
-- the harness-building eval (`harness_env_*.py`): `eval/harness_env/SPEC.md`.
+- the harness-building eval (`harness_env_*.py`): `docs/harness/HARNESS-ENV-FRAMEWORK.md`.
 
 This file covers the game batch driver and its statistics:
 
@@ -88,7 +88,9 @@ enforces:
 1. **Mirror deck** — `DECK_A` and `DECK_B` must resolve to the *same*
    non-empty file (pass `--deck PATH` to set both), and the two identity names
    must differ (`--name-a`/`--name-b`, default `Identity-A`/`Identity-B`). A
-   mirror cancels deck strength so the delta is pure pilot skill.
+   mirror cancels deck strength so the delta is pure pilot skill. The one
+   exception is a cross-panel cell (`--panel cross`): its two decks may differ,
+   but both must still hash to the pins in the panels file.
 2. **Confounds off** — forces `MULLIGAN_HEURISTIC=0`, `SKIP_HEURISTICS=0`, and
    empty `PLAN_A`/`PLAN_B` (plans inject expert knowledge). Overriding any of
    these via `--env`, or passing `--plan-a/--plan-b`, is refused.

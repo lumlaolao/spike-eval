@@ -33,9 +33,9 @@ is idempotent and new sources can be added without collisions.
 ### Commands
 
 From the repository root (the scripts find their files relative to themselves). In a clone,
-`raw/api/` and `raw/items/rulesguru.jsonl` do not exist (git-ignored), so step 4 alone would rewrite
-`puzzles.jsonl` without its 513 RulesGuru items: run steps 1 and 2 first, or leave `puzzles.jsonl`
-alone.
+`raw/api/` and `raw/items/rulesguru.jsonl` do not exist (git-ignored), so step 4 alone
+(`python3 puzzles/modern/harvest.py normalize`) would rewrite `puzzles.jsonl` with 529 of its 996 items
+(the tracked `raw/items/` files), losing 467: run steps 1 and 2 first, or leave `puzzles.jsonl` alone.
 
 ```bash
 # 1. (optional) collect raw items from the public RulesGuru API (needs network).
