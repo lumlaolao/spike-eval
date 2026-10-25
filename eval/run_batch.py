@@ -68,6 +68,7 @@ import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
 import sanity_arms  # noqa: E402  the zero-cost arms beside a scored block (--sanity-arms)
 import benchmark_version  # noqa: E402  the overlay's file list and its hash (OVERLAY_SHA, drift)
+import puzzle_format  # noqa: E402  forge_home: the Forge checkout, $FORGE_HOME first
 
 PRINT_LOCK = threading.Lock()
 
@@ -1149,8 +1150,9 @@ def warn_reserved_seeds(seeds):
 
 
 def derive_cap_minutes(args):
-    """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240;
-    all-haiku llm -> 120; anything else llm -> 240 (conservative)."""
+    """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240; all-haiku llm -> 120; anything else
+    llm -> 240 (conservative). The opus and haiku branches were written for the retired bare-name lane and now
+    match only claude-cli: specs; every openrouter: model, Luna included, takes the 240 branch."""
     models = effective_llm_models(args)
     if not models:
         return 15.0
@@ -1231,8 +1233,9 @@ def build_parser():
     ap.add_argument("--out",
                     help="output dir for JSONL + stdout logs. Optional: defaults "
                          "to runs/<UTC-timestamp>-<label> under the repo root.")
-    ap.add_argument("--forge-home", default=os.path.expanduser("~/code/forge"),
-                    help="dir containing run-llm-headless.sh (default ~/code/forge)")
+    ap.add_argument("--forge-home", default=str(puzzle_format.forge_home()),
+                    help="dir containing run-llm-headless.sh (default: $FORGE_HOME, else ~/code/forge or "
+                         "/root/forge, whichever is a Forge checkout; puzzle_format.forge_home)")
     ap.add_argument("--cap-minutes", type=float, default=None,
                     help="per-game wall-clock cap in minutes; sets GAME_CAP_MS. "
                          "0 disables. Omitted -> derived per-tier (no-llm 15, "

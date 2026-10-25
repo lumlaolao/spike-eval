@@ -46,6 +46,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import deck_legality  # noqa: E402
+import puzzle_format  # noqa: E402  forge_home: the Forge checkout, $FORGE_HOME first
 from run_batch import (  # noqa: E402  provenance helpers, reused verbatim
     REPO_ROOT, _engine_sha, _overlay_sha, _spike_drift,
 )
@@ -593,7 +594,7 @@ def main():
                     help="per-game wall-clock cap (default 60)")
     ap.add_argument("--retries", type=int, default=2,
                     help="replays on a drawn/invalid game before a seeded coin-flip")
-    ap.add_argument("--forge-home", default=os.path.expanduser("~/code/forge"))
+    ap.add_argument("--forge-home", default=str(puzzle_format.forge_home()))   # $FORGE_HOME first
     ap.add_argument("--record", dest="record", action="store_true", default=True)
     ap.add_argument("--no-record", dest="record", action="store_false")
     ap.add_argument("--record-fps", type=int, default=8)

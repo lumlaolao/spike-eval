@@ -7380,24 +7380,14 @@ public final class LlmSpikeGui {
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);
         }
 
-        // ---------------- Goal A: log-only observation of decisions Forge's AI makes ----------------
-        // These surfaces previously emitted NO eval line and ran invisibly on the engine AI (super).
-        // Each override below calls super, OBSERVES the result, emits an evalDec line with tier "ai",
-        // and returns super's result object UNCHANGED — behavior is bit-identical; only the JSONL gains
-        // lines. They deliberately do NOT call noteAi()/bump aiDelegations: these are observations of
-        // pre-existing AI behavior, not new fallbacks, so "[TALLY] ai=0" stays a meaningful invariant.
-        // REMAINING INVISIBLE SURFACE (documented, not logged): mana tapping/payment. The per-source
+        // ---------------- Decisions that once only logged Forge's AI ----------------
+        // These surfaces used to call super and log its answer with tier "ai" (a log-only observation). All of
+        // them are routed now (decideOne / decideMany, or a deterministic tier "auto"), so nothing here asks
+        // Forge's AI and "[TALLY] ai=0" holds. REMAINING INVISIBLE SURFACE (documented, not logged): mana tapping/payment. The per-source
         // which-land-to-tap choices happen entirely inside ComputerUtilMana (forge-ai) and never cross
         // the PlayerController boundary — the controller only sees payManaCost(cost)->boolean — so they
         // cannot be surfaced without modifying the pinned engine.
 
-        /** Emit a log-only "AI observed" decision line. Never throws, never alters game flow. */
-        private void observeAiDec(String type, int nOptions, int choice, long t0, String desc, List<String> labels) {
-            try {
-                clearLast(); // no model was consulted for this decision — prompt/raw_reply must log null
-                evalDec(type, nOptions, choice, "ai", System.currentTimeMillis() - t0, desc, labels);
-            } catch (Exception ignore) { }
-        }
         /** Null-safe label snapshot (take it BEFORE calling super when super may mutate/reorder). */
         private List<String> cardLabels(Iterable<Card> cards) {
             List<String> out = new ArrayList<>();
@@ -7512,8 +7502,7 @@ public final class LlmSpikeGui {
         // log-only-observation bucket above (bit-identical to super, tier="ai", no [ROUTER] line, no
         // model consultation ever). They no longer do: the common/forced shapes are deterministic
         // tier="auto" and the genuine choices go through decideOne/decideMany like every other routed
-        // decision in this file, so they DO contribute to smart/fast/auto — only assignCombatDamage's
-        // documented multi-blocker/banding exotic-split fallback still calls observeAiDec.
+        // decision in this file, so they DO contribute to smart/fast/auto; none is a log-only observation any more.
 
         /** Combat damage distribution (per creature per damage step). Report C1: this used to hand
          *  EVERY case — including the single-blocker, no-trample case that has exactly one legal
@@ -8273,7 +8262,6 @@ public final class LlmSpikeGui {
             p("[FALLBACK->AI] " + where + "  (ai=" + aiDelegations + " smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + ")");
             evalDec(firstWord(where), -1, -1, "ai", 0, where);
         }
-        private <T> T aiDelegate(String where, T result) { noteAi(where); return result; }
         private void auto(String what) { autoPicks++; p("[AUTO-LEGAL] " + what); evalDec(firstWord(what), -1, -1, "auto", 0, what); }
 
         /** The prompt with the most recent play and the model's reasoning for it, placed just before the
@@ -10768,9 +10756,8 @@ public final class LlmSpikeGui {
          * takes the 3-arg constructor above and its env-derived endpoint.
          */
         OpenRouterBridge(String label, String model, String preamble, String baseUrl, long timeoutMs) {
-            // A LOCAL endpoint needs no key and must never be sent one — the same rule
-            // eval/pipelines/local_contract_check.sh already states for the Python lane ("localhost
-            // ... never receives a key"). Demanding a key here made the free local lane unusable for
+            // A LOCAL endpoint needs no key and must never be sent one (an invariant the reviews check:
+            // "loopback endpoints never receive an API key", .claude/skills/pr-review). Demanding a key here made the free local lane unusable for
             // GAMES while it worked for puzzles, which is backwards: games are the only instrument
             // that can measure a memory/context change, and they are the ones that most need to be
             // free to repeat. Any non-loopback endpoint still requires the key.

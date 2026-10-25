@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Launch the Forge desktop GUI with our LLM-Agent controller in a spectator match.
+# Launch the Forge desktop GUI with our LLM-Agent controller: a spectator match, or a person against the model
+# (CONTROLLER_A=human, which play-vs-llm.sh sets).
 # Run from the forge repo root; it cd's into forge-gui-desktop so assets resolve to ../forge-gui/res.
 set -e
 # Repo root, captured BEFORE the cd below: the rules tool needs an absolute CR path.
@@ -10,7 +11,7 @@ for BREW in /opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17; do
   BREW_JDK="$BREW/libexec/openjdk.jdk/Contents/Home"
   if [ -d "$BREW_JDK" ]; then export JAVA_HOME="$BREW_JDK"; break; fi
 done
-# Ensure the `claude` CLI (used by HaikuDecider) is on PATH for the launched JVM.
+# Ensure the `claude` CLI (ClaudeCliBridge, the claude-cli: development lane) is on PATH for the launched JVM.
 PATH="${JAVA_HOME:+$JAVA_HOME/bin:}$HOME/.local/bin:$PATH"
 export PATH
 
@@ -22,7 +23,7 @@ cd "$(dirname "$0")/forge-gui-desktop"
 # exit 1 from EVERY game in a batch, naming neither the cause nor the fix --
 # that silently emptied a full overnight run. Deliberately NOT self-healing:
 # regenerating has no lock, so N parallel launchers would race each other
-# (see CLAUDE.md). Refuse loudly and let the caller regenerate once.
+# (eval/CONCURRENCY.md). Refuse loudly and let the caller regenerate once.
 CP_FILE="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"     # FORGE_CP_FILE: elsewhere (play-vs-llm.sh passes it on)
 if [ ! -s "$CP_FILE" ]; then
   echo "[launcher] missing or empty $CP_FILE (maven-generated classpath)." >&2

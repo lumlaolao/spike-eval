@@ -61,13 +61,11 @@ final class ContextMemory {
     private String rulesInstructions;
 
     void setInspector(Function<String, String> inspector) { this.inspector = inspector; }
-    boolean hasInspector() { return inspector != null; }
 
     void setRulesLookup(String instructions, Function<String, String> lookup) {
         this.rulesInstructions = instructions;
         this.rulesLookup = lookup;
     }
-    boolean hasRulesLookup() { return rulesLookup != null; }
 
     private static final class Entry {
         final String kind;

@@ -118,10 +118,6 @@ public final class LlmSpikePuzzle {
             return dirs;
         }
         dirs.add(ForgeConstants.PUZZLE_DIR);
-        // Puzzles that exist in Forge master but not at the pinned commit are vendored in the eval
-        // repo; the launcher cd's into forge-gui-desktop, so reach back out to the user's checkout.
-        String repo = System.getenv("PZL_REPO");
-        if (repo != null && !repo.trim().isEmpty()) dirs.add(new File(repo, "eval/puzzles/upstream").getPath());
         return dirs;
     }
 

@@ -49,6 +49,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
+sys.path.insert(0, str(HERE))
+import puzzle_format  # noqa: E402  forge_home: the Forge checkout, $FORGE_HOME first
 DEFAULT_SEAT_MODEL = "openrouter:google/gemini-3.5-flash"
 DEFAULT_DECK = HERE / "decks" / "mardu-energy.txt"
 
@@ -79,8 +81,8 @@ def parse_args(argv=None):
                     help="mirror decklist for both seats (default %s)" % DEFAULT_DECK)
     ap.add_argument("--out", default=None,
                     help="output dir (default runs/improve/<UTC-timestamp>/)")
-    ap.add_argument("--forge-home", default=os.path.expanduser("~/code/forge"),
-                    help="dir containing run-llm-headless.sh (default ~/code/forge)")
+    ap.add_argument("--forge-home", default=str(puzzle_format.forge_home()),
+                    help="dir containing run-llm-headless.sh (default: $FORGE_HOME first; puzzle_format.forge_home)")
     ap.add_argument("--cap-minutes", type=float, default=None,
                     help="passthrough to run_batch.py --cap-minutes "
                          "(default: derived by run_batch.py)")

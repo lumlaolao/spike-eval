@@ -162,8 +162,9 @@ class SetupTest(unittest.TestCase):
         # An Intel Mac's Homebrew lives in /usr/local: a launcher that missed it would play on macOS's java stub.
         prefixes = re.compile(r"(/[\w/]*/opt/openjdk@17)\b")
         setup_line = next(ln for ln in (REPO / "setup.sh").read_text().splitlines() if "SETUP_JDK_DIRS:-" in ln)
-        spike_line = next(ln for ln in (REPO / "run-llm-spike.sh").read_text().splitlines() if ln.startswith("for BREW"))
-        self.assertEqual(prefixes.findall(spike_line), prefixes.findall(setup_line))
+        for launcher in ("run-llm-spike.sh", "run-llm-headless.sh"):   # the GUI game, and every batch game
+            line = next((ln for ln in (REPO / launcher).read_text().splitlines() if ln.startswith("for BREW")), "")
+            self.assertEqual(prefixes.findall(line), prefixes.findall(setup_line), launcher)
         self.assertEqual(len(prefixes.findall(setup_line)), 2)
 
     def test_a_maven_older_than_the_forge_build_requires_is_refused_before_the_fetch(self):

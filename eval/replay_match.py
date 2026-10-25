@@ -100,8 +100,9 @@ DEFAULT_MODEL = "local-model"
 DEFAULT_TIERS = "ai-teacher"
 DEFAULT_SAMPLE_SEED = 20260723
 
-# Hosts we treat as on-box (no game-snapshot egress off the machine).
-LOCAL_HOSTS = frozenset(("localhost", "127.0.0.1", "::1", ""))
+# Hosts we treat as on-box (no game-snapshot egress off the machine). Not "": an endpoint with no scheme parses
+# to no host, and it must ask for consent rather than pass as local (fail closed, as the Java gate does).
+LOCAL_HOSTS = frozenset(("localhost", "127.0.0.1", "::1"))
 # A run aborts (exit 1) rather than report a match rate when transport errors
 # exceed this fraction of attempted rows — the denominator would be unreliable.
 TRANSPORT_ERROR_BUDGET = 0.20

@@ -49,7 +49,6 @@ _NON_ANSWER_RE = re.compile(r'^\[OPENROUTER ([^/\]]+)/(\w+)\]\s*non-answer')
 _BRIDGE_NO_REPLY_RE = re.compile(r'^\[BRIDGE ([^\]]+)\]\s*no reply')
 _PASS_RE = re.compile(r'^\[([^\]]+)\]\s*\[ROUTER\]\s*play:\s*PASS\b')
 _AUTO_LEGAL_RE = re.compile(r'^\[([^\]]+)\]\s*\[AUTO-LEGAL\]')
-_REPLIED_RE = re.compile(r'^\[OPENROUTER ([^/\]]+)/(\w+)\]\s*replied in (\d+)\s*ms')
 # A block declaration the engine objects to that stood: the seat's fallback found no legal set, or an arm's 64 draws
 # did not (issue #311). A set the fallback took ("took the legal set") is legal and not counted.
 _ILLEGAL_BLOCKS_RE = re.compile(

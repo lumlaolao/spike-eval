@@ -390,8 +390,8 @@ public final class LlmSpikeFork {
                     }
                 }
                 sb.append("],\"snapshot\":\"").append(LlmSpikeGui.jsonEscape(snapshot)).append('"');
-                // The position as a Forge puzzle [state] section (eval/PUZZLES.md): what
-                // eval/puzzle_build.py turns into a .pzl. Taken before the decision is applied.
+                // The position as a Forge puzzle [state] section (eval/PUZZLES.md), the body of a .pzl.
+                // Taken before the decision is applied.
                 appendPuzzleState(sb, pl);
                 sb.append('}');
                 LlmSpikeGui.EvalLog.write(sb.toString());

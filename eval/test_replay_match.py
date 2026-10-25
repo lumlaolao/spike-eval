@@ -448,6 +448,9 @@ def test_egress_gate():
     # remote refused without consent...
     check("remote refused without OPENROUTER_ALLOW_EGRESS",
           not rm.egress_allowed("https://openrouter.ai/api/v1", env={}))
+    # An endpoint written without a scheme has no host to read: it must need consent, never pass as local.
+    check("a scheme-less remote endpoint needs consent",
+          not rm.egress_allowed("openrouter.ai/api/v1", env={}))
     # ...and allowed once the opt-in is present.
     check("remote allowed with OPENROUTER_ALLOW_EGRESS=1",
           rm.egress_allowed("https://openrouter.ai/api/v1",

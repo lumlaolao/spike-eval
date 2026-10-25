@@ -201,8 +201,8 @@ def is_num(x):
     return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
-# Known non-answer strings that claude -p may emit when the CLI session is
-# rate-limited, auth-blocked, or otherwise unable to produce a real model reply.
+# Known non-answer strings a backend may return instead of a reply when it is rate-limited, auth-blocked or
+# otherwise unable to answer (first seen from the retired claude -p text lane; a provider can send the same).
 # These should be logged as bridge-down fallbacks by the emitter; the analyzer
 # surfaces them as a data-quality warning when they appear as raw_reply.
 # MUST stay in sync with isNonAnswer() in LlmSpikeGui.java (the bridge-level
