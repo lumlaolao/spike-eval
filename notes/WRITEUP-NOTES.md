@@ -36,6 +36,9 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   `demo-recordings` branch under `puzzles/hard-gen2-luna`, commit 8849d80.
   - By family: copy 9/25, grave 5/22, atog 1/10. Splice2, hoofdrain, drain2 and elf2 were all 0.
   - Floors on the same boards: 0. So 9.6% is above every trivial baseline, and the CI excludes 0.
+- **Luna on gen3, open split (owner-authorized, 2026-10-24/25):** 3 of 44 solved, 6.8% (Wilson 95% 2.3-18.2%),
+  every floor 0; $1.009 at list. By family: equip 3/10; tokens 0/19, landfall 0/9, infect 0/6. main b9fd9f8,
+  harness-epoch-72. Data: `demo-recordings` branch, `puzzles/hard-gen3-luna`, commit 7337377.
 - **Luna on the 10 hardest gen1 boards:** 0 of 20 attempts (`puzzles/hard-gen-luna-top10`).
 - Luna's real bill was about half the token-based estimate.
 
