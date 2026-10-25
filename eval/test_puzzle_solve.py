@@ -12,8 +12,18 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import puzzle_solve  # noqa: E402
 
+
+
+def classes_with_transcript():
+    """A classes directory holding the compiled Transcript, as a build of this overlay has."""
+    d = Path(tempfile.mkdtemp())
+    (d / "forge/spike").mkdir(parents=True)
+    (d / "forge/spike/Transcript.class").write_bytes(b"\xca\xfe\xba\xbe")
+    return d
+
+
 # A stand-in for puzzle_baselines.Build whose provenance() main() can write into puzzle-run.json.
-STUB_BUILD = {"return_value.provenance.return_value": {}}
+STUB_BUILD = {"return_value.provenance.return_value": {}, "return_value.classes": classes_with_transcript()}
 
 
 class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
@@ -173,7 +183,7 @@ class ResumeTest(unittest.TestCase):
                                                           rules_tool=False))
         puzzle_solve.write_manifest(root / pid, "fake:m", suite["suite_sha256"], pid, cond,
                                     dict(self.BUILD, build_overlay_sha="bbbbbbbbbbbb"))
-        stub = {"return_value.provenance.return_value": self.BUILD}
+        stub = {"return_value.provenance.return_value": self.BUILD, "return_value.classes": classes_with_transcript()}
         with mock.patch.object(puzzle_solve.pb, "Build", **stub), \
                 mock.patch.object(puzzle_solve, "solve_puzzle", side_effect=AssertionError("played")), \
                 mock.patch.object(puzzle_solve, "load_secrets"):
@@ -195,6 +205,8 @@ class BuildProvenanceTest(unittest.TestCase):
         seen = []
 
         class FakeBuild:
+            classes = classes_with_transcript()
+
             def __init__(self, build_dir, forge, allow_stale=False):
                 seen.append((build_dir, allow_stale))
 
@@ -257,6 +269,8 @@ class FullRecordTest(unittest.TestCase):
         envs = []
 
         class FakeBuild:
+            classes = classes_with_transcript()
+
             def __init__(self, build_dir, forge, allow_stale=False):
                 pass
 
@@ -283,6 +297,61 @@ class FullRecordTest(unittest.TestCase):
         run = json.loads((root / puzzle_solve.RUN_FILE).read_text())
         self.assertEqual(puzzle_solve.pf.sha256_file(root / run["suite_file"]),
                          puzzle_solve.pf.sha256_file(suite_path), "the suite, byte for byte")
+
+
+class RecordBuildTest(unittest.TestCase):
+    """A build compiled before Transcript would run a puzzle with no record while its manifest said it kept one: the
+    run refuses it unless --allow-no-record, which the manifest then states. A resume passing the run's own suite copy
+    as --suite does not copy the file onto itself."""
+
+    def run_main(self, classes, *extra, suite=None):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        rec = next(r for r in json.loads(suite_path.read_text())["puzzles"]
+                   if r["split"] == "open" and r["status"] == "active")
+        ran = []
+
+        class FakeBuild:
+            def __init__(self, build_dir, forge, allow_stale=False):
+                self.classes = classes
+
+            def provenance(self):
+                return {}
+
+            def run(self, env, out, **kw):
+                ran.append(env)
+                return 0
+
+        root = Path(tempfile.mkdtemp())
+        if suite == "own-copy":
+            (root / puzzle_solve.SUITE_COPY).write_bytes(suite_path.read_bytes())
+            suite_path = root / puzzle_solve.SUITE_COPY
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(io.StringIO()):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                               "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
+                              + list(extra))
+        return root, rec, ran
+
+    def test_a_build_without_transcript_is_refused_before_anything_runs(self):
+        with self.assertRaises(SystemExit) as cm:
+            self.run_main(Path(tempfile.mkdtemp()))
+        self.assertIn("Transcript", str(cm.exception))
+        self.assertIn("--allow-no-record", str(cm.exception))
+
+    def test_allowed_without_the_record_the_manifest_says_so(self):
+        root, rec, ran = self.run_main(Path(tempfile.mkdtemp()), "--allow-no-record")
+        self.assertEqual(len(ran), 1)
+        record = json.loads((root / rec["id"] / "batch-manifest.json").read_text())["record"]
+        self.assertIsNone(record["transcript_version"], "a run without the record must not claim one")
+
+    def test_the_runs_own_suite_copy_is_not_copied_onto_itself(self):
+        root, rec, ran = self.run_main(classes_with_transcript(), suite="own-copy")
+        self.assertEqual(len(ran), 1)
+
+    def test_the_version_is_the_stamp_versions_py_reads(self):
+        import versions
+        want = dict((name, value) for name, value, _, _ in versions.read_stamps())["Transcript.VERSION"]
+        self.assertEqual(puzzle_solve.transcript_version(), want)
 
 
 class DecisionModelSeatTest(unittest.TestCase):

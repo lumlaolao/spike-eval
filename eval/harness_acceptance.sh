@@ -1108,7 +1108,7 @@ fi
 # surfaced only in a paid run. Fails if: puzzle_solve.py does not run the seat on the loopback model;
 # puzzle_score.py refuses the result (suite or puzzle hash, solver, attempts); run_batch.py --panel does
 # not stamp a game line panel_score.py accepts (deck pin, engine, overlay, benchmark version, condition,
-# gates); the puzzle directory lacks its full record (Transcript: one http row per loopback request, the
+# gates); the puzzle directory lacks its full record (Transcript: one answered call per loopback request, the
 # engine log, archive_run.check_record clean); or the overlay the launcher ran is not this checkout (drift).
 # The panel launcher is a stand-in Forge home that runs the isolated classes from the real checkout, which is
 # never written.
@@ -1161,9 +1161,9 @@ if not reqs: problems.append("the puzzle seat never asked the loopback model")
 sys.path.insert(0, os.path.join(os.environ["REPO"], "eval")); import archive_run
 gaps, rec = archive_run.check_record(d+"/puzzle")
 if gaps: problems.append("the full record has gaps: %s"%gaps[:3])
-if rec["http_rows"]!=len(reqs): problems.append("%d transcript http rows for %d model requests"%(rec["http_rows"],len(reqs)))
+if rec["http_calls"]!=len(reqs) or rec["unanswered"]: problems.append("%d recorded http calls (%d unanswered) for %d model requests"%(rec["http_calls"],len(rec["unanswered"]),len(reqs)))
 if rec["attempts_with_record"]<1 or rec["engine_files"]<1: problems.append("no transcript-v1 record on the puzzle row: %s"%rec)
-else: facts.append("full record: %d http rows, %d engine logs"%(rec["http_rows"],rec["engine_files"]))
+else: facts.append("full record: %d http calls, %d engine logs"%(rec["http_calls"],rec["engine_files"]))
 if brc!=0: problems.append("run_batch --panel rc=%d"%brc)
 try:
     pr=json.load(open(d+"/panel_score.json"))

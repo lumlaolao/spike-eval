@@ -27,7 +27,6 @@ import argparse
 import functools
 import json
 import os
-import re
 import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -38,22 +37,26 @@ import cost_report  # noqa: E402
 import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
+import versions  # noqa: E402
 
 # The attempt seeds: k distinct seeds per puzzle, the same for every solver, outside every reserved band.
 ATTEMPT_BASE = 1
 RUN_FILE = "puzzle-run.json"
 # What makes two builds one harness for --resume: the overlay compiled, and whether a stale build was let run.
 BUILD_KEYS = ("build_overlay_sha", "stale_build_allowed")
-TRANSCRIPT_JAVA = pf.REPO / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/Transcript.java"
 SUITE_COPY = "suite.json"
+TRANSCRIPT_CLASS = "forge/spike/Transcript.class"
 
 
 def transcript_version():
-    """Transcript.VERSION, read from the source the build was compiled from (as eval/versions.py reads each stamp)."""
-    m = re.search(r'static final String VERSION = "([^"]+)"', TRANSCRIPT_JAVA.read_text(encoding="utf-8"))
-    if not m:
-        raise SystemExit("puzzle_solve: Transcript.VERSION not found in %s" % TRANSCRIPT_JAVA)
-    return m.group(1)
+    """Transcript.VERSION, as eval/versions.py reads it from the overlay."""
+    return dict((name, value) for name, value, _, _ in versions.read_stamps())["Transcript.VERSION"]
+
+
+def records(build):
+    """True when the build has Transcript compiled in: a build from before it writes no record."""
+    classes = getattr(build, "classes", None)
+    return isinstance(classes, (str, Path)) and (Path(classes) / TRANSCRIPT_CLASS).is_file()
 
 
 def keep_pzl(rec, out):
@@ -189,10 +192,10 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build):
     return bad
 
 
-def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
+def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True):
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
-    record = {"transcript_version": transcript_version(), "pzl_file": keep_pzl(rec, out),
+    record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
               "pzl_sha256": rec.get("pzl_sha256")}
     write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
     # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
@@ -221,6 +224,8 @@ def main(argv=None):
     ap.add_argument("--memory-tools", action="store_true")
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--build", default=None)
+    ap.add_argument("--allow-no-record", action="store_true",
+                    help="run on a build without Transcript (no http or engine record; the manifest says so)")
     ap.add_argument("--allow-stale-build", action="store_true",
                     help="run --build although it was not compiled from this checkout's overlay (recorded)")
     ap.add_argument("--forge", default=None)
@@ -253,6 +258,11 @@ def main(argv=None):
             and (ids is None or r["id"] in ids)]
     build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     prov = build.provenance()
+    recorded = records(build)
+    if not recorded and not a.allow_no_record:
+        raise SystemExit("build %s has no %s: it would run without the full record (the http and engine transcripts) "
+                         "the owner asked for. Build this overlay, or pass --allow-no-record"
+                         % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
         bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov)
         if bad:
@@ -265,7 +275,9 @@ def main(argv=None):
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root), spent(out_root, bound=True)), flush=True)
 
     ids = [r["id"] for r in todo]
-    shutil.copyfile(a.suite, str(out_root / SUITE_COPY))
+    suite_copy = out_root / SUITE_COPY
+    if not (suite_copy.exists() and os.path.samefile(a.suite, str(suite_copy))):
+        shutil.copyfile(a.suite, str(suite_copy))
     run_file = functools.partial(write_run, out_root, ids, a.k, a.budget_usd, build=prov, suite_file=SUITE_COPY)
     run_file(finished=False)
 
@@ -275,7 +287,7 @@ def main(argv=None):
             return rec["id"], "done", pb.read_results(out)
         if over_budget(out_root, a.budget_usd):
             return rec["id"], None, []
-        return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
+        return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded)
 
     skipped = 0
     try:

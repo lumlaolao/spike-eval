@@ -25,6 +25,23 @@ def sha(s):
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 
+HTTP = "http-1792886060000-4242-1.jsonl"
+GAME = "game-1-5.jsonl"
+REQ = "{\"model\":\"m\",\"messages\":[{\"role\":\"system\",\"content\":\"\u00e9t\u00e9\"}]}"
+RESP = "\n  \n{\"id\":\"gen-1\",\"choices\":[]}"
+
+
+def sent(seq, game=GAME):
+    return json.dumps({"t": "http", "phase": "sent", "seq": seq, "label": "Solver/smart", "game_file": game,
+                       "request_body": REQ, "request_sha256": sha(REQ),
+                       "request_headers": {"Content-Type": ["application/json"]}}) + "\n"
+
+
+def response(seq, game=GAME, status=200):
+    return json.dumps({"t": "http", "phase": "response", "seq": seq, "label": "Solver/smart", "game_file": game,
+                       "status": status, "response_body": RESP, "response_sha256": sha(RESP)}) + "\n"
+
+
 def make_run(finished=True):
     root = Path(tempfile.mkdtemp()) / "frontier-1"
     d = root / "hard-equip-1"
@@ -36,19 +53,14 @@ def make_run(finished=True):
     (d / "equip_1.pzl").write_text(PZL)
     (d / "batch-manifest.json").write_text(json.dumps({"condition": {}, "record": {
         "transcript_version": "transcript-v1", "pzl_file": "equip_1.pzl", "pzl_sha256": sha(PZL)}}))
-    req = "{\"model\":\"m\",\"messages\":[{\"role\":\"system\",\"content\":\"été\"}]}"
-    resp = "\n  \n{\"id\":\"gen-1\",\"choices\":[]}"
-    (t / "http-1-2.jsonl").write_text(json.dumps({"t": "http", "seq": 1, "request_body": req,
-                                                  "request_sha256": sha(req), "response_body": resp,
-                                                  "response_sha256": sha(resp), "status": 200,
-                                                  "request_headers": {"Content-Type": ["application/json"]}}) + "\n")
+    (t / HTTP).write_text(sent(1) + response(1))
     (t / "engine-equip_1-seed1-r0-3.jsonl").write_text(json.dumps({"t": "engine", "seq": 1, "type": "TURN",
                                                                    "message": "Turn 1"}) + "\n")
     (d / "puzzle-results.jsonl").write_text(json.dumps({
         "schema": "pzl-result-v1", "seed": 1, "transcript_version": "transcript-v1",
-        "transcript_http_file": "transcripts/http-1-2.jsonl",
+        "transcript_http_files": ["transcripts/" + HTTP], "model_calls": 1,
         "transcript_engine_file": "transcripts/engine-equip_1-seed1-r0-3.jsonl", "transcript_errors": 0}) + "\n")
-    (d / "game-1-5.jsonl").write_text("{\"t\":\"context_call\"}\n")
+    (d / GAME).write_text("{\"t\":\"context_call\",\"raw_reply\":\"TOOL CALL answer {}\"}\n")
     (d / "jvm.log").write_bytes(b"[HEADLESS] start\n\xff raw byte kept\n")
     return root
 
@@ -65,7 +77,7 @@ class RoundTripTest(unittest.TestCase):
         root = make_run()
         out, (paths, counts, gaps, problems) = pack(root)
         self.assertEqual((gaps, problems), ([], []))
-        self.assertEqual(counts["http_rows"], 1)
+        self.assertEqual(counts["http_calls"], 1)
         self.assertEqual(counts["engine_files"], 1)
         with tarfile.open(str(out)) as tar:
             back = {m.name: tar.extractfile(m).read() for m in tar.getmembers() if m.isfile()}
@@ -130,10 +142,10 @@ class RefusalTest(unittest.TestCase):
 
     def test_a_body_that_does_not_match_its_hash_or_a_cut_row_is_a_gap(self):
         root = make_run()
-        f = root / "hard-equip-1" / "transcripts" / "http-1-2.jsonl"
-        row = json.loads(f.read_text())
+        f = root / "hard-equip-1" / "transcripts" / HTTP
+        row = json.loads(response(1))
         row["response_body"] = row["response_body"][:-3]
-        f.write_text(json.dumps(row) + "\n" + "{\"t\":\"http\",\"request_bo\n")
+        f.write_text(sent(1) + json.dumps(row) + "\n" + "{\"t\":\"http\",\"request_bo\n")
         problems, _ = archive_run.check_record(root)
         self.assertTrue(any("response_body does not match" in p for p in problems), problems)
         self.assertTrue(any("not JSON" in p for p in problems), problems)
@@ -160,6 +172,64 @@ class RefusalTest(unittest.TestCase):
             self.assertEqual(archive_run.main([str(root), "--check"]), 0)
         self.assertEqual(sorted(str(p) for p in root.parent.rglob("*")), before)
         shutil.rmtree(str(root.parent))
+
+
+class RecordAskedForTest(unittest.TestCase):
+    """A puzzle whose manifest asked for the record (record.transcript_version) must have it: a build without
+    Transcript (an old build let run stale) writes rows with no record and no files, and that is a gap, not 0 gaps."""
+
+    def test_a_row_without_the_record_the_manifest_asked_for_is_a_gap(self):
+        root = make_run()
+        d = root / "hard-equip-1"
+        shutil.rmtree(str(d / "transcripts"))
+        (d / "puzzle-results.jsonl").write_text(json.dumps({"schema": "pzl-result-v1", "seed": 1, "model_calls": 25})
+                                                + "\n")
+        problems, _ = archive_run.check_record(root)
+        self.assertTrue(any("no transcript-v1 record" in p for p in problems), problems)
+
+    def test_a_row_that_billed_calls_must_name_an_http_file_that_exists(self):
+        root = make_run()
+        (root / "hard-equip-1" / "transcripts" / HTTP).unlink()
+        problems, _ = archive_run.check_record(root)
+        self.assertTrue(any("http file" in p for p in problems), problems)
+
+    def test_fewer_answered_calls_than_the_games_replies_is_a_gap(self):
+        root = make_run()
+        d = root / "hard-equip-1"
+        with open(d / GAME, "a") as f:
+            f.write("{\"t\":\"context_call\",\"raw_reply\":\"TOOL CALL answer {}\"}\n")
+            f.write("{\"t\":\"context_call\",\"raw_reply\":null}\n")  # no reply: maybe nothing was sent
+        problems, counts = archive_run.check_record(root)
+        self.assertTrue(any("1 answered http calls for 2 model replies" in p for p in problems), problems)
+        with open(d / "transcripts" / HTTP, "a") as f:
+            f.write(sent(2) + response(2))
+        self.assertEqual(archive_run.check_record(root)[0], [])
+
+    def test_a_call_sent_and_never_answered_is_listed_not_hidden(self):
+        root = make_run()
+        with open(root / "hard-equip-1" / "transcripts" / HTTP, "a") as f:
+            f.write(sent(2))
+        problems, counts = archive_run.check_record(root)
+        self.assertEqual(problems, [])
+        self.assertEqual(len(counts["unanswered"]), 1, counts)
+        out, _ = pack(root)
+        self.assertIn("# UNANSWERED", Path(str(out) + ".manifest.sha256").read_text())
+
+
+class WhereAndWhatTest(unittest.TestCase):
+    def test_a_puzzle_directory_of_a_live_run_is_refused(self):
+        root = make_run(finished=False)
+        with self.assertRaises(SystemExit) as cm:
+            with mock.patch.object(archive_run, "REPO", root):
+                archive_run.pack(root / "hard-equip-1", root.parent / "one.tar.gz")
+        self.assertIn("not finished", str(cm.exception))
+
+    def test_a_side_manifest_that_differs_from_the_one_inside_is_caught(self):
+        root = make_run()
+        out, _ = pack(root)
+        side = Path(str(out) + ".manifest.sha256")
+        side.write_text(side.read_text().replace("suite.json", "suite.jsn"))
+        self.assertTrue(any("manifest.sha256" in p for p in archive_run.verify(out)), archive_run.verify(out))
 
 
 if __name__ == "__main__":
