@@ -18,6 +18,7 @@ Forge enforces ("Win" or "Survive" by turn N).
 | `eval/puzzle_baselines.py` | the free arms (random, pass, first, floor, Forge AI), reference lines, tiers, `verify` |
 | `eval/puzzle_solve.py` | runs one model on one split of a frozen suite, k attempts per puzzle, with `--budget-usd` |
 | `eval/puzzle_score.py` | scores one solver on one split, every number beside its floors |
+| `eval/puzzle_watch.py` | reads a `puzzle_solve.py` run while it plays or after: per-puzzle state, cost and flags |
 | `eval/test_puzzle_suite.py` | Python tests (no JVM) |
 | `LlmSpikePuzzle.java` | runs one puzzle headless, many seeds per JVM (`PZL_SEEDS`), one result row each |
 | `PuzzleArms.java` (+ `PuzzleArmsTest`) | the zero-model arms and the draw tape that makes a random rollout replayable |
@@ -129,11 +130,11 @@ python3 eval/puzzle_baselines.py prove --suite S.json [--ids a,b] --budget 1500 
   `--opponent ai` proves against the Forge AI's replies only.
 - A rollout stops after `PZL_SEARCH_MAX_DRAWS` choices (default 3000), outside its prefix only, and counts as
   not solved: a random completion can loop (an ability activated forever) until the wall-clock cap or the heap
-  ends it, and those rollouts used to be reported as drift (prove-v1: PS_ELD1, PS_DOM0, PS_M204).
+  ends it, and is not drift (prove-v1 called PS_ELD1, PS_DOM0 and PS_M204 drift for this).
 - A subtree whose every line has been played is never replayed (rollouts are deterministic given their line),
   and its solves are remembered.
-- Not yet branched on: the engine seed (one seed per proof). Since epoch 56 the search arm branches over every split
-  of combat damage and of a divided spell ("distribute 5 damage"); the other arms still split evenly.
+- Not yet branched on: the engine seed (one seed per proof). The search arm branches over every split of combat
+  damage and of a divided spell ("distribute 5 damage"); the other arms split evenly.
 - Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
 
 ## Proving a written line
@@ -212,7 +213,7 @@ sizes included (a target shown as "(5/5)" before Mystic Subdual and "(-1/1)" aft
 planeswalker's current loyalty. The final state is deliberately not compared: the opponent's replies change it too
 (RP_045's first check called a line where the opponent's Scavenging Ooze ate a card a second solution).
 `uniqueness_difference` lists what differed.
-`PZL_SEARCH_LINES` (default 32; it was 4, which gave up on RP_034) bounds the lines tried per choice point.
+`PZL_SEARCH_LINES` (default 32; 4 gave up on RP_034) bounds the lines tried per choice point.
 `uniqueness`: `unique` (none found) or `multiple` (`uniqueness_second_line` and `uniqueness_second_actions`
 show it); `uniqueness_exhausted` of `uniqueness_deviations` deviations were played out completely, and when all
 were, "unique" is exhaustive rather than "not found within the budget". `uniqueness_unproven_alternatives`
@@ -228,6 +229,10 @@ python3 eval/puzzle_format.py rules-candidates --suite rules --out runs/puzzles/
 python3 eval/puzzle_baselines.py run --suite runs/puzzles/rules-candidates.json --rollouts 50 -j 2 --write runs/puzzles/rules-measured.json
 python3 eval/puzzle_format.py freeze runs/puzzles/rules-measured.json --out eval/suites/puzzles-rules-v1.json
 ```
+
+The full rules suite is not frozen yet. The frozen one is a 36-puzzle sample,
+`eval/suites/puzzles-rules-sample-v1.json` (29 active, all on the open split; how it was built:
+`eval/puzzles/rules-pilot/benchmark-v1/REPORT.md`).
 
 A rules puzzle is solved when its acceptance state holds, so the arms and the scorer need nothing new. Its reference
 line may also be its search proof (`arm: search`): when neither a random rollout nor Forge's AI solves it, the search
@@ -321,7 +326,8 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - A run stopped part way (a container restart) continues with the same command plus `--resume`: a puzzle whose
   k attempts on this suite are already in `--out` is skipped; one cut off part way is played again from seed 1,
   its rows so far and its JVM log renamed `puzzle-results.partial<n>.jsonl` and `jvm.partial<n>.log` (never
-  scored, still priced). A resume into a directory made under another model, suite or seat condition is refused.
+  scored, still priced). A resume into a directory made under another model, suite or seat condition, or on
+  another build (another compiled overlay, or a stale build let run where the first was not), is refused.
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`
