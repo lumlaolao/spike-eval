@@ -10727,6 +10727,8 @@ public final class LlmSpikeGui {
          * 2026-10-25). Unset, or a model it does not name: no ceiling. Unreadable: refused, so a run never goes out
          * believing it is capped.
          */
+        /** OPENROUTER_MAX_PRICE as read at class-init; not final so a test can construct a bridge under a value. */
+        static String maxPriceEnv = System.getenv("OPENROUTER_MAX_PRICE");
         static String maxPriceField(String env, String model) {
             if (env == null || env.isBlank()) return null;
             try {
@@ -10755,8 +10757,7 @@ public final class LlmSpikeGui {
         private final HttpClient client;
         private final ModelCfg cfg;
         private final String baseUrl;
-        /** maxPriceField for this bridge's model; package-private so a test can set it (the environment is fixed). */
-        String maxPrice;
+        private final String maxPrice;   // maxPriceField for this bridge's model, or null
         private final boolean fastTier; // label is always "<seat>/smart" or "<seat>/fast" — see PlayerControllerLLM ctor
         private final long timeoutMs;
         private long totalMs = 0;
@@ -10811,7 +10812,7 @@ public final class LlmSpikeGui {
             this.baseUrl = baseUrl;
             this.fastTier = label != null && label.endsWith("/fast");
             this.cfg = ModelCfg.forModel(model);
-            this.maxPrice = maxPriceField(System.getenv("OPENROUTER_MAX_PRICE"), model);
+            this.maxPrice = maxPriceField(maxPriceEnv, model);
             this.timeoutMs = timeoutMs;
             this.client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofMillis(timeoutMs))
@@ -11044,6 +11045,14 @@ public final class LlmSpikeGui {
             }
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
+                if (maxPrice != null && resp.body() != null
+                        && resp.body().toLowerCase(java.util.Locale.ROOT).contains("no endpoints")) {
+                    // Under a ceiling this can mean no endpoint at that price (five frontier models have one at
+                    // list), not no function calling: native tools stay, and the log names the ceiling.
+                    System.out.println("[OPENROUTER " + label + "] [PRICE-CEILING] no endpoint at or under " + maxPrice
+                            + " took the request; native tools kept");
+                    return null;
+                }
                 if (toolsJson != null && refusesTools(resp.statusCode(), resp.body())) {
                     // Retrying the same request cannot work. Stop offering tools on this bridge so the
                     // seat keeps its lookups through the text grammar, and say so on the game line.
@@ -11547,6 +11556,8 @@ public final class LlmSpikeGui {
                 + ",\"game_cap_ms\":" + capMs
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
+                // Routing too: a batch scrubs it, so a game names it only when something else set it.
+                + ",\"openrouter_max_price\":\"" + jsonEscape(System.getenv().getOrDefault("OPENROUTER_MAX_PRICE", "")) + "\""
                 + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""

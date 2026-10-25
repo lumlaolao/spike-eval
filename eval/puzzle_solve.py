@@ -22,10 +22,8 @@ An openrouter: model sends each puzzle's position to openrouter.ai: the egress o
 (OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here. So does a
 jev: decision model (OpenRouter's Decisions API, DecisionsBridge), which also cannot take --memory-tools.
 
---max-price-at-list (an openrouter: model only) sends every request a price ceiling at the model's list price in
-eval/pricing/prices.json (OPENROUTER_MAX_PRICE, OpenRouter's provider.max_price), so latency routing never lands on
-a dearer priority tier (owner, 2026-10-25); each puzzle's manifest records it. --budget-usd is still checked at the
-dearest endpoint.
+--max-price-at-list (an openrouter: model only) caps every request at the model's list price (OPENROUTER_MAX_PRICE);
+eval/PUZZLES.md says how and what the manifest records.
 
 A claude-cli: model (the local Claude Code CLI, ClaudeCliBridge) is a development lane on the operator's own Claude
 subscription (owner, 2026-10-24): it runs only with CLAUDE_CLI_SEAT=1, and its rows are stamped dev_lane, which
@@ -196,11 +194,12 @@ def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None, 
     write_json(Path(out_root) / RUN_FILE, run)
 
 
-def resume_conflicts(out_root, ids, model, suite_sha, cond, build):
+def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None):
     """The puzzle directories under out_root made under another model, suite or seat condition, or on another
-    build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale): a resume into them
+    build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale), or price ceiling
+    (`max_price`, max_price_env's JSON or None: a ceiling can move a request to another provider): a resume into them
     would pool two conditions in one score (STANDARDS section 4). A directory from before builds were recorded is
-    another build."""
+    another build; one from before the ceiling existed was uncapped."""
     bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
     for pid in ids:
         f = Path(out_root) / pid / "batch-manifest.json"
@@ -214,6 +213,8 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build):
         was, was_build = manifest.get("condition") or {}, manifest.get("build") or {}
         diff = [key for key in now if was.get(key) != now[key]]
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
+        if (manifest.get("record") or {}).get("openrouter_max_price") != (json.loads(max_price) if max_price else None):
+            diff.append("openrouter_max_price")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
@@ -302,6 +303,9 @@ def main(argv=None):
         raise SystemExit("OPENROUTER_ALLOW_EGRESS=1 is not set: an openrouter: or jev: model sends each position to "
                          "openrouter.ai, and that needs the owner's opt-in (secrets.env)")
     max_price = max_price_env(cost_report.load_prices(), a.model) if a.max_price_at_list else None
+    if max_price and not all(v > 0 for v in json.loads(max_price)[cost_report.model_id(a.model)].values()):
+        raise SystemExit("--max-price-at-list needs a list price above 0 for %s (eval/pricing/prices.json): "
+                         "every request would be refused" % a.model)
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
@@ -313,7 +317,8 @@ def main(argv=None):
                          "the owner asked for. Build this overlay, or pass --allow-no-record"
                          % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
-        bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov)
+        bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov,
+                               max_price)
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))

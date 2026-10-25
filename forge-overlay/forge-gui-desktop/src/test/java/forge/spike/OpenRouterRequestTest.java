@@ -49,6 +49,14 @@ public class OpenRouterRequestTest {
                 respond(ex, "{\"choices\":[{\"message\":{\"content\":\"CHOICE: 1\"},\"finish_reason\":\"stop\"}],"
                         + "\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":5}}");
         });
+        // No endpoint under the ceiling: OpenRouter's wording for a tool request with nowhere to go.
+        server.createContext("/ceiling/v1/chat/completions", ex -> {
+            bodies.add(read(ex));
+            byte[] b = "{\"error\":{\"message\":\"No endpoints found that support tool use.\",\"code\":404}}"
+                    .getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(404, b.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        });
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
     }
@@ -62,12 +70,11 @@ public class OpenRouterRequestTest {
 
     private List<String> twoBodies(String label, String model, boolean tools) { return twoBodies(label, model, tools, null); }
 
-    /** maxPriceEnv: what OPENROUTER_MAX_PRICE would hold (the production constructor reads the real environment). */
+    /** maxPriceEnv: what OPENROUTER_MAX_PRICE holds; the constructor reads it, as it reads the environment. */
     private List<String> twoBodies(String label, String model, boolean tools, String maxPriceEnv) {
         bodies.clear();
         calls.set(0);
-        LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge(label, model, null, base, 5000);
-        bridge.maxPrice = LlmSpikeGui.OpenRouterBridge.maxPriceField(maxPriceEnv, model);
+        LlmSpikeGui.OpenRouterBridge bridge = withCeiling(maxPriceEnv, () -> new LlmSpikeGui.OpenRouterBridge(label, model, null, base, 5000));
         if (tools) bridge.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         else bridge.ask("play");
         Assert.assertEquals(bodies.size(), 2, "the original request and its truncation retry");
@@ -171,6 +178,32 @@ public class OpenRouterRequestTest {
             Assert.assertThrows(IllegalArgumentException.class,
                     () -> LlmSpikeGui.OpenRouterBridge.maxPriceField(bad, "openai/gpt-6-luna"));
         }
+    }
+
+    private static <T> T withCeiling(String env, java.util.function.Supplier<T> make) {
+        String was = LlmSpikeGui.OpenRouterBridge.maxPriceEnv;
+        LlmSpikeGui.OpenRouterBridge.maxPriceEnv = env;
+        try { return make.get(); } finally { LlmSpikeGui.OpenRouterBridge.maxPriceEnv = was; }
+    }
+
+    /** pr-review of #327: with a ceiling, "no endpoints" can mean none at that price (DeepSeek V4.1 Flash, GLM 5.3 and
+     *  the Muse models have one endpoint at list), not no function calling. Such a refusal is logged as the ceiling's
+     *  and keeps native tools; the same refusal without a ceiling still moves the seat to the text grammar. */
+    @Test
+    public void aRefusalUnderACeilingKeepsNativeTools() {
+        String ceilingBase = base.replace("/v1", "/ceiling/v1");
+        String model = "openai/gpt-6.1-sol";
+        LlmSpikeGui.OpenRouterBridge capped = withCeiling(CEILING,
+                () -> new LlmSpikeGui.OpenRouterBridge("ceiling/smart", model, null, ceilingBase, 5000));
+        bodies.clear();
+        capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertFalse(NativeTools.DOWNGRADED.contains("ceiling/smart"));
+        Assert.assertTrue(bodies.size() >= 2 && bodies.get(bodies.size() - 1).contains("\"tools\""), "asked again with tools");
+
+        LlmSpikeGui.OpenRouterBridge plain = new LlmSpikeGui.OpenRouterBridge("plain/smart", model, null, ceilingBase, 5000);
+        plain.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertTrue(NativeTools.DOWNGRADED.remove("plain/smart"), "without a ceiling the refusal is the tools'");
     }
 
     private static String read(HttpExchange ex) throws IOException {

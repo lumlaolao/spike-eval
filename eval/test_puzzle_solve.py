@@ -156,6 +156,23 @@ class ResumeTest(unittest.TestCase):
     BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
              "stale_build_allowed": False}
 
+    def test_a_resume_with_another_price_ceiling_is_refused(self):
+        # standards review of #327: a ceiling can move a request to another provider, so capped and uncapped attempts
+        # are not resumed into one directory. A directory from before the ceiling existed was uncapped.
+        root = Path(tempfile.mkdtemp())
+        cond = {"MEMORY_TOOLS": "0"}
+        cap = '{"m": {"prompt": 2, "completion": 10}}'
+        puzzle_solve.write_manifest(root / "capped", "m", "S", "capped", cond, self.BUILD,
+                                    {"openrouter_max_price": json.loads(cap)})
+        puzzle_solve.write_manifest(root / "old", "m", "S", "old", cond, self.BUILD)
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["capped"], "m", "S", cond, self.BUILD, cap), [])
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["old"], "m", "S", cond, self.BUILD), [])
+        for pid, ceiling in (("capped", None), ("old", cap),
+                             ("capped", '{"m": {"prompt": 3, "completion": 10}}')):
+            bad = puzzle_solve.resume_conflicts(root, [pid], "m", "S", cond, self.BUILD, ceiling)
+            self.assertEqual(len(bad), 1, (pid, ceiling))
+            self.assertIn("openrouter_max_price", bad[0])
+
     def test_a_resume_on_another_build_is_refused(self):
         # pr-review of #319: the attempts of two harnesses pooled in one score when a resume ran on another build.
         root = Path(tempfile.mkdtemp())
@@ -299,38 +316,44 @@ class FullRecordTest(unittest.TestCase):
                          puzzle_solve.pf.sha256_file(suite_path), "the suite, byte for byte")
 
 
+def run_solve(classes, *extra, model="greedy:", suite=None):
+    """main() on the gen2 suite's first open active puzzle with a FakeBuild of `classes` that records each JVM's env:
+    (the run root, the puzzle record, the envs)."""
+    suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+    rec = next(r for r in json.loads(suite_path.read_text())["puzzles"]
+               if r["split"] == "open" and r["status"] == "active")
+    ran = []
+
+    class FakeBuild:
+        def __init__(self, build_dir, forge, allow_stale=False):
+            self.classes = classes
+
+        def provenance(self):
+            return {}
+
+        def run(self, env, out, **kw):
+            ran.append(env)
+            return 0
+
+    root = Path(tempfile.mkdtemp())
+    if suite == "own-copy":
+        (root / puzzle_solve.SUITE_COPY).write_bytes(suite_path.read_bytes())
+        suite_path = root / puzzle_solve.SUITE_COPY
+    with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+            contextlib.redirect_stdout(io.StringIO()):
+        puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", model, "--k", "1",
+                           "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
+                          + list(extra))
+    return root, rec, ran
+
+
 class RecordBuildTest(unittest.TestCase):
     """A build compiled before Transcript would run a puzzle with no record while its manifest said it kept one: the
     run refuses it unless --allow-no-record, which the manifest then states. A resume passing the run's own suite copy
     as --suite does not copy the file onto itself."""
 
     def run_main(self, classes, *extra, suite=None):
-        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
-        rec = next(r for r in json.loads(suite_path.read_text())["puzzles"]
-                   if r["split"] == "open" and r["status"] == "active")
-        ran = []
-
-        class FakeBuild:
-            def __init__(self, build_dir, forge, allow_stale=False):
-                self.classes = classes
-
-            def provenance(self):
-                return {}
-
-            def run(self, env, out, **kw):
-                ran.append(env)
-                return 0
-
-        root = Path(tempfile.mkdtemp())
-        if suite == "own-copy":
-            (root / puzzle_solve.SUITE_COPY).write_bytes(suite_path.read_bytes())
-            suite_path = root / puzzle_solve.SUITE_COPY
-        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
-                contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
-                               "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
-                              + list(extra))
-        return root, rec, ran
+        return run_solve(classes, *extra, suite=suite)
 
     def test_a_build_without_transcript_is_refused_before_anything_runs(self):
         with self.assertRaises(SystemExit) as cm:
@@ -435,13 +458,12 @@ class ClaudeCliSeatTest(unittest.TestCase):
         self.assertFalse(any(k.startswith("CLAUDE") for k in puzzle_solve.condition(a)), "another model's condition moved")
 
 
-
 class MaxPriceAtListTest(unittest.TestCase):
     """Owner, 2026-10-25: a frontier run must not be routed to a priority tier (GPT-6.1 Sol's costs 6x list).
     --max-price-at-list sends each request a ceiling at the model's list price in eval/pricing/prices.json, in USD per
     million tokens, exactly (a ceiling rounded below list would rule out the list-price endpoint itself)."""
 
-    SUITE = str(Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json")
+    SUITE = DecisionModelSeatTest.SUITE
 
     def test_the_ceiling_is_the_list_price_per_million_tokens_exactly(self):
         prices = puzzle_solve.cost_report.load_prices()
@@ -453,30 +475,8 @@ class MaxPriceAtListTest(unittest.TestCase):
         self.assertNotIn("e-", puzzle_solve.max_price_env(prices, "openrouter:deepseek/deepseek-v4.1-flash"))
 
     def run_main(self, model, *extra):
-        envs = []
-
-        class FakeBuild:
-            classes = classes_with_transcript()
-
-            def __init__(self, build_dir, forge, allow_stale=False):
-                pass
-
-            def provenance(self):
-                return {}
-
-            def run(self, env, out, **kw):
-                envs.append(env)
-                return 0
-
-        suite = json.loads(Path(self.SUITE).read_text())
-        rec = next(r for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
-        root = Path(tempfile.mkdtemp())
-        argv = ["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1", "--budget-usd", "1",
-                "--ids", rec["id"], "--out", str(root), "--build", "/b"] + list(extra)
-        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
-                mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}), \
-                contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(argv)
+        with mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}):
+            root, rec, envs = run_solve(classes_with_transcript(), *extra, model=model)
         return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
 
     def test_the_flag_reaches_the_jvm_and_the_manifest_records_it(self):
@@ -497,6 +497,12 @@ class MaxPriceAtListTest(unittest.TestCase):
                                    "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
                                    "--max-price-at-list"])
             self.assertIn("--max-price-at-list", str(cm.exception.code), model)
+
+    def test_it_is_refused_for_a_model_with_no_list_price_above_zero(self):
+        # pr-review of #327: the JVM refuses a zero ceiling, so every puzzle would fail one by one; refuse it once here.
+        with self.assertRaises(SystemExit) as cm:
+            self.run_main("openrouter:fake/harness-model", "--max-price-at-list")
+        self.assertIn("list price", str(cm.exception.code))
 
 
 if __name__ == "__main__":

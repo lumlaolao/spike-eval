@@ -346,8 +346,11 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   routing never lands on a dearer priority tier (owner, 2026-10-25). OpenRouter refuses a request no endpoint at or
   under it can serve, so before a run check that each model has an endpoint that takes tools at list
   (`/api/v1/models/<id>/endpoints`; all 21 frontier models did on 2026-10-25). Each puzzle's `batch-manifest.json`
-  records it (`record.openrouter_max_price`, null without the flag); `--budget-usd` is still checked at the dearest
-  endpoint.
+  records it (`record.openrouter_max_price`, null without the flag), and `--resume` refuses a directory played
+  under another ceiling. A refusal under the ceiling is logged `[PRICE-CEILING]` and keeps native tools; that
+  decision is lost like any failed call. The ceiling is the base list price, so it also rules out a long-context
+  tier (above 272K prompt tokens on GPT-6.1 Sol, 200K on Grok, 100K on Haiku 5.5; the largest prompt recorded is
+  69K). `--budget-usd` is still checked at the dearest endpoint.
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 - A `claude-cli:` model (Claude Code in print mode, `docs/harness/ARCHITECTURE.md` section 9) is a development lane

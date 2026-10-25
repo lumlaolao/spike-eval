@@ -27,7 +27,7 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
     chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
     are not in it, and Jev Router is out (owner, 2026-10-24);
   - caps at the dearest endpoint come to about $486, kept (owner, 2026-10-25); the run passes `puzzle_solve.py
-    --max-price-at-list`, so no request is routed to a priority tier above list (PR adding it; every model had an
+    --max-price-at-list`, so no request is routed to a priority tier above list (PR #327; every model had an
     endpoint that takes tools at list on 2026-10-25);
   - the owner requires full logs for this run, from the model chats to the engine logs: the full-transcript and
     archive change (PR #324, open) must land on main before it starts;

@@ -489,7 +489,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
     `puzzle_solve.py --max-price-at-list` rules that out: it sets `OPENROUTER_MAX_PRICE` to the list price, and the
     bridge adds it to its one `provider` object as `max_price` (`OpenRouterBridge.maxPriceField`; an unreadable
-    value is refused, never dropped). A batch has no such flag and scrubs the variable (`RUN_DEFINING_KEYS`).
+    value is refused, never dropped). It is routing, like the sort: stamped on the game line as
+    `openrouter_max_price` and listed in `aggregate.NON_BEHAVIORAL_PROVENANCE`; a puzzle resume refuses another
+    ceiling. Under a ceiling a "no endpoints" refusal is logged `[PRICE-CEILING]` and keeps native tools (it can
+    mean none at that price). A batch has no such flag and scrubs an ambient value (`RUN_DEFINING_KEYS`).
     The file's `comment` names the models with a long-context tier, where each starts, and which `max` counts one,
     with the largest prompt recorded in one call.
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
