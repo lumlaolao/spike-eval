@@ -16,8 +16,8 @@ puzzle records the format in which all of its referenced cards are legal.
 | `CATALOG.md` | Human-readable index grouped by rules area, with counts. |
 | `harvest.py` | The repeatable harvester (stdlib only): collect → convert → normalise → catalog. |
 | `tools/make_curated.py` | Emits the hand-curated items (Cranial Insertion, Ask a Magic Judge, official rulings) in target schema. |
-| `raw/api/` | As-collected payloads (RulesGuru API dumps, `sets.json` from RulesGuru's set list). |
-| `raw/items/` | Converted/curated items in target schema — the input to `normalize`. |
+| `raw/api/` | As-collected payloads (RulesGuru API dumps, `sets.json` from RulesGuru's set list). Git-ignored: not in a clone. |
+| `raw/items/` | Converted/curated items in target schema — the input to `normalize`. `rulesguru.jsonl` here is git-ignored. |
 
 ## Pipeline
 
@@ -32,25 +32,30 @@ is idempotent and new sources can be added without collisions.
 
 ### Commands
 
+From the repository root (the scripts find their files relative to themselves). In a clone,
+`raw/api/` and `raw/items/rulesguru.jsonl` do not exist (git-ignored), so step 4 alone would rewrite
+`puzzles.jsonl` without its 513 RulesGuru items: run steps 1 and 2 first, or leave `puzzles.jsonl`
+alone.
+
 ```bash
 # 1. (optional) collect raw items from the public RulesGuru API (needs network).
 #    The server asks for >= 1 request / 2s; keep --delay >= 2.
-python3 harvest.py fetch-rulesguru --n 150 --delay 2.2 --profile depth
-python3 harvest.py fetch-rulesguru --n 30  --delay 2.2 --profile breadth
+python3 puzzles/modern/harvest.py fetch-rulesguru --n 150 --delay 2.2 --profile depth
+python3 puzzles/modern/harvest.py fetch-rulesguru --n 30  --delay 2.2 --profile breadth
 
 # 2. convert raw payloads to target schema (drops pre-2019 card sets and
 #    questions whose answers the source itself marks unsupported)
-python3 harvest.py convert
+python3 puzzles/modern/harvest.py convert
 
 # 3. regenerate the curated hand-written items (no network)
-python3 tools/make_curated.py
+python3 puzzles/modern/tools/make_curated.py
 
 # 4. validate + de-dupe -> puzzles.jsonl
-python3 harvest.py normalize
+python3 puzzles/modern/harvest.py normalize
 
 # 5. histograms / catalog
-python3 harvest.py stats
-python3 harvest.py catalog
+python3 puzzles/modern/harvest.py stats
+python3 puzzles/modern/harvest.py catalog
 ```
 
 ## Item schema (additive; unknown keys are preserved)
@@ -138,7 +143,7 @@ verbatim quotes short.
 
 1. **More RulesGuru items** — re-run `fetch-rulesguru` with a different
    `--profile`, or add criteria to `RG_QUERIES` / `RG_QUERIES_BREADTH`
-   (tags are listed in `RAW/api/rulesguru.jsonl`). De-dupe is automatic.
+   (tags are listed in `raw/api/rulesguru.jsonl`). De-dupe is automatic.
 2. **A new source** — either (a) write a converter that appends target-schema
    objects to `raw/items/<source>.jsonl`, or (b) drop a `raw/api/<source>.jsonl`
    and add a converter function alongside `rg_convert`. Then `normalize`.
@@ -159,5 +164,7 @@ verbatim quotes short.
   only a handful of items exercise dependency (613.8) explicitly.
 - **Multiplayer / Two-Headed Giant** coverage is minimal (3 items).
 - RulesGuru carries **no per-question date**, so `date` is a card-era proxy.
-- `machine_verifiable` has not been checked against an actual engine run; doing
-  so (Forge `GameCopier`-style replay) is the natural next step.
+- `machine_verifiable` is not checked against an engine run in this corpus. The
+  questions built into Forge puzzles and proven there (and the ones where Forge
+  disagreed with the judge) are recorded in `eval/puzzles/rules-pilot/` (its
+  `REPORT.md` and `manifest.jsonl`).
