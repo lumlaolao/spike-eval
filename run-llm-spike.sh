@@ -20,7 +20,7 @@ cd "$(dirname "$0")/forge-gui-desktop"
 # that silently emptied a full overnight run. Deliberately NOT self-healing:
 # regenerating has no lock, so N parallel launchers would race each other
 # (see CLAUDE.md). Refuse loudly and let the caller regenerate once.
-CP_FILE=/tmp/forge_cp.txt
+CP_FILE="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"     # FORGE_CP_FILE: elsewhere (play-vs-llm.sh passes it on)
 if [ ! -s "$CP_FILE" ]; then
   echo "[launcher] missing or empty $CP_FILE (maven-generated classpath)." >&2
   echo "[launcher] regenerate it ONCE, with no games running:" >&2

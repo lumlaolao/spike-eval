@@ -119,10 +119,11 @@ fi
     "first (or set FORGE_HOME to your checkout)" >&2; exit 4; }
 # The launcher's classpath file lives in /tmp, which a reboot clears; one person's game can rebuild it (no batch races
 # it here, the reason run-llm-spike.sh only refuses).
-if [ ! -s /tmp/forge_cp.txt ] && [ -f "$FORGE_HOME/pom.xml" ]; then
-  echo "play-vs-llm: rebuilding Forge's classpath list (/tmp/forge_cp.txt), once after a reboot"
+export FORGE_CP_FILE="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"
+if [ ! -s "$FORGE_CP_FILE" ] && [ -f "$FORGE_HOME/pom.xml" ]; then
+  echo "play-vs-llm: rebuilding Forge's classpath list ($FORGE_CP_FILE), once after a reboot"
   (cd "$FORGE_HOME" && mvn -q -o -pl forge-gui-desktop -am dependency:build-classpath \
-      -Dmdep.outputFile=/tmp/forge_cp.txt)
+      -Dmdep.outputFile="$FORGE_CP_FILE")
 fi
 mkdir -p "$out"
 if [ "$commentary" = 1 ]; then

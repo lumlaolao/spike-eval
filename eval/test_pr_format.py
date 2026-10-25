@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
 import pr_format as pf  # noqa: E402
@@ -117,7 +118,8 @@ class PrFormatTest(unittest.TestCase):
         self.assertTrue(any("full pass" in p for p in gate(line.replace("abc123456", "fff000111"), ["scripts/pr_merge.sh"])))
         self.assertEqual(gate(line, ["install.sh"]), [])
         self.assertEqual(gate("- read it twice", ["docs/a.md"]), [])
-        for launcher in ("play-vs-llm.sh", "setup.sh"):
+        # Every launcher at the root, so a new one cannot skip the acceptance requirement unnoticed.
+        for launcher in sorted(p.name for p in Path(__file__).resolve().parent.parent.glob("*.sh")):
             self.assertTrue(any("has no line" in p for p in gate("- tried it", [launcher])), launcher)
 
     def test_the_gate_checks_the_commits_on_the_pr_and_each_skill_vocabulary(self):

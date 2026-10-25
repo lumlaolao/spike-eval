@@ -20,7 +20,7 @@ into a Forge checkout; it does not redistribute Forge (GPL).
 ## Quick start: play the model on your own computer
 
 ```bash
-git clone https://github.com/SeanCThomas0/mtg-forge-llm-agent.git && cd mtg-forge-llm-agent
+git clone https://github.com/SeanCThomas0/mtg-forge-llm-agent.git && cd mtg-forge-llm-agent   # or unzip a copy, cd in
 bash setup.sh          # Forge at the tested commit, these changes on top, the build, your OpenRouter key
 bash play-vs-llm.sh    # you against GPT-6 Luna in Forge's window
 ```

@@ -29,9 +29,15 @@ forge="$(cd "$(dirname "$forge")" && pwd)/$(basename "$forge")"
 step() { echo; echo "==> $*"; }
 
 # ---- 1. tools ---------------------------------------------------------------------------------------------------
-# The Homebrew JDK on a Mac is not on PATH until linked; run-llm-spike.sh uses the same one.
-for jdk in /opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17; do
-  if [ -x "$jdk/bin/java" ] && ! command -v java >/dev/null 2>&1; then export PATH="$jdk/bin:$PATH"; fi
+# The Homebrew JDK goes first when it is there: it is keg-only (not on PATH), macOS always has a /usr/bin/java that
+# only says no Java is installed, and Homebrew's mvn would otherwise build on its own newest JDK. run-llm-spike.sh
+# plays on the same one. SETUP_JDK_DIRS replaces the list (a test seam).
+for jdk in ${SETUP_JDK_DIRS:-/opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17}; do
+  if [ -x "$jdk/bin/java" ]; then
+    export PATH="$jdk/bin:$PATH"
+    if [ -d "$jdk/libexec/openjdk.jdk/Contents/Home" ]; then export JAVA_HOME="$jdk/libexec/openjdk.jdk/Contents/Home"; fi
+    break
+  fi
 done
 case "$(uname -s)" in
   Darwin) hint="brew install openjdk@17 maven git python" ;;
@@ -42,43 +48,47 @@ for t in git java mvn python3; do command -v "$t" >/dev/null 2>&1 || missing="$m
 if [ -n "$missing" ]; then
   echo "setup: missing:$missing. Install them with:" >&2; echo "    $hint" >&2; exit 3
 fi
-jv="$(java -version 2>&1 | grep -v '^Picked up' | head -1 | sed -E 's/.*version "([0-9]+)(\.([0-9]+))?.*/\1 \3/')"
+# `|| true`: a java that fails (the macOS stub) must reach the message below, not end the script in silence.
+jline="$(java -version 2>&1 | grep -v '^Picked up' | head -1 || true)"
+jv="$(echo "$jline" | sed -E 's/.*version "([0-9]+)(\.([0-9]+))?.*/\1 \3/')"
 major="${jv%% *}"; [ "$major" = 1 ] && major="${jv##* }"
 case "$major" in ''|*[!0-9]*) major=0 ;; esac
 if [ "$major" -lt 17 ]; then
-  echo "setup: Forge needs Java 17 or newer; 'java -version' says" \
-    "$(java -version 2>&1 | grep -v '^Picked up' | head -1)." >&2
+  echo "setup: Forge needs Java 17 or newer; 'java -version' says: $jline" >&2
   echo "    $hint" >&2; exit 3
 fi
-step "tools: git, Java $major, Maven, Python 3"
+# Forge's build enforces Maven 3.8.1 or newer (its pom's requireMavenVersion); some apt releases ship 3.6.
+mv="$(mvn -v 2>/dev/null | grep -v '^Picked up' | head -1 | sed -E 's/^Apache Maven ([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 \2 \3/' || true)"
+set -- $mv
+if [ $# -ne 3 ] || [ "$1" -lt 3 ] || { [ "$1" -eq 3 ] && { [ "$2" -lt 8 ] || { [ "$2" -eq 8 ] && [ "$3" -lt 1 ]; }; }; }; then
+  echo "setup: Forge's build needs Maven 3.8.1 or newer; 'mvn -v' says: $(mvn -v 2>/dev/null | head -1 || true)" >&2
+  echo "    brew install maven, or https://maven.apache.org/download.cgi (an older apt maven is too old)" >&2; exit 3
+fi
+step "tools: git, Java $major, Maven ${mv// /.}, Python 3"
 
 # ---- 2. Forge at the pin ----------------------------------------------------------------------------------------
-marker="$forge/.git/llm-agent-setup"          # inside .git: never shows as a change in the checkout
+# The marker lives inside .git (never a change in the checkout) and is written as soon as the checkout exists, so a
+# fetch that drops midway (a network cut, ^C) leaves a checkout the next run recognises and finishes.
+marker="$forge/.git/llm-agent-setup"
 if [ ! -e "$forge" ]; then
-  step "fetching Forge $PIN into $forge (shallow, about 1 GB)"
   git init -q "$forge"
   git -C "$forge" remote add origin "$FORGE_URL"
+  : > "$marker"
+elif [ ! -d "$forge/.git" ]; then
+  echo "setup: $forge exists and is not a git checkout; pick another --forge-dir" >&2; exit 4
+fi
+head="$(git -C "$forge" rev-parse HEAD 2>/dev/null || echo unknown)"
+if [ "$head" = "$PIN" ]; then
+  step "Forge is at the pin $PIN"
+elif [ -e "$marker" ]; then
+  step "fetching Forge $PIN into $forge (shallow, about 1 GB)"
   git -C "$forge" fetch --depth 1 origin "$PIN"
   git -C "$forge" checkout -q -f FETCH_HEAD
-  : > "$marker"
 else
-  if [ ! -d "$forge/.git" ]; then
-    echo "setup: $forge exists and is not a git checkout; pick another --forge-dir" >&2; exit 4
-  fi
-  head="$(git -C "$forge" rev-parse HEAD 2>/dev/null || echo unknown)"
-  if [ "$head" != "$PIN" ]; then
-    if [ ! -e "$marker" ]; then
-      echo "setup: $forge is a Forge checkout this script did not make, at $head; this repository is tested" >&2
-      echo "    against $PIN. Move it there yourself (git -C $forge fetch --depth 1 $FORGE_URL $PIN &&" >&2
-      echo "    git -C $forge checkout FETCH_HEAD), or give setup a new --forge-dir." >&2
-      exit 4
-    fi
-    step "moving Forge from $head to the pin $PIN"
-    git -C "$forge" fetch --depth 1 origin "$PIN"
-    git -C "$forge" checkout -q -f FETCH_HEAD
-  else
-    step "Forge is at the pin $PIN"
-  fi
+  echo "setup: $forge is a Forge checkout this script did not make, at $head; this repository is tested" >&2
+  echo "    against $PIN. Move it there yourself (git -C $forge fetch --depth 1 $FORGE_URL $PIN &&" >&2
+  echo "    git -C $forge checkout FETCH_HEAD), or give setup a new --forge-dir." >&2
+  exit 4
 fi
 
 # ---- 3. the overlay, the build, the classpath -------------------------------------------------------------------
@@ -86,7 +96,8 @@ step "laying this repository's changes on Forge"
 FORGE_HOME="$forge" bash "$REPO/install.sh" > /dev/null
 step "building (the first build downloads Forge's libraries; later ones take a minute or two)"
 (cd "$forge" && mvn -q -pl forge-gui-desktop -am install -DskipTests)
-(cd "$forge" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=/tmp/forge_cp.txt)
+(cd "$forge" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath \
+    -Dmdep.outputFile="${FORGE_CP_FILE:-/tmp/forge_cp.txt}")
 echo "$forge" > "$REPO/.forge-home"           # where play-vs-llm.sh finds Forge
 
 # ---- 4. the OpenRouter key and the consent ----------------------------------------------------------------------
@@ -98,11 +109,13 @@ else
   key="${OPENROUTER_API_KEY:-}"
   if [ -z "$key" ]; then
     printf "OpenRouter key (input hidden): "
-    if [ -t 0 ]; then read -r -s key; echo; else read -r key || true; fi
+    if [ -t 0 ]; then read -r -s key || true; echo; else read -r key || true; fi
+    key="${key%$'\r'}"
   fi
   echo "A game against an openrouter: model sends the board and the model's view of the game to openrouter.ai."
   printf "Allow that? [y/N] "
   read -r yes || yes=""
+  yes="${yes%$'\r'}"
   case "$yes" in y|Y|yes|YES) consent="OPENROUTER_ALLOW_EGRESS=1" ;; *) consent="# OPENROUTER_ALLOW_EGRESS=1" ;; esac
   (umask 077
    printf '# Written by setup.sh. Never committed (.gitignore).\nOPENROUTER_API_KEY=%s\n%s\n' "$key" "$consent" \

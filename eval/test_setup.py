@@ -18,20 +18,24 @@ GIT_STUB = textwrap.dedent("""\
     dir=.; if [ "$1" = -C ]; then dir="$2"; shift 2; fi
     case "$1" in
       init) mkdir -p "${@: -1}/.git" ;;
+      fetch) if [ -n "$STUB_FAIL_FETCH_ONCE" ] && [ -e "$STUB_FAIL_FETCH_ONCE" ]; then
+               rm "$STUB_FAIL_FETCH_ONCE"; echo "fatal: the remote end hung up" >&2; exit 128; fi ;;
       checkout) mkdir -p "$dir/forge-gui-desktop"; echo "$STUB_PIN" > "$dir/.git/HEAD_SHA" ;;
       rev-parse) cat "$dir/.git/HEAD_SHA" 2>/dev/null || echo unknown ;;
-      status) cat "$dir/.git/DIRTY" 2>/dev/null ;;
     esac
     exit 0
 """)
 JAVA_STUB = textwrap.dedent("""\
     #!/bin/bash
+    if [ "$STUB_JAVA" = macos-stub ]; then       # macOS's /usr/bin/java with no JDK installed
+      echo "The operation couldn't be completed. Unable to locate a Java Runtime." >&2; exit 1; fi
     echo "Picked up JAVA_TOOL_OPTIONS: -Dx=1" >&2
     echo "openjdk version \\"$STUB_JAVA\\" 2026-08-18" >&2
 """)
 MVN_STUB = textwrap.dedent("""\
     #!/bin/bash
-    echo "mvn $* (in $PWD)" >> "$STUB_LOG"
+    if [ "$1" = -v ]; then echo "Apache Maven ${STUB_MVN:-3.9.11} (abc)"; exit 0; fi
+    echo "mvn $* (in $PWD) java=$(command -v java)" >> "$STUB_LOG"
 """)
 
 
@@ -123,6 +127,42 @@ class SetupTest(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("mvn", p.stderr)
         self.assertRegex(p.stderr, "brew install|apt")
+
+    def test_a_fetch_that_fails_midway_is_finished_by_the_next_run(self):
+        flag = Path(self._tmp.name) / "fail-once"
+        flag.write_text("")
+        p = self.setup(STUB_FAIL_FETCH_ONCE=str(flag))
+        self.assertNotEqual(p.returncode, 0, "the dropped fetch is reported")
+        self.assertNotIn("install -DskipTests", self.calls())
+        p = self.setup(STUB_FAIL_FETCH_ONCE=str(flag))
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("install -DskipTests", self.calls())
+
+    def test_macos_without_a_jdk_names_the_install_instead_of_stopping_silently(self):
+        p = self.setup(java="macos-stub")
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertIn("Java 17", p.stderr)
+        self.assertNotIn("fetch", self.calls())
+
+    def test_a_homebrew_jdk_is_used_before_the_java_on_path(self):
+        jdk = Path(self._tmp.name) / "brew-openjdk@17"
+        (jdk / "bin").mkdir(parents=True)
+        (jdk / "bin/java").write_text(JAVA_STUB.replace("$STUB_JAVA", "17.0.12"))
+        (jdk / "bin/java").chmod(0o755)
+        p = self.setup(java="macos-stub", SETUP_JDK_DIRS=str(jdk))
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("java=%s/bin/java" % jdk, self.calls(), "the build runs on that JDK")
+
+    def test_a_maven_older_than_the_forge_build_requires_is_refused_before_the_fetch(self):
+        p = self.setup(STUB_MVN="3.6.3")
+        self.assertEqual(p.returncode, 3)
+        self.assertIn("Maven 3.8.1", p.stderr)
+        self.assertNotIn("fetch", self.calls())
+
+    def test_a_yes_typed_with_a_windows_line_ending_is_a_yes(self):
+        self.assertEqual(self.setup(answers="sk-or-test-key\r\ny\r\n").returncode, 0)
+        self.assertIn("\nOPENROUTER_ALLOW_EGRESS=1\n", self.secrets())
+        self.assertIn("OPENROUTER_API_KEY=sk-or-test-key\n", self.secrets(), "no CR kept in the key")
 
     def test_a_forge_checkout_it_did_not_make_is_never_moved(self):
         (self.forge / ".git").mkdir(parents=True)

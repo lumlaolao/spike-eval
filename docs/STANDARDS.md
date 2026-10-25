@@ -85,7 +85,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/test_pr_format.py`; the shell scripts are thin wrappers |
-| `*.sh` (root) | launchers (`install.sh`, `run-llm-*.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/test_gate_parses.py`; a change needs an acceptance run (section 1) |
+| `*.sh` (root) | launchers (`install.sh`, `setup.sh`, `run-llm-*.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/test_gate_parses.py`; a change needs an acceptance run (section 1) |
 | `docs/harness/` | what the harness does and what was measured | a claim cites a file, a test or a run |
 | `.claude/skills/` | the skills every agent must use; Claude Code and OpenCode both discover them here, so they are not copied elsewhere | tracked; local settings and worktrees are not |
 | `runs/`, `datasets/` | generated data | never committed; never `git add -A` at the root |

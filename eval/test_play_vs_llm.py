@@ -164,6 +164,22 @@ class PlayVsLlmTest(unittest.TestCase):
         finally:
             (self.repo / ".forge-home").unlink()
 
+    def test_a_classpath_list_lost_to_a_reboot_is_rebuilt_once_with_the_modules(self):
+        bin_dir = self.repo / "stub-bin"
+        bin_dir.mkdir(exist_ok=True)
+        log = self.repo / "mvn.log"
+        (bin_dir / "mvn").write_text('#!/bin/bash\necho "$* (in $PWD)" >> "%s"\n' % log)
+        (bin_dir / "mvn").chmod(0o755)
+        (self.repo / "stub-forge").mkdir(exist_ok=True)
+        (self.repo / "stub-forge" / "pom.xml").write_text("<project/>")
+        cp = self.repo / "forge_cp.txt"
+        p, got = self.launch(FORGE_CP_FILE=str(cp), PATH="%s:%s" % (bin_dir, os.environ["PATH"]))
+        self.assertEqual(p.returncode, 0, p.stderr)
+        # -am, as run-llm-spike.sh's own hint has it (without it Maven cannot resolve the sibling modules), offline.
+        self.assertEqual(log.read_text(), "-q -o -pl forge-gui-desktop -am dependency:build-classpath "
+                         "-Dmdep.outputFile=%s (in %s)\n" % (cp, self.repo / "stub-forge"))
+        self.assertEqual(got["FORGE_CP_FILE"], str(cp), "the game reads the list it was rebuilt to")
+
     def test_run_batch_offers_no_human_seat(self):
         p = subprocess.run([sys.executable, str(REPO / "eval/run_batch.py"), "--controller-a", "human", "--seeds", "1"],
                            capture_output=True, text=True)

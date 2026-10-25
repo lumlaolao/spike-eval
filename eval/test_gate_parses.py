@@ -40,28 +40,26 @@ class GateParses(unittest.TestCase):
                 )
 
 
-def _close(text, i):
+def _close(text, i, stop):
     """Where bash 3.2 ends a `$(` opened just before `i`: it scans for the matching paren before it reads any
-    heredoc, so a quote in a heredoc body counts as a quote. A '...' pair is literal, "..." and `...` honour
-    backslash escapes, and parens nest. None when a quote never closes (bash then fails to parse the script)."""
-    depth, n = 1, len(text)
+    heredoc, so a quote in a heredoc body counts as a quote. A '...' pair is literal, "...", `...` and $'...' honour
+    backslash escapes, and parens nest. Returns (close, crossed): the closing paren (None when a quote never
+    closes, and bash then fails to parse the script), and whether a quote opened before `stop` ends at or after it."""
+    depth, n, crossed = 1, len(text), False
     while i < n:
         c = text[i]
         if c == "\\":
             i += 2
             continue
-        if c == "'":
-            j = text.find("'", i + 1)
-            if j < 0:
-                return None
-            i = j + 1
-            continue
-        if c in "\"`":
+        if c in "'\"`":
+            ansi = c == "'" and i > 0 and text[i - 1] == "$"
             j = i + 1
             while j < n and text[j] != c:
-                j += 2 if text[j] == "\\" else 1
+                j += 2 if text[j] == "\\" and (c != "'" or ansi) else 1
+            if i < stop <= j:
+                crossed = True
             if j >= n:
-                return None
+                return None, crossed
             i = j + 1
             continue
         if c == "(":
@@ -69,21 +67,22 @@ def _close(text, i):
         elif c == ")":
             depth -= 1
             if depth == 0:
-                return i
+                return i, crossed
         i += 1
-    return None
+    return None, crossed
 
 
 HEREDOC = re.compile(r"(?<!<)<<(?!<)(-?)\s*(['\"]?)([^\s'\"();&|<>]+)\2")
 
 
 def heredoc_quotes_in_substitution(text):
-    """Heredocs opened inside `$( ... )` that bash 3.2 cannot parse, as (line, tag): ones whose substitution, read
-    as bash 3.2 reads it (_close), ends before the heredoc's own terminator line, or never ends (issue #219: a lone
-    apostrophe or backtick in the body). Checked by reading, so it fails on Linux too, where bash -n accepts it."""
+    """Heredocs opened inside `$( ... )` that bash 3.2 cannot parse, as (line, tag): ones where, reading the
+    substitution as bash 3.2 does (_close), a quote runs across the heredoc's terminator line, or the substitution
+    ends before it, or never (issue #219: a lone apostrophe or backtick in the body). Checked by reading, so it
+    fails on Linux too, where bash -n accepts such a script."""
     found = []
-    for m in re.finditer(r"\$\(", text):
-        close = _close(text, m.end())
+    for m in re.finditer(r"\$\((?!\()", text):
+        close, _ = _close(text, m.end(), len(text))
         opener = HEREDOC.search(text, m.end(), close if close is not None else len(text))
         if not opener:
             continue
@@ -91,7 +90,8 @@ def heredoc_quotes_in_substitution(text):
         body = text.find("\n", opener.end())
         term = re.compile(r"^%s%s$" % ("\t*" if dash else "", re.escape(tag)), re.M).search(text, body + 1)
         end = term.end() if term else len(text)
-        if close is None or close < end:
+        close, crossed = _close(text, m.end(), end)
+        if close is None or close < end or crossed:
             found.append((text.count("\n", 0, m.start()) + 1, tag))
     return found
 
@@ -121,6 +121,15 @@ class HeredocInSubstitution(unittest.TestCase):
         self.assertEqual(self.flags("x=$(cat <<-'PY'\n\tfine\n\tPY\n)\n"), [])
         self.assertEqual(self.flags("cat <<'EOF'\nit's fine outside $( )\nEOF\n"), [])
         self.assertEqual(self.flags("n=$(cat <<<\"$s\" | wc -l)\n"), [])
+
+    def test_a_quote_paired_only_after_the_heredoc_ends_is_still_flagged(self):
+        # The body's apostrophe pairs with one in a later comment, and the `$(` then closes on a case pattern's `)`.
+        text = "x=$(cat <<EOF\nit's\nEOF\n)\n# it's a case\ncase \"$1\" in a) echo a ;; esac\n"
+        self.assertEqual(self.flags(text), ["EOF"])
+
+    def test_arithmetic_and_ansi_c_quotes_are_not_heredocs_or_plain_quotes(self):
+        self.assertEqual(self.flags("x=$((1<<k))\n"), [])
+        self.assertEqual(self.flags("x=$(f $'it\\'s' <<'PY'\nfine\nPY\n)\n"), [])
 
     def test_no_script_has_an_unpaired_quote_in_a_heredoc_inside_a_substitution(self):
         for path in GATE_SCRIPTS:
