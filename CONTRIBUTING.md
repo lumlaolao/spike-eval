@@ -24,9 +24,17 @@ commit. Never squash. Never rebase-merge.**
 git switch -c fix/<slug> origin/main
 # ... edit, validate, commit (the hook from scripts/install_hooks.sh checks each message) ...
 git push -u origin fix/<slug>
-python3 scripts/pr_format.py new-pr      # title and body skeleton for the PR
+python3 scripts/pr_format.py new-pr > /tmp/pr.txt   # title on line 1, then the body skeleton
+# fill in every section; save the body (without the title line) as body.md, then open the PR over REST
+# (`gh pr create` uses GraphQL, which cloud sessions are refused):
+gh api -X POST repos/{owner}/{repo}/pulls -f head=fix/<slug> -f base=main -f title="<line 1>" -F body=@body.md
+# acceptance and the three review skills on the final head, each recorded on the PR:
+python3 scripts/pr_format.py record-acceptance <n> <sha> <OUT dir> <passed> <total> "<note>"
+python3 scripts/pr_format.py record-review <n> <sha> pr-review <verdict> "<note>"   # and simplify, standards
 bash scripts/pr_merge.sh <n>             # the merge gate; merges with a merge commit
 ```
+
+The `pr-format` skill (`.claude/skills/pr-format/SKILL.md`) has the verdicts each skill may record.
 
 ## Source of truth
 
@@ -58,8 +66,13 @@ FORGE_HOME=/root/forge bash install.sh                 # 2. copy the overlay int
    canary (identity A wins after 108 turns, every time).
    For play/attack/block paths use the `random` arm — `floor` short-circuits
    before the menu is built.
-2. `SMART_MODEL=haiku FAST_MODEL=haiku` for LLM code paths. Never test with opus.
-3. Frontier models only for user-requested showcases.
+2. LLM code paths on the free loopback fake model, as acceptance runs them:
+   `python3 eval/fake_model_server.py --port 0 --policy random --answer-tool` (it prints
+   `LISTENING <port>`), then the launcher with
+   `SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model`
+   and `OPENROUTER_BASE_URL=http://127.0.0.1:<port>/v1`. No key, no egress, no cost.
+3. A paid game only on the owner's model (`CLAUDE.md`, "Owner rules"), one at a time
+   with the `game-loop` skill and `--budget-usd`, the cost stated first.
 
 **Before trusting a green gate, say what would have made it fail.** If you can't,
 it isn't evidence.
@@ -67,6 +80,6 @@ it isn't evidence.
 ## Review
 
 Every PR: the `pr-review`, `simplify` and `standards` skills on the diff, with their
-verdicts recorded for the head commit ([docs/STANDARDS.md](docs/STANDARDS.md) section 1). `eval/defect_analyzer.py` is the merge gate
-for eval runs (`ai_tier_count=0`, `silent_drop_total=0`); never weaken it to make
-a run pass.
+verdicts recorded for the head commit ([docs/STANDARDS.md](docs/STANDARDS.md) section 1).
+`eval/defect_analyzer.py` is the merge gate for eval runs (`ai_tier_count=0`,
+`silent_drop_total=0`); never weaken it to make a run pass.
