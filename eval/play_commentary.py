@@ -10,9 +10,8 @@ fast) becomes one line, "T3 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", naming the 
 did; demo_events.chosen_indexes), never a reply that was not used. What the model chose in its hidden zones (a scry,
 a discard, a search) is shown too, and --why shows its reasoning, which names its hand: it is for watching, not for a
 fair game. While a call of the seat's is unanswered (TRANSCRIPTS=1, as play-vs-llm.sh sets) it says the seat is
-thinking. A match's games share one file; a turn count that starts again, or a mulligan after a played turn, marks
-the next game. It reads only, and calls
-no network.
+thinking. A match's games share one file; a turn count that starts again marks the next game. It reads only, and
+calls no network.
 """
 import argparse
 import glob
@@ -93,7 +92,7 @@ class Commentary:
 
     def __init__(self, directory, seat, why):
         self.directory, self.seat, self.why = directory, seat, why
-        self.game, self.http, self.announced, self.last_turn, self.last_mulligan = None, {}, False, None, False
+        self.game, self.http, self.announced, self.last_turn = None, {}, False, None
         self.sent, self.answered = set(), set()     # (jvm, seq): files are read in any order, so kept apart
 
     def _thinking(self):
@@ -113,14 +112,12 @@ class Commentary:
             text = line(row, self.why, self.seat)
             if not text:
                 continue
-            turn, mulligan = _turn(row), row.get("type") == "mulligan"
-            # A match's games share one file: the turn count starting again, or a mulligan after a played turn.
-            if self.last_turn is not None and ((turn is not None and turn < self.last_turn)
-                                               or (mulligan and not self.last_mulligan)):
+            turn = _turn(row)
+            # A match's games share one file; each game's first rows (play/draw, mulligan) are at T0.
+            if turn is not None and self.last_turn is not None and turn < self.last_turn:
                 out.append("-- next game --")
             if turn is not None:
                 self.last_turn = turn
-            self.last_mulligan = mulligan
             out.append(text)
             self.announced = False
         if self.sent - self.answered and not self.announced:

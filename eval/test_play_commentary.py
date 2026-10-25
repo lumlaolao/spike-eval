@@ -139,13 +139,16 @@ class FeedTest(unittest.TestCase):
                              ["T9 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", "-- next game --",
                               "T0  Seat mulligan: KEEP: yes"])
 
-    def test_a_mulligan_after_play_starts_the_next_game_even_on_the_same_turn(self):
+    def test_the_seat_s_own_play_draw_choice_and_mulligan_mark_one_game_not_two(self):
+        # Real row shapes: a game begins at T0 with the seat's play/draw choice (when it won the toss) and mulligan.
         with tempfile.TemporaryDirectory() as d:
-            mull = dict(PLAY, turn=1, phase="null", type="mulligan", options=["KEEP", "MULLIGAN"], choice=0)
-            self._game(d, [mull, mull, dict(PLAY, turn=1), mull])
+            first = dict(PLAY, turn=0, phase="null", type="starting-player", options=["Play", "Draw"], choice=0)
+            mull = dict(PLAY, turn=0, phase="null", type="mulligan", options=["KEEP", "MULLIGAN"], choice=0)
+            self._game(d, [first, mull, dict(PLAY, turn=3), first, mull])
             self.assertEqual(pc.Commentary(d, "Seat", why=False).poll(),
-                             ["T1  Seat mulligan: KEEP", "T1  Seat mulligan: KEEP",
-                              "T1 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", "-- next game --", "T1  Seat mulligan: KEEP"])
+                             ["T0  Seat starting-player: Play", "T0  Seat mulligan: KEEP",
+                              "T3 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", "-- next game --",
+                              "T0  Seat starting-player: Play", "T0  Seat mulligan: KEEP"])
 
     def test_a_response_written_to_the_next_transcript_file_still_ends_the_thinking(self):
         with tempfile.TemporaryDirectory() as d:

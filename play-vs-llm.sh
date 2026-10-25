@@ -67,8 +67,9 @@ esac
 
 out="$REPO/runs/human/$(date -u +%Y%m%dT%H%M%SZ)"
 # The pilot condition, from the panels file. Every other key a batch scrubs (run_batch.build_env: the run-defining
-# keys, the heuristic shortcuts and plans, CTX_* overrides) is unset, and the further keys below, so the caller's
-# shell does not change what the seat is asked or shown. Kept: the seed, the operator's own Claude CLI effort and
+# keys, the heuristic shortcuts and plans, CTX_* overrides) is unset, and the further keys below (ones the overlay
+# reads that a batch sets from its own flags), so the caller's shell does not change what the seat is asked or shown.
+# No apostrophe or backtick inside the heredoc below: bash 3.2 would not parse this script (STANDARDS section 4). Kept: the seed, the operator's own Claude CLI effort and
 # thinking settings, and infrastructure (endpoint, timeouts, recording, DEMO_FEED).
 condition="$(python3 - "$REPO" <<'PY'
 import json, os, sys
@@ -76,11 +77,9 @@ sys.path.insert(0, sys.argv[1] + "/eval")
 import run_batch
 fields = json.load(open(sys.argv[1] + "/eval/suites/panels-v1.json"))["pilot_condition"]["fields"]
 cond = {k.upper(): ("1" if v else "0") if isinstance(v, bool) else str(v) for k, v in fields.items()}
-# Beyond run_batch's lists: the answer schema and tool choice, the per-model config, the prompt cache and decklist
-# switches, and the puzzle and fork modes, all of which the overlay reads and a batch leaves to its own flags.
 scrub = list(run_batch.RUN_DEFINING_KEYS + run_batch.CITED_FORCED_KEYS) + [
     "SHADOW_AI", "AUTO_EXIT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE", "OPENROUTER_MODEL_CFG", "PROMPT_CACHE", "DECKLIST",
-    "PUZZLE", "PUZZLE_DIRS"]
+    "PUZZLE", "PUZZLE_DIRS", "SMART_BUDGET", "FAST_BUDGET"]
 scrub += [k for k in os.environ if k.startswith((run_batch.CTX_OVERRIDE_PREFIX, "PZL_", "FORK_"))]
 for k in dict.fromkeys(scrub):
     if not k.startswith("CLAUDE_") and k != "GAME_SEED":

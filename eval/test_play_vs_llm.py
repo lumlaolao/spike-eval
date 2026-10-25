@@ -1,5 +1,6 @@
-"""play-vs-llm.sh: the launcher that seats a person against the model in the GUI. Run with --dry-run only, so no
-window, JVM or model is started. Each run uses a copy of the script in a scratch repo (it finds its repo from $0), so
+"""play-vs-llm.sh: the launcher that seats a person against the model in the GUI. Most tests run it with --dry-run;
+launch() runs it for real against a stub Forge that records the environment it was given. No window, JVM or model is
+started. Each run uses a copy of the script in a scratch repo (it finds its repo from $0), so
 the clone's own secrets.env never decides a test and nothing is skipped."""
 import json
 import os
@@ -87,7 +88,7 @@ class PlayVsLlmTest(unittest.TestCase):
         leaks = dict(MULLIGAN_HEURISTIC="1", SKIP_HEURISTICS="1", PLAN_B="win", CTX_RECENT="9", SHADOW_AI="1",
                      AUTO_EXIT="1", SMART_MODEL="other", SWAP_SEATS="1", ANSWER_SCHEMA="per-decision",
                      ANSWER_TOOL_CHOICE="auto", OPENROUTER_MODEL_CFG="{}", PROMPT_CACHE="0", DECKLIST="0",
-                     PUZZLE="x.pzl", FORK_MODE="check", PZL_SEEDS="3")
+                     PUZZLE="x.pzl", FORK_MODE="check", PZL_SEEDS="3", SMART_BUDGET="50", FAST_BUDGET="50")
         p, got = self.launch(GAME_SEED="42", CLAUDE_BRIDGE_EFFORT="high", **leaks)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(sorted(k for k in leaks if k in got), [], "the launcher passed these from the shell")
