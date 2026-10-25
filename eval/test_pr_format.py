@@ -117,7 +117,8 @@ class PrFormatTest(unittest.TestCase):
         self.assertTrue(any("full pass" in p for p in gate(line.replace("abc123456", "fff000111"), ["scripts/pr_merge.sh"])))
         self.assertEqual(gate(line, ["install.sh"]), [])
         self.assertEqual(gate("- read it twice", ["docs/a.md"]), [])
-        self.assertTrue(any("has no line" in p for p in gate("- tried it", ["play-vs-llm.sh"])), "a root launcher")
+        for launcher in ("play-vs-llm.sh", "setup.sh"):
+            self.assertTrue(any("has no line" in p for p in gate("- tried it", [launcher])), launcher)
 
     def test_the_gate_checks_the_commits_on_the_pr_and_each_skill_vocabulary(self):
         good = [("1a976281aa", "feat(tools): native calls\n\nwhy")]

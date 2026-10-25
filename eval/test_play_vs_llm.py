@@ -36,7 +36,7 @@ class PlayVsLlmTest(unittest.TestCase):
 
     def run_script(self, *args, **env):
         base = {k: v for k, v in os.environ.items()
-                if k not in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT")}
+                if k not in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT", "FORGE_HOME")}
         base.update(env)
         return subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--dry-run", *args], capture_output=True,
                               text=True, env=base, cwd=tempfile.gettempdir())
@@ -155,6 +155,14 @@ class PlayVsLlmTest(unittest.TestCase):
         # A feed that died first (a crash, a closed terminal) must not turn a clean game into a failure.
         p, _ = self.launch("--commentary", script='sleep 2; pkill -f "play_commentary.py $EVAL_OUT"; sleep 1; exit 0')
         self.assertEqual(p.returncode, 0, p.stderr)
+
+    def test_forge_is_found_where_setup_put_it_and_the_environment_wins(self):
+        (self.repo / ".forge-home").write_text("/opt/forge-from-setup\n")
+        try:
+            self.assertIn("would run: /opt/forge-from-setup/run-llm-spike.sh", self.consented().stdout)
+            self.assertIn("would run: /elsewhere/run-llm-spike.sh", self.consented(FORGE_HOME="/elsewhere").stdout)
+        finally:
+            (self.repo / ".forge-home").unlink()
 
     def test_run_batch_offers_no_human_seat(self):
         p = subprocess.run([sys.executable, str(REPO / "eval/run_batch.py"), "--controller-a", "human", "--seeds", "1"],

@@ -21,7 +21,8 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
 3. the body's `## Evidence` section has a line
    `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS` (written by
    `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `eval/`, `scripts/`,
-   `install.sh` or a root launcher (`run-llm-*`, `play-vs-llm.sh`). The sha must be the PR's current head.
+   `install.sh` or a root launcher (`run-llm-*`, `play-vs-llm.sh`, `setup.sh`). The sha must be the PR's
+   current head.
 
 It merges exactly the commit it checked, with a merge commit. Never squash: the commit list is the
 record of what was reviewed. Merging your own PR is fine once the gate passes.

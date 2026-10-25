@@ -15,6 +15,8 @@
 # Games against a person are never part of a benchmark score.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
+# Forge: $FORGE_HOME, else where setup.sh put it, else the default checkout.
+if [ -z "${FORGE_HOME:-}" ] && [ -s "$REPO/.forge-home" ]; then FORGE_HOME="$(head -1 "$REPO/.forge-home")"; fi
 FORGE_HOME="${FORGE_HOME:-$HOME/code/forge}"
 
 deck=burn; vs=mardu-energy; model=openrouter:openai/gpt-6-luna; games=1; record=0; dry=0; commentary=0; why=0
@@ -113,8 +115,14 @@ if [ "$dry" = 1 ]; then
   echo "would run: $FORGE_HOME/run-llm-spike.sh"
   exit 0
 fi
-[ -x "$FORGE_HOME/run-llm-spike.sh" ] || { echo "play-vs-llm: no $FORGE_HOME/run-llm-spike.sh; set FORGE_HOME and" \
-    "run 'FORGE_HOME=<checkout> bash install.sh' and the build first (README.md)" >&2; exit 4; }
+[ -x "$FORGE_HOME/run-llm-spike.sh" ] || { echo "play-vs-llm: no Forge build at $FORGE_HOME; run 'bash setup.sh'" \
+    "first (or set FORGE_HOME to your checkout)" >&2; exit 4; }
+# The launcher's classpath file lives in /tmp, which a reboot clears; one person's game can rebuild it (no batch races
+# it here, the reason run-llm-spike.sh only refuses).
+if [ ! -s /tmp/forge_cp.txt ] && [ -f "$FORGE_HOME/pom.xml" ]; then
+  echo "play-vs-llm: rebuilding Forge's classpath list (/tmp/forge_cp.txt), once after a reboot"
+  (cd "$FORGE_HOME" && mvn -q -o -pl forge-gui-desktop dependency:build-classpath -Dmdep.outputFile=/tmp/forge_cp.txt)
+fi
 mkdir -p "$out"
 if [ "$commentary" = 1 ]; then
   "${feed[@]}" & feed_pid=$!
