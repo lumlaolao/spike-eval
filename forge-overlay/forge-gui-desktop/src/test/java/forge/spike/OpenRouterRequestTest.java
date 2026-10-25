@@ -199,11 +199,14 @@ public class OpenRouterRequestTest {
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertFalse(NativeTools.DOWNGRADED.contains("ceiling/smart"));
+        Assert.assertEquals(capped.ceilingRefusals(), 2, "each refusal is counted for the attempt's row");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(capped, null), Integer.valueOf(2));
         Assert.assertTrue(bodies.size() >= 2 && bodies.get(bodies.size() - 1).contains("\"tools\""), "asked again with tools");
 
         LlmSpikeGui.OpenRouterBridge plain = new LlmSpikeGui.OpenRouterBridge("plain/smart", model, null, ceilingBase, 5000);
         plain.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertTrue(NativeTools.DOWNGRADED.remove("plain/smart"), "without a ceiling the refusal is the tools'");
+        Assert.assertNull(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(plain, plain), "no ceiling, no key on the row");
     }
 
     private static String read(HttpExchange ex) throws IOException {

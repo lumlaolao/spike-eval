@@ -107,6 +107,14 @@ class ResumeTest(unittest.TestCase):
         self.assertFalse(puzzle_solve.already_done(out, 2, "OTHER"), "rows of another suite version")
         self.assertFalse(puzzle_solve.already_done(Path(tempfile.mkdtemp()) / "none", 1, "S"))
 
+    def test_an_attempt_refused_under_the_price_ceiling_is_played_again(self):
+        # pr-review of #327: such a row is not a result (puzzle_score refuses it), so a resume replays the puzzle.
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "price_ceiling_refusals": 2}])
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "price_ceiling_refusals": 0}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
     def test_a_puzzle_cut_off_part_way_keeps_its_paid_rows_aside_and_is_played_again(self):
         out = Path(tempfile.mkdtemp()) / "p"
         for _ in range(2):   # cut off twice: neither set of rows overwrites the other

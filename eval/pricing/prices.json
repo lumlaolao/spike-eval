@@ -212,10 +212,10 @@
       "max_note": "1 endpoint(s) that take tools, none dearer than the list price, 2026-10-24"
     },
     "deepseek/deepseek-v4-pro": {
-      "prompt": 0.00000055071,
-      "completion": 0.00000110142,
-      "input_cache_read": 0.0000000458925,
-      "checked": "2026-10-24",
+      "prompt": 0.0000009483,
+      "completion": 0.0000018966,
+      "input_cache_read": 0.000000079025,
+      "checked": "2026-10-25",
       "source": "https://openrouter.ai/api/v1/models",
       "max": {
         "prompt": 0.00000191,

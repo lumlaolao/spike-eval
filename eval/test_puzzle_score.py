@@ -125,6 +125,18 @@ class PairedTest(unittest.TestCase):
         self.assertIn("REFUSED", err.getvalue())
 
 
+class PriceCeilingRefusalTest(unittest.TestCase):
+    """pr-review of #327: under a price ceiling an endpoint outage refuses every request, so the attempt's decisions
+    fall to the fixed legal option. That row says nothing about the model: it is refused, never scored a 0."""
+
+    def test_an_attempt_with_ceiling_refusals_is_refused_and_one_without_is_scored(self):
+        row = {"id": "p", "seed": 1, "status": "failed", "price_ceiling_refusals": 3}
+        with self.assertRaisesRegex(ps.Refused, "price ceiling"):
+            ps.attempt_success(row)
+        self.assertEqual(ps.attempt_success(dict(row, price_ceiling_refusals=0)), (False, None))
+        self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "solved"}), (True, None))
+
+
 class ScoreV2Test(unittest.TestCase):
     """BENCHMARK-V2 phase 2: clustered intervals and the power line, the budget and integrity lines, epochs never pooled,
     and the score by v2 tier."""

@@ -1330,6 +1330,8 @@ public final class LlmSpikeGui {
             m.put("completion_tokens", spentCompletionTokens);
             m.put("model_ms", spentModelMs);
             m.put("lookups", contextMemory.lookupsUsed());
+            Integer refused = OpenRouterBridge.ceilingRefusals(smart, fast);
+            if (refused != null) m.put("price_ceiling_refusals", refused);
             return m;
         }
         /** The written line this seat plays (ScriptBridge), or null for any other seat. */
@@ -10719,6 +10721,8 @@ public final class LlmSpikeGui {
             return "default".equalsIgnoreCase(env.trim()) ? "" : env.trim().toLowerCase(java.util.Locale.ROOT);
         }
         private static final String HTTP_TITLE = System.getenv("OPENROUTER_HTTP_TITLE");
+        /** OPENROUTER_MAX_PRICE as read at class-init; not final so a test can construct a bridge under a value. */
+        static String maxPriceEnv = System.getenv("OPENROUTER_MAX_PRICE");
         /**
          * The {@code "max_price":{...}} field for {@code model}, or null. OPENROUTER_MAX_PRICE holds
          * {"<model>":{"prompt":P,"completion":C}} in USD per million tokens (eval/puzzle_solve.py --max-price-at-list
@@ -10727,8 +10731,6 @@ public final class LlmSpikeGui {
          * 2026-10-25). Unset, or a model it does not name: no ceiling. Unreadable: refused, so a run never goes out
          * believing it is capped.
          */
-        /** OPENROUTER_MAX_PRICE as read at class-init; not final so a test can construct a bridge under a value. */
-        static String maxPriceEnv = System.getenv("OPENROUTER_MAX_PRICE");
         static String maxPriceField(String env, String model) {
             if (env == null || env.isBlank()) return null;
             try {
@@ -10758,6 +10760,18 @@ public final class LlmSpikeGui {
         private final ModelCfg cfg;
         private final String baseUrl;
         private final String maxPrice;   // maxPriceField for this bridge's model, or null
+        private int ceilingRefusals;     // requests refused under maxPrice ([PRICE-CEILING]); the attempt's row names them
+        int ceilingRefusals() { return ceilingRefusals; }
+
+        /** For a puzzle row (budget()): the requests a capped tier had refused under its ceiling, or null when neither
+         *  tier is a capped OpenRouterBridge (the row then has no such key, as before the ceiling existed). */
+        static Integer ceilingRefusals(LLMBridge smart, LLMBridge fast) {
+            Integer n = null;
+            for (LLMBridge b : smart == fast ? new LLMBridge[] {smart} : new LLMBridge[] {smart, fast})
+                if (b instanceof OpenRouterBridge && ((OpenRouterBridge) b).maxPrice != null)
+                    n = (n == null ? 0 : n) + ((OpenRouterBridge) b).ceilingRefusals;
+            return n;
+        }
         private final boolean fastTier; // label is always "<seat>/smart" or "<seat>/fast" — see PlayerControllerLLM ctor
         private final long timeoutMs;
         private long totalMs = 0;
@@ -11047,8 +11061,10 @@ public final class LlmSpikeGui {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 if (maxPrice != null && resp.body() != null
                         && resp.body().toLowerCase(java.util.Locale.ROOT).contains("no endpoints")) {
-                    // Under a ceiling this can mean no endpoint at that price (five frontier models have one at
-                    // list), not no function calling: native tools stay, and the log names the ceiling.
+                    // Under a ceiling this can mean no endpoint at that price (five frontier models have only one
+                    // endpoint at list), not no function calling: native tools stay, the log names the ceiling, and the
+                    // attempt's row counts it, so puzzle_score.py refuses to score decisions the model never made.
+                    ceilingRefusals++;
                     System.out.println("[OPENROUTER " + label + "] [PRICE-CEILING] no endpoint at or under " + maxPrice
                             + " took the request; native tools kept");
                     return null;

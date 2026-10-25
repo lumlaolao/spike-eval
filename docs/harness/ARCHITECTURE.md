@@ -492,7 +492,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     value is refused, never dropped). It is routing, like the sort: stamped on the game line as
     `openrouter_max_price` and listed in `aggregate.NON_BEHAVIORAL_PROVENANCE`; a puzzle resume refuses another
     ceiling. Under a ceiling a "no endpoints" refusal is logged `[PRICE-CEILING]` and keeps native tools (it can
-    mean none at that price). A batch has no such flag and scrubs an ambient value (`RUN_DEFINING_KEYS`).
+    mean none at that price); the puzzle row counts them (`price_ceiling_refusals`), and `puzzle_score.py` refuses
+    such a row rather than score lost decisions as the model's. A batch sends no ceiling: it scrubs an ambient value
+    (`RUN_DEFINING_KEYS`) and refuses one in `--env`.
     The file's `comment` names the models with a long-context tier, where each starts, and which `max` counts one,
     with the largest prompt recorded in one call.
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or

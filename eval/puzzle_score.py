@@ -77,6 +77,10 @@ def attempt_success(row):
     if status == "unscoreable":
         raise Refused("unscoreable row for %s (seed %s): the goal was not enforced, so this is a harness "
                       "defect, not a result" % (row.get("id"), row.get("seed")))
+    if row.get("price_ceiling_refusals"):
+        raise Refused("row for %s (seed %s): %s requests refused under the price ceiling (no endpoint at list took "
+                      "them), so its decisions were not the model's; replay it with --resume"
+                      % (row.get("id"), row.get("seed"), row["price_ceiling_refusals"]))
     if status == "invalid":
         return False, "capped"
     if status not in ("solved", "failed"):

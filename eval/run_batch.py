@@ -104,8 +104,8 @@ RUN_DEFINING_KEYS = (
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
     "CHECKPOINT_SHA", "SEED_BANK",
-    # A price ceiling: puzzle_solve.py --max-price-at-list sets it; a batch has no flag, so an ambient value is
-    # scrubbed (an exploratory --env can still set it; the manifest and the game line record it then).
+    # A price ceiling: only puzzle_solve.py --max-price-at-list sets it. A batch scrubs an ambient value and refuses
+    # it in --env.
     "OPENROUTER_MAX_PRICE",
     # Context shape and the seat's tools are experimental CONDITIONS (they change
     # what the model can see and do); only their flags set them, never the
@@ -1404,6 +1404,9 @@ def main(argv=None):
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / --text-answers / --answer-tool-strict / "
                              "--lookahead / --one-tier / --two-tier / --no-coaching / --one-chat / --turn-chat / --plan-execute / "
                              "--tier-fast-types / --format so the condition is recorded and guarded." % k)
+        if k == "OPENROUTER_MAX_PRICE":
+            raise SystemExit("run_batch: --env OPENROUTER_MAX_PRICE is not allowed: a batch sends no price ceiling "
+                             "(a puzzle run has puzzle_solve.py --max-price-at-list)")
     if args.seeds is None and not args.panel:
         ap.error("--seeds is required (except with --panel)")
     if (args.panel or args.sanity_arms) and args.budget_usd is None:

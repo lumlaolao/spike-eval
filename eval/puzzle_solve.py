@@ -135,7 +135,8 @@ def max_price_env(prices, spec):
 
 def already_done(out, k, suite_sha):
     """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it."""
-    seeds = {r.get("seed") for r in pb.read_results(out) if r.get("suite_sha256") == suite_sha}
+    seeds = {r.get("seed") for r in pb.read_results(out)
+             if r.get("suite_sha256") == suite_sha and not r.get("price_ceiling_refusals")}
     return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
 
 
@@ -302,10 +303,13 @@ def main(argv=None):
             and not is_loopback(os.environ.get("OPENROUTER_BASE_URL", ""))):
         raise SystemExit("OPENROUTER_ALLOW_EGRESS=1 is not set: an openrouter: or jev: model sends each position to "
                          "openrouter.ai, and that needs the owner's opt-in (secrets.env)")
-    max_price = max_price_env(cost_report.load_prices(), a.model) if a.max_price_at_list else None
-    if max_price and not all(v > 0 for v in json.loads(max_price)[cost_report.model_id(a.model)].values()):
-        raise SystemExit("--max-price-at-list needs a list price above 0 for %s (eval/pricing/prices.json): "
-                         "every request would be refused" % a.model)
+    max_price = None
+    if a.max_price_at_list:
+        prices = cost_report.load_prices()
+        if not all(cost_report.price_of(prices, a.model)[k] > 0 for k in ("prompt", "completion")):
+            raise SystemExit("--max-price-at-list needs a list price above 0 for %s (eval/pricing/prices.json): "
+                             "every request would be refused" % a.model)
+        max_price = max_price_env(prices, a.model)
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
