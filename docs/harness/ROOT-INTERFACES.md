@@ -1,36 +1,15 @@
 # Root interfaces: where the seat meets the Forge engine
 
-The harness is one implementation of one engine interface. Every decision the seat makes is the
-engine calling a method on `forge.game.player.PlayerController`; every decision the seat does *not*
-override is the engine's own `PlayerControllerAi` answering in its place. So a defect class is worth
-attacking at that surface — the interface method and the engine subsystem behind it — rather than as
-a one-off patch, and the backlog is what happens when a partial override drifts from the protocol it
-shadows.
+The harness is one implementation of one engine interface. Every decision the seat makes is the engine calling a
+method on `forge.game.player.PlayerController`; every decision the seat does *not* override is the engine's own
+`PlayerControllerAi` answering in its place. So a defect class is worth attacking at that surface, the interface
+method and the engine subsystem behind it, rather than as a one-off patch: the defects cluster where a partial
+override drifts from the protocol it shadows.
 
-This file is the map. It names the interface the engine calls, the engine implementation of it, what
-the seat does, and the interface gap that produces the filed defects. It is a companion to
-`OWNERSHIP.md` (which hook is `model` vs `ai-inherited`) and `controller-ownership.tsv` (the pinned
-ledger): this one is about the *shape* of each override, ownership is about *whether* there is one.
-
-## Status 2026-10-15 (the bottleneck work, PRs #143-#155)
-
-What changed against the map below, and the contract that keeps it: `docs/STANDARDS.md` section 8.
-
-- **Never asked**: every pass the play loop makes is a `t:"window"` row (#143); the stack-blind
-  "already passed" key is fixed (#144); with `SKIP_HEURISTICS=0` the model asks for its own passes
-  (`YIELD:`, #152). Trigger targets/modes (#148), X (#147), attack targets (#149), votes, spells cast
-  by effects, discard and "unless" costs (#150) and which mana sources stay untapped (#151) are the
-  seat's. Silent Forge-AI strategic hooks: 3 -> 1 (`payManaCost`: the colour an any-colour source
-  makes during a payment, which has no hook; see OWNERSHIP.md). Since #157 a cost ask can cancel the
-  play, and Phyrexian life-or-mana is the seat's (#158).
-- **Asked blind**: options say whose they are, nothing is cut at 90/160 characters, number/yes-no
-  asks carry the source's text (#145); every ask after a play carries the play and the model's reason
-  for it, and a target ask can cancel the play (#146, R4 / #108 at the root); modes are chosen before
-  targets (#147); no ask names one deck's line (#154).
-- **Thinking budget**: `ONE_TIER` is a stamped condition (#153).
-- The `super.` audit: 24 sites (not 27); the delegating conditions are empty/forced lists except the
-  ones fixed above. Galvanic Discharge chooses its target at cast and the number at resolution; the
-  defect was the number ask lacking the card text, fixed in #145.
+This file is the map: the interface the engine calls, the engine implementation of it, what the seat does, and where
+the seat still copies engine machinery. It is a companion to [OWNERSHIP.md](OWNERSHIP.md) and
+`controller-ownership.tsv` (the pinned ledger of which hook is whose): this one is about the *shape* of each
+override, ownership is about *whether* there is one. The contract that keeps it is `docs/STANDARDS.md` section 8.
 
 ## The one root surface
 
@@ -41,148 +20,77 @@ forge.game.player.PlayerController            (abstract: the engine's decision i
                 └── LlmSpikeGui.PlayerControllerAiLogging  (the ai-teacher seat)
 ```
 
-The engine only ever calls `PlayerController`. Two consequences drive the whole defect backlog:
+The engine only ever calls `PlayerController`. Two consequences drive the defect classes:
 
-1. **Anything the seat does not override is the Forge AI's strategy.** Not an error — but if the
-   seat overrides a *part* of a method's job (one target kind, one cost kind) and delegates the rest
-   to `super`, the delegate is a silent AI decision inside the seat's own move. `OWNERSHIP.md` and
-   `controller-ownership.tsv` pin the count; the argument here is that a partial override is its own
-   hazard even where the hook is nominally `model`.
-2. **A subsystem the seat re-implements can drift from the engine's protocol**, because the engine
-   keeps two copies of the same rule (the seat's and `ComputerUtil*`'s) and only one is validated by
-   the engine each time. The filed defects cluster exactly there.
+1. **Anything the seat does not override is Forge AI's strategy.** If the seat overrides a *part* of a method's job
+   (one target kind, one cost kind) and delegates the rest to `super`, the delegate is a silent AI decision inside
+   the seat's own move. The ledger pins the count; a partial override is its own hazard even where the hook is
+   nominally `model`.
+2. **A subsystem the seat re-implements can drift from the engine's protocol**, because there are then two copies
+   of the same rule (the seat's and `ComputerUtil*`'s) and the engine validates only one of them each time.
 
 ## The subsystems the seat interacts with
 
-| Engine subsystem | Interface method(s) the engine calls | Engine implementation | What the seat does | Interface gap (root cause) | Filed defects it explains |
-|---|---|---|---|---|---|
-| Play loop / priority | `chooseSpellAbilityToPlay()` (`PlayerController.java:287`) | `ComputerUtilAbility` builds the legal castable list; the AI loops it | overrides fully (`chooseSpellAbilityToPlay`): builds its own menu and picks | the seat re-derives the menu; legality stays the engine's, but *description* and *ordering* are the seat's | menu misdescription (ARCHITECTURE-REVIEW #2), the 12-spell cap (fixed #116), a Dig pile's order (#115) |
-| **Targeting** | `chooseTargetsFor(sa)` (`PlayerController.java:120`, self-labelled "this is bad a function for it assigns targets to sa inside its body") | **`PlayerControllerAi.chooseTargetsFor` = `brains.doTrigger(sa, true)`** (`PlayerControllerAi.java:1416-1418`) — the AI core sets targets *and* modes through the engine's own `TargetChoices` | **partial override** (`chooseTargetsFor`): single-target only (`getMaxTargets() != 1` -> `super`), bails on any targeting sub-ability, then manually `sa.resetTargets()` + `TargetChoices.add(...)` from `TargetRestrictions.getAllCandidates`. A second hand-rolled copy sits in `ensureTargetsSet`  for the AI cast path | the seat shadows one slice of `doTrigger`'s job and delegates the rest; **multi-target, split, modal and sub-ability targeting are AI or engine, and target *modes* are never the seat's** | the "targeting is messed up" class; **single-target, multi-target, sub-ability chains AND divided target sets fixed (#124)** |
-| Mana payment | `payManaCost(...)` (`PlayerController.java:354`) | **one call**: `ComputerUtilMana.payManaCost(new Cost(toPay, effect), player, sa, effect)` (`PlayerControllerAi.java:1258-1260`) | partial override (`payManaCost`): prepays tap-type mana abilities the engine's *test* payment plans to use, and keeps its own reserve set | the seat decides *which sources are spoken for* from the reservation the engine's **test** payment — not its real payment — fills (`LlmCostDecision.manaSources`, `LlmCostDecision.java:214-217`: `ComputerUtilMana.canPayManaCost`, then `AiCardMemory.PAYS_TAP_COST`) instead of by asking the engine what its real payment will tap — so a **raised** cost and a **prepay filter** both reserve nothing | **#110** (raised cost ignores the reserve), **#111** (filter-land prepay taps an unreserved source) |
-| Non-mana cost decisions | `getCostDecisionMaker(...)` (`PlayerController.java:361`) | `new AiCostDecision(player, ability, effect)` (`PlayerControllerAi.java:1285-1287`) | `LlmCostDecision` subclass (`getCostDecisionMaker`) delegating the card-choosing `visit(...)`s to model-owned hooks | the candidate filter was **copied verbatim from `ComputerUtil.chooseSacrificeType`** (the drift risk #95 matched but did not remove); the wording prints raw Java (`LlmCostDecision.java:125-126`) | **#109** (multi-zone exile wording) |
-| Triggers | `playTrigger`, `confirmTrigger`, `orderSimultaneousSa`, `orderAndPlaySimultaneousSa` (`PlayerController.java:103-105,152`) | `prepareSingleSa(...) && ComputerUtil.playNoStack(...)`; `prepareSingleSa` sets targets/modes via `brains.doTrigger` | owns the yes/no (`confirmTrigger`) and the strategic order (`orderSimultaneousSa`); leaves play/targeting to the engine | trigger **targeting** rides `doTrigger` (same seam as targeting); `playTrigger`'s yes/no is already the seat's | G7 `playTrigger`/`orderAndPlaySimultaneousSa` (intentionally left AI, `history/G7-REMAINING-WORK-ORDER.md`) |
-| Combat | `declareAttackers`, `declareBlockers`, `assignCombatDamage`, `orderBlockers/orderBlocker/orderAttackers`, `exertAttackers`, `enlistAttackers` (`PlayerController.java:111,154-170`) | `ComputerUtilCombat` | overrides declarations and damage assignment (`declareAttackers`, `declareBlockers`, `assignCombatDamage`); blocker/attacker *ordering* partly AI | a declaration and its ordering are the same decision split across two methods; the seat owns one, the engine the other | the ordering half of a declaration (ledger `controller-ownership.tsv:109-111` marks `orderAttackers/orderBlocker/orderBlockers` `ai-observed`: "damage order chosen by AiBlockController"); not yet filed |
-| Zone changes / card movement | `chooseSingleCardForZoneChange`, `orderMoveToZoneList`, `choosePermanentsToSacrifice`, `chooseCardsForEffect`, `chooseCardsToDiscard*`, `arrangeForScry/Surveil` (`PlayerController.java:115,129,193-204,229-243,367`) | `ComputerUtil` / the AI brains (`PlayerControllerAi.java:279` `ComputerUtil.choosePermanentsToSacrifice`, `:289` `brains.chooseCardsForEffect`, `:1596` `brains.chooseCardToHiddenOriginChangeZone`) | overrides the picks (`chooseSingleCardForZoneChange`, `chooseCardsForEffect`, `orderMoveToZoneList`, `choosePermanentsToSacrifice`); Forge's `AiCardMemory` is consulted in `LlmCostDecision` | the four zone-change overrides read the engine's list as passed; the tap/sacrifice **cost** filters re-derive their own (`LlmCostDecision.visit(CostSacrifice)`, `LlmCostDecision.java:57-88`) | same reserve shape as Mana payment above |
-| Information / reveal | `reveal(...)`, `notifyOfValue`, `confirmReplacementEffect`, `confirmStaticApplication`, `chooseCardsPile` (`PlayerController.java:148-152,179-191,318`) | the AI's information machinery is live: `reveal` records to `AiCardMemory.REVEALED_CARDS` (`PlayerControllerAi.java:502`, read by the AI at `ComputerUtil.java:1521`), and `chooseCardsPile` `:1427`, `confirmStaticApplication` `:400`, `confirmReplacementEffect` `:455` all decide; only `notifyOfValue` `:969` is a no-op | seat overrides `reveal` and rebuilds state in `SeatObservation` | the seat's *observation* is a rendering of engine state, versioned separately from the interface | observation profile work (`SeatObservation.VERSION`) |
-| Cross-tier context | (no engine method; a harness concern) | the engine hands each decision to the current tier | two independent `claude`/API conversations (smart, fast) | **the decision context is per-call, not per priority window**: an ask answered by one tier does not carry the play the other tier chose | **#108** (a cost/shuffle ask does not say which play caused it), GAME-LOOP-LOG g08-g10 |
+Engine citations are the pinned checkout (`$FORGE_HOME`, [ENGINE-PIN.md](ENGINE-PIN.md)); the seat is cited by
+method name.
 
-## Partial overrides: the mechanical inventory
+| Engine subsystem | Interface method(s) | Engine implementation | What the seat does | Where it still shadows the engine |
+|---|---|---|---|---|
+| Play loop / priority | `chooseSpellAbilityToPlay` | `ComputerUtilAbility` builds the castable list; the AI loops it | builds its own menu from the engine's legal list and asks; every window is a `t:"window"` row | the menu's description and order are the seat's; legality stays the engine's |
+| Targeting | `chooseTargetsFor` | `PlayerControllerAi.chooseTargetsFor` = `brains.doTrigger(sa, true)`, which sets targets and modes through `TargetChoices` | routes single, multi, chained and divided targets; modes are chosen before targets; a target ask can cancel the play; `ensureTargetsSet` targets the AI cast path | the seat assigns targets itself from `TargetRestrictions.getAllCandidates` rather than through `doTrigger` |
+| Mana payment | `payManaCost` | one call: `ComputerUtilMana.payManaCost(...)` | activates tap-type mana abilities first, asks which sources stay untapped and how Phyrexian symbols are paid; an engine patch gives it a generic shard's colour | which sources pay is still the engine's plan; the seat's reserve comes from a test payment of the same ability (`LlmCostDecision.manaSources`) |
+| Non-mana costs | `getCostDecisionMaker`, and the play path `playChosenSpellAbility` | `new AiCostDecision(...)`; `ComputerUtil.handlePlayingSpellAbility` hard-codes it | `LlmCostDecision` routes choosable sacrifice, exile, return and tap costs; `playChosenSpellAbility` and `playNoStack` are copies of the engine routines that pay with it | the candidate filters are copied from `ComputerUtil.choose*Type`, and both play routines must be re-diffed on every re-pin; an ability with `TargetingPlayer` stays on the inherited path |
+| Triggers | `playTrigger`, `confirmTrigger`, `orderSimultaneousSa`, `orderAndPlaySimultaneousSa` | `prepareSingleSa(...)` with `brains.doTrigger`, then `ComputerUtil.playNoStack` | owns the yes/no, the order, the modes and targets (`prepareTrigger`) and the payment (`playNoStack`); retargets a copy that may take new targets | a copied spell that may not take new targets keeps the engine path |
+| Combat | `declareAttackers`, `declareBlockers`, `assignCombatDamage`, `orderAttackers`, `orderBlocker`, `orderBlockers`, `exertAttackers`, `enlistAttackers` | `ComputerUtilCombat`, `AiBlockController` | owns declarations, damage assignment, damage order, exert and enlist | `declareAttackers`/`declareBlockers` call `super` only for a null defender or an exception (`model+ai-fallback`) |
+| Zone changes | `chooseSingleCardForZoneChange`, `orderMoveToZoneList`, `choosePermanentsToSacrifice`, `chooseCardsForEffect`, `chooseCardsToDiscard*`, `arrangeForScry`, `arrangeForSurveil` | `ComputerUtil` and the AI brains | owns the picks and orders over the engine's list as passed; a `delayedReveal` pick reveals first, then asks | an empty or forced list goes to `super` (no choice exists) |
+| Information | `reveal`, `notifyOfValue`, `confirmReplacementEffect`, `confirmStaticApplication`, `chooseCardsPile` | `reveal` records to `AiCardMemory.REVEALED_CARDS`; `notifyOfValue` is a no-op | records every reveal and notice in the seat stream (`SeatObservation`); the confirmations and piles are asked | the observation is a rendering of engine state, versioned separately (`SeatObservation.VERSION`) |
+| Context across asks | no engine method | the engine hands each decision to the controller | every ask after a play carries the play and the model's reason for it | none known |
 
-`PlayerController` declares **108** decision methods; `PlayerControllerLLM` overrides **43**. Of those
-43, **27** contain a `super.` call — the seat owns the method but hands a case back to the engine. The
-other 65 are answered by the Forge AI outright (`controller-ownership.tsv`: 69 `ai-inherited` rows, of
-which **29 are `strategic`**).
+## Rare hooks and the decks that reach them
 
-Not every `super.` is a defect. The delegating *conditions* sort into two kinds:
+Every strategic hook in the ledger is now `model` (or a `wrapper` that dispatches to one), but a hook the eval pool
+never calls is proven only by its golden check. The engine effect that calls each is the reachability key (grep the
+effect class under `forge-game/.../ability/effects/`); the `hook-*` probe decks ([HOOK-DECKS.md](HOOK-DECKS.md))
+reach them on purpose.
 
-| The seat delegates when… | Where | Verdict |
+| Hook | Engine effect that calls it | Probe deck |
 |---|---|---|
-| the list is null/empty, or a legal answer is forced | `chooseCardsForEffect`, `chooseSingleEntityForEffect`, `choosePermanentsToSacrifice`, `chooseCardsToDelve`, `chooseOptionalCosts`, `chooseSomeType`, `chooseProtectionType` | **harmless** — no decision exists to make |
-| `delayedReveal != null` (choose from a set the seat just looked at) | `chooseSingleEntityForEffect`, `chooseSingleCardForZoneChange` | **fixed (#128)** — reveals in the engine's order, then routes the pick |
-| `allowRepeat` (a mode may be chosen more than once) | `chooseModeForAbility` | **fixed (#127)** — routed through `decideModesRepeat`; `hook-repeat-modes` is its regression repro |
-| a declaration throws | `declareAttackers`, `declareBlockers` | **fixed (#126)** — the catch declares no attackers/blockers (a deterministic legal option), never the AI |
-| a model name cannot be matched to a legal card | `chooseCardName` | fallback; the model should be re-asked instead |
+| `chooseCardsPile` | `TwoPilesEffect` | `hook-piles` |
+| `choosePermanentsToDestroy` | `SacrificeEffect` (`Destroy$ True`) | `hook-destroy-choice` |
+| `chooseCardsToDiscardUnlessType` | `DiscardEffect` (`UnlessType`) | `hook-discard-unless` |
+| `chooseSingleSpellForEffect`, `chooseNewTargetsFor`, `chooseTarget` | `CopySpellAbilityEffect`, `ChangeTargetsEffect` | `hook-redirect-copy` |
+| `chooseSpellAbilitiesForEffect` | `VillainousChoiceEffect` | `hook-villainous-choice` |
+| `chooseCardsForEffectMultiple` | `DigMultipleEffect` | `hook-dig-multiple` |
+| `chooseColors` | `ChooseColorEffect` (`TwoColors$ True`) | `hook-two-colors` |
+| `chooseCounterType` | `CountersPutOrRemoveEffect`, `CountersMoveEffect` | `hook-counter-type` |
+| `chooseSingleCardFace` | `VentureEffect` | `hook-venture` |
+| `chooseFlipResult` | `FlipCoinEffect` | `hook-flip` |
+| `willPutCardOnTop` | `ClashEffect` | `hook-clash` |
+| `chooseSaToActivateFromOpeningHand` | `GameAction` | `hook-opening-hand` |
+| `playSaFromPlayEffect` | `PlayEffect` (`DB$ Play`) | `hook-play-exile` |
+| `exertAttackers`, `enlistAttackers` | `PhaseHandler` | `hook-exert` |
+| `chooseCardsForSplice` | `AbilityUtils` (splice) | `hook-splice` |
+| `chooseModeForAbility` with `allowRepeat` | a charm with `CanRepeatModes$ True` | `hook-repeat-modes` |
+| `chooseKeywordForPump`, `chooseSingleCardState`, `chooseSingleReplacementEffect`, `chooseSingleStaticAbility`, `confirmStaticApplication`, `chooseStartingHand` | `PumpEffect` (`KWChoice`), `UnlockDoorEffect`, `ReplacementHandler`, `CostAdjustment`, `Combat`, `BackupPlanService` | none: four are proven by golden checks that build the position (the ledger's "proven by"); `chooseKeywordForPump` (no card uses `KWChoice`) and `confirmStaticApplication` name no proof in the ledger |
 
-So the hazard was not "the seat calls `super`" but that **three narrow conditions (`delayedReveal`,
-`allowRepeat`, a declaration exception) routed a real decision to the AI from inside the seat's own
-hook**. All three are now fixed (#126, #127, #128); the remaining `super.` calls delegate only when
-no decision exists.
+Re-run this table when a deck joins the pool: a new card can make a dormant hook live.
 
-### The AI-owned strategic hooks (the un-overridden set)
+## What would remove a class of defects
 
-Of the 29 `strategic` rows the ledger marks `ai-inherited`:
+- **Targeting: own the choice, not the machinery.** Ask the engine for the ability's `TargetChoices` and have the
+  model pick among them, so the seat no longer assigns targets beside `doTrigger`.
+- **Mana: ask the engine what its real payment will tap**, instead of reading the reserve from a test payment.
+- **Cost decisions: delegate, never copy.** Borrow the candidate filters from `ComputerUtil` (call it) rather than
+  copy them, so the seat's candidate set is the engine's by construction.
 
-- **3 `core`**: `playTrigger`, `orderAndPlaySimultaneousSa` (G7: intentionally engine mechanics, their
-  yes/no and order are the seat's), and `chooseEntitiesForEffect` — a `wrapper` class in the ledger,
-  i.e. `PlayerControllerAi.chooseEntitiesForEffect` delegates per entity to `chooseSingleEntityForEffect`,
-  which the seat *does* own, so it is routed by delegation rather than silent.
-- **26 `rare`/`none`**. Each is reachable only when a card uses it, and the engine effect that calls
-  it is the reachability key (grep the effect class under `forge-game/.../ability/effects/`):
-
-| AI-owned hook | engine effect that calls it | in the pool today? |
-|---|---|---|
-| `chooseCardsPile` | `TwoPilesEffect` (separate into two piles) | **yes — `hook-piles`** |
-| `choosePermanentsToDestroy` | `SacrificeEffect` (`Destroy$ True`) | **yes — `hook-destroy-choice`** |
-| `chooseCardsToDiscardUnlessType` | `DiscardEffect` (`UnlessType`) | **yes — `hook-discard-unless`** |
-| `chooseSingleSpellForEffect` | `CopySpellAbilityEffect` (copy a spell) | **yes — `hook-redirect-copy`** |
-| `chooseSpellAbilitiesForEffect` | `VillainousChoiceEffect` | **yes — `hook-villainous-choice`** |
-| `chooseCardsForEffectMultiple` | `DigMultipleEffect` | **yes — `hook-dig-multiple`** |
-| `chooseColors` | `ChooseColorEffect` (`TwoColors$ True`) / `GameAction` | **yes — `hook-two-colors`** |
-| `chooseCounterType` | `CountersPutOrRemoveEffect` / `CountersMoveEffect` | **yes — `hook-counter-type`** |
-| `chooseKeywordForPump` | `PumpEffect` (`KWChoice`) | no — no card uses `KWChoice`, so it is unreachable |
-| `chooseNewTargetsFor` / `chooseTarget` | `ChangeTargetsEffect`, `SpellAbility` (redirect) | **yes — `hook-redirect-copy`** |
-| `chooseSingleCardFace` | `VentureEffect` | **yes — `hook-venture`** |
-| `chooseSingleCardState` | `UnlockDoorEffect` (rooms) | no |
-| `chooseSingleReplacementEffect` | `ReplacementHandler` | edge — needs two overlapping replacement effects |
-| `chooseSingleStaticAbility` | `CostAdjustment` | edge — choice among cost-reduction statics |
-| `chooseFlipResult` | `FlipCoinEffect` | **yes — `hook-flip`** |
-| `willPutCardOnTop` | `ClashEffect` | **yes — `hook-clash`** |
-| `chooseSaToActivateFromOpeningHand` | `GameAction` | **yes — `hook-opening-hand`** |
-| `chooseStartingHand` | `BackupPlanService` | **unreachable — no card script calls it** |
-| `confirmStaticApplication` | `Combat` (damage-assignment static) | edge — reached in ordinary combat, not one card |
-| `playSaFromPlayEffect` | `PlayEffect` (`DB$ Play`, 281 cards) | **yes — `hook-play-exile`** |
-| `exertAttackers` / `enlistAttackers` | `PhaseHandler` | **yes — `hook-exert`** |
-| `chooseCardsForSplice` | `AbilityUtils` (splice) | **yes — `hook-splice`** |
-| `chooseCardsForZoneChange` | `ChangeZoneEffect` | edge — multi-card zone change |
-| `chooseEntitiesForEffect` | `DigEffect` (wrapper — routes to `chooseSingleEntityForEffect`, owned) | routed |
-
-`allowRepeat` was already live (`Eldrazi Confluence`, `eval/decks/painter.txt:24`); the seven
-`hook-*` decks (`docs/harness/HOOK-DECKS.md`) now make six more of these hooks reachable on purpose —
-`chooseCardsPile`, `chooseSingleSpellForEffect`, `chooseNewTargetsFor`/`chooseTarget`,
-`chooseCardsToDiscardUnlessType`, `chooseFlipResult`, `willPutCardOnTop`, and
-`exertAttackers`/`enlistAttackers`, and—with the `hook-destroy-choice`, `hook-play-exile`, `hook-venture`, `hook-counter-type`, `hook-two-colors` and `hook-dig-multiple` decks—`choosePermanentsToDestroy`, `playSaFromPlayEffect`, `chooseSingleCardFace`, `chooseCounterType`, `chooseColors` and `chooseCardsForEffectMultiple`, and later `chooseSpellAbilitiesForEffect`, `chooseSaToActivateFromOpeningHand` and `chooseCardsForSplice`. The rest stay dormant until a deck adds the effect. Re-run this
-table when the pool changes: a new card is what promotes a `rare` hook to live.
-- The rest of the `ai-inherited` set is **15 `exotic`** (Un-set, dice, Attractions), **9 `payment`**,
-  **7 `mechanics`** and **6 `ui`** — out of strategic scope.
-
-Routine for this inventory: re-run it when a deck joins the pool — a new card can promote a `rare`
-hook to live, and each promotion is a new root row, not a one-off bug.
-
-## Root fixes, in dependency order
-
-Each is an interface-level change that removes a class of defects, not one symptom.
-
-- **R1 — targeting: own the choice, not the machinery.** Give the seat a hook that makes the model's
-  choice *where the engine computes it*, so `chooseTargetsFor` never re-implements target assignment:
-  ask the engine for the ability's `TargetChoices` (the whole chain: multi-target, split, modal) and
-  have the model pick among them, then let the engine apply them. This removes the three things the
-  Targeting row names: the single-target restriction, the duplicated assignment, and the sub-ability
-  bail. Closes the "targeting is messed up" class and the
-  silent multi-target AI fallback. *(Found by code reading; filed as #124.)*
-- **R2 — mana: stop duplicating `ComputerUtilMana`'s plan.** Either (a) leave `payManaCost` to the
-  engine entirely and expose only the choice among *equivalent* payment plans (the `payManaCost` row
-  of `history/G7-REMAINING-WORK-ORDER.md`), or
-  (b) ask the engine, dry-run, which permanents its real payment will tap and use that as the reserve
-  set, instead of `manaSources()`'s own computation. Closes **#110** and **#111** together, because
-  both are "the reserve is not what the payment will use". *(Root of two filed defects.)*
-- **R3 — cost decisions: delegate, never copy.** `LlmCostDecision`'s tap/sacrifice filters must be
-  *borrowed from* `ComputerUtil` (call it) rather than copied beside it, so the seat's candidate set
-  is the engine's by construction; and the prompt must render zones in words, not Java
-  (`LlmCostDecision.java:125-126`). Closes **#109** and the class it belongs to. *(Half-done in #95.)*
-- **R4 — priority-window context.** A per-window "pending play" on the controller, set when a cast/
-  activation is chosen, read by every follow-up ask (cost, target, shuffle, trigger) whichever tier
-  answers. Closes **#108** at the root instead of per-case patching (the #95 shuffle-note was a
-  single-site patch of exactly this). *(Root of one filed defect.)*
-- **R5 — combat: keep a declaration and its ordering together.** Own `orderAttackers/orderBlockers`
-  wherever the seat owns `declareAttackers/declareBlockers`, so one decision is not split between the
-  seat and the AI. *(Same "partial override" shape as R1.)*
+Which of these is worth its risk is not determined.
 
 ## Keeping this map honest
 
-- A root change moves its `controller-ownership.tsv` entry and its `ControllerOwnershipTest` expectation
-  in the same PR (the G7 method, `history/G7-REMAINING-WORK-ORDER.md`).
-- A claim cites its source: the engine by `file:line` under `~/code/forge` (pinned by `ENGINE-PIN.md`),
-  the seat by **method name** (`LlmSpikeGui.chooseTargetsFor`), never by line — the seat's line
-  numbers move with every edit, which is why `history/ARCHITECTURE-REVIEW.md` cites by method too. Never cite
-  the checkout copy: it is the last `install.sh` snapshot (`install.sh:16`), not this source.
-- A row's "interface gap" that gains a *new* partial-override fallback should be filed as a
-  `harness-defect` issue in the hunter's format, so the map stays a plan and not a wish list.
-
-## What this does not claim
-
-- It does not claim the seat should own everything: own the method or leave it, and say which.
-- It does not re-open the G7 hooks already routed (10 of 13; `history/G7-REMAINING-WORK-ORDER.md`). It is
-  about the three subsystems (targeting, mana, cost) where the seat still shadows engine machinery,
-  plus the cross-tier context and combat-ordering seams.
-- It does not determine which of R1-R5 is highest value; that needs a game read per class
-  (`game-loop`), which is the next step.
+- A root change moves its `controller-ownership.tsv` entry and its `ControllerOwnershipTest` expectation in the same
+  PR (the G7 method, [history/G7-REMAINING-WORK-ORDER.md](history/G7-REMAINING-WORK-ORDER.md)).
+- Cite the engine by file and method in the pinned checkout, the seat by method name, never by line: the seat's line
+  numbers move with every edit. Never cite the checkout's copy of an overlay file: it is the last `install.sh`
+  snapshot, not this source.
+- A new partial-override fallback is filed as a `harness-defect` issue (the `defect-hunt` skill's format), so the
+  map stays a plan and not a wish list.
