@@ -149,7 +149,7 @@ interface LLMBridge {
 
 /**
  * SPIKE (throwaway): launch the real Forge desktop window and WATCH two custom
- * LLM PlayerControllers play a game AGAINST EACH OTHER, in spectator mode.
+ * LLM PlayerControllers play a game AGAINST EACH OTHER in the GUI (watched, or with one person seated).
  *
  * v2 of the Opus-vs-Opus variant. Goals of this pass:
  *   1. FULL CONTEXT — every decision prompt carries a compact snapshot of the whole
@@ -10032,14 +10032,18 @@ public final class LlmSpikeGui {
         }
     }
 
-    /** CONTROLLER_A/B value for a seat a person plays in the GUI, on Forge's own human controller (play-vs-llm.sh). */
+    /** CONTROLLER_A/B value for a seat a person plays in the GUI, on Forge's own human controller (play-vs-llm.sh).
+     *  Only {@link #buildPlayers(boolean)} with a window builds one; {@link #seatFor}, which the puzzle runner calls,
+     *  refuses it. */
     static final String HUMAN = "human";
+    static final String NO_WINDOW = "a human seat needs the GUI to ask its player: run play-vs-llm.sh (or "
+            + "run-llm-spike.sh), not a headless, fork or puzzle run";
 
-    /** Map a CONTROLLER_A/B value to its LobbyPlayer: "human" = a person at the GUI, "ai" = plain Forge AI (untouched), "ai-log" = the
-     *  Forge AI that logs every decision as an ai-teacher SFT row, anything else = the LLM seat / one of
-     *  its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode. */
+    /** Map a CONTROLLER_A/B value to its LobbyPlayer ("human" refused: see {@link #HUMAN}): "ai" = plain Forge AI
+     *  (untouched), "ai-log" = the Forge AI that logs every decision as an ai-teacher SFT row, anything else = the LLM
+     *  seat / one of its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode. */
     static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel) {
-        if (HUMAN.equals(ctl)) return new LobbyPlayerHuman(name);
+        if (HUMAN.equals(ctl)) throw new IllegalStateException(NO_WINDOW);
         if ("ai".equals(ctl)) return new LobbyPlayerAi(name, null);
         if ("ai-log".equals(ctl)) return new LobbyPlayerAiLogging(name);
         return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
@@ -10132,8 +10136,7 @@ public final class LlmSpikeGui {
         String ctlA = env.getOrDefault("CONTROLLER_A", "llm");
         String ctlB = env.getOrDefault("CONTROLLER_B", "llm");
         if (HUMAN.equals(ctlA) || HUMAN.equals(ctlB)) {
-            if (!allowHuman) throw new IllegalStateException("a human seat needs the GUI to ask its player: run "
-                    + "play-vs-llm.sh (or run-llm-spike.sh), not a headless, fork or puzzle run");
+            if (!allowHuman) throw new IllegalStateException(NO_WINDOW);
             if (HUMAN.equals(ctlA) && HUMAN.equals(ctlB))
                 throw new IllegalStateException("only one human seat per match: the GUI asks one person");
         }
@@ -10175,8 +10178,10 @@ public final class LlmSpikeGui {
             lastPlanA = planA; lastPlanB = planB;
         }
 
-        RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(seatFor(ctlA, nameA, planA, smartA, fastA));
-        RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(seatFor(ctlB, nameB, planB, smartB, fastB));
+        RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(HUMAN.equals(ctlA) ? new LobbyPlayerHuman(nameA)
+                : seatFor(ctlA, nameA, planA, smartA, fastA));
+        RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(HUMAN.equals(ctlB) ? new LobbyPlayerHuman(nameB)
+                : seatFor(ctlB, nameB, planB, smartB, fastB));
         boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
         System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
@@ -11598,7 +11603,7 @@ public final class LlmSpikeGui {
         Singletons.getControl().initialize();
         new Thread(() -> {
             try { Thread.sleep(3500); } catch (InterruptedException ignored) {}
-            SwingUtilities.invokeLater(LlmSpikeGui::startSpectatorMatch);
+            SwingUtilities.invokeLater(LlmSpikeGui::startGuiMatch);
             // Opt-in autonomous window recording (no macOS Screen-Recording permission needed).
             String rec = System.getenv("RECORD");
             if (rec != null && !rec.trim().isEmpty() && !"0".equals(rec.trim())) {
@@ -11609,7 +11614,7 @@ public final class LlmSpikeGui {
         }, "llm-spike-launcher").start();
     }
 
-    private static void startSpectatorMatch() {
+    private static void startGuiMatch() {
         System.out.println("[LLM-SEAM] building the GUI match...");
         final long seed = applySeed();
         EvalLog.init(seed);
@@ -11619,7 +11624,7 @@ public final class LlmSpikeGui {
         try { String g = System.getenv("MATCH_GAMES"); if (g != null && !g.trim().isEmpty()) gpm = Math.max(1, Integer.parseInt(g.trim())); }
         catch (Exception ignore) {}
         final boolean bo1 = gpm == 1;
-        // A person's seat (play-vs-llm.sh) gets Forge's own match screen to play from; with none, the match is watched.
+        // play-vs-llm.sh: a person's seat gets Forge's match screen to play from.
         RegisteredPlayer human = humanSeat(players);
         GameRules rules = guiRules(gpm, human != null);
         final HostedMatch hosted = GuiBase.getInterface().hostMatch();

@@ -25,7 +25,7 @@ public class HumanSeatTest {
         new LineFindingProbeTest().initializeModel();
         LlmSpikeGui.envOverride = env;
         try {
-            return gui ? LlmSpikeGui.buildPlayers(true) : LlmSpikeGui.buildPlayers();
+            return LlmSpikeGui.buildPlayers(gui);
         } finally {
             LlmSpikeGui.envOverride = null;
         }
@@ -40,9 +40,21 @@ public class HumanSeatTest {
     }
 
     @Test
-    public void aHumanSeatNeedsNoModel() {
+    public void aPersonCanSitAtSeatBWithNoModelNamed() {
         // No SMART_MODEL / FAST_MODEL at all: the person's seat asks no model, so it is not refused for naming none.
-        Assert.assertEquals(build(env("floor", "human"), true).size(), 2);
+        List<RegisteredPlayer> players = build(env("floor", "human"), true);
+        Assert.assertTrue(players.get(1).getPlayer() instanceof LobbyPlayerHuman);
+    }
+
+    /** The puzzle runner builds its seats with seatFor, not buildPlayers: a person cannot be its opponent either. */
+    @Test
+    public void seatForNeverBuildsAPerson() {
+        try {
+            LlmSpikeGui.seatFor(LlmSpikeGui.HUMAN, "Opponent", "", "greedy:", "greedy:");
+            Assert.fail("seatFor seated a person");
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().contains("play-vs-llm.sh"), e.getMessage());
+        }
     }
 
     @Test

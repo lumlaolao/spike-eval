@@ -12,7 +12,7 @@ bash 3.2's (macOS), and bash 4+ (Linux) parses such a file cleanly, so this test
 where it runs under bash 3.2. It cannot see run-time
 behaviour: a script that parses but dies mid-stage, or a stage list naming a
 stage the gate never runs. The scanned set is the top-level eval/ and scripts/
-gate scripts; root install.sh and the run-llm-*.sh launchers are outside it.
+gate scripts and the root launchers (install.sh, run-llm-*.sh, play-vs-llm.sh).
 
 Script paths come from this file's own location, so the test runs unchanged
 from any checkout or worktree.
@@ -22,8 +22,8 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-# Every bash entry point the repo treats as a gate or hook. bash -n: parse only.
-GATE_SCRIPTS = sorted({*REPO.glob("eval/*.sh"), *REPO.glob("scripts/*.sh")})
+# Every bash entry point the repo treats as a gate, hook or launcher. bash -n: parse only.
+GATE_SCRIPTS = sorted({*REPO.glob("eval/*.sh"), *REPO.glob("scripts/*.sh"), *REPO.glob("*.sh")})
 
 
 class GateParses(unittest.TestCase):

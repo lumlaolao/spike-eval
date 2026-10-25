@@ -36,12 +36,14 @@ canaries are bit-reproducible: the seed-42 floor mirror wins A in 108 turns, the
 ## Play against the model yourself
 
 Sit across the table from a language model in Forge's own match screen: you click your cards, it plays its seat
-exactly as it does in the benchmark (the same prompt, tools and `answer` call, seeing only what its seat may see).
+under the benchmark's pilot condition (`eval/suites/panels-v1.json`: the same prompt, tools and `answer` call as its
+scored games, seeing only what its seat may see).
 
 ```bash
 bash play-vs-llm.sh                                   # your Burn against GPT-6 Luna on Mardu Energy
 bash play-vs-llm.sh --deck elves --vs ur-delver       # any eval/decks/<name>.txt, or a path to a decklist
 CLAUDE_CLI_SEAT=1 bash play-vs-llm.sh --model claude-cli:opus   # Claude Code on your own subscription
+bash play-vs-llm.sh --commentary --why                # each model decision and its reason, live in the terminal
 ```
 
 ![A person's opening hand against the model's seat](docs/images/play-vs-llm.png)
@@ -49,9 +51,10 @@ CLAUDE_CLI_SEAT=1 bash play-vs-llm.sh --model claude-cli:opus   # Claude Code on
 It needs a built Forge checkout (`FORGE_HOME`, see "Build and check") and a display. An `openrouter:` model needs
 your egress consent (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`; the script reads it and never sets it); a Luna
 game costs about $0.02 to $0.05. The model may think for minutes on a hard decision, and the screen waits for it.
-Its decisions, replies and requests are kept under `runs/human/<time>/`. Games against a person are never part of
-a benchmark score: only the GUI can seat a person (`CONTROLLER_A/B=human`), and the headless runner, `run_batch.py`
-and the puzzle runner refuse one.
+Its decisions, replies and requests are kept under `runs/human/<time>/`; `--commentary` prints each of its decisions
+as it makes them (`eval/play_commentary.py`, which also reads a finished game), and `--why` its reasons. Both show its
+hidden choices and `--why` names its hand: for watching or streaming, not a fair game. Games against a person are
+never part of a benchmark score (`docs/harness/ARCHITECTURE.md`, section 11).
 
 ## Play a game
 
