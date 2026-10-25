@@ -81,7 +81,7 @@ The issue was filed against an older `main`. Before writing any fix:
      nothing about plays, attacks or blocks (`CLAUDE.md`, "Commands").
    - **c. One model-lane game** only when a and b cannot reach it, on a lane `defect-hunt` step 2
      allows (the egress opt-in must already be in `secrets.env`; never set it yourself). Never
-     opus, never a batch.
+     an Opus seat outside the `claude-cli:` lane the owner asked for (`CLAUDE.md`, "Owner rules"); never a batch.
 3. **If nothing reproduces it,** do not fix on faith. Comment what you ran and what you saw, add
    `cannot-reproduce`, and `RELEASE`. If you think the issue's **What should have happened** is
    itself wrong (the engine allows what the hunter called a defect), say so with the engine source

@@ -27,7 +27,8 @@ End the message with the attribution lines your session was given.
 git push -u origin <type/short-name>
 python3 scripts/pr_format.py new-pr > /tmp/pr.txt     # title on line 1, blank, then the body skeleton
 # fill in every section; "Not done" and "Provenance" are never left empty (write "none" if so)
-gh pr create --title "<line 1>" --body-file <body file>
+# `gh pr create` uses GraphQL, which cloud sessions are refused (CONTRIBUTING.md); the REST form:
+gh api -X POST repos/{owner}/{repo}/pulls -f head=<branch> -f base=main -f title="<line 1>" -F body=@<body file>
 python3 scripts/pr_format.py check-pr <n>
 ```
 

@@ -33,17 +33,23 @@ openrouter.ai, and writes both to `secrets.env`, which only you can read and git
 again: it moves its own Forge checkout to a new pin and rebuilds.
 
 To hand someone a copy, zip only what git tracks, so your `secrets.env` (your key and your consent) stays behind:
-`git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent.zip HEAD -- . ":(exclude)runs"
-":(exclude)datasets"`. They add their own key when `setup.sh` asks.
+
+```bash
+git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent.zip HEAD -- . ":(exclude)runs" ":(exclude)datasets"
+```
+
+They add their own key when `setup.sh` asks.
 
 ## Build and check
 
-Requires JDK 17, Maven 3.8.1 or newer, and Python 3 (stdlib only).
+`bash setup.sh` does all of this on a fresh machine. By hand it needs Java 17 or newer, Maven 3.8.1 or newer, git
+and Python 3 (stdlib only).
 
 ```bash
 git clone https://github.com/Card-Forge/forge.git /root/forge && git -C /root/forge checkout $(cat FORGE_COMMIT)
 FORGE_HOME=/root/forge bash install.sh                                   # copy the overlay in
-(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests) # build (checkstyle runs here)
+(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -DskipTests)    # build (checkstyle runs here; -o once built)
+(cd /root/forge && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=${FORGE_CP_FILE:-/tmp/forge_cp.txt})
 FORGE_HOME=/root/forge bash eval/harness_acceptance.sh                   # compile, every test, canaries, fake-model games
 bash eval/keyword_gauntlet.sh                                            # 28 free games over 552 cards
 ```
@@ -90,11 +96,11 @@ An `openrouter:` model sends the game state to openrouter.ai: set `OPENROUTER_AP
 minutes. `run_batch.py` pins the condition, stamps provenance, resumes, retries a crashed game once, and stops at
 `--budget-usd`. `eval/cost_report.py` prices any run.
 
-The GUI (`bash /root/forge/run-llm-spike.sh`, each model seat's `SMART_MODEL` / `FAST_MODEL` named: there is no
-default model) shows a spectator match; `RECORD=1 RECORD_OUT=game.mp4 RECORD_FPS=8`
+The GUI (`bash "$FORGE_HOME/run-llm-spike.sh"`, each model seat's `SMART_MODEL` / `FAST_MODEL` named: there is no
+default model) shows a spectator match of two harness seats (`play-vs-llm.sh` seats a person); `RECORD=1 RECORD_OUT=game.mp4 RECORD_FPS=8`
 captures the window to H.264 in-process (no screen-recording permission; `ffmpeg` on `PATH`). Watchdog GUI runs with
 `( sleep N; pkill -INT -f LlmSpikeGui ) &` (SIGINT, so the recorder finalizes the file). GUI matches are best of
-three; only the headless runner writes the game line.
+three; only the headless runner, or the GUI with `AUTO_EXIT=1`, writes the game line.
 
 ## Settings (env vars; `run_batch.py` sets these from its flags)
 
@@ -110,6 +116,8 @@ three; only the headless runner writes the game line.
 | `GAME_SEED`, `SWAP_SEATS` | random, 0 | seeded shuffles; `1` seats identity B first (the paired flip) |
 | `DECK_A/B`, `DECK_A_NAME/B_NAME`, `PLAN_A/B` | eval decks | decklists, seat labels, deck framing (`PLAN_A=""` for none) |
 | `EVAL_OUT` | off | directory for the per-decision and game JSONL |
+| `TRANSCRIPTS` | 0 (1 in `puzzle_solve.py` and `play-vs-llm.sh`) | with `EVAL_OUT`, keeps every HTTP request and response byte for byte (`eval/PUZZLES.md`, "Keeping a run") |
+| `FORGE_CP_FILE` | `/tmp/forge_cp.txt` | Forge's classpath list: written by `setup.sh`, read by `run-llm-spike.sh`, `run-llm-headless.sh` and `play-vs-llm.sh` |
 | `GAME_CAP_MS` | 3 h headless | wall-clock cap; a capped game is invalid, never a draw |
 | `SMART_BUDGET` / `FAST_BUDGET` | 10000 | per-game call caps: loop guards, not decision limits (`docs/harness/MODEL-LIMITS.md`) |
 | `OPENROUTER_BASE_URL`, `OPENROUTER_TIMEOUT_MS`, `OPENROUTER_IDLE_MS` | openrouter.ai, per model, 90000 | endpoint (recorded on the game line), call deadline, how long a silent connection may stall. A `jev:` decision-model seat posts to the same base's `/alpha/decisions` (its `/v1` replaced) with a 120000 ms deadline unless `OPENROUTER_TIMEOUT_MS` is set |
@@ -128,7 +136,8 @@ three; only the headless runner writes the game line.
 - **A capped game** grants in-flight asks a grace window sized to the slowest model timeout before the JVM exits;
   `run_batch.py`'s backstop stays wider than cap plus grace.
 - **The shadow labeller** (`SHADOW_AI`) has its own two-gate check: `bash eval/shadow_canary.sh`.
-- `secrets.env` (git-ignored; template `secrets.env.example`) is read by the eval drivers.
+- `secrets.env` (git-ignored, mode 600, written by `setup.sh`; template `secrets.env.example`) is read by the eval
+  drivers and `play-vs-llm.sh`; none of them writes the egress consent.
 
 ## Lessons the code is built on
 

@@ -17,9 +17,9 @@ Everything here runs on both; the commands are the same. Once per machine:
 | | macOS | Linux |
 |---|---|---|
 | Python | 3.9 or newer: the system `python3` or Homebrew's (the demo is stdlib only; tests run on 3.9) | `python3` 3.9 or newer |
-| JDK 17 (side by side, Forge window) | `brew install openjdk@17`; the launchers, acceptance and `demo_compare.py` find it at Homebrew's path (Apple Silicon; `demo_compare.py` also Intel), or set `JAVA_HOME` | the `javac` on `PATH`, or `JAVA_HOME` |
+| JDK 17 (side by side, Forge window) | `brew install openjdk@17`; `setup.sh`, `run-llm-spike.sh`, `run-llm-headless.sh` and `demo_compare.py` find it at either Homebrew prefix (Apple silicon or Intel), `harness_acceptance.sh` and `shadow_canary.sh` at Apple silicon's only; or set `JAVA_HOME` | the `javac` on `PATH`, or `JAVA_HOME` |
 | Forge checkout | `$FORGE_HOME` as given, else `~/code/forge` | `$FORGE_HOME`, else `~/code/forge`, else `/root/forge` (`puzzle_format.forge_home`), or `--forge <dir>` |
-| Forge built once (side by side, Forge window) | Maven and `FORGE_HOME=... bash install.sh` then a build, as in the README; after a reboot, regenerate `/tmp/forge_cp.txt` (the launcher says how) | the same |
+| Forge built once (side by side, Forge window) | `bash setup.sh` once; after a reboot `play-vs-llm.sh` rebuilds `/tmp/forge_cp.txt` (or `$FORGE_CP_FILE`), and `run-llm-spike.sh` prints the command | the same |
 | card images | if `demo_cards.py prefetch` prints a certificate hint, run python.org's `Install Certificates.command` once | nothing |
 | browser | Chrome, Firefox or Safari 16.2+ | Chrome or Firefox |
 

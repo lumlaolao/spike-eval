@@ -76,6 +76,9 @@ would have made it fail.
   sheet (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`), the gauntlet.
 - `docs/harness/`: architecture, game-loop log, acceptance records, golden checks, prompt craft, versions.
 - `README.md`: the env-var table and the hard-won lessons.
+- Root launchers: `setup.sh` (fresh clone to a built Forge at the pin and `secrets.env`), `play-vs-llm.sh` (a person
+  against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), `run-llm-headless.sh` /
+  `run-llm-spike.sh`.
 
 ## Skills (required, user decision 2026-10-13)
 

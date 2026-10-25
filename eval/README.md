@@ -94,8 +94,9 @@ enforces:
 2. **Confounds off** — forces `MULLIGAN_HEURISTIC=0`, `SKIP_HEURISTICS=0`, and
    empty `PLAN_A`/`PLAN_B` (plans inject expert knowledge). Overriding any of
    these via `--env`, or passing `--plan-a/--plan-b`, is refused.
-3. **`--jobs 1` when a seat uses a bare (claude-CLI) model spec**: parallel JVMs starve the `claude` CLI and
-   inflate fallbacks. All-`openrouter:` runs may run in parallel (RAM-bound, `eval/CONCURRENCY.md` §7).
+3. **No Claude CLI seat**: a `claude-cli:` seat is a development lane, never in a cited number, so cited mode
+   refuses it (`cited_pre_guards`); a bare Claude name (`opus`, `haiku`) is refused in every mode. All-`openrouter:`
+   runs may run in parallel (RAM-bound, `eval/CONCURRENCY.md` §7).
 4. **Held-out seeds** — every seed must sit in an eval-only band of
    `eval/seed_registry.json` and in no training corpus (see below).
 5. **Per-tier cap** — if `--cap-minutes` is omitted it is derived: no llm seat

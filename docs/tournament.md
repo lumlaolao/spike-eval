@@ -65,7 +65,8 @@ Inline env (`OPENROUTER_API_KEY=... python3 ...`) still works and overrides the 
 
 ```bash
 # 0. build must be current
-bash install.sh && (cd ~/code/forge && mvn -q -pl forge-gui-desktop -am compile -o)
+FORGE_HOME=~/code/forge bash install.sh && (cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)
+#    (or, on a fresh machine: bash setup.sh)
 
 # 1. FREE plumbing check — no key, no egress, no games launched
 python3 eval/tournament.py --models a b c d e f g h --mock-draft --dry-run

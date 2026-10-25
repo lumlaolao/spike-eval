@@ -15,8 +15,10 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 119/145 off and 127/145 on at epoch 67
 ([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
-Landed 2026-10-21 to 24: PRs #290 to #319. The hard suites are in [eval/PUZZLES.md](../../eval/PUZZLES.md);
-the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
+Landed 2026-10-21 to 25: PRs #290 to #326, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
+#324 (the full run record), #325 (`play-vs-llm.sh`, a person against the seat) and #326 (`setup.sh`). The hard suites
+are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environment is in
+[HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
 ## Open work
 
@@ -28,8 +30,9 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
     are not in it, and Jev Router is out (owner, 2026-10-24);
   - caps at the dearest endpoint come to about $486; the alternative is the bridge sending `provider.max_price`
     at the list price and caps sized at list;
-  - the owner requires full logs for this run, from the model chats to the engine logs: the full-transcript and
-    archive change (PR #324, open) must land on main before it starts;
+  - the owner requires full logs for this run, from the model chats to the engine logs: PR #324 landed it;
+    `puzzle_solve.py` records every HTTP round-trip and the engine log, and `eval/archive_run.py` packs and verifies
+    a run ([eval/PUZZLES.md](../../eval/PUZZLES.md), "Keeping a run");
   - one paid Jev smoke test (2026-10-24, one gen2 puzzle, $0.0023, `runs/puzzles/jev-test-1`, WRITEUP-NOTES
     section 4 on `docs/writeup-notes`): 15 decisions through the Decisions bridge, ai=0; the response shape is
     confirmed on that run only;
@@ -39,8 +42,9 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
   torbran is provisional because Forge orders its damage replacements from a `HashMap`
   ([eval/puzzles/hard/niche/README.md](../../eval/puzzles/hard/niche/README.md), "Known limits"), which also lists
   the puzzles short of the bar and the row each missed.
-- **The third hard suite** (`puzzles-hard-gen3-v1`, PR #302): a Luna run of its 44 open boards, about $1, is running
-  (owner-authorized, 2026-10-24). Read it when it finishes (`eval/puzzle_watch.py` follows it live).
+- **The third hard suite** (`puzzles-hard-gen3-v1`, PR #302): the Luna run of its 44 open boards finished
+  (`runs/puzzles/gen3-luna`, $1.009, 3 of 44 solved at k=1 per its log). Score it with `eval/puzzle_score.py` and
+  record it in [eval/PUZZLES.md](../../eval/PUZZLES.md).
 - **Harness-building environment:** no real episode has run. The owner's twelve questions are in
   HARNESS-ENV-FRAMEWORK.md section 8:
   - first, the builder model and budget;
@@ -58,8 +62,29 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
   - from PR #294: a STANDARDS rule that a doc's command runs as written from the repository root;
   - from PR #301: acceptance under 5 minutes, which needs more cores or running only the stages a change can
     affect; the second changes the gate rule (STANDARDS sections 1 and 5), so it is the owner's.
-- **Repository housekeeping:** the remote branches already merged into main were not deleted (it needs the
+- **Repository housekeeping:** the 77 remote branches already merged into main were not deleted (it needs the
   owner's permission).
+- **Owner decisions from a hygiene audit (2026-10-25):**
+  - about 320 MB of `runs/` is tracked, against STANDARDS section 3 (15 MB of it cited by nothing);
+  - four eval scripts nothing current calls: `latency_report.py`, `line_compare.py`, `coverage_audit.py` and
+    `model_sweep.py`, whose default list includes an Opus model and which takes no budget;
+  - six `secrets.env` loaders with no parity test;
+  - zero-model games still stamp `smart_a` "opus" and `fast_a` "haiku" on the game line;
+  - `forge-overlay/forge-gui/res/skins/default/sprite_avatars.png` replaces Forge's file with no
+    [ENGINE-PATCHES.md](ENGINE-PATCHES.md) entry;
+  - `eval/puzzles/rules-pilot/batch14-drafts` is linked from nothing.
+- **The `claude-cli:` lane:**
+  - `archive_run.py` refuses a `claude-cli:` puzzle run as a gap (billed calls, no HTTP file): that lane makes no HTTP
+    calls to record;
+  - a `claude -p` child outlives a killed JVM and keeps billing;
+  - owner question: should the lane, which sends the game state to Anthropic under the CLI login, have its own
+    egress opt-in?
+- **`run_batch.py` games do not set `TRANSCRIPTS`**, so a batch game has no HTTP record.
+- **Playing the seat yourself** (#325, #326): no paid-model game has been played through `play-vs-llm.sh` yet (the
+  smokes used `greedy:`); `setup.sh` is untested on a Mac and on WSL2, and the cold first build is untimed. Three of
+  #326's five pr-review LOWs remain: the ^C window between the marker and the remote add, the kept-secrets consent
+  check being looser than `play-vs-llm.sh`'s, and a Maven on Java 8 reported as "Java 1".
+- **The README and the front-facing text** await the owner's review.
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop
   unfinished games), E5 (freeze a measurement epoch), then E7 (the first mirror block, paid, cost first); which
   models to compare ([eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md), decision 4); the headline score.
@@ -89,7 +114,7 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 - **Tests first**, watched failing. Acceptance and the gauntlets only when the owner asks, except the full
   acceptance run a merge needs.
 - **Subagents are allowed** (owner, 2026-10-23); they never message the live-demo session.
-- **The `claude-cli:` lane is a local-development opt-in lane** (owner, 2026-10-24; PR #320, open). Its one paid
-  smoke run (Claude Opus 5.5 via `claude -p`, owner-requested test, 2026-10-24, solved, $2.18) is recorded in
-  PR #320.
+- **The `claude-cli:` lane is a local-development opt-in lane** (owner, 2026-10-24; PR #320, merged 2026-10-25,
+  ARCHITECTURE.md section 9). Its one paid smoke run (Claude Opus 5.5 via `claude -p`, owner-requested test,
+  2026-10-24, solved, $2.18) is `runs/puzzles/opus-cli-smoke`.
 - **Compound actions (`PLAN_EXECUTE`) stay off** (2026-10-16): the plan is a note, re-read at every decision.
