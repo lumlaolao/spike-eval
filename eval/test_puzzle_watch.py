@@ -343,5 +343,43 @@ class FollowTest(unittest.TestCase):
         self.assertTrue(puzzle_watch.over(puzzle_watch.snapshot(str(run.root), 600)))
 
 
+class FullRecordIsAdditiveTest(unittest.TestCase):
+    """A run that keeps its full record (Transcript.java: <puzzle>/transcripts/http-*.jsonl and engine-*.jsonl, plus
+    the .pzl copy and the run's suite.json, puzzle_solve.py) reads exactly as one that does not: the watcher's
+    states, counts and cost, cost_report's bill and puzzle_score's rows. The http rows hold a whole request (a
+    `prompt_tokens` inside a body must not be billed) and are not decision rows."""
+
+    def record(self, root):
+        (root / "suite.json").write_text("{}")
+        for d in root.iterdir():
+            if not d.is_dir():
+                continue
+            (d / "puzzle.pzl").write_text("[metadata]\nName:x\n[state]\n")
+            t = d / "transcripts"
+            t.mkdir()
+            body = json.dumps({"messages": [{"role": "user", "content": "x" * 5000}], "usage": {"prompt_tokens": 10 ** 9}})
+            (t / "http-1-2.jsonl").write_text(json.dumps({"t": "http", "version": "transcript-v1", "seq": 1,
+                                                          "request_body": body, "response_body": body,
+                                                          "status": 200}) + "\n")
+            (t / "engine-x-seed1-r0-1.jsonl").write_text(json.dumps({"t": "engine", "seq": 1, "type": "TURN",
+                                                                     "message": "Turn 1 (Solver)"}) + "\n")
+
+    def view(self, run):
+        keep = ("state", "attempts", "solved", "tiers", "text_parses", "cost", "flags")
+        snap = puzzle_watch.snapshot(str(run.root), 10 * 60, now=time.time())
+        return [{k: p[k] for k in keep} for p in snap["puzzles"]]
+
+    def test_the_watcher_the_bill_and_the_score_ignore_the_record(self):
+        run = Run(finished=True)
+        prices = cost_report.load_prices()
+        dirs = sorted(d for d in run.root.iterdir() if d.is_dir())
+        before = (self.view(run), [cost_report.report_dir(str(d), prices)["usd"] for d in dirs],
+                  puzzle_watch.puzzle_score.load_rows([run.root]), puzzle_solve.spent(run.root))
+        self.record(run.root)
+        after = (self.view(run), [cost_report.report_dir(str(d), prices)["usd"] for d in dirs],
+                 puzzle_watch.puzzle_score.load_rows([run.root]), puzzle_solve.spent(run.root))
+        self.assertEqual(before, after)
+
+
 if __name__ == "__main__":
     unittest.main()

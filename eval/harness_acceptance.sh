@@ -345,6 +345,9 @@ EOF
     # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
     elif ! grep -qF "] decisions-bridge-v1 ONE -> answer" "$OUT/javatests.log"; then
       fail javatests "no [JEV] answer stamped decisions-bridge-v1 (move this pin WITH DecisionsBridge.VERSION)"
+    # The run record's version, by literal value, from TranscriptTest's byte-equal loopback round-trip.
+    elif ! grep -qF "[TRANSCRIPT] transcript-v1 byte-equal" "$OUT/javatests.log"; then
+      fail javatests "no [TRANSCRIPT] round-trip stamped transcript-v1 (move this pin WITH Transcript.VERSION)"
     else pass javatests "$T/$DECLARED declared tests passed, 0 skipped. $OWN"; fi
   fi
 fi
@@ -1105,8 +1108,10 @@ fi
 # surfaced only in a paid run. Fails if: puzzle_solve.py does not run the seat on the loopback model;
 # puzzle_score.py refuses the result (suite or puzzle hash, solver, attempts); run_batch.py --panel does
 # not stamp a game line panel_score.py accepts (deck pin, engine, overlay, benchmark version, condition,
-# gates); or the overlay the launcher ran is not this checkout (drift). The panel launcher is a stand-in
-# Forge home that runs the isolated classes from the real checkout, which is never written.
+# gates); the puzzle directory lacks its full record (Transcript: one answered call per loopback request, the
+# engine log, archive_run.check_record clean); or the overlay the launcher ran is not this checkout (drift).
+# The panel launcher is a stand-in Forge home that runs the isolated classes from the real checkout, which is
+# never written.
 if has_stage scoring; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikePuzzle.class" ]; then fail scoring "no compiled classes"; else
     dir="$OUT/scoring"; rm -rf "$dir"; mkdir -p "$dir/forge-home"
@@ -1141,8 +1146,8 @@ EOF
       if ! grep -Fq "forge.spike.LlmSpikeGui source: file:$CLASSES/" "$dir/panel-classload.log" 2>/dev/null; then
         fail scoring "the panel launcher did not load LlmSpikeGui from $CLASSES"
       else
-        VERDICT="$(python3 - "$dir" "$PRC" "$SRC" "$BRC" <<'EOF'
-import json,sys
+        VERDICT="$(REPO="$REPO" python3 - "$dir" "$PRC" "$SRC" "$BRC" <<'EOF'
+import json,os,sys
 d,prc,src,brc=sys.argv[1],int(sys.argv[2]),int(sys.argv[3]),int(sys.argv[4]); problems=[]; facts=[]
 if prc!=0: problems.append("puzzle_solve rc=%d"%prc)
 if src!=0: problems.append("puzzle_score refused or failed rc=%d: %s"%(src,open(d+"/puzzle_score.log").read()[-300:]))
@@ -1153,6 +1158,12 @@ else:
     facts.append("puzzle forge-PP20 scored as pilot (solver %s)"%rep.get("solver"))
 reqs=[l for l in open(d+"/fake_requests.jsonl") if l.strip()]
 if not reqs: problems.append("the puzzle seat never asked the loopback model")
+sys.path.insert(0, os.path.join(os.environ["REPO"], "eval")); import archive_run
+gaps, rec = archive_run.check_record(d+"/puzzle")
+if gaps: problems.append("the full record has gaps: %s"%gaps[:3])
+if rec["http_calls"]!=len(reqs) or rec["unanswered"]: problems.append("%d recorded http calls (%d unanswered) for %d model requests"%(rec["http_calls"],len(rec["unanswered"]),len(reqs)))
+if rec["attempts_with_record"]<1 or rec["engine_files"]<1: problems.append("no transcript-v1 record on the puzzle row: %s"%rec)
+else: facts.append("full record: %d http calls, %d engine logs"%(rec["http_calls"],rec["engine_files"]))
 if brc!=0: problems.append("run_batch --panel rc=%d"%brc)
 try:
     pr=json.load(open(d+"/panel_score.json"))
