@@ -284,7 +284,7 @@ class FullRecordTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"])
         self.assertEqual(envs[0].get("TRANSCRIPTS"), "1", "the JVM must be asked for the full record")
         java = (Path(__file__).resolve().parent.parent / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
@@ -327,7 +327,7 @@ class RecordBuildTest(unittest.TestCase):
             suite_path = root / puzzle_solve.SUITE_COPY
         with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
                               + list(extra))
         return root, rec, ran
