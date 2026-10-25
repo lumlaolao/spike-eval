@@ -33,6 +33,29 @@ bash eval/keyword_gauntlet.sh                                            # 28 fr
 canaries are bit-reproducible: the seed-42 floor mirror wins A in 108 turns, the random mirror A in 55 (Linux pins,
 `eval/harness_acceptance.expected`).
 
+## Play against the model yourself
+
+Sit across the table from a language model in Forge's own match screen: you click your cards, it plays its seat
+under the benchmark's pilot condition (`eval/suites/panels-v1.json`: the same prompt, tools and `answer` call as its
+scored games, seeing only what its seat may see).
+
+```bash
+bash play-vs-llm.sh                                   # your Burn against GPT-6 Luna on Mardu Energy
+bash play-vs-llm.sh --deck elves --vs ur-delver       # any eval/decks/<name>.txt, or a path to a decklist
+CLAUDE_CLI_SEAT=1 bash play-vs-llm.sh --model claude-cli:opus   # Claude Code on your own subscription
+bash play-vs-llm.sh --commentary --why                # each model decision and its reason, live in the terminal
+```
+
+![A person's opening hand against the model's seat](docs/images/play-vs-llm.png)
+
+It needs a built Forge checkout (`FORGE_HOME`, see "Build and check") and a display. An `openrouter:` model needs
+your egress consent (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`; the script reads it and never sets it); a Luna
+game costs about $0.02 to $0.05. The model may think for minutes on a hard decision, and the screen waits for it.
+Its decisions, replies and requests are kept under `runs/human/<time>/`; `--commentary` prints each of its decisions
+as it makes them (`eval/play_commentary.py`, which also reads a finished game), and `--why` its reasons. Both show its
+hidden choices and `--why` names its hand: for watching or streaming, not a fair game. Games against a person are
+never part of a benchmark score (`docs/harness/ARCHITECTURE.md`, section 11).
+
 ## Play a game
 
 ```bash
@@ -59,7 +82,7 @@ three; only the headless runner writes the game line.
 | Var | Default | What |
 |---|---|---|
 | `SMART_MODEL` / `FAST_MODEL`, `_A` / `_B` | none: a model seat that names no model is refused (the JVM, `run_batch.py`) | model per tier and seat: `openrouter:<model>`, `jev:<model>` (a decision model), or `claude-cli:<model>` (Claude Code in print mode, answering by structured output: a development lane, only with `CLAUDE_CLI_SEAT=1`). A bare Claude name (`haiku`, `opus`), the retired text lane, is refused |
-| `CONTROLLER_A/B` | `llm` | `random` (uniform over the same menus), `floor` (fixed legal fallbacks), `ai` (Forge's AI) |
+| `CONTROLLER_A/B` | `llm` | `random` (uniform over the same menus), `floor` (fixed legal fallbacks), `ai` (Forge's AI), `human` (a person on Forge's match screen; GUI only, one seat, `play-vs-llm.sh`) |
 | `CONTEXT_PROFILE` | `v4-faithful` (`run_batch.py`); `v1-compat` if unset in a raw launch | the observation shape; `v1-compat` (coaching, a turn cap) runs only as a named arm |
 | `MEMORY_TOOLS` / `LOOKAHEAD` / `RULES_TOOL` | 0 | the lookups, the `simulate` preview and attack outlook, the rules lookup (needs `MEMORY_TOOLS=1` too) |
 | `NATIVE_TOOLS` / `ANSWER_TOOL` | 1 | tool calls for lookups and answers; 0 is the text protocol, for measurement only |

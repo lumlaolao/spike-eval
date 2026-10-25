@@ -290,7 +290,7 @@ HANDLE = re.compile(r"\s*@\d+")
 NOTE = re.compile(r"\s*\[[^\]]*\]")
 
 
-def _norm(option):
+def norm(option):
     """An option as the engine offered it, without what each harness version adds when it renders one: viewer-local
     @handles (numbered differently) and bracketed notes (zone, owner, rules text: worded differently)."""
     return " ".join(NOTE.sub("", HANDLE.sub("", str(option))).split())
@@ -309,14 +309,14 @@ def divergence(a, b):
     da = [e for e in a if e.get("kind") == "decision"]
     db = [e for e in b if e.get("kind") == "decision"]
     spot = lambda d: (str(d.get("turn")), str(d.get("phase")), d.get("seat"), d.get("type"))
-    menu = lambda d: [_norm(o) for o in d.get("options") or []]
+    menu = lambda d: [norm(o) for o in d.get("options") or []]
     bare = lambda o: " ".join(HANDLE.sub("", str(o)).split())  # handles stripped, notes kept
     chosen = lambda d: [o for c, o in enumerate(d.get("options") or []) if c in (d.get("chosen") or [])]
-    picked = lambda d: sorted(_norm(o) for o in chosen(d))
+    picked = lambda d: sorted(norm(o) for o in chosen(d))
     # A pick whose text, notes stripped, names options its notes tell apart (two abilities of one card, your Bears and
     # theirs) cannot be matched that way across different menus: it must match with its notes, word for word, so an
     # older version's rewording of them reads as a divergence. Interchangeable copies (two Mountains) can.
-    ambiguous = lambda d: any(len({bare(o) for o in d.get("options") or [] if _norm(o) == p}) > 1 for p in picked(d))
+    ambiguous = lambda d: any(len({bare(o) for o in d.get("options") or [] if norm(o) == p}) > 1 for p in picked(d))
     menus_from = None
     for n, (x, y) in enumerate(zip(da, db)):
         if spot(x) != spot(y):

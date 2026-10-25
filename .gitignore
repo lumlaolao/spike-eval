@@ -48,6 +48,7 @@ data/cards/raw/
 # Puzzle baseline rollouts (eval/puzzle_baselines.py): regenerable scratch, hundreds of MB; the frozen
 # suite is committed under eval/suites/.
 runs/puzzles/
+runs/human/
 runs/keyword-gauntlet/
 __pycache__/
 runs/harness-acceptance/
