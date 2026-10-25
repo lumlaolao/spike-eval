@@ -500,8 +500,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   unpriced. A recorded game line that names one still reads (`cost_report.is_cli_lane`), and `panel_score.py` refuses it.
 - **No default model.** A model seat (controller `llm`) whose tier names no model (`SMART_MODEL_X` / `FAST_MODEL_X`,
   else `SMART_MODEL` / `FAST_MODEL`) is refused when the game is built (`LlmSpikeGui.missingModel`); it used to fall to
-  the CLI's `opus` and `haiku`. A seat that asks no model (floor, random, the puzzle arms) keeps those names, or a
-  `claude-cli:` name, as placeholders: an inert bridge (`LLMBridgeFactory.placeholder`) that starts nothing. A spec that names a "cli:" lane but is not `claude-cli:<model>` is refused
+  the CLI's `opus` and `haiku`. A seat that asks no model (floor, random, the puzzle arms) gets an inert bridge on both
+  tiers whatever they name (`LLMBridgeFactory.placeholder`): it starts nothing, and if it is ever asked it logs
+  `[PLACEHOLDER-ASKED]`, which `eval/gauntlet_scan.py` counts as a defect. A spec that names a "cli:" lane but is not `claude-cli:<model>` is refused
   (`LLMBridgeFactory.create`).
 - **`ClaudeCliBridge`** (`claude-cli:<model>` specs): a Claude model through Claude Code in print mode, answering by
   structured output; a development lane, used only with `CLAUDE_CLI_SEAT=1` and never in a benchmark score. See "The

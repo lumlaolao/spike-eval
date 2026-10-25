@@ -9,7 +9,10 @@ is a separate workstream).
 
 Usage:
     python3 eval/run_suite.py eval/suites/stage3-v1.json \
-        --student openrouter:default_model [--teacher claude-cli:claude-opus-5-5] [--json]
+        --student openrouter:default_model [--teacher openrouter:<model>] [--json]
+
+A claude-cli: spec is a development lane (CLAUDE_CLI_SEAT=1), never a scored arm: run_batch.py refuses it in cited
+mode, so a suite's arms take openrouter: models.
 
 Exit 0 = suite valid, 2 = validation errors.
 """

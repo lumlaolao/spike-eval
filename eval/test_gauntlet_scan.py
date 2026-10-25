@@ -42,6 +42,7 @@ class GauntletScanTest(unittest.TestCase):
                     "[kw00] [ROUTER] play: FAILED to pay for Braided Net -> nothing was played\n" + CLEAN,
                     "[HEADLESS] game thread threw: java.lang.StackOverflowError\n" + CLEAN,
                     "[kw00] [AUTO-LEGAL] order(unparsed)->as-is\n" + CLEAN,
+                    "[PLACEHOLDER-ASKED] kw00/smart (openrouter:x) asked; a seat that asks no model reached it\n" + CLEAN,
                     "[kw00] [TALLY] smart=28 fast=0 auto=9 ai=2 textParses=0\n"):
             self.assertEqual(scan(run_dir({"kw00": (log, "0", "B")})), 1, log)
 

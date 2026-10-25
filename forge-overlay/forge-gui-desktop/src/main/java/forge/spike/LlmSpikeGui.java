@@ -1260,9 +1260,9 @@ public final class LlmSpikeGui {
             boolean optedIn = "1".equals(env(ClaudeCliBridge.OPT_IN));
             LLMBridgeFactory.requireCliOptIn(smartModel, mode, optedIn, seat + "/smart");
             LLMBridgeFactory.requireCliOptIn(fastModel, mode, optedIn, seat + "/fast");
-            // A seat that never asks a model keeps its placeholder name (floor and random default to opus / haiku), and a
-            // claude-cli: name on such a seat starts no CLI: neither needs the opt-in.
-            if (!"llm".equals(mode) && (LLMBridgeFactory.isBare(smartModel) || ClaudeCliBridge.isSpec(smartModel)))
+            // A seat that never asks a model (floor, random, the puzzle arms) gets placeholders on both tiers, whatever
+            // they name (a default "haiku", an openrouter: or claude-cli: spec): no bridge to a model is ever made for it.
+            if (!"llm".equals(mode))
                 return new LLMBridge[] {LLMBridgeFactory.placeholder(seat + "/smart", smartModel),
                         LLMBridgeFactory.placeholder(seat + "/fast", fastModel)};
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
@@ -10061,7 +10061,8 @@ public final class LlmSpikeGui {
         return "llm".equals(ctl) && (ClaudeCliBridge.isSpec(smart) || ClaudeCliBridge.isSpec(fast));
     }
 
-    /** Test hook: the environment {@link #env} reads instead of the process's, for the seat gates' call sites. */
+    /** Test hook: the environment {@link #env} and {@link #buildPlayers()} read instead of the process's, for the seat
+     *  gates' call sites. */
     static volatile Map<String, String> envOverride;
 
     /** An environment variable, from {@link #envOverride} when a test set one. */
@@ -10074,10 +10075,12 @@ public final class LlmSpikeGui {
      *  DECK_A/B, DECK_A_NAME/B_NAME, PLAN_A/B ("" = plan-free arm),
      *  SMART_MODEL_A/B + FAST_MODEL_A/B (fall back to SMART_MODEL/FAST_MODEL),
      *  CONTROLLER_A/B = llm|random|floor|ai, SWAP_SEATS=1 (paired-design seat flip). */
-    static List<RegisteredPlayer> buildPlayers() { return buildPlayers(System.getenv()); }
+    static List<RegisteredPlayer> buildPlayers() {
+        Map<String, String> o = envOverride;
+        return buildPlayers(o != null ? o : System.getenv());
+    }
 
-    /** {@link #buildPlayers()} over the environment {@code env} (a test passes its own). */
-    static List<RegisteredPlayer> buildPlayers(Map<String, String> env) {
+    private static List<RegisteredPlayer> buildPlayers(Map<String, String> env) {
         String home = System.getProperty("user.home");
         String pathA = env.getOrDefault("DECK_A", home + "/Downloads/Deck - Grixis Reanimator.txt");
         String pathB = env.getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
@@ -11144,11 +11147,15 @@ public final class LlmSpikeGui {
                     + "<model> with " + ClaudeCliBridge.OPT_IN + "=1 (" + label + ")";
         }
 
-        /** The bridge of a seat that never asks a model (floor, random, the puzzle arms) whose spec is a placeholder name
-         *  such as `opus`: it answers nothing and starts nothing. */
+        /** The bridge of a seat that never asks a model (floor, random, the puzzle arms): it starts nothing, answers
+         *  nothing, and says so if it is ever asked ([PLACEHOLDER-ASKED], a defect eval/gauntlet_scan.py fails on). */
         static LLMBridge placeholder(String label, String spec) {
             return new LLMBridge() {
-                @Override public String ask(String prompt) { return null; }
+                @Override public String ask(String prompt) {
+                    System.out.println("[PLACEHOLDER-ASKED] " + label + " (" + spec + ") asked; a seat that asks no model "
+                            + "reached it -> no answer");
+                    return null;
+                }
                 @Override public String getLabel() { return label; }
                 @Override public String getModel() { return spec; }
                 @Override public long getTotalMs() { return 0; }

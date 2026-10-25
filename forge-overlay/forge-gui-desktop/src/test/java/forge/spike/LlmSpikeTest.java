@@ -809,7 +809,7 @@ public class LlmSpikeTest {
     //     tier=auto without ever consulting the model, same convention as choose-entity/zone-change/
     //     targets.
     // DeadBridge lets these exercise the real bridge-down code path deterministically (ask() always
-    // returns null, exactly what a real dead ClaudeBridge/OpenRouterBridge returns after its own
+    // returns null, exactly what a real dead OpenRouterBridge or ClaudeCliBridge returns after its own
     // internal retries are exhausted) without spawning a process or making a network call.
     // ================================================================================
 

@@ -551,6 +551,16 @@ public class ClaudeCliBridgeTest {
         LlmSpikeGui.PlayerControllerLLM floor = new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "", "opus", "haiku", "floor");
         Assert.assertEquals(floor.smartBridge().getModel(), "opus");
         Assert.assertFalse(floor.smartBridge() instanceof ClaudeCliBridge);
+        // A seat that asks no model gets placeholders on both tiers whatever they name: an openrouter: smart tier with
+        // the fast tier left at its "haiku" default builds, and no bridge to any model is made.
+        for (String mode : new String[] {"random", "floor"}) {
+            LlmSpikeGui.PlayerControllerLLM arm = new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "",
+                    "openrouter:fake/harness-model", "haiku", mode);
+            Assert.assertFalse(arm.smartBridge() instanceof LlmSpikeGui.OpenRouterBridge, mode + ": " + arm.smartBridge());
+            Assert.assertEquals(arm.smartBridge().getModel(), "openrouter:fake/harness-model");
+            String log = LineFindingProbeTest.logOf(() -> Assert.assertNull(arm.smartBridge().ask("x")));
+            Assert.assertTrue(log.contains("[PLACEHOLDER-ASKED]"), "a placeholder that is asked must say so: " + log);
+        }
         // Nor does a claude-cli: name on a seat that asks no model need the opt-in: it starts no CLI.
         LlmSpikeGui.PlayerControllerLLM random = new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "", "claude-cli:opus",
                 "claude-cli:opus", "random");
@@ -565,8 +575,17 @@ public class ClaudeCliBridgeTest {
         Map<String, String> env = new HashMap<>();
         env.put("CONTROLLER_A", "llm");
         env.put("CONTROLLER_B", "floor");
+        LlmSpikeGui.envOverride = env;
         try {
-            LlmSpikeGui.buildPlayers(env);
+            buildPlayersRefusals(env);
+        } finally {
+            LlmSpikeGui.envOverride = null;
+        }
+    }
+
+    private static void buildPlayersRefusals(Map<String, String> env) {
+        try {
+            LlmSpikeGui.buildPlayers();
             Assert.fail("a model seat with no model was built");
         } catch (IllegalStateException e) {
             Assert.assertTrue(e.getMessage().contains("SMART_MODEL_A") && e.getMessage().contains("no default model"), e.getMessage());
@@ -574,7 +593,7 @@ public class ClaudeCliBridgeTest {
         env.put("SMART_MODEL", "opus");
         env.put("FAST_MODEL", "haiku");
         try {
-            LlmSpikeGui.buildPlayers(env);
+            LlmSpikeGui.buildPlayers();
             Assert.fail("a model seat on the retired bare lane was built");
         } catch (IllegalArgumentException e) {
             assertRetired(e);
@@ -582,15 +601,15 @@ public class ClaudeCliBridgeTest {
         env.put("SMART_MODEL", "claude-cli:opus");
         env.put("FAST_MODEL", "claude-cli:opus");
         try {
-            LlmSpikeGui.buildPlayers(env);
+            LlmSpikeGui.buildPlayers();
             Assert.fail("a claude-cli: model seat was built without " + ClaudeCliBridge.OPT_IN);
         } catch (IllegalStateException e) {
             Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1"), e.getMessage());
         }
-        Map<String, String> arms = new HashMap<>();
-        arms.put("CONTROLLER_A", "floor");
-        arms.put("CONTROLLER_B", "random");
-        Assert.assertEquals(LlmSpikeGui.buildPlayers(arms).size(), 2, "floor and random seats need no model");
+        env.clear();
+        env.put("CONTROLLER_A", "floor");
+        env.put("CONTROLLER_B", "random");
+        Assert.assertEquals(LlmSpikeGui.buildPlayers().size(), 2, "floor and random seats need no model");
     }
 
     /** A model seat with no model named is refused rather than played on the CLI's Opus; a seat that asks no model keeps
