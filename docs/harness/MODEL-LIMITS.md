@@ -2,7 +2,7 @@
 
 The owner's goal: **the harness does not limit the model at all.** This is the audit of every place the
 harness capped, truncated, budgeted or cut short what the seat can think, see, look up or do; whether
-each limit bound in recorded games; and what was done about it. It lands with harness-epoch-7
+each limit bound in recorded games; and what was done about it. It landed with harness-epoch-7
 (observation-faithful-v24, evidence-tools-v3, seat-tools-v7, lookahead-preview-v5, one-chat-v2).
 
 The rule the decisions follow (docs/STANDARDS.md section 8): cost is not a reason to cap thinking, seeing
@@ -111,9 +111,9 @@ no Jev game has been played yet. `DB` is `DecisionsBridge.java`.
 
 | Limit | Where | Bound | Decision | New value |
 |---|---|---|---|---|
-| 45-minute game cap in the game-loop skill (`--cap-minutes 45`; a capped game is scored `invalid`) | `.claude/skills/game-loop/SKILL.md:41` | 0 of 14 games capped; the longest ran 37.2 minutes (83% of the cap) with 16000-token thinking and 2 tools an ask | raised: with 32000-token thinking at up to 300s a call and 16 tool calls a decision, a 45-minute cap would end games while the model thinks | 120 minutes |
-| run_batch.py's derived default cap | `eval/run_batch.py:929-933` | n/a | kept: 240 minutes for any non-Haiku model, 120 for Haiku | unchanged |
-| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py:319` | n/a | kept: the largest timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s | unchanged |
+| 45-minute game cap in the game-loop skill (`--cap-minutes 45`; a capped game is scored `invalid`) | `.claude/skills/game-loop/SKILL.md` | 0 of 14 games capped; the longest ran 37.2 minutes (83% of the cap) with 16000-token thinking and 2 tools an ask | raised: with 32000-token thinking at up to 300s a call and 16 tool calls a decision, a 45-minute cap would end games while the model thinks | 120 minutes |
+| run_batch.py's derived default cap | `eval/run_batch.py` `derive_cap_minutes` | n/a | kept: 240 minutes for any non-Haiku model, 120 for Haiku | unchanged |
+| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py` `GRACE_S` | n/a | kept: the largest timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s | unchanged |
 
 ## What it costs
 
@@ -135,6 +135,6 @@ still stops a batch at its budget.
 - `eval/test_tool_use_suite.py` keeps the suite's mirror of the executor in step (16 calls, 20000-character
   pages, 50 results, 2100-character command lines)
 
-Not measured yet: a game at harness-epoch-7. The next game read with `game-loop` should check the
-prompt size late in a long game, whether any seat uses more than 2 tool calls in an ask, and whether
-any call reaches the 32000-token cap.
+Not determined here: this audit has not been repeated since harness-epoch-7, so late-game prompt size, tool calls
+an ask above 2, and calls reaching the 32000-token cap in the games since are not counted on this page. The games
+since are read in [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md).
