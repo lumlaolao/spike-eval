@@ -16,15 +16,16 @@ commit. Never squash. Never rebase-merge.**
   away the intermediate commits that show *how* a change was validated; this repo
   has repeatedly needed that trail (the shadow-labeler build-swap that compared a
   build against itself, the September work that sat uncommitted). Keep it.
-- Branch names: `<area>/<short-slug>`, e.g. `harness/observation-fidelity`,
-  `eval/pzl-roster-local`, `chore/pr-workflow`.
+- Branch, commit and PR names, the PR body and the merge gate are in
+  [docs/STANDARDS.md](docs/STANDARDS.md) sections 1 and 2 (branch `type/short-name`,
+  e.g. `fix/own-trigger-window`).
 
 ```bash
-git checkout -b harness/<slug> main
-# ... edit, validate, commit ...
-git push -u origin harness/<slug>
-gh pr create --base main --fill
-gh pr merge <n> --merge      # merge commit, the only allowed method
+git switch -c fix/<slug> origin/main
+# ... edit, validate, commit (the hook from scripts/install_hooks.sh checks each message) ...
+git push -u origin fix/<slug>
+python3 scripts/pr_format.py new-pr      # title and body skeleton for the PR
+bash scripts/pr_merge.sh <n>             # the merge gate; merges with a merge commit
 ```
 
 ## Source of truth
@@ -34,8 +35,8 @@ they are overwritten by `install.sh`. Workflow for any harness change:
 
 ```bash
 # 1. edit forge-overlay/.../forge/spike/LlmSpikeGui.java
-bash install.sh                                        # 2. copy overlay into $FORGE_HOME
-cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (install, not just compile)
+FORGE_HOME=/root/forge bash install.sh                 # 2. copy the overlay into the checkout
+(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)   # 3. build (install, not compile)
 ```
 
 ## What must never be committed
@@ -52,8 +53,9 @@ cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (inst
 0. `bash eval/harness_acceptance.sh` — isolated compile, every Java/Python test
    with a declared-vs-run count gate, pinned zero-model canaries with a class-load
    proof, and loopback fake-model games. Never touches the Forge checkout.
-1. `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash run-llm-headless.sh`
-   — the regression canary (identity A wins after 108 turns, every time).
+1. `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash /root/forge/run-llm-headless.sh`
+   (the copy `install.sh` puts in the checkout, which it runs from) — the regression
+   canary (identity A wins after 108 turns, every time).
    For play/attack/block paths use the `random` arm — `floor` short-circuits
    before the menu is built.
 2. `SMART_MODEL=haiku FAST_MODEL=haiku` for LLM code paths. Never test with opus.
@@ -64,7 +66,7 @@ it isn't evidence.
 
 ## Review
 
-Non-trivial changes: stage, run the `verifier` agent against `git diff --cached`,
-address findings, then open the PR. `eval/defect_analyzer.py` is the merge gate
+Every PR: the `pr-review`, `simplify` and `standards` skills on the diff, with their
+verdicts recorded for the head commit ([docs/STANDARDS.md](docs/STANDARDS.md) section 1). `eval/defect_analyzer.py` is the merge gate
 for eval runs (`ai_tier_count=0`, `silent_drop_total=0`); never weaken it to make
 a run pass.
