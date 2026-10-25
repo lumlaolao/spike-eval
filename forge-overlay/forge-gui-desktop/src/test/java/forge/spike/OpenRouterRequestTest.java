@@ -57,6 +57,21 @@ public class OpenRouterRequestTest {
             ex.sendResponseHeaders(404, b.length);
             try (OutputStream os = ex.getResponseBody()) { os.write(b); }
         });
+        // Under a ceiling, wording we have no sample of (OpenRouter's reply to a price exclusion is unrecorded), and a
+        // rate limit, which is no refusal of the ceiling's.
+        server.createContext("/ceiling-other/v1/chat/completions", ex -> {
+            bodies.add(read(ex));
+            byte[] b = "{\"error\":{\"message\":\"No allowed providers are available for the selected model.\"}}"
+                    .getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(400, b.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        });
+        server.createContext("/ceiling-429/v1/chat/completions", ex -> {
+            bodies.add(read(ex));
+            byte[] b = "{\"error\":{\"message\":\"rate limited\"}}".getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(429, b.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        });
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
     }
@@ -207,6 +222,22 @@ public class OpenRouterRequestTest {
         plain.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertTrue(NativeTools.DOWNGRADED.remove("plain/smart"), "without a ceiling the refusal is the tools'");
         Assert.assertNull(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(plain, plain), "no ceiling, no key on the row");
+    }
+
+    /** pr-review of #327: OpenRouter's wording for a request max_price excludes everywhere is not recorded, so under a
+     *  ceiling every refusal that is not transport or a rate limit counts: an uncounted one would be scored as the
+     *  model's failure, while a counted one costs only a replay. */
+    @Test
+    public void underACeilingAnyRefusalButARateLimitIsCounted() {
+        String model = "openai/gpt-6.1-sol";
+        LlmSpikeGui.OpenRouterBridge other = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
+                "other/smart", model, null, base.replace("/v1", "/ceiling-other/v1"), 5000));
+        other.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertEquals(other.ceilingRefusals(), 1);
+        LlmSpikeGui.OpenRouterBridge limited = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
+                "limited/smart", model, null, base.replace("/v1", "/ceiling-429/v1"), 5000));
+        limited.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertEquals(limited.ceilingRefusals(), 0);
     }
 
     private static String read(HttpExchange ex) throws IOException {

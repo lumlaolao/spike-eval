@@ -506,6 +506,40 @@ class MaxPriceAtListTest(unittest.TestCase):
                                    "--max-price-at-list"])
             self.assertIn("--max-price-at-list", str(cm.exception.code), model)
 
+    def test_a_refused_attempt_is_reported_and_the_run_goes_on(self):
+        # pr-review of #327: the progress line scored each row, so one refused attempt raised and ended a paid run.
+        suite = json.loads(Path(self.SUITE).read_text())
+        ids = [r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active"][:2]
+        played = []
+
+        class FakeBuild:
+            classes = classes_with_transcript()
+
+            def __init__(self, build_dir, forge, allow_stale=False):
+                pass
+
+            def provenance(self):
+                return {}
+
+            def run(self, env, out, **kw):
+                played.append(out.name)
+                row = {"schema": "pzl-result-v1", "id": out.name, "seed": 1, "status": "failed",
+                       "suite_sha256": suite["suite_sha256"], "price_ceiling_refusals": 3}
+                (out / "puzzle-results.jsonl").write_text(json.dumps(row) + "\n")
+                return 0
+
+        stdout, root = io.StringIO(), Path(tempfile.mkdtemp())
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}), \
+                contextlib.redirect_stdout(stdout):
+            rc = puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "openrouter:openai/gpt-6.1-sol",
+                                    "--k", "1", "--budget-usd", "1", "--ids", ",".join(ids), "--out", str(root),
+                                    "--build", "/b", "-j", "1", "--max-price-at-list"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(sorted(played), sorted(ids), "the second puzzle still ran")
+        self.assertEqual(stdout.getvalue().count("[PRICE-CEILING]"), 2, stdout.getvalue())
+        self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
+
     def test_it_is_refused_for_a_model_with_no_list_price_above_zero(self):
         # pr-review of #327: the JVM refuses a zero ceiling, so every puzzle would fail one by one; refuse it once here.
         with self.assertRaises(SystemExit) as cm:

@@ -342,17 +342,16 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
 - `--max-price-at-list` (an `openrouter:` model only) sends every request a price ceiling at the model's list
-  price in `eval/pricing/prices.json` (OpenRouter's `provider.max_price`, in USD per million tokens), so latency
-  routing never lands on a dearer priority tier (owner, 2026-10-25). OpenRouter refuses a request no endpoint at or
-  under it can serve, so before a run check that each model has an endpoint that takes tools at list
-  (`/api/v1/models/<id>/endpoints`; the frontier run script on `docs/writeup-notes` does this before it pays for
-  anything). Each puzzle's `batch-manifest.json`
-  records it (`record.openrouter_max_price`, null without the flag), and `--resume` refuses a directory played
-  under another ceiling. A refusal under the ceiling is logged `[PRICE-CEILING]` and keeps native tools; the
-  attempt's row counts them (`price_ceiling_refusals`), `puzzle_score.py` refuses to score such a row (its
-  decisions were not the model's), and `--resume` plays the puzzle again. The ceiling is the base list price, so it also rules out a long-context
-  tier (above 272K prompt tokens on GPT-6.1 Sol, 200K on Grok, 100K on Haiku 5.5; the largest prompt recorded is
-  69K). `--budget-usd` is still checked at the dearest endpoint.
+  price in `eval/pricing/prices.json` (OpenRouter's `provider.max_price`, USD per million tokens), so latency
+  routing never lands on a dearer priority tier (owner, 2026-10-25). OpenRouter refuses a request no endpoint at
+  or under it can serve, so before a run check each model has an endpoint that takes tools at list
+  (`/api/v1/models/<id>/endpoints`; the frontier run script on `docs/writeup-notes` does this). Each puzzle's
+  `batch-manifest.json` records it (`record.openrouter_max_price`, null without the flag) and `--resume` refuses
+  another ceiling. A row with requests refused under the ceiling is not scored, is flagged on the progress line and
+  by `puzzle_watch.py`, and is replayed on `--resume` (`docs/harness/ARCHITECTURE.md` section 9). The ceiling is
+  the base list price, so it also rules out a long-context tier (above 272K prompt tokens on GPT-6.1 Sol, 200K on
+  Grok, 100K on Haiku 5.5; the largest prompt recorded is 69K, per the `prices.json` comment). `--budget-usd` is
+  still checked at the dearest endpoint.
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 - A `claude-cli:` model (Claude Code in print mode, `docs/harness/ARCHITECTURE.md` section 9) is a development lane

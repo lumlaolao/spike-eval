@@ -180,6 +180,10 @@ def puzzle(d, k, finished, now, stall_s, prices):
         flags["SHORT"] = (k - len(res), "%d of %d attempts: puzzle_score refuses the puzzle" % (len(res), k))
     solved = 0
     for r in res:
+        if r.get("price_ceiling_refusals"):   # no endpoint at list took its requests: replayed on --resume
+            flags["PRICE-CEILING"] = (flags.get("PRICE-CEILING", (0, ""))[0] + 1,
+                                      "%s requests refused under the price ceiling" % r["price_ceiling_refusals"])
+            continue
         try:
             solved += 1 if puzzle_score.attempt_success(r)[0] else 0
         except puzzle_score.Refused as e:  # a goal the engine did not enforce: a harness defect, not a result

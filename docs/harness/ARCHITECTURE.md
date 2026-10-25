@@ -490,9 +490,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     `puzzle_solve.py --max-price-at-list` rules that out: it sets `OPENROUTER_MAX_PRICE` to the list price, and the
     bridge adds it to its one `provider` object as `max_price` (`OpenRouterBridge.maxPriceField`; an unreadable
     value is refused, never dropped). It is routing, like the sort: stamped on the game line as
-    `openrouter_max_price` and listed in `aggregate.NON_BEHAVIORAL_PROVENANCE`; a puzzle resume refuses another
-    ceiling. Under a ceiling a "no endpoints" refusal is logged `[PRICE-CEILING]` and keeps native tools (it can
-    mean none at that price); the puzzle row counts them (`price_ceiling_refusals`), and `puzzle_score.py` refuses
+    `openrouter_max_price`, which aggregate does not key experiments on (it is classified with the sort in
+    `aggregate.NON_BEHAVIORAL_PROVENANCE` for the game-line key check); a puzzle resume refuses another
+    ceiling. Under a ceiling any refusal but auth, timeout and rate limit is logged `[PRICE-CEILING]` and keeps
+    native tools (it can mean none at that price; OpenRouter's wording for it is not recorded); the puzzle row counts them (`price_ceiling_refusals`), and `puzzle_score.py` refuses
     such a row rather than score lost decisions as the model's. A batch sends no ceiling: it scrubs an ambient value
     (`RUN_DEFINING_KEYS`) and refuses one in `--env`.
     The file's `comment` names the models with a long-context tier, where each starts, and which `max` counts one,

@@ -11059,11 +11059,13 @@ public final class LlmSpikeGui {
             }
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
-                if (maxPrice != null && resp.body() != null
-                        && resp.body().toLowerCase(java.util.Locale.ROOT).contains("no endpoints")) {
-                    // Under a ceiling this can mean no endpoint at that price (five frontier models have only one
-                    // endpoint at list), not no function calling: native tools stay, the log names the ceiling, and the
-                    // attempt's row counts it, so puzzle_score.py refuses to score decisions the model never made.
+                int st = resp.statusCode();
+                if (maxPrice != null && st >= 400 && st < 500 && st != 401 && st != 403 && st != 408 && st != 429) {
+                    // Under a ceiling a refusal can mean no endpoint at that price (five frontier models have only one
+                    // endpoint at list), not no function calling. OpenRouter's wording for it is not recorded, so any
+                    // refusal but auth, timeout and rate limit counts: native tools stay, the log names the ceiling,
+                    // and the row counts it, so puzzle_score.py refuses to score decisions the model never made (an
+                    // over-count costs a replay; an under-count would publish a wrong score).
                     ceilingRefusals++;
                     System.out.println("[OPENROUTER " + label + "] [PRICE-CEILING] no endpoint at or under " + maxPrice
                             + " took the request; native tools kept");

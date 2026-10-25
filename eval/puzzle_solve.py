@@ -202,6 +202,7 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
     would pool two conditions in one score (STANDARDS section 4). A directory from before builds were recorded is
     another build; one from before the ceiling existed was uncapped."""
     bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
+    ceiling = json.loads(max_price) if max_price else None
     for pid in ids:
         f = Path(out_root) / pid / "batch-manifest.json"
         if not f.is_file():
@@ -214,7 +215,7 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
         was, was_build = manifest.get("condition") or {}, manifest.get("build") or {}
         diff = [key for key in now if was.get(key) != now[key]]
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
-        if (manifest.get("record") or {}).get("openrouter_max_price") != (json.loads(max_price) if max_price else None):
+        if (manifest.get("record") or {}).get("openrouter_max_price") != ceiling:
             diff.append("openrouter_max_price")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
@@ -357,9 +358,13 @@ def main(argv=None):
                     print("[budget] not started: %s ($%.2f at the dearest endpoint)"
                           % (pid, spent(out_root, bound=True)), flush=True)
                     continue
-                solved = sum(1 for r in rows if ps.attempt_success(r)[0]) if rows else 0
-                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f"
-                      % (pid, rc, len(rows), solved, spent(out_root)), flush=True)
+                # A row refused under the price ceiling is no result (puzzle_score refuses it): say so, and go on.
+                refused = [r for r in rows if r.get("price_ceiling_refusals")]
+                solved = sum(1 for r in rows if r not in refused and ps.attempt_success(r)[0])
+                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s"
+                      % (pid, rc, len(rows), solved, spent(out_root),
+                         "  [PRICE-CEILING] %d attempt(s) refused under the ceiling: replay with --resume"
+                         % len(refused) if refused else ""), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
         run_file(finished=False, stopped=repr(e))
         raise
