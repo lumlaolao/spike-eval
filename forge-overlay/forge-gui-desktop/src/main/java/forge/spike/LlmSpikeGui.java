@@ -78,6 +78,7 @@ import forge.game.spellability.SpellAbility;
 import forge.game.spellability.TargetRestrictions;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.match.HostedMatch;
+import forge.player.LobbyPlayerHuman;
 import forge.gui.GuiBase;
 import forge.view.FFrame;
 import forge.view.FView;
@@ -10031,10 +10032,14 @@ public final class LlmSpikeGui {
         }
     }
 
-    /** Map a CONTROLLER_A/B value to its LobbyPlayer: "ai" = plain Forge AI (untouched), "ai-log" = the
+    /** CONTROLLER_A/B value for a seat a person plays in the GUI, on Forge's own human controller (play-vs-llm.sh). */
+    static final String HUMAN = "human";
+
+    /** Map a CONTROLLER_A/B value to its LobbyPlayer: "human" = a person at the GUI, "ai" = plain Forge AI (untouched), "ai-log" = the
      *  Forge AI that logs every decision as an ai-teacher SFT row, anything else = the LLM seat / one of
      *  its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode. */
     static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel) {
+        if (HUMAN.equals(ctl)) return new LobbyPlayerHuman(name);
         if ("ai".equals(ctl)) return new LobbyPlayerAi(name, null);
         if ("ai-log".equals(ctl)) return new LobbyPlayerAiLogging(name);
         return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
@@ -10074,13 +10079,35 @@ public final class LlmSpikeGui {
     /** Shared seat construction for GUI + headless runners. Env:
      *  DECK_A/B, DECK_A_NAME/B_NAME, PLAN_A/B ("" = plan-free arm),
      *  SMART_MODEL_A/B + FAST_MODEL_A/B (fall back to SMART_MODEL/FAST_MODEL),
-     *  CONTROLLER_A/B = llm|random|floor|ai, SWAP_SEATS=1 (paired-design seat flip). */
+     *  CONTROLLER_A/B = llm|random|floor|ai|ai-log|human (GUI only), SWAP_SEATS=1 (paired-design seat flip). */
     static List<RegisteredPlayer> buildPlayers() {
-        Map<String, String> o = envOverride;
-        return buildPlayers(o != null ? o : System.getenv());
+        return buildPlayers(false);
     }
 
-    private static List<RegisteredPlayer> buildPlayers(Map<String, String> env) {
+    /** {@code allowHuman}: only the GUI match has a window to ask a person, so only it may seat CONTROLLER_A/B=human. */
+    static List<RegisteredPlayer> buildPlayers(boolean allowHuman) {
+        Map<String, String> o = envOverride;
+        return buildPlayers(o != null ? o : System.getenv(), allowHuman);
+    }
+
+    /** The GUI match's rules: canonical Constructed built explicitly (mana burn off, no ante) rather than
+     *  HostedMatch.getDefaultRules(), which reads the local desktop prefs, so a GUI match is reproducible and plays
+     *  as headless does (LlmSpikeHeadless: {@code new GameRules(GameType.Constructed)}). With a person seated, Forge's
+     *  "AI can't play these cards well" list is not shown: no Forge AI plays the model's seat. */
+    static GameRules guiRules(int gamesPerMatch, boolean human) {
+        GameRules rules = new GameRules(GameType.Constructed);
+        rules.setGamesPerMatch(gamesPerMatch);
+        if (human) rules.setWarnAboutAICards(false);
+        return rules;
+    }
+
+    /** The seat a person plays (CONTROLLER_A/B=human), or null in a match of harness seats only. */
+    static RegisteredPlayer humanSeat(List<RegisteredPlayer> players) {
+        for (RegisteredPlayer rp : players) if (rp.getPlayer() instanceof LobbyPlayerHuman) return rp;
+        return null;
+    }
+
+    private static List<RegisteredPlayer> buildPlayers(Map<String, String> env, boolean allowHuman) {
         String home = System.getProperty("user.home");
         String pathA = env.getOrDefault("DECK_A", home + "/Downloads/Deck - Grixis Reanimator.txt");
         String pathB = env.getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
@@ -10104,6 +10131,12 @@ public final class LlmSpikeGui {
         lastPlanA = planA; lastPlanB = planB;
         String ctlA = env.getOrDefault("CONTROLLER_A", "llm");
         String ctlB = env.getOrDefault("CONTROLLER_B", "llm");
+        if (HUMAN.equals(ctlA) || HUMAN.equals(ctlB)) {
+            if (!allowHuman) throw new IllegalStateException("a human seat needs the GUI to ask its player: run "
+                    + "play-vs-llm.sh (or run-llm-spike.sh), not a headless, fork or puzzle run");
+            if (HUMAN.equals(ctlA) && HUMAN.equals(ctlB))
+                throw new IllegalStateException("only one human seat per match: the GUI asks one person");
+        }
         for (String[] s : new String[][] {{ctlA, "A"}, {ctlB, "B"}}) {
             String missing = missingModel(s[0], s[1], env);
             if (missing != null) throw new IllegalStateException(missing);
@@ -11577,23 +11610,21 @@ public final class LlmSpikeGui {
     }
 
     private static void startSpectatorMatch() {
-        System.out.println("[LLM-SEAM] building LLM-vs-LLM spectator match...");
+        System.out.println("[LLM-SEAM] building the GUI match...");
         final long seed = applySeed();
         EvalLog.init(seed);
-        List<RegisteredPlayer> players = buildPlayers();
+        List<RegisteredPlayer> players = buildPlayers(true);
         // MATCH_GAMES sets games-per-match (default 3 = watch/demo best-of-3; tournament sets 1 for bo1).
         int gpm = 3;
         try { String g = System.getenv("MATCH_GAMES"); if (g != null && !g.trim().isEmpty()) gpm = Math.max(1, Integer.parseInt(g.trim())); }
         catch (Exception ignore) {}
         final boolean bo1 = gpm == 1;
-        // Canonical Constructed rules built explicitly (mana-burn off, no ante, gamesPerMatch as set) rather
-        // than HostedMatch.getDefaultRules(), which reads the local desktop FModel prefs. This matches what
-        // the headless eval runner already does (LlmSpikeHeadless: `new GameRules(GameType.Constructed)`),
-        // so a GUI match is reproducible and independent of whatever prefs the desktop install happens to have.
-        GameRules rules = new GameRules(GameType.Constructed);
-        rules.setGamesPerMatch(gpm);
+        // A person's seat (play-vs-llm.sh) gets Forge's own match screen to play from; with none, the match is watched.
+        RegisteredPlayer human = humanSeat(players);
+        GameRules rules = guiRules(gpm, human != null);
         final HostedMatch hosted = GuiBase.getInterface().hostMatch();
-        hosted.startMatch(rules, EnumSet.of(GameType.Constructed), players, (RegisteredPlayer) null, null);
+        hosted.startMatch(rules, EnumSet.of(GameType.Constructed), players, human,
+                human == null ? null : GuiBase.getInterface().getNewGuiGame());
         System.out.println("[LLM-SEAM] match started (games-per-match=" + gpm + "). Watch the Forge window.");
 
         // Tournament / automation: with AUTO_EXIT=1, watch the match and when it ends emit the identity-keyed
