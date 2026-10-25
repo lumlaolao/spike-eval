@@ -371,7 +371,8 @@ engine offers fewer than two answers, the card does not load) is discarded and l
 One command runs an episode end to end: build the sandbox from the spec and leak-check it; give it a fresh one-commit
 git repository (no history to read the answer from; hooks pointed at an empty directory); run the agent command in
 the box with a scrubbed environment; end on the agent's `DONE` file, its exit, or the cap (reported apart as
-`ended_by`); copy checkpoints out of the box on a timer (`--checkpoint-s`) and grade them only after the episode
+`ended_by`; `DONE` counts once it is a regular file whose line ends in a newline or that has sat unchanged for 5 s,
+so a line still being written is not cut short, and a `DONE` that is not a regular file never blocks the cap); copy checkpoints out of the box on a timer (`--checkpoint-s`) and grade them only after the episode
 ends, never during, so no in-episode score exists to hack (RE-Bench's lesson); export the submission, grade it
 outside the sandbox and write `report.json`. Grading (`jvm_grader`): intake refuses what scores 0 (no Java, no
 factory, an unmarked engine patch, a class in `forge.harnessenv`); the build runs with a scrubbed environment
