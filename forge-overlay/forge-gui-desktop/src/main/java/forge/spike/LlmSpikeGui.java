@@ -10955,14 +10955,15 @@ public final class LlmSpikeGui {
             if (HTTP_REFERER != null && !HTTP_REFERER.isEmpty()) rb.header("HTTP-Referer", HTTP_REFERER);
             if (HTTP_TITLE != null && !HTTP_TITLE.isEmpty()) rb.header("X-Title", HTTP_TITLE);
 
-            HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
+            String sentBody = body.toString();
+            HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(sentBody, StandardCharsets.UTF_8))
                     .timeout(Duration.ofMillis(remaining))
                     .build();
             // HttpRequest.timeout() above bounds only the wait for the response HEADERS; the body
             // read is unbounded, and OpenRouter dribbles keepalives for the whole generation. See
             // HttpDeadline for the measurement and the consequence.
-            HttpResponse<String> resp = HttpDeadline.send(
-                    client, req, HttpResponse.BodyHandlers.ofString(), remaining);
+            // Every round-trip, used or not (a truncated first completion, a refusal), exactly as it crossed.
+            HttpResponse<String> resp = Transcript.send("openrouter", label, client, req, sentBody, remaining);
             if (resp == null) {
                 String why = HttpDeadline.LAST_STOP.get();
                 if ("no-headers".equals(why) || "silent".equals(why))

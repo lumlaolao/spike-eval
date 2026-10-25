@@ -14,6 +14,10 @@ far after each puzzle. Then score it:
 
 --resume continues a stopped run (eval/PUZZLES.md, "Running a model").
 
+Every run keeps its full record (owner, 2026-10-25): each JVM runs with TRANSCRIPTS=1, so every HTTP round-trip to the
+model is kept byte for byte and each game's whole Forge log is kept, under <puzzle>/transcripts/ (Transcript.java);
+the .pzl the JVM read and the suite are copied into the run. eval/archive_run.py packs and verifies a finished run.
+
 An openrouter: model sends each puzzle's position to openrouter.ai: the egress opt-in
 (OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here. So does a
 jev: decision model (OpenRouter's Decisions API, DecisionsBridge), which also cannot take --memory-tools.
@@ -30,6 +34,7 @@ import argparse
 import functools
 import json
 import os
+import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -39,12 +44,34 @@ import cost_report  # noqa: E402
 import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
+import versions  # noqa: E402
 
 # The attempt seeds: k distinct seeds per puzzle, the same for every solver, outside every reserved band.
 ATTEMPT_BASE = 1
 RUN_FILE = "puzzle-run.json"
 # What makes two builds one harness for --resume: the overlay compiled, and whether a stale build was let run.
 BUILD_KEYS = ("build_overlay_sha", "stale_build_allowed")
+SUITE_COPY = "suite.json"
+TRANSCRIPT_CLASS = "forge/spike/Transcript.class"
+
+
+def transcript_version():
+    """Transcript.VERSION, as eval/versions.py reads it from the overlay."""
+    return dict((name, value) for name, value, _, _ in versions.read_stamps())["Transcript.VERSION"]
+
+
+def records(build):
+    """True when the build has Transcript compiled in: a build from before it writes no record."""
+    classes = getattr(build, "classes", None)
+    return isinstance(classes, (str, Path)) and (Path(classes) / TRANSCRIPT_CLASS).is_file()
+
+
+def keep_pzl(rec, out):
+    """A byte copy of the position the JVM is about to read, so a run directory reconstructs its games without the
+    checkout (a forge: puzzle lives in the Forge checkout, which install.sh overwrites). Returns its name."""
+    name = Path(rec["pzl"].split(":", 1)[-1]).name
+    shutil.copyfile(str(pf.pzl_path(rec)), str(Path(out) / name))
+    return name
 
 
 def load_secrets():
@@ -127,15 +154,18 @@ def write_json(path, obj):
     os.replace(tmp, path)
 
 
-def write_manifest(out, model, suite_sha, puzzle_id, cond, build=None):
+def write_manifest(out, model, suite_sha, puzzle_id, cond, build=None, record=None):
     """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
-    game row (a puzzle has none). `build`: puzzle_baselines.Build.provenance(), the build it ran on."""
-    write_json(Path(out) / "batch-manifest.json", {"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id,
-                                                                 "suite_sha256": suite_sha, "env": cond},
-                                                   "build": build})
+    game row (a puzzle has none). `build`: puzzle_baselines.Build.provenance(), the build it ran on. `record`: what
+    the directory keeps beyond the rows (the transcript version, the .pzl copy); not a condition."""
+    m = {"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id, "suite_sha256": suite_sha, "env": cond},
+         "build": build}
+    if record is not None:
+        m["record"] = record
+    write_json(Path(out) / "batch-manifest.json", m)
 
 
-def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None):
+def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None, suite_file=None):
     """RUN_FILE: what this invocation will play, so eval/puzzle_watch.py can show the puzzles not started yet, tell
     when each is done (k result rows) and when the run is over (`finished`, written after the last puzzle) or was
     stopped part way (`stopped`: the exception or interrupt that ended it). `build`: the build the whole run uses
@@ -145,6 +175,8 @@ def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None):
         run["stopped"] = stopped
     if build is not None:
         run["build"] = build
+    if suite_file is not None:
+        run["suite_file"] = suite_file
     write_json(Path(out_root) / RUN_FILE, run)
 
 
@@ -171,12 +203,16 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build):
     return bad
 
 
-def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
+def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True):
     out = Path(out_root) / rec["id"]
-    write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance())
+    out.mkdir(parents=True, exist_ok=True)
+    record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
+              "pzl_sha256": rec.get("pzl_sha256")}
+    write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
+    # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
-               SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000")
+               SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000", TRANSCRIPTS="1")
     for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
         if os.environ.get(key):
             env[key] = os.environ[key]
@@ -199,6 +235,8 @@ def main(argv=None):
     ap.add_argument("--memory-tools", action="store_true")
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--build", default=None)
+    ap.add_argument("--allow-no-record", action="store_true",
+                    help="run on a build without Transcript (no http or engine record; the manifest says so)")
     ap.add_argument("--allow-stale-build", action="store_true",
                     help="run --build although it was not compiled from this checkout's overlay (recorded)")
     ap.add_argument("--forge", default=None)
@@ -244,6 +282,11 @@ def main(argv=None):
             and (ids is None or r["id"] in ids)]
     build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     prov = build.provenance()
+    recorded = records(build)
+    if not recorded and not a.allow_no_record:
+        raise SystemExit("build %s has no %s: it would run without the full record (the http and engine transcripts) "
+                         "the owner asked for. Build this overlay, or pass --allow-no-record"
+                         % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
         bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov)
         if bad:
@@ -256,7 +299,10 @@ def main(argv=None):
           % (len(todo), a.split, a.k, a.model, a.budget_usd, spent(out_root), spent(out_root, bound=True)), flush=True)
 
     ids = [r["id"] for r in todo]
-    run_file = functools.partial(write_run, out_root, ids, a.k, a.budget_usd, build=prov)
+    suite_copy = out_root / SUITE_COPY
+    if not (suite_copy.exists() and os.path.samefile(a.suite, str(suite_copy))):
+        shutil.copyfile(a.suite, str(suite_copy))
+    run_file = functools.partial(write_run, out_root, ids, a.k, a.budget_usd, build=prov, suite_file=SUITE_COPY)
     run_file(finished=False)
 
     def work(rec):
@@ -265,7 +311,7 @@ def main(argv=None):
             return rec["id"], "done", pb.read_results(out)
         if over_budget(out_root, a.budget_usd):
             return rec["id"], None, []
-        return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a))
+        return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded)
 
     skipped = 0
     try:

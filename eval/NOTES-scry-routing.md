@@ -1,5 +1,10 @@
 # Scry/reveal routing (Group 4, task 5) — what was implemented, what wasn't
 
+A record of the change that first routed these hooks. The code has moved on since (for example,
+`orderMoveToZoneList` no longer asks when the destination zone has no order to choose); the current
+behaviour is in `LlmSpikeGui.java` (`arrangeTopN`, `orderMoveToZoneList`) and
+`docs/harness/ARCHITECTURE.md`.
+
 Report C2 flagged three PlayerController hooks as candidates for routing: `orderMoveToZoneList`,
 the scry confirm step, and the "may reveal" confirm step. All three turned out to be clean,
 non-tangled override points, so the code change landed instead of being skipped — this file records

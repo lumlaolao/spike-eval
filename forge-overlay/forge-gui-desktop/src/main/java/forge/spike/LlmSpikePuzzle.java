@@ -13,6 +13,7 @@ import forge.ai.LobbyPlayerAi;
 import forge.deck.Deck;
 import forge.game.Game;
 import forge.game.GameEndReason;
+import forge.game.GameLog;
 import forge.game.GameLogEntry;
 import forge.game.GameOutcome;
 import forge.game.GameRules;
@@ -704,8 +705,10 @@ public final class LlmSpikePuzzle {
                 : (solved ? "solved" : "failed");
 
         List<String> logLines = new ArrayList<>();
+        List<GameLogEntry> entries = new ArrayList<>();
         try {
-            for (GameLogEntry e : game.getGameLog().getAllEntries()) logLines.add(e.type() + ": " + e.message());
+            entries = game.getGameLog().getAllEntries();
+            for (GameLogEntry e : entries) logLines.add(e.type() + ": " + e.message());
         } catch (Exception e) {
             logLines.add("INFORMATION: (log unavailable: " + e + ")");
         }
@@ -713,7 +716,7 @@ public final class LlmSpikePuzzle {
         pl.game = game; pl.status = status; pl.solved = solved; pl.turns = turns;
         pl.winCond = winCond; pl.durMs = durMs; pl.goalInstalled = goalInstalled[0]; pl.goalOracle = goalOracle[0];
         pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
-        pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.healthy = !worker.isAlive();
+        pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.entries = entries; pl.healthy = !worker.isAlive();
         pl.acceptanceFailed = acceptanceFailed;
         return pl;
     }
@@ -737,6 +740,8 @@ public final class LlmSpikePuzzle {
         int turns = -1;
         long durMs;
         List<String> logLines = new ArrayList<>();
+        /** The game log's entries themselves, for the run's full record (Transcript.engineLog). */
+        List<GameLogEntry> entries = new ArrayList<>();
         /** A solve that counts: Forge scored it solved, and no empty library decided it. */
         boolean cleanSolve() { return "solved".equals(status) && !tainted; }
     }
@@ -815,9 +820,32 @@ public final class LlmSpikePuzzle {
             }
         }
         if (keepTape || solved) extra.put("actions", actions);
+        putTranscript(extra, Transcript.engineLog(id + "-seed" + seed + "-r" + rollout,
+                engineEntries(capped ? game.getGameLog() : null, pl.entries)));
         writeRow(id, file, status, solved, turns, winCond, durMs, seed, ctlA, ctlB,
                 smartA, fastA, pl.goalInstalled, pl.goalOracle, goal, extra);
         return pl.healthy;
+    }
+
+    /** Where this attempt's full record is (Transcript), when the run keeps one: the version, the http file every
+     *  model call of this JVM is in (rows carry game_file and label), this game's engine log, and how many rows could
+     *  not be written so far in this JVM (above 0 is a gap in the record, also printed as [TRANSCRIPT] FAILED). */
+    static void putTranscript(Map<String, Object> extra, String engineFile) {
+        if (!Transcript.on()) return;
+        extra.put("transcript_version", Transcript.VERSION);
+        List<String> http = new ArrayList<>();
+        for (String f : Transcript.httpFiles()) http.add(Transcript.DIR + "/" + f);
+        extra.put("transcript_http_files", http);
+        if (engineFile != null) extra.put("transcript_engine_file", Transcript.DIR + "/" + engineFile);
+        extra.put("transcript_errors", Transcript.errors());
+    }
+
+    /** The entries the engine log keeps: for a capped game, read again now (its thread may have logged more after the
+     *  result was read, during or after the grace join), else the entries the result was read from. */
+    static List<GameLogEntry> engineEntries(GameLog live, List<GameLogEntry> atResult) {
+        if (live == null) return atResult;
+        List<GameLogEntry> now = live.getAllEntries();
+        return now.size() >= atResult.size() ? now : atResult;
     }
 
     /** The solver seat's controller when it is the model seat, else null. */

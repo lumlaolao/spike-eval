@@ -18,6 +18,7 @@ Forge enforces ("Win" or "Survive" by turn N).
 | `eval/puzzle_baselines.py` | the free arms (random, pass, first, floor, Forge AI), reference lines, tiers, `verify` |
 | `eval/puzzle_solve.py` | runs one model on one split of a frozen suite, k attempts per puzzle, with `--budget-usd` |
 | `eval/puzzle_score.py` | scores one solver on one split, every number beside its floors |
+| `eval/puzzle_watch.py` | reads a `puzzle_solve.py` run while it plays or after: per-puzzle state, cost and flags |
 | `eval/test_puzzle_suite.py` | Python tests (no JVM) |
 | `LlmSpikePuzzle.java` | runs one puzzle headless, many seeds per JVM (`PZL_SEEDS`), one result row each |
 | `PuzzleArms.java` (+ `PuzzleArmsTest`) | the zero-model arms and the draw tape that makes a random rollout replayable |
@@ -129,11 +130,11 @@ python3 eval/puzzle_baselines.py prove --suite S.json [--ids a,b] --budget 1500 
   `--opponent ai` proves against the Forge AI's replies only.
 - A rollout stops after `PZL_SEARCH_MAX_DRAWS` choices (default 3000), outside its prefix only, and counts as
   not solved: a random completion can loop (an ability activated forever) until the wall-clock cap or the heap
-  ends it, and those rollouts used to be reported as drift (prove-v1: PS_ELD1, PS_DOM0, PS_M204).
+  ends it, and is not drift (prove-v1 called PS_ELD1, PS_DOM0 and PS_M204 drift for this).
 - A subtree whose every line has been played is never replayed (rollouts are deterministic given their line),
   and its solves are remembered.
-- Not yet branched on: the engine seed (one seed per proof). Since epoch 56 the search arm branches over every split
-  of combat damage and of a divided spell ("distribute 5 damage"); the other arms still split evenly.
+- Not yet branched on: the engine seed (one seed per proof). The search arm branches over every split of combat
+  damage and of a divided spell ("distribute 5 damage"); the other arms split evenly.
 - Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
 
 ## Proving a written line
@@ -212,7 +213,7 @@ sizes included (a target shown as "(5/5)" before Mystic Subdual and "(-1/1)" aft
 planeswalker's current loyalty. The final state is deliberately not compared: the opponent's replies change it too
 (RP_045's first check called a line where the opponent's Scavenging Ooze ate a card a second solution).
 `uniqueness_difference` lists what differed.
-`PZL_SEARCH_LINES` (default 32; it was 4, which gave up on RP_034) bounds the lines tried per choice point.
+`PZL_SEARCH_LINES` (default 32; 4 gave up on RP_034) bounds the lines tried per choice point.
 `uniqueness`: `unique` (none found) or `multiple` (`uniqueness_second_line` and `uniqueness_second_actions`
 show it); `uniqueness_exhausted` of `uniqueness_deviations` deviations were played out completely, and when all
 were, "unique" is exhaustive rather than "not found within the budget". `uniqueness_unproven_alternatives`
@@ -228,6 +229,10 @@ python3 eval/puzzle_format.py rules-candidates --suite rules --out runs/puzzles/
 python3 eval/puzzle_baselines.py run --suite runs/puzzles/rules-candidates.json --rollouts 50 -j 2 --write runs/puzzles/rules-measured.json
 python3 eval/puzzle_format.py freeze runs/puzzles/rules-measured.json --out eval/suites/puzzles-rules-v1.json
 ```
+
+The full rules suite is not frozen yet. The frozen one is a 36-puzzle sample,
+`eval/suites/puzzles-rules-sample-v1.json` (29 active, all on the open split; how it was built:
+`eval/puzzles/rules-pilot/benchmark-v1/REPORT.md`).
 
 A rules puzzle is solved when its acceptance state holds, so the arms and the scorer need nothing new. Its reference
 line may also be its search proof (`arm: search`): when neither a random rollout nor Forge's AI solves it, the search
@@ -321,7 +326,8 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - A run stopped part way (a container restart) continues with the same command plus `--resume`: a puzzle whose
   k attempts on this suite are already in `--out` is skipped; one cut off part way is played again from seed 1,
   its rows so far and its JVM log renamed `puzzle-results.partial<n>.jsonl` and `jvm.partial<n>.log` (never
-  scored, still priced). A resume into a directory made under another model, suite or seat condition is refused.
+  scored, still priced). A resume into a directory made under another model, suite or seat condition, or on
+  another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`
@@ -343,6 +349,56 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   the CLI's own login and needs no OpenRouter opt-in. It runs without `--memory-tools`, with `-j 1`;
   `--claude-cli-effort` and `--claude-cli-thinking-tokens` pin its CLI settings (the row's `claude_cli_effort`,
   `claude_cli_thinking_tokens`); its spend is the CLI's reported cost.
+
+- Every run keeps its full record (owner, 2026-10-25): see "Keeping a run".
+
+### Keeping a run
+
+Every `puzzle_solve.py` run records everything needed to reconstruct each model conversation and each game, in the
+run directory, with nothing cut:
+
+| File | Holds |
+|---|---|
+| `suite.json` (run root) | the suite the run was played on, byte for byte (`puzzle-run.json` names it) |
+| `<puzzle>/<name>.pzl` | the position the JVM read, byte for byte; `batch-manifest.json` `record` gives its sha256 |
+| `<puzzle>/transcripts/http-<jvm>-<n>.jsonl` | every HTTP round-trip to the model, retries, refusals, timeouts and connection errors included, as two `t:"http"` rows of one `seq`: a `phase:"sent"` row written before the request goes out, with the request body exactly as sent (system prompt, every message, tools, `tool_choice`, reasoning and token settings, the `provider` object, the model), then a `phase:"response"` row with the response body exactly as received (content, tool calls, `reasoning` and `reasoning_details`, finish reasons, provider, generation id, usage and cost), or the `stop` or `error` that ended the call and the status and headers if they came. Each body has its sha256; rows name the seat (`label`) and the game file. `<n>` starts at 1 and moves only when an append fails. |
+| `<puzzle>/transcripts/engine-<id>-seed<s>-r<n>-<ms>.jsonl` | the game's whole Forge game log, one row per entry in the engine's order (a capped game's log is read again when written) |
+| `<puzzle>/game-*.jsonl`, `jvm.log`, `puzzle-results.jsonl`, `batch-manifest.json`, `build.json`, `java.args` | as before: the decision and call rows, the JVM's log, the result rows, the condition, the build |
+
+Each result row names its record (`transcript_version`, `transcript_http_files`, `transcript_engine_file`) and counts
+the rows that could not be written (`transcript_errors`, also printed as `[TRANSCRIPT] FAILED`). Each row is one
+append of its whole bytes; an append that fails ends that file (a part-written row there is a gap `archive_run.py`
+names) and the next row starts the next file. A recording failure never reaches the bridge, so it never costs a
+reply. No Authorization, cookie or API-key header is written; a row that would hold the key is refused. The record
+changes no byte the model is sent (`TranscriptTest.recordingChangesNoByteSent`), so it is not a condition. It is the
+`Transcript` class (`TRANSCRIPTS=1` with `EVAL_OUT`), which `puzzle_solve.py` always turns on; a build without
+`Transcript` compiled in is refused unless `--allow-no-record`, and the manifest's `record.transcript_version` is then
+null. Not covered: the Claude CLI lane (no HTTP of its own), the body of a response cut off by its deadline, and a
+call in flight when the JVM died, which has its sent row and no response row (`archive_run.py` lists it as
+UNANSWERED).
+
+Size: not measured yet; no run has the record. `python3 eval/archive_run.py --check <run>` prints it (`http_bytes`)
+for any run. Compression, measured on a run from before the record: `python3 eval/archive_run.py
+runs/puzzles/opus-cli-smoke --out <scratch>/opus-cli-smoke.tar.gz` packed 6 files, 801,012 bytes, into 35,946.
+
+To keep a finished run, pack it and keep the archive somewhere outside the checkout:
+
+```bash
+python3 eval/archive_run.py runs/puzzles/frontier-1 --out /keep/frontier-1.tar.gz   # pack, then re-verify
+python3 eval/archive_run.py --verify /keep/frontier-1.tar.gz                       # later, anywhere
+```
+
+`archive_run.py` refuses a run still writing, or a directory inside one (`finished` false in a `puzzle-run.json` at
+or above it); a gap in the record (`--allow-gaps` packs it and lists them in the manifest): a result row without the
+record its manifest asked for, a row that billed calls but names no http file, fewer answered calls in a game than
+replies on its `context_call` rows, a missing transcript or `.pzl`, a body whose sha256 differs, a cut row, a row
+that could not be written; and any file holding an OpenRouter key. A call sent and never answered is listed in the
+manifest, not refused. Beside the archive it writes `<out>.manifest.sha256` (`sha256sum -c` format, one line per
+file) and `<out>.sha256`; then it re-reads every member against the manifest inside, and `--verify` also compares the
+manifest beside it with the one inside. `runs/` is never
+committed. A run that should live with the repository goes on a data-only branch that is never merged, as the
+`demo-recordings` branch holds `puzzles/hard-gen2-luna` (a README with what was run and its scores, then the run's
+files); a run too large for git keeps only its archive's `.sha256` and manifest there, with where the archive is.
 
 ### Watching a run
 

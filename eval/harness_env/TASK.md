@@ -26,8 +26,9 @@ You may run anything here: compile, write and run your own tests, start games be
 a fake or scripted model on loopback. There is no internet and no model provider key. `dev/decks/` holds decklists
 for your own games. `notes/` is yours.
 
-There is no time pressure. Work as long as you want. The episode ends only when you say you are finished: call the
-`finish` tool, or write `/task/DONE` with one line saying what you submit (a commit of `/task`). After that nothing
-you write is read. Your submission is then graded outside this container by tests you cannot see, which drive your
+There is no time pressure. Work as long as you want. The episode ends when you say you are finished: write
+`/task/DONE` with one line, ending in a newline, saying what you submit. What is graded is `/task/overlay` exactly as
+it is on disk when DONE is written, committed or not; after that nothing you write is read. The episode also ends if
+your process exits without writing DONE, or at the time cap, and then your overlay as it is at that moment is graded. Your submission is then graded outside this container by tests you cannot see, which drive your
 seat through the interface in `spec/SPEC.md` on situations generated fresh for the grading run. Your own tests earn
 nothing by themselves; a seat that recognises particular cards, decks or seeds gains nothing either.
