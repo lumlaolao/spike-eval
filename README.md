@@ -17,9 +17,28 @@ into a Forge checkout; it does not redistribute Forge (GPL).
 - **Status:** the gate records are in `docs/harness/ACCEPTANCE.md`, what each real game found in
   `docs/harness/GAME-LOOP-LOG.md`, and the open work and what waits on the owner in `docs/harness/WORK-PLAN.md`.
 
+## Quick start: play the model on your own computer
+
+```bash
+git clone https://github.com/SeanCThomas0/mtg-forge-llm-agent.git && cd mtg-forge-llm-agent   # or unzip a copy, cd in
+bash setup.sh          # Forge at the tested commit, these changes on top, the build, your OpenRouter key
+bash play-vs-llm.sh    # you against GPT-6 Luna in Forge's window
+```
+
+`setup.sh` needs Java 17 or newer, Maven 3.8.1 or newer, git and Python 3, and says how to install any that is missing (macOS or
+Linux; on Windows, WSL2). It fetches Forge at exactly `FORGE_COMMIT` (shallow, about 1 GB) into `~/code/forge`
+(`--forge-dir` for elsewhere), lays `forge-overlay/` on it, and builds it: about 10 minutes the first time, while
+Maven downloads Forge's libraries. Last it asks for your OpenRouter key and whether games may be sent to
+openrouter.ai, and writes both to `secrets.env`, which only you can read and git ignores. After a `git pull`, run it
+again: it moves its own Forge checkout to a new pin and rebuilds.
+
+To hand someone a copy, zip only what git tracks, so your `secrets.env` (your key and your consent) stays behind:
+`git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent.zip HEAD -- . ":(exclude)runs"
+":(exclude)datasets"`. They add their own key when `setup.sh` asks.
+
 ## Build and check
 
-Requires JDK 17, Maven, and Python 3 (stdlib only).
+Requires JDK 17, Maven 3.8.1 or newer, and Python 3 (stdlib only).
 
 ```bash
 git clone https://github.com/Card-Forge/forge.git /root/forge && git -C /root/forge checkout $(cat FORGE_COMMIT)
@@ -48,7 +67,7 @@ bash play-vs-llm.sh --commentary --why                # each model decision and 
 
 ![A person's opening hand against the model's seat](docs/images/play-vs-llm.png)
 
-It needs a built Forge checkout (`FORGE_HOME`, see "Build and check") and a display. An `openrouter:` model needs
+It needs `bash setup.sh` once (or your own built checkout in `FORGE_HOME`) and a display. An `openrouter:` model needs
 your egress consent (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`; the script reads it and never sets it); a Luna
 game costs about $0.02 to $0.05. The model may think for minutes on a hard decision, and the screen waits for it.
 Its decisions, replies and requests are kept under `runs/human/<time>/`; `--commentary` prints each of its decisions

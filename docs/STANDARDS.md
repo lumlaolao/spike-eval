@@ -20,8 +20,9 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
    and VIOLATIONS; a violation is cleared by a fix and a new review, or by a standards change;
 3. the body's `## Evidence` section has a line
    `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS` (written by
-   `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `eval/`, `scripts/`,
-   `install.sh` or a root launcher (`run-llm-*`, `play-vs-llm.sh`). The sha must be the PR's current head.
+   `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `eval/`, `scripts/` or
+   a root launcher (any `*.sh` at the root; `eval/test_pr_format.py` fails when one is missing from
+   `pr_format.CODE_PATHS`). The sha must be the PR's current head.
 
 It merges exactly the commit it checked, with a merge commit. Never squash: the commit list is the
 record of what was reviewed. Merging your own PR is fine once the gate passes.
@@ -84,7 +85,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/test_pr_format.py`; the shell scripts are thin wrappers |
-| `*.sh` (root) | launchers (`install.sh`, `run-llm-*.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/test_gate_parses.py`; a change needs an acceptance run (section 1) |
+| `*.sh` (root) | launchers (`install.sh`, `setup.sh`, `run-llm-*.sh`, `play-vs-llm.sh`, ...) | bash 3.2; parsed by `eval/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/test_pr_format.py`), so a change needs an acceptance run (section 1) |
 | `docs/harness/` | what the harness does and what was measured | a claim cites a file, a test or a run |
 | `.claude/skills/` | the skills every agent must use; Claude Code and OpenCode both discover them here, so they are not copied elsewhere | tracked; local settings and worktrees are not |
 | `runs/`, `datasets/` | generated data | never committed; never `git add -A` at the root |
@@ -119,12 +120,13 @@ most log questions).
   do not change the seat's decisions (the check is `eval/test_experiments.py`'s
   `GameLineStampCoverageTest`).
 - **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
-  what it cannot. **Shell**: bash 3.2 (macOS); no apostrophe **or backtick** inside a heredoc
-  in `$( )` — bash 3.2 scans for the closing paren before parsing the heredoc (issue #219).
+  what it cannot. **Shell**: bash 3.2 (macOS); inside a heredoc in `$( )`, apostrophes and
+  backticks must pair up as bash reads them (prefer none) — bash 3.2 scans for the closing paren
+  before parsing the heredoc, so an unpaired one swallows the rest of the script (issue #219).
   Check: `eval/test_gate_parses.py` runs `bash -n` over the `eval` and `scripts` shell
-  scripts and the root launchers (`*.sh`); it parses under the bash that runs it, so it also
-  reads each script for a heredoc inside `$( )` whose apostrophes or backticks do not pair up,
-  which fails on Linux too. It cannot see run-time behaviour.
+  scripts and the root launchers (`*.sh`) under the bash that runs it, and reads each script for
+  a heredoc inside `$( )` that bash 3.2 would end early, reading its quotes in order as bash 3.2
+  does, so the bash 3.2 case fails on Linux too. It cannot see run-time behaviour.
 - **Delete what a change makes dead** in the same PR: the unused flag, the helper with no caller,
   the comment about code that is gone.
 

@@ -15,6 +15,8 @@
 # Games against a person are never part of a benchmark score.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
+# Forge: $FORGE_HOME, else where setup.sh put it, else the default checkout.
+if [ -z "${FORGE_HOME:-}" ] && [ -s "$REPO/.forge-home" ]; then FORGE_HOME="$(head -1 "$REPO/.forge-home")"; fi
 FORGE_HOME="${FORGE_HOME:-$HOME/code/forge}"
 
 deck=burn; vs=mardu-energy; model=openrouter:openai/gpt-6-luna; games=1; record=0; dry=0; commentary=0; why=0
@@ -69,8 +71,8 @@ out="$REPO/runs/human/$(date -u +%Y%m%dT%H%M%SZ)"
 # The pilot condition, from the panels file. Every other key a batch scrubs (run_batch.build_env: the run-defining
 # keys, the heuristic shortcuts and plans, CTX_* overrides) is unset, and the further keys below (ones the overlay
 # reads that a batch sets from its own flags), so the caller's shell does not change what the seat is asked or shown.
-# No apostrophe or backtick inside the heredoc below: bash 3.2 would not parse this script (STANDARDS section 4). Kept: the seed, the operator's own Claude CLI effort and
-# thinking settings, and infrastructure (endpoint, timeouts, recording, DEMO_FEED).
+# Kept: the seed, the operator's own Claude CLI effort and thinking settings, and infrastructure (endpoint,
+# timeouts, recording, DEMO_FEED). No apostrophe or backtick inside the heredoc: bash 3.2 (STANDARDS section 4).
 condition="$(python3 - "$REPO" <<'PY'
 import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/eval")
@@ -113,8 +115,16 @@ if [ "$dry" = 1 ]; then
   echo "would run: $FORGE_HOME/run-llm-spike.sh"
   exit 0
 fi
-[ -x "$FORGE_HOME/run-llm-spike.sh" ] || { echo "play-vs-llm: no $FORGE_HOME/run-llm-spike.sh; set FORGE_HOME and" \
-    "run 'FORGE_HOME=<checkout> bash install.sh' and the build first (README.md)" >&2; exit 4; }
+[ -x "$FORGE_HOME/run-llm-spike.sh" ] || { echo "play-vs-llm: no Forge build at $FORGE_HOME; run 'bash setup.sh'" \
+    "first (or set FORGE_HOME to your checkout)" >&2; exit 4; }
+# The launcher's classpath file lives in /tmp, which a reboot clears; one person's game can rebuild it (no batch races
+# it here, the reason run-llm-spike.sh only refuses).
+export FORGE_CP_FILE="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"
+if [ ! -s "$FORGE_CP_FILE" ] && [ -f "$FORGE_HOME/pom.xml" ]; then
+  echo "play-vs-llm: rebuilding Forge's classpath list ($FORGE_CP_FILE), once after a reboot"
+  (cd "$FORGE_HOME" && mvn -q -o -pl forge-gui-desktop -am dependency:build-classpath \
+      -Dmdep.outputFile="$FORGE_CP_FILE")
+fi
 mkdir -p "$out"
 if [ "$commentary" = 1 ]; then
   "${feed[@]}" & feed_pid=$!

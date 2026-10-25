@@ -4,9 +4,12 @@
 set -e
 # Repo root, captured BEFORE the cd below: the rules tool needs an absolute CR path.
 REPO="$(cd "$(dirname "$0")" && pwd)"
-# The Homebrew JDK on the owner's Mac; anywhere else (Linux, CI) the java already on PATH is used.
-BREW_JDK=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
-[ -d "$BREW_JDK" ] && export JAVA_HOME="$BREW_JDK"
+# The Homebrew JDK on a Mac; anywhere else (Linux, CI) the java already on PATH is used.
+# Apple silicon and Intel prefixes, in setup.sh's order (eval/test_setup.py keeps the two lists equal).
+for BREW in /opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17; do
+  BREW_JDK="$BREW/libexec/openjdk.jdk/Contents/Home"
+  if [ -d "$BREW_JDK" ]; then export JAVA_HOME="$BREW_JDK"; break; fi
+done
 # Ensure the `claude` CLI (used by HaikuDecider) is on PATH for the launched JVM.
 PATH="${JAVA_HOME:+$JAVA_HOME/bin:}$HOME/.local/bin:$PATH"
 export PATH
@@ -20,7 +23,7 @@ cd "$(dirname "$0")/forge-gui-desktop"
 # that silently emptied a full overnight run. Deliberately NOT self-healing:
 # regenerating has no lock, so N parallel launchers would race each other
 # (see CLAUDE.md). Refuse loudly and let the caller regenerate once.
-CP_FILE=/tmp/forge_cp.txt
+CP_FILE="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"     # FORGE_CP_FILE: elsewhere (play-vs-llm.sh passes it on)
 if [ ! -s "$CP_FILE" ]; then
   echo "[launcher] missing or empty $CP_FILE (maven-generated classpath)." >&2
   echo "[launcher] regenerate it ONCE, with no games running:" >&2

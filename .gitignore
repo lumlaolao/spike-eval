@@ -11,6 +11,8 @@ target/
 
 # local OpenRouter credentials — never commit the real key (template is secrets.env.example)
 secrets.env
+# where setup.sh put Forge (play-vs-llm.sh reads it)
+.forge-home
 
 # MLX fine-tuning: local venv, downloaded base models + LoRA adapters, staged data dir
 .venv-mlx/

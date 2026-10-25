@@ -8,7 +8,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 if [ ! -d "$FORGE_HOME/forge-gui-desktop" ]; then
   echo "ERROR: '$FORGE_HOME' does not look like a Forge checkout (no forge-gui-desktop/)." >&2
-  echo "Clone it first:  git clone --depth 1 https://github.com/Card-Forge/forge.git \"$FORGE_HOME\"" >&2
+  echo "Run 'bash setup.sh' instead: it fetches Forge at the tested commit (FORGE_COMMIT), then calls this." >&2
   exit 1
 fi
 
