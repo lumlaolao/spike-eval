@@ -1,6 +1,7 @@
 """setup.sh: one command from a fresh clone to a playable install. Run against stub git / java / mvn that log their
 arguments, in a scratch copy of the repo, so no network, build or real Forge checkout is touched."""
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -34,8 +35,9 @@ JAVA_STUB = textwrap.dedent("""\
 """)
 MVN_STUB = textwrap.dedent("""\
     #!/bin/bash
-    if [ "$1" = -v ]; then echo "Apache Maven ${STUB_MVN:-3.9.11} (abc)"; exit 0; fi
-    echo "mvn $* (in $PWD) java=$(command -v java)" >> "$STUB_LOG"
+    if [ "$1" = -v ]; then
+      echo "Apache Maven ${STUB_MVN:-3.9.11} (abc)"; echo "Java version: ${STUB_MVN_JAVA:-21.0.2}, vendor: x"; exit 0; fi
+    echo "mvn $* (in $PWD) java=$(command -v java) JAVA_HOME=$JAVA_HOME" >> "$STUB_LOG"
 """)
 
 
@@ -147,17 +149,43 @@ class SetupTest(unittest.TestCase):
     def test_a_homebrew_jdk_is_used_before_the_java_on_path(self):
         jdk = Path(self._tmp.name) / "brew-openjdk@17"
         (jdk / "bin").mkdir(parents=True)
+        (jdk / "libexec/openjdk.jdk/Contents/Home").mkdir(parents=True)
         (jdk / "bin/java").write_text(JAVA_STUB.replace("$STUB_JAVA", "17.0.12"))
         (jdk / "bin/java").chmod(0o755)
         p = self.setup(java="macos-stub", SETUP_JDK_DIRS=str(jdk))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("java=%s/bin/java" % jdk, self.calls(), "the build runs on that JDK")
+        self.assertIn("java=%s/bin/java" % jdk, self.calls())
+        # Homebrew's mvn builds on $JAVA_HOME, not on the java on PATH.
+        self.assertIn("JAVA_HOME=%s/libexec/openjdk.jdk/Contents/Home" % jdk, self.calls(), "the build runs on it")
+
+    def test_the_game_launcher_looks_for_homebrew_s_jdk_where_setup_does(self):
+        # An Intel Mac's Homebrew lives in /usr/local: a launcher that missed it would play on macOS's java stub.
+        prefixes = re.compile(r"(/[\w/]*/opt/openjdk@17)\b")
+        setup_line = next(ln for ln in (REPO / "setup.sh").read_text().splitlines() if "SETUP_JDK_DIRS:-" in ln)
+        spike_line = next(ln for ln in (REPO / "run-llm-spike.sh").read_text().splitlines() if ln.startswith("for BREW"))
+        self.assertEqual(prefixes.findall(spike_line), prefixes.findall(setup_line))
+        self.assertEqual(len(prefixes.findall(setup_line)), 2)
 
     def test_a_maven_older_than_the_forge_build_requires_is_refused_before_the_fetch(self):
         p = self.setup(STUB_MVN="3.6.3")
         self.assertEqual(p.returncode, 3)
         self.assertIn("Maven 3.8.1", p.stderr)
         self.assertNotIn("fetch", self.calls())
+
+    def test_a_maven_whose_version_cannot_be_read_or_that_runs_an_old_jdk_is_refused(self):
+        p = self.setup(STUB_MVN="3.8")                   # three words, no patch number: not read as a version
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertNotIn("integer expression", p.stderr)
+        p = self.setup(STUB_MVN_JAVA="11.0.20")          # java 17 on PATH, but Maven runs on an exported old JDK
+        self.assertEqual(p.returncode, 3)
+        self.assertIn("JAVA_HOME", p.stderr)
+        self.assertNotIn("fetch", self.calls())
+
+    def test_a_kept_secrets_file_says_whether_it_holds_the_consent(self):
+        (self.repo / "secrets.env").write_text("OPENROUTER_API_KEY=someone-elses\nOPENROUTER_ALLOW_EGRESS=1\n")
+        p = self.setup(answers="")
+        self.assertIn("already allows", p.stdout)
+        self.assertNotIn("someone-elses", p.stdout + p.stderr)
 
     def test_a_yes_typed_with_a_windows_line_ending_is_a_yes(self):
         self.assertEqual(self.setup(answers="sk-or-test-key\r\ny\r\n").returncode, 0)

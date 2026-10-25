@@ -25,16 +25,20 @@ bash setup.sh          # Forge at the tested commit, these changes on top, the b
 bash play-vs-llm.sh    # you against GPT-6 Luna in Forge's window
 ```
 
-`setup.sh` needs Java 17 or newer, Maven, git and Python 3, and says how to install any that is missing (macOS or
+`setup.sh` needs Java 17 or newer, Maven 3.8.1 or newer, git and Python 3, and says how to install any that is missing (macOS or
 Linux; on Windows, WSL2). It fetches Forge at exactly `FORGE_COMMIT` (shallow, about 1 GB) into `~/code/forge`
 (`--forge-dir` for elsewhere), lays `forge-overlay/` on it, and builds it: about 10 minutes the first time, while
 Maven downloads Forge's libraries. Last it asks for your OpenRouter key and whether games may be sent to
 openrouter.ai, and writes both to `secrets.env`, which only you can read and git ignores. After a `git pull`, run it
 again: it moves its own Forge checkout to a new pin and rebuilds.
 
+To hand someone a copy, zip only what git tracks, so your `secrets.env` (your key and your consent) stays behind:
+`git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent.zip HEAD -- . ":(exclude)runs"
+":(exclude)datasets"`. They add their own key when `setup.sh` asks.
+
 ## Build and check
 
-Requires JDK 17, Maven, and Python 3 (stdlib only).
+Requires JDK 17, Maven 3.8.1 or newer, and Python 3 (stdlib only).
 
 ```bash
 git clone https://github.com/Card-Forge/forge.git /root/forge && git -C /root/forge checkout $(cat FORGE_COMMIT)

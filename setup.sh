@@ -57,14 +57,22 @@ if [ "$major" -lt 17 ]; then
   echo "setup: Forge needs Java 17 or newer; 'java -version' says: $jline" >&2
   echo "    $hint" >&2; exit 3
 fi
-# Forge's build enforces Maven 3.8.1 or newer (its pom's requireMavenVersion); some apt releases ship 3.6.
-mv="$(mvn -v 2>/dev/null | grep -v '^Picked up' | head -1 | sed -E 's/^Apache Maven ([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 \2 \3/' || true)"
-set -- $mv
-if [ $# -ne 3 ] || [ "$1" -lt 3 ] || { [ "$1" -eq 3 ] && { [ "$2" -lt 8 ] || { [ "$2" -eq 8 ] && [ "$3" -lt 1 ]; }; }; }; then
-  echo "setup: Forge's build needs Maven 3.8.1 or newer; 'mvn -v' says: $(mvn -v 2>/dev/null | head -1 || true)" >&2
+# Forge's build enforces Maven 3.8.1 or newer and Java 17 for the build (its pom's requireMavenVersion and
+# requireJavaVersion); some apt releases ship Maven 3.6, and Maven builds on $JAVA_HOME, not the java on PATH.
+mvn_out="$(mvn -v 2>&1 || true)"
+mver="$(echo "$mvn_out" | grep -oE 'Apache Maven [0-9]+\.[0-9]+\.[0-9]+' | head -1 | sed 's/Apache Maven //' || true)"
+IFS=. read -r m1 m2 m3 <<< "${mver:-0.0.0}"
+if [ $(( m1 * 10000 + m2 * 100 + m3 )) -lt 30801 ]; then
+  echo "setup: Forge's build needs Maven 3.8.1 or newer; 'mvn -v' says:" >&2
+  echo "$mvn_out" | head -3 | sed 's/^/    /' >&2
   echo "    brew install maven, or https://maven.apache.org/download.cgi (an older apt maven is too old)" >&2; exit 3
 fi
-step "tools: git, Java $major, Maven ${mv// /.}, Python 3"
+mjava="$(echo "$mvn_out" | sed -nE 's/^Java version: ([0-9]+).*/\1/p' | head -1)"
+if [ -n "$mjava" ] && [ "$mjava" -lt 17 ]; then
+  echo "setup: Maven builds on Java $mjava (its JAVA_HOME); Forge needs 17 or newer. Point JAVA_HOME at a JDK 17+" >&2
+  echo "    or unset it, then run setup again." >&2; exit 3
+fi
+step "tools: git, Java $major, Maven $mver, Python 3"
 
 # ---- 2. Forge at the pin ----------------------------------------------------------------------------------------
 # The marker lives inside .git (never a change in the checkout) and is written as soon as the checkout exists, so a
@@ -72,8 +80,8 @@ step "tools: git, Java $major, Maven ${mv// /.}, Python 3"
 marker="$forge/.git/llm-agent-setup"
 if [ ! -e "$forge" ]; then
   git init -q "$forge"
-  git -C "$forge" remote add origin "$FORGE_URL"
   : > "$marker"
+  git -C "$forge" remote add origin "$FORGE_URL"
 elif [ ! -d "$forge/.git" ]; then
   echo "setup: $forge exists and is not a git checkout; pick another --forge-dir" >&2; exit 4
 fi
@@ -103,7 +111,12 @@ echo "$forge" > "$REPO/.forge-home"           # where play-vs-llm.sh finds Forge
 # ---- 4. the OpenRouter key and the consent ----------------------------------------------------------------------
 secrets="$REPO/secrets.env"
 if [ -f "$secrets" ] && grep -Eq '^[[:space:]]*OPENROUTER_API_KEY[[:space:]]*=[[:space:]]*[^[:space:]]' "$secrets"; then
-  step "secrets.env already holds a key; left as it is"
+  if grep -Eq '^[[:space:]]*OPENROUTER_ALLOW_EGRESS[[:space:]]*=[[:space:]]*1' "$secrets"; then
+    allow="already allows games to be sent to openrouter.ai (OPENROUTER_ALLOW_EGRESS=1)"
+  else
+    allow="does not allow games to be sent to openrouter.ai yet"
+  fi
+  step "secrets.env already holds a key and $allow; left as it is. Not yours? Delete it and run setup again."
 else
   step "your OpenRouter key (https://openrouter.ai/keys); it is stored in secrets.env, readable only by you"
   key="${OPENROUTER_API_KEY:-}"
