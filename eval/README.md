@@ -1,16 +1,24 @@
-# eval/ — batch driver + statistics for the LLM-vs-LLM Forge eval
+# eval/: the batch driver, scoring and review tools
 
-Two stdlib-only Python 3 scripts:
+Every script here is stdlib-only Python 3 and has its tests in `eval/test_<name>.py` (or is listed in
+`eval/UNTESTED.txt`). Where the rest is described:
 
-- `run_batch.py` — plays N headless games by invoking `bash run-llm-headless.sh`
+- the benchmark and its three scores: `eval/EVAL-DESIGN.md`, `eval/SCORING.md`, `eval/BENCHMARK-V1.md`;
+- the puzzle suite (`puzzle_*.py`): `eval/PUZZLES.md`;
+- the review sheet after a game (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`,
+  `cost_report.py`): `.claude/skills/game-loop/SKILL.md`;
+- how many games run at once: `eval/CONCURRENCY.md`;
+- the harness-building eval (`harness_env_*.py`): `eval/harness_env/SPEC.md`.
+
+This file covers the game batch driver and its statistics:
+
+- `run_batch.py`: plays N headless games by invoking `bash run-llm-headless.sh`
   from FORGE_HOME with per-game env (`GAME_SEED`, `SWAP_SEATS`, `EVAL_OUT`,
   `GAME_CAP_MS`, per-seat models/controllers/decks). Resumable.
-- `aggregate.py` — turns a directory of `game-*.jsonl` logs into win rates
+- `aggregate.py`: turns a directory of `game-*.jsonl` logs into win rates
   with Wilson 95% CIs, a paired analysis with a paired-bootstrap CI on the
   win-rate delta, and decision-level latency/fallback stats. `--json` for
   machine-readable output.
-- `test_aggregate.py` — self-test over synthetic fixtures
-  (`python3 eval/test_aggregate.py`).
 
 ## The paired-mirror design
 
@@ -86,19 +94,24 @@ enforces:
    these via `--env`, or passing `--plan-a/--plan-b`, is refused.
 3. **`--jobs 1` when a seat uses a bare (claude-CLI) model spec**: parallel JVMs starve the `claude` CLI and
    inflate fallbacks. All-`openrouter:` runs may run in parallel (RAM-bound, `eval/CONCURRENCY.md` §7).
-4. **Per-tier cap** — if `--cap-minutes` is omitted it is derived: no llm seat
-   → 15 min, all-haiku llm → 120, any opus → 240.
-5. **Provenance + drift** — stamps `ENGINE_SHA` (forge `HEAD`), `OVERLAY_SHA`
-   (sha256[:12] of the two *installed* spike files), `DECK_SHA`, and
+4. **Held-out seeds** — every seed must sit in an eval-only band of
+   `eval/seed_registry.json` and in no training corpus (see below).
+5. **Per-tier cap** — if `--cap-minutes` is omitted it is derived: no llm seat
+   → 15 min, all-haiku llm → 120, any opus → 240, any other llm seat → 240.
+6. **Provenance + drift** — stamps `ENGINE_SHA` (forge `HEAD`), `OVERLAY_SHA`
+   (sha256[:12] over every overlay source as installed under FORGE_HOME:
+   the harness classes and the engine patches), `DECK_SHA`, `SEED_BANK` and
    `RUN_DISCIPLINE` onto every game line, and refuses to run if the installed
-   spike files have drifted from this checkout's `forge-overlay/` copies
+   overlay files differ from this checkout's `forge-overlay/`
    (`run bash install.sh first`).
-6. **`--out` optional** — defaults to `runs/<UTC-timestamp>-<label>` under the
+7. **`--out` optional** — defaults to `runs/<UTC-timestamp>-<label>` under the
    repo root; the resolved dir is printed first thing.
 
 Any violation exits **2** with a clear message. `--exploratory` skips guards
-1–3 for quick pokes: it still stamps provenance (`discipline=exploratory`) but
-prints a loud banner that the numbers are **not citable**.
+1–4 for quick pokes (drift is then a warning): it still stamps provenance
+(`discipline=exploratory`) but prints a loud banner that the numbers are
+**not citable**. In every mode an llm seat must name both its models
+(`--smart-x` and `--fast-x`), or the run is refused.
 
 The canonical mirror decks live in this repo:
 `eval/decks/mardu-energy.txt` and `eval/decks/grixis-reanimator.txt` — pass one
@@ -127,7 +140,10 @@ python3 eval/aggregate.py runs/<the-printed-dir> --json     # machine-readable
 warning if the dir blends incompatible runs), and enforces a **fallback gate**:
 `--max-fallback-rate` (default 0.10) over decisions of llm-controlled
 identities; exceeding it prints `FAILED FALLBACK GATE` and exits **2** after the
-report. The `ai` tier count is **partial** (un-overridden decisions run on
+report, and a **harness-decided gate**: a ceiling of 2% (no flag) on the
+share of those decisions the harness made when the model could have (TAKEN,
+LOST and Forge-AI rows); exceeding it prints `FAILED HARNESS-DECIDED GATE`
+and exits **4**. The `ai` tier count is **partial** (un-overridden decisions run on
 Forge AI invisibly), so `ai=0` never means "the model drove everything".
 
 Baseline / exploratory arm example (not citable — mismatched decks, plans):
@@ -283,9 +299,9 @@ cat runs/improve/20260721-120000/summary.txt
 # 3. Fix the harness (forge-overlay/.../LlmSpikeGui.java), citing the exact
 # defect class the summary flagged.
 
-# 4. Rebuild (see the repo-root build/deploy cycle: copy the overlay spike
-# files into the forge checkout, then `mvn -pl forge-gui-desktop -am
-# -DskipTests compile`).
+# 4. Rebuild with no game running (.claude/rules/forge-overlay.md):
+# FORGE_HOME=/root/forge bash install.sh, then
+# (cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests).
 
 # 5. Rerun the same iteration and diff the two summary.txt files — a real
 # fix drives the flagged count (or the whole hard-invariant gate) to zero;
