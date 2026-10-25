@@ -200,6 +200,25 @@ class ScoreV2Test(unittest.TestCase):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
         self.assertIsNone(ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)["decisions_bridge_version"])
 
+    def test_attempts_from_two_claude_cli_bridges_or_efforts_are_never_pooled(self):
+        # A claude-cli: solver's bridge (ClaudeCliBridge.VERSION) and its effort are conditions of the solver.
+        for key, a, b in (("claude_cli_bridge_version", "claude-cli-bridge-v1", "claude-cli-bridge-v2"),
+                          ("claude_cli_effort", "high", "cli-default"),
+                          ("claude_cli_thinking_tokens", "16000", "cli-default")):
+            rows = self.rows([4, 2, 0], **{key: a})
+            self.assertEqual(ps.score(self.m, rows, "open", k=4, n_boot=20)[key], a)
+            rows[0][key] = b
+            with self.assertRaisesRegex(ps.Refused, "claude-cli"):
+                ps.score(self.m, rows, "open", k=4, n_boot=20)
+
+    def test_a_development_lane_run_is_labelled_so_and_never_called_a_score(self):
+        rows = self.rows([4, 2, 0], dev_lane="claude-cli")
+        rep = ps.score(self.m, rows, "open", k=4, n_boot=20)
+        self.assertEqual(rep["dev_lane"], "claude-cli")
+        self.assertIn("DEVELOPMENT LANE", ps.render(rep).splitlines()[0])
+        self.assertFalse(any(l.startswith("PUZ") or "headline" in l for l in ps.render(rep).splitlines()), ps.render(rep))
+        self.assertNotIn("DEVELOPMENT LANE", ps.render(ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)))
+
     def test_no_spread_gives_no_smallest_difference(self):
         # pr-review of #282: three puzzles all solved 4/4 printed "detect: 0.000", the opposite of what they show.
         a = ps.score(self.m, self.rows([4, 4, 4]), "open", k=4, n_boot=20)["aggregate"]

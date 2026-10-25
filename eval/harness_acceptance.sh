@@ -345,6 +345,9 @@ EOF
     # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
     elif ! grep -qF "] decisions-bridge-v1 ONE -> answer" "$OUT/javatests.log"; then
       fail javatests "no [JEV] answer stamped decisions-bridge-v1 (move this pin WITH DecisionsBridge.VERSION)"
+    # The claude-cli: seat's bridge version, by literal value, from a fake-CLI answer ClaudeCliBridgeTest drew through it.
+    elif ! grep -qF "] claude-cli-bridge-v2 -> TOOL CALL answer" "$OUT/javatests.log"; then
+      fail javatests "no [CLAUDE-CLI] answer stamped claude-cli-bridge-v2 (move this pin WITH ClaudeCliBridge.VERSION)"
     # The run record's version, by literal value, from TranscriptTest's byte-equal loopback round-trip.
     elif ! grep -qF "[TRANSCRIPT] transcript-v1 byte-equal" "$OUT/javatests.log"; then
       fail javatests "no [TRANSCRIPT] round-trip stamped transcript-v1 (move this pin WITH Transcript.VERSION)"
@@ -559,7 +562,7 @@ if has_stage lookahead; then
     dir="$OUT/lookahead"; sdir="$OUT/lookahead-server"; mkdir -p "$dir" "$sdir"
     # --policy simulate makes the fake model ask for a preview on every play prompt that advertises
     # SIMULATE, so the real preview path (previewCast -> re-ask) is exercised without any egress.
-    # ANSWER_TOOL=0: this is the text protocol's preview (the Claude CLI lane and the opt-out); with the
+    # ANSWER_TOOL=0: this is the text protocol's preview (the opt-out); with the
     # answer tool on, the preview is a function call (nativetool stage).
     python3 "$REPO/eval/fake_model_server.py" --port 0 --policy simulate --log "$sdir/fake_requests.jsonl" \
         >"$sdir/fake_server.out" 2>&1 &
@@ -643,8 +646,8 @@ if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
     if game.get("native_tools_version")!="seat-tools-v11": problems.append("native_tools_version=%r (expected seat-tools-v11; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
-    for k in ("decisions_bridge_version_a", "decisions_bridge_version_b"):
-        if k in game: problems.append("%s=%r on a game with no jev: seat (it is stamped only where one plays)"%(k, game.get(k)))
+    for k in ("decisions_bridge_version_a", "decisions_bridge_version_b", "claude_cli_bridge_version_a", "claude_cli_bridge_version_b", "claude_cli_thinking_tokens_a", "claude_cli_thinking_tokens_b", "dev_lane"):
+        if k in game: problems.append("%s=%r on a game with no jev: or claude-cli: seat (it is stamped only where one plays)"%(k, game.get(k)))
     if game.get("memory_tools_version")!="evidence-tools-v4": problems.append("memory_tools_version=%r (expected evidence-tools-v4; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v15" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v15; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))

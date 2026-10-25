@@ -11,6 +11,10 @@ It is an ESTIMATE of spend. Prompt tokens a row reports as read from the provide
 has no such rate. Rows from before 2026-10-15 carry neither, so their input is an upper bound. It
 cannot see calls that left no row (a request that timed out is still billed).
 
+A `claude-cli:` seat (the Claude Code CLI, ClaudeCliBridge) is not priced from tokens: each of its rows carries the
+CLI's own `total_cost_usd` as `cost_usd` (its side calls to another model included), and that sum is its spend at
+list price and at the budget alike. A CLI process killed at its deadline reports nothing, so it is not counted.
+
   python3 eval/cost_report.py runs/lines/ctl2/native runs/lines/ctl2/native-lookahead
   python3 eval/cost_report.py --plan 16 runs/lines/ctl2/native     # what 16 more games like these would cost
 """
@@ -35,9 +39,89 @@ DECISIONS_PREFIX = "jev:"
 API_PREFIXES = ("openrouter:", DECISIONS_PREFIX)
 
 
+# A Claude model through the local Claude Code CLI, answering by structured output (ClaudeCliBridge.PREFIX). It
+# sends the game state to Anthropic, not to openrouter.ai. Owner, 2026-10-24: a development lane on the owner's own
+# subscription, used only with its explicit opt-in (ClaudeCliBridge.OPT_IN) and never in a benchmark score.
+CLI_PREFIX = "claude-cli:"
+CLI_OPT_IN = "CLAUDE_CLI_SEAT"
+# Specs that ask no model at all (LlmSpikeGui's ScriptBridge and GreedyBridge).
+ZERO_MODEL_PREFIXES = ("script:", "greedy:")
+# Every prefix the JVM factory routes (LLMBridgeFactory.ROUTED_PREFIXES; test_cost_report checks the two agree). A spec
+# with none of them was the bare Claude CLI text lane, retired on 2026-10-25.
+KNOWN_PREFIXES = API_PREFIXES + (CLI_PREFIX,) + ZERO_MODEL_PREFIXES
+
+
 def is_decisions(spec):
     """True for a decision-model spec: a seat with no lookups, answering typed questions."""
     return str(spec or "").startswith(DECISIONS_PREFIX)
+
+
+def is_cli(spec):
+    """True for a `claude-cli:` spec: priced from the CLI's reported cost, not from tokens."""
+    return str(spec or "").startswith(CLI_PREFIX)
+
+
+def lane_of(spec):
+    """The prefix of a seat whose backend gives only the `answer` call (`jev:` or `claude-cli:`: no lookups, no preview,
+    no text answers), or None."""
+    return DECISIONS_PREFIX if is_decisions(spec) else CLI_PREFIX if is_cli(spec) else None
+
+
+def is_bare(spec):
+    """True for a spec no lane takes: a bare Claude name such as `opus`, once the Claude CLI text lane (retired
+    2026-10-25). A recorded game line may still name one."""
+    s = str(spec or "")
+    return bool(s) and not s.startswith(KNOWN_PREFIXES)
+
+
+def is_cli_lane(spec):
+    """True for a spec the local Claude Code CLI answers or answered: `claude-cli:` (ClaudeCliBridge), or a bare name a
+    game recorded before the text lane was retired. Both are the development lane (owner, 2026-10-24)."""
+    return is_cli(spec) or is_bare(spec)
+
+
+def misspelled_cli(spec):
+    """True for a spec that names a "cli:" lane (any case) but is not `claude-cli:<model>`: a typo the JVM would
+    otherwise send to the bare text lane."""
+    s = str(spec or "")
+    return "cli:" in s.lower() and not s.startswith(CLI_PREFIX)
+
+
+def cli_flag_refusal(specs, effort, thinking_tokens):
+    """Why --claude-cli-effort / --claude-cli-thinking-tokens are refused for these seats (run_batch.py and
+    puzzle_solve.py), or None."""
+    cli = any(is_cli(s) for s in specs)
+    for flag, v in (("--claude-cli-effort", effort), ("--claude-cli-thinking-tokens", thinking_tokens)):
+        if v is not None and not cli:
+            return "%s is the Claude CLI's (a %s seat); no other seat reads it" % (flag, CLI_PREFIX)
+    if thinking_tokens is not None and thinking_tokens < 1:
+        return "--claude-cli-thinking-tokens must be a positive number"
+    return None
+
+
+def cli_env(effort, thinking_tokens):
+    """A claude-cli: seat's CLI settings as the JVM's environment, pinned for both tiers ("" is the CLI's own default),
+    so the operator's shell (CLAUDE_BRIDGE_EFFORT_SMART, MAX_THINKING_TOKENS ...) never reaches it. run_batch.py and
+    puzzle_solve.py both launch with these."""
+    return {"CLAUDE_BRIDGE_EFFORT": effort or "", "CLAUDE_BRIDGE_EFFORT_SMART": "", "CLAUDE_BRIDGE_EFFORT_FAST": "",
+            "CLAUDE_CLI_THINKING_TOKENS": str(thinking_tokens) if thinking_tokens else ""}
+
+
+def cli_opt_in_refusal(specs, environ):
+    """Why a launch whose model seats name `specs` is refused (the JVM's own refusal, said before anything starts): a
+    misspelled "cli:" spec, a retired bare Claude name, or a `claude-cli:` seat without the operator's CLI_OPT_IN=1.
+    None otherwise."""
+    typo = [s for s in specs if misspelled_cli(s)]
+    if typo:
+        return "%s names a cli: lane but is not %s<model>" % (", ".join(map(str, typo)), CLI_PREFIX)
+    bare = [s for s in specs if is_bare(s)]
+    if bare:
+        return ("%s: the bare Claude CLI text lane is retired (owner, 2026-10-25); use %s<model> with %s=1"
+                % (", ".join(map(str, bare)), CLI_PREFIX, CLI_OPT_IN))
+    if not any(is_cli(s) for s in specs) or environ.get(CLI_OPT_IN) == "1":
+        return None
+    return ("a %s seat runs the Claude Code CLI on the operator's own Claude subscription: it is for local development "
+            "only and never part of a benchmark score (owner, 2026-10-24). Set %s=1 to choose it." % (CLI_PREFIX, CLI_OPT_IN))
 
 
 def budget_prices(prices):
@@ -56,17 +140,21 @@ def model_id(spec):
 
 
 def game_usage(path):
-    """{'game': the game row or None, 'tiers': {(seat, tier): [calls, prompt, completion, cached, cache_write]}} for one
-    file. `seat` is the row's player name (None on a row that has none)."""
+    """{'game': the game row or None, 'tiers': {(seat, tier): [calls, prompt, completion, cached, cache_write,
+    reported_usd, unreported]}} for one file. `seat` is the row's player name (None on a row that has none);
+    `reported_usd` sums the rows' own `cost_usd`, and `unreported` is [prompt, completion, cached, cache_write] of the
+    rows that carry none."""
     ctx, dec, game = {}, {}, None
 
     def add(bucket, tier, r):
-        b = bucket.setdefault((r.get("seat"), tier), [0, 0, 0, 0, 0])
+        b = bucket.setdefault((r.get("seat"), tier), [0, 0, 0, 0, 0, 0.0, [0, 0, 0, 0]])
+        tokens = [max(0, r.get(k) or 0) for k in ("prompt_tokens", "completion_tokens", "cached_tokens", "cache_write_tokens")]
         b[0] += 1
-        b[1] += max(0, r.get("prompt_tokens") or 0)
-        b[2] += max(0, r.get("completion_tokens") or 0)
-        b[3] += max(0, r.get("cached_tokens") or 0)
-        b[4] += max(0, r.get("cache_write_tokens") or 0)
+        for i, t in enumerate(tokens):
+            b[1 + i] += t
+            if r.get("cost_usd") is None:
+                b[6][i] += t
+        b[5] += max(0.0, r.get("cost_usd") or 0.0)
     with open(path, errors="replace") as f:
         for line in f:
             try:
@@ -119,7 +207,7 @@ def report_dir(run_dir, prices):
         g = u["game"] or manifest
         out["games"] += 1 if u["game"] else 0
         out["unfinished"] += 0 if u["game"] or not u["tiers"] else 1
-        for (seat, tier), (calls, pin, pout, cached, written) in u["tiers"].items():
+        for (seat, tier), (calls, pin, pout, cached, written, reported, unreported) in u["tiers"].items():
             out["calls"] += calls
             out["prompt_tokens"] += pin
             out["cached_tokens"] += cached
@@ -127,13 +215,20 @@ def report_dir(run_dir, prices):
             # Priced by the calling seat's own spec: under seat A's, a model-B-vs-ai batch reads as $0 and
             # --budget-usd never stops it. A name both seats share is priced at the dearer spec (an upper bound).
             specs = [g.get("%s_%s" % ("smart" if tier == "smart" else "fast", i)) for i in identities_of(g, seat)]
+            cli = [s for s in specs if is_cli(s)]
             priced = {s: p for s, p in ((s, price_of(prices, s)) for s in specs) if p is not None}
             out["unpriced"].update(model_id(s) for s in specs if s not in priced and model_id(s))
-            if not priced:
-                continue
             usd = {s: usd_of(p, pin, pout, cached, written) for s, p in priced.items()}
+            if cli:
+                # The CLI's own figure for every row it reported (ClaudeCliBridge), plus a name-sharing token-priced
+                # seat's rows (those with no cost_usd) at that seat's price: the two seats' spends add.
+                others = [usd_of(p, *unreported) for s, p in priced.items()]
+                usd = {cli[0]: reported + max(others or [0.0])}
+                priced[cli[0]] = {"checked": "CLI-reported"}
+            if not usd:
+                continue
             spec = max(usd, key=usd.get)
-            out["models"].add(model_id(spec))
+            out["models"].add(model_id(spec) or spec)
             out["checked"].add(priced[spec].get("checked", "?"))
             out["usd"] += usd[spec]
     return out

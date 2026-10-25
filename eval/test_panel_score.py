@@ -206,6 +206,22 @@ class TestMirrorPanel(unittest.TestCase):
             self.score()
         self.assertIn("identity B", str(cm.exception))
 
+    def test_a_development_lane_cell_is_refused(self):
+        # Owner, 2026-10-24: a claude-cli: seat is local development, never part of a benchmark score.
+        panel_run(self.root, "mirror", skip=("lands",))
+        write_block(self.root / "lands", DOC["deck_pool"][10]["sha12"], results(4), dev_lane="claude-cli",
+                    claude_cli_bridge_version_a="claude-cli-bridge-v1")
+        with self.assertRaises(ps.PanelError) as cm:
+            self.score()
+        self.assertIn("development lane", str(cm.exception))
+
+    def test_a_pilot_on_the_bare_cli_lane_is_refused_even_unstamped(self):
+        panel_run(self.root, "mirror", skip=("lands",))
+        write_block(self.root / "lands", DOC["deck_pool"][10]["sha12"], results(4), smart_a="opus")
+        with self.assertRaises(ps.PanelError) as cm:
+            self.score()
+        self.assertIn("development lane", str(cm.exception))
+
     def test_a_sanity_arm_that_beats_the_floor_invalidates_the_panel(self):
         arms = dict(ZERO_ARMS, garbage=lambda cid: results(1) if cid == "goblins" else results(0))
         panel_run(self.root, "mirror", sanity=arms)

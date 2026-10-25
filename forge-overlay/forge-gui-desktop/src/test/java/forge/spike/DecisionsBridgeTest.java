@@ -486,13 +486,13 @@ public class DecisionsBridgeTest {
      *  tool every decision would be a text ask it cannot take. */
     @Test
     public void aJevSeatRefusesLookupsLookaheadAndTextAnswers() {
-        DecisionsBridge.refuseConditions(false, false, true, "Seat/smart");
+        LlmSpikeGui.LLMBridgeFactory.refuseAnswerOnly(DecisionsBridge.PREFIX, false, false, true, "Seat/smart");
         String[] named = {"MEMORY_TOOLS", "LOOKAHEAD", "ANSWER_TOOL"};
         boolean[][] flags = {{true, false, true}, {false, true, true}, {false, false, false}};
         for (int i = 0; i < flags.length; i++) {
             boolean[] f = flags[i];
             try {
-                DecisionsBridge.refuseConditions(f[0], f[1], f[2], "Seat/smart");
+                LlmSpikeGui.LLMBridgeFactory.refuseAnswerOnly(DecisionsBridge.PREFIX, f[0], f[1], f[2], "Seat/smart");
                 Assert.fail("accepted " + Arrays.toString(f));
             } catch (IllegalStateException e) {
                 Assert.assertTrue(e.getMessage().contains(named[i]), e.getMessage());

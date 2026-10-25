@@ -55,6 +55,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aggregate  # noqa: E402
 import benchmark_version  # noqa: E402
+import cost_report  # noqa: E402  which specs run on the Claude CLI (a development lane, never scored)
 import rating  # noqa: E402
 import sanity_arms  # noqa: E402
 
@@ -139,6 +140,12 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
     games = rating.tag_fake_policy(exp["games"], p)
     problems = []
     for g in games:
+        # Owner, 2026-10-24: a development lane (a claude-cli: seat) is never part of a benchmark score.
+        if (g.get("dev_lane") or g.get("claude_cli_bridge_version_a") or g.get("claude_cli_bridge_version_b")
+                or any(g.get("controller_" + i) == "llm" and cost_report.is_cli_lane(g.get(t + "_" + i))
+                       for i in ("a", "b") for t in ("smart", "fast"))):
+            problems.append("a development lane (%s) played here; it is never part of a benchmark score"
+                            % (g.get("dev_lane") or "claude-cli"))
         if expected_b and g.get("controller_b") != expected_b:
             problems.append("identity B is %r, not %r" % (g.get("controller_b"), expected_b))
         if expected_a and g.get("controller_a") != expected_a:

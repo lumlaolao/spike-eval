@@ -10,7 +10,8 @@ solved, decisions by tier, text parses, cost so far, the last decision and its a
   <gauntlet line>  each kind of line eval/gauntlet_scan.py fails on (FALLBACK->AI, (unparsed, TEXT-PARSE,
                    TEXT-FORMAT-LEAK, Couldn't add to stack, failed to target, FAILED to pay, AI looped), and EXCEPTION
                    for its Exception / Error / threw lines (stack frames not counted)
-  NO-ANSWER        a model reply that was no answer (defect_analyzer's non-answer and no-reply lines, [JEV-NO-ANSWER])
+  NO-ANSWER        a model reply that was no answer (defect_analyzer's non-answer and no-reply lines, [JEV-NO-ANSWER],
+                   [CLAUDE-CLI-NO-ANSWER])
   LOST, TAKEN      a decision whose answer was lost, or that the harness took (match_review.classify_auto)
   TOOL-REFUSED, TOOL-FAILED   a lookup eval/tool_audit.py classes so (a --memory-tools run)
   BLOCK-INVALID    a block set left illegal (defect_analyzer: no legal set was found)
@@ -52,7 +53,7 @@ import puzzle_score  # noqa: E402
 import puzzle_solve  # noqa: E402
 import tool_audit  # noqa: E402
 
-NO_ANSWER = (defect_analyzer._NON_ANSWER_RE, defect_analyzer._BRIDGE_NO_REPLY_RE, re.compile(r"\[JEV-NO-ANSWER\]"))
+NO_ANSWER = (defect_analyzer._NON_ANSWER_RE, defect_analyzer._BRIDGE_NO_REPLY_RE, re.compile(r"\[(?:JEV|CLAUDE-CLI)-NO-ANSWER\]"))
 CAP_OUTLIVED = "outlived the cap"
 # A log of a run without puzzle-run.json is done when it ends on its last result line and stays quiet this long.
 QUIET_DONE_S = 60

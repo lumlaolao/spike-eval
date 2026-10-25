@@ -37,7 +37,7 @@ import forge.game.GameLogEntry;
  * that file (a part-written row there is a visible gap, eval/archive_run.py) and the next row starts a fresh one. No
  * Authorization header, cookie or API-key header is written, and a row that would contain the key's value is refused.
  *
- * <p>What it cannot record: the Claude CLI lane (ClaudeBridge has no HTTP of its own), the body of a response cut off
+ * <p>What it cannot record: the claude-cli: lane (its HTTP is inside the CLI), the body of a response cut off
  * by its deadline, and a response body that was not valid UTF-8 (the bridges read it as text).
  */
 final class Transcript {

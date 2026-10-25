@@ -33,6 +33,8 @@ import aggregate  # noqa: E402
 AGG = Path(__file__).resolve().parent / "aggregate.py"
 GUI = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src"
        / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java")
+# The claude-cli: seat's own settings (effort, deadline, thinking budget, the CLI binary) are read there.
+CLI_BRIDGE = GUI.with_name("ClaudeCliBridge.java")
 
 
 def game_line_keys():
@@ -361,14 +363,18 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "CLAUDE_BRIDGE_EFFORT_FAST": "claude_effort_fast",
         "CLAUDE_BRIDGE_EFFORT_SMART": "claude_effort_smart",
         "OPENROUTER_BASE_URL": "openrouter_base_url", "OPENROUTER_MODEL_CFG": "model_cfg_sha",
+        # A claude-cli: seat's thinking budget, per identity; the opt-in that lets one play, the dev_lane label.
+        "CLAUDE_CLI_THINKING_TOKENS": "claude_cli_thinking_tokens_a", "CLAUDE_CLI_SEAT": "dev_lane",
     }
     # Read by the harness, but not a condition: transport, credentials, recording and process
     # control, none of which change the seat's decisions (each would need a stamp if it ever did).
     NON_CONDITION_ENV = {
-        "AUTO_EXIT", "CLAUDE_BIN", "CLAUDE_RESET_EVERY", "EVAL_OUT", "MATCH_GAMES",
+        "AUTO_EXIT", "CLAUDE_BIN", "EVAL_OUT", "MATCH_GAMES",
         "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "OPENROUTER_HTTP_REFERER",
         "OPENROUTER_HTTP_TITLE", "OPENROUTER_TIMEOUT_MS", "RECORD", "RECORD_FPS", "RECORD_OUT",
         "RULES_FILE", "SHADOW_AI",
+        # How a claude-cli: seat's CLI logs in (an API key instead of the subscription): not what it decides.
+        "CLAUDE_CLI_ALLOW_API_KEY",
     }
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
@@ -376,7 +382,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
     CONTEXT_PREFIX = "CTX_"
 
     def test_every_env_read_is_stamped_or_allowlisted(self):
-        java = GUI.read_text(encoding="utf-8")
+        java = GUI.read_text(encoding="utf-8") + CLI_BRIDGE.read_text(encoding="utf-8")
         keys = set(game_line_keys())
         self.assertIn("native_tools", keys)          # the extraction found the game-line statement
         # Every env-reading form in this file: System.getenv("X"), the getOrDefault fallbacks, the
@@ -385,7 +391,14 @@ class GameLineStampCoverageTest(unittest.TestCase):
         names = set(re.findall(r'(?:System\.getenv|envInt)\((?:fastTier \? )?"([A-Z_0-9]+)"', java))
         names |= set(re.findall(r'System\.getenv\(fastTier \? "[A-Z_0-9]+" : "([A-Z_0-9]+)"\)', java))
         names |= set(re.findall(r'System\.getenv\(\)\.getOrDefault\("([A-Z_0-9]+)"', java))
-        for probe in ("TIER_FAST_TYPES", "CTX_RECENT_EVENTS", "CLAUDE_BRIDGE_EFFORT_SMART"):
+        # buildPlayers(env) reads its map (env.get / env.getOrDefault); the env("X") helper reads a test's override.
+        names |= set(re.findall(r'\benv(?:\.get|\.getOrDefault)?\("([A-Z_0-9]+)"', java))
+        # A name read through its constant (System.getenv(THINKING_ENV), env(ClaudeCliBridge.OPT_IN)).
+        for k, v in re.findall(r'static final String ([A-Z_]+) = "([A-Z_0-9]+)";', java):
+            if re.search(r'(?:System\.getenv|env)\((?:ClaudeCliBridge\.)?%s\)' % k, java):
+                names.add(v)
+        for probe in ("TIER_FAST_TYPES", "CTX_RECENT_EVENTS", "CLAUDE_BRIDGE_EFFORT_SMART", "DECK_A", "CLAUDE_CLI_SEAT",
+                      "CLAUDE_CLI_THINKING_TOKENS"):
             self.assertIn(probe, names)              # each form was actually read
         stray = sorted(n for n in names
                        if not n.startswith(self.CONTEXT_PREFIX)

@@ -79,8 +79,7 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 | Play decisions per turn, faithful: 80 (`play(turn-cap)`) | `LSG:606` | 0 (most in one turn: 15) | raised: a storm turn counts both players' windows | 500 (loop guard) |
 | Play decisions per turn, legacy profiles: 25 | `LSG:603` | not in use (every game is faithful) | **kept**: the legacy profiles are frozen measurement definitions | 25 |
 | `ONE_CHAT_TURNS`: the last 20 decisions kept in the conversation | `ChatSessionBridge.java:30` | one-chat was off in every game; Opus's 74 asks would have dropped 54 | raised | 10000 (whole game). A model whose context window cannot hold a long game can be given `ONE_CHAT_TURNS=N` |
-| Claude CLI lane deadline: 90s | `LSG:6719` | the lane was not used | raised to the API lane's timeout | 300s |
-| Claude CLI session reset every 40 asks | `LSG:6723` | the lane was not used | **kept**: CLI lane only (no new features there), and the snapshot carries the state across the reset | 40 |
+| Claude CLI call deadline: 90s | `ClaudeCliBridge.deadlineFor` | the lane was not used | raised to the API lane's timeout | 300s |
 | PROFILE line read only on the ask that requests it (every 5 turns); LINES only on its first 2 asks | `LSG:816, 809`, parse at `LSG:2720-2735` | not countable (a volunteered line left no trace) | the asks keep their cadence; **a PROFILE or LINES line in any reply now replaces that note** (`adoptNotes`), as the legend always claimed | any decision |
 | Playable lands offered: first 4 distinct names | `LSG:5629` | 0 of 560 play asks | removed for the faithful seat (a five-land-type hand had no way to play its fifth); legacy and teacher menus keep it so the zero-model canaries do not move | every land |
 | Parse re-ask: a reply with no answer line is asked once more, then `LOST` | `LSG:2660` and the decideOne/decideMany loops | 0 LOST (match_review) | **kept**: a loop guard; the re-ask carries the whole decision | 2 attempts |
@@ -106,6 +105,19 @@ the first Jev game (`runs/puzzles/jev-test-1`, 2026-10-24) is not counted here. 
 | A decision whose options have no labels is not asked | `DB.compose` (`ONE`, `MANY`, `MANY_REPEAT`, `ALLOC`) | 0 of 116 | **kept**: a key with no text would be a blind question; every current site labels its options | never asked |
 | Several picks are assembled from one yes/no per option, answered independently; an ordered pick list is ordered by probability | `DB.compose` (`MANY`), `DB.topPicks`; blockers that may block several attackers the same way | 6 of 116 (cards-for-effect 1, trigger-order 5) | **kept**: the API answers the questions of one request in parallel and has no "choose a set" primitive; listing every subset as a choice grows as 2^n | the decision's own min and max |
 | No lookups, no `simulate`, no plan, no yield, no reason | `LLMBridgeFactory.decisions` (`refuseConditions`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept**, a condition that defines the arm (STANDARDS section 8): see `docs/harness/ARCHITECTURE.md` section 9, "What Jev cannot do" | refused at launch |
+
+### A Claude CLI seat (`claude-cli:`, `ClaudeCliBridge`, 2026-10-24)
+
+The seat answers through Claude Code's structured output (`docs/harness/ARCHITECTURE.md` section 9, "The Claude CLI
+answer bridge"); it is a development lane, never a benchmark score. One puzzle has been played on it, at
+claude-cli-bridge-v1: `runs/puzzles/opus-cli-smoke` (Opus 5.5, solved, 60 decisions, $2.18 by the CLI's reported
+cost). No limit below was reached there.
+
+| Limit | Where | Bound | Decision | Value |
+|---|---|---|---|---|
+| No lookups, no `simulate`, no kept conversation (ONE_CHAT, TURN_CHAT) | `LLMBridgeFactory.claudeCli` (`refuseAnswerOnly`), `run_batch.py`, `puzzle_solve.py` | every ask | **kept for phase 1**, a condition that defines the arm (STANDARDS section 8); the lookups need an MCP server the CLI can call (phase 2) | refused at launch |
+| A plain text ask (no `answer` offered) is not sent | `ClaudeCliBridge.ask` | 0: every decision site offers `answer` to a tool seat | **kept**: there is no schema to answer it with, and text is never parsed | never asked |
+| A CLI call that runs past its deadline is killed and gives no answer | `ClaudeCliBridge.run`, `CLAUDE_DEADLINE_MS` or `ModelCfg` | 0 in `runs/puzzles/opus-cli-smoke` | **kept**: the model's `ModelCfg` timeout; the seat's bridge retry and then its fixed legal option follow | `ModelCfg.timeoutMs`, 300 s, on both tiers |
 
 ### Wall clock
 

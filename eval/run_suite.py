@@ -9,7 +9,10 @@ is a separate workstream).
 
 Usage:
     python3 eval/run_suite.py eval/suites/stage3-v1.json \
-        --student openrouter:default_model [--teacher opus] [--json]
+        --student openrouter:default_model [--teacher openrouter:<model>] [--json]
+
+A claude-cli: spec is a development lane (CLAUDE_CLI_SEAT=1), never a scored arm: run_batch.py refuses it in cited
+mode, so a suite's arms take openrouter: models.
 
 Exit 0 = suite valid, 2 = validation errors.
 """
@@ -23,6 +26,7 @@ EVAL = Path(__file__).resolve().parent
 REGISTRY = EVAL / "holdouts.json"
 
 sys.path.insert(0, str(EVAL))
+import cost_report  # noqa: E402  which model specs the harness takes
 import seed_registry  # noqa: E402  the seed-side half of contamination control
 
 ROLES = {"sanity", "in-distribution", "generalization", "calibration"}
@@ -39,7 +43,18 @@ def parse_seed_range(spec):
         return None
 
 
-def main():
+def spec_errors(args):
+    """The student's and the teacher's spec problems: a retired bare Claude name or a misspelled cli: lane
+    (cost_report.cli_opt_in_refusal; the opt-in itself is run_batch.py's to check when the plan is run)."""
+    out = []
+    for role, spec in (("student", args.student), ("teacher", args.teacher)):
+        msg = cost_report.cli_opt_in_refusal([spec], {cost_report.CLI_OPT_IN: "1"}) if spec else None
+        if msg:
+            out.append("--%s %s" % (role, msg))
+    return out
+
+
+def build_parser():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("suite", help="path to a suite JSON file")
@@ -64,9 +79,13 @@ def main():
                          "arm. Agent-plus-tools is a separate condition; its arms "
                          "are written to runs/<suite>-<arm>-memtools.")
     ap.add_argument("--json", action="store_true", help="machine-readable plan")
-    args = ap.parse_args()
+    return ap
 
-    errors = []
+
+def main():
+    args = build_parser().parse_args()
+
+    errors = spec_errors(args)
     warnings = []
 
     try:

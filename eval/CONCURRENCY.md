@@ -77,9 +77,9 @@ concurrency; CPU is the binding constraint for floor-vs-floor concurrency
 - **`eval/run_batch.py`** already has a `--jobs N` flag
   (`run_batch.py:396-398`) implemented via `ThreadPoolExecutor`
   (`run_batch.py:501-509`) — each job is a separate `subprocess.run(["bash",
-  "run-llm-headless.sh"], ...)`, i.e. a separate JVM. **Cited mode forces
-  `--jobs 1` when any seat has a bare claude-CLI spec** (`cited_pre_guards`, guard message: *"parallel
-  JVMs starve the claude CLI and inflate fallbacks"*; all-`openrouter:` runs may be parallel since 2026-10-17), and prints a warning above
+  "run-llm-headless.sh"], ...)`, i.e. a separate JVM. **Cited mode refuses a seat on the Claude CLI** (a bare
+  claude-CLI spec or `claude-cli:`: a development lane, owner 2026-10-24; it forced `--jobs 1` for them before that);
+  all-`openrouter:` runs may be parallel since 2026-10-17, and it prints a warning above
   `--jobs 2` even in `--exploratory` mode (`run_batch.py:475-478`,
   `eval/README.md:87`). This guard is deliberate and already correctly
   targets the real hazard (see the `claude` CLI point below) — it's not a

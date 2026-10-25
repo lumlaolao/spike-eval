@@ -38,6 +38,9 @@ STAMPS = (
     ("DecisionsBridge.java", "VERSION", "(`decisions_bridge_version_a` / `_b`; puzzle row `decisions_bridge_version`)",
      "the typed questions a `jev:` decision-model seat is asked and how its answers become `answer` calls "
      "(on a game line or puzzle row only where a `jev:` seat plays)."),
+    ("ClaudeCliBridge.java", "VERSION", "(`claude_cli_bridge_version_a` / `_b`; puzzle row `claude_cli_bridge_version`)",
+     "how a `claude-cli:` seat runs the Claude Code CLI (argv, isolation, the answer schema, one process per turn) and "
+     "how its structured output becomes `answer` and `set_plan` calls (only where such a seat plays)."),
     ("Transcript.java", "VERSION", "(puzzle row `transcript_version`, puzzle manifest `record.transcript_version`)",
      "the run's full record kept beside the rows (TRANSCRIPTS=1, on for every puzzle_solve.py run): the exact HTTP "
      "body of every model request and response, and each game's whole Forge log. Recording only: what the model is "

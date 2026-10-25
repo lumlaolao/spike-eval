@@ -22,7 +22,7 @@ import com.google.gson.JsonParser;
  *
  * The standard wherever native tools are on (an `openrouter:` seat); ANSWER_TOOL=0 is the opt-out, and
  * the text tags survive only as that opt-out and as the protocol of a backend with no function calling
- * (the Claude CLI lane). A text reply in a tool ask is still accepted that round (counted as
+ * (none since the Claude CLI text lane was retired). A text reply in a tool ask is still accepted that round (counted as
  * `answer_via: "text"`), so a model that ignores the tool loses nothing; the comparison is measured
  * (docs/harness/PLAYER-HARNESS.md, "Answer tool").
  *
@@ -69,10 +69,12 @@ final class AnswerTool {
      *  default; it is kept so the two can be measured against each other. */
     static boolean perDecision() { return "per-decision".equals(System.getenv("ANSWER_SCHEMA")); }
 
-    /** True when a seat on this model spec answers through the tool. A decision model (`jev:`, DecisionsBridge) has
-     *  no lookups but answers through `answer` too: its typed answer is turned into the call. */
+    /** True when a seat on this model spec answers through the tool. A decision model (`jev:`, DecisionsBridge) and a
+     *  Claude CLI seat (`claude-cli:`, ClaudeCliBridge) have no lookups but answer through `answer` too: the typed
+     *  answer, or the CLI's structured output, is turned into the call. */
     static boolean usedBy(String modelSpec) {
-        return enabled() && (NativeTools.usedBy(modelSpec) || NativeTools.enabled() && DecisionsBridge.isSpec(modelSpec));
+        return enabled() && (NativeTools.usedBy(modelSpec)
+                || NativeTools.enabled() && (DecisionsBridge.isSpec(modelSpec) || ClaudeCliBridge.isSpec(modelSpec)));
     }
 
     /** The version stamped on the game line: what a tool-answer game was played under. */

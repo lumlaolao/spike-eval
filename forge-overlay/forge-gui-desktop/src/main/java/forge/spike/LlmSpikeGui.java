@@ -2,11 +2,7 @@ package forge.spike;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -869,6 +865,8 @@ public final class LlmSpikeGui {
         private final String seat;        // player label (for logs)
         private final String deckPlan;    // strategy framing for this seat
         private final LLMBridge smart;    // smart tier — sequencing, combat, targets
+        /** The smart tier's bridge, for the tests of the seat's gates. */
+        LLMBridge smartBridge() { return smart; }
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
@@ -1248,7 +1246,7 @@ public final class LlmSpikeGui {
 
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel, String mode) {
-            this(game, p, lp, seat, deckPlan, oneTierPair(seat, deckPlan, smartModel, fastModel), mode);
+            this(game, p, lp, seat, deckPlan, oneTierPair(seat, deckPlan, smartModel, fastModel, mode), mode);
         }
 
         private PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
@@ -1257,7 +1255,16 @@ public final class LlmSpikeGui {
         }
 
         /** The smart and fast bridges: one shared smart bridge under ONE_TIER, else one per tier. */
-        private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel) {
+        private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel, String mode) {
+            // A model seat on the Claude CLI is the development lane: the operator chose it. A retired bare name is refused.
+            boolean optedIn = "1".equals(env(ClaudeCliBridge.OPT_IN));
+            LLMBridgeFactory.requireCliOptIn(smartModel, mode, optedIn, seat + "/smart");
+            LLMBridgeFactory.requireCliOptIn(fastModel, mode, optedIn, seat + "/fast");
+            // A seat that never asks a model (floor, random, the puzzle arms) gets placeholders on both tiers, whatever
+            // they name (a default "haiku", an openrouter: or claude-cli: spec): no bridge to a model is ever made for it.
+            if (!"llm".equals(mode))
+                return new LLMBridge[] {LLMBridgeFactory.placeholder(seat + "/smart", smartModel),
+                        LLMBridgeFactory.placeholder(seat + "/fast", fastModel)};
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
                 smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
@@ -7931,7 +7938,7 @@ public final class LlmSpikeGui {
          *  reads {@code lastAnswer.answer} instead of parsing the reply. */
         AnswerTool.Ask lastAnswer;
         /** The answer tool applies to this bridge: on (ANSWER_TOOL is not 0), native tools on, a model
-         *  seat, and a backend with function calling (an `openrouter:` spec; not the Claude CLI lane). */
+         *  seat, and a backend that answers by call (an `openrouter:`, `jev:` or `claude-cli:` spec). */
         private boolean answerToolFor(LLMBridge b) {
             return AnswerTool.enabled() && NativeTools.enabled() && "llm".equals(mode) && rnd == null
                     && b != null && b.supportsNativeTools();
@@ -10033,41 +10040,85 @@ public final class LlmSpikeGui {
         return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
     }
 
+    /** Why a model seat ({@code ctl} llm) of identity {@code ident} cannot be built: a tier with no model named
+     *  (SMART_MODEL_X / FAST_MODEL_X, else SMART_MODEL / FAST_MODEL). It used to default to the Claude CLI's opus and
+     *  haiku, a lane the operator never chose. Null when every tier is named, or the seat asks no model. */
+    static String missingModel(String ctl, String ident, Map<String, String> env) {
+        if (!"llm".equals(ctl)) return null;
+        List<String> missing = new ArrayList<>();
+        for (String tier : new String[] {"SMART", "FAST"}) {
+            String v = env.get(tier + "_MODEL_" + ident);
+            if (v == null) v = env.get(tier + "_MODEL");
+            if (v == null || v.trim().isEmpty()) missing.add(tier + "_MODEL_" + ident);
+        }
+        return missing.isEmpty() ? null : "the model seat " + ident + " names no model (" + String.join(", ", missing)
+                + " unset, nor SMART_MODEL / FAST_MODEL): name one; there is no default model";
+    }
+
+    /** A game or puzzle where identity {@code ctl}'s model seat runs on the Claude CLI (`claude-cli:`): the development
+     *  lane, stamped `dev_lane` and never part of a benchmark score (owner, 2026-10-24). */
+    static boolean devLane(String ctl, String smart, String fast) {
+        return "llm".equals(ctl) && (ClaudeCliBridge.isSpec(smart) || ClaudeCliBridge.isSpec(fast));
+    }
+
+    /** Test hook: the environment {@link #env} and {@link #buildPlayers()} read instead of the process's, for the seat
+     *  gates' call sites. */
+    static volatile Map<String, String> envOverride;
+
+    /** An environment variable, from {@link #envOverride} when a test set one. */
+    static String env(String key) {
+        Map<String, String> o = envOverride;
+        return o != null ? o.get(key) : System.getenv(key);
+    }
+
     /** Shared seat construction for GUI + headless runners. Env:
      *  DECK_A/B, DECK_A_NAME/B_NAME, PLAN_A/B ("" = plan-free arm),
      *  SMART_MODEL_A/B + FAST_MODEL_A/B (fall back to SMART_MODEL/FAST_MODEL),
      *  CONTROLLER_A/B = llm|random|floor|ai, SWAP_SEATS=1 (paired-design seat flip). */
     static List<RegisteredPlayer> buildPlayers() {
+        Map<String, String> o = envOverride;
+        return buildPlayers(o != null ? o : System.getenv());
+    }
+
+    private static List<RegisteredPlayer> buildPlayers(Map<String, String> env) {
         String home = System.getProperty("user.home");
-        String pathA = System.getenv().getOrDefault("DECK_A", home + "/Downloads/Deck - Grixis Reanimator.txt");
-        String pathB = System.getenv().getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
-        String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
-        String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
-        String smart = System.getenv().getOrDefault("SMART_MODEL", "opus");
-        String fast  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
-        String smartA = System.getenv().getOrDefault("SMART_MODEL_A", smart);
-        String smartB = System.getenv().getOrDefault("SMART_MODEL_B", smart);
-        String fastA  = System.getenv().getOrDefault("FAST_MODEL_A", fast);
-        String fastB  = System.getenv().getOrDefault("FAST_MODEL_B", fast);
+        String pathA = env.getOrDefault("DECK_A", home + "/Downloads/Deck - Grixis Reanimator.txt");
+        String pathB = env.getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
+        String nameA = env.getOrDefault("DECK_A_NAME", "Grixis Reanimator");
+        String nameB = env.getOrDefault("DECK_B_NAME", "Mardu Energy");
+        String smart = env.getOrDefault("SMART_MODEL", "opus");
+        String fast  = env.getOrDefault("FAST_MODEL", "haiku");
+        String smartA = env.getOrDefault("SMART_MODEL_A", smart);
+        String smartB = env.getOrDefault("SMART_MODEL_B", smart);
+        String fastA  = env.getOrDefault("FAST_MODEL_A", fast);
+        String fastB  = env.getOrDefault("FAST_MODEL_B", fast);
         // Per-deck strategy resolution: an explicit PLAN_A/B env wins if SET (PLAN_A="" is the
         // deliberate plan-free cited arm); otherwise each deck's own <deck>.plan sidecar drives its
         // seat, so strategy generalizes per deck-identity instead of being hardcoded per seat.
-        String planA = System.getenv("PLAN_A");
+        String planA = env.get("PLAN_A");
         // An explicit deck with no sidecar gets no plan text, never the default decks' plans: a Standard
         // deck was told it was Grixis Reanimator. Its decklist and card texts still follow below.
-        if (planA == null) planA = loadPlanSidecar(pathA, System.getenv("DECK_A") == null ? DEFAULT_PLAN_A : "");
-        String planB = System.getenv("PLAN_B");
-        if (planB == null) planB = loadPlanSidecar(pathB, System.getenv("DECK_B") == null ? DEFAULT_PLAN_B : "");
+        if (planA == null) planA = loadPlanSidecar(pathA, env.get("DECK_A") == null ? DEFAULT_PLAN_A : "");
+        String planB = env.get("PLAN_B");
+        if (planB == null) planB = loadPlanSidecar(pathB, env.get("DECK_B") == null ? DEFAULT_PLAN_B : "");
         lastPlanA = planA; lastPlanB = planB;
-        String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
-        String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "llm");
+        String ctlA = env.getOrDefault("CONTROLLER_A", "llm");
+        String ctlB = env.getOrDefault("CONTROLLER_B", "llm");
+        for (String[] s : new String[][] {{ctlA, "A"}, {ctlB, "B"}}) {
+            String missing = missingModel(s[0], s[1], env);
+            if (missing != null) throw new IllegalStateException(missing);
+        }
+        // Before any deck is loaded: a retired bare name, or a claude-cli: seat the operator did not choose.
+        boolean optedIn = "1".equals(env.get(ClaudeCliBridge.OPT_IN));
+        for (String[] s : new String[][] {{ctlA, smartA, "A"}, {ctlA, fastA, "A"}, {ctlB, smartB, "B"}, {ctlB, fastB, "B"}})
+            LLMBridgeFactory.requireCliOptIn(s[1], s[0], optedIn, "seat " + s[2]);
 
         Deck deckA, deckB;
         try { deckA = loadDeck(nameA, pathA); deckB = loadDeck(nameB, pathB); }
         catch (Exception e) {
             // EVAL MODE (EVAL_OUT set): a silent random-deck substitution would poison an entire batch with
             // games that aren't the matchup we claim to be measuring. Fail the run loudly instead.
-            String evalOut = System.getenv("EVAL_OUT");
+            String evalOut = env.get("EVAL_OUT");
             if (evalOut != null && !evalOut.isEmpty())
                 throw new RuntimeException("[DECK] eval-mode deck load failed (EVAL_OUT set); refusing random-deck fallback: " + e, e);
             System.out.println("[DECK] failed to load decklists (" + e + ") -> random color decks");
@@ -10077,7 +10128,7 @@ public final class LlmSpikeGui {
         // Give each seat its own decklist so it knows what its cards do (a real player does). Run
         // condition tied to DECK_A/B (whose DECK_SHA is stamped); DECKLIST=0 restores the pre-decklist
         // prompt bytes for strict comparability with older runs.
-        if (!"0".equals(System.getenv().getOrDefault("DECKLIST", "1"))) {
+        if (!"0".equals(env.getOrDefault("DECKLIST", "1"))) {
             String listA = decklist(deckA), listB = decklist(deckB);
             if (!listA.isEmpty()) planA = (planA == null || planA.isEmpty() ? "" : planA + "\n")
                     + "YOUR DECKLIST (you know your own deck's contents; only the draw order is hidden): " + listA;
@@ -10093,7 +10144,7 @@ public final class LlmSpikeGui {
 
         RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(seatFor(ctlA, nameA, planA, smartA, fastA));
         RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(seatFor(ctlB, nameB, planB, smartB, fastB));
-        boolean swap = "1".equals(System.getenv("SWAP_SEATS"));
+        boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
         System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
                 + ")" + (swap ? " [SWAPPED]" : ""));
@@ -10334,205 +10385,6 @@ public final class LlmSpikeGui {
             for (long b : PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS) backoff += b;
             long attempts = PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS.length + 1;
             return maxConfiguredTimeoutMs() * attempts + backoff;
-        }
-    }
-
-    /**
-     * PERSISTENT per-(seat,model) bridge to Claude via the CLI stream-json mode. One long-lived
-     * `claude -p --model <model> ...` process per instance, its own conversation (chat memory).
-     * A one-time `preamble` (persona + deck plan + output contract) is prepended to the first ask.
-     */
-    static final class ClaudeBridge implements LLMBridge {
-        private static final String BIN = System.getenv().getOrDefault("CLAUDE_BIN", "claude");
-        private static final String DEADLINE_ENV = System.getenv("CLAUDE_DEADLINE_MS");
-        // 300s, the API lane's timeout (was 90s): the CLI lane may think as long as the API lane.
-        private static final long DEADLINE_MS = parseLong(DEADLINE_ENV, 300000);
-        // SPEED: the persistent conversation's prefill grows with every ask, so calls get slower as the
-        // game goes on. Restart the CLI session every N asks (re-priming the preamble); the per-message
-        // snapshot + the controller's INTEL line carry the state that matters across the reset.
-        private static final int RESET_EVERY = (int) parseLong(System.getenv("CLAUDE_RESET_EVERY"), 40);
-
-        /**
-         * Reasoning effort passed to the CLI as {@code --effort}.
-         *
-         * EFFORT IS PART OF THE MEASUREMENT, not a performance knob. The same model at `low` and at
-         * `max` is two different players, exactly as two temperatures are, and the game summary
-         * already stamps temperature for that reason. So it is resolved once, validated, and
-         * stamped — an unstamped effort would let two incomparable runs pool silently, which is the
-         * failure the context_profile work exists to prevent, in a different dimension.
-         *
-         * Unset means "do not pass the flag", i.e. the CLI's own default and byte-identical argv to
-         * every run recorded before this existed. Per-tier overrides because the tiers are genuinely
-         * different jobs: the fast tier's contract is terse/no-reasoning, so spending effort there is
-         * latency for nothing.
-         *
-         * Read from CLAUDE_BRIDGE_EFFORT[_SMART|_FAST], NOT CLAUDE_EFFORT — see effortFor().
-         */
-        private static final java.util.Set<String> EFFORT_LEVELS =
-                java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(
-                        java.util.Arrays.asList("low", "medium", "high", "xhigh", "max")));
-
-        /** Resolve and VALIDATE an effort level. An unknown value is fatal here rather than passed
-         *  through to the CLI: the CLI would reject it per-call, mid-game, surfacing as a bridge
-         *  failure that looks like a model problem instead of a typo in the launch environment. */
-        static String effortFor(boolean fastTier) {
-            // NAMESPACED DELIBERATELY. The obvious name, CLAUDE_EFFORT, is ALREADY AN ENV VAR OF
-            // CLAUDE CODE ITSELF and is commonly set in a developer's shell (it was set to "high"
-            // in the session that added this, and the unit test caught it on the first run). Reading
-            // it would mean any harness run launched from inside a Claude Code session silently
-            // inherits that session's effort — a measurement changed by the terminal it was started
-            // from, invisible in the launch command and, before the provenance field below existed,
-            // invisible afterwards too. Never read a variable another tool owns.
-            String v = System.getenv(fastTier ? "CLAUDE_BRIDGE_EFFORT_FAST" : "CLAUDE_BRIDGE_EFFORT_SMART");
-            if (v == null || v.trim().isEmpty()) v = System.getenv("CLAUDE_BRIDGE_EFFORT");
-            if (v == null || v.trim().isEmpty()) return null;         // omit the flag entirely
-            String e = v.trim().toLowerCase(Locale.ROOT);
-            if (!EFFORT_LEVELS.contains(e)) {
-                throw new IllegalArgumentException("invalid CLAUDE_BRIDGE_EFFORT '" + v.trim()
-                        + "' — valid levels: " + String.join(", ", EFFORT_LEVELS));
-            }
-            return e;
-        }
-
-        /** What provenance records: the resolved level, or "cli-default" when the flag is omitted. */
-        static String effortLabel(boolean fastTier) {
-            String e = effortFor(fastTier);
-            return e == null ? "cli-default" : e;
-        }
-        private static long parseLong(String v, long def) { try { return v == null ? def : Long.parseLong(v.trim()); } catch (Exception e) { return def; } }
-        static long deadlineMs() { return DEADLINE_MS; } // in-JVM baseline value for the game-summary provenance line
-        private final String label;
-        private final String model;
-        private final String preamble;
-        // CLAUDE_DEADLINE_MS, if set, is an explicit operator override that pins EVERY model to the
-        // same deadline (matches prior behavior exactly); otherwise each instance gets its own
-        // per-model default from ModelCfg (e.g. a slower-reasoning model gets more time) — Infra-1.
-        private final long deadlineMs;
-        private boolean primed = false;
-        private Process proc;
-        private BufferedReader out;
-        private BufferedWriter in;
-        private int asksSinceStart = 0;
-        private long totalMs = 0; private int calls = 0; // latency accounting, read by [TALLY]
-        private volatile int lastPromptTokens = -1, lastCompletionTokens = -1;
-
-        ClaudeBridge(String label, String model, String preamble) {
-            this.label = label;
-            this.model = model; // per-seat/per-tier; no global CLAUDE_MODEL clobber (it broke A/B comparisons)
-            this.preamble = preamble;
-            this.deadlineMs = (DEADLINE_ENV != null && !DEADLINE_ENV.isEmpty()) ? DEADLINE_MS : ModelCfg.forModel(model).timeoutMs;
-        }
-
-        private void ensureStarted() throws Exception {
-            if (proc != null && proc.isAlive()) return;
-            System.out.println("[CLAUDE " + label + "] starting persistent " + model + " session...");
-            // --strict-mcp-config: don't load the user's MCP servers into the bridge session — they add
-            // startup time and system-prompt tokens that get re-processed on EVERY call, for zero benefit.
-            java.util.List<String> argv = new ArrayList<>(java.util.Arrays.asList(
-                    BIN, "-p", "--model", model, "--strict-mcp-config",
-                    "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"));
-            // Appended only when set, so an unconfigured run's argv is byte-identical to every run
-            // recorded before effort was configurable.
-            String effort = effortFor(label != null && label.endsWith("/fast"));
-            if (effort != null) { argv.add("--effort"); argv.add(effort); }
-            ProcessBuilder pb = new ProcessBuilder(argv);
-            pb.redirectErrorStream(false);
-            proc = pb.start();
-            out = new BufferedReader(new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8));
-            in  = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream(), StandardCharsets.UTF_8));
-            primed = false;
-            final Process fproc = proc;
-            Thread errDrain = new Thread(() -> {
-                try (BufferedReader er = new BufferedReader(new InputStreamReader(fproc.getErrorStream(), StandardCharsets.UTF_8))) {
-                    while (er.readLine() != null) { }
-                } catch (Exception ignore) { }
-            }, "claude-stderr-" + label);
-            errDrain.setDaemon(true);
-            errDrain.start();
-        }
-
-        @Override public synchronized String ask(String prompt) {
-            long t0 = System.currentTimeMillis();
-            lastPromptTokens = -1; lastCompletionTokens = -1;
-            try {
-                if (RESET_EVERY > 0 && asksSinceStart >= RESET_EVERY) {
-                    System.out.println("[CLAUDE " + label + "] refreshing session after " + asksSinceStart + " asks (bounds context growth)");
-                    reset();
-                }
-                ensureStarted();
-                asksSinceStart++;
-                String full = (!primed && preamble != null) ? (preamble + "\n\n" + prompt) : prompt;
-                primed = true;
-                in.write("{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
-                        + jsonEscape(full) + "\"}]}}");
-                in.write("\n"); in.flush();
-                long deadline = System.currentTimeMillis() + deadlineMs;
-                while (System.currentTimeMillis() < deadline) {
-                    if (!out.ready()) {
-                        if (!proc.isAlive()) { System.out.println("[CLAUDE " + label + "] process exited"); reset(); return null; }
-                        Thread.sleep(20); continue;
-                    }
-                    String line = out.readLine();
-                    if (line == null) { reset(); return null; }
-                    if (line.contains("\"type\":\"result\"")) {
-                        String r = extractJsonString(line, "\"result\":\"");
-                        lastPromptTokens = promptTokens(line);
-                        lastCompletionTokens = usageInt(line, "output_tokens");
-                        String served = servedModel(line);
-                        if (served != null) servedModels.put(label, served);
-                        if (isNonAnswer(r)) {
-                            System.out.println("[CLAUDE " + label + "] non-answer result -> treating as bridge-down");
-                            return null; // caller's retry/fallback path will log an honest bridge-down reason
-                        }
-                        long dur = System.currentTimeMillis() - t0;
-                        totalMs += dur; calls++;
-                        System.out.println("[CLAUDE " + label + "] replied in " + dur + " ms");
-                        return r;
-                    }
-                }
-                System.out.println("[CLAUDE " + label + "] timed out"); return null;
-            } catch (Exception e) {
-                System.out.println("[CLAUDE " + label + "] error: " + e); reset(); return null;
-            }
-        }
-
-        /** Force a fresh CLI session (controller's one-shot dead-bridge retry). Necessary because
-         *  ask()'s TIMEOUT path deliberately does NOT reset() — the process stays alive with a reply
-         *  possibly still coming, so re-asking that same session could read the stale prior result
-         *  line. The next ask() after this respawns the process and re-primes the preamble. */
-        @Override public synchronized void restart() { reset(); }
-
-        @Override public String getLabel() { return label; }
-        @Override public String getModel() { return model; }
-        @Override public long getTotalMs() { return totalMs; }
-        @Override public int getCalls() { return calls; }
-        @Override public int getLastPromptTokens() { return lastPromptTokens; }
-        @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
-
-        // The CLI's result line carries what the spec does not: `haiku` is an alias, and the model that
-        // answered is the key of its "modelUsage" object; the prompt is input + both cache counts.
-        static String servedModel(String resultLine) {
-            int k = resultLine == null ? -1 : resultLine.indexOf("\"modelUsage\":{\"");
-            if (k < 0) return null;
-            int a = k + "\"modelUsage\":{\"".length(), b = resultLine.indexOf('"', a);
-            return b > a ? resultLine.substring(a, b) : null;
-        }
-        static int usageInt(String resultLine, String key) {
-            int u = resultLine == null ? -1 : resultLine.indexOf("\"usage\":{");
-            if (u < 0) return -1;
-            Matcher m = Pattern.compile("\"" + key + "\":(\\d+)").matcher(resultLine);
-            return m.find(u) ? Integer.parseInt(m.group(1)) : -1;
-        }
-        static int promptTokens(String resultLine) {
-            int in = usageInt(resultLine, "input_tokens");
-            if (in < 0) return -1;
-            return in + Math.max(0, usageInt(resultLine, "cache_creation_input_tokens"))
-                    + Math.max(0, usageInt(resultLine, "cache_read_input_tokens"));
-        }
-
-        private void reset() {
-            try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { }
-            proc = null; out = null; in = null; asksSinceStart = 0;
         }
     }
 
@@ -11234,6 +11086,10 @@ public final class LlmSpikeGui {
         static LLMBridge create(String label, String spec, String preamble) {
             if (spec == null || spec.isEmpty())
                 throw new IllegalArgumentException("model spec required for " + label);
+            // A "cli:" lane other than claude-cli: (Claude-CLI:, cli:, claude_cli:) is a typo, not a model.
+            if (spec.toLowerCase(Locale.ROOT).contains("cli:") && !ClaudeCliBridge.isSpec(spec))
+                throw new IllegalArgumentException("'" + spec + "' names a cli: lane but is not " + ClaudeCliBridge.PREFIX
+                        + "<model> (" + label + ")");
             // A written solution line played through the model seat (ScriptBridge): no model, nothing leaves.
             if (spec.startsWith(ScriptBridge.PREFIX)) {
                 // "script:relaxed:<file>" is a minimality replay (puzzle_baselines.py); the spec is the row's solver model.
@@ -11266,8 +11122,87 @@ public final class LlmSpikeGui {
                 return decisions(label, spec, preamble, System.getenv("OPENROUTER_BASE_URL"), System.getenv("OPENROUTER_API_KEY"),
                         System.getenv("OPENROUTER_ALLOW_EGRESS"), PlayerControllerLLM.MEMORY_TOOLS,
                         PlayerControllerLLM.lookaheadEnabled(), AnswerTool.enabled() && NativeTools.enabled());
-            // Legacy/default: bare model name -> Claude CLI bridge.
-            return new ClaudeBridge(label, spec, preamble);
+            // A Claude model through the Claude Code CLI, answering by structured output (ClaudeCliBridge).
+            if (ClaudeCliBridge.isSpec(spec))
+                return claudeCli(label, spec, preamble, "1".equals(env(ClaudeCliBridge.OPT_IN)), PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.lookaheadEnabled(),
+                        AnswerTool.enabled() && NativeTools.enabled(), ChatSessionBridge.ON || ChatSessionBridge.TURN);
+            // The bare-name text lane (ClaudeBridge) is retired (owner, 2026-10-25): it answered in text, inherited the
+            // whole shell, was unstamped and unpriced.
+            throw new IllegalArgumentException(retired(spec, label));
+        }
+
+        /** The prefixes the factory routes; any other spec was the retired bare-name lane. Mirrors
+         *  eval/cost_report.py KNOWN_PREFIXES (eval/test_cost_report.py checks the two lists agree). */
+        static final String[] ROUTED_PREFIXES = {"openrouter:", DecisionsBridge.PREFIX, ClaudeCliBridge.PREFIX,
+                ScriptBridge.PREFIX, GreedyBridge.PREFIX};
+
+        /** True for a spec no lane takes: a bare Claude name such as `opus`, once the CLI text lane. */
+        static boolean isBare(String spec) {
+            if (spec == null || spec.isEmpty()) return false;
+            for (String p : ROUTED_PREFIXES) if (spec.startsWith(p)) return false;
+            return true;
+        }
+
+        static String retired(String spec, String label) {
+            return "'" + spec + "': the bare Claude CLI text lane is retired (owner, 2026-10-25); use " + ClaudeCliBridge.PREFIX
+                    + "<model> with " + ClaudeCliBridge.OPT_IN + "=1 (" + label + ")";
+        }
+
+        /** The bridge of a seat that never asks a model (floor, random, the puzzle arms): it starts nothing, answers
+         *  nothing, and says so if it is ever asked ([PLACEHOLDER-ASKED], a defect eval/gauntlet_scan.py fails on). */
+        static LLMBridge placeholder(String label, String spec) {
+            return new LLMBridge() {
+                @Override public String ask(String prompt) {
+                    System.out.println("[PLACEHOLDER-ASKED] " + label + " (" + spec + ") asked; a seat that asks no model "
+                            + "reached it -> no answer");
+                    return null;
+                }
+                @Override public String getLabel() { return label; }
+                @Override public String getModel() { return spec; }
+                @Override public long getTotalMs() { return 0; }
+                @Override public int getCalls() { return 0; }
+            };
+        }
+
+        /** A `claude-cli:` seat: a development lane on the operator's own Claude subscription (owner, 2026-10-24), so it is
+         *  refused first unless the operator chose it ({@code optedIn}: ClaudeCliBridge.OPT_IN=1). Phase 1 offers it no
+         *  lookups and no preview, and asks each decision in a fresh process (ONE_CHAT and TURN_CHAT wrap only an
+         *  OpenRouterBridge), so a seat run with any of them on is refused rather than recorded as a condition it never
+         *  had. Package-private so a test can pass the flags. */
+        static LLMBridge claudeCli(String label, String spec, String preamble, boolean optedIn, boolean memoryTools,
+                                   boolean lookahead, boolean answerTool, boolean chat) {
+            if (!optedIn) throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat runs the Claude Code CLI on the "
+                    + "operator's own Claude subscription: it is for local development only and never part of a benchmark "
+                    + "score (owner, 2026-10-24). Set " + ClaudeCliBridge.OPT_IN + "=1 to choose it (" + label + ")");
+            refuseAnswerOnly(ClaudeCliBridge.PREFIX, memoryTools, lookahead, answerTool, label);
+            if (chat) throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat asks each decision in a fresh "
+                    + "process: run it with ONE_CHAT=0 and TURN_CHAT=0 (no --one-chat, no --turn-chat) (" + label + ")");
+            return new ClaudeCliBridge(label, spec.substring(ClaudeCliBridge.PREFIX.length()), preamble);
+        }
+
+        /** A model seat ({@code mode} llm) may not name a retired bare Claude name, and one on the Claude CLI
+         *  (`claude-cli:`) is local development on the operator's own subscription (owner, 2026-10-24), used only when
+         *  chosen ({@code optedIn}: ClaudeCliBridge.OPT_IN=1). A seat that asks no model (floor, random, the puzzle arms)
+         *  keeps whatever placeholder it names. */
+        static void requireCliOptIn(String spec, String mode, boolean optedIn, String label) {
+            if (!"llm".equals(mode)) return;
+            if (isBare(spec)) throw new IllegalArgumentException(retired(spec, label));
+            if (optedIn || !ClaudeCliBridge.isSpec(spec)) return;
+            throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat ('" + spec + "') runs the Claude Code CLI on "
+                    + "the operator's own Claude subscription: it is for local development only and never part of a benchmark "
+                    + "score (owner, 2026-10-24). Set " + ClaudeCliBridge.OPT_IN + "=1 to choose it (" + label + ")");
+        }
+
+        /** A seat whose backend can give only the `answer` (and `set_plan`) call: a lookup offered to it would record a
+         *  condition it never had, and without the answer tool (ANSWER_TOOL=0 or NATIVE_TOOLS=0) every decision would be
+         *  a text ask it cannot take, so every decision would be lost. */
+        static void refuseAnswerOnly(String prefix, boolean memoryTools, boolean lookahead, boolean answerTool, String label) {
+            if (memoryTools) throw new IllegalStateException("a " + prefix + " seat cannot call lookups: run it with "
+                    + "MEMORY_TOOLS=0 (no --memory-tools) (" + label + ")");
+            if (lookahead) throw new IllegalStateException("a " + prefix + " seat cannot call simulate: run it with "
+                    + "LOOKAHEAD=0 (no --lookahead) (" + label + ")");
+            if (!answerTool) throw new IllegalStateException("a " + prefix + " seat answers only through the `answer` call: run "
+                    + "it with ANSWER_TOOL and NATIVE_TOOLS on (no --text-answers, no --text-tools) (" + label + ")");
         }
 
         /** A `jev:` seat. It cannot call a lookup, so a seat run with them on is refused here rather than recorded
@@ -11277,7 +11212,7 @@ public final class LlmSpikeGui {
             // Consent first: a refusal for the seat's flags must never hide a missing consent (pr-review of #305).
             DecisionsBridge b = new DecisionsBridge(label, spec.substring(DecisionsBridge.PREFIX.length()), preamble, baseUrl,
                     apiKey, consent);
-            DecisionsBridge.refuseConditions(memoryTools, lookahead, answerTool, label);
+            refuseAnswerOnly(DecisionsBridge.PREFIX, memoryTools, lookahead, answerTool, label);
             return b;
         }
 
@@ -11513,6 +11448,8 @@ public final class LlmSpikeGui {
         boolean jevA = DecisionsBridge.isSpec(smartASpec) || DecisionsBridge.isSpec(fastASpec);
         boolean jevB = DecisionsBridge.isSpec(smartBSpec) || DecisionsBridge.isSpec(fastBSpec);
         boolean anyDecisions = jevA || jevB;
+        boolean cliA = ClaudeCliBridge.isSpec(smartASpec) || ClaudeCliBridge.isSpec(fastASpec);
+        boolean cliB = ClaudeCliBridge.isSpec(smartBSpec) || ClaudeCliBridge.isSpec(fastBSpec);
         // Gate the accessor so a zero-model floor/random run doesn't class-init the OpenRouter bridge
         // just to report an endpoint it never contacted.
         String baseUrl = anyOpenRouter || anyDecisions ? OpenRouterBridge.baseUrl() : "n/a";
@@ -11538,7 +11475,7 @@ public final class LlmSpikeGui {
                 + ",\"plan_b\":\"" + jsonEscape(lastPlanB) + "\""
                 + ",\"smart_budget\":" + PlayerControllerLLM.smartBudget()
                 + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
-                + ",\"claude_deadline_ms\":" + ClaudeBridge.deadlineMs()
+                + ",\"claude_deadline_ms\":" + ClaudeCliBridge.deadlineMs()
                 + ",\"game_cap_ms\":" + capMs
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
@@ -11581,6 +11518,15 @@ public final class LlmSpikeGui {
                 // its opponent's condition and every other seat's line are unchanged.
                 + (jevA ? ",\"decisions_bridge_version_a\":\"" + DecisionsBridge.VERSION + "\"" : "")
                 + (jevB ? ",\"decisions_bridge_version_b\":\"" + DecisionsBridge.VERSION + "\"" : "")
+                // A claude-cli: seat's bridge (ClaudeCliBridge) and thinking budget, per identity and only for such a
+                // seat, as above; and the game's development-lane label (owner, 2026-10-24: never a benchmark score).
+                + (cliA ? ",\"claude_cli_bridge_version_a\":\"" + ClaudeCliBridge.VERSION + "\""
+                        + ",\"claude_cli_thinking_tokens_a\":\"" + ClaudeCliBridge.thinkingStamp() + "\"" : "")
+                + (cliB ? ",\"claude_cli_bridge_version_b\":\"" + ClaudeCliBridge.VERSION + "\""
+                        + ",\"claude_cli_thinking_tokens_b\":\"" + ClaudeCliBridge.thinkingStamp() + "\"" : "")
+                + (devLane(System.getenv().getOrDefault("CONTROLLER_A", "llm"), smartASpec, fastASpec)
+                        || devLane(System.getenv().getOrDefault("CONTROLLER_B", "llm"), smartBSpec, fastBSpec)
+                        ? ",\"dev_lane\":\"" + ClaudeCliBridge.DEV_LANE + "\"" : "")
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""
@@ -11603,8 +11549,8 @@ public final class LlmSpikeGui {
                 + ",\"observation_version\":\"" + jsonEscape(SeatObservation.VERSION) + "\""
                 // Reasoning effort is part of the player's identity, like temperature: the same
                 // model at low and at max is two different players and must never pool.
-                + ",\"claude_effort_smart\":\"" + jsonEscape(ClaudeBridge.effortLabel(false)) + "\""
-                + ",\"claude_effort_fast\":\"" + jsonEscape(ClaudeBridge.effortLabel(true)) + "\""
+                + ",\"claude_effort_smart\":\"" + jsonEscape(ClaudeCliBridge.effortLabel(false)) + "\""
+                + ",\"claude_effort_fast\":\"" + jsonEscape(ClaudeCliBridge.effortLabel(true)) + "\""
                 + "}");
     }
 

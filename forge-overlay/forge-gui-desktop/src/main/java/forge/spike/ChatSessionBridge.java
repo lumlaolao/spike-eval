@@ -19,8 +19,7 @@ import com.google.gson.JsonElement;
  * would put stale boards next to the current one. Every decision of the game is kept (up to
  * {@link #MAX_PAIRS}, a guard no recorded game comes near: the longest asked 137 decisions).
  *
- * <p>A condition, stamped `one_chat` on the game line; off by default. Wraps the OpenRouter lane only
- * (the Claude CLI lane already keeps its own session). The controller records each final reply with
+ * <p>A condition, stamped `one_chat` on the game line; off by default. Wraps the OpenRouter lane only. The controller records each final reply with
  * {@link #remember}, so a tool round or a retry is not mistaken for an answer.
  *
  * <p>TURN_CHAT=1 (`turn-chat-v1`, stamped `turn_chat`) is the same conversation bounded by the game turn:

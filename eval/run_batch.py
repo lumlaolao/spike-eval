@@ -18,7 +18,7 @@ Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
     mirror-deck setup (same decklist both seats, distinct identity names),
     forces the eval-confound switches off (MULLIGAN_HEURISTIC=0,
-    SKIP_HEURISTICS=0, no plans), pins --jobs 1 when a seat uses the claude CLI, and stamps full provenance
+    SKIP_HEURISTICS=0, no plans), refuses a seat on the Claude CLI (a development lane), and stamps full provenance
     (engine/overlay/deck shas + discipline). Refuses to run on any violation
     or on spike-file drift.
   --exploratory — skips the mirror/heuristic/jobs guards for quick pokes.
@@ -36,7 +36,8 @@ Panels and sanity arms (eval/SCORING.md):
 Examples:
   # cited mirror run (numbers citable)
   python3 eval/run_batch.py --seeds 1..20 --pairs --deck eval/decks/mardu-energy.txt \
-      --controller-a llm --controller-b llm --smart-a haiku --smart-b haiku
+      --controller-a llm --controller-b llm --smart-a openrouter:deepseek/deepseek-v4.1-flash \
+      --fast-a openrouter:deepseek/deepseek-v4.1-flash --smart-b ... --fast-b ...
   # exploratory poke (not citable)
   python3 eval/run_batch.py --seeds 3,7,42 --exploratory --jobs 2 \
       --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt
@@ -82,7 +83,10 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
-                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT")
+                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT",
+                      # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
+                      "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
+                      "CLAUDE_CLI_THINKING_TOKENS")
 # Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
 # resume comparison folds them out of `env_overrides` and back into their own condition field, so a
 # directory made with `--env LOOKAHEAD=1` (or PLAN_EXECUTE / TIER_FAST_TYPES) resumes under the flag.
@@ -121,7 +125,7 @@ CONDITION_KEYS = (
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
     "lookahead", "one_tier", "no_coaching", "one_chat", "turn_chat",
-    "plan_execute", "tier_fast_types",
+    "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
 )
@@ -287,6 +291,10 @@ def build_env(args, seed, swap, out_dir):
     env.pop("SHADOW_AI", None)
     if getattr(args, "shadow_ai", False):
         env["SHADOW_AI"] = "1"
+    # A claude-cli: seat's effort and thinking budget are the flags', never the shell's (cost_report.cli_env).
+    if has_cli_seat(args):
+        env.update(cost_report.cli_env(getattr(args, "claude_cli_effort", None),
+                                       getattr(args, "claude_cli_thinking_tokens", None)))
 
     passthrough = {
         "SMART_MODEL_A": args.smart_a,
@@ -550,6 +558,10 @@ def batch_condition(args, cited):
         "turn_chat": bool(getattr(args, "turn_chat", False)),
         "plan_execute": bool(getattr(args, "plan_execute", False)),
         "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
+        # A claude-cli: seat's pinned CLI settings ("cli-default" when unset); absent for every other batch.
+        "claude_cli_effort": (getattr(args, "claude_cli_effort", None) or "cli-default") if has_cli_seat(args) else None,
+        "claude_cli_thinking_tokens": (str(getattr(args, "claude_cli_thinking_tokens", None) or "cli-default")
+                                       if has_cli_seat(args) else None),
         "ctx_overrides": ctx,
         "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
         "engine_sha": forced.get("ENGINE_SHA"),
@@ -582,13 +594,42 @@ def answer_tool_requested(args):
     protocol: in effect whenever some LLM seat is on a backend with function calling (openrouter:),
     unless --text-answers (or --text-tools, no function calling at all) opted out. Unlike the lookups it
     does not need --memory-tools. A jev: decision model answers through it too (its typed answer becomes
-    the call). Mirrors AnswerTool.seats + the game line's answer_tool stamp."""
+    the call), and so does a claude-cli: seat (its structured output becomes the call). Mirrors AnswerTool.seats +
+    the game line's answer_tool stamp."""
     if getattr(args, "text_answers", False) or getattr(args, "text_tools", False):
         return False
     seats = [(getattr(args, "controller_a", None), getattr(args, "smart_a", None), getattr(args, "fast_a", None)),
              (getattr(args, "controller_b", None), getattr(args, "smart_b", None), getattr(args, "fast_b", None))]
-    return any((c or "llm") == "llm" and (spec or "").startswith(cost_report.API_PREFIXES)
+    return any((c or "llm") == "llm" and (spec or "").startswith(cost_report.API_PREFIXES + (cost_report.CLI_PREFIX,))
                for c, smart, fast in seats for spec in (smart, fast))
+
+
+def has_cli_seat(args):
+    """True when a model seat of this batch runs on the Claude CLI: the development lane."""
+    return bool(cli_specs(args))
+
+
+def opt_in_refusal(args):
+    """Why this batch's model seats (llm controllers only, as the JVM gates them) may not run: cost_report's
+    cli_opt_in_refusal."""
+    return cost_report.cli_opt_in_refusal(effective_llm_models(args), os.environ)
+
+
+def lane_refusals(args):
+    """Every flag a jev: or claude-cli: seat of this batch cannot take, for every such lane present (the JVM refuses
+    each too): [] when none."""
+    no_lookup = "cannot call a lookup, so the games would record a condition the seat never had"
+    no_text = "answers only through the `answer` call, so every decision would be lost"
+    no_chat = "is asked each decision in a fresh process, so the games would record a conversation the seat never had"
+    lanes = sorted({cost_report.lane_of(m) for m in (args.smart_a, args.fast_a, args.smart_b, args.fast_b)} - {None})
+    out = []
+    for lane in lanes:
+        flags = [("--memory-tools", args.memory_tools, no_lookup), ("--lookahead", args.lookahead, no_lookup),
+                 ("--text-answers", args.text_answers, no_text), ("--text-tools", args.text_tools, no_text)]
+        if lane == cost_report.CLI_PREFIX:
+            flags += [("--one-chat", args.one_chat, no_chat), ("--turn-chat", args.turn_chat, no_chat)]
+        out += ["%s with a %s seat: such a seat %s" % (flag, lane, reason) for flag, on, reason in flags if on]
+    return out
 
 
 def spent_usd(out_dir):
@@ -870,6 +911,10 @@ def format_guard(args):
 def cited_pre_guards(args):
     """Guards 1-3 (spec C). Pure — no forge-home, no dir creation. Runs
     FIRST so a misconfigured cited run refuses before anything launches."""
+    # --- guard 0: no development lane in a cited number (owner, 2026-10-24) ---
+    if has_cli_seat(args):
+        _refuse("a seat on the Claude CLI (%s) is a development lane on the operator's own Claude subscription and is "
+                "never part of a benchmark score; run it with --exploratory." % cost_report.CLI_PREFIX)
     # --- guard 1: mirror deck ---
     da, db = args.deck_a, args.deck_b
     if not da or not db:
@@ -915,14 +960,6 @@ def cited_pre_guards(args):
     if args.plan_a or args.plan_b:
         _refuse("plans (PLAN_A/PLAN_B) are an expert-knowledge confound and are "
                 "forbidden in cited mode.")
-
-    # --- guard 3: single JVM when a seat runs on the local claude CLI ---
-    # Parallel JVMs starve the CLI and inflate fallbacks. An openrouter: game waits on the network
-    # (eval/CONCURRENCY.md section 7), so it may run in parallel; warn_parallel_jobs still caps by RAM.
-    bare = cli_specs(args)
-    if args.jobs != 1 and bare:
-        _refuse("cited mode requires --jobs 1 with claude-CLI model specs %s (got --jobs %d); "
-                "parallel JVMs starve the claude CLI and inflate fallbacks." % (bare, args.jobs))
 
     # --- guard 3b: held-out seeds only ---
     cited_seed_guard(args)
@@ -1025,29 +1062,27 @@ def finalize_provenance_and_cap(args, cited):
 
 
 def effective_llm_models(args):
-    """Model specs actually in play for llm seats, with the in-JVM defaults
-    substituted (unset SMART_MODEL_* -> opus, unset FAST_MODEL_* -> haiku) so
-    an unset tier is never silently dropped. Empty list -> no llm seat."""
+    """The model specs the llm seats name (an unset tier is refused: unpinned_llm_tiers; the JVM has no default
+    model). Empty list -> no llm seat."""
     ca = args.controller_a or "llm"   # Java defaults an unset controller to llm
     cb = args.controller_b or "llm"
     models = []
     if ca == "llm":
-        models += [args.smart_a or "opus", args.fast_a or "haiku"]
+        models += [m for m in (args.smart_a, args.fast_a) if m]
     if cb == "llm":
-        models += [args.smart_b or "opus", args.fast_b or "haiku"]
+        models += [m for m in (args.smart_b, args.fast_b) if m]
     return models
 
 
 def cli_specs(args):
-    """The llm seats' specs that run on the local claude CLI: every one that does not reach openrouter.ai (an
-    openrouter: chat model or a jev: decision model), sorted and distinct."""
-    return sorted(set(m for m in effective_llm_models(args) if not m.startswith(cost_report.API_PREFIXES)))
+    """The llm seats' specs that run on the local Claude CLI (cost_report.is_cli_lane), sorted and distinct."""
+    return sorted(set(m for m in effective_llm_models(args) if cost_report.is_cli_lane(m)))
 
 
 def unpinned_llm_tiers(args):
-    """Flags an llm seat leaves unset (issue #234). A seat with no controller is an llm seat, and an unset
-    tier falls through to the in-JVM default model (Opus for the smart tier), which no stamp flags: a Luna
-    mirror launched with only seat A pinned played Luna against Opus 5.5."""
+    """Flags an llm seat leaves unset (issue #234). A seat with no controller is an llm seat. An unset tier used
+    to fall through to the in-JVM default model (Opus), which no stamp flagged: a Luna mirror launched with only seat A
+    pinned played Luna against Opus 5.5. The JVM now refuses such a seat too."""
     missing = []
     for ident in ("a", "b"):
         if (getattr(args, "controller_" + ident, None) or "llm") != "llm":
@@ -1058,7 +1093,7 @@ def unpinned_llm_tiers(args):
 
 def warn_parallel_jobs(args):
     """Spec-aware --jobs advice (measured basis: eval/CONCURRENCY.md §7).
-    Bare (non-openrouter:) specs shell out to the local claude CLI and contend
+    claude-cli: specs shell out to the local Claude CLI and contend
     with the user's own interactive sessions -> jobs=1 territory. openrouter:
     specs are network-bound (~1GB RSS, near-zero CPU per JVM) -> RAM is the
     limit; floor/random-only batches are CPU-burst-bound instead."""
@@ -1067,7 +1102,7 @@ def warn_parallel_jobs(args):
     models = effective_llm_models(args)
     bare = cli_specs(args)
     if bare:
-        log("WARNING: --jobs=%d with bare (claude-CLI) model spec(s) %s — "
+        log("WARNING: --jobs=%d with Claude CLI model spec(s) %s — "
             "parallel games starve the local claude CLI (decisions time out "
             "and fall back to auto/ai, polluting the eval). Use --jobs 1 or "
             "openrouter:-prefixed specs." % (args.jobs, bare))
@@ -1293,6 +1328,12 @@ def build_parser():
                          "as its calls, results and reasoning) and starts over each turn, so a multi-step "
                          "line stays in one train of thought. A separate condition (stamped turn_chat); "
                          "its own --out.")
+    ap.add_argument("--claude-cli-effort", choices=("low", "medium", "high", "xhigh", "max"), default=None,
+                    help="a claude-cli: seat only: the CLI's --effort (CLAUDE_BRIDGE_EFFORT); unset is the CLI's "
+                         "default. Pinned, never inherited from the shell")
+    ap.add_argument("--claude-cli-thinking-tokens", type=int, default=None, metavar="N",
+                    help="a claude-cli: seat only: the CLI's MAX_THINKING_TOKENS; unset is the CLI's default. "
+                         "Pinned, never inherited from the shell")
     ap.add_argument("--lookahead", action="store_true",
                     help="LOOKAHEAD=1: LLM seats may preview a play option (`simulate`) before "
                          "choosing. Default off; a separate condition from unassisted play and must "
@@ -1337,14 +1378,19 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
-    jev = any(cost_report.is_decisions(m) for m in (args.smart_a, args.fast_a, args.smart_b, args.fast_b))
-    no_lookup = "cannot call a lookup, so the games would record a condition the seat never had"
-    no_text = "answers only through the `answer` call, so every decision would be lost"
-    for flag, on, reason in (("--memory-tools", args.memory_tools, no_lookup), ("--lookahead", args.lookahead, no_lookup),
-                             ("--text-answers", args.text_answers, no_text), ("--text-tools", args.text_tools, no_text)):
-        if on and jev:
-            raise SystemExit("run_batch: %s with a %s seat: a decision model %s (the JVM refuses it too)"
-                             % (flag, cost_report.DECISIONS_PREFIX, reason))
+    refusal = opt_in_refusal(args)
+    if refusal:
+        raise SystemExit("run_batch: " + refusal)
+    if args.panel and has_cli_seat(args):
+        raise SystemExit("run_batch: a seat on the Claude CLI (%s) is a development lane and never part of a benchmark "
+                         "score: a panel is one (owner, 2026-10-24)" % cost_report.CLI_PREFIX)
+    refusal = cost_report.cli_flag_refusal(effective_llm_models(args), args.claude_cli_effort,
+                                           args.claude_cli_thinking_tokens)
+    if refusal:
+        raise SystemExit("run_batch: " + refusal)
+    refused = lane_refusals(args)
+    if refused:
+        raise SystemExit("run_batch: " + "; ".join(refused) + " (the JVM refuses it too)")
     if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
@@ -1378,8 +1424,8 @@ def run_block(args):
     if missing:
         # Every mode: an exploratory run on an unintended model is as wrong as a cited one.
         print("run_batch: REFUSING: an llm seat must name both of its models; unset: %s. A seat with no "
-              "--controller-x is an llm seat, and an unset model falls through to the harness default "
-              "(issue #234). Pass the models, or --controller-x ai|random|floor." % ", ".join(missing),
+              "--controller-x is an llm seat, and there is no default model (issue #234; the JVM refuses it "
+              "too). Pass the models, or --controller-x ai|random|floor." % ", ".join(missing),
               file=sys.stderr)
         sys.exit(2)
     warn_reserved_seeds(args.seeds)

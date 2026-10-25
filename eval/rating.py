@@ -80,7 +80,9 @@ PLAYER_FIELDS = (
     # How the llm seat answers (the answer call or text): a floor or random arm beside it records false.
     "answer_tool", "answer_tool_seats", "answer_tool_version",
 )
-PLAYER_FIELDS_BY_IDENT = {ident: SERVED_BY_IDENT[ident] + ("temperature_" + ident, "decisions_bridge_version_" + ident)
+PLAYER_FIELDS_BY_IDENT = {ident: SERVED_BY_IDENT[ident] + ("temperature_" + ident, "decisions_bridge_version_" + ident,
+                                                       "claude_cli_bridge_version_" + ident,
+                                                       "claude_cli_thinking_tokens_" + ident)
                           for ident in ("a", "b")}
 # Which decks met.
 MATCHUP_FIELDS = ("deck_sha", "plan_a", "plan_b")

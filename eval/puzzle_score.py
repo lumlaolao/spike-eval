@@ -41,6 +41,15 @@ import puzzle_format as pf  # noqa: E402
 from aggregate import wilson_ci  # noqa: E402
 
 
+# Puzzle-row fields only some solvers carry, each a condition two attempts must share (key, what it is called).
+BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
+                     ("claude_cli_bridge_version", "claude-cli bridge versions"),
+                     ("claude_cli_effort", "claude-cli efforts"),
+                     ("claude_cli_thinking_tokens", "claude-cli thinking budgets"),
+                     # A development lane (owner, 2026-10-24: claude-cli:) is labelled so and never pooled with a score.
+                     ("dev_lane", "development lanes"))
+
+
 class Refused(Exception):
     """A request the scorer will not answer, because the answer would not mean what it says."""
 
@@ -132,11 +141,13 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
     solvers = {solver_of(r) for r in rows}
     if len(solvers) > 1:
         raise Refused("results mix solvers %s; pass --solver to pick one" % sorted(solvers))
-    # A jev: solver's questions are versioned (DecisionsBridge.VERSION, absent on every other solver's rows).
-    bridges = {r.get("decisions_bridge_version") for r in rows}
-    if len(bridges) > 1:
-        raise Refused("results come from decisions bridge versions %s; the questions the solver was asked differ, "
-                      "so score each separately" % sorted(bridges, key=str))
+    # A bridge-specific solver condition, absent on every other solver's rows: a jev: solver's questions
+    # (DecisionsBridge.VERSION), a claude-cli: solver's bridge (ClaudeCliBridge.VERSION) and the effort it ran at.
+    for key, what in BRIDGE_CONDITIONS:
+        seen = {r.get(key) for r in rows}
+        if len(seen) > 1:
+            raise Refused("results come from %s %s; what the solver was asked or how it ran differs, so score each "
+                          "separately" % (what, sorted(seen, key=str)))
 
     out = defaultdict(list)
     for r in rows:
@@ -298,10 +309,12 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     solvers = sorted({solver_of(r) for att in attempts.values() for r in att})
     flat = [r for att in attempts.values() for r in att]
     epochs = {r.get("harness_epoch") for r in flat}
-    bridges = {r.get("decisions_bridge_version") for r in flat}
-    return {
-        # A jev: solver's question version; None for any other solver (group_attempts refuses a mix).
-        "decisions_bridge_version": bridges.pop() if len(bridges) == 1 else None,
+    # Each BRIDGE_CONDITIONS key: the solver's value, None for a solver without it (group_attempts refuses a mix).
+    conditions = {}
+    for key, _ in BRIDGE_CONDITIONS:
+        seen = {r.get(key) for r in flat}
+        conditions[key] = seen.pop() if len(seen) == 1 else None
+    return dict(conditions, **{
         # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
@@ -312,7 +325,7 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         "budget": budget(flat),
         "integrity": integrity(flat),
         "puzzles": sorted(puzzles, key=lambda r: r["id"]),
-    }
+    })
 
 
 def _mean_se(values):
@@ -405,11 +418,13 @@ def _ci(c):
 
 def render(rep):
     a = rep["aggregate"]
-    lines = ["PUZ  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
+    dev = rep.get("dev_lane")
+    lines = ["DEVELOPMENT LANE (%s): local development on the owner's subscription, not a benchmark score" % dev] if dev else []
+    lines += [("DEV" if dev else "PUZ") + "  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
              % (rep["suite"], rep["suite_version"], rep["suite_sha256"][:12], rep["split"], rep["solver"],
                 rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
     h = a["headline"]
-    lines.append("  headline %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
+    lines.append("  " + ("solve rate" if dev else "headline") + " %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
                  % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _ci(h.get("ci95_clustered")), _fmt(h["floors"]["pass"]),
                     _fmt(h["floors"]["first"])))
     for key in ("pass@1", "pass^2", "pass^k"):

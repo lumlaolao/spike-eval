@@ -57,7 +57,7 @@ final class NativeTools {
 
     /** Native function calling is the STANDARD protocol for the seat's tools. NATIVE_TOOLS=0 is the
      *  explicit opt-out; the text grammar otherwise survives only for a backend that has no function
-     *  calling (the Claude CLI lane). */
+     *  calling (none since the Claude CLI text lane was retired). */
     static boolean enabled() {
         return !"0".equals(System.getenv("NATIVE_TOOLS"));
     }

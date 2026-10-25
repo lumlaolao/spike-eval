@@ -96,8 +96,9 @@ The command is `game-loop` step 1. Choose the lane by what you are allowed to sp
 - **OpenRouter:** the model `docs/STANDARDS.md` section 6 names as authorised, always with
   `--budget-usd`, and only when `secrets.env` already holds the egress opt-in. Never set
   `OPENROUTER_ALLOW_EGRESS` yourself.
-- **Claude CLI:** `--smart-a haiku --fast-a haiku`, when the owner has asked for this lane (the six
-  defects above were found on it). No API key and no egress flag. Never opus.
+- **Claude CLI:** `--smart-a claude-cli:<model> --fast-a claude-cli:<model>` with `CLAUDE_CLI_SEAT=1`, when the owner
+  has asked for this lane: a development lane, never a score. The bare `haiku` lane the six defects above were found
+  on is retired.
 
 Pick the deck the hunt log shows least played, and vary which seat it takes. A defect usually
 belongs to a card type (alternative costs, library ordering, card naming, tap costs), and one deck

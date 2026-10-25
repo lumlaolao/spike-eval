@@ -131,6 +131,97 @@ class CostReportTest(unittest.TestCase):
         self.assertIsNotNone(m, "DecisionsBridge.PREFIX not found")
         self.assertEqual(cr.DECISIONS_PREFIX, m.group(1))
 
+    def test_a_claude_cli_seat_is_priced_at_the_cost_the_cli_reported(self):
+        # ClaudeCliBridge writes the CLI's total_cost_usd (its side call to another model included) as each row's
+        # cost_usd; the tokens are not priced, and the budget's dearest-endpoint prices change nothing.
+        spec = "claude-cli:claude-opus-5-5"
+        self.assertTrue(cr.is_cli(spec) and cr.lane_of(spec) and cr.lane_of("jev:typesafe/jev-1.14"))
+        self.assertFalse(cr.lane_of(OR) or cr.lane_of("claude-opus-5-5"))
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 3512, "completion_tokens": 140, "cost_usd": 0.0123},
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 3600, "completion_tokens": 90, "cost_usd": 0.0101},
+                {"t": "context_call", "tier": "smart", "prompt_tokens": -1, "completion_tokens": -1},   # killed at its deadline
+                {"t": "decision", "tier": "smart", "prompt_tokens": 3600, "completion_tokens": 90},
+                {"t": "game", "smart_a": spec, "fast_a": spec}])
+            for prices in (cr.load_prices(), cr.budget_prices(cr.load_prices())):
+                r = cr.report_dir(d, prices)
+                self.assertAlmostEqual(r["usd"], 0.0224, places=12)
+                self.assertEqual((r["models"], r["unpriced"], r["checked"]), ({spec}, set(), {"CLI-reported"}))
+
+    def test_a_name_shared_by_a_claude_cli_seat_and_a_token_priced_seat_adds_both_seats_spend(self):
+        # Both identities named "Burn": one on the CLI, one on openrouter. The CLI's rows carry its reported cost
+        # ($1.00); the other seat's rows carry none and are priced from their tokens (30000 at $1 per million, $0.03).
+        spec = "claude-cli:claude-opus-5-5"
+        prices = {"deepseek/deepseek-v4.1-flash": {"prompt": 1e-06, "completion": 0, "checked": "2026-10-24"}}
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [
+                {"t": "context_call", "seat": "Burn", "tier": "smart", "prompt_tokens": 5000, "completion_tokens": 900,
+                 "cost_usd": 1.00},
+                {"t": "context_call", "seat": "Burn", "tier": "smart", "prompt_tokens": 30000, "completion_tokens": 0},
+                {"t": "game", "deck_a": "Burn", "deck_b": "Burn", "smart_a": spec, "fast_a": spec, "smart_b": OR, "fast_b": OR}])
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 1.03, places=9)
+
+    def test_the_opt_in_names_the_lane_and_its_purpose(self):
+        spec = "claude-cli:claude-opus-5-5"
+        msg = cr.cli_opt_in_refusal([spec, None], {})
+        self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertIn("local development", msg)
+        self.assertIsNone(cr.cli_opt_in_refusal([spec], {"CLAUDE_CLI_SEAT": "1"}))
+        self.assertIsNone(cr.cli_opt_in_refusal([OR, "jev:typesafe/jev-1.14"], {}))
+        self.assertEqual(cr.lane_of(spec), "claude-cli:")
+        # The bare-name text lane is retired (owner, 2026-10-25): refused whatever the opt-in, saying what to use instead.
+        for env in ({}, {"CLAUDE_CLI_SEAT": "1"}):
+            msg = cr.cli_opt_in_refusal(["opus"], env)
+            self.assertIn("retired", msg)
+            self.assertIn("claude-cli:<model>", msg)
+            self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertTrue(cr.is_bare("opus") and cr.is_bare("claude-opus-5-5"))
+        self.assertFalse(cr.is_bare(spec) or cr.is_bare(OR) or cr.is_bare("greedy:") or cr.is_bare(None))
+        # A recorded game from before the retirement still reads as the Claude CLI's (panel_score refuses it).
+        self.assertTrue(cr.is_cli_lane("opus") and cr.is_cli_lane("claude-opus-5-5") and cr.is_cli_lane(spec))
+        self.assertFalse(cr.is_cli_lane(OR) or cr.is_cli_lane("jev:typesafe/jev-1.14") or cr.is_cli_lane(None))
+        # Any other spec naming a "cli:" lane is a typo, refused before anything runs.
+        for typo in ("Claude-CLI:opus", "cli:opus", "claude_cli:opus"):
+            self.assertIn("claude-cli:", cr.cli_opt_in_refusal([typo], {"CLAUDE_CLI_SEAT": "1"}) or "")
+        # The CLI-only flags: refused for a batch without a CLI seat, and a thinking budget must be positive.
+        self.assertIsNone(cr.cli_flag_refusal([spec], "high", 16000))
+        self.assertIn("--claude-cli-effort", cr.cli_flag_refusal([OR], "high", None))
+        self.assertIn("--claude-cli-thinking-tokens", cr.cli_flag_refusal([OR], None, 16000))
+        self.assertIn("positive", cr.cli_flag_refusal([spec], None, 0))
+        self.assertEqual(cr.lane_of("jev:typesafe/jev-1.14"), "jev:")
+        self.assertIsNone(cr.lane_of(OR))
+
+    def test_the_spec_prefixes_are_the_factorys_own(self):
+        # Every prefix the JVM factory routes (LLMBridgeFactory.ROUTED_PREFIXES), resolved through each class's PREFIX:
+        # a spec with none of them was the retired bare lane, on both sides.
+        spike = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "forge-overlay", "forge-gui-desktop",
+                             "src", "main", "java", "forge", "spike")
+
+        def read(name):
+            with open(os.path.join(spike, name), encoding="utf-8") as f:
+                return f.read()
+        arr = re.search(r"static final String\[\] ROUTED_PREFIXES = \{([^}]*)\}", read("LlmSpikeGui.java"))
+        self.assertIsNotNone(arr, "LLMBridgeFactory.ROUTED_PREFIXES not found")
+        java = set()
+        for item in (x.strip() for x in arr.group(1).split(",")):
+            if item.startswith('"'):
+                java.add(item.strip('"'))
+            else:
+                cls = item.split(".")[0]
+                m = re.search(r'static final String PREFIX = "([^"]*)";', read(cls + ".java"))
+                java.add(m.group(1))
+        self.assertEqual(set(cr.KNOWN_PREFIXES), java)
+
+    def test_the_claude_cli_prefix_is_the_bridges_own(self):
+        java = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "forge-overlay", "forge-gui-desktop",
+                            "src", "main", "java", "forge", "spike", "ClaudeCliBridge.java")
+        with open(java, encoding="utf-8") as f:
+            m = re.search(r'static final String PREFIX = "([^"]*)";', f.read())
+        self.assertIsNotNone(m, "ClaudeCliBridge.PREFIX not found")
+        self.assertEqual(cr.CLI_PREFIX, m.group(1))
+        self.assertIn('static final String OPT_IN = "%s";' % cr.CLI_OPT_IN, open(java, encoding="utf-8").read())
+
     def test_a_budget_is_checked_at_the_dearest_endpoint_and_a_report_at_the_list_price(self):
         # Latency routing may land on a priority tier: gpt-6.1-sol's "ultrafast" endpoint lists 6x its list price
         # (OpenRouter /models/.../endpoints, 2026-10-24), so a budget priced at the list rate could be overrun 6x.

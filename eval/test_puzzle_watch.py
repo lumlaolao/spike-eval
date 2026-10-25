@@ -195,6 +195,13 @@ class EachPuzzleTest(unittest.TestCase):
             (d / "jvm.log").write_text(line + "\n")
             self.assertIn("NO-ANSWER", self.run.by_id()["running"]["flags"], line)
 
+    def test_a_claude_cli_seat_that_gave_no_answer_is_flagged(self):
+        # ClaudeCliBridge logs [CLAUDE-CLI-NO-ANSWER] for a process that failed, timed out or reported an error.
+        line = "[CLAUDE-CLI Solver/smart] [CLAUDE-CLI-NO-ANSWER] exit 1: x -> no answer; the seat takes its fixed legal option"
+        self.assertIn("NO-ANSWER", puzzle_watch.flags_of([line], [], puzzle_watch.tool_audit.audit([])))
+        self.assertNotIn("NO-ANSWER", puzzle_watch.flags_of(["[CLAUDE-CLI Solver/smart] claude-cli-bridge-v2 -> TOOL CALL "
+                                                             "answer {\"option\":2}"], [], puzzle_watch.tool_audit.audit([])))
+
     def test_a_choice_the_harness_took_and_a_refused_lookup_are_flagged(self):
         d = self.run.root / "running"
         rows = [decision(0, tier="auto", fallback="heuristic(mulligan)"),

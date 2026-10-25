@@ -32,7 +32,7 @@ class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
 
     def test_rules_tool_without_memory_tools_is_refused_before_anything_runs(self):
         with self.assertRaises(SystemExit) as cm:
-            puzzle_solve.main(["--suite", "/nonexistent/suite.json", "--split", "open", "--model", "fake",
+            puzzle_solve.main(["--suite", "/nonexistent/suite.json", "--split", "open", "--model", "greedy:",
                                "--budget-usd", "0", "--out", "/nonexistent/out", "--rules-tool"])
         self.assertIn("--memory-tools", str(cm.exception.code))
 
@@ -85,7 +85,7 @@ class BudgetAtTheBoundTest(unittest.TestCase):
         with mock.patch.object(puzzle_solve, "solve_puzzle", return_value=(pid, 0, [])) as solve, \
                 mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(out):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", str((listed + bound) / 2), "--ids", pid, "--out", str(root)])
         solve.assert_not_called()
         self.assertIn("[budget] not started: %s" % pid, out.getvalue())
@@ -130,7 +130,7 @@ class ResumeTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         puzzle_solve.write_manifest(root / pid, "fake:another-model", suite["suite_sha256"], pid, {})
         with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume"])
         self.assertIn("another condition", str(cm.exception.code))
 
@@ -176,7 +176,7 @@ class ResumeTest(unittest.TestCase):
         suite = json.loads(suite_path.read_text())
         pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
         root = Path(tempfile.mkdtemp())
-        argv = ["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1", "--budget-usd", "1",
+        argv = ["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1", "--budget-usd", "1",
                 "--ids", pid, "--out", str(root), "--resume"]
         import argparse
         cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False,
@@ -219,7 +219,7 @@ class BuildProvenanceTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "1", "--ids", pid, "--out", str(root), "--build", "/b",
                                "--allow-stale-build"])
         self.assertEqual(seen, [("/b", True)])
@@ -250,7 +250,7 @@ class RunFileTest(unittest.TestCase):
                 mock.patch.object(puzzle_solve, "spent", return_value=0.0), \
                 contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(KeyboardInterrupt):
-                puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                    "--budget-usd", "1", "--ids", pid, "--out", str(root)])
         run = json.loads((root / puzzle_solve.RUN_FILE).read_text())
         self.assertFalse(run["finished"])
@@ -284,7 +284,7 @@ class FullRecordTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"])
         self.assertEqual(envs[0].get("TRANSCRIPTS"), "1", "the JVM must be asked for the full record")
         java = (Path(__file__).resolve().parent.parent / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
@@ -327,7 +327,7 @@ class RecordBuildTest(unittest.TestCase):
             suite_path = root / puzzle_solve.SUITE_COPY
         with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
                               + list(extra))
         return root, rec, ran
@@ -382,6 +382,57 @@ class DecisionModelSeatTest(unittest.TestCase):
         msg = self.run_main({"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}, "--memory-tools")
         self.assertIn("--memory-tools", msg)
         self.assertIn("jev:", msg)
+
+
+class ClaudeCliSeatTest(unittest.TestCase):
+    """A claude-cli: seat (ClaudeCliBridge) runs on the local Claude CLI: it needs no OpenRouter opt-in, takes no
+    lookups, runs one JVM at a time, and its effort is pinned and recorded (never inherited from the shell)."""
+
+    SUITE = DecisionModelSeatTest.SUITE
+    CLI = "claude-cli:claude-opus-5-5"
+
+    def run_main(self, model, *extra, opted_in=True):
+        argv = ["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1", "--budget-usd", "0",
+                "--out", tempfile.mkdtemp(), "--build", "/nonexistent/build"] + list(extra)
+        with mock.patch.dict(os.environ, {}, clear=False), mock.patch.object(puzzle_solve, "load_secrets"):
+            for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL", "CLAUDE_CLI_SEAT"):
+                os.environ.pop(k, None)
+            if opted_in:
+                os.environ["CLAUDE_CLI_SEAT"] = "1"
+            with self.assertRaises(SystemExit) as cm:
+                puzzle_solve.main(argv)
+        return str(cm.exception.code)
+
+    def test_it_needs_no_openrouter_opt_in(self):
+        # Past every refusal, it stops at the missing build: nothing ran.
+        self.assertIn("no compiled overlay", self.run_main(self.CLI, "-j", "1"))
+
+    def test_it_refuses_the_lookup_tools_and_parallel_jvms(self):
+        msg = self.run_main(self.CLI, "-j", "1", "--memory-tools")
+        self.assertIn("--memory-tools", msg)
+        self.assertIn("claude-cli:", msg)
+        self.assertIn("-j 1", self.run_main(self.CLI))   # the default is 2
+
+    def test_it_is_refused_without_its_explicit_opt_in(self):
+        self.assertIn("CLAUDE_CLI_SEAT=1", self.run_main("opus", "-j", "1", opted_in=False))   # the bare lane too
+        msg = self.run_main(self.CLI, "-j", "1", opted_in=False)
+        self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertIn("local development", msg)
+
+    def test_its_effort_and_thinking_budget_are_pinned_and_no_other_model_takes_them(self):
+        for flag, v in (("--claude-cli-effort", "high"), ("--claude-cli-thinking-tokens", "16000")):
+            self.assertIn(flag, self.run_main("openrouter:openai/gpt-6-luna", flag, v))
+        a = puzzle_solve.argparse.Namespace(model=self.CLI, context_profile="v4-faithful", memory_tools=False,
+                                            rules_tool=False, claude_cli_effort="high", claude_cli_thinking_tokens=16000)
+        cond = puzzle_solve.condition(a)
+        self.assertEqual((cond["CLAUDE_BRIDGE_EFFORT"], cond["CLAUDE_BRIDGE_EFFORT_SMART"], cond["CLAUDE_BRIDGE_EFFORT_FAST"],
+                          cond["CLAUDE_CLI_THINKING_TOKENS"]), ("high", "", "", "16000"))
+        a.claude_cli_effort = None
+        a.claude_cli_thinking_tokens = None
+        self.assertEqual((puzzle_solve.condition(a)["CLAUDE_BRIDGE_EFFORT"], puzzle_solve.condition(a)["CLAUDE_CLI_THINKING_TOKENS"]),
+                         ("", ""))
+        a.model = "openrouter:openai/gpt-6-luna"
+        self.assertFalse(any(k.startswith("CLAUDE") for k in puzzle_solve.condition(a)), "another model's condition moved")
 
 
 if __name__ == "__main__":

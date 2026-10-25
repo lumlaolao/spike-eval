@@ -92,8 +92,8 @@ CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=4201 \
   bash "${FORGE_HOME:-$HOME/code/forge}/run-llm-spike.sh"
 ```
 
-Every variable in that game line matters: without the models and decks the launcher falls back to its own defaults
-(both seats on another model, decks from ~/Downloads, the seats named after them). It is a paid game (CLAUDE.md:
+Every variable in that game line matters: without the models a model seat is refused (there is no default model), and
+without the decks the launcher falls back to its own defaults (decks from ~/Downloads, the seats named after them). It is a paid game (CLAUDE.md:
 about $0.02 to $0.05, 20 to 90 minutes, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with
 `OPENROUTER_API_KEY` and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell (without the key the seats
 are not built). For a free rehearsal, run the seat on the loopback fake model instead:

@@ -29,8 +29,8 @@ training corpora (`--cap-per-source`).
 - `eval/defect_analyzer.py` is the run oracle (`ai_tier_count=0`, `silent_drop_total=0`); never weaken it to pass a run.
 - Seed governance (`eval/seed_policy.py`, `eval/seed_registry.json`): 501-525, 20000-29999 and 30000-30099 are
   eval-only and never training data. `run_batch.py` warns, `make_sft_data.py` refuses.
-- Cited mode (`run_batch.py` without `--exploratory`) forces the mirror deck, the confounds off, held-out seeds, and
-  `--jobs 1` only for claude-CLI seats. A panel's llm pilot plays the pinned `pilot_condition` (`eval/suites/panels-v1.json`).
+- Cited mode (`run_batch.py` without `--exploratory`) forces the mirror deck, the confounds off and held-out seeds, and
+  refuses a seat on the Claude CLI (`claude-cli:`: a development lane, owner 2026-10-24). A panel's llm pilot plays the pinned `pilot_condition` (`eval/suites/panels-v1.json`).
 - Parallel games: openrouter 6 to 10 JVMs (RAM-bound, about 1 GB each, counted across every batch), floor 4 to 8
   (`eval/CONCURRENCY.md`).
 - Every llm seat names both its models (`--smart-x`, `--fast-x`); an unset one would fall to the harness default.

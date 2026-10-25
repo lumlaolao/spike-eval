@@ -9,12 +9,14 @@ condition-aware resume. Nothing here launches a JVM or contacts a model.
 """
 
 import argparse
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 from unittest import mock
 
@@ -379,6 +381,122 @@ class TestAnswerTool(unittest.TestCase):
             self.assertIn(flag, str(cm.exception.code))
             self.assertIn("jev:", str(cm.exception.code))
             self.assertIn(reason, str(cm.exception.code))
+
+    CLI = "claude-cli:claude-opus-5-5"
+
+    def test_a_claude_cli_seat_answers_through_the_tool_on_the_local_cli(self):
+        # Its structured output becomes the `answer` call (ClaudeCliBridge); it runs on the local CLI, so the cited
+        # --jobs 1 rule and the parallel warning cover it, and it needs no OpenRouter key.
+        self.assertTrue(run_batch.answer_tool_requested(make_args(smart_a=self.CLI, fast_a=self.CLI)))
+        self.assertFalse(run_batch.native_tools_requested(make_args(smart_a=self.CLI, fast_a=self.CLI, memory_tools=True)))
+        self.assertEqual(run_batch.cli_specs(make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai")), [self.CLI])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "", "OPENROUTER_ALLOW_EGRESS": ""}, clear=False):
+            run_batch.preflight_openrouter(make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai"))
+
+    def test_a_claude_cli_seat_refuses_lookups_text_answers_and_a_kept_conversation(self):
+        for flag, reason in (("--memory-tools", "cannot call a lookup"), ("--lookahead", "cannot call a lookup"),
+                             ("--text-answers", "only through the `answer` call"),
+                             ("--text-tools", "only through the `answer` call"),
+                             ("--one-chat", "fresh process"), ("--turn-chat", "fresh process")):
+            with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+                run_batch.main(["--seeds", "1", "--smart-a", self.CLI, "--fast-a", self.CLI, "--controller-b", "ai", flag])
+            self.assertIn(flag, str(cm.exception.code))
+            self.assertIn("claude-cli:", str(cm.exception.code))
+            self.assertIn(reason, str(cm.exception.code))
+
+    def test_a_claude_cli_seat_is_refused_without_its_explicit_opt_in(self):
+        # Owner, 2026-10-24: the lane is local development on the owner's subscription, chosen explicitly.
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CLAUDE_CLI_SEAT", None)
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", self.CLI, "--fast-a", self.CLI,
+                                "--controller-b", "ai"])
+        msg = str(cm.exception.code)
+        self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertIn("local development", msg)
+
+    def test_the_lane_refusals_cover_every_lane_present(self):
+        # A jev: seat and a claude-cli: seat in one batch: each lane's refusal is named, not only the first.
+        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            run_batch.main(["--seeds", "1", "--smart-a", "jev:typesafe/jev-1.14", "--fast-a", "jev:typesafe/jev-1.14",
+                            "--smart-b", self.CLI, "--fast-b", self.CLI, "--memory-tools", "--one-chat"])
+        msg = str(cm.exception.code)
+        self.assertIn("jev:", msg)
+        self.assertIn("claude-cli:", msg)
+        self.assertIn("--one-chat", msg)
+
+    def test_the_bare_cli_lane_is_retired(self):
+        # A bare Claude name (opus, haiku) as a model seat: refused, opted in or not, saying what to use instead.
+        for env in ({}, {"CLAUDE_CLI_SEAT": "1"}):
+            with mock.patch.dict(os.environ, env, clear=False):
+                if not env:
+                    os.environ.pop("CLAUDE_CLI_SEAT", None)
+                with self.assertRaises(SystemExit) as cm:
+                    run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", "opus", "--fast-a", "haiku",
+                                    "--controller-b", "ai"])
+            self.assertIn("retired", str(cm.exception.code))
+            self.assertIn("claude-cli:<model>", str(cm.exception.code))
+        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", "Claude-CLI:opus", "--fast-a", "Claude-CLI:opus",
+                            "--controller-b", "ai"])
+        self.assertIn("claude-cli:", str(cm.exception.code))
+        # No default model stands in for an unset tier: the specs in play are the ones named.
+        self.assertEqual(run_batch.effective_llm_models(make_args(smart_a=None, fast_a=None, controller_b="ai")), [])
+
+    def test_only_a_model_seats_spec_needs_the_opt_in(self):
+        # As in the JVM: a floor or random seat's model name starts nothing, so it needs no opt-in and is no dev lane.
+        a = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_a="floor", controller_b="random")
+        self.assertEqual(run_batch.cli_specs(a), [])
+        self.assertFalse(run_batch.has_cli_seat(a))
+        self.assertEqual(run_batch.cli_specs(make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai")), [self.CLI])
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CLAUDE_CLI_SEAT", None)
+            self.assertIsNone(run_batch.opt_in_refusal(a))
+            self.assertIn("CLAUDE_CLI_SEAT=1", run_batch.opt_in_refusal(make_args(smart_a=self.CLI, fast_a=self.CLI,
+                                                                                   controller_b="ai")))
+
+    def test_the_cli_settings_are_the_flags_alone(self):
+        # Standards section 4: an --env override would run a value the manifest records as "cli-default".
+        for k in ("CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST", "CLAUDE_CLI_THINKING_TOKENS"):
+            self.assertIn(k, run_batch.CONDITION_ENV_KEYS)
+            with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+                run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", self.CLI, "--fast-a", self.CLI,
+                                "--controller-b", "ai", "--env", "%s=7" % k])
+            self.assertIn(k, str(cm.exception.code))
+        # And the shell's value never reaches a batch, whatever its seats.
+        with mock.patch.dict(os.environ, {"CLAUDE_BRIDGE_EFFORT_SMART": "low"}), tempfile.TemporaryDirectory() as d:
+            self.assertNotIn("CLAUDE_BRIDGE_EFFORT_SMART", run_batch.build_env(make_args(smart_a=self.OR, fast_a=self.OR), 1, False,
+                                                                              Path(d)))
+
+    def test_a_claude_cli_seat_is_never_in_a_cited_run_or_a_panel(self):
+        args = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai", exploratory=False)
+        err = io.StringIO()
+        with self.assertRaises(SystemExit), redirect_stderr(err):
+            run_batch.cited_pre_guards(args)
+        self.assertIn("development lane", err.getvalue())
+        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            run_batch.main(["--panel", "mirror", "--budget-usd", "1", "--smart-a", self.CLI, "--fast-a", self.CLI])
+        self.assertIn("benchmark", str(cm.exception.code))
+
+    def test_a_claude_cli_batch_pins_its_effort_and_thinking_budget_never_the_shells(self):
+        shell = {"CLAUDE_BRIDGE_EFFORT": "max", "CLAUDE_BRIDGE_EFFORT_SMART": "low", "CLAUDE_CLI_THINKING_TOKENS": "999"}
+        with mock.patch.dict(os.environ, shell), tempfile.TemporaryDirectory() as d:
+            a = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai", claude_cli_effort="high",
+                          claude_cli_thinking_tokens=16000)
+            env = run_batch.build_env(a, 1, False, Path(d))
+            self.assertEqual((env["CLAUDE_BRIDGE_EFFORT"], env["CLAUDE_BRIDGE_EFFORT_SMART"], env["CLAUDE_BRIDGE_EFFORT_FAST"],
+                              env["CLAUDE_CLI_THINKING_TOKENS"]), ("high", "", "", "16000"))
+            unset = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai")
+            env = run_batch.build_env(unset, 1, False, Path(d))
+            self.assertEqual((env["CLAUDE_BRIDGE_EFFORT"], env["CLAUDE_CLI_THINKING_TOKENS"]), ("", ""))
+            cond = run_batch.batch_condition(a, cited=False)
+            self.assertEqual((cond["claude_cli_effort"], cond["claude_cli_thinking_tokens"]), ("high", "16000"))
+            self.assertEqual(run_batch.batch_condition(unset, cited=False)["claude_cli_thinking_tokens"], "cli-default")
+            self.assertIn("claude_cli_effort", [k for k, _, _ in run_batch.condition_diff(cond,
+                                                                                         run_batch.batch_condition(unset, False))])
+            # Another model's batch has no claude-cli key in its condition.
+            other = make_args(smart_a=self.OR, fast_a=self.OR, controller_b="ai")
+            self.assertIsNone(run_batch.batch_condition(other, cited=False).get("claude_cli_effort"))
 
     def test_only_the_flags_set_it_and_lines_keep_it_apart(self):
         with mock.patch.dict(os.environ, {"ANSWER_TOOL": "1", "ANSWER_TOOL_STRICT": "1"}, clear=False), \
@@ -863,7 +981,9 @@ class TestCrossPin(unittest.TestCase):
         self.tmp.cleanup()
 
     def cited(self, **kw):
-        a = make_args(exploratory=False, deck_a=str(self.da), deck_b=str(self.db), seeds=[7800], **kw)
+        # A cited run's seat is never on the Claude CLI (a development lane): an openrouter: pilot.
+        a = make_args(exploratory=False, deck_a=str(self.da), deck_b=str(self.db), seeds=[7800],
+                      smart_a="openrouter:deepseek/deepseek-v4.1-flash", fast_a="openrouter:deepseek/deepseek-v4.1-flash", **kw)
         run_batch.cited_pre_guards(a)
         return a
 

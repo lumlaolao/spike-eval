@@ -809,7 +809,7 @@ public class LlmSpikeTest {
     //     tier=auto without ever consulting the model, same convention as choose-entity/zone-change/
     //     targets.
     // DeadBridge lets these exercise the real bridge-down code path deterministically (ask() always
-    // returns null, exactly what a real dead ClaudeBridge/OpenRouterBridge returns after its own
+    // returns null, exactly what a real dead OpenRouterBridge or ClaudeCliBridge returns after its own
     // internal retries are exhausted) without spawning a process or making a network call.
     // ================================================================================
 
@@ -2342,22 +2342,6 @@ public class LlmSpikeTest {
         } finally {
             LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
         }
-    }
-
-    /** runs/loop/g08 (seat on `haiku`, the Claude CLI lane): the game line said served_smart_a=unknown
-     *  and every row had prompt_tokens=-1, so cost_report read 35 model calls as 0 tokens, while the
-     *  CLI's own result line names the model that answered and its usage. */
-    @Test
-    public void theCliResultLineGivesTheServedModelAndTokens() {
-        String line = "{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"OK\",\"stop_reason\":\"end_turn\","
-                + "\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":8216,\"cache_read_input_tokens\":26697,"
-                + "\"output_tokens\":4,\"output_tokens_details\":{\"thinking_tokens\":0}},"
-                + "\"modelUsage\":{\"claude-haiku-5-5\":{\"inputTokens\":2,\"outputTokens\":4}}}";
-        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.servedModel(line), "claude-haiku-5-5");
-        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.usageInt(line, "output_tokens"), 4);
-        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.promptTokens(line), 2 + 8216 + 26697);
-        Assert.assertNull(LlmSpikeGui.ClaudeBridge.servedModel("{\"type\":\"result\",\"result\":\"OK\"}"));
-        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.promptTokens("{\"type\":\"result\"}"), -1);
     }
 
     @Test
