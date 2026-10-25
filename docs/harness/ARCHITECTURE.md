@@ -493,7 +493,14 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     timeout, 15-25 minutes a game; a fresh connection answers in seconds.
 - **`ClaudeBridge`** (bare Claude CLI names such as `opus`): answers in text, which the owner's tool-call rule forbids for
   a backend that can call. It is never offered `answer` (`supportsNativeTools` is false), so the `[TEXT-PARSE]` guard
-  does not fire for it; it is kept for the text-protocol arms only.
+  does not fire for it; it is kept for the text-protocol arms only. It runs `claude -p` on the same login as the
+  `claude-cli:` lane, so it is the same development lane: a model seat on it needs `CLAUDE_CLI_SEAT=1`, its games and
+  puzzle rows are stamped `dev_lane`, and cited mode, `--panel` and `panel_score.py` refuse it.
+- **No default model.** A model seat (controller `llm`) whose tier names no model (`SMART_MODEL_X` / `FAST_MODEL_X`,
+  else `SMART_MODEL` / `FAST_MODEL`) is refused when the game is built (`LlmSpikeGui.missingModel`); it used to fall to
+  the CLI's `opus` and `haiku`. A seat that asks no model (floor, random, the puzzle arms) keeps those names as
+  placeholders it never calls. A spec that names a "cli:" lane but is not `claude-cli:<model>` is refused
+  (`LLMBridgeFactory.create`).
 - **`ClaudeCliBridge`** (`claude-cli:<model>` specs): a Claude model through Claude Code in print mode, answering by
   structured output; a development lane, used only with `CLAUDE_CLI_SEAT=1` and never in a benchmark score. See "The
   Claude CLI answer bridge" below.
@@ -586,9 +593,10 @@ What Jev cannot do, by construction:
 **Owner decisions, 2026-10-24:** Claude Opus 5.5 may play a seat through the Claude Code CLI in print mode
 (`claude-cli:claude-opus-5-5`), so it can be tested "with harnesses". This is a **development lane** on the owner's
 own Claude subscription:
-- **used only when the operator chooses it**: `CLAUDE_CLI_SEAT=1`. The JVM factory
-  (`LLMBridgeFactory.claudeCli`), `run_batch.py` and `puzzle_solve.py` refuse a `claude-cli:` spec without it, and
-  say what the lane is for (`eval/cost_report.py` `cli_opt_in_refusal`). No tool sets it;
+- **used only when the operator chooses it**: `CLAUDE_CLI_SEAT=1`. The JVM (`LLMBridgeFactory.claudeCli`, and
+  `requireCliOptIn` for a model seat on either CLI lane, the bare-name text lane included), `run_batch.py` and
+  `puzzle_solve.py` refuse a `claude-cli:` spec or a bare Claude name without it, and say what the lane is for
+  (`eval/cost_report.py` `cli_opt_in_refusal`). No tool sets it;
 - **never part of a benchmark score**: `run_batch.py`'s cited mode and `--panel` refuse it. `panel_score.py` refuses
   a cell where such a seat played. The game line and the puzzle row carry `dev_lane: "claude-cli"`, so such a game
   never pools with a benchmark game (`aggregate.PROVENANCE_FIELDS`, an environment field in `rating.py`), and
@@ -632,9 +640,10 @@ and returns it as `structured_output`. No text is parsed.
 - **Isolation of the process:**
   - It runs in an empty temp directory, and no key is put on its command line.
   - Its environment is an allow-list (`ClaudeCliBridge.KEEP_ENV`, `childEnv`). It holds what the CLI needs to run,
-    reach the network and log in: PATH, HOME, locale, proxy and CA variables, `CLAUDE_CODE_OAUTH_TOKEN`,
-    `ANTHROPIC_API_KEY` / `AUTH_TOKEN` / `BASE_URL`, `CLAUDE_CONFIG_DIR`, and the Bedrock / Vertex / Foundry switches
-    and credentials.
+    reach the network and log in to the owner's subscription: PATH, HOME, locale, proxy and CA variables,
+    `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `CLAUDE_CONFIG_DIR`. A Bedrock / Vertex / Foundry switch is kept
+    with that provider's credentials only; `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` only when the operator sets
+    `CLAUDE_CLI_ALLOW_API_KEY=1`. The log says once per bridge which login the child had (`loginSource`).
   - Everything else is dropped. That includes `MAX_THINKING_TOKENS`, `ANTHROPIC_MODEL` and its per-tier defaults, the
     launching session's `CLAUDE*` variables and the harness's `OPENROUTER*` ones. None of the kept variables chooses
     the model, its thinking or its effort.
@@ -656,7 +665,8 @@ and returns it as `structured_output`. No text is parsed.
   attempts. A billed attempt that failed and the retry that answered both count, and that sum is the `context_call`
   row's `cost_usd`.
   - `eval/cost_report.py` prices a `claude-cli:` seat by the sum of those rows, at list price and budget alike.
-  - A name a token-priced seat shares is priced at the larger of the two.
+  - When a token-priced seat shares the name, its rows (those with no `cost_usd`) are priced from their tokens and the
+    two spends add.
   - A process killed at its deadline reports nothing.
   - `usage` gives the prompt, cached, cache-write and completion tokens. The served model is the `modelUsage` key with
     the most output tokens.
@@ -674,7 +684,7 @@ anything runs):
   a separate process.
 - **No text answer:** `ANSWER_TOOL=0` or `NATIVE_TOOLS=0` is refused. So is a kept conversation (`ONE_CHAT`,
   `TURN_CHAT`), which wraps only an OpenRouter bridge.
-- **Parallel CLIs:** `puzzle_solve.py` requires one JVM at a time for it (`-j 1`).
+- **Parallel CLIs:** `puzzle_solve.py` requires one JVM at a time for it (`-j 1`); `run_batch.py` warns above `--jobs 1`.
 
 **Egress:** the lane sends the game state to Anthropic under the operator's own CLI login, not to openrouter.ai.
 `OPENROUTER_ALLOW_EGRESS` is consent for openrouter.ai and is not asked for. The lane's own consent is its explicit
@@ -756,8 +766,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - it refuses an llm seat that does not name both of its models, in every mode: a seat with no controller
     is an llm seat, and an unset model fell through to the harness default (Opus), so a Luna mirror
     launched with seat B unset played Luna against Opus 5.5 with every stamp healthy (issue #234);
-  - cited mode forces `--jobs 1` only when a seat runs on the local claude CLI (parallel JVMs starve it);
-    `openrouter:` games wait on the network and may run in parallel (review E3).
+  - cited mode refuses a seat on the local Claude CLI outright (`claude-cli:` or a bare Claude name: a development
+    lane, owner 2026-10-24); `openrouter:` games wait on the network and may run in parallel (review E3);
   - *Why pinned:* a baseline arm that silently inherited a setting would be pooled with a different
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.

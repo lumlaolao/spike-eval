@@ -59,21 +59,28 @@ final class ClaudeCliBridge implements LLMBridge {
     /** The seat's thinking budget, set by run_batch.py / puzzle_solve.py --claude-cli-thinking-tokens and passed to the
      *  child as MAX_THINKING_TOKENS; unset or empty is the CLI's own default. Stamped. */
     static final String THINKING_ENV = "CLAUDE_CLI_THINKING_TOKENS";
-    /** The development-lane label on the game line and the puzzle row. */
+    /** The development-lane label on the game line and the puzzle row (either CLI lane: claude-cli: or a bare name). */
     static final String DEV_LANE = "claude-cli";
-    /** What the child may inherit, by name: how it runs, reaches the network and logs in. None of them chooses the model,
-     *  its thinking or its effort (those are argv or {@link #THINKING_ENV}, both stamped); everything else, among it
-     *  MAX_THINKING_TOKENS, ANTHROPIC_MODEL and its per-tier defaults, the launching session's CLAUDE* variables and the
-     *  harness's OPENROUTER* ones, is dropped (pr-review of #320). */
+    /** The operator's request that the child may log in with an API key (ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN). Off:
+     *  the lane is the owner's subscription login, so those keys are dropped. */
+    static final String API_KEY_OPT_IN = "CLAUDE_CLI_ALLOW_API_KEY";
+    /** What the child may inherit, by name: how it runs, reaches the network and logs in to the subscription. None of
+     *  them chooses the model, its thinking or its effort (those are argv or {@link #THINKING_ENV}, both stamped);
+     *  everything else, among it MAX_THINKING_TOKENS, ANTHROPIC_MODEL and its per-tier defaults, the launching session's
+     *  CLAUDE* variables and the harness's OPENROUTER* ones, is dropped (pr-review of #320). */
     static final Set<String> KEEP_ENV = Collections.unmodifiableSet(new java.util.TreeSet<>(Arrays.asList(
             "PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "LANG", "TZ", "TMPDIR",
             "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "https_proxy", "http_proxy", "no_proxy", "all_proxy",
             "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "NODE_OPTIONS",
-            "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR",
-            "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY",
-            "AWS_REGION", "AWS_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
-            "AWS_BEARER_TOKEN_BEDROCK", "GOOGLE_APPLICATION_CREDENTIALS", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID",
-            "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE", "ANTHROPIC_FOUNDRY_BASE_URL")));
+            "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR")));
+    /** An API key login: kept only when the operator asks ({@link #API_KEY_OPT_IN}). */
+    static final List<String> API_KEY_ENV = List.of("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN");
+    /** A cloud provider's switch and the credentials kept only while that switch is set. */
+    static final Map<String, List<String>> PROVIDER_ENV = Map.of(
+            "CLAUDE_CODE_USE_BEDROCK", List.of("AWS_REGION", "AWS_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+                    "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK"),
+            "CLAUDE_CODE_USE_VERTEX", List.of("GOOGLE_APPLICATION_CREDENTIALS", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID"),
+            "CLAUDE_CODE_USE_FOUNDRY", List.of("ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE", "ANTHROPIC_FOUNDRY_BASE_URL"));
     /** Test hook: variables added to the launching environment before it is filtered, so a test proves the filter in
      *  a JVM whatever its own environment holds. Null outside tests. */
     static volatile Map<String, String> plantedEnv;
@@ -83,6 +90,8 @@ final class ClaudeCliBridge implements LLMBridge {
     private final String label, model, preamble, bin;
     private final long deadlineMs;
     private final String effort, thinking;
+    private final boolean allowApiKey;
+    private volatile boolean loginLogged = false;
     private Path home;           // the bridge's own temp directory: the system prompt file and the empty cwd
     private long totalMs = 0;
     private int calls = 0;
@@ -98,11 +107,12 @@ final class ClaudeCliBridge implements LLMBridge {
         this(label, model, preamble, System.getenv().getOrDefault("CLAUDE_BIN", "claude"),
                 LlmSpikeGui.ClaudeBridge.deadlineFor(model),
                 LlmSpikeGui.ClaudeBridge.effortFor(label != null && label.endsWith("/fast")),
-                thinkingTokens(System.getenv(THINKING_ENV)));
+                thinkingTokens(System.getenv(THINKING_ENV)), "1".equals(System.getenv(API_KEY_OPT_IN)));
     }
 
     /** Every input passed in, so a test can point it at a fake binary with a short deadline. */
-    ClaudeCliBridge(String label, String model, String preamble, String bin, long deadlineMs, String effort, String thinking) {
+    ClaudeCliBridge(String label, String model, String preamble, String bin, long deadlineMs, String effort, String thinking,
+                    boolean allowApiKey) {
         this.label = label;
         this.model = model;
         this.preamble = preamble;
@@ -110,6 +120,7 @@ final class ClaudeCliBridge implements LLMBridge {
         this.deadlineMs = deadlineMs;
         this.effort = effort;
         this.thinking = thinking;
+        this.allowApiKey = allowApiKey;
     }
 
     static boolean isSpec(String spec) { return spec != null && spec.startsWith(PREFIX); }
@@ -126,7 +137,8 @@ final class ClaudeCliBridge implements LLMBridge {
     static String thinkingTokens(String v) {
         if (v == null || v.trim().isEmpty()) return null;
         try {
-            if (Integer.parseInt(v.trim()) > 0) return Integer.toString(Integer.parseInt(v.trim()));
+            int n = Integer.parseInt(v.trim());
+            if (n > 0) return Integer.toString(n);
         } catch (NumberFormatException ignore) { }
         throw new IllegalArgumentException("invalid " + THINKING_ENV + " '" + v.trim() + "': a positive number of tokens");
     }
@@ -137,16 +149,32 @@ final class ClaudeCliBridge implements LLMBridge {
     /** The budget this JVM's claude-cli: seats run with, as stamped. */
     static String thinkingStamp() { return thinkingStamp(thinkingTokens(System.getenv(THINKING_ENV))); }
 
-    /** True when the child may inherit {@code name} ({@link #KEEP_ENV}, or a locale variable). */
-    static boolean kept(String name) { return KEEP_ENV.contains(name) || name.startsWith("LC_"); }
-
-    /** The child's environment: the allow-listed part of {@code parent}, and MAX_THINKING_TOKENS only when the harness
-     *  sets a budget ({@code thinking}), never the parent's own. */
-    static Map<String, String> childEnv(Map<String, String> parent, String thinking) {
+    /** The child's environment: the allow-listed part of {@code parent} ({@link #KEEP_ENV} and locale variables; a
+     *  provider's credentials only with its switch; an API key only when {@code allowApiKey}), and MAX_THINKING_TOKENS only
+     *  when the harness sets a budget ({@code thinking}), never the parent's own. */
+    static Map<String, String> childEnv(Map<String, String> parent, String thinking, boolean allowApiKey) {
+        Set<String> keep = new java.util.HashSet<>(KEEP_ENV);
+        if (allowApiKey) keep.addAll(API_KEY_ENV);
+        for (Map.Entry<String, List<String>> p : PROVIDER_ENV.entrySet()) {
+            if (parent.get(p.getKey()) == null) continue;
+            keep.add(p.getKey());
+            keep.addAll(p.getValue());
+        }
         Map<String, String> env = new HashMap<>();
-        for (Map.Entry<String, String> e : parent.entrySet()) if (kept(e.getKey())) env.put(e.getKey(), e.getValue());
+        for (Map.Entry<String, String> e : parent.entrySet())
+            if (keep.contains(e.getKey()) || e.getKey().startsWith("LC_")) env.put(e.getKey(), e.getValue());
         if (thinking != null) env.put("MAX_THINKING_TOKENS", thinking);
         return env;
+    }
+
+    /** How the child logs in, for the log: a cloud provider, an API key, an OAuth token, or the CLI's own stored login. */
+    static String loginSource(Map<String, String> child) {
+        if (child.containsKey("CLAUDE_CODE_USE_BEDROCK")) return "Bedrock (CLAUDE_CODE_USE_BEDROCK)";
+        if (child.containsKey("CLAUDE_CODE_USE_VERTEX")) return "Vertex (CLAUDE_CODE_USE_VERTEX)";
+        if (child.containsKey("CLAUDE_CODE_USE_FOUNDRY")) return "Foundry (CLAUDE_CODE_USE_FOUNDRY)";
+        for (String k : API_KEY_ENV) if (child.containsKey(k)) return "API key (" + k + ")";
+        if (child.containsKey("CLAUDE_CODE_OAUTH_TOKEN")) return "OAuth token (CLAUDE_CODE_OAUTH_TOKEN)";
+        return "the CLI's own stored login (its config directory)";
     }
 
     /** The seat offers `answer` only to a bridge that answers by call; this one's answer is always that call. */
@@ -154,6 +182,7 @@ final class ClaudeCliBridge implements LLMBridge {
 
     /** A text ask has no `answer` to put in the schema: refused, never parsed. */
     @Override public String ask(String prompt) {
+        retrying = false;   // a retry that ends here is over: the next chat is a new ask
         noAnswer("a text ask (no `answer` offered)");
         return null;
     }
@@ -331,8 +360,14 @@ final class ClaudeCliBridge implements LLMBridge {
             Map<String, String> parent = new HashMap<>(System.getenv());
             Map<String, String> planted = plantedEnv;
             if (planted != null) parent.putAll(planted);
+            Map<String, String> child = childEnv(parent, thinking, allowApiKey);
+            if (!loginLogged) {
+                loginLogged = true;
+                System.out.println("[CLAUDE-CLI " + label + "] login: " + loginSource(child) + "; thinking budget "
+                        + thinkingStamp(thinking));
+            }
             pb.environment().clear();
-            pb.environment().putAll(childEnv(parent, thinking));
+            pb.environment().putAll(child);
             proc = pb.start();
             ByteArrayOutputStream out = new ByteArrayOutputStream(), err = new ByteArrayOutputStream();
             Thread reader = drain(proc.getInputStream(), out, "stdout");

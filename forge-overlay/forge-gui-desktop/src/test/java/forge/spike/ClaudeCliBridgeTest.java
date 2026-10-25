@@ -78,7 +78,7 @@ public class ClaudeCliBridgeTest {
     private ClaudeCliBridge bridge(String effort, long deadlineMs) { return bridge("claude-opus-5-5", effort, deadlineMs); }
     private ClaudeCliBridge bridge(String model, String effort, long deadlineMs) {
         return new ClaudeCliBridge("Seat/smart", model, "PREAMBLE: you pilot the seat.", dir.resolve("claude").toString(),
-                deadlineMs, effort, null);
+                deadlineMs, effort, null, false);
     }
 
     private static final String USER = "== Turn 3 MAIN1 ==\nDECISION: Choose ONE action:\n  1) CAST Lava Spike\n  2) PASS";
@@ -161,12 +161,32 @@ public class ClaudeCliBridgeTest {
                 "CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_EFFORT", "CLAUDE_CLI_SEAT",
                 "OPENROUTER_API_KEY", "SOME_TOOL_SETTING"};
         String[] kept = {"PATH", "HOME", "LANG", "LC_ALL", "HTTPS_PROXY", "no_proxy", "SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS",
-                "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR"};
+                "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR"};
+        // A provider's credentials only with its switch; an API key only when the operator asks for one (the owner's
+        // subscription login is the lane's login).
+        String[] creds = {"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+                "GOOGLE_APPLICATION_CREDENTIALS", "ANTHROPIC_FOUNDRY_API_KEY"};
         Map<String, String> planted = new HashMap<>();
         for (String k : dropped) planted.put(k, "planted");
         for (String k : kept) planted.put(k, "planted");
-        Assert.assertEquals(new java.util.TreeSet<>(ClaudeCliBridge.childEnv(planted, null).keySet()),
+        for (String k : creds) planted.put(k, "planted");
+        Assert.assertEquals(new java.util.TreeSet<>(ClaudeCliBridge.childEnv(planted, null, false).keySet()),
                 new java.util.TreeSet<>(Arrays.asList(kept)));
+        Map<String, String> withKey = ClaudeCliBridge.childEnv(planted, null, true);
+        Assert.assertTrue(withKey.containsKey("ANTHROPIC_API_KEY") && withKey.containsKey("ANTHROPIC_AUTH_TOKEN"), withKey.toString());
+        Assert.assertFalse(withKey.containsKey("AWS_ACCESS_KEY_ID"), "AWS credentials without CLAUDE_CODE_USE_BEDROCK");
+        planted.put("CLAUDE_CODE_USE_BEDROCK", "1");
+        Map<String, String> bedrock = ClaudeCliBridge.childEnv(planted, null, false);
+        Assert.assertTrue(bedrock.containsKey("AWS_ACCESS_KEY_ID") && bedrock.containsKey("CLAUDE_CODE_USE_BEDROCK"), bedrock.toString());
+        Assert.assertFalse(bedrock.containsKey("GOOGLE_APPLICATION_CREDENTIALS") || bedrock.containsKey("ANTHROPIC_FOUNDRY_API_KEY"));
+        // The login the child has is said in the log line.
+        Assert.assertEquals(ClaudeCliBridge.loginSource(bedrock), "Bedrock (CLAUDE_CODE_USE_BEDROCK)");
+        Assert.assertEquals(ClaudeCliBridge.loginSource(withKey), "API key (ANTHROPIC_API_KEY)");
+        Map<String, String> oauth = new HashMap<>();
+        oauth.put("CLAUDE_CODE_OAUTH_TOKEN", "t");
+        Assert.assertEquals(ClaudeCliBridge.loginSource(oauth), "OAuth token (CLAUDE_CODE_OAUTH_TOKEN)");
+        Assert.assertEquals(ClaudeCliBridge.loginSource(new HashMap<>()), "the CLI's own stored login (its config directory)");
+        planted.remove("CLAUDE_CODE_USE_BEDROCK");
 
         reply(result("{\"answer\":{\"option\":1}}"));
         AnswerTool.Spec spec = AnswerTool.Spec.one(2);
@@ -182,8 +202,11 @@ public class ClaudeCliBridgeTest {
         for (String line : read("env.1").split("\n"))
             if (line.matches("[A-Za-z_][A-Za-z0-9_]*=.*")) seen.add(line.substring(0, line.indexOf('=')));
         for (String k : dropped) Assert.assertFalse(seen.contains(k), "the child inherited " + k + ": " + seen);
+        Map<String, String> parent = new HashMap<>(System.getenv());
+        parent.putAll(plant);
+        java.util.Set<String> allowed = ClaudeCliBridge.childEnv(parent, null, false).keySet();
         for (String k : seen)
-            Assert.assertTrue(ClaudeCliBridge.kept(k) || List.of("PWD", "OLDPWD", "SHLVL", "_").contains(k),
+            Assert.assertTrue(allowed.contains(k) || List.of("PWD", "OLDPWD", "SHLVL", "_").contains(k),
                     "the child got " + k + ", which is not on the allow-list");
     }
 
@@ -194,8 +217,8 @@ public class ClaudeCliBridgeTest {
         Map<String, String> shell = new HashMap<>();
         shell.put("MAX_THINKING_TOKENS", "999");
         shell.put("PATH", "/bin");
-        Assert.assertFalse(ClaudeCliBridge.childEnv(shell, null).containsKey("MAX_THINKING_TOKENS"));
-        Assert.assertEquals(ClaudeCliBridge.childEnv(shell, "16000").get("MAX_THINKING_TOKENS"), "16000");
+        Assert.assertFalse(ClaudeCliBridge.childEnv(shell, null, false).containsKey("MAX_THINKING_TOKENS"));
+        Assert.assertEquals(ClaudeCliBridge.childEnv(shell, "16000", false).get("MAX_THINKING_TOKENS"), "16000");
         Assert.assertEquals(ClaudeCliBridge.thinkingStamp(null), "cli-default");
         Assert.assertEquals(ClaudeCliBridge.thinkingStamp("16000"), "16000");
         for (String bad : new String[] {"x", "-5", "0"}) {
@@ -211,7 +234,7 @@ public class ClaudeCliBridgeTest {
 
         reply(result("{\"answer\":{\"option\":1}}"));
         AnswerTool.Spec spec = AnswerTool.Spec.one(2);
-        new ClaudeCliBridge("Seat/smart", "claude-opus-5-5", "p", dir.resolve("claude").toString(), 20000, null, "12345")
+        new ClaudeCliBridge("Seat/smart", "claude-opus-5-5", "p", dir.resolve("claude").toString(), 20000, null, "12345", false)
                 .chat(messages(USER), tools(spec, false), true, spec);
         Assert.assertTrue(read("env.1").contains("\nMAX_THINKING_TOKENS=12345\n") || read("env.1").startsWith("MAX_THINKING_TOKENS=12345\n"),
                 read("env.1"));
@@ -394,6 +417,22 @@ public class ClaudeCliBridgeTest {
         Assert.assertEquals(b.getCostUsd(), 0.0346, 1e-12);
     }
 
+    /** A retry that the seat makes through a text ask (which never reaches chat) ends the retry: the next ask's row does
+     *  not carry the earlier ask's cost. */
+    @Test
+    public void aRetryThroughATextAskDoesNotCarryCostIntoTheNextAsk() throws IOException {
+        write("reply.1", "{\"type\":\"result\",\"subtype\":\"error_max_turns\",\"is_error\":true,\"result\":\"\","
+                + "\"total_cost_usd\":0.01}");
+        reply(result("{\"answer\":{\"option\":1}}"));
+        AnswerTool.Spec spec = AnswerTool.Spec.one(2);
+        ClaudeCliBridge b = bridge();
+        Assert.assertNull(b.chat(messages(USER), tools(spec, false), true, spec));
+        b.restart();
+        Assert.assertNull(b.ask(USER));
+        Assert.assertNotNull(b.chat(messages(USER), tools(spec, false), true, spec));
+        Assert.assertEquals(b.getLastCostUsd(), 0.0123, 1e-12);
+    }
+
     /** The log line names the bridge version and the answer (acceptance pins the literal from this test's log). */
     @Test
     public void theLogLineStampsTheVersionAndTheAnswer() throws IOException {
@@ -408,6 +447,62 @@ public class ClaudeCliBridgeTest {
     /** The lane is chosen explicitly (owner, 2026-10-24: local development on the owner's subscription, never a benchmark
      *  score), so without CLAUDE_CLI_SEAT=1 it is refused first. The spec names the lane; a bare spec is still the text
      *  lane. Phase 1 offers no lookups and no preview, needs the answer tool, and keeps no conversation. */
+    /** The bare-name text lane (`opus`, `claude-opus-5-5`) runs the same CLI on the same login, so a model seat on it
+     *  needs the same opt-in; a seat that never asks a model (floor, random, the puzzle arms) is untouched. Any other
+     *  spec naming a "cli:" lane is a typo and is refused. */
+    @Test
+    public void theBareCliLaneNeedsTheSameOptInAndAMisspelledLaneIsRefused() {
+        for (String spec : new String[] {"opus", "claude-opus-5-5", "haiku", "claude-cli:claude-opus-5-5"}) {
+            Assert.assertTrue(LlmSpikeGui.LLMBridgeFactory.isCliLane(spec), spec);
+            try {
+                LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, "llm", false, "Seat/smart");
+                Assert.fail("a model seat on " + spec + " was built without " + ClaudeCliBridge.OPT_IN);
+            } catch (IllegalStateException e) {
+                Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1") && e.getMessage().contains("local development"),
+                        e.getMessage());
+            }
+            LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, "llm", true, "Seat/smart");
+            for (String mode : new String[] {"floor", "random", "pass"}) LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, mode, false, "S");
+        }
+        for (String spec : new String[] {"openrouter:openai/gpt-6-luna", "jev:typesafe/jev-1.14", "greedy:", "script:x.txt"}) {
+            Assert.assertFalse(LlmSpikeGui.LLMBridgeFactory.isCliLane(spec), spec);
+            LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, "llm", false, "Seat/smart");
+        }
+        for (String typo : new String[] {"Claude-CLI:opus", "cli:opus", "claude_cli:opus", "openrouter:x/claude-cli:y"}) {
+            try {
+                LlmSpikeGui.LLMBridgeFactory.create("Seat/smart", typo, "p");
+                Assert.fail("built a bridge for " + typo);
+            } catch (IllegalArgumentException e) {
+                Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.PREFIX), e.getMessage());
+            }
+        }
+    }
+
+    /** A model seat with no model named is refused rather than played on the CLI's Opus; a seat that asks no model keeps
+     *  its placeholder. */
+    @Test
+    public void aModelSeatWithNoModelNamedIsRefused() {
+        Map<String, String> env = new HashMap<>();
+        Assert.assertTrue(String.valueOf(LlmSpikeGui.missingModel("llm", "A", env)).contains("SMART_MODEL_A"));
+        Assert.assertNull(LlmSpikeGui.missingModel("floor", "A", env));
+        Assert.assertNull(LlmSpikeGui.missingModel("random", "B", env));
+        env.put("SMART_MODEL", "openrouter:openai/gpt-6-luna");
+        Assert.assertTrue(String.valueOf(LlmSpikeGui.missingModel("llm", "A", env)).contains("FAST_MODEL_A"));
+        env.put("FAST_MODEL_B", "openrouter:openai/gpt-6-luna");
+        Assert.assertNull(LlmSpikeGui.missingModel("llm", "B", env));
+        env.put("FAST_MODEL_A", "");
+        Assert.assertNotNull(LlmSpikeGui.missingModel("llm", "A", env), "an empty value names no model");
+    }
+
+    /** A game or puzzle with a model seat on either CLI lane is a development lane, stamped so. */
+    @Test
+    public void eitherCliLaneIsADevelopmentLane() {
+        Assert.assertTrue(LlmSpikeGui.devLane("llm", "opus", "haiku"));
+        Assert.assertTrue(LlmSpikeGui.devLane("llm", "openrouter:openai/gpt-6-luna", "claude-cli:claude-opus-5-5"));
+        Assert.assertFalse(LlmSpikeGui.devLane("llm", "openrouter:openai/gpt-6-luna", "openrouter:openai/gpt-6-luna"));
+        Assert.assertFalse(LlmSpikeGui.devLane("floor", "opus", "haiku"), "a floor seat's placeholder model is never asked");
+    }
+
     @Test
     public void theFactoryRoutesTheSpecAndRefusesLookupsLookaheadTextAnswersAndChat() {
         Assert.assertEquals(ClaudeCliBridge.VERSION, "claude-cli-bridge-v2", "move this pin WITH ClaudeCliBridge.VERSION");

@@ -425,6 +425,39 @@ class TestAnswerTool(unittest.TestCase):
         self.assertIn("claude-cli:", msg)
         self.assertIn("--one-chat", msg)
 
+    def test_the_bare_cli_lane_needs_the_same_opt_in_and_is_never_a_benchmark(self):
+        # A bare Claude name (opus, haiku) runs `claude -p` on the same login: the same opt-in and the same exclusions.
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CLAUDE_CLI_SEAT", None)
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", "opus", "--fast-a", "haiku",
+                                "--controller-b", "ai"])
+        self.assertIn("CLAUDE_CLI_SEAT=1", str(cm.exception.code))
+        err = io.StringIO()
+        with self.assertRaises(SystemExit), redirect_stderr(err):
+            run_batch.cited_pre_guards(make_args(smart_a="opus", fast_a="haiku", controller_b="ai", exploratory=False))
+        self.assertIn("development lane", err.getvalue())
+        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            run_batch.main(["--panel", "mirror", "--budget-usd", "1", "--smart-a", "opus", "--fast-a", "haiku"])
+        self.assertIn("benchmark", str(cm.exception.code))
+        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", "Claude-CLI:opus", "--fast-a", "Claude-CLI:opus",
+                            "--controller-b", "ai"])
+        self.assertIn("claude-cli:", str(cm.exception.code))
+
+    def test_the_cli_settings_are_the_flags_alone(self):
+        # Standards section 4: an --env override would run a value the manifest records as "cli-default".
+        for k in ("CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST", "CLAUDE_CLI_THINKING_TOKENS"):
+            self.assertIn(k, run_batch.CONDITION_ENV_KEYS)
+            with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+                run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", self.CLI, "--fast-a", self.CLI,
+                                "--controller-b", "ai", "--env", "%s=7" % k])
+            self.assertIn(k, str(cm.exception.code))
+        # And the shell's value never reaches a batch, whatever its seats.
+        with mock.patch.dict(os.environ, {"CLAUDE_BRIDGE_EFFORT_SMART": "low"}), tempfile.TemporaryDirectory() as d:
+            self.assertNotIn("CLAUDE_BRIDGE_EFFORT_SMART", run_batch.build_env(make_args(smart_a=self.OR, fast_a=self.OR), 1, False,
+                                                                              Path(d)))
+
     def test_a_claude_cli_seat_is_never_in_a_cited_run_or_a_panel(self):
         args = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai", exploratory=False)
         err = io.StringIO()
@@ -451,10 +484,9 @@ class TestAnswerTool(unittest.TestCase):
             self.assertEqual(run_batch.batch_condition(unset, cited=False)["claude_cli_thinking_tokens"], "cli-default")
             self.assertIn("claude_cli_effort", [k for k, _, _ in run_batch.condition_diff(cond,
                                                                                          run_batch.batch_condition(unset, False))])
-            # Another model's batch is untouched: no claude-cli key in its condition or its environment.
+            # Another model's batch has no claude-cli key in its condition.
             other = make_args(smart_a=self.OR, fast_a=self.OR, controller_b="ai")
             self.assertIsNone(run_batch.batch_condition(other, cited=False).get("claude_cli_effort"))
-            self.assertEqual(run_batch.build_env(other, 1, False, Path(d)).get("CLAUDE_BRIDGE_EFFORT"), "max")
 
     def test_only_the_flags_set_it_and_lines_keep_it_apart(self):
         with mock.patch.dict(os.environ, {"ANSWER_TOOL": "1", "ANSWER_TOOL_STRICT": "1"}, clear=False), \
@@ -939,7 +971,9 @@ class TestCrossPin(unittest.TestCase):
         self.tmp.cleanup()
 
     def cited(self, **kw):
-        a = make_args(exploratory=False, deck_a=str(self.da), deck_b=str(self.db), seeds=[7800], **kw)
+        # A cited run's seat is never on the Claude CLI (a development lane): an openrouter: pilot.
+        a = make_args(exploratory=False, deck_a=str(self.da), deck_b=str(self.db), seeds=[7800],
+                      smart_a="openrouter:deepseek/deepseek-v4.1-flash", fast_a="openrouter:deepseek/deepseek-v4.1-flash", **kw)
         run_batch.cited_pre_guards(a)
         return a
 

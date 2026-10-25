@@ -18,7 +18,7 @@ Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
     mirror-deck setup (same decklist both seats, distinct identity names),
     forces the eval-confound switches off (MULLIGAN_HEURISTIC=0,
-    SKIP_HEURISTICS=0, no plans), pins --jobs 1 when a seat uses the claude CLI, and stamps full provenance
+    SKIP_HEURISTICS=0, no plans), refuses a seat on the Claude CLI (a development lane), and stamps full provenance
     (engine/overlay/deck shas + discipline). Refuses to run on any violation
     or on spike-file drift.
   --exploratory — skips the mirror/heuristic/jobs guards for quick pokes.
@@ -82,7 +82,10 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
-                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT")
+                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT",
+                      # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
+                      "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
+                      "CLAUDE_CLI_THINKING_TOKENS")
 # Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
 # resume comparison folds them out of `env_overrides` and back into their own condition field, so a
 # directory made with `--env LOOKAHEAD=1` (or PLAN_EXECUTE / TIER_FAST_TYPES) resumes under the flag.
@@ -601,8 +604,9 @@ def answer_tool_requested(args):
 
 
 def has_cli_seat(args):
-    """True when an llm seat of this batch is a claude-cli: one (the development lane, ClaudeCliBridge)."""
-    return any(cost_report.is_cli(m) for m in effective_llm_models(args))
+    """True when an llm seat of this batch runs on the Claude CLI (claude-cli: or a bare Claude name): the
+    development lane."""
+    return any(cost_report.is_cli_lane(m) for m in effective_llm_models(args))
 
 
 def lane_refusals(args):
@@ -903,8 +907,9 @@ def cited_pre_guards(args):
     FIRST so a misconfigured cited run refuses before anything launches."""
     # --- guard 0: no development lane in a cited number (owner, 2026-10-24) ---
     if has_cli_seat(args):
-        _refuse("a %s seat is a development lane on the operator's own Claude subscription and is never part of a "
-                "benchmark score; run it with --exploratory." % cost_report.CLI_PREFIX)
+        _refuse("a seat on the Claude CLI (%s or a bare Claude name) is a development lane on the operator's own "
+                "Claude subscription and is never part of a benchmark score; run it with --exploratory."
+                % cost_report.CLI_PREFIX)
     # --- guard 1: mirror deck ---
     da, db = args.deck_a, args.deck_b
     if not da or not db:
@@ -950,14 +955,6 @@ def cited_pre_guards(args):
     if args.plan_a or args.plan_b:
         _refuse("plans (PLAN_A/PLAN_B) are an expert-knowledge confound and are "
                 "forbidden in cited mode.")
-
-    # --- guard 3: single JVM when a seat runs on the local claude CLI ---
-    # Parallel JVMs starve the CLI and inflate fallbacks. An openrouter: game waits on the network
-    # (eval/CONCURRENCY.md section 7), so it may run in parallel; warn_parallel_jobs still caps by RAM.
-    bare = cli_specs(args)
-    if args.jobs != 1 and bare:
-        _refuse("cited mode requires --jobs 1 with claude-CLI model specs %s (got --jobs %d); "
-                "parallel JVMs starve the claude CLI and inflate fallbacks." % (bare, args.jobs))
 
     # --- guard 3b: held-out seeds only ---
     cited_seed_guard(args)
@@ -1382,16 +1379,12 @@ def main(argv=None):
     refusal = cost_report.cli_opt_in_refusal(specs, os.environ)
     if refusal:
         raise SystemExit("run_batch: " + refusal)
-    if args.panel and any(cost_report.is_cli(m) for m in specs):
-        raise SystemExit("run_batch: a %s seat is a development lane and never part of a benchmark score: a panel is "
-                         "one (owner, 2026-10-24)" % cost_report.CLI_PREFIX)
-    for flag, v in (("--claude-cli-effort", args.claude_cli_effort),
-                    ("--claude-cli-thinking-tokens", args.claude_cli_thinking_tokens)):
-        if v is not None and not any(cost_report.is_cli(m) for m in specs):
-            raise SystemExit("run_batch: %s is the Claude CLI's (a %s seat); no other seat reads it"
-                             % (flag, cost_report.CLI_PREFIX))
-    if args.claude_cli_thinking_tokens is not None and args.claude_cli_thinking_tokens < 1:
-        raise SystemExit("run_batch: --claude-cli-thinking-tokens must be a positive number")
+    if args.panel and any(cost_report.is_cli_lane(m) for m in specs):
+        raise SystemExit("run_batch: a seat on the Claude CLI (%s or a bare Claude name) is a development lane and never "
+                         "part of a benchmark score: a panel is one (owner, 2026-10-24)" % cost_report.CLI_PREFIX)
+    refusal = cost_report.cli_flag_refusal(specs, args.claude_cli_effort, args.claude_cli_thinking_tokens)
+    if refusal:
+        raise SystemExit("run_batch: " + refusal)
     refused = lane_refusals(args)
     if refused:
         raise SystemExit("run_batch: " + "; ".join(refused) + " (the JVM refuses it too)")

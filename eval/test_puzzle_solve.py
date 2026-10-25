@@ -22,7 +22,7 @@ class RulesToolNeedsMemoryToolsTest(unittest.TestCase):
 
     def test_rules_tool_without_memory_tools_is_refused_before_anything_runs(self):
         with self.assertRaises(SystemExit) as cm:
-            puzzle_solve.main(["--suite", "/nonexistent/suite.json", "--split", "open", "--model", "fake",
+            puzzle_solve.main(["--suite", "/nonexistent/suite.json", "--split", "open", "--model", "greedy:",
                                "--budget-usd", "0", "--out", "/nonexistent/out", "--rules-tool"])
         self.assertIn("--memory-tools", str(cm.exception.code))
 
@@ -75,7 +75,7 @@ class BudgetAtTheBoundTest(unittest.TestCase):
         with mock.patch.object(puzzle_solve, "solve_puzzle", return_value=(pid, 0, [])) as solve, \
                 mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(out):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", str((listed + bound) / 2), "--ids", pid, "--out", str(root)])
         solve.assert_not_called()
         self.assertIn("[budget] not started: %s" % pid, out.getvalue())
@@ -120,7 +120,7 @@ class ResumeTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         puzzle_solve.write_manifest(root / pid, "fake:another-model", suite["suite_sha256"], pid, {})
         with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve.pb, "Build", **STUB_BUILD):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "0", "--ids", pid, "--out", str(root), "--resume"])
         self.assertIn("another condition", str(cm.exception.code))
 
@@ -166,7 +166,7 @@ class ResumeTest(unittest.TestCase):
         suite = json.loads(suite_path.read_text())
         pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
         root = Path(tempfile.mkdtemp())
-        argv = ["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1", "--budget-usd", "1",
+        argv = ["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1", "--budget-usd", "1",
                 "--ids", pid, "--out", str(root), "--resume"]
         import argparse
         cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False,
@@ -207,7 +207,7 @@ class BuildProvenanceTest(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
                 contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                "--budget-usd", "1", "--ids", pid, "--out", str(root), "--build", "/b",
                                "--allow-stale-build"])
         self.assertEqual(seen, [("/b", True)])
@@ -238,7 +238,7 @@ class RunFileTest(unittest.TestCase):
                 mock.patch.object(puzzle_solve, "spent", return_value=0.0), \
                 contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(KeyboardInterrupt):
-                puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
                                    "--budget-usd", "1", "--ids", pid, "--out", str(root)])
         run = json.loads((root / puzzle_solve.RUN_FILE).read_text())
         self.assertFalse(run["finished"])
@@ -305,6 +305,7 @@ class ClaudeCliSeatTest(unittest.TestCase):
         self.assertIn("-j 1", self.run_main(self.CLI))   # the default is 2
 
     def test_it_is_refused_without_its_explicit_opt_in(self):
+        self.assertIn("CLAUDE_CLI_SEAT=1", self.run_main("opus", "-j", "1", opted_in=False))   # the bare lane too
         msg = self.run_main(self.CLI, "-j", "1", opted_in=False)
         self.assertIn("CLAUDE_CLI_SEAT=1", msg)
         self.assertIn("local development", msg)

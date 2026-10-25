@@ -87,7 +87,7 @@ def condition(a):
     cond = {"CONTEXT_PROFILE": a.context_profile, "MEMORY_TOOLS": "1" if a.memory_tools else "0",
             "RULES_TOOL": "1" if a.rules_tool else "0", "NATIVE_TOOLS": "1", "ANSWER_TOOL": "1",
             "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
-    if cost_report.is_cli(getattr(a, "model", None)):
+    if cost_report.is_cli_lane(getattr(a, "model", None)):
         cond.update(cost_report.cli_env(getattr(a, "claude_cli_effort", None), getattr(a, "claude_cli_thinking_tokens", None)))
     return cond
 
@@ -209,18 +209,16 @@ def main(argv=None):
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
-    if cost_report.answer_only(a.model) and a.memory_tools:
+    if cost_report.lane_of(a.model) and a.memory_tools:
         raise SystemExit("--memory-tools with a %s: model: such a seat cannot call a lookup, so the run would record "
                          "MEMORY_TOOLS=1 for a seat that never used it (the JVM refuses it too)" % a.model.split(":", 1)[0])
     refusal = cost_report.cli_opt_in_refusal([a.model], os.environ)
     if refusal:
         raise SystemExit(refusal)
-    for flag, v in (("--claude-cli-effort", a.claude_cli_effort), ("--claude-cli-thinking-tokens", a.claude_cli_thinking_tokens)):
-        if v is not None and not cost_report.is_cli(a.model):
-            raise SystemExit("%s is the Claude CLI's (a %s model); no other model reads it" % (flag, cost_report.CLI_PREFIX))
-    if a.claude_cli_thinking_tokens is not None and a.claude_cli_thinking_tokens < 1:
-        raise SystemExit("--claude-cli-thinking-tokens must be a positive number")
-    if cost_report.is_cli(a.model) and a.jobs != 1:
+    refusal = cost_report.cli_flag_refusal([a.model], a.claude_cli_effort, a.claude_cli_thinking_tokens)
+    if refusal:
+        raise SystemExit(refusal)
+    if cost_report.is_cli_lane(a.model) and a.jobs != 1:
         raise SystemExit("-j 1 with a %s model: each puzzle's JVM shells out to the one local Claude CLI, and parallel ones "
                          "contend for it, so decisions time out and are lost (run_batch.py's cited rule)" % cost_report.CLI_PREFIX)
     if a.rules_tool and not a.memory_tools:

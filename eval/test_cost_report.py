@@ -135,8 +135,8 @@ class CostReportTest(unittest.TestCase):
         # ClaudeCliBridge writes the CLI's total_cost_usd (its side call to another model included) as each row's
         # cost_usd; the tokens are not priced, and the budget's dearest-endpoint prices change nothing.
         spec = "claude-cli:claude-opus-5-5"
-        self.assertTrue(cr.is_cli(spec) and cr.answer_only(spec) and cr.answer_only("jev:typesafe/jev-1.14"))
-        self.assertFalse(cr.answer_only(OR) or cr.answer_only("claude-opus-5-5"))
+        self.assertTrue(cr.is_cli(spec) and cr.lane_of(spec) and cr.lane_of("jev:typesafe/jev-1.14"))
+        self.assertFalse(cr.lane_of(OR) or cr.lane_of("claude-opus-5-5"))
         with tempfile.TemporaryDirectory() as d:
             write(d, "game-1.jsonl", [
                 {"t": "context_call", "tier": "smart", "prompt_tokens": 3512, "completion_tokens": 140, "cost_usd": 0.0123},
@@ -149,19 +149,18 @@ class CostReportTest(unittest.TestCase):
                 self.assertAlmostEqual(r["usd"], 0.0224, places=12)
                 self.assertEqual((r["models"], r["unpriced"], r["checked"]), ({spec}, set(), {"CLI-reported"}))
 
-    def test_a_name_shared_by_a_claude_cli_seat_and_a_token_priced_seat_is_never_priced_at_zero(self):
-        # Both identities named "Burn": one on the CLI, one on openrouter. The bucket is priced at the larger of the
-        # CLI's reported cost and the token price of the other seat's spec (an upper bound), never at $0 for it.
+    def test_a_name_shared_by_a_claude_cli_seat_and_a_token_priced_seat_adds_both_seats_spend(self):
+        # Both identities named "Burn": one on the CLI, one on openrouter. The CLI's rows carry its reported cost
+        # ($1.00); the other seat's rows carry none and are priced from their tokens (30000 at $1 per million, $0.03).
         spec = "claude-cli:claude-opus-5-5"
         prices = {"deepseek/deepseek-v4.1-flash": {"prompt": 1e-06, "completion": 0, "checked": "2026-10-24"}}
         with tempfile.TemporaryDirectory() as d:
             write(d, "game-1.jsonl", [
-                {"t": "context_call", "seat": "Burn", "tier": "smart", "prompt_tokens": 1000000, "completion_tokens": 0,
-                 "cost_usd": 0.25},
+                {"t": "context_call", "seat": "Burn", "tier": "smart", "prompt_tokens": 5000, "completion_tokens": 900,
+                 "cost_usd": 1.00},
+                {"t": "context_call", "seat": "Burn", "tier": "smart", "prompt_tokens": 30000, "completion_tokens": 0},
                 {"t": "game", "deck_a": "Burn", "deck_b": "Burn", "smart_a": spec, "fast_a": spec, "smart_b": OR, "fast_b": OR}])
-            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 1.0, places=9)
-            prices["deepseek/deepseek-v4.1-flash"]["prompt"] = 1e-08
-            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 0.25, places=9)
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 1.03, places=9)
 
     def test_the_opt_in_names_the_lane_and_its_purpose(self):
         spec = "claude-cli:claude-opus-5-5"
@@ -171,6 +170,18 @@ class CostReportTest(unittest.TestCase):
         self.assertIsNone(cr.cli_opt_in_refusal([spec], {"CLAUDE_CLI_SEAT": "1"}))
         self.assertIsNone(cr.cli_opt_in_refusal([OR, "jev:typesafe/jev-1.14"], {}))
         self.assertEqual(cr.lane_of(spec), "claude-cli:")
+        # The bare-name text lane runs the same CLI on the same login: the same opt-in.
+        self.assertIn("CLAUDE_CLI_SEAT=1", cr.cli_opt_in_refusal(["opus"], {}))
+        self.assertTrue(cr.is_cli_lane("opus") and cr.is_cli_lane("claude-opus-5-5") and cr.is_cli_lane(spec))
+        self.assertFalse(cr.is_cli_lane(OR) or cr.is_cli_lane("jev:typesafe/jev-1.14") or cr.is_cli_lane(None))
+        # Any other spec naming a "cli:" lane is a typo, refused before anything runs.
+        for typo in ("Claude-CLI:opus", "cli:opus", "claude_cli:opus"):
+            self.assertIn("claude-cli:", cr.cli_opt_in_refusal([typo], {"CLAUDE_CLI_SEAT": "1"}) or "")
+        # The CLI-only flags: refused for a batch without a CLI seat, and a thinking budget must be positive.
+        self.assertIsNone(cr.cli_flag_refusal([spec], "high", 16000))
+        self.assertIn("--claude-cli-effort", cr.cli_flag_refusal([OR], "high", None))
+        self.assertIn("--claude-cli-thinking-tokens", cr.cli_flag_refusal([OR], None, 16000))
+        self.assertIn("positive", cr.cli_flag_refusal([spec], None, 0))
         self.assertEqual(cr.lane_of("jev:typesafe/jev-1.14"), "jev:")
         self.assertIsNone(cr.lane_of(OR))
 

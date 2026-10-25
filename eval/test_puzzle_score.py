@@ -216,6 +216,7 @@ class ScoreV2Test(unittest.TestCase):
         rep = ps.score(self.m, rows, "open", k=4, n_boot=20)
         self.assertEqual(rep["dev_lane"], "claude-cli")
         self.assertIn("DEVELOPMENT LANE", ps.render(rep).splitlines()[0])
+        self.assertFalse(any(l.startswith("PUZ") or "headline" in l for l in ps.render(rep).splitlines()), ps.render(rep))
         self.assertNotIn("DEVELOPMENT LANE", ps.render(ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)))
 
     def test_no_spread_gives_no_smallest_difference(self):

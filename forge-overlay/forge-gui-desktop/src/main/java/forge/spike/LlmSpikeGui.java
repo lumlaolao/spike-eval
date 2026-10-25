@@ -1248,7 +1248,7 @@ public final class LlmSpikeGui {
 
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel, String mode) {
-            this(game, p, lp, seat, deckPlan, oneTierPair(seat, deckPlan, smartModel, fastModel), mode);
+            this(game, p, lp, seat, deckPlan, oneTierPair(seat, deckPlan, smartModel, fastModel, mode), mode);
         }
 
         private PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
@@ -1257,7 +1257,11 @@ public final class LlmSpikeGui {
         }
 
         /** The smart and fast bridges: one shared smart bridge under ONE_TIER, else one per tier. */
-        private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel) {
+        private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel, String mode) {
+            // A seat that asks the model on the Claude CLI (either lane) is the development lane: the operator chose it.
+            boolean optedIn = "1".equals(System.getenv(ClaudeCliBridge.OPT_IN));
+            LLMBridgeFactory.requireCliOptIn(smartModel, mode, optedIn, seat + "/smart");
+            LLMBridgeFactory.requireCliOptIn(fastModel, mode, optedIn, seat + "/fast");
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
                 smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
@@ -10033,6 +10037,27 @@ public final class LlmSpikeGui {
         return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
     }
 
+    /** Why a model seat ({@code ctl} llm) of identity {@code ident} cannot be built: a tier with no model named
+     *  (SMART_MODEL_X / FAST_MODEL_X, else SMART_MODEL / FAST_MODEL). It used to default to the Claude CLI's opus and
+     *  haiku, a lane the operator never chose. Null when every tier is named, or the seat asks no model. */
+    static String missingModel(String ctl, String ident, Map<String, String> env) {
+        if (!"llm".equals(ctl)) return null;
+        List<String> missing = new ArrayList<>();
+        for (String tier : new String[] {"SMART", "FAST"}) {
+            String v = env.get(tier + "_MODEL_" + ident);
+            if (v == null) v = env.get(tier + "_MODEL");
+            if (v == null || v.trim().isEmpty()) missing.add(tier + "_MODEL_" + ident);
+        }
+        return missing.isEmpty() ? null : "the model seat " + ident + " names no model (" + String.join(", ", missing)
+                + " unset, nor SMART_MODEL / FAST_MODEL): name one; there is no default model";
+    }
+
+    /** A game or puzzle where identity {@code ctl}'s model seat runs on the Claude CLI (either lane): the development
+     *  lane, stamped `dev_lane` and never part of a benchmark score (owner, 2026-10-24). */
+    static boolean devLane(String ctl, String smart, String fast) {
+        return "llm".equals(ctl) && (LLMBridgeFactory.isCliLane(smart) || LLMBridgeFactory.isCliLane(fast));
+    }
+
     /** Shared seat construction for GUI + headless runners. Env:
      *  DECK_A/B, DECK_A_NAME/B_NAME, PLAN_A/B ("" = plan-free arm),
      *  SMART_MODEL_A/B + FAST_MODEL_A/B (fall back to SMART_MODEL/FAST_MODEL),
@@ -10061,6 +10086,10 @@ public final class LlmSpikeGui {
         lastPlanA = planA; lastPlanB = planB;
         String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
         String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "llm");
+        for (String[] s : new String[][] {{ctlA, "A"}, {ctlB, "B"}}) {
+            String missing = missingModel(s[0], s[1], System.getenv());
+            if (missing != null) throw new IllegalStateException(missing);
+        }
 
         Deck deckA, deckB;
         try { deckA = loadDeck(nameA, pathA); deckB = loadDeck(nameB, pathB); }
@@ -11238,6 +11267,10 @@ public final class LlmSpikeGui {
         static LLMBridge create(String label, String spec, String preamble) {
             if (spec == null || spec.isEmpty())
                 throw new IllegalArgumentException("model spec required for " + label);
+            // A "cli:" lane other than claude-cli: (Claude-CLI:, cli:, claude_cli:) would fall to the bare text lane below.
+            if (spec.toLowerCase(Locale.ROOT).contains("cli:") && !ClaudeCliBridge.isSpec(spec))
+                throw new IllegalArgumentException("'" + spec + "' names a cli: lane but is not " + ClaudeCliBridge.PREFIX
+                        + "<model> (" + label + ")");
             // A written solution line played through the model seat (ScriptBridge): no model, nothing leaves.
             if (spec.startsWith(ScriptBridge.PREFIX)) {
                 // "script:relaxed:<file>" is a minimality replay (puzzle_baselines.py); the spec is the row's solver model.
@@ -11293,6 +11326,27 @@ public final class LlmSpikeGui {
             if (chat) throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat asks each decision in a fresh "
                     + "process: run it with ONE_CHAT=0 and TURN_CHAT=0 (no --one-chat, no --turn-chat) (" + label + ")");
             return new ClaudeCliBridge(label, spec.substring(ClaudeCliBridge.PREFIX.length()), preamble);
+        }
+
+        /** True for a spec the local Claude Code CLI answers: `claude-cli:` (ClaudeCliBridge) or a bare Claude name that
+         *  {@link #create} sends to the text lane (ClaudeBridge). Both run `claude -p` on the operator's own login. */
+        static boolean isCliLane(String spec) {
+            if (spec == null || spec.isEmpty()) return false;
+            if (ClaudeCliBridge.isSpec(spec)) return true;
+            for (String p : new String[] {"openrouter:", DecisionsBridge.PREFIX, ScriptBridge.PREFIX, GreedyBridge.PREFIX})
+                if (spec.startsWith(p)) return false;
+            return true;
+        }
+
+        /** Owner, 2026-10-24: a model seat on the Claude CLI (either lane) is local development on the operator's own
+         *  subscription, used only when chosen ({@code optedIn}: ClaudeCliBridge.OPT_IN=1) and never a benchmark score. A
+         *  seat that asks no model ({@code mode} other than llm: floor, random, the puzzle arms) is not one. */
+        static void requireCliOptIn(String spec, String mode, boolean optedIn, String label) {
+            if (optedIn || !"llm".equals(mode) || !isCliLane(spec)) return;
+            throw new IllegalStateException("a " + ClaudeCliBridge.PREFIX + " seat or a bare Claude name ('" + spec + "') runs "
+                    + "the Claude Code CLI on the operator's own Claude subscription: it is for local development only and never "
+                    + "part of a benchmark score (owner, 2026-10-24). Set " + ClaudeCliBridge.OPT_IN + "=1 to choose it ("
+                    + label + ")");
         }
 
         /** A seat whose backend can give only the `answer` (and `set_plan`) call: a lookup offered to it would record a
@@ -11626,7 +11680,9 @@ public final class LlmSpikeGui {
                         + ",\"claude_cli_thinking_tokens_a\":\"" + ClaudeCliBridge.thinkingStamp() + "\"" : "")
                 + (cliB ? ",\"claude_cli_bridge_version_b\":\"" + ClaudeCliBridge.VERSION + "\""
                         + ",\"claude_cli_thinking_tokens_b\":\"" + ClaudeCliBridge.thinkingStamp() + "\"" : "")
-                + (cliA || cliB ? ",\"dev_lane\":\"" + ClaudeCliBridge.DEV_LANE + "\"" : "")
+                + (devLane(System.getenv().getOrDefault("CONTROLLER_A", "llm"), smartASpec, fastASpec)
+                        || devLane(System.getenv().getOrDefault("CONTROLLER_B", "llm"), smartBSpec, fastBSpec)
+                        ? ",\"dev_lane\":\"" + ClaudeCliBridge.DEV_LANE + "\"" : "")
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""

@@ -418,13 +418,13 @@ def _ci(c):
 
 def render(rep):
     a = rep["aggregate"]
-    lines = ["DEVELOPMENT LANE (%s): local development on the owner's subscription, not a benchmark score"
-             % rep["dev_lane"]] if rep.get("dev_lane") else []
-    lines += ["PUZ  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
+    dev = rep.get("dev_lane")
+    lines = ["DEVELOPMENT LANE (%s): local development on the owner's subscription, not a benchmark score" % dev] if dev else []
+    lines += [("DEV" if dev else "PUZ") + "  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
              % (rep["suite"], rep["suite_version"], rep["suite_sha256"][:12], rep["split"], rep["solver"],
                 rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
     h = a["headline"]
-    lines.append("  headline %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
+    lines.append("  " + ("solve rate" if dev else "headline") + " %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
                  % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _ci(h.get("ci95_clustered")), _fmt(h["floors"]["pass"]),
                     _fmt(h["floors"]["first"])))
     for key in ("pass@1", "pass^2", "pass^k"):

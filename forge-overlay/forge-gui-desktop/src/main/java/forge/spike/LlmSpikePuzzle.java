@@ -363,6 +363,8 @@ public final class LlmSpikePuzzle {
         String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
         String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "ai");
         requireSolverArm(ctlA);
+        String missingModel = LlmSpikeGui.missingModel(ctlA, "A", System.getenv());
+        if (missingModel != null) throw new IllegalStateException(missingModel);
         String smartA = System.getenv().getOrDefault("SMART_MODEL_A",
                 System.getenv().getOrDefault("SMART_MODEL", "opus"));
         String fastA = System.getenv().getOrDefault("FAST_MODEL_A",
@@ -912,13 +914,13 @@ public final class LlmSpikePuzzle {
         if ("llm".equals(ctlA) && (DecisionsBridge.isSpec(smartA) || DecisionsBridge.isSpec(fastA)))
             row.put("decisions_bridge_version", DecisionsBridge.VERSION);
         // A claude-cli: solver (ClaudeCliBridge): the bridge and the effort and thinking budget it ran at, which
-        // puzzle_score.py never pools, and the development-lane label it prints instead of calling the run a score.
+        // puzzle_score.py never pools; a solver on either CLI lane: the development-lane label it prints instead of a score.
         if ("llm".equals(ctlA) && (ClaudeCliBridge.isSpec(smartA) || ClaudeCliBridge.isSpec(fastA))) {
             row.put("claude_cli_bridge_version", ClaudeCliBridge.VERSION);
             row.put("claude_cli_effort", ClaudeCliBridge.effortStamp());
             row.put("claude_cli_thinking_tokens", ClaudeCliBridge.thinkingStamp());
-            row.put("dev_lane", ClaudeCliBridge.DEV_LANE);
         }
+        if (LlmSpikeGui.devLane(ctlA, smartA, fastA)) row.put("dev_lane", ClaudeCliBridge.DEV_LANE);
         row.putAll(extra);
         String line = toJson(row);
         System.out.println("PZL_RESULT " + line);
