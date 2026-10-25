@@ -43,6 +43,9 @@ final class HttpDeadline {
 
     /** Why the last {@link #send} on this thread returned null: "deadline", "no-headers" or "silent", or null. */
     static final ThreadLocal<String> LAST_STOP = new ThreadLocal<>();
+    /** The status and headers of the last {@link #send} on this thread, once they arrived (null before): a call cut
+     *  off after its headers still has them, for the run's record (Transcript). */
+    static final ThreadLocal<HttpResponse.ResponseInfo> LAST_INFO = new ThreadLocal<>();
 
     /**
      * Sends {@code req} and returns the response, or {@code null} if {@code remainingMs} elapses
@@ -68,11 +71,15 @@ final class HttpDeadline {
                                     HttpResponse.BodyHandler<T> handler, long remainingMs, long idleMs)
             throws Exception {
         LAST_STOP.remove();
+        LAST_INFO.remove();
         final long start = System.currentTimeMillis();
         final java.util.concurrent.atomic.AtomicLong last = new java.util.concurrent.atomic.AtomicLong(start);
         final java.util.concurrent.atomic.AtomicBoolean headers = new java.util.concurrent.atomic.AtomicBoolean();
         final java.util.concurrent.atomic.AtomicBoolean bytes = new java.util.concurrent.atomic.AtomicBoolean();
+        final java.util.concurrent.atomic.AtomicReference<HttpResponse.ResponseInfo> seen =
+                new java.util.concurrent.atomic.AtomicReference<>();
         HttpResponse.BodyHandler<T> tracking = info -> {
+            seen.set(info);
             headers.set(true);
             last.set(System.currentTimeMillis());
             HttpResponse.BodySubscriber<T> inner = handler.apply(info);
@@ -93,16 +100,16 @@ final class HttpDeadline {
         while (true) {
             long now = System.currentTimeMillis();
             long left = deadline - now;
-            if (left <= 0) { pending.cancel(true); LAST_STOP.set("deadline"); return null; }
+            if (left <= 0) { pending.cancel(true); LAST_STOP.set("deadline"); LAST_INFO.set(seen.get()); return null; }
             try {
                 return pending.get(Math.min(left, 250), TimeUnit.MILLISECONDS);
             } catch (TimeoutException te) {
                 now = System.currentTimeMillis();
                 if (idleMs > 0 && !headers.get() && now - start > idleMs) {
-                    pending.cancel(true); LAST_STOP.set("no-headers"); return null;
+                    pending.cancel(true); LAST_STOP.set("no-headers"); LAST_INFO.set(seen.get()); return null;
                 }
                 if (idleMs > 0 && bytes.get() && now - last.get() > idleMs) {
-                    pending.cancel(true); LAST_STOP.set("silent"); return null;
+                    pending.cancel(true); LAST_STOP.set("silent"); LAST_INFO.set(seen.get()); return null;
                 }
             } catch (ExecutionException ee) {
                 Throwable cause = ee.getCause();

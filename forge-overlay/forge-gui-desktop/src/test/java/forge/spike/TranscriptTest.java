@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import forge.game.GameLog;
 import forge.game.GameLogEntry;
 import forge.game.GameLogEntryType;
 import org.testng.Assert;
@@ -17,34 +18,43 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 
 /**
  * The run keeps every byte of every model call and the whole engine log (owner, 2026-10-25). A loopback fake records
- * the exact bytes it received and sent; the transcript row must decode to the same bytes, for both the chat lane
- * (OpenRouterBridge) and the Decisions lane (DecisionsBridge), and must never hold a key. Nothing here reaches
- * openrouter.ai: every server is 127.0.0.1.
+ * the exact bytes it received and sent; the transcript rows must decode to the same bytes, for both the chat lane
+ * (OpenRouterBridge) and the Decisions lane (DecisionsBridge), must be on disk before the call is answered, must never
+ * hold a key, and must never change what is sent or lose a reply. Nothing here reaches openrouter.ai: every server is
+ * 127.0.0.1.
  */
-@Test(singleThreaded = true) // the captured bytes, the scripted reply and Transcript's file are shared
+@Test(singleThreaded = true) // the captured bytes, the scripted reply and Transcript's state are shared
 public class TranscriptTest {
 
+    private static final String KEY = "sk-or-v1-test-not-a-real-key";
     private static final List<byte[]> received = new CopyOnWriteArrayList<>();
     private static final List<byte[]> sent = new CopyOnWriteArrayList<>();
-    private static final List<String> auths = new CopyOnWriteArrayList<>();
+    /** What the transcripts directory held when the server read each request (the write-ahead row's proof). */
+    private static final List<String> onDiskAtRequest = new CopyOnWriteArrayList<>();
     private static volatile String reply = "{}";
     private static volatile int status = 200;
+    private static volatile File dir;
     private HttpServer server;
     private String base;
-    private File dir;
 
     /** A reply as OpenRouter writes it: leading keep-alive whitespace, a generation id, the provider, a reasoning
      *  detail with an encrypted part, a tool call, and non-ASCII text. */
@@ -60,6 +70,7 @@ public class TranscriptTest {
 
     private static final String TOOLS = "[{\"type\":\"function\",\"function\":{\"name\":\"" + AnswerTool.NAME
             + "\",\"description\":\"d\",\"parameters\":{\"type\":\"object\",\"properties\":{}}}}]";
+    private static final String MESSAGES = "[{\"role\":\"user\",\"content\":\"== Turn 1 ==\\nplay\"}]";
 
     @BeforeClass
     public void startServer() throws IOException {
@@ -67,14 +78,30 @@ public class TranscriptTest {
         server.setExecutor(Executors.newCachedThreadPool());
         server.createContext("/", ex -> {
             received.add(read(ex));
-            String a = ex.getRequestHeaders().getFirst("Authorization");
-            auths.add(a == null ? "" : a);
+            onDiskAtRequest.add(allText());
             byte[] b = reply.getBytes(StandardCharsets.UTF_8);
             sent.add(b);
             ex.getResponseHeaders().add("Content-Type", "application/json");
             ex.getResponseHeaders().add("Set-Cookie", "session=s3cr3t-cookie");
+            ex.getResponseHeaders().add("X-RateLimit-Remaining-Tokens", "99000");
             ex.sendResponseHeaders(status, b.length);
             try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        });
+        // Answers nothing for 1.5 s: past a 300 ms bridge deadline.
+        server.createContext("/slow/", ex -> {
+            received.add(read(ex));
+            sleep(1500);
+            ex.sendResponseHeaders(200, -1);
+            ex.close();
+        });
+        // Sends its status and headers at once, then no body before the deadline.
+        server.createContext("/headers-then-silence/", ex -> {
+            received.add(read(ex));
+            ex.getResponseHeaders().add("X-Generation-Id", "gen-cut-1");
+            ex.sendResponseHeaders(200, 0);
+            ex.getResponseBody().flush();
+            sleep(1500);
+            ex.close();
         });
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort() + "/api/v1";
@@ -87,31 +114,47 @@ public class TranscriptTest {
 
     @BeforeMethod
     public void reset() throws IOException {
-        received.clear(); sent.clear(); auths.clear();
+        received.clear(); sent.clear(); onDiskAtRequest.clear();
         status = 200;
         reply = CHAT_REPLY;
         dir = Files.createTempDirectory("transcript-test").toFile();
-        Transcript.openForTest(dir, "sk-or-v1-test-not-a-real-key");
+        Transcript.openForTest(dir, KEY);
     }
 
     @AfterMethod(alwaysRun = true)
     public void close() { Transcript.closeForTest(); }
 
-    private List<JsonObject> rows(String prefix) throws IOException {
+    private static void sleep(long ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+    }
+
+    private LlmSpikeGui.OpenRouterBridge chatBridge(String url, long timeoutMs) {
+        return new LlmSpikeGui.OpenRouterBridge("Solver/smart", "openai/gpt-6-luna",
+                "SYSTEM: you pilot the seat \u2014 \u00e9t\u00e9.", url, timeoutMs);
+    }
+
+    /** Every http row, in file then line order; {@code phase} null for all. */
+    private static List<JsonObject> rows(String phase) throws IOException {
         List<JsonObject> out = new ArrayList<>();
-        File[] fs = dir.listFiles((d, n) -> n.startsWith(prefix) && n.endsWith(".jsonl"));
-        Assert.assertNotNull(fs);
+        File[] fs = dir.listFiles((d, n) -> n.startsWith("http-") && n.endsWith(".jsonl"));
+        if (fs == null) return out;
         Arrays.sort(fs);
         for (File f : fs)
-            for (String l : Files.readAllLines(f.toPath(), StandardCharsets.UTF_8))
-                if (!l.isEmpty()) out.add(JsonParser.parseString(l).getAsJsonObject());
+            for (String l : Files.readAllLines(f.toPath(), StandardCharsets.UTF_8)) {
+                if (l.isEmpty()) continue;
+                JsonObject r = JsonParser.parseString(l).getAsJsonObject();
+                if (phase == null || phase.equals(r.get("phase").getAsString())) out.add(r);
+            }
         return out;
     }
 
-    private String allText() throws IOException {
+    private static String allText() {
         StringBuilder b = new StringBuilder();
-        File[] fs = dir.listFiles();
-        if (fs != null) for (File f : fs) b.append(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8));
+        File[] fs = dir == null ? null : dir.listFiles();
+        if (fs != null) for (File f : fs) {
+            try { b.append(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8)); }
+            catch (IOException e) { b.append("<unreadable ").append(f).append('>'); }
+        }
         return b.toString();
     }
 
@@ -119,51 +162,109 @@ public class TranscriptTest {
         return r.get(field).getAsString().getBytes(StandardCharsets.UTF_8);
     }
 
-    /** The chat lane: the row's request is the bytes the server read (system preamble, every message, the tools,
-     *  tool_choice, reasoning, max_tokens, the provider object) and its response the bytes the server wrote (id,
-     *  provider, reasoning_details, tool call, usage with cost), with the status and the version. */
+    /** The chat lane: one seq, a sent row whose request is the bytes the server read (system preamble, every
+     *  message, the tools, tool_choice, reasoning, max_tokens, the provider object) and a response row whose body is
+     *  the bytes the server wrote (id, provider, reasoning_details, tool call, usage with cost). */
     @Test
     public void anOpenRouterCallIsRecordedByteForByte() throws IOException {
-        LlmSpikeGui.OpenRouterBridge b = new LlmSpikeGui.OpenRouterBridge("Solver/smart", "openai/gpt-6-luna",
-                "SYSTEM: you pilot the seat \u2014 \u00e9t\u00e9.", base, 5000);
-        b.chat("[{\"role\":\"user\",\"content\":\"== Turn 1 ==\\nplay\"}]", TOOLS, true);
-        List<JsonObject> rs = rows("http-");
-        Assert.assertEquals(rs.size(), 1, "one round-trip, one row");
-        JsonObject r = rs.get(0);
-        Assert.assertEquals(r.get("t").getAsString(), "http");
-        Assert.assertEquals(r.get("version").getAsString(), Transcript.VERSION);
-        Assert.assertEquals(r.get("bridge").getAsString(), "openrouter");
-        Assert.assertEquals(r.get("label").getAsString(), "Solver/smart");
-        Assert.assertEquals(r.get("status").getAsInt(), 200);
-        Assert.assertEquals(utf8(r, "request_body"), received.get(0), "the request as the server read it");
-        Assert.assertEquals(utf8(r, "response_body"), sent.get(0), "the response as the server wrote it");
-        Assert.assertEquals(r.get("request_sha256").getAsString(), LlmSpikePuzzle.sha256(r.get("request_body").getAsString()));
-        Assert.assertEquals(r.get("response_sha256").getAsString(), LlmSpikePuzzle.sha256(r.get("response_body").getAsString()));
-        String req = r.get("request_body").getAsString();
+        chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
+        List<JsonObject> s = rows("sent"), r = rows("response");
+        Assert.assertEquals(s.size(), 1, "one round-trip, one sent row");
+        Assert.assertEquals(r.size(), 1, "and one response row");
+        Assert.assertEquals(s.get(0).get("seq"), r.get(0).get("seq"));
+        Assert.assertEquals(s.get(0).get("version").getAsString(), Transcript.VERSION);
+        Assert.assertEquals(s.get(0).get("bridge").getAsString(), "openrouter");
+        Assert.assertEquals(s.get(0).get("label").getAsString(), "Solver/smart");
+        Assert.assertEquals(r.get(0).get("status").getAsInt(), 200);
+        Assert.assertEquals(utf8(s.get(0), "request_body"), received.get(0), "the request as the server read it");
+        Assert.assertEquals(utf8(r.get(0), "response_body"), sent.get(0), "the response as the server wrote it");
+        Assert.assertEquals(s.get(0).get("request_sha256").getAsString(),
+                LlmSpikePuzzle.sha256(s.get(0).get("request_body").getAsString()));
+        Assert.assertEquals(r.get(0).get("response_sha256").getAsString(),
+                LlmSpikePuzzle.sha256(r.get(0).get("response_body").getAsString()));
+        String req = s.get(0).get("request_body").getAsString();
         for (String part : new String[] {"\"role\":\"system\"", "\"tools\":", "\"tool_choice\":", "\"provider\":",
                 "\"max_tokens\":", "\"model\":\"openai/gpt-6-luna\""})
             Assert.assertTrue(req.contains(part), part + " in " + req);
         System.out.println("[TRANSCRIPT] " + Transcript.VERSION + " byte-equal openrouter round-trip recorded");
     }
 
-    /** A truncation retry is a second round-trip and its own row; the discarded first completion is kept too. */
+    /** Write-ahead: the request is on disk, whole, before the server has answered it, so a JVM that dies in the
+     *  middle of a call still has what it sent. */
     @Test
-    public void aRetryAndAnErrorAreEachTheirOwnWholeRow() throws IOException {
+    public void theRequestIsOnDiskBeforeTheReplyArrives() throws IOException {
+        chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
+        String atRequest = onDiskAtRequest.get(0);
+        Assert.assertTrue(atRequest.contains("\"phase\":\"sent\""), "no sent row when the server read the request: " + atRequest);
+        Assert.assertFalse(atRequest.contains("\"phase\":\"response\""), atRequest);
+        JsonObject early = JsonParser.parseString(atRequest.trim()).getAsJsonObject();
+        Assert.assertEquals(utf8(early, "request_body"), received.get(0));
+    }
+
+    /** Recording changes no byte sent: the same call with the record off and on reaches the server identically. */
+    @Test
+    public void recordingChangesNoByteSent() {
+        Transcript.closeForTest();
+        Assert.assertFalse(Transcript.on());
+        chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
+        Transcript.openForTest(dir, KEY);
+        chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
+        Assert.assertEquals(received.size(), 2);
+        Assert.assertEquals(received.get(1), received.get(0), "the record changed what the model was sent");
+    }
+
+    /** A truncation retry is a second round-trip with its own seq; a refusal's body is kept whole (the log line cuts
+     *  it at 90 characters). */
+    @Test
+    public void aRetryAndAnErrorAreEachTheirOwnWholeRows() throws IOException {
         reply = "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"length\"}]}";
-        LlmSpikeGui.OpenRouterBridge b = new LlmSpikeGui.OpenRouterBridge("Solver/smart", "openai/gpt-6-luna", null, base, 5000);
+        LlmSpikeGui.OpenRouterBridge b = chatBridge(base, 5000);
         b.ask("play");
-        Assert.assertEquals(rows("http-").size(), 2, "the cut-off completion and its retry");
-        // A refusal's body is kept whole: the log line cuts it at 90 characters.
+        Assert.assertEquals(rows("response").size(), 2, "the cut-off completion and its retry");
         status = 400;
         StringBuilder longErr = new StringBuilder("{\"error\":{\"message\":\"");
         for (int i = 0; i < 50; i++) longErr.append("provider said no ").append(i).append(' ');
         reply = longErr.append("\"}}").toString();
         b.ask("play");
-        List<JsonObject> rs = rows("http-");
+        List<JsonObject> rs = rows("response");
         JsonObject last = rs.get(rs.size() - 1);
         Assert.assertEquals(last.get("status").getAsInt(), 400);
         Assert.assertEquals(utf8(last, "response_body"), sent.get(sent.size() - 1));
         Assert.assertEquals(last.get("seq").getAsLong(), rs.size());
+    }
+
+    /** A call past its deadline: the exact request, then a response row that says it stopped at the deadline. */
+    @Test(timeOut = 10000)
+    public void aTimedOutCallIsRecordedWithItsStop() throws IOException {
+        chatBridge(base.replace("/api/v1", "/slow/api/v1"), 300).chat(MESSAGES, TOOLS, true);
+        List<JsonObject> s = rows("sent"), r = rows("response");
+        Assert.assertEquals(s.size(), 1);
+        Assert.assertEquals(r.size(), 1);
+        Assert.assertEquals(utf8(s.get(0), "request_body"), received.get(0));
+        Assert.assertEquals(r.get(0).get("stop").getAsString(), "deadline");
+        Assert.assertFalse(r.get(0).has("response_body"));
+    }
+
+    /** A call cut off after its status and headers came keeps them (the generation id is one). */
+    @Test(timeOut = 10000)
+    public void aCallCutOffAfterItsHeadersKeepsThem() throws IOException {
+        chatBridge(base.replace("/api/v1", "/headers-then-silence/api/v1"), 500).chat(MESSAGES, TOOLS, true);
+        JsonObject r = rows("response").get(0);
+        Assert.assertEquals(r.get("stop").getAsString(), "deadline");
+        Assert.assertEquals(r.get("status").getAsInt(), 200, r.toString());
+        Assert.assertTrue(r.get("response_headers").toString().contains("gen-cut-1"), r.toString());
+    }
+
+    /** A call that cannot connect: its request, then a response row naming the error. */
+    @Test
+    public void aRefusedConnectionIsAnErrorRow() throws IOException {
+        int port;
+        try (ServerSocket s = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) { port = s.getLocalPort(); }
+        chatBridge("http://127.0.0.1:" + port + "/api/v1", 2000).chat(MESSAGES, TOOLS, true);
+        List<JsonObject> s = rows("sent"), r = rows("response");
+        Assert.assertEquals(s.size(), 1);
+        Assert.assertEquals(r.size(), 1);
+        Assert.assertTrue(r.get(0).get("error").getAsString().contains("Connect"), r.get(0).toString());
     }
 
     /** The Decisions lane: the request (state, questions with every criterion) and Jev's answers with their
@@ -174,39 +275,72 @@ public class TranscriptTest {
                 + "\"answers\":{\"decision\":{\"type\":\"choice\",\"choice\":\"2\",\"confidence\":0.6,"
                 + "\"probabilities\":{\"2\":0.8,\"1\":0.2}}},\"usage\":{\"input_tokens\":476,\"output_tokens\":70,\"cost\":0.000019992}}";
         DecisionsBridge b = new DecisionsBridge("Solver/smart", "typesafe/jev-1.14", "PREAMBLE \u2014 seat.", base, 5000,
-                "sk-or-v1-test-not-a-real-key", null);
+                KEY, null);
         b.chat("[" + NativeTools.message("user", "DECISION: choose\n  1) CAST\n  2) PASS") + "]", "[]", true,
                 AnswerTool.Spec.one(2).labels(List.of("CAST Lava Spike @4", "PASS (do nothing)")));
-        List<JsonObject> rs = rows("http-");
-        Assert.assertEquals(rs.size(), 1);
-        JsonObject r = rs.get(0);
-        Assert.assertEquals(r.get("bridge").getAsString(), "decisions");
-        Assert.assertTrue(r.get("url").getAsString().endsWith("/api/alpha/decisions"), r.get("url").getAsString());
-        Assert.assertEquals(utf8(r, "request_body"), received.get(0));
-        Assert.assertEquals(utf8(r, "response_body"), sent.get(0));
+        List<JsonObject> s = rows("sent"), r = rows("response");
+        Assert.assertEquals(s.size(), 1);
+        Assert.assertEquals(s.get(0).get("bridge").getAsString(), "decisions");
+        Assert.assertTrue(s.get(0).get("url").getAsString().endsWith("/api/alpha/decisions"), s.get(0).get("url").getAsString());
+        Assert.assertEquals(utf8(s.get(0), "request_body"), received.get(0));
+        Assert.assertEquals(utf8(r.get(0), "response_body"), sent.get(0));
+        Assert.assertTrue(onDiskAtRequest.get(0).contains("\"phase\":\"sent\""), "the decisions lane writes ahead too");
     }
 
-    /** No credential reaches the file: the request's Authorization header and the response's Set-Cookie are not
-     *  written, and a row that would carry the key's value is refused whole, counted and printed, never cut. */
+    /** No credential reaches the file: Authorization, cookies and API-key headers are dropped (rate-limit headers
+     *  that merely end in "tokens" are kept), and a row that would carry the key's value is refused whole. */
     @Test
     public void noSecretIsWritten() throws IOException {
         HttpRequest withKey = HttpRequest.newBuilder(URI.create("https://openrouter.ai/api/v1/chat/completions"))
-                .header("Authorization", "Bearer sk-or-v1-test-not-a-real-key").header("Content-Type", "application/json")
-                .header("X-Title", "forge").POST(HttpRequest.BodyPublishers.ofString("{}")).build();
+                .header("Authorization", "Bearer " + KEY).header("X-Api-Key", KEY).header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{}")).build();
         JsonObject h = Transcript.safeHeaders(withKey.headers());
-        Assert.assertFalse(h.toString().toLowerCase(java.util.Locale.ROOT).contains("authorization"), h.toString());
+        Assert.assertFalse(h.toString().contains(KEY), h.toString());
         Assert.assertTrue(h.has("Content-Type") || h.has("content-type"), h.toString());
-        LlmSpikeGui.OpenRouterBridge b = new LlmSpikeGui.OpenRouterBridge("Solver/smart", "openai/gpt-6-luna", null, base, 5000);
-        b.chat("[{\"role\":\"user\",\"content\":\"play\"}]", TOOLS, true);
+        LlmSpikeGui.OpenRouterBridge b = chatBridge(base, 5000);
+        b.chat(MESSAGES, TOOLS, true);
         String text = allText();
         Assert.assertFalse(text.contains("s3cr3t-cookie"), "a Set-Cookie was written");
-        Assert.assertFalse(text.toLowerCase(java.util.Locale.ROOT).contains("authorization"), text);
-        // The key in a body (it never is): the row is refused, not shortened.
+        Assert.assertFalse(text.toLowerCase(Locale.ROOT).contains("authorization"), text);
+        Assert.assertTrue(text.toLowerCase(Locale.ROOT).contains("x-ratelimit-remaining-tokens"), "a rate-limit header was dropped");
         int before = Transcript.errors();
-        b.chat("[{\"role\":\"user\",\"content\":\"sk-or-v1-test-not-a-real-key\"}]", TOOLS, true);
-        Assert.assertEquals(Transcript.errors(), before + 1);
-        Assert.assertFalse(allText().contains("sk-or-v1-test-not-a-real-key"));
-        Assert.assertEquals(rows("http-").size(), 1, "the refused row is absent, the earlier one intact");
+        b.chat("[{\"role\":\"user\",\"content\":\"" + KEY + "\"}]", TOOLS, true);
+        Assert.assertEquals(Transcript.errors(), before + 1, "the sent row refused; its response is not written alone");
+        Assert.assertFalse(allText().contains(KEY));
+        Assert.assertEquals(rows(null).size(), 2, "the refused call is absent, the earlier one intact");
+    }
+
+    /** A row whose append fails part way is not the end of the record: the failure is counted, that file is left
+     *  (its cut row is a gap a reader can see), and the next row starts a fresh file, whole. */
+    @Test
+    public void aRowThatFailsPartWayStartsAFreshFile() throws IOException {
+        int[] calls = {0};
+        Transcript.sink = (f, b) -> {
+            if (calls[0]++ == 0) {
+                Files.write(f, Arrays.copyOf(b, b.length / 2), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                throw new IOException("disk full (test)");
+            }
+            Transcript.APPEND.append(f, b);
+        };
+        chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
+        Assert.assertEquals(Transcript.errors(), 1);
+        List<String> files = Transcript.httpFiles();
+        Assert.assertEquals(files.size(), 2, "a fresh file after the failure: " + files);
+        List<String> second = Files.readAllLines(new File(dir, files.get(1)).toPath(), StandardCharsets.UTF_8);
+        Assert.assertEquals(second.size(), 1);
+        JsonObject r = JsonParser.parseString(second.get(0)).getAsJsonObject();
+        Assert.assertEquals(r.get("phase").getAsString(), "response");
+        Assert.assertEquals(utf8(r, "response_body"), sent.get(0));
+    }
+
+    /** Recording can never cost a reply: a sink that throws anything leaves the bridge's answer as it was. */
+    @Test
+    public void aRecordingFailureNeverLosesTheReply() {
+        Transcript.sink = (f, b) -> { throw new IllegalStateException("broken sink (test)"); };
+        NativeTools.Turn t = chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
+        Assert.assertNotNull(t, "the reply was lost to a recording failure");
+        Assert.assertEquals(t.calls.size(), 1);
+        Assert.assertEquals(Transcript.errors(), 2, "both rows counted");
     }
 
     /** The engine side: every Forge game-log entry, in the engine's order, type and message whole (a multi-line
@@ -219,40 +353,50 @@ public class TranscriptTest {
                 new GameLogEntry(GameLogEntryType.LIFE, "Life: Opponent 54 > 30", null));
         String name = Transcript.engineLog("equip_1-seed1-r0", log);
         Assert.assertNotNull(name);
-        List<JsonObject> rs = rows("engine-");
-        Assert.assertEquals(rs.size(), 3);
+        List<String> lines = Files.readAllLines(new File(dir, name).toPath(), StandardCharsets.UTF_8);
+        Assert.assertEquals(lines.size(), 3);
         for (int i = 0; i < 3; i++) {
-            Assert.assertEquals(rs.get(i).get("seq").getAsInt(), i + 1);
-            Assert.assertEquals(rs.get(i).get("type").getAsString(), log.get(i).type().toString());
-            Assert.assertEquals(rs.get(i).get("message").getAsString(), log.get(i).message());
+            JsonObject r = JsonParser.parseString(lines.get(i)).getAsJsonObject();
+            Assert.assertEquals(r.get("seq").getAsInt(), i + 1);
+            Assert.assertEquals(r.get("type").getAsString(), log.get(i).type().toString());
+            Assert.assertEquals(r.get("message").getAsString(), log.get(i).message());
         }
     }
 
-    /** A puzzle row names its record: the version, the http file and the engine file (paths under the puzzle's
+    /** A capped game's thread may log after its result was read: the engine log is read again when it is written. */
+    @Test
+    public void aCappedGamesEngineLogIsReadAgainWhenWritten() {
+        GameLog live = new GameLog();
+        live.add(GameLogEntryType.TURN, "Turn 1 (Solver)");
+        List<GameLogEntry> atResult = live.getAllEntries();
+        live.add(GameLogEntryType.DAMAGE, "Fencing Ace deals 24 combat damage to Opponent.");
+        Assert.assertEquals(LlmSpikePuzzle.engineEntries(live, atResult).size(), 2);
+        Assert.assertEquals(LlmSpikePuzzle.engineEntries(null, atResult), atResult);
+    }
+
+    /** A puzzle row names its record: the version, every http file, the engine file (paths under the puzzle's
      *  directory, as eval/archive_run.py checks them), and the count of rows that could not be written. */
     @Test
     public void aPuzzleRowNamesItsRecord() {
-        new LlmSpikeGui.OpenRouterBridge("Solver/smart", "openai/gpt-6-luna", null, base, 5000)
-                .chat("[{\"role\":\"user\",\"content\":\"play\"}]", TOOLS, true);
-        java.util.Map<String, Object> extra = new java.util.LinkedHashMap<>();
+        chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
+        Map<String, Object> extra = new LinkedHashMap<>();
         LlmSpikePuzzle.putTranscript(extra, Transcript.engineLog("p-seed1-r0", List.of()));
         Assert.assertEquals(extra.get("transcript_version"), Transcript.VERSION);
-        Assert.assertEquals(extra.get("transcript_http_file"), Transcript.DIR + "/" + Transcript.httpFileName());
+        Assert.assertEquals(extra.get("transcript_http_files"), List.of(Transcript.DIR + "/" + Transcript.httpFiles().get(0)));
         Assert.assertTrue(String.valueOf(extra.get("transcript_engine_file")).startsWith(Transcript.DIR + "/engine-p-seed1-r0-"));
         Assert.assertEquals(extra.get("transcript_errors"), 0);
         Transcript.closeForTest();
-        java.util.Map<String, Object> off = new java.util.LinkedHashMap<>();
+        Map<String, Object> off = new LinkedHashMap<>();
         LlmSpikePuzzle.putTranscript(off, null);
         Assert.assertTrue(off.isEmpty(), "a run without the record stamps nothing: " + off);
     }
 
-    /** Off unless asked:with no TRANSCRIPTS=1 the bridges write nothing (the test JVM has none set). */
+    /** Off unless asked: with no TRANSCRIPTS=1 the bridges write nothing (the test JVM has none set). */
     @Test
-    public void nothingIsRecordedWhenOff() throws IOException {
+    public void nothingIsRecordedWhenOff() {
         Transcript.closeForTest();
         Assert.assertFalse(Transcript.on(), "this test JVM must not have TRANSCRIPTS=1 with EVAL_OUT");
-        new LlmSpikeGui.OpenRouterBridge("Solver/smart", "openai/gpt-6-luna", null, base, 5000)
-                .chat("[{\"role\":\"user\",\"content\":\"play\"}]", TOOLS, true);
+        chatBridge(base, 5000).chat(MESSAGES, TOOLS, true);
         Assert.assertEquals(received.size(), 1);
         Assert.assertEquals(allText(), "");
         Assert.assertNull(Transcript.engineLog("x", List.of()));

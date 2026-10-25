@@ -11110,17 +11110,8 @@ public final class LlmSpikeGui {
             // HttpRequest.timeout() above bounds only the wait for the response HEADERS; the body
             // read is unbounded, and OpenRouter dribbles keepalives for the whole generation. See
             // HttpDeadline for the measurement and the consequence.
-            long sentAt = System.currentTimeMillis();
-            HttpResponse<String> resp;
-            try {
-                resp = HttpDeadline.send(client, req, HttpResponse.BodyHandlers.ofString(), remaining);
-            } catch (Exception e) {
-                Transcript.http("openrouter", label, req, sentBody, null, null, e, sentAt);
-                throw e;
-            }
             // Every round-trip, used or not (a truncated first completion, a refusal), exactly as it crossed.
-            Transcript.http("openrouter", label, req, sentBody, resp, resp == null ? HttpDeadline.LAST_STOP.get() : null,
-                    null, sentAt);
+            HttpResponse<String> resp = Transcript.send("openrouter", label, client, req, sentBody, remaining);
             if (resp == null) {
                 String why = HttpDeadline.LAST_STOP.get();
                 if ("no-headers".equals(why) || "silent".equals(why))
