@@ -499,6 +499,28 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - *Why the cache matters:* nearly all input is the same system prompt, tools and history. Recorded Luna
   asks read 54% of their prompt tokens from the cache on an ask's first round, and 92% on later rounds.
 
+### The run record (`Transcript`)
+
+- **What:** with `TRANSCRIPTS=1` and `EVAL_OUT`, every HTTP round-trip `OpenRouterBridge` and `DecisionsBridge` make
+  is one `t:"http"` row in `<EVAL_OUT>/transcripts/http-<ms>-<pid>.jsonl`: the request body exactly as handed to
+  the body publisher and the response body exactly as read, each with its sha256, the status, the headers minus any
+  credential or cookie, and why a call with no response stopped. A puzzle game's whole Forge game log goes to
+  `transcripts/engine-*.jsonl`, and the result row names both files (`transcript_*` fields, `eval/PUZZLES.md`,
+  "Keeping a run"). `puzzle_solve.py` always turns it on and copies the `.pzl` and the suite into the run;
+  `eval/archive_run.py` packs and verifies a finished run.
+- *Why:* the owner wants the frontier puzzle run kept whole, "from the models' chats to the engine logs"
+  (2026-10-25). The rows held only what the seat rendered: a `context_call` row's `prompt` is the new user turn
+  (with `messages` only on a later round), and no row held the system prompt, the tools, `tool_choice`, the
+  sampling and reasoning settings, the `provider` object, `reasoning_details`, the generation id, the served model
+  or the provider's cost; the truncated first completion of a retry and the body of a refusal (cut to 90
+  characters in `jvm.log`) were lost; a `jev:` call's questions and Jev's answer probabilities were not kept; the
+  engine log was text at the end of `jvm.log`, its multi-line entries split; the position was a path and a hash.
+- **Not a condition:** the bridges send the same bytes with it on or off (`TranscriptTest`), so it moves no epoch
+  and is not stamped on the game line; `Transcript.VERSION` (`transcript-v1`) is on the puzzle row and manifest.
+- **Never cut, never a secret:** a row is written whole or not at all (`[TRANSCRIPT] FAILED`, `transcript_errors`);
+  a row holding the API key's value is refused. Not covered: the Claude CLI lane, and a response body that was not
+  valid UTF-8 (the bridges read bodies as text).
+
 ### The Decisions bridge (`jev:` seats)
 
 **Owner decision, 2026-10-24:** TypeSafe's Jev 1.14 joins the frontier comparison on the hardest puzzles

@@ -345,6 +345,9 @@ EOF
     # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
     elif ! grep -qF "] decisions-bridge-v1 ONE -> answer" "$OUT/javatests.log"; then
       fail javatests "no [JEV] answer stamped decisions-bridge-v1 (move this pin WITH DecisionsBridge.VERSION)"
+    # The run record's version, by literal value, from TranscriptTest's byte-equal loopback round-trip.
+    elif ! grep -qF "[TRANSCRIPT] transcript-v1 byte-equal" "$OUT/javatests.log"; then
+      fail javatests "no [TRANSCRIPT] round-trip stamped transcript-v1 (move this pin WITH Transcript.VERSION)"
     else pass javatests "$T/$DECLARED declared tests passed, 0 skipped. $OWN"; fi
   fi
 fi

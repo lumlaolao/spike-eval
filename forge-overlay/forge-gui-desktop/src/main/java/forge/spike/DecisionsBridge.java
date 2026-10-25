@@ -467,7 +467,15 @@ final class DecisionsBridge implements LLMBridge {
             if (auth != null) rb.header("Authorization", auth);
             HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                     .timeout(Duration.ofMillis(timeoutMs)).build();
-            HttpResponse<String> resp = HttpDeadline.send(client, req, HttpResponse.BodyHandlers.ofString(), timeoutMs);
+            long sentAt = System.currentTimeMillis();
+            HttpResponse<String> resp;
+            try {
+                resp = HttpDeadline.send(client, req, HttpResponse.BodyHandlers.ofString(), timeoutMs);
+            } catch (Exception e) {
+                Transcript.http("decisions", label, req, body, null, null, e, sentAt);
+                throw e;
+            }
+            Transcript.http("decisions", label, req, body, resp, resp == null ? HttpDeadline.LAST_STOP.get() : null, null, sentAt);
             if (resp == null) {
                 System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] no response within " + timeoutMs + " ms ("
                         + HttpDeadline.LAST_STOP.get() + ")");

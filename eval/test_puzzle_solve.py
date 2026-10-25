@@ -245,6 +245,46 @@ class RunFileTest(unittest.TestCase):
         self.assertIn("KeyboardInterrupt", run["stopped"])
 
 
+class FullRecordTest(unittest.TestCase):
+    """Owner, 2026-10-25: a puzzle run keeps every model call and the engine log whole, and the position it started
+    from. Each JVM is asked for the transcript (TRANSCRIPTS=1, forge/spike/Transcript.java), the manifest names its
+    version, and the .pzl and the suite are copied into the run, so an archive of the directory is self-contained."""
+
+    def test_a_puzzle_runs_with_the_transcript_on_and_keeps_its_position_and_suite(self):
+        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        rec = next(r for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        envs = []
+
+        class FakeBuild:
+            def __init__(self, build_dir, forge, allow_stale=False):
+                pass
+
+            def provenance(self):
+                return {}
+
+            def run(self, env, out, **kw):
+                envs.append(env)
+                return 0
+
+        root = Path(tempfile.mkdtemp())
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(io.StringIO()):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "fake:m", "--k", "1",
+                               "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"])
+        self.assertEqual(envs[0].get("TRANSCRIPTS"), "1", "the JVM must be asked for the full record")
+        java = (Path(__file__).resolve().parent.parent / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+                / "Transcript.java").read_text()
+        version = java.split('static final String VERSION = "', 1)[1].split('"', 1)[0]
+        manifest = json.loads((root / rec["id"] / "batch-manifest.json").read_text())
+        self.assertEqual(manifest["record"]["transcript_version"], version)
+        kept = root / rec["id"] / manifest["record"]["pzl_file"]
+        self.assertEqual(puzzle_solve.pf.sha256_file(kept), rec["pzl_sha256"], "the exact position the JVM read")
+        run = json.loads((root / puzzle_solve.RUN_FILE).read_text())
+        self.assertEqual(puzzle_solve.pf.sha256_file(root / run["suite_file"]),
+                         puzzle_solve.pf.sha256_file(suite_path), "the suite, byte for byte")
+
+
 class DecisionModelSeatTest(unittest.TestCase):
     """A jev: seat (DecisionsBridge) sends each position to openrouter.ai like an openrouter: one, and it cannot call
     a lookup, so a run with them would record a condition it never had."""
