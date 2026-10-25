@@ -16,8 +16,8 @@ standard library, and every piece has a `test_<name>.py`.
 
 ## The panels (`suites/panels-v1.json`)
 
-The deck pool is the 16 archetype lists in `decks/` (the `hook-*` lists are mechanics probes and stay
-out), each pinned by `sha12` (sha256[:12] of the file, the same hash `run_batch.py` stamps as
+The deck pool is the 16 archetype lists the panels file names in `deck_pool` (the other lists in `decks/`
+are not in it; the `hook-*` lists are mechanics probes), each pinned by `sha12` (sha256[:12] of the file, the same hash `run_batch.py` stamps as
 `deck_sha`).
 
 - **Mirror panel** (the headline): 16 cells, the pilot on deck *d* against the Forge AI on deck *d*.
@@ -28,7 +28,7 @@ out), each pinned by `sha12` (sha256[:12] of the file, the same hash `run_batch.
 Seeds come from the `stage3-holdout` eval-only bank (`seed_registry.json`), above the 7000-7799 that
 `stage3-v1.json` uses: the pilot plays `7800..7849` in both seat orders (100 games per cell), the
 control `7800..7999`. They are not a `seed_policy.py` reserved block, so `seed_registry.py check` is
-what keeps them out of training corpora; it now also reconciles a panels file's seeds. Every pilot
+what keeps them out of training corpora; it also reconciles a panels file's seeds. Every pilot
 plays the same list, so pilot-vs-pilot differences are seed-paired. A smaller block uses a subset.
 
 The `anchors` block fixes the scale: Forge AI = 1500 Elo, the rating prior N(1500, 400²), the
@@ -159,9 +159,11 @@ python3 eval/rating.py ROOT/burn ROOT/burn__sanity-floor ROOT/burn__sanity-rando
 ## Benchmark version (`benchmark_version.py`)
 
 `bv1-<12 hex>` hashes: `FORGE_COMMIT` (every game's `engine_sha` must equal it), the games'
-`overlay_sha`, the deck pool (each file checked against its pin), `seed_registry.json`, the panels
-file, every `suites/puzzles-*.json` (none exist yet), `tooluse/tools.json`, the panels file's
-`anchors`, and `context_profile`, `context_sha` and `harness_epoch` as the game lines recorded them.
+`overlay_sha` (every overlay source, harness classes and engine patches; game lines from before
+2026-10-16 carry a hash of `LlmSpikeGui.java` and `LlmSpikeHeadless.java` only), the deck pool (each
+file checked against its pin), `seed_registry.json`, the panels file, every frozen
+`suites/puzzles-*.json`, `tooluse/tools.json`, the panels file's `anchors`, and `context_profile`,
+`context_sha` and `harness_epoch` as the game lines recorded them.
 Games that disagree on any of these are refused. `panel_score.py` and `rating.py` stamp the id and
 its components into their reports;
 `python3 eval/benchmark_version.py --check-pool r1.json r2.json` exits 1 unless the reports share one
@@ -172,11 +174,8 @@ version.
 - **Decisive vs strict as the headline.** Both are printed; the decisive score stays the default
   until the owner decides how a wall-clock cap is charged (BENCHMARK-RESEARCH.md, proposal 1).
 - **Crash re-runs.** A crashed game counts 0 in the strict score and is absent from the decisive one.
-  `run_batch.py` now plays it once more on the same seed (`--retries`, default 1), setting the failed
+  `run_batch.py` plays it once more on the same seed (`--retries`, default 1), setting the failed
   attempt aside under `crashed/`. Dropping the seed for every pilot when it crashes again is still
   manual.
-- **What the overlay stamp covers.** `overlay_sha` hashes only `LlmSpikeGui.java` and
-  `LlmSpikeHeadless.java`; another overlay class moves the version only through `harness_epoch`,
-  `context_sha` or the tool definitions.
 - No panel has been played yet: the seeds above are unspent, and the first block should be the
   six-games-per-arm size the cost rule asks for.

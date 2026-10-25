@@ -1,5 +1,12 @@
 # Concurrency: how many Forge/LLM games can this Mac safely run at once
 
+**What holds now:** the ceilings in section 7, which `run_batch.py`'s `warn_parallel_jobs()` encodes
+(no-LLM batches warn above 8 JVMs, `openrouter:` batches above 10), counted across every batch running
+on the machine; and never rebuild the Forge checkout while a game runs (`.claude/rules/forge-overlay.md`:
+acceptance and the gauntlet build in their own directory and are safe beside a game). The rest of this
+file is the measurement record of 2026-07-21 on the owner's Mac (24 GiB); its `file:line` citations
+are to the code of that date, and a machine with other memory scales the RAM-bound ceilings with it.
+
 Measured 2026-07-21 against the **live** processes of an in-progress
 `model_sweep.py` run (PID 17835 driving `run_batch.py` PID 18517, which had
 spawned one `LlmSpikeHeadless` JVM, PID 18519, playing the grok-4.5-vs-floor
