@@ -1,17 +1,16 @@
 # Eval deck card corpus
 
-Machine-readable rules text for every card in the harness's eval decks, so a
-playing model can be handed the exact text instead of recalling it from
-training.
+Machine-readable rules text for every card in the decklists it was built from
+(Scryfall's oracle text, one record per distinct card).
 
 ## Provenance
 
 - Source: the Scryfall API, `GET https://api.scryfall.com/cards/named?exact=<name>`
   (see <https://scryfall.com/docs/api/cards/named>).
 - Fetched: **2026-10-12** by `build.py` in this directory.
-- Scope: the 16 decklists that were in `eval/decks/` on that date, the Legacy
-  eval pool (234 distinct cards; 0 unresolved; `by_deck.json` names them). The
-  format decks and `hook-*` probes added since are not in it.
+- Scope: the 16 decklists that were in `eval/decks/` when it was fetched
+  (234 distinct cards; 0 unresolved; `by_deck.json` names
+  them). Decklists added to that directory since are not in it.
 - Nothing in the harness reads this corpus: the seat is shown each card's rules
   text from the engine.
 - The printing returned is Scryfall's default for an exact-name lookup; each
@@ -59,8 +58,8 @@ mana cost, stats) and `\n//\n` (oracle text) separators.
 python3 data/cards/build.py
 ```
 
-Stdlib only. It reads every `*.txt` in `--decks-dir` (default `eval/decks/`), so a
-refresh today would also fetch the format decks and the `hook-*` probes. The script
+Stdlib only. It reads every `*.txt` in `--decks-dir` (default `eval/decks/`), so
+a refresh fetches every decklist there now. The script
 sleeps between requests and sends a User-Agent, per Scryfall's API guidelines.
 
 ## Licensing / attribution
