@@ -67,16 +67,21 @@ esac
 
 out="$REPO/runs/human/$(date -u +%Y%m%dT%H%M%SZ)"
 # The pilot condition, from the panels file. Every other key a batch scrubs (run_batch.build_env: the run-defining
-# keys, the heuristic shortcuts and plans, CTX_* overrides) is unset, so nothing in the caller's shell changes what
-# the seat is asked or shown. Kept: the seed, and the operator's own Claude CLI effort and thinking settings.
+# keys, the heuristic shortcuts and plans, CTX_* overrides) is unset, and the further keys below, so the caller's
+# shell does not change what the seat is asked or shown. Kept: the seed, the operator's own Claude CLI effort and
+# thinking settings, and infrastructure (endpoint, timeouts, recording, DEMO_FEED).
 condition="$(python3 - "$REPO" <<'PY'
 import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/eval")
 import run_batch
 fields = json.load(open(sys.argv[1] + "/eval/suites/panels-v1.json"))["pilot_condition"]["fields"]
 cond = {k.upper(): ("1" if v else "0") if isinstance(v, bool) else str(v) for k, v in fields.items()}
-scrub = list(run_batch.RUN_DEFINING_KEYS + run_batch.CITED_FORCED_KEYS) + ["SHADOW_AI", "AUTO_EXIT"]
-scrub += [k for k in os.environ if k.startswith(run_batch.CTX_OVERRIDE_PREFIX)]
+# Beyond run_batch's lists: the answer schema and tool choice, the per-model config, the prompt cache and decklist
+# switches, and the puzzle and fork modes, all of which the overlay reads and a batch leaves to its own flags.
+scrub = list(run_batch.RUN_DEFINING_KEYS + run_batch.CITED_FORCED_KEYS) + [
+    "SHADOW_AI", "AUTO_EXIT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE", "OPENROUTER_MODEL_CFG", "PROMPT_CACHE", "DECKLIST",
+    "PUZZLE", "PUZZLE_DIRS"]
+scrub += [k for k in os.environ if k.startswith((run_batch.CTX_OVERRIDE_PREFIX, "PZL_", "FORK_"))]
 for k in dict.fromkeys(scrub):
     if not k.startswith("CLAUDE_") and k != "GAME_SEED":
         print("%s=%s" % (k, cond.get(k, "")))
@@ -114,11 +119,8 @@ fi
 mkdir -p "$out"
 if [ "$commentary" = 1 ]; then
   "${feed[@]}" & feed_pid=$!
-  # `|| true`: a feed that already died must not turn the game's status into 1 under set -e. TERM and HUP exit
-  # through the EXIT trap, so a closed terminal stops the feed too.
+  # `|| true`: a feed that already died must not turn the game's status into 1 under set -e.
   trap 'kill $feed_pid 2>/dev/null || true' EXIT
-  trap 'exit 143' TERM
-  trap 'exit 129' HUP
 fi
 status=0; "$FORGE_HOME/run-llm-spike.sh" || status=$?
 echo "play-vs-llm: what the model did and why: python3 eval/play_commentary.py $out --why"

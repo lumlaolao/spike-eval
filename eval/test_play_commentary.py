@@ -38,6 +38,12 @@ class LineTest(unittest.TestCase):
         lost = dict(PLAY, choice=0, raw_reply="WHY: Haste.\nCHOICE: 2")
         self.assertEqual(pc.line(lost), "T3 MAIN1  Seat: PLAY LAND Mountain")
 
+    def test_a_declined_ask_reads_as_declined_not_as_the_reply(self):
+        # An optional target declined (choice -1, no PASS option): the game took nothing, whatever the reply asked.
+        target = dict(PLAY, type="target", choice=-1, options=["Goblin Guide @7", "Seat @1"],
+                      raw_reply="WHY: Kill it.\nCHOICE: 1")
+        self.assertEqual(pc.line(target), "T3 MAIN1  Seat target: (declined)")
+
     def test_the_reasoning_only_when_asked(self):
         self.assertNotIn("why", pc.line(PLAY))
         self.assertEqual(pc.line(PLAY, why=True), "T3 MAIN1  Seat: CAST Goblin Guide 2/2 {R}\n"
@@ -132,6 +138,14 @@ class FeedTest(unittest.TestCase):
             self.assertEqual(pc.Commentary(d, "Seat", why=False).poll(),
                              ["T9 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", "-- next game --",
                               "T0  Seat mulligan: KEEP: yes"])
+
+    def test_a_mulligan_after_play_starts_the_next_game_even_on_the_same_turn(self):
+        with tempfile.TemporaryDirectory() as d:
+            mull = dict(PLAY, turn=1, phase="null", type="mulligan", options=["KEEP", "MULLIGAN"], choice=0)
+            self._game(d, [mull, mull, dict(PLAY, turn=1), mull])
+            self.assertEqual(pc.Commentary(d, "Seat", why=False).poll(),
+                             ["T1  Seat mulligan: KEEP", "T1  Seat mulligan: KEEP",
+                              "T1 MAIN1  Seat: CAST Goblin Guide 2/2 {R}", "-- next game --", "T1  Seat mulligan: KEEP"])
 
     def test_a_response_written_to_the_next_transcript_file_still_ends_the_thinking(self):
         with tempfile.TemporaryDirectory() as d:
