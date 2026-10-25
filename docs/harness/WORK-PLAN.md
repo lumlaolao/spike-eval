@@ -19,12 +19,16 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 
 ## Open work
 
-- **The frontier comparison on the 3 hardest puzzles** waits on the owner's go and a budget-cap choice:
-  - the plan is `notes/frontier3-plan.sh` on branch `docs/writeup-notes`: 21 chat models plus Jev 1.14, whose
-    bridge is on main (PR #305), about $37 expected; Astra, Fable and Opus are not in it, and Jev Router is out
-    (owner, 2026-10-24);
-  - caps at the dearest endpoint come to about $291, or about $125 if the bridge sends `provider.max_price` at the
-    list price;
+- **The frontier comparison on the 5 hardest puzzles** (owner, 2026-10-25; it replaces the 3-board plan) waits on
+  the owner's go and a budget-cap choice:
+  - the plan is `notes/frontier5-plan.sh` on branch `docs/writeup-notes`: the 5 boards of the gen2 suite's open
+    split named in `notes/WRITEUP-NOTES.md` section 4b (with the rule that picked them), 1 attempt each, for 21
+    chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
+    are not in it, and Jev Router is out (owner, 2026-10-24);
+  - caps at the dearest endpoint come to about $486; the alternative is the bridge sending `provider.max_price`
+    at the list price and caps sized at list;
+  - the owner requires full logs for this run, from the model chats to the engine logs: the full-transcript and
+    archive change on branch `feat/full-transcripts` must land on main before it starts;
   - no paid Jev call has been made, so the Decisions API's response shape is confirmed only by its docs;
   - the owner decisions in PR #303's Not done bear on it: each model runs at its own default reasoning effort (max
     for Kimi K3 and GLM 5.3), Mistral may refuse a user message after a tool result, and caching is unmeasured.
