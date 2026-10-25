@@ -13,7 +13,7 @@ because results built on different engines are different measurements and must n
 | Previous pin | `6c1810dd0b42213f9ad768d1b5f251753e1e298d` (2026-10-13) |
 | Upstream | `Card-Forge/forge` `master` (clean fast-forward, 10 commits) |
 
-## What changed and what it cost
+## 2026-10-13 bump: c1c64a53 -> 6c1810dd0b42
 
 ~3 months of upstream work: 295 changed Java files in `forge-ai`/`forge-game`/`forge-core`, plus the
 usual card/script growth in `forge-gui/res`.
@@ -45,8 +45,8 @@ The only API-visible changes that touched the overlay's surface:
 - **The floor canary did not move**: A/108/**1068**, unchanged. The random canary re-rolled, as it
   does on any engine change: B/19/65 -> **B/33/307**, reproduced twice. Re-pinned in
   `eval/harness_acceptance.expected` (2026-10-14 note), which also refreshes the Mac random pin #112
-  recorded as stale. (The `linux.*` pins belong to a separate Linux runner, not this Mac dev
-  checkout; Mac development does not maintain them.)
+  recorded as stale. The `linux.*` pins were named STALE at this bump and re-measured on Linux later
+  (`eval/harness_acceptance.expected`; the rule for OS pins is `docs/STANDARDS.md` section 5).
 
 Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the new pin.
 

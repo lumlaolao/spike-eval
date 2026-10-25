@@ -73,9 +73,24 @@ under the legacy profile, where the contract does not run; they are not counted.
 | flip, shield | chooseFlipResult, divideShield | 0 / 0 | no | aFlipCallAndAShieldSplitAreTheSeats |
 | roll-ignore, roll-reroll, roll-modify, roll-swap | chooseRollToIgnore, chooseDiceToReroll, chooseRollToModify, chooseRollToSwap, chooseRollSwapValue, choosePDRollToIgnore | 0 / 0 | no | diceChoicesAreTheSeats, unSetAndVariantChoicesAreTheSeats |
 | sticker, crank, sprocket, sector, starting-hand, assist, assist-pay | the sticker, contraption, attraction, multiple-hands and assist hooks | 0 / 0 | no | unSetAndVariantChoicesAreTheSeats |
+| damage-order | orderByModel (a damage assignment order under the legacy rules) | - | no | damageOrderIsTheModels, aDeclaredDamageOrderIsFollowedNotAskedAgain |
+| pile | chooseCardsPile | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| clash | willPutCardOnTop | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| colors | chooseColors (two colours) | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| counter-type | chooseCounterType | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| card-face | chooseSingleCardFace | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| confirm-static | confirmStaticApplication | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| keyword | chooseKeywordForPump | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| opening-hand | chooseSaToActivateFromOpeningHand | - | no | choicesForgesAiUsedToMakeAreTheModels |
+| cost-reduction | chooseNumberForCostReduction | - | no | choicesForgesAiUsedToMakeAreTheModels, anUpToCostReductionIsAskedWhenPayingNotWhilePricing |
+| keyword-cost | chooseNumberForKeywordCost, chooseWideKeywordCost | - | no | aKeywordCostIsOfferedOnlyWhenItCanBePaid |
+| destroy, spell-for-effect, discard-unless | choosePermanentsToDestroy, chooseSingleSpellForEffect / chooseSpellAbilitiesForEffect, chooseCardsToDiscardUnlessType | - | no | destroyAndSpellAndDiscardUnlessAreTheModels |
+| convoke, new-targets | the convoke payment, chooseNewTargetsFor | - | no | convokeAndANewTargetAreTheModels |
 | mana-from-pool | chooseManaFromPool (floating mana of different kinds) | 0 / 0 | yes (SurfaceResolutionChoicesTest) | delveMustExileWhatTheManaCannotPay |
 
-Before: 12 of the 42 types had a contract-checked live test; now all 42 do.
+Before this work (2026-10-15), 12 of the 42 types then listed had a contract-checked live test.
+`GoldenChecksTest.OWNED` now holds 78 types, and every one is driven by a test there; rows marked
+`-` were added after the 2026-10-15 count of recorded rows.
 
 Ledger rows with impl LLM that are not a model ask of their own: `isGuiPlayer` (a marker),
 `reveal` and `notifyOfValue` (information shown in the seat stream), `playChosenSpellAbility`,
