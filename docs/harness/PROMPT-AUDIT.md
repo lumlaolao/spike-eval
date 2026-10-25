@@ -1,9 +1,10 @@
 # Prompt audit: every text the seat sees, against the prompt-craft rules (2026-10-15)
 
-Work plan item 2. Each finding names the rule it breaks in `docs/harness/PROMPT-CRAFT.md`. Every
+A dated audit: it records the prompts as they were on 2026-10-15, and the last section says where each finding was
+closed. Each finding names the rule it breaks in [PROMPT-CRAFT.md](PROMPT-CRAFT.md). Every
 quote below is from the code, `framing()` and `STATIC_REFERENCE` in `LlmSpikeGui.java`, or from a
 recorded prompt: the Haiku 5.5 combo games in `runs/combo/`, faithful profile, observation v23.
-Findings are numbered so the rewrite (item 4) can close them one by one.
+Findings are numbered so the rewrite could close them one by one.
 
 ## What one request holds
 
@@ -151,16 +152,20 @@ block a flyer. Haiku saw through it; a weaker model might not.
 - Otherwise say "can be blocked by a creature with flying or reach", not "can be blocked".
 - Filed as [SeanCThomas0/mtg-forge-llm-agent#166](https://github.com/SeanCThomas0/mtg-forge-llm-agent/issues/166).
 
-## What the rewrite (item 4) will do, in order
+## Where the findings were closed
 
-1. Answer tool (item 3), which closes B1 and B2, and half of C5 and G2.
-2. One correct legend in the system prompt, and no per-message legend (A1).
-3. Remove PRINCIPLES, FORMAT, the glossary's advice, the decision-text advice and the examples
-   (C1–C5).
-4. Plain language, no capitals for emphasis (D1); no jargon or version tags (F1, F2).
-5. The question last (E1).
-6. Lengthen the four short tool descriptions (G1).
-7. Fix the blockability fact (H1).
+The rewrite landed as the faithful system prompt (harness-epoch-8, `seatFraming`) and the `answer` tool; the current
+prompt is described in [ARCHITECTURE.md](ARCHITECTURE.md) sections 5 to 7.
 
-Each step is measured with `tool_use_suite.py` and the golden checks; the whole rewrite with a few
-cheap games against the current prompts.
+- **A1:** one guide, `SeatObservation.GUIDE`, in the system prompt; the user message carries no legend line.
+- **B1, B2:** every decision is an `answer` call; the plan is `set_plan`, and the opponent profile, card lines and
+  yield are fields of the play answer. No text parser runs on a tool ask (`[TEXT-PARSE]` fails acceptance).
+- **C1 to C5:** the faithful profile sends no PRINCIPLES, no reasoning cap, no worked examples and no glossary advice;
+  decision texts state facts only. The legacy profiles keep their bytes.
+- **D1, F1, F2:** plain sentences; no version tags in the prompt (they are on the game line).
+- **E1:** the archive brief and the state come first, the decision and its options last.
+- **E2, E3:** `cache_control` is sent for Anthropic models; `tool_choice` is fixed per model for answer asks.
+- **G1, G2:** the lookup tools' descriptions are full paragraphs (`NativeTools.definitions`, mirrored in
+  `eval/tooluse/tools.json`).
+- **H1:** the attack outlook names, per attacker, which of the defender's creatures could block it (#166).
+- **F3** (where the seat learns that auto-payment exists) is not checked on this page.

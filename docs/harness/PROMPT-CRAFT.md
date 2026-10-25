@@ -1,8 +1,7 @@
 # Prompt craft: rules for every prompt and tool the seat sees (2026-10-15)
 
-Work plan item 1 (`docs/harness/WORK-PLAN.md`). Each rule below is taken from a vendor guide, and
-each is checked against what the harness does now. The audit (item 2) and the rewrite (item 4) apply
-these rules; a change that breaks one of them needs a measured reason.
+Each rule below is taken from a vendor guide. The audit ([PROMPT-AUDIT.md](PROMPT-AUDIT.md)) and the rewrite
+applied them; a change that breaks one of them needs a measured reason.
 
 Sources, read 2026-10-15:
 - [A] Anthropic, *Prompting best practices*:
@@ -19,34 +18,25 @@ Sources, read 2026-10-15:
 - [O] OpenAI, *Function calling*: developers.openai.com/api/docs/guides/function-calling
 - [R] OpenRouter, *Prompt caching* and *Reasoning tokens*: openrouter.ai/docs
 
-## 1. What the harness does now (measured)
+## 1. Where the harness stands against these rules
 
-- **Request shape.** One system message (the `framing()` preamble: role, deck plan, protocol, tool
-  paragraph, PRINCIPLES, FORMAT, and on the smart tier `STATIC_REFERENCE`). Then the chat history
-  (ONE_CHAT) and the decision as a user message, with tools (`tool_choice` "auto", or "none" once the
-  budget is spent). The request is built in `OpenRouterBridge.send`, `LlmSpikeGui.java`.
-- **Size.** Haiku 5.5, Sneak and Show, seed 81 (`runs/combo/`):
-  - 41 calls, averaging 10,187 prompt tokens each (smallest 7,326, largest 10,932); 418K prompt
-    tokens in total, against 31K completion tokens;
-  - the decision text itself is small: the mulligan question is 735 characters.
-  - So nearly all input is the same preamble, the same tool definitions and an append-only history,
-    which is what caching pays for.
-- **No caching.** No `cache_control` is sent, so Anthropic models through OpenRouter pay full input
-  price on every call. DeepSeek and OpenAI cache on their own [R], but we never read
-  `prompt_tokens_details.cached_tokens`, so `cost_report.py` overstates their cost and we cannot tell
-  whether the cache hits.
-- **The answer is text.** The decision comes back as a final line (`CHOICE: n`, `PICKS: …`,
-  `BLOCKS: …`, `KEEP`) scraped from prose. `STATIC_REFERENCE` spends a whole section (ANSWER
-  CONTRACT) teaching that grammar, and threatens "a malformed answer costs you the decision". Only
-  lookups are native tool calls.
-- **Reasoning across tool rounds is kept** (corrected after reading the code). The assistant turn
-  that made a tool call goes back exactly as served (`NativeTools.Turn.messageJson`). So
-  `reasoning` and `reasoning_details` return with the tool result, as OpenRouter asks [R]. The test
-  `NativeToolsTest.theBridgeSendsToolsAndParsesAToolCallTurn` pins it.
-- **Coaching is in the system prompt.** It is mixed with the protocol:
-  - PRINCIPLES ("CAST IT — repeatedly passing while holding cantrips is how combo decks lose");
-  - FORMAT ("at most two short sentences of reasoning");
-  - advice inside decision texts ("Keeping a workable hand almost always beats shrinking it").
+The rules were written on 2026-10-15 against the harness of that day (a text answer scraped from prose, no cache
+marks, coaching in the system prompt), and the audit ([PROMPT-AUDIT.md](PROMPT-AUDIT.md)) and the rewrite applied
+them. What holds now, with its home in [ARCHITECTURE.md](ARCHITECTURE.md):
+
+- **The answer is a tool call** (rules 1-2, 5-7): one fixed `answer` schema validated against the menu, and
+  `set_plan` for the plan (section 6). `tool_choice` is "required" for OpenAI models and "auto" elsewhere
+  (`AnswerTool.toolChoiceFor`); a reply that calls nothing is reminded `AnswerTool.MAX_NUDGES` times, then lost to a
+  fixed legal option.
+- **The system prompt is fixed for the game and holds facts only** (rules 9-15, 17): what was removed and where is
+  PROMPT-AUDIT.md, "Where the findings were closed".
+- **Caching** (rules 17-20): `cache_control` is sent for Anthropic models (`cachesPrompt`); cached and cache-write
+  tokens are recorded per call and priced by `eval/cost_report.py`.
+- **Reasoning across tool rounds** (rule 8): the served assistant message goes back whole
+  (`NativeTools.Turn.messageJson`, pinned by `NativeToolsTest.theBridgeSendsToolsAndParsesAToolCallTurn`).
+- **The size that made caching matter** (2026-10-15, Haiku 5.5, Sneak and Show, seed 81, `runs/combo/`): 41 calls
+  averaging 10,187 prompt tokens against a 735-character mulligan question; nearly all input was the same preamble,
+  tool definitions and history.
 
 ## 2. The rules
 
@@ -71,7 +61,7 @@ Sources, read 2026-10-15:
        tool call.
      - Anthropic's alternative is "auto" plus strict tools, with the instruction in the user turn.
    - **OpenAI, GPT-6 Luna** (probe of one decision, two calls per setting,
-     `scratchpad probe_tc.py`, under $0.01):
+     a one-off probe script not kept in the repository, under $0.01):
      - "auto": called `answer`, 23–24 reasoning tokens;
      - "required": called `answer`, 18–66 reasoning tokens, so the reasoning is kept;
      - the function named: called `answer`, with 0 reasoning tokens, so naming the tool skips the
@@ -79,7 +69,7 @@ Sources, read 2026-10-15:
    - **So the harness sends "required" to OpenAI models and "auto" elsewhere**
      (`AnswerTool.toolChoiceFor`; `ANSWER_TOOL_CHOICE` overrides it for measurement).
      - With "required", a text-only reply is impossible at the API.
-     - With "auto", a reply that calls nothing gets two reminders and is then lost (answer-tool-v7).
+     - With "auto", a reply that calls nothing gets `AnswerTool.MAX_NUDGES` reminders and is then lost.
      - It never names the function.
    - **Constant per model:** changing `tool_choice` between calls invalidates the cached messages [C, T].
      The lookup-only text protocol still sends "none" on its last round; answer asks never change it.
@@ -125,12 +115,11 @@ Sources, read 2026-10-15:
     - opinion goes (PRINCIPLES, "keeping almost always beats shrinking", "at most two sentences of
       reasoning").
 14. **Examples: few, diverse, canonical, in `<example>` tags** [A]. They may hurt reasoning models
-    [O]. Our WORKED EXAMPLES teach the text answer format; with an answer tool that job is gone.
-    Keep an example only if a measurement shows it helps.
+    [O]. The legacy profiles' WORKED EXAMPLES taught the text answer format; with an answer tool that job
+    is gone. Keep an example only if a measurement shows it helps.
 15. **Do not try to cap reasoning in the prompt.** On Haiku 5.5, telling the model to answer
-    directly did not stop it thinking; effort is the control [H]. Our "at most two short sentences
-    of reasoning" competes with the model's own thinking. Remove it, and set effort per tier
-    instead.
+    directly did not stop it thinking; effort is the control [H]. A line like the legacy profiles'
+    "at most two short sentences of reasoning" competes with the model's own thinking.
 16. **Give the date and the model's knowledge limits only where they matter.** For us that means
     Oracle text (the rules tool), not the date. No change needed beyond tool descriptions.
 
@@ -139,8 +128,8 @@ Sources, read 2026-10-15:
 17. **Order every request as tools, then system, then messages, with nothing volatile early** [C].
     The cache is an exact prefix match. One changed byte in the system prompt invalidates
     everything after it. So the system prompt must not hold the turn, the life totals, the plan
-    statement or a tool budget count. Today `framing()` holds the deck plan, which is fixed per
-    game, so it is fine. Anything else per-decision belongs in the user turn.
+    statement or a tool budget count. The system prompt holds the deck plan, which is fixed per game;
+    anything per-decision belongs in the user turn.
 18. **Mark breakpoints** for Anthropic models through OpenRouter [R, C]:
     - top-level `"cache_control":{"type":"ephemeral"}` (automatic caching, which moves with the
       conversation); or
@@ -157,10 +146,10 @@ Sources, read 2026-10-15:
       changing tool definition: put the legal options in an enum built for that decision only if it
       sits after the breakpoint, or keep one fixed answer tool and validate the option against the
       menu in the tool result.
-    - This trade-off is the main design question for item 3. Fixed answer tool plus validation keeps
-      the cache; a per-decision enum gives constrained sampling. Measure both.
-20. **Record cache use**: `cache_read` and `cache_write` tokens per call in the jsonl (additive
-    fields), and price them in `cost_report.py`.
+    - Fixed answer tool plus validation keeps the cache; a per-decision enum gives constrained sampling.
+      The harness uses the first (section 3).
+20. **Record cache use**: cached and cache-write tokens per call on the game line, priced in
+    `cost_report.py`.
 
 ### Skills and MCP
 
@@ -173,19 +162,9 @@ Sources, read 2026-10-15:
     decisions"). MCP is a transport for tools; the seat's tools are already native function
     definitions in the request, and adding a server would add latency without new capability.
 
-## 3. What follows for the work plan
+## 3. Open questions the rules leave
 
-- **Item 3 (answer tool):** rules 1, 2, 5, 6, 7 and 19. Open question: a fixed tool plus validation,
-  or a per-decision enum. Decide by measuring cache hit rate and the illegal-answer rate on the
-  tool-use suite.
-- **Item 4 (prompt rewrite):** rules 9–15 and 17.
-  - The system prompt holds only stable text: role, deck plan, how the interface works, how to read
-    the state.
-  - The user turn holds the state, in tags, with the question last.
-  - Drop PRINCIPLES, FORMAT and the ANSWER CONTRACT; move the snapshot legend into the rules tool,
-    or keep it if it measures better.
-- **New, small, do first:**
-  - send `cache_control` for `anthropic/` models (rule 18): done;
-  - record `cached_tokens` and `cache_write_tokens`, priced in `cost_report.py` (rule 20): done;
-  - `tool_choice` on the last round (rule 2): decided from the cache measurement;
-  - reasoning across tool rounds (rule 8): already correct.
+- **Fixed answer tool or per-decision enum** (rule 19): the harness uses one fixed `answer` tool and validates the
+  option against the menu, which keeps the cache; a per-decision enum would give constrained sampling. The two have
+  not been measured against each other on the tool-use suite (`python3 eval/tool_use_suite.py`).
+- **Examples** (rule 14): none are sent under the faithful profile; whether any example helps has not been measured.
