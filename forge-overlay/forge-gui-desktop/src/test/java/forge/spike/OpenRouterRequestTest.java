@@ -60,10 +60,14 @@ public class OpenRouterRequestTest {
 
     private List<String> twoBodies(String model, boolean tools) { return twoBodies("test/smart", model, tools); }
 
-    private List<String> twoBodies(String label, String model, boolean tools) {
+    private List<String> twoBodies(String label, String model, boolean tools) { return twoBodies(label, model, tools, null); }
+
+    /** maxPriceEnv: what OPENROUTER_MAX_PRICE would hold (the production constructor reads the real environment). */
+    private List<String> twoBodies(String label, String model, boolean tools, String maxPriceEnv) {
         bodies.clear();
         calls.set(0);
         LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge(label, model, null, base, 5000);
+        bridge.maxPrice = LlmSpikeGui.OpenRouterBridge.maxPriceField(maxPriceEnv, model);
         if (tools) bridge.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         else bridge.ask("play");
         Assert.assertEquals(bodies.size(), 2, "the original request and its truncation retry");
@@ -131,6 +135,42 @@ public class OpenRouterRequestTest {
     public void theRetryStillTurnsReasoningOffWhereTheModelAllowsIt() {
         Assert.assertTrue(twoBodies("openai/gpt-6-luna", true).get(1).contains("\"reasoning\":{\"enabled\":false}"));
         Assert.assertTrue(twoBodies("deepseek/deepseek-v4-pro", true).get(1).contains("\"enabled\":false"));
+    }
+
+    private static final String CEILING = "{\"openai/gpt-6.1-sol\":{\"prompt\":2,\"completion\":10},"
+            + "\"moonshotai/kimi-k3\":{\"prompt\":0.239,\"completion\":10.8}}";
+
+    /** Latency routing may land on a priority tier at up to 6x list (GPT-6.1 Sol's, eval/pricing/prices.json `max`).
+     *  A model OPENROUTER_MAX_PRICE names is sent provider.max_price (USD per million tokens) inside the one provider
+     *  object, on the retry too, so no endpoint dearer than that is chosen (owner, 2026-10-25). */
+    @Test
+    public void aNamedModelSendsItsCeilingInTheOneProviderObject() {
+        for (String body : twoBodies("test/smart", "openai/gpt-6.1-sol", true, CEILING)) {
+            Assert.assertEquals(count(body, "\"provider\":"), 1, body);
+            Assert.assertTrue(body.contains("\"provider\":{\"sort\":\"latency\",\"require_parameters\":true,"
+                    + "\"max_price\":{\"prompt\":2,\"completion\":10}}"), body);
+        }
+        Assert.assertTrue(twoBodies("test/smart", "moonshotai/kimi-k3", false, CEILING).get(0)
+                .contains("\"provider\":{\"sort\":\"latency\",\"max_price\":{\"prompt\":0.239,\"completion\":10.8}}"));
+    }
+
+    /** No ceiling unless asked: unset, or a model the variable does not name, sends the body it always did. */
+    @Test
+    public void anUnnamedModelOrNoVariableSendsNoCeiling() {
+        Assert.assertFalse(twoBodies("test/smart", "openai/gpt-6-luna", true, CEILING).get(0).contains("max_price"));
+        Assert.assertFalse(twoBodies("test/smart", "openai/gpt-6.1-sol", true, null).get(0).contains("max_price"));
+        Assert.assertFalse(twoBodies("test/smart", "openai/gpt-6.1-sol", true, " ").get(0).contains("max_price"));
+    }
+
+    /** A ceiling that cannot be read is refused, never dropped: a run must not go out believing it is capped. */
+    @Test
+    public void anUnreadableCeilingIsRefused() {
+        for (String bad : new String[] {"2,10", "{\"openai/gpt-6.1-sol\":{\"prompt\":2}}",
+                "{\"openai/gpt-6.1-sol\":{\"prompt\":\"two\",\"completion\":10}}",
+                "{\"openai/gpt-6.1-sol\":{\"prompt\":0,\"completion\":10}}", "{\"openai/gpt-6.1-sol\":5}"}) {
+            Assert.assertThrows(IllegalArgumentException.class,
+                    () -> LlmSpikeGui.OpenRouterBridge.maxPriceField(bad, "openai/gpt-6-luna"));
+        }
     }
 
     private static String read(HttpExchange ex) throws IOException {

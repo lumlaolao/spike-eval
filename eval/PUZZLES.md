@@ -341,6 +341,13 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
+- `--max-price-at-list` (an `openrouter:` model only) sends every request a price ceiling at the model's list
+  price in `eval/pricing/prices.json` (OpenRouter's `provider.max_price`, in USD per million tokens), so latency
+  routing never lands on a dearer priority tier (owner, 2026-10-25). OpenRouter refuses a request no endpoint at or
+  under it can serve, so before a run check that each model has an endpoint that takes tools at list
+  (`/api/v1/models/<id>/endpoints`; all 21 frontier models did on 2026-10-25). Each puzzle's `batch-manifest.json`
+  records it (`record.openrouter_max_price`, null without the flag); `--budget-usd` is still checked at the dearest
+  endpoint.
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 - A `claude-cli:` model (Claude Code in print mode, `docs/harness/ARCHITECTURE.md` section 9) is a development lane

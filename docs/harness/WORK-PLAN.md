@@ -21,13 +21,14 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 ## Open work
 
 - **The frontier comparison on the 5 hardest puzzles** (owner, 2026-10-25; it replaces the 3-board plan) waits on
-  the owner's go and a budget-cap choice:
+  the owner's go (2026-10-25: the caps stand, the quirks below are signed off, and requests carry a price ceiling):
   - the plan is `notes/frontier5-plan.sh` on branch `docs/writeup-notes`: the 5 boards of the gen2 suite's open
     split named in `notes/WRITEUP-NOTES.md` section 4b (with the rule that picked them), 1 attempt each, for 21
     chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
     are not in it, and Jev Router is out (owner, 2026-10-24);
-  - caps at the dearest endpoint come to about $486; the alternative is the bridge sending `provider.max_price`
-    at the list price and caps sized at list;
+  - caps at the dearest endpoint come to about $486, kept (owner, 2026-10-25); the run passes `puzzle_solve.py
+    --max-price-at-list`, so no request is routed to a priority tier above list (PR adding it; every model had an
+    endpoint that takes tools at list on 2026-10-25);
   - the owner requires full logs for this run, from the model chats to the engine logs: the full-transcript and
     archive change (PR #324, open) must land on main before it starts;
   - one paid Jev smoke test (2026-10-24, one gen2 puzzle, $0.0023, `runs/puzzles/jev-test-1`, WRITEUP-NOTES

@@ -10719,6 +10719,32 @@ public final class LlmSpikeGui {
             return "default".equalsIgnoreCase(env.trim()) ? "" : env.trim().toLowerCase(java.util.Locale.ROOT);
         }
         private static final String HTTP_TITLE = System.getenv("OPENROUTER_HTTP_TITLE");
+        /**
+         * The {@code "max_price":{...}} field for {@code model}, or null. OPENROUTER_MAX_PRICE holds
+         * {"<model>":{"prompt":P,"completion":C}} in USD per million tokens (eval/puzzle_solve.py --max-price-at-list
+         * writes it from the list prices); OpenRouter then routes only to an endpoint at or under it, so latency
+         * routing never lands on a priority tier (GPT-6.1 Sol's is 6x list, eval/pricing/prices.json `max`; owner,
+         * 2026-10-25). Unset, or a model it does not name: no ceiling. Unreadable: refused, so a run never goes out
+         * believing it is capped.
+         */
+        static String maxPriceField(String env, String model) {
+            if (env == null || env.isBlank()) return null;
+            try {
+                String field = null;   // every entry is checked, not only this model's: one bad entry is a bad variable
+                for (Map.Entry<String, com.google.gson.JsonElement> e
+                        : com.google.gson.JsonParser.parseString(env).getAsJsonObject().entrySet()) {
+                    com.google.gson.JsonObject o = e.getValue().getAsJsonObject();
+                    java.math.BigDecimal prompt = o.get("prompt").getAsBigDecimal(), completion = o.get("completion").getAsBigDecimal();
+                    if (prompt.signum() <= 0 || completion.signum() <= 0) throw new IllegalArgumentException("not positive");
+                    if (e.getKey().equals(model))
+                        field = "\"max_price\":{\"prompt\":" + prompt.toPlainString() + ",\"completion\":" + completion.toPlainString() + "}";
+                }
+                return field;
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException("OPENROUTER_MAX_PRICE is not {\"<model>\":{\"prompt\":P,\"completion\":C}} "
+                        + "with P and C above 0 (USD per million tokens): " + env, e);
+            }
+        }
         private static Long parseLongOrNull(String v) {
             try { return v == null ? null : Long.parseLong(v.trim()); } catch (Exception e) { return null; }
         }
@@ -10729,6 +10755,8 @@ public final class LlmSpikeGui {
         private final HttpClient client;
         private final ModelCfg cfg;
         private final String baseUrl;
+        /** maxPriceField for this bridge's model; package-private so a test can set it (the environment is fixed). */
+        String maxPrice;
         private final boolean fastTier; // label is always "<seat>/smart" or "<seat>/fast" — see PlayerControllerLLM ctor
         private final long timeoutMs;
         private long totalMs = 0;
@@ -10783,6 +10811,7 @@ public final class LlmSpikeGui {
             this.baseUrl = baseUrl;
             this.fastTier = label != null && label.endsWith("/fast");
             this.cfg = ModelCfg.forModel(model);
+            this.maxPrice = maxPriceField(System.getenv("OPENROUTER_MAX_PRICE"), model);
             this.timeoutMs = timeoutMs;
             this.client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofMillis(timeoutMs))
@@ -10955,6 +10984,7 @@ public final class LlmSpikeGui {
             List<String> provider = new ArrayList<>();
             if (!PROVIDER_SORT.isEmpty()) provider.add("\"sort\":\"" + jsonEscape(PROVIDER_SORT) + "\"");
             if (toolsJson != null) provider.add("\"require_parameters\":true");
+            if (maxPrice != null) provider.add(maxPrice);
             if (!provider.isEmpty()) body.append(",\"provider\":{").append(String.join(",", provider)).append("}");
             // Every ask resends the same preamble, tools and chat history, and nothing marked it
             // cacheable, so Anthropic models billed all of it at the full input rate (a Haiku 5.5 game

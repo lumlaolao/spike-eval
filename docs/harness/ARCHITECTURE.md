@@ -487,6 +487,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     budget (its copy of the table is pinned to the Java map by its test); its budgets are its own.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
+    `puzzle_solve.py --max-price-at-list` rules that out: it sets `OPENROUTER_MAX_PRICE` to the list price, and the
+    bridge adds it to its one `provider` object as `max_price` (`OpenRouterBridge.maxPriceField`; an unreadable
+    value is refused, never dropped). A batch has no such flag and scrubs the variable (`RUN_DEFINING_KEYS`).
     The file's `comment` names the models with a long-context tier, where each starts, and which `max` counts one,
     with the largest prompt recorded in one call.
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or

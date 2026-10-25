@@ -104,6 +104,8 @@ RUN_DEFINING_KEYS = (
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
     "CHECKPOINT_SHA", "SEED_BANK",
+    # A price ceiling only puzzle_solve.py --max-price-at-list sets: a batch has no flag for it and records none.
+    "OPENROUTER_MAX_PRICE",
     # Context shape and the seat's tools are experimental CONDITIONS (they change
     # what the model can see and do); only their flags set them, never the
     # ambient environment or --env.

@@ -435,5 +435,69 @@ class ClaudeCliSeatTest(unittest.TestCase):
         self.assertFalse(any(k.startswith("CLAUDE") for k in puzzle_solve.condition(a)), "another model's condition moved")
 
 
+
+class MaxPriceAtListTest(unittest.TestCase):
+    """Owner, 2026-10-25: a frontier run must not be routed to a priority tier (GPT-6.1 Sol's costs 6x list).
+    --max-price-at-list sends each request a ceiling at the model's list price in eval/pricing/prices.json, in USD per
+    million tokens, exactly (a ceiling rounded below list would rule out the list-price endpoint itself)."""
+
+    SUITE = str(Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json")
+
+    def test_the_ceiling_is_the_list_price_per_million_tokens_exactly(self):
+        prices = puzzle_solve.cost_report.load_prices()
+        for spec, want in (("openrouter:openai/gpt-6.1-sol", {"prompt": 2, "completion": 10}),
+                           ("openrouter:moonshotai/kimi-k3", {"prompt": 0.239, "completion": 10.8}),
+                           ("openrouter:deepseek/deepseek-v4.1-flash", {"prompt": 0.02, "completion": 1})):
+            got = json.loads(puzzle_solve.max_price_env(prices, spec))
+            self.assertEqual(got, {spec.split(":", 1)[1]: want}, spec)
+        self.assertNotIn("e-", puzzle_solve.max_price_env(prices, "openrouter:deepseek/deepseek-v4.1-flash"))
+
+    def run_main(self, model, *extra):
+        envs = []
+
+        class FakeBuild:
+            classes = classes_with_transcript()
+
+            def __init__(self, build_dir, forge, allow_stale=False):
+                pass
+
+            def provenance(self):
+                return {}
+
+            def run(self, env, out, **kw):
+                envs.append(env)
+                return 0
+
+        suite = json.loads(Path(self.SUITE).read_text())
+        rec = next(r for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+        root = Path(tempfile.mkdtemp())
+        argv = ["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1", "--budget-usd", "1",
+                "--ids", rec["id"], "--out", str(root), "--build", "/b"] + list(extra)
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            puzzle_solve.main(argv)
+        return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
+
+    def test_the_flag_reaches_the_jvm_and_the_manifest_records_it(self):
+        envs, manifest = self.run_main("openrouter:openai/gpt-6.1-sol", "--max-price-at-list")
+        want = puzzle_solve.max_price_env(puzzle_solve.cost_report.load_prices(), "openrouter:openai/gpt-6.1-sol")
+        self.assertEqual(envs[0]["OPENROUTER_MAX_PRICE"], want)
+        self.assertEqual(manifest["record"]["openrouter_max_price"], json.loads(want))
+
+    def test_without_the_flag_no_ceiling_is_sent_and_none_is_recorded(self):
+        envs, manifest = self.run_main("openrouter:openai/gpt-6.1-sol")
+        self.assertNotIn("OPENROUTER_MAX_PRICE", envs[0])
+        self.assertIsNone(manifest["record"]["openrouter_max_price"])
+
+    def test_it_is_refused_for_a_model_that_is_not_an_openrouter_chat_model(self):
+        for model in ("jev:typesafe/jev-1.14", "greedy:"):
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+                puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1",
+                                   "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                                   "--max-price-at-list"])
+            self.assertIn("--max-price-at-list", str(cm.exception.code), model)
+
+
 if __name__ == "__main__":
     unittest.main()

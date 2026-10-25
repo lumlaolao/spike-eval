@@ -22,6 +22,11 @@ An openrouter: model sends each puzzle's position to openrouter.ai: the egress o
 (OPENROUTER_ALLOW_EGRESS=1, normally in secrets.env) is required and never set here. So does a
 jev: decision model (OpenRouter's Decisions API, DecisionsBridge), which also cannot take --memory-tools.
 
+--max-price-at-list (an openrouter: model only) sends every request a price ceiling at the model's list price in
+eval/pricing/prices.json (OPENROUTER_MAX_PRICE, OpenRouter's provider.max_price), so latency routing never lands on
+a dearer priority tier (owner, 2026-10-25); each puzzle's manifest records it. --budget-usd is still checked at the
+dearest endpoint.
+
 A claude-cli: model (the local Claude Code CLI, ClaudeCliBridge) is a development lane on the operator's own Claude
 subscription (owner, 2026-10-24): it runs only with CLAUDE_CLI_SEAT=1, and its rows are stamped dev_lane, which
 puzzle_score.py labels as not a benchmark score. It sends each position to Anthropic under the CLI's own login, not
@@ -31,6 +36,7 @@ shells out to the one local CLI), and its spend is the CLI's own reported cost. 
 """
 
 import argparse
+import decimal
 import functools
 import json
 import os
@@ -119,6 +125,16 @@ def condition(a):
     return cond
 
 
+def max_price_env(prices, spec):
+    """OPENROUTER_MAX_PRICE for `spec`: {"<model>": {"prompt": P, "completion": C}}, its list price in USD per million
+    tokens. Decimal, from the price as written: a float product (2e-06 * 1e6 = 1.9999999999999998) can fall just
+    under list and rule out the list-price endpoint itself."""
+    p = cost_report.price_of(prices, spec)
+    per_m = {k: decimal.Decimal(repr(p[k])).scaleb(6).normalize() for k in ("prompt", "completion")}
+    return "{%s: {%s}}" % (json.dumps(cost_report.model_id(spec)),
+                           ", ".join('"%s": %s' % (k, format(v, "f")) for k, v in per_m.items()))
+
+
 def already_done(out, k, suite_sha):
     """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it."""
     seeds = {r.get("seed") for r in pb.read_results(out) if r.get("suite_sha256") == suite_sha}
@@ -203,11 +219,12 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build):
     return bad
 
 
-def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True):
+def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None):
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
     record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
-              "pzl_sha256": rec.get("pzl_sha256")}
+              "pzl_sha256": rec.get("pzl_sha256"),
+              "openrouter_max_price": json.loads(max_price) if max_price else None}
     write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
     # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
@@ -216,6 +233,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True)
     for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
         if os.environ.get(key):
             env[key] = os.environ[key]
+    if max_price:
+        env["OPENROUTER_MAX_PRICE"] = max_price
     rc = build.run(env, out, timeout_s=4 * 3600, keep_model_env=True)
     rows = pb.read_results(out)
     return rec["id"], rc, rows
@@ -244,6 +263,8 @@ def main(argv=None):
                     help="a claude-cli: model only: the CLI's --effort (CLAUDE_BRIDGE_EFFORT); unset is the CLI's default")
     ap.add_argument("--claude-cli-thinking-tokens", type=int, default=None, metavar="N",
                     help="a claude-cli: model only: the CLI's MAX_THINKING_TOKENS; unset is the CLI's default")
+    ap.add_argument("--max-price-at-list", action="store_true",
+                    help="an openrouter: model only: send a price ceiling at its list price (no priority tier)")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -259,6 +280,9 @@ def main(argv=None):
     if cost_report.is_cli_lane(a.model) and a.jobs != 1:
         raise SystemExit("-j 1 with a %s model: each puzzle's JVM shells out to the one local Claude CLI, and parallel ones "
                          "contend for it, so decisions time out and are lost (run_batch.py's cited rule)" % cost_report.CLI_PREFIX)
+    if a.max_price_at_list and not a.model.startswith("openrouter:"):
+        raise SystemExit("--max-price-at-list is for an openrouter: chat model; %s sends no provider preferences"
+                         % a.model)
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
@@ -277,6 +301,7 @@ def main(argv=None):
             and not is_loopback(os.environ.get("OPENROUTER_BASE_URL", ""))):
         raise SystemExit("OPENROUTER_ALLOW_EGRESS=1 is not set: an openrouter: or jev: model sends each position to "
                          "openrouter.ai, and that needs the owner's opt-in (secrets.env)")
+    max_price = max_price_env(cost_report.load_prices(), a.model) if a.max_price_at_list else None
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
@@ -311,7 +336,8 @@ def main(argv=None):
             return rec["id"], "done", pb.read_results(out)
         if over_budget(out_root, a.budget_usd):
             return rec["id"], None, []
-        return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded)
+        return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded,
+                            max_price)
 
     skipped = 0
     try:
