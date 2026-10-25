@@ -3,10 +3,10 @@
 # Jev 1.14 runs through its own bridge (spec jev:typesafe/jev-1.14, on main since PR #305), listed as JEV below.
 # Jev Router is out (owner, 2026-10-24).
 # Nothing runs until the owner starts it. Needs OPENROUTER_ALLOW_EGRESS=1 (the owner's, never set here).
-#   bash notes/frontier3-plan.sh            # all models, 5 at a time
-#   RESUME=1 bash notes/frontier3-plan.sh   # pick up where a stopped run left off
-#   ONLY="x-ai/grok-4.7 openai/gpt-6-luna" bash notes/frontier3-plan.sh
-#   REPO=/path/to/main-checkout bash notes/frontier3-plan.sh   # REPO must be at origin/main
+#   bash notes/frontier5-plan.sh            # all models, 5 at a time
+#   RESUME=1 bash notes/frontier5-plan.sh   # pick up where a stopped run left off
+#   ONLY="x-ai/grok-4.7 openai/gpt-6-luna" bash notes/frontier5-plan.sh
+#   REPO=/path/to/main-checkout bash notes/frontier5-plan.sh   # REPO must be at origin/main
 # Watch it (one table per model; --follow streams decisions, flags and finished puzzles):
 #   for d in runs/puzzles/frontier5/*/; do python3 eval/puzzle_watch.py "$d"; done
 # The 5 boards (gen2 suite, open split): the board Luna fell furthest short on (opponent life left over
