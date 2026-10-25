@@ -24,8 +24,9 @@ PAR=${PAR:-5}   # each JVM takes 2 GB (-Xmx2048m); this box has 15; one JVM per 
 # model  cap-in-USD: 5 attempts (the 3-attempt caps x 5/3) at the "high" profile (730K prompt half cached, 212K output) priced at each
 # model's `max` in eval/pricing/prices.json (its dearest endpoint; budgets check there since PR #303), +10%.
 # Sum of caps: about $486 (5/3 of the 3-board $291.50). Expected spend about $62 at list (5/3 of $37). The gap is
-# mostly priority tiers (GPT-6.1 Sol's "ultrafast" is 6x list). Owner choice: keep these caps, or have the bridge
-# send provider.max_price at list so routing never lands on a dearer tier, and size the caps at list again.
+# mostly priority tiers (GPT-6.1 Sol's "ultrafast" is 6x list). The owner kept these caps and asked for a price
+# ceiling as well (2026-10-25): every chat model runs with puzzle_solve.py --max-price-at-list, so OpenRouter routes
+# only to an endpoint at or under its list price, and the preflight below refuses a model with no such endpoint.
 MODELS="
 x-ai/grok-4.7 24.17
 x-ai/grok-4.6 24.17
@@ -63,12 +64,27 @@ if [ -z "$BUILD" ]; then
       bash eval/harness_acceptance.sh > "$BUILD.log" 2>&1 ) || { echo "refused: build failed, see $BUILD.log"; exit 2; }
 fi
 echo "main $HEAD_SHA, build $BUILD"
+# The ceiling makes OpenRouter refuse a request no endpoint at or under list can serve, which would lose every
+# decision of that model's puzzles. So: one free GET per model, and stop before anything is paid for.
+printf "%s\n" "$MODELS" | awk 'NF==2{print $1}' | python3 -c '
+import json, sys, urllib.request
+prices = json.load(open(sys.argv[1]))["models"]
+bad = []
+for m in sys.stdin.read().split():
+    eps = json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models/%s/endpoints" % m, timeout=30))
+    ok = [e for e in eps["data"]["endpoints"] if "tools" in (e.get("supported_parameters") or [])
+          and float(e["pricing"]["prompt"]) <= prices[m]["prompt"] and float(e["pricing"]["completion"]) <= prices[m]["completion"]]
+    print("%-32s %d endpoint(s) that take tools at or under list" % (m, len(ok)))
+    bad += [] if ok else [m]
+sys.exit("refused: no endpoint at list for %s (update eval/pricing/prices.json or drop the model)" % bad if bad else 0)
+' "$REPO/eval/pricing/prices.json" || exit 2
 run_one() {
   local model=$1 cap=$2 dir=$OUT/${1//\//_}
-  local spec="openrouter:$model"; [[ $model == typesafe/jev-* ]] && spec="jev:$model"
+  local spec="openrouter:$model" ceiling=--max-price-at-list
+  [[ $model == typesafe/jev-* ]] && spec="jev:$model" ceiling=""   # the Decisions API takes no provider object
   python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 --jobs 1 \
     --build "$BUILD" --forge "$FORGE" \
-    --model "$spec" --budget-usd "$cap" --out "$dir" ${RESUME:+--resume} > "$dir.log" 2>&1
+    --model "$spec" --budget-usd "$cap" $ceiling --out "$dir" ${RESUME:+--resume} > "$dir.log" 2>&1
   echo "$model exit $? ($(python3 "$REPO/eval/cost_report.py" "$dir" 2>/dev/null | tail -1))"
 }
 mkdir -p "$OUT"
