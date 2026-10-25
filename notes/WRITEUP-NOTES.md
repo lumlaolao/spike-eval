@@ -81,6 +81,19 @@ Raw facts with their sources, to write from. Nothing here is a new measurement.
   - Mistral may refuse a user message right after a tool result (plausible, unverified);
   - Anthropic caching has never been measured working.
 
+## 4b. The 5 hardest puzzles (owner, 2026-10-25: replaces the 3-board plan)
+
+- **Boards:** in each of the 5 gen2 families Luna solved at most once, the board Luna fell furthest short on
+  (opponent life left / starting life, among attempts where Luna made decisions):
+  `hard-atog-b8053a21d4a8` (15/15 left), `hard-hoofdrain-60c5afda2f25` (54/65), `hard-splice2-325cd33e0a57`
+  (13/21), `hard-drain2-516c13f84175` (11/21), `hard-elf2-2753b3ca0d06` (24/59). All 13-15 steps, every floor 0.
+- **Models:** the same 21 chat models plus Jev 1.14; 110 attempts. Expected about $62 at list (5/3 of the
+  3-board estimate); caps sum about $486 at each model's dearest endpoint. Script: `notes/frontier5-plan.sh`.
+- **Logs:** the owner requires full logs, model chats to engine; full request/response transcripts and an
+  archive script are being added before the run.
+- **Data note:** in Luna's gen2 run, `hard-grave-2005e87cb947` counts as a failure but Luna made no decisions in
+  it (`[TALLY] smart=0`, 3 rows): an attempt the run did not really play. 15/156 should be re-read with it out.
+
 ## 5. Harness-building eval (merged, PR #304)
 
 - **What it measures:** whether an agent can BUILD a working Magic-playing harness without seeing the grading
