@@ -77,13 +77,21 @@ final class ClaudeCliBridge implements LLMBridge {
     static final List<String> API_KEY_ENV = List.of("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN");
     /** A cloud provider's switch and the credentials kept only while that switch is set. */
     static final Map<String, List<String>> PROVIDER_ENV = Map.of(
-            "CLAUDE_CODE_USE_BEDROCK", List.of("AWS_REGION", "AWS_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
-                    "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK"),
-            "CLAUDE_CODE_USE_VERTEX", List.of("GOOGLE_APPLICATION_CREDENTIALS", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID"),
+            "CLAUDE_CODE_USE_BEDROCK", List.of("AWS_REGION", "AWS_DEFAULT_REGION", "AWS_PROFILE", "AWS_CONFIG_FILE",
+                    "AWS_SHARED_CREDENTIALS_FILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+                    "AWS_BEARER_TOKEN_BEDROCK"),
+            "CLAUDE_CODE_USE_VERTEX", List.of("GOOGLE_APPLICATION_CREDENTIALS", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID",
+                    "VERTEX_REGION_*"),
             "CLAUDE_CODE_USE_FOUNDRY", List.of("ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE", "ANTHROPIC_FOUNDRY_BASE_URL"));
     /** Test hook: variables added to the launching environment before it is filtered, so a test proves the filter in
      *  a JVM whatever its own environment holds. Null outside tests. */
     static volatile Map<String, String> plantedEnv;
+    private static final String DEADLINE_ENV = System.getenv("CLAUDE_DEADLINE_MS");
+    // 300s, the API lane's timeout: the CLI lane may think as long as the API lane.
+    private static final long DEADLINE_MS = parseLong(DEADLINE_ENV, 300000);
+    /** The levels the CLI's {@code --effort} takes. */
+    private static final Set<String> EFFORT_LEVELS = Collections.unmodifiableSet(new java.util.LinkedHashSet<>(
+            Arrays.asList("low", "medium", "high", "xhigh", "max")));
     /** Characters of the child's stderr kept for the no-answer log line. */
     private static final int STDERR_TAIL = 400;
 
@@ -105,8 +113,8 @@ final class ClaudeCliBridge implements LLMBridge {
 
     ClaudeCliBridge(String label, String model, String preamble) {
         this(label, model, preamble, System.getenv().getOrDefault("CLAUDE_BIN", "claude"),
-                LlmSpikeGui.ClaudeBridge.deadlineFor(model),
-                LlmSpikeGui.ClaudeBridge.effortFor(label != null && label.endsWith("/fast")),
+                deadlineFor(model),
+                effortFor(label != null && label.endsWith("/fast")),
                 thinkingTokens(System.getenv(THINKING_ENV)), "1".equals(System.getenv(API_KEY_OPT_IN)));
     }
 
@@ -125,10 +133,45 @@ final class ClaudeCliBridge implements LLMBridge {
 
     static boolean isSpec(String spec) { return spec != null && spec.startsWith(PREFIX); }
 
+    private static long parseLong(String v, long def) {
+        try { return v == null ? def : Long.parseLong(v.trim()); } catch (Exception e) { return def; }
+    }
+
+    /** CLAUDE_DEADLINE_MS as set, else 300 s: the game line's `claude_deadline_ms`. */
+    static long deadlineMs() { return DEADLINE_MS; }
+
+    /** A call's deadline for {@code model}: CLAUDE_DEADLINE_MS when an operator pins one, else ModelCfg's. */
+    static long deadlineFor(String model) {
+        return (DEADLINE_ENV != null && !DEADLINE_ENV.isEmpty()) ? DEADLINE_MS : LlmSpikeGui.ModelCfg.forModel(model).timeoutMs;
+    }
+
+    /**
+     * The CLI's {@code --effort} for a tier, from CLAUDE_BRIDGE_EFFORT[_SMART|_FAST] (run_batch.py and puzzle_solve.py pin
+     * it from --claude-cli-effort); null, the CLI's own default, when unset. Effort is part of the measurement, so it is
+     * validated here (an unknown level is fatal, not a per-call failure mid-game) and stamped (claude_effort_smart /
+     * _fast). Never read from CLAUDE_EFFORT: that is Claude Code's own variable, often set in the launching shell.
+     */
+    static String effortFor(boolean fastTier) {
+        String v = System.getenv(fastTier ? "CLAUDE_BRIDGE_EFFORT_FAST" : "CLAUDE_BRIDGE_EFFORT_SMART");
+        if (v == null || v.trim().isEmpty()) v = System.getenv("CLAUDE_BRIDGE_EFFORT");
+        if (v == null || v.trim().isEmpty()) return null;
+        String e = v.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!EFFORT_LEVELS.contains(e))
+            throw new IllegalArgumentException("invalid CLAUDE_BRIDGE_EFFORT '" + v.trim() + "' — valid levels: "
+                    + String.join(", ", EFFORT_LEVELS));
+        return e;
+    }
+
+    /** What provenance records: the resolved level, or "cli-default" when the flag is omitted. */
+    static String effortLabel(boolean fastTier) {
+        String e = effortFor(fastTier);
+        return e == null ? "cli-default" : e;
+    }
+
     /** The effort a claude-cli: solver ran at, for its puzzle row: the smart tier's level (CLAUDE_BRIDGE_EFFORT[_SMART],
      *  "cli-default" when unset), and the fast tier's beside it when the two differ. */
     static String effortStamp() {
-        String smart = LlmSpikeGui.ClaudeBridge.effortLabel(false), fast = LlmSpikeGui.ClaudeBridge.effortLabel(true);
+        String smart = effortLabel(false), fast = effortLabel(true);
         return smart.equals(fast) ? smart : "smart=" + smart + ",fast=" + fast;
     }
 
@@ -155,17 +198,21 @@ final class ClaudeCliBridge implements LLMBridge {
     static Map<String, String> childEnv(Map<String, String> parent, String thinking, boolean allowApiKey) {
         Set<String> keep = new java.util.HashSet<>(KEEP_ENV);
         if (allowApiKey) keep.addAll(API_KEY_ENV);
+        List<String> prefixes = new ArrayList<>(List.of("LC_"));
         for (Map.Entry<String, List<String>> p : PROVIDER_ENV.entrySet()) {
-            if (parent.get(p.getKey()) == null) continue;
+            if (!truthy(parent.get(p.getKey()))) continue;
             keep.add(p.getKey());
-            keep.addAll(p.getValue());
+            for (String k : p.getValue()) if (k.endsWith("*")) prefixes.add(k.substring(0, k.length() - 1)); else keep.add(k);
         }
         Map<String, String> env = new HashMap<>();
         for (Map.Entry<String, String> e : parent.entrySet())
-            if (keep.contains(e.getKey()) || e.getKey().startsWith("LC_")) env.put(e.getKey(), e.getValue());
+            if (keep.contains(e.getKey()) || prefixes.stream().anyMatch(e.getKey()::startsWith)) env.put(e.getKey(), e.getValue());
         if (thinking != null) env.put("MAX_THINKING_TOKENS", thinking);
         return env;
     }
+
+    /** A provider switch is on only when set to "1" or "true", as the CLI reads it. */
+    static boolean truthy(String v) { return v != null && ("1".equals(v.trim()) || "true".equalsIgnoreCase(v.trim())); }
 
     /** How the child logs in, for the log: a cloud provider, an API key, an OAuth token, or the CLI's own stored login. */
     static String loginSource(Map<String, String> child) {

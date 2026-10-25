@@ -559,7 +559,7 @@ if has_stage lookahead; then
     dir="$OUT/lookahead"; sdir="$OUT/lookahead-server"; mkdir -p "$dir" "$sdir"
     # --policy simulate makes the fake model ask for a preview on every play prompt that advertises
     # SIMULATE, so the real preview path (previewCast -> re-ask) is exercised without any egress.
-    # ANSWER_TOOL=0: this is the text protocol's preview (the Claude CLI lane and the opt-out); with the
+    # ANSWER_TOOL=0: this is the text protocol's preview (the opt-out); with the
     # answer tool on, the preview is a function call (nativetool stage).
     python3 "$REPO/eval/fake_model_server.py" --port 0 --policy simulate --log "$sdir/fake_requests.jsonl" \
         >"$sdir/fake_server.out" 2>&1 &

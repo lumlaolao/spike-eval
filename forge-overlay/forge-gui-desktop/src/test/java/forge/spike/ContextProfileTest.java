@@ -198,9 +198,9 @@ public class ContextProfileTest {
     public void unsetEffortIsStampedAsCliDefault() {
         // No CLAUDE_BRIDGE_EFFORT* in the test environment, so both tiers report the sentinel rather
         // than null/"" — a blank provenance field is indistinguishable from a field nobody wrote.
-        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.effortLabel(false), "cli-default");
-        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.effortLabel(true), "cli-default");
-        Assert.assertNull(LlmSpikeGui.ClaudeBridge.effortFor(false),
+        Assert.assertEquals(ClaudeCliBridge.effortLabel(false), "cli-default");
+        Assert.assertEquals(ClaudeCliBridge.effortLabel(true), "cli-default");
+        Assert.assertNull(ClaudeCliBridge.effortFor(false),
                 "unset must mean 'omit the flag', keeping argv byte-identical to pre-effort runs");
     }
 

@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import forge.game.Game;
 import forge.game.phase.PhaseType;
@@ -175,9 +176,22 @@ public class ClaudeCliBridgeTest {
         Map<String, String> withKey = ClaudeCliBridge.childEnv(planted, null, true);
         Assert.assertTrue(withKey.containsKey("ANTHROPIC_API_KEY") && withKey.containsKey("ANTHROPIC_AUTH_TOKEN"), withKey.toString());
         Assert.assertFalse(withKey.containsKey("AWS_ACCESS_KEY_ID"), "AWS credentials without CLAUDE_CODE_USE_BEDROCK");
-        planted.put("CLAUDE_CODE_USE_BEDROCK", "1");
+        planted.put("CLAUDE_CODE_USE_BEDROCK", "0");
+        Assert.assertFalse(ClaudeCliBridge.childEnv(planted, null, false).containsKey("AWS_ACCESS_KEY_ID"),
+                "a provider switch set to 0 is off");
+        planted.put("CLAUDE_CODE_USE_BEDROCK", "true");
+        for (String k : new String[] {"AWS_DEFAULT_REGION", "AWS_REGION", "AWS_PROFILE", "AWS_CONFIG_FILE", "AWS_SHARED_CREDENTIALS_FILE"})
+            planted.put(k, "planted");
         Map<String, String> bedrock = ClaudeCliBridge.childEnv(planted, null, false);
         Assert.assertTrue(bedrock.containsKey("AWS_ACCESS_KEY_ID") && bedrock.containsKey("CLAUDE_CODE_USE_BEDROCK"), bedrock.toString());
+        for (String k : new String[] {"AWS_DEFAULT_REGION", "AWS_REGION", "AWS_PROFILE", "AWS_CONFIG_FILE", "AWS_SHARED_CREDENTIALS_FILE"})
+            Assert.assertTrue(bedrock.containsKey(k), k);
+        Map<String, String> vertex = new HashMap<>();
+        vertex.put("CLAUDE_CODE_USE_VERTEX", "1");
+        vertex.put("VERTEX_REGION_CLAUDE_OPUS", "planted");
+        vertex.put("CLOUD_ML_REGION", "planted");
+        Assert.assertEquals(ClaudeCliBridge.childEnv(vertex, null, false).keySet(),
+                Set.of("CLAUDE_CODE_USE_VERTEX", "VERTEX_REGION_CLAUDE_OPUS", "CLOUD_ML_REGION"));
         Assert.assertFalse(bedrock.containsKey("GOOGLE_APPLICATION_CREDENTIALS") || bedrock.containsKey("ANTHROPIC_FOUNDRY_API_KEY"));
         // The login the child has is said in the log line.
         Assert.assertEquals(ClaudeCliBridge.loginSource(bedrock), "Bedrock (CLAUDE_CODE_USE_BEDROCK)");
@@ -444,30 +458,46 @@ public class ClaudeCliBridgeTest {
 
     // ------------------------------------------------------------------ the seat's conditions
 
-    /** The lane is chosen explicitly (owner, 2026-10-24: local development on the owner's subscription, never a benchmark
-     *  score), so without CLAUDE_CLI_SEAT=1 it is refused first. The spec names the lane; a bare spec is still the text
-     *  lane. Phase 1 offers no lookups and no preview, needs the answer tool, and keeps no conversation. */
-    /** The bare-name text lane (`opus`, `claude-opus-5-5`) runs the same CLI on the same login, so a model seat on it
-     *  needs the same opt-in; a seat that never asks a model (floor, random, the puzzle arms) is untouched. Any other
-     *  spec naming a "cli:" lane is a typo and is refused. */
+    /** The bare-name text lane (`opus`, `claude-opus-5-5`) is retired (owner, 2026-10-25): a model seat naming one is
+     *  refused with what to use instead, by the factory too; a seat that never asks a model (floor, random, the puzzle
+     *  arms) keeps it as a placeholder. A claude-cli: model seat needs its opt-in. Any other spec naming a "cli:" lane is
+     *  a typo and is refused. */
     @Test
-    public void theBareCliLaneNeedsTheSameOptInAndAMisspelledLaneIsRefused() {
-        for (String spec : new String[] {"opus", "claude-opus-5-5", "haiku", "claude-cli:claude-opus-5-5"}) {
-            Assert.assertTrue(LlmSpikeGui.LLMBridgeFactory.isCliLane(spec), spec);
-            try {
-                LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, "llm", false, "Seat/smart");
-                Assert.fail("a model seat on " + spec + " was built without " + ClaudeCliBridge.OPT_IN);
-            } catch (IllegalStateException e) {
-                Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1") && e.getMessage().contains("local development"),
-                        e.getMessage());
+    public void theBareCliLaneIsRetiredAndAMisspelledLaneIsRefused() {
+        for (String spec : new String[] {"opus", "claude-opus-5-5", "haiku"}) {
+            Assert.assertTrue(LlmSpikeGui.LLMBridgeFactory.isBare(spec), spec);
+            for (boolean optedIn : new boolean[] {false, true}) {
+                try {
+                    LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, "llm", optedIn, "Seat/smart");
+                    Assert.fail("a model seat on the retired " + spec + " was built");
+                } catch (IllegalArgumentException e) {
+                    assertRetired(e);
+                }
             }
-            LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, "llm", true, "Seat/smart");
+            try {
+                LlmSpikeGui.LLMBridgeFactory.create("Seat/smart", spec, "p");
+                Assert.fail("the factory built the retired " + spec);
+            } catch (IllegalArgumentException e) {
+                assertRetired(e);
+            }
             for (String mode : new String[] {"floor", "random", "pass"}) LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, mode, false, "S");
+            Assert.assertNull(LlmSpikeGui.LLMBridgeFactory.placeholder("S/smart", spec).ask("x"), "a placeholder answers nothing");
         }
-        for (String spec : new String[] {"openrouter:openai/gpt-6-luna", "jev:typesafe/jev-1.14", "greedy:", "script:x.txt"}) {
-            Assert.assertFalse(LlmSpikeGui.LLMBridgeFactory.isCliLane(spec), spec);
-            LlmSpikeGui.LLMBridgeFactory.requireCliOptIn(spec, "llm", false, "Seat/smart");
+        try {
+            LlmSpikeGui.LLMBridgeFactory.requireCliOptIn("claude-cli:claude-opus-5-5", "llm", false, "Seat/smart");
+            Assert.fail("a claude-cli: model seat was built without " + ClaudeCliBridge.OPT_IN);
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1") && e.getMessage().contains("local development"),
+                    e.getMessage());
         }
+        LlmSpikeGui.LLMBridgeFactory.requireCliOptIn("claude-cli:claude-opus-5-5", "llm", true, "Seat/smart");
+        for (String spec : new String[] {"openrouter:openai/gpt-6-luna", "jev:typesafe/jev-1.14", "greedy:", "script:x.txt",
+                "claude-cli:opus"}) {
+            Assert.assertFalse(LlmSpikeGui.LLMBridgeFactory.isBare(spec), spec);
+        }
+        Assert.assertEquals(new java.util.TreeSet<>(Arrays.asList(LlmSpikeGui.LLMBridgeFactory.ROUTED_PREFIXES)),
+                new java.util.TreeSet<>(List.of("openrouter:", DecisionsBridge.PREFIX, ClaudeCliBridge.PREFIX, ScriptBridge.PREFIX,
+                        GreedyBridge.PREFIX)));
         for (String typo : new String[] {"Claude-CLI:opus", "cli:opus", "claude_cli:opus", "openrouter:x/claude-cli:y"}) {
             try {
                 LlmSpikeGui.LLMBridgeFactory.create("Seat/smart", typo, "p");
@@ -476,6 +506,91 @@ public class ClaudeCliBridgeTest {
                 Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.PREFIX), e.getMessage());
             }
         }
+    }
+
+    private static void assertRetired(RuntimeException e) {
+        Assert.assertTrue(e.getMessage().contains("retired") && e.getMessage().contains(ClaudeCliBridge.PREFIX + "<model>")
+                && e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1"), e.getMessage());
+    }
+
+    /** The gates at their call site: a seat built from model strings, as a game builds it. */
+    @Test
+    public void aSeatBuiltFromModelStringsIsGatedWhereItIsBuilt() {
+        new LineFindingProbeTest().initializeModel();
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        forge.ai.LobbyPlayerAi lp = new forge.ai.LobbyPlayerAi("Seat", null);
+        try {
+            new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "", "opus", "opus", "llm");
+            Assert.fail("a model seat on opus was built");
+        } catch (IllegalArgumentException e) {
+            assertRetired(e);
+        }
+        LlmSpikeGui.envOverride = new HashMap<>();
+        try {
+            try {
+                new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "", "claude-cli:opus", "claude-cli:opus", "llm");
+                Assert.fail("a claude-cli: model seat was built without " + ClaudeCliBridge.OPT_IN);
+            } catch (IllegalStateException e) {
+                Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1"), e.getMessage());
+            }
+            LlmSpikeGui.envOverride.put(ClaudeCliBridge.OPT_IN, "1");
+            try {
+                LlmSpikeGui.PlayerControllerLLM ok = new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "", "claude-cli:opus",
+                        "claude-cli:opus", "llm");
+                Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.MEMORY_TOOLS);
+                Assert.assertTrue(ok.smartBridge() instanceof ClaudeCliBridge, String.valueOf(ok.smartBridge()));
+            } catch (IllegalStateException e) {
+                // Past the opt-in, a JVM run with MEMORY_TOOLS=1 (the acceptance javatests) meets the lane's next refusal.
+                Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.MEMORY_TOOLS && e.getMessage().contains("MEMORY_TOOLS"), e.getMessage());
+            }
+        } finally {
+            LlmSpikeGui.envOverride = null;
+        }
+        // A floor seat keeps its placeholder names and starts nothing.
+        LlmSpikeGui.PlayerControllerLLM floor = new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "", "opus", "haiku", "floor");
+        Assert.assertEquals(floor.smartBridge().getModel(), "opus");
+        Assert.assertFalse(floor.smartBridge() instanceof ClaudeCliBridge);
+        // Nor does a claude-cli: name on a seat that asks no model need the opt-in: it starts no CLI.
+        LlmSpikeGui.PlayerControllerLLM random = new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Seat", "", "claude-cli:opus",
+                "claude-cli:opus", "random");
+        Assert.assertFalse(random.smartBridge() instanceof ClaudeCliBridge);
+    }
+
+    /** buildPlayers, through its environment: a model seat with no model, on a retired bare name, or on claude-cli:
+     *  without the opt-in is refused before any deck is read; floor and random seats need no model. */
+    @Test
+    public void buildPlayersRefusesAnUnnamedRetiredOrUnchosenModelSeat() {
+        new LineFindingProbeTest().initializeModel();
+        Map<String, String> env = new HashMap<>();
+        env.put("CONTROLLER_A", "llm");
+        env.put("CONTROLLER_B", "floor");
+        try {
+            LlmSpikeGui.buildPlayers(env);
+            Assert.fail("a model seat with no model was built");
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().contains("SMART_MODEL_A") && e.getMessage().contains("no default model"), e.getMessage());
+        }
+        env.put("SMART_MODEL", "opus");
+        env.put("FAST_MODEL", "haiku");
+        try {
+            LlmSpikeGui.buildPlayers(env);
+            Assert.fail("a model seat on the retired bare lane was built");
+        } catch (IllegalArgumentException e) {
+            assertRetired(e);
+        }
+        env.put("SMART_MODEL", "claude-cli:opus");
+        env.put("FAST_MODEL", "claude-cli:opus");
+        try {
+            LlmSpikeGui.buildPlayers(env);
+            Assert.fail("a claude-cli: model seat was built without " + ClaudeCliBridge.OPT_IN);
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().contains(ClaudeCliBridge.OPT_IN + "=1"), e.getMessage());
+        }
+        Map<String, String> arms = new HashMap<>();
+        arms.put("CONTROLLER_A", "floor");
+        arms.put("CONTROLLER_B", "random");
+        Assert.assertEquals(LlmSpikeGui.buildPlayers(arms).size(), 2, "floor and random seats need no model");
     }
 
     /** A model seat with no model named is refused rather than played on the CLI's Opus; a seat that asks no model keeps
@@ -494,15 +609,18 @@ public class ClaudeCliBridgeTest {
         Assert.assertNotNull(LlmSpikeGui.missingModel("llm", "A", env), "an empty value names no model");
     }
 
-    /** A game or puzzle with a model seat on either CLI lane is a development lane, stamped so. */
+    /** A game or puzzle with a claude-cli: model seat is a development lane, stamped so. */
     @Test
-    public void eitherCliLaneIsADevelopmentLane() {
-        Assert.assertTrue(LlmSpikeGui.devLane("llm", "opus", "haiku"));
+    public void aClaudeCliSeatIsADevelopmentLane() {
+        Assert.assertTrue(LlmSpikeGui.devLane("llm", "claude-cli:claude-opus-5-5", "claude-cli:claude-opus-5-5"));
         Assert.assertTrue(LlmSpikeGui.devLane("llm", "openrouter:openai/gpt-6-luna", "claude-cli:claude-opus-5-5"));
         Assert.assertFalse(LlmSpikeGui.devLane("llm", "openrouter:openai/gpt-6-luna", "openrouter:openai/gpt-6-luna"));
         Assert.assertFalse(LlmSpikeGui.devLane("floor", "opus", "haiku"), "a floor seat's placeholder model is never asked");
     }
 
+    /** The lane is chosen explicitly (owner, 2026-10-24: local development on the owner's subscription, never a benchmark
+     *  score), so without CLAUDE_CLI_SEAT=1 it is refused first. Phase 1 offers no lookups and no preview, needs the
+     *  answer tool, and keeps no conversation. */
     @Test
     public void theFactoryRoutesTheSpecAndRefusesLookupsLookaheadTextAnswersAndChat() {
         Assert.assertEquals(ClaudeCliBridge.VERSION, "claude-cli-bridge-v2", "move this pin WITH ClaudeCliBridge.VERSION");
@@ -518,11 +636,8 @@ public class ClaudeCliBridgeTest {
         Assert.assertTrue(b instanceof ClaudeCliBridge, String.valueOf(b));
         Assert.assertEquals(b.getModel(), "claude-opus-5-5");
         Assert.assertTrue(b.supportsNativeTools(), "the seat offers `answer` only to a bridge that takes a call");
-        Assert.assertTrue(LlmSpikeGui.LLMBridgeFactory.create("Seat/smart", "claude-opus-5-5", "p") instanceof LlmSpikeGui.ClaudeBridge,
-                "a bare spec left the text lane");
         Assert.assertTrue(AnswerTool.usedBy("claude-cli:claude-opus-5-5"));
         Assert.assertFalse(NativeTools.usedBy("claude-cli:claude-opus-5-5"));
-        Assert.assertFalse(AnswerTool.usedBy("claude-opus-5-5"), "the text lane answers in text");
         String[] named = {"MEMORY_TOOLS", "LOOKAHEAD", "ANSWER_TOOL", "ONE_CHAT"};
         boolean[][] flags = {{true, false, true, false}, {false, true, true, false}, {false, false, false, false},
                 {false, false, true, true}};

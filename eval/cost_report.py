@@ -46,6 +46,9 @@ CLI_PREFIX = "claude-cli:"
 CLI_OPT_IN = "CLAUDE_CLI_SEAT"
 # Specs that ask no model at all (LlmSpikeGui's ScriptBridge and GreedyBridge).
 ZERO_MODEL_PREFIXES = ("script:", "greedy:")
+# Every prefix the JVM factory routes (LLMBridgeFactory.ROUTED_PREFIXES; test_cost_report checks the two agree). A spec
+# with none of them was the bare Claude CLI text lane, retired on 2026-10-25.
+KNOWN_PREFIXES = API_PREFIXES + (CLI_PREFIX,) + ZERO_MODEL_PREFIXES
 
 
 def is_decisions(spec):
@@ -64,12 +67,17 @@ def lane_of(spec):
     return DECISIONS_PREFIX if is_decisions(spec) else CLI_PREFIX if is_cli(spec) else None
 
 
-def is_cli_lane(spec):
-    """True for a spec the local Claude Code CLI answers: `claude-cli:` (ClaudeCliBridge) or a bare Claude name such as
-    `opus` (the text lane, ClaudeBridge: every spec the JVM factory does not route elsewhere). Both run `claude -p` on
-    the operator's own login, so both are the development lane (owner, 2026-10-24)."""
+def is_bare(spec):
+    """True for a spec no lane takes: a bare Claude name such as `opus`, once the Claude CLI text lane (retired
+    2026-10-25). A recorded game line may still name one."""
     s = str(spec or "")
-    return bool(s) and (is_cli(s) or not s.startswith(API_PREFIXES + ZERO_MODEL_PREFIXES))
+    return bool(s) and not s.startswith(KNOWN_PREFIXES)
+
+
+def is_cli_lane(spec):
+    """True for a spec the local Claude Code CLI answers or answered: `claude-cli:` (ClaudeCliBridge), or a bare name a
+    game recorded before the text lane was retired. Both are the development lane (owner, 2026-10-24)."""
+    return is_cli(spec) or is_bare(spec)
 
 
 def misspelled_cli(spec):
@@ -82,10 +90,10 @@ def misspelled_cli(spec):
 def cli_flag_refusal(specs, effort, thinking_tokens):
     """Why --claude-cli-effort / --claude-cli-thinking-tokens are refused for these seats (run_batch.py and
     puzzle_solve.py), or None."""
-    cli = any(is_cli_lane(s) for s in specs)
+    cli = any(is_cli(s) for s in specs)
     for flag, v in (("--claude-cli-effort", effort), ("--claude-cli-thinking-tokens", thinking_tokens)):
         if v is not None and not cli:
-            return "%s is the Claude CLI's (a %s or bare Claude seat); no other seat reads it" % (flag, CLI_PREFIX)
+            return "%s is the Claude CLI's (a %s seat); no other seat reads it" % (flag, CLI_PREFIX)
     if thinking_tokens is not None and thinking_tokens < 1:
         return "--claude-cli-thinking-tokens must be a positive number"
     return None
@@ -100,16 +108,20 @@ def cli_env(effort, thinking_tokens):
 
 
 def cli_opt_in_refusal(specs, environ):
-    """Why a launch is refused (the JVM's own refusal, said before anything starts): a misspelled "cli:" spec, or a seat
-    on the CLI (`claude-cli:` or a bare Claude name) without the operator's CLI_OPT_IN=1. None otherwise."""
+    """Why a launch whose model seats name `specs` is refused (the JVM's own refusal, said before anything starts): a
+    misspelled "cli:" spec, a retired bare Claude name, or a `claude-cli:` seat without the operator's CLI_OPT_IN=1.
+    None otherwise."""
     typo = [s for s in specs if misspelled_cli(s)]
     if typo:
         return "%s names a cli: lane but is not %s<model>" % (", ".join(map(str, typo)), CLI_PREFIX)
-    if not any(is_cli_lane(s) for s in specs) or environ.get(CLI_OPT_IN) == "1":
+    bare = [s for s in specs if is_bare(s)]
+    if bare:
+        return ("%s: the bare Claude CLI text lane is retired (owner, 2026-10-25); use %s<model> with %s=1"
+                % (", ".join(map(str, bare)), CLI_PREFIX, CLI_OPT_IN))
+    if not any(is_cli(s) for s in specs) or environ.get(CLI_OPT_IN) == "1":
         return None
-    return ("a %s seat (or a bare Claude name such as opus) runs the Claude Code CLI on the operator's own Claude "
-            "subscription: it is for local development only and never part of a benchmark score (owner, 2026-10-24). "
-            "Set %s=1 to choose it." % (CLI_PREFIX, CLI_OPT_IN))
+    return ("a %s seat runs the Claude Code CLI on the operator's own Claude subscription: it is for local development "
+            "only and never part of a benchmark score (owner, 2026-10-24). Set %s=1 to choose it." % (CLI_PREFIX, CLI_OPT_IN))
 
 
 def budget_prices(prices):

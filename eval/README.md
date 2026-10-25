@@ -113,8 +113,8 @@ python3 eval/run_batch.py \
     --seeds 1..20 --pairs \
     --deck eval/decks/mardu-energy.txt \
     --controller-a llm --controller-b llm \
-    --smart-a haiku --smart-b haiku \
-    --fast-a haiku --fast-b haiku
+    --smart-a openrouter:anthropic/claude-haiku-5.5 --smart-b openrouter:anthropic/claude-haiku-5.5 \
+    --fast-a openrouter:anthropic/claude-haiku-5.5 --fast-b openrouter:anthropic/claude-haiku-5.5
 
 # Interrupted? Re-run the same command with the same --out — completed
 # seed/swap combos are skipped (a combo is done once its JSONL has a game line).
@@ -135,7 +135,8 @@ Baseline / exploratory arm example (not citable — mismatched decks, plans):
 ```bash
 python3 eval/run_batch.py --seeds 1..30 --pairs --exploratory \
     --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt \
-    --controller-a llm --smart-a haiku --fast-a haiku --controller-b random
+    --controller-a llm --smart-a openrouter:anthropic/claude-haiku-5.5 --fast-a openrouter:anthropic/claude-haiku-5.5 \
+    --controller-b random
 ```
 
 ## The JSONL contract (identity-keyed, final)

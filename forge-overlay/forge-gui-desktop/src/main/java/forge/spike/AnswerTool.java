@@ -22,7 +22,7 @@ import com.google.gson.JsonParser;
  *
  * The standard wherever native tools are on (an `openrouter:` seat); ANSWER_TOOL=0 is the opt-out, and
  * the text tags survive only as that opt-out and as the protocol of a backend with no function calling
- * (the Claude CLI lane). A text reply in a tool ask is still accepted that round (counted as
+ * (none since the Claude CLI text lane was retired). A text reply in a tool ask is still accepted that round (counted as
  * `answer_via: "text"`), so a model that ignores the tool loses nothing; the comparison is measured
  * (docs/harness/PLAYER-HARNESS.md, "Answer tool").
  *

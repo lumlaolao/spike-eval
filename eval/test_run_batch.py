@@ -425,25 +425,35 @@ class TestAnswerTool(unittest.TestCase):
         self.assertIn("claude-cli:", msg)
         self.assertIn("--one-chat", msg)
 
-    def test_the_bare_cli_lane_needs_the_same_opt_in_and_is_never_a_benchmark(self):
-        # A bare Claude name (opus, haiku) runs `claude -p` on the same login: the same opt-in and the same exclusions.
-        with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("CLAUDE_CLI_SEAT", None)
-            with self.assertRaises(SystemExit) as cm:
-                run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", "opus", "--fast-a", "haiku",
-                                "--controller-b", "ai"])
-        self.assertIn("CLAUDE_CLI_SEAT=1", str(cm.exception.code))
-        err = io.StringIO()
-        with self.assertRaises(SystemExit), redirect_stderr(err):
-            run_batch.cited_pre_guards(make_args(smart_a="opus", fast_a="haiku", controller_b="ai", exploratory=False))
-        self.assertIn("development lane", err.getvalue())
-        with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
-            run_batch.main(["--panel", "mirror", "--budget-usd", "1", "--smart-a", "opus", "--fast-a", "haiku"])
-        self.assertIn("benchmark", str(cm.exception.code))
+    def test_the_bare_cli_lane_is_retired(self):
+        # A bare Claude name (opus, haiku) as a model seat: refused, opted in or not, saying what to use instead.
+        for env in ({}, {"CLAUDE_CLI_SEAT": "1"}):
+            with mock.patch.dict(os.environ, env, clear=False):
+                if not env:
+                    os.environ.pop("CLAUDE_CLI_SEAT", None)
+                with self.assertRaises(SystemExit) as cm:
+                    run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", "opus", "--fast-a", "haiku",
+                                    "--controller-b", "ai"])
+            self.assertIn("retired", str(cm.exception.code))
+            self.assertIn("claude-cli:<model>", str(cm.exception.code))
         with self.assertRaises(SystemExit) as cm, mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
             run_batch.main(["--seeds", "1", "--exploratory", "--smart-a", "Claude-CLI:opus", "--fast-a", "Claude-CLI:opus",
                             "--controller-b", "ai"])
         self.assertIn("claude-cli:", str(cm.exception.code))
+        # No default model stands in for an unset tier: the specs in play are the ones named.
+        self.assertEqual(run_batch.effective_llm_models(make_args(smart_a=None, fast_a=None, controller_b="ai")), [])
+
+    def test_only_a_model_seats_spec_needs_the_opt_in(self):
+        # As in the JVM: a floor or random seat's model name starts nothing, so it needs no opt-in and is no dev lane.
+        a = make_args(smart_a=self.CLI, fast_a=self.CLI, controller_a="floor", controller_b="random")
+        self.assertEqual(run_batch.cli_specs(a), [])
+        self.assertFalse(run_batch.has_cli_seat(a))
+        self.assertEqual(run_batch.cli_specs(make_args(smart_a=self.CLI, fast_a=self.CLI, controller_b="ai")), [self.CLI])
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CLAUDE_CLI_SEAT", None)
+            self.assertIsNone(run_batch.opt_in_refusal(a))
+            self.assertIn("CLAUDE_CLI_SEAT=1", run_batch.opt_in_refusal(make_args(smart_a=self.CLI, fast_a=self.CLI,
+                                                                                   controller_b="ai")))
 
     def test_the_cli_settings_are_the_flags_alone(self):
         # Standards section 4: an --env override would run a value the manifest records as "cli-default".

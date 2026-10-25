@@ -29,9 +29,9 @@ overwritten. Edit the overlay, `FORGE_HOME=/root/forge bash install.sh`, build, 
 
 - **Game model: GPT-6 Luna** (`openrouter:openai/gpt-6-luna`) for every seat and tier unless the owner names another.
   Never Opus.
-- **Exception: the `claude-cli:` lane** (Claude Code `claude -p`, e.g. Opus 5.5; a bare Claude name such as `opus` runs
-  the same CLI) is for local development on the owner's subscription, only with its explicit opt-in
-  (`CLAUDE_CLI_SEAT=1`), and never in a benchmark score (owner, 2026-10-24).
+- **Exception: the `claude-cli:` lane** (Claude Code `claude -p`, e.g. Opus 5.5) is for local development on the owner's
+  subscription, only with its explicit opt-in (`CLAUDE_CLI_SEAT=1`), and never in a benchmark score (owner,
+  2026-10-24). The bare-name CLI text lane (`opus`, `haiku`) is retired (owner, 2026-10-25).
 - **Egress:** any `openrouter:` spec sends the game state to openrouter.ai. The factory refuses without
   `OPENROUTER_ALLOW_EGRESS=1`; that consent is the user's. Never set it yourself. Loopback (fake-model) runs need none.
 - **Every decision is answered by a tool call** (`answer`, one fixed schema; `set_plan` for the plan). Zero text

@@ -170,8 +170,15 @@ class CostReportTest(unittest.TestCase):
         self.assertIsNone(cr.cli_opt_in_refusal([spec], {"CLAUDE_CLI_SEAT": "1"}))
         self.assertIsNone(cr.cli_opt_in_refusal([OR, "jev:typesafe/jev-1.14"], {}))
         self.assertEqual(cr.lane_of(spec), "claude-cli:")
-        # The bare-name text lane runs the same CLI on the same login: the same opt-in.
-        self.assertIn("CLAUDE_CLI_SEAT=1", cr.cli_opt_in_refusal(["opus"], {}))
+        # The bare-name text lane is retired (owner, 2026-10-25): refused whatever the opt-in, saying what to use instead.
+        for env in ({}, {"CLAUDE_CLI_SEAT": "1"}):
+            msg = cr.cli_opt_in_refusal(["opus"], env)
+            self.assertIn("retired", msg)
+            self.assertIn("claude-cli:<model>", msg)
+            self.assertIn("CLAUDE_CLI_SEAT=1", msg)
+        self.assertTrue(cr.is_bare("opus") and cr.is_bare("claude-opus-5-5"))
+        self.assertFalse(cr.is_bare(spec) or cr.is_bare(OR) or cr.is_bare("greedy:") or cr.is_bare(None))
+        # A recorded game from before the retirement still reads as the Claude CLI's (panel_score refuses it).
         self.assertTrue(cr.is_cli_lane("opus") and cr.is_cli_lane("claude-opus-5-5") and cr.is_cli_lane(spec))
         self.assertFalse(cr.is_cli_lane(OR) or cr.is_cli_lane("jev:typesafe/jev-1.14") or cr.is_cli_lane(None))
         # Any other spec naming a "cli:" lane is a typo, refused before anything runs.
@@ -184,6 +191,27 @@ class CostReportTest(unittest.TestCase):
         self.assertIn("positive", cr.cli_flag_refusal([spec], None, 0))
         self.assertEqual(cr.lane_of("jev:typesafe/jev-1.14"), "jev:")
         self.assertIsNone(cr.lane_of(OR))
+
+    def test_the_spec_prefixes_are_the_factorys_own(self):
+        # Every prefix the JVM factory routes (LLMBridgeFactory.ROUTED_PREFIXES), resolved through each class's PREFIX:
+        # a spec with none of them was the retired bare lane, on both sides.
+        spike = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "forge-overlay", "forge-gui-desktop",
+                             "src", "main", "java", "forge", "spike")
+
+        def read(name):
+            with open(os.path.join(spike, name), encoding="utf-8") as f:
+                return f.read()
+        arr = re.search(r"static final String\[\] ROUTED_PREFIXES = \{([^}]*)\}", read("LlmSpikeGui.java"))
+        self.assertIsNotNone(arr, "LLMBridgeFactory.ROUTED_PREFIXES not found")
+        java = set()
+        for item in (x.strip() for x in arr.group(1).split(",")):
+            if item.startswith('"'):
+                java.add(item.strip('"'))
+            else:
+                cls = item.split(".")[0]
+                m = re.search(r'static final String PREFIX = "([^"]*)";', read(cls + ".java"))
+                java.add(m.group(1))
+        self.assertEqual(set(cr.KNOWN_PREFIXES), java)
 
     def test_the_claude_cli_prefix_is_the_bridges_own(self):
         java = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "forge-overlay", "forge-gui-desktop",

@@ -36,7 +36,8 @@ Panels and sanity arms (eval/SCORING.md):
 Examples:
   # cited mirror run (numbers citable)
   python3 eval/run_batch.py --seeds 1..20 --pairs --deck eval/decks/mardu-energy.txt \
-      --controller-a llm --controller-b llm --smart-a haiku --smart-b haiku
+      --controller-a llm --controller-b llm --smart-a openrouter:deepseek/deepseek-v4.1-flash \
+      --fast-a openrouter:deepseek/deepseek-v4.1-flash --smart-b ... --fast-b ...
   # exploratory poke (not citable)
   python3 eval/run_batch.py --seeds 3,7,42 --exploratory --jobs 2 \
       --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt
@@ -604,9 +605,14 @@ def answer_tool_requested(args):
 
 
 def has_cli_seat(args):
-    """True when an llm seat of this batch runs on the Claude CLI (claude-cli: or a bare Claude name): the
-    development lane."""
-    return any(cost_report.is_cli_lane(m) for m in effective_llm_models(args))
+    """True when a model seat of this batch runs on the Claude CLI: the development lane."""
+    return bool(cli_specs(args))
+
+
+def opt_in_refusal(args):
+    """Why this batch's model seats (llm controllers only, as the JVM gates them) may not run: cost_report's
+    cli_opt_in_refusal."""
+    return cost_report.cli_opt_in_refusal(effective_llm_models(args), os.environ)
 
 
 def lane_refusals(args):
@@ -907,9 +913,8 @@ def cited_pre_guards(args):
     FIRST so a misconfigured cited run refuses before anything launches."""
     # --- guard 0: no development lane in a cited number (owner, 2026-10-24) ---
     if has_cli_seat(args):
-        _refuse("a seat on the Claude CLI (%s or a bare Claude name) is a development lane on the operator's own "
-                "Claude subscription and is never part of a benchmark score; run it with --exploratory."
-                % cost_report.CLI_PREFIX)
+        _refuse("a seat on the Claude CLI (%s) is a development lane on the operator's own Claude subscription and is "
+                "never part of a benchmark score; run it with --exploratory." % cost_report.CLI_PREFIX)
     # --- guard 1: mirror deck ---
     da, db = args.deck_a, args.deck_b
     if not da or not db:
@@ -1057,29 +1062,27 @@ def finalize_provenance_and_cap(args, cited):
 
 
 def effective_llm_models(args):
-    """Model specs actually in play for llm seats, with the in-JVM defaults
-    substituted (unset SMART_MODEL_* -> opus, unset FAST_MODEL_* -> haiku) so
-    an unset tier is never silently dropped. Empty list -> no llm seat."""
+    """The model specs the llm seats name (an unset tier is refused: unpinned_llm_tiers; the JVM has no default
+    model). Empty list -> no llm seat."""
     ca = args.controller_a or "llm"   # Java defaults an unset controller to llm
     cb = args.controller_b or "llm"
     models = []
     if ca == "llm":
-        models += [args.smart_a or "opus", args.fast_a or "haiku"]
+        models += [m for m in (args.smart_a, args.fast_a) if m]
     if cb == "llm":
-        models += [args.smart_b or "opus", args.fast_b or "haiku"]
+        models += [m for m in (args.smart_b, args.fast_b) if m]
     return models
 
 
 def cli_specs(args):
-    """The llm seats' specs that run on the local claude CLI: every one that does not reach openrouter.ai (an
-    openrouter: chat model or a jev: decision model), sorted and distinct."""
-    return sorted(set(m for m in effective_llm_models(args) if not m.startswith(cost_report.API_PREFIXES)))
+    """The llm seats' specs that run on the local Claude CLI (cost_report.is_cli_lane), sorted and distinct."""
+    return sorted(set(m for m in effective_llm_models(args) if cost_report.is_cli_lane(m)))
 
 
 def unpinned_llm_tiers(args):
-    """Flags an llm seat leaves unset (issue #234). A seat with no controller is an llm seat, and an unset
-    tier falls through to the in-JVM default model (Opus for the smart tier), which no stamp flags: a Luna
-    mirror launched with only seat A pinned played Luna against Opus 5.5."""
+    """Flags an llm seat leaves unset (issue #234). A seat with no controller is an llm seat. An unset tier used
+    to fall through to the in-JVM default model (Opus), which no stamp flagged: a Luna mirror launched with only seat A
+    pinned played Luna against Opus 5.5. The JVM now refuses such a seat too."""
     missing = []
     for ident in ("a", "b"):
         if (getattr(args, "controller_" + ident, None) or "llm") != "llm":
@@ -1090,7 +1093,7 @@ def unpinned_llm_tiers(args):
 
 def warn_parallel_jobs(args):
     """Spec-aware --jobs advice (measured basis: eval/CONCURRENCY.md §7).
-    Bare (non-openrouter:) specs shell out to the local claude CLI and contend
+    claude-cli: specs shell out to the local Claude CLI and contend
     with the user's own interactive sessions -> jobs=1 territory. openrouter:
     specs are network-bound (~1GB RSS, near-zero CPU per JVM) -> RAM is the
     limit; floor/random-only batches are CPU-burst-bound instead."""
@@ -1099,7 +1102,7 @@ def warn_parallel_jobs(args):
     models = effective_llm_models(args)
     bare = cli_specs(args)
     if bare:
-        log("WARNING: --jobs=%d with bare (claude-CLI) model spec(s) %s — "
+        log("WARNING: --jobs=%d with Claude CLI model spec(s) %s — "
             "parallel games starve the local claude CLI (decisions time out "
             "and fall back to auto/ai, polluting the eval). Use --jobs 1 or "
             "openrouter:-prefixed specs." % (args.jobs, bare))
@@ -1375,14 +1378,14 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
-    specs = (args.smart_a, args.fast_a, args.smart_b, args.fast_b)
-    refusal = cost_report.cli_opt_in_refusal(specs, os.environ)
+    refusal = opt_in_refusal(args)
     if refusal:
         raise SystemExit("run_batch: " + refusal)
-    if args.panel and any(cost_report.is_cli_lane(m) for m in specs):
-        raise SystemExit("run_batch: a seat on the Claude CLI (%s or a bare Claude name) is a development lane and never "
-                         "part of a benchmark score: a panel is one (owner, 2026-10-24)" % cost_report.CLI_PREFIX)
-    refusal = cost_report.cli_flag_refusal(specs, args.claude_cli_effort, args.claude_cli_thinking_tokens)
+    if args.panel and has_cli_seat(args):
+        raise SystemExit("run_batch: a seat on the Claude CLI (%s) is a development lane and never part of a benchmark "
+                         "score: a panel is one (owner, 2026-10-24)" % cost_report.CLI_PREFIX)
+    refusal = cost_report.cli_flag_refusal(effective_llm_models(args), args.claude_cli_effort,
+                                           args.claude_cli_thinking_tokens)
     if refusal:
         raise SystemExit("run_batch: " + refusal)
     refused = lane_refusals(args)
@@ -1421,8 +1424,8 @@ def run_block(args):
     if missing:
         # Every mode: an exploratory run on an unintended model is as wrong as a cited one.
         print("run_batch: REFUSING: an llm seat must name both of its models; unset: %s. A seat with no "
-              "--controller-x is an llm seat, and an unset model falls through to the harness default "
-              "(issue #234). Pass the models, or --controller-x ai|random|floor." % ", ".join(missing),
+              "--controller-x is an llm seat, and there is no default model (issue #234; the JVM refuses it "
+              "too). Pass the models, or --controller-x ai|random|floor." % ", ".join(missing),
               file=sys.stderr)
         sys.exit(2)
     warn_reserved_seeds(args.seeds)

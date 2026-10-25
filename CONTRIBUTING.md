@@ -56,7 +56,8 @@ cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (inst
    — the regression canary (identity A wins after 108 turns, every time).
    For play/attack/block paths use the `random` arm — `floor` short-circuits
    before the menu is built.
-2. `SMART_MODEL=haiku FAST_MODEL=haiku` for LLM code paths. Never test with opus.
+2. `SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model` with `OPENROUTER_BASE_URL`
+   at `eval/fake_model_server.py` (loopback, free) for LLM code paths. The bare `haiku` lane is retired.
 3. Frontier models only for user-requested showcases.
 
 **Before trusting a green gate, say what would have made it fail.** If you can't,
