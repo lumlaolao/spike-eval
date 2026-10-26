@@ -91,6 +91,12 @@ PROVENANCE_FIELDS = (
     ("served_fast_a", MISSING),
     ("served_fast_b", MISSING),
     ("openrouter_base_url", MISSING),
+    # The precisions an openrouter: seat may be served at (OPENROUTER_QUANTIZATIONS): what the model ran at, so a
+    # condition. Default "": a game from before the filter was unfiltered, as is one that stamps it empty.
+    ("openrouter_quantizations", ""),
+    # A price ceiling (OPENROUTER_MAX_PRICE) is a condition too: at list an open-weight model may find only a 4-bit
+    # host (standards review of #327). Default "" as above.
+    ("openrouter_max_price", ""),
     ("checkpoint_sha", MISSING),
     ("model_cfg_sha", MISSING),
     ("temperature_a", MISSING),

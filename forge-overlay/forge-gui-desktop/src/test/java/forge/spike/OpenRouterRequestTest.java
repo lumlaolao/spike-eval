@@ -49,6 +49,27 @@ public class OpenRouterRequestTest {
                 respond(ex, "{\"choices\":[{\"message\":{\"content\":\"CHOICE: 1\"},\"finish_reason\":\"stop\"}],"
                         + "\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":5}}");
         });
+        // Refusals under a ceiling: the tool wording OpenRouter gives "no endpoints" in (404), the 503 its error docs give
+        // for no provider meeting the routing requirements, a 400 about the request itself, and a rate limit.
+        String[][] errors = {{"ceiling", "404", msg("No endpoints found that support tool use.")},
+                {"ceiling-503", "503", msg("No available model provider that meets your routing requirements.")},
+                {"ceiling-400", "400", msg("messages[3]: tool message has no tool_call_id")},
+                // OpenRouter's envelope for an upstream's own 400 (its errors page: "Provider returned error", the
+                // upstream's code in metadata): a request error, which names a provider without being the filter's.
+                {"ceiling-400-relayed", "400", "{\"error\":{\"code\":400,\"message\":\"Provider returned error\","
+                        + "\"metadata\":{\"error_type\":\"context_length_exceeded\",\"provider_name\":\"X\"}}}"},
+                // The same envelope with the upstream's own body in metadata.raw, as real ones carry it (openapi.json,
+                // GenerationContentErrorAttempt): words of the filter's in an upstream's text are still its 400.
+                {"ceiling-400-relayed-raw", "400", "{\"error\":{\"code\":400,\"message\":\"Provider returned error\","
+                        + "\"metadata\":{\"raw\":\"{\\\"error\\\":{\\\"message\\\":\\\"fp8 quantization: context length "
+                        + "exceeded\\\"}}\",\"provider_name\":\"X\"}}}"},
+                {"ceiling-400-provider", "400", msg("Invalid provider preferences: max_price.prompt must be a string")},
+                {"ceiling-429", "429", msg("rate limited")}};
+        for (String[] e : errors)
+            server.createContext("/" + e[0] + "/v1/chat/completions", ex -> {
+                bodies.add(read(ex));
+                respond(ex, Integer.parseInt(e[1]), e[2]);
+            });
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
     }
@@ -60,10 +81,13 @@ public class OpenRouterRequestTest {
 
     private List<String> twoBodies(String model, boolean tools) { return twoBodies("test/smart", model, tools); }
 
-    private List<String> twoBodies(String label, String model, boolean tools) {
+    private List<String> twoBodies(String label, String model, boolean tools) { return twoBodies(label, model, tools, null); }
+
+    /** maxPriceEnv: what OPENROUTER_MAX_PRICE holds; the constructor reads it, as it reads the environment. */
+    private List<String> twoBodies(String label, String model, boolean tools, String maxPriceEnv) {
         bodies.clear();
         calls.set(0);
-        LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge(label, model, null, base, 5000);
+        LlmSpikeGui.OpenRouterBridge bridge = withCeiling(maxPriceEnv, () -> new LlmSpikeGui.OpenRouterBridge(label, model, null, base, 5000));
         if (tools) bridge.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         else bridge.ask("play");
         Assert.assertEquals(bodies.size(), 2, "the original request and its truncation retry");
@@ -133,14 +157,159 @@ public class OpenRouterRequestTest {
         Assert.assertTrue(twoBodies("deepseek/deepseek-v4-pro", true).get(1).contains("\"enabled\":false"));
     }
 
+    private static final String CEILING = "{\"openai/gpt-6.1-sol\":{\"prompt\":2,\"completion\":10},"
+            + "\"moonshotai/kimi-k3\":{\"prompt\":0.239,\"completion\":10.8}}";
+
+    /** Latency routing may land on a priority tier at up to 6x list (GPT-6.1 Sol's, eval/pricing/prices.json `max`).
+     *  A model OPENROUTER_MAX_PRICE names is sent provider.max_price (USD per million tokens) inside the one provider
+     *  object, on the retry too, so no endpoint dearer than that is chosen (owner, 2026-10-25). */
+    @Test
+    public void aNamedModelSendsItsCeilingInTheOneProviderObject() {
+        for (String body : twoBodies("test/smart", "openai/gpt-6.1-sol", true, CEILING)) {
+            Assert.assertEquals(count(body, "\"provider\":"), 1, body);
+            Assert.assertTrue(body.contains("\"provider\":{\"sort\":\"latency\",\"require_parameters\":true,"
+                    + "\"max_price\":{\"prompt\":\"2\",\"completion\":\"10\"}}"), body);
+        }
+        Assert.assertTrue(twoBodies("test/smart", "moonshotai/kimi-k3", false, CEILING).get(0)
+                .contains("\"provider\":{\"sort\":\"latency\",\"max_price\":{\"prompt\":\"0.239\",\"completion\":\"10.8\"}}"));
+    }
+
+    /** No ceiling unless asked: unset, or a model the variable does not name, sends the body it always did. */
+    @Test
+    public void anUnnamedModelOrNoVariableSendsNoCeiling() {
+        Assert.assertFalse(twoBodies("test/smart", "openai/gpt-6-luna", true, CEILING).get(0).contains("max_price"));
+        Assert.assertFalse(twoBodies("test/smart", "openai/gpt-6.1-sol", true, null).get(0).contains("max_price"));
+        Assert.assertFalse(twoBodies("test/smart", "openai/gpt-6.1-sol", true, " ").get(0).contains("max_price"));
+    }
+
+    /** A ceiling that cannot be read is refused, never dropped: a run must not go out believing it is capped. */
+    @Test
+    public void anUnreadableCeilingIsRefused() {
+        for (String bad : new String[] {"2,10", "{\"openai/gpt-6.1-sol\":{\"prompt\":2}}",
+                "{\"openai/gpt-6.1-sol\":{\"prompt\":\"two\",\"completion\":10}}",
+                "{\"openai/gpt-6.1-sol\":{\"prompt\":0,\"completion\":10}}", "{\"openai/gpt-6.1-sol\":5}"}) {
+            Assert.assertThrows(IllegalArgumentException.class,
+                    () -> LlmSpikeGui.OpenRouterBridge.maxPriceField(bad, "openai/gpt-6-luna"));
+        }
+    }
+
+    private static <T> T withCeiling(String env, java.util.function.Supplier<T> make) {
+        String was = LlmSpikeGui.OpenRouterBridge.maxPriceEnv;
+        LlmSpikeGui.OpenRouterBridge.maxPriceEnv = env;
+        try { return make.get(); } finally { LlmSpikeGui.OpenRouterBridge.maxPriceEnv = was; }
+    }
+
+    private static <T> T withPrecision(String env, java.util.function.Supplier<T> make) {
+        String was = LlmSpikeGui.OpenRouterBridge.quantizationsEnv;
+        LlmSpikeGui.OpenRouterBridge.quantizationsEnv = env;
+        try { return make.get(); } finally { LlmSpikeGui.OpenRouterBridge.quantizationsEnv = was; }
+    }
+
+    private static final String PRECISION = "{\"z-ai/glm-5.3\":[\"fp8\",\"bf16\"]}";
+
+    /** Owner, 2026-10-26: an open-weight model plays at the precision its maker released, never on a host that
+     *  compresses it further. A model OPENROUTER_QUANTIZATIONS names is sent provider.quantizations (an unlisted
+     *  precision, "unknown" included, is not served), in the one provider object, on the retry too. */
+    @Test
+    public void aNamedModelSendsItsPrecisionFloorInTheOneProviderObject() {
+        for (String body : withPrecision(PRECISION, () -> twoBodies("test/smart", "z-ai/glm-5.3", true))) {
+            Assert.assertEquals(count(body, "\"provider\":"), 1, body);
+            Assert.assertTrue(body.contains("\"provider\":{\"sort\":\"latency\",\"require_parameters\":true,"
+                    + "\"quantizations\":[\"fp8\",\"bf16\"]}"), body);
+        }
+        Assert.assertFalse(withPrecision(PRECISION, () -> twoBodies("test/smart", "openai/gpt-6-luna", true)).get(0)
+                .contains("quantizations"), "a model it does not name keeps the body it had");
+    }
+
+    /** An unreadable precision list is refused, never dropped: a run must not go out believing it is filtered. */
+    @Test
+    public void anUnreadablePrecisionListIsRefused() {
+        for (String bad : new String[] {"fp8", "{\"m\":[]}", "{\"m\":[\"fp3\"]}", "{\"m\":\"fp8\"}", "{\"m\":[8]}"}) {
+            Assert.assertThrows(IllegalArgumentException.class,
+                    () -> LlmSpikeGui.OpenRouterBridge.quantizationsField(bad, "other"));
+        }
+    }
+
+    /** A precision filter, like a ceiling, can leave no endpoint: its refusals are counted the same way. */
+    @Test
+    public void aRefusalUnderAPrecisionFilterIsCounted() {
+        LlmSpikeGui.OpenRouterBridge filtered = withPrecision(PRECISION, () -> new LlmSpikeGui.OpenRouterBridge(
+                "precision/smart", "z-ai/glm-5.3", null, base.replace("/v1", "/ceiling/v1"), 5000));
+        filtered.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertEquals(filtered.getRoutingRefusals(), Integer.valueOf(1));
+        Assert.assertFalse(NativeTools.DOWNGRADED.contains("precision/smart"));
+    }
+
+    /** pr-review of #327: with a ceiling, "no endpoints" can mean none at that price (DeepSeek V4.1 Flash, GLM 5.3 and
+     *  the Muse models have one endpoint at list), not no function calling. Such a refusal is logged as the ceiling's
+     *  and keeps native tools; the same refusal without a ceiling still moves the seat to the text grammar. */
+    @Test
+    public void aRefusalUnderACeilingKeepsNativeTools() {
+        String ceilingBase = base.replace("/v1", "/ceiling/v1");
+        String model = "openai/gpt-6.1-sol";
+        LlmSpikeGui.OpenRouterBridge capped = cappedAt("ceiling", "ceiling/smart");
+        bodies.clear();
+        capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertFalse(NativeTools.DOWNGRADED.contains("ceiling/smart"));
+        Assert.assertEquals(capped.getRoutingRefusals().intValue(), 2, "each refusal is counted for the attempt's row");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.routingRefusals(capped, null), Integer.valueOf(2));
+        Assert.assertTrue(bodies.size() >= 2 && bodies.get(bodies.size() - 1).contains("\"tools\""), "asked again with tools");
+
+        LlmSpikeGui.OpenRouterBridge plain = new LlmSpikeGui.OpenRouterBridge("plain/smart", model, null, ceilingBase, 5000);
+        plain.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertTrue(NativeTools.DOWNGRADED.remove("plain/smart"), "without a ceiling the refusal is the tools'");
+        Assert.assertNull(plain.getRoutingRefusals(), "no ceiling, no key on the row");
+    }
+
+    private LlmSpikeGui.OpenRouterBridge cappedAt(String context, String label) {
+        return withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(label, "openai/gpt-6.1-sol", null,
+                base.replace("/v1", "/" + context + "/v1"), 5000));
+    }
+
+    private int refusalsAt(String context) {
+        LlmSpikeGui.OpenRouterBridge b = cappedAt(context, context + "/smart");
+        b.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        return b.getRoutingRefusals();
+    }
+
+    /** pr-review of #327: under a ceiling a 404 or a 5xx can be the ceiling (no endpoint left at the price, or the one
+     *  endpoint at list down, with the dearer ones it would fail over to ruled out), so it is counted and the attempt
+     *  replayed. A 400 is about the request itself and a 429 is a rate limit: the model's own result, counted as before. */
+    @Test
+    public void underACeilingA404OrA5xxIsCountedAndOtherRefusalsAreNot() {
+        Assert.assertEquals(refusalsAt("ceiling"), 1);
+        Assert.assertEquals(refusalsAt("ceiling-503"), 1);
+        Assert.assertEquals(refusalsAt("ceiling-400"), 0);
+        // pr-review of #327: the filter's own shape refused (OpenRouter's schema types max_price as strings) is the
+        // filter's, not the model's: counted, or every decision of that model would be scored a failure.
+        Assert.assertEquals(refusalsAt("ceiling-400-provider"), 1);
+        // pr-review of #327: a relayed upstream 400 is the model's, or a filtered run could be replayed for ever.
+        Assert.assertEquals(refusalsAt("ceiling-400-relayed"), 0);
+        Assert.assertEquals(refusalsAt("ceiling-400-relayed-raw"), 0);
+        Assert.assertEquals(refusalsAt("ceiling-429"), 0);
+    }
+
+    /** pr-review of #327: ONE_CHAT / TURN_CHAT wrap the smart tier in a ChatSessionBridge; its refusals still count. */
+    @Test
+    public void refusalsUnderAWrappedTierAreCounted() {
+        LlmSpikeGui.OpenRouterBridge capped = cappedAt("ceiling", "wrapped/smart");
+        capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertEquals(new ChatSessionBridge(capped, false).getRoutingRefusals(), Integer.valueOf(1));
+    }
+
+    private static String msg(String message) { return "{\"error\":{\"message\":\"" + message + "\"}}"; }
+
     private static String read(HttpExchange ex) throws IOException {
         try (InputStream in = ex.getRequestBody()) { return new String(in.readAllBytes(), StandardCharsets.UTF_8); }
     }
 
-    private static void respond(HttpExchange ex, String json) throws IOException {
+    private static void respond(HttpExchange ex, String json) throws IOException { respond(ex, 200, json); }
+
+    private static void respond(HttpExchange ex, int status, String json) throws IOException {
         byte[] b = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().add("Content-Type", "application/json");
-        ex.sendResponseHeaders(200, b.length);
+        ex.sendResponseHeaders(status, b.length);
         try (OutputStream os = ex.getResponseBody()) { os.write(b); }
     }
 }

@@ -274,6 +274,16 @@ class TestConditionEnv(unittest.TestCase):
         self.assertIn("--memory-tools", p.stderr)
         self.assertNotIn("[out]", p.stdout)
 
+    def test_a_routing_filter_is_refused_in_env_and_scrubbed_from_the_shell(self):
+        # pr-review of #327: the game line stamps the variable as set, so a ceiling naming no model in the game (or
+        # mistyped) would read as capped while nothing was sent. A batch has no ceiling; puzzle_solve.py has the flag.
+        for key, flag in (("OPENROUTER_MAX_PRICE", "--max-price-at-list"), ("OPENROUTER_QUANTIZATIONS", "--quantizations")):
+            p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                                "--env", key + "={}", "--forge-home", "/nonexistent"], capture_output=True, text=True)
+            self.assertNotEqual(p.returncode, 0, key)
+            self.assertIn(flag, p.stderr)
+            self.assertIn(key, run_batch.RUN_DEFINING_KEYS, "an ambient value is scrubbed")
+
 
 class TestRulesToolNeedsMemoryTools(unittest.TestCase):
     """The seat wires the rules lookup only with MEMORY_TOOLS=1 (LlmSpikeGui, `MEMORY_TOOLS && RULES_TOOL`),

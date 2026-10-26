@@ -105,6 +105,9 @@ RUN_DEFINING_KEYS = (
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
     "CHECKPOINT_SHA", "SEED_BANK",
+    # A price ceiling and a precision filter: only puzzle_solve.py --max-price-at-list / --quantizations set them. A
+    # batch scrubs an ambient value and refuses one in --env.
+    "OPENROUTER_MAX_PRICE", "OPENROUTER_QUANTIZATIONS",
     # Context shape and the seat's tools are experimental CONDITIONS (they change
     # what the model can see and do); only their flags set them, never the
     # ambient environment or --env.
@@ -1404,6 +1407,9 @@ def main(argv=None):
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / --text-answers / --answer-tool-strict / "
                              "--lookahead / --one-tier / --two-tier / --no-coaching / --one-chat / --turn-chat / --plan-execute / "
                              "--tier-fast-types / --format so the condition is recorded and guarded." % k)
+        if k in ("OPENROUTER_MAX_PRICE", "OPENROUTER_QUANTIZATIONS"):
+            raise SystemExit("run_batch: --env %s is not allowed: a batch sends no price ceiling or precision filter "
+                             "(a puzzle run has puzzle_solve.py --max-price-at-list / --quantizations)" % k)
     if args.seeds is None and not args.panel:
         ap.error("--seeds is required (except with --panel)")
     if (args.panel or args.sanity_arms) and args.budget_usd is None:

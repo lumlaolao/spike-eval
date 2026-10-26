@@ -212,10 +212,10 @@
       "max_note": "1 endpoint(s) that take tools, none dearer than the list price, 2026-10-24"
     },
     "deepseek/deepseek-v4-pro": {
-      "prompt": 0.00000055071,
-      "completion": 0.00000110142,
-      "input_cache_read": 0.0000000458925,
-      "checked": "2026-10-24",
+      "prompt": 0.0000009483,
+      "completion": 0.0000018966,
+      "input_cache_read": 0.000000079025,
+      "checked": "2026-10-26",
       "source": "https://openrouter.ai/api/v1/models",
       "max": {
         "prompt": 0.00000191,
@@ -225,10 +225,10 @@
       "max_note": "the dearest of 15 endpoints that take tools, 2026-10-24"
     },
     "moonshotai/kimi-k3": {
-      "prompt": 0.000000239,
-      "completion": 0.0000108,
-      "input_cache_read": 0.00000021,
-      "checked": "2026-10-24",
+      "prompt": 0.00000017,
+      "completion": 0.000016,
+      "input_cache_read": 0.00000016,
+      "checked": "2026-10-26",
       "source": "https://openrouter.ai/api/v1/models",
       "max": {
         "prompt": 0.0000045,

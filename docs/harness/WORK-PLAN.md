@@ -15,21 +15,28 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 119/145 off and 127/145 on at epoch 67
 ([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
-Landed 2026-10-21 to 25: PRs #290 to #326, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
-#324 (the full run record), #325 (`play-vs-llm.sh`, a person against the seat) and #326 (`setup.sh`). The hard suites
+Landed 2026-10-21 to 26: PRs #290 to #327, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
+#324 (the full run record), #325 (`play-vs-llm.sh`, a person against the seat), #326 (`setup.sh`) and #327 (the
+routing filters: a price ceiling and a precision list for puzzle runs). The hard suites
 are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environment is in
 [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
 ## Open work
 
 - **The frontier comparison on the 5 hardest puzzles** (owner, 2026-10-25; it replaces the 3-board plan) waits on
-  the owner's go and a budget-cap choice:
+  the owner's go (2026-10-25: the caps stand, the quirks below are signed off; 2026-10-26: a board-1 trial first,
+  and every model at full capability):
   - the plan is `notes/frontier5-plan.sh` on branch `docs/writeup-notes`: the 5 boards of the gen2 suite's open
     split named in `notes/WRITEUP-NOTES.md` section 4b (with the rule that picked them), 1 attempt each, for 21
     chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
     are not in it, and Jev Router is out (owner, 2026-10-24);
-  - caps at the dearest endpoint come to about $486; the alternative is the bridge sending `provider.max_price`
-    at the list price and caps sized at list;
+  - caps at the dearest endpoint come to about $489, kept (owner, 2026-10-25; Haiku 5.5's recomputed by the cap rule
+    in the Fable pre-run check, 2026-10-26). A closed model runs with `puzzle_solve.py --max-price-at-list`, so no
+    request is routed to a priority tier above list; an open-weight model (DeepSeek V4 Pro and V4.1 Flash, Kimi K3
+    and K2.6, GLM 5.3) runs with `--quantizations` at its maker's released precision and no ceiling, since its list
+    price is a 4-bit host's (PR #327). The run script checks before it pays for anything that each model has an
+    endpoint its filter allows and that no ceiling model's list price moved, and starts with a board-1 trial
+    (`STAGE=1`, about $12) that is read before `RESUME=1` plays boards 2 to 5;
   - the owner requires full logs for this run, from the model chats to the engine logs: PR #324 landed it;
     `puzzle_solve.py` records every HTTP round-trip and the engine log, and `eval/archive_run.py` packs and verifies
     a run ([eval/PUZZLES.md](../../eval/PUZZLES.md), "Keeping a run");

@@ -46,6 +46,10 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      ("claude_cli_bridge_version", "claude-cli bridge versions"),
                      ("claude_cli_effort", "claude-cli efforts"),
                      ("claude_cli_thinking_tokens", "claude-cli thinking budgets"),
+                     # The routing filters a puzzle run sent (puzzle_solve.py --max-price-at-list / --quantizations):
+                     # what the model ran at (pr-review of #327).
+                     ("openrouter_max_price", "routing filters (price ceilings)"),
+                     ("openrouter_quantizations", "routing filters (precision lists)"),
                      # A development lane (owner, 2026-10-24: claude-cli:) is labelled so and never pooled with a score.
                      ("dev_lane", "development lanes"))
 
@@ -77,6 +81,10 @@ def attempt_success(row):
     if status == "unscoreable":
         raise Refused("unscoreable row for %s (seed %s): the goal was not enforced, so this is a harness "
                       "defect, not a result" % (row.get("id"), row.get("seed")))
+    if row.get("routing_refusals"):
+        raise Refused("row for %s (seed %s): %s decisions lost under the routing filter (no endpoint it allows answered "
+                      "after every retry), so they were not the model's; replay it with --resume"
+                      % (row.get("id"), row.get("seed"), row["routing_refusals"]))
     if status == "invalid":
         return False, "capped"
     if status not in ("solved", "failed"):

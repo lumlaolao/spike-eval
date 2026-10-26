@@ -341,6 +341,22 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
+- `--max-price-at-list` (an `openrouter:` model only) sends every request a price ceiling at the model's list
+  price in `eval/pricing/prices.json` (OpenRouter's `provider.max_price`, USD per million tokens), so latency
+  routing never lands on a dearer priority tier (owner, 2026-10-25). `--quantizations fp8,bf16` (an `openrouter:`
+  model only) serves it only at those precisions (`provider.quantizations`; OpenRouter's names, `unknown` included
+  only if listed), so an open-weight model plays at its maker's released precision, never on a host that compresses
+  it further (owner, 2026-10-26). A list price is often a compressed host's, so an open-weight model takes the
+  precision list and no ceiling. Either filter can leave no endpoint, so before a run check each model has one it
+  allows (`/api/v1/models/<id>/endpoints`; the frontier run script on `docs/writeup-notes` does this). Each puzzle's
+  `batch-manifest.json` records both (`record.openrouter_max_price`, `record.openrouter_quantizations`, null without
+  the flag) and `--resume` refuses other values. A row with a decision lost to a filter (refused after every retry)
+  is not scored, is flagged on the progress line and by `puzzle_watch.py`, and is replayed on `--resume`
+  (`docs/harness/ARCHITECTURE.md` section 9); a puzzle that loses decisions on every resume means the list price
+  moved (the run prints the date it was checked) or the allowed hosts are gone. The ceiling is the base list price,
+  so it also rules out a long-context tier (above 272K prompt tokens on GPT-6.1 Sol, 200K on Grok, 100K on Haiku
+  5.5; the largest prompt recorded is 69K, per the `prices.json` comment). `--budget-usd` is still checked at the
+  dearest endpoint.
 - A `jev:` model (a decision model on OpenRouter's Decisions API, `docs/harness/ARCHITECTURE.md` section 9) needs
   the same opt-in, and runs without `--memory-tools`: it cannot call a lookup.
 - A `claude-cli:` model (Claude Code in print mode, `docs/harness/ARCHITECTURE.md` section 9) is a development lane
