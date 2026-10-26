@@ -331,8 +331,17 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
 - Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat) unless `--call-timeout-minutes`
   sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as `record.call_timeout_ms`; a resume under another
-  value is refused). A call past it is retried, then its decision goes to a fixed legal option. The owner set 20
-  minutes for the frontier run (2026-10-26) after the 300 s deadline fired for four models.
+  value is refused). A call past it is retried, then its decision goes to a fixed legal option. In the frontier run
+  (2026-10-26) the 300 s deadline fired for four models. The owner raised it to 20 minutes (`frontier5-long`), then
+  to 60 (`frontier5-fill`).
+  Known limit: the JVM's grace after a game cap is sized from `ModelCfg` (about 15 minutes), not from this flag. So
+  with a deadline above about 5 minutes, a game capped while a call is in flight can outlive its grace, and the
+  puzzle's later seeds are not played. The scorer then refuses the puzzle for fewer than k attempts, and a
+  `--resume` replays it. This never fired in the frontier run (k=1).
+- Each model call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000) unless
+  `--max-tokens` sets one for every model family (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
+  2^31-1; a resume under another value is refused). The frontier fill run gave each model its own maximum output
+  (owner, 2026-10-26).
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
   absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every
@@ -467,7 +476,10 @@ Runs of other puzzles, suites, splits, k or game caps are refused. Lookups per c
 - score an unscoreable row (one where the goal was not enforced);
 - pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
   stamped one is refused too);
-- pool or pair attempts under two per-call deadlines (`call_timeout_ms`, the same way);
+- pool or pair attempts under two per-call deadlines (`call_timeout_ms`, the same way; a run with no manifest is not
+  checked when paired);
+- pool attempts under two token caps (`max_tokens`). A pair under two caps is scored and labelled
+  `cross_max_tokens`, so two models each at its own maximum can be compared;
 - pool or pair attempts under two game caps (`game_cap_ms`, from each puzzle's `batch-manifest.json`; a directory with
   no manifest, such as a baseline arm's, records no cap and is not checked).
 

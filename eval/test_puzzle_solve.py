@@ -642,6 +642,23 @@ class GameCapTest(unittest.TestCase):
         keys = re.search(r'for \(String key : new String\[\]\{([^}]*)\}\)\s*t\.put\(key, uniform\)', src).group(1)
         self.assertEqual(tuple(k.strip().strip('"') for k in keys.split(",")), puzzle_solve.MODEL_CFG_KEYS)
 
+    def test_a_resume_under_another_token_cap_is_refused_and_the_cap_fits_an_int(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,
+                                    {"game_cap_ms": 1800000, "max_tokens": 131072})
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                       max_tokens=131072), [])
+        for other in (None, 32000):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                max_tokens=other)
+            self.assertEqual(len(bad), 1)
+            self.assertIn("max_tokens", bad[0])
+        with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+            puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
+                               "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                               "--max-tokens", str(2 ** 31)])
+        self.assertIn("--max-tokens", str(cm.exception.code))
+
     def test_a_resume_under_another_call_deadline_is_refused(self):
         root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
         puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,

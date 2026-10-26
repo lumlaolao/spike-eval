@@ -233,14 +233,11 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
         was, was_build, was_record = (manifest.get(k) or {} for k in ("condition", "build", "record"))
         diff = [key for key in now if was.get(key) != now[key]]
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
-        diff += [key for key, v in (("openrouter_max_price", ceiling), ("openrouter_quantizations", quantizations))
+        diff += [key for key, v in (("openrouter_max_price", ceiling), ("openrouter_quantizations", quantizations),
+                                    ("call_timeout_ms", call_ms), ("max_tokens", max_tokens))
                  if was_record.get(key) != v]
         if cap_ms is not None and (was_record.get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) > cap_ms:
             diff.append("game_cap_ms (lower than played)")
-        if was_record.get("call_timeout_ms") != call_ms:
-            diff.append("call_timeout_ms")
-        if was_record.get("max_tokens") != max_tokens:
-            diff.append("max_tokens")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
@@ -349,8 +346,8 @@ def main(argv=None):
     if a.call_timeout_minutes is not None and a.call_timeout_minutes < 1:
         raise SystemExit("--call-timeout-minutes must be at least 1")
     call_ms = a.call_timeout_minutes * 60000 if a.call_timeout_minutes else None
-    if a.max_tokens is not None and a.max_tokens < 1:
-        raise SystemExit("--max-tokens must be at least 1")
+    if a.max_tokens is not None and not 1 <= a.max_tokens < 2 ** 31:
+        raise SystemExit("--max-tokens must be from 1 to 2^31-1 (the JVM reads it as an int)")
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")

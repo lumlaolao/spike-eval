@@ -51,7 +51,14 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      ("openrouter_max_price", "routing filters (price ceilings)"),
                      ("openrouter_quantizations", "routing filters (precision lists)"),
                      # A development lane (owner, 2026-10-24: claude-cli:) is labelled so and never pooled with a score.
-                     ("dev_lane", "development lanes"))
+                     ("dev_lane", "development lanes"),
+                     # From each puzzle's manifest record (load_rows): puzzle_solve.py --call-timeout-minutes, every
+                     # tier's per-call deadline, and --max-tokens, the thinking budget (None: each model's own).
+                     ("call_timeout_ms", "call deadlines"),
+                     ("max_tokens", "token caps"))
+
+# A condition read from a puzzle's manifest when the directory has none (a baseline arm): not known, not "unset".
+NO_MANIFEST = "n/a"
 
 
 # The game cap every puzzle run played at before puzzle_solve.py --game-cap-minutes; a manifest without a record says so.
@@ -106,7 +113,10 @@ def load_rows(paths):
         p = Path(p)
         files = sorted(p.rglob("puzzle-results.jsonl")) if p.is_dir() else [p]
         for f in files:
-            cap, call = game_cap_of(f.parent), call_timeout_of(f.parent)
+            record = record_of(f.parent)
+            cap = None if record is None else record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
+            call, tokens = ((NO_MANIFEST, NO_MANIFEST) if record is None
+                            else (record.get("call_timeout_ms"), record.get("max_tokens")))
             for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                 line = line.strip()
                 if not line:
@@ -118,30 +128,28 @@ def load_rows(paths):
                 if d.get("schema") == "pzl-result-v1":
                     d.setdefault("game_cap_ms", cap)
                     d.setdefault("call_timeout_ms", call)
+                    d.setdefault("max_tokens", tokens)
                     rows.append(d)
     return rows
 
 
-def game_cap_of(puzzle_dir):
-    """The game cap (ms) a puzzle directory was played under, from the record puzzle_solve wrote beside its rows (30
-    minutes for a manifest from before it); None with no manifest (a baseline arm, which sets its own cap)."""
+def record_of(puzzle_dir):
+    """The record puzzle_solve wrote beside a puzzle directory's rows ({} for a manifest from before it); None with
+    no manifest (a baseline arm, which sets its own conditions). An unreadable manifest is refused."""
+    f = puzzle_dir / "batch-manifest.json"
     try:
-        record = json.loads((puzzle_dir / "batch-manifest.json").read_text(encoding="utf-8")).get("record") or {}
+        return json.loads(f.read_text(encoding="utf-8")).get("record") or {}
     except OSError:
         return None
     except ValueError:
-        raise Refused("%s is not JSON: its game cap is unknown" % (puzzle_dir / "batch-manifest.json"))
-    return record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
+        raise Refused("%s is not JSON: the conditions it was played under are unknown" % f)
 
 
-def call_timeout_of(puzzle_dir):
-    """The per-call model deadline (ms) a puzzle directory was played under (puzzle_solve --call-timeout-minutes);
-    None: each model's own (ModelCfg), as every run before the flag, and every directory without a manifest."""
-    try:
-        record = json.loads((puzzle_dir / "batch-manifest.json").read_text(encoding="utf-8")).get("record") or {}
-    except (OSError, ValueError):
-        return None   # game_cap_of, read first, refuses an unreadable manifest
-    return record.get("call_timeout_ms")
+def game_cap_of(puzzle_dir):
+    """The game cap (ms) a puzzle directory was played under (30 minutes for a manifest from before the record);
+    None with no manifest."""
+    record = record_of(puzzle_dir)
+    return None if record is None else record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
 
 
 def group_attempts(manifest, rows, split, k, solver=None, ids=None):
@@ -188,10 +196,6 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
 
     # The game cap is a condition (owner raised it 30 to 90 minutes, 2026-10-26): even a game that ended under the
     # lower one is not pooled, since a resume that redrew only the cut-off games favours fast games.
-    calls = {r.get("call_timeout_ms") for r in rows}
-    if len(calls) > 1:
-        raise Refused("results come from call deadlines %s ms (None: the model's own); score each separately"
-                      % sorted(calls, key=str))
     caps = {r.get("game_cap_ms") for r in rows} - {None}
     if len(caps) > 1:
         raise Refused("results come from game caps %s ms; replay the lower one (puzzle_solve.py --resume "
@@ -367,8 +371,6 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
         # The rows' one game cap (group_attempts refuses a mix); None when no row has one.
         "game_cap_ms": max((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), default=None),
-        # The rows' one per-call deadline (group_attempts refuses a mix); None: each model's own.
-        "call_timeout_ms": flat[0].get("call_timeout_ms") if flat else None,
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
         "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
@@ -442,9 +444,10 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
         # A cap is a condition; a run with none recorded (None) is not known to differ.
         if None not in (r.get("game_cap_ms"), first.get("game_cap_ms")) and r["game_cap_ms"] != first["game_cap_ms"]:
             raise Refused("paired runs differ in game_cap_ms (%s vs %s)" % (first["game_cap_ms"], r["game_cap_ms"]))
-        if r.get("call_timeout_ms") != first.get("call_timeout_ms"):
-            raise Refused("paired runs differ in call_timeout_ms (%s vs %s)"
-                          % (first.get("call_timeout_ms"), r.get("call_timeout_ms")))
+        # A deadline is a condition; a run with no manifest (a baseline arm) is not known to differ.
+        calls = (first.get("call_timeout_ms"), r.get("call_timeout_ms"))
+        if NO_MANIFEST not in calls and calls[0] != calls[1]:
+            raise Refused("paired runs differ in call_timeout_ms (%s vs %s)" % calls)
     rates = [{p["id"]: p["pass@1"] for p in r["puzzles"]} for r in reps]
     if any(set(x) != set(rates[0]) for x in rates):
         raise Refused("paired runs cover different puzzles")
@@ -457,7 +460,10 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
             "ci95_clustered": clustered_ci(diffs), "solvers": [r.get("solver") for r in reps],
             "difference_of_differences": bool(base),
             # A difference across interfaces is a measurement of the change, and is labelled as one.
-            "epochs": epochs, "cross_epoch": len(set(epochs)) > 1}
+            "epochs": epochs, "cross_epoch": len(set(epochs)) > 1,
+            # Each model at its own maximum (frontier5) is a fair pair: labelled, not refused.
+            "max_tokens": [r.get("max_tokens") for r in reps],
+            "cross_max_tokens": len({str(r.get("max_tokens")) for r in reps}) > 1}
 
 
 def signed(x):

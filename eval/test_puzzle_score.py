@@ -262,6 +262,26 @@ class ScoreV2Test(unittest.TestCase):
         with self.assertRaisesRegex(ps.Refused, "call_timeout_ms"):
             ps.paired(a, b, n_boot=50)
 
+    def test_games_under_two_token_caps_are_never_pooled_and_a_pair_says_so(self):
+        # pr-review round 6 of #329: max_tokens is the thinking budget, a condition the scorer never read.
+        a = ps.score(self.m, self.rows([4, 2, 0], max_tokens=131072), "open", k=4, n_boot=20)
+        self.assertEqual(a["max_tokens"], 131072)
+        rows = self.rows([4, 2, 0], max_tokens=131072)
+        rows[0]["max_tokens"] = None
+        with self.assertRaisesRegex(ps.Refused, "token caps"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+        # Two models at their own maximum (frontier5) are a fair pair; the pair names the caps rather than refusing.
+        b = ps.score(self.m, self.rows([4, 4, 0], max_tokens=943718), "open", k=4, n_boot=20)
+        c = ps.paired(a, b, n_boot=50)
+        self.assertEqual(c["max_tokens"], [131072, 943718])
+        self.assertTrue(c["cross_max_tokens"])
+
+    def test_a_run_with_no_manifest_is_not_known_to_differ_in_call_deadline(self):
+        # pr-review round 6 of #329: a baseline arm has no manifest; that is not "no --call-timeout-minutes".
+        a = ps.score(self.m, self.rows([4, 2, 0], call_timeout_ms=1200000), "open", k=4, n_boot=20)
+        base = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=ps.NO_MANIFEST), "open", k=4, n_boot=20)
+        ps.paired(a, base, n_boot=50)
+
     def test_an_unreadable_manifest_is_named_not_read_as_30_minutes(self):
         d = Path(tempfile.mkdtemp())
         (d / "p").mkdir()
@@ -275,11 +295,15 @@ class ScoreV2Test(unittest.TestCase):
         (d / "p").mkdir()
         (d / "p" / "puzzle-results.jsonl").write_text(json.dumps({"schema": "pzl-result-v1", "id": "x"}) + "\n")
         self.assertIsNone(ps.load_rows([d])[0]["game_cap_ms"], "no puzzle_solve manifest (a baseline arm): unknown")
+        self.assertEqual(ps.load_rows([d])[0]["call_timeout_ms"], ps.NO_MANIFEST)
+        self.assertEqual(ps.load_rows([d])[0]["max_tokens"], ps.NO_MANIFEST)
         (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"game_cap_ms": 5400000}}))
         self.assertEqual(ps.load_rows([d])[0]["game_cap_ms"], 5400000)
         self.assertIsNone(ps.load_rows([d])[0]["call_timeout_ms"])
-        (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"call_timeout_ms": 1200000}}))
+        (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"call_timeout_ms": 1200000,
+                                                                               "max_tokens": 131072}}))
         self.assertEqual(ps.load_rows([d])[0]["call_timeout_ms"], 1200000)
+        self.assertEqual(ps.load_rows([d])[0]["max_tokens"], 131072)
         (d / "p" / "batch-manifest.json").write_text(json.dumps({"condition": {}}))   # from before the record
         self.assertEqual(ps.load_rows([d])[0]["game_cap_ms"], ps.LEGACY_GAME_CAP_MS)
 

@@ -852,6 +852,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     Each game runs under a wall-clock cap (`puzzle_solve.py --game-cap-minutes`, 30 by default, recorded per
     puzzle as `record.game_cap_ms`); a capped game is unsolved. The cap is a condition: a resume may raise it and
     then replays every puzzle played under the lower one in full, and `puzzle_score.py` refuses rows from two caps.
+    Each model call's deadline (`--call-timeout-minutes`) and token cap (`--max-tokens`, which is also the thinking
+    budget) are recorded the same way. A resume under another value is refused, and the scorer refuses to pool
+    them (`eval/PUZZLES.md`).
     *Why:* two frontier-trial games reached the win after 30 minutes (`docs/harness/WORK-PLAN.md`, the frontier
     entry), and the owner raised the cap to 90; replaying only cut-off games would bias the score toward fast games.
 - **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, from the run's `puzzle-run.json` and result
