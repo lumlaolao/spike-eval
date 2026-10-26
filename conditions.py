@@ -1,5 +1,6 @@
 """Kept games and solves per recorded condition (root, game cap, call deadline, token cap) for chosen.json.
-Run from the repository root: python3 <this branch>/conditions.py chosen.json"""
+Run from the repository root, with the scripts copied out of this branch (git show):
+    python3 conditions.py chosen.json   (or the --json output of select.py)"""
 import json
 import re
 import sys
@@ -12,7 +13,7 @@ for v in chosen.values():
     if v.get("root") == "stopped":
         key = ("stopped",)
     else:
-        rows = Path(v["rows"].split("/runs/puzzles/", 1)[-1].join(["runs/puzzles/", ""]))
+        rows = Path("runs/puzzles", v["rows"].split("runs/puzzles/", 1)[-1])
         m = re.search(r"partial(\d+)", rows.name)
         manifest = rows.parent / ("batch-manifest.partial%s.json" % m.group(1) if m else "batch-manifest.json")
         r = json.loads(manifest.read_text()).get("record") or {}
