@@ -81,8 +81,9 @@ def parse_args(argv=None):
                     help="mirror decklist for both seats (default %s)" % DEFAULT_DECK)
     ap.add_argument("--out", default=None,
                     help="output dir (default runs/improve/<UTC-timestamp>/)")
-    ap.add_argument("--forge-home", default=str(puzzle_format.forge_home()),
-                    help="dir containing run-llm-headless.sh (default: $FORGE_HOME first; puzzle_format.forge_home)")
+    ap.add_argument("--forge-home", default=puzzle_format.forge_checkout(),
+                    help="the Forge checkout holding run-llm-headless.sh (default: $FORGE_HOME as given if set, else "
+                         "~/code/forge or /root/forge; puzzle_format.forge_checkout)")
     ap.add_argument("--cap-minutes", type=float, default=None,
                     help="passthrough to run_batch.py --cap-minutes "
                          "(default: derived by run_batch.py)")

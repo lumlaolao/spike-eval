@@ -1236,9 +1236,9 @@ def build_parser():
     ap.add_argument("--out",
                     help="output dir for JSONL + stdout logs. Optional: defaults "
                          "to runs/<UTC-timestamp>-<label> under the repo root.")
-    ap.add_argument("--forge-home", default=str(puzzle_format.forge_home()),
-                    help="dir containing run-llm-headless.sh (default: $FORGE_HOME, else ~/code/forge or "
-                         "/root/forge, whichever is a Forge checkout; puzzle_format.forge_home)")
+    ap.add_argument("--forge-home", default=puzzle_format.forge_checkout(),
+                    help="the Forge checkout holding run-llm-headless.sh (default: $FORGE_HOME as given if set, else "
+                         "~/code/forge or /root/forge; puzzle_format.forge_checkout)")
     ap.add_argument("--cap-minutes", type=float, default=None,
                     help="per-game wall-clock cap in minutes; sets GAME_CAP_MS. "
                          "0 disables. Omitted -> derived per-tier (no-llm 15, "

@@ -106,7 +106,7 @@ OPENROUTER_API_KEY=sk-... OPENROUTER_ALLOW_EGRESS=1 \
 | `--seed N` | base RNG seed (draft + shuffles + seat coin-flips); default 100 |
 | `--cap-minutes N` | per-game wall-clock cap; default 60 |
 | `--retries N` | replays of a drawn/invalid game before a seeded coin-flip; default 2 |
-| `--forge-home DIR` | the Forge checkout holding `run-llm-spike.sh`; default `~/code/forge` |
+| `--forge-home DIR` | the Forge checkout holding `run-llm-spike.sh`; default `$FORGE_HOME` as given if set, else `~/code/forge` or `/root/forge` |
 | `--no-record` | disable mp4 capture (faster; defeats the point) |
 | `--record-fps N` | recording frame rate; default 8 |
 | `--mock-draft` | assign decks with the seeded RNG (no OpenRouter calls) |

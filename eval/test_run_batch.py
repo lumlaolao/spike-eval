@@ -68,6 +68,10 @@ class TestForgeHome(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"FORGE_HOME": d}):
             (Path(d) / "forge-gui/res/puzzle").mkdir(parents=True)
             self.assertEqual(run_batch.build_parser().parse_args([]).forge_home, d)
+        # pr-review of #328: a FORGE_HOME that is set but no checkout (a typo) is taken as given, so the run refuses
+        # it ("run-llm-headless.sh not found") rather than playing on another checkout's installed overlay.
+        with mock.patch.dict(os.environ, {"FORGE_HOME": "/nonexistent/typo-forge"}):
+            self.assertEqual(str(run_batch.build_parser().parse_args([]).forge_home), "/nonexistent/typo-forge")
 
 
 class TestOverlayIdentity(unittest.TestCase):

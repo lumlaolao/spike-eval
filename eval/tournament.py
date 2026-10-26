@@ -594,7 +594,9 @@ def main():
                     help="per-game wall-clock cap (default 60)")
     ap.add_argument("--retries", type=int, default=2,
                     help="replays on a drawn/invalid game before a seeded coin-flip")
-    ap.add_argument("--forge-home", default=str(puzzle_format.forge_home()))   # $FORGE_HOME first
+    ap.add_argument("--forge-home", default=puzzle_format.forge_checkout(),
+                    help="the Forge checkout holding run-llm-headless.sh (default: $FORGE_HOME as given if set, else "
+                         "~/code/forge or /root/forge; puzzle_format.forge_checkout)")
     ap.add_argument("--record", dest="record", action="store_true", default=True)
     ap.add_argument("--no-record", dest="record", action="store_false")
     ap.add_argument("--record-fps", type=int, default=8)

@@ -90,6 +90,13 @@ def forge_home():
     return Path(env) if env else Path.home() / "code/forge"
 
 
+def forge_checkout():
+    """The Forge checkout a launcher runs against: $FORGE_HOME as given when it is set (a mistyped one should fail,
+    not play on another checkout's installed overlay), else forge_home's search (~/code/forge, /root/forge)."""
+    env = os.environ.get("FORGE_HOME")
+    return os.path.expanduser(os.path.expandvars(env)) if env else str(forge_home())
+
+
 def pzl_path(rec, repo=REPO):
     """Where a record's .pzl lives. `forge:NAME.pzl` is a puzzle Forge ships (forge-gui/res/puzzle in
     the pinned checkout): most are third-party works (Possibility Storm and others), so they are read

@@ -97,10 +97,8 @@ def jdk():
 
 
 def default_forge():
-    """$FORGE_HOME as given when it is set (a mistyped one should fail, not build against another checkout), else the
-    checkout every eval tool finds (puzzle_format.forge_home: ~/code/forge, /root/forge)."""
-    env = os.environ.get("FORGE_HOME")
-    return os.path.expanduser(os.path.expandvars(env)) if env else str(puzzle_format.forge_home())
+    """puzzle_format.forge_checkout: $FORGE_HOME as given when set, else the checkout every eval tool finds."""
+    return puzzle_format.forge_checkout()
 
 
 def jdk_tool(name):
