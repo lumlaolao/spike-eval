@@ -70,14 +70,19 @@ printf "%s\n" "$MODELS" | awk 'NF==2{print $1}' | python3 -c '
 import json, sys, urllib.request
 prices = json.load(open(sys.argv[1]))["models"]
 bad = []
+# A list price that moved since prices.json was checked makes a stale ceiling (deepseek-v4-pro rose 72% in one day,
+# 2026-10-25): every request above it would be refused. Live list must equal the file.
+live = {x["id"]: x["pricing"] for x in json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models", timeout=60))["data"]}
 for m in sys.stdin.read().split():
     eps = json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models/%s/endpoints" % m, timeout=30))
     # require_parameters is sent too: the endpoint must take tools and tool_choice, not tools alone.
     ok = [e for e in eps["data"]["endpoints"] if {"tools", "tool_choice"} <= set(e.get("supported_parameters") or [])
           and float(e["pricing"]["prompt"]) <= prices[m]["prompt"] and float(e["pricing"]["completion"]) <= prices[m]["completion"]]
-    print("%-32s %d endpoint(s) that take tools and tool_choice at or under list" % (m, len(ok)))
-    bad += [] if ok else [m]
-sys.exit("refused: no endpoint at list for %s (update eval/pricing/prices.json or drop the model)" % bad if bad else 0)
+    drift = [k for k in ("prompt", "completion") if abs(float(live[m][k]) - prices[m][k]) > 1e-12]
+    print("%-32s %d endpoint(s) that take tools and tool_choice at or under list%s" % (m, len(ok),
+          "; LIST PRICE MOVED: %s" % live[m] if drift else ""))
+    bad += [] if ok and not drift else [m]
+sys.exit("refused: no endpoint at list, or a moved list price, for %s (update eval/pricing/prices.json or drop the model)" % bad if bad else 0)
 ' "$REPO/eval/pricing/prices.json" || exit 2
 run_one() {
   local model=$1 cap=$2 dir=$OUT/${1//\//_}
