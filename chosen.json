@@ -295,6 +295,14 @@
   "why": [],
   "minutes": 19
  },
+ "mistralai_mistral-large-4-0 hard-atog-b8053a21d4a8": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/mistralai_mistral-large-4-0__hard-atog-b8053a21d4a8/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 59
+ },
  "mistralai_mistral-medium-3-5 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/mistralai_mistral-medium-3-5/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
