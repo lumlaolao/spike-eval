@@ -590,5 +590,55 @@ class PrecisionFloorTest(unittest.TestCase):
             self.assertIn("openrouter_quantizations", bad[0])
 
 
+class GameCapTest(unittest.TestCase):
+    """Owner, 2026-10-26: the frontier run's game cap is 90 minutes, not 30. Slow deep reasoners (Kimi K2.6 twice, GLM
+    5.3 Prime) found the win after 30 and were scored capped. A raised cap replays only the games a lower cap cut
+    off; a game that ended under the old cap would end the same under the new one."""
+
+    SUITE = DecisionModelSeatTest.SUITE
+
+    def test_the_cap_reaches_the_jvm_and_the_manifest_and_defaults_to_30_minutes(self):
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna", "--game-cap-minutes", "90")
+        self.assertEqual(envs[0]["GAME_CAP_MS"], "5400000")
+        self.assertEqual(manifest["record"]["game_cap_ms"], 5400000)
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna")
+        self.assertEqual(envs[0]["GAME_CAP_MS"], "1800000")
+        self.assertEqual(manifest["record"]["game_cap_ms"], 1800000)
+
+    def write(self, out, rows, cap_ms=None):
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "puzzle-results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        puzzle_solve.write_manifest(out, "m", "S", out.name, {}, None,
+                                    None if cap_ms is None else {"game_cap_ms": cap_ms})
+
+    def test_a_raised_cap_replays_only_a_game_the_lower_cap_cut_off(self):
+        root = Path(tempfile.mkdtemp())
+        self.write(root / "capped", [{"seed": 1, "suite_sha256": "S", "status": "invalid"}])   # before the record
+        self.write(root / "ended", [{"seed": 1, "suite_sha256": "S", "status": "failed"}])
+        self.write(root / "capped90", [{"seed": 1, "suite_sha256": "S", "status": "invalid"}], cap_ms=5400000)
+        self.assertFalse(puzzle_solve.already_done(root / "capped", 1, "S", cap_ms=5400000))
+        self.assertTrue(puzzle_solve.already_done(root / "capped", 1, "S", cap_ms=1800000))
+        self.assertTrue(puzzle_solve.already_done(root / "ended", 1, "S", cap_ms=5400000))
+        self.assertTrue(puzzle_solve.already_done(root / "capped90", 1, "S", cap_ms=5400000))
+
+    def test_a_resume_under_a_lower_cap_is_refused(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD, {"game_cap_ms": 5400000})
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD,
+                                                       cap_ms=5400000), [])
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD,
+                                                       cap_ms=7200000), [], "a raised cap is allowed")
+        bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000)
+        self.assertEqual(len(bad), 1)
+        self.assertIn("game_cap_ms", bad[0])
+
+    def test_a_cap_that_is_not_positive_is_refused(self):
+        with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+            puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
+                               "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                               "--game-cap-minutes", "0"])
+        self.assertIn("--game-cap-minutes", str(cm.exception.code))
+
+
 if __name__ == "__main__":
     unittest.main()

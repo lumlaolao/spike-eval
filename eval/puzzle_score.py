@@ -54,6 +54,10 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      ("dev_lane", "development lanes"))
 
 
+# The game cap every puzzle run played at before puzzle_solve.py --game-cap-minutes; a manifest without a record says so.
+LEGACY_GAME_CAP_MS = 1800000
+
+
 class Refused(Exception):
     """A request the scorer will not answer, because the answer would not mean what it says."""
 
@@ -102,6 +106,7 @@ def load_rows(paths):
         p = Path(p)
         files = sorted(p.rglob("puzzle-results.jsonl")) if p.is_dir() else [p]
         for f in files:
+            cap = game_cap_of(f.parent)
             for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                 line = line.strip()
                 if not line:
@@ -111,8 +116,18 @@ def load_rows(paths):
                 except ValueError:
                     raise Refused("%s:%d is not JSON" % (f, n))
                 if d.get("schema") == "pzl-result-v1":
+                    d.setdefault("game_cap_ms", cap)
                     rows.append(d)
     return rows
+
+
+def game_cap_of(puzzle_dir):
+    """The game cap (ms) a puzzle directory was played under, from the record puzzle_solve wrote beside its rows."""
+    try:
+        record = json.loads((puzzle_dir / "batch-manifest.json").read_text(encoding="utf-8")).get("record") or {}
+    except (OSError, ValueError):
+        record = {}
+    return record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
 
 
 def group_attempts(manifest, rows, split, k, solver=None, ids=None):
@@ -156,6 +171,15 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
         if len(seen) > 1:
             raise Refused("results come from %s %s; what the solver was asked or how it ran differs, so score each "
                           "separately" % (what, sorted(seen, key=str)))
+
+    # A raised cap (owner, 2026-10-26): a game that ended under the lower cap would end the same under the higher, so
+    # those rows stand; a game the lower cap cut off would not, and puzzle_solve --resume replays it.
+    caps = {r.get("game_cap_ms") for r in rows} - {None}
+    cut = [r.get("id") for r in rows if r.get("status") == "invalid" and caps
+           and r.get("game_cap_ms") is not None and r["game_cap_ms"] < max(caps)]
+    if cut:
+        raise Refused("%d game(s) cut off by a game cap below this run's %d ms: %s; replay them under the higher cap "
+                      "(puzzle_solve.py --resume --game-cap-minutes)" % (len(cut), max(caps), ", ".join(cut[:5])))
 
     out = defaultdict(list)
     for r in rows:
@@ -325,6 +349,8 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     return dict(conditions, **{
         # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
+        # The longest game cap among the rows (a shorter one only on games that ended under it); None before load_rows.
+        "game_cap_ms": max((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), default=None),
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
         "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.

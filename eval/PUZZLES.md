@@ -328,6 +328,11 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   its rows so far and its JVM log renamed `puzzle-results.partial<n>.jsonl` and `jvm.partial<n>.log` (never
   scored, still priced). A resume into a directory made under another model, suite or seat condition, or on
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
+- Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
+  status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
+  absent: 30 minutes). A resume may raise it, never lower it: under a higher cap the games a lower one cut off are
+  played again and the games that ended stand (they would end the same). `puzzle_score.py` refuses a capped row
+  played under less than the run's highest cap, and reports that cap (`game_cap_ms`).
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`

@@ -124,6 +124,9 @@ def condition(a):
     return cond
 
 
+# The game cap every puzzle run played at before --game-cap-minutes (30 minutes), and its default.
+LEGACY_GAME_CAP_MS = ps.LEGACY_GAME_CAP_MS
+
 # OpenRouter's precision names (provider routing docs, 2026-10-26); OpenRouterBridge.QUANTIZATIONS in Java.
 QUANTIZATIONS = ("int4", "int8", "fp4", "mxfp4", "nvfp4", "fp6", "fp8", "mxfp8", "fp16", "bf16", "fp32", "unknown")
 
@@ -138,10 +141,13 @@ def max_price_env(prices, spec):
                            ", ".join('"%s": %s' % (k, format(v, "f")) for k, v in per_m.items()))
 
 
-def already_done(out, k, suite_sha):
-    """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it."""
+def already_done(out, k, suite_sha, cap_ms=None):
+    """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it. A
+    row a lower game cap cut off (status invalid, played under less than `cap_ms`) is not done: it is played again."""
+    replay_capped = cap_ms is not None and ps.game_cap_of(Path(out)) < cap_ms
     seeds = {r.get("seed") for r in pb.read_results(out)
-             if r.get("suite_sha256") == suite_sha and not r.get("routing_refusals")}
+             if r.get("suite_sha256") == suite_sha and not r.get("routing_refusals")
+             and not (replay_capped and r.get("status") == "invalid")}
     return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
 
 
@@ -156,9 +162,9 @@ def set_aside_partial(out):
             (out / name).rename(out / (aside % n))
 
 
-def prepare(out, k, suite_sha, resume):
+def prepare(out, k, suite_sha, resume, cap_ms=None):
     """"done" when a resumed run already has this puzzle's k attempts; otherwise "run", a partial set aside."""
-    if resume and already_done(out, k, suite_sha):
+    if resume and already_done(out, k, suite_sha, cap_ms):
         return "done"
     if resume:
         set_aside_partial(out)
@@ -200,13 +206,14 @@ def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None, 
     write_json(Path(out_root) / RUN_FILE, run)
 
 
-def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None):
+def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None, cap_ms=None):
     """The puzzle directories under out_root made under another model, suite or seat condition, or on another
     build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale), or price ceiling
     (`max_price`, max_price_env's JSON or None: a ceiling can move a request to another provider): a resume into them
     would pool two conditions in one score (STANDARDS section 4). A directory from before builds were recorded is
     another build; one from before the ceiling existed was uncapped. `quantizations`: the precisions allowed (a
-    list or None), compared the same way: it is what the model ran at."""
+    list or None), compared the same way: it is what the model ran at. `cap_ms`: the game cap may rise on a resume
+    (already_done replays what the lower cap cut off), never fall below what the directory was played under."""
     bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
     ceiling = json.loads(max_price) if max_price else None
     for pid in ids:
@@ -223,23 +230,27 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
         diff += [key for key, v in (("openrouter_max_price", ceiling), ("openrouter_quantizations", quantizations))
                  if was_record.get(key) != v]
+        if cap_ms is not None and (was_record.get("game_cap_ms") or LEGACY_GAME_CAP_MS) > cap_ms:
+            diff.append("game_cap_ms (lower than played)")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
 
 
-def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None, quantizations=None):
+def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None, quantizations=None,
+                 cap_ms=None):
+    cap_ms = cap_ms or LEGACY_GAME_CAP_MS
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
     record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
               "pzl_sha256": rec.get("pzl_sha256"),
               "openrouter_max_price": json.loads(max_price) if max_price else None,
-              "openrouter_quantizations": quantizations}
+              "openrouter_quantizations": quantizations, "game_cap_ms": cap_ms}
     write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
     # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
-               SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000", TRANSCRIPTS="1")
+               SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS=str(cap_ms), TRANSCRIPTS="1")
     for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
         if os.environ.get(key):
             env[key] = os.environ[key]
@@ -279,6 +290,8 @@ def main(argv=None):
                     help="an openrouter: model only: send a price ceiling at its list price (no priority tier)")
     ap.add_argument("--quantizations", default=None, metavar="LIST",
                     help="an openrouter: model only: the precisions it may be served at, comma-separated (fp8,bf16)")
+    ap.add_argument("--game-cap-minutes", type=float, default=LEGACY_GAME_CAP_MS / 60000,
+                    help="wall-clock cap on each attempt's game (default 30); a capped game counts as unsolved")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -305,6 +318,9 @@ def main(argv=None):
         if unknown or not quantizations:
             raise SystemExit("--quantizations takes precisions from %s (OpenRouter's names), got %r"
                              % (", ".join(QUANTIZATIONS), a.quantizations))
+    if a.game_cap_minutes <= 0:
+        raise SystemExit("--game-cap-minutes must be above 0")
+    cap_ms = int(round(a.game_cap_minutes * 60000))
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
@@ -345,7 +361,7 @@ def main(argv=None):
                          % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
         bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov,
-                               max_price, quantizations)
+                               max_price, quantizations, cap_ms)
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
@@ -364,12 +380,12 @@ def main(argv=None):
 
     def work(rec):
         out = out_root / rec["id"]
-        if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
+        if prepare(out, a.k, manifest["suite_sha256"], a.resume, cap_ms) == "done":
             return rec["id"], "done", pb.read_results(out)
         if over_budget(out_root, a.budget_usd):
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded,
-                            max_price, quantizations)
+                            max_price, quantizations, cap_ms)
 
     skipped = 0
     try:

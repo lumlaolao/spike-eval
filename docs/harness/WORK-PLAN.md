@@ -38,6 +38,9 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
     checks before it pays for anything that each model has an endpoint its filter allows and that no ceiling model's
     list price moved, and starts with a board-1 trial (`STAGE=1`, 22 of the 110 attempts, so about a fifth of the $62)
     that is read before `RESUME=1` plays boards 2 to 5;
+  - the board-1 trial ran (2026-10-26, $10.12): every model answered by tool with ai=0; two games (GLM 5.3 Prime,
+    Kimi K2.6) reached the win after the 30-minute game cap, so the run plays at `--game-cap-minutes 90` (owner,
+    2026-10-26) and those two are replayed under it;
 
     ```bash
     git show origin/docs/writeup-notes:notes/frontier5-plan.sh \
