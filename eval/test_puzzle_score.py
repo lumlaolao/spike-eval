@@ -234,20 +234,20 @@ class ScoreV2Test(unittest.TestCase):
             with self.assertRaisesRegex(ps.Refused, "routing filters"):
                 ps.score(self.m, rows, "open", k=4, n_boot=20)
 
-    def test_a_game_cut_off_by_a_lower_cap_is_never_pooled_with_a_higher_cap(self):
-        # Owner, 2026-10-26: a run's cap was raised from 30 to 90 minutes. Games that ended under 30 stand beside the
-        # 90-minute ones; a game the 30-minute cap cut off may not (it is replayed under 90).
+    def test_games_under_two_caps_are_never_pooled(self):
+        # Owner, 2026-10-26: a run's cap was raised from 30 to 90 minutes. Even a game that ended under 30 is not
+        # kept beside 90-minute ones: only slow first draws would be drawn again (pr-review of #329).
         rows = self.rows([4, 2, 0], game_cap_ms=5400000)
-        rows[0]["game_cap_ms"] = 1800000                      # ended under the old cap: it would end the same
         self.assertEqual(ps.score(self.m, rows, "open", k=4, n_boot=20)["game_cap_ms"], 5400000)
-        rows[0]["status"] = "invalid"                         # cut off by the old cap
-        with self.assertRaisesRegex(ps.Refused, "game cap"):
+        rows[0]["game_cap_ms"] = 1800000
+        with self.assertRaisesRegex(ps.Refused, "game caps"):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
 
     def test_a_row_takes_its_game_cap_from_its_puzzles_manifest(self):
         d = Path(tempfile.mkdtemp())
         (d / "p").mkdir()
         (d / "p" / "puzzle-results.jsonl").write_text(json.dumps({"schema": "pzl-result-v1", "id": "x"}) + "\n")
+        self.assertIsNone(ps.load_rows([d])[0]["game_cap_ms"], "no puzzle_solve manifest (a baseline arm): unknown")
         (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"game_cap_ms": 5400000}}))
         self.assertEqual(ps.load_rows([d])[0]["game_cap_ms"], 5400000)
         (d / "p" / "batch-manifest.json").write_text(json.dumps({"condition": {}}))   # from before the record

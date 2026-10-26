@@ -850,9 +850,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     (`eval/suites/puzzles-hard-gen3-v1.json`, 68 boards) adds Goblin token engines, land sequencing
     (landfall), Equipment and infect at the same bar.
     Each game runs under a wall-clock cap (`puzzle_solve.py --game-cap-minutes`, 30 by default, recorded per
-    puzzle as `record.game_cap_ms`); a capped game is unsolved. A resume may raise the cap and replays only the
-    games the lower one cut off, and `puzzle_score.py` refuses a cut-off row under a lower cap. *Why:* two
-    frontier-trial games (2026-10-26) reached the win and were cut off at 30 minutes; the owner raised it to 90.
+    puzzle as `record.game_cap_ms`); a capped game is unsolved. The cap is a condition: a resume may raise it and
+    then replays every puzzle played under the lower one in full, and `puzzle_score.py` refuses rows from two caps.
+    *Why:* two frontier-trial games reached the win after 30 minutes (`docs/harness/WORK-PLAN.md`, the frontier
+    entry), and the owner raised the cap to 90; replaying only cut-off games would bias the score toward fast games.
 - **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, from the run's `puzzle-run.json` and result
   rows, and writes nothing (`eval/PUZZLES.md`, "Watching a run").
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a

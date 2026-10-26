@@ -591,9 +591,10 @@ class PrecisionFloorTest(unittest.TestCase):
 
 
 class GameCapTest(unittest.TestCase):
-    """Owner, 2026-10-26: the frontier run's game cap is 90 minutes, not 30. Slow deep reasoners (Kimi K2.6 twice, GLM
-    5.3 Prime) found the win after 30 and were scored capped. A raised cap replays only the games a lower cap cut
-    off; a game that ended under the old cap would end the same under the new one."""
+    """Owner, 2026-10-26: the frontier run's game cap is 90 minutes, not 30 (two board-1 trial games found the win
+    after 30). The cap is a condition: a raised-cap resume replays every puzzle played under a lower cap, all its
+    attempts, since replaying only the cut-off games would draw again only where the first draw was slow and bias
+    the score toward fast games (pr-review of #329)."""
 
     SUITE = DecisionModelSeatTest.SUITE
 
@@ -611,15 +612,25 @@ class GameCapTest(unittest.TestCase):
         puzzle_solve.write_manifest(out, "m", "S", out.name, {}, None,
                                     None if cap_ms is None else {"game_cap_ms": cap_ms})
 
-    def test_a_raised_cap_replays_only_a_game_the_lower_cap_cut_off(self):
+    def test_a_raised_cap_replays_every_puzzle_played_under_a_lower_cap(self):
         root = Path(tempfile.mkdtemp())
         self.write(root / "capped", [{"seed": 1, "suite_sha256": "S", "status": "invalid"}])   # before the record
         self.write(root / "ended", [{"seed": 1, "suite_sha256": "S", "status": "failed"}])
         self.write(root / "capped90", [{"seed": 1, "suite_sha256": "S", "status": "invalid"}], cap_ms=5400000)
         self.assertFalse(puzzle_solve.already_done(root / "capped", 1, "S", cap_ms=5400000))
+        self.assertFalse(puzzle_solve.already_done(root / "ended", 1, "S", cap_ms=5400000), "ended fast: still a draw")
         self.assertTrue(puzzle_solve.already_done(root / "capped", 1, "S", cap_ms=1800000))
-        self.assertTrue(puzzle_solve.already_done(root / "ended", 1, "S", cap_ms=5400000))
         self.assertTrue(puzzle_solve.already_done(root / "capped90", 1, "S", cap_ms=5400000))
+
+    def test_a_replayed_puzzle_sets_aside_all_its_attempts_and_only_when_it_will_run(self):
+        root = Path(tempfile.mkdtemp())
+        rows = [{"seed": 1, "suite_sha256": "S", "status": "solved"}, {"seed": 2, "suite_sha256": "S", "status": "invalid"}]
+        self.write(root / "p", rows)
+        self.assertEqual(puzzle_solve.prepare(root / "p", 2, "S", True, 5400000, can_run=lambda: False), "skip")
+        self.assertTrue((root / "p" / "puzzle-results.jsonl").exists(), "an unstarted replay keeps a scoreable puzzle")
+        self.assertEqual(puzzle_solve.prepare(root / "p", 2, "S", True, 5400000), "run")
+        self.assertFalse((root / "p" / "puzzle-results.jsonl").exists())
+        self.assertEqual(len((root / "p" / "puzzle-results.partial0.jsonl").read_text().splitlines()), 2)
 
     def test_a_resume_under_a_lower_cap_is_refused(self):
         root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
@@ -632,12 +643,13 @@ class GameCapTest(unittest.TestCase):
         self.assertEqual(len(bad), 1)
         self.assertIn("game_cap_ms", bad[0])
 
-    def test_a_cap_that_is_not_positive_is_refused(self):
-        with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
-            puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
-                               "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
-                               "--game-cap-minutes", "0"])
-        self.assertIn("--game-cap-minutes", str(cm.exception.code))
+    def test_a_cap_under_a_minute_is_refused(self):
+        for minutes in ("0", "0.001"):
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+                puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
+                                   "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                                   "--game-cap-minutes", minutes])
+            self.assertIn("--game-cap-minutes", str(cm.exception.code))
 
 
 if __name__ == "__main__":

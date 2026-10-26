@@ -122,10 +122,13 @@ def load_rows(paths):
 
 
 def game_cap_of(puzzle_dir):
-    """The game cap (ms) a puzzle directory was played under, from the record puzzle_solve wrote beside its rows."""
+    """The game cap (ms) a puzzle directory was played under, from the record puzzle_solve wrote beside its rows (30
+    minutes for a manifest from before it); None with no manifest (a baseline arm, which sets its own cap)."""
     try:
         record = json.loads((puzzle_dir / "batch-manifest.json").read_text(encoding="utf-8")).get("record") or {}
-    except (OSError, ValueError):
+    except OSError:
+        return None
+    except ValueError:
         record = {}
     return record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
 
@@ -172,14 +175,12 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
             raise Refused("results come from %s %s; what the solver was asked or how it ran differs, so score each "
                           "separately" % (what, sorted(seen, key=str)))
 
-    # A raised cap (owner, 2026-10-26): a game that ended under the lower cap would end the same under the higher, so
-    # those rows stand; a game the lower cap cut off would not, and puzzle_solve --resume replays it.
+    # The game cap is a condition (owner raised it 30 to 90 minutes, 2026-10-26): even a game that ended under the
+    # lower one is not pooled, since a resume that redrew only the cut-off games favours fast games.
     caps = {r.get("game_cap_ms") for r in rows} - {None}
-    cut = [r.get("id") for r in rows if r.get("status") == "invalid" and caps
-           and r.get("game_cap_ms") is not None and r["game_cap_ms"] < max(caps)]
-    if cut:
-        raise Refused("%d game(s) cut off by a game cap below this run's %d ms: %s; replay them under the higher cap "
-                      "(puzzle_solve.py --resume --game-cap-minutes)" % (len(cut), max(caps), ", ".join(cut[:5])))
+    if len(caps) > 1:
+        raise Refused("results come from game caps %s ms; replay the lower one (puzzle_solve.py --resume "
+                      "--game-cap-minutes) or score each separately" % sorted(caps))
 
     out = defaultdict(list)
     for r in rows:
@@ -349,7 +350,7 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     return dict(conditions, **{
         # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
-        # The longest game cap among the rows (a shorter one only on games that ended under it); None before load_rows.
+        # The rows' one game cap (group_attempts refuses a mix); None when no row has one.
         "game_cap_ms": max((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), default=None),
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
         "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
