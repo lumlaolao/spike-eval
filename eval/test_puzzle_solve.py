@@ -660,7 +660,7 @@ class GameCapTest(unittest.TestCase):
         self.assertIn("--max-tokens", str(cm.exception.code))
 
     def test_a_long_call_deadline_with_several_attempts_is_refused(self):
-        # pr-review round 7 of #329: the post-cap grace is sized from ModelCfg (about 15 minutes), so a longer deadline
+        # The post-cap grace is sized from ModelCfg (about 15 minutes), so a longer deadline
         # can cost a capped puzzle its later seeds, and the resume that replays them would redraw only slow puzzles.
         with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
             puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "2",

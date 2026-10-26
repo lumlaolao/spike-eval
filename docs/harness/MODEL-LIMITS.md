@@ -125,7 +125,7 @@ cost). No limit below was reached there.
 |---|---|---|---|---|
 | 45-minute game cap in the game-loop skill (`--cap-minutes 45`; a capped game is scored `invalid`) | `.claude/skills/game-loop/SKILL.md` | 0 of 14 games capped; the longest ran 37.2 minutes (83% of the cap) with 16000-token thinking and 2 tools an ask | raised: with 32000-token thinking at up to 300s a call and 16 tool calls a decision, a 45-minute cap would end games while the model thinks | 120 minutes |
 | run_batch.py's derived default cap | `eval/run_batch.py` `derive_cap_minutes` | n/a | kept: 240 minutes for any non-Haiku model, 120 for Haiku | unchanged |
-| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py` `GRACE_S` | n/a | kept: the largest timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s | unchanged |
+| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py` `GRACE_S` | n/a | kept: the largest default timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s; a puzzle run with `--call-timeout-minutes` above 5 must use `--k 1`, because the grace does not cover it | unchanged |
 
 ## What it costs
 

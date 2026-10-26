@@ -263,7 +263,7 @@ class ScoreV2Test(unittest.TestCase):
             ps.paired(a, b, n_boot=50)
 
     def test_games_under_two_token_caps_are_never_pooled_and_a_pair_says_so(self):
-        # pr-review round 6 of #329: max_tokens is the thinking budget, a condition the scorer never read.
+        # max_tokens is the thinking budget: a condition the scorer must read.
         a = ps.score(self.m, self.rows([4, 2, 0], max_tokens=131072), "open", k=4, n_boot=20)
         self.assertEqual(a["max_tokens"], 131072)
         rows = self.rows([4, 2, 0], max_tokens=131072)
@@ -285,7 +285,7 @@ class ScoreV2Test(unittest.TestCase):
         self.assertIn("CROSS-MAX-TOKENS 131072 vs default", ps.render_paired(ps.paired(a, own, n_boot=50), 50, 7))
 
     def test_a_run_with_no_manifest_is_not_known_to_differ_in_call_deadline(self):
-        # pr-review round 6 of #329: a baseline arm has no manifest; that is not "no --call-timeout-minutes".
+        # A baseline arm has no manifest; that is not "no --call-timeout-minutes".
         a = ps.score(self.m, self.rows([4, 2, 0], call_timeout_ms=1200000), "open", k=4, n_boot=20)
         base = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=ps.NO_MANIFEST), "open", k=4, n_boot=20)
         ps.paired(a, base, n_boot=50)
