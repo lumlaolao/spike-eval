@@ -7,7 +7,13 @@
 #   RESUME=1 bash notes/frontier5-plan.sh  # then the other 4 boards (board 1 is skipped), or a stopped run
 #   bash notes/frontier5-plan.sh           # all 5 boards in one go, no trial
 #   DRY=1 STAGE=1 bash notes/frontier5-plan.sh   # the free checks, then print each command instead of running it
-# Land every PR the run needs before the trial: a resume refuses a build other than the trial's.
+# Land every PR the run needs before the trial: a resume refuses a build other than the trial's. Run the trial and
+# the resume close together: if a closed model's list price moves in between, the preflight stops the resume, and
+# a new prices.json makes a new ceiling, which --resume refuses for that model's trial board (a new condition). Then
+# play that model again with ONLY="<model>" OUT=<a new directory> (the ceiling of a precision-filtered model does not
+# depend on its list price, so it is unaffected).
+# Run it from a checkout of this notes branch with REPO=<a clean checkout of origin/main> (notes/ is not on main);
+# secrets.env (the owner's key and egress opt-in) is read from $REPO.
 #   ONLY="x-ai/grok-4.7 openai/gpt-6-luna" bash notes/frontier5-plan.sh
 #   REPO=/path/to/main-checkout bash notes/frontier5-plan.sh   # REPO must be at origin/main
 # Watch it (one table per model; --follow streams decisions, flags and finished puzzles):
@@ -33,10 +39,11 @@ if [ -z "${RESUME:-}" ] && [ -z "${DRY:-}" ] && ls -d "$OUT"/*/ >/dev/null 2>&1;
   echo "refused: $OUT already holds a run; RESUME=1 continues it (after the trial, RESUME=1 plays the other boards)"
   exit 2
 fi
-PAR=${PAR:-5}   # each JVM takes 2 GB (-Xmx2048m); this box has 15; one JVM per model (--jobs 1)
+PAR=${PAR:-4}   # one JVM per model (--jobs 1), -Xmx2048m heap and about 3 GB resident: 4 fit a 15 GB box
 # model  cap-in-USD: 5 attempts (the 3-attempt caps x 5/3) at the "high" profile (730K prompt half cached, 212K output) priced at each
 # model's `max` in eval/pricing/prices.json (its dearest endpoint; budgets check there since PR #303), +10%.
-# Sum of caps: about $486 (5/3 of the 3-board $291.50). Expected spend about $62 at list (5/3 of $37). The gap is
+# Sum of caps: about $489 (5/3 of the 3-board $291.50, plus Haiku 5.5 recomputed: its 1.67 was Luna's figure,
+# and at its `max`, the long-context tier, the rule above gives 4.42; Fable pre-run check, 2026-10-26). Expected spend about $62 at list (5/3 of $37). The gap is
 # mostly priority tiers (GPT-6.1 Sol's "ultrafast" is 6x list). The owner kept these caps and asked for a price
 # ceiling as well (2026-10-25): a closed model runs with puzzle_solve.py --max-price-at-list, so OpenRouter routes
 # only to an endpoint at or under its list price. An open-weight model (a third column) runs instead at its maker's
@@ -51,7 +58,7 @@ x-ai/grok-4.6 24.17
 x-ai/grok-build-0.1 10.00
 x-ai/grok-4.3 11.67
 anthropic/claude-sonnet-5.5 17.50
-anthropic/claude-haiku-5.5 1.67
+anthropic/claude-haiku-5.5 4.42
 openai/gpt-6.1-sol-pro 95.84
 openai/gpt-6.1-sol 95.84
 openai/gpt-6-luna 1.67
@@ -84,16 +91,22 @@ elif [ -z "$BUILD" ]; then
       bash eval/harness_acceptance.sh > "$BUILD.log" 2>&1 ) || { echo "refused: build failed, see $BUILD.log"; exit 2; }
 fi
 echo "main $HEAD_SHA, build $BUILD"
+# Read by the JVM and not pinned by puzzle_solve's condition: a value in the owner's shell must not reach the seat.
+unset ANSWER_TOOL_CHOICE PROMPT_CACHE
 # The ceiling makes OpenRouter refuse a request no endpoint at or under list can serve, which would lose every
 # decision of that model's puzzles. So: one free GET per model, and stop before anything is paid for.
-printf "%s\n" "$MODELS" | awk 'NF>=2{print $1, (NF>2 ? $3 : "-")}' | python3 -c '
+printf "%s\n" "$MODELS" | awk 'NF>=2{print $1, (NF>2 ? $3 : "-")}' | ONLY="${ONLY:-}" python3 -c '
 import json, sys, urllib.request
 prices = json.load(open(sys.argv[1]))["models"]
 bad = []
 # A list price that moved since prices.json was checked makes a stale ceiling (deepseek-v4-pro rose 72% in one day,
 # 2026-10-25): every request above it would be refused. Live list must equal the file.
 live = {x["id"]: x["pricing"] for x in json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models", timeout=60))["data"]}
+import os
+only = os.environ.get("ONLY", "").split()
 for m, quant in (ln.split() for ln in sys.stdin.read().splitlines() if ln.strip()):
+    if only and m not in only:
+        continue
     eps = json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models/%s/endpoints" % m, timeout=30))
     # require_parameters is sent too: the endpoint must take tools and tool_choice, not tools alone.
     tools = [e for e in eps["data"]["endpoints"] if {"tools", "tool_choice"} <= set(e.get("supported_parameters") or [])]
@@ -118,21 +131,24 @@ run_one() {
   local cmd=(python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 --jobs 1
     --build "$BUILD" --forge "$FORGE" --model "$spec" --budget-usd "$cap" ${filter[@]+"${filter[@]}"} --out "$dir" ${RESUME:+--resume})
   if [ -n "${DRY:-}" ]; then echo "${cmd[*]}"; return; fi
-  "${cmd[@]}" > "$dir.log" 2>&1
-  echo "$model exit $? ($(python3 "$REPO/eval/cost_report.py" "$dir" 2>/dev/null | tail -1))"
+  "${cmd[@]}" >> "$dir.log" 2>&1   # appended: the trial's progress lines survive the resume
+  echo "$model exit $? ($(tail -1 "$dir.log"))"   # puzzle_solve's last line: [cost] over its puzzles
 }
 mkdir -p "$OUT"
-printf "%s\n%s\n" "$MODELS" "$JEV" | while read -r m cap quant; do
+# The loop reads from a process substitution, not a pipe, so its jobs are this shell's and the wait below waits for
+# them (behind a pipe the loop is a subshell, and the trial's summary printed while models still played: Fable
+# pre-run check, 2026-10-26). A poll, not `wait -n`, which macOS's bash 3.2 lacks.
+while read -r m cap quant; do
   [ -n "$m" ] || continue
   [ -z "${ONLY:-}" ] || [[ " $ONLY " == *" $m "* ]] || continue
-  while [ "$(jobs -rp | wc -l)" -ge "$PAR" ]; do wait -n; done
+  while [ "$(jobs -rp | wc -l)" -ge "$PAR" ]; do sleep 10; done
   run_one "$m" "$cap" "$quant" &
-done
+done < <(printf "%s\n%s\n" "$MODELS" "$JEV")
 wait
 [ -z "${DRY:-}" ] || exit 0
 if [ -n "${STAGE:-}" ]; then
   # The trial's reading: one table per model (decisions by tier, AI fallbacks, text parses, refused lookups,
-  # PRICE-CEILING, exceptions, cost). Every model must be clean before RESUME=1 plays the other boards.
+  # ROUTING-FILTER, exceptions, cost). Every model must be clean before RESUME=1 plays the other boards.
   for d in "$OUT"/*/; do python3 "$REPO/eval/puzzle_watch.py" "$d" 2>&1 | tail -6; done
   echo "trial done: read the tables above, then RESUME=1 bash notes/frontier5-plan.sh plays boards 2 to 5"
   exit 0
