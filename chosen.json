@@ -359,6 +359,14 @@
   "why": [],
   "minutes": 5
  },
+ "moonshotai_kimi-k3 hard-splice2-325cd33e0a57": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k3__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 13
+ },
  "moonshotai_kimi-k3 hard-drain2-516c13f84175": {
   "root": "frontier5-fill",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k3__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
