@@ -295,6 +295,14 @@
   "why": [],
   "minutes": 5
  },
+ "mistralai_mistral-medium-3-5 hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/mistralai_mistral-medium-3-5__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 8
+ },
  "mistralai_mistral-medium-3-5 hard-elf2-2753b3ca0d06": {
   "root": "frontier5-fill",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/mistralai_mistral-medium-3-5__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
@@ -350,6 +358,14 @@
   "good": true,
   "why": [],
   "minutes": 5
+ },
+ "moonshotai_kimi-k3 hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k3__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 6
  },
  "openai_gpt-6-luna hard-atog-b8053a21d4a8": {
   "root": "frontier5",
