@@ -1,7 +1,7 @@
 # frontier5 run notes (2026-10-26, owner decisions)
 
 The conditions and every decision that shapes how the results read. `STATUS.txt` marks a board S (solved),
-F (failed), X (stopped by the owner, no result) or . (not yet played).
+F (failed) or . (not yet played).
 
 ## Conditions
 
@@ -23,9 +23,10 @@ F (failed), X (stopped by the owner, no result) or . (not yet played).
 - **Kimi K2.6, drain2: solved, kept.** 1 of its 80 decisions was cut at the old 32000-token cap and answered
   with reasoning off. The owner chose to keep it rather than replay it.
 
-## Stopped: Mistral Large 4, elf2, splice2 and hoofdrain (X)
+## Stopped and scored as failures: Mistral Large 4, elf2, splice2 and hoofdrain (F)
 
-Stopped by the owner at 11:00 UTC for time and cost. **Mistral was making good progress on all three; it was
+Stopped by the owner at 11:00 UTC for time and cost, and **scored as failures** (owner): an attempt that cannot
+finish inside the time budget fails the board. **Mistral was making good progress on all three; it was
 not stuck.** Each was on a coherent winning plan and moving, with no errors beyond one dropped connection
 that was retried. Every hard decision ran 74,000 to 144,000 reasoning tokens at Mistral's own 80-100 tokens/s
 host, which is 15 to 28 minutes a decision. At that pace each attempt was heading for more than 8 hours:
@@ -37,6 +38,6 @@ host, which is 15 to 28 minutes a decision. At that pace each attempt was headin
 | hoofdrain | 10 | 15.6 min | 61 | about 16 h |
 
 On hoofdrain, one reply also reached Mistral's own maximum of 262,144 output tokens, the most it can write in
-one reply. Read these three boards as "did not finish within our time budget", not as failures. Mistral
+one reply. They count as failures because they did not finish within the time budget, not because the play went wrong. Mistral
 solved both of the boards it finished (atog and drain2). Spend on Mistral was about $11.50, $10.50 of it on
 the four long games.
