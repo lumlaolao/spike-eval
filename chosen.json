@@ -135,6 +135,14 @@
   "why": [],
   "minutes": 31
  },
+ "deepseek_deepseek-v4.1-flash hard-elf2-2753b3ca0d06": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/deepseek_deepseek-v4.1-flash__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 92
+ },
  "google_gemini-3.8-flash hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/google_gemini-3.8-flash/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
