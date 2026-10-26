@@ -1,0 +1,1 @@
+{"ids": ["hard-atog-b8053a21d4a8"], "k": 1, "budget_usd": 38.34, "finished": true, "build": {"build_dir": "/tmp/frontier5-build-a782588", "build_overlay_sha": "39de3c6f271e", "checkout_overlay_sha": "39de3c6f271e", "stale_build_allowed": false}, "suite_file": "suite.json"}

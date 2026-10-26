@@ -1,0 +1,2 @@
+[puzzles] price ceiling {"z-ai/glm-5.3-prime": {"prompt": 2.8, "completion": 8.8}} (list price checked 2026-10-24; a puzzle that loses decisions to it on every resume means the list moved)
+[puzzles] 1 active open puzzles, k=1, model openrouter:z-ai/glm-5.3-prime, budget $52.50 (spent $0.00; $0.00 at the dearest endpoint, which the budget is checked at)

@@ -1,0 +1,7 @@
+[puzzles] price ceiling {"x-ai/grok-build-0.1": {"prompt": 1, "completion": 2}} (list price checked 2026-10-24; a puzzle that loses decisions to it on every resume means the list moved)
+[puzzles] 1 active open puzzles, k=1, model openrouter:x-ai/grok-build-0.1, budget $10.00 (spent $0.00; $0.00 at the dearest endpoint, which the budget is checked at)
+hard-atog-b8053a21d4a8       rc=0 attempts=1 solved=0  [cost] $0.487
+[cost] $0.487 over 1 puzzles (0 not started for budget)
+[puzzles] price ceiling {"x-ai/grok-build-0.1": {"prompt": 1, "completion": 2}} (list price checked 2026-10-24; a puzzle that loses decisions to it on every resume means the list moved)
+[puzzles] 5 active open puzzles, k=1, model openrouter:x-ai/grok-build-0.1, budget $10.00 (spent $0.49; $0.97 at the dearest endpoint, which the budget is checked at)
+hard-splice2-325cd33e0a57    rc=0 attempts=1 solved=0  [cost] $1.272

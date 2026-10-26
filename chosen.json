@@ -1,0 +1,298 @@
+{
+ "anthropic_claude-haiku-5.5 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-haiku-5.5/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 6
+ },
+ "anthropic_claude-haiku-5.5 hard-splice2-325cd33e0a57": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-haiku-5.5/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 6
+ },
+ "anthropic_claude-sonnet-5.5 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-sonnet-5.5/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 5
+ },
+ "anthropic_claude-sonnet-5.5 hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/anthropic_claude-sonnet-5.5__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 22
+ },
+ "anthropic_claude-sonnet-5.5 hard-splice2-325cd33e0a57": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-sonnet-5.5/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 8
+ },
+ "anthropic_claude-sonnet-5.5 hard-drain2-516c13f84175": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-sonnet-5.5/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 14
+ },
+ "anthropic_claude-sonnet-5.5 hard-elf2-2753b3ca0d06": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-sonnet-5.5/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 19
+ },
+ "deepseek_deepseek-v4-pro hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/deepseek_deepseek-v4-pro/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 13
+ },
+ "deepseek_deepseek-v4.1-flash hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/deepseek_deepseek-v4.1-flash/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 18
+ },
+ "google_gemini-3.8-flash hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/google_gemini-3.8-flash/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 4
+ },
+ "google_gemini-4-argon hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/google_gemini-4-argon/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 4
+ },
+ "meta_muse-spark-1.3 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/meta_muse-spark-1.3/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 4
+ },
+ "meta_muse-wonder hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/meta_muse-wonder/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 3
+ },
+ "mistralai_mistral-medium-3-5 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/mistralai_mistral-medium-3-5/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 4
+ },
+ "moonshotai_kimi-k2.6 hard-atog-b8053a21d4a8": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-atog-b8053a21d4a8/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 50
+ },
+ "moonshotai_kimi-k3 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/moonshotai_kimi-k3/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 5
+ },
+ "openai_gpt-6-luna hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/openai_gpt-6-luna/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 9
+ },
+ "openai_gpt-6.1-sol hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/openai_gpt-6.1-sol/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 2
+ },
+ "openai_gpt-6.1-sol-pro hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/openai_gpt-6.1-sol-pro/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 3
+ },
+ "openai_gpt-6.1-sol-pro hard-splice2-325cd33e0a57": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/openai_gpt-6.1-sol-pro/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 4
+ },
+ "openai_gpt-6.1-sol-pro hard-drain2-516c13f84175": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/openai_gpt-6.1-sol-pro/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 6
+ },
+ "typesafe_jev-1.14 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/typesafe_jev-1.14/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 0
+ },
+ "x-ai_grok-4.3 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.3/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 5
+ },
+ "x-ai_grok-4.3 hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.3/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 7
+ },
+ "x-ai_grok-4.3 hard-splice2-325cd33e0a57": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.3/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 2
+ },
+ "x-ai_grok-4.3 hard-drain2-516c13f84175": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.3/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 11
+ },
+ "x-ai_grok-4.3 hard-elf2-2753b3ca0d06": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.3/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 6
+ },
+ "x-ai_grok-4.6 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.6/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 14
+ },
+ "x-ai_grok-4.6 hard-splice2-325cd33e0a57": {
+  "root": "frontier5-long",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-long/x-ai_grok-4.6/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 48
+ },
+ "x-ai_grok-4.6 hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/x-ai_grok-4.6__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 34
+ },
+ "x-ai_grok-4.7 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.7/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 9
+ },
+ "x-ai_grok-4.7 hard-splice2-325cd33e0a57": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.7/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 17
+ },
+ "x-ai_grok-4.7 hard-drain2-516c13f84175": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.7/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 14
+ },
+ "x-ai_grok-build-0.1 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-build-0.1/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 17
+ },
+ "x-ai_grok-build-0.1 hard-splice2-325cd33e0a57": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-build-0.1/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 28
+ },
+ "z-ai_glm-5.3 hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/z-ai_glm-5.3/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 17
+ },
+ "z-ai_glm-5.3-prime hard-atog-b8053a21d4a8": {
+  "root": "frontier5",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/z-ai_glm-5.3-prime/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 59
+ }
+}
