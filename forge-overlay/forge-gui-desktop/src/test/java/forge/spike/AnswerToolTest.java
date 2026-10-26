@@ -149,10 +149,32 @@ public class AnswerToolTest {
         Assert.assertEquals(ask.via, "tool");
         Assert.assertEquals(ask.invalid, 0, "a reply that answered is not an invalid one");
         Assert.assertFalse(ask.lost);
-        java.util.Set<String> results = new java.util.HashSet<>();
-        for (JsonElement m : ask.transcript)
-            if (m.getAsJsonObject().has("tool_call_id")) results.add(m.getAsJsonObject().get("tool_call_id").getAsString());
-        Assert.assertEquals(results, java.util.Set.of("c1", "c2"), "a result for every call, the unused one too");
+        java.util.Map<String, String> results = toolResults(ask);
+        Assert.assertEquals(results.keySet(), java.util.Set.of("c1", "c2"), "a result for every call, the unused one too");
+        // Its fields (here its `lines`) are not merged into the answer, and its result says so rather than "call again".
+        Assert.assertTrue(results.get("c1").startsWith("Not used: a later `answer` call"), results.get("c1"));
+    }
+
+    /** A legal `answer` call followed by an illegal one: the first is the answer, and every call has a result. */
+    @Test
+    public void aLegalAnswerBeforeAnIllegalOneIsTheAnswer() {
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+        String reply = AnswerTool.converse("DECISION", ask, (user, messages, tools, allow, r) -> calls(
+                new NativeTools.Call("c1", "answer", "{\"option\":1}"),
+                new NativeTools.Call("c2", "answer", "{\"option\":9}")),
+                null, (req, res) -> { });
+        Assert.assertEquals(reply, "CHOICE: 1");
+        Assert.assertEquals(ask.invalid, 0);
+        Assert.assertEquals(toolResults(ask).keySet(), java.util.Set.of("c1", "c2"));
+    }
+
+    private static java.util.Map<String, String> toolResults(AnswerTool.Ask ask) {
+        java.util.Map<String, String> out = new java.util.HashMap<>();
+        for (JsonElement e : ask.transcript) {
+            com.google.gson.JsonObject m = e.getAsJsonObject();
+            if (m.has("tool_call_id")) out.put(m.get("tool_call_id").getAsString(), m.get("content").getAsString());
+        }
+        return out;
     }
 
     /** Two illegal `answer` calls in ONE reply are one invalid reply, not two: the decision is asked again. */

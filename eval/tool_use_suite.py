@@ -498,9 +498,9 @@ MAX_NUDGES = 2                                                            # Answ
 
 def run_native_answer(scenario, kind, tier, model, tools, meta):
     """AnswerTool.converse: the lookups and the decision in one conversation, tool_choice "auto" on
-    every round, the answer a call to `answer` (one invalid call is corrected in place, a second is
-    lost), and a reply that calls nothing reminded up to MAX_NUDGES times, then lost: its prose is never
-    read as the answer (answer-tool-v7)."""
+    every round, the answer the first call to `answer` that validates (one invalid reply is corrected in place, a
+    second is lost; answer-tool-v12), and a reply that calls nothing reminded up to MAX_NUDGES times, then
+    lost: its prose is never read as the answer (answer-tool-v7)."""
     decision = ANSWER_TAIL.sub(ANSWER_CALL, decision_text(scenario, kind))
     seat = Seat(scenario, decision)
     n = scenario["n_options"]
@@ -539,10 +539,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
             if name == "set_plan":                      # AnswerTool.Ask.note: a note, not a lookup or the answer
                 results.append((tc, "Plan recorded. It does not answer the decision: call `answer`."))
                 continue
-            if name == "answer":
-                if answered:
-                    results.append((tc, "ERROR: one answer per decision."))
-                    continue
+            if name == "answer":                       # the first `answer` call that validates (answer-tool-v12)
                 answered = True
                 try:
                     args = json.loads(raw) if isinstance(raw, str) and raw.strip() else (raw or {})
@@ -552,10 +549,6 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                 if isinstance(opt, int) and not isinstance(opt, bool) and 1 <= opt <= n:
                     return {"reply": r.get("content"), "choice": opt, "calls": calls, "usage": usage,
                             "answer_via": "nudged" if nudges else "tool", "answer_invalid": invalid}
-                invalid += 1
-                if invalid >= 2:
-                    return {"reply": None, "choice": None, "calls": calls, "usage": usage,
-                            "answer_via": "lost", "answer_invalid": invalid}
                 why = ("this decision is answered with `option`" if opt is None
                        else "option %r is not on the list; the options are 1-%d" % (opt, n))
                 results.append((tc, "ERROR: %s. Nothing was done. Call `answer` again with a legal value." % why))
@@ -578,6 +571,11 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
             calls.append({"request": {"name": name, "arguments": raw}, "command": command, "result": result,
                           "ok": rejected is None, "rejected": rejected})
             results.append((tc, result))
+        if answered:            # every `answer` call in the reply was illegal: one invalid reply
+            invalid += 1
+            if invalid >= 2:
+                return {"reply": None, "choice": None, "calls": calls, "usage": usage,
+                        "answer_via": "lost", "answer_invalid": invalid}
         for tc, result in results:
             messages.append({"role": "tool", "tool_call_id": tc.get("id"), "content": result})
         if refused and not answered:

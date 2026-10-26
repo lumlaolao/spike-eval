@@ -359,7 +359,7 @@ public final class LlmSpikeGui {
      *  asked again once, saying a second decline ends the search; a second decline does (the engine re-asked forever).
      *  Epoch 73 (2026-10-26, frontier5 GLM 5.3 on hard-elf2, answer-tool-v12): a reply's answer is its first `answer`
      *  call that validates. A reply that sent its analysis in one `answer` call and its option in a second was refused
-     *  twice and its decision lost to PASS, skipping main phase 1.
+     *  twice and its decision lost to PASS, skipping main phase 1. A play decision on a tool ask reads no text.
      */
     static final String HARNESS_EPOCH = "harness-epoch-73";
 
@@ -2076,7 +2076,7 @@ public final class LlmSpikeGui {
                 offerAnswer(b, AnswerTool.Spec.one(menu.size()).labels(menu));
                 String reply = ask(b, prompt, simulate);
                 noteAnswerVia(attempt);
-                if (answerLost()) return -1;               // two invalid calls: the caller's legal default
+                if (answerLost()) return -1;               // two invalid replies: the caller's legal default
                 if (reply == null) return -2;              // bridge dead -> caller decides
                 AnswerTool.Answer ta = toolAnswer();
                 int c = ta != null ? ta.option : textNumber(reply, "CHOICE:");
@@ -2948,7 +2948,7 @@ public final class LlmSpikeGui {
                 offerAnswer(smart, AnswerTool.Spec.keep());
                 String reply = ask(smart, attempt > 0 && nextAnswer != null && observer == null ? basePrompt + "\n\n" + retry : prompt);
                 noteAnswerVia(attempt);
-                if (answerLost()) break;   // two invalid calls: the deterministic KEEP below, recorded as unparsed
+                if (answerLost()) break;   // two invalid replies: the deterministic KEEP below, recorded as unparsed
                 // Bridge dead -> the SAME deterministic KEEP the unparsed-after-retry branch below
                 // uses, never Forge AI (this file's blanket hard invariant: a dead bridge always takes
                 // the deterministic legal default, same ladder as confirm/attackers/surveil).
@@ -4224,7 +4224,7 @@ public final class LlmSpikeGui {
                     offerAnswer(b, playSpec);
                     String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
                     noteAnswerVia(attempt);
-                    if (answerLost()) break;     // two invalid calls: PASS below, recorded as play(unparsed)
+                    if (answerLost()) break;     // two invalid replies: PASS below, recorded as play(unparsed)
                     AnswerTool.Answer ta = toolAnswer();
                     if (ta != null) {            // the notes are fields of the answer; nothing is read from prose
                         playAnswer = ta;
@@ -4354,9 +4354,10 @@ public final class LlmSpikeGui {
                     if (unparsed) p("[ROUTER] play: no usable CHOICE in the reply -> PASS (unparsed)");
                     else if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
                     if (!SKIP_HEUR && observer != null && rnd == null) {
-                        // A lost tool ask has no answer and its text is never read (frontier5, GLM 5.3 on hard-elf2).
+                        // A tool ask's text is never read, answered or not (frontier5, GLM 5.3 on hard-elf2); a reply
+                        // that never came is the bridge-down PASS before this.
                         String y = playAnswer != null ? playAnswer.yieldUntil
-                                : answerLost() ? null : textSegment(lastReply, "YIELD:");
+                                : lastAnswer != null ? null : textSegment(lastReply, "YIELD:");
                         if (y != null) {
                             y = y.trim().toLowerCase(java.util.Locale.ROOT);
                             if (y.startsWith("end-of-turn") || y.startsWith("my-next-turn")) {
@@ -7985,7 +7986,7 @@ public final class LlmSpikeGui {
         /** The last ask offered the tool and the model spent its correction: the caller's fallback, no re-ask. */
         private boolean answerLost() { return lastAnswer != null && lastAnswer.lost; }
         /** How the current decision was answered, for its row: "tool", "nudged", "text", "reask" (a second full ask),
-         *  "lost" (two invalid calls); null when the answer tool was not offered. */
+         *  "lost" (two invalid replies); null when the answer tool was not offered. */
         private String answerVia = null;
         /** Tool asks that still carried a text answer format (AnswerTool.textFormatLeak): must stay 0. */
         int textFormatLeaks = 0;

@@ -51,7 +51,8 @@ final class AnswerTool {
      *  OpenAI, Google and xAI agent guides: the model gets the environment's result at every step).
      *  v11: a tool ask carries no "Reason briefly" and one answer line, the appended ANSWER line (review M1).
      *  v12: a reply's answer is its first `answer` call that validates, not its first `answer` call; a reply whose
-     *  every `answer` call is illegal is one invalid reply (frontier5, GLM 5.3 on hard-elf2, 2026-10-26). */
+     *  every `answer` call is illegal is one invalid reply; an illegal call before the answer is "Not used", never
+     *  merged into it (frontier5, GLM 5.3 on hard-elf2, 2026-10-26). */
     static final String VERSION = "answer-tool-v12";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
@@ -895,7 +896,7 @@ final class AnswerTool {
     /**
      * One decision over native function calling, answered by `answer`. Notes are applied first, then the
      * answer (the first `answer` call in a turn that validates; it ends the ask), then lookups. Returns the
-     * answer rendered as text, or null: no reply, two invalid calls, {@link #MAX_NUDGES} reminders that
+     * answer rendered as text, or null: no reply, two invalid replies, {@link #MAX_NUDGES} reminders that
      * still called nothing, or no answer within {@link #MAX_ROUNDS}. A reply's prose is never parsed as the
      * answer; a decision lost for want of a call is {@code lost}, so the caller takes its fixed legal
      * option and does not ask the whole decision again.
@@ -944,14 +945,13 @@ final class AnswerTool {
                 NativeTools.Call c = turn.calls.get(i);
                 if (SET_PLAN.equals(c.name)) { results[i] = ask.note(c); audit.accept(c.render(), results[i]); }
             }
-            // The first `answer` call in the reply that validates is the answer; one before it that does not
-            // (GLM 5.3 sent `lines` alone, then the option, frontier5 2026-10-26) is not the reply's answer. A
-            // reply whose every `answer` call is illegal is one invalid reply.
-            boolean answered = false;
+            // An illegal `answer` call before a legal one is not the answer (v12); a reply whose every `answer`
+            // call is illegal is one invalid reply.
+            boolean calledAnswer = false;
             for (int i = 0; i < results.length; i++) {
                 NativeTools.Call c = turn.calls.get(i);
                 if (!NAME.equals(c.name)) continue;
-                answered = true;
+                calledAnswer = true;
                 Result r = validate(ask.spec, c.arguments);
                 if (r.answer == null) {
                     results[i] = "ERROR: " + r.error + " Nothing was done. Call `answer` again with a legal value.";
@@ -965,15 +965,18 @@ final class AnswerTool {
                 // The whole ask as it went, for a seat that keeps its conversation (ChatSessionBridge): the
                 // answering message is already in `messages`; a result for every call it made follows, so
                 // the history is a valid tool-call sequence with the model's reasoning in place.
+                // An illegal `answer` call before this one is not merged into it: its fields are not used.
                 for (int j = 0; j < results.length; j++) {
                     String res = j == i ? "Answer recorded: " + ask.render()
+                            : j < i && NAME.equals(turn.calls.get(j).name)
+                                    ? "Not used: a later `answer` call in this reply answered the decision."
                             : results[j] != null ? results[j] : "Not run: the decision was answered in this reply.";
                     messages.add(NativeTools.toolResult(turn.calls.get(j).id, res));
                 }
                 ask.transcript = messages;
                 return ask.render();
             }
-            if (answered) {
+            if (calledAnswer) {
                 ask.invalid++;
                 if (ask.invalid >= 2) { ask.lost = true; ask.via = "lost"; return null; }
             }
@@ -986,7 +989,7 @@ final class AnswerTool {
                 audit.accept(c.render(), results[i]);
             }
             for (int i = 0; i < results.length; i++) messages.add(NativeTools.toolResult(turn.calls.get(i).id, results[i]));
-            if (refused && !answered) {
+            if (refused && !calledAnswer) {
                 if (pressed) return null;
                 pressed = true;
                 messages.add(NativeTools.message("user", CALL_ANSWER));
