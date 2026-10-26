@@ -130,10 +130,10 @@ class PriceCeilingRefusalTest(unittest.TestCase):
     fall to the fixed legal option. That row says nothing about the model: it is refused, never scored a 0."""
 
     def test_an_attempt_with_ceiling_refusals_is_refused_and_one_without_is_scored(self):
-        row = {"id": "p", "seed": 1, "status": "failed", "price_ceiling_refusals": 3}
+        row = {"id": "p", "seed": 1, "status": "failed", "routing_refusals": 3}
         with self.assertRaisesRegex(ps.Refused, "price ceiling"):
             ps.attempt_success(row)
-        self.assertEqual(ps.attempt_success(dict(row, price_ceiling_refusals=0)), (False, None))
+        self.assertEqual(ps.attempt_success(dict(row, routing_refusals=0)), (False, None))
         self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "solved"}), (True, None))
 
 

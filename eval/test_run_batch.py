@@ -266,6 +266,12 @@ class TestConditionEnv(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--max-price-at-list", p.stderr)
         self.assertIn("OPENROUTER_MAX_PRICE", run_batch.RUN_DEFINING_KEYS, "an ambient value is scrubbed")
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--env", "OPENROUTER_QUANTIZATIONS={}", "--forge-home", "/nonexistent"],
+                           capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--quantizations", p.stderr)
+        self.assertIn("OPENROUTER_QUANTIZATIONS", run_batch.RUN_DEFINING_KEYS)
 
 
 class TestRulesToolNeedsMemoryTools(unittest.TestCase):

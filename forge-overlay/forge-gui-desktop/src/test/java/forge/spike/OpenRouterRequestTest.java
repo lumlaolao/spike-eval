@@ -189,6 +189,47 @@ public class OpenRouterRequestTest {
         try { return make.get(); } finally { LlmSpikeGui.OpenRouterBridge.maxPriceEnv = was; }
     }
 
+    private static <T> T withPrecision(String env, java.util.function.Supplier<T> make) {
+        String was = LlmSpikeGui.OpenRouterBridge.quantizationsEnv;
+        LlmSpikeGui.OpenRouterBridge.quantizationsEnv = env;
+        try { return make.get(); } finally { LlmSpikeGui.OpenRouterBridge.quantizationsEnv = was; }
+    }
+
+    private static final String PRECISION = "{\"z-ai/glm-5.3\":[\"fp8\",\"bf16\"]}";
+
+    /** Owner, 2026-10-26: an open-weight model plays at the precision its maker released, never on a host that
+     *  compresses it further. A model OPENROUTER_QUANTIZATIONS names is sent provider.quantizations (an unlisted
+     *  precision, "unknown" included, is not served), in the one provider object, on the retry too. */
+    @Test
+    public void aNamedModelSendsItsPrecisionFloorInTheOneProviderObject() {
+        for (String body : withPrecision(PRECISION, () -> twoBodies("test/smart", "z-ai/glm-5.3", true))) {
+            Assert.assertEquals(count(body, "\"provider\":"), 1, body);
+            Assert.assertTrue(body.contains("\"provider\":{\"sort\":\"latency\",\"require_parameters\":true,"
+                    + "\"quantizations\":[\"fp8\",\"bf16\"]}"), body);
+        }
+        Assert.assertFalse(withPrecision(PRECISION, () -> twoBodies("test/smart", "openai/gpt-6-luna", true)).get(0)
+                .contains("quantizations"), "a model it does not name keeps the body it had");
+    }
+
+    /** An unreadable precision list is refused, never dropped: a run must not go out believing it is filtered. */
+    @Test
+    public void anUnreadablePrecisionListIsRefused() {
+        for (String bad : new String[] {"fp8", "{\"m\":[]}", "{\"m\":[\"fp3\"]}", "{\"m\":\"fp8\"}", "{\"m\":[8]}"}) {
+            Assert.assertThrows(IllegalArgumentException.class,
+                    () -> LlmSpikeGui.OpenRouterBridge.quantizationsField(bad, "other"));
+        }
+    }
+
+    /** A precision filter, like a ceiling, can leave no endpoint: its refusals are counted the same way. */
+    @Test
+    public void aRefusalUnderAPrecisionFilterIsCounted() {
+        LlmSpikeGui.OpenRouterBridge filtered = withPrecision(PRECISION, () -> new LlmSpikeGui.OpenRouterBridge(
+                "precision/smart", "z-ai/glm-5.3", null, base.replace("/v1", "/ceiling/v1"), 5000));
+        filtered.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertEquals(filtered.getRoutingRefusals(), Integer.valueOf(1));
+        Assert.assertFalse(NativeTools.DOWNGRADED.contains("precision/smart"));
+    }
+
     /** pr-review of #327: with a ceiling, "no endpoints" can mean none at that price (DeepSeek V4.1 Flash, GLM 5.3 and
      *  the Muse models have one endpoint at list), not no function calling. Such a refusal is logged as the ceiling's
      *  and keeps native tools; the same refusal without a ceiling still moves the seat to the text grammar. */
@@ -201,14 +242,14 @@ public class OpenRouterRequestTest {
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertFalse(NativeTools.DOWNGRADED.contains("ceiling/smart"));
-        Assert.assertEquals(capped.getCeilingRefusals().intValue(), 2, "each refusal is counted for the attempt's row");
-        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(capped, null), Integer.valueOf(2));
+        Assert.assertEquals(capped.getRoutingRefusals().intValue(), 2, "each refusal is counted for the attempt's row");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.routingRefusals(capped, null), Integer.valueOf(2));
         Assert.assertTrue(bodies.size() >= 2 && bodies.get(bodies.size() - 1).contains("\"tools\""), "asked again with tools");
 
         LlmSpikeGui.OpenRouterBridge plain = new LlmSpikeGui.OpenRouterBridge("plain/smart", model, null, ceilingBase, 5000);
         plain.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertTrue(NativeTools.DOWNGRADED.remove("plain/smart"), "without a ceiling the refusal is the tools'");
-        Assert.assertNull(plain.getCeilingRefusals(), "no ceiling, no key on the row");
+        Assert.assertNull(plain.getRoutingRefusals(), "no ceiling, no key on the row");
     }
 
     private LlmSpikeGui.OpenRouterBridge cappedAt(String context, String label) {
@@ -219,7 +260,7 @@ public class OpenRouterRequestTest {
     private int refusalsAt(String context) {
         LlmSpikeGui.OpenRouterBridge b = cappedAt(context, context + "/smart");
         b.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
-        return b.getCeilingRefusals();
+        return b.getRoutingRefusals();
     }
 
     /** pr-review of #327: under a ceiling a 404 or a 5xx can be the ceiling (no endpoint left at the price, or the one
@@ -238,7 +279,7 @@ public class OpenRouterRequestTest {
     public void refusalsUnderAWrappedTierAreCounted() {
         LlmSpikeGui.OpenRouterBridge capped = cappedAt("ceiling", "wrapped/smart");
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
-        Assert.assertEquals(new ChatSessionBridge(capped, false).getCeilingRefusals(), Integer.valueOf(1));
+        Assert.assertEquals(new ChatSessionBridge(capped, false).getRoutingRefusals(), Integer.valueOf(1));
     }
 
     private static String read(HttpExchange ex) throws IOException {

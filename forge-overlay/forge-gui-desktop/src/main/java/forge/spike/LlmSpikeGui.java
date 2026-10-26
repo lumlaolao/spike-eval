@@ -116,7 +116,7 @@ interface LLMBridge {
      *  reports none. Written on the context_call row as `cost_usd`. */
     default double getLastCostUsd() { return -1; }
     /** HTTP refusals so far under a price ceiling (OPENROUTER_MAX_PRICE), or null when this bridge has none. */
-    default Integer getCeilingRefusals() { return null; }
+    default Integer getRoutingRefusals() { return null; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -872,7 +872,7 @@ public final class LlmSpikeGui {
         LLMBridge smartBridge() { return smart; }
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
-        private int lostUnderCeiling = 0;   // decisions every retry lost to a price-ceiling refusal (budget())
+        private int lostToRouting = 0;   // decisions every retry lost to a routing-filter refusal (budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
          *  adds nothing) and wall time, the retries included. A puzzle result row carries them (budget()). */
         private long spentPromptTokens = 0, spentCompletionTokens = 0, spentModelMs = 0;
@@ -1333,12 +1333,13 @@ public final class LlmSpikeGui {
             m.put("completion_tokens", spentCompletionTokens);
             m.put("model_ms", spentModelMs);
             m.put("lookups", contextMemory.lookupsUsed());
-            // Under a ceiling: the decisions lost to it after every retry (puzzle_score.py refuses a row with any), and
-            // the HTTP refusals behind them, recovered ones included (a diagnostic; a recovered one lost nothing).
-            Integer refused = OpenRouterBridge.ceilingRefusals(smart, fast);
+            // Under a routing filter (price ceiling, precision list): the decisions lost to it after every retry
+            // (puzzle_score.py refuses a row with any), and the HTTP refusals behind them, recovered ones included (a
+            // diagnostic; a recovered one lost nothing).
+            Integer refused = OpenRouterBridge.routingRefusals(smart, fast);
             if (refused != null) {
-                m.put("price_ceiling_refusals", lostUnderCeiling);
-                m.put("price_ceiling_http_refusals", refused);
+                m.put("routing_refusals", lostToRouting);
+                m.put("routing_http_refusals", refused);
             }
             return m;
         }
@@ -8171,7 +8172,7 @@ public final class LlmSpikeGui {
          *  health bookkeeping as a plain ask. `prompt` is what the decision row records. */
         private String askModel(LLMBridge b, String prompt, java.util.function.Supplier<String> call) {
             long tAsk = System.currentTimeMillis();
-            Integer ceiling0 = b.getCeilingRefusals();
+            Integer routing0 = b.getRoutingRefusals();
             long billedPrompt0 = b.getBilledPromptTokens(), billedCompletion0 = b.getBilledCompletionTokens();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
@@ -8205,8 +8206,8 @@ public final class LlmSpikeGui {
             // behavior — callers still take their deterministic legal fallback either way. Fires the
             // loud marker once per streak, not once per failed decision.
             if (reply == null) {
-                Integer ceiling1 = b.getCeilingRefusals();
-                if (ceiling0 != null && ceiling1 != null && ceiling1 > ceiling0) lostUnderCeiling++;
+                Integer routing1 = b.getRoutingRefusals();
+                if (routing0 != null && routing1 != null && routing1 > routing0) lostToRouting++;
                 consecutiveBridgeFailures++;
                 if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
@@ -10742,6 +10743,40 @@ public final class LlmSpikeGui {
          * 2026-10-25). Unset, or a model it does not name: no ceiling. Unreadable: refused, so a run never goes out
          * believing it is capped.
          */
+        /** OPENROUTER_QUANTIZATIONS as read at class-init; not final so a test can construct a bridge under a value. */
+        static String quantizationsEnv = System.getenv("OPENROUTER_QUANTIZATIONS");
+        /** OpenRouter's precision names (provider routing docs, 2026-10-26). */
+        static final java.util.Set<String> QUANTIZATIONS = java.util.Set.of("int4", "int8", "fp4", "mxfp4", "nvfp4",
+                "fp6", "fp8", "mxfp8", "fp16", "bf16", "fp32", "unknown");
+        /**
+         * The {@code "quantizations":[...]} field for {@code model}, or null. OPENROUTER_QUANTIZATIONS holds
+         * {"<model>":["fp8","bf16",...]} (eval/puzzle_solve.py --quantizations): OpenRouter then serves the model only
+         * from an endpoint at one of those precisions, so an open-weight model plays at its maker's released precision,
+         * never on a host that compresses it further (owner, 2026-10-26). Unset, or a model it does not name: no filter.
+         * Unreadable, empty, or a precision OpenRouter does not name: refused, never dropped.
+         */
+        static String quantizationsField(String env, String model) {
+            if (env == null || env.isBlank()) return null;
+            try {
+                String field = null;   // every entry is checked, as maxPriceField does
+                for (Map.Entry<String, com.google.gson.JsonElement> e
+                        : com.google.gson.JsonParser.parseString(env).getAsJsonObject().entrySet()) {
+                    List<String> q = new ArrayList<>();
+                    for (com.google.gson.JsonElement v : e.getValue().getAsJsonArray()) {
+                        String name = v.getAsJsonPrimitive().isString() ? v.getAsString() : "";
+                        if (!QUANTIZATIONS.contains(name)) throw new IllegalArgumentException("unknown precision " + v);
+                        q.add("\"" + name + "\"");
+                    }
+                    if (q.isEmpty()) throw new IllegalArgumentException("empty");
+                    if (e.getKey().equals(model)) field = "\"quantizations\":[" + String.join(",", q) + "]";
+                }
+                return field;
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException("OPENROUTER_QUANTIZATIONS is not {\"<model>\":[\"fp8\",...]} with "
+                        + "precisions from " + new java.util.TreeSet<>(QUANTIZATIONS) + ": " + env, e);
+            }
+        }
+
         static String maxPriceField(String env, String model) {
             if (env == null || env.isBlank()) return null;
             try {
@@ -10771,15 +10806,16 @@ public final class LlmSpikeGui {
         private final ModelCfg cfg;
         private final String baseUrl;
         private final String maxPrice;   // maxPriceField for this bridge's model, or null
-        private int ceilingRefusals;     // requests refused under maxPrice ([PRICE-CEILING])
-        @Override public Integer getCeilingRefusals() { return maxPrice == null ? null : ceilingRefusals; }
+        private final String quantizations;   // quantizationsField for this bridge's model, or null
+        private int routingRefusals;     // requests refused under maxPrice or quantizations ([ROUTING-FILTER])
+        @Override public Integer getRoutingRefusals() { return maxPrice == null && quantizations == null ? null : routingRefusals; }
 
-        /** For a puzzle row (budget()): the HTTP refusals both tiers had under their ceiling, or null when neither has
-         *  one (the row then has no such key, as before the ceiling existed). */
-        static Integer ceilingRefusals(LLMBridge smart, LLMBridge fast) {
+        /** For a puzzle row (budget()): the HTTP refusals both tiers had under their routing filter, or null when
+         *  neither has one (the row then has no such key, as before the filters existed). */
+        static Integer routingRefusals(LLMBridge smart, LLMBridge fast) {
             Integer n = null;
             for (LLMBridge b : smart == fast ? new LLMBridge[] {smart} : new LLMBridge[] {smart, fast}) {
-                Integer c = b == null ? null : b.getCeilingRefusals();
+                Integer c = b == null ? null : b.getRoutingRefusals();
                 if (c != null) n = (n == null ? 0 : n) + c;
             }
             return n;
@@ -10839,6 +10875,7 @@ public final class LlmSpikeGui {
             this.fastTier = label != null && label.endsWith("/fast");
             this.cfg = ModelCfg.forModel(model);
             this.maxPrice = maxPriceField(maxPriceEnv, model);
+            this.quantizations = quantizationsField(quantizationsEnv, model);
             this.timeoutMs = timeoutMs;
             this.client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofMillis(timeoutMs))
@@ -11012,6 +11049,7 @@ public final class LlmSpikeGui {
             if (!PROVIDER_SORT.isEmpty()) provider.add("\"sort\":\"" + jsonEscape(PROVIDER_SORT) + "\"");
             if (toolsJson != null) provider.add("\"require_parameters\":true");
             if (maxPrice != null) provider.add(maxPrice);
+            if (quantizations != null) provider.add(quantizations);
             if (!provider.isEmpty()) body.append(",\"provider\":{").append(String.join(",", provider)).append("}");
             // Every ask resends the same preamble, tools and chat history, and nothing marked it
             // cacheable, so Anthropic models billed all of it at the full input rate (a Haiku 5.5 game
@@ -11072,16 +11110,17 @@ public final class LlmSpikeGui {
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 int st = resp.statusCode();
-                if (maxPrice != null && (st == 404 || st >= 500)) {
-                    // Under a ceiling a 404 can mean no endpoint left at that price, not no function calling, and a
-                    // 5xx the one endpoint at list down with the dearer ones it would fail over to ruled out (five
-                    // frontier models have only one endpoint at list). OpenRouter's reply to a price exclusion is not
-                    // recorded, so both count: native tools stay, the log names the ceiling, and the row counts it, so
-                    // puzzle_score.py refuses to score decisions the model never made (an over-count costs a replay).
-                    // A 400 is about the request and a 429 a rate limit: scored as without a ceiling.
-                    ceilingRefusals++;
-                    System.out.println("[OPENROUTER " + label + "] [PRICE-CEILING] HTTP " + st + " under " + maxPrice
-                            + ": no endpoint at or under it took the request; native tools kept");
+                if ((maxPrice != null || quantizations != null) && (st == 404 || st >= 500)) {
+                    // Under a routing filter a 404 can mean no endpoint the filter allows, not no function calling,
+                    // and a 5xx the allowed endpoints down with the others it would fail over to ruled out (a filter
+                    // can leave one: five frontier models had one endpoint at list, 2026-10-25). OpenRouter's reply to
+                    // such an exclusion is not recorded, so both count: native tools stay, the log names the filter,
+                    // and the row counts it, so puzzle_score.py refuses to score decisions the model never made (an
+                    // over-count costs a replay). A 400 is about the request and a 429 a rate limit: scored as without.
+                    routingRefusals++;
+                    System.out.println("[OPENROUTER " + label + "] [ROUTING-FILTER] HTTP " + st + " under "
+                            + (maxPrice == null ? "" : maxPrice + " ") + (quantizations == null ? "" : quantizations)
+                            + ": no endpoint the filter allows took the request; native tools kept");
                     return null;
                 }
                 if (toolsJson != null && refusesTools(resp.statusCode(), resp.body())) {
@@ -11589,6 +11628,8 @@ public final class LlmSpikeGui {
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
                 // Routing too: a batch scrubs it, so a game names it only when something else set it.
                 + ",\"openrouter_max_price\":\"" + jsonEscape(System.getenv().getOrDefault("OPENROUTER_MAX_PRICE", "")) + "\""
+                // What the seat runs at: a batch scrubs it and refuses it in --env, so a game names it only when set.
+                + ",\"openrouter_quantizations\":\"" + jsonEscape(System.getenv().getOrDefault("OPENROUTER_QUANTIZATIONS", "")) + "\""
                 + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""

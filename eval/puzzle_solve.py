@@ -23,7 +23,8 @@ An openrouter: model sends each puzzle's position to openrouter.ai: the egress o
 jev: decision model (OpenRouter's Decisions API, DecisionsBridge), which also cannot take --memory-tools.
 
 --max-price-at-list (an openrouter: model only) caps every request at the model's list price (OPENROUTER_MAX_PRICE);
-eval/PUZZLES.md says how and what the manifest records.
+--quantizations fp8,bf16 serves it only at those precisions (OPENROUTER_QUANTIZATIONS). eval/PUZZLES.md says how and
+what the manifest records.
 
 A claude-cli: model (the local Claude Code CLI, ClaudeCliBridge) is a development lane on the operator's own Claude
 subscription (owner, 2026-10-24): it runs only with CLAUDE_CLI_SEAT=1, and its rows are stamped dev_lane, which
@@ -123,6 +124,10 @@ def condition(a):
     return cond
 
 
+# OpenRouter's precision names (provider routing docs, 2026-10-26); OpenRouterBridge.QUANTIZATIONS in Java.
+QUANTIZATIONS = ("int4", "int8", "fp4", "mxfp4", "nvfp4", "fp6", "fp8", "mxfp8", "fp16", "bf16", "fp32", "unknown")
+
+
 def max_price_env(prices, spec):
     """OPENROUTER_MAX_PRICE for `spec`: {"<model>": {"prompt": P, "completion": C}}, its list price in USD per million
     tokens. Decimal, from the price as written: a float product (2e-06 * 1e6 = 1.9999999999999998) can fall just
@@ -136,7 +141,7 @@ def max_price_env(prices, spec):
 def already_done(out, k, suite_sha):
     """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it."""
     seeds = {r.get("seed") for r in pb.read_results(out)
-             if r.get("suite_sha256") == suite_sha and not r.get("price_ceiling_refusals")}
+             if r.get("suite_sha256") == suite_sha and not r.get("routing_refusals")}
     return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
 
 
@@ -195,12 +200,13 @@ def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None, 
     write_json(Path(out_root) / RUN_FILE, run)
 
 
-def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None):
+def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None):
     """The puzzle directories under out_root made under another model, suite or seat condition, or on another
     build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale), or price ceiling
     (`max_price`, max_price_env's JSON or None: a ceiling can move a request to another provider): a resume into them
     would pool two conditions in one score (STANDARDS section 4). A directory from before builds were recorded is
-    another build; one from before the ceiling existed was uncapped."""
+    another build; one from before the ceiling existed was uncapped. `quantizations`: the precisions allowed (a
+    list or None), compared the same way: it is what the model ran at."""
     bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
     ceiling = json.loads(max_price) if max_price else None
     for pid in ids:
@@ -217,17 +223,20 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
         if (manifest.get("record") or {}).get("openrouter_max_price") != ceiling:
             diff.append("openrouter_max_price")
+        if (manifest.get("record") or {}).get("openrouter_quantizations") != quantizations:
+            diff.append("openrouter_quantizations")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
 
 
-def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None):
+def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None, quantizations=None):
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
     record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
               "pzl_sha256": rec.get("pzl_sha256"),
-              "openrouter_max_price": json.loads(max_price) if max_price else None}
+              "openrouter_max_price": json.loads(max_price) if max_price else None,
+              "openrouter_quantizations": quantizations}
     write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
     # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
@@ -238,6 +247,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
             env[key] = os.environ[key]
     if max_price:
         env["OPENROUTER_MAX_PRICE"] = max_price
+    if quantizations:
+        env["OPENROUTER_QUANTIZATIONS"] = json.dumps({cost_report.model_id(model): quantizations})
     rc = build.run(env, out, timeout_s=4 * 3600, keep_model_env=True)
     rows = pb.read_results(out)
     return rec["id"], rc, rows
@@ -268,6 +279,8 @@ def main(argv=None):
                     help="a claude-cli: model only: the CLI's MAX_THINKING_TOKENS; unset is the CLI's default")
     ap.add_argument("--max-price-at-list", action="store_true",
                     help="an openrouter: model only: send a price ceiling at its list price (no priority tier)")
+    ap.add_argument("--quantizations", default=None, metavar="LIST",
+                    help="an openrouter: model only: the precisions it may be served at, comma-separated (fp8,bf16)")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -286,6 +299,15 @@ def main(argv=None):
     if a.max_price_at_list and not a.model.startswith("openrouter:"):
         raise SystemExit("--max-price-at-list is for an openrouter: chat model; %s sends no provider preferences"
                          % a.model)
+    quantizations = None
+    if a.quantizations is not None:
+        quantizations = [q.strip() for q in a.quantizations.split(",") if q.strip()]
+        if not a.model.startswith("openrouter:"):
+            raise SystemExit("--quantizations is for an openrouter: chat model; %s sends no provider preferences" % a.model)
+        unknown = [q for q in quantizations if q not in QUANTIZATIONS]
+        if unknown or not quantizations:
+            raise SystemExit("--quantizations takes precisions from %s (OpenRouter's names), got %r"
+                             % (", ".join(QUANTIZATIONS), a.quantizations))
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
@@ -327,7 +349,7 @@ def main(argv=None):
                          % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
         bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov,
-                               max_price)
+                               max_price, quantizations)
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
@@ -351,7 +373,7 @@ def main(argv=None):
         if over_budget(out_root, a.budget_usd):
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded,
-                            max_price)
+                            max_price, quantizations)
 
     skipped = 0
     try:
@@ -363,11 +385,11 @@ def main(argv=None):
                           % (pid, spent(out_root, bound=True)), flush=True)
                     continue
                 # A row refused under the price ceiling is no result (puzzle_score refuses it): say so, and go on.
-                refused = [r for r in rows if r.get("price_ceiling_refusals")]
-                solved = sum(1 for r in rows if not r.get("price_ceiling_refusals") and ps.attempt_success(r)[0])
+                refused = [r for r in rows if r.get("routing_refusals")]
+                solved = sum(1 for r in rows if not r.get("routing_refusals") and ps.attempt_success(r)[0])
                 print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s"
                       % (pid, rc, len(rows), solved, spent(out_root),
-                         "  [PRICE-CEILING] %d attempt(s) lost decisions to the ceiling: replay with --resume"
+                         "  [ROUTING-FILTER] %d attempt(s) lost decisions to the ceiling: replay with --resume"
                          % len(refused) if refused else ""), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
         run_file(finished=False, stopped=repr(e))

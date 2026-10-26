@@ -21,16 +21,18 @@ the harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FR
 ## Open work
 
 - **The frontier comparison on the 5 hardest puzzles** (owner, 2026-10-25; it replaces the 3-board plan) waits on
-  the owner's go (2026-10-25: the caps stand, the quirks below are signed off, and requests carry a price ceiling):
+  the owner's go (2026-10-25: the caps stand, the quirks below are signed off; 2026-10-26: a board-1 trial first,
+  and every model at full capability):
   - the plan is `notes/frontier5-plan.sh` on branch `docs/writeup-notes`: the 5 boards of the gen2 suite's open
     split named in `notes/WRITEUP-NOTES.md` section 4b (with the rule that picked them), 1 attempt each, for 21
     chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
     are not in it, and Jev Router is out (owner, 2026-10-24);
-  - caps at the dearest endpoint come to about $486, kept (owner, 2026-10-25); the run passes `puzzle_solve.py
-    --max-price-at-list`, so no request is routed to a priority tier above list (PR #327; the run script checks
-    each model has an endpoint that takes tools at list before it pays for anything);
-  - the owner requires full logs for this run, from the model chats to the engine logs: the full-transcript and
-    archive change (PR #324, open) must land on main before it starts;
+  - caps at the dearest endpoint come to about $486, kept (owner, 2026-10-25). A closed model runs with
+    `puzzle_solve.py --max-price-at-list`, so no request is routed to a priority tier above list; an open-weight
+    model (DeepSeek V4 Pro and V4.1 Flash, Kimi K3 and K2.6, GLM 5.3) runs with `--quantizations` at its maker's
+    released precision and no ceiling, since its list price is a 4-bit host's (PR #327). The run script checks
+    before it pays for anything that each model has an endpoint its filter allows and that no list price moved;
+  - the owner requires full logs for this run, from the model chats to the engine logs: PR #324 landed it;
   - one paid Jev smoke test (2026-10-24, one gen2 puzzle, $0.0023, `runs/puzzles/jev-test-1`, WRITEUP-NOTES
     section 4 on `docs/writeup-notes`): 15 decisions through the Decisions bridge, ai=0; the response shape is
     confirmed on that run only;

@@ -110,9 +110,9 @@ class ResumeTest(unittest.TestCase):
     def test_an_attempt_refused_under_the_price_ceiling_is_played_again(self):
         # pr-review of #327: such a row is not a result (puzzle_score refuses it), so a resume replays the puzzle.
         out = Path(tempfile.mkdtemp()) / "p"
-        self.write(out, [{"seed": 1, "suite_sha256": "S", "price_ceiling_refusals": 2}])
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "routing_refusals": 2}])
         self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
-        self.write(out, [{"seed": 1, "suite_sha256": "S", "price_ceiling_refusals": 0}])
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "routing_refusals": 0}])
         self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
 
     def test_a_puzzle_cut_off_part_way_keeps_its_paid_rows_aside_and_is_played_again(self):
@@ -521,7 +521,7 @@ class MaxPriceAtListTest(unittest.TestCase):
             def run(self, env, out, **kw):
                 played.append(out.name)
                 row = {"schema": "pzl-result-v1", "id": out.name, "seed": 1, "status": "failed",
-                       "suite_sha256": suite["suite_sha256"], "price_ceiling_refusals": 3}
+                       "suite_sha256": suite["suite_sha256"], "routing_refusals": 3}
                 (out / "puzzle-results.jsonl").write_text(json.dumps(row) + "\n")
                 return 0
 
@@ -534,7 +534,7 @@ class MaxPriceAtListTest(unittest.TestCase):
                                     "--build", "/b", "-j", "1", "--max-price-at-list"])
         self.assertEqual(rc, 0)
         self.assertEqual(sorted(played), sorted(ids), "the second puzzle still ran")
-        self.assertEqual(stdout.getvalue().count("[PRICE-CEILING]"), 2, stdout.getvalue())
+        self.assertEqual(stdout.getvalue().count("[ROUTING-FILTER]"), 2, stdout.getvalue())
         self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
 
     def test_it_is_refused_for_a_model_with_no_list_price_above_zero(self):
@@ -542,6 +542,46 @@ class MaxPriceAtListTest(unittest.TestCase):
         with self.assertRaises(SystemExit) as cm:
             self.run_main("openrouter:fake/harness-model", "--max-price-at-list")
         self.assertIn("list price", str(cm.exception.code))
+
+
+class PrecisionFloorTest(unittest.TestCase):
+    """Owner, 2026-10-26: an open-weight model plays at its maker's released precision, never on a host that
+    compresses it further. --quantizations sends OpenRouter the precisions allowed (OPENROUTER_QUANTIZATIONS)."""
+
+    SUITE = DecisionModelSeatTest.SUITE
+
+    def run_main(self, model, *extra):
+        with mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}):
+            root, rec, envs = run_solve(classes_with_transcript(), *extra, model=model)
+        return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
+
+    def test_the_list_reaches_the_jvm_and_the_manifest(self):
+        envs, manifest = self.run_main("openrouter:z-ai/glm-5.3", "--quantizations", "fp8,bf16")
+        self.assertEqual(json.loads(envs[0]["OPENROUTER_QUANTIZATIONS"]), {"z-ai/glm-5.3": ["fp8", "bf16"]})
+        self.assertEqual(manifest["record"]["openrouter_quantizations"], ["fp8", "bf16"])
+        envs, manifest = self.run_main("openrouter:z-ai/glm-5.3")
+        self.assertNotIn("OPENROUTER_QUANTIZATIONS", envs[0])
+        self.assertIsNone(manifest["record"]["openrouter_quantizations"])
+
+    def test_an_unknown_precision_or_another_lane_is_refused(self):
+        for model, value in (("openrouter:z-ai/glm-5.3", "fp3"), ("openrouter:z-ai/glm-5.3", ""),
+                             ("jev:typesafe/jev-1.14", "fp8")):
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+                puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1",
+                                   "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                                   "--quantizations", value])
+            self.assertIn("--quantizations", str(cm.exception.code), (model, value))
+
+    def test_a_resume_under_another_precision_list_is_refused(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,
+                                    {"openrouter_quantizations": ["fp8", "bf16"]})
+        same = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, quantizations=["fp8", "bf16"])
+        self.assertEqual(same, [])
+        for other in (None, ["fp8"]):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, quantizations=other)
+            self.assertEqual(len(bad), 1, other)
+            self.assertIn("openrouter_quantizations", bad[0])
 
 
 if __name__ == "__main__":

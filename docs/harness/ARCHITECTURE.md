@@ -488,18 +488,23 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
     `puzzle_solve.py --max-price-at-list` rules that out: it sets `OPENROUTER_MAX_PRICE` to the list price, and the
-    bridge adds it to its one `provider` object as `max_price` (`OpenRouterBridge.maxPriceField`; an unreadable
-    value is refused, never dropped). It is routing, like the sort: stamped on the game line as
-    `openrouter_max_price`, which aggregate does not key experiments on (it is classified with the sort in
-    `aggregate.NON_BEHAVIORAL_PROVENANCE` for the game-line key check); a puzzle resume refuses another ceiling.
-    Under a ceiling a 404 or a 5xx is logged `[PRICE-CEILING]` with its status and keeps native tools: it can mean
-    no endpoint at that price, or the one endpoint at list down with the dearer ones ruled out (OpenRouter's reply
-    to a price exclusion is not recorded). The puzzle row counts the decisions they cost after every retry
-    (`price_ceiling_refusals`; `price_ceiling_http_refusals` counts the refusals themselves, recovered ones included).
-    `puzzle_score.py` refuses a row with a lost decision rather than score it as the model's, and `--resume` replays
-    it; one the seat's retry recovered is scored, as it would be without a ceiling. A 400 or a 429
-    is scored as without a ceiling. A batch sends no ceiling: it scrubs an ambient value (`RUN_DEFINING_KEYS`) and
-    refuses one in `--env`.
+    bridge adds it to its one `provider` object as `max_price` (`OpenRouterBridge.maxPriceField`). It is routing,
+    like the sort: stamped on the game line as `openrouter_max_price`, which aggregate does not key experiments on
+    (it is classified with the sort in `aggregate.NON_BEHAVIORAL_PROVENANCE` for the game-line key check).
+  - precision: `puzzle_solve.py --quantizations fp8,bf16` sets `OPENROUTER_QUANTIZATIONS`, and the bridge adds
+    `quantizations` to the same object (`OpenRouterBridge.quantizationsField`), so OpenRouter serves the model only
+    at those precisions; an endpoint whose precision is not stated (`unknown`) is not served unless listed. An
+    open-weight model is run at its maker's released precision (owner, 2026-10-26: never a host that compresses it
+    further). That is a condition, not routing: the game line stamps `openrouter_quantizations`, keyed in
+    `aggregate.PROVENANCE_FIELDS` with default "" (a game from before the filter was unfiltered).
+  - both filters: an unreadable value is refused, never dropped; a puzzle resume refuses another value; a batch
+    sends neither (it scrubs an ambient value, `RUN_DEFINING_KEYS`, and refuses one in `--env`). Under either, a
+    404 or a 5xx is logged `[ROUTING-FILTER]` with its status and keeps native tools: it can mean no endpoint the
+    filter allows (OpenRouter's reply to such an exclusion is not recorded). The puzzle row counts the decisions
+    that cost after every retry (`routing_refusals`; `routing_http_refusals` counts the refusals themselves,
+    recovered ones included). `puzzle_score.py` refuses a row with a lost decision rather than score it as the
+    model's, and `--resume` replays it; one the seat's retry recovered, a 400, a 429 or a timeout is scored, as
+    without a filter.
     The file's `comment` names the models with a long-context tier, where each starts, and which `max` counts one,
     with the largest prompt recorded in one call.
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or

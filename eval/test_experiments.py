@@ -336,6 +336,14 @@ class GroupingTest(unittest.TestCase):
                          "add the new game-line key to aggregate.PROVENANCE_FIELDS (or, if it is an "
                          "outcome, to this test's outcome set)")
 
+    def test_a_precision_filter_splits_experiments_and_its_absence_does_not(self):
+        # Owner, 2026-10-26: what an open-weight seat was served at is a condition. A game from before the filter
+        # and one that stamps it empty are the same unfiltered condition; a filtered game is another.
+        old, empty = {"smart_a": "m"}, {"smart_a": "m", "openrouter_quantizations": ""}
+        filtered = {"smart_a": "m", "openrouter_quantizations": '{"m":["fp8"]}'}
+        self.assertEqual(aggregate.game_condition(old), aggregate.game_condition(empty))
+        self.assertNotEqual(aggregate.game_condition(old), aggregate.game_condition(filtered))
+
     def test_provenance_fields_include_effort(self):
         names = [n for n, _ in aggregate.PROVENANCE_FIELDS]
         for f in ("context_profile", "context_sha", "memory_tools", "memory_tools_version",

@@ -91,6 +91,9 @@ PROVENANCE_FIELDS = (
     ("served_fast_a", MISSING),
     ("served_fast_b", MISSING),
     ("openrouter_base_url", MISSING),
+    # The precisions an openrouter: seat may be served at (OPENROUTER_QUANTIZATIONS): what the model ran at, so a
+    # condition. Default "": a game from before the filter was unfiltered, as is one that stamps it empty.
+    ("openrouter_quantizations", ""),
     ("checkpoint_sha", MISSING),
     ("model_cfg_sha", MISSING),
     ("temperature_a", MISSING),

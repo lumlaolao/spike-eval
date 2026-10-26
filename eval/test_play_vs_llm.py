@@ -89,7 +89,7 @@ class PlayVsLlmTest(unittest.TestCase):
                      AUTO_EXIT="1", SMART_MODEL="other", SWAP_SEATS="1", ANSWER_SCHEMA="per-decision",
                      ANSWER_TOOL_CHOICE="auto", OPENROUTER_MODEL_CFG="{}", PROMPT_CACHE="0", DECKLIST="0",
                      PUZZLE="x.pzl", FORK_MODE="check", PZL_SEEDS="3", SMART_BUDGET="50", FAST_BUDGET="50",
-                     OPENROUTER_MAX_PRICE="{}")
+                     OPENROUTER_MAX_PRICE="{}", OPENROUTER_QUANTIZATIONS="{}")
         p, got = self.launch(GAME_SEED="42", CLAUDE_BRIDGE_EFFORT="high", **leaks)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(sorted(k for k in leaks if k in got), [], "the launcher passed these from the shell")
