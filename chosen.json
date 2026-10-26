@@ -223,6 +223,14 @@
   "why": [],
   "minutes": 14
  },
+ "x-ai_grok-4.6 hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/x-ai_grok-4.6__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 52
+ },
  "x-ai_grok-4.6 hard-splice2-325cd33e0a57": {
   "root": "frontier5-long",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-long/x-ai_grok-4.6/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
