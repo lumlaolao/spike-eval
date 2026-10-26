@@ -17,5 +17,5 @@ x-ai_grok-4.3                  F F F F F  good 5/5
 x-ai_grok-4.6                  S S F S F  good 5/5
 x-ai_grok-4.7                  S S S S S  good 5/5
 x-ai_grok-build-0.1            F F F S F  good 5/5
-z-ai_glm-5.3                   S . S S .  good 3/5
-good games 98/100, to do 2 (3 Mistral Large 4 boards stopped over the time budget count as failures)
+z-ai_glm-5.3                   S . S S F  good 4/5
+good games 99/100, to do 1 (4 stopped boards count as failures: 3 Mistral Large 4 over time, GLM 5.3 elf2)

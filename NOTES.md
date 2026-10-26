@@ -14,6 +14,7 @@ was not passed (owner, 2026-10-26). But the loss was caused by the harness, not 
 - The harness reads only the first `answer` call. It judged the reply invalid and retried, GLM split its answer
   the same way again, and after 2 attempts the harness passed priority for GLM (`answer_via: lost`,
   `fallback: play(unparsed)->PASS`, `textParses=2` in jvm.log).
+- The game was stopped at 11:09 UTC once it was lost, to save cost (owner), and scored a failure.
 - Losing main phase 1 made the kill impossible. GLM saw this ("Main 1 was already passed ... the exact-59
   Craterhoof kill is unreachable") and played out a lost turn.
 - **It is the only game in the whole run, across every model and attempt, with a lost decision.** No other
