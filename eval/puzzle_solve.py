@@ -210,7 +210,8 @@ def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None, 
     write_json(Path(out_root) / RUN_FILE, run)
 
 
-def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None, cap_ms=None):
+def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None, cap_ms=None,
+                     call_ms=None):
     """The puzzle directories under out_root made under another model, suite or seat condition, or on another
     build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale), or price ceiling
     (`max_price`, max_price_env's JSON or None: a ceiling can move a request to another provider): a resume into them
@@ -236,24 +237,29 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
                  if was_record.get(key) != v]
         if cap_ms is not None and (was_record.get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) > cap_ms:
             diff.append("game_cap_ms (lower than played)")
+        if was_record.get("call_timeout_ms") != call_ms:
+            diff.append("call_timeout_ms")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
 
 
 def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None, quantizations=None,
-                 cap_ms=ps.LEGACY_GAME_CAP_MS):
+                 cap_ms=ps.LEGACY_GAME_CAP_MS, call_ms=None):
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
     record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
               "pzl_sha256": rec.get("pzl_sha256"),
               "openrouter_max_price": json.loads(max_price) if max_price else None,
-              "openrouter_quantizations": quantizations, "game_cap_ms": cap_ms}
+              "openrouter_quantizations": quantizations, "game_cap_ms": cap_ms,
+              "call_timeout_ms": call_ms}
     write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
     # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS=str(cap_ms), TRANSCRIPTS="1")
+    if call_ms:
+        env["OPENROUTER_TIMEOUT_MS"] = str(call_ms)   # every tier's deadline; Build.run strips it from the shell
     for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
         if os.environ.get(key):
             env[key] = os.environ[key]
@@ -297,6 +303,9 @@ def main(argv=None):
     ap.add_argument("--game-cap-minutes", type=int, default=ps.LEGACY_GAME_CAP_MS // 60000,
                     help="wall-clock cap on each attempt's game, whole minutes (default 30); a capped game counts "
                          "as unsolved")
+    ap.add_argument("--call-timeout-minutes", type=int, default=None,
+                    help="deadline on each model call, whole minutes (default: each model's own); a call past it is "
+                         "retried, then its decision goes to a fixed legal option")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -326,6 +335,9 @@ def main(argv=None):
     if a.game_cap_minutes < 1:
         raise SystemExit("--game-cap-minutes must be at least 1")
     cap_ms = a.game_cap_minutes * 60000
+    if a.call_timeout_minutes is not None and a.call_timeout_minutes < 1:
+        raise SystemExit("--call-timeout-minutes must be at least 1")
+    call_ms = a.call_timeout_minutes * 60000 if a.call_timeout_minutes else None
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
@@ -366,7 +378,7 @@ def main(argv=None):
                          % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
         bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov,
-                               max_price, quantizations, cap_ms)
+                               max_price, quantizations, cap_ms, call_ms)
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
@@ -392,7 +404,7 @@ def main(argv=None):
         if state == "skip":
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded,
-                            max_price, quantizations, cap_ms)
+                            max_price, quantizations, cap_ms, call_ms)
 
     skipped = 0
     try:

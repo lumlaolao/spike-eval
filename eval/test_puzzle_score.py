@@ -251,6 +251,17 @@ class ScoreV2Test(unittest.TestCase):
             ps.paired(a, b, n_boot=50)
         ps.paired(b, ps.score(self.m, self.rows([4, 4, 0]), "open", k=4, n_boot=20), n_boot=50)   # no cap: unknown
 
+    def test_games_under_two_call_deadlines_are_never_pooled_or_paired(self):
+        a = ps.score(self.m, self.rows([4, 2, 0], call_timeout_ms=1200000), "open", k=4, n_boot=20)
+        self.assertEqual(a["call_timeout_ms"], 1200000)
+        rows = self.rows([4, 2, 0], call_timeout_ms=1200000)
+        rows[0]["call_timeout_ms"] = None
+        with self.assertRaisesRegex(ps.Refused, "call deadlines"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+        b = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=None), "open", k=4, n_boot=20)
+        with self.assertRaisesRegex(ps.Refused, "call_timeout_ms"):
+            ps.paired(a, b, n_boot=50)
+
     def test_an_unreadable_manifest_is_named_not_read_as_30_minutes(self):
         d = Path(tempfile.mkdtemp())
         (d / "p").mkdir()
@@ -266,6 +277,9 @@ class ScoreV2Test(unittest.TestCase):
         self.assertIsNone(ps.load_rows([d])[0]["game_cap_ms"], "no puzzle_solve manifest (a baseline arm): unknown")
         (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"game_cap_ms": 5400000}}))
         self.assertEqual(ps.load_rows([d])[0]["game_cap_ms"], 5400000)
+        self.assertIsNone(ps.load_rows([d])[0]["call_timeout_ms"])
+        (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"call_timeout_ms": 1200000}}))
+        self.assertEqual(ps.load_rows([d])[0]["call_timeout_ms"], 1200000)
         (d / "p" / "batch-manifest.json").write_text(json.dumps({"condition": {}}))   # from before the record
         self.assertEqual(ps.load_rows([d])[0]["game_cap_ms"], ps.LEGACY_GAME_CAP_MS)
 

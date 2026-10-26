@@ -329,6 +329,10 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   scored, still priced), and its manifest copied to `batch-manifest.partial<n>.json` (the cap they were played
   under). A resume into a directory made under another model, suite or seat condition, or on
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
+- Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat) unless `--call-timeout-minutes`
+  sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as `record.call_timeout_ms`; a resume under another
+  value is refused). A call past it is retried, then its decision goes to a fixed legal option. The owner set 20
+  minutes for the frontier run (2026-10-26) after the 300 s deadline fired for four models.
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
   absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every
@@ -463,6 +467,7 @@ Runs of other puzzles, suites, splits, k or game caps are refused. Lookups per c
 - score an unscoreable row (one where the goal was not enforced);
 - pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
   stamped one is refused too);
+- pool or pair attempts under two per-call deadlines (`call_timeout_ms`, the same way);
 - pool or pair attempts under two game caps (`game_cap_ms`, from each puzzle's `batch-manifest.json`; a directory with
   no manifest, such as a baseline arm's, records no cap and is not checked).
 

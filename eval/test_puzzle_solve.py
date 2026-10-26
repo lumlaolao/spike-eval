@@ -616,6 +616,27 @@ class GameCapTest(unittest.TestCase):
         self.assertEqual(len(TIMEOUTS), 1)
         self.assertGreaterEqual(TIMEOUTS[0], 4 * 300 * 60, "a JVM killed while its k-th game is still inside its cap")
 
+    def test_the_call_deadline_reaches_the_jvm_and_the_manifest_and_is_off_by_default(self):
+        # Owner, 2026-10-26: no model is cut off mid-thought; the 300 s per-call deadline fired for four models.
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna", "--call-timeout-minutes", "20")
+        self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "1200000")
+        self.assertEqual(manifest["record"]["call_timeout_ms"], 1200000)
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna")
+        self.assertNotIn("OPENROUTER_TIMEOUT_MS", envs[0], "unset: each model's own deadline (ModelCfg)")
+        self.assertIsNone(manifest["record"]["call_timeout_ms"])
+
+    def test_a_resume_under_another_call_deadline_is_refused(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,
+                                    {"game_cap_ms": 1800000, "call_timeout_ms": 1200000})
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                       call_ms=1200000), [])
+        for other in (None, 600000):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                call_ms=other)
+            self.assertEqual(len(bad), 1)
+            self.assertIn("call_timeout_ms", bad[0])
+
     def write(self, out, rows, cap_ms=None):
         out.mkdir(parents=True, exist_ok=True)
         (out / "puzzle-results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
