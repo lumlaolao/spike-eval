@@ -38,8 +38,13 @@ PAR=${PAR:-5}   # each JVM takes 2 GB (-Xmx2048m); this box has 15; one JVM per 
 # model's `max` in eval/pricing/prices.json (its dearest endpoint; budgets check there since PR #303), +10%.
 # Sum of caps: about $486 (5/3 of the 3-board $291.50). Expected spend about $62 at list (5/3 of $37). The gap is
 # mostly priority tiers (GPT-6.1 Sol's "ultrafast" is 6x list). The owner kept these caps and asked for a price
-# ceiling as well (2026-10-25): every chat model runs with puzzle_solve.py --max-price-at-list, so OpenRouter routes
-# only to an endpoint at or under its list price, and the preflight below refuses a model with no such endpoint.
+# ceiling as well (2026-10-25): a closed model runs with puzzle_solve.py --max-price-at-list, so OpenRouter routes
+# only to an endpoint at or under its list price. An open-weight model (a third column) runs instead at its maker's
+# released precision, never on a host that compresses it further (owner, 2026-10-26): its list price is a 4-bit
+# host's, so it takes --quantizations and no ceiling. The released weights (huggingface.co/api/models, 2026-10-26):
+# DeepSeek V4 Pro and V4.1 Flash and GLM 5.3 are fp8 checkpoints; Kimi K3 is packed 4-bit, which Moonshot serves as
+# mxfp4; Kimi K2.6 is packed int4, which Moonshot serves as int4. The preflight refuses a model with no endpoint
+# its filter allows.
 MODELS="
 x-ai/grok-4.7 24.17
 x-ai/grok-4.6 24.17
@@ -54,12 +59,12 @@ google/gemini-4-argon 29.17
 google/gemini-3.8-flash 11.67
 meta/muse-wonder 32.50
 meta/muse-spark-1.3 8.34
-deepseek/deepseek-v4-pro 9.17
-deepseek/deepseek-v4.1-flash 4.17
-moonshotai/kimi-k3 38.34
-moonshotai/kimi-k2.6 8.34
+deepseek/deepseek-v4-pro 9.17 fp8,bf16,fp16
+deepseek/deepseek-v4.1-flash 4.17 fp8,bf16,fp16
+moonshotai/kimi-k3 38.34 mxfp4,fp8,bf16,fp16
+moonshotai/kimi-k2.6 8.34 int4,fp8,bf16,fp16
 z-ai/glm-5.3-prime 17.50
-z-ai/glm-5.3 17.50
+z-ai/glm-5.3 17.50 fp8,bf16,fp16
 mistralai/mistral-large-4-0 9.17
 mistralai/mistral-medium-3-5 16.67
 "
@@ -81,40 +86,47 @@ fi
 echo "main $HEAD_SHA, build $BUILD"
 # The ceiling makes OpenRouter refuse a request no endpoint at or under list can serve, which would lose every
 # decision of that model's puzzles. So: one free GET per model, and stop before anything is paid for.
-printf "%s\n" "$MODELS" | awk 'NF==2{print $1}' | python3 -c '
+printf "%s\n" "$MODELS" | awk 'NF>=2{print $1, (NF>2 ? $3 : "-")}' | python3 -c '
 import json, sys, urllib.request
 prices = json.load(open(sys.argv[1]))["models"]
 bad = []
 # A list price that moved since prices.json was checked makes a stale ceiling (deepseek-v4-pro rose 72% in one day,
 # 2026-10-25): every request above it would be refused. Live list must equal the file.
 live = {x["id"]: x["pricing"] for x in json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models", timeout=60))["data"]}
-for m in sys.stdin.read().split():
+for m, quant in (ln.split() for ln in sys.stdin.read().splitlines() if ln.strip()):
     eps = json.load(urllib.request.urlopen("https://openrouter.ai/api/v1/models/%s/endpoints" % m, timeout=30))
     # require_parameters is sent too: the endpoint must take tools and tool_choice, not tools alone.
-    ok = [e for e in eps["data"]["endpoints"] if {"tools", "tool_choice"} <= set(e.get("supported_parameters") or [])
-          and float(e["pricing"]["prompt"]) <= prices[m]["prompt"] and float(e["pricing"]["completion"]) <= prices[m]["completion"]]
+    tools = [e for e in eps["data"]["endpoints"] if {"tools", "tool_choice"} <= set(e.get("supported_parameters") or [])]
+    if quant != "-":   # an open-weight model: an endpoint at an allowed precision, any price (no ceiling)
+        ok = [e for e in tools if (e.get("quantization") or "unknown") in quant.split(",")]
+    else:
+        ok = [e for e in tools
+              if float(e["pricing"]["prompt"]) <= prices[m]["prompt"] and float(e["pricing"]["completion"]) <= prices[m]["completion"]]
     drift = [k for k in ("prompt", "completion") if abs(float(live[m][k]) - prices[m][k]) > 1e-12]
-    print("%-32s %d endpoint(s) that take tools and tool_choice at or under list%s" % (m, len(ok),
-          "; LIST PRICE MOVED: %s" % live[m] if drift else ""))
-    bad += [] if ok and not drift else [m]
-sys.exit("refused: no endpoint at list, or a moved list price, for %s (update eval/pricing/prices.json or drop the model)" % bad if bad else 0)
+    print("%-32s %d endpoint(s) that take tools and tool_choice %s%s" % (m, len(ok),
+          "at " + quant if quant != "-" else "at or under list",
+          ("; LIST PRICE MOVED: %s" % live[m] + ("" if quant == "-" else " (no ceiling: cost estimate only)")) if drift else ""))
+    # A moved list price stops only a model whose ceiling it is; for a precision-filtered one it is a cost note.
+    bad += [] if ok and not (drift and quant == "-") else [m]
+sys.exit("refused: no endpoint the filter allows, or a moved list price, for %s (update eval/pricing/prices.json or drop the model)" % bad if bad else 0)
 ' "$REPO/eval/pricing/prices.json" || exit 2
 run_one() {
-  local model=$1 cap=$2 dir=$OUT/${1//\//_}
-  local spec="openrouter:$model" ceiling=--max-price-at-list
-  [[ $model == typesafe/jev-* ]] && spec="jev:$model" ceiling=""   # the Decisions API takes no provider object
+  local model=$1 cap=$2 quant=${3:-} dir=$OUT/${1//\//_}
+  local spec="openrouter:$model" filter=(--max-price-at-list)
+  [ -z "$quant" ] || filter=(--quantizations "$quant")   # an open-weight model: its released precision, no ceiling
+  [[ $model == typesafe/jev-* ]] && spec="jev:$model" filter=()   # the Decisions API takes no provider object
   local cmd=(python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 --jobs 1
-    --build "$BUILD" --forge "$FORGE" --model "$spec" --budget-usd "$cap" $ceiling --out "$dir" ${RESUME:+--resume})
+    --build "$BUILD" --forge "$FORGE" --model "$spec" --budget-usd "$cap" ${filter[@]+"${filter[@]}"} --out "$dir" ${RESUME:+--resume})
   if [ -n "${DRY:-}" ]; then echo "${cmd[*]}"; return; fi
   "${cmd[@]}" > "$dir.log" 2>&1
   echo "$model exit $? ($(python3 "$REPO/eval/cost_report.py" "$dir" 2>/dev/null | tail -1))"
 }
 mkdir -p "$OUT"
-printf "%s\n%s\n" "$MODELS" "$JEV" | while read -r m cap; do
+printf "%s\n%s\n" "$MODELS" "$JEV" | while read -r m cap quant; do
   [ -n "$m" ] || continue
   [ -z "${ONLY:-}" ] || [[ " $ONLY " == *" $m "* ]] || continue
   while [ "$(jobs -rp | wc -l)" -ge "$PAR" ]; do wait -n; done
-  run_one "$m" "$cap" &
+  run_one "$m" "$cap" "$quant" &
 done
 wait
 [ -z "${DRY:-}" ] || exit 0
