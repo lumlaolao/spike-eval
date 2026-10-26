@@ -855,10 +855,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     Each model call's deadline (`--call-timeout-minutes`) and the smart tier's token cap (`--max-tokens`, which is also
     its thinking budget) are recorded the same way. A resume under another value is refused, and the scorer refuses to
     pool them (`eval/PUZZLES.md`).
-    *Why:* frontier games of two models reached the win after 30 minutes (`docs/harness/WORK-PLAN.md`, the frontier
-    entry, names the rows). The owner raised the cap to 90 minutes, then 240 (`frontier5-long`) and 480
-    (`frontier5-fill`).
-    Replaying only cut-off games would bias the score toward fast games.
+    *Why:* frontier games of two models reached the win after 30 minutes, and the owner raised the cap
+    (`docs/harness/FRONTIER5.md`, "How it ran", names the rows). Replaying only cut-off games would bias the score
+    toward fast games.
 - **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, from the run's `puzzle-run.json` and result
   rows, and writes nothing (`eval/PUZZLES.md`, "Watching a run").
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a

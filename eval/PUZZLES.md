@@ -350,8 +350,7 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every
   puzzle played under a lower one is played again, all k attempts: replaying only the games the lower cap cut off
   would draw again only where the first draw was slow, which biases the score toward fast games. `puzzle_score.py`
-  refuses rows from two caps and reports the one (`game_cap_ms`, and `cap=` on the PUZ line). Rows with no
-  manifest beside them (a baseline arm, which sets its own cap) carry none.
+  reports it (`game_cap_ms`, and `cap=` on the PUZ line) and refuses a mix (below).
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`

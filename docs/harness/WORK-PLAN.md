@@ -1,4 +1,4 @@
-# Work plan: what is left (updated 2026-10-25)
+# Work plan: what is left (updated 2026-10-26)
 
 The living to-do list. Only open work is listed here; what is done is in git history,
 [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md), [ACCEPTANCE.md](ACCEPTANCE.md) and the run reports. The plan as it stood
@@ -15,52 +15,21 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 119/145 off and 127/145 on at epoch 67
 ([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
-Landed 2026-10-21 to 26: PRs #290 to #327, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
+Landed 2026-10-21 to 26: PRs #290 to #329, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
 #324 (the full run record), #325 (`play-vs-llm.sh`, a person against the seat), #326 (`setup.sh`) and #327 (the
-routing filters: a price ceiling and a precision list for puzzle runs). The hard suites
+routing filters: a price ceiling and a precision list for puzzle runs) and #329 (the game cap, call deadline and
+token cap as recorded puzzle-run conditions). The hard suites
 are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environment is in
 [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
 ## Open work
 
-- **The frontier comparison on the 5 hardest puzzles** (owner, 2026-10-25; it replaces the 3-board plan) waits on
-  the owner's go (2026-10-25: the caps stand, the quirks below are signed off; 2026-10-26: a board-1 trial first,
-  and every model at full capability):
-  - the plan is `notes/frontier5-plan.sh` on branch `docs/writeup-notes`: the 5 boards of the gen2 suite's open
-    split named in `notes/WRITEUP-NOTES.md` section 4b (with the rule that picked them), 1 attempt each, for 21
-    chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
-    are not in it, and Jev Router is out (owner, 2026-10-24);
-  - caps at the dearest endpoint come to about $489, kept (owner, 2026-10-25; Haiku 5.5's recomputed by the cap rule
-    in the Fable pre-run check, 2026-10-26): the sum of the script's cap column, the first command below (488.67). A
-    closed model runs with `puzzle_solve.py --max-price-at-list`, so no request is routed to a priority tier above
-    list; an open-weight model (DeepSeek V4 Pro and V4.1 Flash, Kimi K3 and K2.6, GLM 5.3) runs with `--quantizations`
-    at its maker's released precision and no ceiling, since its list price is a 4-bit host's (PR #327). The run script
-    checks before it pays for anything that each model has an endpoint its filter allows and that no ceiling model's
-    list price moved, and starts with a board-1 trial (`STAGE=1`, 22 of the 110 attempts, so about a fifth of the $62)
-    that is read before `RESUME=1` plays boards 2 to 5;
-  - the board-1 trial ran (2026-10-26; `runs/puzzles/frontier5` and, for Kimi K2.6 on int4 hosts,
-    `runs/puzzles/frontier5-kimi-k2.6-int4`, which the later boards and replays then grew):
-    every model answered by tool with ai=0. Kimi K2.6 (on both host sets) and GLM 5.3 Prime (in its replay) reached
-    the win after the 30-minute game cap: rows with status `invalid` and `solved` true in `puzzle-results*.jsonl`
-    whose manifest (`batch-manifest[.partial<n>].json`) records no `game_cap_ms`, 3 games. The owner raised the cap
-    to 90 minutes, then ran `frontier5-long` (240-minute cap, 20-minute
-    call deadline) and `frontier5-fill` (480 minutes, 60-minute deadline, each model's own `max_tokens`); each is a
-    recorded condition (PR #329, ARCHITECTURE's PUZ entry);
-
-    ```bash
-    git show origin/docs/writeup-notes:notes/frontier5-plan.sh \
-      | awk '/^MODELS="/{f=1;next} f&&/^"/{f=0} f&&NF>=2{s+=$2} /^JEV=/{gsub(/"/,"");split($0,a," ");s+=a[2]} END{print s}'
-    git ls-files -z runs | du -ch --files0-from=- | tail -1      # the tracked runs/ size below
-    ```
-
-  - the owner requires full logs for this run, from the model chats to the engine logs: PR #324 landed it;
-    `puzzle_solve.py` records every HTTP round-trip and the engine log, and `eval/archive_run.py` packs and verifies
-    a run ([eval/PUZZLES.md](../../eval/PUZZLES.md), "Keeping a run");
-  - one paid Jev smoke test (2026-10-24, one gen2 puzzle, $0.0023, `runs/puzzles/jev-test-1`, WRITEUP-NOTES
-    section 4 on `docs/writeup-notes`): 15 decisions through the Decisions bridge, ai=0; the response shape is
-    confirmed on that run only;
-  - the owner decisions in PR #303's Not done bear on it: each model runs at its own default reasoning effort (max
-    for Kimi K3 and GLM 5.3), Mistral may refuse a user message after a tool result, and caching is unmeasured.
+- **The frontier comparison on the 5 hardest puzzles** ran on 2026-10-26: 20 models, 57 of 100 boards solved,
+  exploratory and not a PUZ score ([FRONTIER5.md](FRONTIER5.md)). Open:
+  - the fix for the harness defect GLM 5.3 found (a legal `answer` call after an incomplete one in the same reply
+    was dropped): answer-tool-v12, harness-epoch-73, in its own PR;
+  - the branch `archives/frontier5-2026-10-26` holds the full record until the owner has saved it elsewhere; deleting
+    it is the owner's call.
 - **The 25 hand-authored niche-rules puzzles** (PR #298) are not frozen into a suite and have no held-out split;
   torbran is provisional because Forge orders its damage replacements from a `HashMap`
   ([eval/puzzles/hard/niche/README.md](../../eval/puzzles/hard/niche/README.md), "Known limits"), which also lists
@@ -89,8 +58,8 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
 - **Repository housekeeping:** the 78 remote branches already merged into main were not deleted (it needs the
   owner's permission; `git branch -r --merged origin/main | grep -v 'HEAD\|origin/main$' | wc -l`, 2026-10-26).
 - **Owner decisions from a hygiene audit (2026-10-25):**
-  - about 310 MB of `runs/` is tracked, against STANDARDS section 3 (the second command in the frontier entry's
-    block, 2026-10-26);
+  - about 310 MB of `runs/` is tracked, against STANDARDS section 3
+    (`git ls-files -z runs | du -ch --files0-from=- | tail -1`, 2026-10-26);
   - four eval scripts nothing current calls: `latency_report.py`, `line_compare.py`, `coverage_audit.py` and
     `model_sweep.py`, whose default list includes an Opus model and which takes no budget;
   - six `secrets.env` loaders with no parity test: `play-vs-llm.sh`, `run_batch.py`, `tournament.py`,
