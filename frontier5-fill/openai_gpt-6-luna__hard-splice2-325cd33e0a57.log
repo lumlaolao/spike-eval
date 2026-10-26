@@ -1,2 +1,4 @@
 [puzzles] price ceiling {"openai/gpt-6-luna": {"prompt": 0.1, "completion": 0.5}} (list price checked 2026-10-15; a puzzle that loses decisions to it on every resume means the list moved)
 [puzzles] 1 active open puzzles, k=1, model openrouter:openai/gpt-6-luna, budget $5.01 (spent $0.00; $0.00 at the dearest endpoint, which the budget is checked at)
+hard-splice2-325cd33e0a57    rc=0 attempts=1 solved=0  [cost] $0.009
+[cost] $0.009 over 1 puzzles (0 not started for budget)

@@ -375,6 +375,14 @@
   "why": [],
   "minutes": 6
  },
+ "moonshotai_kimi-k3 hard-elf2-2753b3ca0d06": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k3__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 14
+ },
  "openai_gpt-6-luna hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/openai_gpt-6-luna/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
@@ -382,6 +390,14 @@
   "good": true,
   "why": [],
   "minutes": 9
+ },
+ "openai_gpt-6-luna hard-splice2-325cd33e0a57": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/openai_gpt-6-luna__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 3
  },
  "openai_gpt-6.1-sol hard-atog-b8053a21d4a8": {
   "root": "frontier5",
