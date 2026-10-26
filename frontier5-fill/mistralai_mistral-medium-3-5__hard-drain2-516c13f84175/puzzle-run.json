@@ -1,0 +1,1 @@
+{"ids": ["hard-drain2-516c13f84175"], "k": 1, "budget_usd": 50.01, "finished": false, "build": {"build_dir": "/tmp/frontier5-build-a782588", "build_overlay_sha": "39de3c6f271e", "checkout_overlay_sha": "39de3c6f271e", "stale_build_allowed": false}, "suite_file": "suite.json"}
