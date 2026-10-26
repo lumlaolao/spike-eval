@@ -326,7 +326,8 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - A run stopped part way (a container restart) continues with the same command plus `--resume`: a puzzle whose
   k attempts on this suite are already in `--out` is skipped; one cut off part way is played again from seed 1,
   its rows so far and its JVM log renamed `puzzle-results.partial<n>.jsonl` and `jvm.partial<n>.log` (never
-  scored, still priced). A resume into a directory made under another model, suite or seat condition, or on
+  scored, still priced), and its manifest copied to `batch-manifest.partial<n>.json` (the cap they were played
+  under). A resume into a directory made under another model, suite or seat condition, or on
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;

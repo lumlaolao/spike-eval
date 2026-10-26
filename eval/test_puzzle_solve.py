@@ -659,13 +659,18 @@ class GameCapTest(unittest.TestCase):
 
     def test_a_cap_is_whole_minutes_and_at_least_one(self):
         # pr-review of #329: 30.00001 minutes would replay every 30-minute puzzle in full; nan crashed the run.
-        for minutes in ("0", "-5", "0.5", "30.00001", "nan", "inf"):
+        # Each must stop at the cap's own check: /b has no build, so any later exit would pass a weaker assertion.
+        for minutes, says in (("0", "--game-cap-minutes"), ("-5", "--game-cap-minutes"), ("0.5", 2),
+                              ("30.00001", 2), ("nan", 2), ("inf", 2)):   # 2: argparse refuses a non-integer
             with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"), \
                     contextlib.redirect_stderr(io.StringIO()):
                 puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
                                    "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
                                    "--game-cap-minutes", minutes])
-            self.assertNotIn(cm.exception.code, (0, None), minutes)
+            if says == 2:
+                self.assertEqual(cm.exception.code, 2, minutes)
+            else:
+                self.assertIn(says, str(cm.exception.code), minutes)
 
 
 if __name__ == "__main__":
