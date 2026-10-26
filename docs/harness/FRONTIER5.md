@@ -40,11 +40,25 @@ ranking. The floor is 0: a board is in the suite only when every zero-model arm 
 | Jev 1.14 | F | F | F | F | F | 0 |
 
 The game kept for each board, with its row file, status and any owner call, is `chosen.json` on the branch
-`results/frontier5-2026-10-26`; the table is its `status` field (58 `solved`). It is the first game that ended
-with no limit fired and no decision lost to a routing filter (`routing_refusals` 0 in the row), looking in
-`frontier5`, `frontier5-kimi-k2.6-int4`, `frontier5-long`, then `frontier5-fill`, and within a puzzle at the current
-game before set-aside ones; the owner's two exceptions are † and ¶. Three boards had two such games:
-Sonnet 5.5's drain2 and splice2 (solved both times) and Grok 4.3's atog (¶).
+`results/frontier5-2026-10-26`; the table is its `status` field (58 `solved`). `select.py` on that branch rebuilds it
+(`python3 select.py --json out.json` from the repository root). It keeps the first game that ended with no limit fired
+and no decision lost to a routing filter (`routing_refusals` 0 in the row), looking in `frontier5`,
+`frontier5-kimi-k2.6-int4`, `frontier5-long`, then `frontier5-fill`, and within a puzzle at the current game before
+set-aside ones. Kimi K2.6's first attempt in `frontier5` (on non-int4 hosts) is left out: it plays on int4 hosts. The
+owner's exceptions are † and ¶, and the four stopped boards (‡ and F\*), which `chosen.json` records with root
+`stopped`. Three boards had two such games: Sonnet 5.5's drain2 and splice2 (solved both times) and Grok 4.3's
+atog (¶).
+
+The 58 come from several conditions (`conditions.py` on that branch, from each kept row's manifest):
+
+| Kept games | Game cap | Call deadline | Token cap | Solved |
+|---|---|---|---|---|
+| 18 in `frontier5` | 30 min | 300 s (Jev 1.14's atog: 120 s) | 32000 (Jev 1.14's atog: none) | 13 |
+| 11 in `frontier5` | 90 min | 300 s | 32000 | 5 |
+| 2 in `frontier5-long` | 240 min | 20 min | 32000 | 1 |
+| 61 in `frontier5-fill` | 480 min | 60 min | each model's maximum | 39 |
+| 4 in `frontier5-fill` (Jev 1.14) | 480 min | 60 min | none (its own bridge) | 0 |
+| 4 stopped (‡, F\*) | | | | 0 |
 
 - F\*: lost to a harness defect and scored a failure (owner). See below.
 - F§: lost to context-length refusals (`HTTP 400`; cause under investigation), scored a failure (owner). See below.
