@@ -624,7 +624,8 @@ class GameCapTest(unittest.TestCase):
 
     def test_a_replayed_puzzle_sets_aside_all_its_attempts_and_only_when_it_will_run(self):
         root = Path(tempfile.mkdtemp())
-        rows = [{"seed": 1, "suite_sha256": "S", "status": "solved"}, {"seed": 2, "suite_sha256": "S", "status": "invalid"}]
+        rows = [{"seed": 1, "suite_sha256": "S", "status": "solved"},
+                {"seed": 2, "suite_sha256": "S", "status": "invalid"}]
         self.write(root / "p", rows)
         self.assertEqual(puzzle_solve.prepare(root / "p", 2, "S", True, 5400000, can_run=lambda: False), "skip")
         self.assertTrue((root / "p" / "puzzle-results.jsonl").exists(), "an unstarted replay keeps a scoreable puzzle")
