@@ -103,6 +103,14 @@
   "why": [],
   "minutes": 39
  },
+ "deepseek_deepseek-v4-pro hard-elf2-2753b3ca0d06": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/deepseek_deepseek-v4-pro__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 90
+ },
  "deepseek_deepseek-v4.1-flash hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/deepseek_deepseek-v4.1-flash/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
@@ -158,6 +166,14 @@
   "good": true,
   "why": [],
   "minutes": 12
+ },
+ "google_gemini-3.8-flash hard-elf2-2753b3ca0d06": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/google_gemini-3.8-flash__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 60
  },
  "google_gemini-4-argon hard-atog-b8053a21d4a8": {
   "root": "frontier5",
@@ -407,6 +423,14 @@
   "why": [],
   "minutes": 3
  },
+ "openai_gpt-6-luna hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/openai_gpt-6-luna__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 11
+ },
  "openai_gpt-6-luna hard-elf2-2753b3ca0d06": {
   "root": "frontier5-fill",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/openai_gpt-6-luna__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
@@ -423,9 +447,65 @@
   "why": [],
   "minutes": 2
  },
+ "openai_gpt-6.1-sol hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/openai_gpt-6.1-sol__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 5
+ },
+ "openai_gpt-6.1-sol hard-splice2-325cd33e0a57": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/openai_gpt-6.1-sol__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 3
+ },
+ "openai_gpt-6.1-sol hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/openai_gpt-6.1-sol__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 4
+ },
  "typesafe_jev-1.14 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/typesafe_jev-1.14/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 0
+ },
+ "typesafe_jev-1.14 hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/typesafe_jev-1.14__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 0
+ },
+ "typesafe_jev-1.14 hard-splice2-325cd33e0a57": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/typesafe_jev-1.14__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 0
+ },
+ "typesafe_jev-1.14 hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/typesafe_jev-1.14__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 0
+ },
+ "typesafe_jev-1.14 hard-elf2-2753b3ca0d06": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/typesafe_jev-1.14__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
   "status": "failed",
   "good": true,
   "why": [],
