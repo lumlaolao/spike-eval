@@ -1,1 +1,1 @@
-{"ids": ["hard-elf2-2753b3ca0d06"], "k": 1, "budget_usd": 72.51, "finished": false, "build": {"build_dir": "/tmp/frontier5-build-a782588", "build_overlay_sha": "39de3c6f271e", "checkout_overlay_sha": "39de3c6f271e", "stale_build_allowed": false}, "suite_file": "suite.json"}
+{"ids": ["hard-elf2-2753b3ca0d06"], "k": 1, "budget_usd": 72.51, "finished": true, "build": {"build_dir": "/tmp/frontier5-build-a782588", "build_overlay_sha": "39de3c6f271e", "checkout_overlay_sha": "39de3c6f271e", "stale_build_allowed": false}, "suite_file": "suite.json"}
