@@ -121,8 +121,11 @@ most log questions).
   `GameLineStampCoverageTest`).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, PR #329)
   may instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
-  `puzzle_score.load_rows` attaches it to every row it reads and the scorer refuses a mix (the check
-  is `eval/test_puzzle_score.py`'s `test_a_row_takes_its_game_cap_from_its_puzzles_manifest`).
+  `puzzle_score.load_rows` attaches it to every row it reads and the scorer refuses a mix. A resume
+  under another value is refused, except one that replays every puzzle played under the old value,
+  all its attempts, setting the old rows aside unscored (`puzzle_solve.already_done`). The checks are
+  `eval/test_puzzle_score.py`'s `test_a_row_takes_its_game_cap_from_its_puzzles_manifest` and
+  `test_games_under_two_caps_are_never_pooled`, and `eval/test_puzzle_solve.py`'s `GameCapTest`.
 - **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
   what it cannot. **Shell**: bash 3.2 (macOS); inside a heredoc in `$( )`, apostrophes and
   backticks must pair up as bash reads them (prefer none) — bash 3.2 scans for the closing paren

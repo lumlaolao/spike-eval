@@ -162,7 +162,7 @@ def set_aside_partial(out):
 
 def prepare(out, k, suite_sha, resume, cap_ms=None, can_run=lambda: True):
     """"done" when a resumed run already has this puzzle's k attempts; "skip" when it would run and `can_run()` says
-    no (the budget), with nothing moved; otherwise "run", what it had set aside."""
+    no (the budget), with nothing moved; otherwise "run", a partial set aside."""
     if resume and already_done(out, k, suite_sha, cap_ms):
         return "done"
     if not can_run():
@@ -231,7 +231,7 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
         diff += [key for key, v in (("openrouter_max_price", ceiling), ("openrouter_quantizations", quantizations))
                  if was_record.get(key) != v]
-        if cap_ms is not None and ps.game_cap_of(f.parent) > cap_ms:
+        if cap_ms is not None and (was_record.get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) > cap_ms:
             diff.append("game_cap_ms (lower than played)")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))

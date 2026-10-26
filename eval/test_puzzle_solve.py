@@ -342,6 +342,7 @@ def run_solve(classes, *extra, model="greedy:", suite=None):
 
         def run(self, env, out, **kw):
             ran.append(env)
+            TIMEOUTS.append(kw.get("timeout_s"))
             return 0
 
     root = Path(tempfile.mkdtemp())
@@ -354,6 +355,9 @@ def run_solve(classes, *extra, model="greedy:", suite=None):
                            "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
                           + list(extra))
     return root, rec, ran
+
+
+TIMEOUTS = []   # the timeout_s each fake build.run was given, newest last
 
 
 def run_openrouter(model, *extra):
@@ -605,6 +609,10 @@ class GameCapTest(unittest.TestCase):
         envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna")
         self.assertEqual(envs[0]["GAME_CAP_MS"], "1800000")
         self.assertEqual(manifest["record"]["game_cap_ms"], 1800000)
+
+    def test_the_jvm_outlives_every_attempts_cap(self):
+        run_openrouter("openrouter:openai/gpt-6-luna", "--game-cap-minutes", "300")
+        self.assertGreaterEqual(TIMEOUTS[-1], 300 * 60, "a JVM killed while a game is still inside its cap")
 
     def write(self, out, rows, cap_ms=None):
         out.mkdir(parents=True, exist_ok=True)

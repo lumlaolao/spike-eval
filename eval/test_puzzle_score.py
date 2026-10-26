@@ -243,6 +243,22 @@ class ScoreV2Test(unittest.TestCase):
         with self.assertRaisesRegex(ps.Refused, "game caps"):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
 
+    def test_two_runs_under_other_caps_are_never_paired_and_the_report_names_its_cap(self):
+        a = ps.score(self.m, self.rows([4, 2, 0], game_cap_ms=1800000), "open", k=4, n_boot=20)
+        b = ps.score(self.m, self.rows([4, 4, 0], game_cap_ms=5400000), "open", k=4, n_boot=20)
+        self.assertIn("cap=90min", ps.render(b))
+        with self.assertRaisesRegex(ps.Refused, "game_cap_ms"):
+            ps.paired(a, b, n_boot=50)
+        ps.paired(b, ps.score(self.m, self.rows([4, 4, 0]), "open", k=4, n_boot=20), n_boot=50)   # no cap: unknown
+
+    def test_an_unreadable_manifest_is_named_not_read_as_30_minutes(self):
+        d = Path(tempfile.mkdtemp())
+        (d / "p").mkdir()
+        (d / "p" / "puzzle-results.jsonl").write_text(json.dumps({"schema": "pzl-result-v1", "id": "x"}) + "\n")
+        (d / "p" / "batch-manifest.json").write_text('{"record": {"game_cap')
+        with self.assertRaisesRegex(ps.Refused, "batch-manifest.json"):
+            ps.load_rows([d])
+
     def test_a_row_takes_its_game_cap_from_its_puzzles_manifest(self):
         d = Path(tempfile.mkdtemp())
         (d / "p").mkdir()

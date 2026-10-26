@@ -25,7 +25,7 @@ noise is inside each per-puzzle rate), it does not correct for several compariso
 before harness_epoch was stamped cannot be told apart by epoch.
 
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix
-solvers, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
+solvers or game caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
 """
 
 import argparse
@@ -129,7 +129,7 @@ def game_cap_of(puzzle_dir):
     except OSError:
         return None
     except ValueError:
-        record = {}
+        raise Refused("%s is not JSON: its game cap is unknown" % (puzzle_dir / "batch-manifest.json"))
     return record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
 
 
@@ -422,6 +422,9 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
                 raise Refused("paired runs differ in %s (%s vs %s)" % (key, first.get(key), r.get(key)))
         if r["aggregate"]["k"] != first["aggregate"]["k"]:
             raise Refused("paired runs differ in k")
+        # A cap is a condition; a run with none recorded (None) is not known to differ.
+        if None not in (r.get("game_cap_ms"), first.get("game_cap_ms")) and r["game_cap_ms"] != first["game_cap_ms"]:
+            raise Refused("paired runs differ in game_cap_ms (%s vs %s)" % (first["game_cap_ms"], r["game_cap_ms"]))
     rates = [{p["id"]: p["pass@1"] for p in r["puzzles"]} for r in reps]
     if any(set(x) != set(rates[0]) for x in rates):
         raise Refused("paired runs cover different puzzles")
@@ -455,9 +458,11 @@ def render(rep):
     a = rep["aggregate"]
     dev = rep.get("dev_lane")
     lines = ["DEVELOPMENT LANE (%s): local development on the owner's subscription, not a benchmark score" % dev] if dev else []
-    lines += [("DEV" if dev else "PUZ") + "  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
+    cap = rep.get("game_cap_ms")
+    lines += [("DEV" if dev else "PUZ") + "  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s%s"
              % (rep["suite"], rep["suite_version"], rep["suite_sha256"][:12], rep["split"], rep["solver"],
-                rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
+                rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"],
+                "  cap=%gmin" % (cap / 60000) if cap else "", "  PILOT" if rep["pilot"] else "")]
     h = a["headline"]
     lines.append("  " + ("solve rate" if dev else "headline") + " %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
                  % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _ci(h.get("ci95_clustered")), _fmt(h["floors"]["pass"]),
