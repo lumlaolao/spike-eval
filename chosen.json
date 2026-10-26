@@ -15,6 +15,14 @@
   "why": [],
   "minutes": 6
  },
+ "anthropic_claude-haiku-5.5 hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/anthropic_claude-haiku-5.5__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 21
+ },
  "anthropic_claude-sonnet-5.5 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-sonnet-5.5/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
@@ -118,6 +126,14 @@
   "good": true,
   "why": [],
   "minutes": 50
+ },
+ "moonshotai_kimi-k2.6 hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 58
  },
  "moonshotai_kimi-k3 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
@@ -302,5 +318,13 @@
   "good": true,
   "why": [],
   "minutes": 59
+ },
+ "z-ai_glm-5.3-prime hard-drain2-516c13f84175": {
+  "root": "frontier5-long",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-long/z-ai_glm-5.3-prime/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 93
  }
 }
