@@ -24,8 +24,8 @@ compared puzzle by puzzle. It prints the mean per-puzzle pass@1 difference B - A
 noise is inside each per-puzzle rate), it does not correct for several comparisons, and result rows written
 before harness_epoch was stamped cannot be told apart by epoch.
 
-Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix
-solvers, game caps, call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
+Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
+call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
 """
 
 import argparse
