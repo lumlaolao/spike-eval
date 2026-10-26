@@ -142,7 +142,7 @@ def already_done(out, k, suite_sha, cap_ms=None):
     """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it. A
     puzzle played under a game cap below `cap_ms` is not done: the cap is a condition, so all its attempts are played
     again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones)."""
-    if cap_ms is not None and (ps.game_cap_of(Path(out)) or ps.LEGACY_GAME_CAP_MS) < cap_ms:
+    if cap_ms is not None and ((ps.record_of(Path(out)) or {}).get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) < cap_ms:
         return False
     seeds = {r.get("seed") for r in pb.read_results(out)
              if r.get("suite_sha256") == suite_sha and not r.get("routing_refusals")}
@@ -245,7 +245,8 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
     return bad
 
 
-# The post-cap grace, as run_batch.py's GRACE_S: a capped game finishes the decision in flight (maxDecisionMs() + 10 s).
+# The post-cap grace, as run_batch.py's GRACE_S (pinned by test_the_grace_is_run_batchs): a capped game finishes
+# the decision in flight (maxDecisionMs() + 10 s).
 GRACE_S = 1000
 # ModelCfg's table keys (LlmSpikeGui.ModelCfg.buildTable): OPENROUTER_MODEL_CFG overrides a key it names, and a
 # model takes the first key its id contains, else "default", so --max-tokens names every one.
@@ -311,7 +312,7 @@ def main(argv=None):
     ap.add_argument("--quantizations", default=None, metavar="LIST",
                     help="an openrouter: model only: the precisions it may be served at, comma-separated (fp8,bf16)")
     ap.add_argument("--game-cap-minutes", type=int, default=ps.LEGACY_GAME_CAP_MS // 60000,
-                    help="wall-clock cap on each attempt's game, whole minutes (default 30); a capped game counts "
+                    help="wall-clock cap on each attempt's game, whole minutes (default %(default)s); a capped game counts "
                          "as unsolved")
     ap.add_argument("--call-timeout-minutes", type=int, default=None,
                     help="deadline on each model call, whole minutes (default: each model's own); a call past it is "

@@ -41,8 +41,9 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   - the board-1 trial ran (2026-10-26; `runs/puzzles/frontier5` and, for Kimi K2.6 on int4 hosts,
     `runs/puzzles/frontier5-kimi-k2.6-int4`; $10.12, the sum of `puzzle_solve.spent` over their model directories):
     every model answered by tool with ai=0. Two games (GLM 5.3 Prime, Kimi K2.6) reached the win after the
-    30-minute game cap, so the run plays at `--game-cap-minutes 90` (owner, 2026-10-26). The cap is a condition
-    (PR #329), so a 90-minute resume replays every model's board 1 too (about $10 more);
+    30-minute game cap. The owner raised the cap to 90 minutes, then ran `frontier5-long` (240-minute cap, 20-minute
+    call deadline) and `frontier5-fill` (480 minutes, 60-minute deadline, each model's own `max_tokens`); each is a
+    recorded condition (PR #329, ARCHITECTURE's PUZ entry);
 
     ```bash
     git show origin/docs/writeup-notes:notes/frontier5-plan.sh \

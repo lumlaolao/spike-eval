@@ -660,6 +660,11 @@ class GameCapTest(unittest.TestCase):
         keys = re.search(r'for \(String key : new String\[\]\{([^}]*)\}\)\s*t\.put\(key, uniform\)', src).group(1)
         self.assertEqual(tuple(k.strip().strip('"') for k in keys.split(",")), puzzle_solve.MODEL_CFG_KEYS)
 
+    def test_the_grace_is_run_batchs(self):
+        # Two backstops for one JVM grace: raising one alone could kill a capped game mid-decision.
+        src = (Path(__file__).resolve().parent / "run_batch.py").read_text()
+        self.assertEqual(int(re.search(r"^\s*GRACE_S = (\d+)", src, re.M).group(1)), puzzle_solve.GRACE_S)
+
     def test_a_resume_under_another_token_cap_is_refused_and_the_cap_fits_an_int(self):
         root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
         puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,

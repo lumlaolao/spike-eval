@@ -329,19 +329,22 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   scored, still priced), and its manifest copied to `batch-manifest.partial<n>.json` (the cap they were played
   under). A resume into a directory made under another model, suite or seat condition, or on
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
-- Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat) unless `--call-timeout-minutes`
-  sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as `record.call_timeout_ms`; a resume under another
-  value is refused; an `openrouter:` or `jev:` seat only, since no other bridge reads it). A call past it is retried, then its decision goes to a fixed legal option. In
+- Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat; a `jev:` seat 120 s,
+  `DecisionsBridge`) unless `--call-timeout-minutes` sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as
+  `record.call_timeout_ms`; a resume under another value is refused; an `openrouter:` or `jev:` seat only, since no
+  other bridge reads it). A call past it is retried, then its decision goes to a fixed legal option. In
   `runs/puzzles/frontier5` the 300 s deadline fired for four models (`grep -l "wall-clock timeout"
-  runs/puzzles/frontier5/*/*/jvm.log`); the owner's later runs use 20 and 60 minutes.
+  runs/puzzles/frontier5/*/*/jvm.log`); the owner's later runs use 20 (`runs/puzzles/frontier5-long`) and 60 minutes
+  (`runs/puzzles/frontier5-fill`; `record.call_timeout_ms` in each puzzle's manifest).
   A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
   `ModelCfg` (about 15 minutes), not from this flag. A game capped while a longer call is in flight can outlive that
   grace and leave its puzzle's later seeds unplayed. A resume that replayed them would redraw only the slow puzzles,
   which biases the score. The frontier run used k=1.
 - Each smart-tier call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000) unless
   `--max-tokens` sets one for every model family (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
-  2^31-1; a resume under another value is refused; an `openrouter:` seat only, since no other bridge reads it). The fast tier keeps 8192 with reasoning off. The frontier fill run
-  gave each model its own maximum output (owner, 2026-10-26).
+  2^31-1; a resume under another value is refused; an `openrouter:` seat only, since no other bridge reads it). The
+  fast tier keeps 8192 with reasoning off. The frontier fill run gave each model its own maximum output (owner,
+  2026-10-26).
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
   absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every

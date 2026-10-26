@@ -145,13 +145,6 @@ def record_of(puzzle_dir):
         raise Refused("%s is not JSON: the conditions it was played under are unknown" % f)
 
 
-def game_cap_of(puzzle_dir):
-    """The game cap (ms) a puzzle directory was played under (30 minutes for a manifest from before the record);
-    None with no manifest."""
-    record = record_of(puzzle_dir)
-    return None if record is None else record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
-
-
 def group_attempts(manifest, rows, split, k, solver=None, ids=None):
     """{puzzle_id: [rows]} for the active puzzles of `split` (only `ids` when given: a pilot), after every
     refusal check."""
@@ -369,7 +362,7 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
         # The rows' one game cap (group_attempts refuses a mix); None when no row has one.
-        "game_cap_ms": max((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), default=None),
+        "game_cap_ms": next((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), None),
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
         "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
