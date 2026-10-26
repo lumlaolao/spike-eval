@@ -341,9 +341,9 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - Each smart-tier call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000) unless
   `--max-tokens` sets one for every model family (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
   2^31-1; a resume under another value is refused; an `openrouter:` seat only, since no other bridge reads it). The
-  fast tier keeps 8192 with reasoning off. The cap is sent as is: a provider counts it against the context window
-  with the prompt, so a model's listed maximum output can leave no room once the prompt grows, and then every call is
-  refused (frontier5, Kimi K2.6: `docs/harness/FRONTIER5.md`, "Decisions the harness lost").
+  fast tier keeps 8192 with reasoning off. The cap is sent as is, and a provider counts it against the context window
+  with the prompt: with a model's listed maximum output, calls can be refused for context length (frontier5, Kimi
+  K2.6: `docs/harness/FRONTIER5.md`, "Decisions the harness lost").
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
   absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every

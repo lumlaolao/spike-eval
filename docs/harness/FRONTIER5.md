@@ -4,9 +4,9 @@
 (`eval/suites/puzzles-hard-gen2-v1.json`; the boards and the rule that picked them are in `notes/WRITEUP-NOTES.md`
 section 4b on `docs/writeup-notes`). 58 of the 100 boards were solved.
 
-**This is an exploratory comparison, not a PUZ score.** The owner lifted the limits during the day and kept every game
-in which no limit fired, so the kept games come from several conditions: the game cap, the per-call deadline and the
-token cap, each recorded in the puzzle's manifest (PR #329). `eval/puzzle_score.py` refuses to pool them. Replaying
+**This is an exploratory comparison, not a PUZ score.** The kept games come from several conditions (the game cap,
+the per-call deadline and the token cap; "How it ran"), each recorded in the puzzle's manifest, and
+`eval/puzzle_score.py` refuses to pool them. Replaying
 only the games a limit cut short also leans the table toward models that solve fast, the bias `eval/PUZZLES.md` names
 for a cap raised mid-run.
 
@@ -40,13 +40,13 @@ ranking. The floor is 0: a board is in the suite only when every zero-model arm 
 | Jev 1.14 | F | F | F | F | F | 0 |
 
 The game kept for each board, with its row file, status and any owner call, is `chosen.json` on the branch
-`results/frontier5-2026-10-26`; the table is its `status` field (58 `solved`). It is the first game in which no limit
-fired, looking in `frontier5`, `frontier5-kimi-k2.6-int4`, `frontier5-long`, then `frontier5-fill`, and within a puzzle
-at the current game before set-aside ones. Three boards had two such games: Sonnet 5.5's drain2 and splice2 (solved both
-times) and Grok 4.3's atog (¶).
+`results/frontier5-2026-10-26`; the table is its `status` field (58 `solved`). It is the first game that ended with no limit
+fired and no call refused by routing, looking in `frontier5`, `frontier5-kimi-k2.6-int4`, `frontier5-long`, then `frontier5-fill`, and within a puzzle
+at the current game before set-aside ones; the owner's two exceptions are † and ¶. Three boards had two such games:
+Sonnet 5.5's drain2 and splice2 (solved both times) and Grok 4.3's atog (¶).
 
 - F\*: lost to a harness defect and scored a failure (owner). See below.
-- F§: lost to a harness setting, the token cap, and scored a failure (owner). See below.
+- F§: lost to context-length refusals (`HTTP 400`; cause under investigation), scored a failure (owner). See below.
 - †: kept as solved (owner). One decision of the game was cut at the old 32000-token cap and answered with reasoning
   off (`grep -c "finish_reason=length" runs/puzzles/frontier5-long/moonshotai_kimi-k2.6/hard-drain2-*/jvm*.log`: 1).
 - ‡: stopped for time and cost, and scored a failure (owner). The owner's note: Mistral was making good progress and
@@ -72,14 +72,16 @@ text (`[TEXT-PARSE] refused` in its `jvm.log`). The next play decision was lost 
 `lines`, twice: a miss of its own. The fix is the rule in [ARCHITECTURE.md](ARCHITECTURE.md) section 6 (answer-tool-v12,
 harness-epoch-73): a reply's answer is its first `answer` call that validates. It does not change the second loss.
 
-**Kimi K2.6, elf2 and hoofdrain (F§): the token cap left no room for the prompt.** In `frontier5-fill` Kimi K2.6 ran with
-`max_tokens` 235929 (`record.max_tokens`), its listed maximum output, against a 262144-token context. Once a prompt
-passed about 30k tokens, every call was refused: `HTTP 400`, "maximum context length is 262144 tokens. However, you
-requested 231648 output tokens and your prompt contains at least 30497". After the retries the seat passed
+**Kimi K2.6, elf2 and hoofdrain (F§): calls refused for context length.** In `frontier5-fill` Kimi K2.6 ran with
+`max_tokens` 235929 (`record.max_tokens`), its listed maximum output, against a 262144-token context. Some calls were
+refused with `HTTP 400`, "maximum context length is 262144 tokens. However, you requested 231648 output tokens and your
+prompt contains at least 30497". Each refused request was sent three times unchanged, then the seat passed
 (`[AUTO-LEGAL] play(bridge-down)->PASS`): 4 decisions on elf2, the first of them main phase 1, 3 on hoofdrain, and 1 on
 splice2, which it solved anyway. `grep -c "HTTP 400" runs/puzzles/frontier5*/*/*/jvm*.log` is non-zero only for these
-three games. The owner scored elf2 and hoofdrain failures and asked for the cause to be investigated (open in
-[WORK-PLAN.md](WORK-PLAN.md)).
+three games. In their transcripts every first ask (2 messages, about 16 KB) was answered; every refused call was a
+4-message follow-up (about 0.55 MB) that carries the model's previous reply, its reasoning included, back to it. The
+provider reports a requested output below the one sent, and each refused total comes to the context plus one token. The
+mechanism is open; the owner asked for it to be investigated ([WORK-PLAN.md](WORK-PLAN.md)).
 
 ## How it ran
 
@@ -87,7 +89,7 @@ In the board-1 trial (`runs/puzzles/frontier5` and, for Kimi K2.6 on int4 hosts,
 `runs/puzzles/frontier5-kimi-k2.6-int4`), 3 games of 2 models reached the win after the 30-minute cap: Kimi K2.6 on
 both host sets, and GLM 5.3 Prime in its replay. These are the rows with status `invalid` and `solved` true in
 `puzzle-results*.jsonl` whose manifest (`batch-manifest[.partial<n>].json`) records no `game_cap_ms`. The owner
-then lifted the limits during the day, so that no model was cut off mid-thought:
+then lifted the limits, so that no model was cut off mid-thought:
 - the game cap went from 30 to 90, then 240 (`frontier5-long`) and 480 minutes (`frontier5-fill`);
 - the per-call deadline went from 300 s, which fired for four models
   (`grep -l "wall-clock timeout" runs/puzzles/frontier5/*/*/jvm.log`), to 20 and then 60 minutes;
@@ -108,6 +110,6 @@ directories of the four run directories below.
 - The result rows, manifests, `chosen.json`, the board table (`STATUS.txt`) and the owner's decisions (`NOTES.md`):
   branch `results/frontier5-2026-10-26`.
 - The full record (every model request and response, the engine logs), packed and verified by `eval/archive_run.py`:
-  branch `archives/frontier5-2026-10-26`. It is temporary, deleted once saved elsewhere.
+  branch `archives/frontier5-2026-10-26` (temporary: [WORK-PLAN.md](WORK-PLAN.md)).
 - The run directories on the machine that ran it: `runs/puzzles/frontier5`, `frontier5-kimi-k2.6-int4`,
   `frontier5-long` and `frontier5-fill`.
