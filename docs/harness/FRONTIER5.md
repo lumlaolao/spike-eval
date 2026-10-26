@@ -59,8 +59,9 @@ text (`[TEXT-PARSE] refused` in its `jvm.log`). The next play decision was lost 
 `lines`, twice: a miss of its own.
 
 These are the run's only lost decisions: `grep -c "no usable CHOICE" runs/puzzles/frontier5*/*/*/jvm*.log` is 0 for
-every other game. The fix makes the first `answer` call that validates the answer, and a lost play decision reads no
-text (answer-tool-v12, harness-epoch-73).
+every other game. The fix (PR #330, answer-tool-v12, harness-epoch-73) makes a reply's answer its first `answer`
+call that validates; an illegal call before it is "Not used", never merged into it. A play decision on a tool ask
+reads no text. It does not change the second loss.
 
 ## How it ran
 

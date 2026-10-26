@@ -15,10 +15,11 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 119/145 off and 127/145 on at epoch 67
 ([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
-Landed 2026-10-21 to 26: PRs #290 to #329, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
+Landed 2026-10-21 to 26: PRs #290 to #330, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
 #324 (the full run record), #325 (`play-vs-llm.sh`, a person against the seat), #326 (`setup.sh`) and #327 (the
-routing filters: a price ceiling and a precision list for puzzle runs) and #329 (the game cap, call deadline and
-token cap as recorded puzzle-run conditions). The hard suites
+routing filters: a price ceiling and a precision list for puzzle runs) #329 (the game cap, call deadline and
+token cap as recorded puzzle-run conditions) and #330 (a reply's answer is its first `answer` call that
+validates). The hard suites
 are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environment is in
 [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
@@ -26,8 +27,9 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
 
 - **The frontier comparison on the 5 hardest puzzles** ran on 2026-10-26: 20 models, 57 of 100 boards solved,
   exploratory and not a PUZ score ([FRONTIER5.md](FRONTIER5.md)). Open:
-  - the fix for the harness defect GLM 5.3 found (a legal `answer` call after an incomplete one in the same reply
-    was dropped): answer-tool-v12, harness-epoch-73, in its own PR;
+  - the seat's prompt still says "a second illegal call costs you the decision"; since answer-tool-v12 (PR #330)
+    two illegal calls in one reply are one invalid reply, so "reply" is the true word (a prompt change, its own
+    version bump);
   - the branch `archives/frontier5-2026-10-26` holds the full record until the owner has saved it elsewhere; deleting
     it is the owner's call.
 - **The 25 hand-authored niche-rules puzzles** (PR #298) are not frozen into a suite and have no held-out split;
