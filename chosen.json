@@ -412,7 +412,9 @@
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
   "status": "failed",
   "good": true,
-  "why": [],
+  "why": [
+   "harness setting: the token cap (235929) left no room for the prompt in the 262144 context; calls refused with HTTP 400 and decisions passed (bridge-down); scored a failure (owner)"
+  ],
   "minutes": 58
  },
  "moonshotai_kimi-k2.6 hard-splice2-325cd33e0a57": {
@@ -436,7 +438,9 @@
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
   "status": "failed",
   "good": true,
-  "why": [],
+  "why": [
+   "harness setting: the token cap (235929) left no room for the prompt in the 262144 context; calls refused with HTTP 400 and decisions passed (bridge-down); scored a failure (owner)"
+  ],
   "minutes": 104
  },
  "moonshotai_kimi-k3 hard-atog-b8053a21d4a8": {
@@ -601,11 +605,13 @@
  },
  "x-ai_grok-4.3 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
-  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.3/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
-  "status": "failed",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/x-ai_grok-4.3/hard-atog-b8053a21d4a8/puzzle-results.partial0.jsonl",
+  "status": "solved",
   "good": true,
-  "why": [],
-  "minutes": 5
+  "why": [
+   "owner, 2026-10-26: the first game (30-minute cap, no limit fired, solved in 6 min) counts; the 90-minute replay failed"
+  ],
+  "minutes": 6
  },
  "x-ai_grok-4.3 hard-hoofdrain-60c5afda2f25": {
   "root": "frontier5",
@@ -796,7 +802,7 @@
   "status": "failed",
   "good": true,
   "why": [
-   "stopped by the owner: over the time budget"
+   "harness defect (answer-tool v11 read only the first answer call; fixed in #330); stopped once lost and scored a failure (owner)"
   ]
  }
 }

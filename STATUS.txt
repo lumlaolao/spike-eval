@@ -8,14 +8,17 @@ meta_muse-spark-1.3            S S S S F  good 5/5
 meta_muse-wonder               S S S S F  good 5/5
 mistralai_mistral-large-4-0    S F F S F  good 5/5
 mistralai_mistral-medium-3-5   F F F F F  good 5/5
-moonshotai_kimi-k2.6           S F S S F  good 5/5
+moonshotai_kimi-k2.6           S F§ S S F§  good 5/5
 moonshotai_kimi-k3             S S S S S  good 5/5
 openai_gpt-6-luna              F F F F F  good 5/5
 openai_gpt-6.1-sol             S S S S S  good 5/5
 typesafe_jev-1.14              F F F F F  good 5/5
-x-ai_grok-4.3                  F F F F F  good 5/5
+x-ai_grok-4.3                  S F F F F  good 5/5
 x-ai_grok-4.6                  S S F S F  good 5/5
 x-ai_grok-4.7                  S S S S S  good 5/5
 x-ai_grok-build-0.1            F F F S F  good 5/5
-z-ai_glm-5.3                   S S S S F  good 5/5
+z-ai_glm-5.3                   S S S S F*  good 5/5
 good games 100/100, to do 0 (4 stopped boards count as failures: 3 Mistral Large 4 over time, GLM 5.3 elf2)
+
+57 -> 58 solved (owner, 2026-10-26): Grok 4.3 atog counts its first solve. F*: harness defect (GLM 5.3 elf2).
+F§: lost to a harness setting, the token cap (Kimi K2.6 elf2 and hoofdrain). Both scored failures (owner).

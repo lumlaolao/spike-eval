@@ -1,7 +1,8 @@
 # frontier5 run notes (2026-10-26, owner decisions)
 
 The conditions and every decision that shapes how the results read. `STATUS.txt` marks a board S (solved),
-F (failed) or . (not yet played). `F*` marks the one failure caused by a harness bug.
+F (failed) or . (not yet played). `F*` marks the failure caused by a harness bug; `F§` the two lost to a harness setting
+(the token cap).
 
 ## ⚠ Harness bug found: GLM 5.3, elf2 (scored a failure, owner)
 
@@ -17,11 +18,26 @@ was not passed (owner, 2026-10-26). But the loss was caused by the harness, not 
 - The game was stopped at 11:09 UTC once it was lost, to save cost (owner), and scored a failure.
 - Losing main phase 1 made the kill impossible. GLM saw this ("Main 1 was already passed ... the exact-59
   Craterhoof kill is unreachable") and played out a lost turn.
-- **It is the only game in the whole run, across every model and attempt, with a lost decision.** No other
-  result is affected.
-- The fix (use the valid `answer` call when a reply holds several, and never consult the text parser on a
-  reply with tool calls) is queued as its own change with a failing test first. It needs an engine overlay
-  change, a PR and an acceptance run, so it was not made mid-run.
+- It is the only game lost to this defect. (An earlier note here said it was the only game with a lost
+  decision; that was wrong: see Kimi K2.6 below.)
+- Fixed in PR #330 (answer-tool-v12, harness-epoch-73): a reply's answer is its first `answer` call that
+  validates, and a play decision on a tool ask reads no text.
+
+## ⚠ Harness setting: Kimi K2.6, elf2 and hoofdrain (F§, scored failures, owner)
+
+In `frontier5-fill` Kimi K2.6 ran with `max_tokens` 235929, its listed maximum output. Its context is 262144
+tokens, so once a prompt passed about 30k tokens every call was refused (`HTTP 400`: "maximum context length is
+262144 tokens ... you requested 231648 output tokens and your prompt contains at least 30497"). After the
+retries the seat passed (`[AUTO-LEGAL] play(bridge-down)->PASS`): 4 decisions on elf2 (the first was main
+phase 1, so the kill was gone), 3 on hoofdrain and 1 on splice2, which it solved anyway. The owner scored elf2
+and hoofdrain failures and asked for the cause to be investigated
+(`grep -c "HTTP 400" runs/puzzles/frontier5*/*/*/jvm*.log` is non-zero only for these three games).
+
+## Grok 4.3, atog: the first solve counts (owner)
+
+Grok 4.3 solved atog in 6 minutes under the first 30-minute cap, with no limit fired
+(`frontier5/x-ai_grok-4.3/hard-atog-*/puzzle-results.partial0.jsonl`). Raising the cap to 90 minutes replayed
+it, and the replay failed. The owner counts the first game: 57 -> 58 solved.
 
 ## Conditions
 
