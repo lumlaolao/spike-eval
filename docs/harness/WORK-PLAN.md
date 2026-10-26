@@ -31,12 +31,15 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
     chat models plus Jev 1.14 (bridge on main, PR #305): 110 attempts, about $62 expected; Astra, Fable and Opus
     are not in it, and Jev Router is out (owner, 2026-10-24);
   - caps at the dearest endpoint come to about $489, kept (owner, 2026-10-25; Haiku 5.5's recomputed by the cap rule
-    in the Fable pre-run check, 2026-10-26). A closed model runs with `puzzle_solve.py --max-price-at-list`, so no
-    request is routed to a priority tier above list; an open-weight model (DeepSeek V4 Pro and V4.1 Flash, Kimi K3
-    and K2.6, GLM 5.3) runs with `--quantizations` at its maker's released precision and no ceiling, since its list
-    price is a 4-bit host's (PR #327). The run script checks before it pays for anything that each model has an
-    endpoint its filter allows and that no ceiling model's list price moved, and starts with a board-1 trial
-    (`STAGE=1`, about $12) that is read before `RESUME=1` plays boards 2 to 5;
+    in the Fable pre-run check, 2026-10-26): the sum of the script's cap column, `git show
+    origin/docs/writeup-notes:notes/frontier5-plan.sh | awk '/^MODELS="/{f=1;next} f&&/^"/{f=0} f&&NF>=2{s+=$2}
+    /^JEV=/{gsub(/"/,"");split($0,a," ");s+=a[2]} END{print s}'` (488.67). A closed model runs with `puzzle_solve.py
+    --max-price-at-list`, so no request is routed to a priority tier above list; an open-weight model (DeepSeek V4 Pro
+    and V4.1 Flash, Kimi K3 and K2.6, GLM 5.3) runs with `--quantizations` at its maker's released precision and no
+    ceiling, since its list price is a 4-bit host's (PR #327). The run script checks before it pays for anything that
+    each model has an endpoint its filter allows and that no ceiling model's list price moved, and starts with a
+    board-1 trial (`STAGE=1`, 22 of the 110 attempts, so about a fifth of the $62) that is read before `RESUME=1`
+    plays boards 2 to 5;
   - the owner requires full logs for this run, from the model chats to the engine logs: PR #324 landed it;
     `puzzle_solve.py` records every HTTP round-trip and the engine log, and `eval/archive_run.py` packs and verifies
     a run ([eval/PUZZLES.md](../../eval/PUZZLES.md), "Keeping a run");
@@ -50,7 +53,8 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   ([eval/puzzles/hard/niche/README.md](../../eval/puzzles/hard/niche/README.md), "Known limits"), which also lists
   the puzzles short of the bar and the row each missed.
 - **The third hard suite** (`puzzles-hard-gen3-v1`, PR #302): the Luna run of its 44 open boards finished
-  (`runs/puzzles/gen3-luna`, $1.009; unscored, and the zero-model arms not run). Score it with `eval/puzzle_score.py` and
+  (`runs/puzzles/gen3-luna`, $1.01 by `python3 eval/cost_report.py runs/puzzles/gen3-luna/hard-*`; unscored, and the
+  zero-model arms not run). Score it with `eval/puzzle_score.py` and
   record it in [eval/PUZZLES.md](../../eval/PUZZLES.md).
 - **Harness-building environment:** no real episode has run. The owner's twelve questions are in
   HARNESS-ENV-FRAMEWORK.md section 8:
@@ -73,7 +77,7 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   owner's permission; `git branch -r --merged origin/main | grep -v 'HEAD\|origin/main$' | wc -l`, 2026-10-26).
 - **Owner decisions from a hygiene audit (2026-10-25):**
   - about 310 MB of `runs/` is tracked, against STANDARDS section 3 (`git ls-files -z runs | du -ch
-    --files0-from=- | tail -1`, 2026-10-26; 15 MB of it cited by nothing, per the 2026-10-25 audit);
+    --files0-from=- | tail -1`, 2026-10-26);
   - four eval scripts nothing current calls: `latency_report.py`, `line_compare.py`, `coverage_audit.py` and
     `model_sweep.py`, whose default list includes an Opus model and which takes no budget;
   - six `secrets.env` loaders with no parity test;
@@ -124,5 +128,6 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
 - **Subagents are allowed** (owner, 2026-10-23); they never message the live-demo session.
 - **The `claude-cli:` lane is a local-development opt-in lane** (owner, 2026-10-24; PR #320, merged 2026-10-25,
   ARCHITECTURE.md section 9). Its one paid smoke run (Claude Opus 5.5 via `claude -p`, owner-requested test,
-  2026-10-24, solved, $2.18) is `runs/puzzles/opus-cli-smoke`.
+  2026-10-24, solved, $2.18 by `python3 eval/cost_report.py runs/puzzles/opus-cli-smoke/hard-*`) is
+  `runs/puzzles/opus-cli-smoke`.
 - **Compound actions (`PLAN_EXECUTE`) stay off** (2026-10-16): the plan is a note, re-read at every decision.

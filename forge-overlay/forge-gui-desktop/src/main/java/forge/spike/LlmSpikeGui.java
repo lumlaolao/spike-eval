@@ -11386,10 +11386,8 @@ public final class LlmSpikeGui {
         }
 
         /** True when {@code url} names a loopback host. Mirrors eval/replay_match.py's
-         *  LOCAL_HOSTS/endpoint_host pair, including its treatment of an unparseable or absent host
-         *  as NON-local: an empty host in Python means "no netloc", which only happens for a
-         *  relative URL, whereas here an unset OPENROUTER_BASE_URL means the real openrouter.ai
-         *  default — so absent must fail closed, not open. */
+         *  LOCAL_HOSTS/endpoint_host pair: an unparseable, scheme-less or absent host is NON-local (an
+         *  unset OPENROUTER_BASE_URL means the real openrouter.ai), so the gate fails closed. */
         static boolean isLoopbackEndpoint(String url) {
             if (url == null || url.trim().isEmpty()) return false;   // unset => the real API
             try {
