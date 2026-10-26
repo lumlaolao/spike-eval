@@ -64,8 +64,7 @@ final class ChatSessionBridge implements LLMBridge {
 
     ChatSessionBridge(MessagesBridge inner) { this(inner, TURN); }
     ChatSessionBridge(MessagesBridge inner, boolean turnScoped) { this.inner = inner; this.turnScoped = turnScoped; }
-    /** The backend this session asks (LlmSpikeGui.OpenRouterBridge.ceilingRefusals reads its count). */
-    MessagesBridge inner() { return inner; }
+    @Override public Integer getCeilingRefusals() { return inner.getCeilingRefusals(); }
 
     /** Under TURN_CHAT the conversation starts over when the game turn changes. */
     void atTurn(int gameTurn) {

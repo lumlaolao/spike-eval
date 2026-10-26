@@ -311,6 +311,10 @@ def main(argv=None):
             raise SystemExit("--max-price-at-list needs a list price above 0 for %s (eval/pricing/prices.json): "
                              "every request would be refused" % a.model)
         max_price = max_price_env(prices, a.model)
+        # A list price that moved since it was checked is a stale ceiling: every request above it is refused.
+        print("[puzzles] price ceiling %s (list price checked %s; a puzzle that loses decisions to it on every resume "
+              "means the list moved)" % (max_price, cost_report.price_of(prices, a.model).get("checked", "never")),
+              flush=True)
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
@@ -363,7 +367,7 @@ def main(argv=None):
                 solved = sum(1 for r in rows if not r.get("price_ceiling_refusals") and ps.attempt_success(r)[0])
                 print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s"
                       % (pid, rc, len(rows), solved, spent(out_root),
-                         "  [PRICE-CEILING] %d attempt(s) refused under the ceiling: replay with --resume"
+                         "  [PRICE-CEILING] %d attempt(s) lost decisions to the ceiling: replay with --resume"
                          % len(refused) if refused else ""), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
         run_file(finished=False, stopped=repr(e))

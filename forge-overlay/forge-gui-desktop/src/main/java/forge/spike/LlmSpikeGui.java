@@ -115,6 +115,8 @@ interface LLMBridge {
     /** The provider's own cost of the most recent call in USD (the Decisions API reports `usage.cost`), or -1 when it
      *  reports none. Written on the context_call row as `cost_usd`. */
     default double getLastCostUsd() { return -1; }
+    /** HTTP refusals so far under a price ceiling (OPENROUTER_MAX_PRICE), or null when this bridge has none. */
+    default Integer getCeilingRefusals() { return null; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -870,6 +872,7 @@ public final class LlmSpikeGui {
         LLMBridge smartBridge() { return smart; }
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
+        private int lostUnderCeiling = 0;   // decisions every retry lost to a price-ceiling refusal (budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
          *  adds nothing) and wall time, the retries included. A puzzle result row carries them (budget()). */
         private long spentPromptTokens = 0, spentCompletionTokens = 0, spentModelMs = 0;
@@ -1330,8 +1333,13 @@ public final class LlmSpikeGui {
             m.put("completion_tokens", spentCompletionTokens);
             m.put("model_ms", spentModelMs);
             m.put("lookups", contextMemory.lookupsUsed());
+            // Under a ceiling: the decisions lost to it after every retry (puzzle_score.py refuses a row with any), and
+            // the HTTP refusals behind them, recovered ones included (a diagnostic; a recovered one lost nothing).
             Integer refused = OpenRouterBridge.ceilingRefusals(smart, fast);
-            if (refused != null) m.put("price_ceiling_refusals", refused);
+            if (refused != null) {
+                m.put("price_ceiling_refusals", lostUnderCeiling);
+                m.put("price_ceiling_http_refusals", refused);
+            }
             return m;
         }
         /** The written line this seat plays (ScriptBridge), or null for any other seat. */
@@ -8163,6 +8171,7 @@ public final class LlmSpikeGui {
          *  health bookkeeping as a plain ask. `prompt` is what the decision row records. */
         private String askModel(LLMBridge b, String prompt, java.util.function.Supplier<String> call) {
             long tAsk = System.currentTimeMillis();
+            Integer ceiling0 = b.getCeilingRefusals();
             long billedPrompt0 = b.getBilledPromptTokens(), billedCompletion0 = b.getBilledCompletionTokens();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
@@ -8196,6 +8205,8 @@ public final class LlmSpikeGui {
             // behavior — callers still take their deterministic legal fallback either way. Fires the
             // loud marker once per streak, not once per failed decision.
             if (reply == null) {
+                Integer ceiling1 = b.getCeilingRefusals();
+                if (ceiling0 != null && ceiling1 != null && ceiling1 > ceiling0) lostUnderCeiling++;
                 consecutiveBridgeFailures++;
                 if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
@@ -10760,17 +10771,16 @@ public final class LlmSpikeGui {
         private final ModelCfg cfg;
         private final String baseUrl;
         private final String maxPrice;   // maxPriceField for this bridge's model, or null
-        private int ceilingRefusals;     // requests refused under maxPrice ([PRICE-CEILING]); the attempt's row names them
-        int ceilingRefusals() { return ceilingRefusals; }
+        private int ceilingRefusals;     // requests refused under maxPrice ([PRICE-CEILING])
+        @Override public Integer getCeilingRefusals() { return maxPrice == null ? null : ceilingRefusals; }
 
-        /** For a puzzle row (budget()): the requests a capped tier had refused under its ceiling, or null when neither
-         *  tier is a capped OpenRouterBridge (the row then has no such key, as before the ceiling existed). */
+        /** For a puzzle row (budget()): the HTTP refusals both tiers had under their ceiling, or null when neither has
+         *  one (the row then has no such key, as before the ceiling existed). */
         static Integer ceilingRefusals(LLMBridge smart, LLMBridge fast) {
             Integer n = null;
             for (LLMBridge b : smart == fast ? new LLMBridge[] {smart} : new LLMBridge[] {smart, fast}) {
-                if (b instanceof ChatSessionBridge) b = ((ChatSessionBridge) b).inner();   // ONE_CHAT / TURN_CHAT
-                if (b instanceof OpenRouterBridge && ((OpenRouterBridge) b).maxPrice != null)
-                    n = (n == null ? 0 : n) + ((OpenRouterBridge) b).ceilingRefusals;
+                Integer c = b == null ? null : b.getCeilingRefusals();
+                if (c != null) n = (n == null ? 0 : n) + c;
             }
             return n;
         }

@@ -171,7 +171,7 @@ class EachPuzzleTest(unittest.TestCase):
             f.write(json.dumps(dict(result(2, "failed"), price_ceiling_refusals=2)) + "\n")
         flags = self.run.by_id()["running"]["flags"]
         self.assertEqual(flags["PRICE-CEILING"][0], 2)
-        self.assertIn("6 requests", flags["PRICE-CEILING"][1], "the requests of every refused row")
+        self.assertIn("6 decisions", flags["PRICE-CEILING"][1], "the lost decisions of every refused row")
         self.assertNotIn("UNSCOREABLE", flags)
 
     def test_an_openrouter_seat_is_priced_at_the_dearest_endpoint_as_the_budget_is(self):

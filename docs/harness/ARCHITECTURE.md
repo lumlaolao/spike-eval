@@ -494,8 +494,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     `aggregate.NON_BEHAVIORAL_PROVENANCE` for the game-line key check); a puzzle resume refuses another ceiling.
     Under a ceiling a 404 or a 5xx is logged `[PRICE-CEILING]` with its status and keeps native tools: it can mean
     no endpoint at that price, or the one endpoint at list down with the dearer ones ruled out (OpenRouter's reply
-    to a price exclusion is not recorded). The puzzle row counts them (`price_ceiling_refusals`), `puzzle_score.py`
-    refuses such a row rather than score lost decisions as the model's, and `--resume` replays it. A 400 or a 429
+    to a price exclusion is not recorded). The puzzle row counts the decisions they cost after every retry
+    (`price_ceiling_refusals`; `price_ceiling_http_refusals` counts the refusals themselves, recovered ones included).
+    `puzzle_score.py` refuses a row with a lost decision rather than score it as the model's, and `--resume` replays
+    it; one the seat's retry recovered is scored, as it would be without a ceiling. A 400 or a 429
     is scored as without a ceiling. A batch sends no ceiling: it scrubs an ambient value (`RUN_DEFINING_KEYS`) and
     refuses one in `--env`.
     The file's `comment` names the models with a long-context tier, where each starts, and which `max` counts one,

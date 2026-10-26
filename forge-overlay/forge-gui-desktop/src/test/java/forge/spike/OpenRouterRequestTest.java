@@ -196,27 +196,30 @@ public class OpenRouterRequestTest {
     public void aRefusalUnderACeilingKeepsNativeTools() {
         String ceilingBase = base.replace("/v1", "/ceiling/v1");
         String model = "openai/gpt-6.1-sol";
-        LlmSpikeGui.OpenRouterBridge capped = withCeiling(CEILING,
-                () -> new LlmSpikeGui.OpenRouterBridge("ceiling/smart", model, null, ceilingBase, 5000));
+        LlmSpikeGui.OpenRouterBridge capped = cappedAt("ceiling", "ceiling/smart");
         bodies.clear();
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertFalse(NativeTools.DOWNGRADED.contains("ceiling/smart"));
-        Assert.assertEquals(capped.ceilingRefusals(), 2, "each refusal is counted for the attempt's row");
+        Assert.assertEquals(capped.getCeilingRefusals().intValue(), 2, "each refusal is counted for the attempt's row");
         Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(capped, null), Integer.valueOf(2));
         Assert.assertTrue(bodies.size() >= 2 && bodies.get(bodies.size() - 1).contains("\"tools\""), "asked again with tools");
 
         LlmSpikeGui.OpenRouterBridge plain = new LlmSpikeGui.OpenRouterBridge("plain/smart", model, null, ceilingBase, 5000);
         plain.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertTrue(NativeTools.DOWNGRADED.remove("plain/smart"), "without a ceiling the refusal is the tools'");
-        Assert.assertNull(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(plain, plain), "no ceiling, no key on the row");
+        Assert.assertNull(plain.getCeilingRefusals(), "no ceiling, no key on the row");
+    }
+
+    private LlmSpikeGui.OpenRouterBridge cappedAt(String context, String label) {
+        return withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(label, "openai/gpt-6.1-sol", null,
+                base.replace("/v1", "/" + context + "/v1"), 5000));
     }
 
     private int refusalsAt(String context) {
-        LlmSpikeGui.OpenRouterBridge b = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
-                context + "/smart", "openai/gpt-6.1-sol", null, base.replace("/v1", "/" + context + "/v1"), 5000));
+        LlmSpikeGui.OpenRouterBridge b = cappedAt(context, context + "/smart");
         b.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
-        return b.ceilingRefusals();
+        return b.getCeilingRefusals();
     }
 
     /** pr-review of #327: under a ceiling a 404 or a 5xx can be the ceiling (no endpoint left at the price, or the one
@@ -233,11 +236,9 @@ public class OpenRouterRequestTest {
     /** pr-review of #327: ONE_CHAT / TURN_CHAT wrap the smart tier in a ChatSessionBridge; its refusals still count. */
     @Test
     public void refusalsUnderAWrappedTierAreCounted() {
-        LlmSpikeGui.OpenRouterBridge capped = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
-                "wrapped/smart", "openai/gpt-6.1-sol", null, base.replace("/v1", "/ceiling/v1"), 5000));
+        LlmSpikeGui.OpenRouterBridge capped = cappedAt("ceiling", "wrapped/smart");
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
-        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(new ChatSessionBridge(capped, false), null),
-                Integer.valueOf(1));
+        Assert.assertEquals(new ChatSessionBridge(capped, false).getCeilingRefusals(), Integer.valueOf(1));
     }
 
     private static String read(HttpExchange ex) throws IOException {

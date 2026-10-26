@@ -2031,6 +2031,38 @@ public class GoldenChecksTest {
         Assert.assertEquals(b.get("lookups"), 0);
     }
 
+    /** pr-review of #327: under a price ceiling a 502 the seat's own retry recovers lost nothing, so the row's
+     *  price_ceiling_refusals (what makes puzzle_score.py refuse it) stays 0 and only the diagnostic HTTP count moves;
+     *  a decision every retry lost under the ceiling is counted. Replaying recovered attempts would score a capped run
+     *  on the attempts that drew no transient error. */
+    @Test
+    public void onlyADecisionLostUnderTheCeilingMarksTheRow() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicInteger refusals = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger failNext = new java.util.concurrent.atomic.AtomicInteger(1);
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                if (failNext.get() > 0) { failNext.decrementAndGet(); refusals.incrementAndGet(); return null; }
+                return super.ask(prompt);
+            }
+            @Override public Integer getCeilingRefusals() { return refusals.get(); }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        java.util.Map<String, Object> b = ctrl.budget();
+        Assert.assertEquals(b.get("price_ceiling_http_refusals"), 1, String.valueOf(b));
+        Assert.assertEquals(b.get("price_ceiling_refusals"), 0, "the retry answered: " + b);
+
+        failNext.set(100);   // every retry of the next decision is refused
+        card("Shock", me, ZoneType.Hand);
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertTrue((Integer) ctrl.budget().get("price_ceiling_refusals") >= 1, String.valueOf(ctrl.budget()));
+    }
+
     /** A bridge that reports no billing and fails its next ask still shows the last call's usage; the budget must not
      *  count it twice (pr-review of #282: a dead bridge reported a full call's tokens it never spent). */
     @Test

@@ -18,6 +18,7 @@ solved, decisions by tier, text parses, cost so far, the last decision and its a
   CAP-OUTLIVED     the game thread outlived the cap, so the JVM played no further attempts
   SHORT            a done puzzle with fewer than k result rows: puzzle_score refuses it, so its score is lost
   UNSCOREABLE      a result row puzzle_score refuses (the goal was not enforced)
+  PRICE-CEILING    a result row with decisions lost under --max-price-at-list's ceiling: not scored, replayed on --resume
   STALLED          a running puzzle whose files have not grown for --stall minutes (possibly stuck)
 
 Cost: the provider's own cost of each call (`cost_usd` on the context_call rows, written for a jev: seat), or
@@ -178,12 +179,13 @@ def puzzle(d, k, finished, now, stall_s, prices):
         flags["STALLED"] = (1, "no new log line for %d min" % ((now - last) // 60))
     if state == "done" and k and len(res) < k:
         flags["SHORT"] = (k - len(res), "%d of %d attempts: puzzle_score refuses the puzzle" % (len(res), k))
-    solved, ceiling_reqs = 0, 0
+    solved = 0
+    refused = [r for r in res if r.get("price_ceiling_refusals")]   # decisions lost to the ceiling: replayed on --resume
+    if refused:
+        flags["PRICE-CEILING"] = (len(refused), "%d decisions lost under the price ceiling"
+                                  % sum(r["price_ceiling_refusals"] for r in refused))
     for r in res:
-        if r.get("price_ceiling_refusals"):   # no endpoint at list took its requests: replayed on --resume
-            rows_n, reqs = flags.get("PRICE-CEILING", (0, 0))[0] + 1, ceiling_reqs + r["price_ceiling_refusals"]
-            ceiling_reqs = reqs
-            flags["PRICE-CEILING"] = (rows_n, "%d requests refused under the price ceiling" % reqs)
+        if r.get("price_ceiling_refusals"):
             continue
         try:
             solved += 1 if puzzle_score.attempt_success(r)[0] else 0
