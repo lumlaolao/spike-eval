@@ -669,6 +669,8 @@ class GameCapTest(unittest.TestCase):
         self.assertIn("--call-timeout-minutes", str(cm.exception.code))
         envs, _ = run_openrouter("openrouter:openai/gpt-6-luna", "--call-timeout-minutes", "20")   # k=1: allowed
         self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "1200000")
+        envs, _ = run_openrouter("openrouter:openai/gpt-6-luna", "--call-timeout-minutes", "5", "--k", "2")
+        self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "300000", "5 minutes is inside the grace at any k")
 
     def test_a_resume_under_another_call_deadline_is_refused(self):
         root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}

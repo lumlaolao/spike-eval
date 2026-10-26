@@ -331,9 +331,9 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
 - Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat) unless `--call-timeout-minutes`
   sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as `record.call_timeout_ms`; a resume under another
-  value is refused). A call past it is retried, then its decision goes to a fixed legal option. In the frontier run
-  (2026-10-26) the 300 s deadline fired for four models. The owner raised it to 20 minutes (`frontier5-long`), then
-  to 60 (`frontier5-fill`).
+  value is refused). A call past it is retried, then its decision goes to a fixed legal option. In
+  `runs/puzzles/frontier5` the 300 s deadline fired for four models (`grep -l "wall-clock timeout"
+  runs/puzzles/frontier5/*/*/jvm.log`); the owner's later runs use 20 and 60 minutes.
   A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
   `ModelCfg` (about 15 minutes), not from this flag. A game capped while a longer call is in flight can outlive that
   grace and leave its puzzle's later seeds unplayed. A resume that replayed them would redraw only the slow puzzles,

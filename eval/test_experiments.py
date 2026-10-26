@@ -383,11 +383,16 @@ class GameLineStampCoverageTest(unittest.TestCase):
     NON_CONDITION_ENV = {
         "AUTO_EXIT", "CLAUDE_BIN", "EVAL_OUT", "MATCH_GAMES",
         "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "OPENROUTER_HTTP_REFERER",
-        "OPENROUTER_HTTP_TITLE", "OPENROUTER_TIMEOUT_MS", "RECORD", "RECORD_FPS", "RECORD_OUT",
+        "OPENROUTER_HTTP_TITLE", "RECORD", "RECORD_FPS", "RECORD_OUT",
         "RULES_FILE", "SHADOW_AI",
         # How a claude-cli: seat's CLI logs in (an API key instead of the subscription): not what it decides.
         "CLAUDE_CLI_ALLOW_API_KEY",
     }
+    # Conditions recorded somewhere other than the game line. OPENROUTER_TIMEOUT_MS changes decisions (a call past
+    # it is lost to the fixed legal option): puzzle_solve.py --call-timeout-minutes records it per puzzle (STANDARDS
+    # section 4, PR #329), and Build.run strips a shell value. A run_batch.py game under an operator's value is not
+    # stamped yet.
+    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS"}
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
     # required to have a stamp -- the sha is what partitions those experiments.
@@ -414,7 +419,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
             self.assertIn(probe, names)              # each form was actually read
         stray = sorted(n for n in names
                        if not n.startswith(self.CONTEXT_PREFIX)
-                       and n not in self.NON_CONDITION_ENV
+                       and n not in self.NON_CONDITION_ENV and n not in self.RECORDED_ELSEWHERE
                        and self.STAMPED_ALIASES.get(n, n.lower()) not in keys)
         self.assertEqual(stray, [],
                          "stamp these on the game line (aggregate.PROVENANCE_FIELDS) so their "

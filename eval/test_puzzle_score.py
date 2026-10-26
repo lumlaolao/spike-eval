@@ -279,12 +279,17 @@ class ScoreV2Test(unittest.TestCase):
         base = ps.score(self.m, self.rows([0, 0, 0], max_tokens=ps.NO_MANIFEST), "open", k=4, n_boot=20)
         self.assertFalse(ps.paired(base, a, n_boot=50)["cross_max_tokens"], "a baseline arm has no cap to differ")
         self.assertIn("CROSS-MAX-TOKENS 131072 vs 943718", ps.render_paired(c, 50, 7))
+        self.assertIn("max_tokens=131072", ps.render(a), "the PUZ line names the token cap")
+        self.assertNotIn("max_tokens=", ps.render(base), "a baseline arm has none to name")
+        own = ps.score(self.m, self.rows([4, 4, 0], max_tokens=None), "open", k=4, n_boot=20)
+        self.assertIn("CROSS-MAX-TOKENS 131072 vs default", ps.render_paired(ps.paired(a, own, n_boot=50), 50, 7))
 
     def test_a_run_with_no_manifest_is_not_known_to_differ_in_call_deadline(self):
         # pr-review round 6 of #329: a baseline arm has no manifest; that is not "no --call-timeout-minutes".
         a = ps.score(self.m, self.rows([4, 2, 0], call_timeout_ms=1200000), "open", k=4, n_boot=20)
         base = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=ps.NO_MANIFEST), "open", k=4, n_boot=20)
         ps.paired(a, base, n_boot=50)
+        self.assertIn("call_timeout_ms=1200000", ps.render(a), "the PUZ line names the deadline")
         # ...but the runs that have one are still checked against each other, not only against the first.
         b = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=3600000), "open", k=4, n_boot=20)
         with self.assertRaisesRegex(ps.Refused, "call_timeout_ms"):

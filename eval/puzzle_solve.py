@@ -347,8 +347,7 @@ def main(argv=None):
     if a.call_timeout_minutes is not None and a.call_timeout_minutes < 1:
         raise SystemExit("--call-timeout-minutes must be at least 1")
     call_ms = a.call_timeout_minutes * 60000 if a.call_timeout_minutes else None
-    # The JVM's grace after a game cap is sized from ModelCfg (about 15 minutes), not from this flag: a longer deadline
-    # can leave a capped puzzle short of its later seeds, and the resume that plays them redraws only slow puzzles.
+    # A resume that played the seeds a capped game skipped would redraw only slow puzzles (eval/PUZZLES.md).
     if call_ms and call_ms > 5 * 60000 and a.k > 1:
         raise SystemExit("--call-timeout-minutes above 5 needs --k 1: the post-cap grace is sized from ModelCfg, so a "
                          "capped game could skip its puzzle's later seeds (eval/PUZZLES.md)")

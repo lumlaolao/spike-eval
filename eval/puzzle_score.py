@@ -470,7 +470,8 @@ def render_paired(c, n_boot, seed):
             % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", signed(c["mean"]), _ci(c["ci95"]),
                _ci(c["ci95_clustered"]), c["n_puzzles"], n_boot, seed,
                "  CROSS-EPOCH %s" % " vs ".join(e or "unstamped" for e in c["epochs"]) if c["cross_epoch"] else "",
-               "  CROSS-MAX-TOKENS %s" % " vs ".join(map(str, c["max_tokens"])) if c["cross_max_tokens"] else ""))
+               "  CROSS-MAX-TOKENS %s" % " vs ".join("default" if t is None else str(t) for t in c["max_tokens"])
+               if c["cross_max_tokens"] else ""))
 
 
 def signed(x):
