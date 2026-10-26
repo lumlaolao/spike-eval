@@ -51,15 +51,19 @@ public class OpenRouterRequestTest {
         });
         // Refusals under a ceiling: the tool wording OpenRouter gives "no endpoints" in (404), the 503 its error docs give
         // for no provider meeting the routing requirements, a 400 about the request itself, and a rate limit.
-        String[][] errors = {{"ceiling", "404", "No endpoints found that support tool use."},
-                {"ceiling-503", "503", "No available model provider that meets your routing requirements."},
-                {"ceiling-400", "400", "messages[3]: tool message has no tool_call_id"},
-                {"ceiling-400-provider", "400", "Invalid provider preferences: max_price.prompt must be a string"},
-                {"ceiling-429", "429", "rate limited"}};
+        String[][] errors = {{"ceiling", "404", msg("No endpoints found that support tool use.")},
+                {"ceiling-503", "503", msg("No available model provider that meets your routing requirements.")},
+                {"ceiling-400", "400", msg("messages[3]: tool message has no tool_call_id")},
+                // OpenRouter's envelope for an upstream's own 400 (its errors page: "Provider returned error", the
+                // upstream's code in metadata): a request error, which names a provider without being the filter's.
+                {"ceiling-400-relayed", "400", "{\"error\":{\"code\":400,\"message\":\"Provider returned error\","
+                        + "\"metadata\":{\"error_type\":\"context_length_exceeded\",\"provider_name\":\"X\"}}}"},
+                {"ceiling-400-provider", "400", msg("Invalid provider preferences: max_price.prompt must be a string")},
+                {"ceiling-429", "429", msg("rate limited")}};
         for (String[] e : errors)
             server.createContext("/" + e[0] + "/v1/chat/completions", ex -> {
                 bodies.add(read(ex));
-                respond(ex, Integer.parseInt(e[1]), "{\"error\":{\"message\":\"" + e[2] + "\"}}");
+                respond(ex, Integer.parseInt(e[1]), e[2]);
             });
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
@@ -275,6 +279,8 @@ public class OpenRouterRequestTest {
         // pr-review of #327: the filter's own shape refused (OpenRouter's schema types max_price as strings) is the
         // filter's, not the model's: counted, or every decision of that model would be scored a failure.
         Assert.assertEquals(refusalsAt("ceiling-400-provider"), 1);
+        // pr-review of #327: a relayed upstream 400 is the model's, or a filtered run could be replayed for ever.
+        Assert.assertEquals(refusalsAt("ceiling-400-relayed"), 0);
         Assert.assertEquals(refusalsAt("ceiling-429"), 0);
     }
 
@@ -285,6 +291,8 @@ public class OpenRouterRequestTest {
         capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
         Assert.assertEquals(new ChatSessionBridge(capped, false).getRoutingRefusals(), Integer.valueOf(1));
     }
+
+    private static String msg(String message) { return "{\"error\":{\"message\":\"" + message + "\"}}"; }
 
     private static String read(HttpExchange ex) throws IOException {
         try (InputStream in = ex.getRequestBody()) { return new String(in.readAllBytes(), StandardCharsets.UTF_8); }

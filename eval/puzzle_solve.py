@@ -294,15 +294,13 @@ def main(argv=None):
     if cost_report.is_cli_lane(a.model) and a.jobs != 1:
         raise SystemExit("-j 1 with a %s model: each puzzle's JVM shells out to the one local Claude CLI, and parallel ones "
                          "contend for it, so decisions time out and are lost (run_batch.py's cited rule)" % cost_report.CLI_PREFIX)
-    if a.max_price_at_list and not a.model.startswith("openrouter:"):
-        raise SystemExit("--max-price-at-list is for an openrouter: chat model; %s sends no provider preferences"
-                         % a.model)
+    for flag, on in (("--max-price-at-list", a.max_price_at_list), ("--quantizations", a.quantizations is not None)):
+        if on and not a.model.startswith("openrouter:"):
+            raise SystemExit("%s is for an openrouter: chat model; %s sends no provider preferences" % (flag, a.model))
     quantizations = None
     if a.quantizations is not None:
         # Sorted and deduplicated: a set of precisions, so the order typed never splits a resume or a condition.
         quantizations = sorted({q.strip() for q in a.quantizations.split(",") if q.strip()})
-        if not a.model.startswith("openrouter:"):
-            raise SystemExit("--quantizations is for an openrouter: chat model; %s sends no provider preferences" % a.model)
         unknown = [q for q in quantizations if q not in QUANTIZATIONS]
         if unknown or not quantizations:
             raise SystemExit("--quantizations takes precisions from %s (OpenRouter's names), got %r"

@@ -11119,16 +11119,19 @@ public final class LlmSpikeGui {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 int st = resp.statusCode();
                 String lower = resp.body() == null ? "" : resp.body().toLowerCase(java.util.Locale.ROOT);
-                boolean filterShape = st == 400 && (lower.contains("provider") || lower.contains("max_price")
-                        || lower.contains("quantization"));
+                // The filter's own fields, not the word "provider": OpenRouter relays every upstream's 400 as
+                // "Provider returned error", and that request error is the model's (pr-review of #327).
+                boolean filterShape = st == 400 && !lower.contains("provider returned error")
+                        && (lower.contains("max_price") || lower.contains("quantization")
+                            || lower.contains("provider preferences") || lower.contains("routing requirements"));
                 if ((maxPrice != null || quantizations != null) && (st == 404 || st >= 500 || filterShape)) {
                     // Under a routing filter a 404 can mean no endpoint the filter allows, not no function calling,
                     // and a 5xx the allowed endpoints down with the others it would fail over to ruled out (a filter
                     // can leave one: five frontier models had one endpoint at list, 2026-10-25). OpenRouter's reply to
                     // such an exclusion is not recorded, so both count: native tools stay, the log names the filter,
                     // and the row counts it, so puzzle_score.py refuses to score decisions the model never made (an
-                    // over-count costs a replay). A 400 naming the provider preferences is the filter's own shape
-                    // refused; any other 400 is about the request and a 429 a rate limit: scored as without.
+                    // over-count costs a replay). A 400 naming the filter's fields is its own shape refused; any other
+                    // 400 (a relayed upstream one included) is about the request, a 429 a rate limit: scored as without.
                     routingRefusals++;
                     System.out.println("[OPENROUTER " + label + "] [ROUTING-FILTER] HTTP " + st + " under "
                             + (maxPrice == null ? "" : maxPrice + " ") + (quantizations == null ? "" : quantizations)
@@ -11638,10 +11641,11 @@ public final class LlmSpikeGui {
                 + ",\"game_cap_ms\":" + capMs
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
-                // Routing too: a batch scrubs it, so a game names it only when something else set it.
-                + ",\"openrouter_max_price\":\"" + jsonEscape(System.getenv().getOrDefault("OPENROUTER_MAX_PRICE", "")) + "\""
-                // What the seat runs at: a batch scrubs it and refuses it in --env, so a game names it only when set.
-                + ",\"openrouter_quantizations\":\"" + jsonEscape(System.getenv().getOrDefault("OPENROUTER_QUANTIZATIONS", "")) + "\""
+                // The routing filters are conditions (aggregate.PROVENANCE_FIELDS): at list an open-weight model may
+                // find only a 4-bit host. A batch scrubs both and refuses them in --env, so a game names one only when
+                // something else set it. The bridge's own reads, so the line and budget() see one value.
+                + ",\"openrouter_max_price\":\"" + jsonEscape(OpenRouterBridge.maxPriceEnv == null ? "" : OpenRouterBridge.maxPriceEnv) + "\""
+                + ",\"openrouter_quantizations\":\"" + jsonEscape(OpenRouterBridge.quantizationsEnv == null ? "" : OpenRouterBridge.quantizationsEnv) + "\""
                 + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
