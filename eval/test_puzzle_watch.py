@@ -168,8 +168,10 @@ class EachPuzzleTest(unittest.TestCase):
         # pr-review of #327: not "a goal the engine did not enforce", but an endpoint the ceiling left unreachable.
         with open(self.run.root / "running" / "puzzle-results.jsonl", "a") as f:
             f.write(json.dumps(dict(result(1, "failed"), price_ceiling_refusals=4)) + "\n")
+            f.write(json.dumps(dict(result(2, "failed"), price_ceiling_refusals=2)) + "\n")
         flags = self.run.by_id()["running"]["flags"]
-        self.assertEqual(flags["PRICE-CEILING"][0], 1)
+        self.assertEqual(flags["PRICE-CEILING"][0], 2)
+        self.assertIn("6 requests", flags["PRICE-CEILING"][1], "the requests of every refused row")
         self.assertNotIn("UNSCOREABLE", flags)
 
     def test_an_openrouter_seat_is_priced_at_the_dearest_endpoint_as_the_budget_is(self):

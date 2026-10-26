@@ -10767,9 +10767,11 @@ public final class LlmSpikeGui {
          *  tier is a capped OpenRouterBridge (the row then has no such key, as before the ceiling existed). */
         static Integer ceilingRefusals(LLMBridge smart, LLMBridge fast) {
             Integer n = null;
-            for (LLMBridge b : smart == fast ? new LLMBridge[] {smart} : new LLMBridge[] {smart, fast})
+            for (LLMBridge b : smart == fast ? new LLMBridge[] {smart} : new LLMBridge[] {smart, fast}) {
+                if (b instanceof ChatSessionBridge) b = ((ChatSessionBridge) b).inner();   // ONE_CHAT / TURN_CHAT
                 if (b instanceof OpenRouterBridge && ((OpenRouterBridge) b).maxPrice != null)
                     n = (n == null ? 0 : n) + ((OpenRouterBridge) b).ceilingRefusals;
+            }
             return n;
         }
         private final boolean fastTier; // label is always "<seat>/smart" or "<seat>/fast" — see PlayerControllerLLM ctor
@@ -11060,15 +11062,16 @@ public final class LlmSpikeGui {
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 int st = resp.statusCode();
-                if (maxPrice != null && st >= 400 && st < 500 && st != 401 && st != 403 && st != 408 && st != 429) {
-                    // Under a ceiling a refusal can mean no endpoint at that price (five frontier models have only one
-                    // endpoint at list), not no function calling. OpenRouter's wording for it is not recorded, so any
-                    // refusal but auth, timeout and rate limit counts: native tools stay, the log names the ceiling,
-                    // and the row counts it, so puzzle_score.py refuses to score decisions the model never made (an
-                    // over-count costs a replay; an under-count would publish a wrong score).
+                if (maxPrice != null && (st == 404 || st >= 500)) {
+                    // Under a ceiling a 404 can mean no endpoint left at that price, not no function calling, and a
+                    // 5xx the one endpoint at list down with the dearer ones it would fail over to ruled out (five
+                    // frontier models have only one endpoint at list). OpenRouter's reply to a price exclusion is not
+                    // recorded, so both count: native tools stay, the log names the ceiling, and the row counts it, so
+                    // puzzle_score.py refuses to score decisions the model never made (an over-count costs a replay).
+                    // A 400 is about the request and a 429 a rate limit: scored as without a ceiling.
                     ceilingRefusals++;
-                    System.out.println("[OPENROUTER " + label + "] [PRICE-CEILING] no endpoint at or under " + maxPrice
-                            + " took the request; native tools kept");
+                    System.out.println("[OPENROUTER " + label + "] [PRICE-CEILING] HTTP " + st + " under " + maxPrice
+                            + ": no endpoint at or under it took the request; native tools kept");
                     return null;
                 }
                 if (toolsJson != null && refusesTools(resp.statusCode(), resp.body())) {

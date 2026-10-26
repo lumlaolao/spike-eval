@@ -360,7 +360,7 @@ def main(argv=None):
                     continue
                 # A row refused under the price ceiling is no result (puzzle_score refuses it): say so, and go on.
                 refused = [r for r in rows if r.get("price_ceiling_refusals")]
-                solved = sum(1 for r in rows if r not in refused and ps.attempt_success(r)[0])
+                solved = sum(1 for r in rows if not r.get("price_ceiling_refusals") and ps.attempt_success(r)[0])
                 print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s"
                       % (pid, rc, len(rows), solved, spent(out_root),
                          "  [PRICE-CEILING] %d attempt(s) refused under the ceiling: replay with --resume"

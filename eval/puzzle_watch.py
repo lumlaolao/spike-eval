@@ -178,11 +178,12 @@ def puzzle(d, k, finished, now, stall_s, prices):
         flags["STALLED"] = (1, "no new log line for %d min" % ((now - last) // 60))
     if state == "done" and k and len(res) < k:
         flags["SHORT"] = (k - len(res), "%d of %d attempts: puzzle_score refuses the puzzle" % (len(res), k))
-    solved = 0
+    solved, ceiling_reqs = 0, 0
     for r in res:
         if r.get("price_ceiling_refusals"):   # no endpoint at list took its requests: replayed on --resume
-            flags["PRICE-CEILING"] = (flags.get("PRICE-CEILING", (0, ""))[0] + 1,
-                                      "%s requests refused under the price ceiling" % r["price_ceiling_refusals"])
+            rows_n, reqs = flags.get("PRICE-CEILING", (0, 0))[0] + 1, ceiling_reqs + r["price_ceiling_refusals"]
+            ceiling_reqs = reqs
+            flags["PRICE-CEILING"] = (rows_n, "%d requests refused under the price ceiling" % reqs)
             continue
         try:
             solved += 1 if puzzle_score.attempt_success(r)[0] else 0

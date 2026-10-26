@@ -49,29 +49,17 @@ public class OpenRouterRequestTest {
                 respond(ex, "{\"choices\":[{\"message\":{\"content\":\"CHOICE: 1\"},\"finish_reason\":\"stop\"}],"
                         + "\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":5}}");
         });
-        // No endpoint under the ceiling: OpenRouter's wording for a tool request with nowhere to go.
-        server.createContext("/ceiling/v1/chat/completions", ex -> {
-            bodies.add(read(ex));
-            byte[] b = "{\"error\":{\"message\":\"No endpoints found that support tool use.\",\"code\":404}}"
-                    .getBytes(StandardCharsets.UTF_8);
-            ex.sendResponseHeaders(404, b.length);
-            try (OutputStream os = ex.getResponseBody()) { os.write(b); }
-        });
-        // Under a ceiling, wording we have no sample of (OpenRouter's reply to a price exclusion is unrecorded), and a
-        // rate limit, which is no refusal of the ceiling's.
-        server.createContext("/ceiling-other/v1/chat/completions", ex -> {
-            bodies.add(read(ex));
-            byte[] b = "{\"error\":{\"message\":\"No allowed providers are available for the selected model.\"}}"
-                    .getBytes(StandardCharsets.UTF_8);
-            ex.sendResponseHeaders(400, b.length);
-            try (OutputStream os = ex.getResponseBody()) { os.write(b); }
-        });
-        server.createContext("/ceiling-429/v1/chat/completions", ex -> {
-            bodies.add(read(ex));
-            byte[] b = "{\"error\":{\"message\":\"rate limited\"}}".getBytes(StandardCharsets.UTF_8);
-            ex.sendResponseHeaders(429, b.length);
-            try (OutputStream os = ex.getResponseBody()) { os.write(b); }
-        });
+        // Refusals under a ceiling: the tool wording OpenRouter gives "no endpoints" in (404), the 503 its error docs give
+        // for no provider meeting the routing requirements, a 400 about the request itself, and a rate limit.
+        String[][] errors = {{"ceiling", "404", "No endpoints found that support tool use."},
+                {"ceiling-503", "503", "No available model provider that meets your routing requirements."},
+                {"ceiling-400", "400", "messages[3]: tool message has no tool_call_id"},
+                {"ceiling-429", "429", "rate limited"}};
+        for (String[] e : errors)
+            server.createContext("/" + e[0] + "/v1/chat/completions", ex -> {
+                bodies.add(read(ex));
+                respond(ex, Integer.parseInt(e[1]), "{\"error\":{\"message\":\"" + e[2] + "\"}}");
+            });
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
     }
@@ -224,30 +212,44 @@ public class OpenRouterRequestTest {
         Assert.assertNull(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(plain, plain), "no ceiling, no key on the row");
     }
 
-    /** pr-review of #327: OpenRouter's wording for a request max_price excludes everywhere is not recorded, so under a
-     *  ceiling every refusal that is not transport or a rate limit counts: an uncounted one would be scored as the
-     *  model's failure, while a counted one costs only a replay. */
+    private int refusalsAt(String context) {
+        LlmSpikeGui.OpenRouterBridge b = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
+                context + "/smart", "openai/gpt-6.1-sol", null, base.replace("/v1", "/" + context + "/v1"), 5000));
+        b.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        return b.ceilingRefusals();
+    }
+
+    /** pr-review of #327: under a ceiling a 404 or a 5xx can be the ceiling (no endpoint left at the price, or the one
+     *  endpoint at list down, with the dearer ones it would fail over to ruled out), so it is counted and the attempt
+     *  replayed. A 400 is about the request itself and a 429 is a rate limit: the model's own result, counted as before. */
     @Test
-    public void underACeilingAnyRefusalButARateLimitIsCounted() {
-        String model = "openai/gpt-6.1-sol";
-        LlmSpikeGui.OpenRouterBridge other = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
-                "other/smart", model, null, base.replace("/v1", "/ceiling-other/v1"), 5000));
-        other.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
-        Assert.assertEquals(other.ceilingRefusals(), 1);
-        LlmSpikeGui.OpenRouterBridge limited = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
-                "limited/smart", model, null, base.replace("/v1", "/ceiling-429/v1"), 5000));
-        limited.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
-        Assert.assertEquals(limited.ceilingRefusals(), 0);
+    public void underACeilingA404OrA5xxIsCountedAndOtherRefusalsAreNot() {
+        Assert.assertEquals(refusalsAt("ceiling"), 1);
+        Assert.assertEquals(refusalsAt("ceiling-503"), 1);
+        Assert.assertEquals(refusalsAt("ceiling-400"), 0);
+        Assert.assertEquals(refusalsAt("ceiling-429"), 0);
+    }
+
+    /** pr-review of #327: ONE_CHAT / TURN_CHAT wrap the smart tier in a ChatSessionBridge; its refusals still count. */
+    @Test
+    public void refusalsUnderAWrappedTierAreCounted() {
+        LlmSpikeGui.OpenRouterBridge capped = withCeiling(CEILING, () -> new LlmSpikeGui.OpenRouterBridge(
+                "wrapped/smart", "openai/gpt-6.1-sol", null, base.replace("/v1", "/ceiling/v1"), 5000));
+        capped.chat("[{\"role\":\"user\",\"content\":\"play\"}]", ANSWER_TOOLS, true);
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.ceilingRefusals(new ChatSessionBridge(capped, false), null),
+                Integer.valueOf(1));
     }
 
     private static String read(HttpExchange ex) throws IOException {
         try (InputStream in = ex.getRequestBody()) { return new String(in.readAllBytes(), StandardCharsets.UTF_8); }
     }
 
-    private static void respond(HttpExchange ex, String json) throws IOException {
+    private static void respond(HttpExchange ex, String json) throws IOException { respond(ex, 200, json); }
+
+    private static void respond(HttpExchange ex, int status, String json) throws IOException {
         byte[] b = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().add("Content-Type", "application/json");
-        ex.sendResponseHeaders(200, b.length);
+        ex.sendResponseHeaders(status, b.length);
         try (OutputStream os = ex.getResponseBody()) { os.write(b); }
     }
 }

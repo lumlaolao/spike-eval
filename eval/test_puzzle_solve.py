@@ -360,23 +360,20 @@ class RecordBuildTest(unittest.TestCase):
     run refuses it unless --allow-no-record, which the manifest then states. A resume passing the run's own suite copy
     as --suite does not copy the file onto itself."""
 
-    def run_main(self, classes, *extra, suite=None):
-        return run_solve(classes, *extra, suite=suite)
-
     def test_a_build_without_transcript_is_refused_before_anything_runs(self):
         with self.assertRaises(SystemExit) as cm:
-            self.run_main(Path(tempfile.mkdtemp()))
+            run_solve(Path(tempfile.mkdtemp()))
         self.assertIn("Transcript", str(cm.exception))
         self.assertIn("--allow-no-record", str(cm.exception))
 
     def test_allowed_without_the_record_the_manifest_says_so(self):
-        root, rec, ran = self.run_main(Path(tempfile.mkdtemp()), "--allow-no-record")
+        root, rec, ran = run_solve(Path(tempfile.mkdtemp()), "--allow-no-record")
         self.assertEqual(len(ran), 1)
         record = json.loads((root / rec["id"] / "batch-manifest.json").read_text())["record"]
         self.assertIsNone(record["transcript_version"], "a run without the record must not claim one")
 
     def test_the_runs_own_suite_copy_is_not_copied_onto_itself(self):
-        root, rec, ran = self.run_main(classes_with_transcript(), suite="own-copy")
+        root, rec, ran = run_solve(classes_with_transcript(), suite="own-copy")
         self.assertEqual(len(ran), 1)
 
     def test_the_version_is_the_stamp_versions_py_reads(self):
@@ -476,7 +473,7 @@ class MaxPriceAtListTest(unittest.TestCase):
     def test_the_ceiling_is_the_list_price_per_million_tokens_exactly(self):
         prices = puzzle_solve.cost_report.load_prices()
         for spec, want in (("openrouter:openai/gpt-6.1-sol", {"prompt": 2, "completion": 10}),
-                           ("openrouter:moonshotai/kimi-k3", {"prompt": 0.239, "completion": 10.8}),
+                           ("openrouter:moonshotai/kimi-k3", {"prompt": 0.17, "completion": 16}),
                            ("openrouter:deepseek/deepseek-v4.1-flash", {"prompt": 0.02, "completion": 1})):
             got = json.loads(puzzle_solve.max_price_env(prices, spec))
             self.assertEqual(got, {spec.split(":", 1)[1]: want}, spec)
