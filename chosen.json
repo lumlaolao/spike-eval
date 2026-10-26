@@ -31,6 +31,14 @@
   "why": [],
   "minutes": 21
  },
+ "anthropic_claude-haiku-5.5 hard-elf2-2753b3ca0d06": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/anthropic_claude-haiku-5.5__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 40
+ },
  "anthropic_claude-sonnet-5.5 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/anthropic_claude-sonnet-5.5/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
@@ -78,6 +86,14 @@
   "good": true,
   "why": [],
   "minutes": 13
+ },
+ "deepseek_deepseek-v4-pro hard-splice2-325cd33e0a57": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/deepseek_deepseek-v4-pro__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 29
  },
  "deepseek_deepseek-v4.1-flash hard-atog-b8053a21d4a8": {
   "root": "frontier5",

@@ -1,6 +1,6 @@
-anthropic_claude-haiku-5.5     S F F F .  good 4/5
+anthropic_claude-haiku-5.5     S F F F S  good 5/5
 anthropic_claude-sonnet-5.5    S S S S S  good 5/5
-deepseek_deepseek-v4-pro       F . . . .  good 1/5
+deepseek_deepseek-v4-pro       F . S . .  good 2/5
 deepseek_deepseek-v4.1-flash   S . S . .  good 2/5
 google_gemini-3.8-flash        S . . . .  good 1/5
 google_gemini-4-argon          S . . . .  good 1/5
@@ -18,4 +18,4 @@ x-ai_grok-4.6                  S S F S F  good 5/5
 x-ai_grok-4.7                  S . S S .  good 3/5
 x-ai_grok-build-0.1            F F F . .  good 3/5
 z-ai_glm-5.3                   S . . . .  good 1/5
-good games 40/100, to do 60
+good games 42/100, to do 58
