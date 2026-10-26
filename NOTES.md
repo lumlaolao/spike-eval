@@ -1,7 +1,26 @@
 # frontier5 run notes (2026-10-26, owner decisions)
 
 The conditions and every decision that shapes how the results read. `STATUS.txt` marks a board S (solved),
-F (failed) or . (not yet played).
+F (failed) or . (not yet played). `F*` marks the one failure caused by a harness bug.
+
+## ⚠ Harness bug found: GLM 5.3, elf2 (scored a failure, owner)
+
+**GLM 5.3's elf2 game exposed a defect in our harness.** The board is scored a **failure**, because the test
+was not passed (owner, 2026-10-26). But the loss was caused by the harness, not by GLM's play:
+
+- On its first decision (main phase 1) GLM replied with two `answer` tool calls. The first held only its
+  analysis (`lines`, no move). The second held the move: `option 14`, tapping both Forests to start the
+  Heritage Druid / Nettle Sentinel engine into a 59-damage Craterhoof kill.
+- The harness reads only the first `answer` call. It judged the reply invalid and retried, GLM split its answer
+  the same way again, and after 2 attempts the harness passed priority for GLM (`answer_via: lost`,
+  `fallback: play(unparsed)->PASS`, `textParses=2` in jvm.log).
+- Losing main phase 1 made the kill impossible. GLM saw this ("Main 1 was already passed ... the exact-59
+  Craterhoof kill is unreachable") and played out a lost turn.
+- **It is the only game in the whole run, across every model and attempt, with a lost decision.** No other
+  result is affected.
+- The fix (use the valid `answer` call when a reply holds several, and never consult the text parser on a
+  reply with tool calls) is queued as its own change with a failing test first. It needs an engine overlay
+  change, a PR and an acceptance run, so it was not made mid-run.
 
 ## Conditions
 
