@@ -3,8 +3,11 @@
 # Jev 1.14 runs through its own bridge (spec jev:typesafe/jev-1.14, on main since PR #305), listed as JEV below.
 # Jev Router is out (owner, 2026-10-24).
 # Nothing runs until the owner starts it. Needs OPENROUTER_ALLOW_EGRESS=1 (the owner's, never set here).
-#   bash notes/frontier5-plan.sh            # all models, 5 at a time
-#   RESUME=1 bash notes/frontier5-plan.sh   # pick up where a stopped run left off
+#   STAGE=1 bash notes/frontier5-plan.sh   # the trial: board 1 only, every model (about $12); read it first
+#   RESUME=1 bash notes/frontier5-plan.sh  # then the other 4 boards (board 1 is skipped), or a stopped run
+#   bash notes/frontier5-plan.sh           # all 5 boards in one go, no trial
+#   DRY=1 STAGE=1 bash notes/frontier5-plan.sh   # the free checks, then print each command instead of running it
+# Land every PR the run needs before the trial: a resume refuses a build other than the trial's.
 #   ONLY="x-ai/grok-4.7 openai/gpt-6-luna" bash notes/frontier5-plan.sh
 #   REPO=/path/to/main-checkout bash notes/frontier5-plan.sh   # REPO must be at origin/main
 # Watch it (one table per model; --follow streams decisions, flags and finished puzzles):
@@ -20,6 +23,16 @@ FORGE=${FORGE_HOME:-$HOME/forge}; FORGE=${FORGE//\$HOME/$HOME}   # an environmen
 SUITE=$REPO/eval/suites/puzzles-hard-gen2-v1.json
 IDS=hard-atog-b8053a21d4a8,hard-hoofdrain-60c5afda2f25,hard-splice2-325cd33e0a57,hard-drain2-516c13f84175,hard-elf2-2753b3ca0d06
 OUT=${OUT:-$REPO/runs/puzzles/frontier5}
+case "${STAGE:-}" in
+  "") ;;
+  1) IDS=${IDS%%,*} ;;   # the trial: the first board only
+  *) echo "refused: STAGE is 1 (the board-1 trial) or unset (all boards)"; exit 2 ;;
+esac
+# A second launch into the same directories must say it continues them, or the trial's board would be played twice.
+if [ -z "${RESUME:-}" ] && [ -z "${DRY:-}" ] && ls -d "$OUT"/*/ >/dev/null 2>&1; then
+  echo "refused: $OUT already holds a run; RESUME=1 continues it (after the trial, RESUME=1 plays the other boards)"
+  exit 2
+fi
 PAR=${PAR:-5}   # each JVM takes 2 GB (-Xmx2048m); this box has 15; one JVM per model (--jobs 1)
 # model  cap-in-USD: 5 attempts (the 3-attempt caps x 5/3) at the "high" profile (730K prompt half cached, 212K output) priced at each
 # model's `max` in eval/pricing/prices.json (its dearest endpoint; budgets check there since PR #303), +10%.
@@ -51,14 +64,16 @@ mistralai/mistral-large-4-0 9.17
 mistralai/mistral-medium-3-5 16.67
 "
 JEV="typesafe/jev-1.14 0.85"   # $0.042/M input, output free: about $0.01 for 5 puzzles
-[ "${OPENROUTER_ALLOW_EGRESS:-}" = 1 ] || { echo "refused: the owner's egress opt-in is not set"; exit 2; }
+# DRY sends no game anywhere (only the public price lookups below), so it needs no opt-in; a real run does.
+[ "${OPENROUTER_ALLOW_EGRESS:-}" = 1 ] || [ -n "${DRY:-}" ] || { echo "refused: the owner's egress opt-in is not set"; exit 2; }
 # The run must play main's harness: puzzle_solve.py otherwise takes the newest build under
 # runs/harness-acceptance, which can be an unmerged branch's.
 git -C "$REPO" fetch -q origin main || { echo "refused: cannot fetch origin/main"; exit 2; }
 HEAD_SHA=$(git -C "$REPO" rev-parse HEAD)
 [ "$HEAD_SHA" = "$(git -C "$REPO" rev-parse origin/main)" ] && [ -z "$(git -C "$REPO" status --porcelain -- eval forge-overlay)" ] \
   || { echo "refused: $REPO is not a clean checkout of origin/main"; exit 2; }
-if [ -z "$BUILD" ]; then
+if [ -z "$BUILD" ] && [ -n "${DRY:-}" ]; then BUILD="<built at run time>"
+elif [ -z "$BUILD" ]; then
   BUILD=/tmp/frontier5-build-${HEAD_SHA:0:7}
   ( cd "$REPO" && STAGES="preflight classpath compile" OUT=$BUILD FORGE_HOME=$FORGE \
       bash eval/harness_acceptance.sh > "$BUILD.log" 2>&1 ) || { echo "refused: build failed, see $BUILD.log"; exit 2; }
@@ -88,9 +103,10 @@ run_one() {
   local model=$1 cap=$2 dir=$OUT/${1//\//_}
   local spec="openrouter:$model" ceiling=--max-price-at-list
   [[ $model == typesafe/jev-* ]] && spec="jev:$model" ceiling=""   # the Decisions API takes no provider object
-  python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 --jobs 1 \
-    --build "$BUILD" --forge "$FORGE" \
-    --model "$spec" --budget-usd "$cap" $ceiling --out "$dir" ${RESUME:+--resume} > "$dir.log" 2>&1
+  local cmd=(python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 --jobs 1
+    --build "$BUILD" --forge "$FORGE" --model "$spec" --budget-usd "$cap" $ceiling --out "$dir" ${RESUME:+--resume})
+  if [ -n "${DRY:-}" ]; then echo "${cmd[*]}"; return; fi
+  "${cmd[@]}" > "$dir.log" 2>&1
   echo "$model exit $? ($(python3 "$REPO/eval/cost_report.py" "$dir" 2>/dev/null | tail -1))"
 }
 mkdir -p "$OUT"
@@ -101,6 +117,14 @@ printf "%s\n%s\n" "$MODELS" "$JEV" | while read -r m cap; do
   run_one "$m" "$cap" &
 done
 wait
+[ -z "${DRY:-}" ] || exit 0
+if [ -n "${STAGE:-}" ]; then
+  # The trial's reading: one table per model (decisions by tier, AI fallbacks, text parses, refused lookups,
+  # PRICE-CEILING, exceptions, cost). Every model must be clean before RESUME=1 plays the other boards.
+  for d in "$OUT"/*/; do python3 "$REPO/eval/puzzle_watch.py" "$d" 2>&1 | tail -6; done
+  echo "trial done: read the tables above, then RESUME=1 bash notes/frontier5-plan.sh plays boards 2 to 5"
+  exit 0
+fi
 # One score per model (never pooled), k=1, on the 5 boards: a pilot line, not a suite score.
 for d in "$OUT"/*/; do
   echo "== $(basename "$d")"
