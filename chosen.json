@@ -127,6 +127,14 @@
   "why": [],
   "minutes": 18
  },
+ "deepseek_deepseek-v4.1-flash hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/deepseek_deepseek-v4.1-flash__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 183
+ },
  "deepseek_deepseek-v4.1-flash hard-splice2-325cd33e0a57": {
   "root": "frontier5-fill",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/deepseek_deepseek-v4.1-flash__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
