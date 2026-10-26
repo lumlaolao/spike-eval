@@ -187,7 +187,8 @@ def write_json(path, obj):
 def write_manifest(out, model, suite_sha, puzzle_id, cond, build=None, record=None):
     """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
     game row (a puzzle has none). `build`: puzzle_baselines.Build.provenance(), the build it ran on. `record`: what
-    the directory keeps beyond the rows (the transcript version, the .pzl copy); not a condition."""
+    the directory keeps beyond the rows (the transcript version, the .pzl copy) and the run conditions puzzle_score
+    reads from it (game cap, call deadline, token cap; docs/STANDARDS.md section 4)."""
     m = {"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id, "suite_sha256": suite_sha, "env": cond},
          "build": build}
     if record is not None:
@@ -218,7 +219,8 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
     would pool two conditions in one score (STANDARDS section 4). A directory from before builds were recorded is
     another build; one from before the ceiling existed was uncapped. `quantizations`: the precisions allowed (a
     list or None), compared the same way: it is what the model ran at. `cap_ms`: the game cap may rise on a resume
-    (already_done replays every puzzle played under the lower one), never fall below what a puzzle was played under."""
+    (already_done replays every puzzle played under the lower one), never fall below what a puzzle was played under.
+    `call_ms`, `max_tokens`: the call deadline and token cap, refused under any other value."""
     bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
     ceiling = json.loads(max_price) if max_price else None
     for pid in ids:
@@ -243,6 +245,8 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
     return bad
 
 
+# The post-cap grace, as run_batch.py's GRACE_S: a capped game finishes the decision in flight (maxDecisionMs() + 10 s).
+GRACE_S = 1000
 # ModelCfg's table keys (LlmSpikeGui.ModelCfg.buildTable): OPENROUTER_MODEL_CFG overrides a key it names, and a
 # model takes the first key its id contains, else "default", so --max-tokens names every one.
 MODEL_CFG_KEYS = ("opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "default")
@@ -273,8 +277,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
         env["OPENROUTER_MAX_PRICE"] = max_price
     if quantizations:
         env["OPENROUTER_QUANTIZATIONS"] = json.dumps({cost_report.model_id(model): quantizations})
-    # Past every attempt's game cap, so the JVM is never killed while a game may still end inside its cap.
-    rc = build.run(env, out, timeout_s=max(4 * 3600, k * cap_ms // 1000 + 3600), keep_model_env=True)
+    # Past every attempt's game cap and the grace after it, so the JVM is never killed while a game may still end.
+    rc = build.run(env, out, timeout_s=max(4 * 3600, k * (cap_ms // 1000 + GRACE_S) + 3600), keep_model_env=True)
     rows = pb.read_results(out)
     return rec["id"], rc, rows
 
@@ -333,6 +337,12 @@ def main(argv=None):
     for flag, on in (("--max-price-at-list", a.max_price_at_list), ("--quantizations", a.quantizations is not None)):
         if on and not a.model.startswith("openrouter:"):
             raise SystemExit("%s is for an openrouter: chat model; %s sends no provider preferences" % (flag, a.model))
+    # A condition the seat's bridge never reads would split a pair or a resume over a difference that is not there:
+    # ClaudeCliBridge reads neither, DecisionsBridge (jev:) reads only OPENROUTER_TIMEOUT_MS.
+    for flag, on, prefixes in (("--max-tokens", a.max_tokens is not None, ("openrouter:",)),
+                               ("--call-timeout-minutes", a.call_timeout_minutes is not None, ("openrouter:", "jev:"))):
+        if on and not a.model.startswith(prefixes):
+            raise SystemExit("%s is for a %s model; %s never reads it" % (flag, " or ".join(prefixes), a.model))
     quantizations = None
     if a.quantizations is not None:
         # Sorted and deduplicated: a set of precisions, so the order typed never splits a resume or a condition.

@@ -610,11 +610,29 @@ class GameCapTest(unittest.TestCase):
         self.assertEqual(envs[0]["GAME_CAP_MS"], "1800000")
         self.assertEqual(manifest["record"]["game_cap_ms"], 1800000)
 
-    def test_the_jvm_outlives_every_attempts_cap(self):
+    def test_the_jvm_outlives_every_attempts_cap_and_its_grace(self):
+        # A capped game still finishes the decision in flight (maxDecisionMs() + 10 s, about 912 s).
         del TIMEOUTS[:]
         run_openrouter("openrouter:openai/gpt-6-luna", "--game-cap-minutes", "300", "--k", "4")
         self.assertEqual(len(TIMEOUTS), 1)
-        self.assertGreaterEqual(TIMEOUTS[0], 4 * 300 * 60, "a JVM killed while its k-th game is still inside its cap")
+        self.assertGreaterEqual(TIMEOUTS[0], 4 * (300 * 60 + 1000),
+                                "a JVM killed while its k-th game is still inside its cap or the grace after it")
+
+    def test_a_token_cap_or_call_deadline_is_refused_for_a_bridge_that_never_reads_it(self):
+        # A condition the seat never ran under would split a pair or a resume over a difference that is not there.
+        cli = ClaudeCliSeatTest()
+        for model, flag, value in (("claude-cli:claude-opus-5-5", "--max-tokens", "131072"),
+                                   ("claude-cli:claude-opus-5-5", "--call-timeout-minutes", "3"),
+                                   ("jev:typesafe/jev-1.14", "--max-tokens", "131072"),
+                                   ("greedy:", "--max-tokens", "131072"),
+                                   ("greedy:", "--call-timeout-minutes", "3")):
+            self.assertIn(flag, cli.run_main(model, "-j", "1", flag, value), model)
+
+    def test_a_jev_seat_takes_the_call_deadline(self):
+        # DecisionsBridge reads OPENROUTER_TIMEOUT_MS.
+        envs, manifest = run_openrouter("jev:typesafe/jev-1.14", "--call-timeout-minutes", "3")
+        self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "180000")
+        self.assertEqual(manifest["record"]["call_timeout_ms"], 180000)
 
     def test_the_call_deadline_reaches_the_jvm_and_the_manifest_and_is_off_by_default(self):
         # Owner, 2026-10-26: no model is cut off mid-thought; the 300 s per-call deadline fired for four models.

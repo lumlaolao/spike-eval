@@ -331,7 +331,7 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
 - Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat) unless `--call-timeout-minutes`
   sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as `record.call_timeout_ms`; a resume under another
-  value is refused). A call past it is retried, then its decision goes to a fixed legal option. In
+  value is refused; an `openrouter:` or `jev:` seat only, since no other bridge reads it). A call past it is retried, then its decision goes to a fixed legal option. In
   `runs/puzzles/frontier5` the 300 s deadline fired for four models (`grep -l "wall-clock timeout"
   runs/puzzles/frontier5/*/*/jvm.log`); the owner's later runs use 20 and 60 minutes.
   A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
@@ -340,7 +340,7 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   which biases the score. The frontier run used k=1.
 - Each smart-tier call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000) unless
   `--max-tokens` sets one for every model family (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
-  2^31-1; a resume under another value is refused). The fast tier keeps 8192 with reasoning off. The frontier fill run
+  2^31-1; a resume under another value is refused; an `openrouter:` seat only, since no other bridge reads it). The fast tier keeps 8192 with reasoning off. The frontier fill run
   gave each model its own maximum output (owner, 2026-10-26).
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
