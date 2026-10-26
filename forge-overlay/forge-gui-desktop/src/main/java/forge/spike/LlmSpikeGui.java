@@ -357,8 +357,11 @@ public final class LlmSpikeGui {
      *  and the block restrictions hold (blocksError).
      *  Epoch 72 (2026-10-24, issue #312, the grader's costs.x): a declined search answered NO at "Cancel Search?" is
      *  asked again once, saying a second decline ends the search; a second decline does (the engine re-asked forever).
+     *  Epoch 73 (2026-10-26, frontier5 GLM 5.3 on hard-elf2, answer-tool-v12): a reply's answer is its first `answer`
+     *  call that validates. A reply that sent its analysis in one `answer` call and its option in a second was refused
+     *  twice and its decision lost to PASS, skipping main phase 1.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-72";
+    static final String HARNESS_EPOCH = "harness-epoch-73";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -4351,7 +4354,9 @@ public final class LlmSpikeGui {
                     if (unparsed) p("[ROUTER] play: no usable CHOICE in the reply -> PASS (unparsed)");
                     else if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
                     if (!SKIP_HEUR && observer != null && rnd == null) {
-                        String y = playAnswer != null ? playAnswer.yieldUntil : textSegment(lastReply, "YIELD:");
+                        // A lost tool ask has no answer and its text is never read (frontier5, GLM 5.3 on hard-elf2).
+                        String y = playAnswer != null ? playAnswer.yieldUntil
+                                : answerLost() ? null : textSegment(lastReply, "YIELD:");
                         if (y != null) {
                             y = y.trim().toLowerCase(java.util.Locale.ROOT);
                             if (y.startsWith("end-of-turn") || y.startsWith("my-next-turn")) {

@@ -366,8 +366,14 @@ stays in front of it. A result row's `goal_oracle` is that card's text as the se
 - the play extras: `steps` under `PLAN_EXECUTE`, `yield`, `profile`, `lines`, `keep_untapped`;
 - `why`, one sentence for the record.
 
-Each call is validated against the decision it answers. An illegal call gets the reason and one more
-round in the same conversation; a second illegal call loses the decision.
+Each call is validated against the decision it answers. A reply's answer is its first `answer` call that
+validates, so an incomplete call before a legal one does no harm (answer-tool-v12, harness-epoch-73). A reply
+whose every `answer` call is illegal gets the reasons and one more round in the same conversation; a second
+such reply loses the decision.
+- *Why the first valid call:* in the frontier5 run (2026-10-26) GLM 5.3 sent its analysis in one `answer`
+  call (`lines` only) and its option in a second. Only the first was read, the legal second was refused, and
+  after the retry did the same the decision was lost to PASS. That skipped main phase 1 and lost a winnable
+  board. It was the only lost decision in the run.
 
 A tool ask's decision text comes from the question builders the text lane and the ai-teacher seat share.
 `AnswerTool.rephrase` removes their text answer line ("Reason briefly, then end with EXACTLY: ..."), and the

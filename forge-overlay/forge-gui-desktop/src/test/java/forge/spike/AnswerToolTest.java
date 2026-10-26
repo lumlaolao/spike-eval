@@ -134,6 +134,43 @@ public class AnswerToolTest {
                 || tr.get(tr.size() - 2).getAsJsonObject().get("content").getAsString().startsWith("Answer recorded: CHOICE: 2"), tr.toString());
     }
 
+    /** frontier5, GLM 5.3 on hard-elf2 (2026-10-26): one reply held `answer {lines}` (no option) and then
+     *  `answer {option: 14}`. Only the first was read, so the legal second was refused ("one answer per
+     *  decision"), the reply counted invalid, and after the retry did the same the decision was lost to PASS:
+     *  main phase 1 skipped, the board lost. The first call in a reply that validates is the answer. */
+    @Test
+    public void aLegalAnswerAfterAnIncompleteOneInTheSameReplyIsTheAnswer() {
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+        String reply = AnswerTool.converse("DECISION", ask, (user, messages, tools, allow, r) -> calls(
+                new NativeTools.Call("c1", "answer", "{\"lines\":\"Heritage Druid + Nettle Sentinel ramp\"}"),
+                new NativeTools.Call("c2", "answer", "{\"option\":2,\"why\":\"start the engine\"}")),
+                null, (req, res) -> { });
+        Assert.assertEquals(reply, "WHY: start the engine\nCHOICE: 2");
+        Assert.assertEquals(ask.via, "tool");
+        Assert.assertEquals(ask.invalid, 0, "a reply that answered is not an invalid one");
+        Assert.assertFalse(ask.lost);
+        java.util.Set<String> results = new java.util.HashSet<>();
+        for (JsonElement m : ask.transcript)
+            if (m.getAsJsonObject().has("tool_call_id")) results.add(m.getAsJsonObject().get("tool_call_id").getAsString());
+        Assert.assertEquals(results, java.util.Set.of("c1", "c2"), "a result for every call, the unused one too");
+    }
+
+    /** Two illegal `answer` calls in ONE reply are one invalid reply, not two: the decision is asked again. */
+    @Test
+    public void illegalAnswersInOneReplyCountAsOneInvalidReply() {
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(2), false);
+        NativeTools.Turn[] script = {
+                calls(new NativeTools.Call("c1", "answer", "{\"option\":9}"), new NativeTools.Call("c2", "answer", "{\"option\":8}")),
+                calls(new NativeTools.Call("c3", "answer", "{\"option\":1}")),
+        };
+        int[] round = {0};
+        String reply = AnswerTool.converse("DECISION", ask, (user, messages, tools, allow, r) -> script[round[0]++],
+                null, (req, res) -> { });
+        Assert.assertEquals(reply, "CHOICE: 1");
+        Assert.assertEquals(ask.invalid, 1);
+        Assert.assertFalse(ask.lost);
+    }
+
     @Test
     public void twoIllegalCallsLoseTheDecisionToTheCallersFallback() {
         AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(2), false);
