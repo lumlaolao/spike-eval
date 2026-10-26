@@ -119,6 +119,20 @@ most log questions).
   `System.getenv` in the game-line writer is either stamped or on a named allowlist of settings that
   do not change the seat's decisions (the check is `eval/test_experiments.py`'s
   `GameLineStampCoverageTest`).
+  A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
+  per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329) may
+  instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
+  `puzzle_score.load_rows` attaches it to every row it reads and the scorer refuses a mix. A resume
+  under a lower value is refused. A resume under a higher one replays every puzzle it reaches that
+  was played under the lower value, all its attempts, setting the old rows aside unscored
+  (`puzzle_solve.already_done`, `prepare`); a puzzle the resume does not reach (the budget) keeps its
+  old rows, and the scorer refuses the run until it is replayed. The deadline and the token cap refuse
+  a resume under any other value; the scorer refuses to pool either, refuses to pair two deadlines,
+  and labels a pair under two token caps `cross_max_tokens`. The checks are
+  `eval/test_puzzle_score.py`'s `test_a_row_takes_its_game_cap_from_its_puzzles_manifest`,
+  `test_games_under_two_caps_are_never_pooled`, `test_games_under_two_call_deadlines_are_never_pooled_or_paired`
+  and `test_games_under_two_token_caps_are_never_pooled_and_a_pair_says_so`, and
+  `eval/test_puzzle_solve.py`'s `GameCapTest`.
 - **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
   what it cannot. **Shell**: bash 3.2 (macOS); inside a heredoc in `$( )`, apostrophes and
   backticks must pair up as bash reads them (prefer none) — bash 3.2 scans for the closing paren

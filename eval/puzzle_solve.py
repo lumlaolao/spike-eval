@@ -138,8 +138,12 @@ def max_price_env(prices, spec):
                            ", ".join('"%s": %s' % (k, format(v, "f")) for k, v in per_m.items()))
 
 
-def already_done(out, k, suite_sha):
-    """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it."""
+def already_done(out, k, suite_sha, cap_ms=None):
+    """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it. A
+    puzzle played under a game cap below `cap_ms` is not done: the cap is a condition, so all its attempts are played
+    again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones)."""
+    if cap_ms is not None and ((ps.record_of(Path(out)) or {}).get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) < cap_ms:
+        return False
     seeds = {r.get("seed") for r in pb.read_results(out)
              if r.get("suite_sha256") == suite_sha and not r.get("routing_refusals")}
     return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
@@ -148,18 +152,24 @@ def already_done(out, k, suite_sha):
 def set_aside_partial(out):
     """A puzzle cut off part way is played again from its first seed; its rows so far and its JVM log are renamed,
     so a scorer never counts them and the replay does not overwrite them, and its game rows stay, so cost_report
-    still prices what was spent."""
+    still prices what was spent. The manifest is copied beside them: the replay rewrites it, and the set-aside rows
+    keep the condition they were played under (a lower game cap)."""
     out = Path(out)
     n = max(len(list(out.glob("puzzle-results.partial*.jsonl"))), len(list(out.glob("jvm.partial*.log"))))
     for name, aside in (("puzzle-results.jsonl", "puzzle-results.partial%d.jsonl"), ("jvm.log", "jvm.partial%d.log")):
         if (out / name).is_file():
             (out / name).rename(out / (aside % n))
+    if (out / "batch-manifest.json").is_file():
+        shutil.copyfile(str(out / "batch-manifest.json"), str(out / ("batch-manifest.partial%d.json" % n)))
 
 
-def prepare(out, k, suite_sha, resume):
-    """"done" when a resumed run already has this puzzle's k attempts; otherwise "run", a partial set aside."""
-    if resume and already_done(out, k, suite_sha):
+def prepare(out, k, suite_sha, resume, cap_ms=None, can_run=lambda: True):
+    """"done" when a resumed run already has this puzzle's k attempts; "skip" when it would run and `can_run()` says
+    no (the budget), with nothing moved; otherwise "run", a partial set aside."""
+    if resume and already_done(out, k, suite_sha, cap_ms):
         return "done"
+    if not can_run():
+        return "skip"
     if resume:
         set_aside_partial(out)
     return "run"
@@ -177,7 +187,8 @@ def write_json(path, obj):
 def write_manifest(out, model, suite_sha, puzzle_id, cond, build=None, record=None):
     """The condition a puzzle's directory was played under; cost_report prices its calls from it when there is no
     game row (a puzzle has none). `build`: puzzle_baselines.Build.provenance(), the build it ran on. `record`: what
-    the directory keeps beyond the rows (the transcript version, the .pzl copy); not a condition."""
+    the directory keeps beyond the rows (the transcript version, the .pzl copy) and the run conditions puzzle_score
+    reads from it (game cap, call deadline, token cap; docs/STANDARDS.md section 4)."""
     m = {"condition": {"smart_a": model, "fast_a": model, "puzzle": puzzle_id, "suite_sha256": suite_sha, "env": cond},
          "build": build}
     if record is not None:
@@ -200,13 +211,16 @@ def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None, 
     write_json(Path(out_root) / RUN_FILE, run)
 
 
-def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None):
+def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None, cap_ms=None,
+                     call_ms=None, max_tokens=None):
     """The puzzle directories under out_root made under another model, suite or seat condition, or on another
     build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale), or price ceiling
     (`max_price`, max_price_env's JSON or None: a ceiling can move a request to another provider): a resume into them
     would pool two conditions in one score (STANDARDS section 4). A directory from before builds were recorded is
     another build; one from before the ceiling existed was uncapped. `quantizations`: the precisions allowed (a
-    list or None), compared the same way: it is what the model ran at."""
+    list or None), compared the same way: it is what the model ran at. `cap_ms`: the game cap may rise on a resume
+    (already_done replays every puzzle played under the lower one), never fall below what a puzzle was played under.
+    `call_ms`, `max_tokens`: the call deadline and token cap, refused under any other value."""
     bad, now = [], {"smart_a": model, "suite_sha256": suite_sha, "env": cond}
     ceiling = json.loads(max_price) if max_price else None
     for pid in ids:
@@ -221,25 +235,42 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
         was, was_build, was_record = (manifest.get(k) or {} for k in ("condition", "build", "record"))
         diff = [key for key in now if was.get(key) != now[key]]
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
-        diff += [key for key, v in (("openrouter_max_price", ceiling), ("openrouter_quantizations", quantizations))
+        diff += [key for key, v in (("openrouter_max_price", ceiling), ("openrouter_quantizations", quantizations),
+                                    ("call_timeout_ms", call_ms), ("max_tokens", max_tokens))
                  if was_record.get(key) != v]
+        if cap_ms is not None and (was_record.get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) > cap_ms:
+            diff.append("game_cap_ms (lower than played)")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
 
 
-def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None, quantizations=None):
+# The post-cap grace, as run_batch.py's GRACE_S (pinned by test_the_grace_is_run_batchs): a capped game finishes
+# the decision in flight (maxDecisionMs() + 10 s).
+GRACE_S = 1000
+# ModelCfg's table keys (LlmSpikeGui.ModelCfg.buildTable): OPENROUTER_MODEL_CFG overrides a key it names, and a
+# model takes the first key its id contains, else "default", so --max-tokens names every one.
+MODEL_CFG_KEYS = ("opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "default")
+
+
+def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None, quantizations=None,
+                 cap_ms=ps.LEGACY_GAME_CAP_MS, call_ms=None, max_tokens=None):
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
     record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
               "pzl_sha256": rec.get("pzl_sha256"),
               "openrouter_max_price": json.loads(max_price) if max_price else None,
-              "openrouter_quantizations": quantizations}
+              "openrouter_quantizations": quantizations, "game_cap_ms": cap_ms,
+              "call_timeout_ms": call_ms, "max_tokens": max_tokens}
     write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
     # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
-               SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000", TRANSCRIPTS="1")
+               SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS=str(cap_ms), TRANSCRIPTS="1")
+    if call_ms:
+        env["OPENROUTER_TIMEOUT_MS"] = str(call_ms)   # every tier's deadline; Build.run strips it from the shell
+    if max_tokens:
+        env["OPENROUTER_MODEL_CFG"] = json.dumps({k: {"maxTokens": max_tokens} for k in MODEL_CFG_KEYS})
     for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
         if os.environ.get(key):
             env[key] = os.environ[key]
@@ -247,7 +278,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
         env["OPENROUTER_MAX_PRICE"] = max_price
     if quantizations:
         env["OPENROUTER_QUANTIZATIONS"] = json.dumps({cost_report.model_id(model): quantizations})
-    rc = build.run(env, out, timeout_s=4 * 3600, keep_model_env=True)
+    # Past every attempt's game cap and the grace after it, so the JVM is never killed while a game may still end.
+    rc = build.run(env, out, timeout_s=max(4 * 3600, k * (cap_ms // 1000 + GRACE_S) + 3600), keep_model_env=True)
     rows = pb.read_results(out)
     return rec["id"], rc, rows
 
@@ -279,6 +311,15 @@ def main(argv=None):
                     help="an openrouter: model only: send a price ceiling at its list price (no priority tier)")
     ap.add_argument("--quantizations", default=None, metavar="LIST",
                     help="an openrouter: model only: the precisions it may be served at, comma-separated (fp8,bf16)")
+    ap.add_argument("--game-cap-minutes", type=int, default=ps.LEGACY_GAME_CAP_MS // 60000,
+                    help="wall-clock cap on each attempt's game, whole minutes (default %(default)s); a capped game counts "
+                         "as unsolved")
+    ap.add_argument("--call-timeout-minutes", type=int, default=None,
+                    help="deadline on each model call, whole minutes (default: each model's own); a call past it is "
+                         "retried, then its decision goes to a fixed legal option")
+    ap.add_argument("--max-tokens", type=int, default=None,
+                    help="max_tokens on each smart-tier call, its thinking budget too (default: each model's own, "
+                         "32000); the fast tier keeps 8192 with reasoning off")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -297,6 +338,12 @@ def main(argv=None):
     for flag, on in (("--max-price-at-list", a.max_price_at_list), ("--quantizations", a.quantizations is not None)):
         if on and not a.model.startswith("openrouter:"):
             raise SystemExit("%s is for an openrouter: chat model; %s sends no provider preferences" % (flag, a.model))
+    # A condition the seat's bridge never reads would split a pair or a resume over a difference that is not there:
+    # ClaudeCliBridge reads neither, DecisionsBridge (jev:) reads only OPENROUTER_TIMEOUT_MS.
+    for flag, on, prefixes in (("--max-tokens", a.max_tokens is not None, ("openrouter:",)),
+                               ("--call-timeout-minutes", a.call_timeout_minutes is not None, ("openrouter:", "jev:"))):
+        if on and not a.model.startswith(prefixes):
+            raise SystemExit("%s is for a %s model; %s never reads it" % (flag, " or ".join(prefixes), a.model))
     quantizations = None
     if a.quantizations is not None:
         # Sorted and deduplicated: a set of precisions, so the order typed never splits a resume or a condition.
@@ -305,6 +352,18 @@ def main(argv=None):
         if unknown or not quantizations:
             raise SystemExit("--quantizations takes precisions from %s (OpenRouter's names), got %r"
                              % (", ".join(QUANTIZATIONS), a.quantizations))
+    if a.game_cap_minutes < 1:
+        raise SystemExit("--game-cap-minutes must be at least 1")
+    cap_ms = a.game_cap_minutes * 60000
+    if a.call_timeout_minutes is not None and a.call_timeout_minutes < 1:
+        raise SystemExit("--call-timeout-minutes must be at least 1")
+    call_ms = a.call_timeout_minutes * 60000 if a.call_timeout_minutes else None
+    # A resume that played the seeds a capped game skipped would redraw only slow puzzles (eval/PUZZLES.md).
+    if call_ms and call_ms > 5 * 60000 and a.k > 1:
+        raise SystemExit("--call-timeout-minutes above 5 needs --k 1: the post-cap grace is sized from ModelCfg, so a "
+                         "capped game could skip its puzzle's later seeds (eval/PUZZLES.md)")
+    if a.max_tokens is not None and not 1 <= a.max_tokens < 2 ** 31:
+        raise SystemExit("--max-tokens must be from 1 to 2^31-1 (the JVM reads it as an int)")
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
@@ -345,7 +404,7 @@ def main(argv=None):
                          % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
         bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov,
-                               max_price, quantizations)
+                               max_price, quantizations, cap_ms, call_ms, a.max_tokens)
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
@@ -364,12 +423,14 @@ def main(argv=None):
 
     def work(rec):
         out = out_root / rec["id"]
-        if prepare(out, a.k, manifest["suite_sha256"], a.resume) == "done":
+        state = prepare(out, a.k, manifest["suite_sha256"], a.resume, cap_ms,
+                        can_run=lambda: not over_budget(out_root, a.budget_usd))
+        if state == "done":
             return rec["id"], "done", pb.read_results(out)
-        if over_budget(out_root, a.budget_usd):
+        if state == "skip":
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded,
-                            max_price, quantizations)
+                            max_price, quantizations, cap_ms, call_ms, a.max_tokens)
 
     skipped = 0
     try:

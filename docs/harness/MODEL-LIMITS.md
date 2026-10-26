@@ -71,8 +71,8 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 
 | Limit | Where | Bound | Decision | New value |
 |---|---|---|---|---|
-| Smart-tier `max_tokens` (the thinking budget) | `ModelCfg.buildTable` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: providers reject a `max_tokens` above their own output limit, which would turn every call into an error | 32000 |
-| Per-call timeout | `ModelCfg.buildTable` | at 150s: 2 calls timed out | 300s by `acf6f2e`; kept (it couples to the post-cap grace and run_batch.py's `GRACE_S = 1000`) | 300s |
+| Smart-tier `max_tokens` (the thinking budget) | `ModelCfg.buildTable` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: providers reject a `max_tokens` above their own output limit, which would turn every call into an error. A puzzle run may set it per run (`puzzle_solve.py --max-tokens`, recorded as a condition, `eval/PUZZLES.md`); a value above a provider's limit errors every call | 32000 |
+| Per-call timeout | `ModelCfg.buildTable` | at 150s: 2 calls timed out | 300s by `acf6f2e`; kept (it couples to the post-cap grace and run_batch.py's `GRACE_S = 1000`). A puzzle run may set it per run (`puzzle_solve.py --call-timeout-minutes`, recorded as a condition; the `--k 1` rule is in the grace row) | 300s |
 | Truncation retry: a reasoning row retries at 4096 tokens with reasoning off | the OpenRouter bridge's truncation retry (`LSG`) | fired 7 times (smart) | **kept for the smart tier**: it fires only after the model spent the whole 32000-token budget, and the alternative is the deterministic fallback, not more thought. **Fixed for the fast tier**: its reasoning is already off, so the retry asked again at the same 1024 tokens; it now doubles the budget | smart unchanged; fast 2x |
 | Fast tier: 1024 tokens, 45s, reasoning `none` | `LSG:6601, 6616` | 2 of 170 fast calls truncated | tokens and time raised; reasoning **kept** `none`: that is what the two-tier arm is (a condition, `one_tier` on the game line). `ONE_TIER=1` uses the smart row everywhere and is the no-limit arm the game-loop skill already plays | 8192 tokens, 120s |
 | `SMART_BUDGET` / `FAST_BUDGET` calls a game (`play(no-budget)` once spent) | `LSG:607-608` | 0 llm seats (most: 137 smart calls in a 17-turn game; every `no-budget` line in `runs/` is a floor seat) | raised to loop guards; a 40-turn one-tier game reaches 320 | 10000 / 10000 |
@@ -125,7 +125,7 @@ cost). No limit below was reached there.
 |---|---|---|---|---|
 | 45-minute game cap in the game-loop skill (`--cap-minutes 45`; a capped game is scored `invalid`) | `.claude/skills/game-loop/SKILL.md` | 0 of 14 games capped; the longest ran 37.2 minutes (83% of the cap) with 16000-token thinking and 2 tools an ask | raised: with 32000-token thinking at up to 300s a call and 16 tool calls a decision, a 45-minute cap would end games while the model thinks | 120 minutes |
 | run_batch.py's derived default cap | `eval/run_batch.py` `derive_cap_minutes` | n/a | kept: 240 minutes for any non-Haiku model, 120 for Haiku | unchanged |
-| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py` `GRACE_S` | n/a | kept: the largest timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s | unchanged |
+| Post-cap grace / backstop (`GRACE_S = 1000`) | `eval/run_batch.py` `GRACE_S` | n/a | kept: the largest default timeout is still 300s (fast is 120s), so `maxDecisionMs()` is unchanged at about 902s; a puzzle run with `--call-timeout-minutes` above 5 must use `--k 1`, because the grace does not cover it | unchanged |
 
 ## What it costs
 

@@ -234,6 +234,92 @@ class ScoreV2Test(unittest.TestCase):
             with self.assertRaisesRegex(ps.Refused, "routing filters"):
                 ps.score(self.m, rows, "open", k=4, n_boot=20)
 
+    def test_games_under_two_caps_are_never_pooled(self):
+        # Owner, 2026-10-26: a run's cap was raised from 30 to 90 minutes. Even a game that ended under 30 is not
+        # kept beside 90-minute ones: only slow first draws would be drawn again (pr-review of #329).
+        rows = self.rows([4, 2, 0], game_cap_ms=5400000)
+        self.assertEqual(ps.score(self.m, rows, "open", k=4, n_boot=20)["game_cap_ms"], 5400000)
+        rows[0]["game_cap_ms"] = 1800000
+        with self.assertRaisesRegex(ps.Refused, "game caps"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+
+    def test_two_runs_under_other_caps_are_never_paired_and_the_report_names_its_cap(self):
+        a = ps.score(self.m, self.rows([4, 2, 0], game_cap_ms=1800000), "open", k=4, n_boot=20)
+        b = ps.score(self.m, self.rows([4, 4, 0], game_cap_ms=5400000), "open", k=4, n_boot=20)
+        self.assertIn("cap=90min", ps.render(b))
+        with self.assertRaisesRegex(ps.Refused, "game_cap_ms"):
+            ps.paired(a, b, n_boot=50)
+        ps.paired(b, ps.score(self.m, self.rows([4, 4, 0]), "open", k=4, n_boot=20), n_boot=50)   # no cap: unknown
+
+    def test_games_under_two_call_deadlines_are_never_pooled_or_paired(self):
+        a = ps.score(self.m, self.rows([4, 2, 0], call_timeout_ms=1200000), "open", k=4, n_boot=20)
+        self.assertEqual(a["call_timeout_ms"], 1200000)
+        rows = self.rows([4, 2, 0], call_timeout_ms=1200000)
+        rows[0]["call_timeout_ms"] = None
+        with self.assertRaisesRegex(ps.Refused, "call deadlines"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+        b = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=None), "open", k=4, n_boot=20)
+        with self.assertRaisesRegex(ps.Refused, "call_timeout_ms"):
+            ps.paired(a, b, n_boot=50)
+
+    def test_games_under_two_token_caps_are_never_pooled_and_a_pair_says_so(self):
+        # max_tokens is the thinking budget: a condition the scorer must read.
+        a = ps.score(self.m, self.rows([4, 2, 0], max_tokens=131072), "open", k=4, n_boot=20)
+        self.assertEqual(a["max_tokens"], 131072)
+        rows = self.rows([4, 2, 0], max_tokens=131072)
+        rows[0]["max_tokens"] = None
+        with self.assertRaisesRegex(ps.Refused, "token caps"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+        # Two models at their own maximum (frontier5) are a fair pair; the pair names the caps rather than refusing.
+        b = ps.score(self.m, self.rows([4, 4, 0], max_tokens=943718), "open", k=4, n_boot=20)
+        c = ps.paired(a, b, n_boot=50)
+        self.assertEqual(c["max_tokens"], [131072, 943718])
+        self.assertTrue(c["cross_max_tokens"])
+        self.assertFalse(ps.paired(a, a, n_boot=50)["cross_max_tokens"])
+        base = ps.score(self.m, self.rows([0, 0, 0], max_tokens=ps.NO_MANIFEST), "open", k=4, n_boot=20)
+        self.assertFalse(ps.paired(base, a, n_boot=50)["cross_max_tokens"], "a baseline arm has no cap to differ")
+        self.assertIn("CROSS-MAX-TOKENS 131072 vs 943718", ps.render_paired(c, 50, 7))
+        self.assertIn("max_tokens=131072", ps.render(a), "the PUZ line names the token cap")
+        self.assertNotIn("max_tokens=", ps.render(base), "a baseline arm has none to name")
+        own = ps.score(self.m, self.rows([4, 4, 0], max_tokens=None), "open", k=4, n_boot=20)
+        self.assertIn("CROSS-MAX-TOKENS 131072 vs default", ps.render_paired(ps.paired(a, own, n_boot=50), 50, 7))
+
+    def test_a_run_with_no_manifest_is_not_known_to_differ_in_call_deadline(self):
+        # A baseline arm has no manifest; that is not "no --call-timeout-minutes".
+        a = ps.score(self.m, self.rows([4, 2, 0], call_timeout_ms=1200000), "open", k=4, n_boot=20)
+        base = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=ps.NO_MANIFEST), "open", k=4, n_boot=20)
+        ps.paired(a, base, n_boot=50)
+        self.assertIn("call_timeout_ms=1200000", ps.render(a), "the PUZ line names the deadline")
+        # ...but the runs that have one are still checked against each other, not only against the first.
+        b = ps.score(self.m, self.rows([4, 4, 0], call_timeout_ms=3600000), "open", k=4, n_boot=20)
+        with self.assertRaisesRegex(ps.Refused, "call_timeout_ms"):
+            ps.paired(base, a, base=(b, a), n_boot=50)
+
+    def test_an_unreadable_manifest_is_named_not_read_as_30_minutes(self):
+        d = Path(tempfile.mkdtemp())
+        (d / "p").mkdir()
+        (d / "p" / "puzzle-results.jsonl").write_text(json.dumps({"schema": "pzl-result-v1", "id": "x"}) + "\n")
+        (d / "p" / "batch-manifest.json").write_text('{"record": {"game_cap')
+        with self.assertRaisesRegex(ps.Refused, "batch-manifest.json"):
+            ps.load_rows([d])
+
+    def test_a_row_takes_its_game_cap_from_its_puzzles_manifest(self):
+        d = Path(tempfile.mkdtemp())
+        (d / "p").mkdir()
+        (d / "p" / "puzzle-results.jsonl").write_text(json.dumps({"schema": "pzl-result-v1", "id": "x"}) + "\n")
+        self.assertIsNone(ps.load_rows([d])[0]["game_cap_ms"], "no puzzle_solve manifest (a baseline arm): unknown")
+        self.assertEqual(ps.load_rows([d])[0]["call_timeout_ms"], ps.NO_MANIFEST)
+        self.assertEqual(ps.load_rows([d])[0]["max_tokens"], ps.NO_MANIFEST)
+        (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"game_cap_ms": 5400000}}))
+        self.assertEqual(ps.load_rows([d])[0]["game_cap_ms"], 5400000)
+        self.assertIsNone(ps.load_rows([d])[0]["call_timeout_ms"])
+        (d / "p" / "batch-manifest.json").write_text(json.dumps({"record": {"call_timeout_ms": 1200000,
+                                                                               "max_tokens": 131072}}))
+        self.assertEqual(ps.load_rows([d])[0]["call_timeout_ms"], 1200000)
+        self.assertEqual(ps.load_rows([d])[0]["max_tokens"], 131072)
+        (d / "p" / "batch-manifest.json").write_text(json.dumps({"condition": {}}))   # from before the record
+        self.assertEqual(ps.load_rows([d])[0]["game_cap_ms"], ps.LEGACY_GAME_CAP_MS)
+
     def test_a_development_lane_run_is_labelled_so_and_never_called_a_score(self):
         rows = self.rows([4, 2, 0], dev_lane="claude-cli")
         rep = ps.score(self.m, rows, "open", k=4, n_boot=20)

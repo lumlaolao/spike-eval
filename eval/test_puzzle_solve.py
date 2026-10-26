@@ -325,6 +325,9 @@ class FullRecordTest(unittest.TestCase):
                          puzzle_solve.pf.sha256_file(suite_path), "the suite, byte for byte")
 
 
+TIMEOUTS = []   # the timeout_s each fake build.run was given, newest last
+
+
 def run_solve(classes, *extra, model="greedy:", suite=None):
     """main() on the gen2 suite's first open active puzzle with a FakeBuild of `classes` that records each JVM's env:
     (the run root, the puzzle record, the envs)."""
@@ -342,6 +345,7 @@ def run_solve(classes, *extra, model="greedy:", suite=None):
 
         def run(self, env, out, **kw):
             ran.append(env)
+            TIMEOUTS.append(kw.get("timeout_s"))
             return 0
 
     root = Path(tempfile.mkdtemp())
@@ -588,6 +592,176 @@ class PrecisionFloorTest(unittest.TestCase):
             bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, quantizations=other)
             self.assertEqual(len(bad), 1, other)
             self.assertIn("openrouter_quantizations", bad[0])
+
+
+class GameCapTest(unittest.TestCase):
+    """Owner, 2026-10-26: the frontier run's game cap is 90 minutes, not 30 (two board-1 trial games found the win
+    after 30). The cap is a condition: a raised-cap resume replays every puzzle played under a lower cap, all its
+    attempts, since replaying only the cut-off games would draw again only where the first draw was slow and bias
+    the score toward fast games (pr-review of #329)."""
+
+    SUITE = DecisionModelSeatTest.SUITE
+
+    def test_the_cap_reaches_the_jvm_and_the_manifest_and_defaults_to_30_minutes(self):
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna", "--game-cap-minutes", "90")
+        self.assertEqual(envs[0]["GAME_CAP_MS"], "5400000")
+        self.assertEqual(manifest["record"]["game_cap_ms"], 5400000)
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna")
+        self.assertEqual(envs[0]["GAME_CAP_MS"], "1800000")
+        self.assertEqual(manifest["record"]["game_cap_ms"], 1800000)
+
+    def test_the_jvm_outlives_every_attempts_cap_and_its_grace(self):
+        # A capped game still finishes the decision in flight (maxDecisionMs() + 10 s, about 912 s).
+        del TIMEOUTS[:]
+        run_openrouter("openrouter:openai/gpt-6-luna", "--game-cap-minutes", "300", "--k", "4")
+        self.assertEqual(len(TIMEOUTS), 1)
+        self.assertGreaterEqual(TIMEOUTS[0], 4 * (300 * 60 + 1000),
+                                "a JVM killed while its k-th game is still inside its cap or the grace after it")
+
+    def test_a_token_cap_or_call_deadline_is_refused_for_a_bridge_that_never_reads_it(self):
+        # A condition the seat never ran under would split a pair or a resume over a difference that is not there.
+        cli = ClaudeCliSeatTest()
+        for model, flag, value in (("claude-cli:claude-opus-5-5", "--max-tokens", "131072"),
+                                   ("claude-cli:claude-opus-5-5", "--call-timeout-minutes", "3"),
+                                   ("jev:typesafe/jev-1.14", "--max-tokens", "131072"),
+                                   ("greedy:", "--max-tokens", "131072"),
+                                   ("greedy:", "--call-timeout-minutes", "3")):
+            self.assertIn(flag, cli.run_main(model, "-j", "1", flag, value), model)
+
+    def test_a_jev_seat_takes_the_call_deadline(self):
+        # DecisionsBridge reads OPENROUTER_TIMEOUT_MS.
+        envs, manifest = run_openrouter("jev:typesafe/jev-1.14", "--call-timeout-minutes", "3")
+        self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "180000")
+        self.assertEqual(manifest["record"]["call_timeout_ms"], 180000)
+
+    def test_the_call_deadline_reaches_the_jvm_and_the_manifest_and_is_off_by_default(self):
+        # Owner, 2026-10-26: no model is cut off mid-thought; the 300 s per-call deadline fired for four models.
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna", "--call-timeout-minutes", "20")
+        self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "1200000")
+        self.assertEqual(manifest["record"]["call_timeout_ms"], 1200000)
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna")
+        self.assertNotIn("OPENROUTER_TIMEOUT_MS", envs[0], "unset: each model's own deadline (ModelCfg)")
+        self.assertIsNone(manifest["record"]["call_timeout_ms"])
+
+    def test_the_token_cap_reaches_every_model_family_and_the_manifest(self):
+        # Owner, 2026-10-26: lift the 32000-token cap for the games it cut short.
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna", "--max-tokens", "131072")
+        cfg = json.loads(envs[0]["OPENROUTER_MODEL_CFG"])
+        self.assertEqual(set(cfg), set(puzzle_solve.MODEL_CFG_KEYS))
+        self.assertTrue(all(v == {"maxTokens": 131072} for v in cfg.values()))
+        self.assertEqual(manifest["record"]["max_tokens"], 131072)
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna")
+        self.assertNotIn("OPENROUTER_MODEL_CFG", envs[0])
+        self.assertIsNone(manifest["record"]["max_tokens"])
+
+    def test_the_token_cap_keys_are_the_java_tables(self):
+        src = (Path(__file__).resolve().parents[1] / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+               / "LlmSpikeGui.java").read_text()
+        keys = re.search(r'for \(String key : new String\[\]\{([^}]*)\}\)\s*t\.put\(key, uniform\)', src).group(1)
+        self.assertEqual(tuple(k.strip().strip('"') for k in keys.split(",")), puzzle_solve.MODEL_CFG_KEYS)
+
+    def test_the_grace_is_run_batchs(self):
+        # Two backstops for one JVM grace: raising one alone could kill a capped game mid-decision.
+        src = (Path(__file__).resolve().parent / "run_batch.py").read_text()
+        self.assertEqual(int(re.search(r"^\s*GRACE_S = (\d+)", src, re.M).group(1)), puzzle_solve.GRACE_S)
+
+    def test_a_resume_under_another_token_cap_is_refused_and_the_cap_fits_an_int(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,
+                                    {"game_cap_ms": 1800000, "max_tokens": 131072})
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                       max_tokens=131072), [])
+        for other in (None, 32000):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                max_tokens=other)
+            self.assertEqual(len(bad), 1)
+            self.assertIn("max_tokens", bad[0])
+        with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+            puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
+                               "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                               "--max-tokens", str(2 ** 31)])
+        self.assertIn("--max-tokens", str(cm.exception.code))
+
+    def test_a_long_call_deadline_with_several_attempts_is_refused(self):
+        # The post-cap grace is sized from ModelCfg (about 15 minutes), so a longer deadline
+        # can cost a capped puzzle its later seeds, and the resume that replays them would redraw only slow puzzles.
+        with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+            puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "2",
+                               "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                               "--call-timeout-minutes", "20"])
+        self.assertIn("--call-timeout-minutes", str(cm.exception.code))
+        envs, _ = run_openrouter("openrouter:openai/gpt-6-luna", "--call-timeout-minutes", "20")   # k=1: allowed
+        self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "1200000")
+        envs, _ = run_openrouter("openrouter:openai/gpt-6-luna", "--call-timeout-minutes", "5", "--k", "2")
+        self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "300000", "5 minutes is inside the grace at any k")
+
+    def test_a_resume_under_another_call_deadline_is_refused(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,
+                                    {"game_cap_ms": 1800000, "call_timeout_ms": 1200000})
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                       call_ms=1200000), [])
+        for other in (None, 600000):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000,
+                                                call_ms=other)
+            self.assertEqual(len(bad), 1)
+            self.assertIn("call_timeout_ms", bad[0])
+
+    def write(self, out, rows, cap_ms=None):
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "puzzle-results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        puzzle_solve.write_manifest(out, "m", "S", out.name, {}, None,
+                                    None if cap_ms is None else {"game_cap_ms": cap_ms})
+
+    def test_a_raised_cap_replays_every_puzzle_played_under_a_lower_cap(self):
+        root = Path(tempfile.mkdtemp())
+        self.write(root / "capped", [{"seed": 1, "suite_sha256": "S", "status": "invalid"}])   # before the record
+        self.write(root / "ended", [{"seed": 1, "suite_sha256": "S", "status": "failed"}])
+        self.write(root / "capped90", [{"seed": 1, "suite_sha256": "S", "status": "invalid"}], cap_ms=5400000)
+        self.assertFalse(puzzle_solve.already_done(root / "capped", 1, "S", cap_ms=5400000))
+        self.assertFalse(puzzle_solve.already_done(root / "ended", 1, "S", cap_ms=5400000), "ended fast: still a draw")
+        self.assertTrue(puzzle_solve.already_done(root / "capped", 1, "S", cap_ms=1800000))
+        self.assertTrue(puzzle_solve.already_done(root / "capped90", 1, "S", cap_ms=5400000))
+
+    def test_a_replayed_puzzle_sets_aside_all_its_attempts_and_only_when_it_will_run(self):
+        root = Path(tempfile.mkdtemp())
+        rows = [{"seed": 1, "suite_sha256": "S", "status": "solved"},
+                {"seed": 2, "suite_sha256": "S", "status": "invalid"}]
+        self.write(root / "p", rows)
+        manifest = (root / "p" / "batch-manifest.json").read_text()
+        self.assertEqual(puzzle_solve.prepare(root / "p", 2, "S", True, 5400000, can_run=lambda: False), "skip")
+        self.assertTrue((root / "p" / "puzzle-results.jsonl").exists(), "an unstarted replay keeps a scoreable puzzle")
+        self.assertEqual(puzzle_solve.prepare(root / "p", 2, "S", True, 5400000), "run")
+        self.assertFalse((root / "p" / "puzzle-results.jsonl").exists())
+        self.assertEqual(len((root / "p" / "puzzle-results.partial0.jsonl").read_text().splitlines()), 2)
+        self.assertEqual((root / "p" / "batch-manifest.partial0.json").read_text(), manifest,
+                         "the set-aside rows keep the manifest (and cap) they were played under")
+
+    def test_a_resume_under_a_lower_cap_is_refused(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD, {"game_cap_ms": 5400000})
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD,
+                                                       cap_ms=5400000), [])
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD,
+                                                       cap_ms=7200000), [], "a raised cap is allowed")
+        bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, cap_ms=1800000)
+        self.assertEqual(len(bad), 1)
+        self.assertIn("game_cap_ms", bad[0])
+
+    def test_a_cap_is_whole_minutes_and_at_least_one(self):
+        # pr-review of #329: 30.00001 minutes would replay every 30-minute puzzle in full; nan crashed the run.
+        # Each must stop at the cap's own check: /b has no build, so any later exit would pass a weaker assertion.
+        for minutes, says in (("0", "--game-cap-minutes"), ("-5", "--game-cap-minutes"), ("0.5", 2),
+                              ("30.00001", 2), ("nan", 2), ("inf", 2)):   # 2: argparse refuses a non-integer
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
+                                   "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                                   "--game-cap-minutes", minutes])
+            if says == 2:
+                self.assertEqual(cm.exception.code, 2, minutes)
+            else:
+                self.assertIn(says, str(cm.exception.code), minutes)
 
 
 if __name__ == "__main__":

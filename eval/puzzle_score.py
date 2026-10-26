@@ -24,8 +24,8 @@ compared puzzle by puzzle. It prints the mean per-puzzle pass@1 difference B - A
 noise is inside each per-puzzle rate), it does not correct for several comparisons, and result rows written
 before harness_epoch was stamped cannot be told apart by epoch.
 
-Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix
-solvers, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
+Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
+call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
 """
 
 import argparse
@@ -51,7 +51,18 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      ("openrouter_max_price", "routing filters (price ceilings)"),
                      ("openrouter_quantizations", "routing filters (precision lists)"),
                      # A development lane (owner, 2026-10-24: claude-cli:) is labelled so and never pooled with a score.
-                     ("dev_lane", "development lanes"))
+                     ("dev_lane", "development lanes"),
+                     # From each puzzle's manifest record (load_rows): puzzle_solve.py --call-timeout-minutes, every
+                     # tier's per-call deadline, and --max-tokens, the thinking budget (None: each model's own).
+                     ("call_timeout_ms", "call deadlines"),
+                     ("max_tokens", "token caps"))
+
+# A condition read from a puzzle's manifest when the directory has none (a baseline arm): not known, not "unset".
+NO_MANIFEST = "n/a"
+
+
+# The game cap every puzzle run played at before puzzle_solve.py --game-cap-minutes; a manifest without a record says so.
+LEGACY_GAME_CAP_MS = 1800000
 
 
 class Refused(Exception):
@@ -102,6 +113,10 @@ def load_rows(paths):
         p = Path(p)
         files = sorted(p.rglob("puzzle-results.jsonl")) if p.is_dir() else [p]
         for f in files:
+            record = record_of(f.parent)
+            cap = None if record is None else record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
+            call, tokens = ((NO_MANIFEST, NO_MANIFEST) if record is None
+                            else (record.get("call_timeout_ms"), record.get("max_tokens")))
             for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                 line = line.strip()
                 if not line:
@@ -111,8 +126,23 @@ def load_rows(paths):
                 except ValueError:
                     raise Refused("%s:%d is not JSON" % (f, n))
                 if d.get("schema") == "pzl-result-v1":
+                    d.setdefault("game_cap_ms", cap)
+                    d.setdefault("call_timeout_ms", call)
+                    d.setdefault("max_tokens", tokens)
                     rows.append(d)
     return rows
+
+
+def record_of(puzzle_dir):
+    """The record puzzle_solve wrote beside a puzzle directory's rows ({} for a manifest from before it); None with
+    no manifest (a baseline arm, which sets its own conditions). An unreadable manifest is refused."""
+    f = puzzle_dir / "batch-manifest.json"
+    try:
+        return json.loads(f.read_text(encoding="utf-8")).get("record") or {}
+    except OSError:
+        return None
+    except ValueError:
+        raise Refused("%s is not JSON: the conditions it was played under are unknown" % f)
 
 
 def group_attempts(manifest, rows, split, k, solver=None, ids=None):
@@ -149,13 +179,19 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
     solvers = {solver_of(r) for r in rows}
     if len(solvers) > 1:
         raise Refused("results mix solvers %s; pass --solver to pick one" % sorted(solvers))
-    # A bridge-specific solver condition, absent on every other solver's rows: a jev: solver's questions
-    # (DecisionsBridge.VERSION), a claude-cli: solver's bridge (ClaudeCliBridge.VERSION) and the effort it ran at.
+    # Each BRIDGE_CONDITIONS key is a condition every attempt must share (where each comes from: the tuple).
     for key, what in BRIDGE_CONDITIONS:
         seen = {r.get(key) for r in rows}
         if len(seen) > 1:
             raise Refused("results come from %s %s; what the solver was asked or how it ran differs, so score each "
                           "separately" % (what, sorted(seen, key=str)))
+
+    # The game cap is a condition (owner raised it 30 to 90 minutes, 2026-10-26): even a game that ended under the
+    # lower one is not pooled, since a resume that redrew only the cut-off games favours fast games.
+    caps = {r.get("game_cap_ms") for r in rows} - {None}
+    if len(caps) > 1:
+        raise Refused("results come from game caps %s ms; replay the lower one (puzzle_solve.py --resume "
+                      "--game-cap-minutes) or score each separately" % sorted(caps))
 
     out = defaultdict(list)
     for r in rows:
@@ -325,6 +361,8 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
     return dict(conditions, **{
         # The interface scored; None for rows from before the stamp (group_attempts refuses a mix).
         "harness_epoch": epochs.pop() if len(epochs) == 1 else None,
+        # The rows' one game cap (group_attempts refuses a mix); None when no row has one.
+        "game_cap_ms": next((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), None),
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
         "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
@@ -395,6 +433,12 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
                 raise Refused("paired runs differ in %s (%s vs %s)" % (key, first.get(key), r.get(key)))
         if r["aggregate"]["k"] != first["aggregate"]["k"]:
             raise Refused("paired runs differ in k")
+    # A cap and a deadline are conditions, compared across every run that recorded one; a run with none (a baseline
+    # arm, no manifest) is not known to differ.
+    for key, unknown in (("game_cap_ms", None), ("call_timeout_ms", NO_MANIFEST)):
+        known = sorted({r.get(key) for r in reps} - {unknown}, key=str)
+        if len(known) > 1:
+            raise Refused("paired runs differ in %s (%s)" % (key, " vs ".join(map(str, known))))
     rates = [{p["id"]: p["pass@1"] for p in r["puzzles"]} for r in reps]
     if any(set(x) != set(rates[0]) for x in rates):
         raise Refused("paired runs cover different puzzles")
@@ -403,11 +447,24 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
     if base:
         diffs = [d - (rates[3][p] - rates[2][p]) for d, p in zip(diffs, ids)]
     epochs = [r.get("harness_epoch") for r in reps]
+    tokens = [r.get("max_tokens") for r in reps]
     return {"n_puzzles": len(ids), "mean": _mean(diffs), "ci95": bootstrap_ci(diffs, _mean, n_boot, seed),
             "ci95_clustered": clustered_ci(diffs), "solvers": [r.get("solver") for r in reps],
             "difference_of_differences": bool(base),
             # A difference across interfaces is a measurement of the change, and is labelled as one.
-            "epochs": epochs, "cross_epoch": len(set(epochs)) > 1}
+            "epochs": epochs, "cross_epoch": len(set(epochs)) > 1,
+            # Each model at its own maximum (frontier5) is a fair pair: labelled, not refused.
+            "max_tokens": tokens, "cross_max_tokens": len(set(tokens) - {NO_MANIFEST}) > 1}
+
+
+def render_paired(c, n_boot, seed):
+    """The paired line, with what makes it a comparison across conditions."""
+    return ("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)%s%s"
+            % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", signed(c["mean"]), _ci(c["ci95"]),
+               _ci(c["ci95_clustered"]), c["n_puzzles"], n_boot, seed,
+               "  CROSS-EPOCH %s" % " vs ".join(e or "unstamped" for e in c["epochs"]) if c["cross_epoch"] else "",
+               "  CROSS-MAX-TOKENS %s" % " vs ".join("default" if t is None else str(t) for t in c["max_tokens"])
+               if c["cross_max_tokens"] else ""))
 
 
 def signed(x):
@@ -428,9 +485,13 @@ def render(rep):
     a = rep["aggregate"]
     dev = rep.get("dev_lane")
     lines = ["DEVELOPMENT LANE (%s): local development on the owner's subscription, not a benchmark score" % dev] if dev else []
-    lines += [("DEV" if dev else "PUZ") + "  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s"
+    cap = rep.get("game_cap_ms")
+    lines += [("DEV" if dev else "PUZ") + "  suite=%s v%s (%s)  split=%s  solver=%s  epoch=%s  puzzles=%d  k=%d%s%s"
              % (rep["suite"], rep["suite_version"], rep["suite_sha256"][:12], rep["split"], rep["solver"],
-                rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"], "  PILOT" if rep["pilot"] else "")]
+                rep.get("harness_epoch") or "unstamped", a["n_puzzles"], a["k"],
+                "  cap=%gmin" % (cap / 60000) if cap else "", "  PILOT" if rep["pilot"] else "")
+              + "".join("  %s=%s" % (k, rep[k]) for k in ("call_timeout_ms", "max_tokens")
+                        if rep.get(k) not in (None, NO_MANIFEST))]
     h = a["headline"]
     lines.append("  " + ("solve rate" if dev else "headline") + " %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
                  % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _ci(h.get("ci95_clustered")), _fmt(h["floors"]["pass"]),
@@ -516,11 +577,7 @@ def main(argv=None):
         except Refused as e:
             print("REFUSED: %s" % e, file=sys.stderr)
             return 2
-        c = rep["paired"]
-        print("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)%s"
-              % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", signed(c["mean"]), _ci(c["ci95"]),
-                 _ci(c["ci95_clustered"]), c["n_puzzles"], a.paired_bootstrap, a.paired_seed,
-                 "  CROSS-EPOCH %s" % " vs ".join(e or "unstamped" for e in c["epochs"]) if c["cross_epoch"] else ""))
+        print(render_paired(rep["paired"], a.paired_bootstrap, a.paired_seed))
     if a.json:
         Path(a.json).write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

@@ -326,8 +326,32 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - A run stopped part way (a container restart) continues with the same command plus `--resume`: a puzzle whose
   k attempts on this suite are already in `--out` is skipped; one cut off part way is played again from seed 1,
   its rows so far and its JVM log renamed `puzzle-results.partial<n>.jsonl` and `jvm.partial<n>.log` (never
-  scored, still priced). A resume into a directory made under another model, suite or seat condition, or on
+  scored, still priced), and its manifest copied to `batch-manifest.partial<n>.json` (the cap they were played
+  under). A resume into a directory made under another model, suite or seat condition, or on
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
+- Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat; a `jev:` seat 120 s,
+  `DecisionsBridge`) unless `--call-timeout-minutes` sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as
+  `record.call_timeout_ms`; a resume under another value is refused; an `openrouter:` or `jev:` seat only, since no
+  other bridge reads it). A call past it is retried, then its decision goes to a fixed legal option. In
+  `runs/puzzles/frontier5` the 300 s deadline fired for four models (`grep -l "wall-clock timeout"
+  runs/puzzles/frontier5/*/*/jvm.log`); the owner's later runs use 20 (`runs/puzzles/frontier5-long`) and 60 minutes
+  (`runs/puzzles/frontier5-fill`; `record.call_timeout_ms` in each puzzle's manifest).
+  A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
+  `ModelCfg` (about 15 minutes), not from this flag. A game capped while a longer call is in flight can outlive that
+  grace and leave its puzzle's later seeds unplayed. A resume that replayed them would redraw only the slow puzzles,
+  which biases the score. The frontier run used k=1.
+- Each smart-tier call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000) unless
+  `--max-tokens` sets one for every model family (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
+  2^31-1; a resume under another value is refused; an `openrouter:` seat only, since no other bridge reads it). The
+  fast tier keeps 8192 with reasoning off. The frontier fill run gave each model its own maximum output (owner,
+  2026-10-26).
+- Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
+  status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
+  absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every
+  puzzle played under a lower one is played again, all k attempts: replaying only the games the lower cap cut off
+  would draw again only where the first draw was slow, which biases the score toward fast games. `puzzle_score.py`
+  refuses rows from two caps and reports the one (`game_cap_ms`, and `cap=` on the PUZ line). Rows with no
+  manifest beside them (a baseline arm, which sets its own cap) carry none.
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`
@@ -444,7 +468,8 @@ puzzle a coin flip solves earns almost nothing. Every aggregate is printed with:
 Two runs on the same puzzles (two solvers, or two conditions) are compared puzzle by puzzle with
 `--paired-with RESULTS`: the mean per-puzzle pass@1 difference, its bootstrap interval over puzzles (ids sorted,
 seed 7) and its clustered interval. `--against C D` gives the difference of differences, (B - A) - (D - C).
-Runs of other puzzles, suites, splits or k are refused. Lookups per condition: `eval/puzzle_tool_use.py`.
+Runs of other puzzles, suites, splits, k, game caps or call deadlines are refused; a pair under two token caps
+is labelled `CROSS-MAX-TOKENS`. Lookups per condition: `eval/puzzle_tool_use.py`.
 
 `puzzle_score.py` refuses (exit 2) to:
 - pool the open and held-out splits;
@@ -454,7 +479,13 @@ Runs of other puzzles, suites, splits or k are refused. Lookups per condition: `
 - score a puzzle with fewer than k attempts, or with a seed repeated;
 - score an unscoreable row (one where the goal was not enforced);
 - pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
-  stamped one is refused too).
+  stamped one is refused too);
+- pool or pair attempts under two per-call deadlines (`call_timeout_ms`, the same way; a run with no manifest is not
+  checked when paired);
+- pool attempts under two token caps (`max_tokens`). A pair under two caps is scored and labelled
+  `cross_max_tokens`, so two models each at its own maximum can be compared;
+- pool or pair attempts under two game caps (`game_cap_ms`, from each puzzle's `batch-manifest.json`; a directory with
+  no manifest, such as a baseline arm's, records no cap and is not checked).
 
 Beside the score (BENCHMARK-V2 phase 2): the clustered 95% interval of the headline and of pass@1 (the standard
 error of the per-puzzle means, Miller 2024), the smallest pass@1 difference two independent runs of this size
