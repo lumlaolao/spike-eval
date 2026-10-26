@@ -1,8 +1,8 @@
 # frontier5 run notes (2026-10-26, owner decisions)
 
 The conditions and every decision that shapes how the results read. `STATUS.txt` marks a board S (solved),
-F (failed) or . (not yet played). `F*` marks the failure caused by a harness bug; `F§` the two lost to a harness setting
-(the token cap).
+F (failed) or . (not yet played). `F*` marks the failure caused by a harness bug; `F§` the two lost to context-length
+refusals (`HTTP 400`; cause under investigation).
 
 ## ⚠ Harness bug found: GLM 5.3, elf2 (scored a failure, owner)
 
@@ -23,7 +23,7 @@ was not passed (owner, 2026-10-26). But the loss was caused by the harness, not 
 - Fixed in PR #330 (answer-tool-v12, harness-epoch-73): a reply's answer is its first `answer` call that
   validates, and a play decision on a tool ask reads no text.
 
-## ⚠ Harness setting: Kimi K2.6, elf2 and hoofdrain (F§, scored failures, owner)
+## ⚠ Context-length refusals: Kimi K2.6, elf2 and hoofdrain (F§, scored failures, owner)
 
 In `frontier5-fill` Kimi K2.6 ran with `max_tokens` 235929, its listed maximum output, against a 262144-token
 context. Some calls were refused (`HTTP 400`: "maximum context length is 262144 tokens ... you requested 231648
