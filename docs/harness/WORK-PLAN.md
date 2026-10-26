@@ -16,8 +16,8 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 ([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
 Landed 2026-10-21 to 26: PRs #290 to #330, among them #320 (the `claude-cli:` lane), #321-#323 (a docs pass),
-#324 (the full run record), #325 (`play-vs-llm.sh`, a person against the seat), #326 (`setup.sh`) and #327 (the
-routing filters: a price ceiling and a precision list for puzzle runs) #329 (the game cap, call deadline and
+#324 (the full run record), #325 (`play-vs-llm.sh`, a person against the seat), #326 (`setup.sh`), #327 (the
+routing filters: a price ceiling and a precision list for puzzle runs), #329 (the game cap, call deadline and
 token cap as recorded puzzle-run conditions) and #330 (a reply's answer is its first `answer` call that
 validates). The hard suites
 are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environment is in
