@@ -94,6 +94,9 @@ PROVENANCE_FIELDS = (
     # The precisions an openrouter: seat may be served at (OPENROUTER_QUANTIZATIONS): what the model ran at, so a
     # condition. Default "": a game from before the filter was unfiltered, as is one that stamps it empty.
     ("openrouter_quantizations", ""),
+    # A price ceiling (OPENROUTER_MAX_PRICE) is a condition too: at list an open-weight model may find only a 4-bit
+    # host (standards review of #327). Default "" as above.
+    ("openrouter_max_price", ""),
     ("checkpoint_sha", MISSING),
     ("model_cfg_sha", MISSING),
     ("temperature_a", MISSING),
@@ -182,9 +185,7 @@ CONDITION_ARM_FIELDS = ("deck_a", "deck_b", "controller_a", "controller_b",
                         "smart_a", "smart_b", "fast_a", "fast_b")
 # prompt_cache is recorded but does not split experiments: the provider returns the same output
 # with or without its cache, so caching on and off are one measurement at two prices.
-# A price ceiling (openrouter_max_price) is routing like the sort: it picks among one model's endpoints.
-NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank", "prompt_cache", "openrouter_provider_sort",
-                             "openrouter_max_price")
+NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank", "prompt_cache", "openrouter_provider_sort")
 # What the endpoint said answered, keyed by deck identity and tier. These are
 # OBSERVATIONS and partition experiments exactly as recorded (2026-09-07): a
 # game whose endpoint named nothing ("unknown") is a different measurement from

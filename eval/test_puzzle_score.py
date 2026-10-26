@@ -131,7 +131,7 @@ class PriceCeilingRefusalTest(unittest.TestCase):
 
     def test_an_attempt_with_ceiling_refusals_is_refused_and_one_without_is_scored(self):
         row = {"id": "p", "seed": 1, "status": "failed", "routing_refusals": 3}
-        with self.assertRaisesRegex(ps.Refused, "price ceiling"):
+        with self.assertRaisesRegex(ps.Refused, "routing filter"):
             ps.attempt_success(row)
         self.assertEqual(ps.attempt_success(dict(row, routing_refusals=0)), (False, None))
         self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "solved"}), (True, None))

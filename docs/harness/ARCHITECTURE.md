@@ -488,9 +488,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
     `puzzle_solve.py --max-price-at-list` rules that out: it sets `OPENROUTER_MAX_PRICE` to the list price, and the
-    bridge adds it to its one `provider` object as `max_price` (`OpenRouterBridge.maxPriceField`). It is routing,
-    like the sort: stamped on the game line as `openrouter_max_price`, which aggregate does not key experiments on
-    (it is classified with the sort in `aggregate.NON_BEHAVIORAL_PROVENANCE` for the game-line key check).
+    bridge adds it to its one `provider` object as `max_price` (`OpenRouterBridge.maxPriceField`). It is a condition,
+    not mere routing: at list an open-weight model may find only a 4-bit host, so the game line stamps
+    `openrouter_max_price`, keyed in `aggregate.PROVENANCE_FIELDS` with default "" (the provider sort, which only
+    orders endpoints, stays in `NON_BEHAVIORAL_PROVENANCE`).
   - precision: `puzzle_solve.py --quantizations fp8,bf16` sets `OPENROUTER_QUANTIZATIONS`, and the bridge adds
     `quantizations` to the same object (`OpenRouterBridge.quantizationsField`), so OpenRouter serves the model only
     at those precisions; an endpoint whose precision is not stated (`unknown`) is not served unless listed. An

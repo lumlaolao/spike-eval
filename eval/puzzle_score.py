@@ -78,7 +78,7 @@ def attempt_success(row):
         raise Refused("unscoreable row for %s (seed %s): the goal was not enforced, so this is a harness "
                       "defect, not a result" % (row.get("id"), row.get("seed")))
     if row.get("routing_refusals"):
-        raise Refused("row for %s (seed %s): %s decisions lost under the price ceiling (no endpoint at list answered "
+        raise Refused("row for %s (seed %s): %s decisions lost under the routing filter (no endpoint it allows answered "
                       "after every retry), so they were not the model's; replay it with --resume"
                       % (row.get("id"), row.get("seed"), row["routing_refusals"]))
     if status == "invalid":

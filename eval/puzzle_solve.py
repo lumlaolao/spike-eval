@@ -218,13 +218,11 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
         except ValueError:
             bad.append("%s: unreadable batch-manifest.json" % pid)
             continue
-        was, was_build = manifest.get("condition") or {}, manifest.get("build") or {}
+        was, was_build, was_record = (manifest.get(k) or {} for k in ("condition", "build", "record"))
         diff = [key for key in now if was.get(key) != now[key]]
         diff += ["build." + key for key in BUILD_KEYS if was_build.get(key) != build.get(key)]
-        if (manifest.get("record") or {}).get("openrouter_max_price") != ceiling:
-            diff.append("openrouter_max_price")
-        if (manifest.get("record") or {}).get("openrouter_quantizations") != quantizations:
-            diff.append("openrouter_quantizations")
+        diff += [key for key, v in (("openrouter_max_price", ceiling), ("openrouter_quantizations", quantizations))
+                 if was_record.get(key) != v]
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
@@ -301,7 +299,8 @@ def main(argv=None):
                          % a.model)
     quantizations = None
     if a.quantizations is not None:
-        quantizations = [q.strip() for q in a.quantizations.split(",") if q.strip()]
+        # Sorted and deduplicated: a set of precisions, so the order typed never splits a resume or a condition.
+        quantizations = sorted({q.strip() for q in a.quantizations.split(",") if q.strip()})
         if not a.model.startswith("openrouter:"):
             raise SystemExit("--quantizations is for an openrouter: chat model; %s sends no provider preferences" % a.model)
         unknown = [q for q in quantizations if q not in QUANTIZATIONS]
@@ -329,14 +328,13 @@ def main(argv=None):
     max_price = None
     if a.max_price_at_list:
         prices = cost_report.load_prices()
-        if not all(cost_report.price_of(prices, a.model)[k] > 0 for k in ("prompt", "completion")):
+        listed = cost_report.price_of(prices, a.model)
+        if not all(listed[k] > 0 for k in ("prompt", "completion")):
             raise SystemExit("--max-price-at-list needs a list price above 0 for %s (eval/pricing/prices.json): "
                              "every request would be refused" % a.model)
         max_price = max_price_env(prices, a.model)
-        # A list price that moved since it was checked is a stale ceiling: every request above it is refused.
         print("[puzzles] price ceiling %s (list price checked %s; a puzzle that loses decisions to it on every resume "
-              "means the list moved)" % (max_price, cost_report.price_of(prices, a.model).get("checked", "never")),
-              flush=True)
+              "means the list moved)" % (max_price, listed.get("checked", "never")), flush=True)
     ids = set(a.ids.split(",")) if a.ids else None
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
@@ -384,12 +382,12 @@ def main(argv=None):
                     print("[budget] not started: %s ($%.2f at the dearest endpoint)"
                           % (pid, spent(out_root, bound=True)), flush=True)
                     continue
-                # A row refused under the price ceiling is no result (puzzle_score refuses it): say so, and go on.
+                # A row with a decision lost to a routing filter is no result (puzzle_score refuses it): say so, go on.
                 refused = [r for r in rows if r.get("routing_refusals")]
                 solved = sum(1 for r in rows if not r.get("routing_refusals") and ps.attempt_success(r)[0])
                 print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s"
                       % (pid, rc, len(rows), solved, spent(out_root),
-                         "  [ROUTING-FILTER] %d attempt(s) lost decisions to the ceiling: replay with --resume"
+                         "  [ROUTING-FILTER] %d attempt(s) lost decisions to the routing filter: replay with --resume"
                          % len(refused) if refused else ""), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
         run_file(finished=False, stopped=repr(e))

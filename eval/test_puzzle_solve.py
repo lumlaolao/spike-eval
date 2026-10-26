@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -556,9 +557,10 @@ class PrecisionFloorTest(unittest.TestCase):
         return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
 
     def test_the_list_reaches_the_jvm_and_the_manifest(self):
-        envs, manifest = self.run_main("openrouter:z-ai/glm-5.3", "--quantizations", "fp8,bf16")
-        self.assertEqual(json.loads(envs[0]["OPENROUTER_QUANTIZATIONS"]), {"z-ai/glm-5.3": ["fp8", "bf16"]})
-        self.assertEqual(manifest["record"]["openrouter_quantizations"], ["fp8", "bf16"])
+        envs, manifest = self.run_main("openrouter:z-ai/glm-5.3", "--quantizations", "fp8,bf16,fp8")
+        self.assertEqual(json.loads(envs[0]["OPENROUTER_QUANTIZATIONS"]), {"z-ai/glm-5.3": ["bf16", "fp8"]})
+        # One set, one spelling (standards review of #327): the order given must not split a resume or a condition.
+        self.assertEqual(manifest["record"]["openrouter_quantizations"], ["bf16", "fp8"])
         envs, manifest = self.run_main("openrouter:z-ai/glm-5.3")
         self.assertNotIn("OPENROUTER_QUANTIZATIONS", envs[0])
         self.assertIsNone(manifest["record"]["openrouter_quantizations"])
@@ -571,6 +573,13 @@ class PrecisionFloorTest(unittest.TestCase):
                                    "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
                                    "--quantizations", value])
             self.assertIn("--quantizations", str(cm.exception.code), (model, value))
+
+    def test_the_python_precision_names_are_the_javas(self):
+        # simplify review of #327: two copies, and a name in one only passes puzzle_solve and is refused by the JVM.
+        java = (Path(__file__).resolve().parent.parent / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+                / "LlmSpikeGui.java").read_text()
+        body = java.split("QUANTIZATIONS = java.util.Set.of(", 1)[1].split(");", 1)[0]
+        self.assertEqual(set(re.findall(r'"([^"]+)"', body)), set(puzzle_solve.QUANTIZATIONS))
 
     def test_a_resume_under_another_precision_list_is_refused(self):
         root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}

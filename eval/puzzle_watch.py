@@ -18,7 +18,7 @@ solved, decisions by tier, text parses, cost so far, the last decision and its a
   CAP-OUTLIVED     the game thread outlived the cap, so the JVM played no further attempts
   SHORT            a done puzzle with fewer than k result rows: puzzle_score refuses it, so its score is lost
   UNSCOREABLE      a result row puzzle_score refuses (the goal was not enforced)
-  ROUTING-FILTER   a result row with decisions lost under --max-price-at-list's ceiling: not scored, replayed on --resume
+  ROUTING-FILTER   a result row with decisions lost under a routing filter (price ceiling, precision list): replayed
   STALLED          a running puzzle whose files have not grown for --stall minutes (possibly stuck)
 
 Cost: the provider's own cost of each call (`cost_usd` on the context_call rows, written for a jev: seat), or
@@ -180,9 +180,9 @@ def puzzle(d, k, finished, now, stall_s, prices):
     if state == "done" and k and len(res) < k:
         flags["SHORT"] = (k - len(res), "%d of %d attempts: puzzle_score refuses the puzzle" % (len(res), k))
     solved = 0
-    refused = [r for r in res if r.get("routing_refusals")]   # decisions lost to the ceiling: replayed on --resume
+    refused = [r for r in res if r.get("routing_refusals")]   # decisions lost to a routing filter: replayed on --resume
     if refused:
-        flags["ROUTING-FILTER"] = (len(refused), "%d decisions lost under the price ceiling"
+        flags["ROUTING-FILTER"] = (len(refused), "%d decisions lost under the routing filter"
                                   % sum(r["routing_refusals"] for r in refused))
     for r in res:
         if r.get("routing_refusals"):

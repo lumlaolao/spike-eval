@@ -115,7 +115,8 @@ interface LLMBridge {
     /** The provider's own cost of the most recent call in USD (the Decisions API reports `usage.cost`), or -1 when it
      *  reports none. Written on the context_call row as `cost_usd`. */
     default double getLastCostUsd() { return -1; }
-    /** HTTP refusals so far under a price ceiling (OPENROUTER_MAX_PRICE), or null when this bridge has none. */
+    /** HTTP refusals so far under a routing filter (OPENROUTER_MAX_PRICE, OPENROUTER_QUANTIZATIONS), or null when this
+     *  bridge has neither. */
     default Integer getRoutingRefusals() { return null; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
@@ -10735,14 +10736,6 @@ public final class LlmSpikeGui {
         private static final String HTTP_TITLE = System.getenv("OPENROUTER_HTTP_TITLE");
         /** OPENROUTER_MAX_PRICE as read at class-init; not final so a test can construct a bridge under a value. */
         static String maxPriceEnv = System.getenv("OPENROUTER_MAX_PRICE");
-        /**
-         * The {@code "max_price":{...}} field for {@code model}, or null. OPENROUTER_MAX_PRICE holds
-         * {"<model>":{"prompt":P,"completion":C}} in USD per million tokens (eval/puzzle_solve.py --max-price-at-list
-         * writes it from the list prices); OpenRouter then routes only to an endpoint at or under it, so latency
-         * routing never lands on a priority tier (GPT-6.1 Sol's is 6x list, eval/pricing/prices.json `max`; owner,
-         * 2026-10-25). Unset, or a model it does not name: no ceiling. Unreadable: refused, so a run never goes out
-         * believing it is capped.
-         */
         /** OPENROUTER_QUANTIZATIONS as read at class-init; not final so a test can construct a bridge under a value. */
         static String quantizationsEnv = System.getenv("OPENROUTER_QUANTIZATIONS");
         /** OpenRouter's precision names (provider routing docs, 2026-10-26). */
@@ -10777,6 +10770,14 @@ public final class LlmSpikeGui {
             }
         }
 
+        /**
+         * The {@code "max_price":{...}} field for {@code model}, or null. OPENROUTER_MAX_PRICE holds
+         * {"<model>":{"prompt":P,"completion":C}} in USD per million tokens (eval/puzzle_solve.py --max-price-at-list
+         * writes it from the list prices); OpenRouter then routes only to an endpoint at or under it, so latency
+         * routing never lands on a priority tier (GPT-6.1 Sol's is 6x list, eval/pricing/prices.json `max`; owner,
+         * 2026-10-25). Unset, or a model it does not name: no ceiling. Unreadable: refused, so a run never goes out
+         * believing it is capped.
+         */
         static String maxPriceField(String env, String model) {
             if (env == null || env.isBlank()) return null;
             try {

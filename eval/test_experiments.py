@@ -343,6 +343,10 @@ class GroupingTest(unittest.TestCase):
         filtered = {"smart_a": "m", "openrouter_quantizations": '{"m":["fp8"]}'}
         self.assertEqual(aggregate.game_condition(old), aggregate.game_condition(empty))
         self.assertNotEqual(aggregate.game_condition(old), aggregate.game_condition(filtered))
+        # A price ceiling too (standards review of #327): at list an open-weight model may find only a 4-bit host.
+        capped = {"smart_a": "m", "openrouter_max_price": '{"m":{"prompt":1,"completion":2}}'}
+        self.assertEqual(aggregate.game_condition(old), aggregate.game_condition(dict(old, openrouter_max_price="")))
+        self.assertNotEqual(aggregate.game_condition(old), aggregate.game_condition(capped))
 
     def test_provenance_fields_include_effort(self):
         names = [n for n, _ in aggregate.PROVENANCE_FIELDS]
