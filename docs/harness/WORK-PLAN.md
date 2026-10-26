@@ -69,10 +69,11 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   - from PR #294: a STANDARDS rule that a doc's command runs as written from the repository root;
   - from PR #301: acceptance under 5 minutes, which needs more cores or running only the stages a change can
     affect; the second changes the gate rule (STANDARDS sections 1 and 5), so it is the owner's.
-- **Repository housekeeping:** the 77 remote branches already merged into main were not deleted (it needs the
-  owner's permission).
+- **Repository housekeeping:** the 78 remote branches already merged into main were not deleted (it needs the
+  owner's permission; `git branch -r --merged origin/main | grep -v 'HEAD\|origin/main$' | wc -l`, 2026-10-26).
 - **Owner decisions from a hygiene audit (2026-10-25):**
-  - about 320 MB of `runs/` is tracked, against STANDARDS section 3 (15 MB of it cited by nothing);
+  - about 310 MB of `runs/` is tracked, against STANDARDS section 3 (`git ls-files -z runs | du -ch
+    --files0-from=- | tail -1`, 2026-10-26; 15 MB of it cited by nothing, per the 2026-10-25 audit);
   - four eval scripts nothing current calls: `latency_report.py`, `line_compare.py`, `coverage_audit.py` and
     `model_sweep.py`, whose default list includes an Opus model and which takes no budget;
   - six `secrets.env` loaders with no parity test;

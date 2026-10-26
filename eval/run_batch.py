@@ -1154,8 +1154,8 @@ def warn_reserved_seeds(seeds):
 
 def derive_cap_minutes(args):
     """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240; all-haiku llm -> 120; anything else
-    llm -> 240 (conservative). The opus and haiku branches were written for the retired bare-name lane and now
-    match only claude-cli: specs; every openrouter: model, Luna included, takes the 240 branch."""
+    llm -> 240 (conservative). The opus and haiku branches match any spec naming those models (a claude-cli: spec,
+    or an openrouter: anthropic slug); every other model, Luna included, takes the 240 branch."""
     models = effective_llm_models(args)
     if not models:
         return 15.0

@@ -33,7 +33,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import puzzle_format  # noqa: E402  (forge_home: the checkout every eval tool finds)
+import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Homebrew's openjdk@17 on Apple Silicon and on Intel Macs (keg-only: not on PATH).
