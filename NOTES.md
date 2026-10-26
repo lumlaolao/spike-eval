@@ -26,12 +26,13 @@ was not passed (owner, 2026-10-26). But the loss was caused by the harness, not 
 ## ⚠ Context-length refusals: Kimi K2.6, elf2 and hoofdrain (F§, scored failures, owner)
 
 In `frontier5-fill` Kimi K2.6 ran with `max_tokens` 235929, its listed maximum output, against a 262144-token
-context. Some calls were refused (`HTTP 400`: "maximum context length is 262144 tokens ... you requested 231648
-output tokens and your prompt contains at least 30497"). Every refused call was a follow-up carrying the model's
-previous reply, reasoning included (about 0.55 MB); every first ask (about 16 KB) was answered. The mechanism is
-under investigation. Each refused request was sent three times unchanged, then the seat passed (`[AUTO-LEGAL] play(bridge-down)->PASS`): 4 decisions on elf2 (the first was main
-phase 1, so the kill was gone), 3 on hoofdrain and 1 on splice2, which it solved anyway. The owner scored elf2
-and hoofdrain failures and asked for the cause to be investigated
+context. 8 requests were refused (`HTTP 400`: "maximum context length is 262144 tokens ... you requested 231648
+output tokens and your prompt contains at least 30497"), each sent three times unchanged. All 8 were follow-ups to
+a reply that held only a `set_plan` call, carrying that reply's reasoning back: 0.27 to 0.73 MB. A 0.41 MB
+follow-up to a reply with no call was answered in the same game, and every first ask (about 16 KB) got a reply.
+The mechanism is under investigation. The seat passed (`[AUTO-LEGAL] play(bridge-down)->PASS`): 4 decisions on
+elf2 (the first was main phase 1, so the kill was gone), 3 on hoofdrain and 1 on splice2, which it solved anyway.
+The owner scored elf2 and hoofdrain failures and asked for the cause to be investigated
 (`grep -c "HTTP 400" runs/puzzles/frontier5*/*/*/jvm*.log` is non-zero only for these three games).
 
 ## Grok 4.3, atog: the first solve counts (owner)
