@@ -29,9 +29,10 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   and not a PUZ score ([FRONTIER5.md](FRONTIER5.md)). Open:
   - Kimi K2.6 lost decisions on elf2 and hoofdrain to `HTTP 400` context-length refusals
     ([FRONTIER5.md](FRONTIER5.md), "Decisions the harness lost"; owner: investigate). Every refused call was a
-    follow-up that carries the previous reply's reasoning back, sent with `max_tokens` 235929; the bridge retried it
-    unchanged and the seat passed as bridge-down. To find out: whether dropping the echoed reasoning, a lower cap, or
-    both clear it (an A/B on the logged requests), then either `puzzle_solve.py` refuses a cap with no room for a
+    follow-up to a `set_plan`-only reply, carrying its reasoning back, sent with `max_tokens` 235929; the bridge
+    retried it unchanged and the seat passed as bridge-down. To find out: whether dropping the echoed reasoning, a
+    lower cap, or both clear it (an A/B on the 8 logged requests; size alone does not, since a 0.41 MB follow-up
+    passed), then either `puzzle_solve.py` refuses a cap with no room for a
     follow-up or the bridge reads that 400 and retries with the room left (a seat-visible change, its own version).
     Either way the 400 should be its own row reason, not "bridge-down";
   - the seat's prompt still says "a second illegal call costs you the decision"; since answer-tool-v12 (PR #330)

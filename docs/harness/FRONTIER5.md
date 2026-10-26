@@ -40,9 +40,10 @@ ranking. The floor is 0: a board is in the suite only when every zero-model arm 
 | Jev 1.14 | F | F | F | F | F | 0 |
 
 The game kept for each board, with its row file, status and any owner call, is `chosen.json` on the branch
-`results/frontier5-2026-10-26`; the table is its `status` field (58 `solved`). It is the first game that ended with no limit
-fired and no call refused by routing, looking in `frontier5`, `frontier5-kimi-k2.6-int4`, `frontier5-long`, then `frontier5-fill`, and within a puzzle
-at the current game before set-aside ones; the owner's two exceptions are † and ¶. Three boards had two such games:
+`results/frontier5-2026-10-26`; the table is its `status` field (58 `solved`). It is the first game that ended
+with no limit fired and no decision lost to a routing filter (`routing_refusals` 0 in the row), looking in
+`frontier5`, `frontier5-kimi-k2.6-int4`, `frontier5-long`, then `frontier5-fill`, and within a puzzle at the current
+game before set-aside ones; the owner's two exceptions are † and ¶. Three boards had two such games:
 Sonnet 5.5's drain2 and splice2 (solved both times) and Grok 4.3's atog (¶).
 
 - F\*: lost to a harness defect and scored a failure (owner). See below.
@@ -78,10 +79,13 @@ refused with `HTTP 400`, "maximum context length is 262144 tokens. However, you 
 prompt contains at least 30497". Each refused request was sent three times unchanged, then the seat passed
 (`[AUTO-LEGAL] play(bridge-down)->PASS`): 4 decisions on elf2, the first of them main phase 1, 3 on hoofdrain, and 1 on
 splice2, which it solved anyway. `grep -c "HTTP 400" runs/puzzles/frontier5*/*/*/jvm*.log` is non-zero only for these
-three games. In their transcripts every first ask (2 messages, about 16 KB) was answered; every refused call was a
-4-message follow-up (about 0.55 MB) that carries the model's previous reply, its reasoning included, back to it. The
-provider reports a requested output below the one sent, and each refused total comes to the context plus one token. The
-mechanism is open; the owner asked for it to be investigated ([WORK-PLAN.md](WORK-PLAN.md)).
+three games. In their transcripts every first ask (2 messages, about 16 KB) got a reply, one after a transport-error
+retry. The 8 refused requests were all 4-message follow-ups to a reply that held only a `set_plan` call (the 4th message
+is "Plan recorded. It does not answer the decision"), carrying that reply's reasoning back: 0.27 to 0.73 MB. Size alone
+does not decide it: a 0.41 MB follow-up to a reply with no call was answered in the same elf2 game. The provider reports
+a requested output below the one sent and a prompt of about 30.4k tokens whatever the body size, and each refused total
+comes to the context plus one token. The mechanism is open; the owner asked for it to be investigated
+([WORK-PLAN.md](WORK-PLAN.md)).
 
 ## How it ran
 
