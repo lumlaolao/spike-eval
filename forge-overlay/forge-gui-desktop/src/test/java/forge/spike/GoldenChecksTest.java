@@ -2055,7 +2055,13 @@ public class GoldenChecksTest {
         model.on("You have priority", choice("PASS"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         ctrl.chooseSpellAbilityToPlay();
-        java.util.Map<String, Object> b = ctrl.budget();
+        String wasQ = LlmSpikeGui.OpenRouterBridge.quantizationsEnv;
+        LlmSpikeGui.OpenRouterBridge.quantizationsEnv = "{\"fake\":[\"fp8\"]}";
+        java.util.Map<String, Object> b;
+        try { b = ctrl.budget(); } finally { LlmSpikeGui.OpenRouterBridge.quantizationsEnv = wasQ; }
+        // pr-review of #327: the row names the filter it ran under, so puzzle_score never pools two filters.
+        Assert.assertEquals(b.get("openrouter_quantizations"), "{\"fake\":[\"fp8\"]}", String.valueOf(b));
+        Assert.assertFalse(b.containsKey("openrouter_max_price"), "no ceiling was set: " + b);
         Assert.assertEquals(b.get("routing_http_refusals"), 1, String.valueOf(b));
         Assert.assertEquals(b.get("routing_refusals"), 0, "the retry answered: " + b);
 

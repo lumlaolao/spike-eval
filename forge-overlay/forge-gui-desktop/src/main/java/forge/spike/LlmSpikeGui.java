@@ -873,7 +873,7 @@ public final class LlmSpikeGui {
         LLMBridge smartBridge() { return smart; }
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
-        private int lostToRouting = 0;   // decisions every retry lost to a routing-filter refusal (budget())
+        private int lostToRouting = 0;   // decisions lost after a routing-filter refusal among their retries (budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
          *  adds nothing) and wall time, the retries included. A puzzle result row carries them (budget()). */
         private long spentPromptTokens = 0, spentCompletionTokens = 0, spentModelMs = 0;
@@ -1341,6 +1341,11 @@ public final class LlmSpikeGui {
             if (refused != null) {
                 m.put("routing_refusals", lostToRouting);
                 m.put("routing_http_refusals", refused);
+                // The filters themselves: puzzle_score.py never pools rows run under different ones.
+                if (OpenRouterBridge.maxPriceEnv != null && !OpenRouterBridge.maxPriceEnv.isBlank())
+                    m.put("openrouter_max_price", OpenRouterBridge.maxPriceEnv);
+                if (OpenRouterBridge.quantizationsEnv != null && !OpenRouterBridge.quantizationsEnv.isBlank())
+                    m.put("openrouter_quantizations", OpenRouterBridge.quantizationsEnv);
             }
             return m;
         }
@@ -10788,7 +10793,9 @@ public final class LlmSpikeGui {
                     java.math.BigDecimal prompt = o.get("prompt").getAsBigDecimal(), completion = o.get("completion").getAsBigDecimal();
                     if (prompt.signum() <= 0 || completion.signum() <= 0) throw new IllegalArgumentException("not positive");
                     if (e.getKey().equals(model))
-                        field = "\"max_price\":{\"prompt\":" + prompt.toPlainString() + ",\"completion\":" + completion.toPlainString() + "}";
+                        // Strings: OpenRouter's schema types max_price's fields so (openapi.json, ProviderPreferences).
+                        field = "\"max_price\":{\"prompt\":\"" + prompt.toPlainString() + "\",\"completion\":\""
+                                + completion.toPlainString() + "\"}";
                 }
                 return field;
             } catch (RuntimeException e) {
@@ -11111,13 +11118,17 @@ public final class LlmSpikeGui {
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 int st = resp.statusCode();
-                if ((maxPrice != null || quantizations != null) && (st == 404 || st >= 500)) {
+                String lower = resp.body() == null ? "" : resp.body().toLowerCase(java.util.Locale.ROOT);
+                boolean filterShape = st == 400 && (lower.contains("provider") || lower.contains("max_price")
+                        || lower.contains("quantization"));
+                if ((maxPrice != null || quantizations != null) && (st == 404 || st >= 500 || filterShape)) {
                     // Under a routing filter a 404 can mean no endpoint the filter allows, not no function calling,
                     // and a 5xx the allowed endpoints down with the others it would fail over to ruled out (a filter
                     // can leave one: five frontier models had one endpoint at list, 2026-10-25). OpenRouter's reply to
                     // such an exclusion is not recorded, so both count: native tools stay, the log names the filter,
                     // and the row counts it, so puzzle_score.py refuses to score decisions the model never made (an
-                    // over-count costs a replay). A 400 is about the request and a 429 a rate limit: scored as without.
+                    // over-count costs a replay). A 400 naming the provider preferences is the filter's own shape
+                    // refused; any other 400 is about the request and a 429 a rate limit: scored as without.
                     routingRefusals++;
                     System.out.println("[OPENROUTER " + label + "] [ROUTING-FILTER] HTTP " + st + " under "
                             + (maxPrice == null ? "" : maxPrice + " ") + (quantizations == null ? "" : quantizations)

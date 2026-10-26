@@ -46,6 +46,10 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      ("claude_cli_bridge_version", "claude-cli bridge versions"),
                      ("claude_cli_effort", "claude-cli efforts"),
                      ("claude_cli_thinking_tokens", "claude-cli thinking budgets"),
+                     # The routing filters a puzzle run sent (puzzle_solve.py --max-price-at-list / --quantizations):
+                     # what the model ran at (pr-review of #327).
+                     ("openrouter_max_price", "routing filters (price ceilings)"),
+                     ("openrouter_quantizations", "routing filters (precision lists)"),
                      # A development lane (owner, 2026-10-24: claude-cli:) is labelled so and never pooled with a score.
                      ("dev_lane", "development lanes"))
 

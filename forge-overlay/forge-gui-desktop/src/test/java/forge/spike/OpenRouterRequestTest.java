@@ -54,6 +54,7 @@ public class OpenRouterRequestTest {
         String[][] errors = {{"ceiling", "404", "No endpoints found that support tool use."},
                 {"ceiling-503", "503", "No available model provider that meets your routing requirements."},
                 {"ceiling-400", "400", "messages[3]: tool message has no tool_call_id"},
+                {"ceiling-400-provider", "400", "Invalid provider preferences: max_price.prompt must be a string"},
                 {"ceiling-429", "429", "rate limited"}};
         for (String[] e : errors)
             server.createContext("/" + e[0] + "/v1/chat/completions", ex -> {
@@ -158,10 +159,10 @@ public class OpenRouterRequestTest {
         for (String body : twoBodies("test/smart", "openai/gpt-6.1-sol", true, CEILING)) {
             Assert.assertEquals(count(body, "\"provider\":"), 1, body);
             Assert.assertTrue(body.contains("\"provider\":{\"sort\":\"latency\",\"require_parameters\":true,"
-                    + "\"max_price\":{\"prompt\":2,\"completion\":10}}"), body);
+                    + "\"max_price\":{\"prompt\":\"2\",\"completion\":\"10\"}}"), body);
         }
         Assert.assertTrue(twoBodies("test/smart", "moonshotai/kimi-k3", false, CEILING).get(0)
-                .contains("\"provider\":{\"sort\":\"latency\",\"max_price\":{\"prompt\":0.239,\"completion\":10.8}}"));
+                .contains("\"provider\":{\"sort\":\"latency\",\"max_price\":{\"prompt\":\"0.239\",\"completion\":\"10.8\"}}"));
     }
 
     /** No ceiling unless asked: unset, or a model the variable does not name, sends the body it always did. */
@@ -271,6 +272,9 @@ public class OpenRouterRequestTest {
         Assert.assertEquals(refusalsAt("ceiling"), 1);
         Assert.assertEquals(refusalsAt("ceiling-503"), 1);
         Assert.assertEquals(refusalsAt("ceiling-400"), 0);
+        // pr-review of #327: the filter's own shape refused (OpenRouter's schema types max_price as strings) is the
+        // filter's, not the model's: counted, or every decision of that model would be scored a failure.
+        Assert.assertEquals(refusalsAt("ceiling-400-provider"), 1);
         Assert.assertEquals(refusalsAt("ceiling-429"), 0);
     }
 

@@ -223,6 +223,17 @@ class ScoreV2Test(unittest.TestCase):
             with self.assertRaisesRegex(ps.Refused, "claude-cli"):
                 ps.score(self.m, rows, "open", k=4, n_boot=20)
 
+    def test_attempts_under_two_routing_filters_are_never_pooled(self):
+        # pr-review of #327: a precision list or price ceiling is what the model ran at, so two directories played
+        # under different filters are not one score. The row carries each (absent: none).
+        for key, a in (("openrouter_quantizations", '{"m":["bf16","fp8"]}'),
+                       ("openrouter_max_price", '{"m":{"prompt":"2","completion":"10"}}')):
+            rows = self.rows([4, 2, 0], **{key: a})
+            self.assertEqual(ps.score(self.m, rows, "open", k=4, n_boot=20)[key], a)
+            del rows[0][key]
+            with self.assertRaisesRegex(ps.Refused, "routing filters"):
+                ps.score(self.m, rows, "open", k=4, n_boot=20)
+
     def test_a_development_lane_run_is_labelled_so_and_never_called_a_score(self):
         rows = self.rows([4, 2, 0], dev_lane="claude-cli")
         rep = ps.score(self.m, rows, "open", k=4, n_boot=20)
