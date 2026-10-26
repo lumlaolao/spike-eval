@@ -211,7 +211,7 @@ def write_run(out_root, ids, k, budget_usd, finished, stopped=None, build=None, 
 
 
 def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=None, quantizations=None, cap_ms=None,
-                     call_ms=None):
+                     call_ms=None, max_tokens=None):
     """The puzzle directories under out_root made under another model, suite or seat condition, or on another
     build (`build`: Build.provenance(); its compiled overlay and whether it was let run stale), or price ceiling
     (`max_price`, max_price_env's JSON or None: a ceiling can move a request to another provider): a resume into them
@@ -239,20 +239,27 @@ def resume_conflicts(out_root, ids, model, suite_sha, cond, build, max_price=Non
             diff.append("game_cap_ms (lower than played)")
         if was_record.get("call_timeout_ms") != call_ms:
             diff.append("call_timeout_ms")
+        if was_record.get("max_tokens") != max_tokens:
+            diff.append("max_tokens")
         if diff:
             bad.append("%s: %s differ" % (pid, ", ".join(diff)))
     return bad
 
 
+# ModelCfg's table keys (LlmSpikeGui.ModelCfg.buildTable): OPENROUTER_MODEL_CFG overrides a key it names, and a
+# model takes the first key its id contains, else "default", so --max-tokens names every one.
+MODEL_CFG_KEYS = ("opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "default")
+
+
 def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True, max_price=None, quantizations=None,
-                 cap_ms=ps.LEGACY_GAME_CAP_MS, call_ms=None):
+                 cap_ms=ps.LEGACY_GAME_CAP_MS, call_ms=None, max_tokens=None):
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
     record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
               "pzl_sha256": rec.get("pzl_sha256"),
               "openrouter_max_price": json.loads(max_price) if max_price else None,
               "openrouter_quantizations": quantizations, "game_cap_ms": cap_ms,
-              "call_timeout_ms": call_ms}
+              "call_timeout_ms": call_ms, "max_tokens": max_tokens}
     write_manifest(out, model, suite_sha, rec["id"], cond, build.provenance(), record)
     # TRANSCRIPTS is a recording switch, not a condition: it changes no byte the model is sent (TranscriptTest).
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
@@ -260,6 +267,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS=str(cap_ms), TRANSCRIPTS="1")
     if call_ms:
         env["OPENROUTER_TIMEOUT_MS"] = str(call_ms)   # every tier's deadline; Build.run strips it from the shell
+    if max_tokens:
+        env["OPENROUTER_MODEL_CFG"] = json.dumps({k: {"maxTokens": max_tokens} for k in MODEL_CFG_KEYS})
     for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
         if os.environ.get(key):
             env[key] = os.environ[key]
@@ -306,6 +315,8 @@ def main(argv=None):
     ap.add_argument("--call-timeout-minutes", type=int, default=None,
                     help="deadline on each model call, whole minutes (default: each model's own); a call past it is "
                          "retried, then its decision goes to a fixed legal option")
+    ap.add_argument("--max-tokens", type=int, default=None,
+                    help="max_tokens on each model call, the thinking budget too (default: each model's own, 32000)")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -338,6 +349,8 @@ def main(argv=None):
     if a.call_timeout_minutes is not None and a.call_timeout_minutes < 1:
         raise SystemExit("--call-timeout-minutes must be at least 1")
     call_ms = a.call_timeout_minutes * 60000 if a.call_timeout_minutes else None
+    if a.max_tokens is not None and a.max_tokens < 1:
+        raise SystemExit("--max-tokens must be at least 1")
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
@@ -378,7 +391,7 @@ def main(argv=None):
                          % (getattr(build, "dir", a.build), TRANSCRIPT_CLASS))
     if a.resume:
         bad = resume_conflicts(a.out, [r["id"] for r in todo], a.model, manifest["suite_sha256"], condition(a), prov,
-                               max_price, quantizations, cap_ms, call_ms)
+                               max_price, quantizations, cap_ms, call_ms, a.max_tokens)
         if bad:
             raise SystemExit("--resume into a directory made under another condition (%d puzzles): %s"
                              % (len(bad), "; ".join(bad[:5])))
@@ -404,7 +417,7 @@ def main(argv=None):
         if state == "skip":
             return rec["id"], None, []
         return solve_puzzle(build, rec, a.model, a.k, out_root, manifest["suite_sha256"], condition(a), recorded,
-                            max_price, quantizations, cap_ms, call_ms)
+                            max_price, quantizations, cap_ms, call_ms, a.max_tokens)
 
     skipped = 0
     try:

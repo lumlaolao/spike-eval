@@ -625,6 +625,23 @@ class GameCapTest(unittest.TestCase):
         self.assertNotIn("OPENROUTER_TIMEOUT_MS", envs[0], "unset: each model's own deadline (ModelCfg)")
         self.assertIsNone(manifest["record"]["call_timeout_ms"])
 
+    def test_the_token_cap_reaches_every_model_family_and_the_manifest(self):
+        # Owner, 2026-10-26: lift the 32000-token cap for the games it cut short.
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna", "--max-tokens", "131072")
+        cfg = json.loads(envs[0]["OPENROUTER_MODEL_CFG"])
+        self.assertEqual(set(cfg), set(puzzle_solve.MODEL_CFG_KEYS))
+        self.assertTrue(all(v == {"maxTokens": 131072} for v in cfg.values()))
+        self.assertEqual(manifest["record"]["max_tokens"], 131072)
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6-luna")
+        self.assertNotIn("OPENROUTER_MODEL_CFG", envs[0])
+        self.assertIsNone(manifest["record"]["max_tokens"])
+
+    def test_the_token_cap_keys_are_the_java_tables(self):
+        src = (Path(__file__).resolve().parents[1] / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+               / "LlmSpikeGui.java").read_text()
+        keys = re.search(r'for \(String key : new String\[\]\{([^}]*)\}\)\s*t\.put\(key, uniform\)', src).group(1)
+        self.assertEqual(tuple(k.strip().strip('"') for k in keys.split(",")), puzzle_solve.MODEL_CFG_KEYS)
+
     def test_a_resume_under_another_call_deadline_is_refused(self):
         root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
         puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,
