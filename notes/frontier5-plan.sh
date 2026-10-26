@@ -130,8 +130,10 @@ run_one() {
   local spec="openrouter:$model" filter=(--max-price-at-list)
   [ -z "$quant" ] || filter=(--quantizations "$quant")   # an open-weight model: its released precision, no ceiling
   [[ $model == typesafe/jev-* ]] && spec="jev:$model" filter=()   # the Decisions API takes no provider object
+  # A 90-minute game cap (owner, 2026-10-26): two trial games reached the win after 30. A resume raises the trial's
+  # 30 and replays only the games it cut off (puzzle_solve --game-cap-minutes, PR #329).
   local cmd=(python3 "$REPO/eval/puzzle_solve.py" --suite "$SUITE" --split open --ids "$IDS" --k 1 --jobs 1
-    --build "$BUILD" --forge "$FORGE" --model "$spec" --budget-usd "$cap" ${filter[@]+"${filter[@]}"} --out "$dir" ${RESUME:+--resume})
+    --game-cap-minutes 90 --build "$BUILD" --forge "$FORGE" --model "$spec" --budget-usd "$cap" ${filter[@]+"${filter[@]}"} --out "$dir" ${RESUME:+--resume})
   if [ -n "${DRY:-}" ]; then echo "${cmd[*]}"; return; fi
   "${cmd[@]}" >> "$dir.log" 2>&1   # appended: the trial's progress lines survive the resume
   echo "$model exit $? ($(tail -1 "$dir.log"))"   # puzzle_solve's last line: [cost] over its puzzles
