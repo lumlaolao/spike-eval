@@ -1,0 +1,2 @@
+[puzzles] price ceiling {"mistralai/mistral-large-4-0": {"prompt": 1.36, "completion": 4.18}} (list price checked 2026-10-24; a puzzle that loses decisions to it on every resume means the list moved)
+[puzzles] 1 active open puzzles, k=1, model openrouter:mistralai/mistral-large-4-0, budget $27.51 (spent $0.00; $0.00 at the dearest endpoint, which the budget is checked at)

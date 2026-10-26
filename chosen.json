@@ -207,9 +207,33 @@
   "why": [],
   "minutes": 4
  },
+ "meta_muse-spark-1.3 hard-splice2-325cd33e0a57": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/meta_muse-spark-1.3__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 9
+ },
  "meta_muse-wonder hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/meta_muse-wonder/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 3
+ },
+ "meta_muse-wonder hard-hoofdrain-60c5afda2f25": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/meta_muse-wonder__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 7
+ },
+ "meta_muse-wonder hard-splice2-325cd33e0a57": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/meta_muse-wonder__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/puzzle-results.jsonl",
   "status": "solved",
   "good": true,
   "why": [],
@@ -246,6 +270,14 @@
   "good": true,
   "why": [],
   "minutes": 91
+ },
+ "moonshotai_kimi-k2.6 hard-elf2-2753b3ca0d06": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/puzzle-results.jsonl",
+  "status": "failed",
+  "good": true,
+  "why": [],
+  "minutes": 104
  },
  "moonshotai_kimi-k3 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
