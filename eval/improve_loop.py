@@ -50,7 +50,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-import puzzle_format  # noqa: E402  forge_home: the Forge checkout, $FORGE_HOME first
+import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 DEFAULT_SEAT_MODEL = "openrouter:google/gemini-3.5-flash"
 DEFAULT_DECK = HERE / "decks" / "mardu-energy.txt"
 

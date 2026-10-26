@@ -46,7 +46,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import deck_legality  # noqa: E402
-import puzzle_format  # noqa: E402  forge_home: the Forge checkout, $FORGE_HOME first
+import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 from run_batch import (  # noqa: E402  provenance helpers, reused verbatim
     REPO_ROOT, _engine_sha, _overlay_sha, _spike_drift,
 )
@@ -595,7 +595,7 @@ def main():
     ap.add_argument("--retries", type=int, default=2,
                     help="replays on a drawn/invalid game before a seeded coin-flip")
     ap.add_argument("--forge-home", default=puzzle_format.forge_checkout(),
-                    help="the Forge checkout holding run-llm-headless.sh (default: $FORGE_HOME as given if set, else "
+                    help="the Forge checkout holding run-llm-spike.sh (default: $FORGE_HOME as given if set, else "
                          "~/code/forge or /root/forge; puzzle_format.forge_checkout)")
     ap.add_argument("--record", dest="record", action="store_true", default=True)
     ap.add_argument("--no-record", dest="record", action="store_false")

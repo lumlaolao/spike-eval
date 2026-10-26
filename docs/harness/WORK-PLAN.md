@@ -50,7 +50,7 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   ([eval/puzzles/hard/niche/README.md](../../eval/puzzles/hard/niche/README.md), "Known limits"), which also lists
   the puzzles short of the bar and the row each missed.
 - **The third hard suite** (`puzzles-hard-gen3-v1`, PR #302): the Luna run of its 44 open boards finished
-  (`runs/puzzles/gen3-luna`, $1.009, 3 of 44 solved at k=1 per its log). Score it with `eval/puzzle_score.py` and
+  (`runs/puzzles/gen3-luna`, $1.009; unscored, and the zero-model arms not run). Score it with `eval/puzzle_score.py` and
   record it in [eval/PUZZLES.md](../../eval/PUZZLES.md).
 - **Harness-building environment:** no real episode has run. The owner's twelve questions are in
   HARNESS-ENV-FRAMEWORK.md section 8:

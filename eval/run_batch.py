@@ -68,7 +68,7 @@ import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
 import sanity_arms  # noqa: E402  the zero-cost arms beside a scored block (--sanity-arms)
 import benchmark_version  # noqa: E402  the overlay's file list and its hash (OVERLAY_SHA, drift)
-import puzzle_format  # noqa: E402  forge_home: the Forge checkout, $FORGE_HOME first
+import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 
 PRINT_LOCK = threading.Lock()
 
