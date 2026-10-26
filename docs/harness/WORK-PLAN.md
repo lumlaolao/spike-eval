@@ -39,7 +39,7 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
     list price moved, and starts with a board-1 trial (`STAGE=1`, 22 of the 110 attempts, so about a fifth of the $62)
     that is read before `RESUME=1` plays boards 2 to 5;
   - the board-1 trial ran (2026-10-26; `runs/puzzles/frontier5` and, for Kimi K2.6 on int4 hosts,
-    `runs/puzzles/frontier5-kimi-k2.6-int4`; $10.12, the sum of `puzzle_solve.spent` over their model directories):
+    `runs/puzzles/frontier5-kimi-k2.6-int4`, which the later boards and replays then grew):
     every model answered by tool with ai=0. Two games (GLM 5.3 Prime, Kimi K2.6) reached the win after the
     30-minute game cap. The owner raised the cap to 90 minutes, then ran `frontier5-long` (240-minute cap, 20-minute
     call deadline) and `frontier5-fill` (480 minutes, 60-minute deadline, each model's own `max_tokens`); each is a
