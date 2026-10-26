@@ -25,10 +25,11 @@ was not passed (owner, 2026-10-26). But the loss was caused by the harness, not 
 
 ## ⚠ Harness setting: Kimi K2.6, elf2 and hoofdrain (F§, scored failures, owner)
 
-In `frontier5-fill` Kimi K2.6 ran with `max_tokens` 235929, its listed maximum output. Its context is 262144
-tokens, so once a prompt passed about 30k tokens every call was refused (`HTTP 400`: "maximum context length is
-262144 tokens ... you requested 231648 output tokens and your prompt contains at least 30497"). After the
-retries the seat passed (`[AUTO-LEGAL] play(bridge-down)->PASS`): 4 decisions on elf2 (the first was main
+In `frontier5-fill` Kimi K2.6 ran with `max_tokens` 235929, its listed maximum output, against a 262144-token
+context. Some calls were refused (`HTTP 400`: "maximum context length is 262144 tokens ... you requested 231648
+output tokens and your prompt contains at least 30497"). Every refused call was a follow-up carrying the model's
+previous reply, reasoning included (about 0.55 MB); every first ask (about 16 KB) was answered. The mechanism is
+under investigation. Each refused request was sent three times unchanged, then the seat passed (`[AUTO-LEGAL] play(bridge-down)->PASS`): 4 decisions on elf2 (the first was main
 phase 1, so the kill was gone), 3 on hoofdrain and 1 on splice2, which it solved anyway. The owner scored elf2
 and hoofdrain failures and asked for the cause to be investigated
 (`grep -c "HTTP 400" runs/puzzles/frontier5*/*/*/jvm*.log` is non-zero only for these three games).
@@ -51,7 +52,7 @@ it, and the replay failed. The owner counts the first game: 57 -> 58 solved.
 
 ## Models removed (not in the totals)
 
-- **GLM 5.3 Prime**: called off by the owner. It had spent $19.21, with 1 board solved.
+- **GLM 5.3 Prime**: called off by the owner. It had spent $19.40 (the sum of `puzzle_solve.spent` over its directories; $19.21 at call-off), with 1 board solved.
 - **GPT-6.1 Sol Pro**: not needed, per the owner. It had solved the 3 boards it played.
 
 ## Kept as played

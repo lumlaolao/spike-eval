@@ -413,7 +413,7 @@
   "status": "failed",
   "good": true,
   "why": [
-   "harness setting: the token cap (235929) left no room for the prompt in the 262144 context; calls refused with HTTP 400 and decisions passed (bridge-down); scored a failure (owner)"
+   "HTTP 400 context-length refusals (max_tokens 235929; every refused call a follow-up carrying the previous reply's reasoning); decisions passed (bridge-down); scored a failure (owner); cause under investigation"
   ],
   "minutes": 58
  },
@@ -430,7 +430,9 @@
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-long/moonshotai_kimi-k2.6/hard-drain2-516c13f84175/puzzle-results.jsonl",
   "status": "solved",
   "good": true,
-  "why": [],
+  "why": [
+   "kept by the owner although a limit fired: 1 of 80 decisions cut at the old 32000-token cap"
+  ],
   "minutes": 137
  },
  "moonshotai_kimi-k2.6 hard-elf2-2753b3ca0d06": {
@@ -439,7 +441,7 @@
   "status": "failed",
   "good": true,
   "why": [
-   "harness setting: the token cap (235929) left no room for the prompt in the 262144 context; calls refused with HTTP 400 and decisions passed (bridge-down); scored a failure (owner)"
+   "HTTP 400 context-length refusals (max_tokens 235929; every refused call a follow-up carrying the previous reply's reasoning); decisions passed (bridge-down); scored a failure (owner); cause under investigation"
   ],
   "minutes": 104
  },
