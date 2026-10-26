@@ -173,6 +173,24 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** frontier5, GLM 5.3 on hard-elf2 (2026-10-26): a play decision lost to its fixed PASS then looked for a
+     *  `YIELD:` in the reply's text, which a tool ask never reads (`[TEXT-PARSE] refused`, textParses=2 on the
+     *  game). A lost play passes and reads nothing. */
+    @Test
+    public void aLostPlayDecisionPassesAndReadsNoText() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Forest", me, ZoneType.Battlefield);
+        card("Llanowar Elves", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 99");   // never a legal option: the decision is lost
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String log = LineFindingProbeTest.logOf(() -> Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "a lost play passes"));
+        Assert.assertTrue(log.contains("play: no usable CHOICE in the reply -> PASS (unparsed)"), log);
+        Assert.assertFalse(log.contains("[TEXT-PARSE]"), log);
+        Assert.assertEquals(ctrl.textParsesOnToolAsks, 0);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** Rules pilot RP_017 (2026-10-18): at 1 life with City of Brass, Angel's Grace was never offered. Forge AI's
      *  mana sorter skips a source whose tap damage would be lethal; tapping it is legal (owner: a legal action is
      *  never hidden), and here the Grace resolves before City's trigger. */
