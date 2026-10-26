@@ -5,9 +5,9 @@ deepseek_deepseek-v4.1-flash   S . S S .  good 3/5
 google_gemini-3.8-flash        S F S S .  good 4/5
 google_gemini-4-argon          S S S S S  good 5/5
 meta_muse-spark-1.3            S S S S .  good 4/5
-meta_muse-wonder               S S S S .  good 4/5
+meta_muse-wonder               S S S S F  good 5/5
 mistralai_mistral-large-4-0    . . . . .  good 0/5
-mistralai_mistral-medium-3-5   F F . . .  good 2/5
+mistralai_mistral-medium-3-5   F F F . F  good 4/5
 moonshotai_kimi-k2.6           S F S S F  good 5/5
 moonshotai_kimi-k3             S . . . .  good 1/5
 openai_gpt-6-luna              F . . . .  good 1/5
@@ -18,4 +18,4 @@ x-ai_grok-4.6                  S S F S F  good 5/5
 x-ai_grok-4.7                  S . S S S  good 4/5
 x-ai_grok-build-0.1            F F F . .  good 3/5
 z-ai_glm-5.3                   S . . . .  good 1/5
-good games 62/100, to do 38
+good games 65/100, to do 35
