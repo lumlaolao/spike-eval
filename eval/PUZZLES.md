@@ -334,12 +334,12 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   value is refused). A call past it is retried, then its decision goes to a fixed legal option. In the frontier run
   (2026-10-26) the 300 s deadline fired for four models. The owner raised it to 20 minutes (`frontier5-long`), then
   to 60 (`frontier5-fill`).
-  Known limit: the JVM's grace after a game cap is sized from `ModelCfg` (about 15 minutes), not from this flag. So
-  with a deadline above about 5 minutes, a game capped while a call is in flight can outlive its grace, and the
-  puzzle's later seeds are not played. The scorer then refuses the puzzle for fewer than k attempts, and a
-  `--resume` replays it. This never fired in the frontier run (k=1).
-- Each model call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000) unless
-  `--max-tokens` sets one for every model family (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
+  A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
+  `ModelCfg` (about 15 minutes), not from this flag. A game capped while a longer call is in flight can outlive that
+  grace and leave its puzzle's later seeds unplayed. A resume that replayed them would redraw only the slow puzzles,
+  which biases the score. The frontier run used k=1.
+- Each smart-tier call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000)
+  unless `--max-tokens` sets one for every model family. The fast tier keeps 8192 with reasoning off (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
   2^31-1; a resume under another value is refused). The frontier fill run gave each model its own maximum output
   (owner, 2026-10-26).
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is

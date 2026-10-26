@@ -313,7 +313,8 @@ def main(argv=None):
                     help="deadline on each model call, whole minutes (default: each model's own); a call past it is "
                          "retried, then its decision goes to a fixed legal option")
     ap.add_argument("--max-tokens", type=int, default=None,
-                    help="max_tokens on each model call, the thinking budget too (default: each model's own, 32000)")
+                    help="max_tokens on each smart-tier call, its thinking budget too (default: each model's own, "
+                         "32000); the fast tier keeps 8192 with reasoning off")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -346,6 +347,11 @@ def main(argv=None):
     if a.call_timeout_minutes is not None and a.call_timeout_minutes < 1:
         raise SystemExit("--call-timeout-minutes must be at least 1")
     call_ms = a.call_timeout_minutes * 60000 if a.call_timeout_minutes else None
+    # The JVM's grace after a game cap is sized from ModelCfg (about 15 minutes), not from this flag: a longer deadline
+    # can leave a capped puzzle short of its later seeds, and the resume that plays them redraws only slow puzzles.
+    if call_ms and call_ms > 5 * 60000 and a.k > 1:
+        raise SystemExit("--call-timeout-minutes above 5 needs --k 1: the post-cap grace is sized from ModelCfg, so a "
+                         "capped game could skip its puzzle's later seeds (eval/PUZZLES.md)")
     if a.max_tokens is not None and not 1 <= a.max_tokens < 2 ** 31:
         raise SystemExit("--max-tokens must be from 1 to 2^31-1 (the JVM reads it as an int)")
     if a.rules_tool and not a.memory_tools:
