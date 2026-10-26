@@ -27,6 +27,11 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
 
 - **The frontier comparison on the 5 hardest puzzles** ran on 2026-10-26: 20 models, 57 of 100 boards solved,
   exploratory and not a PUZ score ([FRONTIER5.md](FRONTIER5.md)). Open:
+  - Kimi K2.6 lost decisions on elf2 and hoofdrain to its `--max-tokens` (235929 against a 262144 context): once the
+    prompt grew, every call got `HTTP 400` for context length, the bridge retried the identical request, and the
+    seat passed as bridge-down (owner: investigate). The fix is a choice: `puzzle_solve.py` refuses a cap above a
+    model's context length minus a prompt budget, or the bridge reads that 400 and retries with the room left (a
+    seat-visible change, its own version). Either way the 400 should be its own row reason, not "bridge-down";
   - the seat's prompt still says "a second illegal call costs you the decision"; since answer-tool-v12 (PR #330)
     two illegal calls in one reply are one invalid reply, so "reply" is the true word (a prompt change, its own
     version bump);

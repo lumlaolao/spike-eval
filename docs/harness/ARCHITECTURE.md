@@ -371,12 +371,8 @@ validates, so an incomplete call before a legal one does no harm (answer-tool-v1
 whose every `answer` call is illegal gets the reasons and one more round in the same conversation; a second
 such reply loses the decision. An illegal call before the answer is not merged into it: its fields are not used,
 and its result says so. A play decision on a tool ask reads nothing from the reply's text.
-- *Why the first valid call:* in the frontier5 run (2026-10-26) GLM 5.3 sent its analysis in one `answer`
-  call (`lines` only) and its option in a second. Only the first was read, the legal second was refused, and
-  after the retry did the same the decision was lost to PASS. That skipped main phase 1 and lost a winnable
-  board. It was the only game in the run with a lost decision (`grep -c "no usable CHOICE"
-runs/puzzles/frontier5*/*/*/jvm*.log`). Its second loss (begin combat: `lines` without
-`option`, twice) is the model's, and v12 does not change it.
+- *Why the first valid call:* in the frontier5 run a model's analysis call before its legal move cost it a decision
+  and a winnable board ([FRONTIER5.md](FRONTIER5.md), "Decisions the harness lost").
 
 A tool ask's decision text comes from the question builders the text lane and the ai-teacher seat share.
 `AnswerTool.rephrase` removes their text answer line ("Reason briefly, then end with EXACTLY: ..."), and the
