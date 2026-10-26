@@ -532,7 +532,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
             return {"reply": reply, "choice": None, "calls": calls, "usage": usage,   # lost: prose is never read
                     "answer_via": "lost", "answer_invalid": invalid}
         messages.append(r.get("message") or {"role": "assistant", "content": r.get("content"), "tool_calls": tcs})
-        results, refused, answered = [], False, False
+        results, refused, called_answer = [], False, False
         for tc in tcs:
             fn = tc.get("function") or {}
             name, raw = fn.get("name"), fn.get("arguments")
@@ -540,7 +540,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                 results.append((tc, "Plan recorded. It does not answer the decision: call `answer`."))
                 continue
             if name == "answer":                       # the first `answer` call that validates (answer-tool-v12)
-                answered = True
+                called_answer = True
                 try:
                     args = json.loads(raw) if isinstance(raw, str) and raw.strip() else (raw or {})
                     opt = args.get("option") if isinstance(args, dict) else None
@@ -571,14 +571,14 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
             calls.append({"request": {"name": name, "arguments": raw}, "command": command, "result": result,
                           "ok": rejected is None, "rejected": rejected})
             results.append((tc, result))
-        if answered:            # every `answer` call in the reply was illegal: one invalid reply
+        if called_answer:       # every `answer` call in the reply was illegal: one invalid reply
             invalid += 1
             if invalid >= 2:
                 return {"reply": None, "choice": None, "calls": calls, "usage": usage,
                         "answer_via": "lost", "answer_invalid": invalid}
         for tc, result in results:
             messages.append({"role": "tool", "tool_call_id": tc.get("id"), "content": result})
-        if refused and not answered:
+        if refused and not called_answer:
             if pressed:
                 break
             pressed = True

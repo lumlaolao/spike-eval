@@ -4354,8 +4354,8 @@ public final class LlmSpikeGui {
                     if (unparsed) p("[ROUTER] play: no usable CHOICE in the reply -> PASS (unparsed)");
                     else if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
                     if (!SKIP_HEUR && observer != null && rnd == null) {
-                        // A tool ask's text is never read, answered or not (frontier5, GLM 5.3 on hard-elf2); a reply
-                        // that never came is the bridge-down PASS before this.
+                        // A tool ask's text is never read, answered or not (frontier5, GLM 5.3 on hard-elf2); a null
+                        // reply (no reply, pressed twice, out of rounds) is the reply == null PASS before this.
                         String y = playAnswer != null ? playAnswer.yieldUntil
                                 : lastAnswer != null ? null : textSegment(lastReply, "YIELD:");
                         if (y != null) {

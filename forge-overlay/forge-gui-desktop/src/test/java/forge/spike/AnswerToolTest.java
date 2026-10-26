@@ -171,7 +171,7 @@ public class AnswerToolTest {
     private static java.util.Map<String, String> toolResults(AnswerTool.Ask ask) {
         java.util.Map<String, String> out = new java.util.HashMap<>();
         for (JsonElement e : ask.transcript) {
-            com.google.gson.JsonObject m = e.getAsJsonObject();
+            JsonObject m = e.getAsJsonObject();
             if (m.has("tool_call_id")) out.put(m.get("tool_call_id").getAsString(), m.get("content").getAsString());
         }
         return out;
