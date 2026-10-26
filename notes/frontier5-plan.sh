@@ -50,7 +50,9 @@ PAR=${PAR:-4}   # one JVM per model (--jobs 1), -Xmx2048m heap and about 3 GB re
 # released precision, never on a host that compresses it further (owner, 2026-10-26): its list price is a 4-bit
 # host's, so it takes --quantizations and no ceiling. The released weights (huggingface.co/api/models, 2026-10-26):
 # DeepSeek V4 Pro and V4.1 Flash and GLM 5.3 are fp8 checkpoints; Kimi K3 is packed 4-bit, which Moonshot serves as
-# mxfp4; Kimi K2.6 is packed int4, which Moonshot serves as int4. The preflight refuses a model with no endpoint
+# mxfp4; Kimi K2.6 is packed int4, which Moonshot serves as int4. K2.6 takes int4 only (owner, 2026-10-26): the
+# board-1 trial routed it to the one bf16 host, Crusoe, at about 18 tokens/s, and it reached the win after the
+# 30-minute game cap. That attempt is kept under frontier5/; K2.6 runs again under frontier5-kimi-k2.6-int4/. The preflight refuses a model with no endpoint
 # its filter allows.
 MODELS="
 x-ai/grok-4.7 24.17
@@ -69,7 +71,7 @@ meta/muse-spark-1.3 8.34
 deepseek/deepseek-v4-pro 9.17 fp8,bf16,fp16
 deepseek/deepseek-v4.1-flash 4.17 fp8,bf16,fp16
 moonshotai/kimi-k3 38.34 mxfp4,fp8,bf16,fp16
-moonshotai/kimi-k2.6 8.34 int4,fp8,bf16,fp16
+moonshotai/kimi-k2.6 8.34 int4
 z-ai/glm-5.3-prime 17.50
 z-ai/glm-5.3 17.50 fp8,bf16,fp16
 mistralai/mistral-large-4-0 9.17
