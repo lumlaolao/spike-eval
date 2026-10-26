@@ -127,6 +127,23 @@ class ToolUseSuiteTest(unittest.TestCase):
         self.assertTrue(tu.fact_returned(s, hit))              # a query quoting the decision finds the reveal
         self.assertNotIn("M%d (observation): TURN 8" % seat.observation_id, hit[0]["result"])
 
+    def test_a_legal_answer_after_an_incomplete_one_in_one_reply_is_the_answer(self):
+        # As AnswerTool.converse (answer-tool-v12): GLM 5.3 sent `lines` alone, then the option (frontier5, hard-elf2).
+        s = self.by_id["inspect-attack"]
+
+        def answers(*args):
+            return {"content": None, "tool_calls": [{"id": "a%d" % i, "type": "function",
+                                                     "function": {"name": "answer", "arguments": a}}
+                                                    for i, a in enumerate(args)]}
+        res = tu.run_native_answer(s, "need", "smart", scripted([answers('{"lines": "x"}', '{"option": 2}')]),
+                                   self.tools, {"tier": "smart"})
+        self.assertEqual((res["choice"], res["answer_via"], res["answer_invalid"]), (2, "tool", 0))
+        # Every `answer` call in a reply illegal is one invalid reply: the next reply is still heard.
+        res = tu.run_native_answer(s, "need", "smart", scripted([answers('{"option": 99}', '{"lines": "x"}'),
+                                                                answers('{"option": 2}')]),
+                                   self.tools, {"tier": "smart"})
+        self.assertEqual((res["choice"], res["answer_invalid"]), (2, 1))
+
     def test_native_last_round_forbids_calls_and_call_markup_is_not_an_answer(self):
         s = self.by_id["inspect-attack"]
         seen = []

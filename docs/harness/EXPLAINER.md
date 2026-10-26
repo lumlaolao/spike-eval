@@ -93,7 +93,7 @@ Take "declare attackers" on the model's turn.
 4. The model may call lookups first (`inspect @12`, `simulate` an attack) and each result comes back in the same
    exchange.
 5. It answers by calling `answer` with the attackers and a one-sentence `why`. The call is validated against the
-   decision. An illegal call gets the reason and one more round; a second illegal call loses the decision to a
+   decision. An illegal call gets the reason and one more round; a second illegal reply loses the decision to a
    fixed legal option (here: no attack), recorded on the decision row as a defect. A reply that calls nothing is
    reminded twice (`AnswerTool.MAX_NUDGES`), then treated the same way. Forge's AI never chooses.
 6. The seat hands the engine the engine's own objects for those attackers. The engine resolves combat.

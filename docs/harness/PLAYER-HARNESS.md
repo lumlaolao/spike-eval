@@ -560,7 +560,7 @@ Now every decision is answered by calling `answer` (`AnswerTool.java`), and the 
   it only repeats the options the decision text lists. v2 has one schema with every field optional, and
   validates each call against the decision it answers.
 - **Corrections in the same conversation.** An illegal call (an option off the list, a wrong count, the
-  wrong field) is answered with the reason, and the model calls again. A second illegal call ends the
+  wrong field) is answered with the reason, and the model calls again. A second illegal reply ends the
   ask (`answer_via: "lost"`) and the caller takes its deterministic fallback.
 - **A constant tool list.** `set_plan` is offered on every ask. A lookahead seat declares `simulate` on
   every ask, and refuses it on a decision with no play menu (`NativeTools.NO_PREVIEW`).
