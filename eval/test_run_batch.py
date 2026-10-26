@@ -65,17 +65,9 @@ class TestForgeHome(unittest.TestCase):
     def test_the_forge_checkout_comes_from_forge_home_as_the_launchers_take_it(self):
         # CLAUDE.md's paid-game command passes no --forge-home: the default must follow $FORGE_HOME (a checkout at
         # /root/forge was refused as "run-llm-headless.sh not found" under ~/code/forge).
-        with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"FORGE_HOME": d}):
             (Path(d) / "forge-gui/res/puzzle").mkdir(parents=True)
-            old = os.environ.get("FORGE_HOME")
-            os.environ["FORGE_HOME"] = d
-            try:
-                self.assertEqual(run_batch.build_parser().parse_args([]).forge_home, d)
-            finally:
-                if old is None:
-                    del os.environ["FORGE_HOME"]
-                else:
-                    os.environ["FORGE_HOME"] = old
+            self.assertEqual(run_batch.build_parser().parse_args([]).forge_home, d)
 
 
 class TestOverlayIdentity(unittest.TestCase):

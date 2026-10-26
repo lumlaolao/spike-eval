@@ -7397,13 +7397,10 @@ public final class LlmSpikeGui {
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);
         }
 
-        // ---------------- Decisions that once only logged Forge's AI ----------------
-        // These surfaces used to call super and log its answer with tier "ai" (a log-only observation). All of
-        // them are routed now (decideOne / decideMany, or a deterministic tier "auto"), so nothing here asks
-        // Forge's AI and "[TALLY] ai=0" holds. REMAINING INVISIBLE SURFACE (documented, not logged): mana tapping/payment. The per-source
-        // which-land-to-tap choices happen entirely inside ComputerUtilMana (forge-ai) and never cross
-        // the PlayerController boundary — the controller only sees payManaCost(cost)->boolean — so they
-        // cannot be surfaced without modifying the pinned engine.
+        // REMAINING INVISIBLE SURFACE (documented, not logged): mana tapping/payment. The per-source
+        // which-land-to-tap choices happen entirely inside ComputerUtilMana (forge-ai) and never cross the
+        // PlayerController boundary (the controller only sees payManaCost(cost)->boolean), so they cannot
+        // be surfaced without modifying the pinned engine.
 
         /** Null-safe label snapshot (take it BEFORE calling super when super may mutate/reorder). */
         private List<String> cardLabels(Iterable<Card> cards) {
@@ -7514,12 +7511,8 @@ public final class LlmSpikeGui {
             return cards;
         }
 
-        // ---------------- report C1: the two hardest "Goal A" surfaces are now ROUTED, not observed --
-        // assignCombatDamage and choosePermanentsToSacrifice below used to live entirely in the
-        // log-only-observation bucket above (bit-identical to super, tier="ai", no [ROUTER] line, no
-        // model consultation ever). They no longer do: the common/forced shapes are deterministic
-        // tier="auto" and the genuine choices go through decideOne/decideMany like every other routed
-        // decision in this file, so they DO contribute to smart/fast/auto; none is a log-only observation any more.
+        // ---------------- report C1: assignCombatDamage and choosePermanentsToSacrifice are routed ----------------
+        // Their forced shapes are deterministic tier "auto"; their real choices go through decideOne/decideMany.
 
         /** Combat damage distribution (per creature per damage step). Report C1: this used to hand
          *  EVERY case — including the single-blocker, no-trample case that has exactly one legal
@@ -7796,8 +7789,8 @@ public final class LlmSpikeGui {
         }
 
         /** Edict-style sacrifice (Sacrifice/Balance effects, Annihilator, Emerge/Offering costs) —
-         *  ROUTED (report C1). This used to run entirely on Forge's built-in AI (`observeAiDec`-only,
-         *  no model consultation, no [ROUTER] line) — which in one tournament game sacrificed the
+         *  ROUTED (report C1). This used to run entirely on Forge's built-in AI (no model
+         *  consultation, no [ROUTER] line) — which in one tournament game sacrificed the
          *  model's single best remaining threat one turn before it lost. Mirrors
          *  chooseCardsToDiscardFrom's failure ladder: whole-set-forced or no budget -> deterministic
          *  first-N; genuinely unparsed/bridge-down -> the same deterministic first-N — never Forge AI
@@ -10856,10 +10849,10 @@ public final class LlmSpikeGui {
          */
         OpenRouterBridge(String label, String model, String preamble, String baseUrl, long timeoutMs) {
             // A LOCAL endpoint needs no key and must never be sent one (an invariant the reviews check:
-            // "loopback endpoints never receive an API key", .claude/skills/pr-review). Demanding a key here made the free local lane unusable for
-            // GAMES while it worked for puzzles, which is backwards: games are the only instrument
-            // that can measure a memory/context change, and they are the ones that most need to be
-            // free to repeat. Any non-loopback endpoint still requires the key.
+            // "loopback endpoints never receive an API key", .claude/skills/pr-review). Demanding a key here
+            // made the free local lane unusable for GAMES while it worked for puzzles, which is backwards: games
+            // are the only instrument that can measure a memory/context change, and they are the ones that most
+            // need to be free to repeat. Any non-loopback endpoint still requires the key.
             // Enforced here, not only at the factory, so no construction path can egress without
             // consent -- including the package-private test constructor above.
             LLMBridgeFactory.requireOpenRouterAccess(baseUrl, System.getenv("OPENROUTER_ALLOW_EGRESS"), API_KEY, label);

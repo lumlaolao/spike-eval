@@ -53,7 +53,7 @@ import forge.util.MyRandom;
  *
  * Env:
  *   PUZZLE=<id|path>     required. Bare id resolves against PUZZLE_DIRS.
- *   PUZZLE_DIRS=a:b      search path (default: Forge's res/puzzle, then $PWD/eval/puzzles/upstream)
+ *   PUZZLE_DIRS=a:b      search path (default: Forge's res/puzzle)
  *   CONTROLLER_A=...     solver arm: llm|random|floor|ai-log|pass|first|script (default llm);
  *                        pass/first/script are the zero-model puzzle arms in {@link PuzzleArms}
  *   CONTROLLER_B=...     opponent arm: ai|ai-log|llm|random|floor (default ai)
