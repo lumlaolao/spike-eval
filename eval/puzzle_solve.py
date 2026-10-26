@@ -152,12 +152,15 @@ def already_done(out, k, suite_sha, cap_ms=None):
 def set_aside_partial(out):
     """A puzzle cut off part way is played again from its first seed; its rows so far and its JVM log are renamed,
     so a scorer never counts them and the replay does not overwrite them, and its game rows stay, so cost_report
-    still prices what was spent."""
+    still prices what was spent. The manifest is copied beside them: the replay rewrites it, and the set-aside rows
+    keep the condition they were played under (a lower game cap)."""
     out = Path(out)
     n = max(len(list(out.glob("puzzle-results.partial*.jsonl"))), len(list(out.glob("jvm.partial*.log"))))
     for name, aside in (("puzzle-results.jsonl", "puzzle-results.partial%d.jsonl"), ("jvm.log", "jvm.partial%d.log")):
         if (out / name).is_file():
             (out / name).rename(out / (aside % n))
+    if (out / "batch-manifest.json").is_file():
+        shutil.copyfile(str(out / "batch-manifest.json"), str(out / ("batch-manifest.partial%d.json" % n)))
 
 
 def prepare(out, k, suite_sha, resume, cap_ms=None, can_run=lambda: True):
@@ -291,8 +294,9 @@ def main(argv=None):
                     help="an openrouter: model only: send a price ceiling at its list price (no priority tier)")
     ap.add_argument("--quantizations", default=None, metavar="LIST",
                     help="an openrouter: model only: the precisions it may be served at, comma-separated (fp8,bf16)")
-    ap.add_argument("--game-cap-minutes", type=float, default=ps.LEGACY_GAME_CAP_MS / 60000,
-                    help="wall-clock cap on each attempt's game (default 30); a capped game counts as unsolved")
+    ap.add_argument("--game-cap-minutes", type=int, default=ps.LEGACY_GAME_CAP_MS // 60000,
+                    help="wall-clock cap on each attempt's game, whole minutes (default 30); a capped game counts "
+                         "as unsolved")
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
@@ -321,7 +325,7 @@ def main(argv=None):
                              % (", ".join(QUANTIZATIONS), a.quantizations))
     if a.game_cap_minutes < 1:
         raise SystemExit("--game-cap-minutes must be at least 1")
-    cap_ms = int(round(a.game_cap_minutes * 60000))
+    cap_ms = a.game_cap_minutes * 60000
     if a.rules_tool and not a.memory_tools:
         raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
                          "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")

@@ -325,6 +325,9 @@ class FullRecordTest(unittest.TestCase):
                          puzzle_solve.pf.sha256_file(suite_path), "the suite, byte for byte")
 
 
+TIMEOUTS = []   # the timeout_s each fake build.run was given, newest last
+
+
 def run_solve(classes, *extra, model="greedy:", suite=None):
     """main() on the gen2 suite's first open active puzzle with a FakeBuild of `classes` that records each JVM's env:
     (the run root, the puzzle record, the envs)."""
@@ -355,9 +358,6 @@ def run_solve(classes, *extra, model="greedy:", suite=None):
                            "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
                           + list(extra))
     return root, rec, ran
-
-
-TIMEOUTS = []   # the timeout_s each fake build.run was given, newest last
 
 
 def run_openrouter(model, *extra):
@@ -611,8 +611,10 @@ class GameCapTest(unittest.TestCase):
         self.assertEqual(manifest["record"]["game_cap_ms"], 1800000)
 
     def test_the_jvm_outlives_every_attempts_cap(self):
-        run_openrouter("openrouter:openai/gpt-6-luna", "--game-cap-minutes", "300")
-        self.assertGreaterEqual(TIMEOUTS[-1], 300 * 60, "a JVM killed while a game is still inside its cap")
+        del TIMEOUTS[:]
+        run_openrouter("openrouter:openai/gpt-6-luna", "--game-cap-minutes", "300", "--k", "4")
+        self.assertEqual(len(TIMEOUTS), 1)
+        self.assertGreaterEqual(TIMEOUTS[0], 4 * 300 * 60, "a JVM killed while its k-th game is still inside its cap")
 
     def write(self, out, rows, cap_ms=None):
         out.mkdir(parents=True, exist_ok=True)
@@ -635,11 +637,14 @@ class GameCapTest(unittest.TestCase):
         rows = [{"seed": 1, "suite_sha256": "S", "status": "solved"},
                 {"seed": 2, "suite_sha256": "S", "status": "invalid"}]
         self.write(root / "p", rows)
+        manifest = (root / "p" / "batch-manifest.json").read_text()
         self.assertEqual(puzzle_solve.prepare(root / "p", 2, "S", True, 5400000, can_run=lambda: False), "skip")
         self.assertTrue((root / "p" / "puzzle-results.jsonl").exists(), "an unstarted replay keeps a scoreable puzzle")
         self.assertEqual(puzzle_solve.prepare(root / "p", 2, "S", True, 5400000), "run")
         self.assertFalse((root / "p" / "puzzle-results.jsonl").exists())
         self.assertEqual(len((root / "p" / "puzzle-results.partial0.jsonl").read_text().splitlines()), 2)
+        self.assertEqual((root / "p" / "batch-manifest.partial0.json").read_text(), manifest,
+                         "the set-aside rows keep the manifest (and cap) they were played under")
 
     def test_a_resume_under_a_lower_cap_is_refused(self):
         root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
@@ -652,13 +657,15 @@ class GameCapTest(unittest.TestCase):
         self.assertEqual(len(bad), 1)
         self.assertIn("game_cap_ms", bad[0])
 
-    def test_a_cap_under_a_minute_is_refused(self):
-        for minutes in ("0", "0.001"):
-            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+    def test_a_cap_is_whole_minutes_and_at_least_one(self):
+        # pr-review of #329: 30.00001 minutes would replay every 30-minute puzzle in full; nan crashed the run.
+        for minutes in ("0", "-5", "0.5", "30.00001", "nan", "inf"):
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"), \
+                    contextlib.redirect_stderr(io.StringIO()):
                 puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "greedy:", "--k", "1",
                                    "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
                                    "--game-cap-minutes", minutes])
-            self.assertIn("--game-cap-minutes", str(cm.exception.code))
+            self.assertNotIn(cm.exception.code, (0, None), minutes)
 
 
 if __name__ == "__main__":

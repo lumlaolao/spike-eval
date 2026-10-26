@@ -462,7 +462,8 @@ Runs of other puzzles, suites, splits, k or game caps are refused. Lookups per c
 - score an unscoreable row (one where the goal was not enforced);
 - pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
   stamped one is refused too);
-- pool or pair attempts under two game caps (`game_cap_ms`, from each puzzle's `batch-manifest.json`).
+- pool or pair attempts under two game caps (`game_cap_ms`, from each puzzle's `batch-manifest.json`; a directory with
+  no manifest, such as a baseline arm's, records no cap and is not checked).
 
 Beside the score (BENCHMARK-V2 phase 2): the clustered 95% interval of the headline and of pass@1 (the standard
 error of the per-puzzle means, Miller 2024), the smallest pass@1 difference two independent runs of this size
