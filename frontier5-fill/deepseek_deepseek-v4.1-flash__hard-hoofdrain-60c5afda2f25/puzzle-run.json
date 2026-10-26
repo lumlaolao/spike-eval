@@ -1,0 +1,1 @@
+{"ids": ["hard-hoofdrain-60c5afda2f25"], "k": 1, "budget_usd": 12.51, "finished": false, "build": {"build_dir": "/tmp/frontier5-build-a782588", "build_overlay_sha": "39de3c6f271e", "checkout_overlay_sha": "39de3c6f271e", "stale_build_allowed": false}, "suite_file": "suite.json"}

@@ -310,21 +310,5 @@
   "good": true,
   "why": [],
   "minutes": 17
- },
- "z-ai_glm-5.3-prime hard-atog-b8053a21d4a8": {
-  "root": "frontier5",
-  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/z-ai_glm-5.3-prime/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
-  "status": "solved",
-  "good": true,
-  "why": [],
-  "minutes": 59
- },
- "z-ai_glm-5.3-prime hard-drain2-516c13f84175": {
-  "root": "frontier5-long",
-  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-long/z-ai_glm-5.3-prime/hard-drain2-516c13f84175/puzzle-results.jsonl",
-  "status": "solved",
-  "good": true,
-  "why": [],
-  "minutes": 93
  }
 }
