@@ -239,6 +239,14 @@
   "why": [],
   "minutes": 3
  },
+ "meta_muse-wonder hard-drain2-516c13f84175": {
+  "root": "frontier5-fill",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-fill/meta_muse-wonder__hard-drain2-516c13f84175/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 8
+ },
  "mistralai_mistral-medium-3-5 hard-atog-b8053a21d4a8": {
   "root": "frontier5",
   "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5/mistralai_mistral-medium-3-5/hard-atog-b8053a21d4a8/puzzle-results.jsonl",
@@ -270,6 +278,14 @@
   "good": true,
   "why": [],
   "minutes": 91
+ },
+ "moonshotai_kimi-k2.6 hard-drain2-516c13f84175": {
+  "root": "frontier5-long",
+  "rows": "/home/user/mtg-forge-llm-agent/runs/puzzles/frontier5-long/moonshotai_kimi-k2.6/hard-drain2-516c13f84175/puzzle-results.jsonl",
+  "status": "solved",
+  "good": true,
+  "why": [],
+  "minutes": 137
  },
  "moonshotai_kimi-k2.6 hard-elf2-2753b3ca0d06": {
   "root": "frontier5-fill",
