@@ -125,6 +125,18 @@ class PairedTest(unittest.TestCase):
         self.assertIn("REFUSED", err.getvalue())
 
 
+class PriceCeilingRefusalTest(unittest.TestCase):
+    """pr-review of #327: under a price ceiling an endpoint outage refuses every request, so the attempt's decisions
+    fall to the fixed legal option. That row says nothing about the model: it is refused, never scored a 0."""
+
+    def test_an_attempt_with_ceiling_refusals_is_refused_and_one_without_is_scored(self):
+        row = {"id": "p", "seed": 1, "status": "failed", "routing_refusals": 3}
+        with self.assertRaisesRegex(ps.Refused, "routing filter"):
+            ps.attempt_success(row)
+        self.assertEqual(ps.attempt_success(dict(row, routing_refusals=0)), (False, None))
+        self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "solved"}), (True, None))
+
+
 class ScoreV2Test(unittest.TestCase):
     """BENCHMARK-V2 phase 2: clustered intervals and the power line, the budget and integrity lines, epochs never pooled,
     and the score by v2 tier."""
@@ -209,6 +221,17 @@ class ScoreV2Test(unittest.TestCase):
             self.assertEqual(ps.score(self.m, rows, "open", k=4, n_boot=20)[key], a)
             rows[0][key] = b
             with self.assertRaisesRegex(ps.Refused, "claude-cli"):
+                ps.score(self.m, rows, "open", k=4, n_boot=20)
+
+    def test_attempts_under_two_routing_filters_are_never_pooled(self):
+        # pr-review of #327: a precision list or price ceiling is what the model ran at, so two directories played
+        # under different filters are not one score. The row carries each (absent: none).
+        for key, a in (("openrouter_quantizations", '{"m":["bf16","fp8"]}'),
+                       ("openrouter_max_price", '{"m":{"prompt":"2","completion":"10"}}')):
+            rows = self.rows([4, 2, 0], **{key: a})
+            self.assertEqual(ps.score(self.m, rows, "open", k=4, n_boot=20)[key], a)
+            del rows[0][key]
+            with self.assertRaisesRegex(ps.Refused, "routing filters"):
                 ps.score(self.m, rows, "open", k=4, n_boot=20)
 
     def test_a_development_lane_run_is_labelled_so_and_never_called_a_score(self):

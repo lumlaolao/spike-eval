@@ -2031,6 +2031,53 @@ public class GoldenChecksTest {
         Assert.assertEquals(b.get("lookups"), 0);
     }
 
+    /** pr-review of #327: under a price ceiling a 502 the seat's own retry recovers lost nothing, so the row's
+     *  routing_refusals (what makes puzzle_score.py refuse it) stays 0 and only the diagnostic HTTP count moves;
+     *  a decision every retry lost under the ceiling is counted. Replaying recovered attempts would score a capped run
+     *  on the attempts that drew no transient error. */
+    @Test
+    public void onlyADecisionLostUnderTheCeilingMarksTheRow() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicInteger refusals = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger failNext = new java.util.concurrent.atomic.AtomicInteger(1);
+        java.util.concurrent.atomic.AtomicBoolean timedOut = new java.util.concurrent.atomic.AtomicBoolean();
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                if (timedOut.get()) return null;   // no answer and no refusal: a timeout
+                if (failNext.get() > 0) { failNext.decrementAndGet(); refusals.incrementAndGet(); return null; }
+                return super.ask(prompt);
+            }
+            @Override public Integer getRoutingRefusals() { return refusals.get(); }
+        };
+        model.on("You have priority", choice("PASS"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        String wasQ = LlmSpikeGui.OpenRouterBridge.quantizationsEnv;
+        LlmSpikeGui.OpenRouterBridge.quantizationsEnv = "{\"fake\":[\"fp8\"]}";
+        java.util.Map<String, Object> b;
+        try { b = ctrl.budget(); } finally { LlmSpikeGui.OpenRouterBridge.quantizationsEnv = wasQ; }
+        // pr-review of #327: the row names the filter it ran under, so puzzle_score never pools two filters.
+        Assert.assertEquals(b.get("openrouter_quantizations"), "{\"fake\":[\"fp8\"]}", String.valueOf(b));
+        Assert.assertFalse(b.containsKey("openrouter_max_price"), "no ceiling was set: " + b);
+        Assert.assertEquals(b.get("routing_http_refusals"), 1, String.valueOf(b));
+        Assert.assertEquals(b.get("routing_refusals"), 0, "the retry answered: " + b);
+
+        // pr-review of #327: a decision lost with no refusal behind it (a timeout) is the model's, as without a filter.
+        timedOut.set(true);
+        card("Shock", me, ZoneType.Hand);
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(ctrl.budget().get("routing_refusals"), 0, "a timeout is not the filter's: " + ctrl.budget());
+        timedOut.set(false);
+
+        failNext.set(100);   // every retry of the next decision is refused
+        card("Lava Spike", me, ZoneType.Hand);
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertTrue((Integer) ctrl.budget().get("routing_refusals") >= 1, String.valueOf(ctrl.budget()));
+    }
+
     /** A bridge that reports no billing and fails its next ask still shows the last call's usage; the budget must not
      *  count it twice (pr-review of #282: a dead bridge reported a full call's tokens it never spent). */
     @Test

@@ -164,6 +164,16 @@ class EachPuzzleTest(unittest.TestCase):
             f.write(json.dumps(result(1, "unscoreable")) + "\n")
         self.assertIn("UNSCOREABLE", self.run.by_id()["running"]["flags"])
 
+    def test_a_row_refused_under_the_price_ceiling_is_flagged_as_that(self):
+        # pr-review of #327: not "a goal the engine did not enforce", but an endpoint the ceiling left unreachable.
+        with open(self.run.root / "running" / "puzzle-results.jsonl", "a") as f:
+            f.write(json.dumps(dict(result(1, "failed"), routing_refusals=4)) + "\n")
+            f.write(json.dumps(dict(result(2, "failed"), routing_refusals=2)) + "\n")
+        flags = self.run.by_id()["running"]["flags"]
+        self.assertEqual(flags["ROUTING-FILTER"][0], 2)
+        self.assertIn("6 decisions", flags["ROUTING-FILTER"][1], "the lost decisions of every refused row")
+        self.assertNotIn("UNSCOREABLE", flags)
+
     def test_an_openrouter_seat_is_priced_at_the_dearest_endpoint_as_the_budget_is(self):
         # OpenRouterBridge logs "replied in N ms" and no cost; puzzle_solve checks the budget at budget_prices.
         root = Path(tempfile.mkdtemp())

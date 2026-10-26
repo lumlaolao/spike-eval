@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -107,6 +108,14 @@ class ResumeTest(unittest.TestCase):
         self.assertFalse(puzzle_solve.already_done(out, 2, "OTHER"), "rows of another suite version")
         self.assertFalse(puzzle_solve.already_done(Path(tempfile.mkdtemp()) / "none", 1, "S"))
 
+    def test_an_attempt_refused_under_the_price_ceiling_is_played_again(self):
+        # pr-review of #327: such a row is not a result (puzzle_score refuses it), so a resume replays the puzzle.
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "routing_refusals": 2}])
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "routing_refusals": 0}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
     def test_a_puzzle_cut_off_part_way_keeps_its_paid_rows_aside_and_is_played_again(self):
         out = Path(tempfile.mkdtemp()) / "p"
         for _ in range(2):   # cut off twice: neither set of rows overwrites the other
@@ -155,6 +164,23 @@ class ResumeTest(unittest.TestCase):
 
     BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
              "stale_build_allowed": False}
+
+    def test_a_resume_with_another_price_ceiling_is_refused(self):
+        # standards review of #327: a ceiling can move a request to another provider, so capped and uncapped attempts
+        # are not resumed into one directory. A directory from before the ceiling existed was uncapped.
+        root = Path(tempfile.mkdtemp())
+        cond = {"MEMORY_TOOLS": "0"}
+        cap = '{"m": {"prompt": 2, "completion": 10}}'
+        puzzle_solve.write_manifest(root / "capped", "m", "S", "capped", cond, self.BUILD,
+                                    {"openrouter_max_price": json.loads(cap)})
+        puzzle_solve.write_manifest(root / "old", "m", "S", "old", cond, self.BUILD)
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["capped"], "m", "S", cond, self.BUILD, cap), [])
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["old"], "m", "S", cond, self.BUILD), [])
+        for pid, ceiling in (("capped", None), ("old", cap),
+                             ("capped", '{"m": {"prompt": 3, "completion": 10}}')):
+            bad = puzzle_solve.resume_conflicts(root, [pid], "m", "S", cond, self.BUILD, ceiling)
+            self.assertEqual(len(bad), 1, (pid, ceiling))
+            self.assertIn("openrouter_max_price", bad[0])
 
     def test_a_resume_on_another_build_is_refused(self):
         # pr-review of #319: the attempts of two harnesses pooled in one score when a resume ran on another build.
@@ -299,53 +325,63 @@ class FullRecordTest(unittest.TestCase):
                          puzzle_solve.pf.sha256_file(suite_path), "the suite, byte for byte")
 
 
+def run_solve(classes, *extra, model="greedy:", suite=None):
+    """main() on the gen2 suite's first open active puzzle with a FakeBuild of `classes` that records each JVM's env:
+    (the run root, the puzzle record, the envs)."""
+    suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
+    rec = next(r for r in json.loads(suite_path.read_text())["puzzles"]
+               if r["split"] == "open" and r["status"] == "active")
+    ran = []
+
+    class FakeBuild:
+        def __init__(self, build_dir, forge, allow_stale=False):
+            self.classes = classes
+
+        def provenance(self):
+            return {}
+
+        def run(self, env, out, **kw):
+            ran.append(env)
+            return 0
+
+    root = Path(tempfile.mkdtemp())
+    if suite == "own-copy":
+        (root / puzzle_solve.SUITE_COPY).write_bytes(suite_path.read_bytes())
+        suite_path = root / puzzle_solve.SUITE_COPY
+    with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+            contextlib.redirect_stdout(io.StringIO()):
+        puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", model, "--k", "1",
+                           "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
+                          + list(extra))
+    return root, rec, ran
+
+
+def run_openrouter(model, *extra):
+    """run_solve for an openrouter: model against a loopback endpoint: (the JVM envs, the puzzle's manifest)."""
+    with mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}):
+        root, rec, envs = run_solve(classes_with_transcript(), *extra, model=model)
+    return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
+
+
 class RecordBuildTest(unittest.TestCase):
     """A build compiled before Transcript would run a puzzle with no record while its manifest said it kept one: the
     run refuses it unless --allow-no-record, which the manifest then states. A resume passing the run's own suite copy
     as --suite does not copy the file onto itself."""
 
-    def run_main(self, classes, *extra, suite=None):
-        suite_path = Path(__file__).resolve().parent / "suites" / "puzzles-hard-gen2-v1.json"
-        rec = next(r for r in json.loads(suite_path.read_text())["puzzles"]
-                   if r["split"] == "open" and r["status"] == "active")
-        ran = []
-
-        class FakeBuild:
-            def __init__(self, build_dir, forge, allow_stale=False):
-                self.classes = classes
-
-            def provenance(self):
-                return {}
-
-            def run(self, env, out, **kw):
-                ran.append(env)
-                return 0
-
-        root = Path(tempfile.mkdtemp())
-        if suite == "own-copy":
-            (root / puzzle_solve.SUITE_COPY).write_bytes(suite_path.read_bytes())
-            suite_path = root / puzzle_solve.SUITE_COPY
-        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
-                contextlib.redirect_stdout(io.StringIO()):
-            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
-                               "--budget-usd", "1", "--ids", rec["id"], "--out", str(root), "--build", "/b"]
-                              + list(extra))
-        return root, rec, ran
-
     def test_a_build_without_transcript_is_refused_before_anything_runs(self):
         with self.assertRaises(SystemExit) as cm:
-            self.run_main(Path(tempfile.mkdtemp()))
+            run_solve(Path(tempfile.mkdtemp()))
         self.assertIn("Transcript", str(cm.exception))
         self.assertIn("--allow-no-record", str(cm.exception))
 
     def test_allowed_without_the_record_the_manifest_says_so(self):
-        root, rec, ran = self.run_main(Path(tempfile.mkdtemp()), "--allow-no-record")
+        root, rec, ran = run_solve(Path(tempfile.mkdtemp()), "--allow-no-record")
         self.assertEqual(len(ran), 1)
         record = json.loads((root / rec["id"] / "batch-manifest.json").read_text())["record"]
         self.assertIsNone(record["transcript_version"], "a run without the record must not claim one")
 
     def test_the_runs_own_suite_copy_is_not_copied_onto_itself(self):
-        root, rec, ran = self.run_main(classes_with_transcript(), suite="own-copy")
+        root, rec, ran = run_solve(classes_with_transcript(), suite="own-copy")
         self.assertEqual(len(ran), 1)
 
     def test_the_version_is_the_stamp_versions_py_reads(self):
@@ -433,6 +469,127 @@ class ClaudeCliSeatTest(unittest.TestCase):
                          ("", ""))
         a.model = "openrouter:openai/gpt-6-luna"
         self.assertFalse(any(k.startswith("CLAUDE") for k in puzzle_solve.condition(a)), "another model's condition moved")
+
+
+class MaxPriceAtListTest(unittest.TestCase):
+    """Owner, 2026-10-25: a frontier run must not be routed to a priority tier (GPT-6.1 Sol's costs 6x list).
+    --max-price-at-list sends each request a ceiling at the model's list price in eval/pricing/prices.json, in USD per
+    million tokens, exactly (a ceiling rounded below list would rule out the list-price endpoint itself)."""
+
+    SUITE = DecisionModelSeatTest.SUITE
+
+    def test_the_ceiling_is_the_list_price_per_million_tokens_exactly(self):
+        prices = puzzle_solve.cost_report.load_prices()
+        for spec, want in (("openrouter:openai/gpt-6.1-sol", {"prompt": 2, "completion": 10}),
+                           ("openrouter:moonshotai/kimi-k3", {"prompt": 0.17, "completion": 16}),
+                           ("openrouter:deepseek/deepseek-v4.1-flash", {"prompt": 0.02, "completion": 1})):
+            got = json.loads(puzzle_solve.max_price_env(prices, spec))
+            self.assertEqual(got, {spec.split(":", 1)[1]: want}, spec)
+        self.assertNotIn("e-", puzzle_solve.max_price_env(prices, "openrouter:deepseek/deepseek-v4.1-flash"))
+
+
+    def test_the_flag_reaches_the_jvm_and_the_manifest_records_it(self):
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6.1-sol", "--max-price-at-list")
+        want = puzzle_solve.max_price_env(puzzle_solve.cost_report.load_prices(), "openrouter:openai/gpt-6.1-sol")
+        self.assertEqual(envs[0]["OPENROUTER_MAX_PRICE"], want)
+        self.assertEqual(manifest["record"]["openrouter_max_price"], json.loads(want))
+
+    def test_without_the_flag_no_ceiling_is_sent_and_none_is_recorded(self):
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6.1-sol")
+        self.assertNotIn("OPENROUTER_MAX_PRICE", envs[0])
+        self.assertIsNone(manifest["record"]["openrouter_max_price"])
+
+    def test_it_is_refused_for_a_model_that_is_not_an_openrouter_chat_model(self):
+        for model in ("jev:typesafe/jev-1.14", "greedy:"):
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+                puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1",
+                                   "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                                   "--max-price-at-list"])
+            self.assertIn("--max-price-at-list", str(cm.exception.code), model)
+
+    def test_a_refused_attempt_is_reported_and_the_run_goes_on(self):
+        # pr-review of #327: the progress line scored each row, so one refused attempt raised and ended a paid run.
+        suite = json.loads(Path(self.SUITE).read_text())
+        ids = [r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active"][:2]
+        played = []
+
+        class FakeBuild:
+            classes = classes_with_transcript()
+
+            def __init__(self, build_dir, forge, allow_stale=False):
+                pass
+
+            def provenance(self):
+                return {}
+
+            def run(self, env, out, **kw):
+                played.append(out.name)
+                row = {"schema": "pzl-result-v1", "id": out.name, "seed": 1, "status": "failed",
+                       "suite_sha256": suite["suite_sha256"], "routing_refusals": 3}
+                (out / "puzzle-results.jsonl").write_text(json.dumps(row) + "\n")
+                return 0
+
+        stdout, root = io.StringIO(), Path(tempfile.mkdtemp())
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}), \
+                contextlib.redirect_stdout(stdout):
+            rc = puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", "openrouter:openai/gpt-6.1-sol",
+                                    "--k", "1", "--budget-usd", "1", "--ids", ",".join(ids), "--out", str(root),
+                                    "--build", "/b", "-j", "1", "--max-price-at-list"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(sorted(played), sorted(ids), "the second puzzle still ran")
+        self.assertEqual(stdout.getvalue().count("[ROUTING-FILTER]"), 2, stdout.getvalue())
+        self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
+
+    def test_it_is_refused_for_a_model_with_no_list_price_above_zero(self):
+        # pr-review of #327: the JVM refuses a zero ceiling, so every puzzle would fail one by one; refuse it once here.
+        with self.assertRaises(SystemExit) as cm:
+            run_openrouter("openrouter:fake/harness-model", "--max-price-at-list")
+        self.assertIn("list price", str(cm.exception.code))
+
+
+class PrecisionFloorTest(unittest.TestCase):
+    """Owner, 2026-10-26: an open-weight model plays at its maker's released precision, never on a host that
+    compresses it further. --quantizations sends OpenRouter the precisions allowed (OPENROUTER_QUANTIZATIONS)."""
+
+    SUITE = DecisionModelSeatTest.SUITE
+
+
+    def test_the_list_reaches_the_jvm_and_the_manifest(self):
+        envs, manifest = run_openrouter("openrouter:z-ai/glm-5.3", "--quantizations", "fp8,bf16,fp8")
+        self.assertEqual(json.loads(envs[0]["OPENROUTER_QUANTIZATIONS"]), {"z-ai/glm-5.3": ["bf16", "fp8"]})
+        # One set, one spelling (standards review of #327): the order given must not split a resume or a condition.
+        self.assertEqual(manifest["record"]["openrouter_quantizations"], ["bf16", "fp8"])
+        envs, manifest = run_openrouter("openrouter:z-ai/glm-5.3")
+        self.assertNotIn("OPENROUTER_QUANTIZATIONS", envs[0])
+        self.assertIsNone(manifest["record"]["openrouter_quantizations"])
+
+    def test_an_unknown_precision_or_another_lane_is_refused(self):
+        for model, value in (("openrouter:z-ai/glm-5.3", "fp3"), ("openrouter:z-ai/glm-5.3", ""),
+                             ("jev:typesafe/jev-1.14", "fp8")):
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(puzzle_solve, "load_secrets"):
+                puzzle_solve.main(["--suite", self.SUITE, "--split", "open", "--model", model, "--k", "1",
+                                   "--budget-usd", "1", "--out", tempfile.mkdtemp(), "--build", "/b",
+                                   "--quantizations", value])
+            self.assertIn("--quantizations", str(cm.exception.code), (model, value))
+
+    def test_the_python_precision_names_are_the_javas(self):
+        # simplify review of #327: two copies, and a name in one only passes puzzle_solve and is refused by the JVM.
+        java = (Path(__file__).resolve().parent.parent / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+                / "LlmSpikeGui.java").read_text()
+        body = java.split("QUANTIZATIONS = java.util.Set.of(", 1)[1].split(");", 1)[0]
+        self.assertEqual(set(re.findall(r'"([^"]+)"', body)), set(puzzle_solve.QUANTIZATIONS))
+
+    def test_a_resume_under_another_precision_list_is_refused(self):
+        root, cond = Path(tempfile.mkdtemp()), {"MEMORY_TOOLS": "0"}
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", cond, ResumeTest.BUILD,
+                                    {"openrouter_quantizations": ["fp8", "bf16"]})
+        same = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, quantizations=["fp8", "bf16"])
+        self.assertEqual(same, [])
+        for other in (None, ["fp8"]):
+            bad = puzzle_solve.resume_conflicts(root, ["p"], "m", "S", cond, ResumeTest.BUILD, quantizations=other)
+            self.assertEqual(len(bad), 1, other)
+            self.assertIn("openrouter_quantizations", bad[0])
 
 
 if __name__ == "__main__":

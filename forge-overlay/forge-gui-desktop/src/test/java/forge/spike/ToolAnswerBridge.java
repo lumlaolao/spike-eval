@@ -42,6 +42,7 @@ final class ToolAnswerBridge implements LLMBridge {
     @Override public int getLastCacheWriteTokens() { return script.getLastCacheWriteTokens(); }
     @Override public String getLastProvider() { return script.getLastProvider(); }
     @Override public String getLastFinishReason() { return script.getLastFinishReason(); }
+    @Override public Integer getRoutingRefusals() { return script.getRoutingRefusals(); }
 
     @Override
     public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
