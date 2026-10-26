@@ -332,26 +332,24 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
 - Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat; a `jev:` seat 120 s,
   `DecisionsBridge`) unless `--call-timeout-minutes` sets one for every tier (`OPENROUTER_TIMEOUT_MS`, recorded as
   `record.call_timeout_ms`; a resume under another value is refused; an `openrouter:` or `jev:` seat only, since no
-  other bridge reads it). A call past it is retried, then its decision goes to a fixed legal option. In
-  `runs/puzzles/frontier5` the 300 s deadline fired for four models (`grep -l "wall-clock timeout"
-  runs/puzzles/frontier5/*/*/jvm.log`); the owner's later runs use 20 (`runs/puzzles/frontier5-long`) and 60 minutes
-  (`runs/puzzles/frontier5-fill`; `record.call_timeout_ms` in each puzzle's manifest).
+  other bridge reads it). A call past it is retried, then its decision goes to a fixed legal option (the frontier5
+  run's deadlines: `docs/harness/FRONTIER5.md`, "How it ran").
   A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
   `ModelCfg` (about 15 minutes), not from this flag. A game capped while a longer call is in flight can outlive that
   grace and leave its puzzle's later seeds unplayed. A resume that replayed them would redraw only the slow puzzles,
-  which biases the score. The frontier run used k=1.
+  which biases the score.
 - Each smart-tier call's `max_tokens`, which is also its thinking budget, is the model's own (`ModelCfg`, 32000) unless
   `--max-tokens` sets one for every model family (`OPENROUTER_MODEL_CFG`, recorded as `record.max_tokens`, at most
   2^31-1; a resume under another value is refused; an `openrouter:` seat only, since no other bridge reads it). The
-  fast tier keeps 8192 with reasoning off. The frontier fill run gave each model its own maximum output (owner,
-  2026-10-26).
+  fast tier keeps 8192 with reasoning off. The cap is sent as is, and a provider counts it against the context window
+  with the prompt: with a model's listed maximum output, calls can be refused for context length (frontier5, Kimi
+  K2.6: `docs/harness/FRONTIER5.md`, "Decisions the harness lost").
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
   absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every
   puzzle played under a lower one is played again, all k attempts: replaying only the games the lower cap cut off
   would draw again only where the first draw was slow, which biases the score toward fast games. `puzzle_score.py`
-  refuses rows from two caps and reports the one (`game_cap_ms`, and `cap=` on the PUZ line). Rows with no
-  manifest beside them (a baseline arm, which sets its own cap) carry none.
+  reports it (`game_cap_ms`, and `cap=` on the PUZ line) and refuses a mix (below).
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
   - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`
