@@ -53,4 +53,8 @@ runs/puzzles/
 runs/human/
 runs/keyword-gauntlet/
 __pycache__/
+*.py[co]
+.pytest_cache/
+.venv/
+*.swp
 runs/harness-acceptance/

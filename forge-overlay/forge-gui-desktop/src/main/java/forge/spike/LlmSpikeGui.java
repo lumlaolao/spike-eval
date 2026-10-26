@@ -7397,24 +7397,11 @@ public final class LlmSpikeGui {
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);
         }
 
-        // ---------------- Goal A: log-only observation of decisions Forge's AI makes ----------------
-        // These surfaces previously emitted NO eval line and ran invisibly on the engine AI (super).
-        // Each override below calls super, OBSERVES the result, emits an evalDec line with tier "ai",
-        // and returns super's result object UNCHANGED — behavior is bit-identical; only the JSONL gains
-        // lines. They deliberately do NOT call noteAi()/bump aiDelegations: these are observations of
-        // pre-existing AI behavior, not new fallbacks, so "[TALLY] ai=0" stays a meaningful invariant.
         // REMAINING INVISIBLE SURFACE (documented, not logged): mana tapping/payment. The per-source
-        // which-land-to-tap choices happen entirely inside ComputerUtilMana (forge-ai) and never cross
-        // the PlayerController boundary — the controller only sees payManaCost(cost)->boolean — so they
-        // cannot be surfaced without modifying the pinned engine.
+        // which-land-to-tap choices happen entirely inside ComputerUtilMana (forge-ai) and never cross the
+        // PlayerController boundary (the controller only sees payManaCost(cost)->boolean), so they cannot
+        // be surfaced without modifying the pinned engine.
 
-        /** Emit a log-only "AI observed" decision line. Never throws, never alters game flow. */
-        private void observeAiDec(String type, int nOptions, int choice, long t0, String desc, List<String> labels) {
-            try {
-                clearLast(); // no model was consulted for this decision — prompt/raw_reply must log null
-                evalDec(type, nOptions, choice, "ai", System.currentTimeMillis() - t0, desc, labels);
-            } catch (Exception ignore) { }
-        }
         /** Null-safe label snapshot (take it BEFORE calling super when super may mutate/reorder). */
         private List<String> cardLabels(Iterable<Card> cards) {
             List<String> out = new ArrayList<>();
@@ -7524,13 +7511,8 @@ public final class LlmSpikeGui {
             return cards;
         }
 
-        // ---------------- report C1: the two hardest "Goal A" surfaces are now ROUTED, not observed --
-        // assignCombatDamage and choosePermanentsToSacrifice below used to live entirely in the
-        // log-only-observation bucket above (bit-identical to super, tier="ai", no [ROUTER] line, no
-        // model consultation ever). They no longer do: the common/forced shapes are deterministic
-        // tier="auto" and the genuine choices go through decideOne/decideMany like every other routed
-        // decision in this file, so they DO contribute to smart/fast/auto — only assignCombatDamage's
-        // documented multi-blocker/banding exotic-split fallback still calls observeAiDec.
+        // ---------------- report C1: assignCombatDamage and choosePermanentsToSacrifice are routed ----------------
+        // Their forced shapes are deterministic tier "auto"; their real choices go through decideOne/decideMany.
 
         /** Combat damage distribution (per creature per damage step). Report C1: this used to hand
          *  EVERY case — including the single-blocker, no-trample case that has exactly one legal
@@ -7807,8 +7789,8 @@ public final class LlmSpikeGui {
         }
 
         /** Edict-style sacrifice (Sacrifice/Balance effects, Annihilator, Emerge/Offering costs) —
-         *  ROUTED (report C1). This used to run entirely on Forge's built-in AI (`observeAiDec`-only,
-         *  no model consultation, no [ROUTER] line) — which in one tournament game sacrificed the
+         *  ROUTED (report C1). This used to run entirely on Forge's built-in AI (no model
+         *  consultation, no [ROUTER] line) — which in one tournament game sacrificed the
          *  model's single best remaining threat one turn before it lost. Mirrors
          *  chooseCardsToDiscardFrom's failure ladder: whole-set-forced or no budget -> deterministic
          *  first-N; genuinely unparsed/bridge-down -> the same deterministic first-N — never Forge AI
@@ -8293,7 +8275,6 @@ public final class LlmSpikeGui {
             p("[FALLBACK->AI] " + where + "  (ai=" + aiDelegations + " smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + ")");
             evalDec(firstWord(where), -1, -1, "ai", 0, where);
         }
-        private <T> T aiDelegate(String where, T result) { noteAi(where); return result; }
         private void auto(String what) { autoPicks++; p("[AUTO-LEGAL] " + what); evalDec(firstWord(what), -1, -1, "auto", 0, what); }
 
         /** The prompt with the most recent play and the model's reasoning for it, placed just before the
@@ -10867,12 +10848,11 @@ public final class LlmSpikeGui {
          * takes the 3-arg constructor above and its env-derived endpoint.
          */
         OpenRouterBridge(String label, String model, String preamble, String baseUrl, long timeoutMs) {
-            // A LOCAL endpoint needs no key and must never be sent one — the same rule
-            // eval/pipelines/local_contract_check.sh already states for the Python lane ("localhost
-            // ... never receives a key"). Demanding a key here made the free local lane unusable for
-            // GAMES while it worked for puzzles, which is backwards: games are the only instrument
-            // that can measure a memory/context change, and they are the ones that most need to be
-            // free to repeat. Any non-loopback endpoint still requires the key.
+            // A LOCAL endpoint needs no key and must never be sent one (an invariant the reviews check:
+            // "loopback endpoints never receive an API key", .claude/skills/pr-review). Demanding a key here
+            // made the free local lane unusable for GAMES while it worked for puzzles, which is backwards: games
+            // are the only instrument that can measure a memory/context change, and they are the ones that most
+            // need to be free to repeat. Any non-loopback endpoint still requires the key.
             // Enforced here, not only at the factory, so no construction path can egress without
             // consent -- including the package-private test constructor above.
             LLMBridgeFactory.requireOpenRouterAccess(baseUrl, System.getenv("OPENROUTER_ALLOW_EGRESS"), API_KEY, label);
@@ -11406,10 +11386,8 @@ public final class LlmSpikeGui {
         }
 
         /** True when {@code url} names a loopback host. Mirrors eval/replay_match.py's
-         *  LOCAL_HOSTS/endpoint_host pair, including its treatment of an unparseable or absent host
-         *  as NON-local: an empty host in Python means "no netloc", which only happens for a
-         *  relative URL, whereas here an unset OPENROUTER_BASE_URL means the real openrouter.ai
-         *  default — so absent must fail closed, not open. */
+         *  LOCAL_HOSTS/endpoint_host pair: a URL with no parseable host (a bare "host/path", an unset
+         *  OPENROUTER_BASE_URL, which means the real openrouter.ai) is NON-local, so the gate fails closed. */
         static boolean isLoopbackEndpoint(String url) {
             if (url == null || url.trim().isEmpty()) return false;   // unset => the real API
             try {

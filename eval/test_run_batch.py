@@ -61,6 +61,19 @@ def write_game(d, name, *lines):
             f.write(json.dumps(ln) + "\n")
 
 
+class TestForgeHome(unittest.TestCase):
+    def test_the_forge_checkout_comes_from_forge_home_as_the_launchers_take_it(self):
+        # CLAUDE.md's paid-game command passes no --forge-home: the default must follow $FORGE_HOME (a checkout at
+        # /root/forge was refused as "run-llm-headless.sh not found" under ~/code/forge).
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"FORGE_HOME": d}):
+            (Path(d) / "forge-gui/res/puzzle").mkdir(parents=True)
+            self.assertEqual(run_batch.build_parser().parse_args([]).forge_home, d)
+        # pr-review of #328: a FORGE_HOME that is set but no checkout (a typo) is taken as given, so the run refuses
+        # it ("run-llm-headless.sh not found") rather than playing on another checkout's installed overlay.
+        with mock.patch.dict(os.environ, {"FORGE_HOME": "/nonexistent/typo-forge"}):
+            self.assertEqual(str(run_batch.build_parser().parse_args([]).forge_home), "/nonexistent/typo-forge")
+
+
 class TestOverlayIdentity(unittest.TestCase):
     """OVERLAY_SHA and the drift refusal covered only LlmSpikeGui/LlmSpikeHeadless (2026-10-16 review H3):
     a stale AnswerTool or engine patch was invisible. Every overlay source counts now."""

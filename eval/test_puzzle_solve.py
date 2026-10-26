@@ -487,7 +487,6 @@ class MaxPriceAtListTest(unittest.TestCase):
             self.assertEqual(got, {spec.split(":", 1)[1]: want}, spec)
         self.assertNotIn("e-", puzzle_solve.max_price_env(prices, "openrouter:deepseek/deepseek-v4.1-flash"))
 
-
     def test_the_flag_reaches_the_jvm_and_the_manifest_records_it(self):
         envs, manifest = run_openrouter("openrouter:openai/gpt-6.1-sol", "--max-price-at-list")
         want = puzzle_solve.max_price_env(puzzle_solve.cost_report.load_prices(), "openrouter:openai/gpt-6.1-sol")
@@ -553,7 +552,6 @@ class PrecisionFloorTest(unittest.TestCase):
     compresses it further. --quantizations sends OpenRouter the precisions allowed (OPENROUTER_QUANTIZATIONS)."""
 
     SUITE = DecisionModelSeatTest.SUITE
-
 
     def test_the_list_reaches_the_jvm_and_the_manifest(self):
         envs, manifest = run_openrouter("openrouter:z-ai/glm-5.3", "--quantizations", "fp8,bf16,fp8")

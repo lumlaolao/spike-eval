@@ -77,8 +77,9 @@ concurrency; CPU is the binding constraint for floor-vs-floor concurrency
 - **`eval/run_batch.py`** already has a `--jobs N` flag
   (`run_batch.py:396-398`) implemented via `ThreadPoolExecutor`
   (`run_batch.py:501-509`) — each job is a separate `subprocess.run(["bash",
-  "run-llm-headless.sh"], ...)`, i.e. a separate JVM. **Cited mode refuses a seat on the Claude CLI** (a bare
-  claude-CLI spec or `claude-cli:`: a development lane, owner 2026-10-24; it forced `--jobs 1` for them before that);
+  "run-llm-headless.sh"], ...)`, i.e. a separate JVM. **Cited mode refuses a seat on the Claude CLI** (`claude-cli:`
+  is a development lane, owner 2026-10-24; a bare Claude name is refused everywhere since 2026-10-25; the text
+  below on bare specs and `--jobs 1` is historical);
   all-`openrouter:` runs may be parallel since 2026-10-17, and it prints a warning above
   `--jobs 2` even in `--exploratory` mode (`run_batch.py:475-478`,
   `eval/README.md:87`). This guard is deliberate and already correctly
@@ -216,7 +217,7 @@ not wanting to starve the user's interactive `claude` CLI sessions.
 | Floor-vs-floor (both controllers `floor`) | **4–6** | CPU-bound, ~25s bursts. 6 P-cores + 12 E-cores comfortably absorb 4–6 concurrent ~25s AI-search bursts alongside existing desktop load; RAM is a non-issue (~1 GB/JVM × 6 ≈ 6 GB of 24 GB). |
 | Cheap-LLM (e.g. both seats `openrouter:google/gemini-3.5-flash`) | **4–6** | Latency-bound, ~0.2–0.6% CPU/JVM, ~900 MB RSS/JVM measured. CPU is a non-issue; RAM for 6 JVMs (~5–6 GB) leaves comfortable headroom. Paid-tier OpenRouter has no hard RPM wall, so the limiter is just "don't be rude to one provider's queue" — 4–6 concurrent requests to a fast, cheap model is unremarkable. |
 | Mixed sweep (one seat floor, one seat LLM) — today's `model_sweep.py` pattern | **3–4** for `run_batch.py`; **2–3 different models at once** if `model_sweep.py` grows a `--jobs` flag | Same low per-JVM footprint; the floor seat adds brief CPU bursts. Because every model in the roster is `openrouter:`-prefixed, there's no `claude`-CLI contention to worry about — the constraint is just RAM/CPU headroom, which supports more than the current strictly-sequential 1. |
-| Expensive reasoners / **any bare (non-`openrouter:`) model spec** (e.g. plain `haiku`, `opus`, `fable-5`) | **1** (2 only with caution) | These route through the local `claude` CLI (`LlmSpikeGui.java:2463-2498`) and directly compete with the user's own interactive Claude Code sessions for the same CLI/account. This matches — and validates — the existing cited-mode guard forcing `--jobs 1` (`run_batch.py:298-301`). Don't raise this one without first moving those model tiers to `openrouter:`-routed equivalents. |
+| (2026-07-21; bare specs are refused now) Expensive reasoners / **any bare (non-`openrouter:`) model spec** (e.g. plain `haiku`, `opus`, `fable-5`) | **1** (2 only with caution) | These route through the local `claude` CLI (`LlmSpikeGui.java:2463-2498`) and directly compete with the user's own interactive Claude Code sessions for the same CLI/account. This matches — and validates — the existing cited-mode guard forcing `--jobs 1` (`run_batch.py:298-301`). Don't raise this one without first moving those model tiers to `openrouter:`-routed equivalents. |
 
 ### Hazards to fix before raising concurrency
 

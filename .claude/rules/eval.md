@@ -33,7 +33,8 @@ training corpora (`--cap-per-source`).
   refuses a seat on the Claude CLI (`claude-cli:`: a development lane, owner 2026-10-24). A panel's llm pilot plays the pinned `pilot_condition` (`eval/suites/panels-v1.json`).
 - Parallel games: openrouter 6 to 10 JVMs (RAM-bound, about 1 GB each, counted across every batch), floor 4 to 8
   (`eval/CONCURRENCY.md`).
-- Every llm seat names both its models (`--smart-x`, `--fast-x`); an unset one would fall to the harness default.
+- Every llm seat names both its models (`--smart-x`, `--fast-x`); a seat naming no model is refused; there is no
+  default model (`LlmSpikeGui.missingModel`).
 
 ## Free checks before a paid game
 

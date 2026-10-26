@@ -491,7 +491,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     bridge adds it to its one `provider` object as `max_price`, its fields strings as OpenRouter's schema types them
     (`OpenRouterBridge.maxPriceField`). It is a condition, not mere routing: at list an open-weight model may find only
     a 4-bit host, so the game line stamps `openrouter_max_price`, keyed in `aggregate.PROVENANCE_FIELDS` with default ""
-    (the provider sort, which only orders endpoints, stays in `NON_BEHAVIORAL_PROVENANCE`).
+    (the provider sort, which only orders endpoints, stays in `NON_BEHAVIORAL_PROVENANCE`). The file's `comment` names
+    the models with a long-context tier, where each starts, and which `max` counts one, with the largest prompt recorded
+    in one call.
   - precision: `puzzle_solve.py --quantizations fp8,bf16` sets `OPENROUTER_QUANTIZATIONS`, and the bridge adds
     `quantizations` to the same object (`OpenRouterBridge.quantizationsField`), so OpenRouter serves the model only
     at those precisions; an endpoint whose precision is not stated (`unknown`) is not served unless listed. An
@@ -507,9 +509,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     to such an exclusion is not recorded). The puzzle row counts the decisions that cost after every retry
     (`routing_refusals`; `routing_http_refusals` counts the refusals themselves, recovered ones included).
     `puzzle_score.py` refuses a row with a lost decision rather than score it as the model's, and `--resume` replays it;
-    one the seat's retry recovered, any other 400, a 429 or a timeout is scored, as without a filter. The file's `comment` names
-    the models with a long-context tier, where each starts, and which `max` counts one, with the largest prompt recorded
-    in one call.
+    one the seat's retry recovered, any other 400, a 429 or a timeout is scored, as without a filter.
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
     bytes and then silence, for that long, inside the ask's deadline.
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full
@@ -531,7 +531,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - **`DecisionsBridge`** (`jev:<model>` specs, first TypeSafe's Jev 1.14): a decision model on OpenRouter's Decisions
   API. See "The Decisions bridge" below.
 - **Egress boundary:** an `openrouter:` model receives the game state. Nothing starts unless
-  `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it. A `claude-cli:` seat's consent is its own
+  `OPENROUTER_ALLOW_EGRESS=1` is set, either in the person's own shell or in `secrets.env`, which `setup.sh` writes it
+  into only when they answer yes. No tool sets it on its own; `play-vs-llm.sh` only reads it. A `claude-cli:` seat's consent is its own
   opt-in (see "The Claude CLI answer bridge").
 - **The game model:** GPT-6 Luna (`openrouter:openai/gpt-6-luna`) for every game unless the owner names
   another, one tier (every decision reasoning); what a game costs is in `CLAUDE.md` ("Cost of paid runs").
@@ -546,7 +547,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   goes through `Transcript.send`, which writes the exact request body before the call and the exact response body
   (or why none came) after it; a puzzle game's whole Forge game log is kept too. The files, their rows and how a run
   is archived: `eval/PUZZLES.md`, "Keeping a run". `puzzle_solve.py` always turns it on, refuses a build without it,
-  and copies the `.pzl` and the suite into the run; `eval/archive_run.py` checks, packs and verifies a finished run.
+  and copies the `.pzl` and the suite into the run; `play-vs-llm.sh` turns it on too; `eval/archive_run.py` checks, packs and verifies a finished run.
 - *Why:* the owner wants the frontier puzzle run kept whole, "from the models' chats to the engine logs"
   (2026-10-25). The rows held only what the seat rendered: a `context_call` row's `prompt` is the new user turn
   (with `messages` only on a later round), and no row held the system prompt, the tools, `tool_choice`, the
@@ -789,6 +790,14 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).
   A canary that cannot move cannot catch a regression, so any change to an automatic path re-pins it
   with evidence.
+
+**Playing the seat yourself.** `setup.sh` takes a fresh clone to a built Forge at the pin (a shallow checkout,
+recorded in `.forge-home`) and writes `secrets.env`. `play-vs-llm.sh` seats a person (`CONTROLLER_A=human`) against
+the model's seat on Forge's match screen. The seat plays the panels' `pilot_condition`, every other key a batch
+scrubs (`run_batch.build_env`) is unset so the caller's shell changes nothing the seat is asked or shown, and
+`TRANSCRIPTS=1` keeps every request; the game goes to `runs/human/<time>/` (git-ignored).
+`eval/play_commentary.py` (`--commentary`) prints a line per model decision as the game goes, which spoils its hand.
+A game against a person is never a score.
 
 ## 12. The eval layer
 

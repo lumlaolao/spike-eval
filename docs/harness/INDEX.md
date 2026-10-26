@@ -35,6 +35,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | PLAYER-HARNESS.md | the seat's information contract, and the dated record (2026-09-06 to 10-15) of how it was implemented, with the tool-protocol measurements |
 | DEMO.md | the live demo: the replay viewer, following a running game, the rehearsal runbook |
 | EXPLAINER.md | the tech and the stack for a presenter: layers, one decision end to end, numbers and their sources |
+| ../tournament.md | the LLM Legacy tournament (`eval/tournament.py`): each model drafts its own deck, every match recorded to an mp4 |
 | evidence/ | small dated evidence files that current documents cite (harness-env grades and episodes, corpus decision counts, a 2026-10-13 game log) |
 | recovery-manifest.json | the hashes of the overlay files recovered from an older Forge checkout on 2026-09-06 (PLAYER-HARNESS.md, "Recovery before development") |
 
