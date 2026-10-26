@@ -16,6 +16,6 @@ typesafe_jev-1.14              F F F F F  good 5/5
 x-ai_grok-4.3                  F F F F F  good 5/5
 x-ai_grok-4.6                  S S F S F  good 5/5
 x-ai_grok-4.7                  S S S S S  good 5/5
-x-ai_grok-build-0.1            F F F S .  good 4/5
-z-ai_glm-5.3                   S . . S .  good 2/5
-good games 91/100, to do 9
+x-ai_grok-build-0.1            F F F S F  good 5/5
+z-ai_glm-5.3                   S . S S .  good 3/5
+good games 93/100, to do 7
