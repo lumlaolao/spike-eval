@@ -257,21 +257,15 @@ class TestConditionEnv(unittest.TestCase):
         self.assertIn("--memory-tools", p.stderr)
         self.assertNotIn("[out]", p.stdout)
 
-    def test_a_price_ceiling_is_refused_in_env_and_scrubbed_from_the_shell(self):
+    def test_a_routing_filter_is_refused_in_env_and_scrubbed_from_the_shell(self):
         # pr-review of #327: the game line stamps the variable as set, so a ceiling naming no model in the game (or
         # mistyped) would read as capped while nothing was sent. A batch has no ceiling; puzzle_solve.py has the flag.
-        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
-                            "--env", "OPENROUTER_MAX_PRICE={}", "--forge-home", "/nonexistent"],
-                           capture_output=True, text=True)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("--max-price-at-list", p.stderr)
-        self.assertIn("OPENROUTER_MAX_PRICE", run_batch.RUN_DEFINING_KEYS, "an ambient value is scrubbed")
-        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
-                            "--env", "OPENROUTER_QUANTIZATIONS={}", "--forge-home", "/nonexistent"],
-                           capture_output=True, text=True)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("--quantizations", p.stderr)
-        self.assertIn("OPENROUTER_QUANTIZATIONS", run_batch.RUN_DEFINING_KEYS)
+        for key, flag in (("OPENROUTER_MAX_PRICE", "--max-price-at-list"), ("OPENROUTER_QUANTIZATIONS", "--quantizations")):
+            p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                                "--env", key + "={}", "--forge-home", "/nonexistent"], capture_output=True, text=True)
+            self.assertNotEqual(p.returncode, 0, key)
+            self.assertIn(flag, p.stderr)
+            self.assertIn(key, run_batch.RUN_DEFINING_KEYS, "an ambient value is scrubbed")
 
 
 class TestRulesToolNeedsMemoryTools(unittest.TestCase):

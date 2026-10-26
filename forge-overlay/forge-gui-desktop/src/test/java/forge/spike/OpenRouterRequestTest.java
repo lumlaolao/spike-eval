@@ -58,6 +58,11 @@ public class OpenRouterRequestTest {
                 // upstream's code in metadata): a request error, which names a provider without being the filter's.
                 {"ceiling-400-relayed", "400", "{\"error\":{\"code\":400,\"message\":\"Provider returned error\","
                         + "\"metadata\":{\"error_type\":\"context_length_exceeded\",\"provider_name\":\"X\"}}}"},
+                // The same envelope with the upstream's own body in metadata.raw, as real ones carry it (openapi.json,
+                // GenerationContentErrorAttempt): words of the filter's in an upstream's text are still its 400.
+                {"ceiling-400-relayed-raw", "400", "{\"error\":{\"code\":400,\"message\":\"Provider returned error\","
+                        + "\"metadata\":{\"raw\":\"{\\\"error\\\":{\\\"message\\\":\\\"fp8 quantization: context length "
+                        + "exceeded\\\"}}\",\"provider_name\":\"X\"}}}"},
                 {"ceiling-400-provider", "400", msg("Invalid provider preferences: max_price.prompt must be a string")},
                 {"ceiling-429", "429", msg("rate limited")}};
         for (String[] e : errors)
@@ -281,6 +286,7 @@ public class OpenRouterRequestTest {
         Assert.assertEquals(refusalsAt("ceiling-400-provider"), 1);
         // pr-review of #327: a relayed upstream 400 is the model's, or a filtered run could be replayed for ever.
         Assert.assertEquals(refusalsAt("ceiling-400-relayed"), 0);
+        Assert.assertEquals(refusalsAt("ceiling-400-relayed-raw"), 0);
         Assert.assertEquals(refusalsAt("ceiling-429"), 0);
     }
 

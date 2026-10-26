@@ -356,6 +356,13 @@ def run_solve(classes, *extra, model="greedy:", suite=None):
     return root, rec, ran
 
 
+def run_openrouter(model, *extra):
+    """run_solve for an openrouter: model against a loopback endpoint: (the JVM envs, the puzzle's manifest)."""
+    with mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}):
+        root, rec, envs = run_solve(classes_with_transcript(), *extra, model=model)
+    return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
+
+
 class RecordBuildTest(unittest.TestCase):
     """A build compiled before Transcript would run a puzzle with no record while its manifest said it kept one: the
     run refuses it unless --allow-no-record, which the manifest then states. A resume passing the run's own suite copy
@@ -480,19 +487,15 @@ class MaxPriceAtListTest(unittest.TestCase):
             self.assertEqual(got, {spec.split(":", 1)[1]: want}, spec)
         self.assertNotIn("e-", puzzle_solve.max_price_env(prices, "openrouter:deepseek/deepseek-v4.1-flash"))
 
-    def run_main(self, model, *extra):
-        with mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}):
-            root, rec, envs = run_solve(classes_with_transcript(), *extra, model=model)
-        return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
 
     def test_the_flag_reaches_the_jvm_and_the_manifest_records_it(self):
-        envs, manifest = self.run_main("openrouter:openai/gpt-6.1-sol", "--max-price-at-list")
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6.1-sol", "--max-price-at-list")
         want = puzzle_solve.max_price_env(puzzle_solve.cost_report.load_prices(), "openrouter:openai/gpt-6.1-sol")
         self.assertEqual(envs[0]["OPENROUTER_MAX_PRICE"], want)
         self.assertEqual(manifest["record"]["openrouter_max_price"], json.loads(want))
 
     def test_without_the_flag_no_ceiling_is_sent_and_none_is_recorded(self):
-        envs, manifest = self.run_main("openrouter:openai/gpt-6.1-sol")
+        envs, manifest = run_openrouter("openrouter:openai/gpt-6.1-sol")
         self.assertNotIn("OPENROUTER_MAX_PRICE", envs[0])
         self.assertIsNone(manifest["record"]["openrouter_max_price"])
 
@@ -541,7 +544,7 @@ class MaxPriceAtListTest(unittest.TestCase):
     def test_it_is_refused_for_a_model_with_no_list_price_above_zero(self):
         # pr-review of #327: the JVM refuses a zero ceiling, so every puzzle would fail one by one; refuse it once here.
         with self.assertRaises(SystemExit) as cm:
-            self.run_main("openrouter:fake/harness-model", "--max-price-at-list")
+            run_openrouter("openrouter:fake/harness-model", "--max-price-at-list")
         self.assertIn("list price", str(cm.exception.code))
 
 
@@ -551,17 +554,13 @@ class PrecisionFloorTest(unittest.TestCase):
 
     SUITE = DecisionModelSeatTest.SUITE
 
-    def run_main(self, model, *extra):
-        with mock.patch.dict(os.environ, {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/api/v1"}):
-            root, rec, envs = run_solve(classes_with_transcript(), *extra, model=model)
-        return envs, json.loads((root / rec["id"] / "batch-manifest.json").read_text())
 
     def test_the_list_reaches_the_jvm_and_the_manifest(self):
-        envs, manifest = self.run_main("openrouter:z-ai/glm-5.3", "--quantizations", "fp8,bf16,fp8")
+        envs, manifest = run_openrouter("openrouter:z-ai/glm-5.3", "--quantizations", "fp8,bf16,fp8")
         self.assertEqual(json.loads(envs[0]["OPENROUTER_QUANTIZATIONS"]), {"z-ai/glm-5.3": ["bf16", "fp8"]})
         # One set, one spelling (standards review of #327): the order given must not split a resume or a condition.
         self.assertEqual(manifest["record"]["openrouter_quantizations"], ["bf16", "fp8"])
-        envs, manifest = self.run_main("openrouter:z-ai/glm-5.3")
+        envs, manifest = run_openrouter("openrouter:z-ai/glm-5.3")
         self.assertNotIn("OPENROUTER_QUANTIZATIONS", envs[0])
         self.assertIsNone(manifest["record"]["openrouter_quantizations"])
 

@@ -507,7 +507,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     to such an exclusion is not recorded). The puzzle row counts the decisions that cost after every retry
     (`routing_refusals`; `routing_http_refusals` counts the refusals themselves, recovered ones included).
     `puzzle_score.py` refuses a row with a lost decision rather than score it as the model's, and `--resume` replays it;
-    one the seat's retry recovered, a 400, a 429 or a timeout is scored, as without a filter. The file's `comment` names
+    one the seat's retry recovered, any other 400, a 429 or a timeout is scored, as without a filter. The file's `comment` names
     the models with a long-context tier, where each starts, and which `max` counts one, with the largest prompt recorded
     in one call.
   - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
