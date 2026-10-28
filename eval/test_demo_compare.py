@@ -187,7 +187,7 @@ class ArmTest(unittest.TestCase):
             self.assertTrue(os.path.isfile(dc.pick_deck(name, [name], "x")), name)
 
     def test_the_stand_in_home_runs_the_isolated_classes_from_the_real_checkout_even_with_spaces(self):
-        d = tempfile.mkdtemp(prefix="Sean Thomas ")  # a macOS home folder may hold a space
+        d = tempfile.mkdtemp(prefix="A Name ")  # a macOS home folder may hold a space
         try:
             forge, b = os.path.join(d, "my forge"), os.path.join(d, "build dir")
             os.makedirs(os.path.join(forge, ".git"))

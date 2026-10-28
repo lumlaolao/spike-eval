@@ -43,7 +43,7 @@ Do not revert those or confuse recovered code with your changes.
 ## Boundaries
 
 Edit only this repository and temporary validation files. NEVER edit or install
-into /Users/lumlumlam/code/forge; it is read-only source/API/dependency reference.
+into ~/code/forge; it is read-only source/API/dependency reference.
 Do not commit, stage, push, deploy, contact other people, or read secrets.env,
 credentials, token stores, personal files, or unrelated datasets/runs. Do not call
 external model endpoints or run paid game evaluations. You may use local tests and
@@ -62,7 +62,7 @@ Compile with javac --release 17 into a NEW private temporary class directory, us
 that classpath, all Java sources in forge-overlay/forge-gui-desktop/src/{main,test}/java/forge/spike.
 Do not rebuild or modify the installed engine classes. Existing runner example:
 /tmp/run-harness-java-tests.py (points to preceding build; adapt your own copy to
-new compiled output). TestNG tests need cwd /Users/lumlumlam/code/forge/forge-gui-desktop
+new compiled output). TestNG tests need cwd ~/code/forge/forge-gui-desktop
 for assets. Use -Dapple.awt.UIElement=true. Initialize model only when needed.
 Some local-server tests need loopback socket permissions. Report permission denials
 rather than silently omitting a gate. Never hide test failures.

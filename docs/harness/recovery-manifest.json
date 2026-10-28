@@ -1,5 +1,5 @@
 {
-  "source": "/Users/lumlumlam/code/forge",
+  "source": "~/code/forge",
   "reason": "Recover newer harness sources before overlay installation can overwrite them. Hashes describe recovery, before subsequent edits.",
   "files": [
     {

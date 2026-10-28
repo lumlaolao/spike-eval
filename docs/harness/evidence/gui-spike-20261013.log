@@ -26,12 +26,12 @@ Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` 
 Read cards: 857 files in 0 ms (8 parts) using thread pool
 [LLM-SEAM] building LLM-vs-LLM spectator match...
 [SEED] 42
-[DECK] loaded 'Grixis Reanimator': 60 main, 15 sideboard  (/Users/lumlumlam/Downloads/Deck - Grixis Reanimator.txt)
-[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/Downloads/Deck - Mardu Energy.txt)
+[DECK] loaded 'Grixis Reanimator': 60 main, 15 sideboard  (~/Downloads/Deck - Grixis Reanimator.txt)
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (~/Downloads/Deck - Mardu Energy.txt)
 [SEATS] A=Grixis Reanimator(llm,openrouter:deepseek/deepseek-v4.1-flash) B=Mardu Energy(llm,openrouter:deepseek/deepseek-v4.1-flash)
-[Grixis Reanimator] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Grixis Reanimator] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: ~/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
 [Grixis Reanimator] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
-[Mardu Energy] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Mardu Energy] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: ~/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
 [Mardu Energy] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
 [LLM-SEAM] match started (games-per-match=3). Watch the Forge window.
 [OPENROUTER Grixis Reanimator/fast] replied in 805 ms
@@ -1164,9 +1164,9 @@ Read cards: 857 files in 0 ms (8 parts) using thread pool
 [Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
 [OPENROUTER Mardu Energy/fast] replied in 552 ms
 [Mardu Energy] [ROUTER] play: PASS
-[Grixis Reanimator] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Grixis Reanimator] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: ~/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
 [Grixis Reanimator] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
-[Mardu Energy] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Mardu Energy] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: ~/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
 [Mardu Energy] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
 [OPENROUTER Mardu Energy/fast] replied in 1645 ms
 [Mardu Energy] [ROUTER] mulligan: heuristic KEEP (4/7 lands)
