@@ -6,6 +6,8 @@ import subprocess
 import tempfile
 import unittest
 
+import fetch_comp_rules
+
 import harness_env_spec as hs
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,6 +32,7 @@ class GlobTest(unittest.TestCase):
 
 
 class SpecProblemsTest(unittest.TestCase):
+    @unittest.skipUnless(fetch_comp_rules.present(), fetch_comp_rules.MISSING)
     def test_the_shipped_spec_is_valid_against_this_repo(self):
         self.assertEqual(hs.problems(shipped(), REPO), [])
 
@@ -118,20 +121,24 @@ class ExpandCopyTest(unittest.TestCase):
         self.assertFalse(any("hook-" in src for src in pairs))
         self.assertEqual(pairs["eval/harness_env/TASK.md"], "TASK.md")
 
-    def test_a_copy_naming_one_ignored_file_takes_it_but_a_glob_does_not(self):
-        # The Comprehensive Rules text is downloaded and git-ignored (eval/fetch_comp_rules.py), and the spec names
-        # it by its path; run output under an ignored directory must never be swept in by a glob.
+    def test_only_the_downloaded_rules_text_is_taken_while_git_ignores_it(self):
+        # The Comprehensive Rules text is downloaded and git-ignored (eval/fetch_comp_rules.py), and the spec names it
+        # by its path. No other ignored file is ever released: not the key in secrets.env, not a run's transcript,
+        # not a host file outside the repository.
         repo = tempfile.mkdtemp()
         subprocess.run(["git", "init", "-q", repo], check=True)
-        for rel, text in ((".gitignore", "data/rules/rules.txt\nruns/\n"), ("data/rules/rules.txt", "rules\n"),
-                          ("runs/g1/game.jsonl", "{}\n"), ("data/rules/README.md", "readme\n")):
-            os.makedirs(os.path.dirname(os.path.join(repo, rel)), exist_ok=True)
+        rules = "data/rules/MagicCompRules.txt"
+        for rel, text in ((".gitignore", rules + "\nruns/\nsecrets.env\n"), (rules, "rules\n"),
+                          ("runs/g1/game.jsonl", "{}\n"), ("secrets.env", "OPENROUTER_API_KEY=k\n"),
+                          ("data/rules/README.md", "readme\n")):
+            os.makedirs(os.path.dirname(os.path.join(repo, rel)) or repo, exist_ok=True)
             with open(os.path.join(repo, rel), "w") as f:
                 f.write(text)
-        spec = {"copy": [{"from": "data/rules/rules.txt", "to": "spec/rules.txt"},
+        spec = {"copy": [{"from": rules, "to": "spec/rules.txt"}, {"from": "secrets.env", "to": "s.env"},
+                         {"from": "runs/g1/game.jsonl", "to": "g.jsonl"}, {"from": "/etc/hostname", "to": "h"},
                          {"from": "runs/**", "to": "out/"}, {"from": "data/rules/*", "to": "d/"}]}
         self.assertEqual(sorted(hs.expand_copy(spec, repo)),
-                         [("data/rules/README.md", "d/README.md"), ("data/rules/rules.txt", "spec/rules.txt")])
+                         [(rules, "spec/rules.txt"), ("data/rules/README.md", "d/README.md")])
 
 
 if __name__ == "__main__":

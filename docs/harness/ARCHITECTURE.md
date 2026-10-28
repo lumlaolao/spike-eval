@@ -46,10 +46,9 @@ them and refuses to pool what is not comparable.
   file at `FORGE_COMMIT`, in `engine-patches/<path>.patch` (Forge is GPL: the repository carries our changes,
   not Forge's files), every change marked `HARNESS PATCH`, the upstream original's sha256 recorded in
   `docs/harness/ENGINE-PATCHES.md`. `eval/engine_patches.py` applies each to the original read from git at the
-  pin and writes the patched file where it is needed: into the checkout (`install.sh`), into the acceptance
-  build (stage `compile`), into a demo arm's build (`demo_compare.py`) and into copy-ours's submission
-  (`harness_env_agents.py`). A patch that does not apply stops each of them, and `eval/test_engine_patches.py`
-  also fails on a moved original, so a re-pin forces a re-diff. `overlay_sha` hashes each patch as the file it
+  pin wherever a build needs it (ENGINE-PATCHES.md, "How a patch reaches the game"); a patch that does not apply
+  stops that build, and `eval/test_engine_patches.py` also fails on a moved original, so a re-pin forces a
+  re-diff. `overlay_sha` hashes each patch as the file it
   makes. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Four files are
   patched (the table in `ENGINE-PATCHES.md`): `ComputerUtilMana` (the colour an any-colour source makes for a generic
   shard, a lethal-tap source, a card paying for its own ability), `Player.assignCompanion` (a declined companion is no

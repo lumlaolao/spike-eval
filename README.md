@@ -176,12 +176,8 @@ The documents cite run directories (`runs/loop/g26`, `runs/c3/...`) for every nu
 
 ## License
 
-GPL-3.0-or-later ([LICENSE](LICENSE)). The harness is compiled into [Forge](https://github.com/Card-Forge/forge)
-(GPL-3.0-or-later, Copyright (C) 2011- the Forge Team and contributors) and extends its classes, so it carries
-Forge's license. Forge is not in this repository: `setup.sh` clones it at the commit in `FORGE_COMMIT`, and the few
-Forge files the harness changes are shipped as patches, each change marked `HARNESS PATCH` and listed in
-`docs/harness/ENGINE-PATCHES.md`.
+GPL-3.0-or-later ([LICENSE](LICENSE)), like [Forge](https://github.com/Card-Forge/forge), into which the harness is
+compiled. [NOTICE.md](NOTICE.md) says what is and is not in this repository and credits every source.
 
 Unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the
-materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC. The Comprehensive Rules are
-downloaded from Wizards at setup, not shipped. [NOTICE.md](NOTICE.md) lists every source this project draws on.
+materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.

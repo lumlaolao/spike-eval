@@ -20,6 +20,7 @@ import time
 import unittest
 from unittest import mock
 
+import fetch_comp_rules
 import harness_env_aicount as ac
 import harness_env_episode as ep
 import harness_env_generate as hgen
@@ -45,6 +46,7 @@ class Stub:
         return {"benchmark": 0.5 if files else 0.0, "dense": 0.5 if files else 0.0}
 
 
+@unittest.skipUnless(fetch_comp_rules.present(), fetch_comp_rules.MISSING)
 class EpisodeTest(unittest.TestCase):
     def setUp(self):
         self.out = tempfile.mkdtemp()

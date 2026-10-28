@@ -18,6 +18,14 @@ SOURCE_URL = "https://media.wizards.com/2026/downloads/MagicCompRules%2020260925
 DEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "data", "rules", "MagicCompRules.txt")
 
 
+# For the tests that need the text: on a fresh clone it is not there until setup.sh or acceptance has run.
+MISSING = "no Comprehensive Rules text at data/rules/MagicCompRules.txt: run python3 eval/fetch_comp_rules.py"
+
+
+def present(dest=DEST):
+    return os.path.isfile(dest)
+
+
 def _sha(data):
     return hashlib.sha256(data).hexdigest()
 

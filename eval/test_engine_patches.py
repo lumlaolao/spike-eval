@@ -27,9 +27,6 @@ import engine_patches as ep
 REPO = Path(__file__).resolve().parent.parent
 DOC = REPO / "docs/harness/ENGINE-PATCHES.md"
 ROW = re.compile(r"^\| `(engine-patches/[^`]+\.patch)` \| `([0-9a-f]{64})` \|", re.M)
-# Overlay files that replace a Forge file whole and are not engine patches. The avatar sprite sheet is an owner
-# decision still open (docs/harness/WORK-PLAN.md, "Owner decisions from a hygiene audit").
-WHOLE_FILE_EXCEPTIONS = {"forge-gui/res/skins/default/sprite_avatars.png"}
 
 REL = "forge-game/src/main/java/forge/game/A.java"
 UPSTREAM = "".join("    line %d\n" % i for i in range(1, 21))
@@ -164,7 +161,7 @@ class EnginePatchesTest(unittest.TestCase):
         rels = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
         listed = subprocess.run(["git", "-C", str(forge), "ls-tree", "-r", "--name-only", commit] + rels,
                                 capture_output=True, text=True, check=True).stdout.split()
-        self.assertEqual(sorted(set(listed) - WHOLE_FILE_EXCEPTIONS), [],
+        self.assertEqual(sorted(set(listed)), [],
                          "whole Forge files in forge-overlay/: carry each as a diff in %s/" % ep.PATCH_DIR)
 
 

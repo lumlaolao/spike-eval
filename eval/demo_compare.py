@@ -171,19 +171,18 @@ def engine_sources(tree, forge, paths):
     FORGE_COMMIT, or the pinned engine's stock source when the tree has no patch for it. A path with none, or a diff
     that does not apply, is refused, never guessed."""
     out = {}
-    diffs = ep.patch_files(tree)
+    try:
+        patched = ep.patched_sources(forge, tree)
+    except ep.PatchError as e:
+        raise SystemExit(str(e))
     for rel in paths:
         mine = os.path.join(tree, "forge-overlay", rel)
         if os.path.isfile(mine):
             with open(mine, "rb") as f:
                 out[rel] = ("overlay", f.read())
             continue
-        if rel in diffs:
-            try:
-                orig = ep.original(forge, ep.pinned_commit(tree), rel)
-                out[rel] = ("patch", ep.apply_patch(orig, diffs[rel], rel))
-            except ep.PatchError as e:
-                raise SystemExit(str(e))
+        if rel in patched:
+            out[rel] = ("patch", patched[rel])
             continue
         stock = subprocess.run(["git", "-C", forge, "show", "HEAD:" + rel], capture_output=True)
         if stock.returncode != 0:

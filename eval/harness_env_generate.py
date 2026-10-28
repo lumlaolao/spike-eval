@@ -26,9 +26,11 @@ import random
 import re
 import sys
 
+import engine_patches
+
 GENERATOR = "gen-v1"
 FORMAT = "harness-env-instances/1"
-CARDSFOLDER = os.path.join(os.environ.get("FORGE_HOME") or os.path.expanduser("~/code/forge"),
+CARDSFOLDER = os.path.join(str(engine_patches.forge_home() or os.path.expanduser("~/code/forge")),
                            "forge-gui/res/cardsfolder")
 # template -> (family, hook); the Java side builds each (GeneratedInstances.build).
 TEMPLATES = {

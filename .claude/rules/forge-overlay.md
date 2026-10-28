@@ -22,13 +22,9 @@ Acceptance and the gauntlet use their own build directory and are safe alongside
 
 ## Engine patches
 
-Where the seat has no `PlayerController` hook, the engine file is changed by a unified diff against it at the pin,
-`engine-patches/<its path>.patch`, never a whole copy in `forge-overlay/` (Forge is GPL: we ship our changes, not its
-files). Every change is marked `HARNESS PATCH`, the patch opens with its notice and is listed in
-`docs/harness/ENGINE-PATCHES.md` with its upstream sha256 (`eval/test_engine_patches.py` checks all of it).
-`eval/engine_patches.py apply --out DIR` writes the patched files for editing; `diff --from DIR` re-makes the patches.
-`install.sh` and the acceptance `compile` stage apply them, and stop when one does not apply. Card scripts are never
-patched.
+Where the seat has no `PlayerController` hook, change the engine file by a diff in `engine-patches/<its path>.patch`,
+never a whole copy in `forge-overlay/`; every change marked `HARNESS PATCH` and listed in
+`docs/harness/ENGINE-PATCHES.md`, which says how to make, change and re-diff one. Card scripts are never patched.
 
 ## Gotchas that cost days
 

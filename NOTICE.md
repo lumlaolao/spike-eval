@@ -38,7 +38,8 @@ Hasbro.
 - **Comprehensive Rules:** not included. `setup.sh` downloads the official text from Wizards
   (`eval/fetch_comp_rules.py`, which checks its sha256) for the optional rules-lookup tool.
 - **Card names and rules text** appear in decklists, puzzles, prompts and test fixtures as needed to describe game
-  states. Card images are not included; the demo viewer can fetch them from Scryfall at run time.
+  states. Card images are not included, apart from the card art visible in the README's screenshot of Forge
+  (`docs/images/play-vs-llm.png`); the demo viewer can fetch images from Scryfall at run time.
 
 ## Other sources
 

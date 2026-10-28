@@ -65,6 +65,10 @@ def _escapes(dest):
     return os.path.normpath(dest).split(os.sep)[0] == ".."
 
 
+# Downloaded, so git-ignored, yet a spec may release them: the Comprehensive Rules text (eval/fetch_comp_rules.py).
+FETCHED = ("data/rules/MagicCompRules.txt",)
+
+
 def repo_files(repo):
     """Repository-relative paths of the files a repository holds: git's tracked and not-ignored files when `repo`
     is the top of a work tree (a clone's uncommitted runs/ are not part of it), every regular file otherwise;
@@ -88,14 +92,13 @@ def repo_files(repo):
 
 def expand_copy(spec, repo, files=None):
     """[(source, destination)] for every file a copy entry releases; a destination ending in `/` keeps the name.
-    An entry naming one file with no wildcard takes it even when git ignores it (the downloaded Comprehensive Rules
-    text, eval/fetch_comp_rules.py); a wildcard matches only the files repo_files lists."""
+    Only the files repo_files lists are released, and the downloaded files in FETCHED, which git ignores."""
     files = repo_files(repo) if files is None else files
     out = []
     for c in spec.get("copy", []):
         excl = c.get("exclude", [])
         hits = [f for f in files if matches(f, c["from"]) and not any(matches(f, e) for e in excl)]
-        if not hits and not any(ch in c["from"] for ch in "*?[") and os.path.isfile(os.path.join(repo, c["from"])):
+        if not hits and c["from"] in FETCHED and os.path.isfile(os.path.join(repo, c["from"])):
             hits = [c["from"]]
         for f in hits:
             out.append((f, c["to"] + os.path.basename(f) if c["to"].endswith("/") else c["to"]))

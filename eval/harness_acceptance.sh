@@ -1144,7 +1144,8 @@ if has_stage scoring; then
           --ids forge-PP20 --json "$dir/puzzle_score.json" "$dir/puzzle" ) >"$dir/puzzle_score.log" 2>&1; SRC=$?
       say "scoring: one mirror panel cell (random pilot, one seed, both seats) through run_batch.py --panel"
       cp -R "$REPO/forge-overlay/." "$dir/forge-home/"
-      python3 "$REPO/eval/engine_patches.py" apply --forge "$FORGE" --out "$dir/forge-home" >"$dir/engine_patches.log" 2>&1
+      python3 "$REPO/eval/engine_patches.py" apply --forge "$FORGE" --out "$dir/forge-home" >"$dir/engine_patches.log" 2>&1 \
+        || fail scoring "engine patches: $(tail -2 "$dir/engine_patches.log")"
       ln -s "$FORGE/.git" "$dir/forge-home/.git"
       cat > "$dir/forge-home/run-llm-headless.sh" <<EOF
 #!/bin/bash

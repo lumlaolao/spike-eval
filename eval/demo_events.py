@@ -356,7 +356,10 @@ def find_game(path):
     """A run directory or a .jsonl -> (jsonl path, console log path or None). The newest game-*.jsonl in a directory.
 
     run_batch.py names the console log game-<seed>-<0|1>.log by seat swap: the game row's `swap` picks it (as
-    match_review does); before the game row exists, the log written closest in time to the jsonl."""
+    match_review does); before the game row exists, the log written closest in time to the jsonl. A path that is not
+    there (runs/ is git-ignored, so a clone may have none) is no game."""
+    if not os.path.exists(path):
+        return None, None
     if os.path.isdir(path):
         # Newest by the start time in the name (game-<seed>-<epoch ms>.jsonl), not by the last write: two games
         # written at once would otherwise swap places on every write.

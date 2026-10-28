@@ -82,7 +82,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | Path | Holds | Rule |
 |---|---|---|
 | `forge-overlay/` | all harness Java | the only place harness Java is edited; never the Forge checkout |
-| `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file anywhere in the repository (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/test_engine_patches.py`) |
+| `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/test_engine_patches.py`) |
 | `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/test_pr_format.py`; the shell scripts are thin wrappers |
@@ -167,6 +167,9 @@ most log questions).
   named CONFIRMED with a date at or after the re-pin (measured on that OS and unchanged: a current
   pin must not have to be called stale).
   The check reads this file's shape only; the PR-side half of the naming is off its sight.
+- A test never needs `runs/` or a downloaded file to pass: `runs/` is git-ignored and the Comprehensive Rules text
+  is fetched (`eval/fetch_comp_rules.py`). A test that reads one skips, saying why, when it is absent, so
+  `python3 -m unittest discover -s eval` passes on a fresh clone; acceptance fetches the text first, so there it runs.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the
@@ -196,7 +199,8 @@ most log questions).
 ## 7. Docs
 
 - State what is true now; the history belongs in the commit.
-- Every number is reproducible from a named command and run directory.
+- Every number is reproducible from a named command and run directory. Run directories are not in the repository
+  (`runs/` is git-ignored): the doc names the one its author kept.
 - Say what was not determined.
 - A doc does not record the acceptance run of the PR that edits it: that belongs in the PR's
   `## Evidence`, or recording it would need a commit that invalidates it.

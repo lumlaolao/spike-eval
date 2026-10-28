@@ -318,6 +318,11 @@ class ReaderTest(unittest.TestCase):
             self.assertEqual([e["n"] for e in r.events], [0, 1])
             self.assertEqual(r.bad_lines, 0)
 
+    def test_a_run_that_is_not_in_this_clone_is_no_game_not_an_error(self):
+        # runs/ is git-ignored, so a fresh clone has no runs/loop at all.
+        missing = os.path.join(tempfile.mkdtemp(), "runs", "loop", "g33")
+        self.assertEqual(de.find_game(missing), (None, None))
+
     def test_the_whole_g33_game_joins_every_call_to_a_decision(self):
         g33 = os.path.join(HERE, "..", "runs", "loop", "g33")
         jsonl, log = de.find_game(g33)

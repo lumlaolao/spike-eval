@@ -56,9 +56,9 @@ golden-check inventory, the acceptance stages and pins), the history (716 commit
 5. a `.git`, if present, has one commit, no remote, no stash and no unreachable objects (a history squashed but not
    pruned still answers `git cat-file`).
 `engine_problems` checks the engine: HEAD at the pin, `git status` clean, none of our overlay installed in a module's
-`src` or `target`. Run on this machine's working checkout (`/root/forge`) it reports 12 problems: the four patched
-engine files, the overlay's avatar sprite, `data/`, both launchers, and `forge/spike` under `src/main` and `src/test`. The
-working checkout can never be the agent's engine; it must be a fresh clone built clean.
+`src` or `target`. Run on a working checkout that `install.sh` has written to, it reports each installed file: the
+patched engine files, `data/`, both launchers, and `forge/spike` under `src/main` and `src/test`. The working checkout
+can never be the agent's engine; it must be a fresh clone built clean.
 
 **Not provable by a scan:** a paraphrase of our design in a released document (the third net is reading the five
 released files, which this branch did), and the repository itself. **A seen copy** (the term the rest of this

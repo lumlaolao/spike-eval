@@ -79,6 +79,6 @@ Nothing is written to the archive: a lookup is stateless reference data, not an 
 ## Not done (deliberate)
 
 - No web fetch during a game: the tool reads the downloaded file only. Determinism and no-egress are worth more than
-  freshness, and `data/rules/README.md` documents the one-line update.
+  freshness, and `data/rules/README.md` documents how to move to a new text.
 - The rules grammar cannot see game state. It answers "what does the rule say"; the observation
   answers "what is true now". Keeping them separate is the point.

@@ -42,10 +42,12 @@ class FetchCompRulesTest(unittest.TestCase):
             raise AssertionError("fetched although the file was already the pinned one")
         fcr.fetch(self.dest, sha256=hashlib.sha256(body).hexdigest(), url="u", urlopen=refuse)
 
-    def test_the_pin_is_the_one_the_corpus_test_checks(self):
-        import test_rules_corpus
-        self.assertIs(test_rules_corpus.SHA256, fcr.SHA256)
-        self.assertIs(test_rules_corpus.SOURCE_URL, fcr.SOURCE_URL)
+    def test_the_readme_records_the_pinned_source_and_sha(self):
+        readme = os.path.join(os.path.dirname(fcr.DEST), "README.md")
+        with open(readme, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn(fcr.SOURCE_URL, text)
+        self.assertIn(fcr.SHA256, text)
 
 
 if __name__ == "__main__":
