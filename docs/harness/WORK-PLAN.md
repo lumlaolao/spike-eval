@@ -75,8 +75,6 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   - six `secrets.env` loaders with no parity test: `play-vs-llm.sh`, `run_batch.py`, `tournament.py`,
     `tool_use_suite.py`, `model_sweep.py` and `puzzle_solve.py`;
   - zero-model games still stamp `smart_a` "opus" and `fast_a` "haiku" on the game line;
-  - `forge-overlay/forge-gui/res/skins/default/sprite_avatars.png` replaces Forge's file with no
-    [ENGINE-PATCHES.md](ENGINE-PATCHES.md) entry;
   - `eval/puzzles/rules-pilot/batch14-drafts` is linked from nothing.
 - **The `claude-cli:` lane:**
   - `archive_run.py` refuses a `claude-cli:` puzzle run as a gap (billed calls, no HTTP file): that lane makes no HTTP

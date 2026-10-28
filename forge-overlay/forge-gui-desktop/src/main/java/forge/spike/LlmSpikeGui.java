@@ -9484,28 +9484,6 @@ public final class LlmSpikeGui {
         }
         LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel, String mode) {
             super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel; this.mode = mode;
-            // Task #6: brand-logo avatars. Tiles 120-128 of sprite_avatars.png are composited at
-            // install time from forge-overlay/forge-gui/res (see repo README). -1 = no match ->
-            // HostedMatch falls back to the user's preference avatars, exactly as before.
-            int av = avatarFor(smartModel, name);
-            if (av >= 0) setAvatarIndex(av);
-        }
-        /** Model spec/name -> sprite tile. Spec substrings, most specific first; the local student
-         *  serves as "default_model" through the OpenRouter-compatible endpoint, so that literal
-         *  maps to the student tile, NOT to the qwen3.7-max tile. */
-        static int avatarFor(String spec, String name) {
-            String s = ((spec == null ? "" : spec) + " " + (name == null ? "" : name)).toLowerCase();
-            if (s.contains("default_model") || s.contains("student")) return 128;
-            if (s.contains("opus"))                       return 120;
-            if (s.contains("fable") || s.contains("mythos")) return 121;
-            if (s.contains("gpt") || s.contains("openai") || s.contains("o4-")) return 122;
-            if (s.contains("gemini"))                     return 123;
-            if (s.contains("deepseek"))                   return 124;
-            if (s.contains("qwen"))                       return 125;
-            if (s.contains("kimi") || s.contains("moonshot")) return 126;
-            if (s.contains("grok") || s.contains("x-ai")) return 127;
-            if (s.contains("claude") || s.contains("anthropic") || s.contains("haiku") || s.contains("sonnet")) return 121;
-            return -1;
         }
         @Override
         public Player createIngamePlayer(Game game, int id) {
