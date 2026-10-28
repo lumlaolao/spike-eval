@@ -360,8 +360,11 @@ public final class LlmSpikeGui {
      *  Epoch 73 (2026-10-26, frontier5 GLM 5.3 on hard-elf2, answer-tool-v12): a reply's answer is its first `answer`
      *  call that validates. A reply that sent its analysis in one `answer` call and its option in a second was refused
      *  twice and its decision lost to PASS, skipping main phase 1. A play decision on a tool ask reads no text.
+     *  Epoch 74 (2026-10-28, g33 T2): a harness seat may spend Black Lotus on any spell (Forge's AI kept it for mana
+     *  value 4 or more, so Time Walk was off the menu with Lotus the only source), an engine patch; a preview's copy
+     *  pays as a harness seat (lookahead-preview-v16).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-73";
+    static final String HARNESS_EPOCH = "harness-epoch-74";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -830,7 +833,10 @@ public final class LlmSpikeGui {
                     && ((PlayerControllerLLM) p.getController()).choosesOwnColours();
             // Every harness seat may pay with a source whose tap damage is lethal (a legal action is never hidden):
             // Forge's AI skipped City of Brass at 1 life, so Angel's Grace was never offered (rules pilot RP_017).
-            forge.ai.ComputerUtilMana.HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> p.getController() instanceof PlayerControllerLLM;
+            // The seat's player on a preview's copy is a harness seat too: there it is the engine AI's, and Forge's AI
+            // would not spend Black Lotus on a spell under mana value 4, so g33's preview of a paid line said unpayable.
+            forge.ai.ComputerUtilMana.HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> p.getController() instanceof PlayerControllerLLM
+                    || PlayerLookahead.isCopySeat(p);
         }
         boolean choosesOwnColours() { return "llm".equals(mode) && rnd == null; }
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;

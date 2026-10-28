@@ -361,6 +361,33 @@ public class LookaheadProbeTest {
         Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s), 5L, null).startsWith("(a line names each option once"));
     }
 
+    /** g33 turn 2 (2026-10-28, eval/testdata/demo/g33-simulate.jsonl): with Tundra, Black Lotus and Mox Ruby untapped,
+     *  "Bilbo, then Time Walk" (1U each) came back "could NOT pay for or play Time Walk", and the other order the same,
+     *  though the board makes 5 mana, 4 of it blue. The copy's seat pays as Forge's AI, whose BlackLotus logic spends
+     *  Lotus only on a spell of mana value 4 or more. The copy's seat is the harness seat, so it pays by the rules
+     *  only: both orders are paid. */
+    @Test
+    public void blackLotusPaysForACheapSpellOnTheCopy() {
+        for (boolean bilboFirst : new boolean[] {true, false}) {
+            Game g = SeatObservationTest.bareGame();
+            Player me = g.getPlayers().get(0);
+            SeatObservationTest.card("Tundra", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.card.Card lotus = SeatObservationTest.card("Black Lotus", me, forge.game.zone.ZoneType.Battlefield);
+            SeatObservationTest.card("Mox Ruby", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.spellability.SpellAbility bilbo = spellOn(SeatObservationTest.card("Bilbo, Thief in the Night", me, forge.game.zone.ZoneType.Hand));
+            forge.game.spellability.SpellAbility walk = spellOn(SeatObservationTest.card("Time Walk", me, forge.game.zone.ZoneType.Hand));
+            bilbo.setActivatingPlayer(me);   // as a real menu option carries it
+            walk.setActivatingPlayer(me);
+            String report = PlayerLookahead.previewLine(g, me,
+                    bilboFirst ? java.util.Arrays.asList(bilbo, walk) : java.util.Arrays.asList(walk, bilbo), 5L, null);
+            System.out.println("[LOOKAHEAD] bilboFirst=" + bilboFirst + ": " + report);
+            Assert.assertFalse(report.contains("could NOT"), "the board pays for both: " + report);
+            Assert.assertTrue(report.contains("then cast " + (bilboFirst ? "Time Walk" : "Bilbo, Thief in the Night")), report);
+            Assert.assertTrue(lotus.isInZone(forge.game.zone.ZoneType.Battlefield) && !lotus.isTapped(),
+                    "the live Lotus is untouched by a preview");
+        }
+    }
+
     /**
      * Every player the engine creates during a preview is a player of a copy. Watching one game
      * (runs/loop/g01) showed the seat's model being asked to declare attackers and confirm triggers

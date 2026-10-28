@@ -61,7 +61,9 @@ final class PlayerLookahead {
     // v14 (2026-10-18): the same, for every copy: GameCopier is patched, and the harness-side parking is gone.
     // v15 (2026-10-19, runs/loop/g28 T6): a counterspell is aimed at the spell on the copy's stack (Force of Negation
     // against Seam Rip was unavailable, then countered nothing), and the delta reports exile counts.
-    static final String VERSION = "lookahead-preview-v15";
+    // v16 (2026-10-28, g33 T2): the copy's seat pays as a harness seat, by the rules only (isCopySeat): Forge's AI would
+    // not spend Black Lotus on Time Walk, so "Bilbo, then Time Walk" on Tundra, Lotus and Mox Ruby read "could NOT pay".
+    static final String VERSION = "lookahead-preview-v16";
 
     private PlayerLookahead() { }
 
@@ -83,6 +85,14 @@ final class PlayerLookahead {
     private static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 
     static boolean inPreview() { return DEPTH.get() > 0; }
+
+    /** The seat's player on the copy a preview is playing, or null. That player is the engine AI's (the copy has no
+     *  model to ask), but it stands for the harness seat, so its payments follow the rules only, as the live seat's
+     *  do: g33 turn 2 (2026-10-28), Forge's AI would not spend Black Lotus on Time Walk (mana value 2), and a line the
+     *  board paid for came back "could NOT pay". Read by the engine patch's harness-seat predicate. */
+    private static final ThreadLocal<Player> COPY_SEAT = new ThreadLocal<>();
+
+    static boolean isCopySeat(Player p) { return p != null && COPY_SEAT.get() == p; }
     private static void enter() { DEPTH.set(DEPTH.get() + 1); }
     private static void exit() { DEPTH.set(Math.max(0, DEPTH.get() - 1)); }
 
@@ -418,6 +428,7 @@ final class PlayerLookahead {
             boolean stackBelow = copyStack(live, simGame, sim.getGameCopier());
             // Determinize BEFORE anything resolves so the preview cannot depend on what the seat cannot see.
             determinize(simGame, (Player) sim.getGameCopier().find(seat));
+            COPY_SEAT.set((Player) sim.getGameCopier().find(seat));
             StringBuilder b = new StringBuilder("if you ");
             String stopped = null, delta = "";
             boolean sacrifice = false;
@@ -509,6 +520,7 @@ final class PlayerLookahead {
                 } catch (Exception ignore) { }
             }
             MyRandom.setRandom(liveRandom);
+            COPY_SEAT.remove();
             exit();
         }
     }

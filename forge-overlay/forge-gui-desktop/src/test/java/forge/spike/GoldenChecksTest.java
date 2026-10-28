@@ -209,6 +209,30 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** g33 turn 2 (2026-10-28): Forge's AI spends Black Lotus only on a spell of mana value 4 or more (its BlackLotus
+     *  logic), a taste and not a rule. With Black Lotus the only source, Time Walk (1U) is on the seat's menu and is
+     *  paid with it. */
+    @Test
+    public void blackLotusPaysForACheapSpellForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Black Lotus", me, ZoneType.Battlefield);
+        card("Time Walk", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Time Walk"))
+                .on("Choose a color", choice("blue"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Time Walk"), "Time Walk is on the menu:\n" + ask);
+        Assert.assertNotNull(r, "the seat cast Time Walk");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Time Walk is on the stack");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).stream().anyMatch(c -> c.getName().equals("Black Lotus")),
+                "Black Lotus paid for it: " + me.getCardsIn(ZoneType.Graveyard));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** pr-review of PR #268 (2026-10-19): the patch above lifted Forge's exclusion outright, so at 1 life with City of
      *  Brass and Llanowar Elves the engine's payment plan tapped City (any-colour lands sort before creatures) and
      *  the seat died paying {1}. A lethal source pays last for a harness seat: still there, never first. */
