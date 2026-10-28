@@ -3,7 +3,7 @@
 
 Launches a small batch of games by shelling out to run_batch.py (which in
 turn invokes `bash run-llm-headless.sh` from FORGE_HOME — see run_batch.py
-and README.md's env-var table for the exact conventions this reuses rather
+and docs/harness/SETTINGS.md for the exact conventions this reuses rather
 than duplicates: GAME_SEED, EVAL_OUT, CONTROLLER_A/B, SMART_MODEL_A/B,
 FAST_MODEL_A/B, per-game jsonl + stdout .log placement, --exploratory
 guard-skipping, provenance stamping). After the batch, runs
