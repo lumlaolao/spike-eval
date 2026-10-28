@@ -38,7 +38,7 @@ the benchmark's own condition: the same prompt, tools and `answer` call as its s
 seat may see. A game costs about $0.02 to $0.05, and the model may think for minutes on a hard decision. Its
 decisions, replies and requests land in `runs/human/<time>/`. Games against a person are never scored.
 
-## Play a recorded game
+## Play and record a game
 
 ```bash
 python3 eval/run_batch.py --seeds 4101 --exploratory --budget-usd 0.40 --deck eval/decks/burn.txt \
