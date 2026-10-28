@@ -1,4 +1,4 @@
-# mtg-forge-llm-agent: LLM agents playing Magic: The Gathering on the Forge engine
+# spike-eval: LLM agents playing Magic: The Gathering on the Forge engine
 
 A model plays full Magic games inside the real Forge rules engine. `PlayerControllerLLM` routes every decision the
 engine asks a player (89 decision hooks, 44 ways to play a card) to the model; the engine validates every option, so an
