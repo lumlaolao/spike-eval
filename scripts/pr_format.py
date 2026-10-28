@@ -37,7 +37,8 @@ SKILL_VERDICTS = {"pr-review": ("CLEAN", "LOW", "MEDIUM", "HIGH", "BLOCKER"),
 VERDICTS = tuple(sorted(set(v for vs in SKILL_VERDICTS.values() for v in vs)))
 BLOCKING = ("HIGH", "BLOCKER", "VIOLATIONS")
 REVIEW_LINE = re.compile(r"^- (%s) @ ([0-9a-f]{7,40}): (%s)\b(.*)$" % ("|".join(SKILLS), "|".join(VERDICTS)), re.M)
-CODE_PATHS = ("forge-overlay/", "eval/", "scripts/", "install.sh", "run-llm-", "play-vs-llm.sh", "setup.sh")
+CODE_PATHS = ("forge-overlay/", "engine-patches/", "eval/", "scripts/", "install.sh", "run-llm-", "play-vs-llm.sh",
+              "setup.sh")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)

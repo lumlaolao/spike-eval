@@ -33,6 +33,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import engine_patches as ep  # noqa: E402  a newer tree's engine patches are diffs, applied to the pinned original
 import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -148,14 +149,15 @@ def arm_command(repo, forge_home, seed, deck_a, deck_b, model, budget, out):
 
 
 def engine_patches(tree):
-    """The engine patch sources in a tree's overlay (every main source outside the harness package)."""
+    """The Forge files a tree patches: a whole-file copy among its overlay's main sources outside the harness package
+    (an older tree), or a diff in engine-patches/ (a newer one)."""
     root = os.path.join(tree, "forge-overlay")
-    out = []
+    out = set(ep.patch_files(tree))
     for d, _, files in os.walk(root):
         for f in files:
             rel = os.path.relpath(os.path.join(d, f), root)
             if f.endswith(".java") and "/src/main/java/" in rel and "/forge/spike/" not in rel:
-                out.append(rel)
+                out.add(rel)
     return sorted(out)
 
 
@@ -165,14 +167,23 @@ def pinned_paths(worktree):
 
 
 def engine_sources(tree, forge, paths):
-    """{path: (origin, source bytes)}: the tree's overlay copy, or the pinned engine's stock source when the tree has
-    no patch for it. A path with neither is refused, never guessed."""
+    """{path: (origin, source bytes)}: the tree's overlay copy, the tree's diff applied to the original at its
+    FORGE_COMMIT, or the pinned engine's stock source when the tree has no patch for it. A path with none, or a diff
+    that does not apply, is refused, never guessed."""
     out = {}
+    diffs = ep.patch_files(tree)
     for rel in paths:
         mine = os.path.join(tree, "forge-overlay", rel)
         if os.path.isfile(mine):
             with open(mine, "rb") as f:
                 out[rel] = ("overlay", f.read())
+            continue
+        if rel in diffs:
+            try:
+                orig = ep.original(forge, ep.pinned_commit(tree), rel)
+                out[rel] = ("patch", ep.apply_patch(orig, diffs[rel], rel))
+            except ep.PatchError as e:
+                raise SystemExit(str(e))
             continue
         stock = subprocess.run(["git", "-C", forge, "show", "HEAD:" + rel], capture_output=True)
         if stock.returncode != 0:

@@ -103,9 +103,10 @@ enforces:
    → 15 min, all-haiku llm → 120, any opus → 240, any other llm seat → 240.
 6. **Provenance + drift** — stamps `ENGINE_SHA` (forge `HEAD`), `OVERLAY_SHA`
    (sha256[:12] over every overlay source as installed under FORGE_HOME:
-   the harness classes and the engine patches), `DECK_SHA`, `SEED_BANK` and
-   `RUN_DISCIPLINE` onto every game line, and refuses to run if the installed
-   overlay files differ from this checkout's `forge-overlay/`
+   the harness classes and the files the engine patches make), `DECK_SHA`,
+   `SEED_BANK` and `RUN_DISCIPLINE` onto every game line, and refuses to run if
+   the installed files differ from this checkout's `forge-overlay/` and
+   `engine-patches/`
    (`run bash install.sh first`).
 7. **`--out` optional** — defaults to `runs/<UTC-timestamp>-<label>` under the
    repo root; the resolved dir is printed first thing.

@@ -20,4 +20,4 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 | `Transcript.VERSION` | `transcript-v1` | (puzzle row `transcript_version`, puzzle manifest `record.transcript_version`) | the run's full record kept beside the rows (TRANSCRIPTS=1, on for every puzzle_solve.py run): the exact HTTP body of every model request and response, and each game's whole Forge log. Recording only: what the model is sent does not change with it, so it is not a condition and does not move HARNESS_EPOCH. |
 | `FORGE_COMMIT` | `34a8662b7966` | `engine_sha` | the pinned Forge engine; results compare only within one engine version. |
 
-Also on every game line: `context_profile` and `context_sha` (the observation profile and a hash of its template), `overlay_sha` (every overlay source), `deck_sha`, and, for a panel, the benchmark version (`eval/benchmark_version.py`).
+Also on every game line: `context_profile` and `context_sha` (the observation profile and a hash of its template), `overlay_sha` (every overlay source, and each engine patch as the file it makes), `deck_sha`, and, for a panel, the benchmark version (`eval/benchmark_version.py`).

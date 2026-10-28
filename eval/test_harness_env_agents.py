@@ -1,13 +1,15 @@
 """harness_env_agents.py: the two scripted agents the episode runner is dry-run with.
 
-copy-ours must leave a submission the grader can build (our main sources, the ABI adapter, the factory named) and
-nothing must leave an empty overlay; both must say DONE, or the runner would wait for the cap.
+copy-ours must leave a submission the grader can build (our main sources, our engine patches as the patched files,
+the ABI adapter, the factory named) and nothing must leave an empty overlay; both must say DONE, or the runner would
+wait for the cap. The engine-patch check needs the Forge checkout and is skipped without one.
 """
 import os
 import shutil
 import tempfile
 import unittest
 
+import engine_patches
 import harness_env_agents as ag
 import harness_env_grade as hgrade
 
@@ -31,6 +33,15 @@ class AgentsTest(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(overlay, "forge-gui-desktop/src/main/java/forge/spike/HarnessEnvOurs.java")))
         self.assertEqual(info["own_test_files"], 0, "our tests are not part of the submission")
         self.assertTrue(os.path.isfile(os.path.join(self.box, "DONE")))
+
+    def test_copy_ours_brings_our_engine_patches_as_the_marked_files_they_make(self):
+        forge = engine_patches.forge_home()
+        if forge is None:
+            self.skipTest("no Forge checkout: the engine patches cannot be applied")
+        ag.copy_ours(REPO, self.box, forge)
+        info = hgrade.intake(os.path.join(self.box, "overlay"), str(forge))
+        self.assertEqual(sorted(info["engine_patches"]), sorted(engine_patches.patch_files(REPO)))
+        self.assertEqual(info["unmarked_engine_patches"], [])
 
     def test_the_build_does_not_add_the_adapter_twice(self):
         ag.copy_ours(REPO, self.box)

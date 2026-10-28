@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Scripted agents for dry runs of the episode runner (harness_env_episode.py); no model is involved.
 
-  copy-ours  copies our overlay's main sources (the seat and its marked engine patches, never its tests) and the
-             ABI adapter (HarnessEnvOurs) into the sandbox's overlay/, names the adapter's factory in
-             harness-env.properties and writes DONE: the submission should score about what ours scores.
+  copy-ours  copies our overlay's main sources (the seat, never its tests), our marked engine patches as the files
+             they make (eval/engine_patches.py, from the Forge checkout) and the ABI adapter (HarnessEnvOurs) into
+             the sandbox's overlay/, names the adapter's factory in harness-env.properties and writes DONE: the
+             submission should score about what ours scores.
   nothing    writes DONE and nothing else: the submission should score 0.
 
 What these dry runs cannot establish: anything about an agent that builds a seat. They check the runner's plumbing
@@ -13,19 +14,22 @@ or how an agent ends one, nor whether the hidden grader is robust to a seat writ
 trusted code, graded with --trust-candidate; framework section 4.7).
 
 Run with the sandbox as the working directory, as the runner does.
-Usage: harness_env_agents.py copy-ours <repo> | nothing
+Usage: harness_env_agents.py copy-ours <repo> [<forge checkout>] | nothing
+(the Forge checkout defaults to $FORGE_HOME, ~/code/forge, /root/forge; copy-ours stops if a patch does not apply)
 """
 import os
 import shutil
 import sys
 
+import engine_patches
 import harness_env_grade as hg
 
 FACTORY = "forge.spike.HarnessEnvOurs$Ours"
 
 
-def copy_ours(repo, box):
+def copy_ours(repo, box, forge=None):
     overlay = os.path.join(box, "overlay")
+    engine_patches.materialize(overlay, forge or engine_patches.forge_home(), repo)
     src_root = os.path.join(repo, "forge-overlay")
     for j in hg._java_files(src_root):
         if "/src/main/" in "/" + j:
@@ -46,8 +50,8 @@ def nothing(box):
 
 
 def main(argv):
-    if len(argv) == 3 and argv[1] == "copy-ours":
-        copy_ours(argv[2], os.getcwd())
+    if len(argv) in (3, 4) and argv[1] == "copy-ours":
+        copy_ours(argv[2], os.getcwd(), argv[3] if len(argv) == 4 else None)
         return 0
     if len(argv) == 2 and argv[1] == "nothing":
         nothing(os.getcwd())

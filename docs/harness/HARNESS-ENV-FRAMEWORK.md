@@ -40,7 +40,7 @@ what a `copy` entry names enters the sandbox, each with its reason.
 | `/task/forge` (mount) | a fresh clone of Forge at the pin, built once with the offline Maven repository, read-only | the engine and its source, which is the spec of what a controller is asked |
 
 The released set today: 56 files, 52 of them decks (`build` on this branch). **Withheld**, by the spec's `withheld` globs: `.git`,
-`forge-overlay/`, `eval/`, `docs/`, `.claude/`, `scripts/`, `runs/`, `datasets/`, `puzzles/`, `data/cards/`,
+`forge-overlay/`, `engine-patches/`, `eval/`, `docs/`, `.claude/`, `scripts/`, `runs/`, `datasets/`, `puzzles/`, `data/cards/`,
 `CLAUDE.md`, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `install.sh`, the launchers. That is our solution (the
 overlay, its 42 test files, its four engine patches), the grading truth (the ownership ledger, the gap files, the
 golden-check inventory, the acceptance stages and pins), the history (716 commits and 131 PR bodies since
@@ -385,9 +385,9 @@ agent starts), and only with `--trust-candidate` (section 4.7). A refused sandbo
 beside `report.json`, so the record says what was checked.
 
 Two dry-run agents (`eval/harness_env_agents.py`) calibrate it: `nothing` writes `DONE` and scores 0 (ended by the
-agent in 1 s, "no Java"); `copy-ours` copies our overlay's `src/main` and the adapter and should score about ours
-(section 6). They test the runner's plumbing on a submission we know; they say nothing about whether an agent can
-build a seat from the sandbox, or about a seat written to fool the grader.
+agent in 1 s, "no Java"); `copy-ours` copies our overlay's `src/main`, our engine patches as the files they make
+and the adapter, and should score about ours (section 6). They test the runner's plumbing on a submission we know;
+they say nothing about whether an agent can build a seat from the sandbox, or about a seat written to fool the grader.
 
 ### 4.12 What is built: the calibration report (`eval/harness_env_calibrate.py`)
 

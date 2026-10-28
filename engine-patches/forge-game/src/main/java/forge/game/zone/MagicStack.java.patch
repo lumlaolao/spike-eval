@@ -1,0 +1,28 @@
+Modified from Forge (https://github.com/Card-Forge/forge), GPL-3.0-or-later; changes marked HARNESS PATCH;
+see docs/harness/ENGINE-PATCHES.md. Changes dated 2026-10-17 to 2026-10-18.
+Upstream file: forge-game/src/main/java/forge/game/zone/MagicStack.java at FORGE_COMMIT. Made by: python3 eval/engine_patches.py diff
+
+--- a/forge-game/src/main/java/forge/game/zone/MagicStack.java
++++ b/forge-game/src/main/java/forge/game/zone/MagicStack.java
+@@ -627,6 +627,12 @@
+             sa.getActivatingPlayer().addController(sa.getControlledByPlayer().getLeft(), sa.getControlledByPlayer().getRight());
+         }
+ 
++        // HARNESS PATCH: the resolved event's log line is built from the spell's stack description. Built after
++        // the effect, a state-dependent pump (+X where X is the target's power, e.g. Berserk) re-read the pumped
++        // power, and the seat's GAME HISTORY said twice the applied amount (g06 seed 4106 T7: stack "+5/+0",
++        // history "+10/+0"). Capture the description before the effect applies.
++        final String stackDescriptionBeforeResolve = sa.getStackDescription();
++
+         if (thisHasFizzled) { // Fizzle
+             if (sa.isBestow()) {
+                 // 702.102e: if its target is illegal, the effect making it an Aura spell ends.
+@@ -663,7 +669,7 @@
+             sa.setManaCostBeingPaid(null);
+         }
+ 
+-        game.fireEvent(new GameEventSpellResolved(sa, thisHasFizzled));
++        game.fireEvent(new GameEventSpellResolved(SpellAbilityView.get(sa), thisHasFizzled, stackDescriptionBeforeResolve)); // HARNESS PATCH
+ 
+         game.getAction().checkStaticAbilities();
+ 

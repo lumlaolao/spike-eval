@@ -1,0 +1,69 @@
+Modified from Forge (https://github.com/Card-Forge/forge), GPL-3.0-or-later; changes marked HARNESS PATCH;
+see docs/harness/ENGINE-PATCHES.md. Changes dated 2026-10-15 to 2026-10-19.
+Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_COMMIT. Made by: python3 eval/engine_patches.py diff
+
+--- a/forge-ai/src/main/java/forge/ai/ComputerUtilMana.java
++++ b/forge-ai/src/main/java/forge/ai/ComputerUtilMana.java
+@@ -50,6 +50,16 @@
+ import java.util.stream.Collectors;
+ 
+ public class ComputerUtilMana {
++    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players choose the colour an any-colour source makes
++     *  for a generic shard themselves. Nobody, unless the harness sets it (PlayerControllerLLM, model seats). */
++    public static java.util.function.Predicate<Player> HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> false;
++    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players may pay with a source whose tap damage would be
++     *  lethal (City of Brass at 1 life). Forge's AI skips such a source; tapping it is legal, and with Angel's Grace or
++     *  an answer above the trigger it is the line. Set by PlayerControllerLLM for its seats; false for Forge's AI.
++     *  The same predicate marks a harness seat for the other payment tastes lifted below (its own card as a source, a
++     *  manland animated this turn): it names a harness seat, whose payments follow the rules only. */
++    public static java.util.function.Predicate<Player> HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> false;
++
+     private final static boolean DEBUG_MANA_PAYMENT = false;
+ 
+     public static boolean canPayManaCost(ManaCostBeingPaid cost, final SpellAbility sa, final Player ai, final boolean effect) {
+@@ -344,7 +354,12 @@
+ 
+         for (final SpellAbility ma : maList) {
+             // this rarely seems like a good idea
+-            if (ma.getHostCard() == saHost) {
++            // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; a harness seat may pay with the
++            // ability's own card (Mishra's Factory tapping itself for its {1} animate, rules pilot RP_175), but not
++            // when both the ability and the mana ability tap it (Rishadan Port, runs/loop/g27).
++            if (ma.getHostCard() == saHost && (!HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)
++                    || (sa.getPayCosts() != null && sa.getPayCosts().hasTapCost()
++                        && ma.getPayCosts().hasTapCost()))) {
+                 continue;
+             }
+ 
+@@ -368,7 +383,7 @@
+ 
+                 // If a manland was previously animated this turn, do not tap it to animate another manland
+                 if (saHost.isLand() && ma.getHostCard().isLand()
+-                        && ai.getController().isAI()
++                        && ai.getController().isAI() && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai) // HARNESS PATCH: AI taste
+                         && AnimateAi.isAnimatedThisTurn(ai, ma.getHostCard())) {
+                     continue;
+                 }
+@@ -1180,6 +1195,12 @@
+         }
+ 
+         if (m.isAnyMana()) {
++            // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a generic shard can be paid with any colour, so for a
++            // seat that chooses its own colours the colour is left open and ManaEffect asks its controller.
++            if (toPay == ManaCostShard.GENERIC && HARNESS_SEAT_CHOOSES_ANY_COLOR.test(ai)) {
++                m.setExpressChoice("");
++                return true;
++            }
+             byte colorChoice = 0;
+             if (toPay.isOr2Generic()) {
+                 colorChoice = toPay.getColorMask();
+@@ -1565,6 +1586,9 @@
+                     }
+                 }
+                 if (dealsLethalOnTap) {
++                    // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a harness seat may tap a source whose damage
++                    // is lethal (RP_017: Angel's Grace first), so it is kept, but it pays last, never before a safe one.
++                    if (HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)) useLastManaSources.add(card);
+                     continue;
+                 }
+             }

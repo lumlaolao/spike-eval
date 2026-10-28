@@ -12,7 +12,8 @@ What the id hashes:
   engine         FORGE_COMMIT (and every game line's engine_sha must equal it)
   overlay        the game lines' overlay_sha; without games, the same hash run_batch.py computes
                  (overlay_tree_sha: every file under forge-overlay/*/src/main/, path and bytes, the
-                 harness classes and the engine patches) over this checkout's overlay
+                 harness classes, and every engine patch as the file it makes, applied to the pinned
+                 Forge original: eval/engine_patches.py) over this checkout's overlay
   deck_pool      sha12 of each panel deck file; a file that no longer matches its pin in the panels
                  file is an error, not a new version
   seed_registry  sha12 of eval/seed_registry.json
@@ -38,6 +39,8 @@ import hashlib
 import json
 import sys
 from pathlib import Path
+
+import engine_patches
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PANELS = REPO_ROOT / "eval" / "suites" / "panels-v1.json"
@@ -78,30 +81,58 @@ def load_panels(path=None):
 
 
 def overlay_files(repo=REPO_ROOT):
-    """Every harness source the overlay installs: each file under forge-overlay/<module>/src/main/,
-    as a sorted path relative to forge-overlay (the same path under FORGE_HOME once installed)."""
+    """Every harness source the install writes: each file under forge-overlay/<module>/src/main/, and each Forge
+    file an engine patch makes (engine-patches/), as a sorted path relative to forge-overlay (the same path under
+    FORGE_HOME once installed)."""
     root = Path(repo) / OVERLAY_ROOT
-    return sorted(p.relative_to(root).as_posix() for p in root.glob("*/src/main/**/*") if p.is_file())
+    rels = {p.relative_to(root).as_posix() for p in root.glob("*/src/main/**/*") if p.is_file()}
+    return sorted(rels | set(engine_patches.patch_files(repo)))
 
 
-def overlay_tree_sha(base, rels):
-    """sha256[:12] over each file's path and bytes, in the given order; 'unknown' when a file is
-    unreadable or there are none. `base` is forge-overlay in a checkout, or FORGE_HOME once installed,
-    so the two agree exactly when the installed harness is this checkout's."""
-    if not rels:
+def checkout_sources(repo=REPO_ROOT, forge=None):
+    """{path: bytes or None} for overlay_files, as this checkout would install them: the overlay file, or the engine
+    patch applied to its original at FORGE_COMMIT from `forge` (default: engine_patches.forge_home()). A patch that
+    cannot be applied, or an unreadable file, is None."""
+    try:
+        patched = engine_patches.patched_sources(forge or engine_patches.forge_home(), repo)
+    except engine_patches.PatchError:
+        patched = {}
+    out = {}
+    for rel in overlay_files(repo):
+        try:
+            out[rel] = patched[rel] if rel in patched else (Path(repo) / OVERLAY_ROOT / rel).read_bytes()
+        except OSError:
+            out[rel] = None
+    return out
+
+
+def _tree_sha(items):
+    """sha256[:12] over each (path, bytes) in order; 'unknown' when any bytes are None or there are none."""
+    if not items:
         return "unknown"
     h = hashlib.sha256()
-    for rel in rels:
-        try:
-            b = (Path(base) / rel).read_bytes()
-        except OSError:
+    for rel, b in items:
+        if b is None:
             return "unknown"
         h.update(rel.encode("utf-8") + b"\0" + str(len(b)).encode("ascii") + b"\0" + b)
     return h.hexdigest()[:12]
 
 
-def overlay_sha_of_checkout(repo=REPO_ROOT):
-    return overlay_tree_sha(Path(repo) / OVERLAY_ROOT, overlay_files(repo))
+def overlay_tree_sha(base, rels):
+    """sha256[:12] over each file's path and bytes, in the given order; 'unknown' when a file is
+    unreadable or there are none. `base` is FORGE_HOME once installed; overlay_sha_of_checkout is the
+    same hash over this checkout's sources, so the two agree exactly when the installed harness is this
+    checkout's."""
+    def read(rel):
+        try:
+            return (Path(base) / rel).read_bytes()
+        except OSError:
+            return None
+    return _tree_sha([(rel, read(rel)) for rel in rels])
+
+
+def overlay_sha_of_checkout(repo=REPO_ROOT, forge=None):
+    return _tree_sha(sorted(checkout_sources(repo, forge).items()))
 
 
 def deck_pool_shas(panels, repo=REPO_ROOT):

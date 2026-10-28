@@ -54,6 +54,15 @@ class SpecProblemsTest(unittest.TestCase):
                           "to": "spec/x.java"})
         self.assertTrue(any("releases" in p and "AnswerTool" in p for p in hs.problems(s)))
 
+    def test_our_engine_patches_are_withheld_like_the_overlay(self):
+        s = shipped()
+        s["withheld"].remove("engine-patches/**")
+        self.assertIn("withheld must include engine-patches/**", hs.problems(s))
+        s = shipped()
+        s["copy"].append({"from": "engine-patches/forge-game/src/main/java/forge/game/player/Player.java.patch",
+                          "to": "spec/p.patch"})
+        self.assertTrue(any("releases" in p and "Player.java.patch" in p for p in hs.problems(s)))
+
     def test_a_copy_destination_may_not_escape_the_sandbox(self):
         for bad in ("../x", "/etc/x", "spec/../../x"):
             s = shipped()

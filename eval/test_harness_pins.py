@@ -116,18 +116,24 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
     temporary one-file overlay (so a source can change mid-compile); the hash and the import check are the real
     scripts."""
 
-    def compile(self, javac_rc, edit_during_compile=False):
+    def compile(self, javac_rc, edit_during_compile=False, broken_patch=False):
         """(stage output, the recorded hash or None, the overlay's hash before the compile)."""
         with tempfile.TemporaryDirectory() as d:
             repo = os.path.join(d, "repo")
             os.makedirs(os.path.join(repo, "eval"))
-            for name in ("benchmark_version.py", "java_imports.py"):
+            if broken_patch:  # an engine patch whose original is not in the (missing) Forge checkout
+                os.makedirs(os.path.join(repo, "engine-patches/forge-game"))
+                with open(os.path.join(repo, "engine-patches/forge-game/G.java.patch"), "w") as f:
+                    f.write("--- a/forge-game/G.java\n+++ b/forge-game/G.java\n@@ -1 +1 @@\n-a\n+b\n")
+                with open(os.path.join(repo, "FORGE_COMMIT"), "w") as f:
+                    f.write("e" * 40 + "\n")
+            for name in ("benchmark_version.py", "java_imports.py", "engine_patches.py"):
                 shutil.copy(os.path.join(os.path.dirname(SCRIPT), name), os.path.join(repo, "eval"))
             src = os.path.join(repo, "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/A.java")
             os.makedirs(os.path.dirname(src))
             with open(src, "w") as f:
                 f.write("package forge.spike;\nclass A {}\n")
-            before = benchmark_version.overlay_sha_of_checkout(repo)
+            before = benchmark_version.overlay_sha_of_checkout(repo, forge=os.path.join(d, "no-forge"))
             javac = os.path.join(d, "javac")
             with open(javac, "w") as f:
                 f.write('#!/bin/sh\n%swhile [ "$1" != -d ]; do shift; done\nmkdir -p "$2/forge/spike"\n'
@@ -140,11 +146,11 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
                 f.write("x.jar")
             with open(os.path.join(out, "overlay-sha.txt"), "w") as f:
                 f.write("0ld0ld0ld0ld\n")
-            script = ('REPO="$1"; OUT="$2"; JAVAC="$3"; CP_FILE="$2/cp.txt"; CLASSES="$2/classes"\n'
+            script = ('REPO="$1"; OUT="$2"; JAVAC="$3"; FORGE="$4"; CP_FILE="$2/cp.txt"; CLASSES="$2/classes"\n'
                       'OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"\n'
                       'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n'
                       % compile_stage())
-            res = subprocess.run(["bash", "-c", script, "x", repo, out, javac], check=True,
+            res = subprocess.run(["bash", "-c", script, "x", repo, out, javac, os.path.join(d, "no-forge")], check=True,
                                  stdout=subprocess.PIPE, universal_newlines=True).stdout
             sha = os.path.join(out, "overlay-sha.txt")
             return res, (open(sha).read().strip() if os.path.exists(sha) else None), before
@@ -158,6 +164,12 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
     def test_a_failed_compile_records_nothing(self):
         res, sha, _ = self.compile(1)
         self.assertIn("FAIL compile", res)
+        self.assertIsNone(sha)
+
+    def test_an_engine_patch_that_does_not_apply_fails_the_stage_naming_it_and_records_nothing(self):
+        res, sha, _ = self.compile(0, broken_patch=True)
+        self.assertIn("FAIL compile engine patches do not apply", res)
+        self.assertIn("forge-game/G.java", res)
         self.assertIsNone(sha)
 
     def test_an_overlay_edited_during_the_compile_fails_the_stage_and_records_nothing(self):

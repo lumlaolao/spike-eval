@@ -51,6 +51,9 @@ class SetupTest(unittest.TestCase):
         for f in ("setup.sh", "install.sh", "FORGE_COMMIT", "run-llm-spike.sh", "run-llm-headless.sh"):
             shutil.copy(REPO / f, self.repo / f)
         shutil.copytree(REPO / "forge-overlay", self.repo / "forge-overlay")
+        shutil.copytree(REPO / "engine-patches", self.repo / "engine-patches")
+        (self.repo / "eval").mkdir()
+        shutil.copy(REPO / "eval" / "engine_patches.py", self.repo / "eval" / "engine_patches.py")
         self.stubs = root / "stubs"
         self.stubs.mkdir()
         for name, body in (("git", GIT_STUB), ("java", JAVA_STUB), ("mvn", MVN_STUB), ("python3", None)):
@@ -98,6 +101,10 @@ class SetupTest(unittest.TestCase):
         self.assertLess(calls.index("fetch"), calls.index("install -DskipTests"))
         self.assertTrue((self.forge / "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java").exists(),
                         "the overlay is laid on the checkout")
+        # The engine patches are applied to the originals at the pin (the stub git hands back an empty file).
+        player = "forge-game/src/main/java/forge/game/player/Player.java"
+        self.assertIn("show %s:%s" % (PIN, player), calls)
+        self.assertTrue((self.forge / player).exists(), "the patched engine file is written into the checkout")
         self.assertEqual((self.repo / ".forge-home").read_text().strip(), str(self.forge))
         self.assertIn("OPENROUTER_API_KEY=sk-or-test-key\n", self.secrets())
         self.assertIn("\nOPENROUTER_ALLOW_EGRESS=1\n", self.secrets())
