@@ -15,6 +15,8 @@ it. GPL-3.0-or-later, like Forge: see [License](#license).
   and PUZ (frozen puzzle suites, judged by Forge's puzzle mode). Design: `eval/EVAL-DESIGN.md`, `eval/SCORING.md`,
   `eval/PUZZLES.md`.
 
+![One decision in the replay viewer: the seat's board, its plan, two simulate previews and its answer](docs/images/seat-decision.webp)
+
 ## Play against the model
 
 ```bash
@@ -34,7 +36,6 @@ The model plays under the benchmark's own condition: the same prompt, tools and 
 seeing only what its seat may see. A game costs about $0.02 to $0.05, and the model may think for minutes on a hard
 decision. Its decisions and replies land in `runs/human/<time>/`. Games against a person are never scored.
 
-![A person's opening hand against the model's seat](docs/images/play-vs-llm.png)
 
 ## Play a recorded game
 
