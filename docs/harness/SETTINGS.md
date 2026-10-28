@@ -1,7 +1,6 @@
 # Settings and operations
 
-Every environment variable the launchers read, how the GUI is run and recorded, and the limits on running games side
-by side. `eval/run_batch.py` sets the variables from its flags; the root scripts (`run-llm-headless.sh`,
+Every environment variable the launchers read, how the GUI is run and recorded, and operations: parallel games, the game cap, the shadow labeller, `secrets.env`. `eval/run_batch.py` sets the variables from its flags; the root scripts (`run-llm-headless.sh`,
 `run-llm-spike.sh`, `play-vs-llm.sh`) read them as they are. The reason behind each default is in `ARCHITECTURE.md`.
 
 ## Environment variables
@@ -28,14 +27,15 @@ by side. `eval/run_batch.py` sets the variables from its flags; the root scripts
 | `CLAUDE_CLI_ALLOW_API_KEY` | unset | `1` lets a `claude-cli:` seat's CLI log in with `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN`; unset, those are dropped from its environment and it uses the subscription login |
 | `CLAUDE_BIN` | `claude` | the Claude Code CLI a `claude-cli:` seat runs |
 | `CLAUDE_BRIDGE_EFFORT`, `_SMART` / `_FAST` | unset (the CLI's default) | the CLI's `--effort` per tier, stamped `claude_effort_smart` / `_fast`; never read from Claude Code's own `CLAUDE_EFFORT`. For a `claude-cli:` seat the drivers pin it from `--claude-cli-effort` |
+| `CLAUDE_CLI_THINKING_TOKENS` | unset (the CLI's default, stamped "cli-default") | a `claude-cli:` seat's thinking budget, set in the child as `MAX_THINKING_TOKENS` (the child never inherits that variable); pinned by the drivers from `--claude-cli-thinking-tokens`, stamped `claude_cli_thinking_tokens_a` / `_b` |
+| `CLAUDE_DEADLINE_MS` | per model (`ModelCfg`) | a CLI call's deadline; past it the process is killed and the decision has no answer |
 
 ## The GUI and recording
 
-A person sits in one seat with `bash play-vs-llm.sh` (`CONTROLLER_A=human`); with `CLAUDE_CLI_SEAT=1 bash play-vs-llm.sh
---model claude-cli:opus` the other seat is Claude Code on your own subscription, the development lane. `--commentary`
-prints each decision as it is made (`eval/play_commentary.py`, which also reads a finished game) and `--why` its
-reason; both show the seat's hidden choices and `--why` names its hand. Games against a person are never part of a
-benchmark score (`ARCHITECTURE.md`, section 11).
+A person sits in one seat with `bash play-vs-llm.sh` (README, "Play against the model"; the design, `ARCHITECTURE.md`,
+section 11). With `CLAUDE_CLI_SEAT=1 bash play-vs-llm.sh --model claude-cli:opus` the other seat is Claude Code on your
+own subscription, the development lane. `--commentary` (`eval/play_commentary.py`, which also reads a finished game)
+and `--why` show the seat's hidden choices; `--why` names its hand.
 
 The GUI (`bash "$FORGE_HOME/run-llm-spike.sh"`, each model seat's `SMART_MODEL` / `FAST_MODEL` named: there is no
 default model) shows a spectator match of two harness seats (`play-vs-llm.sh` seats a person); `RECORD=1 RECORD_OUT=game.mp4 RECORD_FPS=8`
@@ -43,7 +43,7 @@ captures the window to H.264 in-process (no screen-recording permission; `ffmpeg
 `( sleep N; pkill -INT -f LlmSpikeGui ) &` (SIGINT, so the recorder finalizes the file). GUI matches are best of
 three; only the headless runner, or the GUI with `AUTO_EXIT=1`, writes the game line.
 
-## Running games side by side
+## Operations
 
 - **Parallel games:** openrouter games 6 to 10 JVMs (RAM-bound, about 1 GB each, counted across all batches); floor 4
   to 8; Claude CLI specs 1. Never rebuild the checkout while a game runs. `eval/CONCURRENCY.md`.

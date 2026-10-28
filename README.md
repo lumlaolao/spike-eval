@@ -36,7 +36,6 @@ The model plays under the benchmark's own condition: the same prompt, tools and 
 seeing only what its seat may see. A game costs about $0.02 to $0.05, and the model may think for minutes on a hard
 decision. Its decisions and replies land in `runs/human/<time>/`. Games against a person are never scored.
 
-
 ## Play a recorded game
 
 ```bash
@@ -50,8 +49,7 @@ python3 eval/match_review.py runs/loop/g01        # what the harness decided, lo
 An `openrouter:` model sends the game state to openrouter.ai, so `OPENROUTER_API_KEY` and your own consent,
 `OPENROUTER_ALLOW_EGRESS=1`, must be set (the factory refuses without it). A Luna game takes 20 to 90 minutes.
 `run_batch.py` pins the condition, stamps provenance, resumes, retries a crashed game once and stops at
-`--budget-usd`; `eval/cost_report.py` prices any run. Every variable the launchers read, the GUI and recording, and
-how many games can run at once: `docs/harness/SETTINGS.md`.
+`--budget-usd`; `eval/cost_report.py` prices any run. Every setting: `docs/harness/SETTINGS.md`.
 
 ## Build and check
 
@@ -67,9 +65,8 @@ bash eval/harness_acceptance.sh                       # compile, every test, can
 bash eval/keyword_gauntlet.sh                         # 28 free games over 552 cards
 ```
 
-Acceptance never touches the checkout (it builds into `runs/harness-acceptance/<ts>/`). Its zero-model canaries are
-bit-reproducible: the seed-42 floor mirror wins A in 108 turns, the random mirror A in 55 (Linux pins,
-`eval/harness_acceptance.expected`).
+Acceptance builds into `runs/harness-acceptance/<ts>/` and never touches the checkout. Its zero-model canaries are
+bit-reproducible and pinned in `eval/harness_acceptance.expected` (`docs/harness/ARCHITECTURE.md`, section 11).
 
 To hand someone a copy without your `secrets.env`, zip only what git tracks:
 
@@ -84,8 +81,8 @@ git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent
 | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/` | instructions for agents working here |
 | `docs/STANDARDS.md` | the standards the review skills enforce |
 | `docs/harness/ARCHITECTURE.md` | every part of the harness and why it is built that way |
-| `docs/harness/SETTINGS.md` | every environment variable, the GUI and recording, running games side by side |
-| `docs/harness/LESSONS.md` | the seven lessons the code is built on |
+| `docs/harness/SETTINGS.md` | every environment variable, the GUI and recording, operations |
+| `docs/harness/LESSONS.md` | the lessons the code is built on |
 | `docs/harness/WORK-PLAN.md`, `GAME-LOOP-LOG.md` | open work; what each real game found |
 | `docs/harness/ACCEPTANCE.md`, `GOLDEN-CHECKS.md`, `VERSIONS.md` | gate records, surface coverage, version stamps |
 | `docs/harness/PROMPT-CRAFT.md`, `PROMPT-AUDIT.md`, `MODEL-LIMITS.md` | how the seat's prompts and tools are written |

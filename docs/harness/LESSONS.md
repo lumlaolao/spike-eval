@@ -1,7 +1,7 @@
 # Lessons the code is built on
 
-Each of these cost a day or more to learn and is now enforced by a test, a canary or an owner rule (`CLAUDE.md`,
-`.claude/rules/`). Where one is cited elsewhere, this is the page it means.
+Each is enforced by a test, a canary or an owner rule (`CLAUDE.md`, `.claude/rules/`). Where a document cites a lesson,
+this is the page it means.
 
 1. **Pass priority with `null`, never an empty list.** An empty list means "play nothing, then ask again", and the
    engine's priority loop spins 999 times.

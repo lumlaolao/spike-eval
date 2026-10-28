@@ -76,7 +76,7 @@ would have made it fail.
 - `eval/`: launchers and scoring (`run_batch.py`, `aggregate.py`, `panel_score.py`, `puzzle_score.py`), the review
   sheet (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`), the gauntlet.
 - `docs/harness/`: architecture, game-loop log, acceptance records, golden checks, prompt craft, versions.
-- `docs/harness/SETTINGS.md`: the env-var table; `docs/harness/LESSONS.md`: the hard-won lessons.
+- `docs/harness/SETTINGS.md`: the env-var table; `docs/harness/LESSONS.md`: the lessons the code is built on.
 - Root launchers: `setup.sh` (fresh clone to a built Forge at the pin and `secrets.env`), `play-vs-llm.sh` (a person
   against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), `run-llm-headless.sh` /
   `run-llm-spike.sh`.
