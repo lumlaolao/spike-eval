@@ -1,7 +1,7 @@
 # Lessons the code is built on
 
-Each is enforced by a test, a canary or an owner rule (`CLAUDE.md`, `.claude/rules/`). Where a document cites a lesson,
-this is the page it means.
+Each is an invariant the review skills check (`CLAUDE.md`, `.claude/rules/`, `docs/STANDARDS.md`). Where a document
+cites a lesson, this is the page it means.
 
 1. **Pass priority with `null`, never an empty list.** An empty list means "play nothing, then ask again", and the
    engine's priority loop spins 999 times.

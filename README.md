@@ -27,14 +27,16 @@ bash play-vs-llm.sh --deck elves --vs ur-delver       # any eval/decks/<name>.tx
 bash play-vs-llm.sh --commentary --why                # its decisions and reasons live in the terminal (not a fair game)
 ```
 
-`setup.sh` needs Java 17+, Maven 3.8.1+, git and Python 3 (macOS or Linux; WSL2 on Windows). It clones Forge at
-`FORGE_COMMIT` into `~/code/forge` (`--forge-dir` for elsewhere), applies the overlay and patches, and builds, about
-10 minutes the first time. It then asks for your OpenRouter key and whether games may be sent to openrouter.ai, and
-writes both to `secrets.env` (git-ignored). Run it again after a `git pull`.
+`setup.sh` needs Java 17+, Maven 3.8.1+, git and Python 3 (macOS or Linux; WSL2 on Windows) and says how to install
+any that is missing. It clones Forge at `FORGE_COMMIT` into `~/code/forge` (shallow, about 1 GB; `--forge-dir` for
+elsewhere), applies the overlay and patches, and builds, about 10 minutes the first time. It then asks for your
+OpenRouter key and whether games may be sent to openrouter.ai, and writes both to `secrets.env` (git-ignored). After a
+`git pull`, run it again: it moves its Forge checkout to the new pin and rebuilds.
 
-The model plays under the benchmark's own condition: the same prompt, tools and `answer` call as its scored games,
-seeing only what its seat may see. A game costs about $0.02 to $0.05, and the model may think for minutes on a hard
-decision. Its decisions and replies land in `runs/human/<time>/`. Games against a person are never scored.
+`play-vs-llm.sh` needs a display and that build (or your own built checkout in `FORGE_HOME`). The model plays under
+the benchmark's own condition: the same prompt, tools and `answer` call as its scored games, seeing only what its
+seat may see. A game costs about $0.02 to $0.05, and the model may think for minutes on a hard decision. Its
+decisions, replies and requests land in `runs/human/<time>/`. Games against a person are never scored.
 
 ## Play a recorded game
 
@@ -53,13 +55,13 @@ An `openrouter:` model sends the game state to openrouter.ai, so `OPENROUTER_API
 
 ## Build and check
 
-`setup.sh` does all of this. By hand:
+`setup.sh` does all of this. By hand (Python 3 is stdlib only):
 
 ```bash
 export FORGE_HOME=~/code/forge
 git clone https://github.com/Card-Forge/forge.git "$FORGE_HOME" && git -C "$FORGE_HOME" checkout $(cat FORGE_COMMIT)
 bash install.sh                                       # copy the overlay in, apply engine-patches/
-(cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am install -DskipTests)
+(cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am install -DskipTests)    # checkstyle runs here; -o once built
 (cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=${FORGE_CP_FILE:-/tmp/forge_cp.txt})
 bash eval/harness_acceptance.sh                       # compile, every test, canaries, fake-model games
 bash eval/keyword_gauntlet.sh                         # 28 free games over 552 cards
@@ -83,7 +85,7 @@ git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent
 | `docs/harness/ARCHITECTURE.md` | every part of the harness and why it is built that way |
 | `docs/harness/SETTINGS.md` | every environment variable, the GUI and recording, operations |
 | `docs/harness/LESSONS.md` | the lessons the code is built on |
-| `docs/harness/WORK-PLAN.md`, `GAME-LOOP-LOG.md` | open work; what each real game found |
+| `docs/harness/WORK-PLAN.md`, `GAME-LOOP-LOG.md` | open work and what waits on the owner; what each real game found |
 | `docs/harness/ACCEPTANCE.md`, `GOLDEN-CHECKS.md`, `VERSIONS.md` | gate records, surface coverage, version stamps |
 | `docs/harness/PROMPT-CRAFT.md`, `PROMPT-AUDIT.md`, `MODEL-LIMITS.md` | how the seat's prompts and tools are written |
 | `docs/harness/INDEX.md` | every document under `docs/harness/`, current or historical |

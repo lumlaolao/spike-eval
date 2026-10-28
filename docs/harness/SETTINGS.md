@@ -1,7 +1,10 @@
 # Settings and operations
 
-Every environment variable the launchers read, how the GUI is run and recorded, and operations: parallel games, the game cap, the shadow labeller, `secrets.env`. `eval/run_batch.py` sets the variables from its flags; the root scripts (`run-llm-headless.sh`,
-`run-llm-spike.sh`, `play-vs-llm.sh`) read them as they are. The reason behind each default is in `ARCHITECTURE.md`.
+The variables that set a game's condition and models, how the GUI is run and recorded, and operations: parallel
+games, the game cap, the shadow labeller, `secrets.env`. `eval/run_batch.py` sets the variables from its flags and
+stamps the condition on the game line; `run-llm-headless.sh` and `run-llm-spike.sh` read them as they are, and
+`play-vs-llm.sh` sets the seats, decks and transcripts itself. The variables the scripts read for their own setup
+(`FORGE_HOME`, `JAVA_HOME`) are documented in the scripts; the recorder's are below.
 
 ## Environment variables
 
