@@ -1,8 +1,9 @@
 # mtg-forge-llm-agent
 
 Language models play full games of Magic: The Gathering inside [Forge](https://github.com/Card-Forge/forge), the
-open-source rules engine, and the games are scored as a benchmark. This repository holds only the overlay that drops
-into a Forge checkout; it does not redistribute Forge (GPL).
+open-source rules engine, and the games are scored as a benchmark. This repository holds the harness that drops into
+a Forge checkout, plus small patches to a few Forge files; Forge itself is not included (`setup.sh` fetches it).
+GPL-3.0-or-later, like Forge: see [License](#license).
 
 - **How a model plays:** `PlayerControllerLLM` (in `forge-overlay/.../spike/LlmSpikeGui.java`) answers every decision
   the engine asks a player: 89 decision hooks and 44 ways to play a card, each proven by a test. The engine checks
@@ -46,11 +47,12 @@ They add their own key when `setup.sh` asks.
 and Python 3 (stdlib only).
 
 ```bash
-git clone https://github.com/Card-Forge/forge.git /root/forge && git -C /root/forge checkout $(cat FORGE_COMMIT)
-FORGE_HOME=/root/forge bash install.sh                                   # copy the overlay in
-(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -DskipTests)    # build (checkstyle runs here; -o once built)
-(cd /root/forge && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=${FORGE_CP_FILE:-/tmp/forge_cp.txt})
-FORGE_HOME=/root/forge bash eval/harness_acceptance.sh                   # compile, every test, canaries, fake-model games
+export FORGE_HOME=~/code/forge
+git clone https://github.com/Card-Forge/forge.git "$FORGE_HOME" && git -C "$FORGE_HOME" checkout $(cat FORGE_COMMIT)
+bash install.sh                                                          # copy the overlay in
+(cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am install -DskipTests)    # build (checkstyle runs here; -o once built)
+(cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=${FORGE_CP_FILE:-/tmp/forge_cp.txt})
+bash eval/harness_acceptance.sh                                          # compile, every test, canaries, fake-model games
 bash eval/keyword_gauntlet.sh                                            # 28 free games over 552 cards
 ```
 
@@ -168,3 +170,18 @@ three; only the headless runner, or the GUI with `AUTO_EXIT=1`, writes the game 
 | `docs/harness/PROMPT-CRAFT.md`, `PROMPT-AUDIT.md`, `MODEL-LIMITS.md` | how the seat's prompts and tools are written |
 | `docs/harness/INDEX.md` | every document under `docs/harness/`, current or historical |
 | `eval/README.md`, `EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md` | the eval |
+
+The documents cite run directories (`runs/loop/g26`, `runs/c3/...`) for every number. Those are the recorded games
+(full model transcripts, about 300 MB) and are not part of this repository; `runs/` is where your own runs land.
+
+## License
+
+GPL-3.0-or-later ([LICENSE](LICENSE)). The harness is compiled into [Forge](https://github.com/Card-Forge/forge)
+(GPL-3.0-or-later, Copyright (C) 2011- the Forge Team and contributors) and extends its classes, so it carries
+Forge's license. Forge is not in this repository: `setup.sh` clones it at the commit in `FORGE_COMMIT`, and the few
+Forge files the harness changes are shipped as patches, each change marked `HARNESS PATCH` and listed in
+`docs/harness/ENGINE-PATCHES.md`.
+
+Unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the
+materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC. The Comprehensive Rules are
+downloaded from Wizards at setup, not shipped. [NOTICE.md](NOTICE.md) lists every source this project draws on.
