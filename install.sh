@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy the overlay + launcher into a Forge checkout.
+# Copy the overlay + launcher into a Forge checkout, and write the engine patches into it.
 # Usage: FORGE_HOME=~/code/forge ./install.sh
 set -e
 
@@ -39,4 +39,9 @@ else
   echo "$CUR" > "$PIN_FILE"
   echo "Recorded Forge engine pin: $CUR"
 fi
+
+# Our changes to Forge's own files are diffs (engine-patches/, docs/harness/ENGINE-PATCHES.md), applied to each
+# file as it is at the pin (git show, never the working tree). One that does not apply stops the install here.
+echo "Writing the engine patches into $FORGE_HOME ..."
+python3 "$HERE/eval/engine_patches.py" apply --forge "$FORGE_HOME" --out "$FORGE_HOME"
 echo "Done. See README.md for build & run steps."

@@ -15,7 +15,7 @@ measured and opted into as a separate condition.
 ## 1. The shape of it
 
 ```
- Forge rules engine (pinned commit; four marked patches, ENGINE-PATCHES.md)
+ Forge rules engine (pinned commit; four marked patches as diffs, ENGINE-PATCHES.md)
    │  asks the seat's PlayerController for every decision
    ▼
  PlayerControllerLLM  (forge-overlay/.../spike/LlmSpikeGui.java)
@@ -42,10 +42,14 @@ them and refuses to pool what is not comparable.
 - *Why unmodified except for listed patches:* a forked rules engine could drift from the one it claims to
   be. Everything we add lives in `forge-overlay/` and is copied in by `install.sh`. The overlay is the source of truth; files in
   the Forge checkout get overwritten.
-- *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a patched copy of an engine file at
-  its own path in the overlay, every change marked `HARNESS PATCH`, the upstream original's sha256 recorded
-  in `docs/harness/ENGINE-PATCHES.md` and checked by `eval/test_engine_patches.py`, so a re-pin forces a
-  re-diff. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Four files are
+- *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a unified diff against the upstream
+  file at `FORGE_COMMIT`, in `engine-patches/<path>.patch` (Forge is GPL: the repository carries our changes,
+  not Forge's files), every change marked `HARNESS PATCH`, the upstream original's sha256 recorded in
+  `docs/harness/ENGINE-PATCHES.md`. `eval/engine_patches.py` applies each to the original read from git at the
+  pin wherever a build needs it (ENGINE-PATCHES.md, "How a patch reaches the game"); a patch that does not apply
+  stops that build, and `eval/test_engine_patches.py` also fails on a moved original, so a re-pin forces a
+  re-diff. `overlay_sha` hashes each patch as the file it
+  makes. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Four files are
   patched (the table in `ENGINE-PATCHES.md`): `ComputerUtilMana` (the colour an any-colour source makes for a generic
   shard, a lethal-tap source, a card paying for its own ability), `Player.assignCompanion` (a declined companion is no
   companion rather than a crash), `MagicStack` (a resolve line read before the effect) and `GameCopier` (a card no
@@ -818,9 +822,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 
 - **`run_batch.py`** launches games:
   - it pins every condition explicitly (ambient environment is scrubbed) and records provenance;
-  - provenance: `overlay_sha` hashes every overlay source (`forge-overlay/*/src/main/**`: the harness
-    classes and the engine patches), and cited mode refuses when any installed file differs from the
-    checkout (`benchmark_version.overlay_tree_sha`; it covered two files until 2026-10-16, review H3);
+  - provenance: `overlay_sha` hashes every overlay source (`forge-overlay/*/src/main/**`, the harness
+    classes) and every engine patch as the file it makes (`engine-patches/`), and cited mode refuses when
+    any installed file differs from the checkout's (`benchmark_version.overlay_tree_sha` and
+    `checkout_sources`; it covered two files until 2026-10-16, review H3);
   - unset `--context-profile` is the faithful seat (`v4-faithful`), as in the play scripts; the legacy
     `v1-compat` (coaching, a reasoning cap, a 25-decision turn cap) runs only as a named arm;
   - it resumes;

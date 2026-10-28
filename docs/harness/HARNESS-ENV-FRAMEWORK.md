@@ -40,7 +40,7 @@ what a `copy` entry names enters the sandbox, each with its reason.
 | `/task/forge` (mount) | a fresh clone of Forge at the pin, built once with the offline Maven repository, read-only | the engine and its source, which is the spec of what a controller is asked |
 
 The released set today: 56 files, 52 of them decks (`build` on this branch). **Withheld**, by the spec's `withheld` globs: `.git`,
-`forge-overlay/`, `eval/`, `docs/`, `.claude/`, `scripts/`, `runs/`, `datasets/`, `puzzles/`, `data/cards/`,
+`forge-overlay/`, `engine-patches/`, `eval/`, `docs/`, `.claude/`, `scripts/`, `runs/`, `datasets/`, `puzzles/`, `data/cards/`,
 `CLAUDE.md`, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `install.sh`, the launchers. That is our solution (the
 overlay, its 42 test files, its four engine patches), the grading truth (the ownership ledger, the gap files, the
 golden-check inventory, the acceptance stages and pins), the history (716 commits and 131 PR bodies since
@@ -56,9 +56,9 @@ golden-check inventory, the acceptance stages and pins), the history (716 commit
 5. a `.git`, if present, has one commit, no remote, no stash and no unreachable objects (a history squashed but not
    pruned still answers `git cat-file`).
 `engine_problems` checks the engine: HEAD at the pin, `git status` clean, none of our overlay installed in a module's
-`src` or `target`. Run on this machine's working checkout (`/root/forge`) it reports 12 problems: the four patched
-engine files, the overlay's avatar sprite, `data/`, both launchers, and `forge/spike` under `src/main` and `src/test`. The
-working checkout can never be the agent's engine; it must be a fresh clone built clean.
+`src` or `target`. Run on a working checkout that `install.sh` has written to, it reports each installed file: the
+patched engine files, `data/`, both launchers, and `forge/spike` under `src/main` and `src/test`. The working checkout
+can never be the agent's engine; it must be a fresh clone built clean.
 
 **Not provable by a scan:** a paraphrase of our design in a released document (the third net is reading the five
 released files, which this branch did), and the repository itself. **A seen copy** (the term the rest of this
@@ -385,9 +385,9 @@ agent starts), and only with `--trust-candidate` (section 4.7). A refused sandbo
 beside `report.json`, so the record says what was checked.
 
 Two dry-run agents (`eval/harness_env_agents.py`) calibrate it: `nothing` writes `DONE` and scores 0 (ended by the
-agent in 1 s, "no Java"); `copy-ours` copies our overlay's `src/main` and the adapter and should score about ours
-(section 6). They test the runner's plumbing on a submission we know; they say nothing about whether an agent can
-build a seat from the sandbox, or about a seat written to fool the grader.
+agent in 1 s, "no Java"); `copy-ours` copies our overlay's `src/main`, our engine patches as the files they make
+and the adapter, and should score about ours (section 6). They test the runner's plumbing on a submission we know;
+they say nothing about whether an agent can build a seat from the sandbox, or about a seat written to fool the grader.
 
 ### 4.12 What is built: the calibration report (`eval/harness_env_calibrate.py`)
 

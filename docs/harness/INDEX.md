@@ -24,13 +24,13 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | PROMPT-CRAFT.md | the rules for every prompt and tool the seat sees, with sources |
 | PROMPT-AUDIT.md | the 2026-10-15 audit of every prompt against those rules, and where each finding was closed |
 | MODEL-LIMITS.md | every cap on what the seat sees, looks up or thinks (the 2026-10-15 audit), what bound, and why each kept limit is a loop guard, a condition or a transport retry; the `jev:` seat's limits |
-| ENGINE-PATCHES.md | each patched engine file and its upstream hash |
+| ENGINE-PATCHES.md | each engine patch (a diff in `engine-patches/`) and its upstream hash |
 | ENGINE-PIN.md | the pinned Forge commit and how to move it |
 | OWNERSHIP.md, controller-ownership.tsv, controller-inventory.tsv | who decides each of the 133 controller hooks (the ledger, its reflection inventory, and the hooks that needed more than an override) |
 | ROOT-INTERFACES.md | where the seat meets the engine: each subsystem's interface, what the seat overrides, where it still copies engine machinery, and the rare hooks' probe decks |
 | HOOK-DECKS.md | the `hook-*` probe decks that reach rare decision hooks |
 | LOOKAHEAD-DESIGN.md | the `simulate` preview and the combat outlook: what is built, the safety contract and its tests, what is not built |
-| RULES-TOOL.md | the comprehensive-rules lookup (`rules_lookup`): the vendored text, paging, the off-by-default toggle, its gates |
+| RULES-TOOL.md | the comprehensive-rules lookup (`rules_lookup`): the downloaded text, paging, the off-by-default toggle, its gates |
 | MATCH-MODEL.md | the state blocks that give the seat continuity (handles, hidden-zone knowledge, spent-this-turn, facts, its own plan and notes) and how their value is measured |
 | LATENCY.md | the 2026-10-13 per-decision latency measurements, and the token, timeout and reasoning knobs set now |
 | PLAYER-HARNESS.md | the seat's information contract, and the dated record (2026-09-06 to 10-15) of how it was implemented, with the tool-protocol measurements |

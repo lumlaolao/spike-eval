@@ -26,9 +26,12 @@ import random
 import re
 import sys
 
+import engine_patches
+
 GENERATOR = "gen-v1"
 FORMAT = "harness-env-instances/1"
-CARDSFOLDER = "/root/forge/forge-gui/res/cardsfolder"
+CARDSFOLDER = os.path.join(str(engine_patches.forge_home() or os.path.expanduser("~/code/forge")),
+                           "forge-gui/res/cardsfolder")
 # template -> (family, hook); the Java side builds each (GeneratedInstances.build).
 TEMPLATES = {
     "attacker-keyword": ("combat", "declareBlockers"),

@@ -12,8 +12,10 @@
 # Stages, cheapest first (each writes its evidence under $OUT and a PASS/FAIL line to $OUT/summary.txt):
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
 #   classpath  offline Maven dependency classpath (module target/classes FIRST, then jars); Forge tree untouched
-#   compile    overlay main+test sources -> $OUT/classes with javac --release 17 (the checkout is never rebuilt),
-#              and $OUT/overlay-sha.txt, the overlay hash compiled (puzzle_baselines.Build refuses another)
+#   compile    overlay main+test sources and the engine patches applied to the pinned originals
+#              (eval/engine_patches.py; one that does not apply fails) -> $OUT/classes with javac --release 17
+#              (the checkout is never rebuilt), and $OUT/overlay-sha.txt, the overlay hash compiled
+#              (puzzle_baselines.Build refuses another)
 #   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1 and EVAL_OUT unset; fails on any
 #              failure OR skip, and when the number of tests RUN differs from the number DECLARED (a runner that
 #              matches no tests reports a green nothing -- that happened once with `make jtest`)
@@ -157,6 +159,8 @@ if has_stage preflight; then
   if [ "$PIN" != "$CUR" ]; then fail preflight "Forge checkout $CUR is not the pinned engine $PIN (results would not be comparable)"; ok=0; fi
   for f in "$DECK_A_FILE" "$DECK_B_FILE" "$EXPECTED" "$LEDGER"; do [ -f "$f" ] || { fail preflight "missing $f"; ok=0; }; done
   command -v python3 >/dev/null || { fail preflight "python3 missing"; ok=0; }
+  # The rules text is Wizards' and not in the repository; the rules stage and the Java tests read it.
+  python3 "$REPO/eval/fetch_comp_rules.py" >/dev/null || { fail preflight "no Comprehensive Rules text (eval/fetch_comp_rules.py)"; ok=0; }
   if [ "$ok" = 1 ]; then
     JV="$("$JAVA" -version 2>&1 | head -1)"
     pass preflight "engine $CUR, $JV, decks + ledger + expectations present, no live JVMs"
@@ -203,24 +207,30 @@ if has_stage compile; then
     # after javac (a source edited meanwhile leaves classes of either version, so the stage fails); puzzle_baselines.
     # Build runs only a build whose hash is the checkout's. Written on a pass only.
     overlay_sha() { python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b
-print(b.overlay_sha_of_checkout())' "$REPO/eval"; }
+print(b.overlay_sha_of_checkout(forge=sys.argv[2]))' "$REPO/eval" "$FORGE"; }
     SRC_SHA_FILE="$(dirname "$CLASSES")/overlay-sha.txt"; rm -f "$SRC_SHA_FILE"
     SRC_SHA="$(overlay_sha)"
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
+    # The engine patches (engine-patches/) applied to the pinned originals, compiled with the overlay so the patched
+    # classes come first, as the checkout build would have them. A patch that does not apply fails the stage.
+    ENGINE_SRC="$OUT/patched-engine"; rm -rf "$ENGINE_SRC"
+    python3 "$REPO/eval/engine_patches.py" apply --forge "$FORGE" --out "$ENGINE_SRC" >"$OUT/engine_patches.log" 2>&1; PRC=$?
     "$JAVAC" --release 17 -encoding UTF-8 -proc:none -nowarn -cp "$(cat "$CP_FILE")" -d "$CLASSES" \
       "$OVERLAY"/main/java/forge/spike/*.java "$OVERLAY"/test/java/forge/spike/*.java \
       $(find "$REPO/forge-overlay" -path '*/src/main/java/*' -name '*.java' -not -path '*/forge/spike/*') \
+      $(find "$ENGINE_SRC" -name '*.java' 2>/dev/null) \
       $(find "$OVERLAY/test/java/forge/harnessenv" -name '*.java' 2>/dev/null) \
       >"$OUT/javac.log" 2>&1
     RC=$?
     NC="$(find "$CLASSES" -name '*.class' | wc -l | tr -d ' ')"
     # The checkout build (checkstyle) rejects unused and duplicate imports; this javac does not.
     python3 "$REPO/eval/java_imports.py" "$OVERLAY" >"$OUT/java_imports.log" 2>&1; IRC=$?
-    if [ $RC -ne 0 ] || [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail compile "javac rc=$RC (see $OUT/javac.log)"
+    if [ $PRC -ne 0 ]; then fail compile "engine patches do not apply: $(tail -3 "$OUT/engine_patches.log" | tr '\n' ' ')"
+    elif [ $RC -ne 0 ] || [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail compile "javac rc=$RC (see $OUT/javac.log)"
     elif [ "$(overlay_sha)" != "$SRC_SHA" ]; then fail compile "overlay sources changed during the compile (was $SRC_SHA): compile again"
     elif [ $IRC -ne 0 ]; then fail compile "imports the Forge checkout build rejects: $(head -3 "$OUT/java_imports.log" | tr '\n' ' ')"
     else echo "$SRC_SHA" > "$SRC_SHA_FILE"
-      pass compile "$NC classes from overlay sources $SRC_SHA (isolated dir; checkout untouched); imports clean"; fi
+      pass compile "$NC classes from overlay sources $SRC_SHA, $(grep -c '^patched ' "$OUT/engine_patches.log") engine patches (isolated dir; checkout untouched); imports clean"; fi
   fi
 fi
 
@@ -1134,6 +1144,8 @@ if has_stage scoring; then
           --ids forge-PP20 --json "$dir/puzzle_score.json" "$dir/puzzle" ) >"$dir/puzzle_score.log" 2>&1; SRC=$?
       say "scoring: one mirror panel cell (random pilot, one seed, both seats) through run_batch.py --panel"
       cp -R "$REPO/forge-overlay/." "$dir/forge-home/"
+      python3 "$REPO/eval/engine_patches.py" apply --forge "$FORGE" --out "$dir/forge-home" >"$dir/engine_patches.log" 2>&1 \
+        || fail scoring "engine patches: $(tail -2 "$dir/engine_patches.log")"
       ln -s "$FORGE/.git" "$dir/forge-home/.git"
       cat > "$dir/forge-home/run-llm-headless.sh" <<EOF
 #!/bin/bash

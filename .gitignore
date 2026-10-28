@@ -19,42 +19,31 @@ secrets.env
 models/
 datasets/stage1-v0-mlx/
 
-# D1 self-play corpus (~5,400 games): large generated JSONL/logs, never swept into git history.
-runs/d1-selfplay/
-
-# Runpod job artifacts: the shipped dataset tarball (~50MB) and the returned adapter
-# (~200-600MB). Same reasoning as d1-selfplay — regenerable from the dataset dir +
-# config, so it is a build artifact, not history. MANIFEST.txt IS kept: it is the
-# provenance record (row counts, sha256s, harness commit) that makes a cloud run
-# traceable, and it is a few hundred bytes.
-runs/runpod/*/job.tar.gz
-runs/runpod/*/adapter.tar.gz
-runs/runpod/*/out/
-runs/runpod/*/pod.env
-runs/runpod/*/POD_ID
-runs/runpod/*/job.tar.gz.tmp
-runs/runpod/*/bootstrap.log
+# Every game, batch, acceptance and puzzle run writes here: full model transcripts and logs, hundreds of MB.
+# They are run outputs, not source; the docs name the run a number came from.
+runs/
 
 # Puzzle harvest: raw fetched API dumps are regenerable (harvest.py); keep only the curated
 # corpus, the normalized inputs and the tool.
 puzzles/modern/raw/api/
 puzzles/modern/raw/items/rulesguru.jsonl
-# Card-knowledge export: regenerable from Forge's own card DB at runtime (see data/cards/build.py).
-data/cards/raw/
 
 # Claude Code: agent and skill definitions under .claude/ ARE tracked (docs/STANDARDS.md);
 # per-machine settings and worktrees are not.
 .claude/settings.local.json
 .claude/worktrees/
 
-# Puzzle baseline rollouts (eval/puzzle_baselines.py): regenerable scratch, hundreds of MB; the frozen
-# suite is committed under eval/suites/.
-runs/puzzles/
-runs/human/
-runs/keyword-gauntlet/
 __pycache__/
 *.py[co]
 .pytest_cache/
 .venv/
 *.swp
-runs/harness-acceptance/
+
+# Wizards of the Coast text, downloaded by eval/fetch_comp_rules.py (setup.sh, acceptance preflight).
+data/rules/MagicCompRules.txt
+
+# Local environment and editor files.
+.env
+.env.*
+.idea/
+.vscode/

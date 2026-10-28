@@ -14,6 +14,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+import fetch_comp_rules
 import harness_env_grade as hg
 import surface_coverage
 
@@ -376,7 +377,37 @@ class IntakeTest(unittest.TestCase):
         self.assertEqual(info["unmarked_engine_patches"], [])
 
 
+@unittest.skipUnless(fetch_comp_rules.present(), fetch_comp_rules.MISSING)
 class AssembleTest(unittest.TestCase):
+    def test_the_workspace_compile_stage_can_run_its_engine_patch_step(self):
+        # The compile stage applies the repository's engine patches (eval/engine_patches.py) before javac. In the
+        # grading workspace there are none (a submission brings whole engine files), but the step must run: a
+        # missing tool fails the compile stage of every submission.
+        sub, ws = tempfile.mkdtemp(), os.path.join(tempfile.mkdtemp(), "ws")
+        try:
+            write(sub, "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java", "class LlmSpikeGui {}\n")
+            hg.assemble(sub, REPO, ws)
+            r = subprocess.run(["python3", os.path.join(ws, "eval", "engine_patches.py"), "apply", "--forge",
+                                "/nonexistent", "--out", os.path.join(ws, "patched")], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+        finally:
+            shutil.rmtree(sub)
+            shutil.rmtree(os.path.dirname(ws))
+
+    def test_the_workspace_preflight_finds_its_rules_text(self):
+        # The acceptance preflight runs eval/fetch_comp_rules.py; in the workspace it must find the copied rules text
+        # (no download), or every grading run fails its preflight.
+        sub, ws = tempfile.mkdtemp(), os.path.join(tempfile.mkdtemp(), "ws")
+        try:
+            write(sub, "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java", "class LlmSpikeGui {}\n")
+            hg.assemble(sub, REPO, ws)
+            r = subprocess.run(["python3", os.path.join(ws, "eval", "fetch_comp_rules.py")], capture_output=True,
+                               text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+        finally:
+            shutil.rmtree(sub)
+            shutil.rmtree(os.path.dirname(ws))
+
     def test_the_workspace_holds_the_submission_main_and_the_hidden_tests_not_its_own(self):
         sub = tempfile.mkdtemp()
         ws = os.path.join(tempfile.mkdtemp(), "ws")
@@ -400,6 +431,7 @@ class AssembleTest(unittest.TestCase):
 
 
 class RunTimeoutTest(unittest.TestCase):
+    @unittest.skipUnless(fetch_comp_rules.present(), fetch_comp_rules.MISSING)
     def test_a_hung_grading_run_scores_zero_with_the_reason_instead_of_crashing(self):
         tmp = tempfile.mkdtemp()
         real = hg.subprocess.run

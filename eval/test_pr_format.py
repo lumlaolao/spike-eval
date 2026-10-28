@@ -114,6 +114,8 @@ class PrFormatTest(unittest.TestCase):
             return pf.pr_problems("docs: x", BODY.replace(line, evidence), head, files, gate=True)
         # Saying the word is not evidence; neither is a partial pass, nor a pass on another commit.
         self.assertTrue(any("has no line" in p for p in gate("- no acceptance run was made", ["forge-overlay/a.java"])))
+        # An engine patch is compiled into every game like the overlay is.
+        self.assertTrue(any("has no line" in p for p in gate("- tried it", ["engine-patches/forge-ai/a.java.patch"])))
         self.assertTrue(any("full pass" in p for p in gate(line.replace("12/12", "11/12"), ["eval/x.py"])))
         self.assertTrue(any("full pass" in p for p in gate(line.replace("abc123456", "fff000111"), ["scripts/pr_merge.sh"])))
         self.assertEqual(gate(line, ["install.sh"]), [])

@@ -1,6 +1,7 @@
 ---
 paths:
   - "forge-overlay/**"
+  - "engine-patches/**"
   - "install.sh"
   - "run-llm-*.sh"
 ---
@@ -21,9 +22,9 @@ Acceptance and the gauntlet use their own build directory and are safe alongside
 
 ## Engine patches
 
-Where the seat has no `PlayerController` hook, a patched copy of the engine file goes in `forge-overlay/` at its own
-path, every change marked `HARNESS PATCH`, listed in `docs/harness/ENGINE-PATCHES.md` with its upstream sha256
-(`eval/test_engine_patches.py` checks both). Card scripts are never patched.
+Where the seat has no `PlayerController` hook, change the engine file by a diff in `engine-patches/<its path>.patch`,
+never a whole copy in `forge-overlay/`; every change marked `HARNESS PATCH` and listed in
+`docs/harness/ENGINE-PATCHES.md`, which says how to make, change and re-diff one. Card scripts are never patched.
 
 ## Gotchas that cost days
 

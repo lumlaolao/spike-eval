@@ -1,0 +1,18 @@
+Modified from Forge (https://github.com/Card-Forge/forge), GPL-3.0-or-later; changes marked HARNESS PATCH;
+see docs/harness/ENGINE-PATCHES.md. Changes dated 2026-10-16 to 2026-10-16.
+Upstream file: forge-game/src/main/java/forge/game/player/Player.java at FORGE_COMMIT. Made by: python3 eval/engine_patches.py diff
+
+--- a/forge-game/src/main/java/forge/game/player/Player.java
++++ b/forge-game/src/main/java/forge/game/player/Player.java
+@@ -3201,6 +3201,11 @@
+ 
+         SpellAbility fakeSa = new SpellAbility.EmptySa(ApiType.CompanionChoose, legalCompanions.get(0), this);
+         Card companion = player.chooseSingleEntityForEffect(view, fakeSa, Localizer.getInstance().getMessage("lblChooseACompanion"), true, null);
++        // HARNESS PATCH: the choice is optional (isOptional=true above, and no rule makes a player reveal a companion),
++        // but a declined choice reached moveTo as null and crashed the game (four Vintage top-8 decks, 2026-10-16).
++        if (companion == null) {
++            return;
++        }
+ 
+         PlayerZone commandZone = getZone(ZoneType.Command);
+         companion = game.getAction().moveTo(ZoneType.Command, companion, null, AbilityKey.newMap());

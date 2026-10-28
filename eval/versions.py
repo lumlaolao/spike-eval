@@ -73,7 +73,8 @@ def render(rows):
     for name, value, field, covers in rows:
         out.append("| `%s` | `%s` | %s | %s |" % (name, value, field if field.startswith("(") else "`%s`" % field, covers))
     out += ["", "Also on every game line: `context_profile` and `context_sha` (the observation profile and a hash of its "
-            "template), `overlay_sha` (every overlay source), `deck_sha`, and, for a panel, the benchmark version "
+            "template), `overlay_sha` (every overlay source, and each engine patch as the file it makes), `deck_sha`, "
+            "and, for a panel, the benchmark version "
             "(`eval/benchmark_version.py`).", ""]
     return "\n".join(out)
 

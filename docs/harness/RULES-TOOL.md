@@ -14,8 +14,9 @@ does. This is the other half of that principle: it never has to guess what a **r
 
 ## What it is
 
-`RulesTool` (overlay `forge.spike.RulesTool`) is a read-only index over the vendored official
-Comprehensive Rules text (`data/rules/MagicCompRules.txt`, effective 2026-09-25; see
+`RulesTool` (overlay `forge.spike.RulesTool`) is a read-only index over the official
+Comprehensive Rules text (`data/rules/MagicCompRules.txt`, effective 2026-09-25, downloaded once by
+`eval/fetch_comp_rules.py` and checked against its sha256; see
 `data/rules/README.md` for provenance and how to update it). It parses the text **directly** — there
 is no derived index to drift — into rules (id → text), section/chapter headings, a table of contents,
 and the Glossary.
@@ -77,7 +78,7 @@ Nothing is written to the archive: a lookup is stateless reference data, not an 
 
 ## Not done (deliberate)
 
-- No web fetch: the tool reads the vendored file only. Determinism and no-egress are worth more than
-  freshness, and `data/rules/README.md` documents the one-line update.
+- No web fetch during a game: the tool reads the downloaded file only. Determinism and no-egress are worth more than
+  freshness, and `data/rules/README.md` documents how to move to a new text.
 - The rules grammar cannot see game state. It answers "what does the rule say"; the observation
   answers "what is true now". Keeping them separate is the point.

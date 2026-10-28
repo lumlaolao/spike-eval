@@ -11,6 +11,8 @@ import subprocess
 import tempfile
 import unittest
 
+import fetch_comp_rules
+
 import harness_env_sandbox as sb
 import harness_env_spec as hs
 
@@ -195,6 +197,7 @@ class EngineCheckTest(unittest.TestCase):
         self.assertTrue(any("forge/harnessenv" in p and "src/test" in p for p in found), found)
 
 
+@unittest.skipUnless(fetch_comp_rules.present(), fetch_comp_rules.MISSING)
 class RealRepoTest(unittest.TestCase):
     def test_the_shipped_spec_builds_a_sandbox_from_this_repo_with_no_leak(self):
         spec = hs.load(os.path.join(REPO, "eval", "harness_env", "episode-v0.json"), REPO)

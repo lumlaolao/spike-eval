@@ -8,10 +8,13 @@ runs/frontier (harness-epoch-5), plans replaced by their hash.
 """
 
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -20,20 +23,49 @@ import benchmark_version as bv  # noqa: E402
 FIX = HERE / "testdata" / "scoring"
 
 
+PLAYER = "forge-game/src/main/java/forge/game/player/Player.java"
+PIN = None  # the throwaway Forge's commit the current test's repository pins; game() stamps it
+
+
+def git(cwd, *args):
+    return subprocess.run(["git", "-C", str(cwd)] + list(args), capture_output=True, text=True, check=True).stdout.strip()
+
+
+def commit(forge, message):
+    git(forge, "add", ".")
+    git(forge, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "commit", "-qm", message)
+    return git(forge, "rev-parse", "HEAD")
+
+
+def write_patch(root, added):
+    """engine-patches/<Player.java>.patch: one added line after the upstream file's first."""
+    p = root / "engine-patches" / (PLAYER + ".patch")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("Modified from Forge\n\n--- a/%s\n+++ b/%s\n@@ -1,2 +1,3 @@\n class Player {\n+%s\n }\n"
+                 % (PLAYER, PLAYER, added))
+
+
 def make_repo(root):
-    """A minimal checkout holding every file the version hashes."""
+    """A minimal checkout holding every file the version hashes, and the Forge its engine patch applies to."""
+    global PIN
     root = Path(root)
+    forge = root / "forge"
+    (forge / PLAYER).parent.mkdir(parents=True)
+    (forge / PLAYER).write_text("class Player {\n}\n")
+    git(forge, "init", "-q")
+    PIN = commit(forge, "upstream")
+    (forge / "README").write_text("a later engine commit; Player.java unchanged\n")
+    commit(forge, "later")
+    root = root / "repo"
     (root / "eval" / "decks").mkdir(parents=True)
     (root / "eval" / "suites").mkdir(parents=True)
     (root / "eval" / "tooluse").mkdir(parents=True)
     spike = root / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
     spike.mkdir(parents=True)
-    (root / "FORGE_COMMIT").write_text("e" * 40 + "\n")
+    (root / "FORGE_COMMIT").write_text(PIN + "\n")
     for n in ("LlmSpikeGui.java", "AnswerTool.java"):
         (spike / n).write_text("class %s {}" % n)
-    patch = root / "forge-overlay/forge-game/src/main/java/forge/game/player"
-    patch.mkdir(parents=True)
-    (patch / "Player.java").write_text("class Player {}")
+    write_patch(root, "    // HARNESS PATCH: one")
     (root / "eval" / "decks" / "burn.txt").write_text("4 Lightning Bolt\n")
     (root / "eval" / "seed_registry.json").write_text('{"version": 2, "banks": []}')
     (root / "eval" / "tooluse" / "tools.json").write_text('{"tools": []}')
@@ -50,7 +82,7 @@ def write_panels(root, anchors=None, sha=None):
 
 
 def game(**kw):
-    g = {"t": "game", "engine_sha": "e" * 40, "overlay_sha": "o" * 12, "context_profile": "v4-faithful",
+    g = {"t": "game", "engine_sha": PIN, "overlay_sha": "o" * 12, "context_profile": "v4-faithful",
          "context_sha": "c" * 12, "harness_epoch": "harness-epoch-5"}
     g.update(kw)
     return g
@@ -60,8 +92,11 @@ class TestVersionId(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.repo = make_repo(self.tmp.name)
+        self.env = mock.patch.dict(os.environ, {"FORGE_HOME": os.path.join(self.tmp.name, "forge")})
+        self.env.start()
 
     def tearDown(self):
+        self.env.stop()
         self.tmp.cleanup()
 
     def vid(self, games=None):
@@ -76,10 +111,10 @@ class TestVersionId(unittest.TestCase):
         edits = [
             lambda: (self.repo / "eval" / "tooluse" / "tools.json").write_text('{"tools": [1]}'),
             lambda: (self.repo / "eval" / "seed_registry.json").write_text('{"version": 3, "banks": []}'),
-            lambda: (self.repo / "FORGE_COMMIT").write_text("f" * 40),
+            lambda: (self.repo / "FORGE_COMMIT").write_text(git(Path(self.tmp.name, "forge"), "rev-parse", "HEAD")),
             lambda: (self.repo / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/AnswerTool.java").write_text("class X {}"),
-            # an engine patch is part of the harness too (2026-10-16 review H3)
-            lambda: (self.repo / "forge-overlay/forge-game/src/main/java/forge/game/player/Player.java").write_text("class P {}"),
+            # an engine patch is part of the harness too (2026-10-16 review H3), hashed as the file it makes
+            lambda: write_patch(self.repo, "    // HARNESS PATCH: two"),
             lambda: (self.repo / "eval" / "suites" / "puzzles-v1.json").write_text("{}"),
             lambda: write_panels(self.repo, anchors={"forge_ai_elo": 1600}),
         ]

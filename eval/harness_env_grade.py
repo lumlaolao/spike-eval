@@ -58,8 +58,8 @@ STAGES = "preflight classpath compile javatests surfaces"
 RUN_TIMEOUT_S = 3 * 3600
 # What the grading workspace takes from the grader's repository (never from the submission).
 GRADER_FILES = ("FORGE_COMMIT", "eval/harness_acceptance.sh", "eval/harness_acceptance.expected", "eval/java_imports.py",
-                "eval/surface_coverage.py", "eval/tooluse/tools.json", "eval/decks", "data/rules/MagicCompRules.txt",
-                LEDGER)
+                "eval/engine_patches.py", "eval/fetch_comp_rules.py", "eval/surface_coverage.py",
+                "eval/tooluse/tools.json", "eval/decks", "data/rules/MagicCompRules.txt", LEDGER)
 FIXED_ROOTS = ("KeywordSurfaceSweepTest", "GoldenChecksTest", "GoldenChecksToolTest", "ControllerOwnershipTest",
                "PromptFidelityTest", "PlanAnytimeTest")
 WEIGHTS = {"hooks": 0.5, "plays": 0.2, "tests": 0.3}

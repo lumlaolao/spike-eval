@@ -17,7 +17,7 @@ leaderboard expansion come after observation and action fidelity.
 
 ## Recovery before development
 
-The saved overlay was older than the adjacent `/Users/lumlumlam/code/forge`
+The saved overlay was older than the adjacent `~/code/forge`
 checkout. On 2026-09-06, recovered all 12 Java source/test files in its `forge.spike`
 package into the overlay. `recovery-manifest.json` records the original hashes and
 previous overlay hashes. The adjacent checkout was left untouched. Subsequent

@@ -100,6 +100,10 @@ else
 fi
 
 # ---- 3. the overlay, the build, the classpath -------------------------------------------------------------------
+# The Comprehensive Rules text (Wizards', so not in this repository) for the optional RULES tool; install.sh copies
+# it into the checkout. Without the network the tool alone is missing, so a failed download only warns.
+step "fetching the Comprehensive Rules text"
+python3 "$REPO/eval/fetch_comp_rules.py" || echo "WARNING: no rules text: the RULES tool (RULES_TOOL=1) will be missing" >&2
 step "laying this repository's changes on Forge"
 FORGE_HOME="$forge" bash "$REPO/install.sh" > /dev/null
 step "building (the first build downloads Forge's libraries; later ones take a minute or two)"

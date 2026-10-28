@@ -26,9 +26,10 @@ REQUIRED = {"format": str, "id": str, "task": str, "copy": list, "make_dirs": li
             "caps": dict, "done": dict, "submission": dict, "grader": dict}
 # Never released, whatever a spec says: the solution, the hidden truth the grader scores against, and the history
 # that records both (SWE-bench issue 465: agents read the fix from future commits).
-ALWAYS_WITHHELD = (".git/**", "forge-overlay/**", "docs/**", "eval/**")
+ALWAYS_WITHHELD = (".git/**", "forge-overlay/**", "engine-patches/**", "docs/**", "eval/**")
 # Of those, never released even file by file (the task statement and decklists come out of eval/ by name).
-NEVER_RELEASED = (".git/**", "forge-overlay/**", "docs/harness/controller-ownership.tsv", "eval/*_gaps.txt")
+NEVER_RELEASED = (".git/**", "forge-overlay/**", "engine-patches/**", "docs/harness/controller-ownership.tsv",
+                  "eval/*_gaps.txt")
 NETWORKS = ("none", "loopback")
 ON_CAP = ("grade-last-checkpoint",)
 
@@ -64,6 +65,10 @@ def _escapes(dest):
     return os.path.normpath(dest).split(os.sep)[0] == ".."
 
 
+# Downloaded, so git-ignored, yet a spec may release them: the Comprehensive Rules text (eval/fetch_comp_rules.py).
+FETCHED = ("data/rules/MagicCompRules.txt",)
+
+
 def repo_files(repo):
     """Repository-relative paths of the files a repository holds: git's tracked and not-ignored files when `repo`
     is the top of a work tree (a clone's uncommitted runs/ are not part of it), every regular file otherwise;
@@ -86,12 +91,15 @@ def repo_files(repo):
 
 
 def expand_copy(spec, repo, files=None):
-    """[(source, destination)] for every file a copy entry releases; a destination ending in `/` keeps the name."""
+    """[(source, destination)] for every file a copy entry releases; a destination ending in `/` keeps the name.
+    Only the files repo_files lists are released, and the downloaded files in FETCHED, which git ignores."""
     files = repo_files(repo) if files is None else files
     out = []
     for c in spec.get("copy", []):
         excl = c.get("exclude", [])
         hits = [f for f in files if matches(f, c["from"]) and not any(matches(f, e) for e in excl)]
+        if not hits and c["from"] in FETCHED and os.path.isfile(os.path.join(repo, c["from"])):
+            hits = [c["from"]]
         for f in hits:
             out.append((f, c["to"] + os.path.basename(f) if c["to"].endswith("/") else c["to"]))
     return out

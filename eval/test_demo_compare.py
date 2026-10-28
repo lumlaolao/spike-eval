@@ -77,7 +77,8 @@ class PortTest(unittest.TestCase):
 
 
 class EnginePinTest(unittest.TestCase):
-    """Which engine each arm runs: its own overlay copy of every patched engine file, else the pinned stock source."""
+    """Which engine each arm runs: its own version of every patched engine file (a whole-file overlay copy in an older
+    tree, a diff in engine-patches/ in a newer one), else the pinned stock source."""
 
     def setUp(self):
         self.d = tempfile.mkdtemp()
@@ -96,16 +97,19 @@ class EnginePinTest(unittest.TestCase):
             self.write(os.path.join(root, "forge-overlay", rel), text)
         return root
 
-    def test_engine_patches_are_main_sources_outside_the_harness_package(self):
+    def test_engine_patches_are_main_sources_outside_the_harness_package_or_diffs(self):
         t = self.tree("t", {"forge-game/src/main/java/x/A.java": "", dc.SPIKE.split("forge-overlay/")[1] + "/S.java": "",
                             "forge-gui-desktop/src/test/java/x/T.java": "", "forge-gui/res/a.png": ""})
-        self.assertEqual(dc.engine_patches(t), ["forge-game/src/main/java/x/A.java"])
+        self.write(os.path.join(t, "engine-patches", self.B + ".patch"), self.B_PATCH)
+        self.assertEqual(dc.engine_patches(t), ["forge-ai/src/main/java/x/B.java", "forge-game/src/main/java/x/A.java"])
 
     A, B = "forge-game/src/main/java/x/A.java", "forge-ai/src/main/java/x/B.java"
+    B_PATCH = ("Modified from Forge\n\n--- a/%s\n+++ b/%s\n@@ -1 +1,2 @@\n class B { /* stock */ }\n"
+               "+// HARNESS PATCH: now\n" % (B, B))
 
     def forge_with_stock_b(self):
         forge = os.path.join(self.d, "forge")
-        self.write(os.path.join(forge, self.B), "class B { /* stock */ }")
+        self.write(os.path.join(forge, self.B), "class B { /* stock */ }\n")
         for cmd in (["init", "-q"], ["add", "."], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "s"]):
             subprocess.run(["git", "-C", forge] + cmd, check=True)
         return forge
@@ -138,6 +142,25 @@ class EnginePinTest(unittest.TestCase):
         self.assertIn(os.path.join(build, "classes"), compiled)
         with self.assertRaises(SystemExit):  # neither an overlay copy nor a stock source: refused, never guessed
             dc.pin_engine(tree, build, forge, ["forge-game/src/main/java/x/Gone.java"])
+
+    def test_a_newer_trees_diff_is_applied_to_the_pinned_original_and_one_that_does_not_apply_is_refused(self):
+        forge = self.forge_with_stock_b()
+        self.write(os.path.join(forge, self.B), "an installed copy in the working tree\n")  # never read
+        tree = self.tree("now", {})
+        self.write(os.path.join(tree, "FORGE_COMMIT"), subprocess.run(
+            ["git", "-C", forge, "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout)
+        patch = os.path.join(tree, "engine-patches", self.B + ".patch")
+        self.write(patch, self.B_PATCH)
+        build = os.path.join(self.d, "build")
+        self.pin(tree, build, forge, [self.B])
+        with open(os.path.join(build, "engine-patches.txt")) as f:
+            self.assertEqual([ln.split("\t")[0] for ln in f.read().splitlines()], ["patch"])
+        with open(os.path.join(build, "engine-src", self.B)) as f:
+            self.assertEqual(f.read(), "class B { /* stock */ }\n// HARNESS PATCH: now\n")
+        self.write(patch, self.B_PATCH.replace("stock */ }\n+", "moved */ }\n+"))
+        with self.assertRaises(SystemExit) as cm:
+            self.pin(tree, build, forge, [self.B])
+        self.assertIn(self.B, str(cm.exception))
 
     def test_run_refuses_a_build_whose_engine_files_changed_or_were_never_recorded(self):
         tree, forge = self.tree("then", {self.A: "class A { /* then */ }"}), self.forge_with_stock_b()
@@ -187,7 +210,7 @@ class ArmTest(unittest.TestCase):
             self.assertTrue(os.path.isfile(dc.pick_deck(name, [name], "x")), name)
 
     def test_the_stand_in_home_runs_the_isolated_classes_from_the_real_checkout_even_with_spaces(self):
-        d = tempfile.mkdtemp(prefix="Sean Thomas ")  # a macOS home folder may hold a space
+        d = tempfile.mkdtemp(prefix="A Name ")  # a macOS home folder may hold a space
         try:
             forge, b = os.path.join(d, "my forge"), os.path.join(d, "build dir")
             os.makedirs(os.path.join(forge, ".git"))

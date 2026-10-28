@@ -9,9 +9,9 @@ commit. Never squash. Never rebase-merge.**
   method (`allow_merge_commit=true`, `allow_squash_merge=false`,
   `allow_rebase_merge=false`). Squash and rebase-merge are disabled at the repo
   level, so they cannot be used even by mistake.
-- The **PR requirement** is a team rule, not a server-enforced gate: GitHub
-  branch protection is unavailable on this private repo without GitHub
-  Pro/Enterprise (the API returns 403). Do not push to `main` directly.
+- Every change lands through a pull request and `scripts/pr_merge.sh`, which
+  refuses until the gate in `docs/STANDARDS.md` section 1 passes. Do not push to
+  `main` directly.
 - History is meant to be readable as a series of reviewed units. A squash throws
   away the intermediate commits that show *how* a change was validated; this repo
   has repeatedly needed that trail (the shadow-labeler build-swap that compared a
@@ -38,13 +38,13 @@ The `pr-format` skill (`.claude/skills/pr-format/SKILL.md`) has the verdicts eac
 
 ## Source of truth
 
-`forge-overlay/` is the source of truth. **Never edit files inside the Forge checkout (`$FORGE_HOME`: `~/code/forge` on the Mac, `/root/forge` in the cloud)** —
+`forge-overlay/` is the source of truth. **Never edit files inside the Forge checkout (`$FORGE_HOME`, `~/code/forge` by default)** —
 they are overwritten by `install.sh`. Workflow for any harness change:
 
 ```bash
 # 1. edit forge-overlay/.../forge/spike/LlmSpikeGui.java
-FORGE_HOME=/root/forge bash install.sh                 # 2. copy the overlay into the checkout
-(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)   # 3. build (install, not compile)
+FORGE_HOME=~/code/forge bash install.sh                # 2. copy the overlay into the checkout
+(cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)   # 3. build (install, not compile)
 ```
 
 ## What must never be committed
@@ -61,7 +61,7 @@ FORGE_HOME=/root/forge bash install.sh                 # 2. copy the overlay int
 0. `bash eval/harness_acceptance.sh` — isolated compile, every Java/Python test
    with a declared-vs-run count gate, pinned zero-model canaries with a class-load
    proof, and loopback fake-model games. Never touches the Forge checkout.
-1. `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash /root/forge/run-llm-headless.sh`
+1. `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash "$FORGE_HOME/run-llm-headless.sh"`
    (the copy `install.sh` puts in the checkout, which it runs from) — the regression
    canary (identity A wins after 108 turns, every time).
    For play/attack/block paths use the `random` arm — `floor` short-circuits
