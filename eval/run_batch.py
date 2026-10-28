@@ -237,13 +237,13 @@ def _checkpoint_sha(spec):
 
 def _spike_drift(forge_home, overlay_root=None):
     """Overlay files (paths relative to forge-overlay) whose INSTALLED bytes under forge_home differ
-    from this checkout's overlay, or that are missing on either side. Empty list == no drift. Every
-    overlay source counts: an uninstalled AnswerTool or engine patch is as stale as LlmSpikeGui."""
+    from this checkout's sources, or that are missing on either side. Empty list == no drift. Every
+    overlay source counts: an uninstalled AnswerTool or engine patch is as stale as LlmSpikeGui. An engine
+    patch is compared as the file it makes from forge_home's own git (benchmark_version.checkout_sources)."""
     overlay_root = Path(overlay_root) if overlay_root else REPO_ROOT / "forge-overlay"
     drift = []
-    for rel in benchmark_version.overlay_files(overlay_root.parent):
+    for rel, over in benchmark_version.checkout_sources(overlay_root.parent, Path(forge_home)).items():
         inst = _read_bytes(Path(forge_home) / rel)
-        over = _read_bytes(overlay_root / rel)
         if inst is None or over is None or inst != over:
             drift.append(rel)
     return drift

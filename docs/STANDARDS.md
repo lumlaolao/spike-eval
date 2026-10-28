@@ -20,8 +20,8 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
    and VIOLATIONS; a violation is cleared by a fix and a new review, or by a standards change;
 3. the body's `## Evidence` section has a line
    `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS` (written by
-   `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `eval/`, `scripts/` or
-   a root launcher (any `*.sh` at the root; `eval/test_pr_format.py` fails when one is missing from
+   `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `engine-patches/`, `eval/`,
+   `scripts/` or a root launcher (any `*.sh` at the root; `eval/test_pr_format.py` fails when one is missing from
    `pr_format.CODE_PATHS`). The sha must be the PR's current head.
 
 It merges exactly the commit it checked, with a merge commit. Never squash: the commit list is the
@@ -81,7 +81,8 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 
 | Path | Holds | Rule |
 |---|---|---|
-| `forge-overlay/` | all Java | the only place Java is edited; never the Forge checkout |
+| `forge-overlay/` | all harness Java | the only place harness Java is edited; never the Forge checkout |
+| `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file anywhere in the repository (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/test_engine_patches.py`) |
 | `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/test_pr_format.py`; the shell scripts are thin wrappers |

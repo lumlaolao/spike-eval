@@ -2,7 +2,8 @@
 
 Language models play full games of Magic: The Gathering inside [Forge](https://github.com/Card-Forge/forge), the
 open-source rules engine, and the games are scored as a benchmark. This repository holds only the overlay that drops
-into a Forge checkout; it does not redistribute Forge (GPL).
+into a Forge checkout and our changes to four Forge files, as diffs (`engine-patches/`, each marked and dated); it
+does not redistribute Forge's files (GPL).
 
 - **How a model plays:** `PlayerControllerLLM` (in `forge-overlay/.../spike/LlmSpikeGui.java`) answers every decision
   the engine asks a player: 89 decision hooks and 44 ways to play a card, each proven by a test. The engine checks
@@ -27,8 +28,8 @@ bash play-vs-llm.sh    # you against GPT-6 Luna in Forge's window
 
 `setup.sh` needs Java 17 or newer, Maven 3.8.1 or newer, git and Python 3, and says how to install any that is missing (macOS or
 Linux; on Windows, WSL2). It fetches Forge at exactly `FORGE_COMMIT` (shallow, about 1 GB) into `~/code/forge`
-(`--forge-dir` for elsewhere), lays `forge-overlay/` on it, and builds it: about 10 minutes the first time, while
-Maven downloads Forge's libraries. Last it asks for your OpenRouter key and whether games may be sent to
+(`--forge-dir` for elsewhere), lays `forge-overlay/` and the engine patches on it, and builds it: about 10 minutes
+the first time, while Maven downloads Forge's libraries. Last it asks for your OpenRouter key and whether games may be sent to
 openrouter.ai, and writes both to `secrets.env`, which only you can read and git ignores. After a `git pull`, run it
 again: it moves its own Forge checkout to a new pin and rebuilds.
 
@@ -42,7 +43,7 @@ Requires JDK 17, Maven 3.8.1 or newer, and Python 3 (stdlib only).
 
 ```bash
 git clone https://github.com/Card-Forge/forge.git /root/forge && git -C /root/forge checkout $(cat FORGE_COMMIT)
-FORGE_HOME=/root/forge bash install.sh                                   # copy the overlay in
+FORGE_HOME=/root/forge bash install.sh                                   # copy the overlay in, apply engine-patches/
 (cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests) # build (checkstyle runs here)
 FORGE_HOME=/root/forge bash eval/harness_acceptance.sh                   # compile, every test, canaries, fake-model games
 bash eval/keyword_gauntlet.sh                                            # 28 free games over 552 cards

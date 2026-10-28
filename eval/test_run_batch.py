@@ -76,12 +76,19 @@ class TestForgeHome(unittest.TestCase):
 
 class TestOverlayIdentity(unittest.TestCase):
     """OVERLAY_SHA and the drift refusal covered only LlmSpikeGui/LlmSpikeHeadless (2026-10-16 review H3):
-    a stale AnswerTool or engine patch was invisible. Every overlay source counts now."""
+    a stale AnswerTool or engine patch was invisible. Every overlay source counts now, and an engine patch
+    (engine-patches/) counts as the file it makes, so the hash is the one the whole-file copies had."""
 
     def test_an_installed_copy_hashes_like_the_checkout_and_drift_names_any_stale_file(self):
         import shutil
-        with tempfile.TemporaryDirectory() as home:
+        import engine_patches
+        forge = engine_patches.forge_home()
+        if forge is None:
+            self.skipTest("no Forge checkout: the engine patches cannot be applied")
+        with tempfile.TemporaryDirectory() as home, mock.patch.dict(os.environ, {"FORGE_HOME": str(forge)}):
             shutil.copytree(run_batch.REPO_ROOT / "forge-overlay", home, dirs_exist_ok=True)
+            os.symlink(forge / ".git", Path(home, ".git"))  # as the acceptance stand-in home does
+            engine_patches.materialize(home, forge)
             self.assertEqual(run_batch._overlay_sha(home),
                              run_batch.benchmark_version.overlay_sha_of_checkout(run_batch.REPO_ROOT))
             self.assertNotEqual(run_batch._overlay_sha(home), "unknown")
@@ -92,6 +99,8 @@ class TestOverlayIdentity(unittest.TestCase):
             self.assertEqual(run_batch._spike_drift(home), [patch])
             self.assertNotEqual(run_batch._overlay_sha(home),
                                 run_batch.benchmark_version.overlay_sha_of_checkout(run_batch.REPO_ROOT))
+            os.remove(Path(home, patch))  # an engine patch never installed is drift too
+            self.assertEqual(run_batch._spike_drift(home), [patch])
 
 
 class TestCheckpointSha(unittest.TestCase):

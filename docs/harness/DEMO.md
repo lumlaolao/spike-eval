@@ -116,7 +116,8 @@ fine.
 
 `eval/demo_compare.py` plays the same model, seed and decks against Forge's AI twice: on this checkout and on an
 older commit of the harness on the same engine pin (refused otherwise). Each arm runs its own engine patches: build-then and build-now
-compile, into each arm's isolated classes, that tree's overlay copy of every engine Java source either tree patches, or
+compile, into each arm's isolated classes, that tree's version of every engine Java source either tree patches (a
+whole-file overlay copy in an older tree, its `engine-patches/` diff applied to the pinned original in a newer one), or
 the stock source when it has none (listed in the build's `engine-patches.txt`), so neither inherits what `install.sh`
 last put in the checkout. Resource patches (`forge-overlay/forge-gui/res`) are not pinned: both arms read the checkout's.
 `run` refuses a build whose pinned engine files (list or content) no longer match the trees. Both arms play the faithful profile (`--context-profile v4-faithful`). The decks come from the fixed sets in

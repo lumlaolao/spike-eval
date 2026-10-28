@@ -73,8 +73,16 @@ Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the ne
    (`PlaySpellAbility.playAbility`): the paying mana is cleared before the cost, and a play that does not
    happen is undone with `GameActionUtil.rollbackAbility` and the stack unfrozen, not the routine's recovery,
    which leaves a card cast from hand in the Stack zone (harness-epoch-70).
-   Every engine patch in `docs/harness/ENGINE-PATCHES.md` is re-diffed the same way, and its upstream
-   sha256 recorded again (`eval/test_engine_patches.py` fails until it is).
+   **Re-diff the engine patches** (`engine-patches/`, `docs/harness/ENGINE-PATCHES.md`). Before
+   `FORGE_COMMIT` moves, write the old pin's patched files aside:
+   `python3 eval/engine_patches.py apply --out /tmp/patched-old`. With `FORGE_COMMIT` on the new commit,
+   `python3 eval/engine_patches.py apply --out /tmp/patched-new` applies every patch whose context did not
+   move and stops naming the first that does not. For that one, write the new upstream file
+   (`git -C $FORGE_HOME show <new>:<path>`) to `/tmp/port/<path>`, carry over each `HARNESS PATCH` change
+   from `/tmp/patched-old/<path>`, run `python3 eval/engine_patches.py diff --from /tmp/port`, and apply
+   again. Record each file's new upstream sha256 in the table: `eval/test_engine_patches.py` fails until
+   every patch applies and every sha matches; `install.sh` and the acceptance `compile` stage fail while a
+   patch does not apply.
 4c. **Re-check the copier workaround.** `PlayerLookahead.UncopiedEffects` reaches the private
    `forge.game.StaticEffects.staticEffects` map by reflection, because `GameCopier` does not copy the
    Sideboard and throws on a sideboard card with a characteristic-defining ability.

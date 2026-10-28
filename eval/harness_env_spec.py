@@ -26,9 +26,10 @@ REQUIRED = {"format": str, "id": str, "task": str, "copy": list, "make_dirs": li
             "caps": dict, "done": dict, "submission": dict, "grader": dict}
 # Never released, whatever a spec says: the solution, the hidden truth the grader scores against, and the history
 # that records both (SWE-bench issue 465: agents read the fix from future commits).
-ALWAYS_WITHHELD = (".git/**", "forge-overlay/**", "docs/**", "eval/**")
+ALWAYS_WITHHELD = (".git/**", "forge-overlay/**", "engine-patches/**", "docs/**", "eval/**")
 # Of those, never released even file by file (the task statement and decklists come out of eval/ by name).
-NEVER_RELEASED = (".git/**", "forge-overlay/**", "docs/harness/controller-ownership.tsv", "eval/*_gaps.txt")
+NEVER_RELEASED = (".git/**", "forge-overlay/**", "engine-patches/**", "docs/harness/controller-ownership.tsv",
+                  "eval/*_gaps.txt")
 NETWORKS = ("none", "loopback")
 ON_CAP = ("grade-last-checkpoint",)
 

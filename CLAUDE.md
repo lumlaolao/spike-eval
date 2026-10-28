@@ -22,8 +22,9 @@ is not a score; `.claude/rules/eval.md`, "the 88% lesson"):
 
 **`forge-overlay/` is the source of truth.** Never edit the Forge checkout (`/root/forge` here; `$FORGE_HOME`): it is
 overwritten. Edit the overlay, `FORGE_HOME=/root/forge bash install.sh`, build, run acceptance. The checkout is pinned
-(`FORGE_COMMIT`); results compare only within one engine version. Engine patches go only through the overlay, marked
-`HARNESS PATCH` and listed in `docs/harness/ENGINE-PATCHES.md`.
+(`FORGE_COMMIT`); results compare only within one engine version. Engine patches are diffs in `engine-patches/` (never a
+whole Forge file in the repository; `install.sh` applies them), marked `HARNESS PATCH` and listed in
+`docs/harness/ENGINE-PATCHES.md`.
 
 ## Owner rules (non-negotiable)
 

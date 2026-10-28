@@ -1,0 +1,39 @@
+Modified from Forge (https://github.com/Card-Forge/forge), GPL-3.0-or-later; changes marked HARNESS PATCH;
+see docs/harness/ENGINE-PATCHES.md. Changes dated 2026-10-18 to 2026-10-18.
+Upstream file: forge-ai/src/main/java/forge/ai/simulation/GameCopier.java at FORGE_COMMIT. Made by: python3 eval/engine_patches.py diff
+
+--- a/forge-ai/src/main/java/forge/ai/simulation/GameCopier.java
++++ b/forge-ai/src/main/java/forge/ai/simulation/GameCopier.java
+@@ -148,6 +148,11 @@
+                         if (o instanceof Card && ((Card)o).getZone() == null) {
+                            continue;
+                         }
++                        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): likewise a remembered card that has a zone but
++                        // no copied zone holds (Carnivorous Cultivator's prepared spell, Enroot): skip it, not throw.
++                        if (o instanceof Card && !origGame.EXPERIMENTAL_RESTORE_SNAPSHOT && !cardMap.containsKey(o)) {
++                            continue;
++                        }
+                         c.addRemembered(find((GameObject) o));
+                     } else {
+                         System.err.println(c + " Remembered: " + o + "/" + o.getClass());
+@@ -492,6 +497,20 @@
+         public GameObject map(GameObject o) {
+             return find(o);
+         }
++
++        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a static effect's affected card that no copied zone holds
++        // (the prepared spell above) is left out of the copy's effect instead of throwing in find().
++        @Override
++        public forge.game.card.CardCollection mapCollection(final forge.game.card.CardCollectionView cards) {
++            final forge.game.card.CardCollection collection = new forge.game.card.CardCollection();
++            for (final Card c : cards) {
++                if (!origGame.EXPERIMENTAL_RESTORE_SNAPSHOT && !cardMap.containsKey(c)) {
++                    continue;
++                }
++                collection.add(find(c));
++            }
++            return collection;
++        }
+     }
+ 
+     public <T extends GameObject> T find(T o) {
