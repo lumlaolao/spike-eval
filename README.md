@@ -83,7 +83,7 @@ git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent
 | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/` | instructions for agents working here |
 | `docs/STANDARDS.md` | the standards the review skills enforce |
 | `docs/harness/ARCHITECTURE.md` | every part of the harness and why it is built that way |
-| `docs/harness/SETTINGS.md` | every environment variable, the GUI and recording, operations |
+| `docs/harness/SETTINGS.md` | the variables that set a game's condition and models, the GUI and recording, operations |
 | `docs/harness/LESSONS.md` | the lessons the code is built on |
 | `docs/harness/WORK-PLAN.md`, `GAME-LOOP-LOG.md` | open work and what waits on the owner; what each real game found |
 | `docs/harness/ACCEPTANCE.md`, `GOLDEN-CHECKS.md`, `VERSIONS.md` | gate records, surface coverage, version stamps |

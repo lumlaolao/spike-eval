@@ -9,7 +9,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | Document | What |
 |---|---|
 | ARCHITECTURE.md | every part of the harness and why it is built that way (kept true by every PR) |
-| SETTINGS.md | every environment variable the launchers read, the GUI and its recorder, operations |
+| SETTINGS.md | the variables that set a game's condition and models, the GUI and its recorder, operations |
 | LESSONS.md | the lessons the code is built on, each an invariant the review skills check |
 | WORK-PLAN.md | open work |
 | BENCHMARK-V2.md | the proposed benchmark v2 (measured tiers, the seat's puzzle contract, the protocol), awaiting the owner; its phase 2 and phase 1's difficulty fields are built |
