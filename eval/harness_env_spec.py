@@ -86,12 +86,16 @@ def repo_files(repo):
 
 
 def expand_copy(spec, repo, files=None):
-    """[(source, destination)] for every file a copy entry releases; a destination ending in `/` keeps the name."""
+    """[(source, destination)] for every file a copy entry releases; a destination ending in `/` keeps the name.
+    An entry naming one file with no wildcard takes it even when git ignores it (the downloaded Comprehensive Rules
+    text, eval/fetch_comp_rules.py); a wildcard matches only the files repo_files lists."""
     files = repo_files(repo) if files is None else files
     out = []
     for c in spec.get("copy", []):
         excl = c.get("exclude", [])
         hits = [f for f in files if matches(f, c["from"]) and not any(matches(f, e) for e in excl)]
+        if not hits and not any(ch in c["from"] for ch in "*?[") and os.path.isfile(os.path.join(repo, c["from"])):
+            hits = [c["from"]]
         for f in hits:
             out.append((f, c["to"] + os.path.basename(f) if c["to"].endswith("/") else c["to"]))
     return out

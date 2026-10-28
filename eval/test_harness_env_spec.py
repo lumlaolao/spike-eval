@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 
@@ -107,6 +108,21 @@ class ExpandCopyTest(unittest.TestCase):
         self.assertEqual(pairs["eval/decks/burn.txt"], "dev/decks/burn.txt")
         self.assertFalse(any("hook-" in src for src in pairs))
         self.assertEqual(pairs["eval/harness_env/TASK.md"], "TASK.md")
+
+    def test_a_copy_naming_one_ignored_file_takes_it_but_a_glob_does_not(self):
+        # The Comprehensive Rules text is downloaded and git-ignored (eval/fetch_comp_rules.py), and the spec names
+        # it by its path; run output under an ignored directory must never be swept in by a glob.
+        repo = tempfile.mkdtemp()
+        subprocess.run(["git", "init", "-q", repo], check=True)
+        for rel, text in ((".gitignore", "data/rules/rules.txt\nruns/\n"), ("data/rules/rules.txt", "rules\n"),
+                          ("runs/g1/game.jsonl", "{}\n"), ("data/rules/README.md", "readme\n")):
+            os.makedirs(os.path.dirname(os.path.join(repo, rel)), exist_ok=True)
+            with open(os.path.join(repo, rel), "w") as f:
+                f.write(text)
+        spec = {"copy": [{"from": "data/rules/rules.txt", "to": "spec/rules.txt"},
+                         {"from": "runs/**", "to": "out/"}, {"from": "data/rules/*", "to": "d/"}]}
+        self.assertEqual(sorted(hs.expand_copy(spec, repo)),
+                         [("data/rules/README.md", "d/README.md"), ("data/rules/rules.txt", "spec/rules.txt")])
 
 
 if __name__ == "__main__":

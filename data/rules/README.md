@@ -1,8 +1,10 @@
 # Comprehensive Rules text (the RULES tool's source)
 
 `MagicCompRules.txt` is the **exact official Wizards text** of the Magic: The Gathering
-Comprehensive Rules, vendored here so the harness can look rules up **offline** with no network and
-no per-query cost. It is read by `RulesTool` (overlay `forge.spike.RulesTool`), which serves the
+Comprehensive Rules. It is Wizards of the Coast's text, so this repository does not carry it:
+`python3 eval/fetch_comp_rules.py` downloads it here once and keeps it only if its sha256 is the one
+below (`setup.sh` and the acceptance preflight run it; the file is git-ignored). After that the harness
+looks rules up **offline**, with no network and no per-query cost. It is read by `RulesTool` (overlay `forge.spike.RulesTool`), which serves the
 `rules_lookup` native tool (the `RULES` text command on a backend without function calling) to a
 seat when `RULES_TOOL=1` and the lookup tools are on (`MEMORY_TOOLS=1`).
 
@@ -28,10 +30,10 @@ the effective date, the rule/glossary counts, and spot rules.
 
 ## Updating to a new CR
 
-1. Download the new official `.txt` from `magic.wizards.com/en/rules` (the `media.wizards.com`
+1. Find the new official `.txt` on `magic.wizards.com/en/rules` (the `media.wizards.com`
    `MagicCompRules <YYYYMMDD>.txt` file).
-2. Replace `MagicCompRules.txt`.
-3. Update the sha256/size/counts in this README **and** the pinned constants in
+2. Set its URL and sha256 in `eval/fetch_comp_rules.py` and run it.
+3. Update the sha256/size/counts in this README **and** the effective date and counts in
    `eval/test_rules_corpus.py` — deliberately, like re-pinning an acceptance canary.
 4. Re-run `bash eval/harness_acceptance.sh`.
 

@@ -157,6 +157,8 @@ if has_stage preflight; then
   if [ "$PIN" != "$CUR" ]; then fail preflight "Forge checkout $CUR is not the pinned engine $PIN (results would not be comparable)"; ok=0; fi
   for f in "$DECK_A_FILE" "$DECK_B_FILE" "$EXPECTED" "$LEDGER"; do [ -f "$f" ] || { fail preflight "missing $f"; ok=0; }; done
   command -v python3 >/dev/null || { fail preflight "python3 missing"; ok=0; }
+  # The rules text is Wizards' and not in the repository; the rules stage and the Java tests read it.
+  python3 "$REPO/eval/fetch_comp_rules.py" >/dev/null || { fail preflight "no Comprehensive Rules text (eval/fetch_comp_rules.py)"; ok=0; }
   if [ "$ok" = 1 ]; then
     JV="$("$JAVA" -version 2>&1 | head -1)"
     pass preflight "engine $CUR, $JV, decks + ledger + expectations present, no live JVMs"

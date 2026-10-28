@@ -1,7 +1,8 @@
-"""Provenance + integrity guard for the vendored Comprehensive Rules text.
+"""Provenance + integrity guard for the downloaded Comprehensive Rules text.
 
 Runs as part of the acceptance `pytests` stage (unittest discovery over eval/). The corpus is the
-exact official Wizards .txt at data/rules/MagicCompRules.txt; it is read directly by the Java
+exact official Wizards .txt at data/rules/MagicCompRules.txt, which the repository does not carry:
+eval/fetch_comp_rules.py downloads it (setup.sh and the acceptance preflight run it). It is read directly by the Java
 RulesTool (no derived index), so this file is the only gate that the text is the one we pinned.
 
 A changed sha256 / effective date / counts is a PROVENANCE EVENT, not a test to relax: it means a
@@ -14,13 +15,15 @@ import os
 import re
 import unittest
 
+import fetch_comp_rules
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(_HERE, os.pardir, "data", "rules", "MagicCompRules.txt")
 README = os.path.join(_HERE, os.pardir, "data", "rules", "README.md")
 
 # --- pinned provenance (see data/rules/README.md) -------------------------------------------
-SHA256 = "8d860e451f20f38865b725b42d82feb714c725373dd8f3b32b8652b3eeb070ca"
-SOURCE_URL = "https://media.wizards.com/2026/downloads/MagicCompRules%2020260925.txt"
+SHA256 = fetch_comp_rules.SHA256
+SOURCE_URL = fetch_comp_rules.SOURCE_URL
 EFFECTIVE = "September 25, 2026"
 RULE_COUNT = 3165
 MIN_GLOSSARY = 500
@@ -46,7 +49,8 @@ def _rules(lines):
 class RulesCorpus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.exists(CORPUS), "missing rules corpus: %s" % CORPUS
+        if not os.path.exists(CORPUS):
+            raise unittest.SkipTest("no rules text at %s: run python3 eval/fetch_comp_rules.py" % CORPUS)
         cls.text = _text()
         cls.lines = cls.text.split("\n")
 
