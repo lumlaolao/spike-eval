@@ -1454,7 +1454,7 @@ def run_block(args):
     args.answer_tool = answer_tool_requested(args)
     # One tier is the default (owner, 2026-10-15: no harness shortcuts); --two-tier is the measured opt-out.
     if args.one_tier and args.two_tier:
-        ap.error("--one-tier and --two-tier contradict each other")
+        raise SystemExit("run_batch: --one-tier and --two-tier contradict each other")
     args.one_tier = not args.two_tier
     if args.answer_tool_strict and not args.answer_tool:
         _refuse("--answer-tool-strict needs the answer tool (an openrouter: LLM seat, without --text-answers).")

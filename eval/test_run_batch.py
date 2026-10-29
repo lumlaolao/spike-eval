@@ -326,6 +326,15 @@ class TestUnpinnedSeat(unittest.TestCase):
         self.assertIn("--smart-b", p.stderr)
         self.assertNotIn("[out]", p.stdout)
 
+    def test_one_tier_and_two_tier_together_are_refused_by_name(self):
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--deck", "/tmp/deck.txt", "--controller-a", "ai", "--controller-b", "ai",
+                            "--one-tier", "--two-tier", "--forge-home", "/nonexistent"],
+                           capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--one-tier and --two-tier contradict each other", p.stderr)
+        self.assertNotIn("Traceback", p.stderr)
+
 
 class TestOneTier(unittest.TestCase):
     """ONE_TIER (every decision on the smart bridge) changes how hard the model may think per
