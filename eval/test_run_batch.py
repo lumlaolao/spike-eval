@@ -331,9 +331,8 @@ class TestUnpinnedSeat(unittest.TestCase):
                             "--deck", "/tmp/deck.txt", "--controller-a", "ai", "--controller-b", "ai",
                             "--one-tier", "--two-tier", "--forge-home", "/nonexistent"],
                            capture_output=True, text=True)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("--one-tier and --two-tier contradict each other", p.stderr)
-        self.assertNotIn("Traceback", p.stderr)
+        self.assertEqual(p.returncode, 1)
+        self.assertEqual(p.stderr.strip(), "run_batch: --one-tier and --two-tier contradict each other")
 
 
 class TestOneTier(unittest.TestCase):
