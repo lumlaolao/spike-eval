@@ -138,7 +138,7 @@ most log questions).
   `test_games_under_two_caps_are_never_pooled`, `test_games_under_two_call_deadlines_are_never_pooled_or_paired`
   and `test_games_under_two_token_caps_are_never_pooled_and_a_pair_says_so`, and
   `eval/tests/test_puzzle_solve.py`'s `GameCapTest`.
-- **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
+- **Python**: standard library only, Python 3.10 (3.9 is past its end of life and gone from CI runners), a module docstring that says what it measures and
   what it cannot. **Shell**: bash 3.2 (macOS); inside a heredoc in `$( )`, apostrophes and
   backticks must pair up as bash reads them (prefer none) — bash 3.2 scans for the closing paren
   before parsing the heredoc, so an unpaired one swallows the rest of the script (issue #219).
