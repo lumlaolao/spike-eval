@@ -8,6 +8,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import evalpath  # noqa: E402  (every eval script folder on sys.path)
 
 TESTS = evalpath.EVAL / "tests"
+# The list only shrinks: lower this in the PR that takes a name off it, never raise it.
+MAX_UNTESTED = 6
 UNTESTED = {ln.strip() for ln in (evalpath.EVAL / "UNTESTED.txt").read_text().splitlines()
             if ln.strip() and not ln.startswith("#")}
 
@@ -23,6 +25,9 @@ class UntestedListTest(unittest.TestCase):
         missing = [str(p.relative_to(evalpath.EVAL)) for p in scripts()
                    if not (TESTS / ("test_" + p.name)).is_file() and p.name not in UNTESTED]
         self.assertEqual(missing, [], "add eval/tests/test_<name>.py; the list never grows")
+
+    def test_the_list_never_grows(self):
+        self.assertLessEqual(len(UNTESTED), MAX_UNTESTED)
 
     def test_the_list_names_only_scripts_that_exist_and_lack_a_test(self):
         names = {p.name for p in scripts()}
