@@ -1,0 +1,9 @@
+# Keeps the workflow's pinned actions current: a weekly PR moves each SHA and its tag comment together
+# (docs/STANDARDS.md section 3, the .github/workflows/ row). Such a PR goes through the gate like any other.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
