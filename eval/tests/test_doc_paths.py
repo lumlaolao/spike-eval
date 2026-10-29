@@ -49,9 +49,8 @@ def named_paths():
             if line.lstrip().startswith("```"):
                 fenced = not fenced
                 continue
-            for p in words(line, fenced):
-                if p.startswith(TOP) and not PLACEHOLDER.search(p):
-                    yield doc, n, p.rstrip("/")
+            for p in paths_in(line, fenced):
+                yield doc, n, p.rstrip("/")
 
 
 def paths_in(text, fenced=False):

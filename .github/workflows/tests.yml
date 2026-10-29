@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: setup-python serves 3.10 there; the newest image dropped old Pythons
     timeout-minutes: 20
     strategy:
       fail-fast: false

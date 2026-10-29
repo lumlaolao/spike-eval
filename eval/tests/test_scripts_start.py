@@ -41,7 +41,7 @@ def outside_repo(name):
     if name in sys.builtin_module_names:
         return True
     spec = importlib.util.find_spec(name)
-    return spec is not None and not (spec.origin or "").startswith(str(REPO))
+    return spec is not None and not (spec.origin or "").startswith(str(REPO) + os.sep)
 
 
 def has_command_line(path):

@@ -168,11 +168,6 @@ class EnginePatchesTest(unittest.TestCase):
         self.assertEqual(sorted(set(listed)), [],
                          "whole Forge files in forge-overlay/: carry each as a diff in %s/" % ep.PATCH_DIR)
 
-
-if __name__ == "__main__":
-    unittest.main()
-
-
 class UnreadableCheckoutTest(unittest.TestCase):
     """A default checkout the user cannot read (/root/forge for anyone but root, as on a CI runner) is absent, not a
     crash: Path.exists and Path.is_dir raise PermissionError there. Each of the three lookups is checked."""
@@ -191,3 +186,8 @@ class UnreadableCheckoutTest(unittest.TestCase):
             self.assertEqual(puzzle_format.forge_home(), Path.home() / "code/forge")
             with self.assertRaises(SystemExit):
                 deck_legality.forge_home()
+
+
+if __name__ == "__main__":
+    unittest.main()
+
