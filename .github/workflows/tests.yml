@@ -1,0 +1,24 @@
+# The Python suite on every pull request and every push to main. It needs no Forge build and no API key,
+# so it sends nothing anywhere; the tests that need a Forge checkout or the rules text skip. The full gate
+# (Java, canaries, fake-model games) is acceptance, run before every merge (docs/STANDARDS.md section 1).
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: unit tests
+        run: python3 -m unittest discover -s eval/tests -p 'test_*.py'
