@@ -11,7 +11,7 @@ import java.util.Set;
 import forge.spike.PuzzleArms.Step;
 
 /**
- * Proves a puzzle is solvable against every opponent response (eval/BENCHMARK-V1.md, phase 2).
+ * Proves a puzzle is solvable against every opponent response (docs/eval/BENCHMARK-V1.md, phase 2).
  *
  * <p>A puzzle rollout with both seats on the {@code search} arm is a deterministic function of the engine
  * seed and the line of choices both seats make ({@link PuzzleArms.Line}). This class sees only that

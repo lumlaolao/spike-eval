@@ -64,13 +64,13 @@ Nothing is written to the archive: a lookup is stateless reference data, not an 
   (the CR date). The acceptance `faithful` stage also asserts that **no prompt advertises the rules
   grammar without `RULES_TOOL=1`** — the default-off promise is a gate, not a comment.
 - A new CR text is a provenance event (like an engine or context-profile bump): update the pins in
-  `eval/test_rules_corpus.py` and `data/rules/README.md` deliberately.
+  `eval/tests/test_rules_corpus.py` and `data/rules/README.md` deliberately.
 
 ## How it is gated
 
 - `RulesToolTest` (Java): parser + command semantics on an in-memory fixture; the real corpus's
   shape and spot rules when the file resolves (`-Dharness.rules.file=…`, which the acceptance sets).
-- `eval/test_rules_corpus.py` (acceptance `pytests`): sha256, effective date, rule/glossary counts,
+- `eval/tests/test_rules_corpus.py` (acceptance `pytests`): sha256, effective date, rule/glossary counts,
   spot rules, README provenance.
 - Acceptance stage `rules`: a loopback game with `RULES_TOOL=1` where the fake model performs a real
   `RULES SEARCH` — proves the end-to-end path (transport → controller → `RulesTool` → audit row),

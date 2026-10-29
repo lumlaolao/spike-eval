@@ -309,7 +309,7 @@ public final class LlmSpikePuzzle {
         return sha256(String.join("\n", kept));
     }
 
-    /** The sha256 of the .pzl file's bytes, as eval/puzzle_format.py freezes it (sha256_file). It hashed the text
+    /** The sha256 of the .pzl file's bytes, as eval/puzzles/puzzle_format.py freezes it (sha256_file). It hashed the text
      *  Forge's reader returns, which differs (line ends), so puzzle_score.py matched no result to its puzzle. */
     static String fileSha256(String path) {
         try {
@@ -482,7 +482,7 @@ public final class LlmSpikePuzzle {
                 extra.put("search_drift", "the main line did not replay to the same solve");
             }
         }
-        // One solution (eval/BENCHMARK-V1.md): a rules puzzle is searched for a second one by default.
+        // One solution (docs/eval/BENCHMARK-V1.md): a rules puzzle is searched for a second one by default.
         // A written line has no solver choice on the search line to vary: its uniqueness is not searched here.
         int uniqueBudget = written ? 0 : intOr(System.getenv().getOrDefault("PZL_UNIQUE_BUDGET",
                 sections.get("acceptance") != null ? String.valueOf(budget) : "0"), 0);
@@ -790,11 +790,11 @@ public final class LlmSpikePuzzle {
         extra.put("tainted_by_deckout", tainted);
         putAcceptance(extra, pl);
         extra.put("taint_side", tainted ? ("Milled".equals(solverLoss) ? "solver" : "opponent") : "");
-        // Puzzle-suite fields (eval/PUZZLES.md), additive: which rollout, which exact position, a
+        // Puzzle-suite fields (docs/eval/PUZZLES.md), additive: which rollout, which exact position, a
         // fingerprint of what happened (the verifier compares it), and the line when it is wanted.
         extra.put("rollout", rollout);
         extra.put("pzl_sha256", pzlSha);
-        // Which frozen suite version this attempt was run for (eval/puzzle_score.py refuses to pool versions).
+        // Which frozen suite version this attempt was run for (eval/puzzles/puzzle_score.py refuses to pool versions).
         String suiteSha = System.getenv("PZL_SUITE_SHA256");
         if (suiteSha != null && !suiteSha.trim().isEmpty()) extra.put("suite_sha256", suiteSha.trim());
         extra.put("log_sha256", logFingerprint(logLines));

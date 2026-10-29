@@ -44,8 +44,8 @@ Hasbro.
 ## Other sources
 
 - **Scryfall** ([scryfall.com](https://scryfall.com)): card data and images fetched at run time by the demo viewer
-  (`eval/demo_cards.py`), under Scryfall's API terms. Not affiliated with this project.
-- **Rules questions** in `puzzles/modern/` are transcribed or lightly paraphrased from public rulings and judge
+  (`eval/demo/demo_cards.py`), under Scryfall's API terms. Not affiliated with this project.
+- **Rules questions** in `eval/puzzles/modern/` are transcribed or lightly paraphrased from public rulings and judge
   answers: RulesGuru, Cranial Insertion, Ask a Magic Judge, Gatherer rulings (via Scryfall), Wizards release notes,
   Judge Foundry and EDHREC. Every item records its `source_name` and `source_url`; the credit and the copyright in
   each answer belong to those sources and their authors.

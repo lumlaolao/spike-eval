@@ -22,6 +22,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import demo_events  # noqa: E402
 
 MODEL_TIERS = ("smart", "fast")

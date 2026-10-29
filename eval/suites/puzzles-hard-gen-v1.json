@@ -17,7 +17,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_0026d851c85f.pzl",
@@ -99,7 +99,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_0154afc1249d.pzl",
@@ -181,7 +181,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_08bba3eb8d53.pzl",
@@ -263,7 +263,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_0a395c810ae5.pzl",
@@ -345,7 +345,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_0a98abe3035b.pzl",
@@ -427,7 +427,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_0dbe59d4513a.pzl",
@@ -509,7 +509,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_1ae4ca88e330.pzl",
@@ -591,7 +591,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_1b6db38a3d1f.pzl",
@@ -673,7 +673,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_2d15c4dd0e32.pzl",
@@ -755,7 +755,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_343f1afaa5c8.pzl",
@@ -837,7 +837,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_3c09484e5e54.pzl",
@@ -919,7 +919,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_40008bbe48e5.pzl",
@@ -1001,7 +1001,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_48147ac546b9.pzl",
@@ -1083,7 +1083,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_48e52d5b9b65.pzl",
@@ -1165,7 +1165,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_4cd1e45bf91f.pzl",
@@ -1247,7 +1247,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_4d7006f06dae.pzl",
@@ -1329,7 +1329,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_5118d9f09961.pzl",
@@ -1411,7 +1411,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_5594934e5f40.pzl",
@@ -1493,7 +1493,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_5621af464bdc.pzl",
@@ -1575,7 +1575,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_5ae5e59de953.pzl",
@@ -1657,7 +1657,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_5cde9e55ad58.pzl",
@@ -1739,7 +1739,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_60e3d27b096f.pzl",
@@ -1821,7 +1821,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_65bf2665c2a8.pzl",
@@ -1903,7 +1903,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_668e60a7c453.pzl",
@@ -1985,7 +1985,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_6bdc22d9268d.pzl",
@@ -2067,7 +2067,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_7e1014a37b38.pzl",
@@ -2149,7 +2149,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_7f811a9a69c1.pzl",
@@ -2231,7 +2231,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_8ae59df7f185.pzl",
@@ -2313,7 +2313,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_8cce8ef4f00d.pzl",
@@ -2395,7 +2395,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_8d7fdb303cdd.pzl",
@@ -2477,7 +2477,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_921d462b0c28.pzl",
@@ -2559,7 +2559,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_9fbb2ed507eb.pzl",
@@ -2641,7 +2641,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_a040b7cea977.pzl",
@@ -2723,7 +2723,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_a121e781f0a0.pzl",
@@ -2805,7 +2805,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_a2c905e28340.pzl",
@@ -2887,7 +2887,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_bc374c2a3f6c.pzl",
@@ -2969,7 +2969,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_c1a4af99cb7b.pzl",
@@ -3051,7 +3051,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_ceb78ee72566.pzl",
@@ -3133,7 +3133,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_d0a91ca9c2ca.pzl",
@@ -3215,7 +3215,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_d4b36b5ebbae.pzl",
@@ -3297,7 +3297,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_d6c5e489d223.pzl",
@@ -3379,7 +3379,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_e2f0b9a5ea0c.pzl",
@@ -3461,7 +3461,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_e79225c74ed1.pzl",
@@ -3543,7 +3543,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_eb1d802a48a5.pzl",
@@ -3625,7 +3625,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_f2d38b27577b.pzl",
@@ -3707,7 +3707,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "drain"
       },
       "pzl": "eval/puzzles/hard/gen/drain_fcfadc5016b2.pzl",
@@ -3789,7 +3789,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "elf"
       },
       "pzl": "eval/puzzles/hard/gen/elf_46586f93fdc5.pzl",
@@ -3871,7 +3871,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "elf"
       },
       "pzl": "eval/puzzles/hard/gen/elf_70a8476ac2eb.pzl",
@@ -3953,7 +3953,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "elf"
       },
       "pzl": "eval/puzzles/hard/gen/elf_a3fdaea3a004.pzl",
@@ -4035,7 +4035,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "elf"
       },
       "pzl": "eval/puzzles/hard/gen/elf_ae655bda1a36.pzl",
@@ -4117,7 +4117,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "elf"
       },
       "pzl": "eval/puzzles/hard/gen/elf_bea458ed3a9b.pzl",
@@ -4199,7 +4199,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "elf"
       },
       "pzl": "eval/puzzles/hard/gen/elf_f44179c85611.pzl",
@@ -4281,7 +4281,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "fling"
       },
       "pzl": "eval/puzzles/hard/gen/fling_05dc5d5cc564.pzl",
@@ -4363,7 +4363,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "fling"
       },
       "pzl": "eval/puzzles/hard/gen/fling_0980c38be7ef.pzl",
@@ -4445,7 +4445,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "fling"
       },
       "pzl": "eval/puzzles/hard/gen/fling_0a55bba7204c.pzl",
@@ -4527,7 +4527,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "fling"
       },
       "pzl": "eval/puzzles/hard/gen/fling_0deb31682620.pzl",
@@ -4609,7 +4609,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "fling"
       },
       "pzl": "eval/puzzles/hard/gen/fling_21bfae073683.pzl",
@@ -4691,7 +4691,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_0134ececa133.pzl",
@@ -4773,7 +4773,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_1178180ff976.pzl",
@@ -4855,7 +4855,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_1734c0d067aa.pzl",
@@ -4937,7 +4937,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_20a1a3432497.pzl",
@@ -5019,7 +5019,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_2673c878fd08.pzl",
@@ -5101,7 +5101,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_2a13ad0c26d5.pzl",
@@ -5183,7 +5183,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_50be144310f4.pzl",
@@ -5265,7 +5265,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_5386024018ed.pzl",
@@ -5347,7 +5347,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_54c73a107e58.pzl",
@@ -5429,7 +5429,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_72369f4636a8.pzl",
@@ -5511,7 +5511,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_8cc9869168c5.pzl",
@@ -5593,7 +5593,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_95bc35b7ce6a.pzl",
@@ -5675,7 +5675,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_9719307e767b.pzl",
@@ -5757,7 +5757,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_a548229267bf.pzl",
@@ -5839,7 +5839,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_a910d3b44aeb.pzl",
@@ -5921,7 +5921,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_c95252b9c92b.pzl",
@@ -6003,7 +6003,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_cf858b6bee11.pzl",
@@ -6085,7 +6085,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_d623dc892913.pzl",
@@ -6167,7 +6167,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_dca185853752.pzl",
@@ -6249,7 +6249,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_e1c35548a916.pzl",
@@ -6331,7 +6331,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_e8c0c30d8064.pzl",
@@ -6413,7 +6413,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_e8f7009bd660.pzl",
@@ -6495,7 +6495,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_f01b45d21b92.pzl",
@@ -6577,7 +6577,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "ping"
       },
       "pzl": "eval/puzzles/hard/gen/ping_fb8e113831a8.pzl",
@@ -6659,7 +6659,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_0342cb2c96a9.pzl",
@@ -6741,7 +6741,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_05517e8eccf0.pzl",
@@ -6823,7 +6823,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_06dad20af5b3.pzl",
@@ -6905,7 +6905,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_1267400f74df.pzl",
@@ -6987,7 +6987,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_192a254acab2.pzl",
@@ -7069,7 +7069,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_30feb75fc23b.pzl",
@@ -7151,7 +7151,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_316806a3998c.pzl",
@@ -7233,7 +7233,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_3507112343d5.pzl",
@@ -7315,7 +7315,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_3d44093cf0dc.pzl",
@@ -7397,7 +7397,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_40f4cca8a81d.pzl",
@@ -7479,7 +7479,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_421b633fba4e.pzl",
@@ -7561,7 +7561,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_44a82db4a7e1.pzl",
@@ -7643,7 +7643,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_483fcb3fd8a8.pzl",
@@ -7725,7 +7725,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_4916b9e3acef.pzl",
@@ -7807,7 +7807,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_578f7dac0fb6.pzl",
@@ -7889,7 +7889,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_5c731f69fe82.pzl",
@@ -7971,7 +7971,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_94dc5cc5b5ed.pzl",
@@ -8053,7 +8053,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_a0034830b31c.pzl",
@@ -8135,7 +8135,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_a80fa0f9f24d.pzl",
@@ -8217,7 +8217,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_ac8a4c0b2232.pzl",
@@ -8299,7 +8299,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_ae5ce2773a02.pzl",
@@ -8381,7 +8381,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_c92133204c97.pzl",
@@ -8463,7 +8463,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_cd567952bd33.pzl",
@@ -8545,7 +8545,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_d3fc74a973b7.pzl",
@@ -8627,7 +8627,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_de0284ae89a7.pzl",
@@ -8709,7 +8709,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_f3bc218b2fb5.pzl",
@@ -8791,7 +8791,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_fa5c1238db93.pzl",
@@ -8873,7 +8873,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_fcb4d4df4a13.pzl",
@@ -8955,7 +8955,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "splice"
       },
       "pzl": "eval/puzzles/hard/gen/splice_fe5118b3a05b.pzl",
@@ -9037,7 +9037,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "storm"
       },
       "pzl": "eval/puzzles/hard/gen/storm_09ea47952aaf.pzl",
@@ -9119,7 +9119,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "storm"
       },
       "pzl": "eval/puzzles/hard/gen/storm_2ccfe167c753.pzl",
@@ -9201,7 +9201,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "storm"
       },
       "pzl": "eval/puzzles/hard/gen/storm_2ef0ca14337b.pzl",
@@ -9283,7 +9283,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "storm"
       },
       "pzl": "eval/puzzles/hard/gen/storm_5bf9f8c3b603.pzl",
@@ -9365,7 +9365,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "storm"
       },
       "pzl": "eval/puzzles/hard/gen/storm_88f9152b3505.pzl",
@@ -9447,7 +9447,7 @@
       },
       "source": {
         "kind": "authored",
-        "generator": "eval/puzzle_gen.py",
+        "generator": "eval/puzzles/puzzle_gen.py",
         "family": "storm"
       },
       "pzl": "eval/puzzles/hard/gen/storm_f84326b139f5.pzl",

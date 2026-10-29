@@ -42,7 +42,7 @@ public final class LlmSpikeHeadless {
     }
 
     private static void run() throws Exception {
-        // Milestone D (eval/EVAL-DESIGN.md §3.1): FORK_MODE=check|enumerate|rollout delegates to the
+        // Milestone D (docs/eval/EVAL-DESIGN.md §3.1): FORK_MODE=check|enumerate|rollout delegates to the
         // replay-and-rollout harness instead of a normal match. Absent (the default), behavior below
         // is byte-identical to before this branch existed.
         String forkMode = System.getenv("FORK_MODE");

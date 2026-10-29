@@ -26,7 +26,7 @@ Policies (--policy):
   garbage
          answers every request with text that holds no answer line in any format the harness asks
          for. With `empty`, the harness-gaming check: a seat that never answers must not score
-         above the floor seat (eval/BENCHMARK-RESEARCH.md, point 10).
+         above the floor seat (docs/eval/BENCHMARK-RESEARCH.md, point 10).
 
 Fault injection:
   --stall-call N --stall-ms M   request number N (1-based, across all calls) is answered only

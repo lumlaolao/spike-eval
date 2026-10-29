@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "puzzle-position.v1",
-  "title": "Engine-verified golden-suite position (one jsonl line) — see eval/EVAL-DESIGN.md §3 / §10.1",
+  "title": "Engine-verified golden-suite position (one jsonl line) — see docs/eval/EVAL-DESIGN.md §3 / §10.1",
   "type": "object",
   "required": ["schema", "id", "category", "source", "prompt", "options", "n_options", "split"],
   "properties": {
@@ -51,7 +51,7 @@
     "split": {"enum": ["open", "holdout"]},
     "seed_block": {"type": "string", "description": "name of the reserved eval seed block the source seed falls in (eval/seed_policy.py), when it falls in one; absent otherwise"},
     "excluded_from_sft_overlap": {"type": "boolean", "description": "true iff source game contributed no row to any SFT dataset (required true for split=holdout)"},
-    "status": {"enum": ["candidate", "verified"], "description": "absent = verified, for back-compat with pre-status suite files. 'candidate' = mined by eval/mine_puzzles.py, text-heuristic hypothesis, not yet engine-verified: no answer_key."},
+    "status": {"enum": ["candidate", "verified"], "description": "absent = verified, for back-compat with pre-status suite files. 'candidate' = mined by eval/puzzles/mine_puzzles.py, text-heuristic hypothesis, not yet engine-verified: no answer_key."},
     "replayable": {"type": "boolean", "description": "true iff both controllers of the source game are deterministic (floor/random/ai/ai-log), i.e. the position can be re-reached by the fork harness. false for llm-piloted games (candidates only, for heuristic tuning)."},
     "category_evidence": {"type": "string", "description": "short human-readable summary of what the mining heuristic matched, e.g. 'own_power=7 opp_life=6' (mine_puzzles.py only)"}
   },

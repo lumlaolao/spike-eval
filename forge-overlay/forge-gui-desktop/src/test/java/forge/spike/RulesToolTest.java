@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
  * The RULES tool: an index over the public Comprehensive Rules. Two layers of coverage —
  * a small in-memory fixture that pins PARSER + COMMAND semantics deterministically, and (when the
  * real CR file resolves) the official text's shape and spot rules. Corpus provenance (sha, counts)
- * is gated separately by eval/test_rules_corpus.py, which runs from the repo root.
+ * is gated separately by eval/tests/test_rules_corpus.py, which runs from the repo root.
  */
 public class RulesToolTest {
     private static final String NB = "\u00a0"; // the CR's blank-line filler

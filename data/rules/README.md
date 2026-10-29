@@ -25,7 +25,7 @@ MEMORY loop's other channels are seat-private; this one is not a leak).
 
 `RulesTool` parses this file **directly** at load. There is no generated index to drift out of sync,
 so the file above is the single source of truth. Its contents are guarded by
-`eval/test_rules_corpus.py` (acceptance `pytests` stage), which re-parses it and checks the sha256,
+`eval/tests/test_rules_corpus.py` (acceptance `pytests` stage), which re-parses it and checks the sha256,
 the effective date, the rule/glossary counts, and spot rules.
 
 ## Updating to a new CR
@@ -34,7 +34,7 @@ the effective date, the rule/glossary counts, and spot rules.
    `MagicCompRules <YYYYMMDD>.txt` file).
 2. Set its URL and sha256 in `eval/fetch_comp_rules.py` and run it.
 3. Update the sha256/size/counts in this README **and** the effective date and counts in
-   `eval/test_rules_corpus.py` — deliberately, like re-pinning an acceptance canary.
+   `eval/tests/test_rules_corpus.py` — deliberately, like re-pinning an acceptance canary.
 4. Re-run `bash eval/harness_acceptance.sh`.
 
 A changed sha is a **provenance event**: runs made with the old text are not comparable to runs made

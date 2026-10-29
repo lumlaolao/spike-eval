@@ -1,6 +1,6 @@
 # Handoff: the puzzle work (updated 2026-10-20)
 
-For a fresh session. Read `CLAUDE.md`, then `eval/PUZZLES.md` (the prover, acceptance, uniqueness) and
+For a fresh session. Read `CLAUDE.md`, then `docs/eval/PUZZLES.md` (the prover, acceptance, uniqueness) and
 `eval/puzzles/rules-pilot/REPORT.md` (batches 1 to 9), then this file.
 
 **Where it stands:** 526 converted rules puzzles, past the owner's 500 goal, landed with harness-epoch-66 (PR #270).
@@ -14,7 +14,7 @@ background running Luna games that we can find errors in the harness." Three tra
 
 1. **Rules backlog** (`eval/puzzles/rules/triage.jsonl`, 996 questions): turn each into an engine-checked puzzle
    (start state, acceptance, one proven solution, unique) or a manifest row saying why not.
-2. **Forge built-in puzzles** through the prover (`eval/puzzle_baselines.py prove`).
+2. **Forge built-in puzzles** through the prover (`eval/puzzles/puzzle_baselines.py prove`).
 3. **Luna games** one at a time with the `game-loop` skill, to find harness defects.
 
 Owner rules that bite here: game model GPT-6 Luna only (`openrouter:openai/gpt-6-luna`), never Opus; never set
@@ -87,7 +87,7 @@ GREP=PASSED bash scripts/puzzle-gate/gtest.sh -testclass forge.spike.PuzzleSearc
 ```
 
 The pinned build must be compiled from this checkout's overlay (its `overlay-sha.txt`): `run_one.py` refuses another
-unless `ALLOW_STALE_BUILD=1` (`eval/PUZZLES.md`).
+unless `ALLOW_STALE_BUILD=1` (`docs/eval/PUZZLES.md`).
 
 `gate10.sh` runs at most two JVMs and waits while `$SCRATCH/HOLD` exists (create it before
 `install.sh` or a rebuild, delete it after). Accept a puzzle only when the search arm is `proven` and `accepted`
@@ -95,7 +95,7 @@ and the pass arm is `rejected`; a pass that wins means the puzzle is trivial.
 
 ## Track 2: Forge built-in puzzles
 
-Last run: `python3 eval/puzzle_baselines.py prove --suite runs/puzzles/candidates.json --budget 200 -j 2` (368
+Last run: `python3 eval/puzzles/puzzle_baselines.py prove --suite runs/puzzles/candidates.json --budget 200 -j 2` (368
 candidates from `forge-candidates`, epoch 64, out `runs/puzzles/prove-all-e64-b200`; the run directory was not kept).
 Stopped on request at 25 of 368 (4 proven: MTGP_02, MTGP_06, MTGP_08,
 PC_020216; the rest not found at budget 200). To run it again, regenerate the candidates first. `prove` has no resume and

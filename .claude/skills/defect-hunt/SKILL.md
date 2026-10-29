@@ -47,7 +47,7 @@ Every hunter and fixer on one machine shares the Forge checkout (`FORGE_HOME`, d
   Code and outlives the tool's timeout. Never remove a lock you do not hold. A lock more than three
   hours old (`find "$L" -maxdepth 0 -mmin +180` prints it) with no `LlmSpikeHeadless` or `mvn`
   process running is reported to the owner, who removes it: breaking it yourself races other
-  waiters. The lock also keeps the Claude CLI lane at one game per machine (`eval/CONCURRENCY.md`
+  waiters. The lock also keeps the Claude CLI lane at one game per machine (`docs/eval/CONCURRENCY.md`
   section 7). Agents in separate cloud containers each have their own checkout, so the lock never
   waits there: parallel hunting means separate containers.
 

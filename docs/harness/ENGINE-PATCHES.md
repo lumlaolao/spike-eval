@@ -31,7 +31,7 @@ first date and moves the last date to today). A new patch: put the edited file a
 The rules:
 - only where the seat has no hook, or the engine is wrong; never to make a run pass;
 - the repository holds the diff, never the whole Forge file, and every change is marked `HARNESS PATCH`;
-- the table below records the sha256 of the upstream original; `eval/test_engine_patches.py` fails when the
+- the table below records the sha256 of the upstream original; `eval/tests/test_engine_patches.py` fails when the
   pinned checkout's original differs (a re-pin forces a re-diff), a patch does not apply to it, a hunk adds
   no marked line, a patch has no row or no notice, or `forge-overlay/` holds a whole Forge file;
 - each patch has a golden check, and the change goes through acceptance and the canaries like any other.

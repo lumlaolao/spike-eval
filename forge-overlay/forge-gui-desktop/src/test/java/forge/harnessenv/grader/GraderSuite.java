@@ -21,18 +21,18 @@ import forge.game.phase.PhaseType;
 import forge.harnessenv.SeatFactory;
 
 /**
- * Runs the hidden grader's instances on a list of seats and writes the report eval/harness_env_grade.py `table`
+ * Runs the hidden grader's instances on a list of seats and writes the report eval/harness_env/harness_env_grade.py `table`
  * reads (-Dharness.envgrade.report, default /tmp/env-grade.tsv). Seats: -Dharness.envgrade.seats=name=class,...
  * (each class a harness-env-abi/1 SeatFactory); the default list is the validation set: ours, the default bridge,
  * ours without its combat or cost hooks, a text-parsing toy and a toy that hands decisions to Forge's AI.
  * -Dharness.envgrade.only=<text> runs only the instances whose id contains it; -Dharness.envgrade.set=<file> grades a
- * generated set (eval/harness_env_generate.py) instead of the hand catalog.
+ * generated set (eval/harness_env/harness_env_generate.py) instead of the hand catalog.
  *
  * On the validation set it asserts what makes the grader a grader: ours beats the default bridge on every family
  * but play, each ablation loses its family, the text parser fails the no-parse check somewhere it was asked, and the
  * Forge-AI counter catches the AI delegator, including where its answers were the model's. A grader that cannot tell
  * these apart fails here. Named Suite, not Test: about fifteen minutes, so acceptance compiles it but runs it only
- * on demand (`eval/harness_env_grade.py instances`).
+ * on demand (`eval/harness_env/harness_env_grade.py instances`).
  */
 public class GraderSuite {
 
@@ -62,7 +62,7 @@ public class GraderSuite {
         Map<String, Map<String, int[]>> passes = new TreeMap<>();
         Map<String, int[]> flags = new TreeMap<>();   // seat -> {instances where no-parse failed while asked, instances with an AI count}
         File out = new File(System.getProperty("harness.envgrade.report", "/tmp/env-grade.tsv"));
-        // A generated set (eval/harness_env_generate.py) replaces the hand catalog; its unbuildable instances are named.
+        // A generated set (eval/harness_env/harness_env_generate.py) replaces the hand catalog; its unbuildable instances are named.
         String set = System.getProperty("harness.envgrade.set");
         List<Grader.Instance> instances = Instances.all();
         if (set != null) {
@@ -95,7 +95,7 @@ public class GraderSuite {
                 table.append(s.getKey()).append(' ').append(f.getKey()).append(' ').append(f.getValue()[0]).append('/').append(f.getValue()[1]).append('\n');
         System.out.println("[ENVGRADE] report=" + out + "\n" + table);
         if (only != null || set != null || !spec.equals(VALIDATION)) return;
-        Assert.assertTrue(counting, "the Forge-AI counter is not on the classpath (eval/harness_env_aicount.py)");
+        Assert.assertTrue(counting, "the Forge-AI counter is not on the classpath (eval/harness_env/harness_env_aicount.py)");
         Map<String, int[]> ours = passes.get("ours"), dflt = passes.get("default");
         for (Map.Entry<String, int[]> f : ours.entrySet()) {
             if (f.getKey().equals("play")) continue;   // the default bridge routes priority: it may score there

@@ -29,7 +29,7 @@ fails on a corpus it cannot read -- a meta.jsonl whose rows carry no `seed` key
 scans as clean under a naive reader, which is the exact shape of a gate that
 can't fail. Those are reported as UNREADABLE and fail the check.
 
-Stdlib only. Tests: python3 eval/test_seed_registry.py
+Stdlib only. Tests: python3 eval/tests/test_seed_registry.py
 """
 
 import argparse

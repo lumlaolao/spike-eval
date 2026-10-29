@@ -164,7 +164,7 @@ writeup as its doc comment. Summary (see the method's Javadoc for the complete v
    yet verified against `MyRandom`'s actual contract** — whether reseeding mid-stream needs to
    preserve already-consumed state for future draws, or whether a fresh `Random` is correct, needs
    checking before implementation, not assuming.
-4. **Replay-from-index, not mid-stack `GameCopier`.** Per `eval/EVAL-DESIGN.md` §3.1, v1 must
+4. **Replay-from-index, not mid-stack `GameCopier`.** Per `docs/eval/EVAL-DESIGN.md` §3.1, v1 must
    restrict rollout targets to **empty-stack decisions only** (play/attackers/blockers/mulligan —
    not targets/discard/sacrifice/modes/entity/zone-change, which can fire mid-stack). Each rollout
    re-plays the full deterministic prefix from turn 1 (cheap: floor/random games run in

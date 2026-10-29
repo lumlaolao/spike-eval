@@ -32,7 +32,7 @@ Then go through the standards section by section and, for each rule the change t
 whether it holds. The ones a script cannot see:
 
 - a new Java file or edit outside `forge-overlay/`; a Python file in `eval/` with a third-party
-  import or without `eval/test_<name>.py`;
+  import or without `eval/tests/test_<name>.py`;
 - a change to what the model sees without the version that covers it moving, or a moved version
   without the grep in `eval/harness_acceptance.sh` and the docs following;
 - a new opt-in flag that `run_batch.py` does not pin, record and refuse to mix;

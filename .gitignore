@@ -25,8 +25,8 @@ runs/
 
 # Puzzle harvest: raw fetched API dumps are regenerable (harvest.py); keep only the curated
 # corpus, the normalized inputs and the tool.
-puzzles/modern/raw/api/
-puzzles/modern/raw/items/rulesguru.jsonl
+eval/puzzles/modern/raw/api/
+eval/puzzles/modern/raw/items/rulesguru.jsonl
 
 # Claude Code: agent and skill definitions under .claude/ ARE tracked (docs/STANDARDS.md);
 # per-machine settings and worktrees are not.

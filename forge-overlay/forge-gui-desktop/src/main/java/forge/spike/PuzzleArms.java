@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * The zero-model policy arms of the puzzle axis (eval/PUZZLES.md), and the draw tape that makes a
+ * The zero-model policy arms of the puzzle axis (docs/eval/PUZZLES.md), and the draw tape that makes a
  * random rollout a replayable reference line.
  *
  * <p>Every arm here plugs into the one seam the random arm already uses: {@code PlayerControllerLLM.rnd}.

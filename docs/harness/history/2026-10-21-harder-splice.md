@@ -5,7 +5,7 @@ GPT-6 Luna solved 1 of 21 splice boards, and none of its 20 attempts on the ten 
 splice at 15 steps), missing by 3 to 8 life. This note records the splice defects fixed first, the bar for a
 "super-hard" board, and the boards kept (`eval/puzzles/hard/gen2/`). Nothing paid was run; no model was called.
 
-## Defects fixed first (`eval/puzzle_gen.py`)
+## Defects fixed first (`eval/puzzles/puzzle_gen.py`)
 
 1. **11 of 40 splice lines stopped before the win** (`solved=False unconsumed=12..19` in the gate's line stage).
    Replaying splice_2b37741c0e25 showed why: the script arm casts each card the moment its own cost is payable, so
@@ -45,7 +45,7 @@ Rite of Flame, Seething Song, Gitaxian Probe, Grapeshot; Thermo-Alchemist on mos
 Electromancer attacking on some. Fireblast and Lava Dart are left out: their sacrifice wants every Mountain tapped,
 which the search models by order only, not by floating mana, so a line that floats first could beat its maximum.
 
-`eval/test_puzzle_gen.py` re-derives every committed gen2 board from its own .pzl (life, steps, no mana left, the
+`eval/tests/test_puzzle_gen.py` re-derives every committed gen2 board from its own .pzl (life, steps, no mana left, the
 trap as stated).
 
 ## The gate (`scripts/puzzle-gate/gen_gate.py`, one board at a time)

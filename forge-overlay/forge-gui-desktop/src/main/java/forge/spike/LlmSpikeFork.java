@@ -31,7 +31,7 @@ import forge.model.FModel;
 import forge.util.MyRandom;
 
 /**
- * Milestone D — replay-and-rollout harness (eval/EVAL-DESIGN.md §3.1). Delegated to from
+ * Milestone D — replay-and-rollout harness (docs/eval/EVAL-DESIGN.md §3.1). Delegated to from
  * {@link LlmSpikeHeadless#main} when {@code FORK_MODE} is set; the launcher script
  * (run-llm-headless.sh) and its classpath are untouched.
  *
@@ -390,7 +390,7 @@ public final class LlmSpikeFork {
                     }
                 }
                 sb.append("],\"snapshot\":\"").append(LlmSpikeGui.jsonEscape(snapshot)).append('"');
-                // The position as a Forge puzzle [state] section (eval/PUZZLES.md), the body of a .pzl.
+                // The position as a Forge puzzle [state] section (docs/eval/PUZZLES.md), the body of a .pzl.
                 // Taken before the decision is applied.
                 appendPuzzleState(sb, pl);
                 sb.append('}');

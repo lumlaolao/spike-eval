@@ -4,7 +4,7 @@ The Modern, Standard and Pauper decks are real top-8 lists from MTGTop8 (fetched
 and Vintage ones 2026-10-16, from each format's latest MTGO Challenge 32), copied as MTGO
 exported them (main deck and sideboard). Two names were corrected to the engine's spelling, which keeps the
 accents MTGO drops: Troll of Khazad-dûm, Lórien Revealed. Each deck is checked against the pinned engine's
-format data by `eval/deck_legality.py` (and `eval/test_deck_legality.py`); `run_batch.py --format` refuses a
+format data by `eval/deck_legality.py` (and `eval/tests/test_deck_legality.py`); `run_batch.py --format` refuses a
 deck that is not legal. Each `.plan` names the archetype and the placement, nothing more: the seat gets the
 decklist and every card's rules text with it.
 

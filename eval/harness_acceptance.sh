@@ -23,7 +23,7 @@
 #              the model (the javatests JVM records each decision row's hooks), and every way the engine lists to
 #              play a card (AlternativeCost, OptionalCost) was played by a test; eval/surface_gaps.txt and
 #              eval/play_gaps.txt may only shrink
-#   pytests    python3 -m unittest discover -s eval; eval/test_script_suites.py runs the script-style files
+#   pytests    python3 -m unittest discover -s eval; eval/tests/test_script_suites.py runs the script-style files
 #              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and the
@@ -76,7 +76,7 @@ if [ ! -x "$JAVA_HOME/bin/javac" ] && command -v javac >/dev/null 2>&1; then
   JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
 fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
-# Exported: python children (eval/puzzle_baselines.py launches the JVM via os.environ["JAVA"]; #221).
+# Exported: python children (eval/puzzles/puzzle_baselines.py launches the JVM via os.environ["JAVA"]; #221).
 export JAVA_HOME JAVA
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
@@ -444,7 +444,7 @@ fi
 # ---------------------------------------------------------------- gaming
 # A seat whose model never answers (empty replies, then garbage) must not score above the floor seat
 # against the same opponent on the same seed: the harness's fallbacks must not play for it
-# (eval/BENCHMARK-RESEARCH.md, point 10). Also: no Forge-AI decisions and no harness-decided choice.
+# (docs/eval/BENCHMARK-RESEARCH.md, point 10). Also: no Forge-AI decisions and no harness-decided choice.
 if has_stage gaming; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail gaming "no compiled classes"; else
     say "gaming: floor seat vs Forge AI, then empty-reply and garbage-reply LLM seats vs Forge AI (seed 42)"
@@ -1082,11 +1082,11 @@ if has_stage lines; then
   if [ ! -f "$CLASSES/forge/spike/ScriptBridge.class" ]; then fail lines "no compiled classes"; else
     dir="$OUT/lines"; rm -rf "$dir"; mkdir -p "$dir"
     sed 's/^Mountain; Mountain$/Mountains; Mountain/' "$REPO/eval/puzzles/hard/h_1.pzl" > "$dir/h_1-typo.pzl"
-    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzles/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
         --forge "$FORGE" line --pzl eval/puzzles/hard/h_1.pzl --out-dir "$dir/played" ) >"$dir/played.log" 2>&1; GRC=$?
-    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzles/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
         --forge "$FORGE" line --pzl "$dir/h_1-typo.pzl" --out-dir "$dir/typo" ) >"$dir/typo.log" 2>&1; TRC=$?
-    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzles/puzzle_baselines.py --build "${ACC_BUILD:-$OUT}" \
         --forge "$FORGE" line --pzl eval/puzzles/hard/h_0.pzl --out-dir "$dir/h_0" ) >"$dir/h_0.log" 2>&1; HRC=$?
     # The model seat's result row carries the epoch puzzle_score.py refuses to pool across, and what the attempt spent
     # (pr-review of #282: nothing failed when either was dropped).
@@ -1136,11 +1136,11 @@ if has_stage scoring; then
     if [ -z "$PORT" ]; then fail scoring "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
       say "scoring: one open puzzle on the loopback model through puzzle_solve.py, scored as a pilot"
       ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" \
-          python3 eval/puzzle_solve.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --ids forge-PP20 \
+          python3 eval/puzzles/puzzle_solve.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --ids forge-PP20 \
           --k 1 --model openrouter:fake/harness-model --budget-usd 0.01 --out "$dir/puzzle" --build "${ACC_BUILD:-$OUT}" --forge "$FORGE" -j 1 ) \
           >"$dir/puzzle_solve.log" 2>&1; PRC=$?
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
-      ( cd "$REPO" && python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --k 1 \
+      ( cd "$REPO" && python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --k 1 \
           --ids forge-PP20 --json "$dir/puzzle_score.json" "$dir/puzzle" ) >"$dir/puzzle_score.log" 2>&1; SRC=$?
       say "scoring: one mirror panel cell (random pilot, one seed, both seats) through run_batch.py --panel"
       cp -R "$REPO/forge-overlay/." "$dir/forge-home/"
