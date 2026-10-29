@@ -2,10 +2,10 @@
 
 This is the plan the puzzle benchmark was built to. What is built (the search prover, acceptance states,
 uniqueness, the rules and generated hard suites, the solver and its scorer) is described in
-[PUZZLES.md](PUZZLES.md); the open work is in [WORK-PLAN.md](../docs/harness/WORK-PLAN.md), and the proposed
-next version in [BENCHMARK-V2.md](../docs/harness/BENCHMARK-V2.md). The progress log at the end is dated
+[PUZZLES.md](PUZZLES.md); the open work is in [WORK-PLAN.md](../harness/WORK-PLAN.md), and the proposed
+next version in [BENCHMARK-V2.md](../harness/BENCHMARK-V2.md). The progress log at the end is dated
 history and stops at 2026-10-18. The research behind it is in
-[research/2026-10-18-benchmark-research.md](research/2026-10-18-benchmark-research.md) (Anthropic,
+[research/2026-10-18-benchmark-research.md](../../eval/research/2026-10-18-benchmark-research.md) (Anthropic,
 OpenAI, Prime Intellect, Mechanize, xAI, Hillclimb, Epoch, METR, game benchmarks, prior MTG work) and
 the 2026-10-15 briefs that [BENCHMARK-RESEARCH.md](BENCHMARK-RESEARCH.md) summarises.
 

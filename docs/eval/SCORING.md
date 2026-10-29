@@ -1,7 +1,7 @@
 # Scoring: panels, ratings, sanity arms and the benchmark version
 
 This page says how a block of games becomes a score. The design and its reasons are in
-[research/2026-10-15-scoring-design.md](research/2026-10-15-scoring-design.md) (sections 1, 2, 4,
+[research/2026-10-15-scoring-design.md](../../eval/research/2026-10-15-scoring-design.md) (sections 1, 2, 4,
 5); the synthesis is [BENCHMARK-RESEARCH.md](BENCHMARK-RESEARCH.md). Everything here is Python
 standard library, and every piece has a `test_<name>.py`.
 

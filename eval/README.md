@@ -1,7 +1,10 @@
 # eval/: the batch driver, scoring and review tools
 
 Every Python script here is stdlib-only and has its tests in `eval/tests/test_<name>.py` (or is listed in
-`eval/UNTESTED.txt`). Where the rest is described:
+`eval/UNTESTED.txt`). The core (running, scoring, review) sits at the top; three families have folders:
+`demo/` (the live demo), `harness_env/` (the harness-building environment) and `puzzles/` (the puzzle tools,
+beside the puzzle boards). `evalpath.py` puts every folder on `sys.path`, so a script imports any other by
+its module name. Where the rest is described:
 
 - the benchmark and its three scores: `docs/eval/SCORING.md`, `docs/eval/BENCHMARK-V1.md`;
 - the puzzle suite (`puzzle_*.py`): `docs/eval/PUZZLES.md`;

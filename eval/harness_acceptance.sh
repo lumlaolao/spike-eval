@@ -23,7 +23,7 @@
 #              the model (the javatests JVM records each decision row's hooks), and every way the engine lists to
 #              play a card (AlternativeCost, OptionalCost) was played by a test; eval/surface_gaps.txt and
 #              eval/play_gaps.txt may only shrink
-#   pytests    python3 -m unittest discover -s eval; eval/tests/test_script_suites.py runs the script-style files
+#   pytests    python3 -m unittest discover -s eval/tests; eval/tests/test_script_suites.py runs the script-style files
 #              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and the
@@ -380,7 +380,7 @@ fi
 
 # ---------------------------------------------------------------- pytests
 if has_stage pytests; then
-  ( cd "$REPO" && python3 -m unittest discover -s eval -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
+  ( cd "$REPO" && python3 -m unittest discover -s eval/tests -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
   RAN="$(grep -o 'Ran [0-9]* tests' "$OUT/pytests.log" | tail -1)"
   if [ $RC -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK (script-style files included)"
   else fail pytests "unittest rc=$RC ($RAN)"; fi

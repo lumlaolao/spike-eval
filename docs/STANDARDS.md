@@ -83,7 +83,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 |---|---|---|
 | `forge-overlay/` | all harness Java | the only place harness Java is edited; never the Forge checkout |
 | `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/tests/test_engine_patches.py`) |
-| `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
+| `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports another by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/tests/test_pr_format.py`; the shell scripts are thin wrappers |
 | `*.sh` (root) | launchers (`install.sh`, `setup.sh`, `run-llm-*.sh`, `play-vs-llm.sh`, ...) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) |
@@ -169,7 +169,7 @@ most log questions).
   The check reads this file's shape only; the PR-side half of the naming is off its sight.
 - A test never needs `runs/` or a downloaded file to pass: `runs/` is git-ignored and the Comprehensive Rules text
   is fetched (`eval/fetch_comp_rules.py`). A test that reads one skips, saying why, when it is absent, so
-  `python3 -m unittest discover -s eval` passes on a fresh clone; acceptance fetches the text first, so there it runs.
+  `python3 -m unittest discover -s eval/tests` passes on a fresh clone; acceptance fetches the text first, so there it runs.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the

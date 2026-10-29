@@ -4,7 +4,7 @@
 score's intervals, budget and integrity lines) is built at harness-epoch-69 (#282), and phase 1's difficulty fields
 are in the code (#280, #281). Of phase 3, the `h_*` written lines are proven and three generated hard suites are
 frozen (`HARD-PUZZLES.md` section 3; `docs/eval/PUZZLES.md`); nothing else below is built. It amends
-[docs/eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md) (approved 2026-10-18); what v1 decided stays decided unless a row below
+[docs/eval/BENCHMARK-V1.md](../eval/BENCHMARK-V1.md) (approved 2026-10-18); what v1 decided stays decided unless a row below
 says otherwise. The evidence is in
 [history/2026-10-20-benchmark-v2-research.md](history/2026-10-20-benchmark-v2-research.md) (today's reading:
 Anthropic's eval guides and skills, Hillclimb's DeepRSI, Prime Intellect's `verifiers`, the Hugging Face

@@ -370,7 +370,7 @@ def main():
 
 class DefectAnalyzerSuite(unittest.TestCase):
     """The checks above predate unittest in this directory and were only run by hand; this makes the
-    acceptance suite (`unittest discover -s eval`) run them."""
+    acceptance suite (`unittest discover -s eval/tests`) run them."""
 
     def test_every_check(self):
         del FAILURES[:]

@@ -7,9 +7,9 @@ Three research briefs, written by separate agents with different sources, are in
 
 | Brief | Sources |
 |---|---|
-| [anthropic-openai-eval-guidance](research/2026-10-15-anthropic-openai-eval-guidance.md) | Anthropic's eval guidance (agent evals, success criteria, "Adding error bars to evals"), OpenAI's evals guidance, SWE-bench Verified, MLE-bench, PaperBench, GDPval |
-| [hillclimb-mechanize-primeintellect](research/2026-10-15-hillclimb-mechanize-primeintellect.md) | hill-climbing guides (Anthropic's `hillclimb` workflow via secondary write-ups, LangChain "Better Harness"), Mechanize on RL environments, Prime Intellect's Environments Hub and `verifiers`, game benchmarks (Game Arena, TextArena, chess LLM leaderboards, Lichess puzzles, MageBench) |
-| [scoring-design](research/2026-10-15-scoring-design.md) | applies the above to this repository's decks, seeds, `aggregate.py` and the comparison games; worked sample sizes and dollar costs |
+| [anthropic-openai-eval-guidance](../../eval/research/2026-10-15-anthropic-openai-eval-guidance.md) | Anthropic's eval guidance (agent evals, success criteria, "Adding error bars to evals"), OpenAI's evals guidance, SWE-bench Verified, MLE-bench, PaperBench, GDPval |
+| [hillclimb-mechanize-primeintellect](../../eval/research/2026-10-15-hillclimb-mechanize-primeintellect.md) | hill-climbing guides (Anthropic's `hillclimb` workflow via secondary write-ups, LangChain "Better Harness"), Mechanize on RL environments, Prime Intellect's Environments Hub and `verifiers`, game benchmarks (Game Arena, TextArena, chess LLM leaderboards, Lichess puzzles, MageBench) |
+| [scoring-design](../../eval/research/2026-10-15-scoring-design.md) | applies the above to this repository's decks, seeds, `aggregate.py` and the comparison games; worked sample sizes and dollar costs |
 
 Each brief marks what a source says and what is the author's inference. One caveat on sources: no
 company called "Hillclimb" was found; the brief read it as the hill-climbing workflow and says so.

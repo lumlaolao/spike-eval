@@ -21,11 +21,11 @@ diff. Run the mechanical checks first and quote their output:
 ```bash
 python3 scripts/pr_format.py check-branch          # commit subjects and bodies on this branch
 python3 scripts/pr_format.py check-pr <n>          # title and body sections (when there is a PR)
-python3 -m unittest discover -s eval -p 'test_*.py' 2>&1 | tail -3
+python3 -m unittest discover -s eval/tests -p 'test_*.py' 2>&1 | tail -3
 git diff --cached --name-only | grep -E '^(runs|datasets)/' && echo "generated data is staged"
-# every eval/*.py the change adds or edits has a test, or is still on the shrinking list:
-for f in $(git diff --name-only origin/main...HEAD -- 'eval/*.py' | xargs -n1 basename | grep -v '^test_'); do
-  [ -f "eval/test_$f" ] || grep -qx "$f" eval/UNTESTED.txt || echo "no test: eval/$f"; done
+# every eval script the change adds or edits (any folder) has a test, or is still on the shrinking list:
+for f in $(git diff --name-only origin/main...HEAD -- 'eval/*.py' | grep -v '^eval/tests/' | xargs -n1 basename); do
+  [ -f "eval/tests/test_$f" ] || grep -qx "$f" eval/UNTESTED.txt || echo "no test: $f"; done
 ```
 
 Then go through the standards section by section and, for each rule the change touches, say
