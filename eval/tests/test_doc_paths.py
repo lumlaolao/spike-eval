@@ -12,12 +12,13 @@ import evalpath  # noqa: E402  (every eval script folder on sys.path)
 
 REPO = evalpath.REPO
 DOCS = (["CLAUDE.md", "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/STANDARDS.md"]
-        + sorted(str(p.relative_to(REPO)) for p in REPO.glob(".claude/rules/*.md"))
-        + sorted(str(p.relative_to(REPO)) for p in REPO.glob(".claude/skills/*/SKILL.md")))
+        + [str(p.relative_to(REPO)) for g in (".claude/rules/*.md", ".claude/skills/*/SKILL.md")
+           for p in sorted(REPO.glob(g))])
 # Paths under the repository's own folders; root files (setup.sh, ...) are not checked, since a bare
-# launcher name can mean the copy installed in $FORGE_HOME. Placeholders (<name>, *, $VAR, ...) are skipped.
+# launcher name can mean the copy installed in $FORGE_HOME. Placeholders (<name>, *, ?, {a,b}, $VAR, ...) are skipped.
 TOP = ("eval/", "docs/", "scripts/", "forge-overlay/", "engine-patches/", ".claude/", "data/", "datasets/")
 SPAN = re.compile(r"`([^`]+)`")
+PLACEHOLDER = re.compile(r"[<>*?{}$]|\.\.\.")
 
 
 def tracked():
@@ -35,9 +36,10 @@ def tracked():
 
 def words(line, fenced):
     for chunk in ([line] if fenced else SPAN.findall(line)):
-        for w in chunk.split():
-            w = w.strip("\"'()[],;").split("=", 1)[-1]
-            yield re.sub(r"(:\d+)?[.:]?$", "", w).split("#")[0]
+        for w in re.split(r"[\s,;|]+", chunk):
+            w = w.strip("\"'()[]").split("=", 1)[-1].split("::")[0].split("#")[0]
+            # a trailing line or range (`:12`, `:12-40`) and sentence punctuation, then brackets once more
+            yield re.sub(r"(:\d+(-\d+)?)?[.:]?$", "", w).strip("\"'()[]")
 
 
 def named_paths():
@@ -48,7 +50,7 @@ def named_paths():
                 fenced = not fenced
                 continue
             for p in words(line, fenced):
-                if p.startswith(TOP) and not any(c in p for c in "<>*$") and "..." not in p:
+                if p.startswith(TOP) and not PLACEHOLDER.search(p):
                     yield doc, n, p.rstrip("/")
 
 
