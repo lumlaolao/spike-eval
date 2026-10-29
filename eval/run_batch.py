@@ -1401,6 +1401,8 @@ def main(argv=None):
     if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
+    if args.one_tier and args.two_tier:
+        raise SystemExit("run_batch: --one-tier and --two-tier contradict each other")
     for kv in args.env or []:
         k = kv.split("=", 1)[0]
         if k in CONDITION_ENV_KEYS:
@@ -1454,8 +1456,6 @@ def run_block(args):
     args.native_tools = native_tools_requested(args)
     args.answer_tool = answer_tool_requested(args)
     # One tier is the default (owner, 2026-10-15: no harness shortcuts); --two-tier is the measured opt-out.
-    if args.one_tier and args.two_tier:
-        ap.error("--one-tier and --two-tier contradict each other")
     args.one_tier = not args.two_tier
     if args.answer_tool_strict and not args.answer_tool:
         _refuse("--answer-tool-strict needs the answer tool (an openrouter: LLM seat, without --text-answers).")

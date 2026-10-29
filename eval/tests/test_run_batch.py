@@ -332,6 +332,14 @@ class TestOneTier(unittest.TestCase):
     """ONE_TIER (every decision on the smart bridge) changes how hard the model may think per
     decision, so it is a condition: set only by --one-tier, recorded, checked against `one_tier`."""
 
+    def test_one_tier_and_two_tier_together_are_refused_by_name(self):
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--deck", "/tmp/deck.txt", "--controller-a", "ai", "--controller-b", "ai",
+                            "--one-tier", "--two-tier", "--forge-home", "/nonexistent"],
+                           capture_output=True, text=True)
+        self.assertEqual(p.returncode, 1)
+        self.assertEqual(p.stderr.strip(), "run_batch: --one-tier and --two-tier contradict each other")
+
     def test_only_the_flag_sets_it_and_lines_keep_it_apart(self):
         with mock.patch.dict(os.environ, {"ONE_TIER": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
             self.assertEqual(run_batch.build_env(make_args(), 7100, False, Path(d))["ONE_TIER"], "0")
