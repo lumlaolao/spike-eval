@@ -1,6 +1,5 @@
-# The Python suite on every pull request and every push to main. It needs no Forge build and no API key,
-# so it sends nothing anywhere; the tests that need a Forge checkout or the rules text skip. The full gate
-# (Java, canaries, fake-model games) is acceptance, run before every merge (docs/STANDARDS.md section 1).
+# The Python suite on every pull request and every push to main: no Forge build, no API key, a read-only token,
+# on the Python floor (3.9, docs/STANDARDS.md section 4) and a current one. The full gate is acceptance (section 1).
 name: tests
 
 on:
@@ -15,10 +14,14 @@ jobs:
   python:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - name: unit tests
         run: python3 -m unittest discover -s eval/tests -p 'test_*.py'

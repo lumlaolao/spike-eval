@@ -1,10 +1,12 @@
 """Every eval and scripts/ Python file still starts after a move (docs/STANDARDS.md section 3): each module
-it imports resolves from the folders evalpath puts on sys.path (and its own folder), and each script with
-a command line answers --help with exit 0, run from outside the repository as a user would. Nothing is
-executed beyond argument parsing: no game, no network."""
+it imports resolves from its own folder, the standard library, or (only if it imports evalpath) the folders
+evalpath puts on sys.path; and each script with a command line answers --help with exit 0, run from outside
+the repository as a user would. Nothing is executed beyond argument parsing: no game, no network."""
 import ast
+import importlib.machinery
 import importlib.util
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -12,17 +14,19 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import test_untested_list  # noqa: E402  (one rule for what an eval script is)
 
 REPO = evalpath.REPO
+MAIN_GUARD = re.compile(r"__name__\s*==\s*['\"]__main__['\"]")
 
 
 def scripts():
-    found = list(evalpath.EVAL.rglob("*.py")) + list((REPO / "scripts").rglob("*.py"))
-    return sorted(p for p in found if "__pycache__" not in p.parts and evalpath.EVAL / "tests" not in p.parents)
+    return sorted(test_untested_list.scripts()
+                  + [p for p in (REPO / "scripts").rglob("*.py") if "__pycache__" not in p.parts])
 
 
-def top_level_imports(path):
-    """Absolute imports a file makes at module level or in any function (relative imports aside)."""
+def imported_modules(path):
+    """The first component of every absolute import in a file, at module level or in a function."""
     names = set()
     for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
         if isinstance(node, ast.Import):
@@ -32,9 +36,17 @@ def top_level_imports(path):
     return names
 
 
+def outside_repo(name):
+    """The standard library (or anything installed), never a file of this repository."""
+    if name in sys.builtin_module_names:
+        return True
+    spec = importlib.util.find_spec(name)
+    return spec is not None and not (spec.origin or "").startswith(str(REPO))
+
+
 def has_command_line(path):
     src = path.read_text(encoding="utf-8")
-    return "argparse" in src and ("__name__ == \"__main__\"" in src or "__name__ == '__main__'" in src)
+    return "argparse" in src and MAIN_GUARD.search(src) is not None
 
 
 class ScriptsStartTest(unittest.TestCase):
@@ -42,13 +54,11 @@ class ScriptsStartTest(unittest.TestCase):
     def test_every_import_resolves(self):
         unresolved = []
         for path in scripts():
-            sys.path.insert(0, str(path.parent))
-            try:
-                for name in sorted(top_level_imports(path)):
-                    if importlib.util.find_spec(name) is None:
-                        unresolved.append("%s: %s" % (path.relative_to(REPO), name))
-            finally:
-                sys.path.remove(str(path.parent))
+            names = imported_modules(path)
+            folders = [str(path.parent)] + ([str(d) for d in evalpath.DIRS] if "evalpath" in names else [])
+            for name in sorted(names - {"evalpath"}):
+                if importlib.machinery.PathFinder.find_spec(name, folders) is None and not outside_repo(name):
+                    unresolved.append("%s: %s" % (path.relative_to(REPO), name))
         self.assertEqual(unresolved, [])
 
     def test_every_command_line_answers_help(self):

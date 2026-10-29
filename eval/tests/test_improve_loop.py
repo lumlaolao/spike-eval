@@ -57,12 +57,12 @@ class ImproveLoopTest(unittest.TestCase):
         run.assert_not_called()
 
     def test_no_games_and_a_missing_deck_are_refused(self):
-        # Mocked and in a scratch --out, so a broken refusal cannot launch a real block or write outside it.
+        # Mocked and in the scratch --out, so a broken refusal cannot launch a real block or write outside it.
         for argv in (["--games", "0", "--deck", DECK], ["--deck", "/no/such/deck.txt"]):
-            with tempfile.TemporaryDirectory() as out, mock.patch.object(improve_loop.subprocess, "run") as run, \
+            with mock.patch.object(improve_loop.subprocess, "run") as run, \
                     contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()), \
                     self.assertRaises(SystemExit) as cm:
-                improve_loop.main(["--controller", "floor", "--forge-home", "/forge", "--out", out, *argv])
+                improve_loop.main(["--controller", "floor", "--forge-home", "/forge", "--out", self.out, *argv])
             self.assertEqual(cm.exception.code, 2, argv)
             run.assert_not_called()
 

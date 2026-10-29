@@ -20,6 +20,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 import sys
@@ -170,3 +171,23 @@ class EnginePatchesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnreadableCheckoutTest(unittest.TestCase):
+    """A default checkout the user cannot read (/root/forge for anyone but root, as on a CI runner) is absent, not a
+    crash: Path.exists and Path.is_dir raise PermissionError there. Each of the three lookups is checked."""
+
+    def test_an_unreadable_candidate_is_skipped(self):
+        import deck_legality
+        import puzzle_format
+
+        def denied(self, *a, **k):
+            raise PermissionError(13, "Permission denied", str(self))
+
+        env = {k: v for k, v in os.environ.items() if k != "FORGE_HOME"}
+        with unittest.mock.patch.dict(os.environ, env, clear=True), \
+                unittest.mock.patch.object(Path, "exists", denied), unittest.mock.patch.object(Path, "is_dir", denied):
+            self.assertIsNone(ep.forge_home())
+            self.assertEqual(puzzle_format.forge_home(), Path.home() / "code/forge")
+            with self.assertRaises(SystemExit):
+                deck_legality.forge_home()

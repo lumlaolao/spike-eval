@@ -71,7 +71,7 @@ class SetupTest(unittest.TestCase):
         self.sysbin.mkdir()
         for d in ("/usr/bin", "/bin"):
             for f in os.listdir(d):
-                if f not in ("git", "java", "mvn", "python3") and not (self.sysbin / f).exists():
+                if f not in ("git", "java", "mvn", "python3") and not os.path.lexists(self.sysbin / f):
                     (self.sysbin / f).symlink_to(os.path.join(d, f))
         self.forge = root / "forge"
         self.log = root / "stub.log"

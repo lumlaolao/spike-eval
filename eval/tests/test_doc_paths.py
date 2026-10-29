@@ -18,7 +18,7 @@ DOCS = (["CLAUDE.md", "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/STANDAR
 # launcher name can mean the copy installed in $FORGE_HOME. Placeholders (<name>, *, ?, {a,b}, $VAR, ...) are skipped.
 TOP = ("eval/", "docs/", "scripts/", "forge-overlay/", "engine-patches/", ".claude/", "data/", "datasets/")
 SPAN = re.compile(r"`([^`]+)`")
-PLACEHOLDER = re.compile(r"[<>*?{}$]|\.\.\.")
+PLACEHOLDER = re.compile(r"[<>*?{}$]|\.\.")  # ... loses its last dot to the sentence strip
 
 
 def tracked():
@@ -54,7 +54,26 @@ def named_paths():
                     yield doc, n, p.rstrip("/")
 
 
+def paths_in(text, fenced=False):
+    return [w for w in words(text, fenced) if w.startswith(TOP) and not PLACEHOLDER.search(w)]
+
+
 class DocPathsTest(unittest.TestCase):
+
+    def test_how_a_path_is_read_out_of_a_span(self):
+        cases = {
+            "`eval/run_batch.py:12-40`": ["eval/run_batch.py"],
+            "`eval/tests/test_rating.py::RatingTest::test_x`": ["eval/tests/test_rating.py"],
+            "`cat eval/UNTESTED.txt|wc -l`": ["eval/UNTESTED.txt"],
+            "`eval/a.py,eval/b.py;scripts/c.sh`": ["eval/a.py", "eval/b.py", "scripts/c.sh"],
+            "`(eval/run_batch.py).`": ["eval/run_batch.py"],
+            "`FOO=1 python3 eval/x.py --out=docs/y.md`": ["eval/x.py", "docs/y.md"],
+            "`.claude/skills/{a,b}/SKILL.md` `eval/test_?.py` `eval/<name>.py` `eval/...`": [],
+            "plain eval/not_in_a_span.py": [],
+        }
+        for text, want in cases.items():
+            self.assertEqual(paths_in(text), want, text)
+        self.assertEqual(paths_in("bash scripts/x.sh eval/y.py", fenced=True), ["scripts/x.sh", "eval/y.py"])
 
     def test_every_named_path_exists(self):
         found = list(named_paths())

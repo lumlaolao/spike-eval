@@ -87,8 +87,11 @@ def forge_home():
     ~/code/forge and /root/forge that has Forge's puzzles, as deck_legality.py looks."""
     env = os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "")))
     for c in ([Path(env)] if env else []) + [Path.home() / "code/forge", Path("/root/forge")]:
-        if (c / FORGE_PUZZLE_DIR).is_dir():
-            return c
+        try:
+            if (c / FORGE_PUZZLE_DIR).is_dir():
+                return c
+        except OSError:  # a candidate this user cannot read (/root/forge for a non-root user) is not a checkout
+            continue
     return Path(env) if env else Path.home() / "code/forge"
 
 
