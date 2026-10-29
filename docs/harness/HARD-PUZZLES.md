@@ -79,7 +79,7 @@ at a share of the suite so no one trick dominates).
 | **Rule stacking** | three or four of the rules puzzles' tricks composed on one board, each needed in order | the line needs every rule; the `RP_*` boards are the parts | the 526 rules puzzles |
 | **Adversarial hand** | the opponent is stated to hold one instant (a counter, a removal spell) with the mana for it | the proof must beat the reply at every window: play around it or bait it | any family above |
 
-Generated drain and elf (`eval/puzzle_gen.py --family drain|elf`, 2026-10-20). Each board's opponent life is the exact
+Generated drain and elf (`eval/puzzles/puzzle_gen.py --family drain|elf`, 2026-10-20). Each board's opponent life is the exact
 maximum of an exhaustive search over a model of the board, and the written line is the fewest-step one reaching
 it (10 to 15 steps; Altar, Druid, Forest and mana-elf activations are mana abilities and not counted). **drain**:
 every death drains once per drainer still out (Blood Artist, Zulaport Cutthroat, Cruel Celebrant, each counting its
@@ -90,7 +90,7 @@ Heritage Druid taps the Sentinels before each green spell (which untaps them) an
 boards whose best line casts everything and attacks with everything are dropped. The line resolves each object of
 its own on the stack with `pass` only in the windows the seat is asked (one where only a Swamp's or Forest's mana is
 playable is skipped by the seat). They are in the generated hard suite
-(`eval/PUZZLES.md`, "The generated hard suite"; status and the paid model check:
+(`docs/eval/PUZZLES.md`, "The generated hard suite"; status and the paid model check:
 `docs/harness/history/2026-10-20-generated-hard-puzzles.md`). Not done: the 40 elf boards of seed 2 were generated but
 not gated (on branch `feat/hard-gen`); neither family carries a trap line at 1 to 3 life or a check that no mana
 floats unused at the end.
@@ -109,12 +109,12 @@ it taps late or attacks); **hoofdrain** is the cross family: the elf engine with
 Seer out, where Craterhoof's trigger counts X on resolution, so every creature that will not attack is sacrificed
 after it, never before. A batch never repeats a life total or a structure (the cards reduced to their roles). The
 trap is written in the Rule line and, with the search inputs, as `# search:` and `# trap:` comments in the
-[solution], which `eval/test_puzzle_gen.py` recomputes for every committed board. Two near-misses dominate (see the
+[solution], which `eval/tests/test_puzzle_gen.py` recomputes for every committed board. Two near-misses dominate (see the
 history note): drain2's "play the land first" (Bloodghast) and hoofdrain's "sacrifice only the elves cast"; elf2
 draws pass rarely (about 1 in 150), because an elf plain plan either matches the loop or misses it by far more than 3.
 
 A third generated suite (tokens, landfall, equip and infect, in `eval/puzzles/hard/gen3/`) holds the same bar; its
-families, traps and gate are in `eval/PUZZLES.md`, "The third hard suite".
+families, traps and gate are in `docs/eval/PUZZLES.md`, "The third hard suite".
 
 Rules that apply to every board: no slack (exact mana, exact damage, no spare pump); every card in hand either
 used on the line or a red herring that a trap line uses; the library filled with Colossal Dreadmaw (or stated
@@ -122,7 +122,7 @@ known cards) so draws decide nothing; the opponent with no mana abilities on its
 opened a false second solution in RP_192); combat puzzles start in MAIN1, others in MAIN2 so an optional attack
 is not a second solution; the acceptance state names the win (`life p1 <= 0`), not the path.
 
-**Mined positions** (V1 phase 3, `eval/mine_puzzles.py`'s `lethal-now` category): the start of the kill turn in
+**Mined positions** (V1 phase 3, `eval/puzzles/mine_puzzles.py`'s `lethal-now` category): the start of the kill turn in
 free Forge-AI-versus-AI games on the combo decks above, with the library order fixed by the seed, as a
 third supply once the script and prover work; and every position where the model failed a T2 or T3 attempt.
 
@@ -156,7 +156,7 @@ only for what search is good at: opponent replies, deviations and minimality.
    every removal must fail. Written to the record as `necessary_actions`.
    **Done (2026-10-20):** `puzzle_baselines.py line --minimality` (`minimality.json`). A removal is replayed relaxed
    (a decision the line does not fit takes the do-nothing answer); only a game played out and lost shows the action
-   is needed; a drift, a capped game, or a line that stalled with lines unplayed is inconclusive (eval/PUZZLES.md).
+   is needed; a drift, a capped game, or a line that stalled with lines unplayed is inconclusive (docs/eval/PUZZLES.md).
 4. **The greedy-preview arm**: a zero-model policy over `PlayerLookahead`'s one-ply preview, taking the option
    whose preview lowers the opponent's life most (then the one that adds most power). The "depth 1" floor; it
    must fail on T3 and is reported with the other floors.

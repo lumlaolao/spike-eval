@@ -21,7 +21,7 @@ python3 eval/defect_analyzer.py $RUN          # hard invariants: ai tier = 0, si
 python3 eval/tool_audit.py $RUN               # every tool request: served / REFUSED / FAILED / empty / bad-args / exhausted
 python3 eval/plan_audit.py $RUN               # plays that contradict the seat's own stated plan
 python3 eval/line_report.py $RUN              # sacrifices, optional triggers, activations, casts from outside the hand
-python3 eval/mine_puzzles.py $RUN --out /tmp/puzzle-candidates.jsonl
+python3 eval/puzzles/mine_puzzles.py $RUN --out /tmp/puzzle-candidates.jsonl
 ```
 
 Read `uptime` first. A run made above 4 load average per core has untrustworthy latency and may
@@ -84,7 +84,7 @@ Report every rate next to its trivial baseline and never pool runs whose `contex
 A MODEL finding with `"puzzle": true` is a position where the prompt held everything needed and the
 model still chose badly. Add its `src` to the candidates from `mine_puzzles.py`. Candidates are
 unverified: they become puzzles only after the fork verifier replays the position
-(`eval/EVAL-DESIGN.md` section 3). Do not write an answer key by hand.
+(`docs/eval/EVAL-DESIGN.md` section 3). Do not write an answer key by hand.
 
 A HARNESS finding is never a puzzle. It is a ticket: add it to
 `docs/harness/history/ARCHITECTURE-REVIEW.md` with its evidence, or fix it and add the test that would have

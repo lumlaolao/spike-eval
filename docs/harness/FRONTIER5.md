@@ -6,13 +6,13 @@ section 4b on `docs/writeup-notes`). 58 of the 100 boards were solved.
 
 **This is an exploratory comparison, not a PUZ score.** The kept games come from several conditions (the game cap,
 the per-call deadline and the token cap; "How it ran"), each recorded in the puzzle's manifest, and
-`eval/puzzle_score.py` refuses to pool them. Replaying
-only the games a limit cut short also leans the table toward models that solve fast, the bias `eval/PUZZLES.md` names
+`eval/puzzles/puzzle_score.py` refuses to pool them. Replaying
+only the games a limit cut short also leans the table toward models that solve fast, the bias `docs/eval/PUZZLES.md` names
 for a cap raised mid-run.
 
 One kept game a board cannot separate models that differ by a board or two: a difference of one or two solves is not a
 ranking. The floor is 0: a board is in the suite only when every zero-model arm failed it (random, PASS, first option;
-`eval/PUZZLES.md`).
+`docs/eval/PUZZLES.md`).
 
 ## Results
 

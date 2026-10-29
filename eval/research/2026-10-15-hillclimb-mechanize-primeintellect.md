@@ -5,7 +5,7 @@ Research brief, 2026-10-15. Labels used throughout:
 - **[I]** inference: my reasoning or recommendation, not stated by any source.
 - **[S-2]** sourced only from secondary coverage (aggregators, reviews, news). Treat with caution.
 
-Context read first: `eval/EVAL-DESIGN.md` §0–3 and `CLAUDE.md` "CURRENT FOCUS". The design already has an anchored STR ladder, paired seat-swap, pentanomial scoring, engine-verified puzzles with a 70/30 open/held-out split, and locked seed governance. The recommendations below are written as **additions or corrections to that design**, not a replacement for it.
+Context read first: `docs/eval/EVAL-DESIGN.md` §0–3 and `CLAUDE.md` "CURRENT FOCUS". The design already has an anchored STR ladder, paired seat-swap, pentanomial scoring, engine-verified puzzles with a 70/30 open/held-out split, and locked seed governance. The recommendations below are written as **additions or corrections to that design**, not a replacement for it.
 
 ## Which "Hillclimb" I used
 

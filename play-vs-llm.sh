@@ -49,7 +49,7 @@ resolve() { # a deck name under eval/decks, or a path to a decklist
 deck_a="$(resolve "$deck")"; deck_b="$(resolve "$vs")"
 case "$games" in ''|*[!0-9]*|0) echo "play-vs-llm: --games takes a positive number" >&2; exit 2 ;; esac
 
-# The owner's own consent and key file, read as eval/puzzle_solve.py reads it (KEY=VALUE, whitespace and a CR
+# The owner's own consent and key file, read as eval/puzzles/puzzle_solve.py reads it (KEY=VALUE, whitespace and a CR
 # trimmed, # comments skipped, the first occurrence kept); the environment wins.
 if [ -f "$REPO/secrets.env" ]; then
   while IFS= read -r ln || [ -n "$ln" ]; do

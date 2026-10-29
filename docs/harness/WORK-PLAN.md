@@ -20,7 +20,7 @@ Landed 2026-10-21 to 26: PRs #290 to #330, among them #320 (the `claude-cli:` la
 routing filters: a price ceiling and a precision list for puzzle runs), #329 (the game cap, call deadline and
 token cap as recorded puzzle-run conditions) and #330 (a reply's answer is its first `answer` call that
 validates). The hard suites
-are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environment is in
+are in [docs/eval/PUZZLES.md](../eval/PUZZLES.md); the harness-building environment is in
 [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
 ## Open work
@@ -46,8 +46,8 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
   the puzzles short of the bar and the row each missed.
 - **The third hard suite** (`puzzles-hard-gen3-v1`, PR #302): the Luna run of its 44 open boards finished
   (`runs/puzzles/gen3-luna`, $1.01 by `python3 eval/cost_report.py runs/puzzles/gen3-luna/hard-*`; unscored, and the
-  zero-model arms not run). Score it with `eval/puzzle_score.py` and
-  record it in [eval/PUZZLES.md](../../eval/PUZZLES.md).
+  zero-model arms not run). Score it with `eval/puzzles/puzzle_score.py` and
+  record it in [docs/eval/PUZZLES.md](../eval/PUZZLES.md).
 - **Harness-building environment:** no real episode has run. The owner's twelve questions are in
   HARNESS-ENV-FRAMEWORK.md section 8:
   - first, the builder model and budget;
@@ -90,7 +90,7 @@ are in [eval/PUZZLES.md](../../eval/PUZZLES.md); the harness-building environmen
 - **The README and the front-facing text** await the owner's review.
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop
   unfinished games), E5 (freeze a measurement epoch), then E7 (the first mirror block, paid, cost first); which
-  models to compare ([eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md), decision 4); the headline score.
+  models to compare ([docs/eval/BENCHMARK-V1.md](../eval/BENCHMARK-V1.md), decision 4); the headline score.
 - **Re-runs that wait on a frozen epoch (E5):** the prompt A/B block (`runs/prompt-ab`, confounded by the yield
   bug before answer-tool-v9) and the one-tier against two-tier comparison; about $0.80 for 20 games per arm.
 - **The gauntlets** (`eval/keyword_gauntlet.sh`, first, random and tools policies, each checked with

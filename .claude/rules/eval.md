@@ -8,8 +8,8 @@ paths:
 # Working on the eval and its runs
 
 The benchmark is the deliverable: STR-AI (win rate against Forge's AI over the frozen panels), STR-HELDOUT (the same
-on held-out seeds), PUZ (the puzzle suite). Design: `eval/EVAL-DESIGN.md`; scores: `eval/SCORING.md`; puzzles:
-`eval/PUZZLES.md`.
+on held-out seeds), PUZ (the puzzle suite). Design: `docs/eval/EVAL-DESIGN.md`; scores: `docs/eval/SCORING.md`; puzzles:
+`docs/eval/PUZZLES.md`.
 
 ## Every number reports its floor (the 88% lesson)
 
@@ -20,7 +20,7 @@ training corpora (`--cap-per-source`).
 
 ## Rules
 
-- Scripts are stdlib only. `python3 eval/test_<name>.py` runs each test file; acceptance runs them all.
+- Scripts are stdlib only. `python3 eval/tests/test_<name>.py` runs each test file; acceptance runs them all.
 - The JSONL schema is additive only; readers use `.get()`. The game line's `winner` is identity-keyed (A is deck
   identity A whatever the seat swap): do not "fix" it.
 - Conditions never pool: native vs text tools, answer tool vs text, one tier vs two, each profile, each epoch.
@@ -32,7 +32,7 @@ training corpora (`--cap-per-source`).
 - Cited mode (`run_batch.py` without `--exploratory`) forces the mirror deck, the confounds off and held-out seeds, and
   refuses a seat on the Claude CLI (`claude-cli:`: a development lane, owner 2026-10-24). A panel's llm pilot plays the pinned `pilot_condition` (`eval/suites/panels-v1.json`).
 - Parallel games: openrouter 6 to 10 JVMs (RAM-bound, about 1 GB each, counted across every batch), floor 4 to 8
-  (`eval/CONCURRENCY.md`).
+  (`docs/eval/CONCURRENCY.md`).
 - Every llm seat names both its models (`--smart-x`, `--fast-x`); a seat naming no model is refused; there is no
   default model (`LlmSpikeGui.missingModel`).
 

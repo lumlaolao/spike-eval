@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate generated boards (eval/puzzle_gen.py): a board is kept only when the engine agrees it is a hard puzzle.
+"""Gate generated boards (eval/puzzles/puzzle_gen.py): a board is kept only when the engine agrees it is a hard puzzle.
 
   python3 scripts/puzzle-gate/gen_gate.py --build B --forge F --boards DIR --out DIR [-j 2] [--resume]
                                          [--allow-stale-build]
@@ -23,6 +23,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "eval"))
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 
@@ -48,7 +49,7 @@ def play_line(a, pzl, build):
     done = last_row(out) if a.resume else None
     if not (done and done.get("pzl_sha256") == pf.sha256_file(pzl) and pb.ran_on(out, build)):
         shutil.rmtree(out, ignore_errors=True)
-        subprocess.run([sys.executable, str(REPO / "eval/puzzle_baselines.py")] + build_args(a)
+        subprocess.run([sys.executable, str(REPO / "eval/puzzles/puzzle_baselines.py")] + build_args(a)
                        + ["line", "--pzl", str(pzl), "--out-dir", str(out)], cwd=REPO, capture_output=True,
                        text=True, timeout=1800)
     r = last_row(out) or {}
@@ -102,7 +103,7 @@ def main(argv=None):
     if passed:
         suite = out / "suite.json"
         suite_of(passed, suite)
-        subprocess.run([sys.executable, str(REPO / "eval/puzzle_baselines.py")] + build_args(a) + [
+        subprocess.run([sys.executable, str(REPO / "eval/puzzles/puzzle_baselines.py")] + build_args(a) + [
                         "run", "--suite", str(suite), "--arms", ",".join(FLOORS), "--baselines-only",
                         "--rollouts", "20", "-j", str(a.jobs), "--out-dir", str(out / "floors"), "--write",
                         str(out / "floors.json")] + (["--resume"] if a.resume else []), cwd=REPO,

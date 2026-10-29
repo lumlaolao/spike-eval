@@ -112,7 +112,7 @@ rows contain commands and exact results, including denied calls. Game rows inclu
 these, on `context_profile`/`context_sha`, on the tool stamps (`native_tools*`,
 `rules_*`, `lookahead*`) and on the two opt-in play switches (`plan_execute`,
 `tier_fast_types`): every game-line key is either part of the experiment key
-or an outcome (`eval/test_experiments.py` reads the line's writer to check this).
+or an outcome (`eval/tests/test_experiments.py` reads the line's writer to check this).
 Separate run directories are still the clearest way to keep conditions apart.
 
 **Cost limitation:** context-call token fields describe the last transport attempt
@@ -437,7 +437,7 @@ unknown permanent and got 7 of those 12 wrong; and native calling costs restrain
 the text once calls were forbidden, which is refused rather than parsed.
 
 Tests: `NativeToolsTest` (21, including a real HTTP round trip on loopback and equality of the Java
-definitions with `eval/tooluse/tools.json`), `eval/test_tool_use_suite.py`, `eval/test_tool_audit.py`;
+definitions with `eval/tooluse/tools.json`), `eval/tests/test_tool_use_suite.py`, `eval/tests/test_tool_audit.py`;
 acceptance stage `nativetool`.
 
 ### Lookahead preview v2 (2026-10-13)
@@ -587,7 +587,7 @@ The status column is as of 2026-10-25, read from the code and the documents it l
 | P1 | Tool protocol and eval accounting | Native typed adapters or strict equivalent, per-decision budgets across retries, exact request/token accounting, disjoint experiment grouping | Eval grouping and accounting done (history/EVAL-IMPLEMENTATION.md); lookups are native function calls, the text grammar only for a backend without them; every decision is an `answer` call |
 | P2 | Strategy notebook and optional archetype evidence library | Contradiction/update tests, no opponent deck-label leakage, assistance version and ablations | `set_plan`, `memory_note` and the opponent profile, each labelled as the seat's own; no archetype library |
 | P2 | Player-safe simulation adapter | Live-state/RNG equality before/after calls, hidden-world invariance, disclosed rollout policy and assumptions, unsupported cases refused | `simulate` preview built and its safety contract tested ([LOOKAHEAD-DESIGN.md](LOOKAHEAD-DESIGN.md)); no sampled rollout |
-| P3 | Frozen harness evaluation suite | Observation/comprehension, identity, memory/retrieval, legal actions, puzzles and full-game play; fixed seeds, baselines, confidence intervals | The acceptance suite ([ACCEPTANCE.md](ACCEPTANCE.md): fixed seed-42 canaries, loopback games, golden checks) and the frozen puzzle suites (`eval/PUZZLES.md`); the headline scores with their baselines are open owner decisions ([WORK-PLAN.md](WORK-PLAN.md)) |
+| P3 | Frozen harness evaluation suite | Observation/comprehension, identity, memory/retrieval, legal actions, puzzles and full-game play; fixed seeds, baselines, confidence intervals | The acceptance suite ([ACCEPTANCE.md](ACCEPTANCE.md): fixed seed-42 canaries, loopback games, golden checks) and the frozen puzzle suites (`docs/eval/PUZZLES.md`); the headline scores with their baselines are open owner decisions ([WORK-PLAN.md](WORK-PLAN.md)) |
 
 The harness is **not yet certified fair**. Recovery plus memory tools are a concrete
 first stage, not completion of this entire contract.

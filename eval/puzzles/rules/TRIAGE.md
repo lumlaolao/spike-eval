@@ -1,7 +1,7 @@
 # Rules-question triage
 
-Triage of the 996 judge rules questions in `puzzles/modern/puzzles.jsonl` for conversion into engine-checked puzzles
-(target shape: `eval/BENCHMARK-V1.md`, "The shape every puzzle takes"). One line per question, same order, in
+Triage of the 996 judge rules questions in `eval/puzzles/modern/puzzles.jsonl` for conversion into engine-checked puzzles
+(target shape: `docs/eval/BENCHMARK-V1.md`, "The shape every puzzle takes"). One line per question, same order, in
 `eval/puzzles/rules/triage.jsonl`. Each verdict was made by reading the question and the judge answer; "maybe" means
 the answer changes the board but the solver's choice is weak, needs opponent interaction, or the setup is awkward.
 

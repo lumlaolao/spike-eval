@@ -22,6 +22,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "eval"))
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 
@@ -41,7 +42,7 @@ def board_record(floor_rec, gate_row, line_row, pzl, repo=REPO, engine="unknown"
     `pzl` is the board's file in the repository (the gate may have read a copy elsewhere)."""
     text = Path(pzl).read_text(encoding="utf-8")
     rec = dict(floor_rec, pzl=str(Path(pzl).resolve().relative_to(Path(repo).resolve())), pzl_sha256=pf.sha256_file(pzl),
-               source={"kind": "authored", "generator": "eval/puzzle_gen.py", "family": family_of(text)})
+               source={"kind": "authored", "generator": "eval/puzzles/puzzle_gen.py", "family": family_of(text)})
     flags = []
     if pf.sha256_file(pzl) != floor_rec.get("pzl_sha256"):
         flags.append("pzl_changed_since_gate")

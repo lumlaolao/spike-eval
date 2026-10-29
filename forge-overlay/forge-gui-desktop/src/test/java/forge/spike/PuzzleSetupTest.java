@@ -32,7 +32,7 @@ import forge.util.FileUtil;
 
 /** A .pzl board as the puzzle runner puts it down: what the board says must be what the game holds. */
 public class PuzzleSetupTest {
-    /** The zero-model spec the baseline JVMs use (eval/puzzle_baselines.py): the pass arm never calls it. */
+    /** The zero-model spec the baseline JVMs use (eval/puzzles/puzzle_baselines.py): the pass arm never calls it. */
     private static final String NO_MODEL = "openrouter:zero-model/none";
     /** The repo root: tests run from the Forge checkout's forge-gui-desktop, so only the rules file's -D path
      *  ($REPO/data/rules/MagicCompRules.txt, set by acceptance) names it. */

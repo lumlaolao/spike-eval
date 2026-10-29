@@ -1,6 +1,6 @@
 # Scoring proposal: one benchmark where higher is always better
 
-*Research note, 2026-10-15. Builds on `eval/EVAL-DESIGN.md` (§2, §3, §6), `eval/aggregate.py`
+*Research note, 2026-10-15. Builds on `docs/eval/EVAL-DESIGN.md` (§2, §3, §6), `eval/aggregate.py`
 (Wilson CIs, seed-level paired bootstrap), `eval/seed_policy.py` / `eval/seed_registry.json`,
 `eval/suites/stage3-v1.json`, `eval/match_review.py` and `runs/compare/REPORT.md`. This is a
 proposal only. Nothing here is built unless the text says it exists.*
@@ -239,7 +239,7 @@ may beat B on combo decks and lose on control. Checks:
   positions forked into Forge, where "solved" means **the engine reports the goal outcome**
   (win this turn, survive the turn, and so on). Any line that reaches it counts; no specific
   line is required. This is the headline PUZ.
-- **Rules QA** (`puzzles/modern/puzzles.jsonl`, 996 items from RulesGuru, Ask a Magic Judge and
+- **Rules QA** (`eval/puzzles/modern/puzzles.jsonl`, 996 items from RulesGuru, Ask a Magic Judge and
   Cranial Insertion). These are **public web text, so assume they are in pretraining**. Report
   them as a separate rules-knowledge score, never as part of PUZ, and never as held-out.
 

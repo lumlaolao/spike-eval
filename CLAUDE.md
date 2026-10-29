@@ -16,7 +16,7 @@ Three headline scores, each with its confidence interval and the trivial baselin
 is not a score; `.claude/rules/eval.md`, "the 88% lesson"):
 1. **STR-AI**: win rate against Forge's AI on the frozen panels (`eval/suites/panels-v1.json`, `eval/panel_score.py`).
 2. **STR-HELDOUT**: the same on seeds blocked from every training corpus (`eval/seed_policy.py`).
-3. **PUZ**: the puzzle suite (`eval/PUZZLES.md`, `eval/puzzle_score.py`).
+3. **PUZ**: the puzzle suite (`docs/eval/PUZZLES.md`, `eval/puzzles/puzzle_score.py`).
 
 ## The one rule that matters
 
@@ -58,7 +58,7 @@ per arm), read it, then decide; say the expected cost before any paid run. Play 
 FORGE_HOME=/root/forge bash eval/harness_acceptance.sh        # everything: compile, all tests, canaries, fake-model games
 STAGES="preflight classpath compile javatests" FORGE_HOME=/root/forge bash eval/harness_acceptance.sh   # a subset
 bash eval/keyword_gauntlet.sh                                  # 28 free fake-model games over 552 cards
-python3 eval/test_<name>.py                                    # one Python test file
+python3 eval/tests/test_<name>.py                                    # one Python test file
 python3 eval/run_batch.py --seeds N --exploratory --budget-usd 0.40 --deck eval/decks/<d>.txt \
   --controller-a llm --controller-b ai --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
   --memory-tools --lookahead --out runs/loop/gNN               # one paid game (the game-loop skill's form)
@@ -78,8 +78,8 @@ would have made it fail.
 - `docs/harness/`: architecture, game-loop log, acceptance records, golden checks, prompt craft, versions.
 - `docs/harness/SETTINGS.md`: the env-var table; `docs/harness/LESSONS.md`: the lessons the code is built on.
 - Root launchers: `setup.sh` (fresh clone to a built Forge at the pin and `secrets.env`), `play-vs-llm.sh` (a person
-  against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), `run-llm-headless.sh` /
-  `run-llm-spike.sh`.
+  against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), and the game launchers
+  `run-llm-headless.sh` / `run-llm-spike.sh` (in `forge-overlay/`; run from `$FORGE_HOME` after `install.sh`).
 
 ## Skills (required, user decision 2026-10-13)
 

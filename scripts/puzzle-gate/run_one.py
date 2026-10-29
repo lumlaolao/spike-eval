@@ -3,6 +3,7 @@ ALLOW_STALE_BUILD=1 runs a BUILD not compiled from this checkout's overlay (puzz
 import os, sys, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "eval"))
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_baselines as pb
 build, pzl, out, a, b = sys.argv[1:6]
 env = {"PUZZLE": pzl, "CONTROLLER_A": a, "CONTROLLER_B": b, "PZL_SEEDS": "1"}

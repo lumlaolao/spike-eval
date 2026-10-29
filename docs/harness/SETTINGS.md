@@ -20,7 +20,7 @@ stamps the condition on the game line; `run-llm-headless.sh` and `run-llm-spike.
 | `GAME_SEED`, `SWAP_SEATS` | random, 0 | seeded shuffles; `1` seats identity B first (the paired flip) |
 | `DECK_A/B`, `DECK_A_NAME/B_NAME`, `PLAN_A/B` | eval decks | decklists, seat labels, deck framing (`PLAN_A=""` for none) |
 | `EVAL_OUT` | off | directory for the per-decision and game JSONL |
-| `TRANSCRIPTS` | 0 (1 in `puzzle_solve.py` and `play-vs-llm.sh`) | with `EVAL_OUT`, keeps every HTTP request and response byte for byte (`eval/PUZZLES.md`, "Keeping a run") |
+| `TRANSCRIPTS` | 0 (1 in `puzzle_solve.py` and `play-vs-llm.sh`) | with `EVAL_OUT`, keeps every HTTP request and response byte for byte (`docs/eval/PUZZLES.md`, "Keeping a run") |
 | `FORGE_CP_FILE` | `/tmp/forge_cp.txt` | Forge's classpath list: written by `setup.sh`, read by `run-llm-spike.sh`, `run-llm-headless.sh` and `play-vs-llm.sh` |
 | `GAME_CAP_MS` | 3 h headless | wall-clock cap; a capped game is invalid, never a draw |
 | `SMART_BUDGET` / `FAST_BUDGET` | 10000 | per-game call caps: loop guards, not decision limits (`docs/harness/MODEL-LIMITS.md`) |
@@ -49,7 +49,7 @@ three; only the headless runner, or the GUI with `AUTO_EXIT=1`, writes the game 
 ## Operations
 
 - **Parallel games:** openrouter games 6 to 10 JVMs (RAM-bound, about 1 GB each, counted across all batches); floor 4
-  to 8; Claude CLI specs 1. Never rebuild the checkout while a game runs. `eval/CONCURRENCY.md`.
+  to 8; Claude CLI specs 1. Never rebuild the checkout while a game runs. `docs/eval/CONCURRENCY.md`.
 - **A capped game** grants in-flight asks a grace window sized to the slowest model timeout before the JVM exits;
   `run_batch.py`'s backstop stays wider than cap plus grace.
 - **The shadow labeller** (`SHADOW_AI`) has its own two-gate check: `bash eval/shadow_canary.sh`.

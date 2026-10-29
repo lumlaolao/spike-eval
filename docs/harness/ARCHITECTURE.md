@@ -47,7 +47,7 @@ them and refuses to pool what is not comparable.
   not Forge's files), every change marked `HARNESS PATCH`, the upstream original's sha256 recorded in
   `docs/harness/ENGINE-PATCHES.md`. `eval/engine_patches.py` applies each to the original read from git at the
   pin wherever a build needs it (ENGINE-PATCHES.md, "How a patch reaches the game"); a patch that does not apply
-  stops that build, and `eval/test_engine_patches.py` also fails on a moved original, so a re-pin forces a
+  stops that build, and `eval/tests/test_engine_patches.py` also fails on a moved original, so a re-pin forces a
   re-diff. `overlay_sha` hashes each patch as the file it
   makes. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Four files are
   patched (the table in `ENGINE-PATCHES.md`): `ComputerUtilMana` (the colour an any-colour source makes for a generic
@@ -555,7 +555,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - **What:** with `TRANSCRIPTS=1` and `EVAL_OUT`, every HTTP round-trip `OpenRouterBridge` and `DecisionsBridge` make
   goes through `Transcript.send`, which writes the exact request body before the call and the exact response body
   (or why none came) after it; a puzzle game's whole Forge game log is kept too. The files, their rows and how a run
-  is archived: `eval/PUZZLES.md`, "Keeping a run". `puzzle_solve.py` always turns it on, refuses a build without it,
+  is archived: `docs/eval/PUZZLES.md`, "Keeping a run". `puzzle_solve.py` always turns it on, refuses a build without it,
   and copies the `.pzl` and the suite into the run; `play-vs-llm.sh` turns it on too; `eval/archive_run.py` checks, packs and verifies a finished run.
 - *Why:* the owner wants the frontier puzzle run kept whole, "from the models' chats to the engine logs"
   (2026-10-25). The rows held only what the seat rendered: a `context_call` row's `prompt` is the new user turn
@@ -576,7 +576,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 ### The Decisions bridge (`jev:` seats)
 
 **Owner decision, 2026-10-24:** TypeSafe's Jev 1.14 joins the frontier comparison on the hardest puzzles
-(`eval/puzzle_solve.py`). Jev is not a chat model: it is served only on OpenRouter's Decisions API
+(`eval/puzzles/puzzle_solve.py`). Jev is not a chat model: it is served only on OpenRouter's Decisions API
 (`POST /api/alpha/decisions`), writes no text and calls no tool. It answers typed questions about a `state`: a
 `choice` among keyed options (with a probability for each) or a `noul` (the probability of yes). The owner approved
 an exception to "every decision is answered by a tool call" (`CLAUDE.md`) for it: **Jev's typed answer is turned into
@@ -779,7 +779,7 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
 | `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is |
 
 - *Why the prover:* Forge's puzzle mode tests one opponent line, its AI's, so a solve can come from the AI
-  blocking badly. A proof (`eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and
+  blocking badly. A proof (`docs/eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and
   every leaf of it is a solve Forge scored. A decideMany subset is drawn through `PuzzleArms.subset`, which
   makes the old draws for every other arm (no canary moves) and one include-or-not per option for search.
 
@@ -788,7 +788,7 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
   model seat, the line sees the menus a model sees (floating mana, costly mana abilities, splice and alternative
   costs) and the engine checks every step. Unmatched priority menus pass and unmatched mana-untap asks are left to
   the engine, both counted; a result row's `script_played` is true only when every line was taken with no drift.
-  `puzzle_baselines.py line` reads the row (`eval/PUZZLES.md`, "Proving a written line"), including the seat's
+  `puzzle_baselines.py line` reads the row (`docs/eval/PUZZLES.md`, "Proving a written line"), including the seat's
   `plays_not_made`: a play the line chose that did not happen voids it, and a row without the count is refused.
   The seat's two tiers share one bridge, so a script has one position. Against `CONTROLLER_B=search` the prover
   plays the line as the solver, so every branch it enumerates is an opponent reply the fixed line must beat.
@@ -843,14 +843,14 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - **Seed governance (`eval/seed_policy.py`):** some seed blocks are reserved for evaluation, and no
   training data may come from them.
 - **The three headline scores:**
-  - **STR-AI:** win rate against Forge's AI over fixed panels (`eval/SCORING.md`). The panels file pins
+  - **STR-AI:** win rate against Forge's AI over fixed panels (`docs/eval/SCORING.md`). The panels file pins
     the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
     --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
     settings under one name would be two benchmarks.
   - **STR-HELDOUT:** the same on a held-out seed band; to become the private mined puzzle split
-    (`eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
-  - **PUZ:** the puzzle suite (`eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
-    by the engine. Its hard suite (`eval/suites/puzzles-hard-gen-v1.json`) is generated (`eval/puzzle_gen.py`): each
+    (`docs/eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
+  - **PUZ:** the puzzle suite (`docs/eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
+    by the engine. Its hard suite (`eval/suites/puzzles-hard-gen-v1.json`) is generated (`eval/puzzles/puzzle_gen.py`): each
     board's own written line is its reference line (`arm: written`), replayed against Forge's AI, and a board is
     active only when every floor failed it. *Why:* the proven rules puzzles are mostly one or two actions; a
     generated board is 10 to 15 steps with the opponent at exactly what its line deals, and is fresh, so it
@@ -864,12 +864,12 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     then replays every puzzle played under the lower one in full, and `puzzle_score.py` refuses rows from two caps.
     Each model call's deadline (`--call-timeout-minutes`) and the smart tier's token cap (`--max-tokens`, which is also
     its thinking budget) are recorded the same way. A resume under another value is refused, and the scorer refuses to
-    pool them (`eval/PUZZLES.md`).
+    pool them (`docs/eval/PUZZLES.md`).
     *Why:* frontier games of two models reached the win after 30 minutes, and the owner raised the cap
     (`docs/harness/FRONTIER5.md`, "How it ran", names the rows). Replaying only cut-off games would bias the score
     toward fast games.
 - **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, from the run's `puzzle-run.json` and result
-  rows, and writes nothing (`eval/PUZZLES.md`, "Watching a run").
+  rows, and writes nothing (`docs/eval/PUZZLES.md`, "Watching a run").
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a
   deck-matchup term and cluster-bootstrap CIs.
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,
@@ -930,7 +930,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 1. **`eval/harness_acceptance.sh`:**
    - an isolated compile, which records the overlay hash it compiled in `overlay-sha.txt`; the puzzle launchers
      (`puzzle_baselines.Build`) run only a build whose hash is the checkout's, unless `--allow-stale-build`, which
-     the run's provenance records (`eval/PUZZLES.md`);
+     the run's provenance records (`docs/eval/PUZZLES.md`);
    - every Java and Python test, with a declared-vs-run count;
    - the pinned canaries, with a class-load proof that the new build ran;
    - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules and the turn chat,
@@ -990,7 +990,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      prompt build reaches can ask (`renderSnapshot`; `pricingInsidePricingKeepsTheGuardOn`).
    - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
      which test did. A per-type list let a hook that only ever took forced picks look covered.
-3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**
+3. **Optional live-model checks (`eval/tests/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**
    - short real chats with the game model on fixed decisions, using the real `answer` function and the
      per-model `tool_choice`;
    - every reply must be a call with a legal option, a cast must not fill in a yield, forcing must keep the
@@ -1007,7 +1007,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   session, so keep it under 200 lines and move the rest where it loads on demand): `CLAUDE.md` holds what applies
   everywhere; `.claude/rules/` holds path-scoped rules that load when matching files are touched (the overlay, the
   eval, the seat's prompts and tools); `.claude/skills/` holds the workflows; `docs/harness/INDEX.md` marks each
-  document current or historical. `eval/test_docs_index.py` keeps CLAUDE.md under 200 lines and the index complete.
+  document current or historical. `eval/tests/test_docs_index.py` keeps CLAUDE.md under 200 lines and the index complete.
 
 ## 14. Deliberately not done
 

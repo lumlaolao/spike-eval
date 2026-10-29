@@ -45,6 +45,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import deck_legality  # noqa: E402
 import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 from run_batch import (  # noqa: E402  provenance helpers, reused verbatim

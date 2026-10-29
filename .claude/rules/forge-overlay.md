@@ -3,7 +3,6 @@ paths:
   - "forge-overlay/**"
   - "engine-patches/**"
   - "install.sh"
-  - "run-llm-*.sh"
 ---
 
 # Working on the overlay (the harness's Java)

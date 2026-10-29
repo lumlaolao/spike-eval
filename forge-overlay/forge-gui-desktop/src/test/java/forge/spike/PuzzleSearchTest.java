@@ -12,7 +12,7 @@ import org.testng.annotations.Test;
 import forge.spike.PuzzleArms.Step;
 
 /**
- * PuzzleSearch on toy games, and the search arm's draws (eval/BENCHMARK-V1.md, phase 2). What these guard:
+ * PuzzleSearch on toy games, and the search arm's draws (docs/eval/BENCHMARK-V1.md, phase 2). What these guard:
  * a "proven" puzzle that an opponent reply actually beats (the Forge AI blocked badly, the proof never looked
  * at the other blocks), a search arm whose subset draws can not reach every subset, and a replay that left
  * its line without saying so.

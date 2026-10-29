@@ -47,7 +47,7 @@ included two rounds of diagnosing harness behaviour.
 
 None. Every acceptance state used `life`, `count`, `tokens`, `counters` or `winner`. One trap: tokens are named
 `"Goblin Token"` and `"Treasure Token"` in the engine (Marit Lage keeps its own name), so the `tokens ... "Goblin"`
-example in `eval/PUZZLES.md` never matches.
+example in `docs/eval/PUZZLES.md` never matches.
 
 ## What made puzzles fail the gate (and the fixes)
 

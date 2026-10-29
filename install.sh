@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy the overlay + launcher into a Forge checkout, and write the engine patches into it.
+# Copy the overlay (the Java and the run-llm-*.sh launchers) into a Forge checkout, and write the engine patches into it.
 # Usage: FORGE_HOME=~/code/forge ./install.sh
 set -e
 
@@ -14,8 +14,6 @@ fi
 
 echo "Overlaying spike files into $FORGE_HOME ..."
 cp -Rv "$HERE/forge-overlay/." "$FORGE_HOME/"
-cp -v  "$HERE/run-llm-spike.sh" "$FORGE_HOME/run-llm-spike.sh"
-cp -v  "$HERE/run-llm-headless.sh" "$FORGE_HOME/run-llm-headless.sh"
 chmod +x "$FORGE_HOME/run-llm-spike.sh" "$FORGE_HOME/run-llm-headless.sh"
 
 # The Comprehensive Rules text the RULES tool reads. The play scripts resolve it relative to their

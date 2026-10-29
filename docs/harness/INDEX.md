@@ -2,7 +2,7 @@
 
 Read the **current** documents for how things are; the **historical** ones are records of how they came to be (work
 orders already carried out, reviews already answered). A historical document is never the rule: where it disagrees
-with a current one, the current one is right. `eval/test_docs_index.py` fails when a document here is not listed.
+with a current one, the current one is right. `eval/tests/test_docs_index.py` fails when a document here is not listed.
 
 ## Current
 
@@ -50,6 +50,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 | history/CLAUDE-WORK-ORDER.md, history/CLAUDE-EVAL-WORK-ORDER.md, history/CLAUDE-EVAL-IDENTITY-WORK-ORDER.md, history/CLAUDE-OWNERSHIP-WORK-ORDER.md, history/CLAUDE-OBSERVATION-REVIEW-WORK-ORDER.md, history/CLAUDE-DURABLE-CONTEXT-WORK-ORDER.md | the September-October work orders (A to D and follow-ups), all carried out |
 | history/G7-REMAINING-WORK-ORDER.md | the four hard hooks, routed since |
 | history/HANDOFF-MILESTONE-D.md | the Milestone D handoff (the replay-and-rollout fork), once the handoff at the repository root |
+| history/NOTES-scry-routing.md | how the scry and reveal hooks were first routed (the code has moved on since) |
 | history/2026-10-20-benchmark-v2-research.md | the reading behind BENCHMARK-V2.md and the sample-v1 measurements |
 | history/2026-10-20-generated-hard-puzzles.md | the generated hard puzzles: research, families, gate, the first suite and its paid model check |
 | history/2026-10-21-harder-splice.md | the super-hard splice family (splice2): the splice line defect, multiset splices, the trap, the gen2 boards |

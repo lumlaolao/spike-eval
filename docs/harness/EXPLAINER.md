@@ -111,7 +111,7 @@ Three headline scores, each with its 95% interval and the floor it has to beat (
 |---|---|---|---|
 | STR-AI | win rate against Forge's AI on the frozen panels (`eval/suites/panels-v1.json`): deck d against Forge's AI on deck d, 16 cells, 50 seeds, both seat orders, 1,600 games | the `floor` (always pass) and `random` (uniform legal option) arms on the same cells; the Forge-AI mirror is 50% by symmetry | not run: $32 to $80 at CLAUDE.md's $0.02 to $0.05 a game; the owner's decision |
 | STR-HELDOUT | the same on seeds blocked from every training corpus (`eval/seed_policy.py`) | as STR-AI | not run |
-| PUZ | puzzles where Forge enforces the goal and the engine judges the solve; mean over puzzles of pass@1 minus the puzzle's random solve rate (`eval/puzzle_score.py`) | random play scores 0 by construction; always-pass and first-option alongside | recorded (below) |
+| PUZ | puzzles where Forge enforces the goal and the engine judges the solve; mean over puzzles of pass@1 minus the puzzle's random solve rate (`eval/puzzles/puzzle_score.py`) | random play scores 0 by construction; always-pass and first-option alongside | recorded (below) |
 
 Why floors: a score means something only next to what trivial play gets on the same items. The "88% lesson"
 (`.claude/rules/eval.md`): a replay-match score once read 88.1% while that student won 10% of its games, because
@@ -123,7 +123,7 @@ The puzzles come in two kinds. The rules puzzles are 526 converted Forge puzzles
 testing a rule; a scored sample is frozen as a suite. The hard puzzles (`HARD-PUZZLES.md`) are generated boards of 10
 to 15 actions, each with its own written solution line, kept only when every floor failed it, and fresh, so they
 cannot be memorised; three generated suites are frozen (`puzzles-hard-gen-v1`, `-gen2-v1` with a trap on each board,
-`-gen3-v1` with token engines, landfall, Equipment and infect; `eval/PUZZLES.md`). A written line is played through the model seat by a script arm, so the engine checks every
+`-gen3-v1` with token engines, landfall, Equipment and infect; `docs/eval/PUZZLES.md`). A written line is played through the model seat by a script arm, so the engine checks every
 step of the reference solution too.
 
 ## Numbers to quote, and their sources
@@ -136,7 +136,7 @@ step of the reference solution too.
 | canaries: seed 42 floor mirror wins A in 108 turns (1,828 decisions), random mirror A in 55 (365) | `eval/harness_acceptance.expected` (Linux pins); the same `ACCEPTANCE.md` row |
 | 4 patched engine files, each a diff with its upstream hash and a golden check | `docs/harness/ENGINE-PATCHES.md` |
 | the rules lookup holds 3,163 rules and 741 terms, effective September 25, 2026 | acceptance stage `rules`; `eval/puzzles/rules-pilot/benchmark-v1/REPORT.md` |
-| PUZ, rules sample, 29 puzzles, k=5, Luna: 0.81 (95% CI 0.71 to 0.89) at epoch 66 with lookups off and on alike; at epoch 67 (neutral brief) 0.73 (0.61 to 0.84) off and 0.79 (0.69 to 0.87) on | `eval/puzzles/rules-pilot/benchmark-v1/REPORT.md`; recomputed live by `python3 eval/demo_eval.py` and on `/eval.html` |
+| PUZ, rules sample, 29 puzzles, k=5, Luna: 0.81 (95% CI 0.71 to 0.89) at epoch 66 with lookups off and on alike; at epoch 67 (neutral brief) 0.73 (0.61 to 0.84) off and 0.79 (0.69 to 0.87) on | `eval/puzzles/rules-pilot/benchmark-v1/REPORT.md`; recomputed live by `python3 eval/demo/demo_eval.py` and on `/eval.html` |
 | on that sample pass@1 floors are random 0.088, PASS 0.000, first option 0.207; Forge's AI solves 0.302 | the same REPORT.md |
 | Luna called `rules_lookup` 0 times in 145 attempts when it was offered (`inspect` 40 times at epoch 66, 47 at epoch 67) | the same REPORT.md |
 | hard generated puzzles, pilot: 20 of 68 solved, one attempt each, pass@1 0.294 (95% CI 0.19 to 0.40), floors 0 | `DEMO.md`; `/eval.html` with `--hard-results`; a pilot, never pooled with PUZ |
