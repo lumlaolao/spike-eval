@@ -83,7 +83,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 |---|---|---|
 | `forge-overlay/` | all harness Java, and the game launchers `run-llm-headless.sh` / `run-llm-spike.sh` that `install.sh` copies into `$FORGE_HOME` | the only place harness Java is edited; never the Forge checkout; the launchers are bash 3.2 and parsed by `eval/tests/test_gate_parses.py` |
 | `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/tests/test_engine_patches.py`) |
-| `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports another by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
+| `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports another by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks (`eval/tests/test_untested_list.py` fails on a script with neither, a listed file that is gone or has a test, two scripts sharing a name, and a list longer than its pinned `MAX_UNTESTED`, lowered in the PR that removes a name) |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
 | `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
@@ -201,6 +201,11 @@ most log questions).
 ## 7. Docs
 
 - State what is true now; the history belongs in the commit.
+- Every repository path named in `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, this file,
+  `.claude/rules/` and `.claude/skills/`, in a backtick span (alone or as a word of a command) or a fenced
+  block, is a tracked file or folder: those are what every agent reads first and copies. Checked by
+  `eval/tests/test_doc_paths.py`, for paths under the repository's folders (root files aside: a bare launcher
+  name can mean the copy in `$FORGE_HOME`; placeholders with `<`, `*`, `$` or `...` aside).
 - Every number is reproducible from a named command and run directory. Run directories are not in the repository
   (`runs/` is git-ignored): the doc names the one its author kept.
 - Say what was not determined.

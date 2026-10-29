@@ -27,7 +27,7 @@ import seed_registry  # noqa: E402
 
 PANELS = EVAL / "suites" / "panels-v1.json"
 DOC = json.loads(PANELS.read_text())
-ENGINE = (EVAL.parent / "FORGE_COMMIT").read_text().strip()
+ENGINE = (evalpath.REPO / "FORGE_COMMIT").read_text().strip()
 PILOT = "openrouter:deepseek/deepseek-v4.1-flash"
 SEEDS = [7800, 7801, 7802, 7803]
 
@@ -113,7 +113,7 @@ class TestFrozenPanelsFile(unittest.TestCase):
 
     def test_every_deck_pin_matches_its_file(self):
         for d in DOC["deck_pool"]:
-            self.assertEqual(hashlib.sha256((EVAL.parent / d["path"]).read_bytes()).hexdigest()[:12], d["sha12"],
+            self.assertEqual(hashlib.sha256((evalpath.REPO / d["path"]).read_bytes()).hexdigest()[:12], d["sha12"],
                              d["name"])
 
     def test_the_seeds_are_unreserved_eval_only_and_the_control_covers_them(self):
