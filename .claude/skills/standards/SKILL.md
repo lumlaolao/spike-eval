@@ -23,9 +23,9 @@ python3 scripts/pr_format.py check-branch          # commit subjects and bodies 
 python3 scripts/pr_format.py check-pr <n>          # title and body sections (when there is a PR)
 python3 -m unittest discover -s eval/tests -p 'test_*.py' 2>&1 | tail -3
 git diff --cached --name-only | grep -E '^(runs|datasets)/' && echo "generated data is staged"
-# every eval script the change adds or edits (any folder) has a test, or is still on the shrinking list:
-for f in $(git diff --name-only origin/main...HEAD -- 'eval/*.py' | grep -v '^eval/tests/' | xargs -n1 basename); do
-  [ -f "eval/tests/test_$f" ] || grep -qx "$f" eval/UNTESTED.txt || echo "no test: $f"; done
+# every eval script has a test or is on the shrinking list; every path the agent-facing docs name exists
+# (both also run in the suite above; run alone they say which file):
+python3 eval/tests/test_untested_list.py && python3 eval/tests/test_doc_paths.py
 ```
 
 Then go through the standards section by section and, for each rule the change touches, say

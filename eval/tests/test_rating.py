@@ -21,7 +21,7 @@ import aggregate  # noqa: E402
 import rating  # noqa: E402
 
 FIX = EVAL / "testdata" / "scoring"
-ENGINE = (EVAL.parent / "FORGE_COMMIT").read_text().strip()
+ENGINE = (evalpath.REPO / "FORGE_COMMIT").read_text().strip()
 LLM = "openrouter:anthropic/claude-haiku-5.5"
 
 

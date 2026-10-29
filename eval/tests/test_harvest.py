@@ -4,7 +4,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402,F401
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 sys.path.insert(0, str(evalpath.EVAL / "puzzles" / "modern"))
 import harvest  # noqa: E402
 

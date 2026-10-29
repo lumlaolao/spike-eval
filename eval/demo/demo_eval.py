@@ -25,7 +25,7 @@ import panel_score  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
 
-REPO = os.path.dirname(EVAL)
+REPO = str(evalpath.REPO)
 STAGE = re.compile(r"^(PASS|FAIL|SKIP)\s+([\w-]+):\s*(.*)$")
 PUZ_SUITE = os.path.join(EVAL, "suites", "puzzles-rules-sample-v1.json")
 PUZ_DIR = os.path.join(EVAL, "puzzles", "rules-pilot", "benchmark-v1")

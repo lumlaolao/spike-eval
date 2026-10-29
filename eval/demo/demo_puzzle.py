@@ -20,11 +20,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-EVAL = str(evalpath.EVAL)
 import puzzle_format as pf  # noqa: E402
 from demo_events import GAME_FILE  # noqa: E402  (the viewer's own game-file pattern)
 
-REPO = os.path.dirname(EVAL)
+REPO = str(evalpath.REPO)
 
 SLACK_S = 2.0  # a game's last write may land just after its result row
 
