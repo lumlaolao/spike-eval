@@ -81,6 +81,11 @@ class PlayVsLlmTest(unittest.TestCase):
         (forge / "run-llm-spike.sh").chmod(0o755)
         base = {k: v for k, v in os.environ.items()
                 if k not in ("FORGE_HOME", "CLAUDE_CLI_SEAT", "OPENROUTER_ALLOW_EGRESS")}
+        # A classpath list of its own: whether /tmp/forge_cp.txt exists on this machine must not decide whether
+        # the launcher tries to rebuild it (on a CI runner it does not, and a real mvn would run).
+        cp = self.repo / "stub-cp.txt"
+        cp.write_text("stub")
+        base["FORGE_CP_FILE"] = str(cp)
         base.update(env, FORGE_HOME=str(forge))
         # The zero-model greedy: seat needs no egress consent, and the stub game sends nothing anywhere.
         p = subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--model", "greedy:", *args],
@@ -177,6 +182,7 @@ class PlayVsLlmTest(unittest.TestCase):
         (bin_dir / "mvn").chmod(0o755)
         (self.repo / "stub-forge").mkdir(exist_ok=True)
         (self.repo / "stub-forge" / "pom.xml").write_text("<project/>")
+        self.addCleanup((self.repo / "stub-forge" / "pom.xml").unlink)  # the stub forge is shared by the class
         cp = self.repo / "forge_cp.txt"
         p, got = self.launch(FORGE_CP_FILE=str(cp), PATH="%s:%s" % (bin_dir, os.environ["PATH"]))
         self.assertEqual(p.returncode, 0, p.stderr)

@@ -388,7 +388,7 @@ def main(argv=None):
                     help="deck files for sha/name resolution (default eval/decks)")
     ap.add_argument("--min-share", type=float, default=DEFAULT_MIN_SHARE,
                     help="flag a present family as THIN below this %% of real "
-                         "decisions (default %.1f)" % DEFAULT_MIN_SHARE)
+                         "decisions (default %(default).1f)")
     ap.add_argument("--json", metavar="PATH", nargs="?", const="-",
                     help="emit machine-readable JSON (to PATH, or stdout if bare)")
     args = ap.parse_args(argv)

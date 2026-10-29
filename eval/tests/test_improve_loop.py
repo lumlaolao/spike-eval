@@ -3,6 +3,7 @@ import contextlib
 import io
 import os
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -21,6 +22,9 @@ class ImproveLoopTest(unittest.TestCase):
         patcher = mock.patch.dict(os.environ, env, clear=True)
         patcher.start()
         self.addCleanup(patcher.stop)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.out = tmp.name  # a regression that gets as far as mkdir writes here, never at the root
 
     def cmd(self, *argv):
         args = improve_loop.parse_args(["--forge-home", "/forge", "--out", "/o", *argv])
@@ -47,23 +51,26 @@ class ImproveLoopTest(unittest.TestCase):
         with mock.patch.object(improve_loop.subprocess, "run") as run, \
                 contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit) as cm:
             improve_loop.main(["--controller", "llm", "--seat-a", "openrouter:x/a", "--seat-b", "openrouter:x/b",
-                               "--deck", DECK, "--forge-home", "/forge", "--out", "/o"])
+                               "--deck", DECK, "--forge-home", "/forge", "--out", self.out])
         self.assertEqual(cm.exception.code, 2)
         self.assertIn("OPENROUTER_API_KEY is not set", err.getvalue())
         run.assert_not_called()
 
     def test_no_games_and_a_missing_deck_are_refused(self):
+        # Mocked and in the scratch --out, so a broken refusal cannot launch a real block or write outside it.
         for argv in (["--games", "0", "--deck", DECK], ["--deck", "/no/such/deck.txt"]):
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()), \
+            with mock.patch.object(improve_loop.subprocess, "run") as run, \
+                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()), \
                     self.assertRaises(SystemExit) as cm:
-                improve_loop.main(["--controller", "floor", "--forge-home", "/forge", "--out", "/o", *argv])
+                improve_loop.main(["--controller", "floor", "--forge-home", "/forge", "--out", self.out, *argv])
             self.assertEqual(cm.exception.code, 2, argv)
+            run.assert_not_called()
 
     def test_a_dry_run_prints_the_command_and_launches_nothing(self):
         with mock.patch.object(improve_loop.subprocess, "run") as run, \
                 contextlib.redirect_stdout(io.StringIO()) as out:
             rc = improve_loop.main(["--controller", "floor", "--deck", DECK, "--forge-home", "/forge",
-                                    "--out", "/o", "--dry-run"])
+                                    "--out", self.out, "--dry-run"])
         self.assertEqual(rc, 0)
         self.assertIn("run_batch.py", out.getvalue())
         run.assert_not_called()

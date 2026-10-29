@@ -28,7 +28,8 @@ It merges exactly the commit it checked, with a merge commit. Never squash: the 
 record of what was reviewed. Merging your own PR is fine once the gate passes.
 
 The gate is a record, not a proof. Verdict and acceptance lines are written by the author's
-session, and GitHub does not enforce the script (no branch protection, no CI). Writing a verdict
+session, and GitHub does not enforce the script (no branch protection); CI (`.github/workflows/tests.yml`)
+runs only the Python suite, as a check that is not required. Writing a verdict
 no skill produced, or merging any other way, is a violation the next `standards` review reports.
 Because a verdict is for one head, finish the fixes first, then run acceptance and the three
 skills on the final commit; a re-review after fixes checks the fixes and the delta.
@@ -83,9 +84,10 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 |---|---|---|
 | `forge-overlay/` | all harness Java, and the game launchers `run-llm-headless.sh` / `run-llm-spike.sh` that `install.sh` copies into `$FORGE_HOME` | the only place harness Java is edited; never the Forge checkout; the launchers are bash 3.2 and parsed by `eval/tests/test_gate_parses.py` |
 | `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/tests/test_engine_patches.py`) |
-| `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports another by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks (`eval/tests/test_untested_list.py` fails on a script with neither, a listed file that is gone or has a test, two scripts sharing a name, and a list longer than its pinned `MAX_UNTESTED`, lowered in the PR that removes a name) |
+| `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports another by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks (`eval/tests/test_untested_list.py`; its pinned `MAX_UNTESTED` is lowered in the PR that removes a name) |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
-| `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
+| `.github/workflows/` | CI: the Python suite (`tests.yml`) on every PR and push to main, on the Python floor and a current one | no secrets, `permissions: contents: read`, `pull_request` (never `pull_request_target`); not the merge gate (section 1) |
+| `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder, or for what is not a script there: a launcher (`test_setup.py`), a data set (`test_modern_puzzles.py`) or a repository rule (`test_doc_paths.py`, `test_untested_list.py`, `test_gate_parses.py`) | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
 | `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/tests/test_pr_format.py`; the shell scripts are thin wrappers |
 | `*.sh` (root) | entry points run from the clone (`install.sh`, `setup.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) |
@@ -171,7 +173,9 @@ most log questions).
   The check reads this file's shape only; the PR-side half of the naming is off its sight.
 - A test never needs `runs/` or a downloaded file to pass: `runs/` is git-ignored and the Comprehensive Rules text
   is fetched (`eval/fetch_comp_rules.py`). A test that reads one skips, saying why, when it is absent, so
-  `python3 -m unittest discover -s eval/tests` passes on a fresh clone; acceptance fetches the text first, so there it runs.
+  `python3 -m unittest discover -s eval/tests` passes on a fresh clone, as a user without root and without a Forge
+  checkout (the CI runner: a lookup of a default checkout such as `/root/forge` treats a folder it cannot read as
+  absent); acceptance fetches the text first, so there it runs.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the
@@ -205,7 +209,8 @@ most log questions).
   `.claude/rules/` and `.claude/skills/`, in a backtick span (alone or as a word of a command) or a fenced
   block, is a tracked file or folder: those are what every agent reads first and copies. Checked by
   `eval/tests/test_doc_paths.py`, for paths under the repository's folders (root files aside: a bare launcher
-  name can mean the copy in `$FORGE_HOME`; placeholders with `<`, `*`, `$` or `...` aside).
+  name can mean the copy in `$FORGE_HOME`; placeholders with `<`, `*`, `?`, `{`, `$` or `...` aside). A path a
+  command will create, or a fetched file that is not tracked, is written with a placeholder (`<out>.jsonl`).
 - Every number is reproducible from a named command and run directory. Run directories are not in the repository
   (`runs/` is git-ignored): the doc names the one its author kept.
 - Say what was not determined.

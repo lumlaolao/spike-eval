@@ -1,0 +1,30 @@
+# The Python suite on every pull request and every push to main: no Forge build, no API key, a read-only token,
+# on the Python floor (3.9, macOS's own python3; docs/STANDARDS.md section 4) and a current one. The full gate is
+# acceptance (section 1).
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ${{ matrix.os }}  # pinned images: the newest one no longer serves 3.9
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, python-version: "3.9"}
+          - {os: ubuntu-24.04, python-version: "3.12"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: unit tests
+        run: python3 -m unittest discover -s eval/tests -p 'test_*.py'

@@ -27,8 +27,11 @@ DECK_LINE = re.compile(r"^\s*(\d+)\s+(.+?)\s*$")
 def forge_home():
     for c in (os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", ""))), str(Path.home() / "code/forge"),
               "/root/forge"):
-        if c and (Path(c) / "forge-gui/res/formats").is_dir():
-            return Path(c)
+        try:
+            if c and (Path(c) / "forge-gui/res/formats").is_dir():
+                return Path(c)
+        except OSError:  # a candidate this user cannot read (/root/forge for a non-root user) is not a checkout
+            continue
     raise SystemExit("no Forge checkout (set FORGE_HOME)")
 
 

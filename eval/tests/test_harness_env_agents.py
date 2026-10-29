@@ -2,7 +2,8 @@
 
 copy-ours must leave a submission the grader can build (our main sources, our engine patches as the patched files,
 the ABI adapter, the factory named) and nothing must leave an empty overlay; both must say DONE, or the runner would
-wait for the cap. The engine-patch check needs the Forge checkout and is skipped without one.
+wait for the cap. copy-ours applies the engine patches, so its tests need the Forge checkout and skip without one
+(as on a CI runner).
 """
 import os
 import shutil
@@ -27,8 +28,14 @@ class AgentsTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.box)
 
+    def forge(self):
+        forge = engine_patches.forge_home()
+        if forge is None:
+            self.skipTest("no Forge checkout: copy-ours cannot apply the engine patches")
+        return forge
+
     def test_copy_ours_leaves_our_seat_behind_the_abi_and_says_done(self):
-        ag.copy_ours(REPO, self.box)
+        ag.copy_ours(REPO, self.box, self.forge())
         overlay = os.path.join(self.box, "overlay")
         info = hgrade.intake(overlay)
         self.assertEqual(info["factory"], "forge.spike.HarnessEnvOurs$Ours")
@@ -38,16 +45,14 @@ class AgentsTest(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(self.box, "DONE")))
 
     def test_copy_ours_brings_our_engine_patches_as_the_marked_files_they_make(self):
-        forge = engine_patches.forge_home()
-        if forge is None:
-            self.skipTest("no Forge checkout: the engine patches cannot be applied")
+        forge = self.forge()
         ag.copy_ours(REPO, self.box, forge)
         info = hgrade.intake(os.path.join(self.box, "overlay"), str(forge))
         self.assertEqual(sorted(info["engine_patches"]), sorted(engine_patches.patch_files(REPO)))
         self.assertEqual(info["unmarked_engine_patches"], [])
 
     def test_the_build_does_not_add_the_adapter_twice(self):
-        ag.copy_ours(REPO, self.box)
+        ag.copy_ours(REPO, self.box, self.forge())
         argv = hgrade.compile_command("javac", "/nope", os.path.join(self.box, "overlay"), REPO, "/p/PlayerControllerAi.java", "/o")
         self.assertEqual(sum(1 for a in argv if a.endswith("HarnessEnvOurs.java")), 1)
 

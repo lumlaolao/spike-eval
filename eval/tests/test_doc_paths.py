@@ -12,12 +12,13 @@ import evalpath  # noqa: E402  (every eval script folder on sys.path)
 
 REPO = evalpath.REPO
 DOCS = (["CLAUDE.md", "AGENTS.md", "CONTRIBUTING.md", "README.md", "docs/STANDARDS.md"]
-        + sorted(str(p.relative_to(REPO)) for p in REPO.glob(".claude/rules/*.md"))
-        + sorted(str(p.relative_to(REPO)) for p in REPO.glob(".claude/skills/*/SKILL.md")))
+        + [str(p.relative_to(REPO)) for g in (".claude/rules/*.md", ".claude/skills/*/SKILL.md")
+           for p in sorted(REPO.glob(g))])
 # Paths under the repository's own folders; root files (setup.sh, ...) are not checked, since a bare
-# launcher name can mean the copy installed in $FORGE_HOME. Placeholders (<name>, *, $VAR, ...) are skipped.
+# launcher name can mean the copy installed in $FORGE_HOME. Placeholders (<name>, *, ?, {a,b}, $VAR, ...) are skipped.
 TOP = ("eval/", "docs/", "scripts/", "forge-overlay/", "engine-patches/", ".claude/", "data/", "datasets/")
 SPAN = re.compile(r"`([^`]+)`")
+PLACEHOLDER = re.compile(r"[<>*?{}$]|\.\.")  # ... loses its last dot to the sentence strip
 
 
 def tracked():
@@ -35,9 +36,10 @@ def tracked():
 
 def words(line, fenced):
     for chunk in ([line] if fenced else SPAN.findall(line)):
-        for w in chunk.split():
-            w = w.strip("\"'()[],;").split("=", 1)[-1]
-            yield re.sub(r"(:\d+)?[.:]?$", "", w).split("#")[0]
+        for w in re.split(r"[\s,;|]+", chunk):
+            w = w.strip("\"'()[]").split("=", 1)[-1].split("::")[0].split("#")[0]
+            # a trailing line or range (`:12`, `:12-40`) and sentence punctuation, then brackets once more
+            yield re.sub(r"(:\d+(-\d+)?)?[.:]?$", "", w).strip("\"'()[]")
 
 
 def named_paths():
@@ -47,12 +49,30 @@ def named_paths():
             if line.lstrip().startswith("```"):
                 fenced = not fenced
                 continue
-            for p in words(line, fenced):
-                if p.startswith(TOP) and not any(c in p for c in "<>*$") and "..." not in p:
-                    yield doc, n, p.rstrip("/")
+            for p in paths_in(line, fenced):
+                yield doc, n, p.rstrip("/")
+
+
+def paths_in(text, fenced=False):
+    return [w for w in words(text, fenced) if w.startswith(TOP) and not PLACEHOLDER.search(w)]
 
 
 class DocPathsTest(unittest.TestCase):
+
+    def test_how_a_path_is_read_out_of_a_span(self):
+        cases = {
+            "`eval/run_batch.py:12-40`": ["eval/run_batch.py"],
+            "`eval/tests/test_rating.py::RatingTest::test_x`": ["eval/tests/test_rating.py"],
+            "`cat eval/UNTESTED.txt|wc -l`": ["eval/UNTESTED.txt"],
+            "`eval/a.py,eval/b.py;scripts/c.sh`": ["eval/a.py", "eval/b.py", "scripts/c.sh"],
+            "`(eval/run_batch.py).`": ["eval/run_batch.py"],
+            "`FOO=1 python3 eval/x.py --out=docs/y.md`": ["eval/x.py", "docs/y.md"],
+            "`.claude/skills/{a,b}/SKILL.md` `eval/test_?.py` `eval/<name>.py` `eval/...`": [],
+            "plain eval/not_in_a_span.py": [],
+        }
+        for text, want in cases.items():
+            self.assertEqual(paths_in(text), want, text)
+        self.assertEqual(paths_in("bash scripts/x.sh eval/y.py", fenced=True), ["scripts/x.sh", "eval/y.py"])
 
     def test_every_named_path_exists(self):
         found = list(named_paths())
