@@ -5,13 +5,13 @@ import os
 import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = str(evalpath.EVAL)
+EVAL = str(evalpath.EVAL)
 import demo_events as de
 import demo_highlights as dh
 
-FIX = os.path.join(HERE, "testdata", "demo")
+FIX = os.path.join(EVAL, "testdata", "demo")
 
 
 def last_decision(*names):

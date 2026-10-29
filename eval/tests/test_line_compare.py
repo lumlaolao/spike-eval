@@ -7,7 +7,7 @@ import unittest
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import line_compare as lc
 
 STATE = ("TURN 13\nYOU [MarduLLM] life 16 | poison 0/10 | energy 2 | hand 1\n"

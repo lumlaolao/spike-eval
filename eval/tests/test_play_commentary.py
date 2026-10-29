@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import play_commentary as pc  # noqa: E402
 
 PLAY = {"t": "decision", "seat": "Seat", "tier": "smart", "type": "play", "turn": 3, "phase": "MAIN1", "choice": 1,

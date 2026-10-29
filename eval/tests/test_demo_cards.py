@@ -14,10 +14,10 @@ import urllib.error
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import demo_cards as dc
 
-HERE = str(evalpath.EVAL)
+EVAL = str(evalpath.EVAL)
 
 
 class CacheTest(unittest.TestCase):
@@ -100,7 +100,7 @@ class CacheTest(unittest.TestCase):
         self.assertFalse(os.path.exists(c.path("Tundra")))
 
     def test_prefetch_counts_network_failures_apart_from_names_scryfall_lacks(self):
-        game = os.path.join(HERE, "testdata", "demo", "g33-t5-upkeep.jsonl")
+        game = os.path.join(EVAL, "testdata", "demo", "g33-t5-upkeep.jsonl")
 
         def down(name):
             raise OSError("no route")
@@ -112,7 +112,7 @@ class CacheTest(unittest.TestCase):
         self.assertNotIn("no image", line)
 
     def test_prefetch_names_are_the_objects_the_prompts_showed(self):
-        names = dc.names_in_game(os.path.join(HERE, "testdata", "demo", "g33-t5-upkeep.jsonl"))
+        names = dc.names_in_game(os.path.join(EVAL, "testdata", "demo", "g33-t5-upkeep.jsonl"))
         for n in ("Bilbo, Thief in the Night", "Tundra", "Emberheart Challenger", "Black Lotus"):
             self.assertIn(n, names)
         self.assertNotIn("Pithing Needle", names)  # only revealed, never a visible object at that decision

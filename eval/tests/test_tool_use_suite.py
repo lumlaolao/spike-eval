@@ -5,12 +5,11 @@ import json
 import os
 import re
 import unittest
-from pathlib import Path
 from unittest import mock
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import tool_use_suite as tu
 
 SPIKE = evalpath.REPO / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"

@@ -81,12 +81,14 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 
 | Path | Holds | Rule |
 |---|---|---|
-| `forge-overlay/` | all harness Java | the only place harness Java is edited; never the Forge checkout |
+| `forge-overlay/` | all harness Java, and the game launchers `run-llm-headless.sh` / `run-llm-spike.sh` that `install.sh` copies into `$FORGE_HOME` | the only place harness Java is edited; never the Forge checkout; the launchers are bash 3.2 and parsed by `eval/tests/test_gate_parses.py` |
 | `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/tests/test_engine_patches.py`) |
 | `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports another by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
+| `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
+| `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/tests/test_pr_format.py`; the shell scripts are thin wrappers |
-| `*.sh` (root) | launchers (`install.sh`, `setup.sh`, `run-llm-*.sh`, `play-vs-llm.sh`, ...) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) |
+| `*.sh` (root) | entry points run from the clone (`install.sh`, `setup.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) |
 | `docs/harness/` | what the harness does and what was measured | a claim cites a file, a test or a run |
 | `.claude/skills/` | the skills every agent must use; Claude Code and OpenCode both discover them here, so they are not copied elsewhere | tracked; local settings and worktrees are not |
 | `runs/`, `datasets/` | generated data | never committed; never `git add -A` at the root |

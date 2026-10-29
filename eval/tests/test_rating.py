@@ -14,14 +14,14 @@ import unittest
 from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = evalpath.EVAL
+EVAL = evalpath.EVAL
 import aggregate  # noqa: E402
 import rating  # noqa: E402
 
-FIX = HERE / "testdata" / "scoring"
-ENGINE = (HERE.parent / "FORGE_COMMIT").read_text().strip()
+FIX = EVAL / "testdata" / "scoring"
+ENGINE = (EVAL.parent / "FORGE_COMMIT").read_text().strip()
 LLM = "openrouter:anthropic/claude-haiku-5.5"
 
 

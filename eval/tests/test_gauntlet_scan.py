@@ -8,7 +8,7 @@ import unittest
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import gauntlet_scan as gs
 
 CLEAN = "[kw00] [TALLY] smart=28 fast=0 auto=9 ai=0 textParses=0\n"

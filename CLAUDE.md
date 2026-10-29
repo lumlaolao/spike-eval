@@ -78,8 +78,8 @@ would have made it fail.
 - `docs/harness/`: architecture, game-loop log, acceptance records, golden checks, prompt craft, versions.
 - `docs/harness/SETTINGS.md`: the env-var table; `docs/harness/LESSONS.md`: the lessons the code is built on.
 - Root launchers: `setup.sh` (fresh clone to a built Forge at the pin and `secrets.env`), `play-vs-llm.sh` (a person
-  against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), `run-llm-headless.sh` /
-  `run-llm-spike.sh`.
+  against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), and the game launchers
+  `run-llm-headless.sh` / `run-llm-spike.sh` (in `forge-overlay/`; run from `$FORGE_HOME` after `install.sh`).
 
 ## Skills (required, user decision 2026-10-13)
 

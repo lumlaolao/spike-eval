@@ -402,7 +402,7 @@ public final class LlmSpikeGui {
         }
     }
 
-    /** Fork-mode extension point (LlmSpikeFork, Milestone D — docs/eval/EVAL-DESIGN.md §3.1). Null in
+    /** Fork-mode extension point (LlmSpikeFork, Milestone D — eval/EVAL-DESIGN.md §3.1). Null in
      *  every normal run (GUI, headless, tests) — zero overhead, zero behavior change. When
      *  LlmSpikeFork sets it before starting a game, {@link #emitDecisionRow} calls it synchronously
      *  (today, the fork-mode game runs on a single worker thread — see LlmSpikeFork#playDeterministicGame
@@ -10713,7 +10713,7 @@ public final class LlmSpikeGui {
                 "fp6", "fp8", "mxfp8", "fp16", "bf16", "fp32", "unknown");
         /**
          * The {@code "quantizations":[...]} field for {@code model}, or null. OPENROUTER_QUANTIZATIONS holds
-         * {"<model>":["fp8","bf16",...]} (eval/puzzles/puzzle_solve.py --quantizations): OpenRouter then serves the model only
+         * {"<model>":["fp8","bf16",...]} (eval/puzzle_solve.py --quantizations): OpenRouter then serves the model only
          * from an endpoint at one of those precisions, so an open-weight model plays at its maker's released precision,
          * never on a host that compresses it further (owner, 2026-10-26). Unset, or a model it does not name: no filter.
          * Unreadable, empty, or a precision OpenRouter does not name: refused, never dropped.
@@ -10742,7 +10742,7 @@ public final class LlmSpikeGui {
 
         /**
          * The {@code "max_price":{...}} field for {@code model}, or null. OPENROUTER_MAX_PRICE holds
-         * {"<model>":{"prompt":P,"completion":C}} in USD per million tokens (eval/puzzles/puzzle_solve.py --max-price-at-list
+         * {"<model>":{"prompt":P,"completion":C}} in USD per million tokens (eval/puzzle_solve.py --max-price-at-list
          * writes it from the list prices); OpenRouter then routes only to an endpoint at or under it, so latency
          * routing never lands on a priority tier (GPT-6.1 Sol's is 6x list, eval/pricing/prices.json `max`; owner,
          * 2026-10-25). Unset, or a model it does not name: no ceiling. Unreadable: refused, so a run never goes out
@@ -11258,7 +11258,7 @@ public final class LlmSpikeGui {
         }
 
         /** The prefixes the factory routes; any other spec was the retired bare-name lane. Mirrors
-         *  eval/cost_report.py KNOWN_PREFIXES (eval/tests/test_cost_report.py checks the two lists agree). */
+         *  eval/cost_report.py KNOWN_PREFIXES (eval/test_cost_report.py checks the two lists agree). */
         static final String[] ROUTED_PREFIXES = {"openrouter:", DecisionsBridge.PREFIX, ClaudeCliBridge.PREFIX,
                 ScriptBridge.PREFIX, GreedyBridge.PREFIX};
 

@@ -7,12 +7,11 @@ Needs the Forge checkout ($FORGE_HOME, ~/code/forge or /root/forge); skipped wit
 import re
 import sys
 import unittest
-from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = evalpath.EVAL
+EVAL = evalpath.EVAL
 import deck_legality as dl  # noqa: E402
 
 try:
@@ -33,7 +32,7 @@ class DeckLegalityTest(unittest.TestCase):
 
     def test_every_format_deck_is_legal_in_its_format(self):
         for prefix in dl.FORMAT_PREFIXES:
-            decks = sorted((HERE / "decks").glob(prefix + "-*.txt"))
+            decks = sorted((EVAL / "decks").glob(prefix + "-*.txt"))
             self.assertTrue(decks, "no %s decks" % prefix)
             for d in decks:
                 self.assertEqual(self.check(prefix, dl.read_deck(d)), [], d.name)

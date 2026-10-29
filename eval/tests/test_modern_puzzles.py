@@ -15,10 +15,10 @@ import os
 import unittest
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-_HERE = str(evalpath.EVAL)
-CORPUS = os.path.join(_HERE, "puzzles", "modern", "puzzles.jsonl")
+EVAL = str(evalpath.EVAL)
+CORPUS = os.path.join(EVAL, "puzzles", "modern", "puzzles.jsonl")
 
 REQUIRED = {
     "id", "title", "source_url", "source_name", "date", "era", "format",

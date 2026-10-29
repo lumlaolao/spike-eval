@@ -20,12 +20,11 @@ import os
 import time
 import unittest
 import urllib.request
-from pathlib import Path
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = evalpath.EVAL
+EVAL = evalpath.EVAL
 MODEL = os.environ.get("LIVE_MODEL", "openai/gpt-6-luna")
 LIVE = os.environ.get("LIVE_MODEL_TESTS") == "1"
 SYSTEM = ("You are playing Magic: The Gathering, Legacy format, as the player \"Seat\" against one opponent. "
@@ -44,7 +43,7 @@ def tool_choice_for(model):
 def ask(decision, model=MODEL):
     body = {"model": model, "max_tokens": 4000, "usage": {"include": True},
             "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": decision}],
-            "tools": json.loads((HERE / "tooluse" / "answer_tools.json").read_text()),
+            "tools": json.loads((EVAL / "tooluse" / "answer_tools.json").read_text()),
             "tool_choice": tool_choice_for(model)}
     req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=json.dumps(body).encode(),
                                  headers={"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"],

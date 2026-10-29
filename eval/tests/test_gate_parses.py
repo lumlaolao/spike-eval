@@ -12,7 +12,8 @@ bash -n parses each script on the bash that runs it, which catches the hazard on
 script for the same hazard, so it fails on Linux too. Neither can see run-time
 behaviour: a script that parses but dies mid-stage, or a stage list naming a
 stage the gate never runs. The scanned set is the top-level eval/ and scripts/
-gate scripts and the root launchers (install.sh, setup.sh, run-llm-*.sh, play-vs-llm.sh).
+gate scripts, the root launchers (install.sh, setup.sh, play-vs-llm.sh) and the game launchers
+forge-overlay/run-llm-*.sh.
 
 Script paths come from this file's own location, so the test runs unchanged
 from any checkout or worktree.
@@ -20,15 +21,15 @@ from any checkout or worktree.
 import re
 import subprocess
 import unittest
-from pathlib import Path
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
 REPO = evalpath.REPO
 # Every bash entry point the repo treats as a gate, hook or launcher. bash -n: parse only.
-GATE_SCRIPTS = sorted({*REPO.glob("eval/*.sh"), *REPO.glob("scripts/*.sh"), *REPO.glob("*.sh")})
+GATE_SCRIPTS = sorted({*REPO.glob("eval/*.sh"), *REPO.glob("scripts/*.sh"), *REPO.glob("*.sh"),
+                       *REPO.glob("forge-overlay/*.sh")})
 
 
 class GateParses(unittest.TestCase):

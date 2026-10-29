@@ -12,7 +12,7 @@ import forge.game.player.Player;
 import forge.game.zone.ZoneType;
 
 /**
- * The acceptance state of a rules puzzle (docs/eval/BENCHMARK-V1.md, "The shape every puzzle takes"): the
+ * The acceptance state of a rules puzzle (eval/BENCHMARK-V1.md, "The shape every puzzle takes"): the
  * {@code [acceptance]} section of a .pzl, one condition per line, all of which must hold on the final engine state.
  * Forge ignores the section; {@link LlmSpikePuzzle} reads it, and a solve is then "the conditions held when the game
  * ended", not "the solver won". Only engine state is read: zones, names, tokens, counters, life, the winner.

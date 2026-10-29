@@ -5,7 +5,7 @@ import unittest
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import java_imports as ji
 
 BROKEN = """package forge.spike;
@@ -50,7 +50,7 @@ class JavaImportsTest(unittest.TestCase):
                 self.assertEqual(ji.problems("import forge.ai.ComputerUtilCost;\n" + body), [])
 
     def test_the_overlay_is_clean(self):
-        overlay = os.path.join(str(evalpath.EVAL), "..", "forge-overlay")
+        overlay = os.path.join(str(evalpath.REPO), "forge-overlay")
         self.assertEqual(ji.main([overlay]), 0)
 
 

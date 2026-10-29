@@ -33,7 +33,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import engine_patches as ep  # noqa: E402  a newer tree's engine patches are diffs, applied to the pinned original
 import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 

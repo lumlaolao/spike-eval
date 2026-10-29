@@ -6,12 +6,12 @@ import sys
 import tempfile
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = str(evalpath.EVAL)
+EVAL = str(evalpath.EVAL)
 import demo_events as de
 
-FIX = os.path.join(HERE, "testdata", "demo")
+FIX = os.path.join(EVAL, "testdata", "demo")
 
 
 def events(*names):
@@ -326,7 +326,7 @@ class ReaderTest(unittest.TestCase):
         self.assertEqual(de.find_game(missing), (None, None))
 
     def test_the_whole_g33_game_joins_every_call_to_a_decision(self):
-        g33 = os.path.join(HERE, "..", "runs", "loop", "g33")
+        g33 = os.path.join(EVAL, "..", "runs", "loop", "g33")
         jsonl, log = de.find_game(g33)
         if not jsonl:
             self.skipTest("runs/loop/g33 is not in this clone")

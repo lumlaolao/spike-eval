@@ -526,7 +526,7 @@ All free: no model call, no egress. Each step says what makes it fail.
 | `eval/harness_env/harness_env_generate.py` | instance sets from the card scripts: secret seed, dev pool, versions |
 | `eval/harness_env/harness_env_episode.py`, `eval/harness_env/harness_env_agents.py` | the episode runner; the copy-ours and do-nothing agents |
 | `eval/harness_env/harness_env_calibrate.py` | the seven settings, six criteria and the recommendation |
-| `eval/test_harness_env_*.py` | the tests of each |
+| `eval/tests/test_harness_env_*.py` | the tests of each |
 | `forge-overlay/forge-gui-desktop/src/test/java/forge/harnessenv/` | `SeatFactory`, `ModelEndpoint`; `grader/` (scripted model, counter, boards, checks, 69 instances, generated instances, suite); `toys/` (priority-only, text parser, AI delegate) |
 | `forge-overlay/forge-gui-desktop/src/test/java/forge/spike/HarnessEnvOurs.java` | our seat on the ABI, and the two ablations |
 | `docs/harness/evidence/2026-10-22-env-grade-abi.tsv` | the measured report of section 4.9 (414 rows: 69 instances x 6 seats) |

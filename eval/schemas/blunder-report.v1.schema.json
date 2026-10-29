@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "blunder-report.v1",
-  "title": "Adjudicated decision line of a blunder report (one jsonl line) — see docs/eval/EVAL-DESIGN.md §4 / §10.2",
+  "title": "Adjudicated decision line of a blunder report (one jsonl line) — see eval/EVAL-DESIGN.md §4 / §10.2",
   "type": "object",
   "required": ["schema", "run_dir", "game_file", "decision_index", "seat", "model", "turn", "decision_type", "n_options", "choice", "flag_lane", "adjudication"],
   "properties": {

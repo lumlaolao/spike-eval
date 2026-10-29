@@ -14,9 +14,9 @@ import urllib.request
 from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = evalpath.EVAL
+EVAL = evalpath.EVAL
 import sanity_arms  # noqa: E402
 
 
@@ -137,7 +137,7 @@ class TestOnDisk(unittest.TestCase):
             for arm in ("floor", "random", "empty"):
                 write_arm(scored, arm, {1: ("B", "B")})
             write_arm(scored, "garbage", {1: ("A", "A")})
-            p = subprocess.run([sys.executable, str(HERE / "aggregate.py"), str(scored), "--sanity-arms"],
+            p = subprocess.run([sys.executable, str(EVAL / "aggregate.py"), str(scored), "--sanity-arms"],
                                capture_output=True, text=True)
             self.assertEqual(p.returncode, 5, p.stdout + p.stderr)
             self.assertIn("VIOLATION: garbage won", p.stdout)

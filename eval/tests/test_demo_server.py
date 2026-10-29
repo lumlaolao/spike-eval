@@ -13,12 +13,12 @@ from unittest import mock
 import urllib.error
 import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = str(evalpath.EVAL)
+EVAL = str(evalpath.EVAL)
 import demo_server as srv
 
-FIX = os.path.join(HERE, "testdata", "demo")
+FIX = os.path.join(EVAL, "testdata", "demo")
 
 
 def serve(panes, cards=None):
@@ -72,9 +72,10 @@ class ReplayTest(unittest.TestCase):
 
     def test_a_path_outside_the_web_directory_is_refused(self):
         # A raw request line: a client library might normalise the dots away. Without the guard this serves
-        # eval/demo/demo_server.py (checked by removing it once).
+        # eval/demo/demo_server.py (checked by removing it once), so the file must be where the request points.
+        self.assertTrue(os.path.isfile(os.path.normpath(os.path.join(srv.WEB, "../demo_server.py"))))
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_address[1], timeout=10)
-        conn.request("GET", "/../../demo_server.py")
+        conn.request("GET", "/../demo_server.py")
         r = conn.getresponse()
         r.read()
         conn.close()

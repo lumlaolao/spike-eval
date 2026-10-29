@@ -1,7 +1,7 @@
 {
   "format": "harness-env-episode/0",
   "id": "build-the-seat-v0",
-  "about": "One episode of the harness-building task (docs/harness/HARNESS-ENV-FRAMEWORK.md). Read by eval/harness_env/harness_env_spec.py; built into a sandbox by eval/harness_env/harness_env_sandbox.py; graded by eval/harness_env/harness_env_grade.py.",
+  "about": "One episode of the harness-building task (docs/harness/HARNESS-ENV-FRAMEWORK.md). Read by eval/harness_env_spec.py; built into a sandbox by eval/harness_env_sandbox.py; graded by eval/harness_env_grade.py.",
   "task": "eval/harness_env/TASK.md",
   "copy": [
     {"from": "eval/harness_env/TASK.md", "to": "TASK.md", "why": "the task statement"},

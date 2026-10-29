@@ -1,7 +1,7 @@
 {
   "suite": "panels-v1",
   "version": 1,
-  "description": "The two STR-AI panels of eval/research/2026-10-15-scoring-design.md section 1.1, frozen. Identity A is the pilot under test (an llm seat, or a sanity arm); identity B is the Forge AI. Every pilot plays the same published seeds in every cell, so pilot-vs-pilot differences are seed-paired. eval/run_batch.py --panel launches a panel, eval/panel_score.py scores one, docs/eval/SCORING.md documents both.",
+  "description": "The two STR-AI panels of eval/research/2026-10-15-scoring-design.md section 1.1, frozen. Identity A is the pilot under test (an llm seat, or a sanity arm); identity B is the Forge AI. Every pilot plays the same published seeds in every cell, so pilot-vs-pilot differences are seed-paired. eval/run_batch.py --panel launches a panel, eval/panel_score.py scores one, eval/SCORING.md documents both.",
   "deck_pool": [
     {
       "name": "ant-storm",

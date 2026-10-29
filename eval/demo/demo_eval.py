@@ -18,21 +18,21 @@ import os
 import re
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = str(evalpath.EVAL)
+EVAL = str(evalpath.EVAL)
 import panel_score  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
 
-REPO = os.path.dirname(HERE)
+REPO = os.path.dirname(EVAL)
 STAGE = re.compile(r"^(PASS|FAIL|SKIP)\s+([\w-]+):\s*(.*)$")
-PUZ_SUITE = os.path.join(HERE, "suites", "puzzles-rules-sample-v1.json")
-PUZ_DIR = os.path.join(HERE, "puzzles", "rules-pilot", "benchmark-v1")
+PUZ_SUITE = os.path.join(EVAL, "suites", "puzzles-rules-sample-v1.json")
+PUZ_DIR = os.path.join(EVAL, "puzzles", "rules-pilot", "benchmark-v1")
 # The recorded PUZ runs (eval/puzzles/rules-pilot/benchmark-v1/REPORT.md): Luna, k=5, lookup tools off and on.
 PUZ_RUNS = (("lookups off, epoch 66", "results/off"), ("lookups on, epoch 66", "results/on"),
             ("lookups off, epoch 67", "results-e67/off"), ("lookups on, epoch 67", "results-e67/on"))
-PANELS = os.path.join(HERE, "suites", "panels-v1.json")
+PANELS = os.path.join(EVAL, "suites", "panels-v1.json")
 GAME_COST_USD = (0.02, 0.05)   # one one-tier Luna game (CLAUDE.md, "Cost of paid runs")
 
 

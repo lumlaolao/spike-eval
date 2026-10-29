@@ -5,11 +5,10 @@ import os
 import re
 import sys
 import unittest
-from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-sys.path.insert(0, os.path.join(str(evalpath.EVAL), "..", "scripts"))
+sys.path.insert(0, os.path.join(str(evalpath.REPO), "scripts"))
 import pr_format as pf  # noqa: E402
 
 BODY = """## What
@@ -264,7 +263,7 @@ class RestOnlyTest(unittest.TestCase):
         self.assertIn("- pr-review @ %s: CLEAN" % ("ab" * 20)[:9], json.loads(kw["input"])["body"])
 
     def test_no_script_calls_a_graphql_gh_command(self):
-        root = os.path.join(str(evalpath.EVAL), "..", "scripts")
+        root = os.path.join(str(evalpath.REPO), "scripts")
         for name in ("pr_format.py", "pr_merge.sh"):
             with open(os.path.join(root, name), encoding="utf-8") as f:
                 text = f.read()

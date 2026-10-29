@@ -7,7 +7,7 @@ import unittest
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import cost_report as cr
 
 OR = "openrouter:deepseek/deepseek-v4.1-flash"
@@ -127,7 +127,7 @@ class CostReportTest(unittest.TestCase):
     def test_the_decision_model_prefix_is_the_bridges_own(self):
         # run_batch.py refuses lookups and text answers for a seat cost_report calls a decision model; a prefix that
         # drifted from DecisionsBridge.PREFIX would let such a seat launch and be refused only inside the JVM.
-        java = os.path.join(str(evalpath.EVAL), os.pardir, "forge-overlay", "forge-gui-desktop",
+        java = os.path.join(str(evalpath.REPO), "forge-overlay", "forge-gui-desktop",
                             "src", "main", "java", "forge", "spike", "DecisionsBridge.java")
         with open(java, encoding="utf-8") as f:
             m = re.search(r'static final String PREFIX = "([^"]*)";', f.read())
@@ -198,7 +198,7 @@ class CostReportTest(unittest.TestCase):
     def test_the_spec_prefixes_are_the_factorys_own(self):
         # Every prefix the JVM factory routes (LLMBridgeFactory.ROUTED_PREFIXES), resolved through each class's PREFIX:
         # a spec with none of them was the retired bare lane, on both sides.
-        spike = os.path.join(str(evalpath.EVAL), os.pardir, "forge-overlay", "forge-gui-desktop",
+        spike = os.path.join(str(evalpath.REPO), "forge-overlay", "forge-gui-desktop",
                              "src", "main", "java", "forge", "spike")
 
         def read(name):
@@ -217,7 +217,7 @@ class CostReportTest(unittest.TestCase):
         self.assertEqual(set(cr.KNOWN_PREFIXES), java)
 
     def test_the_claude_cli_prefix_is_the_bridges_own(self):
-        java = os.path.join(str(evalpath.EVAL), os.pardir, "forge-overlay", "forge-gui-desktop",
+        java = os.path.join(str(evalpath.REPO), "forge-overlay", "forge-gui-desktop",
                             "src", "main", "java", "forge", "spike", "ClaudeCliBridge.java")
         with open(java, encoding="utf-8") as f:
             m = re.search(r'static final String PREFIX = "([^"]*)";', f.read())

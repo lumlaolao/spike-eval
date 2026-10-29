@@ -46,13 +46,12 @@ import sys
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import harness_env_aicount
 import surface_coverage
 
 VERSION = "surface-v0"
-HERE = str(evalpath.EVAL)
-REPO = os.path.dirname(HERE)
+REPO = str(evalpath.REPO)
 TEST_DIR = os.path.join("forge-overlay", "forge-gui-desktop", "src", "test", "java", "forge", "spike")
 LEDGER = os.path.join("docs", "harness", "controller-ownership.tsv")
 STAGES = "preflight classpath compile javatests surfaces"

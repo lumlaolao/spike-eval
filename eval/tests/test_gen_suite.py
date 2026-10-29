@@ -7,10 +7,10 @@ import unittest
 from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = evalpath.EVAL
-sys.path.insert(0, str(HERE.parent / "scripts" / "puzzle-gate"))
+EVAL = evalpath.EVAL
+sys.path.insert(0, str(EVAL.parent / "scripts" / "puzzle-gate"))
 import gen_suite as gs  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 

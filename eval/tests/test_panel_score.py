@@ -16,18 +16,18 @@ import unittest
 from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = evalpath.EVAL
+EVAL = evalpath.EVAL
 import deck_legality  # noqa: E402
 import panel_score as ps  # noqa: E402
 import sanity_arms  # noqa: E402
 import seed_policy  # noqa: E402
 import seed_registry  # noqa: E402
 
-PANELS = HERE / "suites" / "panels-v1.json"
+PANELS = EVAL / "suites" / "panels-v1.json"
 DOC = json.loads(PANELS.read_text())
-ENGINE = (HERE.parent / "FORGE_COMMIT").read_text().strip()
+ENGINE = (EVAL.parent / "FORGE_COMMIT").read_text().strip()
 PILOT = "openrouter:deepseek/deepseek-v4.1-flash"
 SEEDS = [7800, 7801, 7802, 7803]
 
@@ -91,7 +91,7 @@ ZERO_ARMS = {"floor": 0, "random": 0, "empty": 0, "garbage": 0}
 class TestFrozenPanelsFile(unittest.TestCase):
     def test_the_mirror_panel_is_every_archetype_against_itself(self):
         # The Legacy pool: every deck but the hook test decks and the other formats' decks (prefixed by format).
-        decks = sorted(p.stem for p in (HERE / "decks").glob("*.txt")
+        decks = sorted(p.stem for p in (EVAL / "decks").glob("*.txt")
                        if not p.stem.startswith("hook-") and not deck_legality.is_format_deck(p.stem))
         self.assertEqual(len(decks), 16)
         self.assertEqual([d["name"] for d in DOC["deck_pool"]], decks)
@@ -113,7 +113,7 @@ class TestFrozenPanelsFile(unittest.TestCase):
 
     def test_every_deck_pin_matches_its_file(self):
         for d in DOC["deck_pool"]:
-            self.assertEqual(hashlib.sha256((HERE.parent / d["path"]).read_bytes()).hexdigest()[:12], d["sha12"],
+            self.assertEqual(hashlib.sha256((EVAL.parent / d["path"]).read_bytes()).hexdigest()[:12], d["sha12"],
                              d["name"])
 
     def test_the_seeds_are_unreserved_eval_only_and_the_control_covers_them(self):
@@ -288,7 +288,7 @@ class TestRecordedPanelSmoke(unittest.TestCase):
     player whose openrouter_base_url (a fresh loopback port per launch) differed."""
 
     def test_a_real_one_cell_panel_with_all_four_arms_scores(self):
-        r = ps.score_panel(HERE / "testdata" / "scoring" / "panel-smoke", "mirror", PANELS, resamples=50)
+        r = ps.score_panel(EVAL / "testdata" / "scoring" / "panel-smoke", "mirror", PANELS, resamples=50)
         burn = r["cells"]["burn"]
         self.assertEqual((burn["wins"], burn["decisive"]), (0, 2))
         self.assertTrue(burn["sanity"]["ok"] and burn["sanity"]["complete"])

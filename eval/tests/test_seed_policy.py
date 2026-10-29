@@ -14,11 +14,11 @@ from pathlib import Path
 
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import seed_policy as sp  # noqa: E402
 
 FAILURES = []
-HERE = evalpath.EVAL
+EVAL = evalpath.EVAL
 
 
 def check(name, cond, detail=""):
@@ -96,7 +96,7 @@ def test_check_seeds_single_block():
 
 def run_cli(*args):
     proc = subprocess.run(
-        [sys.executable, str(HERE / "seed_policy.py")] + list(args),
+        [sys.executable, str(EVAL / "seed_policy.py")] + list(args),
         capture_output=True, text=True)
     return proc.returncode, proc.stdout, proc.stderr
 
@@ -176,7 +176,7 @@ def _write_win_source(d, seed, winner="A"):
 # BUILDS["STAGE0"] only from a checkout at its commit.
 def run_make_sft(*args):
     proc = subprocess.run(
-        [sys.executable, str(HERE / "make_sft_data.py")] + list(args),
+        [sys.executable, str(EVAL / "make_sft_data.py")] + list(args),
         capture_output=True, text=True)
     return proc.returncode, proc.stdout, proc.stderr
 

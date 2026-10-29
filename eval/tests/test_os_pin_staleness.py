@@ -10,16 +10,15 @@ What it cannot see: the PR-side half of that naming (the STANDARDS rule wants th
 in the PR body, which is not this file), whether a date is true history, or which commit
 actually moved a number; the check reads text shape only.
 """
-from pathlib import Path
 import re
 import unittest
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
-HERE = evalpath.EVAL
-EXPECT = HERE / "harness_acceptance.expected"
+EVAL = evalpath.EVAL
+EXPECT = EVAL / "harness_acceptance.expected"
 
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 MOVER = re.compile(r"#\d+|epoch", re.I)
