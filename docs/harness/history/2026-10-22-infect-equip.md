@@ -3,7 +3,7 @@
 Two new generated families, mechanically unlike the fourteen before them (ping, storm, splice, splice2, red, drain,
 drain2, elf, elf2, hoofdrain, fling, copy, grave, atog): **infect** counts poison counters instead of life, and
 **equip** is one combat decided by what Equipment and Auras each attacker carries. Boards are in
-`eval/puzzles/hard/gen3/`; the generators, searches and line writers in `eval/puzzle_gen.py`. Nothing paid was run; no
+`eval/puzzles/hard/gen3/`; the generators, searches and line writers in `eval/puzzles/puzzle_gen.py`. Nothing paid was run; no
 model was called.
 
 ## The bar (unchanged from the second suite)
@@ -13,7 +13,7 @@ animation, the attack); its goal (the opponent's poison counters, or life) set t
 search over a model of the board; no mana left unused at the end of the best line (every land tapped, the land drop
 taken); and a **trap**: one natural habit imposed on the otherwise exhaustive search, the best of the habits that
 apply to the board falling 1 to 3 short. The written `[solution]` is in menu words, with `# steps:`, `# search:` and
-`# trap:` lines; `eval/test_puzzle_gen.py` (`Gen3BoardsTest`) re-derives every committed board from them.
+`# trap:` lines; `eval/tests/test_puzzle_gen.py` (`Gen3BoardsTest`) re-derives every committed board from them.
 
 ## Infect
 
@@ -112,7 +112,7 @@ The kept set:
 ## Not done
 
 - No model has tried these boards. They were not in a frozen suite when this note was written; they are frozen
-  since as `eval/suites/puzzles-hard-gen3-v1.json` (`eval/PUZZLES.md`, "The third hard suite").
+  since as `eval/suites/puzzles-hard-gen3-v1.json` (`docs/eval/PUZZLES.md`, "The third hard suite").
 - **infect is one shape.** Every kept board is "fill the graveyard for Become Immense, hold a land for the last
   proliferate"; none starts poisoned, and Inkmoth Nexus, the +1/+1 counters (Battlegrowth, Travel Preparations,
   Courage in Crisis), Groundswell, Might of Old Krosa and Tezzeret's Gambit are in the search but in no kept line.

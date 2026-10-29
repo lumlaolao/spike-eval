@@ -2,7 +2,7 @@
 
 Date: 2026-09-07. Work order: `CLAUDE-EVAL-IDENTITY-WORK-ORDER.md`, finding 3 of
 `INDEPENDENT-REVIEW-20260907.md`. Scope: `eval/aggregate.py`,
-`eval/build_report.py`, `eval/test_experiments.py`, `eval/README.md`,
+`eval/build_report.py`, `eval/tests/test_experiments.py`, `eval/README.md`,
 `docs/harness/history/EVAL-IMPLEMENTATION.md` and this file. No Java, no acceptance
 runner, no `defect_analyzer.py`, no seed governance, no commits, no model
 calls, no real run directories or datasets were read; every fixture is
@@ -95,7 +95,7 @@ It already refuses an arm dir whose `(seed, swap)` appears under two
 `_experiment` ids. An unresolved rerun of a seed is now such a case, so the
 A/B compare refuses instead of picking the newest file.
 
-## Tests (`eval/test_experiments.py`)
+## Tests (`eval/tests/test_experiments.py`)
 
 The former `test_unresolved_served_identity_is_never_invented`, which asserted
 the wildcard admission and the `(unresolved)` relabel, is replaced by
@@ -125,7 +125,7 @@ excused, mixed checkpoint). `test_tool_accounting.py`,
 
 ```
 python3 -m unittest discover -s eval -p 'test_*.py'    # 107 tests, OK (was 95)
-python3 eval/test_aggregate.py                         # All checks passed.
+python3 eval/tests/test_aggregate.py                         # All checks passed.
 python3 -m unittest eval.test_experiments -v           # 28 tests
 python3 -m py_compile eval/*.py && git diff --check
 ```

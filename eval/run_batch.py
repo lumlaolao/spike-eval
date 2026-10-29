@@ -25,7 +25,7 @@ Two modes:
     Still stamps provenance (discipline=exploratory) but prints a loud banner
     that the numbers are NOT citable.
 
-Panels and sanity arms (eval/SCORING.md):
+Panels and sanity arms (docs/eval/SCORING.md):
   --panel mirror|cross launches every cell of a frozen panel (eval/suites/panels-v1.json), one
     block directory per cell under --out, all capped by one --budget-usd (required). A cross-panel
     cell is the one asymmetric matchup cited mode accepts: its decks must hash to the panel's pins.
@@ -62,6 +62,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
@@ -1096,7 +1097,7 @@ def unpinned_llm_tiers(args):
 
 
 def warn_parallel_jobs(args):
-    """Spec-aware --jobs advice (measured basis: eval/CONCURRENCY.md §7).
+    """Spec-aware --jobs advice (measured basis: docs/eval/CONCURRENCY.md §7).
     claude-cli: specs shell out to the local Claude CLI and contend
     with the user's own interactive sessions -> jobs=1 territory. openrouter:
     specs are network-bound (~1GB RSS, near-zero CPU per JVM) -> RAM is the
@@ -1113,17 +1114,17 @@ def warn_parallel_jobs(args):
     elif not models and args.jobs > 8:
         log("WARNING: --jobs=%d for a no-LLM (floor/random/ai/ai-log) batch — these "
             "are CPU-bound ~25s bursts; >8 concurrent JVMs oversubscribe "
-            "cores (see eval/CONCURRENCY.md §7)." % args.jobs)
+            "cores (see docs/eval/CONCURRENCY.md §7)." % args.jobs)
     elif models and args.jobs > 10:
         log("WARNING: --jobs=%d — openrouter-routed games are RAM-bound "
             "(~1GB RSS/JVM on a 24GB machine); count JVMs across ALL "
             "concurrently running batches, not just this one (see "
-            "eval/CONCURRENCY.md §7)." % args.jobs)
+            "docs/eval/CONCURRENCY.md §7)." % args.jobs)
 
 
 # ------------------------------------------------------- seed governance
 #
-# eval/EVAL-DESIGN.md §6.5 reserves seed blocks (frozen-legacy 501-525,
+# docs/eval/EVAL-DESIGN.md §6.5 reserves seed blocks (frozen-legacy 501-525,
 # puzzle-mining 20000-29999, certification-holdout 30000-30099) that must
 # never feed SFT/training data — see eval/seed_policy.py, the shared guard.
 # run_batch.py itself is NOT refused here: playing eval games on a reserved

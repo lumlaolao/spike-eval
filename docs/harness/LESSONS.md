@@ -16,5 +16,5 @@ cites a lesson, this is the page it means.
    load-bearing calls before.
 6. **No model ask while pricing.** Building a prompt prices the hand; a hook asked from there builds another prompt,
    forever. The guard is saved and restored, never cleared.
-7. **Every number reports its floor.** A replay match of 88% was 10 points over doing nothing (`eval/EVAL-DESIGN.md`,
+7. **Every number reports its floor.** A replay match of 88% was 10 points over doing nothing (`docs/eval/EVAL-DESIGN.md`,
    section 1.1).

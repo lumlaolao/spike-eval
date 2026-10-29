@@ -606,7 +606,7 @@ def _resolve(path):
 
 # --------------------------------------------------------- seed governance
 #
-# eval/EVAL-DESIGN.md §6.5 reserves seed blocks (frozen-legacy 501-525,
+# docs/eval/EVAL-DESIGN.md §6.5 reserves seed blocks (frozen-legacy 501-525,
 # puzzle-mining 20000-29999, certification-holdout 30000-30099) that must
 # NEVER feed SFT/training data — see eval/seed_policy.py for the shared
 # guard. This scan is deliberately a lightweight PRE-PASS over game(s)

@@ -2,7 +2,7 @@
 """Zero-cost sanity arms next to a scored block, and the check that none of them beats the floor.
 
 A scored block (identity A = the pilot under test, identity B = its opponent) is only evidence when
-the harness cannot score for a seat that does not play. eval/BENCHMARK-RESEARCH.md point 10 names the
+the harness cannot score for a seat that does not play. docs/eval/BENCHMARK-RESEARCH.md point 10 names the
 test: run, on the same seeds and decks and against the same opponent,
 
   floor    CONTROLLER_A=floor: always passes (short-circuits before the play menu)

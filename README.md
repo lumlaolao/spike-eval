@@ -12,8 +12,8 @@ it. GPL-3.0-or-later, like Forge: see [License](#license).
 - **What the model sees.** The state from the engine, Forge's game log, the opponent's cards it has seen, and its own
   notes, each block labelled by its source (`SeatObservation.java`).
 - **The benchmark.** STR-AI (win rate against Forge's AI on frozen panels), STR-HELDOUT (the same on held-out seeds)
-  and PUZ (frozen puzzle suites, judged by Forge's puzzle mode). Design: `eval/EVAL-DESIGN.md`, `eval/SCORING.md`,
-  `eval/PUZZLES.md`.
+  and PUZ (frozen puzzle suites, judged by Forge's puzzle mode). Design: `docs/eval/EVAL-DESIGN.md`, `docs/eval/SCORING.md`,
+  `docs/eval/PUZZLES.md`.
 
 ![One decision in the replay viewer: the seat's board, its plan, two simulate previews and its answer](docs/images/seat-decision.webp)
 

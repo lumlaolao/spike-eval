@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Pack a finished run directory into one tar.gz with a SHA256 manifest of every file, and prove the archive holds
-exactly those bytes (eval/PUZZLES.md, "Keeping a run").
+exactly those bytes (docs/eval/PUZZLES.md, "Keeping a run").
 
     python3 eval/archive_run.py runs/puzzles/frontier-1                 # -> runs/puzzles/frontier-1.tar.gz
     python3 eval/archive_run.py runs/puzzles/frontier-1 --out /keep/frontier-1.tar.gz

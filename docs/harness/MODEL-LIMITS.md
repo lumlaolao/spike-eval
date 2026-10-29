@@ -71,7 +71,7 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 
 | Limit | Where | Bound | Decision | New value |
 |---|---|---|---|---|
-| Smart-tier `max_tokens` (the thinking budget) | `ModelCfg.buildTable` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: providers reject a `max_tokens` above their own output limit, which would turn every call into an error. A puzzle run may set it per run (`puzzle_solve.py --max-tokens`, recorded as a condition, `eval/PUZZLES.md`); a value above a provider's limit errors every call | 32000 |
+| Smart-tier `max_tokens` (the thinking budget) | `ModelCfg.buildTable` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: providers reject a `max_tokens` above their own output limit, which would turn every call into an error. A puzzle run may set it per run (`puzzle_solve.py --max-tokens`, recorded as a condition, `docs/eval/PUZZLES.md`); a value above a provider's limit errors every call | 32000 |
 | Per-call timeout | `ModelCfg.buildTable` | at 150s: 2 calls timed out | 300s by `acf6f2e`; kept (it couples to the post-cap grace and run_batch.py's `GRACE_S = 1000`). A puzzle run may set it per run (`puzzle_solve.py --call-timeout-minutes`, recorded as a condition; the `--k 1` rule is in the grace row) | 300s |
 | Truncation retry: a reasoning row retries at 4096 tokens with reasoning off | the OpenRouter bridge's truncation retry (`LSG`) | fired 7 times (smart) | **kept for the smart tier**: it fires only after the model spent the whole 32000-token budget, and the alternative is the deterministic fallback, not more thought. **Fixed for the fast tier**: its reasoning is already off, so the retry asked again at the same 1024 tokens; it now doubles the budget | smart unchanged; fast 2x |
 | Fast tier: 1024 tokens, 45s, reasoning `none` | `LSG:6601, 6616` | 2 of 170 fast calls truncated | tokens and time raised; reasoning **kept** `none`: that is what the two-tier arm is (a condition, `one_tier` on the game line). `ONE_TIER=1` uses the smart row everywhere and is the no-limit arm the game-loop skill already plays | 8192 tokens, 120s |
@@ -144,7 +144,7 @@ still stops a batch at its budget.
 - `PlanAnytimeTest.aProfileOrLinesLineAtAnyDecisionReplacesThatNote`
 - `NativeToolsTest.simulateIsOfferedOnlyWithAHandlerAndRunsForEveryCall` and the budget tests, now
   written against `ContextMemory.TOOLS_PER_ASK`; `LookaheadProbeTest` (no line-length cap)
-- `eval/test_tool_use_suite.py` keeps the suite's mirror of the executor in step (16 calls, 20000-character
+- `eval/tests/test_tool_use_suite.py` keeps the suite's mirror of the executor in step (16 calls, 20000-character
   pages, 50 results, 2100-character command lines)
 
 Not determined here: this audit has not been repeated since harness-epoch-7, so late-game prompt size, tool calls

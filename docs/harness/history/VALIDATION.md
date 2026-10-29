@@ -18,7 +18,7 @@ an additional release check; these results do not claim that check was run.
 - 2 route-label tests passed: random labels must not claim model calls; LLM labels
   must retain the reconciliation marker.
 - Python unittest discovery: 56 tests passed, including context provenance checks.
-- `python3 eval/test_aggregate.py`: all checks passed.
+- `python3 eval/tests/test_aggregate.py`: all checks passed.
 - `git diff --check`: passed.
 
 HTTP tests initially could not bind a local socket inside the sandbox. They were

@@ -10,7 +10,7 @@ import java.util.Map;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/** The acceptance state of a rules puzzle (eval/BENCHMARK-V1.md, "The shape every puzzle takes"): conditions on
+/** The acceptance state of a rules puzzle (docs/eval/BENCHMARK-V1.md, "The shape every puzzle takes"): conditions on
  *  the final engine state, all of which must hold. Evaluated here against a fake state; the runner reads Forge's. */
 public class PuzzleAcceptanceTest {
 
