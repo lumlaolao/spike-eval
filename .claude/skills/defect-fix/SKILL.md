@@ -1,6 +1,6 @@
 ---
 name: defect-fix
-description: Stage two of the defect backlog for mtg-forge-llm-agent. Claim ONE open harness-defect issue, prove it still happens on main with a failing test, fix it in forge-overlay, show the test turn green, and take it through acceptance, the three review skills and a PR that closes the issue.
+description: Stage two of the defect backlog for spike-eval. Claim ONE open harness-defect issue, prove it still happens on main with a failing test, fix it in forge-overlay, show the test turn green, and take it through acceptance, the three review skills and a PR that closes the issue.
 ---
 
 # Defect fix: one issue, proven, fixed, one PR

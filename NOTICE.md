@@ -2,7 +2,7 @@
 
 ## License
 
-Copyright (C) 2026 mtg-forge-llm-agent contributors.
+Copyright (C) 2026 spike-eval contributors.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
@@ -27,7 +27,7 @@ v3.0 or later. Forge is the engine every game here runs on; the harness only dec
 
 ## Magic: The Gathering
 
-mtg-forge-llm-agent is unofficial Fan Content permitted under the
+spike-eval is unofficial Fan Content permitted under the
 [Fan Content Policy](https://company.wizards.com/en/legal/fancontentpolicy). Not approved/endorsed by Wizards.
 Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
 

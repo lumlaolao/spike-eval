@@ -1,6 +1,6 @@
 ---
 name: defect-hunt
-description: Stage one of the defect backlog for mtg-forge-llm-agent. Play one game at a time, read it decision by decision, and file each harness defect as a self-contained GitHub issue that another agent can verify and fix without the game. Never fixes anything itself.
+description: Stage one of the defect backlog for spike-eval. Play one game at a time, read it decision by decision, and file each harness defect as a self-contained GitHub issue that another agent can verify and fix without the game. Never fixes anything itself.
 ---
 
 # Defect hunt: play, read, file. Never fix.
