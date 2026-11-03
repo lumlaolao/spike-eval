@@ -465,6 +465,8 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   guide describes and must land on itself. Over the keyword gauntlet (552 cards, both answer policies) it checked
   21,493 plays; the misses it found (suspend and foretell unlisted, prototype and flash casts unnamed) are fixed, and
   the rest were one may-play cast listed twice, the same play.
+  It restores the pending proposed target it touches, so the game it audits plays as without it (before acceptance
+  196de57 caught the unstamped variable, a targeted play audited last could pre-set the seat's next target unasked).
 - **Not yet hidden:** the targets of a play with modes, several targets or divided amounts, a spell on the stack as a
   target, attackers, blockers and the cost choices keep their candidate lists (each can be checked with
   `sa.canTarget`, `CombatUtil` and `blocksError`, which already returns a reason).

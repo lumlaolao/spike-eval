@@ -155,6 +155,23 @@ public class ProposeActionsTest {
         Assert.assertEquals(hit[0], passIdx);
     }
 
+    /** PROPOSE_AUDIT is a diagnostic: auditing a menu of targeted plays must leave no target pending, or the seat's
+     *  next targeted cast in a menu game is given the audit's last target without being asked (acceptance 196de57). */
+    @Test
+    public void theAuditLeavesNoProposedTargetBehind() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        // The last play audited is a targeted one (a mana ability audited after it would clear the target by chance).
+        card("Prodigal Pyromancer", me, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertEquals(po.spells.size(), 1, "the position offers only the pinger's ability: " + po.spells);
+        ctrl.auditProposals(po.spells, po.landPlays, po.landCards, me, true);
+        Assert.assertEquals(ctrl.auditMissed, 0, "the ability is proposable");
+        Assert.assertNull(ctrl.proposedTarget, "the audit must not change the game it audits");
+    }
+
     private static int indexByText(List<SpellAbility> abs, SpellAbility sa) {
         for (int i = 0; i < abs.size(); i++) if (java.util.Objects.equals(abs.get(i).getDescription(), sa.getDescription())) return i;
         Assert.fail("the ability is not in the proposal list: " + sa);

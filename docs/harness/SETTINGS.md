@@ -18,6 +18,7 @@ stamps the condition on the game line; `run-llm-headless.sh` and `run-llm-spike.
 | `ONE_TIER` | 1 | every decision on the reasoning tier; `run_batch.py --two-tier` is a measured arm |
 | `MULLIGAN_HEURISTIC` / `SKIP_HEURISTICS` / `PLAN_EXECUTE` | 0 | harness shortcuts, measurement arms only |
 | `PROPOSE_ACTIONS` | 0 | the hidden-menu arm: the seat proposes each play and the engine checks it (`run_batch.py` / `puzzle_solve.py --propose-actions`; ARCHITECTURE.md, "The propose condition") |
+| `PROPOSE_AUDIT` | 0 | diagnostic, not a condition: at every play decision, proposes each menu play and logs `[PROPOSE-AUDIT] MISS` for any that does not land on itself; restores what it touches (ARCHITECTURE.md, "The checker audit") |
 | `GAME_SEED`, `SWAP_SEATS` | random, 0 | seeded shuffles; `1` seats identity B first (the paired flip) |
 | `DECK_A/B`, `DECK_A_NAME/B_NAME`, `PLAN_A/B` | eval decks | decklists, seat labels, deck framing (`PLAN_A=""` for none) |
 | `EVAL_OUT` | off | directory for the per-decision and game JSONL |

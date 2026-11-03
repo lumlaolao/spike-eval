@@ -9209,6 +9209,14 @@ public final class LlmSpikeGui {
         /** {@link #PROPOSE_AUDIT}: every play on this menu, proposed as the seat would, must land on itself (or on a play
          *  with the same label: a mana ability stands for every copy). */
         void auditProposals(List<SpellAbility> options, List<SpellAbility> landPlays, List<Card> landCards, Player me, boolean ownMain) {
+            // matchProposal leaves the target of the last play it accepts pending for ensureTargetsSet: restored, or the
+            // seat's next targeted cast in a menu game takes the audit's target unasked (ProposeActionsTest).
+            Object pending = proposedTarget;
+            try { auditEach(options, landPlays, landCards, me, ownMain); }
+            finally { proposedTarget = pending; }
+        }
+
+        private void auditEach(List<SpellAbility> options, List<SpellAbility> landPlays, List<Card> landCards, Player me, boolean ownMain) {
             List<SpellAbility> all = new ArrayList<>(options);
             all.addAll(landPlays);
             List<String> labels = playLabels(options, landCards);
