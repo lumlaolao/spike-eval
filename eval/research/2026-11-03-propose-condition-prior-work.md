@@ -394,6 +394,31 @@ no menu play it cannot reach). Run directories: `runs/propose/e75-haiku-rules-me
 - **Still no illegal play proposed:** 95 of 95 non-pass first proposals legal over the three propose blocks. The
   difference is in what Haiku looks for, not in rules it breaks: without the menu it misses plays and passes.
 
+### Hard puzzles (harness-epoch-75)
+
+Twelve puzzles of `eval/suites/puzzles-hard-gen-v1.json` (two from each of six families: drain, elf, fling, ping,
+splice, storm), one attempt each, same lane. Run directories: `runs/propose/e75-haiku-hard-menu`,
+`runs/propose/e75-haiku-hard-propose` (both stopped part way and finished with `--resume`). Notional CLI cost $1.18
+and $1.10.
+
+| Arm | Solved (pass@1) | 95% CI (Wilson) | Play decisions | Passed | Non-pass first-try legal | Format errors |
+|---|---|---|---|---|---|---|
+| menu | 7/12 | 0.32-0.81 | 242 | 109 (45%) | n/a | n/a |
+| propose | 4/12 | 0.14-0.61 | 260 | 154 (59%) | 101/110 (0.92) | 13 |
+
+- **The first illegal proposals:** 9 of 110 first tries, plus one later try, all refused correctly by the rules:
+  sorceries proposed with a spell on the stack or in the end step (Lava Spike, Rite of Flame, Gitaxian Probe; timing
+  5), and cost names the card does not have (Flashback on Desperate Ritual, Spectacle on Glacial Ray, "alternative"
+  for Mutagenic Growth's Phyrexian mana; cost 5). Every one was repaired within two tries; none was lost.
+- **Three flips, all to the menu** (ping-0134, storm-5bf9, storm-88f9), none a harness fault. Both storm losses
+  pass out of the second main phase with a full hand on the first decision, then propose sorceries in the end step,
+  where they are refused. The ping loss passes priority between its own spells where the menu arm kept casting.
+  Both arms word a pass the same way ("PASS (do nothing)" in the menu; nothing more in the proposal prompt), so the
+  arms differ only in the list.
+- Over the 41 puzzles of this note's epoch-75 blocks, the menu solves 33 and the proposal arm 24; all nine flips go
+  to the menu. On these positions the hidden list costs Haiku plays it does not look for, and on the hard set some
+  rules it does not know (sorcery timing), which is the measurement the arm was built for.
+
 Next, in order: the same pilot on GPT-6 Luna (paid; the default game model); a second arm with specific reasons
 (implication 1) to measure the message's share; hiding attackers and blockers (ARCHITECTURE.md, "The propose
 condition", not yet hidden). Done since the pilot: targets named in the proposal, and the checker audit
