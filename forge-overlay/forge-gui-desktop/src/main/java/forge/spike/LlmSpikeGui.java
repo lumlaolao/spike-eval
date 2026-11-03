@@ -363,8 +363,10 @@ public final class LlmSpikeGui {
      *  Epoch 74 (2026-11-03, answer-tool-v13): the PROPOSE_ACTIONS measurement arm. Off (the default) every prompt and
      *  schema is unchanged; on, the play menu is hidden and the seat proposes its play (docs/harness/ARCHITECTURE.md,
      *  "The propose condition").
+     *  Epoch 75 (2026-11-03, answer-tool-v14): under PROPOSE_ACTIONS a play's one target is proposed with it, and suspend,
+     *  foretell and the other special actions are in YOUR ACTIVATED ABILITIES (the gauntlet audit found them unproposable).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-74";
+    static final String HARNESS_EPOCH = "harness-epoch-75";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3969,6 +3971,7 @@ public final class LlmSpikeGui {
                 List<SpellAbility> landPlays = po.landPlays;
                 List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
+                if (PROPOSE_AUDIT && observer != null) auditProposals(options, landPlays, landCards, me, ownMain);
                 // Nothing to do -> pass (deterministic; never Forge's AI).
                 // A window whose only plays float mana that changes nothing is passed as an empty one (asking it would
                 // make every window a model call). Floating that does change the game (a creature tapped, a trigger, a
@@ -4793,6 +4796,19 @@ public final class LlmSpikeGui {
                     if (tr == null) continue;
                     List<forge.game.GameObject> cands = targetCandidates(sa, tr);
                     if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
+                    // PROPOSE_ACTIONS: the target the accepted proposal named, checked with it (proposalTarget); still
+                    // legal after X and costs, it is set without a list being shown.
+                    if (proposedTarget != null) {
+                        Object want = proposedTarget;
+                        proposedTarget = null;
+                        if (sa.getMaxTargets() <= 1 && !sa.isDividedAsYouChoose() && cands.contains(want)) {
+                            sa.resetTargets();
+                            sa.getTargets().add((forge.game.GameObject) want);
+                            p("[ROUTER] target (proposed): " + targetLabel((forge.game.GameObject) want));
+                            continue;
+                        }
+                        p("[ROUTER] target (proposed) no longer legal after X and costs -> asked");
+                    }
                     if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) {
                         List<String> many = new ArrayList<>();
                         for (forge.game.GameObject ge : cands) many.add(targetLabel(ge));
@@ -9141,6 +9157,88 @@ public final class LlmSpikeGui {
 
         // ---------------- PROPOSE_ACTIONS: a proposed play, checked against the menu the seat is not shown ----------------
 
+        /** PROPOSE_AUDIT=1: at every play decision, each menu play is turned into the proposal the guide describes and
+         *  checked to land on that play ({@link #auditProposals}); a miss is logged "[PROPOSE-AUDIT] MISS". A checker
+         *  that refuses a legal play would score a seat down for the harness's fault (Jericho's valid-action oracle
+         *  has such false negatives). Diagnostic only: it registers handles early, so what a seat reads may differ. */
+        static final boolean PROPOSE_AUDIT = "1".equals(System.getenv("PROPOSE_AUDIT"));
+        int auditChecked, auditMissed;
+
+        /** The proposal for menu play {@code sa}, built from what the seat is shown (its handle, its ability's number in
+         *  YOUR ACTIVATED ABILITIES, the way it is cast), or null when the abilities list does not show it. */
+        AnswerTool.Proposal proposalFor(SpellAbility sa) {
+            Card c = sa.getHostCard();
+            observer.describe(c, false);
+            AnswerTool.Proposal p = new AnswerTool.Proposal();
+            p.card = observer.handleOf(c);
+            if (sa.isLandAbility()) { p.verb = "play_land"; return p; }
+            p.targets = firstTarget(sa);
+            if (sa.isSpell()) {
+                p.verb = "cast";
+                p.cost = castWay(sa);
+                if (!faceOf(sa).equals(c.getName())) p.face = faceOf(sa);
+                return p;
+            }
+            p.verb = "activate";
+            List<SpellAbility> abs = proposalAbilities(c);
+            int i = abs.indexOf(sa);
+            if (i < 0 && sa.getOriginalAbility() != null) i = abs.indexOf(sa.getOriginalAbility());
+            for (int j = 0; i < 0 && j < abs.size(); j++)
+                if (java.util.Objects.equals(abs.get(j).getDescription(), sa.getDescription())) i = j;
+            if (i < 0) return null;
+            p.ability = i + 1;
+            return p;
+        }
+
+        /** The first legal target of a play whose one target a proposal names ({@link #proposalTarget}), as the seat
+         *  would write it; null for any other play. */
+        List<String> firstTarget(SpellAbility play) {
+            if (play.getApi() == ApiType.Charm) return null;
+            SpellAbility part = null;
+            for (SpellAbility s = play; s != null; s = s.getSubAbility()) if (s.usesTargeting()) { if (part != null) return null; part = s; }
+            if (part == null || part.getMaxTargets() > 1 || part.isDividedAsYouChoose() || part.getTargetRestrictions() == null) return null;
+            if (part.getActivatingPlayer() == null) part.setActivatingPlayer(getPlayer());
+            List<forge.game.GameObject> cands = targetCandidates(part, part.getTargetRestrictions());
+            if (cands.isEmpty()) return null;
+            forge.game.GameObject t = cands.get(0);
+            if (t instanceof Card) { observer.describe((Card) t, false); return List.of("@" + observer.handleOf((Card) t)); }
+            if (t instanceof Player) return List.of(t == getPlayer() ? "you" : "opponent");
+            return null;
+        }
+
+        /** {@link #PROPOSE_AUDIT}: every play on this menu, proposed as the seat would, must land on itself (or on a play
+         *  with the same label: a mana ability stands for every copy). */
+        void auditProposals(List<SpellAbility> options, List<SpellAbility> landPlays, List<Card> landCards, Player me, boolean ownMain) {
+            List<SpellAbility> all = new ArrayList<>(options);
+            all.addAll(landPlays);
+            List<String> labels = playLabels(options, landCards);
+            int passIdx = 1 + all.size();
+            for (int i = 0; i < all.size(); i++) {
+                SpellAbility sa = all.get(i);
+                String why;
+                try {
+                    AnswerTool.Proposal p = proposalFor(sa);
+                    if (p == null) why = "not in YOUR ACTIVATED ABILITIES";
+                    else {
+                        int[] hit = {-1};
+                        String err = matchProposal(p, options, landPlays, landCards, passIdx, me, ownMain, hit);
+                        SpellAbility got = hit[0] >= 1 && hit[0] <= all.size() ? all.get(hit[0] - 1) : null;
+                        // The same play: the same label, or a cast of the same card the same way (a may-play permission
+                        // listed twice: Armor of Thorns at sorcery speed, where its sacrifice does not apply, kw27).
+                        boolean same = hit[0] == i + 1 || got != null && (labels.get(hit[0] - 1).equals(labels.get(i))
+                                || got.isSpell() && sa.isSpell() && got.getHostCard() == sa.getHostCard()
+                                   && java.util.Objects.equals(castWay(got), castWay(sa)) && faceOf(got).equals(faceOf(sa)));
+                        why = err != null ? p.render() + " -> " + err
+                                : same ? null
+                                : p.render() + " -> option " + hit[0] + " (" + (hit[0] >= 1 && hit[0] <= labels.size() ? labels.get(hit[0] - 1) : "?") + ")";
+                    }
+                } catch (Exception e) { why = "error " + e; }
+                auditChecked++;
+                if (why != null) { auditMissed++; p("[PROPOSE-AUDIT] MISS " + labels.get(i) + " :: " + why); }
+            }
+            p("[PROPOSE-AUDIT] checked=" + auditChecked + " missed=" + auditMissed);
+        }
+
         /** The play decision's text in place of the numbered menu (PROPOSE_ACTIONS). */
         static final String PROPOSE_PROMPT = "You are not shown the legal plays. Propose ONE: play a land, cast a spell, activate "
                 + "an ability, or pass. The rules engine checks it before anything happens.\n";
@@ -9157,8 +9255,10 @@ public final class LlmSpikeGui {
         static List<SpellAbility> proposalAbilities(Card c) {
             List<SpellAbility> out = new ArrayList<>();
             try {
+                // Activated abilities and the special actions a card offers from its zone (suspend, foretell, plot): the
+                // menu offers both as ACTIVATE, and the gauntlet audit found the special actions unproposable.
                 for (SpellAbility sa : c.getSpellAbilities())
-                    if (!sa.isSpell() && !sa.isLandAbility() && !sa.isManaAbility() && sa.isActivatedAbility()) out.add(sa);
+                    if (!sa.isSpell() && !sa.isLandAbility() && !sa.isManaAbility() && !sa.isTrigger()) out.add(sa);
                 for (SpellAbility sa : c.getManaAbilities()) out.add(sa);
             } catch (Exception ignore) { /* a card the engine cannot list: none */ }
             return out;
@@ -9189,6 +9289,12 @@ public final class LlmSpikeGui {
         static String castWay(SpellAbility sa) {
             try {
                 if (sa.getAlternativeCost() != null) return altCostName(sa.getAlternativeCost());
+                // A prototype cast is a keyword's spell, basic to the engine (Arcane Proxy: PROPOSE_AUDIT, kw18).
+                if (sa.isKeyword(forge.game.keyword.Keyword.PROTOTYPE)) return "Prototype";
+                // A cast a card allows at instant speed (Armor of Thorns: "sacrifice it at the next cleanup step"),
+                // a may-play option with its own text (PROPOSE_AUDIT, kw27). A proposal names it "flash".
+                if (sa.getMayPlayOption() != null && sa.getMayPlay() != null && sa.getMayPlay().hasParam("MayPlayWithFlash"))
+                    return "flash";
                 List<String> names = new ArrayList<>();
                 for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts()) names.add(o.getName().replaceAll("^\\((.*)\\)$", "$1"));
                 if (!names.isEmpty()) return String.join(", ", names);
@@ -9201,7 +9307,10 @@ public final class LlmSpikeGui {
             String way = castWay(sa);
             if (way == null) return false;
             String w = way.toLowerCase(java.util.Locale.ROOT), c = cost.toLowerCase(java.util.Locale.ROOT).trim();
-            return w.equals(c) || w.contains(c) || "alternative".equals(c);
+            // "alternative" is a "rather than pay this spell's mana cost" cast: a pitch spell or a named alternative cost,
+            // never a flash or prototype cast or an optional cost.
+            if ("alternative".equals(c)) return "alternative".equals(w) || sa.getAlternativeCost() != null;
+            return w.equals(c) || w.contains(c);
         }
 
         /** The face or half a cast is of, by name (the card's own name for a one-faced card). */
@@ -9218,12 +9327,101 @@ public final class LlmSpikeGui {
 
         private String refOf(Card c) { return observer == null ? safeName(c) : observer.shortRef(c); }
 
+        /** The target an accepted proposal named (a Card or Player), set by {@link #withTarget} and used by
+         *  ensureTargetsSet for the play's one targeting step. Null when none is pending. */
+        Object proposedTarget;
+
+        /** The proposal matched {@code play} (hit[0] set): its target is checked with it. A play with one targeting
+         *  step and one target, whose candidates are cards and players, must name it in `targets`; a wrong one is refused
+         *  for the rule it breaks ({@link #targetRejection}) and no list is shown. Any other play (modes, several targets,
+         *  divided amounts, a spell on the stack as the target) keeps its target ask with the candidates. Null when legal. */
+        private String withTarget(AnswerTool.Proposal pr, SpellAbility play, Player me, int[] hit) {
+            String err;
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            try { err = proposalTarget(pr, play, me); }
+            catch (Exception e) { err = null; proposedTarget = null; }   // cannot be checked: the target ask stays
+            finally { PRICING_FOR_SNAPSHOT = was; }
+            if (err != null) hit[0] = -1;
+            return err;
+        }
+
+        private String proposalTarget(AnswerTool.Proposal pr, SpellAbility play, Player me) {
+            proposedTarget = null;
+            if (play.getApi() == ApiType.Charm) return null;   // the modes come first; their targets are asked after
+            List<SpellAbility> parts = new ArrayList<>();
+            for (SpellAbility s = play; s != null; s = s.getSubAbility()) if (s.usesTargeting()) parts.add(s);
+            if (parts.size() != 1) return null;
+            SpellAbility part = parts.get(0);
+            if (part.getMaxTargets() > 1 || part.isDividedAsYouChoose()) return null;
+            if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
+            TargetRestrictions tr = part.getTargetRestrictions();
+            if (tr == null) return null;
+            List<forge.game.GameObject> cands = targetCandidates(part, tr);
+            for (forge.game.GameObject o : cands) if (!(o instanceof Card) && !(o instanceof Player)) return null;
+            String what = refOf(play.getHostCard());
+            if (pr.targets == null || pr.targets.isEmpty()) {
+                if (part.getMinTargets() == 0) return null;   // "up to one": no target is a legal choice
+                return "FORMAT: this play targets: give its target in `targets`, a handle such as \"@7\", or \"you\" or \"opponent\".";
+            }
+            if (pr.targets.size() > 1) return "FORMAT: this play has one target; give one in `targets`.";
+            String name = pr.targets.get(0);
+            Object t = targetNamed(name, me);
+            if (t == null) return "FORMAT: no object or player \"" + name + "\" is in view; give a handle such as \"@7\", or \"you\" or \"opponent\".";
+            if (!cands.contains(t)) return targetRejection(part, t, me, what);
+            proposedTarget = t;
+            return null;
+        }
+
+        /** A proposal's target by what it says: "@N" (a visible object), "you", "opponent" or a player's name. */
+        private Object targetNamed(String name, Player me) {
+            String n = name.trim();
+            java.util.regex.Matcher m = Pattern.compile("@\\s*(\\d+)").matcher(n);
+            if (m.find()) return observer == null ? null : observer.currentCard(Integer.parseInt(m.group(1)));
+            String low = n.toLowerCase(java.util.Locale.ROOT);
+            if (low.equals("you") || low.equals("me") || low.equals("myself") || n.equals(me.getName())) return me;
+            for (Player o : me.getGame().getPlayers())
+                if (o != me && (low.equals("opponent") || low.equals("the opponent") || n.equalsIgnoreCase(o.getName()))) return o;
+            return null;
+        }
+
+        /** Why {@code t} is not a legal target of {@code part}: the static ability that forbids it (hexproof, shroud,
+         *  protection, a Leyline), the zone, or the kind of object the card's text targets, which restates the
+         *  card, not the legal set. Always "ILLEGAL (target)". */
+        private String targetRejection(SpellAbility part, Object t, Player me, String what) {
+            String ref = t instanceof Card ? refOf((Card) t) : t == me ? "you" : "your opponent";
+            try {
+                forge.game.staticability.StaticAbility sta =
+                        forge.game.staticability.StaticAbilityCantTarget.cantTarget((forge.game.GameEntity) t, part);
+                if (sta != null) {
+                    String d = sta.toString();
+                    if (d == null || d.isEmpty()) d = sta.getParam("Description");
+                    d = d == null ? "" : SeatObservation.engineNotesOut(d, part).replaceAll("\\s*\\(.*$", "").trim();
+                    return "ILLEGAL (target): " + ref + " cannot be the target of " + what
+                            + (d.isEmpty() ? "." : " (" + named(d, sta.getHostCard()) + ").");
+                }
+            } catch (Exception ignore) { }
+            if (t instanceof Card) {
+                Card c = (Card) t;
+                List<ZoneType> zones = part.getTargetRestrictions().getZone();
+                if (c.getZone() != null && zones != null && !zones.contains(c.getZone().getZoneType()))
+                    return "ILLEGAL (target): " + ref + " is in " + c.getZone().getZoneType().name().toLowerCase(java.util.Locale.ROOT)
+                            + ", not a zone " + what + " targets in.";
+                if (c.hasKeyword(forge.game.keyword.Keyword.SHROUD))
+                    return "ILLEGAL (target): " + ref + " has shroud.";
+                if (c.hasKeyword(forge.game.keyword.Keyword.HEXPROOF) && c.getController() != me)
+                    return "ILLEGAL (target): " + ref + " has hexproof.";
+            }
+            return "ILLEGAL (target): " + ref + " is not something " + what + " can target (its text says what it targets).";
+        }
+
         /** PROPOSE_ACTIONS: the 1-based menu number {@code pr} names on this decision's hidden menu, in {@code hit[0]}, and
          *  null; or the rejection sent back. The menu is the oracle: a proposal is accepted exactly when it names a play
          *  the menu would have offered, so the golden checks that cover the menu cover this arm. A miss is explained by the
          *  first engine check the play fails ({@link #proposalRejection}): its rule category, never the legal plays. */
         String matchProposal(AnswerTool.Proposal pr, List<SpellAbility> options, List<SpellAbility> landPlays,
                              List<Card> landCards, int passIdx, Player me, boolean ownMain, int[] hit) {
+            proposedTarget = null;
             if ("pass".equals(pr.verb)) { hit[0] = passIdx; return null; }
             Card c = observer == null ? null : observer.currentCard(pr.card);
             if (c == null) return "FORMAT: no object @" + pr.card + " is in view now; use a handle from the state above.";
@@ -9244,13 +9442,13 @@ public final class LlmSpikeGui {
                 if (n > abs.size())
                     return "FORMAT: " + refOf(c) + " has " + abs.size() + (abs.size() == 1 ? " activated ability" : " activated abilities") + "; there is no ability " + n + ".";
                 SpellAbility want = abs.get(n - 1);
-                for (int i = 0; i < options.size(); i++) if (sameAbility(options.get(i), want, c)) { hit[0] = 1 + i; return null; }
+                for (int i = 0; i < options.size(); i++) if (sameAbility(options.get(i), want, c)) { hit[0] = 1 + i; return withTarget(pr, options.get(i), me, hit); }
                 // A mana ability is on the menu once per card name and ability: another copy's entry stands for this one.
                 if (want.isManaAbility())
                     for (int i = 0; i < options.size(); i++) {
                         SpellAbility o = options.get(i);
                         if (o.isManaAbility() && o.getHostCard() != null && o.getHostCard().getName().equals(c.getName())
-                                && java.util.Objects.equals(o.getDescription(), want.getDescription())) { hit[0] = 1 + i; return null; }
+                                && java.util.Objects.equals(o.getDescription(), want.getDescription())) { hit[0] = 1 + i; return withTarget(pr, o, me, hit); }
                     }
                 return proposalRejection(pr, c, want, me, ownMain);
             }
@@ -9275,7 +9473,7 @@ public final class LlmSpikeGui {
                     return "FORMAT: say which way you cast " + refOf(c) + " with `cost` (the name the card prints, or \"alternative\").";
                 hits = normal;
             }
-            if (!hits.isEmpty()) { hit[0] = 1 + hits.get(0); return null; }
+            if (!hits.isEmpty()) { hit[0] = 1 + hits.get(0); return withTarget(pr, options.get(hits.get(0)), me, hit); }
             return proposalRejection(pr, c, null, me, ownMain);
         }
 

@@ -138,15 +138,8 @@ public class ProposeActionsTest {
         Assert.assertTrue(po.spells.size() >= 3, "the position offers a spell, a flashback and an ability: " + po.spells);
         for (int i = 0; i < po.spells.size(); i++) {
             SpellAbility sa = po.spells.get(i);
-            Card c = sa.getHostCard();
-            AnswerTool.Proposal p;
-            if (sa.isSpell()) {
-                p = prop("cast", handle(ctrl, c), null, null, LlmSpikeGui.PlayerControllerLLM.castWay(sa));
-            } else {
-                int ab = LlmSpikeGui.PlayerControllerLLM.proposalAbilities(c).indexOf(sa) + 1;
-                if (ab == 0) ab = 1 + indexByText(LlmSpikeGui.PlayerControllerLLM.proposalAbilities(c), sa);
-                p = prop("activate", handle(ctrl, c), ab, null, null);
-            }
+            AnswerTool.Proposal p = ctrl.proposalFor(sa);
+            Assert.assertNotNull(p, "the abilities list does not show " + sa);
             int[] hit = {-1};
             Assert.assertNull(ctrl.matchProposal(p, po.spells, po.landPlays, po.landCards, passIdx, me, true, hit), p.render());
             Assert.assertEquals(hit[0], i + 1, p.render() + " names menu option " + (i + 1));
@@ -312,13 +305,45 @@ public class ProposeActionsTest {
         ProposalModel model = new ProposalModel();
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         model.actions.add("{\"verb\":\"cast\",\"card\":\"@" + handle(ctrl, bears) + "\"}");
-        model.actions.add("{\"verb\":\"cast\",\"card\":\"@" + handle(ctrl, bolt) + "\"}");
+        model.actions.add("{\"verb\":\"cast\",\"card\":\"@" + handle(ctrl, bolt) + "\",\"targets\":[\"opponent\"]}");
         List<SpellAbility> played = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(played, "the repaired proposal was not played");
         Assert.assertSame(played.get(0).getHostCard(), bolt);
         String ask = model.prompts.stream().filter(p -> p.contains("Propose ONE")).findFirst().orElse("");
         Assert.assertFalse(ask.matches("(?s).*\\n\\s*1\\) CAST.*"), "the menu was shown: " + ask);
         Assert.assertTrue(model.results.stream().anyMatch(r -> r.contains("ILLEGAL (cost)")), String.valueOf(model.results));
+        Assert.assertEquals(played.get(0).getTargets().getFirstTargetedPlayer(), g.getPlayers().get(1), "the proposed target");
+        Assert.assertFalse(model.prompts.stream().anyMatch(q -> q.contains("Choose the TARGET")), "a target list was shown");
+    }
+
+    // ------------------------------------------------------------------ targets
+
+    @Test
+    public void aTargetedPlayNamesItsTargetAndAWrongOneBreaksTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Swamp", me, ZoneType.Battlefield);
+        card("Swamp", me, ZoneType.Battlefield);
+        Card blade = card("Doom Blade", me, ZoneType.Hand);
+        Card vampire = card("Vampire Nighthawk", rival, ZoneType.Battlefield);
+        Card scout = card("Gladecover Scout", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        int b = handle(ctrl, blade);
+        AnswerTool.Proposal none = prop("cast", b, null, null, null);
+        Assert.assertTrue(reject(ctrl, me, true, none).startsWith("FORMAT: this play targets"), "a target is required");
+        AnswerTool.Proposal black = prop("cast", b, null, null, null);
+        black.targets = List.of("@" + handle(ctrl, vampire));
+        Assert.assertTrue(reject(ctrl, me, true, black).startsWith("ILLEGAL (target)"), "Doom Blade cannot target a black creature");
+        AnswerTool.Proposal hex = prop("cast", b, null, null, null);
+        hex.targets = List.of("@" + handle(ctrl, scout));
+        String err = reject(ctrl, me, true, hex);
+        Assert.assertTrue(err.startsWith("ILLEGAL (target)") && err.toLowerCase().contains("hexproof"), err);
+        AnswerTool.Proposal ok = prop("cast", b, null, null, null);
+        ok.targets = List.of("@" + handle(ctrl, bears));
+        int[] hit = {-1};
+        Assert.assertNull(verdict(ctrl, me, true, ok, hit));
+        Assert.assertSame(ctrl.proposedTarget, bears, "the accepted target waits for the target step");
     }
 
     /** Four illegal proposals lose the decision to PASS, never to Forge's AI. */

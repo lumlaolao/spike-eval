@@ -423,14 +423,16 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
-### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, owner 2026-11-03)
+### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, owner 2026-11-03)
 
 The menu makes illegal plays impossible, so the benchmark cannot see whether a model knows the rules. This arm
 removes the menu from the play decision and treats the rules engine as a type checker: the seat proposes a play,
 the engine checks it, and a rejected proposal comes back with the rule it breaks so the seat can repair it.
 - **What the seat answers:** `answer.action`, a fixed-schema object: `verb` (play_land, cast, activate, pass), `card`
-  (a handle), `ability` (its number in YOUR ACTIVATED ABILITIES), `face`, `cost` (another way to cast it, by the
-  card's name for it, or "alternative"). Zero text parsing still holds: it is a tool call.
+  (a handle), `ability` (its number in YOUR ACTIVATED ABILITIES, which lists special actions such as suspend and
+  foretell too), `face`, `cost` (another way to cast it, by the card's name for it, "Prototype", "alternative", or
+  "flash" for a cast a card allows when it could not otherwise be cast), `targets` (a handle, "you" or "opponent").
+  Zero text parsing still holds: it is a tool call.
 - **The menu is the oracle** (`matchProposal`): the menu is enumerated exactly as for a menu seat; a proposal is
   accepted when it names one of its plays, and that play is carried out the usual way (targets, modes, X and costs
   are the usual follow-up asks). Soundness is the menu's: `ProposeActionsTest.everyMenuPlayIsReachableByAProposal`
@@ -455,8 +457,17 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   first well-formed proposal was legal); the game line `propose_actions`, a puzzle row `propose_actions: true`.
   `eval/proposal_audit.py` reads them. Its headline is first-try legality **of non-pass proposals**: a pass is
   always legal, so the all-proposals rate scores 1.0 for a seat that only passes (the 88% lesson).
-- **Not yet hidden:** targets, attackers, blockers and the cost choices keep their candidate lists (they are the
-  next step: each can be checked with `sa.canTarget`, `CombatUtil` and `blocksError`, which already returns a reason).
+- **Targets (epoch 75):** a play with one targeting step and one target, among cards and players, names it in
+  `targets`; it is checked with the play (`proposalTarget`) and set at the target step without a list. A wrong one is
+  "ILLEGAL (target)" with the static ability that forbids it (hexproof, shroud, protection: Forge's
+  `StaticAbilityCantTarget.cantTarget`), its zone, or "not something it can target".
+- **The checker audit** (`PROPOSE_AUDIT=1`, diagnostic): at every play decision each menu play is proposed as the
+  guide describes and must land on itself. Over the keyword gauntlet (552 cards, both answer policies) it checked
+  21,493 plays; the misses it found (suspend and foretell unlisted, prototype and flash casts unnamed) are fixed, and
+  the rest were one may-play cast listed twice, the same play.
+- **Not yet hidden:** the targets of a play with modes, several targets or divided amounts, a spell on the stack as a
+  target, attackers, blockers and the cost choices keep their candidate lists (each can be checked with
+  `sa.canTarget`, `CombatUtil` and `blocksError`, which already returns a reason).
 
 **The tool list never changes within a game:** `answer`, `set_plan`, the lookups, and `simulate` on a
 lookahead seat, declared on every ask. A call that does not apply gets an error saying why.

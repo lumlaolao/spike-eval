@@ -116,8 +116,9 @@ final class SeatObservation {
             + "not said: you propose a play and the rules engine checks it. The opponent's hand is only a count.\n";
     static final String ACTIVATE_GUIDE = "- ACTIVATE options include your mana abilities: activating one only adds mana to your pool, where it stays until "
             + "the step or phase ends.\n";
-    static final String ABILITIES_GUIDE = "- YOUR ACTIVATED ABILITIES lists, for each of your cards that has activated abilities (on the "
-            + "battlefield, in your hand or in your graveyard), each ability's cost and effect as the card states it, numbered: "
+    static final String ABILITIES_GUIDE = "- YOUR ACTIVATED ABILITIES lists, for each of your cards that has activated abilities or special "
+            + "actions such as suspend and foretell (on the battlefield, in your hand or in your graveyard), each one's cost and "
+            + "effect as the card states it, numbered: "
             + "the number is the `ability` of a proposed activate. It says what the card can do, not whether it can do it now. A "
             + "land whose only abilities tap it for mana is not listed; its mana is used when you pay. Activating a mana ability "
             + "only adds mana to your pool, where it stays until the step or phase ends.\n";

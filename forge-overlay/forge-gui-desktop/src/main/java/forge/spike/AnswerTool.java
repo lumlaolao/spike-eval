@@ -56,8 +56,10 @@ final class AnswerTool {
      *  v13 (2026-11-03): the PROPOSE_ACTIONS condition. A play decision is answered with `action`, a proposed play
      *  (verb, card handle, ability, face, cost) that the engine checks against the legal plays it does not show; a
      *  rejected proposal is told its rule category and may be repaired, up to {@link #MAX_INVALID_PROPOSALS} tries.
-     *  Off, the schema and every ask are unchanged. */
-    static final String VERSION = "answer-tool-v13";
+     *  Off, the schema and every ask are unchanged.
+     *  v14 (2026-11-03): a proposal names its target (`action.targets`), checked with the play; Prototype and "flash"
+     *  are named costs; a proposal answered with a menu field is shown an example. Still unchanged off the arm. */
+    static final String VERSION = "answer-tool-v14";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -148,11 +150,14 @@ final class AnswerTool {
             + "Propose one with `action`: `verb` (play_land, cast, activate or pass), `card` (the handle of the card or "
             + "permanent, such as \"@12\"), and for an ability `ability` (its number in YOUR ACTIVATED ABILITIES). Give `face` "
             + "to cast one face or half of a card, and `cost` to cast it another way the card allows (its name as the card "
-            + "prints it, such as \"Flashback\", or \"alternative\" for a \"rather than pay this spell's mana cost\" cost). "
+            + "prints it, such as \"Flashback\" or \"Prototype\", \"alternative\" for a \"rather than pay this spell's mana cost\" "
+            + "cost, or \"flash\" for a cast the card allows at a time you could not otherwise cast it). "
             + "The rules engine checks the proposal. If the rules do not allow it now you are told which rule it breaks "
             + "(timing, cost, zone, target, land drop, control, restriction) and may propose again, up to "
             + MAX_INVALID_PROPOSALS + " tries in all; after that you pass. A malformed proposal (an unknown handle or "
-            + "ability number) is told what is wrong. Targets, modes, X and costs are asked after the play is accepted.\n";
+            + "ability number) is told what is wrong. Give a play's target in `targets` (a handle, or \"you\" or \"opponent\"); "
+            + "the engine checks it with the play. Modes, X and costs, and the targets of a play with several targets or "
+            + "modes, are asked after the play is accepted.\n";
 
 
     enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD, ACTION }
@@ -236,6 +241,7 @@ final class AnswerTool {
         Integer card;         // the handle, without "@"
         Integer ability;      // activate: 1-based, in YOUR ACTIVATED ABILITIES
         String face, cost;    // cast: a face or half by name; another way to cast it, by name
+        List<String> targets; // the play's target: a handle, "you" or "opponent"
         /** One line for the row and the history: "cast @12 (Flashback)". */
         String render() {
             if ("pass".equals(verb)) return "pass";
@@ -243,6 +249,7 @@ final class AnswerTool {
             if (ability != null) b.append(" ability ").append(ability);
             if (face != null) b.append(" face \"").append(face).append('"');
             if (cost != null) b.append(" (").append(cost).append(')');
+            if (targets != null && !targets.isEmpty()) b.append(" targeting ").append(String.join(", ", targets));
             return b.toString();
         }
     }
@@ -264,8 +271,13 @@ final class AnswerTool {
                 + "(1 when the card has one)."));
         ap.add("face", obj("type", "string", "description", "Optional, with cast: the face or half to cast, by name, when the card has more than one."));
         ap.add("cost", obj("type", "string", "description", "Optional, with cast: another way to cast it that the card allows, "
-                + "by the name the card prints (\"Flashback\", \"Evoke\", \"Overload\"...), or \"alternative\" for a "
-                + "\"rather than pay this spell's mana cost\" cost. Omit it to cast it normally."));
+                + "by the name the card prints (\"Flashback\", \"Evoke\", \"Overload\", \"Prototype\"...), \"alternative\" for a "
+                + "\"rather than pay this spell's mana cost\" cost, or \"flash\" for a cast the card allows when you could not "
+                + "otherwise cast it. Omit it to cast it normally."));
+        JsonObject tg = obj("type", "array", "description", "With cast or activate, when the play targets: its target, by handle "
+                + "(\"@7\"), or \"you\" or \"opponent\" for a player. The engine checks it with the play.");
+        tg.add("items", obj("type", "string"));
+        ap.add("targets", tg);
         act.add("properties", ap);
         JsonArray req = new JsonArray();
         req.add("verb");
@@ -782,7 +794,7 @@ final class AnswerTool {
         if (!a.get("action").isJsonObject()) return "FORMAT: `action` is an object with `verb` and, unless you pass, `card`.";
         JsonObject o = a.getAsJsonObject("action");
         for (String k : o.keySet())
-            if (!List.of("verb", "card", "ability", "face", "cost").contains(k)) return "FORMAT: `action` has no field `" + k + "`.";
+            if (!List.of("verb", "card", "ability", "face", "cost", "targets").contains(k)) return "FORMAT: `action` has no field `" + k + "`.";
         Proposal p = new Proposal();
         p.verb = str(o, "verb");
         if (p.verb != null) p.verb = p.verb.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replace('-', '_');
@@ -799,6 +811,15 @@ final class AnswerTool {
             }
             p.face = str(o, "face");
             p.cost = str(o, "cost");
+            if (!absent(o, "targets")) {
+                if (!o.get("targets").isJsonArray()) return "FORMAT: `targets` is a list such as [\"@7\"] or [\"opponent\"].";
+                p.targets = new ArrayList<>();
+                for (JsonElement e : o.getAsJsonArray("targets")) {
+                    if (!e.isJsonPrimitive()) return "FORMAT: each target is a handle such as \"@7\", or \"you\" or \"opponent\".";
+                    String t = e.getAsString().trim();
+                    if (!t.isEmpty()) p.targets.add(t);
+                }
+            }
         }
         out.action = p;
         return null;
