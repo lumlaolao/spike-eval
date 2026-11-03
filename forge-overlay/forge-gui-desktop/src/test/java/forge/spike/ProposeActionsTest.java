@@ -93,7 +93,8 @@ public class ProposeActionsTest {
     @Test
     public void aMalformedProposalIsAFormatError() {
         AnswerTool.Spec s = AnswerTool.Spec.action(3);
-        Assert.assertTrue(AnswerTool.validate(s, "{\"option\":1}").error.contains("`action`"));
+        String menuField = AnswerTool.validate(s, "{\"option\":1}").error;
+        Assert.assertTrue(menuField.startsWith("FORMAT:") && menuField.contains("no numbered list") && menuField.contains("you gave option"), menuField);
         Assert.assertTrue(AnswerTool.validate(s, "{\"action\":{\"verb\":\"attack\"}}").error.startsWith("FORMAT:"));
         Assert.assertTrue(AnswerTool.validate(s, "{\"action\":{\"verb\":\"cast\"}}").error.startsWith("FORMAT: `card`"));
         Assert.assertTrue(AnswerTool.validate(s, "{\"action\":{\"verb\":\"cast\",\"card\":\"@3\",\"x\":1}}").error.startsWith("FORMAT:"));

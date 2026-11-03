@@ -646,6 +646,12 @@ final class AnswerTool {
         JsonObject a = NativeTools.arguments(argumentsJson);
         if (a == null) return Result.bad("the arguments are not a JSON object.");
         String field = fieldOf(s.kind);
+        // A proposal answered with a menu field (`option`, `keep`): 9 of 48 Haiku plays did it (runs/propose,
+        // 2026-11-03), so the error shows the shape and says there is no list.
+        if (s.kind == Kind.ACTION && absent(a, field))
+            return Result.bad("FORMAT: this decision is answered with `action`, the play you propose, such as {\"verb\": "
+                    + "\"cast\", \"card\": \"@12\"} or {\"verb\": \"pass\"}; there is no numbered list to pick from"
+                    + (a.keySet().isEmpty() ? "" : " (you gave " + String.join(", ", a.keySet()) + ")") + ".");
         if (field != null && absent(a, field))
             return Result.bad("this decision is answered with `" + field + "`" + (a.keySet().isEmpty() ? "" : "; you gave "
                     + String.join(", ", a.keySet())) + ".");
