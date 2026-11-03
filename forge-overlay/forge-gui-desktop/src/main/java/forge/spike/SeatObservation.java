@@ -97,6 +97,30 @@ final class SeatObservation {
     // v42 (2026-10-19): an effect whose source is an effect carries no engine id ("Kumano Faces Kakkazan (111)'s
     // Effect's Effect", runs/loop/g33 T13).
     static final String VERSION = "observation-faithful-v42";
+
+    /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
+     *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
+    static String version() { return VERSION + (AnswerTool.proposeActions() ? "+propose" : ""); }
+
+    /** The state guide the system prompt carries: {@link #GUIDE}, or under PROPOSE_ACTIONS the same guide without the
+     *  hand's castable tags and the ACTIVATE options, which are part of the legal list that condition hides. */
+    static String guide() {
+        if (!AnswerTool.proposeActions()) return GUIDE;
+        return GUIDE.replace(HAND_TAGS_GUIDE, HAND_NO_TAGS_GUIDE).replace(ACTIVATE_GUIDE, ABILITIES_GUIDE);
+    }
+    static final String HAND_TAGS_GUIDE = "- Your hand lists each card with its mana cost and, for a spell, whether you can cast it now: \"(castable)\", "
+            + "\"(castable by an alternative cost)\", \"(castable only with <optional cost>)\", \"(payable, not castable now)\" "
+            + "(the mana is there but not the timing, such as a sorcery on the opponent's turn), what is missing, such as "
+            + "\"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n";
+    static final String HAND_NO_TAGS_GUIDE = "- Your hand lists each card with its mana cost. Whether a card can be cast now is "
+            + "not said: you propose a play and the rules engine checks it. The opponent's hand is only a count.\n";
+    static final String ACTIVATE_GUIDE = "- ACTIVATE options include your mana abilities: activating one only adds mana to your pool, where it stays until "
+            + "the step or phase ends.\n";
+    static final String ABILITIES_GUIDE = "- YOUR ACTIVATED ABILITIES lists, for each of your cards that has activated abilities (on the "
+            + "battlefield, in your hand or in your graveyard), each ability's cost and effect as the card states it, numbered: "
+            + "the number is the `ability` of a proposed activate. It says what the card can do, not whether it can do it now. A "
+            + "land whose only abilities tap it for mana is not listed; its mana is used when you pay. Activating a mana ability "
+            + "only adds mana to your pool, where it stays until the step or phase ends.\n";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -1062,6 +1086,7 @@ final class SeatObservation {
             s.append("  board: ").append(perms(viewer)).append('\n');
             s.append("  lands: ").append(lands(viewer)).append('\n');
             s.append("  mana available: ").append(manaLine(viewer)).append('\n');
+            if (AnswerTool.proposeActions()) s.append(abilitiesBlock());
             s.append("  graveyard(").append(viewer.getCardsIn(ZoneType.Graveyard).size()).append("): ")
              .append(zoneList(viewer.getCardsIn(ZoneType.Graveyard), ctx.yardCap)).append('\n');
             s.append("  exile(").append(viewer.getCardsIn(ZoneType.Exile).size()).append("): ")
@@ -1170,7 +1195,9 @@ final class SeatObservation {
         for (Card c : viewer.getCardsIn(ZoneType.Hand)) {
             if (b.length() > 0) b.append(", ");
             b.append(describe(c, false));
-            if (!c.isLand()) {
+            // PROPOSE_ACTIONS: no tag. castTag runs the play menu's own legality check, so it would show the hand half
+            // of the list that condition hides.
+            if (!c.isLand() && !AnswerTool.proposeActions()) {
                 try {
                     String afford = LlmSpikeGui.PlayerControllerLLM.castTag(viewer, c, tally);
                     if (afford != null) b.append(' ').append(afford);
@@ -1178,6 +1205,24 @@ final class SeatObservation {
             }
         }
         return b.length() == 0 ? "(empty)" : b.toString();
+    }
+
+    /** YOUR ACTIVATED ABILITIES (PROPOSE_ACTIONS): what each of the seat's cards can activate, numbered as a proposal
+     *  names them ({@link LlmSpikeGui.PlayerControllerLLM#proposalAbilities}). State, not legality: every ability is
+     *  listed whether or not it can be activated now. Empty when no card has one. */
+    String abilitiesBlock() {
+        StringBuilder b = new StringBuilder();
+        for (ZoneType z : new ZoneType[] {ZoneType.Battlefield, ZoneType.Hand, ZoneType.Graveyard}) {
+            for (Card c : viewer.getCardsIn(z)) {
+                List<forge.game.spellability.SpellAbility> abs = LlmSpikeGui.PlayerControllerLLM.proposalAbilities(c);
+                if (abs.isEmpty() || LlmSpikeGui.PlayerControllerLLM.onlyTapsForMana(c, abs)) continue;
+                b.append("    ").append(shortRef(c)).append(z == ZoneType.Battlefield ? "" : " (in your " + z.name().toLowerCase() + ")").append(':');
+                for (int i = 0; i < abs.size(); i++)
+                    b.append(i == 0 ? " " : "; ").append(i + 1).append(") ").append(LlmSpikeGui.PlayerControllerLLM.abilityText(abs.get(i)));
+                b.append('\n');
+            }
+        }
+        return b.length() == 0 ? "" : "  YOUR ACTIVATED ABILITIES (from the cards' rules text, numbered for a proposed activate):\n" + b;
     }
 
     private String perms(Player p) {

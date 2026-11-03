@@ -120,6 +120,9 @@ def condition(a):
     cond = {"CONTEXT_PROFILE": a.context_profile, "MEMORY_TOOLS": "1" if a.memory_tools else "0",
             "RULES_TOOL": "1" if a.rules_tool else "0", "NATIVE_TOOLS": "1", "ANSWER_TOOL": "1",
             "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
+    # The hidden-menu arm only when asked for, so a directory from before it resumes unchanged.
+    if getattr(a, "propose_actions", False):
+        cond["PROPOSE_ACTIONS"] = "1"
     if cost_report.is_cli_lane(getattr(a, "model", None)):
         cond.update(cost_report.cli_env(getattr(a, "claude_cli_effort", None), getattr(a, "claude_cli_thinking_tokens", None)))
     return cond
@@ -298,6 +301,8 @@ def main(argv=None):
     ap.add_argument("--context-profile", default="v4-faithful")
     ap.add_argument("--memory-tools", action="store_true")
     ap.add_argument("--rules-tool", action="store_true")
+    ap.add_argument("--propose-actions", action="store_true",
+                    help="PROPOSE_ACTIONS=1: the hidden-menu arm; the seat proposes each play and the engine checks it")
     ap.add_argument("--build", default=None)
     ap.add_argument("--allow-no-record", action="store_true",
                     help="run on a build without Transcript (no http or engine record; the manifest says so)")

@@ -166,6 +166,8 @@ PROVENANCE_FIELDS = (
     # into one experiment. A legacy line that carries neither reads MISSING, as a distinct condition.
     ("plan_execute", MISSING),
     ("tier_fast_types", MISSING),
+    # The hidden-menu arm (PROPOSE_ACTIONS, harness-epoch-74): every line before it was a menu game.
+    ("propose_actions", False),
 )
 
 # Identity fields a cited run must resolve. A value in this set means the field

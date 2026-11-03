@@ -934,6 +934,8 @@ public final class LlmSpikePuzzle {
         row.put("goal", goal);
         // Which interface the attempt saw: puzzle_score.py refuses to pool epochs (pr-review of PR #273).
         row.put("harness_epoch", LlmSpikeGui.HARNESS_EPOCH);
+        // The hidden-menu arm, only when on: a row without it saw the menu, as every row before the arm did.
+        if (AnswerTool.proposeActions()) row.put("propose_actions", true);
         // Either tier, as the game line's jevA (LlmSpikeGui): a fast-tier jev: solver is a jev: solver too.
         if ("llm".equals(ctlA) && (DecisionsBridge.isSpec(smartA) || DecisionsBridge.isSpec(fastA)))
             row.put("decisions_bridge_version", DecisionsBridge.VERSION);

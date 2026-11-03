@@ -57,7 +57,9 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      # From each puzzle's manifest record (load_rows): puzzle_solve.py --call-timeout-minutes, every
                      # tier's per-call deadline, and --max-tokens, the thinking budget (None: each model's own).
                      ("call_timeout_ms", "call deadlines"),
-                     ("max_tokens", "token caps"))
+                     ("max_tokens", "token caps"),
+                     # PROPOSE_ACTIONS (harness-epoch-74): the seat proposed its plays instead of picking from the menu.
+                     ("propose_actions", "play interfaces (true: proposed plays, no menu)"))
 
 # A condition read from a puzzle's manifest when the directory has none (a baseline arm): not known, not "unset".
 NO_MANIFEST = "n/a"

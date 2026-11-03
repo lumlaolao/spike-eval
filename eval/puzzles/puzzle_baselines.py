@@ -152,6 +152,7 @@ class Build:
         out_dir = Path(out_dir).resolve()  # the JVM runs from the Forge checkout
         out_dir.mkdir(parents=True, exist_ok=True)
         env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENROUTER", "PZL_", "FORK_"))}
+        env.pop("PROPOSE_ACTIONS", None)   # a condition: only puzzle_solve.py --propose-actions sets it
         env["EVAL_OUT"] = str(out_dir)
         if not keep_model_env:
             # Zero-model by construction: no egress opt-in, no API key, and the model spec points at a
