@@ -341,3 +341,38 @@ How the sources limit leakage through error messages:
 - The Game Arena paper's page shows both "February 2026" and "25 Sep 2026" dates.
 - One host was unreachable from this session: commander-bench-website.pages.dev, an XMage-based Commander benchmark
   that I could not inspect.
+
+---
+
+## Pilot: Claude Haiku 5.5 on the rules sample, menu against propose (2026-11-03)
+
+A development-lane pilot (`claude-cli:claude-haiku-5-5`, `CLAUDE_CLI_SEAT=1`, owner's opt-in; never a benchmark score):
+the 29 active open puzzles of `eval/suites/puzzles-rules-sample-v1.json`, one attempt each, harness-epoch-74, no
+lookups. Run directories (container-local, not committed): `runs/propose/haiku-rules-menu`,
+`runs/propose/haiku-rules-propose` (first error text) and `runs/propose/haiku-rules-propose-v2` (the shipped error
+text). Notional CLI cost $0.13, $0.17 and $0.16.
+
+| Arm | Solved (pass@1) | 95% CI (Wilson) | Play decisions | Passed | Non-pass first-try legal | Format errors |
+|---|---|---|---|---|---|---|
+| menu | 23/29 (0.79) | 0.62-0.90 | 48 | 9 (19%) | n/a: the menu allows nothing else | n/a |
+| propose, first text | 20/29 (0.69) | 0.51-0.83 | 48 | 20 (42%) | 28/28 | 11 |
+| propose, shipped text | 21/29 (0.72) | 0.54-0.85 | 50 | 17 (34%) | 33/33 | 10 |
+
+Floors on this suite: random 0.088, PASS 0.000, first-option 0.207 (`puzzle_score.py`).
+
+What it shows, and what it does not:
+- **The solve rates do not differ detectably.** Two runs of this size detect only a difference of about 0.33.
+- **Haiku broke no rule it proposed:** every non-pass proposal it made was legal on the first try (61 of 61 over
+  both propose blocks). On these single-rule positions the arm's cost is not illegal plays.
+- **It passes far more without the menu:** 34-42% of its play decisions against 19% with it. All six puzzles solved
+  only with the menu were lost to a pass where the menu arm cast the winning spell (RP_124, RP_443, RP_458, RP_477,
+  RP_520, RP_542). The menu was doing part of the finding: it shows what can be played. Decisions without a format
+  error still passed 38% of the time in the first block, so the error messages are not what caused it.
+- **Format errors are a habit, not a rules error:** about one play in five was first answered with the menu's
+  `option` (or `keep`) field. They are recorded apart and cost a try, not a rules error. The shipped text shows an
+  example proposal; it did not lower the first-answer rate (10 against 11), as expected, since the first answer
+  comes before any error.
+
+Next, in order: the same pilot on GPT-6 Luna (paid; the default game model); a second arm with specific reasons
+(implication 1) to measure the message's share; hiding targets, attackers and blockers (ARCHITECTURE.md,
+"The propose condition", not yet hidden); a checker audit over a replay corpus (implication 10).
