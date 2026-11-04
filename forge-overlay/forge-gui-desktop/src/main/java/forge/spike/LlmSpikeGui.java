@@ -9660,16 +9660,6 @@ public final class LlmSpikeGui {
             return b.append("],\"first_try_legal\":").append(firstLegal).toString();
         }
 
-        /** True when a sub-ability's target restriction refers to something chosen before it (a parent's target, a
-         *  chosen colour or card, a remembered object): its candidates cannot be counted before that choice. */
-        static boolean dependsOnAnEarlierChoice(SpellAbility part) {
-            for (String k : List.of("TargetsWithDefinedController", "TargetsWithRelatedProperty", "TargetsWithSameController",
-                    "TargetsWithSharedTypes", "TargetsFromSingleZone", "TargetUnique"))
-                if (part.hasParam(k)) return true;
-            return part.hasParam("ValidTgts")
-                    && part.getParam("ValidTgts").matches("(?s).*(Parent|Targeted|Chosen|Remembered|Imprinted|Defined|Triggered).*");
-        }
-
         /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
          *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
          *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
@@ -9711,14 +9701,14 @@ public final class LlmSpikeGui {
             if (!payable) return false;
             // Skip a play a part of which has no legal target: casting it fails ("Couldn't add to stack, failed to
             // target"): Animate Dead with an empty graveyard, Govern the Guildless's forecast with no creature in play
-            // (its target is in a sub-ability: gauntlet kw28). A sub-ability is counted only when its targets cannot
-            // depend on an earlier choice: no earlier part targets, and its restriction names nothing chosen before it.
-            // Counted with no first target, Searing Blaze's "creature that player controls" has none and a legal cast
-            // would be hidden (pr-review of #343).
+            // (its target is in a sub-ability: gauntlet kw28). A sub-ability is counted only when no earlier part targets:
+            // its targets may depend on that one, and counted with no first target, Searing Blaze's "creature that player
+            // controls" has none and a legal cast would be hidden (pr-review of #343; a scan of every card script found
+            // no counted sub-ability whose targets depend on another choice).
             boolean earlierTarget = false;
             for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
                 if (!part.usesTargeting()) continue;
-                if (part != sa && (earlierTarget || dependsOnAnEarlierChoice(part))) continue;
+                if (earlierTarget) continue;
                 earlierTarget = true;
                 try {
                     if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);

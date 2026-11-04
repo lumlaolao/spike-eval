@@ -81,10 +81,10 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A play is not offered when a part of it that must target has no legal target: casting it only fails ("Couldn't add
   to stack, failed to target"). That is legality, not judgment: the engine refuses the play. A sub-ability counts too
   (Govern the Guildless's forecast targets in its sub-ability and was offered with no creature in play;
-  harness-epoch-77), but only when its targets cannot depend on an earlier choice: when an earlier part targets, or
-  its restriction names a parent target or a chosen or remembered object (Searing Blaze's "creature that player
-  controls", Goblin Welder), its candidates are unknown before the cast, so it is left to the cast
-  (`aSubAbilityTargetThatDependsOnTheFirstTargetDoesNotHideThePlay`).
+  harness-epoch-77), but only when no earlier part targets: its targets may depend on that one (Searing Blaze's
+  "creature that player controls", Goblin Welder), unknown before the cast, so it is left to the cast
+  (`aSubAbilityTargetThatDependsOnTheFirstTargetDoesNotHideThePlay`). A scan of every card script found no counted
+  sub-ability whose targets depend on another choice made at the cast.
 - **The one exception is a measurement arm:** under `PROPOSE_ACTIONS=1` the play menu is built as always but not
   shown; the seat proposes its play and the menu checks it (section 6, "The propose condition"). Nothing legal is
   refused there either: a proposal is accepted exactly when it names a play the menu would have offered.
