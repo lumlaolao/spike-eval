@@ -24,6 +24,24 @@ def ok(msg):
     print("[ok] " + msg)
 
 
+def test_a_tournament_game_never_inherits_a_condition_from_the_shell():
+    # pr-review of #347: _match_env copied the whole shell, so an exported ONE_TIER, PROPOSE_ACTIONS or SHADOW_AI reached
+    # every bracket game. Every condition run_batch.py pins is dropped; the tournament's own settings still arrive.
+    import argparse
+    import run_batch
+    from unittest import mock
+    names = {n: "1" for n in run_batch.CONDITION_ENV_KEYS + ("SHADOW_AI",)}
+    a = {"path": "/a.txt", "label": "A", "model": "x/a"}
+    b = {"path": "/b.txt", "label": "B", "model": "x/b"}
+    args = argparse.Namespace(cap_minutes=1, forge_home=tempfile.mkdtemp(), record=False, record_fps=4)
+    with mock.patch.dict(os.environ, names), mock.patch.object(T, "_engine_sha", lambda h: "e"), \
+            mock.patch.object(T, "_overlay_sha", lambda h: "o"):
+        env = T._match_env(a, b, 7, False, Path("/x.mp4"), Path(tempfile.mkdtemp()), args)
+    assert [n for n in names if n in env] == [], [n for n in names if n in env]
+    assert env["CONTROLLER_A"] == "llm" and env["GAME_SEED"] == "7"
+    ok("a tournament game drops the shell's conditions")
+
+
 def test_snake_single_round():
     order = [0, 1, 2, 3]
     assert T._snake(order, rounds=1) == [0, 1, 2, 3]
@@ -216,6 +234,7 @@ def main():
     test_parser_number_and_alias()
     test_run_bracket_one_at_a_time()
     test_dry_run_makes_no_network_or_game_calls()
+    test_a_tournament_game_never_inherits_a_condition_from_the_shell()
     print("\nAll checks passed.")
     return 0
 

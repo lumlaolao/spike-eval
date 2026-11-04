@@ -124,14 +124,15 @@ most log questions).
   directory made under a different value. The puzzle runner, `puzzle_baselines.Build.run` (so
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
   every name in `run_batch.CONDITION_ENV_KEYS` and `SHADOW_AI`
-  (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` reads that list; #342, #345). A
-  launcher that goes through `run_batch.py` (`improve_loop.py`) inherits its pinning; the diagnostics that
-  launch a game JVM directly (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, and the
+  (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` reads that list; #342, #345), and so
+  does the tournament (`tournament._match_env`). A launcher that goes through `run_batch.py`
+  (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
+  (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
   acceptance canaries in `harness_acceptance.sh`) are never scored and rely on the game-line stamps.
   `eval/tests/test_launchers.py` classifies every file that launches a game, so a new one is named here.
   A condition the JVM reads from the environment but never stamps pools its on- and off-games (issue
-  #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every
-  `System.getenv` in the game-line writer is either stamped or on a named allowlist of settings that
+  #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every `System.getenv` in the game-line writer is either
+  stamped or on a named allowlist of settings that
   do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s
   `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
   (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
