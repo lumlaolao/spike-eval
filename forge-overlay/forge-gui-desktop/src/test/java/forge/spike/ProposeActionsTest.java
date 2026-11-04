@@ -192,6 +192,39 @@ public class ProposeActionsTest {
         Assert.assertTrue(err.startsWith("ILLEGAL (timing)"), err);
     }
 
+    /** A cast that names an optional cost the card has (Kicker), or "normal", is the normal cast: the kicker is asked
+     *  when it is cast, as under the menu. Refusing it would count a legal play as a rules error (pr-review #342). */
+    @Test
+    public void anOptionalCostOrNormalNamesTheNormalCast() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        Card burst = card("Burst Lightning", me, ZoneType.Hand);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        for (String cost : List.of("Kicker", "normal")) {
+            AnswerTool.Proposal p = prop("cast", handle(ctrl, burst), null, null, cost);
+            p.targets = List.of("opponent");
+            int[] hit = {-1};
+            Assert.assertNull(verdict(ctrl, me, true, p, hit), cost);
+            Assert.assertEquals(hit[0], 1, cost + " is the normal cast");
+        }
+        AnswerTool.Proposal other = prop("cast", handle(ctrl, burst), null, null, "Buyback");
+        other.targets = List.of("opponent");
+        Assert.assertTrue(reject(ctrl, me, true, other).startsWith("ILLEGAL (cost)"), "a cost the card does not have");
+    }
+
+    /** A cost name matches only itself: "flash" is not the card's Flashback (pr-review #342). */
+    @Test
+    public void aCostNameDoesNotMatchALongerOne() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Mountain", me, ZoneType.Battlefield);
+        Card looting = card("Faithless Looting", me, ZoneType.Graveyard);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Assert.assertNull(verdict(ctrl, me, true, prop("cast", handle(ctrl, looting), null, null, "Flashback"), new int[] {-1}));
+        Assert.assertTrue(reject(ctrl, me, true, prop("cast", handle(ctrl, looting), null, null, "flash")).startsWith("ILLEGAL (cost)"));
+    }
+
     @Test
     public void aSpellWithoutTheManaBreaksCost() {
         Game g = bareGame(PhaseType.MAIN1);

@@ -365,8 +365,11 @@ public final class LlmSpikeGui {
      *  "The propose condition").
      *  Epoch 75 (2026-11-03, answer-tool-v14): under PROPOSE_ACTIONS a play's one target is proposed with it, and suspend,
      *  foretell and the other special actions are in YOUR ACTIVATED ABILITIES (the gauntlet audit found them unproposable).
+     *  Epoch 76 (2026-11-04, answer-tool-v15, pr-review #342): under PROPOSE_ACTIONS a cast naming an optional cost
+     *  (Kicker) or "normal" is the normal cast, not a cost error; a cost name matches only itself ("flash" is not
+     *  Flashback); a proposed target is consumed by its own play's target step only. Unchanged off the arm.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-75";
+    static final String HARNESS_EPOCH = "harness-epoch-76";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -4776,6 +4779,11 @@ public final class LlmSpikeGui {
         /** {@code play}: a play from the seat's priority menu, which a target preview can replay on a copy (a
          *  trigger cannot: runs/loop/g04 T5 previewed a cycling trigger's target and got "unavailable"). */
         private boolean ensureTargetsSet(SpellAbility root, boolean cancellable, boolean play) {
+            // A proposed target is for the play it was checked with, consumed here whatever path the loop takes: left
+            // pending, a later trigger's or copy's target would be set from it unasked (pr-review #342). Off the play
+            // path it is dropped, and a target ask with its list follows instead.
+            Object proposed = play ? proposedTarget : null;
+            proposedTarget = null;
             for (SpellAbility sa = root; sa != null; sa = sa.getSubAbility()) {
                 clearLast(); // per-ability: a single-candidate auto-target must not inherit a prior ability's prompt
                 try {
@@ -4798,9 +4806,9 @@ public final class LlmSpikeGui {
                     if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
                     // PROPOSE_ACTIONS: the target the accepted proposal named, checked with it (proposalTarget); still
                     // legal after X and costs, it is set without a list being shown.
-                    if (proposedTarget != null) {
-                        Object want = proposedTarget;
-                        proposedTarget = null;
+                    if (proposed != null) {
+                        Object want = proposed;
+                        proposed = null;
                         if (sa.getMaxTargets() <= 1 && !sa.isDividedAsYouChoose() && cands.contains(want)) {
                             sa.resetTargets();
                             sa.getTargets().add((forge.game.GameObject) want);
@@ -9160,7 +9168,8 @@ public final class LlmSpikeGui {
         /** PROPOSE_AUDIT=1: at every play decision, each menu play is turned into the proposal the guide describes and
          *  checked to land on that play ({@link #auditProposals}); a miss is logged "[PROPOSE-AUDIT] MISS". A checker
          *  that refuses a legal play would score a seat down for the harness's fault (Jericho's valid-action oracle
-         *  has such false negatives). Diagnostic only: it registers handles early, so what a seat reads may differ. */
+         *  has such false negatives). Diagnostic only, and a condition: it registers handles early, so what a seat reads may differ; the game line
+         *  stamps it (`propose_audit`), so an audited game never pools with a plain one. */
         static final boolean PROPOSE_AUDIT = "1".equals(System.getenv("PROPOSE_AUDIT"));
         int auditChecked, auditMissed;
 
@@ -9193,11 +9202,8 @@ public final class LlmSpikeGui {
         /** The first legal target of a play whose one target a proposal names ({@link #proposalTarget}), as the seat
          *  would write it; null for any other play. */
         List<String> firstTarget(SpellAbility play) {
-            if (play.getApi() == ApiType.Charm) return null;
-            SpellAbility part = null;
-            for (SpellAbility s = play; s != null; s = s.getSubAbility()) if (s.usesTargeting()) { if (part != null) return null; part = s; }
-            if (part == null || part.getMaxTargets() > 1 || part.isDividedAsYouChoose() || part.getTargetRestrictions() == null) return null;
-            if (part.getActivatingPlayer() == null) part.setActivatingPlayer(getPlayer());
+            SpellAbility part = singleTargetPart(play, getPlayer());
+            if (part == null) return null;
             List<forge.game.GameObject> cands = targetCandidates(part, part.getTargetRestrictions());
             if (cands.isEmpty()) return null;
             forge.game.GameObject t = cands.get(0);
@@ -9304,10 +9310,32 @@ public final class LlmSpikeGui {
                 if (sa.getMayPlayOption() != null && sa.getMayPlay() != null && sa.getMayPlay().hasParam("MayPlayWithFlash"))
                     return "flash";
                 List<String> names = new ArrayList<>();
-                for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts()) names.add(o.getName().replaceAll("^\\((.*)\\)$", "$1"));
+                for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts()) names.add(optionalCostName(o));
                 if (!names.isEmpty()) return String.join(", ", names);
                 return sa.isBasicSpell() ? null : "alternative";
             } catch (Exception e) { return null; }
+        }
+
+        /** True when {@code cost} names no way to cast that the menu tells apart: a word for the normal cast ("normal",
+         *  "none") or an optional additional cost the card has (kicker, buyback, entwine), which the menu's normal cast
+         *  carries and the cast then asks about, as it does under the menu. Refusing it would call a legal cast a rules
+         *  error (pr-review #342). A cast the menu lists only with that cost still matches by its name. */
+        static boolean namesTheNormalCast(String cost, Card c, List<SpellAbility> options) {
+            String want = cost.toLowerCase(java.util.Locale.ROOT).trim();
+            if (want.isEmpty() || "normal".equals(want) || "none".equals(want)) return true;
+            for (SpellAbility o : options) if (o.isSpell() && o.getHostCard() == c && costMatches(o, cost)) return false;
+            try {
+                for (SpellAbility sa : c.getAllSpellAbilities())
+                    if (sa.isSpell())
+                        for (OptionalCostValue v : GameActionUtil.getOptionalCostValues(sa))
+                            if (optionalCostName(v.getType()).toLowerCase(java.util.Locale.ROOT).equals(want)) return true;
+            } catch (Exception ignore) { }
+            return false;
+        }
+
+        /** An optional cost's name as the card prints it ("Kicker", "Buyback"), without the engine's brackets. */
+        static String optionalCostName(forge.game.spellability.OptionalCost o) {
+            return o.getName().replaceAll("^\\((.*)\\)$", "$1");
         }
 
         static boolean costMatches(SpellAbility sa, String cost) {
@@ -9318,7 +9346,9 @@ public final class LlmSpikeGui {
             // "alternative" is a "rather than pay this spell's mana cost" cast: a pitch spell or a named alternative cost,
             // never a flash or prototype cast or an optional cost.
             if ("alternative".equals(c)) return "alternative".equals(w) || sa.getAlternativeCost() != null;
-            return w.equals(c) || w.contains(c);
+            // A cast with several optional costs is named by any one of them; a name never matches a longer one ("flash"
+            // is not "Flashback").
+            return w.equals(c) || java.util.Arrays.asList(w.split(", ")).contains(c);
         }
 
         /** The face or half a cast is of, by name (the card's own name for a one-faced card). */
@@ -9354,17 +9384,23 @@ public final class LlmSpikeGui {
             return err;
         }
 
+        /** The one targeting step a proposal names its target for: a play with exactly one part that targets, one target
+         *  and no division, never a modal spell (its modes come first; their targets are asked after). Null for any
+         *  other play, which keeps its target ask. One rule for the checker and for the audit's proposals. */
+        private static SpellAbility singleTargetPart(SpellAbility play, Player me) {
+            if (play.getApi() == ApiType.Charm) return null;
+            SpellAbility part = null;
+            for (SpellAbility s = play; s != null; s = s.getSubAbility()) if (s.usesTargeting()) { if (part != null) return null; part = s; }
+            if (part == null || part.getMaxTargets() > 1 || part.isDividedAsYouChoose()) return null;
+            if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
+            return part.getTargetRestrictions() == null ? null : part;
+        }
+
         private String proposalTarget(AnswerTool.Proposal pr, SpellAbility play, Player me) {
             proposedTarget = null;
-            if (play.getApi() == ApiType.Charm) return null;   // the modes come first; their targets are asked after
-            List<SpellAbility> parts = new ArrayList<>();
-            for (SpellAbility s = play; s != null; s = s.getSubAbility()) if (s.usesTargeting()) parts.add(s);
-            if (parts.size() != 1) return null;
-            SpellAbility part = parts.get(0);
-            if (part.getMaxTargets() > 1 || part.isDividedAsYouChoose()) return null;
-            if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
+            SpellAbility part = singleTargetPart(play, me);
+            if (part == null) return null;
             TargetRestrictions tr = part.getTargetRestrictions();
-            if (tr == null) return null;
             List<forge.game.GameObject> cands = targetCandidates(part, tr);
             for (forge.game.GameObject o : cands) if (!(o instanceof Card) && !(o instanceof Player)) return null;
             String what = refOf(play.getHostCard());
@@ -9461,6 +9497,7 @@ public final class LlmSpikeGui {
                 return proposalRejection(pr, c, want, me, ownMain);
             }
             // cast
+            if (pr.cost != null && namesTheNormalCast(pr.cost, c, options)) { pr = pr.copy(); pr.cost = null; }
             List<Integer> hits = new ArrayList<>();
             for (int i = 0; i < options.size(); i++) {
                 SpellAbility o = options.get(i);
@@ -9551,18 +9588,14 @@ public final class LlmSpikeGui {
                 try { spells.addAll(GameActionUtil.getAlternativeCosts(o, me, false)); } catch (Exception ignore) { }
             }
             for (SpellAbility o : spells) {
-                if (!o.isSpell() || pr.face != null && !faceOf(o).equalsIgnoreCase(pr.face.trim())) continue;
+                if (pr.face != null && !faceOf(o).equalsIgnoreCase(pr.face.trim())) continue;
                 if (pr.cost == null && castWay(o) == null || pr.cost != null && costMatches(o, pr.cost)) { sa = o; break; }
                 if (sa == null) sa = o;
             }
             if (sa == null && pr.face != null) return "FORMAT: " + r + " has no face named \"" + pr.face + "\".";
             if (sa == null) return "ILLEGAL (type): " + r + " is not a spell that can be cast.";
-            if (pr.cost != null && !costMatches(sa, pr.cost)) {
-                boolean found = false;
-                try { for (SpellAbility alt : GameActionUtil.getAlternativeCosts(sa, me, false)) if (costMatches(alt, pr.cost)) { sa = alt; found = true; break; } }
-                catch (Exception ignore) { }
-                if (!found) return "ILLEGAL (cost): " + r + " cannot be cast for a cost named \"" + pr.cost + "\".";
-            }
+            // The loop above already looked through every spell and its alternative costs for this name.
+            if (pr.cost != null && !costMatches(sa, pr.cost)) return "ILLEGAL (cost): " + r + " cannot be cast for a cost named \"" + pr.cost + "\".";
             sa.setActivatingPlayer(me);
             if (c.getOwner() != me && c.getController() != me && zone != ZoneType.Hand)
                 return "ILLEGAL (control): " + r + " is not yours to cast.";
@@ -12171,6 +12204,7 @@ public final class LlmSpikeGui {
                 // on-game with an off-game, and a legacy line that carries neither reads MISSING.
                 + ",\"plan_execute\":" + PlayerControllerLLM.PLAN_EXECUTE
                 + ",\"propose_actions\":" + AnswerTool.proposeActions()
+                + ",\"propose_audit\":" + PlayerControllerLLM.PROPOSE_AUDIT
                 + ",\"tier_fast_types\":\"" + jsonEscape(PlayerControllerLLM.tierFastTypesLabel()) + "\""
                 // Wired, not asked for: RULES_TOOL=1 without MEMORY_TOOLS=1 offers nothing (pr-review of PR #272).
                 + ",\"rules_tool\":" + PlayerControllerLLM.rulesToolWired(PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.RULES_TOOL)

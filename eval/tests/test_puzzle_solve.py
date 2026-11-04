@@ -163,6 +163,20 @@ class ResumeTest(unittest.TestCase):
             self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], model, sha, c, self.BUILD)), 1,
                              (model, sha, c))
 
+    def test_a_resume_into_the_other_play_interface_is_refused(self):
+        # PROPOSE_ACTIONS is pinned only when asked for: a menu directory resumes unchanged, and a resume that adds or
+        # drops the arm is refused, as run_batch.py refuses it (TestProposeActions).
+        import argparse
+        base = dict(context_profile="v4-faithful", memory_tools=False, rules_tool=False)
+        menu = puzzle_solve.condition(argparse.Namespace(**base))
+        propose = puzzle_solve.condition(argparse.Namespace(**base, propose_actions=True))
+        self.assertNotIn("PROPOSE_ACTIONS", menu)
+        self.assertEqual(propose["PROPOSE_ACTIONS"], "1")
+        root = Path(tempfile.mkdtemp())
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", menu, self.BUILD)
+        self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", menu, self.BUILD), [])
+        self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", propose, self.BUILD)), 1)
+
     BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
              "stale_build_allowed": False}
 

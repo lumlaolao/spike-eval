@@ -59,7 +59,9 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      ("call_timeout_ms", "call deadlines"),
                      ("max_tokens", "token caps"),
                      # PROPOSE_ACTIONS (harness-epoch-74): the seat proposed its plays instead of picking from the menu.
-                     ("propose_actions", "play interfaces (true: proposed plays, no menu)"))
+                     ("propose_actions", "play interfaces (true: proposed plays, no menu)"),
+                     # PROPOSE_AUDIT, the checker audit: a diagnostic that registers handles early, so a condition.
+                     ("propose_audit", "checker audits (true: PROPOSE_AUDIT on)"))
 
 # A condition read from a puzzle's manifest when the directory has none (a baseline arm): not known, not "unset".
 NO_MANIFEST = "n/a"

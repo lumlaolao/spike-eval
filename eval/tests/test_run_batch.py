@@ -383,6 +383,7 @@ class TestProposeActions(unittest.TestCase):
         self.assertIn("exploratory", run_batch.propose_refusal(make_args(propose_actions=True, exploratory=False)))
         self.assertIn("--lookahead", run_batch.propose_refusal(make_args(propose_actions=True, lookahead=True)))
         self.assertIn("--text-answers", run_batch.propose_refusal(make_args(propose_actions=True, text_answers=True)))
+        self.assertIn("--plan-execute", run_batch.propose_refusal(make_args(propose_actions=True, plan_execute=True)))
 
 
 class TestNoCoaching(unittest.TestCase):

@@ -379,14 +379,15 @@ The same 29 puzzles, one attempt each, on harness-epoch-75 (a proposal now names
 no menu play it cannot reach). Run directories: `runs/propose/e75-haiku-rules-menu`,
 `runs/propose/e75-haiku-rules-propose`. Notional CLI cost $0.14 and $0.20.
 
-| Arm | Solved (pass@1) | 95% CI (clustered) | Play decisions | Passed | Non-pass first-try legal | Format errors |
+| Arm | Solved (pass@1) | 95% CI (Wilson) | Play decisions | Passed | Non-pass first-try legal | Format errors |
 |---|---|---|---|---|---|---|
-| menu | 26/29 (0.90) | 0.78-1.00 | 50 | 9 (18%) | n/a | n/a |
-| propose | 20/29 (0.69) | 0.52-0.86 | 56 | 22 (39%) | 34/34 | 10 |
+| menu | 26/29 (0.90) | 0.74-0.96 | 50 | 9 (18%) | n/a | n/a |
+| propose | 20/29 (0.69) | 0.51-0.83 | 56 | 22 (39%) | 34/34 | 10 |
 
 - **The direction repeats; the size is still under what the block resolves** (about 0.23 to 0.35). All six flips go
-  one way: RP_055, RP_190, RP_204, RP_370, RP_520, RP_529 were solved only with the menu. Over both epochs, 12 of 12
-  flips favour the menu.
+  one way: RP_055, RP_190, RP_204, RP_370, RP_520, RP_529 were solved only with the menu. The epoch-74 blocks were
+  mixed: 6 to the menu and 3 the other way in the first (RP_151, RP_190, RP_529 solved only by proposal), 4 and 2 in
+  the second. So the flips lean to the menu (16 against 5 over the three pairs), not all one way.
 - **None of the six is a harness fault**, read row by row: four open with a pass where the menu arm cast the winning
   spell (RP_370 passes away its floating red mana; RP_529 passes with Turn to Frog castable), RP_520 equips Lightning
   Greaves before Giant Growth and so shrouds its own target, and RP_190 targets the wrong creature. RP_055 is the one

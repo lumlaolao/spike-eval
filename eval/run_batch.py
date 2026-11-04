@@ -652,6 +652,8 @@ def propose_refusal(args):
         return "--propose-actions with --lookahead: the preview takes menu numbers, which this arm does not show"
     if getattr(args, "text_answers", False):
         return "--propose-actions with --text-answers: a proposal is a field of the `answer` call"
+    if getattr(args, "plan_execute", False):
+        return "--propose-actions with --plan-execute: its steps are menu numbers, which this arm does not show"
     return None
 
 

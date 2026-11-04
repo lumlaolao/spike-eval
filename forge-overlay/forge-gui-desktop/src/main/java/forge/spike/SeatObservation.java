@@ -132,10 +132,7 @@ final class SeatObservation {
             + "hands) there is no phase and no active player yet.\n"
             + "- YOU and OPP each start with a line of counts: life, poison (10 loses), any other counters, hand, library, "
             + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn.\n"
-            + "- Your hand lists each card with its mana cost and, for a spell, whether you can cast it now: \"(castable)\", "
-            + "\"(castable by an alternative cost)\", \"(castable only with <optional cost>)\", \"(payable, not castable now)\" "
-            + "(the mana is there but not the timing, such as a sorcery on the opponent's turn), what is missing, such as "
-            + "\"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n"
+            + HAND_TAGS_GUIDE
             + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
             + "- mana available is the mana your untapped sources can make right now, as the engine counts it (Ancient Tomb "
@@ -149,8 +146,7 @@ final class SeatObservation {
             + "\"(+N more not shown)\" note says otherwise.\n"
             + "- CAST THIS GAME and LANDS PLAYED record what the opponent has cast and played, even cards that have since left "
             + "play. OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n"
-            + "- ACTIVATE options include your mana abilities: activating one only adds mana to your pool, where it stays until "
-            + "the step or phase ends.\n"
+            + ACTIVATE_GUIDE
             + "- STACK lists what is waiting to resolve, top first (the top resolves first); COMBAT describes attackers and "
             + "blockers; NOT VISIBLE names what is hidden from you.\n"
             + "- SINCE YOUR LAST DECISION is the engine's log of what happened since you last chose, oldest first; [E<n>] ids "

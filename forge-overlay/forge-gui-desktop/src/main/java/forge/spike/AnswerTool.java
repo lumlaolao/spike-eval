@@ -58,8 +58,9 @@ final class AnswerTool {
      *  rejected proposal is told its rule category and may be repaired, up to {@link #MAX_INVALID_PROPOSALS} tries.
      *  Off, the schema and every ask are unchanged.
      *  v14 (2026-11-03): a proposal names its target (`action.targets`), checked with the play; Prototype and "flash"
-     *  are named costs; a proposal answered with a menu field is shown an example. Still unchanged off the arm. */
-    static final String VERSION = "answer-tool-v14";
+     *  are named costs; a proposal answered with a menu field is shown an example. Still unchanged off the arm.
+     *  v15 (2026-11-04): `action.cost` says an optional cost such as Kicker is asked when the spell is cast. */
+    static final String VERSION = "answer-tool-v15";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -242,6 +243,11 @@ final class AnswerTool {
         Integer ability;      // activate: 1-based, in YOUR ACTIVATED ABILITIES
         String face, cost;    // cast: a face or half by name; another way to cast it, by name
         List<String> targets; // the play's target: a handle, "you" or "opponent"
+        Proposal copy() {
+            Proposal p = new Proposal();
+            p.verb = verb; p.card = card; p.ability = ability; p.face = face; p.cost = cost; p.targets = targets;
+            return p;
+        }
         /** One line for the row and the history: "cast @12 (Flashback)". */
         String render() {
             if ("pass".equals(verb)) return "pass";
@@ -257,6 +263,9 @@ final class AnswerTool {
     static final List<String> PROPOSE_VERBS = List.of("play_land", "cast", "activate", "pass");
 
     /** The `action` property of the fixed schema (PROPOSE_ACTIONS only). */
+    /** The fields of `action`, read from its schema so proposalOf and the schema cannot disagree. */
+    static final java.util.Set<String> ACTION_FIELDS = actionProperty().getAsJsonObject("properties").keySet();
+
     static JsonObject actionProperty() {
         JsonObject act = obj("type", "object", "description", "Only on a play decision that asks you to propose an action: the "
                 + "play you propose. The rules engine checks it and tells you which rule it breaks if it is not legal now.");
@@ -273,7 +282,7 @@ final class AnswerTool {
         ap.add("cost", obj("type", "string", "description", "Optional, with cast: another way to cast it that the card allows, "
                 + "by the name the card prints (\"Flashback\", \"Evoke\", \"Overload\", \"Prototype\"...), \"alternative\" for a "
                 + "\"rather than pay this spell's mana cost\" cost, or \"flash\" for a cast the card allows when you could not "
-                + "otherwise cast it. Omit it to cast it normally."));
+                + "otherwise cast it. Omit it to cast it normally; an optional additional cost such as Kicker is asked when you cast it."));
         JsonObject tg = obj("type", "array", "description", "With cast or activate, when the play targets: its target, by handle "
                 + "(\"@7\"), or \"you\" or \"opponent\" for a player. The engine checks it with the play.");
         tg.add("items", obj("type", "string"));
@@ -794,7 +803,7 @@ final class AnswerTool {
         if (!a.get("action").isJsonObject()) return "FORMAT: `action` is an object with `verb` and, unless you pass, `card`.";
         JsonObject o = a.getAsJsonObject("action");
         for (String k : o.keySet())
-            if (!List.of("verb", "card", "ability", "face", "cost", "targets").contains(k)) return "FORMAT: `action` has no field `" + k + "`.";
+            if (!ACTION_FIELDS.contains(k)) return "FORMAT: `action` has no field `" + k + "`.";
         Proposal p = new Proposal();
         p.verb = str(o, "verb");
         if (p.verb != null) p.verb = p.verb.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replace('-', '_');

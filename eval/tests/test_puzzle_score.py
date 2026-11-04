@@ -204,6 +204,16 @@ class ScoreV2Test(unittest.TestCase):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
         ps.score(self.m, self.rows([4, 2, 0]), "open", k=4, n_boot=20)  # none stamped: older runs still score
 
+    def test_proposed_and_menu_attempts_are_never_pooled(self):
+        # PROPOSE_ACTIONS: the seat proposed its plays with no menu; a menu attempt is another condition.
+        rows = self.rows([4, 2, 0])
+        for r in rows:
+            r["propose_actions"] = True
+        ps.score(self.m, rows, "open", k=4, n_boot=20)
+        del rows[0]["propose_actions"]
+        with self.assertRaisesRegex(ps.Refused, "play interfaces"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+
     def test_attempts_from_two_decisions_bridge_versions_are_never_pooled(self):
         # A jev: solver's questions are versioned like the interface (DecisionsBridge.VERSION).
         rows = self.rows([4, 2, 0], decisions_bridge_version="decisions-bridge-v1")

@@ -34,6 +34,7 @@ import re
 import sys
 from collections import Counter
 
+import proposal_audit
 import tool_audit
 from defect_analyzer import SUBSET_TYPES
 
@@ -143,10 +144,10 @@ def review(path):
                         add("LINE", r, "passed with mana floating %s" % pool.group(1))
                 # A model row with a failure fallback: asked, and the answer (or part of it) not used
                 # (an unparsed play read as PASS, a block pair that named no legal block).
-                # PROPOSE_ACTIONS: every proposal refused by the rules engine is the model's error, not a lost answer; its
+                # PROPOSE_ACTIONS: all four tries refused by the rules engine is the model's error, not a lost answer; its
                 # PASS is the arm's fixed fallback (docs/harness/ARCHITECTURE.md, "The propose condition").
                 props = r.get("proposals")
-                if isinstance(props, list) and props and not any(p.get("verdict") == "accepted" for p in props):
+                if proposal_audit.lost_to_refusals(r):
                     add("PROPOSAL", r, "%s: %d proposals refused (%s), played as PASS" % (
                         r.get("type"), len(props), ", ".join(str(p.get("category") or p.get("verdict")) for p in props)))
                 elif LOST.search(str(r.get("fallback") or "")):

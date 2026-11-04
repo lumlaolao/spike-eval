@@ -389,9 +389,6 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "RULES_FILE", "SHADOW_AI",
         # How a claude-cli: seat's CLI logs in (an API key instead of the subscription): not what it decides.
         "CLAUDE_CLI_ALLOW_API_KEY",
-        # A diagnostic: logs whether every menu play is proposable and restores what it touched (ProposeActionsTest,
-        # theAuditLeavesNoProposedTargetBehind); the game it audits is played as without it.
-        "PROPOSE_AUDIT",
     }
     # Conditions recorded somewhere other than the game line. OPENROUTER_TIMEOUT_MS changes decisions (a call past
     # it is lost to the fixed legal option): puzzle_solve.py --call-timeout-minutes records it per puzzle (STANDARDS

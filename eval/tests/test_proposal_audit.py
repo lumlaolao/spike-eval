@@ -41,6 +41,22 @@ class TestProposalAudit(unittest.TestCase):
         self.assertEqual(s["format_errors"], 1)
         self.assertEqual(s["legal_within"], {"1": 0.25, "2": 0.75, "3": 0.75, "4": 0.75})
         self.assertEqual(s["categories"], {"cost": 4, "timing": 1})
+        # Strict: the format-error-first decision counts as not legal on its first try (cast format, then legal).
+        self.assertEqual(s["first_try_legal_nonpass_strict"], 0.0)
+        lo, hi = s["first_try_legal_nonpass_ci"]
+        self.assertTrue(0 < lo < 1 / 3 < hi < 1, s["first_try_legal_nonpass_ci"])
+        self.assertEqual(s["lost_other"], 0)
+
+    def test_a_decision_lost_after_one_refusal_is_not_lost_to_refusals(self):
+        s = pa.summarize([row(prop("cast", "illegal", "timing"))])
+        self.assertEqual((s["lost"], s["lost_other"]), (0, 1))
+
+    def test_tries_equal_the_java_constant(self):
+        java = Path(__file__).resolve().parents[2] / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/AnswerTool.java"
+        import re
+        m = re.search(r"MAX_INVALID_PROPOSALS\s*=\s*(\d+)", java.read_text(encoding="utf-8"))
+        self.assertIsNotNone(m)
+        self.assertEqual(int(m.group(1)), pa.TRIES)
 
     def test_a_seat_that_only_passes_has_no_headline(self):
         s = pa.summarize([row(prop("pass", "accepted"))] * 5)

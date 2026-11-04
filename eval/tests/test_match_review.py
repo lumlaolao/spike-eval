@@ -74,6 +74,23 @@ class MatchReviewTest(unittest.TestCase):
         self.assertEqual(r["counts"]["LOST"], 1, "a menu row's unparsed play is still lost")
         self.assertIn("4 proposals refused (timing, timing, timing, timing)", mr.render(r))
 
+    def test_a_decision_lost_after_one_refusal_is_still_lost_and_the_gate_agrees(self):
+        # One refused proposal, then replies with no `answer` call: lost by the nudge path, not by four refusals.
+        once = dec("play", "smart", "play(unparsed)->PASS", answer_via="lost",
+                   proposals=[{"action": {"verb": "cast", "card": "@3"}, "verdict": "illegal", "category": "timing"}])
+        four = dec("play", "smart", "play(unparsed)->PASS", answer_via="lost",
+                   proposals=[{"action": {"verb": "cast", "card": "@3"}, "verdict": "illegal", "category": "cost"}] * 4)
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            with open(p, "w") as f:
+                f.write(json.dumps(once) + "\n")
+                f.write(json.dumps(four) + "\n")
+            r = mr.review(p)
+        self.assertEqual((r["counts"]["LOST"], r["counts"]["PROPOSAL"]), (1, 1))
+        import aggregate
+        self.assertEqual([aggregate.harness_decided(x) for x in (once, four)], [True, False],
+                         "the 2% gate charges the harness exactly for the rows the sheet calls LOST")
+
     def test_a_choice_the_seat_was_not_asked_about_is_taken(self):
         # runs/loop/g06: four Painter's Servant colour choices with five colours legal, recorded as
         # "color(default)->first" -- neither "forced" nor a rule of thumb, so the sheet called them
