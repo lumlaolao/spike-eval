@@ -485,6 +485,8 @@ def resume_expectation(args):
     # The hidden-menu arm (harness-epoch-74): a line from before it was a menu game.
     expect["propose_actions"] = [True] if getattr(args, "propose_actions", False) else [False, ABSENT]
     expect["propose_audit"] = [False, ABSENT]
+    # The shadow labeler is stamped on the game line (aggregate.PROVENANCE_FIELDS); older lines carry no stamp.
+    expect["shadow_ai"] = [True] if getattr(args, "shadow_ai", False) else [False, ABSENT]
     # The two opt-in play switches (issue #117). A line with no stamp is read as what a pre-flag
     # manifest recorded (an --env override), else off, so a batch run with `--env TIER_FAST_TYPES=...`
     # before the flag resumes instead of replaying its finished games as "a DIFFERENT condition".
