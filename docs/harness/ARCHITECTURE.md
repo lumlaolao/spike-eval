@@ -423,7 +423,7 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
-### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, owner 2026-11-03)
+### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, owner 2026-11-03)
 
 The menu makes illegal plays impossible, so the benchmark cannot see whether a model knows the rules. This arm
 removes the menu from the play decision and treats the rules engine as a type checker: the seat proposes a play,
@@ -444,7 +444,8 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   recorded apart.
 - **Four tries** (`AnswerTool.MAX_INVALID_PROPOSALS`), then the fixed legal option, PASS. A decision lost to four
   refusals is the model's error, not a lost answer: `match_review` lists it as PROPOSAL and the harness-decided gate
-  does not count it (`proposal_audit.lost_to_refusals`, one rule for both); lost any other way it is LOST. Two
+  does not count it (`proposal_audit.lost_to_refusals`, one rule for both: `answer_via` lost after four invalid
+  replies); lost any other way it is LOST. Two
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
@@ -457,7 +458,9 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   `--lookahead`, with `--plan-execute` (its steps are menu numbers), with `--text-answers` and outside `--exploratory`.
 - **Costs (epoch 76):** `cost` names another way to cast a card, matched by its exact name ("flash" is not
   Flashback). An optional additional cost (Kicker, buyback, entwine) or "normal" names the normal cast, whose cost
-  ask follows as under the menu: refusing it would count a legal cast as a rules error (pr-review of #342).
+  ask follows as under the menu: refusing it would count a legal cast as a rules error (pr-review of #342). A cast
+  with no `cost` is the normal cast only: when the menu holds just another way (Evoke, a pitch spell), the seat is
+  told to name it; the harness never picks the way to cast for it.
 - **The record:** each play row carries `proposals` (every call, its verdict and category) and `first_try_legal` (the
   first well-formed proposal was legal); the game line `propose_actions`, a puzzle row `propose_actions: true`.
   `eval/proposal_audit.py` reads them. Its headline is first-try legality **of non-pass proposals**: a pass is
@@ -474,7 +477,8 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   the rest were one may-play cast listed twice, the same play.
   It restores the pending proposed target it touches (before, a targeted play audited last could pre-set the seat's
   next target unasked), but it registers handles early, so an audited game's prompts can differ: it is a condition,
-  stamped `propose_audit` on the game line and puzzle row and never pooled with a plain run.
+  stamped `propose_audit` on the game line and puzzle row and never pooled with a plain run. `run_batch.py` pins it
+  off and the puzzle runner strips it: it runs only in the keyword gauntlet.
 - **Not yet hidden:** the targets of a play with modes, several targets or divided amounts, a spell on the stack as a
   target, attackers, blockers and the cost choices keep their candidate lists (each can be checked with
   `sa.canTarget`, `CombatUtil` and `blocksError`, which already returns a reason).

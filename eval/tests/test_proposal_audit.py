@@ -21,7 +21,10 @@ def prop(verb, verdict, category=None):
 
 
 def row(*ps, seat="Seat"):
-    return {"t": "decision", "seat": seat, "type": "play", "proposals": list(ps)}
+    r = {"t": "decision", "seat": seat, "type": "play", "proposals": list(ps)}
+    if not any(p["verdict"] == "accepted" for p in ps):
+        r.update(answer_via="lost", answer_invalid=len(ps))   # as AnswerTool records a loss: one invalid reply a try
+    return r
 
 
 class TestProposalAudit(unittest.TestCase):

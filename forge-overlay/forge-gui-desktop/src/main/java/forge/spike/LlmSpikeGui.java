@@ -367,7 +367,8 @@ public final class LlmSpikeGui {
      *  foretell and the other special actions are in YOUR ACTIVATED ABILITIES (the gauntlet audit found them unproposable).
      *  Epoch 76 (2026-11-04, answer-tool-v15, pr-review #342): under PROPOSE_ACTIONS a cast naming an optional cost
      *  (Kicker) or "normal" is the normal cast, not a cost error; a cost name matches only itself ("flash" is not
-     *  Flashback); a proposed target is consumed by its own play's target step only. Unchanged off the arm.
+     *  Flashback); a cast with no cost is the normal cast only, never the menu's one other way (Evoke); a proposed
+     *  target is consumed by its own play's target step only. Unchanged off the arm.
      */
     static final String HARNESS_EPOCH = "harness-epoch-76";
 
@@ -9510,8 +9511,9 @@ public final class LlmSpikeGui {
                 for (int i : hits) if (faceOf(options.get(i)).equals(c.getName())) front.add(i);
                 if (!front.isEmpty()) hits = front;
             }
-            if (hits.size() > 1 && pr.cost == null) {
-                // No cost named: the normal cast, when it is legal; otherwise the seat names the way it means.
+            if (!hits.isEmpty() && pr.cost == null) {
+                // No cost named: the normal cast, when it is legal; otherwise the seat names the way it means, even when
+                // that way is the only cast on the menu (Evoke, a pitch spell): the harness never picks it (#342).
                 List<Integer> normal = new ArrayList<>();
                 for (int i : hits) if (castWay(options.get(i)) == null) normal.add(i);
                 if (normal.isEmpty())

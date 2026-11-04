@@ -213,6 +213,22 @@ public class ProposeActionsTest {
         Assert.assertTrue(reject(ctrl, me, true, other).startsWith("ILLEGAL (cost)"), "a cost the card does not have");
     }
 
+    /** A cast with no `cost` is the normal cast only: when the menu holds just another way to cast the card (Evoke
+     *  without the mana for the full cost), the seat is asked to name it, never cast that way for it (pr-review #342). */
+    @Test
+    public void aCastWithNoCostIsNeverAnotherWayToCastIt() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card drifter = card("Mulldrifter", me, ZoneType.Hand);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        for (String cost : java.util.Arrays.asList(null, "normal")) {
+            String err = reject(ctrl, me, true, prop("cast", handle(ctrl, drifter), null, null, cost));
+            Assert.assertTrue(err.startsWith("FORMAT: say which way") || err.startsWith("ILLEGAL (cost)"), cost + ": " + err);
+        }
+        Assert.assertNull(verdict(ctrl, me, true, prop("cast", handle(ctrl, drifter), null, null, "Evoke"), new int[] {-1}));
+    }
+
     /** A cost name matches only itself: "flash" is not the card's Flashback (pr-review #342). */
     @Test
     public void aCostNameDoesNotMatchALongerOne() {

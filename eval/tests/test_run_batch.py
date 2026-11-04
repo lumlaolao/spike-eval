@@ -377,6 +377,15 @@ class TestProposeActions(unittest.TestCase):
         arm = run_batch.batch_condition(make_args(propose_actions=True), cited=False)
         self.assertEqual(run_batch.condition_diff(base, arm), [("propose_actions", False, True)])
 
+    def test_the_checker_audit_is_pinned_off_and_an_audited_game_never_resumes_in(self):
+        # PROPOSE_AUDIT registers handles early (a condition, pr-review of #342): a shell's value never reaches a game.
+        with mock.patch.dict(os.environ, {"PROPOSE_AUDIT": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.build_env(make_args(), 7100, False, Path(d))["PROPOSE_AUDIT"], "0")
+        off = run_batch.resume_expectation(make_args())
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), off))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, propose_audit=False), off))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, propose_audit=True), off))
+
     def test_refused_outside_an_exploratory_answer_tool_run_without_the_preview(self):
         self.assertIsNone(run_batch.propose_refusal(make_args(propose_actions=True)))
         self.assertIsNone(run_batch.propose_refusal(make_args(lookahead=True)))

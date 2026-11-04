@@ -941,7 +941,7 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
 
 def harness_decided(d):
     """True when the harness, not the model, made a choice the model could have made."""
-    import match_review                     # lazy: aggregate stays importable on its own
+    import match_review, proposal_audit     # lazy: aggregate stays importable on its own
     tier = d.get("tier")
     if tier == "ai":
         return True
@@ -949,7 +949,7 @@ def harness_decided(d):
         return match_review.classify_auto(d) in ("TAKEN", "LOST")
     # A propose decision whose four tries were all refused is the model's error (proposal_audit.lost_to_refusals).
     return (tier in ("smart", "fast") and bool(match_review.LOST.search(str(d.get("fallback") or "")))
-            and not match_review.proposal_audit.lost_to_refusals(d))
+            and not proposal_audit.lost_to_refusals(d))
 
 
 # ------------------------------------------------------- tool accounting

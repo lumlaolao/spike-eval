@@ -262,10 +262,10 @@ final class AnswerTool {
 
     static final List<String> PROPOSE_VERBS = List.of("play_land", "cast", "activate", "pass");
 
-    /** The `action` property of the fixed schema (PROPOSE_ACTIONS only). */
     /** The fields of `action`, read from its schema so proposalOf and the schema cannot disagree. */
     static final java.util.Set<String> ACTION_FIELDS = actionProperty().getAsJsonObject("properties").keySet();
 
+    /** The `action` property of the fixed schema (PROPOSE_ACTIONS only). */
     static JsonObject actionProperty() {
         JsonObject act = obj("type", "object", "description", "Only on a play decision that asks you to propose an action: the "
                 + "play you propose. The rules engine checks it and tells you which rule it breaks if it is not legal now.");

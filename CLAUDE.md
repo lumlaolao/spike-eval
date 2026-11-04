@@ -42,7 +42,8 @@ whole Forge file in the repository; `install.sh` applies them), marked `HARNESS 
 - **The seat's lookups are native function calls** (`NativeTools.java`, mirrored in `eval/tooluse/tools.json`); the
   text grammar survives only for a backend without function calling. A `REFUSED` request in `eval/tool_audit.py` is a
   harness defect.
-- **Never fall back to Forge's AI** for a choice the seat owns: `[TALLY] ... ai=0`. A legal action is never hidden.
+- **Never fall back to Forge's AI** for a choice the seat owns: `[TALLY] ... ai=0`. A legal action is never hidden,
+  except under the `PROPOSE_ACTIONS` measurement arm (exploratory only, never a score; owner, 2026-11-04).
 - **No heuristics decide for the model.** The only skips: the menu is PASS only, or the identical spot was passed.
 
 ## Cost of paid runs

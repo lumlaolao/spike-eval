@@ -85,7 +85,7 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
-                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT", "PROPOSE_ACTIONS",
+                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT", "PROPOSE_ACTIONS", "PROPOSE_AUDIT",
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
                       "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
                       "CLAUDE_CLI_THINKING_TOKENS")
@@ -131,6 +131,7 @@ CONDITION_KEYS = (
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
     "lookahead", "one_tier", "no_coaching", "one_chat", "turn_chat",
     "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens", "propose_actions",
+    "propose_audit",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
 )
@@ -282,6 +283,9 @@ def build_env(args, seed, swap, out_dir):
     env["TURN_CHAT"] = "1" if getattr(args, "turn_chat", False) else "0"
     env["PLAN_EXECUTE"] = "1" if getattr(args, "plan_execute", False) else "0"
     env["PROPOSE_ACTIONS"] = "1" if getattr(args, "propose_actions", False) else "0"
+    # The checker audit is a diagnostic of the gauntlet (keyword_gauntlet.sh), never of a batch: pinned off, so a shell's
+    # PROPOSE_AUDIT=1 cannot change a game's handles unrecorded (pr-review of #342).
+    env["PROPOSE_AUDIT"] = "0"
     env["TIER_FAST_TYPES"] = normalize_tier_fast_types(getattr(args, "tier_fast_types", None))
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
@@ -480,6 +484,7 @@ def resume_expectation(args):
     expect["turn_chat"] = [True] if getattr(args, "turn_chat", False) else [False, ABSENT]
     # The hidden-menu arm (harness-epoch-74): a line from before it was a menu game.
     expect["propose_actions"] = [True] if getattr(args, "propose_actions", False) else [False, ABSENT]
+    expect["propose_audit"] = [False, ABSENT]
     # The two opt-in play switches (issue #117). A line with no stamp is read as what a pre-flag
     # manifest recorded (an --env override), else off, so a batch run with `--env TIER_FAST_TYPES=...`
     # before the flag resumes instead of replaying its finished games as "a DIFFERENT condition".
@@ -566,6 +571,7 @@ def batch_condition(args, cited):
         "turn_chat": bool(getattr(args, "turn_chat", False)),
         "plan_execute": bool(getattr(args, "plan_execute", False)),
         "propose_actions": bool(getattr(args, "propose_actions", False)),
+        "propose_audit": False,
         "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
         # A claude-cli: seat's pinned CLI settings ("cli-default" when unset); absent for every other batch.
         "claude_cli_effort": (getattr(args, "claude_cli_effort", None) or "cli-default") if has_cli_seat(args) else None,
@@ -737,7 +743,7 @@ def condition_diff_norm(m, k):
     without it; one written before a flag recorded its env key, if at all, as an --env override."""
     env = m.get("env_overrides") or {}
     if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat", "turn_chat",
-             "propose_actions"):
+             "propose_actions", "propose_audit"):
         return bool(m.get(k))
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"

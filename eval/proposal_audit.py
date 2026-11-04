@@ -37,9 +37,14 @@ def lost_to_refusals(row):
     """True when a play decision was lost because every one of its tries was refused (a rules or a form error): the
     model's error, played as PASS by the arm. A decision lost any other way (no `answer` call after a refusal) stays a
     lost answer. match_review's PROPOSAL finding and aggregate's harness-decided gate share this rule."""
-    ps = row.get("proposals") if isinstance(row, dict) else None
-    return (isinstance(ps, list) and len(ps) >= TRIES
-            and not any(isinstance(p, dict) and p.get("verdict") == "accepted" for p in ps))
+    if not isinstance(row, dict) or not isinstance(row.get("proposals"), list):
+        return False
+    # AnswerTool counts invalid replies, not calls (a reply may hold two refused calls): `answer_invalid` says how many.
+    try:
+        invalid = int(row.get("answer_invalid") or 0)
+    except (TypeError, ValueError):
+        invalid = 0
+    return row.get("answer_via") == "lost" and invalid >= TRIES
 
 
 def rows(paths):
