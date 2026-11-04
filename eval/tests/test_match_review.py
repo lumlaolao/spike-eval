@@ -60,6 +60,40 @@ class MatchReviewTest(unittest.TestCase):
         self.assertNotIn("Voice of Victory", text, "a forced pick is counted, not listed")
         self.assertLess(text.index("LOST"), text.index("TAKEN x"), "lost decisions are listed first")
 
+    def test_refused_proposals_are_the_models_and_not_a_lost_answer(self):
+        rows = [dec("play", "smart", "play(unparsed)->PASS", answer_via="lost", answer_invalid=4,
+                    proposals=[{"action": {"verb": "cast", "card": "@3"}, "verdict": "illegal", "category": "timing"}] * 4),
+                dec("play", "smart", "play(unparsed)->PASS")]
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            with open(p, "w") as f:
+                for r in rows:
+                    f.write(json.dumps(r) + "\n")
+            r = mr.review(p)
+        self.assertEqual(r["counts"]["PROPOSAL"], 1)
+        self.assertEqual(r["counts"]["LOST"], 1, "a menu row's unparsed play is still lost")
+        self.assertIn("4 proposals refused (timing, timing, timing, timing)", mr.render(r))
+
+    def test_a_decision_lost_after_one_refusal_is_still_lost_and_the_gate_agrees(self):
+        # One refused proposal, then replies with no `answer` call: lost by the nudge path, not by four refusals.
+        once = dec("play", "smart", "play(unparsed)->PASS", answer_via="lost", answer_invalid=1,
+                   proposals=[{"action": {"verb": "cast", "card": "@3"}, "verdict": "illegal", "category": "timing"}])
+        # Two replies of two refused calls each, then no call: four records, two invalid replies, still lost.
+        two = dec("play", "smart", "play(unparsed)->PASS", answer_via="lost", answer_invalid=2,
+                  proposals=[{"action": {"verb": "cast", "card": "@3"}, "verdict": "illegal", "category": "cost"}] * 4)
+        four = dec("play", "smart", "play(unparsed)->PASS", answer_via="lost", answer_invalid=4,
+                   proposals=[{"action": {"verb": "cast", "card": "@3"}, "verdict": "illegal", "category": "cost"}] * 4)
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            with open(p, "w") as f:
+                for x in (once, two, four):
+                    f.write(json.dumps(x) + "\n")
+            r = mr.review(p)
+        self.assertEqual((r["counts"]["LOST"], r["counts"]["PROPOSAL"]), (2, 1))
+        import aggregate
+        self.assertEqual([aggregate.harness_decided(x) for x in (once, two, four)], [True, True, False],
+                         "the 2% gate charges the harness exactly for the rows the sheet calls LOST")
+
     def test_a_choice_the_seat_was_not_asked_about_is_taken(self):
         # runs/loop/g06: four Painter's Servant colour choices with five colours legal, recorded as
         # "color(default)->first" -- neither "forced" nor a rule of thumb, so the sheet called them

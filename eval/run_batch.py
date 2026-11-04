@@ -85,7 +85,7 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
-                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT",
+                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT", "PROPOSE_ACTIONS", "PROPOSE_AUDIT",
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
                       "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
                       "CLAUDE_CLI_THINKING_TOKENS")
@@ -130,7 +130,8 @@ CONDITION_KEYS = (
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
     "lookahead", "one_tier", "no_coaching", "one_chat", "turn_chat",
-    "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens",
+    "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens", "propose_actions",
+    "propose_audit",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
 )
@@ -281,6 +282,10 @@ def build_env(args, seed, swap, out_dir):
     env["ONE_CHAT"] = "1" if getattr(args, "one_chat", False) else "0"
     env["TURN_CHAT"] = "1" if getattr(args, "turn_chat", False) else "0"
     env["PLAN_EXECUTE"] = "1" if getattr(args, "plan_execute", False) else "0"
+    env["PROPOSE_ACTIONS"] = "1" if getattr(args, "propose_actions", False) else "0"
+    # The checker audit is a diagnostic of the gauntlet (keyword_gauntlet.sh), never of a batch: pinned off, so a shell's
+    # PROPOSE_AUDIT=1 cannot change a game's handles unrecorded (pr-review of #342).
+    env["PROPOSE_AUDIT"] = "0"
     env["TIER_FAST_TYPES"] = normalize_tier_fast_types(getattr(args, "tier_fast_types", None))
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
@@ -477,6 +482,9 @@ def resume_expectation(args):
     expect["no_coaching"] = [True] if getattr(args, "no_coaching", False) else [False, ABSENT]
     expect["one_chat"] = [True] if getattr(args, "one_chat", False) else [False, ABSENT]
     expect["turn_chat"] = [True] if getattr(args, "turn_chat", False) else [False, ABSENT]
+    # The hidden-menu arm (harness-epoch-74): a line from before it was a menu game.
+    expect["propose_actions"] = [True] if getattr(args, "propose_actions", False) else [False, ABSENT]
+    expect["propose_audit"] = [False, ABSENT]
     # The two opt-in play switches (issue #117). A line with no stamp is read as what a pre-flag
     # manifest recorded (an --env override), else off, so a batch run with `--env TIER_FAST_TYPES=...`
     # before the flag resumes instead of replaying its finished games as "a DIFFERENT condition".
@@ -562,6 +570,8 @@ def batch_condition(args, cited):
         "one_chat": bool(getattr(args, "one_chat", False)),
         "turn_chat": bool(getattr(args, "turn_chat", False)),
         "plan_execute": bool(getattr(args, "plan_execute", False)),
+        "propose_actions": bool(getattr(args, "propose_actions", False)),
+        "propose_audit": False,
         "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
         # A claude-cli: seat's pinned CLI settings ("cli-default" when unset); absent for every other batch.
         "claude_cli_effort": (getattr(args, "claude_cli_effort", None) or "cli-default") if has_cli_seat(args) else None,
@@ -635,6 +645,22 @@ def lane_refusals(args):
             flags += [("--one-chat", args.one_chat, no_chat), ("--turn-chat", args.turn_chat, no_chat)]
         out += ["%s with a %s seat: such a seat %s" % (flag, lane, reason) for flag, on, reason in flags if on]
     return out
+
+
+def propose_refusal(args):
+    """Why --propose-actions cannot run with this batch's other flags, or None. It is a measurement arm (exploratory,
+    never a panel), the proposal is a field of the `answer` call, and the preview names menu numbers the arm hides."""
+    if not getattr(args, "propose_actions", False):
+        return None
+    if getattr(args, "panel", None) or not getattr(args, "exploratory", False):
+        return "--propose-actions is an exploratory measurement arm, never a cited run or a panel"
+    if getattr(args, "lookahead", False):
+        return "--propose-actions with --lookahead: the preview takes menu numbers, which this arm does not show"
+    if getattr(args, "text_answers", False):
+        return "--propose-actions with --text-answers: a proposal is a field of the `answer` call"
+    if getattr(args, "plan_execute", False):
+        return "--propose-actions with --plan-execute: its steps are menu numbers, which this arm does not show"
+    return None
 
 
 def spent_usd(out_dir):
@@ -716,7 +742,8 @@ def condition_diff_norm(m, k):
     """A condition field as compared on resume. A manifest written before native_tools existed ran
     without it; one written before a flag recorded its env key, if at all, as an --env override."""
     env = m.get("env_overrides") or {}
-    if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat", "turn_chat"):
+    if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat", "turn_chat",
+             "propose_actions", "propose_audit"):
         return bool(m.get(k))
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
@@ -1350,6 +1377,12 @@ def build_parser():
                          "turn plan (one smart call per turn rather than one per priority window). "
                          "Default off; a separate condition from unassisted play and must live in "
                          "its own --out.")
+    ap.add_argument("--propose-actions", action="store_true",
+                    help="PROPOSE_ACTIONS=1: the hidden-menu measurement arm. The seat is not shown the legal "
+                         "plays; it proposes one (`answer.action`) and the rules engine checks it, returning the "
+                         "rule a rejected proposal breaks (docs/harness/ARCHITECTURE.md, 'The propose condition'). "
+                         "Exploratory only; needs the answer tool; refused with --lookahead (its preview takes menu "
+                         "numbers). A separate condition that must live in its own --out.")
     ap.add_argument("--tier-fast-types", metavar="TYPES", default=None,
                     help="TIER_FAST_TYPES=<comma list>: route those decision types to the fast "
                          "(non-reasoning) tier instead of the smart one. Default empty (all smart); "
@@ -1403,6 +1436,9 @@ def main(argv=None):
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
     if args.one_tier and args.two_tier:
         raise SystemExit("run_batch: --one-tier and --two-tier contradict each other")
+    refusal = propose_refusal(args)
+    if refusal:
+        raise SystemExit("run_batch: " + refusal)
     for kv in args.env or []:
         k = kv.split("=", 1)[0]
         if k in CONDITION_ENV_KEYS:

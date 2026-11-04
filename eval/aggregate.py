@@ -166,6 +166,9 @@ PROVENANCE_FIELDS = (
     # into one experiment. A legacy line that carries neither reads MISSING, as a distinct condition.
     ("plan_execute", MISSING),
     ("tier_fast_types", MISSING),
+    # The hidden-menu arm (PROPOSE_ACTIONS, harness-epoch-74): every line before it was a menu game.
+    ("propose_actions", False),
+    ("propose_audit", False),
 )
 
 # Identity fields a cited run must resolve. A value in this set means the field
@@ -938,13 +941,15 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
 
 def harness_decided(d):
     """True when the harness, not the model, made a choice the model could have made."""
-    import match_review                     # lazy: aggregate stays importable on its own
+    import match_review, proposal_audit     # lazy: aggregate stays importable on its own
     tier = d.get("tier")
     if tier == "ai":
         return True
     if tier == "auto":
         return match_review.classify_auto(d) in ("TAKEN", "LOST")
-    return tier in ("smart", "fast") and bool(match_review.LOST.search(str(d.get("fallback") or "")))
+    # A propose decision whose four tries were all refused is the model's error (proposal_audit.lost_to_refusals).
+    return (tier in ("smart", "fast") and bool(match_review.LOST.search(str(d.get("fallback") or "")))
+            and not proposal_audit.lost_to_refusals(d))
 
 
 # ------------------------------------------------------- tool accounting
