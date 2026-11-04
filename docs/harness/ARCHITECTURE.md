@@ -78,6 +78,10 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A cost may be paid with the ability's own target, as a human may (Goblin Bombardment sacrificing the creature it
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
+- A play is not offered when a part of it that must target has no legal target: casting it only fails ("Couldn't add
+  to stack, failed to target"). Every part counts, sub-abilities included (Govern the Guildless's forecast targets in
+  its sub-ability and was offered with no creature in play; harness-epoch-77). That is legality, not judgment: the
+  engine refuses the play.
 - **The one exception is a measurement arm:** under `PROPOSE_ACTIONS=1` the play menu is built as always but not
   shown; the seat proposes its play and the menu checks it (section 6, "The propose condition"). Nothing legal is
   refused there either: a proposal is accepted exactly when it names a play the menu would have offered.

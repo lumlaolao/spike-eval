@@ -369,8 +369,10 @@ public final class LlmSpikeGui {
      *  (Kicker) or "normal" is the normal cast, not a cost error; a cost name matches only itself ("flash" is not
      *  Flashback); a cast with no cost is the normal cast only, never the menu's one other way (Evoke); a proposed
      *  target is consumed by its own play's target step only. Unchanged off the arm.
+     *  Epoch 77 (2026-11-04): a play whose sub-ability must target is offered only when that target exists (Govern the
+     *  Guildless's forecast was offered with no creature in play and failed every upkeep: gauntlet kw28).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-76";
+    static final String HARNESS_EPOCH = "harness-epoch-77";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -9698,12 +9700,15 @@ public final class LlmSpikeGui {
             if (!payable) return false;
             // Skip a targeted spell that currently has NO legal target — casting it just fizzles
             // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
-            if (sa.usesTargeting()) {
+            // Every part that targets, sub-abilities included: Govern the Guildless's forecast chooses colours, then its
+            // sub-ability targets a creature; with none in play it was offered every upkeep and failed (gauntlet kw28).
+            for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
+                if (!part.usesTargeting()) continue;
                 try {
-                    if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
-                    TargetRestrictions tr = sa.getTargetRestrictions();
+                    if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
+                    TargetRestrictions tr = part.getTargetRestrictions();
                     // Only the targets it must have: "up to one target" casts with none (Finale of Promise, RP_006).
-                    if (tr != null && targetCandidates(sa, tr).size() < sa.getMinTargets()) return false;
+                    if (tr != null && targetCandidates(part, tr).size() < part.getMinTargets()) return false;
                 } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
             }
             return true;

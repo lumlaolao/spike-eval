@@ -361,6 +361,23 @@ public class ProposeActionsTest {
         Assert.assertTrue(err.startsWith("ILLEGAL ("), "forecast outside the upkeep breaks a rule: " + err);
     }
 
+    /** A play whose target is in a sub-ability (Govern the Guildless's forecast: choose colours, then "target creature
+     *  becomes that colour") is offered only when that target exists. The gauntlet's kw28 game offered it with no
+     *  creature in play every upkeep, and each time it failed ("Couldn't add to stack, failed to target"). */
+    @Test
+    public void aPlayWhoseSubAbilityTargetsIsOfferedOnlyWithATarget() {
+        Game g = bareGame(PhaseType.UPKEEP);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 2; i++) card("Island", me, ZoneType.Battlefield);
+        Card govern = card("Govern the Guildless", me, ZoneType.Hand);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        java.util.function.Supplier<Boolean> offered = () -> LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true)
+                .spells.stream().anyMatch(sa -> sa.getHostCard() == govern && !sa.isSpell());
+        Assert.assertFalse(offered.get(), "no creature in play: the forecast has no target");
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Assert.assertTrue(offered.get(), "a creature to target: the forecast is offered");
+    }
+
     // ------------------------------------------------------------------ the ask
 
     /** A model that answers a play decision with the next scripted `action` and anything else with option 1, and keeps
