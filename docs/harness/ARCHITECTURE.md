@@ -78,6 +78,12 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A cost may be paid with the ability's own target, as a human may (Goblin Bombardment sacrificing the creature it
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
+- A play is not offered when a part of it that must target has no legal target: casting it only fails ("Couldn't add
+  to stack, failed to target"). That is legality, not judgment: the engine refuses the play. A sub-ability counts too
+  (Govern the Guildless's forecast targets in its sub-ability and was offered with no creature in play;
+  harness-epoch-77), but only when no earlier part targets: its targets may depend on that one (Searing Blaze's
+  "creature that player controls", Goblin Welder), unknown before the cast, so it is left to the cast
+  (`aSubAbilityTargetThatDependsOnTheFirstTargetDoesNotHideThePlay`).
 - **The one exception is a measurement arm:** under `PROPOSE_ACTIONS=1` the play menu is built as always but not
   shown; the seat proposes its play and the menu checks it (section 6, "The propose condition"). Nothing legal is
   refused there either: a proposal is accepted exactly when it names a play the menu would have offered.
@@ -459,8 +465,11 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
 - **Costs (epoch 76):** `cost` names another way to cast a card, matched by its exact name ("flash" is not
   Flashback). An optional additional cost (Kicker, buyback, entwine) or "normal" names the normal cast, whose cost
   ask follows as under the menu: refusing it would count a legal cast as a rules error (pr-review of #342). A cast
-  with no `cost` is the normal cast only: when the menu holds just another way (Evoke, a pitch spell), the seat is
-  told to name it; the harness never picks the way to cast for it.
+  with no `cost` is the normal cast only: when the menu holds just another way (Evoke, a pitch spell, Flashback from
+  the graveyard), the seat is told to name it; the harness never picks the way to cast for it.
+- **Forecast** (rule 702.57) is an ability parameter, not one of Forge's keywords, so the keyword sweep never drew it:
+  activated from the hand in its owner's upkeep only, it is on the upkeep menu, in YOUR ACTIVATED ABILITIES from the
+  hand, and refused by rule outside the upkeep (`aForecastAbilityIsOfferedAndProposableOnlyInTheUpkeep`).
 - **The record:** each play row carries `proposals` (every call, its verdict and category) and `first_try_legal` (the
   first well-formed proposal was legal); the game line `propose_actions`, a puzzle row `propose_actions: true`.
   `eval/proposal_audit.py` reads them. Its headline is first-try legality **of non-pass proposals**: a pass is
@@ -1024,7 +1033,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      keywords with no card to sweep are pinned (no card uses Absorb, Frenzy or Poisonous; the agendas are
      Conspiracy draft only).
    - **The keyword gauntlet (`eval/keyword_gauntlet.sh`, on demand, no model cost):** the sweep's cards (552 of its
-     553; 1996 World Champion is left out, as the script says) in 28 decks (`eval/gauntlet/`), each deck's
+     553; 1996 World Champion is left out, as the script says) and Forge's twelve Forecast cards (`kw28`: Forecast is
+     an ability parameter, not a keyword, so the sweep never drew one) in 29 decks (`eval/gauntlet/`), each deck's
      LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
      the next deck's Forge AI, in full games. Triggers, combat, upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's

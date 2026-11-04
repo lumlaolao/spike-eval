@@ -224,7 +224,8 @@ public class ProposeActionsTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
         for (String cost : java.util.Arrays.asList(null, "normal")) {
             String err = reject(ctrl, me, true, prop("cast", handle(ctrl, drifter), null, null, cost));
-            Assert.assertTrue(err.startsWith("FORMAT: say which way") || err.startsWith("ILLEGAL (cost)"), cost + ": " + err);
+            // A form error, not a rules error: the cast is legal once named, so it must not count against legality.
+            Assert.assertTrue(err.startsWith("FORMAT: say which way"), cost + ": " + err);
         }
         Assert.assertNull(verdict(ctrl, me, true, prop("cast", handle(ctrl, drifter), null, null, "Evoke"), new int[] {-1}));
     }
@@ -328,6 +329,73 @@ public class ProposeActionsTest {
         AnswerTool.PROPOSE_FOR_TEST = false;
         Assert.assertEquals(SeatObservation.guide(), SeatObservation.GUIDE, "the default guide moves");
         Assert.assertTrue(ctrl.snapshot().contains("(castable)"), "the default hand lost its tags");
+    }
+
+    /** Forecast (rule 702.57): an ability activated from the hand, only in its owner's upkeep. The menu offers it then
+     *  (Proclamation of Rebirth, with a one-drop in the graveyard), YOUR ACTIVATED ABILITIES lists it from the hand, a
+     *  proposal reaches it with its target, and the same proposal in the main phase is refused. */
+    @Test
+    public void aForecastAbilityIsOfferedAndProposableOnlyInTheUpkeep() {
+        Game g = bareGame(PhaseType.UPKEEP);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 6; i++) card("Plains", me, ZoneType.Battlefield);
+        Card proc = card("Proclamation of Rebirth", me, ZoneType.Hand);
+        Card lions = card("Savannah Lions", me, ZoneType.Graveyard);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true);
+        SpellAbility forecast = po.spells.stream().filter(sa -> sa.getHostCard() == proc && !sa.isSpell()).findFirst().orElse(null);
+        Assert.assertNotNull(forecast, "the forecast ability is on the upkeep menu: " + po.spells);
+        Assert.assertTrue(po.spells.stream().noneMatch(sa -> sa.getHostCard() == proc && sa.isSpell()), "the sorcery is not castable in the upkeep");
+        String state = ctrl.snapshot();
+        Assert.assertTrue(state.matches("(?s).*YOUR ACTIVATED ABILITIES.*Proclamation of Rebirth[^\\n]*: 1\\) .*"), state);
+        AnswerTool.Proposal p = ctrl.proposalFor(forecast);
+        Assert.assertNotNull(p, "the abilities list shows it");
+        Assert.assertEquals(p.verb, "activate");
+        Assert.assertEquals(p.targets, List.of("@" + handle(ctrl, lions)), "its target is the one-drop in the graveyard");
+        int[] hit = {-1};
+        int passIdx = 1 + po.spells.size() + po.landPlays.size();
+        Assert.assertNull(ctrl.matchProposal(p, po.spells, po.landPlays, po.landCards, passIdx, me, false, hit), p.render());
+        Assert.assertEquals(po.spells.get(hit[0] - 1), forecast);
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me);
+        String err = reject(ctrl, me, true, p);
+        Assert.assertTrue(err.startsWith("ILLEGAL ("), "forecast outside the upkeep breaks a rule: " + err);
+    }
+
+    /** A play whose target is in a sub-ability (Govern the Guildless's forecast: choose colours, then "target creature
+     *  becomes that colour") is offered only when that target exists. The gauntlet's kw28 game offered it with no
+     *  creature in play every upkeep, and each time it failed ("Couldn't add to stack, failed to target"). */
+    @Test
+    public void aPlayWhoseSubAbilityTargetsIsOfferedOnlyWithATarget() {
+        Game g = bareGame(PhaseType.UPKEEP);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 2; i++) card("Island", me, ZoneType.Battlefield);
+        Card govern = card("Govern the Guildless", me, ZoneType.Hand);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        java.util.function.BooleanSupplier offered = () -> LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true)
+                .spells.stream().anyMatch(sa -> sa.getHostCard() == govern && !sa.isSpell());
+        Assert.assertFalse(offered.getAsBoolean(), "no creature in play: the forecast has no target");
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Assert.assertTrue(offered.getAsBoolean(), "a creature to target: the forecast is offered");
+    }
+
+    /** A sub-ability whose legal targets depend on an earlier target cannot be counted before that target is chosen:
+     *  Searing Blaze's second target is a creature "that player controls", Goblin Welder's an artifact card in the first
+     *  artifact's controller's graveyard. Counted with no first target they have none, so the sub-ability check must
+     *  leave them to the cast, or a legal play is hidden (pr-review of #343: Searing Blaze is in the Burn panel deck). */
+    @Test
+    public void aSubAbilityTargetThatDependsOnTheFirstTargetDoesNotHideThePlay() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 2; i++) card("Mountain", me, ZoneType.Battlefield);
+        Card blaze = card("Searing Blaze", me, ZoneType.Hand);
+        Card welder = card("Goblin Welder", me, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Ornithopter", rival, ZoneType.Battlefield);
+        card("Millstone", rival, ZoneType.Graveyard);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        List<SpellAbility> menu = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true).spells;
+        Assert.assertTrue(menu.stream().anyMatch(sa -> sa.getHostCard() == blaze && sa.isSpell()), "Searing Blaze is legal: " + menu);
+        Assert.assertTrue(menu.stream().anyMatch(sa -> sa.getHostCard() == welder && !sa.isManaAbility()), "Goblin Welder's ability is legal: " + menu);
     }
 
     // ------------------------------------------------------------------ the ask

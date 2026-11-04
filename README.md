@@ -64,7 +64,7 @@ bash install.sh                                       # copy the overlay in, app
 (cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am install -DskipTests)    # checkstyle runs here; -o once built
 (cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=${FORGE_CP_FILE:-/tmp/forge_cp.txt})
 bash eval/harness_acceptance.sh                       # compile, every test, canaries, fake-model games
-bash eval/keyword_gauntlet.sh                         # 28 free games over 552 cards
+bash eval/keyword_gauntlet.sh                         # 29 free games over 564 cards
 ```
 
 Acceptance builds into `runs/harness-acceptance/<ts>/` and never touches the checkout. Its zero-model canaries are
