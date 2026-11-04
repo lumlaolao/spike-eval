@@ -13,6 +13,7 @@ import pr_format as pf  # noqa: E402
 
 BODY = """## What
 
+- feat(tools): native calls
 - the seat's tools are native function calls
 
 ## Why
@@ -124,6 +125,17 @@ class PrFormatTest(unittest.TestCase):
         # Every launcher at the root, so a new one cannot skip the acceptance requirement unnoticed.
         for launcher in sorted(p.name for p in evalpath.REPO.glob("*.sh")):
             self.assertTrue(any("has no line" in p for p in gate("- tried it", [launcher])), launcher)
+
+    def test_the_gate_refuses_a_what_that_misses_a_commit(self):
+        # #343 (standards, round 3): `## What` was written at the first commit and missed the three review-driven ones.
+        t = "feat(tools): native calls"
+        commits = [("1a976281aa", "feat(tools): native calls\n\nwhy"), ("2b0000000a", "fix(tools): a later fix\n\nwhy"),
+                   ("3c0000000a", "Merge branch 'main' into feat/x")]
+        p = pf.pr_problems(t, BODY, "abc123456789", [], gate=True, commits=commits)
+        self.assertEqual([x for x in p if "`## What`" in x],
+                         ["`## What` does not list commit 2b0000000 (fix(tools): a later fix); list every commit subject"])
+        listed = BODY.replace("- feat(tools): native calls\n", "- feat(tools): native calls\n- fix(tools): a later fix\n")
+        self.assertEqual(pf.pr_problems(t, listed, "abc123456789", [], gate=True, commits=commits), [])
 
     def test_the_gate_checks_the_commits_on_the_pr_and_each_skill_vocabulary(self):
         good = [("1a976281aa", "feat(tools): native calls\n\nwhy")]

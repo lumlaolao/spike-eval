@@ -17,12 +17,19 @@ import sys
 
 import tool_audit
 
+# The engine's "failed to target" line names the card and its id; the seat logs its own failed play beside it. A line
+# with no seat play of that card is the Forge AI opponent's play, or a trigger with no legal target that the engine
+# removes (rule 603.3d): reported, never counted (runs/gauntlet-forecast-first g-kw27: the AI's Karlov's Crossbow).
+FAILED_TARGET = re.compile(r"^(?:STACK_ADD: )?(.+?) \(\d+\) - \[Couldn't add to stack, failed to target\]")
+SEAT_REFUSED = re.compile(r"\[ROUTER\] play: (.+?) @\d+.* has no legal target -> the stack refused it")
+
 BAD = re.compile(r"FALLBACK->AI|\(unparsed|TEXT-PARSE|TEXT-FORMAT-LEAK|PLACEHOLDER-ASKED|Couldn't add to stack"
                  r"|failed to target|FAILED to pay|Exception|Error\b|threw|AI looped")
 
 
 def scan(root):
     findings = collections.Counter()
+    others = collections.Counter()   # failed-target lines that are not a seat play: reported, not counted
     games = 0
     for d in sorted(glob.glob(root + "/g-*")):
         games += 1
@@ -54,13 +61,22 @@ def scan(root):
             findings["%s: no finished game" % tag] += 1
         if tally and not re.search(r"\bai=0\b", tally[-1]):
             findings["%s: Forge AI decided for the seat (%s)" % (tag, tally[-1])] += 1
+        seat_refused = {m.group(1) for m in SEAT_REFUSED.finditer(log)}
         for line in log.split("\n"):
             if BAD.search(line) and "JAVA_TOOL" not in line:
+                ft = FAILED_TARGET.search(line.strip())
+                if ft and ft.group(1) not in seat_refused:
+                    others["%s: %s" % (tag, re.sub(r"\d+", "N", line.strip())[:200])] += 1
+                    continue
                 findings[re.sub(r"\d+", "N", line.strip())[:220]] += 1
     print()
     print("%d games, %d defect lines" % (games, sum(findings.values())))
     for k, n in findings.most_common():
         print(n, k)
+    if others:
+        print("not the seat's (the Forge AI opponent's play, or a trigger with no target), %d lines:" % sum(others.values()))
+        for k, n in others.most_common():
+            print(" ", n, k)
     return 0 if games and not findings else 1
 
 

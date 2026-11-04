@@ -56,6 +56,22 @@ class GauntletScanTest(unittest.TestCase):
                                 "result": "ERROR: preview failed: java.lang.NullPointerException"}) + "\n")
         self.assertEqual(scan(root), 1)
 
+    def test_a_failed_target_is_a_defect_only_when_the_seat_played_it(self):
+        # runs/gauntlet-forecast-first: the seat's Govern the Guildless forecast had no target (a harness defect: the menu
+        # offered it), while in g-kw27 the Forge AI opponent's Karlov's Crossbow failed the same way (not a seat play).
+        seat = ("Govern the Guildless (12) - [Couldn't add to stack, failed to target] - Forecast\n"
+                "[kw28] [ROUTER] play: Govern the Guildless @6 in your HAND [Forecast] paid but has no legal target -> "
+                "the stack refused it\n"
+                "  STACK_ADD: Govern the Guildless (12) - [Couldn't add to stack, failed to target] -\n" + CLEAN)
+        ai = ("Karlov's Crossbow (82) - [Couldn't add to stack, failed to target] - [[]]\n"
+              "  STACK_ADD: Karlov's Crossbow (82) - [Couldn't add to stack, failed to target] -\n" + CLEAN)
+        self.assertEqual(scan(run_dir({"kw28": (seat, "0", "B")})), 1)
+        self.assertEqual(scan(run_dir({"kw27": (ai, "0", "B")})), 0)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            gs.scan(run_dir({"kw27": (ai, "0", "B")}))
+        self.assertIn("not the seat's", out.getvalue(), "the line is reported, not hidden")
+
     def test_an_unfinished_game_fails(self):
         self.assertEqual(scan(run_dir({"kw00": (CLEAN, "0", "invalid")})), 1)
         self.assertEqual(scan(run_dir({"kw00": (CLEAN, "3", "B")})), 1)
