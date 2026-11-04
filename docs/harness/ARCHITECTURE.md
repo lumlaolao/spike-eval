@@ -459,8 +459,12 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
 - **Costs (epoch 76):** `cost` names another way to cast a card, matched by its exact name ("flash" is not
   Flashback). An optional additional cost (Kicker, buyback, entwine) or "normal" names the normal cast, whose cost
   ask follows as under the menu: refusing it would count a legal cast as a rules error (pr-review of #342). A cast
-  with no `cost` is the normal cast only: when the menu holds just another way (Evoke, a pitch spell), the seat is
-  told to name it; the harness never picks the way to cast for it.
+  with no `cost` is the normal cast only: when the menu holds just another way (Evoke, a pitch spell, Flashback from
+  the graveyard), the seat is told to name it; the harness never picks the way to cast for it.
+- **Forecast** (rule 702.57) is an ability parameter, not one of Forge's keywords, so the keyword sweep never drew it:
+  activated from the hand in its owner's upkeep only, it is on the upkeep menu, in YOUR ACTIVATED ABILITIES from the
+  hand, and refused by rule outside the upkeep (`aForecastAbilityIsOfferedAndProposableOnlyInTheUpkeep`); the
+  gauntlet's `kw28` plays Forge's twelve Forecast cards in a full game.
 - **The record:** each play row carries `proposals` (every call, its verdict and category) and `first_try_legal` (the
   first well-formed proposal was legal); the game line `propose_actions`, a puzzle row `propose_actions: true`.
   `eval/proposal_audit.py` reads them. Its headline is first-try legality **of non-pass proposals**: a pass is

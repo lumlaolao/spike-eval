@@ -58,7 +58,7 @@ per arm), read it, then decide; say the expected cost before any paid run. Play 
 ```bash
 FORGE_HOME=/root/forge bash eval/harness_acceptance.sh        # everything: compile, all tests, canaries, fake-model games
 STAGES="preflight classpath compile javatests" FORGE_HOME=/root/forge bash eval/harness_acceptance.sh   # a subset
-bash eval/keyword_gauntlet.sh                                  # 28 free fake-model games over 552 cards
+bash eval/keyword_gauntlet.sh                                  # 29 free fake-model games over 565 cards
 python3 eval/tests/test_<name>.py                                    # one Python test file
 python3 eval/run_batch.py --seeds N --exploratory --budget-usd 0.40 --deck eval/decks/<d>.txt \
   --controller-a llm --controller-b ai --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \

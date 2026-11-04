@@ -224,7 +224,8 @@ public class ProposeActionsTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
         for (String cost : java.util.Arrays.asList(null, "normal")) {
             String err = reject(ctrl, me, true, prop("cast", handle(ctrl, drifter), null, null, cost));
-            Assert.assertTrue(err.startsWith("FORMAT: say which way") || err.startsWith("ILLEGAL (cost)"), cost + ": " + err);
+            // A form error, not a rules error: the cast is legal once named, so it must not count against legality.
+            Assert.assertTrue(err.startsWith("FORMAT: say which way"), cost + ": " + err);
         }
         Assert.assertNull(verdict(ctrl, me, true, prop("cast", handle(ctrl, drifter), null, null, "Evoke"), new int[] {-1}));
     }
@@ -328,6 +329,36 @@ public class ProposeActionsTest {
         AnswerTool.PROPOSE_FOR_TEST = false;
         Assert.assertEquals(SeatObservation.guide(), SeatObservation.GUIDE, "the default guide moves");
         Assert.assertTrue(ctrl.snapshot().contains("(castable)"), "the default hand lost its tags");
+    }
+
+    /** Forecast (rule 702.57): an ability activated from the hand, only in its owner's upkeep. The menu offers it then
+     *  (Proclamation of Rebirth, with a one-drop in the graveyard), YOUR ACTIVATED ABILITIES lists it from the hand, a
+     *  proposal reaches it with its target, and the same proposal in the main phase is refused. */
+    @Test
+    public void aForecastAbilityIsOfferedAndProposableOnlyInTheUpkeep() {
+        Game g = bareGame(PhaseType.UPKEEP);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 6; i++) card("Plains", me, ZoneType.Battlefield);
+        Card proc = card("Proclamation of Rebirth", me, ZoneType.Hand);
+        Card lions = card("Savannah Lions", me, ZoneType.Graveyard);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true);
+        SpellAbility forecast = po.spells.stream().filter(sa -> sa.getHostCard() == proc && !sa.isSpell()).findFirst().orElse(null);
+        Assert.assertNotNull(forecast, "the forecast ability is on the upkeep menu: " + po.spells);
+        Assert.assertTrue(po.spells.stream().noneMatch(sa -> sa.getHostCard() == proc && sa.isSpell()), "the sorcery is not castable in the upkeep");
+        String state = ctrl.snapshot();
+        Assert.assertTrue(state.matches("(?s).*YOUR ACTIVATED ABILITIES.*Proclamation of Rebirth[^\\n]*: 1\\) .*"), state);
+        AnswerTool.Proposal p = ctrl.proposalFor(forecast);
+        Assert.assertNotNull(p, "the abilities list shows it");
+        Assert.assertEquals(p.verb, "activate");
+        Assert.assertEquals(p.targets, List.of("@" + handle(ctrl, lions)), "its target is the one-drop in the graveyard");
+        int[] hit = {-1};
+        int passIdx = 1 + po.spells.size() + po.landPlays.size();
+        Assert.assertNull(ctrl.matchProposal(p, po.spells, po.landPlays, po.landCards, passIdx, me, false, hit), p.render());
+        Assert.assertEquals(po.spells.get(hit[0] - 1), forecast);
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me);
+        String err = reject(ctrl, me, true, p);
+        Assert.assertTrue(err.startsWith("ILLEGAL ("), "forecast outside the upkeep breaks a rule: " + err);
     }
 
     // ------------------------------------------------------------------ the ask
