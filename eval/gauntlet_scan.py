@@ -26,7 +26,7 @@ import tool_audit
 # on paths that log no seat line (an effect's cast, a trigger).
 FAILED_TARGET = re.compile(r"^(?:STACK_ADD: )?(.+?) \(\d+\) - \[Couldn't add to stack, failed to target\]")
 DECK_LINE = re.compile(r"^\[DECK\] loaded '([^']*)': .*\((.+)\)\s*$", re.M)
-# A seat play names its card, a creature with its power/toughness, before the handle: "activates Canopy Crawler 2/2 @32".
+# A seat play names its card, with a creature's power/toughness, before its handle: "activates Canopy Crawler 2/2 @32".
 SEAT_PLAY = re.compile(r"\[ROUTER\] play: (?:casts |activates |plays |land )?(.+?)(?: -?\d+/-?\d+)? @\d+")
 
 
@@ -50,7 +50,7 @@ def opponent_only(log):
             seat = cards
     if ai is None or seat is None:
         return set()
-    return ai - seat - {m.group(1) for m in SEAT_PLAY.finditer(log)}
+    return ai - seat - set(SEAT_PLAY.findall(log))
 
 
 BAD = re.compile(r"FALLBACK->AI|\(unparsed|TEXT-PARSE|TEXT-FORMAT-LEAK|PLACEHOLDER-ASKED|Couldn't add to stack"
@@ -59,7 +59,7 @@ BAD = re.compile(r"FALLBACK->AI|\(unparsed|TEXT-PARSE|TEXT-FORMAT-LEAK|PLACEHOLD
 
 def scan(root):
     findings = collections.Counter()
-    others = collections.Counter()   # failed-target lines that are not a seat play: reported, not counted
+    others = collections.Counter()   # failed targets on the opponent's cards alone (opponent_only): reported
     games = 0
     for d in sorted(glob.glob(root + "/g-*")):
         games += 1
@@ -106,7 +106,8 @@ def scan(root):
     for k, n in findings.most_common():
         print(n, k)
     if others:
-        print("not the seat's (a card only the Forge AI opponent's deck holds, never played by the seat), %d lines:" % sum(others.values()))
+        print("not the seat's (a card only the Forge AI opponent's deck holds, never played by the seat), %d lines:"
+              % sum(others.values()))
         for k, n in others.most_common():
             print(" ", n, k)
     return 0 if games and not findings else 1

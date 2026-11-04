@@ -68,7 +68,7 @@ be used as it is; the PR title then carries the type.
 PR title: the same form as a commit subject. PR body, in this order:
 
 ```
-## What        the change, in terms of behaviour
+## What        one bullet per commit subject (merges aside; `check-pr --gate` checks it), then the behaviour
 ## Why         the evidence that it was needed (file:line, a run directory, a count)
 ## Evidence    acceptance run (OUT dir, stages, test counts), measurements with their trivial baseline
 ## Provenance  which stamps moved (observation version, tool versions, canary pins) or "none"
@@ -127,7 +127,8 @@ most log questions).
   do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s
   `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
   (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
-  entry; each allowlist entry carries the reason it changes nothing the seat sees.
+  entry; each allowlist entry carries the reason it changes nothing the seat sees (`NON_CONDITION_ENV` maps
+  each name to its reason; `test_every_allowlist_entry_says_why`).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
   per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329) may
   instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
