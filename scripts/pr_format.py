@@ -180,8 +180,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
         out += ["commit %s: %s" % (sha[:9], p) for p in commit_problems(message)]
         # The body is the record the gate merges on: a commit pushed after review (#343) is listed like the first. A
         # merge commit is not a change of its own; a revert is, so it is listed.
-        subject = " ".join((message or "").strip().split("\n", 1)[0].split())
-        if subject and not subject.startswith(EXEMPT_SUBJECTS[0]) and not any(
+        subject = " ".join(message.strip().split("\n", 1)[0].split())
+        if subject and not subject.startswith("Merge ") and not any(
                 b == subject or b.startswith(subject + " ") for b in bullets):
             out.append("`## What` does not list commit %s (%s); list every commit subject" % (sha[:9], subject))
     got = reviews(body)

@@ -77,6 +77,10 @@ class GauntletScanTest(unittest.TestCase):
         self.assertIn("not the seat's", out.getvalue(), "the line is reported, not hidden")
         for card in ("Goblin Welder", "Armor of Thorns"):   # the seat's card (a creature), and a card both decks hold
             self.assertEqual(scan(run_dir({"kw27": (decks + fail % (card, card) + CLEAN, "0", "B")})), 1, card)
+        # A card the seat played is the seat's, even from the opponent's deck (a stolen Crossbow).
+        stolen = decks + "[kw27] [ROUTER] play: activates Karlov's Crossbow @40 [Equip {1}]\n" + fail % (
+            "Karlov's Crossbow", "Karlov's Crossbow") + CLEAN
+        self.assertEqual(scan(run_dir({"kw27": (stolen, "0", "B")})), 1, "a stolen card's failure is the seat's")
         # No deck lines to tell the side by: counted.
         self.assertEqual(scan(run_dir({"kw27": (fail % ("Karlov's Crossbow", "Karlov's Crossbow") + CLEAN, "0", "B")})), 1)
 
