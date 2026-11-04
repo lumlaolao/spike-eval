@@ -9660,21 +9660,20 @@ public final class LlmSpikeGui {
             return b.append("],\"first_try_legal\":").append(firstLegal).toString();
         }
 
+        /** True when a sub-ability's target restriction refers to something chosen before it (a parent's target, a
+         *  chosen colour or card, a remembered object): its candidates cannot be counted before that choice. */
+        static boolean dependsOnAnEarlierChoice(SpellAbility part) {
+            for (String k : List.of("TargetsWithDefinedController", "TargetsWithRelatedProperty", "TargetsWithSameController",
+                    "TargetsWithSharedTypes", "TargetsFromSingleZone", "TargetUnique"))
+                if (part.hasParam(k)) return true;
+            return part.hasParam("ValidTgts")
+                    && part.getParam("ValidTgts").matches("(?s).*(Parent|Targeted|Chosen|Remembered|Imprinted|Defined|Triggered).*");
+        }
+
         /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
          *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
          *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
          *  keeps its historical mana check. */
-        /** True when a sub-ability's target restriction refers to something chosen before it (a parent's target, a
-         *  chosen colour or card, a remembered object): its candidates cannot be counted before that choice. */
-        static boolean dependsOnAnEarlierChoice(SpellAbility part) {
-            for (String k : List.of("ValidTgts", "TargetsWithDefinedController", "TargetsWithRelatedProperty",
-                    "TargetsWithSameController", "TargetsWithSharedTypes", "TargetsFromSingleZone", "TargetUnique"))
-                if (part.hasParam(k) && (!"ValidTgts".equals(k)
-                        || part.getParam(k).matches("(?s).*(Parent|Targeted|Chosen|Remembered|Imprinted|Defined|Triggered).*")))
-                    return true;
-            return false;
-        }
-
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
             if (!playable(sa, me)) return false;
@@ -9710,8 +9709,6 @@ public final class LlmSpikeGui {
             // at full, Channeled Dragonfire's harmonize was never offered with four Mountains and a 3-power creature.
             if (!payable && sa.isHarmonize()) payable = harmonizePowers(sa, me).stream().anyMatch(n -> n > 0);
             if (!payable) return false;
-            // Skip a targeted spell that currently has NO legal target — casting it just fizzles
-            // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
             // Skip a play a part of which has no legal target: casting it fails ("Couldn't add to stack, failed to
             // target"): Animate Dead with an empty graveyard, Govern the Guildless's forecast with no creature in play
             // (its target is in a sub-ability: gauntlet kw28). A sub-ability is counted only when its targets cannot
