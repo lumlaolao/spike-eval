@@ -3,7 +3,8 @@
 Per game: exit code, turns, winner and the seat's [TALLY] line. Then every line that marks a defect: a choice
 Forge's AI made (FALLBACK->AI, ai=N in the tally), an answer the seat could not read, a text parse or a text answer
 format on a tool ask, a placeholder bridge asked (PLACEHOLDER-ASKED: a seat that asks no model reached one), a play
-that failed to pay or to target, a decision lost, a crash, and (with GAUNTLET_TOOLS=1) a
+that failed to pay or to target (a failed target that is not the seat's play is listed apart, not counted), a
+decision lost, a crash, and (with GAUNTLET_TOOLS=1) a
 lookup the harness refused or that broke (tool_audit's REFUSED and FAILED). A game with no game line or a non-zero exit
 also counts. Exits 1 when anything is found.
 
@@ -64,11 +65,13 @@ def scan(root):
         seat_refused = {m.group(1) for m in SEAT_REFUSED.finditer(log)}
         for line in log.split("\n"):
             if BAD.search(line) and "JAVA_TOOL" not in line:
-                ft = FAILED_TARGET.search(line.strip())
+                line = line.strip()
+                key = re.sub(r"\d+", "N", line)[:220]
+                ft = FAILED_TARGET.match(line)
                 if ft and ft.group(1) not in seat_refused:
-                    others["%s: %s" % (tag, re.sub(r"\d+", "N", line.strip())[:200])] += 1
-                    continue
-                findings[re.sub(r"\d+", "N", line.strip())[:220]] += 1
+                    others["%s: %s" % (tag, key)] += 1
+                else:
+                    findings[key] += 1
     print()
     print("%d games, %d defect lines" % (games, sum(findings.values())))
     for k, n in findings.most_common():

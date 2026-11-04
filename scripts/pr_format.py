@@ -178,8 +178,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
     for sha, message in commits:
         out += ["commit %s: %s" % (sha[:9], p) for p in commit_problems(message)]
         # The body is the record the gate merges on: a commit pushed after review (#343) is listed like the first.
-        subject = (message or "").splitlines()[0] if message else ""
-        if subject and not subject.startswith("Merge ") and subject not in what:
+        subject = message.splitlines()[0] if message else ""
+        if subject and not subject.startswith(EXEMPT_SUBJECTS[0]) and subject not in what:
             out.append("`## What` does not list commit %s (%s); list every commit subject" % (sha[:9], subject))
     got = reviews(body)
     for agent in SKILLS:
@@ -250,7 +250,7 @@ def gh_pr(number):
 
 
 def pr_commits(pr):
-    """(sha, full message) of the PR's commits as GitHub holds them, merges excluded by their subject."""
+    """(sha, full message) of the PR's commits as GitHub holds them, merges included (the checks skip them by subject)."""
     return [(c["oid"], c["messageHeadline"] + ("\n\n" + c["messageBody"] if c.get("messageBody") else ""))
             for c in pr.get("commits") or []]
 
