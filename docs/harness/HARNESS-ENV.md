@@ -75,7 +75,7 @@ scored 0.024: the dev ROMs are not the graded ROMs, so the hack bought nothing.
 | the emulator the agent writes | the harness: `PlayerControllerLLM` plus observation, prompt, tools, bridges, eval layer (`forge-overlay/`, `eval/`) | yes |
 | the CPU and hardware spec (GBATEK, ABI.md, BIOS stub) | Forge's `PlayerController` interface (hook counts in section 3.1), the 34,086 card scripts, the comprehensive rules (`data/rules/MagicCompRules.txt`), and the proposed interface contract, SPEC-2 (CLI, rows, `[TALLY]`, wire protocol; not yet written) | yes; our "GBATEK" is the engine's own source, which the agent may read, as GBATEK is read |
 | the oracle: a black-box reference emulator with no source | an instrumented Forge plus our harness at a pinned epoch, reachable only as a service: "play this instance with this answer and tell me the end state" | yes, with the same rule: its output may be consulted, never used as the implementation |
-| dev ROMs | the public development suite: the sweep's 553 named cards, the 28 gauntlet decks, the golden boards, h_0 and h_1 | yes |
+| dev ROMs | the public development suite: the sweep's 553 named cards, the 29 gauntlet decks, the golden boards, h_0 and h_1 | yes |
 | the graded corpus: accuracy suites and homebrew force-added to git, commercial never checked in; none of it in the agent's container | the hidden surface instances (every decision kind x context, generated from card scripts with fresh seeds) and puzzle lines with `[solution]` | yes, withheld the same way, at the container; Grok's lesson is why instances must be generated, not listed |
 | procedural self-checking ROMs (cpu, memory, timer, dma, halt_irq), 20% | the per-surface deterministic checks: one hook in one context, asked / offered / shown / carried out / no parse; subsystem weights by hook family | yes, and this is our primary grader (section 3), weighted higher than theirs |
 | gameplay replays under input, 60% | full games through the candidate seat with a scripted or fake model (`random`, `first`, `pass` policies on the gauntlet decks and fresh seeds), compared in lockstep with the reference trace: every ask, every option list, every end state | yes; the idle-frame warning carries over (section 4) |
@@ -188,11 +188,11 @@ amounts, order), never by the candidate's label, and records it; over the wire i
 - **Score** = Σ weight x (five checks pass) / Σ weight over the hidden instances, reported per hook family and per
   context, **gated** by run-wide invariants: engine-side `ai=0`, no silent drop, no parse, no engine file changed
   unmarked.
-- **Held-out**: the dev suite is public (553 sweep cards, 28 gauntlet decks, golden boards); the graded suite is drawn
+- **Held-out**: the dev suite is public (553 sweep cards, 29 gauntlet decks, golden boards); the graded suite is drawn
   fresh per run (cards by feature, board parameters, seeds), ids unpublished, matched by engine identity.
 - **Cost**: an instance is a bare game and one decision, milliseconds to a second; the sweep runs inside the
   `javatests` stage today. A sampled hundred grades a commit in under a minute; thousands an hour in one JVM, against 8 to 15
-  minutes for full acceptance on 4 cores, depending on load (`docs/harness/ACCEPTANCE.md`) plus 28 gauntlet games of up to five minutes.
+  minutes for full acceptance on 4 cores, depending on load (`docs/harness/ACCEPTANCE.md`) plus 29 gauntlet games of up to five minutes.
 
 ### 3.5 Have and missing
 

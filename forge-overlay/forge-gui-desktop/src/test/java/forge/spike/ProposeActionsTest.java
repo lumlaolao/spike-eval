@@ -371,11 +371,31 @@ public class ProposeActionsTest {
         for (int i = 0; i < 2; i++) card("Island", me, ZoneType.Battlefield);
         Card govern = card("Govern the Guildless", me, ZoneType.Hand);
         seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
-        java.util.function.Supplier<Boolean> offered = () -> LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true)
+        java.util.function.BooleanSupplier offered = () -> LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true)
                 .spells.stream().anyMatch(sa -> sa.getHostCard() == govern && !sa.isSpell());
-        Assert.assertFalse(offered.get(), "no creature in play: the forecast has no target");
+        Assert.assertFalse(offered.getAsBoolean(), "no creature in play: the forecast has no target");
         card("Grizzly Bears", rival, ZoneType.Battlefield);
-        Assert.assertTrue(offered.get(), "a creature to target: the forecast is offered");
+        Assert.assertTrue(offered.getAsBoolean(), "a creature to target: the forecast is offered");
+    }
+
+    /** A sub-ability whose legal targets depend on an earlier target cannot be counted before that target is chosen:
+     *  Searing Blaze's second target is a creature "that player controls", Goblin Welder's an artifact card in the first
+     *  artifact's controller's graveyard. Counted with no first target they have none, so the sub-ability check must
+     *  leave them to the cast, or a legal play is hidden (pr-review of #343: Searing Blaze is in the Burn panel deck). */
+    @Test
+    public void aSubAbilityTargetThatDependsOnTheFirstTargetDoesNotHideThePlay() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 2; i++) card("Mountain", me, ZoneType.Battlefield);
+        Card blaze = card("Searing Blaze", me, ZoneType.Hand);
+        Card welder = card("Goblin Welder", me, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Ornithopter", rival, ZoneType.Battlefield);
+        card("Millstone", rival, ZoneType.Graveyard);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        List<SpellAbility> menu = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true).spells;
+        Assert.assertTrue(menu.stream().anyMatch(sa -> sa.getHostCard() == blaze && sa.isSpell()), "Searing Blaze is legal: " + menu);
+        Assert.assertTrue(menu.stream().anyMatch(sa -> sa.getHostCard() == welder && !sa.isManaAbility()), "Goblin Welder's ability is legal: " + menu);
     }
 
     // ------------------------------------------------------------------ the ask

@@ -30,7 +30,7 @@ most prompt tokens read from the cache; `--budget-usd 0.40` a game is ample. Tim
 minutes, about half of it waiting on the provider (the sheet's TIME line says where it went). Decks that ask many
 questions (Elves: 29 decisions in one turn) take hours; vary them, and pick fast ones when time matters.
 
-Before paying for a game, the free checks find most defects: `bash eval/keyword_gauntlet.sh` (552 cards in 28
+Before paying for a game, the free checks find most defects: `bash eval/keyword_gauntlet.sh` (564 cards in 29
 fake-model games), with `GAUNTLET_POLICY=random` (random legal answers; `GAUNTLET_SEED=<salt>` for new ones) and
 `GAUNTLET_TOOLS=1` (lookups and previews too). Never edit `eval/keyword_gauntlet.sh` while it runs: bash reads the
 script as it goes. The cap is 120 minutes: the seat may think for 32000 tokens (up to 300 s a call)

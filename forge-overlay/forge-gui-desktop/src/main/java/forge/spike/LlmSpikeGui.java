@@ -370,7 +370,8 @@ public final class LlmSpikeGui {
      *  Flashback); a cast with no cost is the normal cast only, never the menu's one other way (Evoke); a proposed
      *  target is consumed by its own play's target step only. Unchanged off the arm.
      *  Epoch 77 (2026-11-04): a play whose sub-ability must target is offered only when that target exists (Govern the
-     *  Guildless's forecast was offered with no creature in play and failed every upkeep: gauntlet kw28).
+     *  Guildless's forecast was offered with no creature in play and failed every upkeep: gauntlet kw28); a sub-ability
+     *  whose targets depend on an earlier choice (Searing Blaze, Goblin Welder) is left to the cast, as before.
      */
     static final String HARNESS_EPOCH = "harness-epoch-77";
 
@@ -9663,6 +9664,17 @@ public final class LlmSpikeGui {
          *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
          *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
          *  keeps its historical mana check. */
+        /** True when a sub-ability's target restriction refers to something chosen before it (a parent's target, a
+         *  chosen colour or card, a remembered object): its candidates cannot be counted before that choice. */
+        static boolean dependsOnAnEarlierChoice(SpellAbility part) {
+            for (String k : List.of("ValidTgts", "TargetsWithDefinedController", "TargetsWithRelatedProperty",
+                    "TargetsWithSameController", "TargetsWithSharedTypes", "TargetsFromSingleZone", "TargetUnique"))
+                if (part.hasParam(k) && (!"ValidTgts".equals(k)
+                        || part.getParam(k).matches("(?s).*(Parent|Targeted|Chosen|Remembered|Imprinted|Defined|Triggered).*")))
+                    return true;
+            return false;
+        }
+
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
             if (!playable(sa, me)) return false;
@@ -9700,10 +9712,17 @@ public final class LlmSpikeGui {
             if (!payable) return false;
             // Skip a targeted spell that currently has NO legal target — casting it just fizzles
             // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
-            // Every part that targets, sub-abilities included: Govern the Guildless's forecast chooses colours, then its
-            // sub-ability targets a creature; with none in play it was offered every upkeep and failed (gauntlet kw28).
+            // Skip a play a part of which has no legal target: casting it fails ("Couldn't add to stack, failed to
+            // target"): Animate Dead with an empty graveyard, Govern the Guildless's forecast with no creature in play
+            // (its target is in a sub-ability: gauntlet kw28). A sub-ability is counted only when its targets cannot
+            // depend on an earlier choice: no earlier part targets, and its restriction names nothing chosen before it.
+            // Counted with no first target, Searing Blaze's "creature that player controls" has none and a legal cast
+            // would be hidden (pr-review of #343).
+            boolean earlierTarget = false;
             for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
                 if (!part.usesTargeting()) continue;
+                if (part != sa && (earlierTarget || dependsOnAnEarlierChoice(part))) continue;
+                earlierTarget = true;
                 try {
                     if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
                     TargetRestrictions tr = part.getTargetRestrictions();
