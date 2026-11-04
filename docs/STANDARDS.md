@@ -121,7 +121,10 @@ most log questions).
 - **JSONL is additive-only.** New fields; never a renamed or re-typed one. Readers use `.get()`.
 - **An opt-in flag is a condition.** It is pinned by `run_batch.py`, recorded in the manifest,
   stamped on the game line and keyed by `aggregate.PROVENANCE_FIELDS`, and refused on resume into a
-  directory made under a different value. A condition the JVM reads from the environment but never
+  directory made under a different value. Every other launcher of a game JVM drops it from the shell unless its own
+  flag sets it: `puzzle_baselines.Build.run` (so `puzzle_solve.py` and the baselines) strips every name in
+  `run_batch.CONDITION_ENV_KEYS` and `SHADOW_AI` (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell`
+  reads that list, so a new condition is stripped or the test fails; #342, #345). A condition the JVM reads from the environment but never
   stamps pools its on- and off-games (issue #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every
   `System.getenv` in the game-line writer is either stamped or on a named allowlist of settings that
   do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s

@@ -56,6 +56,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import benchmark_version  # noqa: E402
+import run_batch  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 
 REPO = pf.REPO
@@ -152,9 +153,10 @@ class Build:
         out_dir = Path(out_dir).resolve()  # the JVM runs from the Forge checkout
         out_dir.mkdir(parents=True, exist_ok=True)
         env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENROUTER", "PZL_", "FORK_"))}
-        env.pop("PROPOSE_ACTIONS", None)   # a condition: only puzzle_solve.py --propose-actions sets it
-        env.pop("PROPOSE_AUDIT", None)     # a diagnostic that is a condition (handles): never inherited by a puzzle
-        env.pop("SHADOW_AI", None)         # the shadow labeller, a condition (#345): a puzzle never runs it
+        # Every condition run_batch.py pins, and the shadow labeller: a shell value never reaches a puzzle game
+        # unrecorded; puzzle_solve.py sets the ones a puzzle uses (its condition()) through env_extra below.
+        for name in run_batch.CONDITION_ENV_KEYS + ("SHADOW_AI",):
+            env.pop(name, None)
         env["EVAL_OUT"] = str(out_dir)
         if not keep_model_env:
             # Zero-model by construction: no egress opt-in, no API key, and the model spec points at a
