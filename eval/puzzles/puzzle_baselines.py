@@ -154,6 +154,7 @@ class Build:
         env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENROUTER", "PZL_", "FORK_"))}
         env.pop("PROPOSE_ACTIONS", None)   # a condition: only puzzle_solve.py --propose-actions sets it
         env.pop("PROPOSE_AUDIT", None)     # a diagnostic that is a condition (handles): never inherited by a puzzle
+        env.pop("SHADOW_AI", None)         # the shadow labeller, a condition (#345): a puzzle never runs it
         env["EVAL_OUT"] = str(out_dir)
         if not keep_model_env:
             # Zero-model by construction: no egress opt-in, no API key, and the model spec points at a

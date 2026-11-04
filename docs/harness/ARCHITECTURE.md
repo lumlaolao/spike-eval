@@ -488,6 +488,10 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   next target unasked), but it registers handles early, so an audited game's prompts can differ: it is a condition,
   stamped `propose_audit` on the game line and puzzle row and never pooled with a plain run. `run_batch.py` pins it
   off and the puzzle runner strips it: it runs only in the keyword gauntlet.
+- **Side-effect settings are conditions too.** The shadow labeller (`SHADOW_AI`, `run_batch.py --shadow-ai`) asks
+  Forge's AI on the side for a DAgger label; its targets are reset before the seat's cast, but an AI timeout weakens
+  the game's isolation (`[SHADOW] ... WEAKENED`), so it is stamped `shadow_ai` on the game line, keyed by
+  `aggregate.PROVENANCE_FIELDS`, expected on resume, and stripped from puzzle games (PR #345; STANDARDS section 4).
 - **Not yet hidden:** the targets of a play with modes, several targets or divided amounts, a spell on the stack as a
   target, attackers, blockers and the cost choices keep their candidate lists (each can be checked with
   `sa.canTarget`, `CombatUtil` and `blocksError`, which already returns a reason).

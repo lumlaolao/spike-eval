@@ -388,6 +388,20 @@ class BuildFreshnessTest(unittest.TestCase):
         self.assertEqual(b.provenance(), {"build_dir": str(d.resolve()), "build_overlay_sha": "aaaaaaaaaaaa",
                                           "checkout_overlay_sha": "aaaaaaaaaaaa", "stale_build_allowed": False})
 
+    def test_a_puzzle_game_never_inherits_a_condition_from_the_shell(self):
+        # Conditions only their flags set (PROPOSE_ACTIONS), and settings that change the game as a side effect
+        # (PROPOSE_AUDIT, SHADOW_AI: pr-review of #345), never reach a puzzle game from the operator's shell.
+        from unittest import mock
+        b = pb.Build(self.make("b2", "aaaaaaaaaaaa"), self.forge)
+        seen = {}
+        def call(cmd, **kw):
+            seen.update(kw["env"])
+            return 0
+        names = {"PROPOSE_ACTIONS": "1", "PROPOSE_AUDIT": "1", "SHADOW_AI": "1"}
+        with mock.patch.dict(os.environ, names), mock.patch.object(pb.subprocess, "call", call):
+            self.assertEqual(b.run({}, tempfile.mkdtemp()), 0)
+        self.assertEqual([n for n in names if n in seen], [])
+
     def test_a_build_of_other_sources_or_unrecorded_is_refused(self):
         for name, sha in (("other", "bbbbbbbbbbbb"), ("unrecorded", None), ("empty", "")):
             with self.assertRaises(SystemExit, msg=name) as cm:
