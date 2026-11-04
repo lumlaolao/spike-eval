@@ -980,6 +980,6 @@ Forecast is an ability parameter, not one of Forge's keywords, so the sweep and 
   upkeep; ai=0 in every game.
 - not ours  g-kw27: Karlov's Crossbow (82) "failed to target", 2 lines (4 with STACK_ADD). The card is the Forge AI
   opponent's (kw27's seat plays kw28's deck against it): its own play, not a seat decision. gauntlet_scan cannot tell
-  a side, so the run reads 4 defect lines; a scan that attributes such lines to a seat is a follow-up.
+  a side, so the run reads 4 defect lines; the scan now lists such lines apart (PR #344).
 - clean  every other game; the seat's forecast timing (upkeep only) and the abilities list from the hand
   (aForecastAbilityIsOfferedAndProposableOnlyInTheUpkeep).

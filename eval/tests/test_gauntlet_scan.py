@@ -56,6 +56,34 @@ class GauntletScanTest(unittest.TestCase):
                                 "result": "ERROR: preview failed: java.lang.NullPointerException"}) + "\n")
         self.assertEqual(scan(root), 1)
 
+    def test_a_failed_target_is_set_apart_only_when_the_card_is_the_opponents_alone(self):
+        # runs/gauntlet-forecast-first: g-kw28's seat failed Govern the Guildless (a harness defect), while in g-kw27 the
+        # Forge AI opponent's Karlov's Crossbow failed. The decks the log names decide whose card it is; anything not
+        # provably the opponent's alone counts (pr-review of #344: a creature's label, an effect's cast, a trigger).
+        d = tempfile.mkdtemp()
+        seat_deck, ai_deck = os.path.join(d, "kw27.txt"), os.path.join(d, "kw28.txt")
+        with open(seat_deck, "w") as f:
+            f.write("2 Goblin Welder\n2 Armor of Thorns\n4 Forest\n")
+        with open(ai_deck, "w") as f:
+            f.write("3 Karlov's Crossbow\n3 Armor of Thorns\n12 Plains\n")
+        decks = ("[DECK] loaded 'kw27': 8 main, 0 sideboard  (%s)\n"
+                 "[DECK] loaded 'kw28-ai': 18 main, 0 sideboard  (%s)\n" % (seat_deck, ai_deck))
+        fail = "%s (82) - [Couldn't add to stack, failed to target] - [[]]\n  STACK_ADD: %s (82) - [Couldn't add to stack, failed to target] -\n"
+        ai = decks + fail % ("Karlov's Crossbow", "Karlov's Crossbow") + CLEAN
+        self.assertEqual(scan(run_dir({"kw27": (ai, "0", "B")})), 0, "the opponent's card alone")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            gs.scan(run_dir({"kw27": (ai, "0", "B")}))
+        self.assertIn("not the seat's", out.getvalue(), "the line is reported, not hidden")
+        for card in ("Goblin Welder", "Armor of Thorns"):   # the seat's card (a creature), and a card both decks hold
+            self.assertEqual(scan(run_dir({"kw27": (decks + fail % (card, card) + CLEAN, "0", "B")})), 1, card)
+        # A card the seat played is the seat's, even from the opponent's deck (a stolen Crossbow).
+        stolen = decks + "[kw27] [ROUTER] play: activates Karlov's Crossbow @40 [Equip {1}]\n" + fail % (
+            "Karlov's Crossbow", "Karlov's Crossbow") + CLEAN
+        self.assertEqual(scan(run_dir({"kw27": (stolen, "0", "B")})), 1, "a stolen card's failure is the seat's")
+        # No deck lines to tell the side by: counted.
+        self.assertEqual(scan(run_dir({"kw27": (fail % ("Karlov's Crossbow", "Karlov's Crossbow") + CLEAN, "0", "B")})), 1)
+
     def test_an_unfinished_game_fails(self):
         self.assertEqual(scan(run_dir({"kw00": (CLEAN, "0", "invalid")})), 1)
         self.assertEqual(scan(run_dir({"kw00": (CLEAN, "3", "B")})), 1)

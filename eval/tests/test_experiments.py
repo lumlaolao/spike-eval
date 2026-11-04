@@ -380,25 +380,41 @@ class GameLineStampCoverageTest(unittest.TestCase):
         # A claude-cli: seat's thinking budget, per identity; the opt-in that lets one play, the dev_lane label.
         "CLAUDE_CLI_THINKING_TOKENS": "claude_cli_thinking_tokens_a", "CLAUDE_CLI_SEAT": "dev_lane",
     }
-    # Read by the harness, but not a condition: transport, credentials, recording and process
-    # control, none of which change the seat's decisions (each would need a stamp if it ever did).
+    # Read by the harness, but not a condition: each entry says why it changes nothing the seat reads or decides
+    # (STANDARDS section 4; test_every_allowlist_entry_says_why). One that ever did would need a stamp.
     NON_CONDITION_ENV = {
-        "AUTO_EXIT", "CLAUDE_BIN", "EVAL_OUT", "MATCH_GAMES",
-        "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "OPENROUTER_HTTP_REFERER",
-        "OPENROUTER_HTTP_TITLE", "RECORD", "RECORD_FPS", "RECORD_OUT",
-        "RULES_FILE", "SHADOW_AI",
-        # How a claude-cli: seat's CLI logs in (an API key instead of the subscription): not what it decides.
-        "CLAUDE_CLI_ALLOW_API_KEY",
+        "AUTO_EXIT": "process control: the JVM exits when the game ends",
+        "CLAUDE_BIN": "transport: which claude executable a claude-cli: seat runs",
+        "EVAL_OUT": "recording: the directory the rows are written to",
+        "MATCH_GAMES": "process control: games per match; each game is its own game line",
+        "OPENROUTER_ALLOW_EGRESS": "consent: the egress opt-in, not what the seat sees",
+        "OPENROUTER_API_KEY": "credentials",
+        "OPENROUTER_HTTP_REFERER": "transport: a request header for the provider",
+        "OPENROUTER_HTTP_TITLE": "transport: a request header for the provider",
+        "RECORD": "recording: a screen capture of the GUI",
+        "RECORD_FPS": "recording: the capture's frame rate",
+        "RECORD_OUT": "recording: the capture's file",
+        "SHADOW_AI": "recording: Forge's AI is asked on the side for a label; its answer is never used",
+        "CLAUDE_CLI_ALLOW_API_KEY": "credentials: how a claude-cli: seat's CLI logs in, not what it decides",
     }
     # Conditions recorded somewhere other than the game line. OPENROUTER_TIMEOUT_MS changes decisions (a call past
     # it is lost to the fixed legal option): puzzle_solve.py --call-timeout-minutes records it per puzzle (STANDARDS
     # section 4, PR #329), and Build.run strips a shell value. A run_batch.py game under an operator's value is not
     # stamped yet.
-    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS"}
+    # RULES_FILE picks the Comprehensive Rules text the seat's rules tool returns: that text's date is stamped
+    # `rules_effective` (standards of #344: it touches what the seat reads, so it is no allowlist entry).
+    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS", "RULES_FILE"}
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
     # required to have a stamp -- the sha is what partitions those experiments.
     CONTEXT_PREFIX = "CTX_"
+
+    def test_every_allowlist_entry_says_why(self):
+        for name, why in self.NON_CONDITION_ENV.items():
+            self.assertTrue(why and why.strip(), name)
+
+    def test_rules_file_is_recorded_by_the_rules_date(self):
+        self.assertIn("rules_effective", set(game_line_keys()))
 
     def test_every_env_read_is_stamped_or_allowlisted(self):
         java = GUI.read_text(encoding="utf-8") + CLI_BRIDGE.read_text(encoding="utf-8")

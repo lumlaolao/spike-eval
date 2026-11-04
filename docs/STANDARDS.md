@@ -12,8 +12,9 @@ kind of finding shows up in two reviews.
 
 A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unless:
 
-1. `python3 scripts/pr_format.py check-pr <number> --gate` passes: title, body sections, and the
-   message of every commit on the PR as GitHub holds it;
+1. `python3 scripts/pr_format.py check-pr <number> --gate` passes: title, body sections, the
+   message of every commit on the PR as GitHub holds it, and `## What` listing every commit's subject
+   (merges aside), so a commit pushed after review is in the record too (PR #343);
 2. the body's `## Review` section holds one line per skill for the PR's current head commit,
    written by `pr_format.py record-review`. `pr-review` records CLEAN/LOW/MEDIUM/HIGH/BLOCKER,
    `simplify` CLEAN or SUGGESTIONS, `standards` CLEAN or VIOLATIONS. The gate refuses BLOCKER, HIGH
@@ -67,7 +68,7 @@ be used as it is; the PR title then carries the type.
 PR title: the same form as a commit subject. PR body, in this order:
 
 ```
-## What        the change, in terms of behaviour
+## What        one bullet per commit subject (merges aside; `check-pr --gate` checks it), then the behaviour
 ## Why         the evidence that it was needed (file:line, a run directory, a count)
 ## Evidence    acceptance run (OUT dir, stages, test counts), measurements with their trivial baseline
 ## Provenance  which stamps moved (observation version, tool versions, canary pins) or "none"
@@ -86,6 +87,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/tests/test_engine_patches.py`) |
 | `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports another by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks (`eval/tests/test_untested_list.py`; its pinned `MAX_UNTESTED` is lowered in the PR that removes a name) |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
+| `eval/research/` | dated literature and pilot notes behind a design decision (`YYYY-MM-DD-<topic>.md`) | as `docs/eval/`: each claim cites its source or a run directory; a note is history, and the current rule lives in `docs/harness/ARCHITECTURE.md` or `docs/eval/` |
 | `.github/workflows/` | CI: the Python suite (`tests.yml`) on every PR and push to main, on the Python floor and a current one | no secrets, `permissions: contents: read`, `pull_request` (never `pull_request_target`), each action pinned to a commit SHA with its tag in a comment (`.github/dependabot.yml` proposes updates weekly); not the merge gate (section 1) |
 | `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder, or for what is not a script there: a launcher (`test_setup.py`), a data set (`test_modern_puzzles.py`) or a repository rule (`test_doc_paths.py`, `test_untested_list.py`, `test_gate_parses.py`) | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
 | `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
@@ -123,7 +125,10 @@ most log questions).
   stamps pools its on- and off-games (issue #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every
   `System.getenv` in the game-line writer is either stamped or on a named allowlist of settings that
   do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s
-  `GameLineStampCoverageTest`).
+  `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
+  (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
+  entry; each allowlist entry carries the reason it changes nothing the seat sees (`NON_CONDITION_ENV` maps
+  each name to its reason; `test_every_allowlist_entry_says_why`).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
   per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329) may
   instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
@@ -214,8 +219,10 @@ most log questions).
 - Every number is reproducible from a named command and run directory. Run directories are not in the repository
   (`runs/` is git-ignored): the doc names the one its author kept.
 - Say what was not determined.
-- A doc does not record the acceptance run of the PR that edits it: that belongs in the PR's
-  `## Evidence`, or recording it would need a commit that invalidates it.
+- A doc does not record the acceptance run of its PR's final head: that belongs in the PR's `## Evidence`, or
+  recording it would need a commit that invalidates it. A run on an earlier head of the same PR that changed
+  something (a failure found, a canary moved, a new stage count) is recorded in `docs/harness/ACCEPTANCE.md`
+  with its sha.
 - `docs/harness/ARCHITECTURE.md` stays true: a change that alters how the harness works (a decision path,
   a tool, the prompt, a bridge, a default, an eval rule) updates it in the same PR.
 
@@ -244,6 +251,7 @@ strategic choice, the engine owns every mechanism. Each rule has its check.
 | **The plan is the model's and changes when it wants.** Under the faithful profile a `PLAN:` line in any reply, at any decision, replaces the plan (a goal and the steps toward it); the plan line says when it was stated. The harness never writes, drops or judges the plan. | `PlanAnytimeTest` (`aPlanChangedAtATargetQuestionIsTheNextPromptsPlan`) |
 | **The seat can say a question is broken.** `report_unclear_decision` records the complaint and the decision is still answered; every report is read: a true one is a harness defect, a false one a model mistake. | `aReportIsRecordedAndTheDecisionIsStillAnswered`; `match_review.py` `REPORT` |
 | **A seat that never answers scores no better than one that passes.** With no answer the harness takes the do-nothing option where one exists (pass, no attack, decline) and the first legal option only where a choice is mandatory; never a land drop, an attack or Forge's AI. | acceptance `gaming` (empty-reply and garbage-reply seats vs the floor seat); `aSeatThatNeverAnswersNeitherPlaysALandNorAttacks` |
+| **An arm that suspends a contract rule is a named exception, never a default.** It is off by default, refused outside `--exploratory` and in any panel, and the rule it suspends names it where that rule is stated (`CLAUDE.md`, `.claude/rules/`, this table): `PROPOSE_ACTIONS` hides the menu, so "a legal action is never hidden" names it (owner, 2026-11-04). | `run_batch.py` refusals (`propose_refusal`, `TestProposeActions`); review |
 | **The harness decides at most 2% of the choices the model could make.** match_review's TAKEN and LOST plus any Forge-AI row, forced picks excluded, over the llm identities' decisions. | `aggregate.py` harness-decided gate (exit 4); `test_harness_decided_gate` |
 | **The harness does not limit the model.** Nothing the seat reads is cut, and what it may look up, preview, write or think is capped only by a loop guard far above any recorded game, a condition that defines an arm, or a transport retry; each kept limit is listed with its reason in `docs/harness/MODEL-LIMITS.md`. Cost is not a reason for a cap. | `SeatObservationTest.nothingTheObservationShowsIsCut`, `ContextProfileTest.theFaithfulHistoryIsWhole`, `ContextMemoryTest.theToolBudgetsAreLoopGuardsNotDecisionLimits`, `ContextProfileTest.theCallBudgetsAndTheTurnCapAreLoopGuards` |
 | **The interface has one version.** `HARNESS_EPOCH` moves with any change to what the seat is asked, when, or what its answer does, beside the per-layer versions; games across an epoch are never pooled or compared in a count or rate (a labelled illustration that computes none, `demo_compare.py`, is allowed). | game line `harness_epoch`, asserted in acceptance `faithful`; `aggregate.py` experiment key |

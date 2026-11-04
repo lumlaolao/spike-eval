@@ -98,7 +98,8 @@ Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per c
 
 A change to how the harness works (a decision path, a tool, the prompt, a bridge, a default, an eval rule) updates
 `docs/harness/ARCHITECTURE.md` in the same PR, bumps the version stamp that covers it (`python3 eval/versions.py
---write`), and records an acceptance run that changed in `docs/harness/ACCEPTANCE.md`. Commit subjects and body
+--write`), and records in `docs/harness/ACCEPTANCE.md` an acceptance run on an earlier head that changed something (the
+final head's run goes in the PR's `## Evidence`; `docs/STANDARDS.md` section 7). Commit subjects and body
 lines stay at 100 characters or fewer (`scripts/pr_format.py`). Model specs and priced slugs never go in commits or
 PRs; a model's name in prose is fine (owner, 2026-10-21).
 
