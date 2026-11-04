@@ -3,7 +3,8 @@
 Per game: exit code, turns, winner and the seat's [TALLY] line. Then every line that marks a defect: a choice
 Forge's AI made (FALLBACK->AI, ai=N in the tally), an answer the seat could not read, a text parse or a text answer
 format on a tool ask, a placeholder bridge asked (PLACEHOLDER-ASKED: a seat that asks no model reached one), a play
-that failed to pay or to target (a failed target that is not the seat's play is listed apart, not counted), a
+that failed to pay or to target (a failed target on a card only the opponent's deck holds is listed apart, not
+counted), a
 decision lost, a crash, and (with GAUNTLET_TOOLS=1) a
 lookup the harness refused or that broke (tool_audit's REFUSED and FAILED). A game with no game line or a non-zero exit
 also counts. Exits 1 when anything is found.
@@ -18,11 +19,34 @@ import sys
 
 import tool_audit
 
-# The engine's "failed to target" line names the card and its id; the seat logs its own failed play beside it. A line
-# with no seat play of that card is the Forge AI opponent's play, or a trigger with no legal target that the engine
-# removes (rule 603.3d): reported, never counted (runs/gauntlet-forecast-first g-kw27: the AI's Karlov's Crossbow).
+# The engine's "failed to target" line names the card, not the player. It is set apart (reported, not counted) only
+# when the card is in the Forge AI opponent's deck and not the seat's, by the decks the game log names: the AI's own
+# play (runs/gauntlet-forecast-first g-kw27: Karlov's Crossbow). Anything else counts, a line the decks cannot
+# attribute included: the seat fails a target on paths that log no seat line (an effect's cast, a trigger).
 FAILED_TARGET = re.compile(r"^(?:STACK_ADD: )?(.+?) \(\d+\) - \[Couldn't add to stack, failed to target\]")
-SEAT_REFUSED = re.compile(r"\[ROUTER\] play: (.+?) @\d+.* has no legal target -> the stack refused it")
+DECK_LINE = re.compile(r"^\[DECK\] loaded '([^']*)': .*\((.+)\)\s*$", re.M)
+
+
+def deck_cards(path):
+    """The card names a deck file lists, or None when it cannot be read."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return {re.sub(r"^\d+\s+", "", l.strip()) for l in f if l.strip() and not l.startswith(("#", "["))}
+    except OSError:
+        return None
+
+
+def opponent_only(log):
+    """Card names only the Forge AI opponent's deck holds (its deck name ends "-ai"), or an empty set."""
+    seat, ai = None, None
+    for name, path in DECK_LINE.findall(log):
+        cards = deck_cards(path)
+        if name.endswith("-ai"):
+            ai = cards
+        elif seat is None:
+            seat = cards
+    return (ai - seat) if ai is not None and seat is not None else set()
+
 
 BAD = re.compile(r"FALLBACK->AI|\(unparsed|TEXT-PARSE|TEXT-FORMAT-LEAK|PLACEHOLDER-ASKED|Couldn't add to stack"
                  r"|failed to target|FAILED to pay|Exception|Error\b|threw|AI looped")
@@ -62,13 +86,13 @@ def scan(root):
             findings["%s: no finished game" % tag] += 1
         if tally and not re.search(r"\bai=0\b", tally[-1]):
             findings["%s: Forge AI decided for the seat (%s)" % (tag, tally[-1])] += 1
-        seat_refused = {m.group(1) for m in SEAT_REFUSED.finditer(log)}
+        theirs = opponent_only(log)
         for line in log.split("\n"):
             if BAD.search(line) and "JAVA_TOOL" not in line:
                 line = line.strip()
                 key = re.sub(r"\d+", "N", line)[:220]
                 ft = FAILED_TARGET.match(line)
-                if ft and ft.group(1) not in seat_refused:
+                if ft and ft.group(1) in theirs:
                     others["%s: %s" % (tag, key)] += 1
                 else:
                     findings[key] += 1
@@ -77,7 +101,7 @@ def scan(root):
     for k, n in findings.most_common():
         print(n, k)
     if others:
-        print("not the seat's (the Forge AI opponent's play, or a trigger with no target), %d lines:" % sum(others.values()))
+        print("not the seat's (a card only the Forge AI opponent's deck holds), %d lines:" % sum(others.values()))
         for k, n in others.most_common():
             print(" ", n, k)
     return 0 if games and not findings else 1

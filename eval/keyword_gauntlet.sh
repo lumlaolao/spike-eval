@@ -8,7 +8,8 @@
 # the first option of every ask: it casts what it can, attacks, blocks, and pays. Its triggers, combat, upkeep and
 # end-step mechanics reach the seat the way a game does, which the sweep's single plays cannot.
 # eval/gauntlet_scan.py then fails on anything that is a harness defect: a choice Forge's AI made, an answer the
-# seat could not read, a play that failed to pay, a crash, a game that did not finish.
+# seat could not read, a play that failed to pay or to target, a crash, a game that did not finish. A failed target on
+# a card only the Forge AI opponent's deck holds is the AI's own play: listed apart, not counted.
 #
 # 1996 World Champion is left out: its "discard your hand: search for a card named 1996 World Champion" can be
 # activated with an empty hand forever, and the `first` policy does.

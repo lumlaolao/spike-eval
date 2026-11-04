@@ -1038,7 +1038,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
      the next deck's Forge AI, in full games. Triggers, combat, upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
-     AI made, an unreadable answer, a play that failed to pay, a crash or an unfinished game. *Why both:* the
+     AI made, an unreadable answer, a play that failed to pay or to target, a crash or an unfinished game. The engine's
+     "failed to target" line names a card, not a player, so it is set apart (listed, not counted) only when the card is
+     in the Forge AI opponent's deck and not the seat's, by the decks the game log names; anything it cannot attribute
+     counts, since the seat can fail a target on paths that log no line of its own (PR #344). *Why both:* the
      sweep proves each play is reachable and plays once; only games bring the states in between. The first run
      found a craft the seat could never pay (with one candidate, the exile was left to Forge's AI, which declined
      to exile Altar of the Wretched) and chose 999 times in one window, and a StackOverflowError (floating mana

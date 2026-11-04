@@ -136,6 +136,12 @@ class PrFormatTest(unittest.TestCase):
                          ["`## What` does not list commit 2b0000000 (fix(tools): a later fix); list every commit subject"])
         listed = BODY.replace("- feat(tools): native calls\n", "- feat(tools): native calls\n- fix(tools): a later fix\n")
         self.assertEqual(pf.pr_problems(t, listed, "abc123456789", [], gate=True, commits=commits), [])
+        # A bullet, not a substring: "fix(tools): a later fix" is not listed by "fix(tools): a later fixture".
+        longer = BODY.replace("- feat(tools): native calls\n", "- feat(tools): native calls\n- fix(tools): a later fixture\n")
+        self.assertTrue(any("2b0000000" in x for x in pf.pr_problems(t, longer, "abc123456789", [], gate=True, commits=commits)))
+        # A subject wrapped across two lines of its bullet is still the subject.
+        wrapped = BODY.replace("- feat(tools): native calls\n", "- feat(tools): native calls\n- fix(tools): a later\n  fix\n")
+        self.assertEqual(pf.pr_problems(t, wrapped, "abc123456789", [], gate=True, commits=commits), [])
 
     def test_the_gate_checks_the_commits_on_the_pr_and_each_skill_vocabulary(self):
         good = [("1a976281aa", "feat(tools): native calls\n\nwhy")]
