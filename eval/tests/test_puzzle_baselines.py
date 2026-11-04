@@ -10,7 +10,8 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
-import puzzle_baselines as pb  # noqa: E402
+import puzzle_baselines as pb
+import run_batch  # noqa: E402
 
 
 class WrittenLineTest(unittest.TestCase):
@@ -389,18 +390,22 @@ class BuildFreshnessTest(unittest.TestCase):
                                           "checkout_overlay_sha": "aaaaaaaaaaaa", "stale_build_allowed": False})
 
     def test_a_puzzle_game_never_inherits_a_condition_from_the_shell(self):
-        # Conditions only their flags set (PROPOSE_ACTIONS), and settings that change the game as a side effect
-        # (PROPOSE_AUDIT, SHADOW_AI: pr-review of #345), never reach a puzzle game from the operator's shell.
-        from unittest import mock
+        # Every condition run_batch.py pins (CONDITION_ENV_KEYS) and the shadow labeller it pins apart: a value in the
+        # operator's shell never reaches a puzzle game unrecorded; puzzle_solve.py sets the ones a puzzle uses through
+        # env_extra (#342 PROPOSE_AUDIT, #345 SHADOW_AI each needed a review round to close this by hand).
         b = pb.Build(self.make("b2", "aaaaaaaaaaaa"), self.forge)
         seen = {}
         def call(cmd, **kw):
             seen.update(kw["env"])
             return 0
-        names = {"PROPOSE_ACTIONS": "1", "PROPOSE_AUDIT": "1", "SHADOW_AI": "1"}
+        names = {n: "1" for n in run_batch.CONDITION_ENV_KEYS + ("SHADOW_AI",)}
         with mock.patch.dict(os.environ, names), mock.patch.object(pb.subprocess, "call", call):
             self.assertEqual(b.run({}, tempfile.mkdtemp()), 0)
         self.assertEqual([n for n in names if n in seen], [])
+        seen.clear()
+        with mock.patch.dict(os.environ, names), mock.patch.object(pb.subprocess, "call", call):
+            b.run({"ONE_TIER": "1"}, tempfile.mkdtemp())
+        self.assertEqual(seen.get("ONE_TIER"), "1", "a caller's own setting still reaches the game")
 
     def test_a_build_of_other_sources_or_unrecorded_is_refused(self):
         for name, sha in (("other", "bbbbbbbbbbbb"), ("unrecorded", None), ("empty", "")):
