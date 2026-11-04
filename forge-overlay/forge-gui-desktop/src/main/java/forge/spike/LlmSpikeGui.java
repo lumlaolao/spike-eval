@@ -371,7 +371,7 @@ public final class LlmSpikeGui {
      *  target is consumed by its own play's target step only. Unchanged off the arm.
      *  Epoch 77 (2026-11-04): a play whose sub-ability must target is offered only when that target exists (Govern the
      *  Guildless's forecast was offered with no creature in play and failed every upkeep: gauntlet kw28); a sub-ability
-     *  whose targets depend on an earlier choice (Searing Blaze, Goblin Welder) is left to the cast, as before.
+     *  after a part that targets (Searing Blaze, Goblin Welder) is left to the cast, as before.
      */
     static final String HARNESS_EPOCH = "harness-epoch-77";
 
@@ -9701,21 +9701,18 @@ public final class LlmSpikeGui {
             if (!payable) return false;
             // Skip a play a part of which has no legal target: casting it fails ("Couldn't add to stack, failed to
             // target"): Animate Dead with an empty graveyard, Govern the Guildless's forecast with no creature in play
-            // (its target is in a sub-ability: gauntlet kw28). A sub-ability is counted only when no earlier part targets:
-            // its targets may depend on that one, and counted with no first target, Searing Blaze's "creature that player
-            // controls" has none and a legal cast would be hidden (pr-review of #343; a scan of every card script found
-            // no counted sub-ability whose targets depend on another choice).
-            boolean earlierTarget = false;
+            // (its target is in a sub-ability: gauntlet kw28). Only the first part that targets is counted: counted
+            // with no first target, Searing Blaze's "creature that player controls" has none and a legal cast would be
+            // hidden (pr-review of #343).
             for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
                 if (!part.usesTargeting()) continue;
-                if (earlierTarget) continue;
-                earlierTarget = true;
                 try {
                     if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
                     TargetRestrictions tr = part.getTargetRestrictions();
                     // Only the targets it must have: "up to one target" casts with none (Finale of Promise, RP_006).
                     if (tr != null && targetCandidates(part, tr).size() < part.getMinTargets()) return false;
                 } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
+                break; // only the first part that targets: a later one's targets may depend on it (Searing Blaze)
             }
             return true;
         }

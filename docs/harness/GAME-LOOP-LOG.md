@@ -968,6 +968,9 @@ ai_tier_count=0, 183 calls, 23 min. The most expensive loop game so far (control
 - not read  the one plan hold and the play-by-play; the sheet was all this session read before it stopped.
 
 ### gauntlet kw28  2026-11-04  Forecast (zero-model, `first` policy)  29 games  build bdb6818
+Runs (container-local): `bash eval/keyword_gauntlet.sh runs/gauntlet-forecast-first 4` on 53edd93 (before the fix) and
+`runs/gauntlet-forecast-fix` on bdb6818 (after); counts from `python3 eval/gauntlet_scan.py <run>` and
+`grep -c "failed to target" <run>/g-kw2*/game.log`.
 Forecast is an ability parameter, not one of Forge's keywords, so the sweep and the 28 gauntlet decks never held one;
 `eval/gauntlet/kw28.txt` now plays Forge's twelve Forecast cards (owner, 2026-11-04: "use forecast ability").
 - FIXED  Govern the Guildless's forecast offered every upkeep with no creature in play and failing each time ("Couldn't
