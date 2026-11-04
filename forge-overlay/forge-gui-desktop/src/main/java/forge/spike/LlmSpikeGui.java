@@ -12215,6 +12215,7 @@ public final class LlmSpikeGui {
                 + ",\"plan_execute\":" + PlayerControllerLLM.PLAN_EXECUTE
                 + ",\"propose_actions\":" + AnswerTool.proposeActions()
                 + ",\"propose_audit\":" + PlayerControllerLLM.PROPOSE_AUDIT
+                + ",\"shadow_ai\":" + PlayerControllerLLM.SHADOW
                 + ",\"tier_fast_types\":\"" + jsonEscape(PlayerControllerLLM.tierFastTypesLabel()) + "\""
                 // Wired, not asked for: RULES_TOOL=1 without MEMORY_TOOLS=1 offers nothing (pr-review of PR #272).
                 + ",\"rules_tool\":" + PlayerControllerLLM.rulesToolWired(PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.RULES_TOOL)

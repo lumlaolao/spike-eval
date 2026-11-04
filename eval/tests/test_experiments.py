@@ -394,7 +394,6 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "RECORD": "recording: a screen capture of the GUI",
         "RECORD_FPS": "recording: the capture's frame rate",
         "RECORD_OUT": "recording: the capture's file",
-        "SHADOW_AI": "recording: Forge's AI is asked on the side for a label; its answer is never used",
         "CLAUDE_CLI_ALLOW_API_KEY": "credentials: how a claude-cli: seat's CLI logs in, not what it decides",
     }
     # Conditions recorded somewhere other than the game line. OPENROUTER_TIMEOUT_MS changes decisions (a call past
@@ -414,7 +413,16 @@ class GameLineStampCoverageTest(unittest.TestCase):
             self.assertTrue(why and why.strip(), name)
 
     def test_rules_file_is_recorded_by_the_rules_date(self):
+        # RULES_FILE changes what the rules tool returns: never allowlisted, and partitioned by the text's date
+        # (two texts with one effective date are not told apart; the rules file is pinned per engine release).
+        self.assertNotIn("RULES_FILE", self.NON_CONDITION_ENV)
+        self.assertIn("RULES_FILE", self.RECORDED_ELSEWHERE)
         self.assertIn("rules_effective", set(game_line_keys()))
+
+    def test_the_shadow_label_is_a_stamped_condition(self):
+        # A shadow eval that hits the AI timeout weakens the game's isolation (LlmSpikeGui, "[SHADOW] ... WEAKENED").
+        self.assertNotIn("SHADOW_AI", self.NON_CONDITION_ENV)
+        self.assertIn("shadow_ai", set(game_line_keys()))
 
     def test_every_env_read_is_stamped_or_allowlisted(self):
         java = GUI.read_text(encoding="utf-8") + CLI_BRIDGE.read_text(encoding="utf-8")

@@ -54,6 +54,8 @@ three; only the headless runner, or the GUI with `AUTO_EXIT=1`, writes the game 
   to 8; Claude CLI specs 1. Never rebuild the checkout while a game runs. `docs/eval/CONCURRENCY.md`.
 - **A capped game** grants in-flight asks a grace window sized to the slowest model timeout before the JVM exits;
   `run_batch.py`'s backstop stays wider than cap plus grace.
-- **The shadow labeller** (`SHADOW_AI`) has its own two-gate check: `bash eval/shadow_canary.sh`.
+- **The shadow labeller** (`SHADOW_AI`, `run_batch.py --shadow-ai`) has its own two-gate check: `bash eval/shadow_canary.sh`.
+  It is a condition, stamped `shadow_ai` on the game line: an AI timeout during its side evaluation weakens the
+  game's isolation (`[SHADOW] ... WEAKENED`), so a shadow-labelled game never pools with a plain one.
 - `secrets.env` (git-ignored, mode 600, written by `setup.sh`; template `secrets.env.example`) is read by the eval
   drivers and `play-vs-llm.sh`; none of them writes the egress consent.

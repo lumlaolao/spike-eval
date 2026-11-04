@@ -386,6 +386,13 @@ class TestProposeActions(unittest.TestCase):
         self.assertTrue(run_batch.game_line_matches(game_line(1, False, propose_audit=False), off))
         self.assertFalse(run_batch.game_line_matches(game_line(1, False, propose_audit=True), off))
 
+    def test_a_shadow_labelled_game_never_resumes_into_a_plain_batch(self):
+        off = run_batch.resume_expectation(make_args())
+        on = run_batch.resume_expectation(make_args(shadow_ai=True))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), off))   # a line from before the stamp
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, shadow_ai=True), off))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, shadow_ai=True), on))
+
     def test_refused_outside_an_exploratory_answer_tool_run_without_the_preview(self):
         self.assertIsNone(run_batch.propose_refusal(make_args(propose_actions=True)))
         self.assertIsNone(run_batch.propose_refusal(make_args(lookahead=True)))
