@@ -89,7 +89,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `eval/research/` | dated literature and pilot notes behind a design decision (`YYYY-MM-DD-<topic>.md`) | as `docs/eval/`: each claim cites its source or a run directory; a note is history, and the current rule lives in `docs/harness/ARCHITECTURE.md` or `docs/eval/` |
 | `.github/workflows/` | CI: the Python suite (`tests.yml`) on every PR and push to main, on the Python floor and a current one | no secrets, `permissions: contents: read`, `pull_request` (never `pull_request_target`), each action pinned to a commit SHA with its tag in a comment (`.github/dependabot.yml` proposes updates weekly); not the merge gate (section 1) |
-| `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder, or for what is not a script there: a launcher (`test_setup.py`), a data set (`test_modern_puzzles.py`) or a repository rule (`test_doc_paths.py`, `test_untested_list.py`, `test_gate_parses.py`) | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
+| `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder, or for what is not a script there: a launcher (`test_setup.py`), a data set (`test_modern_puzzles.py`) or a repository rule (`test_doc_paths.py`, `test_untested_list.py`, `test_gate_parses.py`, `test_launchers.py`) | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
 | `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/tests/test_pr_format.py`; the shell scripts are thin wrappers |
 | `*.sh` (root) | entry points run from the clone (`install.sh`, `setup.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) |
@@ -123,7 +123,7 @@ most log questions).
   stamped on the game line and keyed by `aggregate.PROVENANCE_FIELDS`, and refused on resume into a
   directory made under a different value. The puzzle runner, `puzzle_baselines.Build.run` (so
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
-  every name in `run_batch.CONDITION_ENV_KEYS` and `SHADOW_AI`
+  every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
   (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` reads that list; #342, #345), and so
   does the tournament (`tournament._match_env`). A launcher that goes through `run_batch.py`
   (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly

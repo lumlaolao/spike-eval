@@ -155,7 +155,7 @@ class Build:
         env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENROUTER", "PZL_", "FORK_"))}
         # Every condition run_batch.py pins, and the shadow labeller: a shell value never reaches a puzzle game
         # unrecorded; puzzle_solve.py sets the ones a puzzle uses (its condition()) through env_extra below.
-        for name in run_batch.CONDITION_ENV_KEYS + ("SHADOW_AI",):
+        for name in run_batch.PINNED_ENV_KEYS:
             env.pop(name, None)
         env["EVAL_OUT"] = str(out_dir)
         if not keep_model_env:
