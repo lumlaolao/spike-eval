@@ -15,6 +15,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The replay arm (step regret, step 1): a recorded attempt's model turns, served again to the seat that asks for them.
@@ -25,8 +27,9 @@ import java.util.Objects;
  * own answer path, and every skip, side field and RNG draw of the model seat is the recorded game's.
  *
  * <p>Nothing is guessed. A turn is served only to the ask it was recorded for: the same answer field, the same option
- * labels in order, the same listed items ({@code N = ...}: blockers, attackers, amounts), the same answer range (picks,
- * number, amounts), the same turn and step, the same number of messages, and no refusal the recording did not have.
+ * labels in order, the same listed items ({@code N = ...}: blockers, attackers, amounts), the same answer range with both
+ * ends ("exactly N" or "between N and M" picks, "an integer from N through M", "N numbers ... summing to S"), the same
+ * DECISION line, the same turn and step, the same number of messages, and no refusal the recording did not have.
  * Each decision row the seat writes is checked against the recorded one too (type, n_options, choice, options;
  * {@link #onDecisionRow}, wired by the puzzle runner, which refuses a replay with the game log off since no row is
  * written then). When the attempt's result row is beside its game log ({@code puzzle-results.jsonl}, same seed), the
@@ -164,20 +167,26 @@ final class ReplayBridge implements LLMBridge {
 
     /** The attempt's result row: puzzle-results.jsonl beside the game log, the row of the seed in its name. */
     private void readResult(File log) {
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^game-(-?\\d+)-").matcher(log.getName());
+        Matcher m = Pattern.compile("^game-(-?\\d+)-").matcher(log.getName());
         File results = new File(log.getAbsoluteFile().getParentFile(), "puzzle-results.jsonl");
         if (!m.find() || !results.isFile()) return;
+        List<JsonObject> rows = new ArrayList<>();
         try {
             for (String l : Files.readAllLines(results.toPath(), StandardCharsets.UTF_8)) {
                 if (l.trim().isEmpty()) continue;
                 JsonObject r = JsonParser.parseString(l).getAsJsonObject();
-                if (!m.group(1).equals(str(r, "seed"))) continue;
-                recordedStatus = str(r, "status");
-                recordedLogSha = str(r, "log_sha256");
+                if (m.group(1).equals(str(r, "seed"))) rows.add(r);
             }
         } catch (IOException | RuntimeException e) {
             throw new IllegalArgumentException("replay: cannot read " + results + ": " + e);
         }
+        // Two rows for one seed (a resumed or repeated run): which outcome is the recorded one is not known.
+        if (rows.size() > 1)
+            throw new IllegalArgumentException("replay: " + rows.size() + " result rows for seed " + m.group(1) + " in "
+                    + results + " (one is needed)");
+        if (rows.isEmpty()) return;
+        recordedStatus = str(rows.get(0), "status");
+        recordedLogSha = str(rows.get(0), "log_sha256");
     }
 
     /** The game is over with {@code status} and engine log fingerprint {@code logSha}: the recorded attempt's, when it
@@ -321,22 +330,28 @@ final class ReplayBridge implements LLMBridge {
         return null;
     }
 
-    private static final java.util.regex.Pattern LISTED = java.util.regex.Pattern.compile("(?m)^([A-Z][A-Z ]*):\\s*(\\d+ = .*)$");
+    private static final Pattern LISTED = Pattern.compile("(?m)^([A-Z][A-Z ]*):\\s*(\\d+ = .*)$");
 
     /** The numbered lists of the DECISION block ("YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = ..."), one per line. */
     static List<String> listed(ScriptBridge.Question q) {
         List<String> out = new ArrayList<>();
-        java.util.regex.Matcher m = LISTED.matcher(q.block);
+        Matcher m = LISTED.matcher(q.block);
         while (m.find()) out.add(m.group(1) + ": " + m.group(2).trim());
         return out;
     }
 
-    /** The answer's range as the ask states it: how many picks, the number's lower end, the amounts and their sum. */
+    /** The answer's range as AnswerTool states it, both ends: "exactly N" or "between N and M" picks, "an integer from
+     *  N through M", "N numbers ... summing to S". */
+    private static final Pattern[] RANGES = {
+            Pattern.compile("`options`: the numbers you pick, (?:exactly -?\\d+|between -?\\d+ and -?\\d+)"),
+            Pattern.compile("`number`: an integer from -?\\d+ through -?\\d+"),
+            Pattern.compile("`amounts`: \\d+ numbers in the order listed, summing to -?\\d+")};
+
+    /** Each range statement of the ask, as written (see {@link #RANGES}). */
     static List<String> ranges(ScriptBridge.Question q) {
         List<String> out = new ArrayList<>();
-        for (java.util.regex.Pattern p : new java.util.regex.Pattern[] {ScriptBridge.PICK_RANGE, ScriptBridge.NUMBER_FROM,
-                ScriptBridge.AMOUNTS_SPEC}) {
-            java.util.regex.Matcher m = p.matcher(q.prompt);
+        for (Pattern p : RANGES) {
+            Matcher m = p.matcher(q.prompt);
             while (m.find()) out.add(m.group());
         }
         return out;

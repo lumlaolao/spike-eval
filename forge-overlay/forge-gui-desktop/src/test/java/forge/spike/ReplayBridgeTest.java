@@ -118,6 +118,7 @@ public class ReplayBridgeTest {
         // The attempt's result row beside its game log, as the runner writes it: the replay must give its outcome.
         writeResult(rec, rec.played.status, LlmSpikePuzzle.logFingerprint(rec.played.logLines));
         Game1 rep = play(board(), ReplayBridge.PREFIX + rec.log.getPath(), tempDir("rep"));
+        Assert.assertNull(LlmSpikeGui.FORK_HOOK, "the runner puts the fork hook back when the game is over");
         ReplayBridge b = replayOf(rep.played);
         Assert.assertNotNull(b, "a replay: spec builds the replay bridge");
         Assert.assertEquals(b.report().get("replay_recorded_status"), "solved", "the recorded outcome was read");
@@ -193,6 +194,23 @@ public class ReplayBridgeTest {
         Assert.assertNull(LlmSpikeGui.FORK_HOOK, "the fork hook is left as it was");
     }
 
+    /** The refusal where a game builds its seat from model strings (oneTierPair), before any bridge is made: the fast
+     *  tier's spec is a closed loopback port, so even a bridge built by mistake would send nothing anywhere. */
+    @Test
+    public void aSeatWithAReplayOnOneTierIsRefusedWhereItIsBuilt() throws Exception {
+        new LineFindingProbeTest().initializeModel();
+        forge.game.Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        forge.game.player.Player me = g.getPlayers().get(0);
+        forge.ai.LobbyPlayerAi lp = new forge.ai.LobbyPlayerAi("Solver", null);
+        String rec = recording(callRow(1, MENU, "TOOL CALL answer {\"option\":1}")).getPath();
+        try {
+            new LlmSpikeGui.PlayerControllerLLM(g, me, lp, "Solver", "", ReplayBridge.PREFIX + rec, "openrouter:zero-model/none", "llm");
+            Assert.fail("a seat replaying on its smart tier only was built");
+        } catch (IllegalArgumentException expected) {
+            Assert.assertTrue(expected.getMessage().contains("both tiers"), expected.getMessage());
+        }
+    }
+
     @Test
     public void aReplayOnOneTierOnlyIsRefused() {
         ReplayBridge.requireBothTiers("replay:a", "replay:a");
@@ -207,8 +225,9 @@ public class ReplayBridgeTest {
         }
     }
 
+    /** A game log in a directory of its own: a result row beside it would be read as the attempt's (readResult). */
     private static File recording(String... rows) throws Exception {
-        File f = File.createTempFile("game-1-", ".jsonl");
+        File f = new File(tempDir("log"), "game-1-100.jsonl");
         f.deleteOnExit();
         Files.write(f.toPath(), String.join("\n", rows).getBytes(StandardCharsets.UTF_8));
         return f;
@@ -288,11 +307,19 @@ public class ReplayBridgeTest {
             + "YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = Boggart Ram-Gang 3/3 @4\n"
             + "ANSWER: call `answer` with `blocks`: the pairs you declare.";
 
+    private static final String PICK_RANGE_ASK = PICKS.replace("exactly 1", "between 1 and 2");
+    private static final String NUMBER_ASK = "== Turn 1 MAIN2 (active: Solver | priority: you) ==\n\n"
+            + "DECISION: Choose X for Fireball.\n"
+            + "ANSWER: call `answer` with `number`: an integer from 0 through 4.";
+
     @Test
     public void aQuestionWithTheSameNumberedOptionsButAnotherRangeOrListDrifts() throws Exception {
         String[][] cases = {
                 {PICKS, PICKS.replace("exactly 1", "exactly 2"), "exactly"},
                 {BLOCKS, BLOCKS.replace("; 2 = Boggart Ram-Gang 3/3 @4", ""), "Boggart"},
+                // Only the upper end differs: a pick range and a number range.
+                {PICK_RANGE_ASK, PICK_RANGE_ASK.replace("between 1 and 2", "between 1 and 3"), "between 1 and 3"},
+                {NUMBER_ASK, NUMBER_ASK.replace("from 0 through 4", "from 0 through 5"), "from 0 through 5"},
         };
         for (String[] c : cases) {
             ReplayBridge b = ReplayBridge.fromFile("Solver/smart",
@@ -376,6 +403,23 @@ public class ReplayBridgeTest {
         c.chat(messages(MENU), "[]", true);
         Assert.assertNotNull(c.drift, "a first round where the recording's was the second");
         Assert.assertTrue(c.drift.contains("1 messages where the recording had 3"), c.drift);
+    }
+
+    @Test
+    public void twoResultRowsForTheSeedAreRefusedNotPicked() throws Exception {
+        File log = recording(callRow(1, MENU, "TOOL CALL answer {\"option\":1}"));
+        String row = "{\"seed\":1,\"status\":\"%s\",\"log_sha256\":\"x\"}";
+        Files.write(new File(log.getParentFile(), "puzzle-results.jsonl").toPath(), (String.format(row, "solved") + "\n"
+                + "{\"seed\":2,\"status\":\"failed\"}\n" + String.format(row, "failed") + "\n").getBytes(StandardCharsets.UTF_8));
+        try {
+            ReplayBridge.fromFile("Solver/smart", log.getPath());
+            Assert.fail("two result rows for seed 1, one of them taken");
+        } catch (IllegalArgumentException expected) {
+            Assert.assertTrue(expected.getMessage().contains("2 result rows for seed 1"), expected.getMessage());
+        }
+        Files.write(new File(log.getParentFile(), "puzzle-results.jsonl").toPath(),
+                (String.format(row, "solved") + "\n{\"seed\":2,\"status\":\"failed\"}\n").getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(ReplayBridge.fromFile("Solver/smart", log.getPath()).recordedStatus, "solved", "the seed's own row");
     }
 
     @Test
