@@ -143,6 +143,17 @@ class PrFormatTest(unittest.TestCase):
         wrapped = BODY.replace("- feat(tools): native calls\n", "- feat(tools): native calls\n- fix(tools): a later\n  fix\n")
         self.assertEqual(pf.pr_problems(t, wrapped, "abc123456789", [], gate=True, commits=commits), [])
 
+    def test_a_merge_commit_with_a_typed_subject_is_not_asked_for_in_what(self):
+        # #353 (standards): 50b7d17 merged main under "eval(propose): merge main; ..." and the gate demanded it in
+        # `## What`, though check-branch (`git log --no-merges`) leaves it out. A merge is known by its parents.
+        pr = {"commits": [
+            {"oid": "1a976281aa", "messageHeadline": "feat(tools): native calls", "messageBody": "why", "parents": 1},
+            {"oid": "50b7d17fea", "messageHeadline": "eval(propose): merge main; the arm moves", "messageBody": "",
+             "parents": 2}]}
+        self.assertEqual([sha for sha, _ in pf.pr_commits(pr)], ["1a976281aa"])
+        self.assertEqual(pf.pr_problems("feat(tools): native calls", BODY, "abc123456789", [], gate=True,
+                                        commits=pf.pr_commits(pr)), [])
+
     def test_the_gate_checks_the_commits_on_the_pr_and_each_skill_vocabulary(self):
         good = [("1a976281aa", "feat(tools): native calls\n\nwhy")]
         bad = good + [("deadbeef00", "update stuff")]

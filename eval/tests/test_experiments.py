@@ -383,6 +383,8 @@ class GameLineStampCoverageTest(unittest.TestCase):
         # AnswerTool.protocolVersion() folds these into the answer tool's stamp ("+strict", "+per-decision", "+choice=").
         "ANSWER_TOOL_STRICT": "answer_tool_version", "ANSWER_SCHEMA": "answer_tool_version",
         "ANSWER_TOOL_CHOICE": "answer_tool_version",
+        # ChatSessionBridge.stamp() adds "+turns=N" to the chat's stamp when the carried pairs are capped.
+        "ONE_CHAT_TURNS": "one_chat_version",
     }
     # Read by the harness, but not a condition: each entry says why it changes nothing the seat reads or decides
     # (STANDARDS section 4; test_every_allowlist_entry_says_why). One that ever did would need a stamp.
@@ -399,6 +401,19 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "RECORD_FPS": "recording: the capture's frame rate",
         "RECORD_OUT": "recording: the capture's file",
         "CLAUDE_CLI_ALLOW_API_KEY": "credentials: how a claude-cli: seat's CLI logs in, not what it decides",
+        "DEMO_FEED": "recording: a spectator's event feed, display only (DemoFeed)",
+        "TRANSCRIPTS": "recording: every HTTP round-trip written to disk (Transcript)",
+        "OPENROUTER_IDLE_MS": "transport: a stalled connection is retried inside the ask's deadline (HttpDeadline)",
+    }
+    # Every spike main file that reads the environment is scanned below or named here with why its reads are not the
+    # game line's (standards of #353: the scan read three hand-picked files of twelve). A new reader must be placed.
+    SCANNED = ("LlmSpikeGui.java", "ClaudeCliBridge.java", "AnswerTool.java", "ChatSessionBridge.java",
+               "NativeTools.java", "HttpDeadline.java", "DemoFeed.java", "Transcript.java")
+    NOT_GAME_LINE = {
+        "LlmSpikeFork.java": "the fork tool: its rollouts write their own rows, not a game line",
+        "LlmSpikeHeadless.java": "the launcher: picks a game, a puzzle or a fork; GAME_CAP_MS is stamped by the game",
+        "LlmSpikePuzzle.java": "the puzzle runner: its row stamps its own condition (puzzle_score.BRIDGE_CONDITIONS)",
+        "PuzzleArms.java": "the puzzle search arms: a search budget, not the seat",
     }
     # Conditions recorded somewhere other than the game line. OPENROUTER_TIMEOUT_MS changes decisions (a call past
     # it is lost to the fixed legal option): puzzle_solve.py --call-timeout-minutes records it per puzzle (STANDARDS
@@ -433,16 +448,21 @@ class GameLineStampCoverageTest(unittest.TestCase):
         self.assertIn("propose_terse", set(game_line_keys()))
         self.assertIn(("propose_terse", False), aggregate.PROVENANCE_FIELDS)
 
+    def test_every_spike_file_that_reads_the_environment_is_scanned_or_placed(self):
+        readers = sorted(p.name for p in GUI.parent.glob("*.java") if "System.getenv" in p.read_text(encoding="utf-8"))
+        self.assertEqual([n for n in readers if n not in self.SCANNED and n not in self.NOT_GAME_LINE], [])
+        self.assertEqual(sorted(set(self.SCANNED) & set(self.NOT_GAME_LINE)), [])
+        for name, why in self.NOT_GAME_LINE.items():
+            self.assertTrue(why.strip(), name)
+
     def test_every_env_read_is_stamped_or_allowlisted(self):
-        # AnswerTool's reads too: PROPOSE_ACTIONS and PROPOSE_TERSE are read there, not in the game-line writer.
-        java = (GUI.read_text(encoding="utf-8") + CLI_BRIDGE.read_text(encoding="utf-8")
-                + ANSWER_TOOL.read_text(encoding="utf-8"))
+        java = "".join((GUI.parent / n).read_text(encoding="utf-8") for n in self.SCANNED)
         keys = set(game_line_keys())
         self.assertIn("native_tools", keys)          # the extraction found the game-line statement
         # Every env-reading form in this file: System.getenv("X"), the getOrDefault fallbacks, the
         # envInt helper (which reads a name its caller passes), and the effort ternary. A read
         # through a NEW helper must be added here with the helper.
-        names = set(re.findall(r'(?:System\.getenv|envInt)\((?:fastTier \? )?"([A-Z_0-9]+)"', java))
+        names = set(re.findall(r'(?:System\.getenv|envInt|intEnv)\((?:fastTier \? )?"([A-Z_0-9]+)"', java))
         names |= set(re.findall(r'System\.getenv\(fastTier \? "[A-Z_0-9]+" : "([A-Z_0-9]+)"\)', java))
         names |= set(re.findall(r'System\.getenv\(\)\.getOrDefault\("([A-Z_0-9]+)"', java))
         # buildPlayers(env) reads its map (env.get / env.getOrDefault); the env("X") helper reads a test's override.
@@ -452,7 +472,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
             if re.search(r'(?:System\.getenv|env)\((?:ClaudeCliBridge\.)?%s\)' % k, java):
                 names.add(v)
         for probe in ("TIER_FAST_TYPES", "CTX_RECENT_EVENTS", "CLAUDE_BRIDGE_EFFORT_SMART", "DECK_A", "CLAUDE_CLI_SEAT",
-                      "CLAUDE_CLI_THINKING_TOKENS"):
+                      "CLAUDE_CLI_THINKING_TOKENS", "ONE_CHAT_TURNS", "OPENROUTER_IDLE_MS"):
             self.assertIn(probe, names)              # each form was actually read
         stray = sorted(n for n in names
                        if not n.startswith(self.CONTEXT_PREFIX)

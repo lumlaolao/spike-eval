@@ -14,7 +14,8 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
 
 1. `python3 scripts/pr_format.py check-pr <number> --gate` passes: title, body sections, the
    message of every commit on the PR as GitHub holds it, and `## What` listing every commit's subject
-   (merges aside), so a commit pushed after review is in the record too (PR #343);
+   (merges aside: a commit with two parents, whatever its subject, as `check-branch` leaves it out; PR #353), so a
+   commit pushed after review is in the record too (PR #343);
 2. the body's `## Review` section holds one line per skill for the PR's current head commit,
    written by `pr_format.py record-review`. `pr-review` records CLEAN/LOW/MEDIUM/HIGH/BLOCKER,
    `simplify` CLEAN or SUGGESTIONS, `standards` CLEAN or VIOLATIONS. The gate refuses BLOCKER, HIGH
@@ -137,9 +138,9 @@ most log questions).
   acceptance canaries in `harness_acceptance.sh`) are never scored and rely on the game-line stamps.
   `eval/tests/test_launchers.py` classifies every file that launches a game, so a new one is named here.
   A condition the JVM reads from the environment but never stamps pools its on- and off-games (issue
-  #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every `System.getenv` in the game-line writer is either
-  stamped or on a named allowlist of settings that
-  do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s
+  #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every `System.getenv` in the spike files the game reads through
+  (`GameLineStampCoverageTest.SCANNED`; every other reader is named with its reason in `NOT_GAME_LINE`) is either
+  stamped or on a named allowlist of settings that do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s
   `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
   (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
   entry; each allowlist entry carries the reason it changes nothing the seat sees (`NON_CONDITION_ENV` maps

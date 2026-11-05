@@ -137,4 +137,12 @@ public class ChatSessionTest {
         Assert.assertTrue(second.lastIndexOf("DECISION: Choose the TARGET") > second.lastIndexOf("\"role\":\"assistant\""),
                 "the target ask comes after the play in the conversation");
     }
+
+    /** ONE_CHAT_TURNS below the default carries fewer pairs, so it is part of the game line's stamp; unset, the stamp is
+     *  the version as before (the stamp-coverage scan of every spike file found it unstamped). */
+    @Test
+    public void aCapOnTheCarriedPairsIsStamped() {
+        Assert.assertEquals(ChatSessionBridge.stamp(ChatSessionBridge.DEFAULT_PAIRS), ChatSessionBridge.VERSION);
+        Assert.assertEquals(ChatSessionBridge.stamp(12), ChatSessionBridge.VERSION + "+turns=12");
+    }
 }
