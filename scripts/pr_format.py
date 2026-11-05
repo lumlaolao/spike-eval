@@ -65,20 +65,25 @@ def full_pass(passed, total):
     return passed == total and int(total) >= full_stage_count()
 
 
-def summary_problems(out, passed, total):
+def summary_problems(outdir, passed, total):
     """What keeps `<out>/summary.txt` from being a full pass matching the typed counts (standards of #357)."""
-    path = Path(out) / "summary.txt"
+    path = Path(outdir)
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parents[1] / path      # a run's OUT is often repo-relative (runs/...)
+    path = path / "summary.txt"
     if not path.is_file():
         return ["%s not found: record-acceptance reads the run's own summary" % path]
     lines = [l for l in path.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
-    out_ = ["%s holds a FAIL line: %s" % (path, l[:80]) for l in lines if l.startswith("FAIL")]
+    problems = ["%s holds a FAIL line: %s" % (path, l[:80]) for l in lines if l.startswith("FAIL")]
     for st in all_stages():
         if not any(re.match(r"PASS %s[-:]" % re.escape(st), l) for l in lines):
-            out_.append("%s has no PASS line for stage %s" % (path, st))
+            problems.append("%s has no PASS line for stage %s" % (path, st))
     n = sum(l.startswith("PASS") for l in lines)
     if (passed, total) != (str(n), str(len(lines))):
-        out_.append("%s/%s typed, but %s records %d/%d" % (passed, total, path, n, len(lines)))
-    return out_
+        problems.append("%s/%s typed, but %s records %d/%d" % (passed, total, path, n, len(lines)))
+    return problems
+
+
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
 # A generated signature footer is not a why: alone it satisfies nothing (pr-review finding). The
 # observed shapes: the plain sentence, the markdown-italic one, the emoji link one.
@@ -240,7 +245,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
         if not runs:
             out.append("code changed but `## Evidence` has no line "
                        "`- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS`")
-        elif not any(full_pass(passed, total) and (not head or same_commit(head, sha)) for sha, _, passed, total in runs):
+        elif not any(full_pass(passed, total) and (not head or same_commit(head, sha))
+                     for sha, _, passed, total in runs):
             out.append("no acceptance run in `## Evidence` is a full pass (every stage, at least %d) for the PR head %s"
                        % (full_stage_count(), (head or "")[:9]))
     return out

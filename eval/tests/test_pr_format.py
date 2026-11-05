@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
@@ -120,8 +121,8 @@ class PrFormatTest(unittest.TestCase):
         self.assertGreaterEqual(pf.full_stage_count(), 19)
 
     def test_record_acceptance_reads_the_runs_own_summary(self):
-        # Standards of #357: the counts an author types are checked against the run's summary.txt, which must hold a
-        # PASS line for every stage in ALL_STAGES and no FAIL line.
+        # The typed counts must match the run's own summary.txt: a PASS line per stage in ALL_STAGES, no FAIL line
+        # (standards of #357).
         stages = pf.all_stages()
         self.assertIn("canary", stages)
         full = ["PASS %s: ok" % (st if st != "canary" else "canary-floor") for st in stages] + ["PASS canary-random: ok"]
@@ -134,6 +135,16 @@ class PrFormatTest(unittest.TestCase):
             p = pf.summary_problems(d, str(len(full)), str(len(full)))
             self.assertTrue(any("FAIL" in x for x in p) and any("no PASS line" in x for x in p), p)
         self.assertTrue(any("summary.txt" in x for x in pf.summary_problems("/nonexistent/out", "19", "19")))
+
+    def test_a_missing_stage_list_stops_the_gate(self):
+        # Fail closed: with no ALL_STAGES line the gate has no bar, so it stops rather than accept any N/N.
+        pf.all_stages.cache_clear()
+        try:
+            with mock.patch.object(Path, "read_text", return_value="STAGES=x\n"):
+                with self.assertRaises(SystemExit):
+                    pf.all_stages()
+        finally:
+            pf.all_stages.cache_clear()
 
     def test_code_changes_need_an_acceptance_run_in_evidence(self):
         line = "- acceptance @ abc123456: OUT=/tmp/acc-native-1 19/19 stages PASS, 278 Java, 141 Python"
