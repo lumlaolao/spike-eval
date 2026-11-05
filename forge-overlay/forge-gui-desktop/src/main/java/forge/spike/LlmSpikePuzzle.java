@@ -64,7 +64,9 @@ import forge.util.MyRandom;
  *                        CONTROLLER_B=search every opponent choice must be beaten; with ai, the Forge AI's.
  *   PZL_SEARCH_BUDGET=N  rollouts the search may play (default 2000); PZL_SEARCH_LINES=N winning lines
  *                        tried per choice point before giving up on it (default 32)
- *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual.
+ *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual. SMART_MODEL_A=FAST_MODEL_A=
+ *                        replay:<game.jsonl|attempt dir> with CONTROLLER_A=llm replays a recorded attempt
+ *                        ({@link ReplayBridge}) on the same seeds (PZL_SEEDS / GAME_SEED) and the recorded env.
  *
  * Run: PUZZLE=PS_MSH1 CONTROLLER_A=random bash run-llm-headless.sh
  */
@@ -593,6 +595,12 @@ public final class LlmSpikePuzzle {
         players.add(opp);
         Match match = new Match(rules, players, "LlmPuzzle");
         final Game game = match.createGame();
+        // A replay seat (ReplayBridge) checks each decision row it writes against the recorded one; the hook is the
+        // fork hook, null in every other run, and is put back when the game is over.
+        LlmSpikeGui.PlayerControllerLLM solverSeatLlm = solverLlm(game);
+        final ReplayBridge replay = solverSeatLlm == null ? null : solverSeatLlm.replayBridge();
+        LlmSpikeGui.ForkHook hookBefore = LlmSpikeGui.FORK_HOOK;
+        if (replay != null) LlmSpikeGui.FORK_HOOK = (i, p, seat, type, n, choice, opts) -> replay.onDecisionRow(seat, type, n, choice, opts);
 
         if (rollout == 0 && !quiet) System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
         if (!quiet) System.out.println("[PZL] solver=" + ctlA + " opponent=" + ctlB + " seed=" + seed
@@ -636,10 +644,11 @@ public final class LlmSpikePuzzle {
         worker.setDaemon(true);
         worker.start();
         // A search rollout past its choice cap is ended here, unsolved (PuzzleArms.Line.maxDraws).
+        // A replay that drifted is ended here too: nothing after the drift is the recorded game.
         PuzzleArms.Line searchLine = PuzzleArms.searchLine;
         while (worker.isAlive() && System.currentTimeMillis() - t0 < capMs) {
             worker.join(Math.max(1, Math.min(200, capMs - (System.currentTimeMillis() - t0))));
-            if (searchLine != null && searchLine.stopped() && worker.isAlive()) {
+            if (((searchLine != null && searchLine.stopped()) || (replay != null && replay.drift != null)) && worker.isAlive()) {
                 game.setGameOver(GameEndReason.Draw);
                 worker.join(10_000L);
                 break;
@@ -656,6 +665,7 @@ public final class LlmSpikePuzzle {
             worker.join(LlmSpikeGui.ModelCfg.maxDecisionMs() + 10_000L);
         }
         long durMs = System.currentTimeMillis() - t0;
+        if (replay != null) LlmSpikeGui.FORK_HOOK = hookBefore;
         // The static AiCache holds the game it was filled for: cleared after every rollout so a search keeps one.
         forge.ai.AiCache.clear();
 
@@ -699,6 +709,8 @@ public final class LlmSpikePuzzle {
         String status = capped ? "invalid"
                 : (!goalInstalled[0] || !bounded) ? "unscoreable"
                 : (solved ? "solved" : "failed");
+        // A replay that is not the recorded game is no result, whatever the engine then decided.
+        if (replay != null && !capped && !replay.reproduced()) status = "drift";
 
         List<String> logLines = new ArrayList<>();
         List<GameLogEntry> entries = new ArrayList<>();
@@ -805,6 +817,8 @@ public final class LlmSpikePuzzle {
         if (llm != null && "llm".equals(ctlA)) extra.putAll(llm.budget());
         // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
         putWritten(extra, "", game);
+        // A replay (CONTROLLER_A=llm, SMART_MODEL=replay:<recording>): whether it played the recorded game.
+        if (llm != null && llm.replayBridge() != null) extra.putAll(llm.replayBridge().report());
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());
