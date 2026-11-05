@@ -132,11 +132,11 @@ most log questions).
   stamped on the game line and keyed by `aggregate.PROVENANCE_FIELDS`, and refused on resume into a
   directory made under a different value. The puzzle runner, `puzzle_baselines.Build.run` (so
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
-  every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`), and the puzzle conditions it
-  sets itself that run_batch.py does not pin (`CLAUDE_DEADLINE_MS`, from `--call-timeout-minutes`;
-  `test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363)
+  every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
   (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` builds the same names from `CONDITION_ENV_KEYS`
-  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), and so
+  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), every `OPENROUTER*` name by prefix, and
+  `CLAUDE_DEADLINE_MS`, which `puzzle_solve.py` sets from `--call-timeout-minutes`
+  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363), and so
   does the tournament (`tournament._match_env`). A launcher that goes through `run_batch.py`
   (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
   (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
