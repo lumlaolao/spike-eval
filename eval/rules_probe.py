@@ -10,7 +10,7 @@ person or a model:
   (`LlmSpikeGui.rejection`), and marked `category_source: "inferred"`.
 - `engine-verdict`: a proposal the PROPOSE_ACTIONS arm refused, with the engine's category and sentence.
 - `engine-label`: a proposal on a built board, labelled by the PROPOSE_ACTIONS checker itself with its category and
-  sentence (`engine`, reading RulesProbeLabelTest's rows): no game, every category the engine names, and near-miss
+  sentence (`engine`, reading RulesProbeLabelExport's rows): no game, every category the engine names, and near-miss
   variants of each board. Its negatives' difficulty is the zone-reading floor's (`zone_floor`): subtle when it misses.
 - target asks: a battlefield permanent the target list left out is not a legal target of that spell. An ask whose
   list an earlier choice of the same play narrowed (X announced, a second or "another" target, a sacrifice in the
@@ -28,6 +28,8 @@ why and what the set measures.
 Usage:
   python3 eval/rules_probe.py mine <run dir> [...] --out <items>.jsonl [--forge-home DIR]
   python3 eval/rules_probe.py engine <labeller rows>.jsonl[.gz] [...] --out <items>.jsonl[.gz]
+  python3 eval/rules_probe.py engine-report <labeller rows>.jsonl[.gz] [...]
+  python3 eval/rules_probe.py audit-sample <items>.jsonl --label illegal|legal --n N --seed S
   python3 eval/rules_probe.py stats <items>.jsonl [--floor] [--json]
   python3 eval/rules_probe.py balance <items>.jsonl --per-cell N --seed S [--contrast] --out <set>.jsonl
   python3 eval/rules_probe.py ask <set>.jsonl --model claude-cli:<model> --out <answers>.jsonl   (CLAUDE_CLI_SEAT=1)
@@ -47,6 +49,7 @@ import re
 import subprocess
 import sys
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 
 import evalpath  # noqa: F401
@@ -54,7 +57,7 @@ import cost_report
 from aggregate import wilson_ci
 
 SCHEMA = "rules-probe-item-v1"
-# The engine labeller's rows (RulesProbeLabelTest.SCHEMA; a test keeps the two equal).
+# The engine labeller's rows (RulesProbeLabelExport.SCHEMA; a test keeps the two equal).
 ENGINE_RAW_SCHEMA = "rules-probe-engine-raw-v1"
 # The engine's rejection categories (LlmSpikeGui.proposalRejection), the answer vocabulary of `ask`.
 CATEGORIES = ("timing", "cost", "zone", "target", "land drop", "control", "type", "restriction")
@@ -391,6 +394,7 @@ ZONE_LINES = (("  hand(", "hand"), ("  board:", "battlefield"), ("  lands:", "ba
               ("  graveyard(", "graveyard"), ("  exile(", "exile"), ("  command:", "command"))
 
 
+@lru_cache(maxsize=4096)       # one state is read for every object of every item on it
 def zones(state):
     """handle -> (side, zone) for every object the state shows, and handle -> the number of abilities YOUR ACTIVATED
     ABILITIES lists for it. Side is "you", "opp" or None (the stack)."""
@@ -478,7 +482,7 @@ WRONG_WAY = "cannot be cast for a cost named"
 
 
 def engine_items(rows):
-    """Probe items from the engine labeller's rows (RulesProbeLabelTest): the state row each names, the proposal, the
+    """Probe items from the engine labeller's rows (RulesProbeLabelExport): the state row each names, the proposal, the
     checker's label, category and sentence. A FORMAT verdict (how a proposal is written, not a rule) or a row whose
     state is missing is no item. A negative is "trivial" when the zone-reading floor calls it illegal and "subtle"
     when it does not: the difficulty is defined by that floor, so the floor is right on no subtle negative by
@@ -512,18 +516,93 @@ def engine_items(rows):
 def contrast_pairs(items):
     """(legal, illegal) pairs of one play (`signature`) on a board and one of its variants, with the two labels: the
     edit that made the variant changed the engine's answer. Either side may be the base board's."""
+    engine = [i for i in items if i.get("signature")]      # mined items have no signature and no variant
     base = {}
-    for i in items:
-        if i["provenance"].get("variant") == "base" and i.get("signature"):
+    for i in engine:
+        if i["provenance"].get("variant") == "base":
             base.setdefault((i["provenance"].get("board"), i["signature"]), i)
     pairs = []
-    for i in sorted(items, key=lambda x: x["id"]):
+    for i in sorted(engine, key=lambda x: x["id"]):
         v = i["provenance"].get("variant")
         b = base.get((i["provenance"].get("board"), i.get("signature")))
         if v in (None, "base") or b is None or b["label"] == i["label"]:
             continue
         pairs.append((b, i) if b["label"] == "legal" else (i, b))
     return pairs
+
+
+def audit_sample(items, label, n, seed):
+    """`n` positions of one label for reading by hand, round robin over cells (a negative's kind, category and
+    difficulty; a legal item's kind, verb, variant and whether it is a mana ability), one drawn at random from each
+    cell in turn. Mana abilities are kept: the checker's copy fallback makes false legal ones. A rate read off the
+    sample is the sample's, not the set's: the cells are drawn equally, whatever their size."""
+    rng = random.Random(seed)
+    cells = {}
+    for i in position_pool(items, keep_mana_abilities=True):
+        if i["label"] != label:
+            continue
+        key = (i.get("kind"), i.get("category"), i.get("difficulty")) if label == "illegal" else \
+            (i.get("kind"), i["proposal"].get("verb"), i["provenance"].get("variant"), bool(i.get("mana_ability")))
+        cells.setdefault(key, []).append(i)
+    for key in cells:
+        cells[key].sort(key=lambda i: i["id"])
+        rng.shuffle(cells[key])
+    order = sorted(cells, key=lambda k: tuple(str(x) for x in k))
+    out, depth = [], 0
+    while len(out) < n and any(depth < len(cells[k]) for k in order):
+        out.extend(cells[k][depth] for k in order if depth < len(cells[k]))
+        depth += 1
+    return out[:n]
+
+
+AUDIT_LINES = re.compile(r"^(== Turn|YOU \[|OPP \[|  hand|  board|  lands|  mana avail|  YOUR ACT|    \S|  graveyard|"
+                         r"  exile|  command|STACK)")
+
+
+def audit_text(items, cards=None):
+    """The sample as a reader checks it: the play as `ask` words it, the label, the engine's sentence, the card's
+    text and the state's lines that hold the position."""
+    out = []
+    for k, i in enumerate(items, 1):
+        p = i["proposal"]
+        out.append("=" * 100)
+        out.append("#%d id %s %s [%s] %s %s / %s" % (k, i["id"], i["provenance"].get("board"),
+                                                    i["provenance"].get("variant"), i["label"], i.get("category"),
+                                                    i.get("difficulty")))
+        out.append("PLAY: " + render(i).split("PROPOSED PLAY: ")[1].split("\n")[0])
+        out.append("REASON: %s" % i.get("reason"))
+        info = cards(p.get("name") or "") if cards else None
+        if info:
+            out.append("CARD: %s | %s" % (info["types"], info["oracle"].replace("\n", " / ")))
+        out.extend("    " + ln for ln in i["state"].split("\n") if AUDIT_LINES.match(ln))
+    return "\n".join(out) + "\n"
+
+
+def engine_report(rows):
+    """What the labeller's rows say about the boards (not the items): boards and the drafts that copy another board,
+    variant states that equal their base, the labeller's own drop counts (its summary rows), and any state and
+    proposal given two labels."""
+    states = [r for r in rows if r.get("t") == "state"]
+    text = {r["id"]: r["text"] for r in states}
+    base, by_board = {}, {}
+    for r in states:
+        by_board.setdefault(r["board"], {})[r["variant"]] = r["text"]
+        if r["variant"] == "base":
+            base.setdefault(r["text"], []).append(r["board"])
+    labels = {}
+    for r in rows:
+        if r.get("schema") == ENGINE_RAW_SCHEMA and r.get("label") in ("legal", "illegal") and r["state_id"] in text:
+            labels.setdefault((text[r["state_id"]], json.dumps(r["proposal"], sort_keys=True)), set()).add(r["label"])
+    summary = Counter()
+    for r in rows:
+        if r.get("t") == "summary":
+            summary.update({k: v for k, v in r.items() if isinstance(v, int)})
+    return dict({"boards": len(by_board), "distinct_base_states": len(base),
+                 "boards_copying_another": sum(len(b) - 1 for b in base.values()),
+                 "state_rows": len(states), "distinct_states": len(set(text.values())),
+                 "variant_states_equal_to_base": dict(Counter(v for b in by_board.values() for v, t in b.items()
+                                                              if v != "base" and t == b.get("base"))),
+                 "label_conflicts": sum(1 for v in labels.values() if len(v) > 1)}, **summary)
 
 
 def dedupe(items):
@@ -653,14 +732,43 @@ def balance(items, per_cell, seed, keep_mana_abilities=False, contrast=False):
 POSITION_LINES = re.compile(r"^(== Turn|YOU \[|OPP \[|  hand\(|  board:|  lands:|  graveyard|  exile|STACK|COMBAT)")
 
 
+@lru_cache(maxsize=1 << 16)
+def object_desc(state, handle):
+    """What the state says of the object `handle` names, without the handle: its side, its zone and its entry (a hand
+    or board entry with its tags, a land with "tapped" or "untapped"); a player's word stays as it is."""
+    if not isinstance(handle, str) or not handle.startswith("@"):
+        return handle
+    side, zone = zones(state)[0].get(handle, (None, None))
+    h = re.escape(handle) + r"(?!\d)"
+    desc = None
+    for ln in state.split("\n"):
+        ln = re.sub(r" ?\(was @\d+\)", "", ln)
+        if not re.search(h, ln):
+            continue
+        if ln.startswith("  lands:"):
+            m = re.search(r"([^(),]+?) x\d+ \[(\w+)[^\]]*?" + h, ln)
+            desc = "%s [%s]" % (m.group(1).strip(), m.group(2)) if m else None
+        elif ": " in ln:
+            for e in re.finditer(r"(.*?) ?@(\d+)(?: \([^)]*\))?(?:, |$)", ln.split(": ", 1)[1]):
+                if "@" + e.group(2) == handle:
+                    desc = e.group(1).strip()
+        if desc:
+            break
+    return "%s/%s/%s" % (side, zone, desc)
+
+
 def position_key(item):
     """The item without what does not change its rules question: handles, the plan, the history and the game log.
     Two attempts at one puzzle reach the same position with other handles and other notes."""
     lines = [re.sub(r" ?@\d+(\(was @\d+\))?", "", ln) for ln in item["state"].split("\n") if POSITION_LINES.match(ln)]
     p = dict(item["proposal"])
-    p.pop("card", None)
-    if "target_names" in p:            # an engine item's target by name: its handle differs between variants
-        p["targets"] = p.pop("target_names")
+    card = p.pop("card", None)
+    if item.get("label_source") == "engine-label":
+        # Every visible card is a candidate, so two of one name share a state: each object is keyed by what the state
+        # says of it (side, zone, its entry: "[tapped]", a P/T), never by its handle (pr-review of #359).
+        p["card"] = object_desc(item["state"], card)
+        p["targets"] = [object_desc(item["state"], t) for t in p.get("targets") or []]
+        p.pop("target_names", None)
     if p.get("source"):
         p["source"] = re.sub(r" @\d+", "", p["source"])
     return hashlib.sha256(json.dumps([lines, p], sort_keys=True).encode()).hexdigest()
@@ -684,6 +792,43 @@ def floor_report(items):
             "recall_illegal": round(per["illegal"][0] / per["illegal"][1], 4) if per["illegal"][1] else None,
             "zone_reading_balanced": round(zbal, 4) if zbal is not None else None}, \
         dict(sorted(strata.items()))
+
+
+def _labels_by_position(items):
+    out = {}
+    for i in items:
+        out.setdefault(position_key(i), set()).add(i["label"])
+    return out
+
+
+def reason_kind(item):
+    """The rule an engine negative's sentence names, in a few words, for the breakdown of the subtle stratum."""
+    r, cat = item.get("reason") or "", item.get("category")
+    if WRONG_WAY in r:
+        return "cost: a cast way the card does not have"
+    if cat == "target":
+        if "cannot be the target" in r:
+            return "target: a static forbids it"
+        if "not a zone" in r:
+            return "target: in a zone it does not target"
+        return "target: not something its text targets"
+    if cat == "cost":
+        if "mana cost" in r:
+            return "cost: mana"
+        if "tapped" in r or "summoning sickness" in r:
+            return "cost: {T} of a tapped or sick permanent"
+        return "cost: the rest of the cost"
+    if cat == "timing":
+        if "split second" in r:
+            return "timing: split second on the stack"
+        if "activated only as a sorcery" in r:
+            return "timing: a sorcery-speed ability"
+        if "when you could cast a sorcery" in r:
+            return "timing: a sorcery-speed spell"
+        return "timing: other"
+    if cat == "restriction" and "activated" in r:
+        return "restriction: an ability's limits or an effect"
+    return "%s: %s" % (cat, re.sub(r"\S+ ?[0-9X*]*/[0-9X*]+ @\d+|@\d+", "<card>", r)[:60])
 
 
 def stats(items, floor=False):
@@ -710,6 +855,10 @@ def stats(items, floor=False):
                 lambda i: "%s / %s (%s) / %s" % (i.get("kind"), i.get("category"), i.get("category_source"),
                                                  i.get("difficulty")),
                 illegal_pos),
+            "position_label_conflicts": sum(1 for labels in _labels_by_position(items).values() if len(labels) > 1),
+            "subtle_positions_by_reason": count(
+                reason_kind, [i for i in illegal_pos if i.get("difficulty") == "subtle"
+                              and i.get("label_source") == "engine-label"]),
             "by_variant_label": count(lambda i: "%s/%s" % (i["provenance"].get("variant"), i["label"]),
                                       [i for i in items if i.get("label_source") == "engine-label"]),
             "contrast_pairs_by_variant": count(
@@ -895,13 +1044,22 @@ def _tally(items, answers):
 def score(items, answers):
     """Accuracy and balanced accuracy of `answers` (id -> {legal, category?}); a missing answer is wrong. Floors:
     always-legal (balanced accuracy 0.5) and the state-reading heuristic on the same items. The category is scored on
-    illegal items with an engine category (never an inferred one) that the answer called illegal."""
+    illegal items with an engine category (never an inferred one) that the answer called illegal, beside always naming
+    the commonest of those items' categories. Contrast pairs among the items (engine items) count as right when both
+    sides are, with the zone floor's count beside."""
     n = len(items)
     per, bal = _tally(items, answers)
     right = per["legal"][0] + per["illegal"][0]
-    cat = [a.get("category") == i.get("category") for i in items
-           for a in [answers.get(i["id"])]
-           if i["label"] == "illegal" and i.get("category_source") == "engine" and a and a.get("legal") is False]
+    scored = [(i, a) for i in items for a in [answers.get(i["id"])]
+              if i["label"] == "illegal" and i.get("category_source") == "engine" and a and a.get("legal") is False]
+    cat = [a.get("category") == i.get("category") for i, a in scored]
+    commonest = Counter(i.get("category") for i, _ in scored).most_common(1)
+    ids = {i["id"] for i in items}
+    pairs = [pr for pr in contrast_pairs(items) if pr[0]["id"] in ids and pr[1]["id"] in ids]
+
+    def both(judge):
+        return sum(1 for pr in pairs if all(judge(x)["legal"] is (x["label"] == "legal") for x in pr))
+    pairs_right = both(lambda x: answers.get(x["id"]) or {})
     hper, hbal = _tally(items, {i["id"]: heuristic(i) for i in items})
     zper, zbal = _tally(items, {i["id"]: zone_floor(i) for i in items})
     legal_share = per["legal"][1] / n if n else 0.0
@@ -915,8 +1073,12 @@ def score(items, answers):
                        "state_reading_balanced": round(hbal, 4) if hbal is not None else None,
                        "state_reading_accuracy": round((hper["legal"][0] + hper["illegal"][0]) / n, 4) if n else None,
                        "zone_reading_balanced": round(zbal, 4) if zbal is not None else None,
-                       "zone_reading_accuracy": round((zper["legal"][0] + zper["illegal"][0]) / n, 4) if n else None},
-            "category_n": len(cat), "category_accuracy": round(sum(cat) / len(cat), 4) if cat else None}
+                       "zone_reading_accuracy": round((zper["legal"][0] + zper["illegal"][0]) / n, 4) if n else None,
+                       "zone_reading_contrast_pairs_both_right": both(zone_floor),
+                       "category_majority": round(commonest[0][1] / len(cat), 4) if cat else None},
+            "category_n": len(cat), "category_accuracy": round(sum(cat) / len(cat), 4) if cat else None,
+            "contrast_pairs": len(pairs), "contrast_pairs_both_right": pairs_right,
+            "contrast_pairs_both_right_ci": [round(x, 4) for x in wilson_ci(pairs_right, len(pairs))]}
 
 
 # ---------------------------------------------------------------------------------------------------- CLI
@@ -970,9 +1132,17 @@ def main(argv=None):
     b.add_argument("--out", required=True)
     b.add_argument("--contrast", action="store_true", help="engine items: negatives with a contrast partner, each "
                    "with its partner as the legal item")
-    e = sub.add_parser("engine", help="items from the engine labeller's rows (RulesProbeLabelTest)")
+    e = sub.add_parser("engine", help="items from the engine labeller's rows (RulesProbeLabelExport)")
     e.add_argument("raw", nargs="+")
     e.add_argument("--out", required=True)
+    r = sub.add_parser("engine-report", help="boards, copies, drops and label conflicts in the labeller's rows")
+    r.add_argument("raw", nargs="+")
+    s2 = sub.add_parser("audit-sample", help="positions of one label to read by hand, round robin over cells")
+    s2.add_argument("items")
+    s2.add_argument("--label", choices=("legal", "illegal"), required=True)
+    s2.add_argument("--n", type=int, required=True)
+    s2.add_argument("--seed", type=int, required=True)
+    s2.add_argument("--forge-home", default=os.environ.get("FORGE_HOME", "/root/forge"))
     a = sub.add_parser("ask")
     a.add_argument("items")
     a.add_argument("--model", required=True, help="claude-cli:<model>, a model of CLI_MODELS")
@@ -998,6 +1168,15 @@ def main(argv=None):
         items = dedupe([i for f in args.raw for i in engine_items(read_raw(f))])
         _write(items, args.out)
         print(f"{len(items)} items -> {args.out}")
+    elif args.cmd == "engine-report":
+        print(json.dumps(engine_report([r for f in args.raw for r in read_raw(f)]), indent=1))
+    elif args.cmd == "audit-sample":
+        sample = audit_sample(_read(args.items), args.label, args.n, args.seed)
+        cells = Counter((i.get("kind"), i.get("category"), i.get("difficulty")) if args.label == "illegal" else
+                        (i.get("kind"), i["proposal"].get("verb"), i["provenance"].get("variant")) for i in sample)
+        sys.stdout.write(audit_text(sample, card_index(args.forge_home)))
+        print("CELLS (n per cell): " + "; ".join("%s: %d" % ("/".join(map(str, k)), v) for k, v in sorted(
+            cells.items(), key=lambda kv: str(kv[0]))))
     elif args.cmd == "ask":
         ask(_read(args.items), args.model, args.out, card_index(args.forge_home))
     elif args.cmd == "score":
