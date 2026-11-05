@@ -36,7 +36,7 @@ stamps the condition on the game line; `run-llm-headless.sh` and `run-llm-spike.
 | `CLAUDE_BIN` | `claude` | the Claude Code CLI a `claude-cli:` seat runs |
 | `CLAUDE_BRIDGE_EFFORT`, `_SMART` / `_FAST` | unset (the CLI's default) | the CLI's `--effort` per tier, stamped `claude_effort_smart` / `_fast`; never read from Claude Code's own `CLAUDE_EFFORT`. For a `claude-cli:` seat the drivers pin it from `--claude-cli-effort` |
 | `CLAUDE_CLI_THINKING_TOKENS` | unset (the CLI's default, stamped "cli-default") | a `claude-cli:` seat's thinking budget, set in the child as `MAX_THINKING_TOKENS` (the child never inherits that variable); pinned by the drivers from `--claude-cli-thinking-tokens`, stamped `claude_cli_thinking_tokens_a` / `_b` |
-| `CLAUDE_DEADLINE_MS` | per model (`ModelCfg`) | a CLI call's deadline; past it the process is killed and the decision has no answer |
+| `CLAUDE_DEADLINE_MS` | per model (`ModelCfg`) | a CLI call's deadline; past it the process is killed and the decision has no answer. Stamped `claude_deadline_ms`. A puzzle game never takes it from the shell: `puzzle_solve.py --call-timeout-minutes` sets it and records `record.call_timeout_ms` |
 
 ## The GUI and recording
 
