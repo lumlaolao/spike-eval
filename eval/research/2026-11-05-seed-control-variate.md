@@ -34,9 +34,10 @@ only 0: the random seat never wins, so rho is undefined.
 ## How to settle it
 
 1. Play the paid block's seeds with `--controller-a ai` beside it (free, minutes) and pair the two runs with
-   `analyze_ab_stage0.py ab`. It prints the 2x2 counts, not rho (its banner's deck names are hard-coded and do not
-   apply): with a = both win, b = AI seat only, c = model only, d = both loss, rho = (ad - bc) /
-   sqrt((a+b)(c+d)(a+c)(b+d)) and beta = rho sd_Y / sd_X.
+   `analyze_ab_stage0.py ab AI_RUN MODEL_RUN`. It prints the 2x2 counts, not rho (its banner's deck names are
+   hard-coded and do not apply): with a = both win, b = OLD-only (AI seat only), c = FIX-only (model only), d = both
+   loss, rho = (ad - bc) / sqrt((a+b)(c+d)(a+c)(b+d)) and beta = rho sd_Y / sd_X, with sd_X from p_X = (a+b)/n and
+   sd_Y from p_Y = (a+c)/n.
 2. mu_X is not those seeds' mean: estimating it from the same seeds removes the gain. Take it from a much larger
    free block from the same seed distribution (or the whole seed panel), also played with `--controller-a ai`.
 3. Adopt the adjusted estimate only if the interval on 1 - rho^2 sits clearly below 1, and report the plain win rate
