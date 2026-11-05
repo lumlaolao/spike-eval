@@ -27,9 +27,9 @@ in the worktree `cv-wt` under `runs/cv/` (git-ignored, like every run).
 | `ai-vs-ai-rep` | `ai-vs-ai` again on seeds 1000..1009 | 10 of 10 identical to `ai-vs-ai` (winner and turns) |
 
 `python3 eval/analyze_ab_stage0.py ab RUN_X RUN_Y` pairs two runs by `seed` and `swap` (identity-keyed, a game drawn
-in either run left out) and prints the 2x2 table rho is computed from. On `ai-vs-ai` against `random-vs-ai` it prints 39 shared
-decisive games, both win 0, both loss 15, a win for the AI seat only 24 and for the random seat only 0: the random
-seat never wins, so rho is undefined.
+in either run left out) and prints the 2x2 table rho is computed from. On `ai-vs-ai` against `random-vs-ai` it
+prints 39 shared decisive games, both win 0, both loss 15, a win for the AI seat only 24 and for the random seat
+only 0: the random seat never wins, so rho is undefined.
 
 ## How to settle it
 
