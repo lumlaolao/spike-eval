@@ -412,16 +412,16 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "LlmSpikePuzzle.java": "the puzzle runner: its row stamps its own condition (puzzle_score.BRIDGE_CONDITIONS)",
         "PuzzleArms.java": "the puzzle search arms: a search budget, not the seat",
     }
-    # Conditions recorded somewhere other than a game-line field of their own. OPENROUTER_TIMEOUT_MS is no longer
-    # here: it is stamped openrouter_timeout_ms (pr-review of #355; puzzle_solve.py also records it per puzzle).
+    # Conditions recorded somewhere other than a game-line field of their own. OPENROUTER_TIMEOUT_MS is stamped
+    # openrouter_timeout_ms, so it is not here (puzzle_solve.py also records it per puzzle; pr-review of #355).
     # RULES_FILE picks the Comprehensive Rules text the seat's rules tool returns: that text's date is stamped
     # `rules_effective` (standards of #344: it touches what the seat reads, so it is no allowlist entry).
     # This set also holds a name that is only pinned, not recorded: OPENROUTER_IDLE_MS (HttpDeadline's stall cut)
     # changes decisions too (0 waits out a dead connection to the deadline, and the call is lost to the fixed
     # option), and every launcher pins it to its default (run_batch.CONDITION_ENV_KEYS); a direct JVM launch with a
     # value is not stamped.
-    # DECKLIST=0 drops each seat's own decklist from its plan: the stamped plan_a / plan_b text shows it, no condition
-    # field does (it was aliased to deck_a, the deck's name, which does not), so every launcher pins its default.
+    # DECKLIST=0 drops each seat's own decklist from its plan: the stamped plan_a / plan_b text shows it; deck_a, the
+    # deck's name, does not, so every launcher pins its default.
     RECORDED_ELSEWHERE = {"RULES_FILE", "OPENROUTER_IDLE_MS", "DECKLIST"}
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
