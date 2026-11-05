@@ -101,12 +101,111 @@ for this model records a cap that did not hold (section 7).
 
 ---
 
-## 4. Results
+## 4. Results: stopped at puzzle 3 of 12 by the stop rule
 
-(pending: the runs)
+**The study did not finish.** On the third puzzle, arm B (effort max) lost decisions to the CLI seat's per-call
+deadline. That met the stop rule (section 3), and the run was stopped by hand after 61 minutes. Run directory
+`runs/tvs` (kept by its author in the worktree `tvs-wt`): `A-low-k1`, `B-max-k1`, `C-low-k3`, `driver.log`, and the
+drivers and `tvs_compute.py` that wrote the tables below.
+
+### 4.1 The defect that stopped arm B
+
+`B-max-k1/hard-splice-06dad20af5b3/jvm.log`: `[CLAUDE-CLI-NO-ANSWER] no result within 300000 ms -> no answer; the
+seat takes its fixed legal option`, four times in 11 smart calls (`[TALLY] smart=11 ... avgSmart=312720ms`).
+`puzzle_watch.py` flagged it `NO-ANSWER x4`. Per-call figures, from each game's `context_call` rows (`elapsed_ms`,
+`completion_tokens`):
+
+| arm | puzzle | calls | seconds, median / max | calls at 300 s or more | completion tokens, median / max |
+|---|---|---|---|---|---|
+| A low | storm-5bf9 | 33 | 6 / 16 | 0 | 751 / 3,174 |
+| A low | storm-88f9 | 29 | 5 / 18 | 0 | 511 / 3,205 |
+| A low | splice-06da | 16 | 14 / 47 | 0 | 2,475 / 9,843 |
+| B max | storm-5bf9 | 32 | 21 / 115 | 0 | 4,568 / 27,863 |
+| B max | storm-88f9 | 32 | 27 / 117 | 0 | 6,025 / 27,633 |
+| **B max** | **splice-06da** | 12 | **227 / 876** | **3** | **52,530 / 64,031** |
+| C low | storm-5bf9 | 95 | 5 / 22 | 0 | 624 / 4,545 |
+| C low | storm-88f9 | 87 | 5 / 18 | 0 | 697 / 3,481 |
+| C low | splice-06da | 46 | 16 / 50 | 0 | 2,801 / 10,652 |
+
+**Shows:**
+- At effort max, a hard splice board's median decision ran 227 s and 52K completion tokens, so the 300 s deadline
+  (`ModelCfg`, which the `claude-cli:` seat takes: `ClaudeCliBridge.deadlineFor`) cuts the decisions it most needs to
+  think about.
+- On the two storm boards the same effort stayed under 120 s.
+- The prompt is the same size on every board (median 7K to 8K tokens). What grows is the thinking.
+
+**Why this is a stop, not a setting to change:**
+- `puzzle_solve.py` refuses `--call-timeout-minutes` for a `claude-cli:` model ("ClaudeCliBridge reads neither").
+- The bridge's own override, `CLAUDE_DEADLINE_MS`, is a shell variable. `puzzle_solve.py` neither pins it nor records
+  it in the manifest, so setting it would run arm B under a deadline no row records. That is the unrecorded condition
+  STANDARDS section 4 forbids.
+
+So arm B, as designed, cannot run on this lane without losing the hardest decisions.
+
+### 4.2 Solves on the puzzles every arm reached (development lane, not a score)
+
+`python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-hard-gen-v1.json --split open --k K --ids IDS
+runs/tvs/<arm>`. Every floor (random, PASS, first) is 0.000, as on all 12 puzzles; Forge's AI solved 0 of 4 on each.
+
+| arm | puzzles | attempts | solved | pass@1 (Wilson 95%) | pass@3 (Wilson 95%) |
+|---|---|---|---|---|---|
+| A: k=1, low | 3 | 3 | 2 | 0.667 [0.208, 0.939] | - |
+| C: k=3, low | 3 | 9 | 6 | 0.667 | 0.667 [0.208, 0.939] |
+| B: k=1, max | 2 (storms) | 2 | 2 | 1.000 [0.342, 1.000] | - |
+
+Per puzzle (1 solved, 0 failed; C's attempts in seed order):
+
+| puzzle | A | B | C |
+|---|---|---|---|
+| storm-5bf9 | 1 | 1 | 111 |
+| storm-88f9 | 1 | 1 | 111 |
+| splice-06da | 0 | (lost: 4 decisions to the deadline) | 000 |
+
+The pre-registered contrasts, on the two storm boards the arms share:
+- B - A pass@1: +0.000, 95% CI [0.000, 0.000] (`--paired-with`).
+- B pass@1 vs C pass@3: +0.000, CROSS-K (`--paired-with runs/tvs/C-low-k3 --paired-k 3 --paired-metric pass@k`, with
+  `runs/tvs/B-max-k1` as the first run).
+
+Both are zeros on two boards that every attempt of every arm solved. **Shows:** the storm boards are at the ceiling
+for this model at either effort, so they cannot separate the arms. The only board that could (splice-06da: A 0, C
+0 of 3) is the one where B lost its decisions. C's seed-1 attempt matches A's on all three boards, which is the
+replicate the design expected.
+
+### 4.3 Compute: the match was not what the probe predicted
+
+From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[end]` lines):
+
+| arm | attempts | per attempt: model calls | completion tokens | model minutes | per solve: completion tokens |
+|---|---|---|---|---|---|
+| A: k=1, low | 3 | 26.0 | 35,521 | 3.6 | 53,281 |
+| C: k=3, low | 9 | 25.3 | 36,967 | 3.6 | 55,450 |
+| B: k=1, max | 2 | 32.0 | 264,212 | 19.3 | 264,212 |
+
+**Shows:** on the storm boards one max-effort attempt spent 255K to 274K completion tokens. Three low-effort attempts
+on the same board spent 84K to 89K in all. So B cost about three times C's whole budget, not the same.
+- The probe's 3.4x (section 2) measured one short prompt. On the same storm boards, max effort spent 9 to 11
+  times A's completion tokens per attempt (255K to 274K against 24K to 31K).
+- Model time per call grew about 4x on the storm boards (medians 21-27 s against 5-6 s).
+
+A compute-matched design on this lane would set B's effort to `high` (1.5x in the probe), or give C k=7 to 8.
 
 ---
 
 ## 5. What was not determined
 
-(pending)
+- **The question itself.** Whether one long-thinking attempt beats several short ones at matched compute is not
+  determined. The run reached 3 of 12 puzzles; two of them sit at the ceiling and the third lost arm B's decisions.
+- **Effort max on hard boards.** Whether max effort solves splice-06da when its calls may finish is not known: the
+  deadline cut its decisions.
+- **Compute match.** Effort max does not match k=3 at effort low in compute; it costs about 3x more. Whether `high`
+  matches k=3 was not measured in games.
+- **Families.** The run covered storm and splice only; ping, fling, drain and elf were not reached.
+- **`MAX_THINKING_TOKENS`.** Why it does not cap this model's thinking through the CLI (section 2) was not traced.
+  The probe shows the effect only: a budget of 1024 thought up to 18K tokens.
+
+What would reopen the study:
+- A recorded deadline for the CLI seat: a `puzzle_solve.py` flag that sets `CLAUDE_DEADLINE_MS`, is written to the
+  manifest `record`, and is refused for pooling and pairing as `call_timeout_ms` is. Then rerun with a deadline above
+  B's longest call (876 s seen, so 20 to 30 minutes), the same for every arm.
+- Then rerun arm B at `high` or C at k=8, so the compute is matched by measurement.
+- Use boards below the ceiling: the storm boards are solved by every attempt.
