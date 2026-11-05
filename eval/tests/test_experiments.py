@@ -31,6 +31,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import aggregate  # noqa: E402
+import run_batch  # noqa: E402
 
 AGG = evalpath.EVAL / "aggregate.py"
 GUI = (evalpath.REPO / "forge-overlay" / "forge-gui-desktop" / "src"
@@ -370,7 +371,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "RUN_DISCIPLINE": "discipline",
         "SMART_MODEL": "smart_a", "SMART_MODEL_A": "smart_a", "SMART_MODEL_B": "smart_b",
         "FAST_MODEL": "fast_a", "FAST_MODEL_A": "fast_a", "FAST_MODEL_B": "fast_b",
-        "DECKLIST": "deck_a", "DECK_A_NAME": "deck_a", "DECK_B_NAME": "deck_b",
+"DECK_A_NAME": "deck_a", "DECK_B_NAME": "deck_b",
         "CLAUDE_BRIDGE_EFFORT": "claude_effort_smart",
         "CLAUDE_BRIDGE_EFFORT_FAST": "claude_effort_fast",
         "CLAUDE_BRIDGE_EFFORT_SMART": "claude_effort_smart",
@@ -421,7 +422,9 @@ class GameLineStampCoverageTest(unittest.TestCase):
     # changes decisions too (0 waits out a dead connection to the deadline, and the call is lost to the fixed
     # option), and every launcher pins it to its default (run_batch.CONDITION_ENV_KEYS); a direct JVM launch with a
     # value is not stamped.
-    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS", "RULES_FILE", "OPENROUTER_IDLE_MS"}
+    # DECKLIST=0 drops each seat's own decklist from its plan: the stamped plan_a / plan_b text shows it, no condition
+    # field does (it was aliased to deck_a, the deck's name, which does not), so every launcher pins its default.
+    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS", "RULES_FILE", "OPENROUTER_IDLE_MS", "DECKLIST"}
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
     # required to have a stamp -- the sha is what partitions those experiments.
@@ -459,10 +462,37 @@ class GameLineStampCoverageTest(unittest.TestCase):
         for name, why in self.NOT_GAME_LINE.items():
             self.assertTrue(why.strip(), name)
 
-    def test_every_env_read_is_stamped_or_allowlisted(self):
-        java = "".join((GUI.parent / n).read_text(encoding="utf-8") for n in self.SCANNED)
+    # A condition the game reads and stamps is also pinned by run_batch.py (scrubbed from the shell, set only by a
+    # flag or left at its default), or is named here with why a shell value may reach a game (standards of #342, #344
+    # and #354: PROPOSE_AUDIT, RULES_FILE, ONE_CHAT_TURNS and OPENROUTER_IDLE_MS were each stamped but not pinned).
+    NOT_PINNED = {
+        "CLAUDE_CLI_SEAT": "consent: the development lane's opt-in is the operator's to give; stamped dev_lane",
+        "CLAUDE_DEADLINE_MS": "development lane only (a claude-cli: seat, never a score); stamped claude_deadline_ms",
+        "OPENROUTER_BASE_URL": "the endpoint the operator's secrets.env names; stamped, and aggregate splits on it",
+        "OPENROUTER_MODEL_CFG": "the per-model config override puzzle_solve.py sets; stamped model_cfg_sha",
+        "OPENROUTER_PROVIDER_SORT": "routing; stamped provider_sort, and the served provider is recorded per call",
+        "OPENROUTER_TIMEOUT_MS": "recorded by puzzle_solve.py --call-timeout-minutes; a batch's value is a known gap",
+        "PROMPT_CACHE": "cost: a cached prefix is the same prompt bytes; stamped prompt_cache",
+        "RULES_FILE": "the rules text's date is stamped rules_effective; the file is pinned per engine release",
+        "SMART_BUDGET": "a per-game call cap, a loop guard no recorded game reaches; acceptance and the gauntlet set it",
+        "FAST_BUDGET": "a per-game call cap, a loop guard no recorded game reaches; acceptance and the gauntlet set it",
+    }
+
+    def test_every_stamped_condition_is_pinned_or_says_why(self):
+        names = self.env_reads()
         keys = set(game_line_keys())
-        self.assertIn("native_tools", keys)          # the extraction found the game-line statement
+        conditions = {n for n in names if not n.startswith(self.CONTEXT_PREFIX) and n not in self.NON_CONDITION_ENV
+                      and (n in self.RECORDED_ELSEWHERE or self.STAMPED_ALIASES.get(n, n.lower()) in keys)}
+        scrubbed = set(run_batch.RUN_DEFINING_KEYS) | set(run_batch.CITED_FORCED_KEYS) | set(run_batch.PINNED_ENV_KEYS)
+        self.assertEqual(sorted(n for n in conditions if n not in scrubbed and n not in self.NOT_PINNED), [],
+                         "pin these in run_batch.CONDITION_ENV_KEYS, or name them in NOT_PINNED with why")
+        self.assertEqual(sorted(n for n in self.NOT_PINNED if n in scrubbed), [], "a NOT_PINNED entry is pinned")
+        for name, why in self.NOT_PINNED.items():
+            self.assertTrue(why.strip(), name)
+
+    def env_reads(self):
+        """Every env name the SCANNED files read, by every form they read one in."""
+        java = "".join((GUI.parent / n).read_text(encoding="utf-8") for n in self.SCANNED)
         # Every env-reading form in the SCANNED files: System.getenv("X"), the getOrDefault fallbacks, the
         # envInt / intEnv helpers (which read a name their caller passes), and the effort ternary. A read
         # through a NEW helper must be added here with the helper.
@@ -478,6 +508,12 @@ class GameLineStampCoverageTest(unittest.TestCase):
         for probe in ("TIER_FAST_TYPES", "CTX_RECENT_EVENTS", "CLAUDE_BRIDGE_EFFORT_SMART", "DECK_A", "CLAUDE_CLI_SEAT",
                       "CLAUDE_CLI_THINKING_TOKENS", "ONE_CHAT_TURNS", "OPENROUTER_IDLE_MS"):
             self.assertIn(probe, names)              # each form was actually read
+        return names
+
+    def test_every_env_read_is_stamped_or_allowlisted(self):
+        names = self.env_reads()
+        keys = set(game_line_keys())
+        self.assertIn("native_tools", keys)          # the extraction found the game-line statement
         stray = sorted(n for n in names
                        if not n.startswith(self.CONTEXT_PREFIX)
                        and n not in self.NON_CONDITION_ENV and n not in self.RECORDED_ELSEWHERE

@@ -144,7 +144,9 @@ most log questions).
   `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
   (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
   entry; each allowlist entry carries the reason it changes nothing the seat sees (`NON_CONDITION_ENV` maps
-  each name to its reason; `test_every_allowlist_entry_says_why`).
+  each name to its reason; `test_every_allowlist_entry_says_why`). Every condition the scan finds stamped or
+  recorded elsewhere is also pinned by `run_batch.py`, or named in `NOT_PINNED` with why a shell value may reach a
+  game (`test_every_stamped_condition_is_pinned_or_says_why`; PRs #342, #344, #354, #355).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
   per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329) may
   instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
