@@ -38,7 +38,7 @@ It was re-scoped to the lever this lane has: how hard the model thinks.
   Error Bars to Evals", arXiv:2411.00640); `puzzle_score.py` follows it.
 
 **Inference:** these results are on problems where an attempt is cheap and independent. A Magic puzzle attempt is a
-whole game of 20 to 46 model calls (section 4), and pass@k with the engine as verifier is an oracle a real game never
+whole game of 12 to 34 model calls (`context_call` rows per game in `runs/tvs`, section 4), and pass@k with the engine as verifier is an oracle a real game never
 has: you cannot replay a lost game. So pass@k here measures how much a solver *could* gain from retries, not what it
 gets in play.
 
@@ -47,9 +47,9 @@ gets in play.
 ## 2. The lever, measured before the design (probes, not runs)
 
 `runs/tvs/probe/` on CLI 2.1.318 (`cli-version.txt`): `bash run_probe.sh` sends `prompt.txt`, a fixed 110-word
-mana-counting puzzle, through `claude -p --model claude-haiku-5-5` with the bridge's flags (`--tools ""
---strict-mcp-config --no-session-persistence --setting-sources "" --disable-slash-commands`), four runs a setting, six
-settings, and keeps each result (`<setting>-<i>.json`); `python3 probe_table.py` prints the table below from the
+mana-counting puzzle, through `claude -p --model claude-haiku-5-5` with the bridge's flags except `--safe-mode`
+(`--tools "" --strict-mcp-config --no-session-persistence --setting-sources "" --disable-slash-commands`; whether
+leaving `--safe-mode` out changes the thinking was not measured), four runs a setting, six settings, and keeps each result (`<setting>-<i>.json`); `python3 probe_table.py` prints the table below from the
 CLI's own count, `usage.output_tokens_details.thinking_tokens`. All 24 runs returned a result.
 
 | Setting | n | thinking tokens, each run | mean | mean wall |
