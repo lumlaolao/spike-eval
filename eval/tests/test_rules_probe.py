@@ -15,7 +15,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
-import evalpath  # noqa: E402,F401
+import evalpath  # noqa: E402
 import rules_probe as rp  # noqa: E402
 
 MENU_PROMPT = """== Turn 8 MAIN1 (active: kw03 | priority: you) ==
