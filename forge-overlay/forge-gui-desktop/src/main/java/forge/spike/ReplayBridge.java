@@ -42,7 +42,7 @@ import java.util.regex.Pattern;
  */
 final class ReplayBridge implements LLMBridge {
     static final String PREFIX = "replay:";
-    static final String VERSION = "replay-bridge-v1";
+    static final String VERSION = "replay-bridge-v2";   // v2 (2026-11-05): the handover to the search arm (step regret)
 
     /** One recorded model turn: the ask it answered and what came back (null: the bridge gave no reply). */
     static final class Turn {
@@ -61,8 +61,11 @@ final class ReplayBridge implements LLMBridge {
         final String type;
         final int n, choice;
         final List<String> options;
-        Row(String type, int n, int choice, List<String> options) {
-            this.type = type; this.n = n; this.choice = choice; this.options = options;
+        /** A multi-pick row (its {@code picks}): {@code choice} is then the number of picks, not an option. */
+        final boolean multi;
+        Row(String type, int n, int choice, List<String> options) { this(type, n, choice, options, false); }
+        Row(String type, int n, int choice, List<String> options, boolean multi) {
+            this.type = type; this.n = n; this.choice = choice; this.options = options; this.multi = multi;
         }
         @Override public String toString() { return type + " n=" + n + " choice=" + choice + " options=" + options; }
     }
@@ -82,6 +85,18 @@ final class ReplayBridge implements LLMBridge {
     int asksAfterDrift = 0;
     /** Run once, on the thread that found the drift (the puzzle runner ends the game there). */
     volatile Runnable onDrift = null;
+    /** Step regret (step 2): the seat's decision rows replayed before the seat is handed to the search arm; -1 (every
+     *  run but a step search) replays the whole recording. Set by LlmSpikePuzzle.stepSearch around its rollouts and
+     *  read when the bridge is built. */
+    static volatile int HANDOVER = -1;
+    /** This bridge's handover ({@link #HANDOVER} when it was built), and whether the game has reached it. */
+    final int handover;
+    volatile boolean handedOver = false;
+    /** Run once, on the game thread, when the handover row is matched: the seat puts the search arm in its place. */
+    private Runnable onHandover = null;
+    /** The seat's first decision row after the handover, and the search draws made by the time it was written. */
+    Row firstAfter = null;
+    int drawsAtFirstAfter = -1;
     /** The attempt's own result (its puzzle-results.jsonl row for the seed), or null when the recording has none. */
     String recordedStatus = null, recordedLogSha = null;
 
@@ -91,6 +106,15 @@ final class ReplayBridge implements LLMBridge {
         this.source = source;
         this.turns = turns;
         this.rows = rows;
+        this.handover = HANDOVER;
+    }
+
+    /** The seat ({@code switchSeat}) is handed to the search arm after the {@link #handover}-th decision row: at once
+     *  for 0, else when that row is matched. Nothing to do when this bridge replays the whole recording. */
+    void armHandover(Runnable switchSeat) {
+        if (handover < 0) return;
+        if (handover == 0) { handedOver = true; switchSeat.run(); }
+        else onHandover = switchSeat;
     }
 
     /** The seat a bridge label names ("Solver/smart" -> "Solver"). */
@@ -156,7 +180,8 @@ final class ReplayBridge implements LLMBridge {
                 List<String> opts = new ArrayList<>();
                 JsonElement o = r.get("options");
                 if (o != null && o.isJsonArray()) for (JsonElement e : o.getAsJsonArray()) opts.add(e.getAsString());
-                rows.add(new Row(str(r, "type"), r.get("n_options").getAsInt(), r.get("choice").getAsInt(), opts));
+                rows.add(new Row(str(r, "type"), r.get("n_options").getAsInt(), r.get("choice").getAsInt(), opts,
+                        r.has("picks")));
             }
         }
         if (turns.isEmpty()) throw new IllegalArgumentException("replay: no model turn of seat " + seat + " in " + path);
@@ -192,7 +217,7 @@ final class ReplayBridge implements LLMBridge {
     /** The game is over with {@code status} and engine log fingerprint {@code logSha}: the recorded attempt's, when it
      *  has a result row. */
     void atEnd(String status, String logSha) {
-        if (recordedStatus == null) return;
+        if (recordedStatus == null || handover >= 0) return;   // after a handover the game is the search arm's
         if (!recordedStatus.equals(status)) fail("game end: status " + status + " where the recording's was " + recordedStatus);
         else if (recordedLogSha != null && !recordedLogSha.equals(logSha))
             fail("game end: engine log " + logSha + " where the recording's was " + recordedLogSha);
@@ -230,7 +255,10 @@ final class ReplayBridge implements LLMBridge {
     }
 
     /** Every recorded turn was served and every recorded decision row matched, with nothing drifted. */
-    boolean reproduced() { return drift == null && unusedTurns() == 0 && rowPos == rows.size(); }
+    boolean reproduced() {
+        if (handover >= 0) return drift == null && handedOver;   // its first `handover` rows, and then the arm's game
+        return drift == null && unusedTurns() == 0 && rowPos == rows.size();
+    }
 
     int unusedTurns() { return turns.size() - pos; }
 
@@ -247,6 +275,7 @@ final class ReplayBridge implements LLMBridge {
         m.put("replay_rows_matched", rowPos);
         m.put("replay_recorded_status", recordedStatus == null ? "" : recordedStatus);
         m.put("replay_prompt_diffs", promptDiffs);
+        if (handover >= 0) { m.put("replay_handover", handover); m.put("replay_handed_over", handedOver); }
         if (firstPromptDiff != null) m.put("replay_first_prompt_diff", firstPromptDiff);
         return m;
     }
@@ -271,6 +300,7 @@ final class ReplayBridge implements LLMBridge {
     @Override public String ask(String prompt) {
         calls++;
         if (drift != null) asksAfterDrift++;
+        if (handedOver) { fail("a text ask after the handover: the search arm asks nothing"); return null; }
         fail("a text ask (no `answer` offered); the recording answered every ask by call");
         return null;
     }
@@ -284,6 +314,11 @@ final class ReplayBridge implements LLMBridge {
         boolean retry = retrying;
         retrying = false;
         if (drift != null) { asksAfterDrift++; return doNothing(live); }
+        if (handedOver) {
+            fail("turn " + live.turn + " " + live.phase + ": an ask after the handover (row " + handover
+                    + "), where the search arm asks nothing: " + live.head());
+            return doNothing(live);
+        }
         int idx = retry && pos > 0 ? pos - 1 : pos;
         if (idx == pos && idx < turns.size()) pos++;
         if (idx >= turns.size()) {
@@ -374,8 +409,18 @@ final class ReplayBridge implements LLMBridge {
 
     /** A decision row the seat just wrote (LlmSpikeGui.FORK_HOOK): it must be the next recorded row of this seat. */
     void onDecisionRow(String rowSeat, String type, int n, int choice, List<String> options) {
+        onDecisionRow(rowSeat, type, n, choice, options, -1);
+    }
+
+    /** {@code draws}: the search draws made so far in the rollout (step search), -1 when there is no search line. After
+     *  the handover a row is the search arm's: the first one is kept ({@link #firstAfter}), none is checked. */
+    void onDecisionRow(String rowSeat, String type, int n, int choice, List<String> options, int draws) {
         if (!seat.equals(rowSeat) || drift != null) return;
         Row live = new Row(type, n, choice, options == null ? Collections.emptyList() : new ArrayList<>(options));
+        if (handedOver) {
+            if (firstAfter == null) { firstAfter = live; drawsAtFirstAfter = draws; }
+            return;
+        }
         if (rowPos >= rows.size()) { fail("decision row " + (rowPos + 1) + " comes after the recording's last: " + live); return; }
         Row rec = rows.get(rowPos);
         if (!rec.toString().equals(live.toString())) {
@@ -383,5 +428,10 @@ final class ReplayBridge implements LLMBridge {
             return;
         }
         rowPos++;
+        if (rowPos == handover) {
+            handedOver = true;
+            Runnable h = onHandover;
+            if (h != null) h.run();
+        }
     }
 }

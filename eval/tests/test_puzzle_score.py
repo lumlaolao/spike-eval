@@ -233,7 +233,7 @@ class ReplayRowRefusalTest(unittest.TestCase):
     def test_a_replay_row_is_refused_even_when_it_reproduced_a_solve(self):
         for status in ("solved", "failed", "drift"):
             with self.assertRaisesRegex(ps.Refused, "a replay is not an attempt"):
-                ps.attempt_success({"id": "p", "seed": 1, "status": status, "replay_version": "replay-bridge-v1"})
+                ps.attempt_success({"id": "p", "seed": 1, "status": status, "replay_version": "replay-bridge-v2"})
 
 
 class ScoreV2Test(unittest.TestCase):
