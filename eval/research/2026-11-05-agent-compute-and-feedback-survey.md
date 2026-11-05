@@ -6,7 +6,7 @@ attributions, or claims reworded to what the page says), and 1 was removed (the 
 claims that rested only on sources that do not state them were removed: the Kaggle Game Arena retry-then-forfeit rule
 (chess.com and Decrypt state no illegal-move rule). PTCG-Bench's masking result, first dropped as absent from the
 abstract, is restored from the paper's full HTML text (review of PR #356). Every
-arXiv claim is now abstract-only: the full PDFs were not read, so no ablation, table or figure from a paper is quoted.
+other arXiv claim is abstract-only: no other full paper was read, so no other ablation, table or figure is quoted.
 Venue claims that the arXiv pages do not show are marked unverified. The ExpeL project page, the kagisearch README, the
 PokéChamp PMLR page and the Hugging Face card were read in full; the other non-arXiv pages were read as fetched.
 
@@ -323,10 +323,10 @@ the majority label). Sample sizes are rough and assume the default puzzle suite 
 of about 100 cards.
 
 **E1. Cross-decision error notebook in the terse arm (most directly testable).**
-- Hypothesis: the unresolved terse-vs-detailed difference on puzzles (5/12 vs 3/12, paired CI [-0.417, 0.000] in the
-  03 note) comes from information the model cannot recover across
-  decisions, not from the refusal text itself. A notebook of cause-level notes (built from refused plays, clustered by
-  rule, in the style of Mistake Notebook Learning and ExpeL) closes most of the gap with terse refusals.
+- Hypothesis: if the unresolved terse-vs-detailed difference on puzzles (5/12 vs 3/12; see
+  `eval/research/2026-11-03-propose-condition-prior-work.md`) is real, it comes from information the model cannot
+  recover across decisions, not from the refusal text itself, and a notebook of cause-level notes (built from refused
+  plays, clustered by rule, in the style of Mistake Notebook Learning and ExpeL) narrows it under terse refusals.
 - Arms: terse; terse + notebook; detailed; detailed + notebook.
 - Primary metric: puzzles solved. Floor: terse without notebook (3/12 observed), and the random-legal floor.
 - Secondary metric: repeat-refusal rate, the share of refused plays re-proposed later in the same game. Its floor is the
@@ -336,8 +336,8 @@ of about 100 cards.
 
 **E2. Repeat-refusal rate in the existing logs (no new games): done.** See
 `eval/research/2026-11-03-propose-condition-prior-work.md`, "Repeated refusals in every propose log on disk": no refused
-play was resent within its decision in any run; across decisions repeats followed the build, not the puzzle set. The
-shuffled refusal-to-decision floor proposed here is not yet computed.
+play was resent within its decision in any run; across decisions the repeat rate differed between builds on shared
+puzzles (cause untested). The shuffled refusal-to-decision floor proposed here is not yet computed.
 
 **E3. Compute-matched lookahead vs best-of-N vs LATS-style search on puzzles.**
 - Hypothesis (from Snell and LATS, extrapolated to this setting; neither source tests puzzles): at a fixed token budget,
@@ -395,8 +395,8 @@ shuffled refusal-to-decision floor proposed here is not yet computed.
 - Sample: about 6 games per arm for the first read, then a full panel. Price first with `eval/cost_report.py --plan`.
 
 **Most novel:** E4 (world-model fidelity measured against the engine, separate from play) and E5 (engine-labelled rule
-contrast sets for an MTG engine). Both are unclaimed in what I found. E1 is the most directly testable, and E2 costs
-nothing to run and should come first.
+contrast sets for an MTG engine). Both are unclaimed in what I found. E1 is the most directly testable. E2 is done; its
+shuffled floor is the open item.
 
 ---
 
@@ -407,9 +407,16 @@ nothing to run and should come first.
 - No paper I could reach gives a Forge-based LLM evaluation.
 - The BALROG, Mind2Web and AgentBench illegal-action rates were searched for and not found. The BALROG hits were on the
   benchmark's design only.
-- Every arXiv claim is abstract-only. None of the Q1 ablation numbers, the Q3 figures from full papers, or the Q5 probe
-  results were available. Read the PDFs before any claim goes into a paper or a results table.
+- Every arXiv claim is abstract-only except PTCG-Bench's Table 2, read from its HTML full text. None of the Q1 ablation
+  numbers, the other Q3 figures from full papers, or the Q5 probe results were available. Read the PDFs before any claim
+  goes into a paper or a results table.
 - The Kaggle Game Arena rules are not documented in any source I could read.
+
+---
+
+## Sources (consolidated)
+
+Q1
 - Shinn et al., Reflexion, arXiv:2303.11366 (NeurIPS 2023 unverified). https://arxiv.org/abs/2303.11366 [abstract]
 - Su et al., Mistake Notebook Learning, arXiv:2512.11485 (2025-26; Findings of ACL 2026 unverified).
   https://arxiv.org/abs/2512.11485 [abstract]

@@ -478,12 +478,12 @@ row is its own run and no rate is pooled across them.
 | runs/terse/smoke-64dc1f33-terse | terse | 36 | 8 | 5 | 0 of 8 | 3 of 5 |
 | runs/terse/b2-terse | terse | 247 | 6 | 3 | 0 of 6 | 1 of 5 |
 
-The b2 rows are the terse block's runs above, split this way.
+The two b2 rows are the b2 block above, one row per arm.
 
 - **Within a decision** no run resent a refused proposal: 0 in each of the five runs that had one to resend (10, 4, 21,
-  8 and 6 tries with a next try). The tries are not independent (b2-detailed's 21 come from 18 decisions in about 20
-  puzzle runs), so no interval is given for a combined rate. The repeat Gumaan 2026 reports did not appear in these
-  runs.
+  8 and 6 refused tries followed by another try, one row each in the table). The tries are not independent
+  (b2-detailed's 21 come from 18 decisions in about 20 puzzle runs), so no interval is given for a combined rate. The
+  repeat Gumaan 2026 reports did not appear in these runs.
 - **Across decisions** the same refused play recurs in a later decision of the same game in 1 of 3, 5 of 11, 3 of 5 and
   1 of 5 distinct refused actions, and 0 of 10 in e75-haiku-hard-propose. There is no floor yet: a card that stays in
   hand can be proposed again with no feedback effect at all; the survey's E2 floor (refusals re-paired with decisions at
@@ -494,4 +494,5 @@ The b2 rows are the terse block's runs above, split this way.
   storm repeats are in smoke-64dc1f33-terse (storm-5bf9 2 of 2, storm-88f9 1 of 3). The difference follows the build
   (e75 at harness-epoch-75, b2 on overlay 187b31cea8dd); that it is the build and not chance is a hypothesis, untested.
 - A block that tests a notebook of earlier refusals (E1 of
-  `eval/research/2026-11-05-agent-compute-and-feedback-survey.md`) should hold the build fixed and compare arms on the same puzzles, with the shuffled floor beside it.
+  `eval/research/2026-11-05-agent-compute-and-feedback-survey.md`) should hold the build fixed and compare arms on the
+  same puzzles, with the shuffled floor beside it.
