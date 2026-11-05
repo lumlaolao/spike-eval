@@ -5,6 +5,8 @@ import os
 import re
 import sys
 import unittest
+from pathlib import Path
+import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 
@@ -115,7 +117,23 @@ class PrFormatTest(unittest.TestCase):
             with self.assertRaises(SystemExit) as cm:
                 pf.main(["record-acceptance", "1", "abc1234", "/tmp/x", passed, total])
             self.assertIn("not a full pass", str(cm.exception.code))
-        self.assertGreaterEqual(pf.full_stage_count(), 18)
+        self.assertGreaterEqual(pf.full_stage_count(), 19)
+
+    def test_record_acceptance_reads_the_runs_own_summary(self):
+        # Standards of #357: the counts an author types are checked against the run's summary.txt, which must hold a
+        # PASS line for every stage in ALL_STAGES and no FAIL line.
+        stages = pf.all_stages()
+        self.assertIn("canary", stages)
+        full = ["PASS %s: ok" % (st if st != "canary" else "canary-floor") for st in stages] + ["PASS canary-random: ok"]
+        with tempfile.TemporaryDirectory() as d:
+            summary = Path(d) / "summary.txt"
+            summary.write_text("\n".join(full) + "\n")
+            self.assertEqual(pf.summary_problems(d, str(len(full)), str(len(full))), [])
+            self.assertTrue(pf.summary_problems(d, "20", "20"))                    # typed counts that are not the run's
+            summary.write_text("\n".join(full[:-3] + ["FAIL lines: x"]) + "\n")
+            p = pf.summary_problems(d, str(len(full)), str(len(full)))
+            self.assertTrue(any("FAIL" in x for x in p) and any("no PASS line" in x for x in p), p)
+        self.assertTrue(any("summary.txt" in x for x in pf.summary_problems("/nonexistent/out", "19", "19")))
 
     def test_code_changes_need_an_acceptance_run_in_evidence(self):
         line = "- acceptance @ abc123456: OUT=/tmp/acc-native-1 19/19 stages PASS, 278 Java, 141 Python"
@@ -129,6 +147,9 @@ class PrFormatTest(unittest.TestCase):
         self.assertTrue(any("full pass" in p for p in gate(line.replace("19/19", "18/19"), ["eval/x.py"])))
         # A subset run is not the full suite, however green (PR #357 recorded "4/4 stages PASS" for four stages).
         self.assertTrue(any("full pass" in p for p in gate(line.replace("19/19", "4/4"), ["eval/x.py"])))
+        # pr-review of #358: 18 lines is a run that skipped a stage (canary writes two), so the bar is 19, not 18.
+        self.assertEqual(pf.full_stage_count(), len(pf.all_stages()) + 1)
+        self.assertTrue(any("full pass" in p for p in gate(line.replace("19/19", "18/18"), ["eval/x.py"])))
         self.assertTrue(any("full pass" in p for p in gate(line.replace("abc123456", "fff000111"), ["scripts/pr_merge.sh"])))
         self.assertEqual(gate(line, ["install.sh"]), [])
         self.assertEqual(gate("- read it twice", ["docs/a.md"]), [])

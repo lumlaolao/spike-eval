@@ -24,9 +24,10 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
    `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS` (written by
    `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `engine-patches/`, `eval/`,
    `scripts/` or a root launcher (any `*.sh` at the root; `eval/tests/test_pr_format.py` fails when one is missing from
-   `pr_format.CODE_PATHS`). The sha must be the PR's current head, and N covers every stage (at least the count of
-   `ALL_STAGES` in `eval/harness_acceptance.sh`): a `STAGES` subset is prose in Evidence, never this line, and
-   `record-acceptance` refuses one (PR #357).
+   `pr_format.CODE_PATHS`). The sha must be the PR's current head, and N covers every stage: one PASS line per stage
+   in `ALL_STAGES` (`eval/harness_acceptance.sh`), two for canary, 19 today. `record-acceptance` checks the counts
+   against the run's own `<OUT>/summary.txt` and refuses a `STAGES` subset, which is prose in Evidence, never this line
+   (PR #357).
 
 It merges exactly the commit it checked, with a merge commit. Never squash: the commit list is the
 record of what was reviewed. Merging your own PR is fine once the gate passes.
