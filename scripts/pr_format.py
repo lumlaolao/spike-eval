@@ -21,6 +21,7 @@ import functools
 import json
 import os
 import re
+from pathlib import Path
 import subprocess
 import sys
 
@@ -40,6 +41,14 @@ REVIEW_LINE = re.compile(r"^- (%s) @ ([0-9a-f]{7,40}): (%s)\b(.*)$" % ("|".join(
 CODE_PATHS = ("forge-overlay/", "engine-patches/", "eval/", "scripts/", "install.sh", "play-vs-llm.sh",
               "setup.sh")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
+# A full acceptance run reports at least one PASS line per stage in eval/harness_acceptance.sh's ALL_STAGES (canary
+# reports two); a STAGES subset reports fewer, and is never the gate's evidence (PR #357 recorded "4/4 stages PASS").
+def full_stage_count():
+    script = Path(__file__).resolve().parents[1] / "eval" / "harness_acceptance.sh"
+    m = re.search(r'^ALL_STAGES="([^"]+)"', script.read_text(encoding="utf-8"), re.M) if script.exists() else None
+    return len(m.group(1).split()) if m else 1
+
+
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
 # A generated signature footer is not a why: alone it satisfies nothing (pr-review finding). The
@@ -202,9 +211,10 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
         if not runs:
             out.append("code changed but `## Evidence` has no line "
                        "`- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS`")
-        elif not any(passed == total and int(total) > 0 and (not head or same_commit(head, sha))
+        elif not any(passed == total and int(total) >= full_stage_count() and (not head or same_commit(head, sha))
                      for sha, _, passed, total in runs):
-            out.append("no acceptance run in `## Evidence` is a full pass for the PR head %s" % (head or "")[:9])
+            out.append("no acceptance run in `## Evidence` is a full pass (every stage, at least %d) for the PR head %s"
+                       % (full_stage_count(), (head or "")[:9]))
     return out
 
 
@@ -356,6 +366,9 @@ def main(argv):
         print("%s %s" % (pr["state"], str(pr["isDraft"]).lower()))
         return 0
     elif cmd == "record-acceptance" and len(args) >= 5:
+        if args[3] != args[4] or int(args[4]) < full_stage_count():
+            sys.exit("record-acceptance: %s/%s is not a full pass of all %d+ stages; a STAGES subset is reported as "
+                     "prose in Evidence, never as the gate's line" % (args[3], args[4], full_stage_count()))
         record_line(args[0], args[1], "Evidence", "- acceptance @",
                     "- acceptance @ {sha}: OUT=%s %s/%s stages PASS%s" % (
                         args[2], args[3], args[4], (", " + " ".join(args[5:])) if args[5:] else ""))
