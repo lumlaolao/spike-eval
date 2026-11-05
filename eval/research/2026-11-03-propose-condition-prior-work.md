@@ -433,8 +433,9 @@ reason, so both arms count the same rule categories. Twelve puzzles of `puzzles-
 ping 3, fling 2: the families with refusals in the block above), one attempt each, Claude Haiku 5.5 on the
 development lane, arms interleaved per puzzle with the order alternating. Both arms ran on one build (overlay
 187b31cea8dd, the arm's commit f306f14 before it merged main and took harness-epoch-80). Run directories:
-`runs/terse/b2-detailed`, `runs/terse/b2-terse`; notional CLI cost $0.94 and $0.89. A smoke run on an
-earlier build (`runs/terse/smoke-64dc1f33-*`) is not pooled.
+`runs/terse/b2-detailed`, `runs/terse/b2-terse`; notional CLI cost $5.61 and $5.16, summed from the per-puzzle
+`[cost]` lines of `runs/terse/b2.log` ($0.43 to $0.47 a puzzle run). A smoke run on an earlier build
+(`runs/terse/smoke-64dc1f33-*`) is not pooled.
 
 | Arm | Solved (pass@1) | 95% CI (Wilson) | Play decisions | Pass first | Non-pass first-try legal | Refusal-opened decisions | Repaired to a move | Refused again later | Format errors |
 |---|---|---|---|---|---|---|---|---|---|
@@ -452,9 +453,10 @@ earlier build (`runs/terse/smoke-64dc1f33-*`) is not pooled.
   game (`refused_again`), which is where a reason could teach something.
 - **Unexpected:** the terse arm's first tries were more often legal (0.95 against 0.87), before any refusal of that
   decision was shown. The decisions are clustered by puzzle and the detailed arm played longer lines in the puzzles
-  it solved, so this is not a finding; if it holds, the candidates are the preamble (the arms' PLAYS paragraphs
-  differ by one sentence) and what a game's earlier refusals taught.
+  it solved, so this is not a finding; if it holds, the candidates are the preamble (the PLAYS and COMBAT promises
+  and the `action` schema description differ by one clause each) and what a game's earlier refusals taught.
 - **Power:** at the observed 0.5 to 1.5 refusal-opened decisions per puzzle run, a 0.25 difference in
-  repaired-to-a-move needs about 53 opened decisions per arm, some 70 puzzle runs per arm. The next block should raise
-  the rate of refusals (storm and other sorcery-timing puzzles, several attempts per puzzle) and pre-register
-  repaired-to-a-move and refused-again as its outcomes, then measure GPT-6 Luna's base rate on the detailed arm first.
+  repaired-to-a-move needs about 53 opened decisions per arm, some 70 puzzle runs per arm (about $30 notional per arm
+  at this block's rate). The next block should raise the rate of refusals (storm and other sorcery-timing puzzles,
+  several attempts per puzzle) and pre-register repaired-to-a-move and refused-again as its outcomes, then measure
+  GPT-6 Luna's base rate on the detailed arm first.

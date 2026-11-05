@@ -461,7 +461,9 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   (`proposal_audit.py`'s `repair` and `refusal_text`). Stamped `propose_terse` on the game line and puzzle row and
   `answer-tool-v17+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
   pinned by `run_batch.py --propose-terse` and `puzzle_solve.py --propose-terse`, each refused without
-  `--propose-actions`. Results: the research note's "Terse refusals" section.
+  `--propose-actions`. The preamble's general ANSWERS sentence ("you are told why") is the same in both arms: it is
+  about answers to listed decisions, and the b2 block was played with it. Results: the research note's section "Does
+  the refusal's reason matter? The terse arm".
 - **Four tries** (`AnswerTool.MAX_INVALID_PROPOSALS`), then the fixed legal option, PASS. A decision lost to four
   refusals is the model's error, not a lost answer: `match_review` lists it as PROPOSAL and the harness-decided gate
   does not count it (`proposal_audit.lost_to_refusals`, one rule for both: `answer_via` lost after four invalid

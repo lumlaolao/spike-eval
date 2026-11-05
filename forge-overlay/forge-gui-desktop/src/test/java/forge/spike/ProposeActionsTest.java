@@ -1056,6 +1056,14 @@ public class ProposeActionsTest {
         AnswerTool.TERSE_FOR_TEST = false;
         Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.proposalRecord(calls, "action").contains("error_shown"), "the detailed arm's row moved");
         Assert.assertTrue(AnswerTool.instructions().contains("which rule it breaks"));
+        // The detailed arm's promises, byte for byte as before the terse arm (pr-review of #353): the shared constants
+        // must not move them.
+        Assert.assertTrue(AnswerTool.instructions().contains("If the rules do not allow it now you are told which rule it "
+                + "breaks (timing, cost, zone, target, land drop, control, restriction) and may propose again, up to "),
+                "the PLAYS promise moved");
+        Assert.assertTrue(AnswerTool.instructions().contains("if the rules forbid it you are told which rule it breaks "
+                + "(such as summoning sickness, tapped, defender, flying, menace, a requirement) and may declare again, "),
+                "the COMBAT promise moved");
         Assert.assertTrue(AnswerTool.actionProperty().get("description").getAsString().contains("which rule it breaks"));
         Assert.assertFalse(AnswerTool.protocolVersion().contains("+terse"));
     }
