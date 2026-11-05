@@ -194,8 +194,8 @@ public class ReplayBridgeTest {
         Assert.assertNull(LlmSpikeGui.FORK_HOOK, "the fork hook is left as it was");
     }
 
-    /** The refusal where a game builds its seat from model strings (oneTierPair), before any bridge is made: the fast
-     *  tier's spec is a closed loopback port, so even a bridge built by mistake would send nothing anywhere. */
+    /** The refusal where a game builds its seat from model strings (oneTierPair): the fast tier's spec is never
+     *  contacted, since requireBothTiers runs before LLMBridgeFactory.create makes any bridge. */
     @Test
     public void aSeatWithAReplayOnOneTierIsRefusedWhereItIsBuilt() throws Exception {
         new LineFindingProbeTest().initializeModel();
@@ -440,5 +440,26 @@ public class ReplayBridgeTest {
         LLMBridge b = LlmSpikeGui.LLMBridgeFactory.create("Solver/smart", ReplayBridge.PREFIX + dir.getPath(), "");
         Assert.assertTrue(b instanceof ReplayBridge, String.valueOf(b));
         Assert.assertTrue(b.supportsNativeTools());
+    }
+
+    /** ReplayBridge.RANGES copies the wording AnswerTool writes for an answer's range. If AnswerTool rewords one, ranges()
+     *  would find nothing in the recorded and the live ask alike and the range check would switch off without a test
+     *  going red (simplify review of #365). Each kind is built through AnswerTool itself and must yield one statement
+     *  holding both ends. */
+    @Test
+    public void everyAnswerRangeAnswerToolWritesIsReadWithBothEnds() {
+        Object[][] cases = {
+                {AnswerTool.Spec.many(5, 1, 3), "1", "3"},
+                {AnswerTool.Spec.many(5, 2, 2), "2", null},
+                {AnswerTool.Spec.number(0, 4), "0", "4"},
+                {AnswerTool.Spec.alloc(3, 6), "3", "6"}};
+        for (Object[] c : cases) {
+            AnswerTool.Spec spec = (AnswerTool.Spec) c[0];
+            String line = AnswerTool.instruction(spec, false);
+            List<String> found = ReplayBridge.ranges(new ScriptBridge.Question(line));
+            Assert.assertEquals(found.size(), 1, spec.kind + ": " + line);
+            for (int k = 1; k < 3; k++)
+                if (c[k] != null) Assert.assertTrue(found.get(0).matches(".*\\b" + c[k] + "\\b.*"), found + " in " + line);
+        }
     }
 }
