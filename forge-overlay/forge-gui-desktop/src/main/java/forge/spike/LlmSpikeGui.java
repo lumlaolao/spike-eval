@@ -12592,7 +12592,7 @@ public final class LlmSpikeGui {
                 + ",\"one_tier\":" + PlayerControllerLLM.ONE_TIER
                 + ",\"no_coaching\":" + PlayerControllerLLM.NO_COACHING
                 + ",\"one_chat\":" + ChatSessionBridge.ON
-                + ",\"one_chat_version\":\"" + ChatSessionBridge.VERSION + "\""
+                + ",\"one_chat_version\":\"" + ChatSessionBridge.stamp() + "\""
                 + ",\"turn_chat\":" + (ChatSessionBridge.TURN && !ChatSessionBridge.ON)
                 + ",\"turn_chat_version\":\"" + ChatSessionBridge.TURN_VERSION + "\""
                 // The questions a jev: seat is asked, by DecisionsBridge: per identity, and only for a jev: one, so

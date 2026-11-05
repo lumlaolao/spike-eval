@@ -179,7 +179,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
     for sha, message in commits:
         out += ["commit %s: %s" % (sha[:9], p) for p in commit_problems(message)]
         # The body is the record the gate merges on: a commit pushed after review (#343) is listed like the first. A
-        # merge commit is not a change of its own; a revert is, so it is listed.
+        # merge commit is not a change of its own (pr_commits drops two-parent ones; a "Merge " subject from a caller
+        # without parents is skipped here); a revert is, so it is listed.
         subject = " ".join(message.strip().split("\n", 1)[0].split())
         if subject and not subject.startswith("Merge ") and not any(
                 b == subject or b.startswith(subject + " ") for b in bullets):
@@ -246,16 +247,26 @@ def gh_pr(number):
     commits = []
     for c in gh_pages(path + "/commits"):
         headline, _, rest = c["commit"]["message"].partition("\n")
-        commits.append({"oid": c["sha"], "messageHeadline": headline, "messageBody": rest.strip("\n")})
+        commits.append({"oid": c["sha"], "messageHeadline": headline, "messageBody": rest.strip("\n"),
+                        "parents": len(c.get("parents") or [])})
     return {"title": pull["title"], "body": pull.get("body") or "", "headRefOid": pull["head"]["sha"],
             "state": pull["state"].upper(), "isDraft": bool(pull.get("draft")),
             "files": [{"path": f["filename"]} for f in gh_pages(path + "/files")], "commits": commits}
 
 
 def pr_commits(pr):
-    """(sha, full message) of the PR's commits as GitHub holds them, merges included (the checks skip them by subject)."""
+    """(sha, full message) of the PR's commits as GitHub holds them, merges left out as check-branch leaves them out
+    (`git log --no-merges`): a merge is known by its parents, whatever its subject (#353)."""
     return [(c["oid"], c["messageHeadline"] + ("\n\n" + c["messageBody"] if c.get("messageBody") else ""))
-            for c in pr.get("commits") or []]
+            for c in pr.get("commits") or [] if c.get("parents", 1) < 2]
+
+
+def merge_problems(pr):
+    """A merge is not listed in `## What`, but its message is still published: it may not name a model spec or priced
+    slug (pr-review of #354: a typed merge made on GitHub never meets the commit-msg hook)."""
+    return ["commit %s: %s" % (c["oid"][:9], p) for c in pr.get("commits") or [] if c.get("parents", 1) >= 2
+            for p in identifier_problems((c["messageHeadline"] + "\n" + (c.get("messageBody") or "")).splitlines(),
+                                         "the message")]
 
 
 def skeleton(base):
@@ -332,7 +343,7 @@ def main(argv):
         gate = "--gate" in args
         pr = gh_pr([a for a in args if a != "--gate"][0])
         problems = pr_problems(pr["title"], pr["body"], pr["headRefOid"], [f["path"] for f in pr.get("files") or []],
-                               gate, pr_commits(pr) if gate else ())
+                               gate, pr_commits(pr) if gate else ()) + (merge_problems(pr) if gate else [])
     elif cmd == "new-pr":
         title, body = skeleton(base_ref(args[0] if args else None))
         print(title + "\n\n" + body)

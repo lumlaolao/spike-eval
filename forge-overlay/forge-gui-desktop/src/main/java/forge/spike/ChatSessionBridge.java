@@ -46,7 +46,15 @@ final class ChatSessionBridge implements LLMBridge {
      *  v3 (2026-10-16): a decision answered by a call is kept as its calls, results and reasoning. */
     static final String VERSION = "one-chat-v3";
     static final String TURN_VERSION = "turn-chat-v1";
-    static final int MAX_PAIRS = intEnv("ONE_CHAT_TURNS", 10000);
+    static final int DEFAULT_PAIRS = 10000;
+    static final int MAX_PAIRS = intEnv("ONE_CHAT_TURNS", DEFAULT_PAIRS);
+
+    /** The game line's `one_chat_version`: a cap set below the default changes what a chat seat (ONE_CHAT or TURN_CHAT)
+     *  is carried, so it is part of the stamp (`+turns=N`); unset, or with no chat on, the stamp is {@link #VERSION}. */
+    static String stamp() { return stamp(MAX_PAIRS, ON || TURN); }
+    static String stamp(int pairs, boolean chat) {
+        return pairs == DEFAULT_PAIRS || !chat ? VERSION : VERSION + "+turns=" + pairs;
+    }
     /** Said before the current question whenever there is history. Part of the one-chat prompt bytes. */
     static final String NOTE = "(The earlier messages in this conversation are your own past decisions in this game, "
             + "each shortened to its question and your answer; the states they were asked in are no longer "
