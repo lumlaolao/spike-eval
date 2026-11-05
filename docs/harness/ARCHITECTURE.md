@@ -432,7 +432,7 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
-### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, owner 2026-11-03)
+### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, checker epoch 82, owner 2026-11-03)
 
 The menu makes illegal plays impossible, so the benchmark cannot see whether a model knows the rules. This arm
 removes the menu from the play decision and treats the rules engine as a type checker: the seat proposes a play,
@@ -446,11 +446,30 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   accepted when it names one of its plays, and that play is carried out the usual way (targets, modes, X and costs
   are the usual follow-up asks). Soundness is the menu's: `ProposeActionsTest.everyMenuPlayIsReachableByAProposal`
   builds every menu play's proposal and checks it lands on that play.
+  A land's mana ability is on the menu once per name. A proposed copy that could be activated itself (`playable`)
+  is accepted on that entry, and its own ability takes the entry's place, so the copy proposed is the one tapped:
+  copies differ (Utopia Sprawl on one Forest, an awakened land; `theProposedCopyOfALandIsTheOneTapped`). A tapped
+  copy's ability, or one in the hand, is refused for its rule (cost, zone). Before epoch 82 the other copy's entry
+  was played: an illegal proposal counted legal and tapped another land (PR #359's engine labeller;
+  `aLandsManaAbilityIsRefusedWhenThatLandCannotPayIt`), and a legal one could tap the copy without the aura
+  (pr-review of #360).
 - **A rejection names the rule, never the alternatives** (`proposalRejection`): "ILLEGAL (category): one sentence",
   the first engine check the play fails, in the categories timing, cost, zone, target, land drop, control, type and
   restriction. Kaggle Game Arena says only "illegal"; a list of what would be legal is a hidden menu. A malformed
   proposal (an unknown handle, ability 3 of a card with two, `option` instead of `action`) is a `FORMAT:` error,
   recorded apart.
+  - *The order (epoch 82):* Forge's `canPlay` answers the zone, the timing, the play's own limits and the non-mana
+    cost (`CostPayment.canPayAdditionalCosts`) as one, so the checker asks them apart. An ability: control (its
+    activator rule), a tapped or summoning-sick creature's {T} (cost), split second, the timing when the card is in
+    the ability's zone (sorcery speed, which a loyalty ability always is, CR 606.3; then its own phase or turn), the
+    zone, a sacrifice, exile or discard it cannot pay when every restriction allows it (cost), restriction, then its
+    mana and target. A spell: land (type), on the battlefield or the stack (zone), control (before the face or the
+    cost named; a card an effect lets the seat play, and a graveyard under Shaman's Trance, are exempt), the cost
+    named, split second, timing, the rest of the cost, zone, restriction, then mana and target. Timing comes before
+    zone for a spell, so a sorcery proposed from a graveyard it cannot be cast from, at instant speed, reads as
+    timing. The cost cases pinned: Fling and Eldritch Evolution with no creature, Dread Return's flashback and an
+    Underworld Breach escape short of what they need, Peregrin Took with no Foods. Before, those read as
+    restriction or zone, and a loyalty ability in combat as restriction.
 - **The terse arm** (`PROPOSE_TERSE=1`, with the propose arm only; harness-epoch-80, answer-tool-v17): a rules
   refusal says only "ILLEGAL: that play is not legal now." (an attack or blocks: "that declaration";
   `AnswerTool.shownRefusal`), Game Arena's form, and the preamble and the `action` schema say the seat is told only

@@ -386,8 +386,10 @@ public final class LlmSpikeGui {
      *  repair. Unchanged off it.
      *  Epoch 81 (2026-11-05, answer-tool-v18): the PROPOSE_NOTEBOOK arm, under PROPOSE_ACTIONS only (REFUSED EARLIER;
      *  docs/harness/ARCHITECTURE.md, "The notebook arm"). Unchanged off it.
+     *  Epoch 82 (2026-11-05, PR #359's engine labeller): the PROPOSE_ACTIONS checker's land copies and refusal order
+     *  (docs/harness/ARCHITECTURE.md, "The propose condition"). Unchanged off it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-81";
+    static final String HARNESS_EPOCH = "harness-epoch-82";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -9380,7 +9382,8 @@ public final class LlmSpikeGui {
                     if (p == null) why = "not in YOUR ACTIVATED ABILITIES";
                     else {
                         int[] hit = {-1};
-                        String err = matchProposal(p, options, landPlays, landCards, passIdx, me, ownMain, hit);
+                        // A copy: an accepted proposal of another land's copy takes that menu entry's place.
+                        String err = matchProposal(p, new ArrayList<>(options), landPlays, landCards, passIdx, me, ownMain, hit);
                         SpellAbility got = hit[0] >= 1 && hit[0] <= all.size() ? all.get(hit[0] - 1) : null;
                         // The same play: the same label, or a cast of the same card the same way (a may-play permission
                         // listed twice: Armor of Thorns at sorcery speed, where its sacrifice does not apply, kw27).
@@ -9607,7 +9610,8 @@ public final class LlmSpikeGui {
         /** PROPOSE_ACTIONS: the 1-based menu number {@code pr} names on this decision's hidden menu, in {@code hit[0]}, and
          *  null; or the rejection sent back. The menu is the oracle: a proposal is accepted exactly when it names a play
          *  the menu would have offered, so the golden checks that cover the menu cover this arm. A miss is explained by the
-         *  first engine check the play fails ({@link #proposalRejection}): its rule category, never the legal plays. */
+         *  first engine check the play fails ({@link #proposalRejection}): its rule category, never the legal plays.
+         *  A land's mana proposed from a copy the menu does not list replaces that name's entry in {@code options}. */
         String matchProposal(AnswerTool.Proposal pr, List<SpellAbility> options, List<SpellAbility> landPlays,
                              List<Card> landCards, int passIdx, Player me, boolean ownMain, int[] hit) {
             proposedTarget = null;
@@ -9632,12 +9636,20 @@ public final class LlmSpikeGui {
                     return "FORMAT: " + refOf(c) + " has " + abs.size() + (abs.size() == 1 ? " activated ability" : " activated abilities") + "; there is no ability " + n + ".";
                 SpellAbility want = abs.get(n - 1);
                 for (int i = 0; i < options.size(); i++) if (sameAbility(options.get(i), want, c)) { hit[0] = 1 + i; return withTarget(pr, options.get(i), me, hit); }
-                // A mana ability is on the menu once per card name and ability: another copy's entry stands for this one.
-                if (want.isManaAbility())
+                // A mana ability is on the menu once per card name and ability. Another copy's entry shows the play is
+                // allowed, when this copy could be activated itself (a tapped copy, or one in the hand, is refused for its
+                // own rule), and this copy's ability takes the entry's place: copies differ (an aura such as Utopia
+                // Sprawl, an awakened land), and the copy proposed is the one tapped (pr-review of #360).
+                if (want.isManaAbility() && c.getController() == me && playable(want, me))
                     for (int i = 0; i < options.size(); i++) {
                         SpellAbility o = options.get(i);
                         if (o.isManaAbility() && o.getHostCard() != null && o.getHostCard().getName().equals(c.getName())
-                                && java.util.Objects.equals(o.getDescription(), want.getDescription())) { hit[0] = 1 + i; return withTarget(pr, o, me, hit); }
+                                && java.util.Objects.equals(o.getDescription(), want.getDescription())) {
+                            want.setActivatingPlayer(me);
+                            options.set(i, want);
+                            hit[0] = 1 + i;
+                            return withTarget(pr, want, me, hit);
+                        }
                     }
                 return proposalRejection(pr, c, want, me, ownMain);
             }
@@ -9676,9 +9688,15 @@ public final class LlmSpikeGui {
         String proposalRejection(AnswerTool.Proposal pr, Card c, SpellAbility want, Player me, boolean ownMain) {
             boolean was = PRICING_FOR_SNAPSHOT;
             PRICING_FOR_SNAPSHOT = true;
+            // rejection sets the seat as the activator to ask the engine; the ability keeps the one it had (an
+            // opponent's ability is never left with the seat as its activator).
+            Player activator = want == null ? null : want.getActivatingPlayer();
             try { return rejection(pr, c, want, me, ownMain); }
             catch (Exception e) { return "ILLEGAL (restriction): the rules do not allow this play now."; }
-            finally { PRICING_FOR_SNAPSHOT = was; }
+            finally {
+                PRICING_FOR_SNAPSHOT = was;
+                if (want != null) want.setActivatingPlayer(activator);
+            }
         }
 
         private String rejection(AnswerTool.Proposal pr, Card c, SpellAbility want, Player me, boolean ownMain) {
@@ -9699,9 +9717,13 @@ public final class LlmSpikeGui {
                 return "ILLEGAL (restriction): a rule or an effect does not allow playing " + r + " now.";
             }
             if ("activate".equals(pr.verb)) {
-                if (zone == ZoneType.Battlefield && c.getController() != me) return "ILLEGAL (control): you do not control " + r + ".";
                 SpellAbility sa = want;
                 sa.setActivatingPlayer(me);
+                forge.game.spellability.SpellAbilityRestriction restr = sa.getRestrictions();
+                // Who may activate it (its controller, or its owner outside the battlefield; a few say any player).
+                if (c.getController() != me && (restr == null || !restr.checkActivatorRestrictions(c, sa)))
+                    return zone == ZoneType.Battlefield ? "ILLEGAL (control): you do not control " + r + "."
+                            : "ILLEGAL (control): " + r + " is not yours; only its owner can activate its abilities there.";
                 forge.game.cost.Cost cost = sa.getPayCosts();
                 if (zone == ZoneType.Battlefield && cost != null && cost.hasTapCost()) {
                     if (c.isTapped()) return "ILLEGAL (cost): " + r + " is tapped, and this ability's cost taps it.";
@@ -9710,12 +9732,18 @@ public final class LlmSpikeGui {
                 }
                 if (!sa.isManaAbility() && game.getStack().isSplitSecondOnStack())
                     return "ILLEGAL (timing): a spell with split second is on the stack; only mana abilities can be activated until it resolves.";
-                try {
-                    if (sa.getRestrictions() != null && sa.getRestrictions().isSorcerySpeed() && !me.canCastSorcery())
-                        return "ILLEGAL (timing): this ability is activated only as a sorcery: in your own main phase, with an empty stack.";
-                } catch (Exception ignore) { }
+                // canPlay answers the zone, timing, own limits and non-mana cost as one; asked apart, the category is the
+                // rule broken. canCastTiming is asked without Forge's StaticAbilityCastWithFlash.anyWithFlashNeedsInfo
+                // exemption (a flash grant that depends on a choice): such a play reads as timing, a label only.
+                boolean inZone = restr == null || restr.checkZoneRestrictions(c, sa);
+                if (inZone && !sa.canCastTiming(c, me))
+                    return "ILLEGAL (timing): " + (sa.isPwAbility() ? "a loyalty ability" : "this ability")
+                            + " is activated only as a sorcery: in your own main phase, with an empty stack.";
+                if (inZone && restr != null && !restr.checkTimingRestrictions(c, sa))
+                    return "ILLEGAL (timing): this ability's own timing (a phase or step, or whose turn it is) does not allow it now.";
                 if (!playable(sa, me)) {
-                    if (zone != ZoneType.Battlefield) return "ILLEGAL (zone): this ability cannot be activated while " + r + " is in " + zoneWord + ".";
+                    if (!inZone) return "ILLEGAL (zone): this ability cannot be activated while " + r + " is in " + zoneWord + ".";
+                    if (restrictionsAllow(restr, c, sa) && !canPayRest(sa)) return REST_OF_COST;
                     return "ILLEGAL (restriction): this ability cannot be activated now: its own limits (such as once each turn) or an effect stop it.";
                 }
                 return costOrTarget(sa, r, me, false);
@@ -9724,6 +9752,12 @@ public final class LlmSpikeGui {
             if (c.isLand() && !c.isModal()) return "ILLEGAL (type): " + r + " is a land: it is played with play_land, not cast.";
             if (zone == ZoneType.Battlefield) return "ILLEGAL (zone): " + r + " is on the battlefield; a spell is cast from your hand, or from another zone only when a card allows it.";
             if (zone == ZoneType.Stack) return "ILLEGAL (zone): " + r + " is already on the stack.";
+            // Before the ways to cast it are looked through: an opponent's card is refused for whose it is, not for a
+            // cost or face it lacks. A card an effect lets the seat play (an opponent's card it exiled) is its to cast.
+            // Shaman's Trance makes every graveyard the seat's to cast from (CR 109.5; SpellAbilityRestriction).
+            if (c.getOwner() != me && c.getController() != me && zone != ZoneType.Hand && c.mayPlay(me).isEmpty()
+                    && !(zone == ZoneType.Graveyard && me.hasKeyword("Shaman's Trance")))
+                return "ILLEGAL (control): " + r + " is not yours to cast.";
             SpellAbility sa = null;
             // Every face's spells and their alternative costs. getAllPossibleAbilities is empty outside a window the card
             // could be cast in (Grizzly Bears at combat: ProposeActionsTest), which is exactly when a reason is needed.
@@ -9743,17 +9777,34 @@ public final class LlmSpikeGui {
             // The loop above already looked through every spell and its alternative costs for this name.
             if (pr.cost != null && !costMatches(sa, pr.cost)) return "ILLEGAL (cost): " + r + " cannot be cast for a cost named \"" + pr.cost + "\".";
             sa.setActivatingPlayer(me);
-            if (c.getOwner() != me && c.getController() != me && zone != ZoneType.Hand)
-                return "ILLEGAL (control): " + r + " is not yours to cast.";
             if (game.getStack().isSplitSecondOnStack())
                 return "ILLEGAL (timing): a spell with split second is on the stack; no spell can be cast until it resolves.";
             if (!sa.canCastTiming(c, me))
                 return "ILLEGAL (timing): " + r + " can be cast only when you could cast a sorcery: in your own main phase, with an empty stack.";
             if (!playable(sa, me)) {
+                // Spell.canPlay asks the non-mana cost too: Fling with no creature, Dread Return's flashback short of
+                // three, an escape short of cards to exile break the cost rule, not the zone or a restriction.
+                Card host = sa instanceof forge.game.spellability.Spell
+                        ? java.util.Objects.requireNonNullElse(((forge.game.spellability.Spell) sa).getAlternateHost(c), c) : c;
+                if (restrictionsAllow(sa.getRestrictions(), host, sa) && !canPayRest(sa)) return REST_OF_COST;
                 if (zone != ZoneType.Hand) return "ILLEGAL (zone): " + r + " cannot be cast from " + zoneWord + (pr.cost == null ? " its normal way" : " that way") + ".";
                 return "ILLEGAL (restriction): a rule or an effect does not allow casting " + r + " now.";
             }
             return costOrTarget(sa, r, me, pr.cost != null || castWay(sa) != null);
+        }
+
+        static final String REST_OF_COST =
+                "ILLEGAL (cost): you cannot pay the rest of its cost now (what it taps, sacrifices, discards, exiles or removes).";
+
+        /** The non-mana part of the cost can be paid now (Forge's own check, which canPlay makes too). */
+        private static boolean canPayRest(SpellAbility sa) {
+            return sa.getPayCosts() == null || forge.game.cost.CostPayment.canPayAdditionalCosts(sa.getPayCosts(), sa, false);
+        }
+
+        /** Every rule but the cost allows the play: the zone, the timing and the play's own limits (Forge's
+         *  SpellAbilityRestriction.canPlay, the half of canPlay before the cost). */
+        private static boolean restrictionsAllow(forge.game.spellability.SpellAbilityRestriction restr, Card host, SpellAbility sa) {
+            try { return restr == null || restr.canPlay(host, sa); } catch (Exception e) { return false; }
         }
 
         /** The cost and target checks the play menu makes (offerable), as a rejection. */
@@ -9768,8 +9819,7 @@ public final class LlmSpikeGui {
                 } catch (Exception ignore) { }
                 return "ILLEGAL (cost): you cannot pay its mana cost now" + delta + ".";
             }
-            if (sa.getPayCosts() != null && !forge.game.cost.CostPayment.canPayAdditionalCosts(sa.getPayCosts(), sa, false))
-                return "ILLEGAL (cost): you cannot pay the rest of its cost now (what it taps, sacrifices, discards, exiles or removes).";
+            if (!canPayRest(sa)) return REST_OF_COST;
             if (sa.usesTargeting()) {
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr != null && targetCandidates(sa, tr).size() < sa.getMinTargets())

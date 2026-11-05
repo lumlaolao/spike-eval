@@ -323,6 +323,155 @@ public class ProposeActionsTest {
         Assert.assertTrue(reject(ctrl, me, true, prop("activate", handle(ctrl, sick), 1, null, null)).contains("summoning sickness"));
     }
 
+    /** The menu lists a land's mana ability once per name. A tapped copy's ability, or one in the hand, is not a legal
+     *  play: before, it matched the other Mountain's entry, that Mountain was tapped, and the arm counted the illegal
+     *  proposal as legal (engine labeller of PR #359). An untapped copy is accepted and is the one tapped. */
+    @Test
+    public void aLandsManaAbilityIsRefusedWhenThatLandCannotPayIt() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card untapped = card("Mountain", me, ZoneType.Battlefield);
+        Card tapped = card("Mountain", me, ZoneType.Battlefield);
+        tapped.setTapped(true);
+        Card inHand = card("Mountain", me, ZoneType.Hand);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        assertCategory(verdict(ctrl, me, true, prop("activate", handle(ctrl, tapped), 1, null, null), new int[] {-1}), "cost");
+        assertCategory(verdict(ctrl, me, true, prop("activate", handle(ctrl, inHand), 1, null, null), new int[] {-1}), "zone");
+        int[] hit = {-1};
+        Assert.assertNull(verdict(ctrl, me, true, prop("activate", handle(ctrl, untapped), 1, null, null), hit), "the untapped Mountain's mana");
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        SpellAbility got = po.spells.get(hit[0] - 1);
+        Assert.assertTrue(got.isManaAbility() && got.getHostCard() == untapped, "the untapped Mountain is the one tapped: " + got);
+    }
+
+    /** Two untapped Forests, one enchanted by Utopia Sprawl: the menu lists one Forest's mana, the first. The proposed
+     *  copy is the one tapped, so the Sprawl's extra mana comes too; tapping the other copy for it cost the seat a mana
+     *  (pr-review of #360). */
+    @Test
+    public void theProposedCopyOfALandIsTheOneTapped() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card plain = card("Forest", me, ZoneType.Battlefield);
+        Card sprawled = card("Forest", me, ZoneType.Battlefield);
+        Card sprawl = card("Utopia Sprawl", me, ZoneType.Battlefield);
+        sprawl.setChosenColors(List.of("green"));
+        sprawl.attachToEntity(sprawled, null, true);
+        g.getTriggerHandler().resetActiveTriggers();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        int passIdx = 1 + po.spells.size() + po.landPlays.size();
+        int[] hit = {-1};
+        Assert.assertNull(ctrl.matchProposal(prop("activate", handle(ctrl, sprawled), 1, null, null), po.spells, po.landPlays,
+                po.landCards, passIdx, me, true, hit));
+        SpellAbility got = po.spells.get(hit[0] - 1);
+        Assert.assertSame(got.getHostCard(), sprawled, "the other Forest would be tapped: " + got);
+        got.setActivatingPlayer(me);
+        ctrl.playSpellAbilityNoStack(got, true);
+        Assert.assertTrue(sprawled.isTapped() && !plain.isTapped(), "the proposed Forest is the one tapped");
+        Assert.assertEquals(me.getManaPool().totalMana(), 2, "the Forest's mana and the Sprawl's");
+    }
+
+    /** Forge's canPlay already asks whether the non-mana part of the cost can be paid (CostPayment.canPayAdditionalCosts),
+     *  so a sacrifice, exile or discard cost the seat cannot pay is the cost rule, not a restriction or the zone. */
+    @Test
+    public void aSacrificeOrExileCostThatCannotBePaidBreaksCost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 2; i++) card("Mountain", me, ZoneType.Battlefield);
+        for (int i = 0; i < 3; i++) card("Forest", me, ZoneType.Battlefield);
+        Card fling = card("Fling", me, ZoneType.Hand);
+        Card evolution = card("Eldritch Evolution", me, ZoneType.Hand);
+        Card dread = card("Dread Return", me, ZoneType.Graveyard);
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        AnswerTool.Proposal p = prop("cast", handle(ctrl, fling), null, null, null);
+        p.targets = List.of("opponent");
+        assertCategory(verdict(ctrl, me, true, p, new int[] {-1}), "cost");
+        assertCategory(verdict(ctrl, me, true, prop("cast", handle(ctrl, evolution), null, null, null), new int[] {-1}), "cost");
+        // Dread Return's flashback sacrifices three creatures; the seat controls one.
+        Card took = card("Peregrin Took", me, ZoneType.Battlefield);
+        assertCategory(verdict(ctrl, me, true, prop("cast", handle(ctrl, dread), null, null, "Flashback"), new int[] {-1}), "cost");
+        // Peregrin Took's ability sacrifices three Foods; the seat has none.
+        assertCategory(verdict(ctrl, me, true, prop("activate", handle(ctrl, took), 1, null, null), new int[] {-1}), "cost");
+    }
+
+    /** Underworld Breach's escape exiles three other cards from the graveyard: with two there, the cost rule. */
+    @Test
+    public void anEscapeShortOfCardsToExileBreaksCost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 2; i++) card("Mountain", me, ZoneType.Battlefield);
+        card("Underworld Breach", me, ZoneType.Battlefield);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Graveyard);
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        card("Forest", me, ZoneType.Graveyard);
+        g.getAction().checkStaticAbilities();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        AnswerTool.Proposal p = prop("cast", handle(ctrl, bolt), null, null, "Escape");
+        p.targets = List.of("opponent");
+        assertCategory(verdict(ctrl, me, true, p, new int[] {-1}), "cost");
+        card("Island", me, ZoneType.Graveyard);
+        g.getAction().checkStaticAbilities();
+        Assert.assertNull(verdict(ctrl, me, true, p, new int[] {-1}), "with three other cards the escape is legal");
+    }
+
+    /** A loyalty ability is activated only as a sorcery (CR 606.3): in combat it is the timing rule, not a restriction. */
+    @Test
+    public void aLoyaltyAbilityInCombatBreaksTiming() {
+        Game g = bareGame(PhaseType.COMBAT_BEGIN);
+        Player me = g.getPlayers().get(0);
+        Card jace = card("Jace Beleren", me, ZoneType.Battlefield);
+        jace.addCounterInternal(forge.game.card.CounterEnumType.LOYALTY, 3, me, false, null, null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        assertCategory(verdict(ctrl, me, false, prop("activate", handle(ctrl, jace), 1, null, null), new int[] {-1}), "timing");
+    }
+
+    /** A card in the opponent's graveyard is not the seat's: the control rule, before the zone, a cost name or the
+     *  ability's own checks (before, the skeleton's was "zone" and a flashback named wrongly "cost"). */
+    @Test
+    public void anOpponentsCardBreaksControlFirst() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+        Card skeleton = card("Reassembling Skeleton", rival, ZoneType.Graveyard);
+        Card looting = card("Faithless Looting", rival, ZoneType.Graveyard);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        assertCategory(verdict(ctrl, me, true, prop("activate", handle(ctrl, skeleton), 1, null, null), new int[] {-1}), "control");
+        assertCategory(verdict(ctrl, me, true, prop("cast", handle(ctrl, looting), null, null, "flash"), new int[] {-1}), "control");
+        // Checking an opponent's ability leaves its activator as it was (pr-review of #360). The menu's enumeration
+        // (Forge's getSpellAbilities over every available card) sets it on its own, so it runs first here.
+        Card pyro = card("Prodigal Pyromancer", rival, ZoneType.Battlefield);
+        int h = handle(ctrl, pyro);
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        SpellAbility ping = LlmSpikeGui.PlayerControllerLLM.proposalAbilities(pyro).get(0);
+        ping.setActivatingPlayer(rival);
+        assertCategory(ctrl.matchProposal(prop("activate", h, 1, null, null), po.spells, po.landPlays, po.landCards,
+                1 + po.spells.size() + po.landPlays.size(), me, true, new int[] {-1}), "control");
+        Assert.assertSame(ping.getActivatingPlayer(), rival, "the seat was left as the opponent's activator");
+    }
+
+    /** Off the propose arm the checker is never reached: the seat picks from the menu, the menu's first play is made,
+     *  and nothing is refused, in the positions the checker's fixes touch. */
+    @Test
+    public void offTheArmThePlayIsTheMenusAndNothingIsRefused() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Battlefield).setTapped(true);
+        card("Mountain", me, ZoneType.Hand);
+        card("Fling", me, ZoneType.Hand);
+        ProposalModel model = new ProposalModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        List<SpellAbility> played = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(model.plays, 0, "a proposal was asked off the arm");
+        Assert.assertFalse(model.results.stream().anyMatch(r -> r.contains("ILLEGAL")), String.valueOf(model.results));
+        Assert.assertNotNull(played, "option 1 is a play");
+        SpellAbility first = po.spells.isEmpty() ? po.landPlays.get(0) : po.spells.get(0);
+        Assert.assertEquals(played.get(0).getHostCard(), first.getHostCard(), "the menu's first play was made");
+    }
+
     @Test
     public void aSpellWithNoLegalTargetBreaksTarget() {
         Game g = bareGame(PhaseType.MAIN1);
