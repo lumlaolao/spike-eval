@@ -63,7 +63,7 @@ CLI's own count, `usage.output_tokens_details.thinking_tokens`. All 24 runs retu
 
 **Shows:** `MAX_THINKING_TOKENS`, which `--claude-cli-thinking-tokens` sets, does not cap Haiku 5.5's thinking through
 this CLI: a budget of 1024 thought 6,091 to 15,805 tokens, and its two settings have the same mean. `--effort` separates
-only at the top: max thought about 3.7x what low did; low, high and the default overlap run to run.
+only at the top: max thought about 3.8x what low did; low, high and the default overlap run to run.
 
 **A deviation, recorded:** the design (section 3) was written from a first probe of the same settings whose per-run
 results were not kept (it estimated thinking as output tokens less the reply's characters / 4, and read max as 3.4x
@@ -200,7 +200,8 @@ three boards, which is the replicate the design expected.
 
 ### 4.3 Compute: the match was not what the probe predicted
 
-From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[end]` lines). The first two rows cover all three boards; B has no splice row, so the last three rows compare the arms on the two storm boards alone:
+From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[end]` lines). B has no splice
+row, so the last three rows compare the arms on the two storm boards alone:
 
 | arm | attempts | per attempt: model calls | completion tokens | model minutes | per solve: completion tokens |
 |---|---|---|---|---|---|
@@ -212,12 +213,12 @@ From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[
 
 **Shows:** on the storm boards one max-effort attempt spent 255K to 274K completion tokens. Three low-effort attempts
 on the same board spent 84K to 89K in all. So B cost about three times C's whole budget, not the same.
-- The probe's 3.7x (section 2) measured one short prompt. On the same storm boards, max effort spent 9 to 11
+- The probe's 3.8x (section 2) measured one short prompt. On the same storm boards, max effort spent 9 to 11
   times A's completion tokens per attempt (255K to 274K against 24K to 31K).
 - Model time per call grew about 4x on the storm boards (medians 21-27 s against 5-6 s).
 
-A compute-matched design on this lane would not use `high`, which thought about as much as low in the probe (1.2x, inside
-the run-to-run spread); it would give C about k=7 (264,212 / 36,967, all boards) to k=9 (264,212 / 28,794, storm
+A compute-matched design on this lane would not use `high`, which thought about as much as low in the probe (1.2x,
+inside the run-to-run spread); it would give C about k=7 (264,212 / 36,967, all boards) to k=9 (264,212 / 28,794, storm
 boards).
 
 ---
@@ -229,8 +230,8 @@ boards).
   by hand.
 - **Effort max on hard boards.** Whether max effort solves splice-06da is not known: its game was stopped by hand
   after the deadline restarted three of its decisions.
-- **Compute match.** Effort max does not match k=3 at effort low in compute; it costs about 3x more. `high` thought about
-  as much as low in the probe, so it is not a middle setting on this model; it was not measured in games.
+- **Compute match.** Effort max does not match k=3 at effort low in compute; it costs about 3x more. `high` thought
+  about as much as low in the probe, so it is not a middle setting on this model; it was not measured in games.
 - **Families.** The run covered storm and splice only; ping, fling, drain and elf were not reached.
 - **`MAX_THINKING_TOKENS`.** Why it does not cap this model's thinking through the CLI (section 2) was not traced.
   The probe shows the effect only: a budget of 1024 thought up to 15,805 tokens.
