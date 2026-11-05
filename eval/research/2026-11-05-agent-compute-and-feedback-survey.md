@@ -2,8 +2,8 @@
 
 **Verification (2026-11-05).** 33 sources were checked with WebFetch and WebSearch: 32 were read and 1 could not be read
 (the Moonlight PTCG-Bench review, HTTP 429). 25 were corrected (wrong author lists, titles, ids, numbers or
-attributions, or claims reworded to what the page says), and 1 was removed (the Moonlight review, unreadable). Two
-claims that rested only on sources that do not state them were removed: the Kaggle Game Arena retry-then-forfeit rule
+attributions, or claims reworded to what the page says), and 1 was removed (the Moonlight review, unreadable). One
+claim that rested only on sources that do not state it was removed: the Kaggle Game Arena retry-then-forfeit rule
 (chess.com and Decrypt state no illegal-move rule). PTCG-Bench's masking result is read from the paper's full HTML
 text. Every other arXiv claim is abstract-only: no other full paper was read, so no other ablation, table or figure is
 quoted.
@@ -126,8 +126,8 @@ predicting the result of a move) beat sampling more candidates, or searching a t
    GPT-style model predicts legal Othello moves with no prior knowledge of the game, and the abstract reports an
    emergent nonlinear internal representation of the board state. Interventions on that representation can control the
    model's output. It is about internal state, not search, but it is the standard reference for checking whether a
-   planner's world model is actually tracked. (unverified: the linear-versus-nonlinear probe comparison in earlier
-   drafts; the abstract does not give it.)
+   planner's world model is actually tracked. (unverified: any linear-versus-nonlinear probe comparison; the abstract
+   does not give one.)
 
 **Finding for this harness.** The engine's preview is an exact world model on public state; hidden cards are resampled
 (the simulate copy shuffles every library and re-deals the opponent's hand: docs/harness/ARCHITECTURE.md). RAP's world
@@ -232,9 +232,8 @@ score the question the harness asks: whether a refusal text changes the next dec
    Wee Sun Lee, Natasha Jaques. arXiv:2506.24119 (first submitted 30 Jun 2025); accepted at ICLR 2026 per the arXiv
    comments. https://arxiv.org/abs/2506.24119 [abstract]. Multi-turn, zero-sum self-play against continuously improving
    versions of the model. Multi-game training on TicTacToe, Kuhn Poker and Simple Negotiation "yields the strongest
-   results". The authors propose role-conditioned advantage estimation "to stabilize multi-agent training". (The earlier
-   draft's Qwen3-4B gains are not in the abstract, which names Qwen and Llama families and DeepSeek-R1-Distill-Qwen-7B;
-   they are removed.)
+   results". The authors propose role-conditioned advantage estimation "to stabilize multi-agent training". The
+   abstract names the Qwen and Llama families and DeepSeek-R1-Distill-Qwen-7B and gives no per-model gains.
 
 3. **TextArena.** Leon Guertler, Bobby Cheng, Simon Yu, Bo Liu, Leshem Choshen, Cheston Tan. arXiv:2504.11442 (first
    submitted 15 Apr 2025). https://arxiv.org/abs/2504.11442 [abstract]. "57+ unique environments" spanning
@@ -289,7 +288,7 @@ sets or counterfactual boards?
    Ning, Sameer Singh, Noah A. Smith, Sanjay Subramanian, Reut Tsarfaty, Eric Wallace, Ally Zhang, Ben Zhou.
    arXiv:2004.02709 (first submitted 6 Apr 2020). https://arxiv.org/abs/2004.02709 [abstract]. The authors manually
    perturb test instances "in small but meaningful ways that (typically) change the gold label". Model performance is
-   "significantly lower" on the contrast sets, "up to 25%" in some cases (the earlier "25 points" is corrected to 25%).
+   "significantly lower" on the contrast sets, "up to 25%" in some cases.
    (unverified: the Findings of EMNLP 2020 venue; the consistency metric, which the abstract does not mention.)
 
 3. **Emergent World Models and Latent Variable Estimation in Chess-Playing Language Models.** Adam Karvonen.
@@ -337,8 +336,8 @@ of about 100 cards.
 
 **E2. Repeat-refusal rate in the existing logs (no new games): done.** See
 `eval/research/2026-11-03-propose-condition-prior-work.md`, "Repeated refusals in every propose log on disk": no refused
-play was resent within its decision in any run; across decisions the repeat rate differed between builds on shared
-puzzles (cause untested). The shuffled refusal-to-decision floor proposed here is not yet computed.
+play was resent within its decision in any run; across decisions refused plays recurred in some runs, and whether
+the puzzle set or the build drives that is not determined. The shuffled refusal-to-decision floor proposed here is not yet computed.
 
 **E3. Compute-matched lookahead vs best-of-N vs LATS-style search on puzzles.**
 - Hypothesis (from Snell and LATS, extrapolated to this setting; neither source tests puzzles): at a fixed token budget,
@@ -409,8 +408,7 @@ shuffled floor is the open item.
 - The BALROG, Mind2Web and AgentBench illegal-action rates were searched for and not found. The BALROG hits were on the
   benchmark's design only.
 - None of the Q1 ablation numbers, the Q3 figures from full papers other than PTCG-Bench's Table 2, or the Q5 probe
-  results were available. Read the PDFs before any claim
-  goes into a paper or a results table.
+  results were available. Read the PDFs before any claim goes into a paper or a results table.
 - The Kaggle Game Arena rules are not documented in any source I could read.
 
 ---

@@ -487,11 +487,12 @@ The two b2 rows are the b2 block above, one row per arm.
   1 of 5 distinct refused actions, and 0 of 10 in e75-haiku-hard-propose. There is no floor yet: a card that stays in
   hand can be proposed again with no feedback effect at all; the survey's E2 floor (refusals re-paired with decisions at
   random) is not computed.
-- **Not the puzzle set.** All ten of e75-haiku-hard-propose's refused actions are on puzzles b2 also played (eight of
-  its twelve puzzles are b2's); on those puzzles b2-detailed refused 3 of 6 again and e75 0 of 10. b2-detailed's five
-  come from fling-0a55 (1), ping-1734 (2), splice-0551 (1) and splice-06da (1), none from the storm puzzles; the only
-  storm repeats are in smoke-64dc1f33-terse (storm-5bf9 2 of 2, storm-88f9 1 of 3). The difference follows the build
-  (e75 at harness-epoch-75, b2 on overlay 187b31cea8dd); that it is the build and not chance is a hypothesis, untested.
+- **Puzzle set or build: not determined.** All ten of e75-haiku-hard-propose's refused actions are on puzzles b2 also
+  played (eight of its twelve puzzles are b2's); on those puzzles e75 refused 0 of 10 again and b2-detailed 3 of 6.
+  b2-detailed's five come from fling-0a55 (1), ping-1734 (2), splice-0551 (1) and splice-06da (1), none from the storm
+  puzzles; the only storm repeats are in smoke-64dc1f33-terse (storm-5bf9 2 of 2, storm-88f9 1 of 3). The two blocks
+  differ in build and epoch (e75 at harness-epoch-75, b2 on overlay 187b31cea8dd) and the tries cluster, so they are
+  not compared; a block on one build over these puzzles would settle it.
 - A block that tests a notebook of earlier refusals (E1 of
   `eval/research/2026-11-05-agent-compute-and-feedback-survey.md`) should hold the build fixed and compare arms on the
   same puzzles, with the shuffled floor beside it.
