@@ -442,7 +442,7 @@ class TestScoring(unittest.TestCase):
         self.assertIn(other["id"], [i["id"] for i in pool])
         self.assertNotIn(mana["id"], [i["id"] for i in pool])
         self.assertEqual(rp.floor_report(items)[0]["positions"], len(pool))
-        self.assertEqual({i["id"] for i in rp.balance(items, 100, 1)} <= {i["id"] for i in pool}, True)
+        self.assertTrue({i["id"] for i in rp.balance(items, 100, 1)} <= {i["id"] for i in pool})
 
     def test_a_pilot_is_scored_on_the_items_the_current_miner_reproduces(self):
         # Matched by file, row, verb and handle: the same label, and a name that is a name (the first miner glued a
@@ -521,7 +521,7 @@ class TestAsk(unittest.TestCase):
                                  ({"legal": False, "category": "timing"}, "claude-cli:claude-haiku-5-5", 0.001))
 
     def test_the_kept_environment_lists_equal_the_cli_bridges(self):
-        java = (Path(__file__).resolve().parents[2] / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+        java = (evalpath.REPO / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
                 / "ClaudeCliBridge.java").read_text(encoding="utf-8")
 
         def strings(name, end):
