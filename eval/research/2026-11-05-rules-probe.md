@@ -8,12 +8,13 @@ of the engine labeller the prototype does not have.
 
 **Answer: build it, but as a diagnostic beside PUZ and the propose arm, never as a headline score, and only with the
 engine labeller (section 6).** The legal/illegal label is exact and free. The negatives mined from recorded rows are
-mostly trivial: a state-reading heuristic with three rules scores 0.80 balanced accuracy on them. Of the 57,193 illegal
-positions, 3,025 (5.3%) are subtle, and the categories of mined negatives can only be inferred. Haiku 5.5 scored
-0.958 on a 48-item pilot against a floor of 0.68, 10 of 10 on the subtle items: the mined items separate a model
-from the floor, not strong models from each other. The value is in negatives built on purpose and labelled by the
-engine with its category, sorted by a difficulty that a floor checks, and the label is only as exact as the miner
-that reads the menu (the pilot found 5 wrong labels in 60, now fixed). Section 8 says what was not determined.
+mostly trivial: a state-reading heuristic with three rules scores 0.80 balanced accuracy on them. Of 55,878 illegal
+positions, 3,012 (5.4%) are subtle, and the categories of mined negatives can only be inferred. Haiku 5.5 scored
+accuracy 0.944 (Wilson 95% 0.85-0.98) on 54 pilot items against the floor's 0.70 (0.57-0.81), 10 of 10 on the subtle
+items: the mined items separate a model from the floor, not strong models from each other. The value is in negatives
+built on purpose and labelled by the engine with its category, sorted by a difficulty that a floor checks, and the
+label is only as exact as the miner that reads the menu (the pilot found 5 wrong items in 60, Wilson 95% 4%-18%, now
+fixed). Section 8 says what was not determined.
 
 **Shows** means a source or a run reports it directly; **Inference** is my reading.
 
@@ -80,44 +81,55 @@ that reads the menu (the pilot found 5 wrong labels in 60, now fixed). Section 8
 
 ## 2. The data the repository already holds
 
-Mined with `python3 eval/rules_probe.py mine <run dirs> --out <items>.jsonl` (FORGE_HOME=/root/forge for card types)
-over the main checkout's `runs/propose`, `runs/demo` and `runs/puzzles` (read only), then
-`python3 eval/rules_probe.py stats <items>.jsonl`. 1,606 game files, 453 distinct puzzles. Every number below is from
-the final miner (the one committed); section 4 says how the first version's label errors were found.
+Every number in this section comes from the committed miner and two commands, run in this worktree:
+
+```
+FORGE_HOME=/root/forge python3 eval/rules_probe.py mine /home/user/mtg-forge-llm-agent/runs/propose \
+    /home/user/mtg-forge-llm-agent/runs/demo /home/user/mtg-forge-llm-agent/runs/puzzles \
+    --out runs/rules-probe/items-all.jsonl
+python3 eval/rules_probe.py stats runs/rules-probe/items-all.jsonl --floor
+```
+
+The three run directories (the main checkout's, read only) hold 13,399 `game-*.jsonl` files; 1,599 of them (453
+distinct puzzles) contain a play or target row that yields an item. `runs/rules-probe/` is this worktree's
+(git-ignored) copy of the output.
 
 | | count | how |
 |---|---|---|
-| items (state, play, label) | 197,253 | every non-pass menu play (legal), every hand card the menu could not cast or play (illegal), every board permanent a target ask left out (illegal), every refused proposal; exact duplicates removed |
-| distinct prompt states | 33,875 | sha256 of the state text |
-| distinct positions | 143,391 | `position_key`: the state without handles, plan, history and log; two attempts at one puzzle collapse |
-| legal / illegal | 110,472 / 86,781 | 20,787 of the legal are mana abilities (`[{T}: Add ...]`), left out by `balance` |
-| play / target items | 161,194 / 36,059 | |
-| illegal positions | 57,193 | over 500 card names |
+| items (state, play, label) | 189,613 | every non-pass menu play (legal), every hand card the menu could not cast or play (illegal), every board permanent a first-choice target ask left out (illegal), every refused proposal; exact duplicates removed |
+| distinct prompt states | 32,895 | sha256 of the state text |
+| distinct positions | 139,680 | `position_key`: the state without handles, plan, history and log; two attempts at one puzzle collapse |
+| legal / illegal | 106,012 / 83,601 | 20,721 of the legal are mana abilities (`[{T}: Add ...]`), left out by `balance` and the floor |
+| play / target items | 160,556 / 29,057 | |
+| illegal positions | 55,879 | over 495 card names |
 | engine-verdict negatives | 10 | the only proposals the propose arm refused (section 2.2) |
 
-By source: puzzles 170,854 items, propose runs 25,131 (the keyword-gauntlet audit games and the Haiku pilots), demo
-1,268. Epochs: harness-epoch-70 139,131, 72 26,505, 74 22,246, 75 2,885, 71 708, unknown 5,778 (demo games without a
+By source: puzzles 163,597 items, propose runs 24,779 (the keyword-gauntlet audit games and the Haiku pilots), demo
+1,237. Epochs: harness-epoch-70 133,650, 72 25,135, 74 21,924, 75 2,855, 71 708, unknown 5,341 (demo games without a
 game line). The rows do not carry the Forge commit (`engine_sha` is "unknown" on the game lines read), so every item
 carries the repository's `FORGE_COMMIT` at mining with `engine_pin_source: "repo-FORGE_COMMIT-at-mining"`.
 
 ### 2.1 Rule-category balance and difficulty of the negatives
 
-Counted over distinct positions (`balance --per-cell 1000000`, which keeps one item per position; the first item of
-each position is counted):
+`stats` field `illegal_positions_by_cell` (one item per position, the first mined; 55,878 positions, one fewer than
+`illegal_positions` because one position's first item is legal):
 
 | kind / category (source) / difficulty | positions |
 |---|---|
 | play / timing (inferred) / trivial | 29,284 |
-| target / target (engine) / trivial | 13,877 |
+| target / target (engine) / trivial | 12,577 |
 | play / cost (inferred) / trivial | 9,768 |
 | play / cost (inferred) / subtle | 2,227 |
-| play / unknown (inferred) / trivial or none | 722 |
 | play / restriction-or-target (inferred) / subtle | 524 |
 | play / land drop (inferred) / trivial | 485 |
-| play / timing-or-restriction, timing-or-cost (inferred) / subtle | 204 |
-| target / target (engine) / subtle | 70 |
+| play / unknown (inferred) / none | 374 |
+| play / unknown (inferred) / trivial | 348 |
+| play / timing-or-restriction (inferred) / subtle | 114 |
+| play / timing-or-cost (inferred) / subtle | 90 |
+| target / target (engine) / subtle | 57 |
 | play / timing-or-cost (inferred) / trivial | 20 |
-| play / timing, cost (engine) | 10 |
+| play / timing (engine) | 5 |
+| play / cost (engine) | 5 |
 
 How a category is inferred (`_infer_cast`, in Forge's order of checks): a card script says the card is neither an
 instant nor has flash and the window is not a sorcery window -> timing; else the hand's affordability tag says
@@ -128,14 +140,19 @@ permanent of a kind (land, creature, other) the target ask offered none of (a cr
 "Subtle" means it does not: a colour shortfall with enough total mana, a payable card the engine still refuses in a
 sorcery window, a creature refused where another creature was a legal target.
 
-- **The balance is poor**: timing and target make 75% of illegal positions (43,161 of 57,193); zone, control and
-  type never occur (a menu never lists a card in the wrong zone, so its absence cannot make one); restriction appears
+What is left out on purpose, because the absence is the harness's and not the engine's: a second copy of a land the
+menu offers (it lists one PLAY LAND a land name), a card chosen earlier in the same priority window (a play that
+failed to pay is not offered again there, `failedInWindow`), and a target ask an earlier choice of the same play
+narrowed (X announced, a second or "another" target, a sacrifice in the text).
+
+- **The balance is poor**: timing and target make 75% of illegal positions (41,861 of the 55,878 in the table);
+  zone, control and type never occur (a menu never lists a card in the wrong zone, so its absence cannot make one); restriction appears
   only inside "-or-" categories.
-- **Subtle negatives are 3,885 items, 3,025 positions (5.3% of illegal positions), over 200 card names.** Most come
-  from the keyword gauntlet's random-policy games (1,889 of the subtle positions are from `runs/propose`, whose audit
-  games draw 552 cards); the generated hard-puzzle families give few (grave 365, landfall 325, copy 237).
-- **Target negatives are mostly a type mismatch**: 13,877 of 13,947 target positions are trivial; only 10 of the
-  subtle 70 show a keyword (hexproof, shroud, protection, ward) on the board line.
+- **Subtle negatives are 3,012 positions (5.4% of the 55,878)**; 52,482 (93.9%) are trivial and 384 have no
+  difficulty (category unknown or an engine verdict). `stats` field `subtle_positions_by_source`: 1,879 come from the
+  keyword gauntlet's random-policy games in `runs/propose` (552 cards); the generated hard-puzzle families give few
+  (grave 365, landfall 325, copy 237).
+- **Target negatives are mostly a type mismatch**: 12,577 of 12,634 target positions are trivial.
 
 ### 2.2 Negatives the models made themselves
 
@@ -143,90 +160,103 @@ sorcery window, a creature refused where another creature was a legal target.
 haiku-rules-propose-v2, e75-haiku-rules-propose, e75-haiku-hard-propose): 468 proposals, 44 format errors, 10
 refused. The 10: Lava Spike, Rite of Flame and Gitaxian Probe at the wrong time (timing 5), and cost names a card
 does not have (Flashback on Desperate Ritual, Spectacle on Glacial Ray, "alternative" for Mutagenic Growth; cost 5),
-all from `runs/propose/e75-haiku-hard-propose`. **Natural negatives are 2.4% of well-formed proposals** (10 of 424):
-a set made of the plays models actually get wrong would take thousands of propose decisions per hundred items. They
-are the most valuable items (a real model's real mistake, with the engine's category and sentence) and should be
-kept whenever a propose run makes them.
+all from `runs/propose/e75-haiku-hard-propose`. **Natural negatives are 2.4% of well-formed proposals** (10 of 424,
+the refusal rate of first and later tries together; Wilson 95% 1.3%-4.3%): a set made of the plays models actually
+get wrong would take thousands of propose decisions per hundred items. They are the most valuable items (a real
+model's real mistake, with the engine's category and sentence) and should be kept whenever a propose run makes them.
 
 ### 2.3 The trivial floor
 
 `rules_probe.heuristic` reads the state only: a land needs a sorcery window and an unused land drop; a card whose mana
 value exceeds the mana available, or a creature (a P/T in the hand line) outside a sorcery window, is illegal; a land
-is not a legal target; everything else is legal. On every distinct position (114,382 items after `balance`, equal
-legal and illegal), counted by a scratch script over `rules_probe.heuristic`:
+is not a legal target; everything else is legal. `stats --floor` scores it over one item per position, mana abilities
+left out (120,834 positions):
 
-| | items | floor calls illegal |
+| stratum | positions | floor right |
 |---|---|---|
-| balanced accuracy | 114,382 | **0.801** (recall legal 0.980, illegal 0.622) |
-| play, trivial negatives | 39,906 | 75.3% |
-| play, subtle negatives | 2,955 | 2.4% |
-| target, trivial negatives | 13,877 | 39.1% |
-| target, subtle negatives | 70 | 5.7% |
+| balanced accuracy, all | 120,834 | **0.801** (recall legal 0.979, illegal 0.622) |
+| legal play | 61,604 | 97.8% |
+| legal target | 3,352 | 99.1% |
+| illegal play, trivial | 39,905 | 75.3% |
+| illegal play, subtle | 2,955 | 2.4% |
+| illegal target, trivial | 12,577 | 36.7% |
+| illegal target, subtle | 57 | 1.8% |
 
 **A set drawn from the mined distribution has a floor of 0.80**, so a model at 0.85 would know almost nothing beyond
-reading mana and phase. The subtle stratum's floor is near 0.5 (it calls 2.4% of them illegal, and 98% of legal items
-legal), which is where a score would mean something.
+reading mana and phase. On the subtle strata the floor is right on about 2% of negatives against about 98% of legal
+items, so its balanced accuracy there is near 0.5, which is where a score would mean something.
 
 ## 3. The prototype: `eval/rules_probe.py`
 
-Stdlib, tested by `eval/tests/test_rules_probe.py` (28 tests, written first from recorded rows; two were checked by
-breaking the code: removing the hand-tag stripping and the "(was @N)" handling each turns one test red).
+Stdlib, tested by `eval/tests/test_rules_probe.py` (34 tests, written first from recorded rows and each seen red
+before the code that passes it; removing the hand-tag stripping or the "(was @N)" handling also turns a test red).
 
-- **Item** (`rules-probe-item-v1`): `state` (the recorded prompt up to its DECISION line, hand legality tags removed),
-  `proposal` (`verb` cast / play_land / activate / target, `card` handle, `name`, and for a target its `source` and
-  `source_text`), `label`, `label_source` (menu, menu-absence, engine-verdict), `category`, `category_source` (engine
-  or inferred), `reason` (the engine's sentence, for engine verdicts), `difficulty`, `id` (sha256 of state and
-  proposal), `provenance` (`harness_epoch`, `observation_version`, `overlay_sha`, `engine_pin`, `engine_pin_source`,
-  `source_run`, `source_file`, `row`, `puzzle`, `propose_actions`). A written set stores each state once.
-- **Commands**: `mine`, `stats`, `balance` (one item per position, at most N per kind/category/difficulty cell, as
-  many legal as illegal), `ask` (the Claude CLI development lane: refuses without `CLAUDE_CLI_SEAT=1`, refuses Opus),
-  `score` (accuracy with its Wilson interval, balanced accuracy, recall per class, the always-legal and the
-  state-reading floors on the same items, category accuracy on engine-categorised items only).
-- **Why the state is cut at DECISION and the tags removed**: the menu and the hand's "(castable)" / "(need 1 more R)"
-  tags are the engine's answer (`LlmSpikeGui.affordability`, `AskContract.HAND_TAG`); the test
-  `test_the_state_given_to_a_model_carries_no_legality_tag_and_no_menu` pins it.
+- **Item** (`rules-probe-item-v1`): `state` (the recorded prompt up to its DECISION line, hand legality tags, the
+  seat's plan and its last play's note removed), `proposal` (`verb` cast / play_land / activate / target, `card`
+  handle, `name`, and for a target its `source` and `source_text`), `label`, `label_source` (menu, menu-absence,
+  engine-verdict), `category`, `category_source` (engine or inferred), `reason` (the engine's sentence, for engine
+  verdicts), `difficulty`, `id` (sha256 of state and proposal), `provenance` (`harness_epoch`, `observation_version`,
+  `overlay_sha`, `engine_pin`, `engine_pin_source`, `source_run`, `source_file`, `row`, `puzzle`, `propose_actions`).
+  A written set stores each state once.
+- **Commands**: `mine`, `stats` (`--floor` adds the floor per stratum), `balance` (one item per position, at most N
+  per kind/category/difficulty cell, as many legal as illegal), `ask` (the Claude CLI development lane: a
+  `claude-cli:<model>` spec of a listed Haiku or Sonnet model, refused without `CLAUDE_CLI_SEAT=1`
+  (`cost_report.cli_opt_in_refusal`); the child gets the allow-listed environment of `ClaudeCliBridge.childEnv`, so
+  an API key or a cloud provider's switch never reaches it unless `CLAUDE_CLI_ALLOW_API_KEY=1`), and `score`
+  (accuracy with its Wilson interval, balanced accuracy, recall per class, the always-legal and the state-reading
+  floors on the same items, category accuracy on engine-categorised items only).
+- **Why the state is cut at DECISION and the tags and notes removed**: the menu and the hand's "(castable)" /
+  "(need 1 more R)" tags are the engine's answer (`LlmSpikeGui.affordability`, `AskContract.HAND_TAG`), and 17 of the
+  mined states quoted the seat's plan or its last play, which can name the answer.
 - **The labels' soundness rests on two harness properties**: the play menu lists every legal play (owner rule; "a
   legal action is never hidden"), and the target list lists every legal target. Both hold for what the engine can
-  do, but **not for how the menu writes it**: the menu lists one PLAY LAND a land name (`runs/demo/
-  luna-elves-goblins-s9191` row 63 offers Mountain @18 with @20, @21 and @25 in hand; spells are listed a copy each,
-  counted over 400 game files of `runs/puzzles` and `runs/propose`), so a second copy of a land is not illegal. The
-  miner treats it as covered; a test pins it.
+  do, but **not always for how the menu writes it** (the three exclusions of section 2.1). The menu's one PLAY LAND a
+  land name is seen in `runs/demo/luna-elves-goblins-s9191` row 63 (Mountain @18 offered with @20, @21 and @25 in
+  hand); spells are listed a copy each (counted over 400 game files each of `runs/puzzles` and `runs/propose`).
+- The card index finds a script by a file name guessed from the card's name; a card whose script is named otherwise
+  (split and double-faced cards) reads as unknown, and its category falls back to the affordability tag.
 
 ## 4. Pilot: Claude Haiku 5.5 (development lane, not a score)
 
 `python3 eval/rules_probe.py balance <items> --per-cell 2 --seed 1105`, on the first miner's output, gave 60 items: 30
 illegal (2 per kind/category/difficulty cell, so subtle cells are over-represented against the mined distribution)
 and 30 legal, from five epochs (mixed on purpose for a pilot; a score would take one). `CLAUDE_CLI_SEAT=1 python3
-eval/rules_probe.py ask <set> --model haiku`, card text from Forge's card scripts prepended for the proposed card, no
-rules lookup; notional CLI cost $0.066. Files (container-local, not committed): the scratchpad `set-pc2.jsonl` and
-`haiku-pc2.jsonl`.
+eval/rules_probe.py ask <set> --model haiku` (the first version's form; the committed one takes
+`claude-cli:claude-haiku-5-5`), card text from Forge's card scripts prepended for the proposed card, no rules lookup;
+notional CLI cost $0.066. Files (git-ignored, this worktree): `runs/rules-probe/pilot-1105/set-pc2.jsonl` (the 60),
+`haiku-pc2.jsonl` (the answers), `select_kept.py` and `set-kept.jsonl` (below).
 
-**The pilot found label errors in the first miner: 5 of the 60 items (8%) were wrong**, all read by hand: a second
-Mountain labelled illegal (the one-land-a-name menu above; Haiku had answered "legal", rightly), Memnite as a land play
-(a zero-cost spell has no cost in the hand line, like a land), and three items whose card name swallowed the next
-hand entry because of an earlier handle "(was @N)" in the hand line. All three faults are fixed and tested
+**The pilot found label errors in the first miner: 5 of the 60 items were wrong (8%; Wilson 95% 3.6%-18.1%, the
+share of pilot items whose label or question was wrong)**, all read by hand: a second Mountain labelled illegal (the
+one-land-a-name menu; Haiku had answered "legal", rightly), Memnite as a land play (a zero-cost spell has no cost in
+the hand line, like a land), and three items whose card name swallowed the next hand entry because of an earlier
+handle "(was @N)" in the hand line. All three faults are fixed and tested
 (`test_a_second_land_of_a_name_the_menu_offers_is_not_an_illegal_item`,
 `test_a_zero_cost_spell_is_a_cast_not_a_land_when_its_script_is_known`,
-`test_an_earlier_handle_in_the_hand_line_does_not_merge_two_cards`); the residual error rate of the final miner was
-not measured. Seven legal activations changed only their `name` field (a P/T dropped from it), so their id moved.
+`test_an_earlier_handle_in_the_hand_line_does_not_merge_two_cards`). A sixth item, a legal target ask of Krenko, Mob
+Boss, is no longer mined (its source sacrifices); the final miner's residual error rate was not measured.
 
-Scored on the 48 items the final miner reproduces with the same id and label (`rules_probe.score`):
+`python3 runs/rules-probe/pilot-1105/select_kept.py <set-pc2> <items-all> <haiku-pc2> <set-kept>` keeps the 54 items
+the committed miner reproduces (same file, row, verb and handle) with the same label and an unmangled name; then
+`python3 eval/rules_probe.py score runs/rules-probe/pilot-1105/set-kept.jsonl \
+runs/rules-probe/pilot-1105/haiku-pc2.jsonl`:
 
 | | n | Haiku correct | state-reading floor correct |
 |---|---|---|---|
-| all (balanced accuracy) | 48 | **0.958** (Wilson 0.86-0.99 on accuracy) | 0.68 |
-| legal | 23 | 22 | 23 |
+| all | 54 | 51: accuracy **0.944** (Wilson 95% 0.85-0.98), balanced 0.946 | 38: accuracy 0.704 (Wilson 95% 0.57-0.81), balanced 0.68 |
+| legal | 29 | 27 | 29 |
 | illegal, trivial | 9 | 9 | 8 |
 | illegal, subtle | 10 | 10 | 1 |
 | illegal, engine verdict or unknown | 6 | 5 | 0 |
 | category, on engine-categorised illegal items Haiku called illegal | 8 | 8 | n/a |
 
-Haiku's two errors: it called Craterhoof Behemoth castable where the state's own estimate reads "up to 8 mana" and
+Haiku's three errors: it called Craterhoof Behemoth castable where the state's own estimate reads "up to 8 mana" and
 the engine refuses the cast (the "(not castable now)" tag, category unknown: the estimate counts mana from creatures
-that may not be able to tap), and called a castable Cylian Elf a cost error.
+that may not be able to tap), and called a castable Cylian Elf and a legal Siege-Gang Commander activation cost
+errors.
 
-**What it shows**: the items discriminate against the floor (0.958 against 0.68) but not among strong models: Haiku is
-near the ceiling, including on the subtle stratum (10 of 10). With 48 items the interval is 0.13 wide, so "near the
+**What it shows**: the items discriminate against the floor (0.944 against 0.70) but not among strong models: Haiku is
+near the ceiling, including on the subtle stratum (10 of 10). With 54 items the interval is 0.13 wide, so "near the
 ceiling" is all it can say. A probe that separates models needs harder negatives than the mined ones (section 6), and
 the Craterhoof item shows a fairness question: an item where the state's printed estimate and the engine disagree
 tests the observation as much as the rules.
@@ -234,7 +264,7 @@ tests the observation as much as the rules.
 ## 5. What it would add to the benchmark
 
 - **A cheap rules diagnostic beside the propose arm.** The propose arm measures rules errors in play, but models make
-  few (2.4% of proposals) and only where they wander; the probe asks the same question on chosen positions, at a cost
+  few (2.4% of well-formed proposals, Wilson 95% 1.3%-4.3%) and only where they wander; the probe asks the same question on chosen positions, at a cost
   of one short call an item and no game.
 - **Not a headline.** The three scores (STR-AI, STR-HELDOUT, PUZ) measure play. A static legality probe measures a
   precondition of play; it belongs in the scorecard's diagnostics with its floor beside it.
@@ -275,10 +305,10 @@ rejection category on a constructed board, which is the evidence it would work.
    the state-reading floor reported beside every score.
 2. Keep every engine-verdict negative a propose run produces (they are the models' own errors) as a separate stratum.
 3. Score it, in the development lane first, on Haiku; then on Luna only with the owner's consent (paid). Haiku's
-   0.958 on mined items says the v1 set must be harder than the mined distribution to be worth a model's call.
-4. Do not mine more of the current distribution: 197k items add little over a few thousand, and 94% of their negatives
-   are trivial (53,782 of 57,193 illegal positions). If mined items are wanted, the free source with the most card
-   variety is the keyword gauntlet with the random policy (`bash eval/keyword_gauntlet.sh`, no model, 552 cards),
+   0.944 on mined items says the v1 set must be harder than the mined distribution to be worth a model's call.
+4. Do not mine more of the current distribution: 190k items add little over a few thousand, and 94% of their negatives
+   are trivial (52,482 of 55,878 illegal positions, section 2.1). If mined items are wanted, the free source with the
+   most card variety is the keyword gauntlet with the random policy (`bash eval/keyword_gauntlet.sh`, no model, 552 cards),
    which gave most of the subtle positions here.
 5. Audit labels before trusting any set: read a sample of every new negative class by hand, as the pilot did; three
    miner faults were found only that way.
@@ -286,14 +316,16 @@ rejection category on a constructed board, which is the evidence it would work.
 ## 8. What was not determined
 
 - **Label noise.** I read 36 sampled negatives by hand while building the miner, and the pilot's 60 items after it;
-  the pilot found 5 wrong labels (8%) that the 36 had not, all from how the menu and the hand line are written, not
+  the pilot found 5 wrong items (8%, Wilson 95% 4%-18%) that the 36 had not; review then found two more harness
+  behaviours that make an absence the harness's (a play that failed to pay is not offered again in its window; a
+  target list narrowed by an earlier choice), now excluded, all from how the menu and the hand line are written, not
   from the engine. They are fixed; the final miner's residual rate is not measured. A Forge rules bug would also be a
   wrong label, and no judge reviewed any item.
-- **Categories of mined negatives** are inferred (section 2.1); only 10 + 27,780 items carry an engine category
+- **Categories of mined negatives** are inferred (section 2.1); only 10 + 24,852 items carry an engine category
   (the refused proposals and the target asks), and the target ones say only "target".
 - **Whether the probe predicts play.** No correlation between probe accuracy and STR or PUZ was measured; with one
   model in the pilot it cannot be.
-- **The pilot's size** resolves only large differences (48 scored items: a Wilson interval 0.13 wide at 0.958), the
+- **The pilot's size** resolves only large differences (54 scored items: a Wilson interval 0.13 wide at 0.944), the
   items mix five epochs and over-sample subtle cells, so its rates are not the mined distribution's, and one model
   says nothing about whether the probe ranks models.
 - **Activated abilities' negatives** are not mined: a menu row does not list the abilities a card has but cannot use

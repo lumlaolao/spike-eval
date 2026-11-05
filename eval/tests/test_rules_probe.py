@@ -162,6 +162,17 @@ class TestParsing(unittest.TestCase):
 
 
 class TestMining(unittest.TestCase):
+    def test_the_seats_own_notes_are_not_in_the_state(self):
+        # Seventeen mined states quoted the seat's last play or plan, which can name the answer.
+        p = MENU_PROMPT.replace("SPENT THIS TURN", "YOUR PLAN (yours, stated at T2 MAIN1): GOAL: cast Opt NEXT: x\n"
+                                "THE PLAY YOU CHOSE MOST RECENTLY (T8): CAST Opt @8 {U}. What you wrote when you chose "
+                                "it: \"Opt is castable\"\n(The state above is current; if it has changed since you "
+                                "chose that play, decide on the current state.)\n\nSPENT THIS TURN")
+        s = rp.state_text(p)
+        for leak in ("YOUR PLAN", "THE PLAY YOU CHOSE", "What you wrote", "The state above is current"):
+            self.assertNotIn(leak, s)
+        self.assertIn("SPENT THIS TURN", s)
+
     def test_every_non_pass_menu_play_is_a_legal_item_and_a_card_off_the_menu_an_illegal_one(self):
         items = rp.items_from_row(MENU_ROW, PROV, 7)
         self.assertEqual(by(items, "cast", "@8")["label"], "legal")
@@ -205,6 +216,19 @@ class TestMining(unittest.TestCase):
         p = MENU_PROMPT.replace("Forest @14, Mountain @18", "Forest @14, Mountain @18, Mountain @25")
         items = rp.items_from_row(dict(MENU_ROW, prompt=p), PROV, 7)
         self.assertFalse([i for i in items if i["proposal"]["card"] == "@25"])
+
+    def test_a_card_chosen_earlier_in_the_same_window_is_not_an_illegal_item(self):
+        # A play that failed to pay is not offered again in its window (LlmSpikeGui failedInWindow): its absence from a
+        # later menu of that window is the harness's, not the engine's. Hands of Binding @7 chosen in row 5, still in
+        # hand and off the menu in row 7.
+        first = dict(MENU_ROW, options=["CAST Hands of Binding @7 {U} [...]"] + MENU_ROW["options"], choice=0)
+        items = rp.mine_rows([(5, first), (7, MENU_ROW)], PROV)
+        self.assertFalse([i for i in items if i["provenance"]["row"] == 7 and i["proposal"]["card"] == "@7"])
+        self.assertTrue([i for i in items if i["provenance"]["row"] == 7 and i["proposal"]["card"] == "@5"])
+        # In another window (the next turn) the same card off the menu is an item again.
+        later = dict(MENU_ROW, prompt=MENU_PROMPT.replace("== Turn 8 MAIN1", "== Turn 10 MAIN1"))
+        items = rp.mine_rows([(5, first), (9, later)], PROV)
+        self.assertTrue([i for i in items if i["provenance"]["row"] == 9 and i["proposal"]["card"] == "@7"])
 
     def test_a_land_off_the_menu_after_the_land_drop_is_a_land_drop_item(self):
         p = MENU_PROMPT.replace("lands played this turn 0/1", "lands played this turn 1/1")
@@ -258,6 +282,18 @@ class TestMining(unittest.TestCase):
         self.assertFalse([i for i in items if i["proposal"]["card"] == "@23"])    # named only inside Ace's brackets
         self.assertEqual(by(items, "target", "@40")["proposal"]["name"], "Alora, Merry Thief")
         self.assertEqual(by(items, "target", "@40")["difficulty"], "subtle")
+
+    def test_a_target_ask_whose_candidates_depend_on_an_earlier_choice_is_not_mined(self):
+        # X announced, a second target, "another target", a sacrifice in the cost: an earlier choice of the same play
+        # narrows the list, so a permanent left out may be a legal target of the card (Searing Blaze, Mutiny, Blaze).
+        for source in ("Blaze @5 {X}{R} [Blaze deals X damage to any target.] (you announced X = 1)",
+                       "Searing Blaze @5 {R}{R} [Searing Blaze deals 1 damage to target player and 1 damage to target "
+                       "creature that player controls.]",
+                       "Mutiny @5 {R} [Target creature an opponent controls deals damage equal to its power to another "
+                       "target creature that player controls.]",
+                       "Goblin Bombardment @5 [Sacrifice a creature: Goblin Bombardment deals 1 damage to any target.]"):
+            p = TARGET_PROMPT.replace("Shock @5 {R} [Shock deals 2 damage to any target.]", source)
+            self.assertEqual(rp.items_from_row(dict(TARGET_ROW, prompt=p), PROV, 2), [], source)
 
     def test_one_position_reached_with_other_handles_and_notes_is_one_position(self):
         a = by(rp.items_from_row(MENU_ROW, PROV, 7), "cast", "@2")
@@ -382,6 +418,17 @@ class TestScoring(unittest.TestCase):
         self.assertIn("state_reading_balanced", s["floors"])
         self.assertLess(s["floors"]["state_reading_balanced"], 1.0)
 
+    def test_stats_report_the_floor_and_the_cells_over_positions(self):
+        items = rp.items_from_row(MENU_ROW, PROV, 7)
+        s = rp.stats(items, floor=True)
+        cells = s["illegal_positions_by_cell"]
+        self.assertEqual(cells["play / cost (inferred) / trivial"], 2)     # Audacious Swap, Changeling Hero
+        self.assertEqual(sum(cells.values()), s["illegal_positions"])
+        f = s["floor_by_stratum"]
+        self.assertEqual(f["illegal play trivial"], {"n": 3, "floor_correct": 3})
+        self.assertIn("balanced_accuracy", s["floor"])
+        self.assertEqual(s["subtle_positions_by_source"], {"audit2-random": 2})   # Counterspell, Hands of Binding
+
     def test_the_category_is_scored_on_engine_labelled_illegal_items_it_called_illegal(self):
         items = self.items()
         for i in items:
@@ -393,12 +440,54 @@ class TestScoring(unittest.TestCase):
 
 
 class TestAsk(unittest.TestCase):
-    def test_the_cli_lane_needs_its_opt_in_and_refuses_opus(self):
-        with self.assertRaises(SystemExit):
-            rp.check_cli_lane("haiku", env={})
-        with self.assertRaises(SystemExit):
-            rp.check_cli_lane("opus", env={"CLAUDE_CLI_SEAT": "1"})
-        rp.check_cli_lane("haiku", env={"CLAUDE_CLI_SEAT": "1"})
+    def test_the_cli_lane_takes_a_claude_cli_spec_of_an_allowed_model_with_its_opt_in(self):
+        on = {"CLAUDE_CLI_SEAT": "1"}
+        self.assertEqual(rp.check_cli_lane("claude-cli:claude-haiku-5-5", env=on), "claude-haiku-5-5")
+        for spec, env in (("claude-cli:claude-haiku-5-5", {}),          # no opt-in
+                          ("haiku", on),                                # the retired bare-name lane
+                          ("cli:haiku", on),                            # a misspelled lane
+                          ("claude-cli:claude-opus-5-5", on),           # not on the list
+                          ("claude-cli:opus", on),
+                          ("openrouter:openai/gpt-6-luna", on)):        # not the CLI lane at all
+            with self.assertRaises(SystemExit, msg=spec):
+                rp.check_cli_lane(spec, env=env)
+
+    def test_the_child_inherits_no_api_key_provider_switch_model_or_session_variable(self):
+        parent = {"PATH": "/bin", "HOME": "/root", "HTTPS_PROXY": "http://p", "SSL_CERT_FILE": "/ca",
+                  "CLAUDE_CODE_OAUTH_TOKEN": "oauth", "CLAUDE_CONFIG_DIR": "/c", "LC_ALL": "C",
+                  "ANTHROPIC_API_KEY": "sk", "ANTHROPIC_AUTH_TOKEN": "t", "CLAUDE_CODE_USE_BEDROCK": "1",
+                  "AWS_ACCESS_KEY_ID": "a", "CLAUDE_CODE_USE_VERTEX": "1", "MAX_THINKING_TOKENS": "9",
+                  "ANTHROPIC_MODEL": "m", "CLAUDE_CODE_SESSION": "s", "CLAUDECODE": "1", "OPENROUTER_API_KEY": "o"}
+        env = rp.child_env(parent)
+        self.assertEqual(env, {k: parent[k] for k in ("PATH", "HOME", "HTTPS_PROXY", "SSL_CERT_FILE",
+                                                       "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CONFIG_DIR", "LC_ALL")})
+        allowed = rp.child_env(dict(parent, CLAUDE_CLI_ALLOW_API_KEY="1"))
+        for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "AWS_ACCESS_KEY_ID"):
+            self.assertIn(k, allowed)
+        for k in ("MAX_THINKING_TOKENS", "ANTHROPIC_MODEL", "CLAUDE_CODE_SESSION", "OPENROUTER_API_KEY"):
+            self.assertNotIn(k, allowed)
+
+    def test_ask_runs_claude_with_the_filtered_environment(self):
+        # A fake `claude` on PATH records the environment it was given and answers like the CLI.
+        it = by(rp.items_from_row(PROPOSE_ROW, PROV, 3), "cast", "@3")
+        with tempfile.TemporaryDirectory() as d:
+            fake = Path(d) / "claude"
+            reply = json.dumps({"result": json.dumps({"legal": False, "category": "timing"}), "total_cost_usd": 0.001})
+            fake.write_text("#!%s\nimport json, os, sys\nsys.stdin.read()\n"
+                            "json.dump(dict(os.environ), open(%r, 'w'))\nprint(%r)\n"
+                            % (sys.executable, str(Path(d) / "env.json"), reply))
+            fake.chmod(0o755)
+            out = Path(d) / "answers.jsonl"
+            environ = {"PATH": d + os.pathsep + os.environ.get("PATH", ""), "HOME": d, "CLAUDE_CLI_SEAT": "1",
+                       "ANTHROPIC_API_KEY": "sk-should-not-reach", "MAX_THINKING_TOKENS": "1"}
+            rp.ask([it], "claude-cli:claude-haiku-5-5", str(out), environ=environ)
+            seen = json.loads((Path(d) / "env.json").read_text())
+            self.assertNotIn("ANTHROPIC_API_KEY", seen)
+            self.assertNotIn("MAX_THINKING_TOKENS", seen)
+            self.assertNotIn("CLAUDE_CLI_SEAT", seen)
+            row = json.loads(out.read_text().strip())
+            self.assertEqual((row["answer"], row["model"]), ({"legal": False, "category": "timing"},
+                                                             "claude-cli:claude-haiku-5-5"))
 
     def test_a_reply_is_read_from_its_json_object_and_anything_else_is_no_answer(self):
         self.assertEqual(rp.parse_reply('noise {"legal": false, "category": "timing"} tail'),

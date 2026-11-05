@@ -9,20 +9,28 @@ person or a model:
   the engine's; the CATEGORY of such an item is inferred from the state, in the engine's order of checks
   (`LlmSpikeGui.rejection`), and marked `category_source: "inferred"`.
 - `engine-verdict`: a proposal the PROPOSE_ACTIONS arm refused, with the engine's category and sentence.
-- target asks: a battlefield permanent the target list left out is not a legal target of that spell.
+- target asks: a battlefield permanent the target list left out is not a legal target of that spell. An ask whose
+  list an earlier choice of the same play narrowed (X announced, a second or "another" target, a sacrifice in the
+  cost) is not mined: what it left out may be a legal target of the card.
+
+Two harness behaviours make a menu absence the harness's, not the engine's, and are not mined: the menu lists one PLAY
+LAND a land name, and a play that failed to pay is not offered again in its window (`failedInWindow`), so a card
+chosen earlier in the same window is not an item there.
 
 The state given to a model is the recorded prompt up to its DECISION line, with the hand's legality tags removed
-("(castable)", "(need 1 more R)", ...): those tags are the engine's answer. eval/research/2026-11-05-rules-probe.md says
+("(castable)", "(need 1 more R)", ...): those tags are the engine's answer; the seat's own plan and its last play's
+note are removed too (they can name the answer). eval/research/2026-11-05-rules-probe.md says
 why and what the set measures.
 
 Usage:
   python3 eval/rules_probe.py mine <run dir> [...] --out <items>.jsonl [--forge-home DIR]
-  python3 eval/rules_probe.py stats <items>.jsonl [--json]
+  python3 eval/rules_probe.py stats <items>.jsonl [--floor] [--json]
   python3 eval/rules_probe.py balance <items>.jsonl --per-cell N --seed S --out <set>.jsonl
-  python3 eval/rules_probe.py ask <set>.jsonl --model haiku --out <answers>.jsonl   (CLAUDE_CLI_SEAT=1; development)
+  python3 eval/rules_probe.py ask <set>.jsonl --model claude-cli:<model> --out <answers>.jsonl   (CLAUDE_CLI_SEAT=1)
   python3 eval/rules_probe.py score <set>.jsonl <answers>.jsonl [--json]
 
-Stdlib only. `ask` is the Claude CLI development lane only (CLAUDE_CLI_SEAT=1, never Opus, never a benchmark score).
+Stdlib only. `ask` is the Claude CLI development lane only (`claude-cli:` spec of a listed model, CLAUDE_CLI_SEAT=1,
+never a benchmark score); its child gets an allow-listed environment, so no API key bills a paid API.
 """
 
 import argparse
@@ -37,6 +45,7 @@ from collections import Counter
 from pathlib import Path
 
 import evalpath  # noqa: F401
+import cost_report
 from aggregate import wilson_ci
 
 SCHEMA = "rules-probe-item-v1"
@@ -50,6 +59,8 @@ NAME_COST_PT = re.compile(r"^(?P<name>.+?)(?: (?P<cost>[0-9X]*(?:\{[^}]+\})+|\d+
 HEADER = re.compile(r"^== Turn (\d+) (\S+) \(active: (.*?) \| priority: (\w+)\) ==", re.M)
 OPTION = re.compile(r"^(CAST|PLAY LAND|ACTIVATE|PLAY)\b.*?@(\d+)")
 BOARD_ENTRY = re.compile(r"(.*?) @(\d+)(?:, |$)")
+# An earlier choice of the same play narrows the list: X announced, a second or "another" target, a sacrifice.
+DEPENDENT_TARGETS = re.compile(r"you announced|another target|target\b.*\btarget\b|[Ss]acrifice", re.S)
 KEYWORDS_THAT_STOP_TARGETING = ("hexproof", "shroud", "protection", "ward")
 
 
@@ -116,8 +127,15 @@ def state_text(prompt):
     p = prompt or ""
     cut = p.find("\nDECISION:")
     p = p[:cut] if cut >= 0 else p
-    lines = []
+    lines, skipping = [], False
     for ln in p.split("\n"):
+        if ln.startswith("THE PLAY YOU CHOSE MOST RECENTLY"):
+            skipping = True                      # its note runs to the blank line
+        if skipping:
+            skipping = ln.strip() != ""
+            continue
+        if ln.startswith("YOUR PLAN"):
+            continue
         if ln.startswith("  hand("):
             ln = HAND_TAG.sub("", ln)
         lines.append(ln)
@@ -150,7 +168,9 @@ def board_permanents(state):
 
 
 def card_index(forge_home):
-    """name -> {types, keywords, oracle} read from Forge's card scripts on demand; None without a checkout."""
+    """name -> {types, keywords, oracle} read from Forge's card scripts on demand; None without a checkout. The
+    script is found by a file name guessed from the card name (lower case, punctuation dropped, spaces to "_"); a card
+    whose script is named otherwise (a split or double-faced card) reads as unknown."""
     forge_home = os.path.expanduser(os.path.expandvars(forge_home or ""))   # FORGE_HOME may hold "$HOME/forge"
     root = Path(forge_home) / "forge-gui" / "res" / "cardsfolder"
     if not forge_home or not root.is_dir():
@@ -213,7 +233,23 @@ def _infer_cast(card, w, info):
     return "unknown", "trivial" if total_short else None
 
 
-def items_from_play_row(row, prov, idx, cards=None):
+def window_key(prompt):
+    """The priority window a play row is in: its turn, phase and stack line (LlmSpikeGui's winKey, from the text)."""
+    h = HEADER.search(prompt or "")
+    stack = re.search(r"^STACK \(engine, top first\): (.*)$", prompt or "", re.M)
+    return (h.group(1), h.group(2)) if h else None, stack.group(1) if stack else None
+
+
+def chosen_handle(row):
+    """The handle of the play a row chose, or None (a pass, or no choice recorded)."""
+    opts, c = row.get("options") or [], row.get("choice")
+    if not isinstance(c, int) or not 0 <= c < len(opts):
+        return None
+    m = OPTION.match(opts[c])
+    return "@" + m.group(2) if m else None
+
+
+def items_from_play_row(row, prov, idx, cards=None, chosen_in_window=()):
     prompt = row.get("prompt") or ""
     state = state_text(prompt)
     w = parse_window(prompt)
@@ -227,7 +263,10 @@ def items_from_play_row(row, prov, idx, cards=None):
             continue
         verb = {"CAST": "cast", "PLAY LAND": "play_land", "ACTIVATE": "activate", "PLAY": "play"}[m.group(1)]
         h = "@" + m.group(2)
-        (cast_ok if verb == "cast" else land_ok if verb == "play_land" else set()).add(h)
+        if verb == "cast":
+            cast_ok.add(h)
+        elif verb == "play_land":
+            land_ok.add(h)
         prop = {"verb": verb, "card": h, "name": names.get(h) or _option_name(o)}
         if (verb, h) in seen:
             continue
@@ -247,7 +286,7 @@ def items_from_play_row(row, prov, idx, cards=None):
         refused.add(key)
         seen.add((a.get("verb"), a["card"]))
         out.append(_item("play", state, prop, "illegal", prov, idx, label_source="engine-verdict",
-                         category=p.get("category") or _category_of(p.get("error")), category_source="engine",
+                         category=p.get("category"), category_source="engine",
                          reason=p.get("error"), difficulty=None))
     look = cards or (lambda n: None)
     lands_ok_by_name = {names.get(h) for h in land_ok}       # the menu lists one PLAY LAND a land name
@@ -256,7 +295,7 @@ def items_from_play_row(row, prov, idx, cards=None):
         info = look(c["name"])
         # A land shows no cost in the hand line; so does a zero-cost spell (Mishra's Bauble), told apart by its script.
         if c["cost"] is None and not (info and "Land" not in info["types"].split()):
-            if h in land_ok or ("play_land", h) in seen or c["name"] in lands_ok_by_name:
+            if h in land_ok or ("play_land", h) in seen or c["name"] in lands_ok_by_name or h in chosen_in_window:
                 continue
             if not w["sorcery_speed"]:
                 cat, diff = "timing", "trivial"
@@ -267,7 +306,7 @@ def items_from_play_row(row, prov, idx, cards=None):
             out.append(_item("play", state, {"verb": "play_land", "card": h, "name": c["name"]}, "illegal", prov, idx,
                              label_source="menu-absence", category=cat, category_source="inferred", difficulty=diff))
             continue
-        if h in cast_ok or ("cast", h) in seen or (c.get("tag") or "").startswith("castable"):
+        if h in cast_ok or ("cast", h) in seen or (c.get("tag") or "").startswith("castable") or h in chosen_in_window:
             continue
         cat, diff = _infer_cast(c, w, info)
         out.append(_item("play", state, {"verb": "cast", "card": h, "name": c["name"]}, "illegal", prov, idx,
@@ -280,17 +319,14 @@ def _option_name(o):
     return m.group(1) if m else None
 
 
-def _category_of(err):
-    m = re.match(r"ILLEGAL \(([^)]+)\)", err or "")
-    return m.group(1) if m else None
-
-
 def items_from_target_row(row, prov, idx):
     prompt = row.get("prompt") or ""
     m = re.search(r"DECISION: Choose the TARGET for (.*?) @(\d+)(.*?)(?: \(the spell/ability resolves|\n|$)", prompt)
     if not m:
         return []
     source = f"{m.group(1)} @{m.group(2)}"
+    if DEPENDENT_TARGETS.search(m.group(3)):
+        return []
     state = state_text(prompt)
     # An option's own handle: not an earlier one "(was @7)", nor one inside its brackets ("[has attached: X @22]").
     offered = {h for o in row.get("options") or []
@@ -314,14 +350,32 @@ def items_from_target_row(row, prov, idx):
     return out
 
 
-def items_from_row(row, prov, idx, cards=None):
+def items_from_row(row, prov, idx, cards=None, chosen_in_window=()):
     if not isinstance(row, dict) or row.get("t") != "decision":
         return []
     if row.get("type") == "play":
-        return items_from_play_row(row, prov, idx, cards)
+        return items_from_play_row(row, prov, idx, cards, chosen_in_window)
     if row.get("type") == "target":
         return items_from_target_row(row, prov, idx)
     return []
+
+
+def mine_rows(rows, prov, cards=None):
+    """The items of one game's rows [(index, row)], in order: a card chosen earlier in a window is not an absence item
+    later in that window (a play that failed to pay is not offered again there)."""
+    out, window, chosen = [], None, set()
+    for k, r in rows:
+        if isinstance(r, dict) and r.get("t") == "decision" and r.get("type") == "play":
+            w = window_key(r.get("prompt"))
+            if w != window:
+                window, chosen = w, set()
+            out.extend(items_from_row(r, prov, k, cards, frozenset(chosen)))
+            h = chosen_handle(r)
+            if h:
+                chosen.add(h)
+        else:
+            out.extend(items_from_row(r, prov, k, cards))
+    return out
 
 
 def dedupe(items):
@@ -387,8 +441,7 @@ def mine(paths, repo_pin=None, cards=None):
                         except ValueError:
                             pass
             prov = _provenance(f.resolve(), rows, root, pin)
-            for k, r in enumerate(rows):
-                out.extend(items_from_row(r, prov, k, cards))
+            out.extend(mine_rows(list(enumerate(rows)), prov, cards))
     return dedupe(out)
 
 
@@ -433,12 +486,39 @@ def position_key(item):
     return hashlib.sha256(json.dumps([lines, p], sort_keys=True).encode()).hexdigest()
 
 
-def stats(items):
+def _first_per_position(items):
+    seen, out = set(), []
+    for i in items:
+        k = position_key(i)
+        if k not in seen:
+            seen.add(k)
+            out.append(i)
+    return out
+
+
+def floor_report(items):
+    """The state-reading floor over one item per position: its balanced accuracy, and per stratum (label, kind,
+    difficulty) how many it gets right."""
+    pos = [i for i in _first_per_position(items) if not i.get("mana_ability")]   # as `balance` leaves them out
+    strata = {}
+    for i in pos:
+        key = "%s %s %s" % (i["label"], i.get("kind"), i.get("difficulty") if i["label"] == "illegal" else "-")
+        cell = strata.setdefault(key, {"n": 0, "floor_correct": 0})
+        cell["n"] += 1
+        cell["floor_correct"] += heuristic(i)["legal"] is (i["label"] == "legal")
+    per, bal = _tally(pos, {i["id"]: heuristic(i) for i in pos})
+    return {"positions": len(pos), "balanced_accuracy": round(bal, 4) if bal is not None else None,
+            "recall_legal": round(per["legal"][0] / per["legal"][1], 4) if per["legal"][1] else None,
+            "recall_illegal": round(per["illegal"][0] / per["illegal"][1], 4) if per["illegal"][1] else None}, \
+        dict(sorted(strata.items()))
+
+
+def stats(items, floor=False):
     def count(f, sub):
         return dict(Counter(f(i) for i in sub).most_common())
     illegal = [i for i in items if i["label"] == "illegal"]
     states = {hashlib.sha256(i["state"].encode()).hexdigest() for i in items}
-    return {"items": len(items), "states": len(states),
+    out = {"items": len(items), "states": len(states),
             "positions": len({position_key(i) for i in items}),
             "illegal_positions": len({position_key(i) for i in illegal}),
             "illegal_card_names": len({i["proposal"].get("name") for i in illegal}),
@@ -451,7 +531,17 @@ def stats(items):
             "targets_keyword_visible": sum(1 for i in illegal
                                            if i.get("kind") == "target" and i.get("keyword_visible")),
             "by_epoch": count(lambda i: i["provenance"].get("harness_epoch"), items),
-            "by_engine_pin_source": count(lambda i: i["provenance"].get("engine_pin_source"), items)}
+            "by_engine_pin_source": count(lambda i: i["provenance"].get("engine_pin_source"), items),
+            "illegal_positions_by_cell": count(
+                lambda i: "%s / %s (%s) / %s" % (i.get("kind"), i.get("category"), i.get("category_source"),
+                                                 i.get("difficulty")),
+                [i for i in _first_per_position(items) if i["label"] == "illegal"]),
+            "subtle_positions_by_source": count(
+                lambda i: i["provenance"].get("puzzle") or Path(i["provenance"].get("source_run", "")).name,
+                [i for i in _first_per_position(items) if i["label"] == "illegal" and i.get("difficulty") == "subtle"])}
+    if floor:
+        out["floor"], out["floor_by_stratum"] = floor_report(items)
+    return out
 
 
 # ---------------------------------------------------------------------------------------------------- asking
@@ -484,12 +574,57 @@ def render(item, cards=None):
     return QUESTION.format(card=card, state=item["state"], play=play, cats=", ".join(CATEGORIES))
 
 
-def check_cli_lane(model, env=None):
+# The models `ask` may run (CLAUDE.md: never Opus; the CLI lane is development only).
+CLI_MODELS = ("claude-haiku-5-5", "haiku", "claude-sonnet-5-5", "sonnet")
+# What the CLI child inherits, by name (ClaudeCliBridge.KEEP_ENV): how it runs, reaches the network and logs in to the
+# subscription. An API key, a cloud provider's switch and its credentials only with CLAUDE_CLI_ALLOW_API_KEY=1.
+KEEP_ENV = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "LANG", "TZ", "TMPDIR",
+            "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "https_proxy", "http_proxy", "no_proxy", "all_proxy",
+            "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "NODE_OPTIONS",
+            "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR")
+API_KEY_OPT_IN = "CLAUDE_CLI_ALLOW_API_KEY"
+API_KEY_ENV = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+PROVIDER_ENV = {
+    "CLAUDE_CODE_USE_BEDROCK": ("AWS_REGION", "AWS_DEFAULT_REGION", "AWS_PROFILE", "AWS_CONFIG_FILE",
+                                "AWS_SHARED_CREDENTIALS_FILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+                                "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK"),
+    "CLAUDE_CODE_USE_VERTEX": ("GOOGLE_APPLICATION_CREDENTIALS", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID",
+                               "VERTEX_REGION_"),
+    "CLAUDE_CODE_USE_FOUNDRY": ("ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE",
+                                "ANTHROPIC_FOUNDRY_BASE_URL"),
+}
+
+
+def child_env(parent):
+    """The CLI child's environment: the allow-listed part of `parent` and its LC_* locale; API keys and a provider's
+    switch with its credentials only when the operator sets CLAUDE_CLI_ALLOW_API_KEY=1. Everything else, among it
+    MAX_THINKING_TOKENS, ANTHROPIC_MODEL, the launching session's CLAUDE* and the OPENROUTER* variables, is dropped."""
+    keep, prefixes = set(KEEP_ENV), ["LC_"]
+    if parent.get(API_KEY_OPT_IN) == "1":
+        keep.update(API_KEY_ENV)
+        for switch, creds in PROVIDER_ENV.items():
+            if parent.get(switch, "").strip().lower() in ("1", "true"):
+                keep.add(switch)
+                keep.update(c for c in creds if not c.endswith("_"))
+                prefixes.extend(c for c in creds if c.endswith("_"))
+    return {k: v for k, v in parent.items() if k in keep or any(k.startswith(x) for x in prefixes)}
+
+
+def check_cli_lane(spec, env=None):
+    """The model of a `claude-cli:<model>` spec `ask` may run, or exit saying why not: the operator's opt-in
+    (cost_report.CLI_OPT_IN), the spec's form and a listed model."""
     env = os.environ if env is None else env
-    if env.get("CLAUDE_CLI_SEAT") != "1":
-        sys.exit("rules_probe ask: the Claude CLI is a development lane; it needs CLAUDE_CLI_SEAT=1 (never a score)")
-    if "opus" in (model or "").lower():
-        sys.exit("rules_probe ask: never Opus")
+    why = cost_report.cli_opt_in_refusal([spec], env)
+    if why is None and not cost_report.is_cli(spec):
+        why = "%s is not the Claude CLI lane: give %s<model>" % (spec, cost_report.CLI_PREFIX)
+    if why is None and env.get(cost_report.CLI_OPT_IN) != "1":
+        why = "the Claude CLI lane needs %s=1" % cost_report.CLI_OPT_IN
+    model = str(spec)[len(cost_report.CLI_PREFIX):]
+    if why is None and model not in CLI_MODELS:
+        why = "%s is not a model rules_probe asks (%s)" % (model, ", ".join(CLI_MODELS))
+    if why:
+        sys.exit("rules_probe ask: " + why)
+    return model
 
 
 def parse_reply(text):
@@ -509,8 +644,10 @@ def parse_reply(text):
     return None
 
 
-def ask(items, model, out, cards=None, timeout=180):
-    check_cli_lane(model)
+def ask(items, spec, out, cards=None, timeout=180, environ=None):
+    environ = os.environ if environ is None else environ
+    model = check_cli_lane(spec, environ)
+    env = child_env(environ)
     done = set()
     if Path(out).is_file():
         done = {json.loads(ln)["id"] for ln in open(out) if ln.startswith("{")}
@@ -522,13 +659,14 @@ def ask(items, model, out, cards=None, timeout=180):
                     "--strict-mcp-config", "--no-session-persistence", "--setting-sources", "",
                     "--disable-slash-commands", "--system-prompt", "You judge plays in Magic: The Gathering."]
             try:
-                r = subprocess.run(argv, input=render(it, cards), capture_output=True, text=True, timeout=timeout)
+                r = subprocess.run(argv, input=render(it, cards), capture_output=True, text=True, timeout=timeout,
+                                   env=env)
                 env = json.loads(r.stdout) if r.stdout.strip().startswith("{") else {}
                 text = env.get("result", r.stdout)
                 cost = env.get("total_cost_usd")
             except (subprocess.TimeoutExpired, ValueError) as e:
                 text, cost = f"ERROR {e}", None
-            fh.write(json.dumps({"id": it["id"], "model": model, "reply": text, "answer": parse_reply(text),
+            fh.write(json.dumps({"id": it["id"], "model": spec, "reply": text, "answer": parse_reply(text),
                                  "cost_usd": cost}) + "\n")
             fh.flush()
 
@@ -634,6 +772,7 @@ def main(argv=None):
     s = sub.add_parser("stats")
     s.add_argument("items")
     s.add_argument("--json", action="store_true")
+    s.add_argument("--floor", action="store_true", help="the state-reading floor per stratum, over positions")
     b = sub.add_parser("balance")
     b.add_argument("items")
     b.add_argument("--per-cell", type=int, required=True)
@@ -641,7 +780,7 @@ def main(argv=None):
     b.add_argument("--out", required=True)
     a = sub.add_parser("ask")
     a.add_argument("items")
-    a.add_argument("--model", required=True)
+    a.add_argument("--model", required=True, help="claude-cli:<model>, a model of CLI_MODELS")
     a.add_argument("--out", required=True)
     a.add_argument("--forge-home", default=os.environ.get("FORGE_HOME", "/root/forge"))
     c = sub.add_parser("score")
@@ -654,7 +793,7 @@ def main(argv=None):
         _write(items, args.out)
         print(f"{len(items)} items -> {args.out}")
     elif args.cmd == "stats":
-        print(json.dumps(stats(_read(args.items)), indent=None if args.json else 1))
+        print(json.dumps(stats(_read(args.items), floor=args.floor), indent=None if args.json else 1))
     elif args.cmd == "balance":
         items = balance(_read(args.items), args.per_cell, args.seed)
         _write(items, args.out)
@@ -662,8 +801,7 @@ def main(argv=None):
     elif args.cmd == "ask":
         ask(_read(args.items), args.model, args.out, card_index(args.forge_home))
     elif args.cmd == "score":
-        ans = {r["id"]: r.get("answer") for r in _read(args.answers)}
-        ans = {k: v for k, v in ans.items() if v is not None}
+        ans = {r["id"]: r["answer"] for r in _read(args.answers) if r.get("answer") is not None}
         print(json.dumps(score(_read(args.items), ans), indent=None if args.json else 1))
     return 0
 
