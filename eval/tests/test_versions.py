@@ -24,13 +24,23 @@ class VersionsTest(unittest.TestCase):
     def test_every_version_constant_is_a_stamp_or_says_why(self):
         # A VERSION constant missing from STAMPS leaves VERSIONS.md ("every version stamp the harness carries") false;
         # ReplayBridge.VERSION reached review that way (standards review of #365).
-        found = set()
+        # Any modifier order, any type, spacing or a value on the next line; VERSION or EPOCH (HARNESS_EPOCH is the
+        # headline stamp). Commented-out lines are not constants.
+        pattern = re.compile(r'\b(?:static\s+final|final\s+static)\s+[\w<>\[\]]+\s+(\w*(?:VERSION|EPOCH)\w*)\s*=')
+        found, seen = set(), {}
         for name in sorted(os.listdir(versions.SPIKE)):
             if name.endswith(".java"):
                 with open(os.path.join(versions.SPIKE, name), encoding="utf-8") as f:
-                    for const in re.findall(r'static final String (\w*VERSION\w*) = "', f.read()):
-                        found.add((name, const))
+                    code = "\n".join(l for l in f.read().splitlines()
+                                     if not l.strip().startswith(("//", "*", "/*")))
+                for const in pattern.findall(code):
+                    found.add((name, const))
+                    seen[(name, const)] = seen.get((name, const), 0) + 1
+        # versions.read_stamps takes a file's first match, so a second constant of one name (a nested class) would
+        # be hidden or misread.
+        self.assertEqual(sorted(k for k, n in seen.items() if n > 1), [], "one constant of each name per file")
         stamped = {(fname, const) for fname, const, _, _ in versions.STAMPS}
+        self.assertLessEqual(stamped, found, "the scan misses a listed stamp: widen the pattern")
         self.assertEqual(sorted(found - stamped - set(self.NOT_STAMPED)), [],
                          "add it to versions.STAMPS (then --write) or to NOT_STAMPED with why")
         self.assertEqual(sorted(set(self.NOT_STAMPED) - found), [], "a NOT_STAMPED entry names no constant")
