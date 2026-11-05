@@ -460,3 +460,26 @@ development lane, arms interleaved per puzzle with the order alternating. Both a
   at this block's rate). The next block should raise the rate of refusals (storm and other sorcery-timing puzzles,
   several attempts per puzzle) and pre-register repaired-to-a-move and refused-again as its outcomes, then measure
   GPT-6 Luna's base rate on the detailed arm first.
+
+### Repeated refusals in every propose log on disk (2026-11-05)
+
+`python3 eval/proposal_audit.py --json <run>` over every propose-arm run directory with a model seat (Claude Haiku 5.5,
+development lane, never a score). The runs differ in build, epoch and puzzle set, so the rows are not pooled into a
+rate; they are read side by side.
+
+| Run | Refusal text | Play decisions | Refusal-opened | Repaired to a move | Resent within its decision | Refused again in a later decision |
+|---|---|---|---|---|---|---|
+| runs/propose/haiku-rules-propose, -v2, e75-haiku-rules-propose | detailed | 154 | 0 | - | - | - |
+| runs/propose/e75-haiku-hard-propose | detailed | 260 | 9 | 5 | 0 of 10 | 0 of 10 |
+| runs/terse/smoke-64dc1f33-detailed | detailed | 53 | 3 | 2 | 0 of 4 | 1 of 3 |
+| runs/terse/b2-detailed | detailed | 259 | 18 | 10 | 0 of 21 | 5 of 11 |
+| runs/terse/smoke-64dc1f33-terse | terse | 36 | 8 | 5 | 0 of 8 | 3 of 5 |
+| runs/terse/b2-terse | terse | 247 | 6 | 3 | 0 of 6 | 1 of 5 |
+
+- Within a decision, no refused proposal was resent: 0 of 49 across five runs and both texts (Wilson 95% upper bound
+  0.073). The repeat effect Gumaan 2026 reports does not appear for this model at this scale.
+- Across decisions it does: 6 of 24 distinct refused actions under detailed refusals, 4 of 10 under terse ones.
+  The rules-sample runs had no refusal at all, and the e75 hard block none repeated (0 of 10) where b2 had 5 of 11:
+  the rate depends on the puzzles (a sorcery proposed at instant speed each turn in the storm lines), so the next
+  block should hold the puzzle set fixed and compare arms on it, as E1 of
+  `eval/research/2026-11-05-agent-compute-and-feedback-survey.md` proposes.
