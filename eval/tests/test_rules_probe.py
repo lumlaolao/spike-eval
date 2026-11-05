@@ -427,7 +427,7 @@ class TestScoring(unittest.TestCase):
         self.assertEqual(cells["play / cost (inferred) / trivial"], 2)     # Audacious Swap, Changeling Hero
         self.assertEqual(sum(cells.values()), s["illegal_positions"])
         f = s["floor_by_stratum"]
-        self.assertEqual(f["illegal play trivial"], {"n": 3, "floor_correct": 3})
+        self.assertEqual(f["illegal play trivial"], {"n": 3, "floor_correct": 3, "zone_floor_correct": 3})
         self.assertIn("balanced_accuracy", s["floor"])
         self.assertEqual(s["subtle_positions_by_source"], {"audit2-random": 2})   # Counterspell, Hands of Binding
 
@@ -553,6 +553,306 @@ class TestAsk(unittest.TestCase):
             self.assertIn(c, q)
         self.assertNotIn("only when you could cast a sorcery", q)
         self.assertNotIn("ILLEGAL", q)
+
+
+# The engine labeller's rows (RulesProbeLabelExport), cut from its sample export over eval/puzzles (board
+# hard/gen/drain_0026d851c85f, trimmed, a Lightning Bolt and a Hill Giant added): a state row per board variant, then
+# one row per labelled proposal.
+ENGINE_STATE = """== Turn 1 MAIN2 (active: Solver | priority: you) ==
+YOU [Solver] life 20 | poison 0/10 | hand 2 | library 4 (hidden, order unknown) | graveyard 1 | exile 0 | lands played this turn 0/1 | mana pool empty | spells cast this turn 0
+  hand(2): Swamp @1, Lightning Bolt {R} @13
+  board: Blood Artist 0/1 [untapped] @2, Viscera Seer 1/1 [untapped] @7
+  lands: 2 untapped / 2 total (Swamp x2 [untapped @9 @10])
+  mana available: {B:2} up to 2 mana (2 untapped sources)
+  YOUR ACTIVATED ABILITIES (from the cards' rules text, numbered for a proposed activate):
+    Viscera Seer 1/1 @7: 1) Sacrifice a creature: Scry 1.
+  graveyard(1): Gravecrawler {B} 2/1 @11
+  exile(0): (none)
+  command: Puzzle Goal @12
+OPP [Opponent] life 27 | poison 0/10 | hand 0 | library 3 (hidden, order unknown) | graveyard 0 | exile 0 | lands played this turn 0/1 | mana pool empty | spells cast this turn 0
+  board: Hill Giant 3/3 [untapped] @14
+  lands: 1 untapped / 1 total (Forest x1 [untapped @15])
+  graveyard(0): (none)
+STACK (engine, top first): (empty)
+"""
+ENGINE_COMBAT_STATE = ENGINE_STATE.replace("Turn 1 MAIN2", "Turn 1 COMBAT_BEGIN")
+
+
+def engine_raw(variant="base", sid="s-base", verb="cast", card="@13", name="Lightning Bolt", label="illegal",
+               category="cost", reason="you cannot pay its mana cost now.", **proposal):
+    p = dict({"verb": verb, "card": card, "name": name}, **proposal)
+    sig = "|".join(str(x) for x in (verb, name, p.get("ability"), p.get("face"), p.get("cost"),
+                                     (p.get("target_names") or [None])[0]))
+    return {"schema": rp.ENGINE_RAW_SCHEMA, "board": "hard/gen/drain_0026d851c85f", "variant": variant,
+            "state_id": sid, "proposal": p, "label": label, "category": category if label == "illegal" else None,
+            "reason": reason if label == "illegal" else None, "mana_ability": False, "signature": sig}
+
+
+def engine_file(rows, states=None):
+    states = states or {"s-base": ("base", ENGINE_STATE), "s-combat": ("combat", ENGINE_COMBAT_STATE)}
+    lines = [{"t": "state", "id": k, "text": v[1], "board": "hard/gen/drain_0026d851c85f", "variant": v[0],
+              "harness_epoch": "harness-epoch-80", "observation_version": "observation-faithful-v42",
+              "engine_pin": "34a8662b7966a6ee757411feae2ae8ff38cce436"} for k, v in states.items()]
+    return lines + rows
+
+
+class TestEngineLabels(unittest.TestCase):
+    def test_the_raw_schema_is_the_one_the_java_labeller_writes(self):
+        java = (evalpath.REPO / "forge-overlay/forge-gui-desktop/src/test/java/forge/spike"
+                / "RulesProbeLabelExport.java").read_text(encoding="utf-8")
+        self.assertIn('static final String SCHEMA = "%s";' % rp.ENGINE_RAW_SCHEMA, java)
+
+    def test_an_engine_row_is_an_item_with_the_engines_label_category_and_reason(self):
+        items = rp.engine_items(engine_file([engine_raw(verb="play_land", card="@11", name="Gravecrawler",
+                                                        category="type", reason="Gravecrawler is not a land.")]))
+        self.assertEqual(len(items), 1)
+        it = items[0]
+        self.assertEqual((it["schema"], it["kind"], it["label"], it["label_source"], it["category"],
+                          it["category_source"], it["reason"]),
+                         (rp.SCHEMA, "play", "illegal", "engine-label", "type", "engine",
+                          "Gravecrawler is not a land."))
+        self.assertEqual(it["state"], ENGINE_STATE)
+        self.assertEqual(it["proposal"], {"verb": "play_land", "card": "@11", "name": "Gravecrawler"})
+        prov = it["provenance"]
+        self.assertEqual((prov["board"], prov["variant"], prov["harness_epoch"], prov["engine_pin_source"]),
+                         ("hard/gen/drain_0026d851c85f", "base", "harness-epoch-80", "labeller"))
+
+    def test_a_format_verdict_or_a_row_without_its_state_is_never_an_item(self):
+        rows = [engine_raw(label="format"), dict(engine_raw(), state_id="nowhere")]
+        self.assertEqual(rp.engine_items(engine_file(rows)), [])
+
+    def test_a_negative_is_subtle_only_when_the_zone_reading_floor_misses_it(self):
+        rows = [engine_raw(verb="play_land", card="@11", name="Gravecrawler", category="type"),   # not in hand
+                engine_raw(verb="cast", card="@2", name="Blood Artist", category="zone"),          # on the battlefield
+                engine_raw(verb="cast", card="@13", name="Lightning Bolt", category="cost", cost="Flashback",
+                           reason='Lightning Bolt @13 cannot be cast for a cost named "Flashback".'),
+                engine_raw(verb="cast", card="@13", name="Lightning Bolt", category="target", targets=["@14"],
+                           target_names=["Hill Giant"])]
+        by_sig = {i["signature"]: i["difficulty"] for i in rp.engine_items(engine_file(rows))}
+        self.assertEqual(by_sig["play_land|Gravecrawler|None|None|None|None"], "trivial")
+        self.assertEqual(by_sig["cast|Blood Artist|None|None|None|None"], "trivial")
+        self.assertEqual(by_sig["cast|Lightning Bolt|None|None|None|Hill Giant"], "subtle")
+        # A way to cast the card does not have: the card's own text, which `ask` shows, settles it (82% of the
+        # subtle positions of the first full export were these).
+        self.assertEqual(by_sig["cast|Lightning Bolt|None|None|Flashback|None"], "card-text")
+
+    def test_the_zone_reading_floor_reads_where_the_card_is_and_what_it_can_activate(self):
+        def floor(**kw):
+            return rp.zone_floor({"state": ENGINE_STATE, "proposal": kw})["legal"]
+        self.assertTrue(floor(verb="play_land", card="@1"))
+        self.assertFalse(floor(verb="play_land", card="@13"), "a hand card with a cost is not a land")
+        self.assertFalse(floor(verb="play_land", card="@11"), "a land is played from the hand")
+        self.assertFalse(floor(verb="cast", card="@2"), "a permanent on the battlefield is not cast")
+        self.assertFalse(floor(verb="cast", card="@11"), "the graveyard, with no way named")
+        self.assertTrue(floor(verb="cast", card="@11", cost="Flashback"), "a named way: the floor cannot tell")
+        self.assertFalse(floor(verb="cast", card="@1"), "a land is not cast")
+        self.assertTrue(floor(verb="activate", card="@7", ability=1))
+        self.assertFalse(floor(verb="activate", card="@2"), "no ability listed for a nonland permanent")
+        self.assertTrue(floor(verb="activate", card="@9", ability=1), "a land's mana ability is not listed")
+        self.assertFalse(floor(verb="cast", card="@13", targets=["@15"]), "a land is not a legal target")
+        self.assertFalse(floor(verb="activate", card="@14"), "the opponent's permanent")
+        self.assertFalse(rp.zone_floor({"state": ENGINE_COMBAT_STATE,
+                                        "proposal": {"verb": "play_land", "card": "@1"}})["legal"])
+
+    def test_the_zone_reading_floor_refuses_a_target_in_a_hand_or_marked_hexproof_or_shroud(self):
+        # runs: the hand audit's Lava Spike targeting Fork in hand and the opp-hexproof variant's Gladecover Scout.
+        st = ENGINE_STATE.replace("Hill Giant 3/3 [untapped] @14", "Hill Giant 3/3 [untapped] @14, "
+                                  "Gladecover Scout 1/1 [untapped] [hexproof] @16")
+
+        def floor(target):
+            return rp.zone_floor({"state": st, "proposal": {"verb": "cast", "card": "@13", "targets": [target]}})
+        self.assertFalse(floor("@1")["legal"], "a card in your hand")
+        self.assertFalse(floor("@16")["legal"], "the opponent's hexproof creature")
+        self.assertTrue(floor("@14")["legal"])
+        self.assertTrue(floor("@11")["legal"], "a graveyard card: some spells target one, the floor cannot tell")
+        self.assertTrue(floor("opponent")["legal"])
+
+    def test_two_cards_of_one_name_in_one_state_are_two_positions_with_their_own_labels(self):
+        # pr-review of #359: with handles stripped and no zone, the Swamp in hand (legal to play) and a Swamp on the
+        # battlefield (zone) were one position, and one arbitrary label survived; so were a tapped and an untapped
+        # Swamp's {T} ability and two targets of one name.
+        st = ENGINE_STATE.replace("Swamp x2 [untapped @9 @10]", "Swamp x1 [untapped @9], Swamp x1 [tapped @10]") \
+            .replace("Hill Giant 3/3 [untapped] @14", "Hill Giant 3/3 [untapped] @14, Hill Giant 3/3 [untapped] "
+                                                      "[hexproof] @16")
+        rows = [engine_raw(verb="play_land", card="@1", name="Swamp", label="legal"),
+                engine_raw(verb="play_land", card="@9", name="Swamp", category="zone"),
+                engine_raw(verb="activate", card="@9", name="Swamp", label="legal", ability=1),
+                engine_raw(verb="activate", card="@10", name="Swamp", category="cost", ability=1),
+                engine_raw(label="legal", targets=["@14"], target_names=["Hill Giant"]),
+                engine_raw(category="target", targets=["@16"], target_names=["Hill Giant"])]
+        items = rp.engine_items(engine_file(rows, {"s-base": ("base", st)}))
+        pool = rp.position_pool(items, keep_mana_abilities=True)
+        self.assertEqual(len(pool), 6)
+        self.assertEqual(sorted((i["proposal"]["verb"], i["proposal"]["card"], i["label"]) for i in pool),
+                         [("activate", "@10", "illegal"), ("activate", "@9", "legal"), ("cast", "@13", "illegal"),
+                          ("cast", "@13", "legal"), ("play_land", "@1", "legal"), ("play_land", "@9", "illegal")])
+        self.assertEqual(rp.stats(items)["position_label_conflicts"], 0)
+
+    def test_identical_copies_are_one_position(self):
+        # Two untapped Swamps on the battlefield are one question; two positions would count it twice.
+        rows = [engine_raw(verb="activate", card="@9", name="Swamp", label="legal", ability=1),
+                engine_raw(verb="activate", card="@10", name="Swamp", label="legal", ability=1)]
+        items = rp.engine_items(engine_file(rows))
+        self.assertEqual(len({rp.position_key(i) for i in items}), 1)
+
+    def test_a_position_with_two_labels_is_counted(self):
+        # Two copies that read the same but are labelled apart: the state does not show what the label turns on.
+        rows = [engine_raw(verb="activate", card="@9", name="Swamp", label="legal", ability=1),
+                engine_raw(verb="activate", card="@10", name="Swamp", category="cost", ability=1)]
+        self.assertEqual(rp.stats(rp.engine_items(engine_file(rows)))["position_label_conflicts"], 1)
+
+    def test_the_audit_sample_is_drawn_per_cell_and_is_reproducible(self):
+        rows = [engine_raw(verb="play_land", card="@11", name="Gravecrawler", category="type"),
+                engine_raw(verb="cast", card="@2", name="Blood Artist", category="zone"),
+                engine_raw(verb="cast", card="@13", name="Lightning Bolt", category="cost"),
+                engine_raw(verb="play_land", card="@1", name="Swamp", label="legal")]
+        items = rp.engine_items(engine_file(rows))
+        a = rp.audit_sample(items, "illegal", 2, seed=7)
+        self.assertEqual(len(a), 2)
+        self.assertEqual([i["id"] for i in a], [i["id"] for i in rp.audit_sample(items, "illegal", 2, seed=7)])
+        self.assertEqual(len({(i["category"], i["difficulty"]) for i in a}), 2, "one per cell before a second")
+        self.assertEqual([i["label"] for i in rp.audit_sample(items, "legal", 5, seed=7)], ["legal"])
+        text = rp.audit_text(a)
+        self.assertIn("id " + a[0]["id"], text, "a verdict file names the items by id")
+        self.assertIn("REASON:", text)
+        self.assertIn("== Turn 1 MAIN2", text)
+
+    def test_the_engine_report_counts_boards_copies_drops_and_conflicts_from_the_rows(self):
+        summary = {"t": "summary", "boards_labelled": 9, "rows": 3, "format_dropped": 4, "substituted_dropped": 5,
+                   "failed": 0}
+        rows = engine_file([engine_raw(), engine_raw(variant="combat", sid="s-combat")]) + [summary]
+        copy = dict(rows[0], board="rules-pilot/drafts/copy")
+        r = rp.engine_report(rows + [copy])
+        self.assertEqual((r["boards"], r["distinct_base_states"], r["boards_copying_another"]), (2, 1, 1))
+        self.assertEqual((r["boards_labelled"], r["format_dropped"], r["substituted_dropped"], r["rows"]),
+                         (9, 4, 5, 3))
+        self.assertEqual(r["state_rows"], 3)
+        self.assertEqual(r["label_conflicts"], 0)
+
+    def test_count_reads_positions_by_label_category_cost_reason_and_the_solvers_board(self):
+        # The note's counts of a wrong-label class (Disturb casts refused for their target; mana-cost refusals beside
+        # Heritage Druid) come from this command, not a scratch script (standards review of #359).
+        st = ENGINE_STATE.replace("Blood Artist 0/1 [untapped] @2", "Heritage Druid 1/1 [untapped] @2")
+        rows = [engine_raw(category="target", cost="Disturb", reason="it has no legal target now."),
+                engine_raw(category="cost", reason="you cannot pay its mana cost now."),
+                engine_raw(verb="play_land", card="@1", name="Swamp", label="legal")]
+        items = rp.engine_items(engine_file(rows, {"s-base": ("base", st)}))
+        self.assertEqual(rp.count(items, label="illegal", cost="Disturb", category="target")["positions"], 1)
+        heritage = rp.count(items, label="illegal", reason="mana cost", solver_board="Heritage Druid")
+        self.assertEqual((heritage["positions"], heritage["boards"], heritage["names"]),
+                         (1, 1, {"Lightning Bolt": 1}))
+        self.assertEqual(rp.count(items, label="illegal", solver_board="Hill Giant")["positions"], 0,
+                         "the opponent's board is not the solver's")
+        self.assertEqual(rp.count(items, label="legal")["positions"], 1)
+        self.assertEqual(rp.count(items, label="illegal", name="Lightning Bolt", category="target")["positions"], 1)
+        self.assertEqual(rp.count(items, name="Swamp")["positions"], 1)
+
+    def test_one_cell_key_draws_the_audit_and_names_its_cells(self):
+        legal = rp.engine_items(engine_file([engine_raw(verb="activate", card="@9", name="Swamp", label="legal",
+                                                        ability=1)]))[0]
+        legal["mana_ability"] = True
+        self.assertEqual(rp.cell_key(legal, "legal"), ("play", "activate", "base", True))
+        bad = rp.engine_items(engine_file([engine_raw()]))[0]
+        self.assertEqual(rp.cell_key(bad, "illegal"), ("play", "cost", bad["difficulty"]))
+
+    def test_a_subtle_reason_is_grouped_by_the_rule_it_names(self):
+        self.assertEqual(rp.reason_kind({"category": "timing", "reason": "a spell with split second is on the "
+                                         "stack; no spell can be cast until it resolves.", "proposal": {}}),
+                         "timing: split second on the stack")
+        self.assertEqual(rp.reason_kind({"category": "target", "reason": "@5 cannot be the target of X (Hexproof).",
+                                         "proposal": {}}), "target: a static forbids it")
+
+    def test_the_wrong_cast_way_sentence_is_the_checkers(self):
+        java = (evalpath.REPO / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+                / "LlmSpikeGui.java").read_text(encoding="utf-8")
+        self.assertIn('" %s \\"" + pr.cost' % rp.WRONG_WAY, java)
+
+    def test_two_targets_of_one_spell_are_two_positions(self):
+        rows = [engine_raw(label="legal", targets=["@14"], target_names=["Hill Giant"]),
+                engine_raw(label="legal", targets=["opponent"], target_names=["opponent"])]
+        items = rp.engine_items(engine_file(rows))
+        self.assertEqual(len({rp.position_key(i) for i in items}), 2)
+        self.assertEqual({i["kind"] for i in items}, {"target"})
+
+    def test_a_contrast_pair_is_one_play_with_two_labels_on_a_board_and_its_variant(self):
+        rows = [engine_raw(variant="base", sid="s-base", verb="play_land", card="@1", name="Swamp", label="legal"),
+                engine_raw(variant="combat", sid="s-combat", verb="play_land", card="@1", name="Swamp",
+                           category="timing"),
+                engine_raw(variant="base", sid="s-base", category="cost"),
+                engine_raw(variant="combat", sid="s-combat", category="cost")]
+        items = rp.engine_items(engine_file(rows))
+        pairs = rp.contrast_pairs(items)
+        self.assertEqual(len(pairs), 1)
+        legal, illegal = pairs[0]
+        self.assertEqual((legal["provenance"]["variant"], illegal["provenance"]["variant"]), ("base", "combat"))
+        self.assertEqual(rp.stats(items)["contrast_pairs_by_variant"], {"combat": 1})
+
+    def test_a_contrast_balance_takes_each_negatives_partner_as_its_legal_item(self):
+        rows = [engine_raw(variant="base", sid="s-base", verb="play_land", card="@1", name="Swamp", label="legal"),
+                engine_raw(variant="combat", sid="s-combat", verb="play_land", card="@1", name="Swamp",
+                           category="timing"),
+                engine_raw(variant="base", sid="s-base", verb="activate", card="@7", name="Viscera Seer",
+                           label="legal", ability=1)]
+        items = rp.engine_items(engine_file(rows))
+        chosen = rp.balance(items, per_cell=5, seed=1, contrast=True)
+        self.assertEqual(sorted((i["label"], i["proposal"]["name"]) for i in chosen),
+                         [("illegal", "Swamp"), ("legal", "Swamp")])
+
+    def test_engine_items_round_trip_through_a_gzipped_file_and_the_raw_file_may_be_gzipped(self):
+        import gzip
+        items = rp.engine_items(engine_file([engine_raw(), engine_raw(label="legal", cost="Flashback")]))
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "items.jsonl.gz")
+            rp._write(items, out)
+            self.assertEqual(rp._read(out), items)
+            raw = os.path.join(d, "raw.jsonl.gz")
+            with gzip.open(raw, "wt", encoding="utf-8") as fh:
+                for r in engine_file([engine_raw()]):
+                    fh.write(json.dumps(r) + "\n")
+            self.assertEqual(rp.main(["engine", raw, "--out", out]), 0)
+            self.assertEqual(len(rp._read(out)), 1)
+
+    def test_the_question_names_the_target_and_the_ability_number(self):
+        q = rp.render(rp.engine_items(engine_file([engine_raw(targets=["@14"], target_names=["Hill Giant"])]))[0])
+        self.assertIn("cast Lightning Bolt @13 targeting Hill Giant @14", q)
+        q = rp.render(rp.engine_items(engine_file([engine_raw(verb="activate", card="@7", name="Viscera Seer",
+                                                              ability=1)]))[0])
+        self.assertIn("activate ability 1 (as numbered in YOUR ACTIVATED ABILITIES) of Viscera Seer @7", q)
+
+    def test_the_floor_report_gives_the_zone_reading_floor_per_stratum_too(self):
+        items = rp.engine_items(engine_file([engine_raw(verb="cast", card="@2", name="Blood Artist", category="zone"),
+                                             engine_raw(verb="play_land", card="@1", name="Swamp", label="legal")]))
+        overall, strata = rp.floor_report(items)
+        self.assertEqual((overall["balanced_accuracy"], overall["zone_reading_balanced"]), (0.5, 1.0))
+        self.assertEqual(strata["illegal play trivial"], {"n": 1, "floor_correct": 0, "zone_floor_correct": 1})
+
+    def test_the_score_counts_contrast_pairs_right_on_both_sides_with_intervals_and_floors(self):
+        rows = [engine_raw(variant="base", sid="s-base", verb="play_land", card="@1", name="Swamp", label="legal"),
+                engine_raw(variant="combat", sid="s-combat", verb="play_land", card="@1", name="Swamp",
+                           category="timing")]
+        items = rp.engine_items(engine_file(rows))
+        by = {i["provenance"]["variant"]: i for i in items}
+        s = rp.score(items, {by["base"]["id"]: {"legal": True}, by["combat"]["id"]: {"legal": False,
+                                                                                    "category": "timing"}})
+        self.assertEqual((s["contrast_pairs"], s["contrast_pairs_both_right"]), (1, 1))
+        self.assertEqual(len(s["contrast_pairs_both_right_ci"]), 2)
+        self.assertEqual(s["floors"]["zone_reading_contrast_pairs_both_right"], 1)
+
+    def test_the_category_rate_has_its_majority_baseline_beside_it(self):
+        rows = [engine_raw(verb="cast", card="@2", name="Blood Artist", category="zone"),
+                engine_raw(verb="play_land", card="@11", name="Gravecrawler", category="type"),
+                engine_raw(verb="cast", card="@14", name="Hill Giant", category="zone")]
+        items = rp.engine_items(engine_file(rows))
+        s = rp.score(items, {i["id"]: {"legal": False, "category": "zone"} for i in items})
+        self.assertEqual((s["category_n"], s["category_accuracy"]), (3, round(2 / 3, 4)))
+        self.assertEqual(s["floors"]["category_majority"], round(2 / 3, 4), "always naming the commonest category")
+
+    def test_the_score_reports_the_zone_reading_floor_beside_the_state_reading_one(self):
+        items = rp.engine_items(engine_file([engine_raw(verb="cast", card="@2", name="Blood Artist", category="zone"),
+                                             engine_raw(verb="play_land", card="@1", name="Swamp", label="legal")]))
+        s = rp.score(items, {})
+        self.assertEqual(s["floors"]["zone_reading_accuracy"], 1.0)
+        self.assertEqual(s["floors"]["state_reading_accuracy"], 0.5)
 
 
 if __name__ == "__main__":

@@ -38,7 +38,7 @@ public class PuzzleSetupTest {
      *  ($REPO/data/rules/MagicCompRules.txt, set by acceptance) names it. */
     private static final File REPO = repoRoot();
 
-    private static File repoRoot() {
+    static File repoRoot() {
         String rules = System.getProperty("harness.rules.file");
         if (rules == null) throw new IllegalStateException("-Dharness.rules.file is not set; the repo root comes from it");
         return new File(rules).getAbsoluteFile().getParentFile().getParentFile().getParentFile();
@@ -61,13 +61,17 @@ public class PuzzleSetupTest {
         }
     }
 
-    /** The board applied on a thread named "Game..." (GameState.applyToGame runs inline only there) by the runner's
-     *  own start-hook method: the board, the NamedCard restore and the goal card's brief. */
     private static Game boardOf(String pzl) throws Exception {
         File f = new File(REPO,
                 "eval/puzzles/rules-pilot/" + pzl);
-        Map<String, List<String>> sections = FileSection.parseSections(FileUtil.readFile(f));
-        Puzzle puzzle = new Puzzle(sections, pzl, false);
+        return gameOf(FileSection.parseSections(FileUtil.readFile(f)), pzl);
+    }
+
+    /** The board of {@code sections} applied on a thread named "Game..." (GameState.applyToGame runs inline only there)
+     *  by the runner's own start-hook method: the board, the NamedCard restore and the goal card's brief. Both seats are
+     *  the pass arm's; RulesProbeLabelExport replaces the solver's. */
+    static Game gameOf(Map<String, List<String>> sections, String name) throws Exception {
+        Puzzle puzzle = new Puzzle(sections, name, false);
         List<RegisteredPlayer> players = new ArrayList<>();
         LobbyPlayer solverSeat = LlmSpikeGui.seatFor("pass", "Solver", "", NO_MODEL, NO_MODEL);
         LlmSpikeGui.puzzleSolverSeat = solverSeat;  // the goal-bearing seat, designated before the game is built
@@ -87,6 +91,7 @@ public class PuzzleSetupTest {
         t.start();
         t.join(60000);
         if (thrown[0] != null) throw new AssertionError("board did not apply", thrown[0]);
+        if (t.isAlive()) throw new AssertionError("board did not apply in 60 s");
         return game;
     }
 
