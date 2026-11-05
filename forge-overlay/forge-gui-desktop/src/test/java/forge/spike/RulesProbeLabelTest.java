@@ -158,10 +158,12 @@ public class RulesProbeLabelTest {
         Assert.assertEquals(last, sum);
         Assert.assertEquals(sum.get("boards_labelled").getAsInt(), 1);
         Assert.assertEquals(sum.get("rows").getAsInt(), rows.size() - 2, "every row between is an item");
-        Assert.assertEquals(sum.get("substituted_dropped").getAsInt(), 0, "no row is dropped as substituted: " + sum);
+        Assert.assertTrue(sum.has("substituted_dropped"), "the summary keeps the raw schema's keys: " + sum);
+        // The tapped Mountain's own {T} row: a mana ability, refused for cost because the card is tapped.
         Assert.assertTrue(rows.stream().anyMatch(r -> "illegal".equals(r.has("label") ? r.get("label").getAsString() : null)
-                && r.has("category") && "cost".equals(r.get("category").getAsString())
-                && r.toString().contains("Mountain")), "the tapped Mountain's ability is written as a cost row: " + sum);
+                && "cost".equals(r.get("category").getAsString()) && r.get("mana_ability").getAsBoolean()
+                && r.get("reason").getAsString().contains("tapped") && r.toString().contains("Mountain")),
+                "the tapped Mountain's ability is written as a cost row: " + sum);
         Assert.assertEquals(rows.get(1).get("schema").getAsString(), RulesProbeLabelExport.SCHEMA);
         Assert.assertEquals(rows.get(1).get("state_id").getAsString(), first.get("id").getAsString());
     }

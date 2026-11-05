@@ -499,8 +499,8 @@ mana-ability copy fallback) are PR #360's (see Provenance).
 **The category misses** (5 among the 56 right labels, 9 counting the wrong labels): at epoch 80, `rejection` asked
 `playable` before it checked a non-mana cost and answered "restriction" or "zone" whatever made it fail: Dread
 Return's flashback with too few creatures, Colossal Dreadmaw's escape under Underworld Breach, Spawning Pit with no
-charge counters and Eldritch Evolution with no creature to sacrifice are cost; Reassembling Skeleton's ability on the battlefield is zone. The
-propose arm's category counts from that epoch inherit this.
+charge counters and Eldritch Evolution with no creature to sacrifice are cost; Reassembling Skeleton's ability on
+the battlefield is zone. The propose arm's category counts from that epoch inherit this.
 
 One legal item is flagged, not counted wrong: The One Ring activated in a cleanup step (`rules-pilot/RP_096`,
 opp-leyline). It is legal with the priority the state gives the solver, but in a cleanup step no player normally gets
