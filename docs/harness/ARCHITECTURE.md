@@ -493,7 +493,9 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   the game's isolation (`[SHADOW] ... WEAKENED`), so it is stamped `shadow_ai` on the game line, keyed by
   `aggregate.PROVENANCE_FIELDS`, expected on resume, and stripped from puzzle games (PR #345; STANDARDS section 4).
   The puzzle runner strips every condition `run_batch.py` pins (`CONDITION_ENV_KEYS`) and `SHADOW_AI` from the
-  shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it.
+  shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it; the tournament (`tournament.py`)
+  strips the same list, so a bracket game runs at the JVM's defaults (`eval/tests/test_launchers.py` lists every
+  launcher and how its games get their conditions).
 - **Combat (epoch 78, answer-tool-v16):** the attack and the blocks are proposed too, so the candidate lists (which
   creatures can attack, which can block, and what) are not shown. `answer.declare_attackers` is a list of
   `{attacker, defender}` by handle (`defender` "opponent" by default, or a planeswalker's or battle's handle; the
