@@ -564,6 +564,16 @@ public final class LlmSpikeGui {
     // in the response's own `model` field — so that is what we record, alongside the spec we asked for.
     static final Map<String, String> servedModels = new ConcurrentHashMap<>();
 
+    // Issue #369: per deck identity (the seat's name, as above), the decisions whose model ask the bridge never answered
+    // after every retry (a 402 when the credits ran out, a 401, an outage), and the trips of the circuit breaker. Each
+    // took a fixed legal fallback, so the game is not the model's: aggregate.py counts it invalid, panel_score.py and
+    // rating.py refuse it, defect_analyzer.py fails on it. Before these, the game line said nothing and such a game
+    // (seeds 1009-1019 of a 2026-11-05 block made no model decision at all) was scored as decisive.
+    static final Map<String, Integer> bridgeDown = new ConcurrentHashMap<>();
+    static final Map<String, Integer> breakerTrips = new ConcurrentHashMap<>();
+    static int bridgeDownDecisions(String seat) { return bridgeDown.getOrDefault(seat, 0); }
+    static int circuitBreakerTrips(String seat) { return breakerTrips.getOrDefault(seat, 0); }
+
     /** PZL axis: which seat is the puzzle SOLVER, or null outside puzzle mode.
      *
      *  Forge decides who receives the "Puzzle Goal" enforcement card by asking each controller
@@ -918,6 +928,8 @@ public final class LlmSpikeGui {
         // streak (reset the moment a reply succeeds, so it can fire again on a later streak).
         private int consecutiveBridgeFailures = 0;
         private boolean circuitBreakerTripped = false;
+        /** This decision already counted a dead-bridge ask (bridgeDown): one count per decision, not per ask. */
+        private boolean bridgeDownThisDecision = false;
 
         // Decision-record provenance (per-controller, so the two seats never cross-contaminate): the FULL
         // prompt + raw reply of the most recent model call for the decision currently being made. Cleared at
@@ -972,6 +984,7 @@ public final class LlmSpikeGui {
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
             lastShadowChoice = null; lastPicks = null;
             nextAnswer = null; lastAnswer = null; answerVia = null; answerInvalid = 0;
+            bridgeDownThisDecision = false;
         }
 
         // per-turn play-loop state (was static in v1 — now per-instance so two seats don't collide)
@@ -8359,6 +8372,7 @@ public final class LlmSpikeGui {
             long tAsk = System.currentTimeMillis();
             Integer routing0 = b.getRoutingRefusals();
             long billedPrompt0 = b.getBilledPromptTokens(), billedCompletion0 = b.getBilledCompletionTokens();
+            boolean native0 = b.supportsNativeTools();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
             lastTier = (b == smart) ? "smart" : "fast";
@@ -8394,8 +8408,15 @@ public final class LlmSpikeGui {
                 Integer routing1 = b.getRoutingRefusals();
                 if (routing0 != null && routing1 != null && routing1 > routing0) lostToRouting++;
                 consecutiveBridgeFailures++;
+                // A provider that refused function calling during this ask answered: it ended native tools, which
+                // the game line's native_tools_downgraded records. Every other null is a bridge that never answered.
+                if (!(native0 && !b.supportsNativeTools()) && !bridgeDownThisDecision) {
+                    bridgeDownThisDecision = true;
+                    bridgeDown.merge(seat, 1, Integer::sum);
+                }
                 if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
+                    breakerTrips.merge(seat, 1, Integer::sum);
                     p("[CIRCUIT-BREAKER] " + consecutiveBridgeFailures + " consecutive bridge failures on "
                             + b.getLabel() + " -> deterministic fallback in effect until it recovers");
                 }
@@ -12639,6 +12660,11 @@ public final class LlmSpikeGui {
                 + ",\"openrouter_max_price\":\"" + jsonEscape(OpenRouterBridge.maxPriceEnv == null ? "" : OpenRouterBridge.maxPriceEnv) + "\""
                 + ",\"openrouter_quantizations\":\"" + jsonEscape(OpenRouterBridge.quantizationsEnv == null ? "" : OpenRouterBridge.quantizationsEnv) + "\""
                 + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
+                // Decisions lost to a dead model bridge and circuit-breaker trips, per identity, 0 when none (issue #369)
+                + ",\"bridge_down_decisions_a\":" + bridgeDownDecisions(nameA)
+                + ",\"bridge_down_decisions_b\":" + bridgeDownDecisions(nameB)
+                + ",\"circuit_breaker_trips_a\":" + circuitBreakerTrips(nameA)
+                + ",\"circuit_breaker_trips_b\":" + circuitBreakerTrips(nameB)
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
                 + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""

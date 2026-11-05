@@ -347,7 +347,32 @@ def test_one_candidate_in_a_subset_decision_is_not_a_forced_pick():
               [e["type"] for e in c["forced_pick_mislabels"]["examples"]] == ["target"])
 
 
+def test_decisions_lost_to_a_dead_bridge_fail_the_invariants():
+    """Issue #369: a 402 game printed overall=PASS while its own fallback table listed play(bridge-down) 260.
+    The game line's count fails the invariants; a line from before the field is judged by its rows; a
+    line whose count is 0 passes whatever its rows say (a tool refusal's lost ask is not a dead bridge)."""
+    def run(line, rows):
+        with tempfile.TemporaryDirectory() as d:
+            write_lines(Path(d) / "game-3-1000.jsonl", rows + [line])
+            return da.build_report([Path(d)])
+    rows = [dec(seat="model-a", dtype="mulligan", n_options=2, choice=0, raw_reply="KEEP"),
+            dec(seat="model-a", tier="auto", prompt=None, raw_reply=None, fallback="play(bridge-down)->PASS")]
+    dead = dict(game_line(seed=3), bridge_down_decisions_a=21, bridge_down_decisions_b=0)
+    r = run(dead, rows[:1])
+    check("the game line's count is the invariant", r["hard_invariants"].get("bridge_down_total") == 21,
+          str(r["hard_invariants"]))
+    check("and fails it", r["hard_invariants"]["pass"] is False)
+    check("the text says so", "bridge_down_total=21" in da.render_text(r))
+    r = run(game_line(seed=3), rows)
+    check("a legacy line is judged by its (bridge-down) rows", r["hard_invariants"].get("bridge_down_total") == 1,
+          str(r["hard_invariants"]))
+    check("and fails", r["hard_invariants"]["pass"] is False)
+    r = run(dict(game_line(seed=3), bridge_down_decisions_a=0, bridge_down_decisions_b=0), rows)
+    check("a line whose count is 0 passes", r["hard_invariants"]["pass"] is True, str(r["hard_invariants"]))
+
+
 def main():
+    test_decisions_lost_to_a_dead_bridge_fail_the_invariants()
     test_one_candidate_in_a_subset_decision_is_not_a_forced_pick()
     test_parse_log_text()
     test_normalize_fallback_matches_analyze_corpus_convention()

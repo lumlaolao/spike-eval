@@ -180,6 +180,33 @@ PROVENANCE_FIELDS = (
     ("shadow_ai", False),
 )
 
+# Decisions whose model ask the seat's bridge never answered after every retry (a 402 when the credits ran out, a
+# 401, an outage), per identity (issue #369). Each took a fixed legal fallback, so a game with any is not the model's
+# and is invalid here, whatever its recorded winner. Any, not a share: 79 epoch-stamped OpenRouter games in the local
+# runs outside the block of the issue had none, so no threshold has data behind it, and the block's games lost 1 to 34.
+BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b")
+# The fallback rows that name it, for a game line written before the fields.
+BRIDGE_DOWN_FALLBACK = "(bridge-down)"
+
+
+def bridge_down_decisions(game, rows=()):
+    """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else the game's
+    decision rows whose fallback says (bridge-down) (a line from before the field; parse_dir_full attaches that count
+    as `_bridge_down_rows`). A line that carries the count is judged by it alone: a decision lost when a provider
+    refused function calling also reads (bridge-down), but that bridge answered and native_tools_downgraded says so."""
+    if any(f in game for f in BRIDGE_DOWN_FIELDS):
+        return sum(v for v in (game.get(f) for f in BRIDGE_DOWN_FIELDS)
+                   if isinstance(v, int) and not isinstance(v, bool) and v > 0)
+    if rows:
+        return sum(1 for r in rows if BRIDGE_DOWN_FALLBACK in str(r.get("fallback") or ""))
+    return game.get("_bridge_down_rows") or 0
+
+
+def scored_winner(game):
+    """The winner a score reads: "invalid" for a game that lost a decision to a dead model bridge, else the line's."""
+    return "invalid" if bridge_down_decisions(game) else game.get("winner")
+
+
 # Identity fields a cited run must resolve. A value in this set means the field
 # is present but names nothing — an alias the endpoint never disambiguated.
 UNATTRIBUTABLE_VALUES = ("unknown", "", "unregistered")
@@ -460,6 +487,14 @@ def parse_dir_full(path):
             warnings.append("unreadable file %s: %s" % (fp.name, e))
             continue
         rows_by_file[fp.name] = rows
+        file_games = [g for g in games if g.get("_file") == fp.name]
+        if len(file_games) == 1:
+            g = file_games[0]
+            g["_bridge_down_rows"] = bridge_down_decisions({}, [r for r in rows if r.get("t") == "decision"])
+            lost = bridge_down_decisions(g)
+            if lost:
+                warnings.append("%s: %d decision(s) lost to a dead model bridge -> counted as invalid"
+                                % (fp.name, lost))
         if n_bad:
             warnings.append("%s: skipped %d malformed line(s)" % (fp.name, n_bad))
         if not found_game:
@@ -596,7 +631,9 @@ def p90(values):
 def summarize_games(games):
     counts = Counter()
     for g in games:
-        w = g.get("winner")
+        w = scored_winner(g)
+        if bridge_down_decisions(g):
+            counts["bridge_down"] += 1  # invalid: a decision was the harness's fallback, not the model's
         if w in ("A", "B"):
             counts["decisive"] += 1
             # Seat-bias diagnostic. winner is identity-keyed, so seat 1
@@ -622,7 +659,7 @@ def summarize_arms(games):
     are identity A's config, so attribution never flips on swap."""
     arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0})
     for g in games:
-        w = g.get("winner")
+        w = scored_winner(g)
         la, lb = arm_label(g, "a"), arm_label(g, "b")
         # Every started game, for the strict score: a game that ended in a draw or never finished (the
         # wall-clock cap, a crash) is not dropped there, so stalling a lost game into the cap cannot
@@ -687,12 +724,13 @@ def summarize_paired(games, resamples, bootstrap_seed):
         if arm_label(g1, "a") != focal or arm_label(g2, "a") != focal:
             n_excluded_mismatch += 1
             continue
-        if g1.get("winner") not in ("A", "B") or g2.get("winner") not in ("A", "B"):
+        w1, w2 = scored_winner(g1), scored_winner(g2)
+        if w1 not in ("A", "B") or w2 not in ("A", "B"):
             n_excluded_nondecisive += 1
             continue
         # winner is identity-keyed: "A" = focal won, in either swap variant.
-        x1 = 1 if g1["winner"] == "A" else 0
-        x2 = 1 if g2["winner"] == "A" else 0
+        x1 = 1 if w1 == "A" else 0
+        x2 = 1 if w2 == "A" else 0
         outcomes.append((x1, x2))
         tallies["WW" if x1 + x2 == 2 else "LL" if x1 + x2 == 0 else "split"] += 1
 
@@ -1455,9 +1493,10 @@ def print_fallback_gate(s):
 
 
 def print_games_block(g, indent=""):
-    print("%stotal: %d   decisive: %d   draws: %d   invalid: %d (of which %d crashed with no game line)"
+    print("%stotal: %d   decisive: %d   draws: %d   invalid: %d (of which %d crashed with no game line, %d lost "
+          "decisions to a dead model bridge)"
           % (indent, g.get("total", 0), g.get("decisive", 0), g.get("draw", 0),
-             g.get("invalid", 0), g.get("no_game_line", 0)))
+             g.get("invalid", 0), g.get("no_game_line", 0), g.get("bridge_down", 0)))
     if g.get("decisive") and g.get("seat1_wins") is not None:
         # Seat 1 = first player. Computed identity-aware: wins-by-A among
         # swap=false games plus wins-by-B among swap=true games. In a

@@ -521,6 +521,36 @@ def test_strict_score_counts_every_started_game():
     check("strict score is (1 + 0.5) / 4", approx(a["strict_score"], 0.375), str(a))
 
 
+def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
+    """Issue #369: a provider answering 402 to every call left the seat passing; the game was scored
+    decisive. The game line's bridge_down_decisions_a/_b make it invalid; a line from before the field
+    is judged by its "(bridge-down)" fallback rows; a game with no lost decision is unchanged."""
+    with tempfile.TemporaryDirectory() as d:
+        dead = dict(game_line(1, False, "B", ctrl_b="ai"), bridge_down_decisions_a=21, bridge_down_decisions_b=0,
+                    circuit_breaker_trips_a=1, circuit_breaker_trips_b=0)
+        healthy = dict(game_line(1, True, "A", ctrl_b="ai"), bridge_down_decisions_a=0, bridge_down_decisions_b=0,
+                       circuit_breaker_trips_a=0, circuit_breaker_trips_b=0)
+        legacy_dead = game_line(2, False, "B", ctrl_b="ai")
+        legacy_ok = game_line(2, True, "B", ctrl_b="ai")
+        write_jsonl(d, "game-1-1000.jsonl", [decision_line("smart", 900), dead])
+        write_jsonl(d, "game-1-1001.jsonl", [decision_line("smart", 900), healthy])
+        write_jsonl(d, "game-2-1000.jsonl", [decision_line("auto", 0, fallback="play(bridge-down)->PASS"),
+                                             legacy_dead])
+        write_jsonl(d, "game-2-1001.jsonl", [decision_line("auto", 0, fallback="play(unparsed)->PASS"), legacy_ok])
+        s = aggregate.build_summary(Path(d), 200, 1)
+        g = s["games"]
+        check("a bridge-down game is not decisive", g["decisive"] == 2, str(g))
+        check("both bridge-down games are invalid", g["invalid"] == 2, str(g))
+        check("and counted as lost to the bridge", g.get("bridge_down") == 2, str(g))
+        arm = s["arms"][aggregate.arm_label(healthy, "a")]
+        check("the win rate is over the games the model played", (arm["wins"], arm["games"]) == (1, 2), str(arm))
+        check("the warning names the game", any("dead model bridge" in w for w in s["warnings"]), str(s["warnings"]))
+        check("the recorded winner is kept on the line", dead["winner"] == "B")
+        check("a healthy line counts nothing", aggregate.bridge_down_decisions(healthy) == 0)
+        check("a line carrying the field is judged by it", aggregate.bridge_down_decisions(
+            dead, [decision_line("auto", 0, fallback="play(bridge-down)->PASS")]) == 21)
+
+
 def main():
     test_wilson()
     test_p90()
@@ -532,6 +562,7 @@ def main():
     test_fallback_gate()
     test_harness_decided_gate()
     test_strict_score_counts_every_started_game()
+    test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
     test_mixed_provenance()
     test_provenance_legacy_unknown()
     test_model_identity_attributable()

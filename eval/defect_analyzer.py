@@ -24,8 +24,9 @@ silent-drop reconciliation requires a paired log.
 Usage:
   python3 eval/defect_analyzer.py <dir> [<dir> ...] [--json PATH] [--summary PATH]
 
-Exit codes: 0 clean; 1 a hard invariant failed (tier=ai count > 0, or a
-silent-drop gap > 0 anywhere); 2 usage/input error (not a directory, or no
+Exit codes: 0 clean; 1 a hard invariant failed (tier=ai count > 0, a
+silent-drop gap > 0 anywhere, a crashed game, or a decision lost to a dead
+model bridge: aggregate.bridge_down_decisions, issue #369); 2 usage/input error (not a directory, or no
 game-*.jsonl file found in any given directory).
 """
 
@@ -36,6 +37,8 @@ import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
+
+from aggregate import bridge_down_decisions
 
 # ------------------------------------------------------------- log parsing
 #
@@ -390,9 +393,20 @@ def summarize(pairs, label):
                if any(g.get("game_error") for g in p.get("games") or [])
                or "game thread threw" in (p.get("log_text") or "")]
 
+    # --- decisions lost to a dead model bridge (issue #369: a 402 game read overall=PASS while this report's own
+    # fallback table listed play(bridge-down) 260): the game line's count, or its rows on a line from before it
+    bridge_down = {}
+    for p in pairs:
+        if p.get("games"):
+            n = bridge_down_decisions(p["games"][-1], p["decisions"])
+            if n:
+                bridge_down[str(p["jsonl"])] = n
+
     return {
         "label": label,
         "n_games": n_games,
+        "bridge_down_total": sum(bridge_down.values()),
+        "bridge_down_files": bridge_down,
         "game_crash_count": len(crashed),
         "game_crash_files": crashed,
         "n_decisions": len(decisions),
@@ -441,6 +455,7 @@ def build_report(dirs):
     ai_ok = combined["ai_tier_count"] == 0
     drop_ok = combined["silent_drop_total"] == 0
     crash_ok = combined["game_crash_count"] == 0
+    bridge_ok = combined["bridge_down_total"] == 0
     report = {
         "dirs": per_dir,
         "combined": combined,
@@ -451,7 +466,9 @@ def build_report(dirs):
             "silent_drop_ok": drop_ok,
             "game_crash_count": combined["game_crash_count"],
             "game_crash_ok": crash_ok,
-            "pass": ai_ok and drop_ok and crash_ok,
+            "bridge_down_total": combined["bridge_down_total"],
+            "bridge_down_ok": bridge_ok,
+            "pass": ai_ok and drop_ok and crash_ok and bridge_ok,
         },
     }
     return report
@@ -480,6 +497,12 @@ def _render_scope(name, s):
         L.append("  %-30s %6d   e.g. seat=%s turn=%s type=%s raw=%r"
                  % (k, v["count"], ex.get("seat"), ex.get("turn"),
                     ex.get("type"), ex.get("raw")))
+
+    L.append("")
+    L.append("--- decisions lost to a dead model bridge (MUST be 0) ---")
+    L.append("count=%d" % s["bridge_down_total"])
+    for f, n in sorted(s["bridge_down_files"].items()):
+        L.append("  VIOLATION %s lost %d" % (f, n))
 
     L.append("")
     L.append("--- tier=ai hard invariant (MUST be 0) ---")
@@ -559,10 +582,11 @@ def render_text(report):
         lines.append("")
     hi = report["hard_invariants"]
     lines.append("=== hard invariants ===")
-    lines.append("ai_tier_count=%d (ok=%s)  silent_drop_total=%d (ok=%s)  game_crash_count=%d (ok=%s)  overall=%s"
+    lines.append("ai_tier_count=%d (ok=%s)  silent_drop_total=%d (ok=%s)  game_crash_count=%d (ok=%s)  "
+                 "bridge_down_total=%d (ok=%s)  overall=%s"
                  % (hi["ai_tier_count"], hi["ai_tier_ok"], hi["silent_drop_total"],
                     hi["silent_drop_ok"], hi["game_crash_count"], hi["game_crash_ok"],
-                    "PASS" if hi["pass"] else "FAIL"))
+                    hi["bridge_down_total"], hi["bridge_down_ok"], "PASS" if hi["pass"] else "FAIL"))
     return "\n".join(lines)
 
 
@@ -605,8 +629,9 @@ def main():
 
     hi = report["hard_invariants"]
     if not hi["pass"]:
-        print("\nHARD INVARIANT FAILURE: ai_tier_count=%d silent_drop_total=%d game_crash_count=%d"
-             % (hi["ai_tier_count"], hi["silent_drop_total"], hi["game_crash_count"]), file=sys.stderr)
+        print("\nHARD INVARIANT FAILURE: ai_tier_count=%d silent_drop_total=%d game_crash_count=%d bridge_down_total=%d"
+             % (hi["ai_tier_count"], hi["silent_drop_total"], hi["game_crash_count"], hi["bridge_down_total"]),
+              file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
 

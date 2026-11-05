@@ -952,6 +952,31 @@ public class LlmSpikeTest {
                 "a dead bridge must never fall through to Forge's AI for this decision");
     }
 
+    /** Issue #369: a provider that answered HTTP 402 to every call left a seat that only passed, and the game line
+     *  said nothing, so the game was scored. Each decision the bridge never answered is counted per identity for the
+     *  game line, and so is each trip of the circuit breaker (five dead decisions in a row). */
+    @Test(timeOut = 60000)
+    public void decisionsLostToADeadBridgeAreCountedOnTheGameLine() throws Exception {
+        Game game = buildBareGame();
+        String dead = "seat-dead-369", alive = "seat-alive-369";
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, game.getPlayers().get(0), new LobbyPlayerAi(dead, null), dead, "",
+                new DeadBridge(dead + "/smart"), new DeadBridge(dead + "/fast"), "llm");
+        for (int i = 0; i < 5; i++)
+            ctrl.confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?", null, null, null);
+        Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(dead), 5, "one per decision, not one per retry");
+        Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(dead), 1, "the fifth dead decision in a row trips it once");
+
+        // A reply that cannot be read is the model's failure, not a dead bridge.
+        FixedReplyBridge talks = new FixedReplyBridge("I would rather not say.");
+        new LlmSpikeGui.PlayerControllerLLM(game, game.getPlayers().get(1), new LobbyPlayerAi(alive, null), alive, "",
+                talks, talks, "llm")
+                .confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?", null, null, null);
+        Assert.assertFalse(talks.prompts.isEmpty(), "the live seat was asked");
+        Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(alive), 0);
+        Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(alive), 0);
+    }
+
     // ================================================================================
     // The model table is UNIFORM (2026-10-13). It used to give deepseek/gpt a larger fast budget
     // than everyone else and every row its own smart cap (4000/8000/16000), which made the harness

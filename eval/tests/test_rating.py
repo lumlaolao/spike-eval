@@ -172,6 +172,23 @@ class TestConditionGuard(unittest.TestCase):
         games[0]["deck_sha"] = "e" * 12
         rating.rate([], resamples=0, games=games)
 
+    def test_a_game_with_a_decision_lost_to_a_dead_bridge_is_refused(self):
+        # Issue #369: the seat's decisions were the harness's fallbacks, not the model's; no flag pools it.
+        games = simulate([("llm:" + LLM, "ai", -200, 3)])
+        games[0]["bridge_down_decisions_a"] = 5
+        for allow in (False, True):
+            with self.subTest(allow=allow), self.assertRaises(rating.InvalidGameError) as cm:
+                rating.rate([], resamples=0, games=games, allow_mixed=allow)
+            self.assertIn("dead model bridge", str(cm.exception))
+        games[0]["bridge_down_decisions_a"] = 0
+        rating.rate([], resamples=0, games=games)
+
+    def test_a_fake_model_sanity_arm_that_never_answers_is_rated(self):
+        games = simulate([("llm:openrouter:fake/harness-model", "ai", -800, 3)])
+        for g in games:
+            g["bridge_down_decisions_a"], g["_fake_policy"] = 40, "empty"
+        rating.rate([], resamples=0, games=games)
+
     def test_no_forge_ai_means_no_scale(self):
         with self.assertRaises(rating.MixedConditionError):
             rating.rate([], resamples=0, games=simulate([("random", "floor", 100, 3)]))

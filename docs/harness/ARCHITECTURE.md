@@ -1028,6 +1028,20 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
   **`defect_analyzer.py`** is the run oracle: `ai_tier_count=0` and no silent drops, or the run fails.
+- **A game the model's bridge did not play is not scored** (issue #369). When every retry of a model ask gets no
+  reply (`askModel`: a 402 when the credits run out, a 401, an outage), the decision takes its fixed fallback, and the
+  seat counts it once per decision for its identity; the game line carries `bridge_down_decisions_a` / `_b` and
+  `circuit_breaker_trips_a` / `_b` (five dead decisions in a row), 0 when nothing was lost. A provider refusing
+  function calling is not counted: it answered, and `native_tools_downgraded` records it.
+  - `aggregate.bridge_down_decisions` reads the count (on a line from before the field, the game's `(bridge-down)`
+    fallback rows); `aggregate.py` scores any such game invalid (`scored_winner`; the line's winner is kept),
+    `panel_score.py` and `rating.py` refuse it whatever the flags (a fake-model sanity arm, which never answers by
+    design, aside), and `defect_analyzer.py` fails on it (`bridge_down_total`).
+  - *Why any, not a share:* the 2026-11-05 block that ran out of credits scored 20 decisive games with 349 decisions
+    lost, seeds 1009-1019 with no model decision at all; 79 epoch-stamped OpenRouter games in the local runs outside
+    it lost none, so no threshold has data behind it.
+  - Acceptance `gaming` plays a seat whose provider answers 402 to every call (`fake_model_server.py --http-error
+    402`) and checks the count, the invalid game and the analyzer failure.
 - **Seed governance (`eval/seed_policy.py`):** some seed blocks are reserved for evaluation, and no
   training data may come from them.
 - **The three headline scores:**
