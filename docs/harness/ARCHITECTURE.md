@@ -144,6 +144,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
   attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
   among the legal sets (epoch 59, rules pilot RP_185).
+- Each block of a set is judged with the set's other blocks in place, the cap first (`firstBlockNotAllowed`; see "A
+  block is judged beside the others" in section 6, "The propose condition").
 - A block set is checked as a whole (`blocksError`), by the engine's `CombatUtil.validateBlocks`: requirements ("all
   creatures able to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before
   epoch 52 any block set the seat or an arm declared stood. `validateBlocks` never counts blockers against a global
@@ -448,7 +450,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   restriction. Kaggle Game Arena says only "illegal"; a list of what would be legal is a hidden menu. A malformed
   proposal (an unknown handle, ability 3 of a card with two, `option` instead of `action`) is a `FORMAT:` error,
   recorded apart.
-- **The terse arm** (`PROPOSE_TERSE=1`, with the propose arm only; harness-epoch-79, answer-tool-v17): a rules
+- **The terse arm** (`PROPOSE_TERSE=1`, with the propose arm only; harness-epoch-80, answer-tool-v17): a rules
   refusal says only "ILLEGAL: that play is not legal now." (an attack or blocks: "that declaration";
   `AnswerTool.shownRefusal`), Game Arena's form, and the preamble and the `action` schema say the seat is told only
   that it is illegal. It measures the message's share of repair
@@ -523,8 +525,9 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
     looks unmet, so judged on a combat with no blocks yet, Hill Giant blocking Grizzly Bears beside Wall of Stone
     blocking Gaea's Protector ("must be blocked if able") was refused, though the Wall obeys the requirement (CR
     509.1c; pr-review of #349). The menu's tool check had the same flaw and uses the same rule now
-    (`theMenuAcceptsABlockBesideAMustBeBlockedAttacker`). The text-grammar block path still adds pairs one by one,
-    so its verdict depends on the order the pairs are named.
+    (`theMenuAcceptsABlockBesideAMustBeBlockedAttacker`), and so does the text grammar's `BLOCKS:` line, which added
+    its pairs one by one, so the order they were written in decided (epoch 79,
+    `theTextBlocksAreJudgedAsASetInEitherOrder`).
   - *Categories the checker names:* summoning sickness, tapped, defender, evasion (flying without flying or reach,
     any keyword static such as shadow or landwalk, "can't be blocked"), number (menace and other minimum or maximum
     blockers, Silent Arbiter's caps, a creature blocking more attackers than it may), requirement (a creature that

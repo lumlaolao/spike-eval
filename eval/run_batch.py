@@ -491,7 +491,7 @@ def resume_expectation(args):
     # The hidden-menu arm (harness-epoch-74): a line from before it was a menu game.
     expect["propose_actions"] = [True] if getattr(args, "propose_actions", False) else [False, ABSENT]
     expect["propose_audit"] = [False, ABSENT]
-    # A line from before the terse arm (harness-epoch-79) told every refusal its rule.
+    # A line from before the terse arm (harness-epoch-80) told every refusal its rule.
     expect["propose_terse"] = [True] if getattr(args, "propose_terse", False) else [False, ABSENT]
     # The shadow labeler is stamped on the game line (aggregate.PROVENANCE_FIELDS); older lines carry no stamp.
     expect["shadow_ai"] = [True] if getattr(args, "shadow_ai", False) else [False, ABSENT]

@@ -830,44 +830,104 @@ public class ProposeActionsTest {
      *  requirement looked unmet, so the second block was refused (pr-review of #349). */
     @Test
     public void aBlockBesideAMustBeBlockedAttackerIsAccepted() {
-        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
-        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
-        Card protector = card("Gaea's Protector", rival, ZoneType.Battlefield);
-        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
-        Card wall = card("Wall of Stone", me, ZoneType.Battlefield);
-        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
-        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
-        Combat combat = new Combat(rival);
-        combat.addAttacker(protector, me);
-        combat.addAttacker(bears, me);
-        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, wall, protector), pair(ctrl, giant, bears)));
-        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, giant, bears), pair(ctrl, wall, protector)), "in either order");
-        assertCategory(blockError(ctrl, me, combat, pair(ctrl, giant, bears)), "requirement");
-        Assert.assertTrue(combat.getAllBlockers().isEmpty(), "checking blocks declares nothing");
+        MustBeBlocked t = new MustBeBlocked(new Recorder("CHOICE: 1"));
+        Assert.assertNull(blockError(t.ctrl, t.me, t.combat, pair(t.ctrl, t.wall, t.protector), pair(t.ctrl, t.giant, t.bears)));
+        Assert.assertNull(blockError(t.ctrl, t.me, t.combat, pair(t.ctrl, t.giant, t.bears), pair(t.ctrl, t.wall, t.protector)),
+                "in either order");
+        assertCategory(blockError(t.ctrl, t.me, t.combat, pair(t.ctrl, t.giant, t.bears)), "requirement");
+        Assert.assertTrue(t.combat.getAllBlockers().isEmpty(), "checking blocks declares nothing");
+    }
+
+    /** Gaea's Protector ("must be blocked if able") and Grizzly Bears attack; the seat has Wall of Stone and Hill Giant. */
+    static final class MustBeBlocked {
+        final Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        final Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        final Card protector = card("Gaea's Protector", rival, ZoneType.Battlefield);
+        final Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        final Card wall = card("Wall of Stone", me, ZoneType.Battlefield);
+        final Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        final LlmSpikeGui.PlayerControllerLLM ctrl;
+        final Combat combat = new Combat(rival);
+        MustBeBlocked(Recorder model) {
+            ctrl = seat(g, model, model);
+            combat.addAttacker(protector, me);
+            combat.addAttacker(bears, me);
+        }
+    }
+
+    /** The text grammar's BLOCKS: line (a backend without function calling) is judged as a set too, so the order the pairs
+     *  are written in does not decide: Hill Giant's block, written first, was refused before the Wall's (pr-review #349). */
+    @Test
+    public void theTextBlocksAreJudgedAsASetInEitherOrder() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        for (String line : new String[] {"BLOCKS: Wall of Stone->Gaea's Protector, Hill Giant->Grizzly Bears",
+                                         "BLOCKS: Hill Giant->Grizzly Bears, Wall of Stone->Gaea's Protector"}) {
+            MustBeBlocked t = new MustBeBlocked(new Recorder(line));
+            t.ctrl.declareBlockers(t.me, t.combat);
+            Assert.assertEquals(t.combat.getBlockers(t.protector), java.util.Collections.singletonList(t.wall), line);
+            Assert.assertEquals(t.combat.getBlockers(t.bears), java.util.Collections.singletonList(t.giant), line);
+        }
     }
 
     /** The menu's own block check had the same flaw: off the arm, the same legal pair of blocks is accepted as answered. */
     @Test
     public void theMenuAcceptsABlockBesideAMustBeBlockedAttacker() {
         AnswerTool.PROPOSE_FOR_TEST = false;
+        CombatModel model = new CombatModel();
+        MustBeBlocked t = new MustBeBlocked(model);
+        // The menu numbers blockers in ableBlockers order (the seat's creatures as listed) and attackers as declared.
+        List<Card> able = LlmSpikeGui.PlayerControllerLLM.ableBlockers(t.me, t.combat);
+        model.declarations.add("[{\"blocker\":" + (able.indexOf(t.wall) + 1) + ",\"attacker\":1},{\"blocker\":"
+                + (able.indexOf(t.giant) + 1) + ",\"attacker\":2}]");
+        t.ctrl.declareBlockers(t.me, t.combat);
+        Assert.assertEquals(t.combat.getBlockers(t.protector), java.util.Collections.singletonList(t.wall));
+        Assert.assertEquals(t.combat.getBlockers(t.bears), java.util.Collections.singletonList(t.giant), "the answer as given: " + model.results);
+    }
+
+    /** The text grammar under a global block cap (Silent Arbiter, one blocker): two blocks written add nothing, the
+     *  re-ask carries the cap's reason, and a second breach ends in the fixed fallback, recorded as the harness's. */
+    @Test
+    public void theTextBlocksOverACapAreAskedAgainThenFallBack() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
         Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
-        Card protector = card("Gaea's Protector", rival, ZoneType.Battlefield);
-        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
-        Card wall = card("Wall of Stone", me, ZoneType.Battlefield);
-        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
-        CombatModel model = new CombatModel();
+        Card giant = card("Hill Giant", rival, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Savannah Lions", me, ZoneType.Battlefield);
+        Recorder model = new Recorder("BLOCKS: Grizzly Bears->Hill Giant, Savannah Lions->Hill Giant");
+        Assert.assertFalse(model.supportsNativeTools(), "the text path: a bridge without function calling");
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         Combat combat = new Combat(rival);
-        combat.addAttacker(protector, me);
-        combat.addAttacker(bears, me);
-        // The menu numbers blockers in ableBlockers order (the seat's creatures as listed) and attackers as declared.
-        List<Card> able = LlmSpikeGui.PlayerControllerLLM.ableBlockers(me, combat);
-        model.declarations.add("[{\"blocker\":" + (able.indexOf(wall) + 1) + ",\"attacker\":1},{\"blocker\":"
-                + (able.indexOf(giant) + 1) + ",\"attacker\":2}]");
+        combat.addAttacker(giant, me);
         ctrl.declareBlockers(me, combat);
-        Assert.assertEquals(combat.getBlockers(protector), java.util.Collections.singletonList(wall));
-        Assert.assertEquals(combat.getBlockers(bears), java.util.Collections.singletonList(giant), "the answer as given: " + model.results);
+        Assert.assertTrue(combat.getAllBlockers().isEmpty(), "over the cap twice: the fallback blocks none");
+        List<String> asks = model.prompts.stream().filter(p -> p.contains("declare blockers")).collect(java.util.stream.Collectors.toList());
+        Assert.assertEquals(asks.size(), 2, "asked once more");
+        Assert.assertTrue(asks.get(0).contains("End with EXACTLY: BLOCKS:"), "the BLOCKS: grammar was asked");
+        Assert.assertTrue(asks.get(1).contains("no more than 1 creature can block each combat"), asks.get(1));
+        Assert.assertTrue(ctrl.autoPicksCount() >= 1, "the fallback is recorded as the harness's own");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** A pair the blocker can never make (a flyer) does not use up its name: with one Grizzly Bears, "Bears->Serra Angel,
+     *  Bears->Goblin Raider" blocks the Raider, as before the set was judged as a whole (pr-review of #351). */
+    @Test
+    public void aTextBlockTheBlockerCannotMakeLeavesItsNameForTheNext() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card angel = card("Serra Angel", rival, ZoneType.Battlefield);
+        Card raider = card("Goblin Raider", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Recorder model = new Recorder("BLOCKS: Grizzly Bears->Serra Angel, Grizzly Bears->Goblin Raider");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(angel, me);
+        combat.addAttacker(raider, me);
+        ctrl.declareBlockers(me, combat);
+        Assert.assertEquals(combat.getBlockers(raider), java.util.Collections.singletonList(bears));
+        Assert.assertTrue(combat.getBlockers(angel).isEmpty());
     }
 
     /** A creature that can block an additional creature blocks two; a third is over its limit. */

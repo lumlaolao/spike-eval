@@ -104,6 +104,11 @@ most log questions).
 ## 4. Code
 
 - **Match the file you are in**: its naming, comment density and idiom.
+- **A copy of a constant has one source and a test.** When a Python script needs a list the Java harness
+  (or another script) owns, it imports it; where it cannot (Java to Python), a test reads the source and
+  asserts the copy equal (`eval/tooluse/tools.json` against `NativeTools`, `rules_probe.KEEP_ENV` against
+  `ClaudeCliBridge.KEEP_ENV`, `run_batch.PINNED_ENV_KEYS` imported by `tournament.py` and
+  `puzzle_baselines.py`; `eval/tests/test_launchers.py` names the diagnostic launchers that need not).
 - **A comment says why**, or what would break, and cites the evidence when there is some (a run, a
   count, an engine line). It does not narrate the code or the history of the edit.
 - **No silent fallbacks.** A failure branch takes a deterministic legal option and logs it. Never
@@ -124,7 +129,8 @@ most log questions).
   directory made under a different value. The puzzle runner, `puzzle_baselines.Build.run` (so
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
   every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
-  (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` reads that list; #342, #345), and so
+  (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` builds the same names from `CONDITION_ENV_KEYS`
+  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), and so
   does the tournament (`tournament._match_env`). A launcher that goes through `run_batch.py`
   (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
   (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
