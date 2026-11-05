@@ -104,8 +104,13 @@ def p_solved_by_policy(rate, k):
 
 def attempt_success(row):
     """(success, note). A capped game counts as a failure (it cannot vanish); a solve decided by an
-    empty-library deck-out is not evidence and counts as a failure; an unscoreable row is refused."""
+    empty-library deck-out is not evidence and counts as a failure; an unscoreable row and a replay are refused."""
     status = row.get("status")
+    # A replay (ReplayBridge, a `replay:` solver) plays a recorded attempt's answers again: it measures the harness's
+    # fidelity, never the model, so its row is no attempt even when it reproduced a solve (pr-review of #365).
+    if row.get("replay_version"):
+        raise Refused("row for %s (seed %s) is a replay (%s): a replay is not an attempt"
+                      % (row.get("id"), row.get("seed"), row.get("replay_source") or "replay:"))
     if status == "unscoreable":
         raise Refused("unscoreable row for %s (seed %s): the goal was not enforced, so this is a harness "
                       "defect, not a result" % (row.get("id"), row.get("seed")))

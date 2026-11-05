@@ -226,6 +226,16 @@ class PriceCeilingRefusalTest(unittest.TestCase):
         self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "solved"}), (True, None))
 
 
+class ReplayRowRefusalTest(unittest.TestCase):
+    """pr-review of #365: a replay (ReplayBridge, `replay:`) plays a recorded attempt's answers again; its solved row
+    scored PUZ 1.000. A replay is not an attempt, whatever its status."""
+
+    def test_a_replay_row_is_refused_even_when_it_reproduced_a_solve(self):
+        for status in ("solved", "failed", "drift"):
+            with self.assertRaisesRegex(ps.Refused, "a replay is not an attempt"):
+                ps.attempt_success({"id": "p", "seed": 1, "status": status, "replay_version": "replay-bridge-v1"})
+
+
 class ScoreV2Test(unittest.TestCase):
     """BENCHMARK-V2 phase 2: clustered intervals and the power line, the budget and integrity lines, epochs never pooled,
     and the score by v2 tier."""
