@@ -374,10 +374,9 @@ items were in the old one).
 - Defects found while building it, each a test: the seat named "Seat" beside the player "Solver" (`parse_window`
   read every board as the opponent's turn); "Keyword Effects", the engine object holding a player's hexproof under
   Leyline of Sanctity, offered as a card (effect objects are left out); the checker's mana-ability fallback accepting
-  a tapped Mountain's `{T}` ability because an untapped copy was on the menu (in this run such rows were dropped,
-  `SUBSTITUTED`, with some legal items, a second untapped copy's ability among them; #360 fixed the fallback after
-  this run, and the labeller no longer drops any); the opponent holding priority in
-  the opp-turn and split-second variants (the solver is now given priority). The first three were seen red before
+  a tapped Mountain's `{T}` ability because an untapped copy was on the menu (dropped as `SUBSTITUTED` in this run,
+  with some legal items, a second untapped copy's ability among them; see Provenance); the opponent holding priority
+  in the opp-turn and split-second variants (the solver is now given priority). The first three were seen red before
   their fix; the seat name was asserted with its fix.
 - `eval/rules_probe.py`: `engine` (rows to items), `engine-report` (boards, copies, drops, conflicts, from the rows),
   `audit-sample` (positions of one label, round robin over cells), `zone_floor`, `contrast_pairs`,
@@ -495,12 +494,12 @@ either: "a legal action is never hidden" does not hold there. Both are written u
 format (`issue-drafts/` in the run directory: `not-offered`, sev:high each), with a third, `not-shown` (sev:low): the
 state lists "Keyword Effects", the engine object holding a player's hexproof, as a card with a handle in the command
 zone (`SeatObservation`'s command lines). Filing them is pending. The checker's own defects (the category order, the
-mana-ability copy fallback) were fixed by PR #360 (epoch 82), after this run.
+mana-ability copy fallback) are PR #360's (see Provenance).
 
 **The category misses** (5 among the 56 right labels, 9 counting the wrong labels): at epoch 80, `rejection` asked
-`playable` before it checked a non-mana cost and answered "restriction" or "zone" whatever made it fail (#360 now
-checks the rest of the cost first): Dread Return's flashback with too few creatures, Colossal Dreadmaw's escape under Underworld Breach, Spawning Pit with no charge counters and Eldritch
-Evolution with no creature to sacrifice are cost; Reassembling Skeleton's ability on the battlefield is zone. The
+`playable` before it checked a non-mana cost and answered "restriction" or "zone" whatever made it fail: Dread
+Return's flashback with too few creatures, Colossal Dreadmaw's escape under Underworld Breach, Spawning Pit with no
+charge counters and Eldritch Evolution with no creature to sacrifice are cost; Reassembling Skeleton's ability on the battlefield is zone. The
 propose arm's category counts from that epoch inherit this.
 
 One legal item is flagged, not counted wrong: The One Ring activated in a cleanup step (`rules-pilot/RP_096`,
@@ -539,8 +538,8 @@ and does not yet separate strong models: with 96 items the interval is about 0.0
   beyond the bounds above, nor what other classes a larger sample would find. Until the two menu defects are fixed,
   leave out Disturb casts and boards with Heritage Druid, or relabel them by hand (the two `not-offered` reports in
   `issue-drafts/`, 9.3).
-- **The categories' reliability** beyond the audit: the ordering fault in `rejection` was fixed by PR #360 after
-  this run; the categories at epoch 82 were not re-measured.
+- **The categories' reliability** beyond the audit: the ordering fault in `rejection` was fixed by #360 and the
+  categories were not re-measured (Provenance).
   Score categories on timing, land drop and target only, or not at all.
 - **The leak** that limits a JVM to about 375 boards was not found.
 - **Whether the variants are fair positions.** A board built for its main phase, moved to combat or the opponent's

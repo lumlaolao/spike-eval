@@ -218,12 +218,11 @@ public class RulesProbeLabelExport {
         Labelled l = new Labelled();
         l.p = p; l.name = c.getName(); l.where = where(c, b.me); l.targetName = targetName; l.targetWhere = targetWhere;
         l.manaAbility = manaAbility;
-        int[] hit = {-1};
         try {
-            // A copy, as the live caller passes: an accepted copy's ability replaces its menu entry, and the next
-            // candidate must be checked against the menu the engine built.
+            // A copy, as the menu self-check passes (LlmSpikeGui, the proposalFor loop): an accepted copy's ability
+            // replaces its menu entry (options.set), and the next candidate must meet the menu the engine built.
             l.verdict = b.ctrl.matchProposal(p.copy(), new ArrayList<>(po.spells), po.landPlays, po.landCards, passIdx, b.me,
-                    b.ownMain, hit);
+                    b.ownMain, new int[]{-1});
         } catch (Exception e) {
             return null;   // the checker cannot judge it: no label rather than a guessed one
         } finally {
