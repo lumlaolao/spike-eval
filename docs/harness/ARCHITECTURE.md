@@ -601,7 +601,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   input grows (Chroma, context rot). The research is in `docs/harness/REVIEW-2026-10-16.md`, phase 1b.
 - **Conversations as conditions:** `TURN_CHAT=1` keeps this turn's earlier decisions in the conversation
   (a multi-step line in one train of thought) and starts over each turn; `ONE_CHAT=1` keeps the whole game
-  (`ONE_CHAT_TURNS=N` keeps the last N pairs, stamped `one_chat_version` `+turns=N`).
+  (`ONE_CHAT_TURNS=N` keeps the last N pairs under either, stamped `one_chat_version` `+turns=N` when a chat is on;
+  every launcher pins it to its default).
   Both replay a decision as it happened: its DECISION part, the model's assistant messages unchanged with
   their tool calls and `reasoning_details`, and a result for every call (OpenRouter's reasoning guide: pass
   reasoning back unchanged and in order). Acceptance stage `turnchat` checks every request is a valid

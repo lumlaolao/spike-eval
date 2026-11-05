@@ -89,7 +89,11 @@ CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_T
                       "PROPOSE_TERSE",
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
                       "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
-                      "CLAUDE_CLI_THINKING_TOKENS")
+                      "CLAUDE_CLI_THINKING_TOKENS",
+                      # No flag sets these: a batch, a puzzle run and a tournament run their defaults. The chat cap
+                      # changes what a chat seat is carried; the stall cut can lose a call to the fixed option
+                      # (pr-review of #354).
+                      "ONE_CHAT_TURNS", "OPENROUTER_IDLE_MS")
 # Every name run_batch.py pins from its flags: CONDITION_ENV_KEYS, and SHADOW_AI (pinned apart, by --shadow-ai). A
 # launcher that does not go through run_batch.py strips these from the shell (STANDARDS section 4).
 PINNED_ENV_KEYS = CONDITION_ENV_KEYS + ("SHADOW_AI",)

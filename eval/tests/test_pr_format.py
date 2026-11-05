@@ -153,6 +153,11 @@ class PrFormatTest(unittest.TestCase):
         self.assertEqual([sha for sha, _ in pf.pr_commits(pr)], ["1a976281aa"])
         self.assertEqual(pf.pr_problems("feat(tools): native calls", BODY, "abc123456789", [], gate=True,
                                         commits=pf.pr_commits(pr)), [])
+        self.assertEqual(pf.merge_problems(pr), [])
+        # Left out of `## What`, a merge's message is still audited for a model spec (pr-review of #354).
+        pr["commits"][1]["messageBody"] = "ran openrouter:openai/gpt-6-luna"
+        self.assertTrue(any(p.startswith("commit 50b7d17fe: the message names the model spec")
+                            for p in pf.merge_problems(pr)), pf.merge_problems(pr))
 
     def test_the_gate_checks_the_commits_on_the_pr_and_each_skill_vocabulary(self):
         good = [("1a976281aa", "feat(tools): native calls\n\nwhy")]

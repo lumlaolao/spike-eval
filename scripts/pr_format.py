@@ -261,6 +261,14 @@ def pr_commits(pr):
             for c in pr.get("commits") or [] if c.get("parents", 1) < 2]
 
 
+def merge_problems(pr):
+    """A merge is not listed in `## What`, but its message is still published: it may not name a model spec or priced
+    slug (pr-review of #354: a typed merge made on GitHub never meets the commit-msg hook)."""
+    return ["commit %s: %s" % (c["oid"][:9], p) for c in pr.get("commits") or [] if c.get("parents", 1) >= 2
+            for p in identifier_problems((c["messageHeadline"] + "\n" + (c.get("messageBody") or "")).splitlines(),
+                                         "the message")]
+
+
 def skeleton(base):
     commits = branch_commits(base)
     subjects = [m.splitlines()[0] for _, m in commits]
@@ -335,7 +343,7 @@ def main(argv):
         gate = "--gate" in args
         pr = gh_pr([a for a in args if a != "--gate"][0])
         problems = pr_problems(pr["title"], pr["body"], pr["headRefOid"], [f["path"] for f in pr.get("files") or []],
-                               gate, pr_commits(pr) if gate else ())
+                               gate, pr_commits(pr) if gate else ()) + (merge_problems(pr) if gate else [])
     elif cmd == "new-pr":
         title, body = skeleton(base_ref(args[0] if args else None))
         print(title + "\n\n" + body)

@@ -35,9 +35,6 @@ import aggregate  # noqa: E402
 AGG = evalpath.EVAL / "aggregate.py"
 GUI = (evalpath.REPO / "forge-overlay" / "forge-gui-desktop" / "src"
        / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java")
-# The claude-cli: seat's own settings (effort, deadline, thinking budget, the CLI binary) are read there.
-CLI_BRIDGE = GUI.with_name("ClaudeCliBridge.java")
-ANSWER_TOOL = GUI.with_name("AnswerTool.java")
 
 
 def game_line_keys():
@@ -403,7 +400,6 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "CLAUDE_CLI_ALLOW_API_KEY": "credentials: how a claude-cli: seat's CLI logs in, not what it decides",
         "DEMO_FEED": "recording: a spectator's event feed, display only (DemoFeed)",
         "TRANSCRIPTS": "recording: every HTTP round-trip written to disk (Transcript)",
-        "OPENROUTER_IDLE_MS": "transport: a stalled connection is retried inside the ask's deadline (HttpDeadline)",
     }
     # Every spike main file that reads the environment is scanned below or named here with why its reads are not the
     # game line's (standards of #353: the scan read three hand-picked files of twelve). A new reader must be placed.
@@ -421,7 +417,10 @@ class GameLineStampCoverageTest(unittest.TestCase):
     # stamped yet.
     # RULES_FILE picks the Comprehensive Rules text the seat's rules tool returns: that text's date is stamped
     # `rules_effective` (standards of #344: it touches what the seat reads, so it is no allowlist entry).
-    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS", "RULES_FILE"}
+    # OPENROUTER_IDLE_MS (HttpDeadline's stall cut) changes decisions too: 0 waits out a dead connection to the
+    # deadline, and the call is lost to the fixed option. Every launcher pins it to its default
+    # (run_batch.CONDITION_ENV_KEYS); a direct JVM launch with a value is not stamped.
+    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS", "RULES_FILE", "OPENROUTER_IDLE_MS"}
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
     # required to have a stamp -- the sha is what partitions those experiments.
@@ -448,6 +447,10 @@ class GameLineStampCoverageTest(unittest.TestCase):
         self.assertIn("propose_terse", set(game_line_keys()))
         self.assertIn(("propose_terse", False), aggregate.PROVENANCE_FIELDS)
 
+    def test_the_chat_stamp_carries_its_cap(self):
+        # ONE_CHAT_TURNS is stamped through one_chat_version only if the game line writes stamp(), not VERSION.
+        self.assertIn('"one_chat_version\\":\\"" + ChatSessionBridge.stamp()', GUI.read_text(encoding="utf-8"))
+
     def test_every_spike_file_that_reads_the_environment_is_scanned_or_placed(self):
         readers = sorted(p.name for p in GUI.parent.glob("*.java") if "System.getenv" in p.read_text(encoding="utf-8"))
         self.assertEqual([n for n in readers if n not in self.SCANNED and n not in self.NOT_GAME_LINE], [])
@@ -459,8 +462,8 @@ class GameLineStampCoverageTest(unittest.TestCase):
         java = "".join((GUI.parent / n).read_text(encoding="utf-8") for n in self.SCANNED)
         keys = set(game_line_keys())
         self.assertIn("native_tools", keys)          # the extraction found the game-line statement
-        # Every env-reading form in this file: System.getenv("X"), the getOrDefault fallbacks, the
-        # envInt helper (which reads a name its caller passes), and the effort ternary. A read
+        # Every env-reading form in the SCANNED files: System.getenv("X"), the getOrDefault fallbacks, the
+        # envInt / intEnv helpers (which read a name their caller passes), and the effort ternary. A read
         # through a NEW helper must be added here with the helper.
         names = set(re.findall(r'(?:System\.getenv|envInt|intEnv)\((?:fastTier \? )?"([A-Z_0-9]+)"', java))
         names |= set(re.findall(r'System\.getenv\(fastTier \? "[A-Z_0-9]+" : "([A-Z_0-9]+)"\)', java))

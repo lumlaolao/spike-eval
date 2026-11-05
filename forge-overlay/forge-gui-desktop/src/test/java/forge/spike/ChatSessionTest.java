@@ -142,7 +142,8 @@ public class ChatSessionTest {
      *  the version as before (the stamp-coverage scan of every spike file found it unstamped). */
     @Test
     public void aCapOnTheCarriedPairsIsStamped() {
-        Assert.assertEquals(ChatSessionBridge.stamp(ChatSessionBridge.DEFAULT_PAIRS), ChatSessionBridge.VERSION);
-        Assert.assertEquals(ChatSessionBridge.stamp(12), ChatSessionBridge.VERSION + "+turns=12");
+        Assert.assertEquals(ChatSessionBridge.stamp(ChatSessionBridge.DEFAULT_PAIRS, true), ChatSessionBridge.VERSION);
+        Assert.assertEquals(ChatSessionBridge.stamp(12, true), ChatSessionBridge.VERSION + "+turns=12");
+        Assert.assertEquals(ChatSessionBridge.stamp(12, false), ChatSessionBridge.VERSION, "no chat, nothing capped");
     }
 }
