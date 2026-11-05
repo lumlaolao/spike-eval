@@ -469,20 +469,27 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   answer-tool-v18): each play, attack and blocks decision carries REFUSED EARLIER (`AnswerTool.notebookSection`), the
   seat's proposals the rules engine refused in earlier decisions of this game, each as "turn N, the decision: you
   proposed X; you were told: Y", where Y is the refusal exactly as it was sent (`AnswerTool.shownRefusal`: the rule in
-  the detailed arm, only "ILLEGAL" in the terse one), so the notebook never says more than the refusals did. The last
-  8 entries (`NOTEBOOK_CAP`), oldest first, and the section says so (and how many there were when more). A `FORMAT:`
-  error is not noted (it is not a rule). The section sits between the state and the DECISION line, is absent before
-  the first refusal, and the preamble says what it is; off the arm every prompt byte is unchanged
-  (`ProposeActionsTest.offTheNotebookEveryPromptIsUnchanged`). *Why:* within a decision no refused play was sent
-  again (0 of 49), but across decisions of one game the same refused play came back (`proposal_audit.py`'s
-  `refused_again` over the propose runs on disk: 6 of 24 distinct refused actions detailed, 4 of 10 terse, the
-  runs not pooled); an in-context record of past
-  errors is Reflexion's and Mistake Notebook Learning's (arXiv 2512.11485) form. It is the engine's verdicts only: no
-  advice, nothing chosen for the seat. A decision's own refusals are in its conversation already, so they are noted
-  after it. Stamped `propose_notebook` on the game line and puzzle row and `+notebook` on the answer-tool stamp; keyed
-  by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`; pinned by `run_batch.py --propose-notebook`
-  and `puzzle_solve.py --propose-notebook`, each refused without `--propose-actions`. Its outcome is
-  `proposal_audit.py`'s `refused_again` against the arm without it.
+  the detailed arm, only "ILLEGAL" in the terse one), so the notebook never says more than the refusals did. Every
+  entry is shown, oldest first, and the section says so: nothing the seat was told is cut (STANDARDS section 8), and
+  a game bounds the list.
+  - **Only what the seat was told** (`AnswerTool.Ask.told`, pr-review of #357): a refusal is noted when its result
+    was in the conversation and the model took another turn after it. Three refusals are recorded on the row but
+    never read, and are not noted: the one that ends a decision (its result is not sent), an illegal call beside the
+    answer in the same reply (told "Not used"), and one sent in the ask's last round. A `FORMAT:` error is not noted
+    (it is not a rule).
+  - **Where:** between the state and the DECISION line; absent before the first refusal; the preamble says what it is.
+    A decision's own refusals are noted after it ends, so its prompts, the play's text retry included (built from the
+    notebook as it stood before the decision), list only earlier decisions'. A tool ask that runs out of rounds
+    returns no reply and the play passes, so that retry is not reached under this arm. Off the arm every prompt byte
+    is unchanged (`ProposeActionsTest.offTheNotebookEveryPromptIsUnchanged`).
+  - *Why:* within a decision the refused play was not resent, but across decisions of one game it came back: the
+    research note's section "Repeated refusals in every propose log on disk" gives the per-run counts. An in-context
+    record of past errors is Reflexion's and Mistake Notebook Learning's (arXiv 2512.11485) form. It is the engine's
+    verdicts only: no advice, nothing chosen for the seat.
+  - Stamped `propose_notebook` on the game line and puzzle row and `+notebook` on the answer-tool stamp; keyed by
+    `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`; pinned by `run_batch.py --propose-notebook`
+    and `puzzle_solve.py --propose-notebook`, each refused without `--propose-actions`. Its outcome is
+    `proposal_audit.py`'s `refused_again` against the arm without it.
 - **Four tries** (`AnswerTool.MAX_INVALID_PROPOSALS`), then the fixed legal option, PASS. A decision lost to four
   refusals is the model's error, not a lost answer: `match_review` lists it as PROPOSAL and the harness-decided gate
   does not count it (`proposal_audit.lost_to_refusals`, one rule for both: `answer_via` lost after four invalid

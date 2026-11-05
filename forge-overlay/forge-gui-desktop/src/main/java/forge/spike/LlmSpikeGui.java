@@ -384,9 +384,8 @@ public final class LlmSpikeGui {
      *  Epoch 80 (2026-11-05, answer-tool-v17): the PROPOSE_TERSE arm, under PROPOSE_ACTIONS only: a rules refusal of a
      *  play or a combat declaration says only that it is illegal, with no rule, to measure the message's share of
      *  repair. Unchanged off it.
-     *  Epoch 81 (2026-11-05, answer-tool-v18): the PROPOSE_NOTEBOOK arm, under PROPOSE_ACTIONS only: a play, attack or
-     *  blocks decision lists this game's earlier rules refusals of the seat's proposals as it was told them (REFUSED
-     *  EARLIER, the last 8), to measure whether the record stops the repeat across decisions. Unchanged off it.
+     *  Epoch 81 (2026-11-05, answer-tool-v18): the PROPOSE_NOTEBOOK arm, under PROPOSE_ACTIONS only (REFUSED EARLIER;
+     *  docs/harness/ARCHITECTURE.md, "The notebook arm"). Unchanged off it.
      */
     static final String HARNESS_EPOCH = "harness-epoch-81";
 
@@ -3143,10 +3142,11 @@ public final class LlmSpikeGui {
          *  wrote them; one controller plays one game. */
         private final List<String> refusalNotebook = new ArrayList<>();
 
-        /** Notes the rules refusals of the ask just made ({@code lastAnswer}) for the later decisions' REFUSED EARLIER. */
+        /** Notes the rules refusals the seat was told in the ask just made ({@code lastAnswer}) for the later decisions'
+         *  REFUSED EARLIER. */
         private void noteRefusals(AnswerTool.Kind k, String where) {
             if (AnswerTool.proposeNotebook() && lastAnswer != null)
-                refusalNotebook.addAll(AnswerTool.notebookEntries(lastAnswer.proposals, k, "turn " + safeTurn() + ", " + where));
+                refusalNotebook.addAll(AnswerTool.notebookEntries(lastAnswer.toldRefusals(), k, "turn " + safeTurn() + ", " + where));
         }
 
         /** REFUSED EARLIER for the next proposal decision: empty off PROPOSE_NOTEBOOK and before any refusal. */
@@ -4345,10 +4345,13 @@ public final class LlmSpikeGui {
                 // it (matchProposal). The windows asked are the same as with the menu, so the two arms see the same spots.
                 final boolean propose = AnswerTool.proposeActions() && observer != null && playTool;
                 final String shownMenu = propose ? PROPOSE_PROMPT : menuStr;
+                // REFUSED EARLIER as it stood before this decision: a retry ask is a new conversation, and this decision's
+                // own refusals are noted after it (the header says "earlier decisions").
+                final String notebook = refusedEarlier();
                 if (rnd != null) choice = 1 + PuzzleArms.pick(rnd, passIdx, true); // random arm: uniform incl. PASS (last)
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
-                            ? (propose ? proposePromptPrefix(snapshot() + refusedEarlier(), phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
+                            ? (propose ? proposePromptPrefix(snapshot() + notebook, phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
                               + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
                               + (!SKIP_HEUR && observer != null && attempt == 0 ? (playTool ? YIELD_TOOL_HINT : YIELD_HINT) : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
@@ -4357,7 +4360,7 @@ public final class LlmSpikeGui {
                             // above: in runs/lines/blocks the model spent both tools searching its archive
                             // for the question and the decision was lost (3 of 9 games, one a PASS on its
                             // own main phase). decideOne and decideMany already re-send the state.
-                            : playRetryPrompt(playPromptPrefix(snapshot() + refusedEarlier(), phh.getPhase(), ownMain, shownMenu), passIdx))
+                            : playRetryPrompt(playPromptPrefix(snapshot() + notebook, phh.getPhase(), ownMain, shownMenu), passIdx))
                             + lookCtx
                             + (lookaheadOn && attempt == 0 && !nativeSim
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()

@@ -66,7 +66,7 @@ final class AnswerTool {
      *  declaration says only that it is illegal ({@link #terseRejection}), and the preamble and the schema say so.
      *  Unchanged off the arm.
      *  v18 (2026-11-05): the PROPOSE_NOTEBOOK arm ({@link #proposeNotebook}): a proposal decision lists this game's
-     *  earlier rules refusals as the seat was told them, the last {@link #NOTEBOOK_CAP}, and the preamble says so.
+     *  earlier rules refusals that the seat was told, every one, and the preamble says so.
      *  Unchanged off the arm. */
     static final String VERSION = "answer-tool-v18";
     static final String NAME = "answer";
@@ -117,18 +117,17 @@ final class AnswerTool {
     }
 
     /** PROPOSE_NOTEBOOK=1, under PROPOSE_ACTIONS only: each play, attack and blocks decision carries REFUSED EARLIER
-     *  ({@link #notebookSection}), this game's earlier rules refusals of the seat's proposals, each as the seat was told
-     *  it ({@link #shownRefusal}: the rule in the detailed arm, only "ILLEGAL" in the terse one). An in-context record of
-     *  past errors (Reflexion; Mistake Notebook Learning, arXiv 2512.11485): within a decision no refused play was sent
-     *  again, but across decisions the same refused play came back (eval/research/2026-11-03-propose-condition-prior-
-     *  work.md). Engine facts only. docs/harness/ARCHITECTURE.md, "The notebook arm". Stamped `propose_notebook`. */
+     *  ({@link #notebookSection}), this game's earlier rules refusals of the seat's proposals that it was told
+     *  ({@link Ask#toldRefusals}), each as it was told ({@link #shownRefusal}: the rule in the detailed arm, only
+     *  "ILLEGAL" in the terse one). An in-context record of past errors (Reflexion; Mistake Notebook Learning, arXiv
+     *  2512.11485) against the repeat across decisions (eval/research/2026-11-03-propose-condition-prior-work.md,
+     *  "Repeated refusals in every propose log on disk"). Engine facts only. docs/harness/ARCHITECTURE.md, "The
+     *  notebook arm". Stamped `propose_notebook`. */
     static boolean proposeNotebook() {
         return proposeActions() && (NOTEBOOK_FOR_TEST != null ? NOTEBOOK_FOR_TEST : "1".equals(System.getenv("PROPOSE_NOTEBOOK")));
     }
     /** Tests only: as {@link #PROPOSE_FOR_TEST}, for {@link #proposeNotebook}. */
     static volatile Boolean NOTEBOOK_FOR_TEST = null;
-    /** The entries REFUSED EARLIER shows at most: the most recent ones. */
-    static final int NOTEBOOK_CAP = 8;
 
     /** The notebook lines for one ask's {@code calls} of a {@code k} proposal, made {@code when} ("turn 3, declare
      *  attackers"): one per rules refusal, "when: you proposed X; you were told: Y", Y exactly the refusal the seat was
@@ -152,16 +151,14 @@ final class AnswerTool {
         return k == Kind.ACTION ? x.action.render() : (attack ? "the attack " : "the blocks ") + renderDeclared(x.declared, attack);
     }
 
-    /** REFUSED EARLIER, the section a proposal decision carries under {@link #proposeNotebook}: the last
-     *  {@link #NOTEBOOK_CAP} of {@code entries}, oldest first, and the cap said. Empty off the arm or with no entry, so
-     *  the prompt is byte for byte the arm's without it. */
+    /** REFUSED EARLIER, the section a proposal decision carries under {@link #proposeNotebook}: every one of
+     *  {@code entries}, oldest first (nothing the seat was told is cut; a game bounds the list). Empty off the arm or
+     *  with no entry, so the prompt is byte for byte the arm's without it. */
     static String notebookSection(List<String> entries) {
         if (!proposeNotebook() || entries.isEmpty()) return "";
-        int from = Math.max(0, entries.size() - NOTEBOOK_CAP);
         StringBuilder b = new StringBuilder("\nREFUSED EARLIER (harness record: your proposals the rules engine refused in "
-                + "earlier decisions of this game, and what you were told; the last " + NOTEBOOK_CAP + " at most, oldest first"
-                + (from > 0 ? "; " + entries.size() + " in all" : "") + "):\n");
-        for (int i = from; i < entries.size(); i++) b.append("- ").append(entries.get(i)).append('\n');
+                + "earlier decisions of this game, each with what you were told; every one, oldest first):\n");
+        for (String e : entries) b.append("- ").append(e).append('\n');
         return b.toString();
     }
 
@@ -255,9 +252,8 @@ final class AnswerTool {
     }
 
     /** The preamble's sentence on REFUSED EARLIER, under {@link #proposeNotebook} only. */
-    static final String NOTEBOOK_INSTRUCTIONS = "REFUSED EARLIER, when a decision shows it, lists proposals of yours that the "
-            + "rules engine refused in earlier decisions of this game, each with what you were told then (the last "
-            + NOTEBOOK_CAP + " at most).\n";
+    static final String NOTEBOOK_INSTRUCTIONS = "REFUSED EARLIER, when a decision shows it, lists every proposal of yours "
+            + "that the rules engine refused in an earlier decision of this game, each with what you were told then.\n";
 
 
     enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD, ACTION, ATTACK_PROPOSAL, BLOCK_PROPOSAL }
@@ -1204,6 +1200,17 @@ final class AnswerTool {
         boolean lost;
         /** A proposal (play, attack or blocks): every `answer` call in order, {arguments, error or null when accepted}. */
         final List<String[]> proposals = new ArrayList<>();
+        /** Indices into {@link #proposals} of the refusals the model was told: the ERROR result was in its messages and
+         *  it took another turn. A refusal that ended the decision, one beside the answer in its reply ("Not used"), or
+         *  one sent in the last round was never read (pr-review of #357). */
+        final List<Integer> told = new ArrayList<>();
+
+        /** The refused proposals the model was told, in order: what PROPOSE_NOTEBOOK notes. */
+        List<String[]> toldRefusals() {
+            List<String[]> out = new ArrayList<>();
+            for (int i : told) out.add(proposals.get(i));
+            return out;
+        }
         /** Text the model wrote alongside its answer call: its reasoning, kept for the row and the
          *  carried play intent. */
         String content;
@@ -1310,11 +1317,14 @@ final class AnswerTool {
         int maxInvalid = proposal ? MAX_INVALID_PROPOSALS : 2;
         // A proposal's extra tries get their own rounds, so the lookups it may make are not taken away.
         int rounds = MAX_ROUNDS + maxInvalid - 2;
+        List<Integer> sent = new ArrayList<>();   // refusals whose result is in `messages`, not yet read by a turn
         for (int round = 0; round < rounds; round++) {
             boolean open = lookups != null && lookups.open(round);
             // tool_choice "auto" every round: the answer must stay callable, and forcing is not an option.
             NativeTools.Turn turn = model.turn(first, messages.toString(), toolsJson, true, round);
             if (turn == null) return null;
+            ask.told.addAll(sent);
+            sent.clear();
             if (turn.calls.isEmpty()) {
                 if (ContextMemory.toolLine(turn.content) != null || NativeTools.looksLikeCallMarkup(turn.content)) {
                     audit.accept(turn.content, "ERROR: a tool request must be a function call; no tool executed.");
@@ -1348,12 +1358,17 @@ final class AnswerTool {
             // An illegal `answer` call before a legal one is not the answer (v12); a reply whose every `answer`
             // call is illegal is one invalid reply.
             boolean calledAnswer = false;
+            int[] proposalAt = new int[results.length];   // each call's index in ask.proposals, or -1
+            java.util.Arrays.fill(proposalAt, -1);
             for (int i = 0; i < results.length; i++) {
                 NativeTools.Call c = turn.calls.get(i);
                 if (!NAME.equals(c.name)) continue;
                 calledAnswer = true;
                 Result r = validate(ask.spec, c.arguments);
-                if (proposal) ask.proposals.add(new String[] {c.arguments, r.answer == null ? r.error : null});
+                if (proposal) {
+                    proposalAt[i] = ask.proposals.size();
+                    ask.proposals.add(new String[] {c.arguments, r.answer == null ? r.error : null});
+                }
                 if (r.answer == null) {
                     results[i] = "ERROR: " + (proposal ? shownRefusal(r.error, ask.spec.kind) : r.error) + " Nothing was done. Call `answer` again with a legal value.";
                     audit.accept(c.render(), results[i]);
@@ -1389,7 +1404,10 @@ final class AnswerTool {
                 else { results[i] = lookups.serve(c, open); if (!open) refused = true; }
                 audit.accept(c.render(), results[i]);
             }
-            for (int i = 0; i < results.length; i++) messages.add(NativeTools.toolResult(turn.calls.get(i).id, results[i]));
+            for (int i = 0; i < results.length; i++) {
+                messages.add(NativeTools.toolResult(turn.calls.get(i).id, results[i]));
+                if (proposalAt[i] >= 0) sent.add(proposalAt[i]);
+            }
             if (refused && !calledAnswer) {
                 if (pressed) return null;
                 pressed = true;

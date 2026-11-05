@@ -677,10 +677,10 @@ def propose_refusal(args):
     --propose-terse changes only what a refused proposal is told and --propose-notebook lists the refusals in later
     decisions, so each needs the arm."""
     if not getattr(args, "propose_actions", False):
-        if getattr(args, "propose_terse", False):
-            return "--propose-terse without --propose-actions: it words the arm's refusals, and a menu game has none"
-        if getattr(args, "propose_notebook", False):
-            return "--propose-notebook without --propose-actions: it lists the arm's refusals, and a menu game has none"
+        for flag, what in (("terse", "words"), ("notebook", "lists")):
+            if getattr(args, "propose_" + flag, False):
+                return ("--propose-%s without --propose-actions: it %s the arm's refusals, and a menu game has none"
+                        % (flag, what))
         return None
     if getattr(args, "panel", None) or not getattr(args, "exploratory", False):
         return "--propose-actions is an exploratory measurement arm, never a cited run or a panel"
@@ -1420,7 +1420,7 @@ def build_parser():
                          "that must live in its own --out.")
     ap.add_argument("--propose-notebook", action="store_true",
                     help="PROPOSE_NOTEBOOK=1, with --propose-actions: each play, attack and blocks decision lists the "
-                         "game's earlier refused proposals as the seat was told them (REFUSED EARLIER, the last 8). "
+                         "game's earlier refused proposals the seat was told, as it was told them (REFUSED EARLIER). "
                          "A separate condition that must live in its own --out.")
     ap.add_argument("--tier-fast-types", metavar="TYPES", default=None,
                     help="TIER_FAST_TYPES=<comma list>: route those decision types to the fast "

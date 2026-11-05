@@ -312,7 +312,7 @@ def main(argv=None):
                     help="PROPOSE_TERSE=1, with --propose-actions: a refused proposal is told only that it is illegal")
     ap.add_argument("--propose-notebook", action="store_true",
                     help="PROPOSE_NOTEBOOK=1, with --propose-actions: each proposal decision lists the game's earlier "
-                         "refused proposals as the seat was told them (the last 8)")
+                         "refused proposals the seat was told, as it was told them")
     ap.add_argument("--build", default=None)
     ap.add_argument("--allow-no-record", action="store_true",
                     help="run on a build without Transcript (no http or engine record; the manifest says so)")
