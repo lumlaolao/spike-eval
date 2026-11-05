@@ -124,7 +124,8 @@ most log questions).
   directory made under a different value. The puzzle runner, `puzzle_baselines.Build.run` (so
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
   every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
-  (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` reads that list; #342, #345), and so
+  (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` builds the same names from `CONDITION_ENV_KEYS`
+  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), and so
   does the tournament (`tournament._match_env`). A launcher that goes through `run_batch.py`
   (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
   (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
