@@ -161,7 +161,7 @@ more, which is a different condition from the one designed, and the override tha
 - The prompt is the same size on every board (median 7K to 8K tokens). What grows is the thinking.
 
 **Why the deadline was not a setting to change on this lane** (when the study ran; since fixed, section 5):
-- `puzzle_solve.py` refused `--call-timeout-minutes` for a `claude-cli:` model ("ClaudeCliBridge reads neither").
+- `puzzle_solve.py` refused `--call-timeout-minutes` for a `claude-cli:` model ("... is for a openrouter: or jev: model; ... never reads it").
 - The bridge's own override, `CLAUDE_DEADLINE_MS`, was a shell variable. `puzzle_solve.py` neither pinned it nor
   recorded it in the manifest, so setting it would have run arm B under a deadline no row records. That is the
   unrecorded condition STANDARDS section 4 forbids.

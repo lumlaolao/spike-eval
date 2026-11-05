@@ -132,7 +132,9 @@ most log questions).
   stamped on the game line and keyed by `aggregate.PROVENANCE_FIELDS`, and refused on resume into a
   directory made under a different value. The puzzle runner, `puzzle_baselines.Build.run` (so
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
-  every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
+  every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`), and the puzzle conditions it
+  sets itself that run_batch.py does not pin (`CLAUDE_DEADLINE_MS`, from `--call-timeout-minutes`;
+  `test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363)
   (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` builds the same names from `CONDITION_ENV_KEYS`
   and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), and so
   does the tournament (`tournament._match_env`). A launcher that goes through `run_batch.py`
@@ -152,7 +154,9 @@ most log questions).
   game, and every `NOT_PINNED` name is still a condition the scan finds (an entry that stops being one is removed;
   `test_every_stamped_condition_is_pinned_or_says_why`; PRs #342, #344, #354, #355).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
-  per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329) may
+  per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329; `call_timeout_ms`
+  is set through the variable the seat's bridge reads, `OPENROUTER_TIMEOUT_MS` for `openrouter:` and `jev:`,
+  `CLAUDE_DEADLINE_MS` for `claude-cli:`, PR #363) may
   instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
   `puzzle_score.load_rows` attaches it to every row it reads and the scorer refuses a mix. A resume
   under a lower value is refused. A resume under a higher one replays every puzzle it reaches that
