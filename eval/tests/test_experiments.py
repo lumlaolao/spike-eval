@@ -417,9 +417,10 @@ class GameLineStampCoverageTest(unittest.TestCase):
     # stamped yet.
     # RULES_FILE picks the Comprehensive Rules text the seat's rules tool returns: that text's date is stamped
     # `rules_effective` (standards of #344: it touches what the seat reads, so it is no allowlist entry).
-    # OPENROUTER_IDLE_MS (HttpDeadline's stall cut) changes decisions too: 0 waits out a dead connection to the
-    # deadline, and the call is lost to the fixed option. Every launcher pins it to its default
-    # (run_batch.CONDITION_ENV_KEYS); a direct JVM launch with a value is not stamped.
+    # This set also holds a name that is only pinned, not recorded: OPENROUTER_IDLE_MS (HttpDeadline's stall cut)
+    # changes decisions too (0 waits out a dead connection to the deadline, and the call is lost to the fixed
+    # option), and every launcher pins it to its default (run_batch.CONDITION_ENV_KEYS); a direct JVM launch with a
+    # value is not stamped.
     RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS", "RULES_FILE", "OPENROUTER_IDLE_MS"}
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not

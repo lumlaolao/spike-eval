@@ -12,7 +12,8 @@ different condition against the same --out is refused, so one directory is
 always one experiment. --context-profile, --memory-tools, --rules-tool,
 --text-tools, --text-answers, --answer-tool-strict, --lookahead, --one-tier/--two-tier, --no-coaching,
 --one-chat, --turn-chat, --plan-execute and --tier-fast-types are the only way to set CONDITION_ENV_KEYS (ambient
-values are scrubbed, --env is refused for them); unset means the JVM's historical baseline.
+values are scrubbed, --env is refused for them); unset means the JVM's historical baseline. ONE_CHAT_TURNS and
+OPENROUTER_IDLE_MS have no flag: a batch runs their defaults.
 
 Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
