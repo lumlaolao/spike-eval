@@ -50,6 +50,40 @@ class TestProposalAudit(unittest.TestCase):
         self.assertTrue(0 < lo < 1 / 3 < hi < 1, s["first_try_legal_nonpass_ci"])
         self.assertEqual(s["lost_other"], 0)
 
+    def test_repair_counts_decisions_opened_by_a_rules_refusal_and_says_what_they_became(self):
+        # The terse-refusal question (PROPOSE_TERSE): after "ILLEGAL", is the play repaired, given up as a pass, or the
+        # same proposal sent again (Gumaan 2026: an error message can make the repeat more likely)?
+        rs = [
+            row(prop("cast", "illegal", "timing"),
+                {"action": {"verb": "cast", "card": "@4"}, "verdict": "accepted"}),      # repaired to a play
+            row(prop("cast", "illegal", "timing"), prop("pass", "accepted")),            # repaired to a pass
+            row(*[prop("cast", "illegal", "cost")] * 4),                                 # lost; three exact repeats
+            row(prop("cast", "format"), prop("cast", "illegal", "zone"),
+                {"action": {"verb": "cast", "card": "@5"}, "verdict": "accepted"}),      # format first: still opened
+            row(prop("cast", "accepted")),                                               # never refused: not counted
+        ]
+        rep = pa.summarize(rs)["repair"]
+        self.assertEqual(rep["opened"], 4)
+        self.assertEqual(rep["to_play"], 2)
+        self.assertEqual(rep["to_pass"], 1)
+        self.assertEqual(rep["unrepaired"], 1)
+        self.assertEqual(rep["to_play_share"], 0.5)
+        self.assertEqual(rep["within"], {"2": 0.5, "3": 0.75, "4": 0.75})   # tries counted as legal_within counts them
+        # Each refused proposal followed by another try: was the next one the same action?
+        self.assertEqual(rep["followed"], 6)
+        self.assertEqual(rep["exact_repeats"], 3)
+        self.assertEqual(rep["exact_repeat_share"], 0.5)
+        self.assertEqual(pa.summarize([row(prop("pass", "accepted"))])["repair"]["opened"], 0)
+
+    def test_the_sheet_names_the_refusal_text_the_seat_was_shown(self):
+        terse = row(dict(prop("cast", "illegal", "timing"), error_shown="ILLEGAL: that play is not legal now."),
+                    prop("cast", "accepted"))
+        self.assertEqual(pa.summarize([terse])["refusal_text"], "terse")
+        self.assertEqual(pa.summarize([row(prop("cast", "illegal", "timing"), prop("cast", "accepted"))])["refusal_text"],
+                         "detailed")
+        self.assertIsNone(pa.summarize([row(prop("pass", "accepted"))])["refusal_text"])
+        self.assertIn("repair", pa.render({"Seat": pa.summarize([terse])}))
+
     def test_a_decision_lost_after_one_refusal_is_not_lost_to_refusals(self):
         s = pa.summarize([row(prop("cast", "illegal", "timing"))])
         self.assertEqual((s["lost"], s["lost_other"]), (0, 1))

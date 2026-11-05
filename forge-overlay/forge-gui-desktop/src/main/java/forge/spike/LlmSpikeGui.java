@@ -372,8 +372,10 @@ public final class LlmSpikeGui {
      *  Epoch 77 (2026-11-04): a play whose sub-ability must target is offered only when that target exists (Govern the
      *  Guildless's forecast was offered with no creature in play and failed every upkeep: gauntlet kw28); a sub-ability
      *  after a part that targets (Searing Blaze, Goblin Welder) is left to the cast, as before.
+     *  Epoch 78 (2026-11-05, answer-tool-v16): the PROPOSE_TERSE arm, under PROPOSE_ACTIONS only: a rules refusal says
+     *  "ILLEGAL: that play is not legal now." with no rule, to measure the message's share of repair. Unchanged off it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-77";
+    static final String HARNESS_EPOCH = "harness-epoch-78";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -9655,6 +9657,9 @@ public final class LlmSpikeGui {
                  .append(",\"verdict\":\"").append(verdict).append('"');
                 if (category != null) b.append(",\"category\":\"").append(jsonEscape(category)).append('"');
                 if (err != null) b.append(",\"error\":\"").append(jsonEscape(err)).append('"');
+                // PROPOSE_TERSE: `error` is the engine's diagnosis; the seat was told only this.
+                String shown = AnswerTool.shownRefusal(err);
+                if (shown != null && !shown.equals(err)) b.append(",\"error_shown\":\"").append(jsonEscape(shown)).append('"');
                 b.append('}');
             }
             return b.append("],\"first_try_legal\":").append(firstLegal).toString();
@@ -12214,6 +12219,7 @@ public final class LlmSpikeGui {
                 // on-game with an off-game, and a legacy line that carries neither reads MISSING.
                 + ",\"plan_execute\":" + PlayerControllerLLM.PLAN_EXECUTE
                 + ",\"propose_actions\":" + AnswerTool.proposeActions()
+                + ",\"propose_terse\":" + AnswerTool.proposeTerse()
                 + ",\"propose_audit\":" + PlayerControllerLLM.PROPOSE_AUDIT
                 + ",\"shadow_ai\":" + PlayerControllerLLM.SHADOW
                 + ",\"tier_fast_types\":\"" + jsonEscape(PlayerControllerLLM.tierFastTypesLabel()) + "\""

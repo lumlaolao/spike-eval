@@ -59,8 +59,10 @@ final class AnswerTool {
      *  Off, the schema and every ask are unchanged.
      *  v14 (2026-11-03): a proposal names its target (`action.targets`), checked with the play; Prototype and "flash"
      *  are named costs; a proposal answered with a menu field is shown an example. Still unchanged off the arm.
-     *  v15 (2026-11-04): `action.cost` says an optional cost such as Kicker is asked when the spell is cast. */
-    static final String VERSION = "answer-tool-v15";
+     *  v15 (2026-11-04): `action.cost` says an optional cost such as Kicker is asked when the spell is cast.
+     *  v16 (2026-11-05): the PROPOSE_TERSE arm ({@link #proposeTerse}): a rules refusal says only
+     *  {@link #TERSE_REJECTION}, and the preamble says so. Unchanged off the arm. */
+    static final String VERSION = "answer-tool-v16";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -87,6 +89,26 @@ final class AnswerTool {
     /** Tests only: the condition on or off without the environment variable (null: read the environment). */
     static volatile Boolean PROPOSE_FOR_TEST = null;
 
+    /** PROPOSE_TERSE=1, under PROPOSE_ACTIONS only: a proposal the rules refuse is told {@link #TERSE_REJECTION}, Kaggle
+     *  Game Arena's binary verdict, in place of "ILLEGAL (category): the rule it breaks". A measurement arm for the
+     *  message's share of repair (eval/research/2026-11-03-propose-condition-prior-work.md: Game Arena's harness has a
+     *  reason-giving variant but no published comparison; Gumaan 2026 finds a failure message can make a repeat more
+     *  likely). A FORMAT error keeps its text in both arms: it says what is malformed, not which rule applies. The row
+     *  keeps the engine's diagnosis, so both arms count the same rule categories. Stamped `propose_terse`. */
+    static boolean proposeTerse() {
+        return proposeActions() && (TERSE_FOR_TEST != null ? TERSE_FOR_TEST : "1".equals(System.getenv("PROPOSE_TERSE")));
+    }
+    /** Tests only: as {@link #PROPOSE_FOR_TEST}, for {@link #proposeTerse}. */
+    static volatile Boolean TERSE_FOR_TEST = null;
+    /** What a rules refusal says under {@link #proposeTerse}: no category, no sentence. */
+    static final String TERSE_REJECTION = "ILLEGAL: that play is not legal now.";
+
+    /** The refusal the seat is shown for {@code err}, the check's own diagnosis: the same text, except a rules refusal
+     *  under {@link #proposeTerse}. */
+    static String shownRefusal(String err) {
+        return err != null && err.startsWith("ILLEGAL (") && proposeTerse() ? TERSE_REJECTION : err;
+    }
+
     /** Invalid `answer` calls a proposal may make before its decision is lost (two elsewhere). Repair gains level off
      *  after two to five rounds of checker feedback (COPRA; Goedel-Prover-V2); Kaggle Game Arena allows four tries. */
     static final int MAX_INVALID_PROPOSALS = 4;
@@ -103,7 +125,7 @@ final class AnswerTool {
     static String protocolVersion() {
         String env = System.getenv("ANSWER_TOOL_CHOICE");
         return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : "") + (proposeActions() ? "+propose" : "")
-                + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
+                + (proposeTerse() ? "+terse" : "") + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
     }
 
     /**
@@ -143,9 +165,13 @@ final class AnswerTool {
                 + "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
                 + "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
                 + "decision, alongside the answer.\n"
-                + (proposeActions() ? PROPOSE_INSTRUCTIONS : "");
+                + (!proposeActions() ? "" : proposeTerse() ? PROPOSE_INSTRUCTIONS.replace(RULE_PROMISE, TERSE_PROMISE)
+                                                           : PROPOSE_INSTRUCTIONS);
     }
 
+    /** What the preamble says a rules refusal tells, in each arm ({@link #proposeTerse}). */
+    static final String RULE_PROMISE = "which rule it breaks (timing, cost, zone, target, land drop, control, restriction)";
+    static final String TERSE_PROMISE = "only that it is illegal, not why,";
     /** The preamble's paragraph on proposing a play, under PROPOSE_ACTIONS only. */
     static final String PROPOSE_INSTRUCTIONS = "PLAYS: when you have priority you are not shown a list of legal plays. "
             + "Propose one with `action`: `verb` (play_land, cast, activate or pass), `card` (the handle of the card or "
@@ -153,8 +179,8 @@ final class AnswerTool {
             + "to cast one face or half of a card, and `cost` to cast it another way the card allows (its name as the card "
             + "prints it, such as \"Flashback\" or \"Prototype\", \"alternative\" for a \"rather than pay this spell's mana cost\" "
             + "cost, or \"flash\" for a cast the card allows at a time you could not otherwise cast it). "
-            + "The rules engine checks the proposal. If the rules do not allow it now you are told which rule it breaks "
-            + "(timing, cost, zone, target, land drop, control, restriction) and may propose again, up to "
+            + "The rules engine checks the proposal. If the rules do not allow it now you are told " + RULE_PROMISE
+            + " and may propose again, up to "
             + MAX_INVALID_PROPOSALS + " tries in all; after that you pass. A malformed proposal (an unknown handle or "
             + "ability number) is told what is wrong. Give a play's target in `targets` (a handle, or \"you\" or \"opponent\"); "
             + "the engine checks it with the play. Modes, X and costs, and the targets of a play with several targets or "
@@ -1119,7 +1145,7 @@ final class AnswerTool {
                 Result r = validate(ask.spec, c.arguments);
                 if (proposal) ask.proposals.add(new String[] {c.arguments, r.answer == null ? r.error : null});
                 if (r.answer == null) {
-                    results[i] = "ERROR: " + r.error + " Nothing was done. Call `answer` again with a legal value.";
+                    results[i] = "ERROR: " + (proposal ? shownRefusal(r.error) : r.error) + " Nothing was done. Call `answer` again with a legal value.";
                     audit.accept(c.render(), results[i]);
                     continue;
                 }

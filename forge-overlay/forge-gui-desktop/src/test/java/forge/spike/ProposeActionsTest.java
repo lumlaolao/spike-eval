@@ -47,6 +47,7 @@ public class ProposeActionsTest {
     public void off() {
         LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
         AnswerTool.PROPOSE_FOR_TEST = null;
+        AnswerTool.TERSE_FOR_TEST = null;
     }
 
     // ------------------------------------------------------------------ helpers
@@ -496,5 +497,48 @@ public class ProposeActionsTest {
         Assert.assertEquals(model.results.stream().filter(r -> r.contains("ILLEGAL (cost)")).count(), 3L,
                 "three corrections are sent; the fourth illegal try ends the decision");
         Assert.assertEquals(model.actions.size(), 2, "exactly four tries were taken");
+    }
+
+    // ------------------------------------------------------------------ the terse refusal (PROPOSE_TERSE)
+
+    /** PROPOSE_TERSE: a rules refusal is told only that the play is illegal, Kaggle Game Arena's form, so the message's
+     *  detail can be measured. The engine's diagnosis is still recorded (its category counts the rule broken in both
+     *  arms); a form error keeps its text, since it says what is malformed, not which rule applies. */
+    @Test
+    public void aTerseRefusalNamesNoRuleAndTheRowKeepsTheDiagnosis() {
+        AnswerTool.TERSE_FOR_TEST = true;
+        Assert.assertTrue(AnswerTool.protocolVersion().contains("+propose+terse"), AnswerTool.protocolVersion());
+        Assert.assertFalse(AnswerTool.instructions().contains("which rule it breaks"), "the preamble promises the rule");
+        Assert.assertTrue(AnswerTool.instructions().contains("not why"), AnswerTool.instructions());
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Hand);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        ProposalModel model = new ProposalModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        model.actions.add("{\"verb\":\"cast\",\"card\":\"@99\"}");
+        model.actions.add("{\"verb\":\"cast\",\"card\":\"@" + handle(ctrl, bears) + "\"}");
+        model.actions.add("{\"verb\":\"cast\",\"card\":\"@" + handle(ctrl, bolt) + "\",\"targets\":[\"opponent\"]}");
+        List<SpellAbility> played = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(played, "the repaired proposal was not played");
+        Assert.assertSame(played.get(0).getHostCard(), bolt);
+        Assert.assertTrue(model.results.stream().anyMatch(r -> r.contains(AnswerTool.TERSE_REJECTION)), String.valueOf(model.results));
+        Assert.assertFalse(model.results.stream().anyMatch(r -> r.contains("ILLEGAL (")), "a rule was named: " + model.results);
+        Assert.assertTrue(model.results.stream().anyMatch(r -> r.contains("FORMAT: no object @99")), "a form error keeps its text");
+
+        List<String[]> calls = new ArrayList<>();
+        calls.add(new String[] {"{\"action\":{\"verb\":\"cast\",\"card\":\"@4\"}}", "ILLEGAL (timing): a sorcery."});
+        calls.add(new String[] {"{\"action\":{\"verb\":\"pass\"}}", null});
+        JsonObject row = JsonParser.parseString("{\"x\":1" + LlmSpikeGui.PlayerControllerLLM.proposalRecord(calls) + "}").getAsJsonObject();
+        JsonObject refused = row.getAsJsonArray("proposals").get(0).getAsJsonObject();
+        Assert.assertEquals(refused.get("verdict").getAsString(), "illegal");
+        Assert.assertEquals(refused.get("category").getAsString(), "timing", "the diagnosis is kept for the count");
+        Assert.assertEquals(refused.get("error_shown").getAsString(), AnswerTool.TERSE_REJECTION);
+
+        AnswerTool.TERSE_FOR_TEST = false;
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.proposalRecord(calls).contains("error_shown"), "the detailed arm's row moved");
+        Assert.assertTrue(AnswerTool.instructions().contains("which rule it breaks"));
+        Assert.assertFalse(AnswerTool.protocolVersion().contains("+terse"));
     }
 }

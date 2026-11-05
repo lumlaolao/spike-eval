@@ -177,7 +177,23 @@ class ResumeTest(unittest.TestCase):
         self.assertEqual(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", menu, self.BUILD), [])
         self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", propose, self.BUILD)), 1)
 
-    BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
+    def test_the_terse_refusal_is_pinned_only_when_asked_and_never_resumed_across(self):
+        # PROPOSE_TERSE: the refusal names no rule. A detailed directory resumes unchanged; adding the arm is refused.
+        import argparse
+        base = dict(context_profile="v4-faithful", memory_tools=False, rules_tool=False, propose_actions=True)
+        detailed = puzzle_solve.condition(argparse.Namespace(**base))
+        terse = puzzle_solve.condition(argparse.Namespace(**base, propose_terse=True))
+        self.assertNotIn("PROPOSE_TERSE", detailed)
+        self.assertEqual(terse["PROPOSE_TERSE"], "1")
+        root = Path(tempfile.mkdtemp())
+        puzzle_solve.write_manifest(root / "p", "m", "S", "p", detailed, self.BUILD)
+        self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", terse, self.BUILD)), 1)
+        with self.assertRaises(SystemExit) as cm:
+            puzzle_solve.main(["--suite", "s.json", "--split", "open", "--model", "m", "--budget-usd", "0",
+                               "--out", str(root / "o"), "--propose-terse"])
+        self.assertIn("--propose-actions", str(cm.exception.code))
+
+    BUILD ={"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
              "stale_build_allowed": False}
 
     def test_a_resume_with_another_price_ceiling_is_refused(self):
