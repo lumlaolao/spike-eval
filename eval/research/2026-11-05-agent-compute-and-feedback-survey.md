@@ -337,7 +337,8 @@ of about 100 cards.
 **E2. Repeat-refusal rate in the existing logs (no new games): done.** See
 `eval/research/2026-11-03-propose-condition-prior-work.md`, "Repeated refusals in every propose log on disk": no refused
 play was resent within its decision in any run; across decisions refused plays recurred in some runs, and whether
-the puzzle set or the build drives that is not determined. The shuffled refusal-to-decision floor proposed here is not yet computed.
+the puzzle set or the build drives that is not determined. The shuffled refusal-to-decision floor proposed here is
+not yet computed.
 
 **E3. Compute-matched lookahead vs best-of-N vs LATS-style search on puzzles.**
 - Hypothesis (from Snell and LATS, extrapolated to this setting; neither source tests puzzles): at a fixed token budget,
