@@ -444,22 +444,27 @@ public class ReplayBridgeTest {
 
     /** ReplayBridge.RANGES copies the wording AnswerTool writes for an answer's range. If AnswerTool rewords one, ranges()
      *  would find nothing in the recorded and the live ask alike and the range check would switch off without a test
-     *  going red (simplify review of #365). Each kind is built through AnswerTool itself and must yield one statement
-     *  holding both ends. */
+     *  going red (simplify review of #365). Each kind that writes a range (MANY, MANY_REPEAT, NUMBER, ALLOC) is built
+     *  through AnswerTool itself and must yield one statement holding both ends. */
     @Test
     public void everyAnswerRangeAnswerToolWritesIsReadWithBothEnds() {
-        Object[][] cases = {
-                {AnswerTool.Spec.many(5, 1, 3), "1", "3"},
-                {AnswerTool.Spec.many(5, 2, 2), "2", null},
-                {AnswerTool.Spec.number(0, 4), "0", "4"},
-                {AnswerTool.Spec.alloc(3, 6), "3", "6"}};
-        for (Object[] c : cases) {
-            AnswerTool.Spec spec = (AnswerTool.Spec) c[0];
-            String line = AnswerTool.instruction(spec, false);
-            List<String> found = ReplayBridge.ranges(new ScriptBridge.Question(line));
-            Assert.assertEquals(found.size(), 1, spec.kind + ": " + line);
-            for (int k = 1; k < 3; k++)
-                if (c[k] != null) Assert.assertTrue(found.get(0).matches(".*\\b" + c[k] + "\\b.*"), found + " in " + line);
-        }
+        assertRangeRead(AnswerTool.Spec.many(5, 1, 3), "1", "3");
+        assertRangeRead(AnswerTool.Spec.many(5, 2, 2), "2");
+        assertRangeRead(AnswerTool.Spec.repeat(5, 1, 3), "1", "3");
+        assertRangeRead(AnswerTool.Spec.repeat(5, 2, 2), "2");
+        assertRangeRead(AnswerTool.Spec.number(-1, 4), "-1", "4");
+        assertRangeRead(AnswerTool.Spec.number(0, 12), "0", "12");
+        assertRangeRead(AnswerTool.Spec.alloc(3, 6), "3", "6");
+    }
+
+    /** One range statement read from the ask AnswerTool writes for {@code spec}, holding each of {@code ends} as a whole
+     *  number (a sign and the digits around it count, so "1" is not found in "-1" or "12"). */
+    private static void assertRangeRead(AnswerTool.Spec spec, String... ends) {
+        String line = AnswerTool.instruction(spec, false);
+        List<String> found = ReplayBridge.ranges(new ScriptBridge.Question(line));
+        Assert.assertEquals(found.size(), 1, spec.kind + ": " + line);
+        for (String v : ends)
+            Assert.assertTrue(java.util.regex.Pattern.compile("(?<![-\\d])" + java.util.regex.Pattern.quote(v) + "(?!\\d)")
+                    .matcher(found.get(0)).find(), v + " in " + found + " from " + line);
     }
 }
