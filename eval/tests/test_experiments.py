@@ -449,6 +449,11 @@ class GameLineStampCoverageTest(unittest.TestCase):
         self.assertIn("propose_terse", set(game_line_keys()))
         self.assertIn(("propose_terse", False), aggregate.PROVENANCE_FIELDS)
 
+    def test_the_refusal_notebook_is_a_stamped_condition(self):
+        # PROPOSE_NOTEBOOK adds REFUSED EARLIER to a proposal decision: stamped, keyed, never pooled with the arm without it.
+        self.assertIn("propose_notebook", set(game_line_keys()))
+        self.assertIn(("propose_notebook", False), aggregate.PROVENANCE_FIELDS)
+
     def test_the_chat_stamp_carries_its_cap(self):
         # ONE_CHAT_TURNS is stamped through one_chat_version only if the game line writes stamp(), not VERSION.
         self.assertIn('"one_chat_version\\":\\"" + ChatSessionBridge.stamp()', GUI.read_text(encoding="utf-8"))

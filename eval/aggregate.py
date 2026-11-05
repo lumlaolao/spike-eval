@@ -173,6 +173,8 @@ PROVENANCE_FIELDS = (
     ("propose_audit", False),
     # PROPOSE_TERSE (harness-epoch-80): a rules refusal said only "ILLEGAL", not the rule; every line before it did.
     ("propose_terse", False),
+    # PROPOSE_NOTEBOOK (harness-epoch-81): a proposal decision listed the game's earlier refusals; no line before it did.
+    ("propose_notebook", False),
     # SHADOW_AI asks Forge's AI on the side for a label (a DAgger corpus). Its targets are reset before the seat's cast
     # and the RNG restored, but an AI timeout weakens that isolation ([SHADOW] ... WEAKENED): a condition (#345).
     ("shadow_ai", False),

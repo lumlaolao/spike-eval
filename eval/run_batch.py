@@ -88,7 +88,7 @@ DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE",
                       "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT", "PROPOSE_ACTIONS", "PROPOSE_AUDIT",
-                      "PROPOSE_TERSE",
+                      "PROPOSE_TERSE", "PROPOSE_NOTEBOOK",
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
                       "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
                       "CLAUDE_CLI_THINKING_TOKENS",
@@ -143,7 +143,7 @@ CONDITION_KEYS = (
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
     "lookahead", "one_tier", "no_coaching", "one_chat", "turn_chat",
     "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens", "propose_actions",
-    "propose_audit", "propose_terse",
+    "propose_audit", "propose_terse", "propose_notebook",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
 )
@@ -297,6 +297,8 @@ def build_env(args, seed, swap, out_dir):
     env["PROPOSE_ACTIONS"] = "1" if getattr(args, "propose_actions", False) else "0"
     # The terse refusal arm: what a rules refusal tells the seat (propose_refusal: only with --propose-actions).
     env["PROPOSE_TERSE"] = "1" if getattr(args, "propose_terse", False) else "0"
+    # The refusal notebook: each proposal decision lists the game's earlier refusals (only with --propose-actions).
+    env["PROPOSE_NOTEBOOK"] = "1" if getattr(args, "propose_notebook", False) else "0"
     # The checker audit is a diagnostic of the gauntlet (keyword_gauntlet.sh), never of a batch: pinned off, so a shell's
     # PROPOSE_AUDIT=1 cannot change a game's handles unrecorded (pr-review of #342).
     env["PROPOSE_AUDIT"] = "0"
@@ -501,6 +503,8 @@ def resume_expectation(args):
     expect["propose_audit"] = [False, ABSENT]
     # A line from before the terse arm (harness-epoch-80) told every refusal its rule.
     expect["propose_terse"] = [True] if getattr(args, "propose_terse", False) else [False, ABSENT]
+    # A line from before the notebook arm (harness-epoch-81) listed no earlier refusal.
+    expect["propose_notebook"] = [True] if getattr(args, "propose_notebook", False) else [False, ABSENT]
     # The shadow labeler is stamped on the game line (aggregate.PROVENANCE_FIELDS); older lines carry no stamp.
     expect["shadow_ai"] = [True] if getattr(args, "shadow_ai", False) else [False, ABSENT]
     # The two opt-in play switches (issue #117). A line with no stamp is read as what a pre-flag
@@ -591,6 +595,7 @@ def batch_condition(args, cited):
         "propose_actions": bool(getattr(args, "propose_actions", False)),
         "propose_audit": False,
         "propose_terse": bool(getattr(args, "propose_terse", False)),
+        "propose_notebook": bool(getattr(args, "propose_notebook", False)),
         "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
         # A claude-cli: seat's pinned CLI settings ("cli-default" when unset); absent for every other batch.
         "claude_cli_effort": (getattr(args, "claude_cli_effort", None) or "cli-default") if has_cli_seat(args) else None,
@@ -669,10 +674,13 @@ def lane_refusals(args):
 def propose_refusal(args):
     """Why --propose-actions cannot run with this batch's other flags, or None. It is a measurement arm (exploratory,
     never a panel), the proposal is a field of the `answer` call, and the preview names menu numbers the arm hides.
-    --propose-terse changes only what a refused proposal is told, so it needs the arm."""
+    --propose-terse changes only what a refused proposal is told and --propose-notebook lists the refusals in later
+    decisions, so each needs the arm."""
     if not getattr(args, "propose_actions", False):
-        if getattr(args, "propose_terse", False):
-            return "--propose-terse without --propose-actions: it words the arm's refusals, and a menu game has none"
+        for flag, what in (("terse", "words"), ("notebook", "lists")):
+            if getattr(args, "propose_" + flag, False):
+                return ("--propose-%s without --propose-actions: it %s the arm's refusals, and a menu game has none"
+                        % (flag, what))
         return None
     if getattr(args, "panel", None) or not getattr(args, "exploratory", False):
         return "--propose-actions is an exploratory measurement arm, never a cited run or a panel"
@@ -765,7 +773,7 @@ def condition_diff_norm(m, k):
     without it; one written before a flag recorded its env key, if at all, as an --env override."""
     env = m.get("env_overrides") or {}
     if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat", "turn_chat",
-             "propose_actions", "propose_audit", "propose_terse"):
+             "propose_actions", "propose_audit", "propose_terse", "propose_notebook"):
         return bool(m.get(k))
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
@@ -1410,6 +1418,10 @@ def build_parser():
                     help="PROPOSE_TERSE=1, with --propose-actions: a refused proposal is told only 'ILLEGAL: that play "
                          "is not legal now.', not the rule it breaks (the message-detail arm). A separate condition "
                          "that must live in its own --out.")
+    ap.add_argument("--propose-notebook", action="store_true",
+                    help="PROPOSE_NOTEBOOK=1, with --propose-actions: each play, attack and blocks decision lists the "
+                         "game's earlier refused proposals the seat was told, as it was told them (REFUSED EARLIER). "
+                         "A separate condition that must live in its own --out.")
     ap.add_argument("--tier-fast-types", metavar="TYPES", default=None,
                     help="TIER_FAST_TYPES=<comma list>: route those decision types to the fast "
                          "(non-reasoning) tier instead of the smart one. Default empty (all smart); "
