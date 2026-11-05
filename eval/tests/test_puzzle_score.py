@@ -103,8 +103,8 @@ class PairedTest(unittest.TestCase):
     def test_the_paired_flags_reach_the_interval(self):
         seen = {}
         real = ps.paired
-        ps.paired = lambda a, b, base=None, n_boot=None, seed=None: seen.update(n_boot=n_boot, seed=seed) or real(
-            a, b, base, n_boot=n_boot, seed=seed)
+        ps.paired = lambda a, b, base=None, n_boot=None, seed=None, **kw: seen.update(n_boot=n_boot, seed=seed) or real(
+            a, b, base, n_boot=n_boot, seed=seed, **kw)
         try:
             _, out = self.run_cli("a", "--paired-with", "b", "--paired-seed", "3", "--paired-bootstrap", "200")
         finally:
@@ -125,6 +125,90 @@ class PairedTest(unittest.TestCase):
             rc, _ = self.run_cli("a", "--paired-with", short)
         self.assertEqual(rc, 2, "a paired run missing a puzzle is refused, not a traceback")
         self.assertIn("REFUSED", err.getvalue())
+
+
+class PassAtKTest(unittest.TestCase):
+    """pass@k (any of k attempts solves: an oracle verifier picks the sample) and the pair of a k=1 run with a k=n run
+    on it: one long attempt against n short ones at about the same compute (eval/research/2026-11-05-thinking-vs-
+    sampling.md)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        ids = [i for i in ("p%d" % n for n in range(40)) if pf.split_for(i) == "open"][:3]
+        self.recs = [rec(i, self.tmp.name, random_solved=10) for i in ids]   # random rate 0.1: a floor that is not 0
+        self.m = suite(self.recs)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def rows(self, solves, k, recs=None):
+        out = []
+        for r, c in zip(recs or self.recs, solves):
+            out += [result(r, s, "solved" if s < c else "failed") for s in range(k)]
+        return out
+
+    def rep(self, solves, k):
+        return ps.score(self.m, self.rows(solves, k), "open", k=k, n_boot=50)
+
+    def test_pass_at_k_is_whether_any_attempt_solved(self):
+        rep = self.rep([3, 1, 0], 3)
+        self.assertEqual([p["pass@k"] for p in rep["puzzles"]], [1.0, 1.0, 0.0])
+        a = rep["aggregate"]["pass@k"]
+        self.assertAlmostEqual(a["value"], 2 / 3, msg="not pass@1's 4/9: one solve in three counts the puzzle")
+        lo, hi = a["ci95_wilson"]
+        self.assertLess(lo, 2 / 3)
+        self.assertGreater(hi, 2 / 3)
+        r = self.recs[0]["baselines"]["random"]["rate"]
+        self.assertAlmostEqual(a["floors"]["random"], 1 - (1 - r) ** 3, msg="a trivial arm also gets three tries")
+
+    def test_a_k1_run_is_reported_without_a_pass_at_k_line_of_its_own(self):
+        rep = self.rep([1, 0, 0], 1)
+        self.assertEqual([p["pass@k"] for p in rep["puzzles"]], [1.0, 0.0, 0.0])
+        self.assertNotIn("pass@k", rep["aggregate"], "at k=1 it is pass@1, printed once")
+
+    def test_a_k1_run_pairs_with_a_k3_run_on_each_runs_pass_at_k_and_says_so(self):
+        c = ps.paired(self.rep([1, 0, 0], 1), self.rep([3, 1, 0], 3), metric="pass@k", n_boot=200)
+        self.assertAlmostEqual(c["mean"], (0 + 1 + 0) / 3)
+        self.assertEqual((c["metric"], c["k"], c["cross_k"]), ("pass@k", [1, 3], True))
+        line = ps.render_paired(c, 200, 7)
+        self.assertIn("B pass@3 - A pass@1", line)
+        self.assertIn("CROSS-K", line)
+
+    def test_pass_at_1_under_two_ks_is_still_refused(self):
+        with self.assertRaisesRegex(ps.Refused, "differ in k"):
+            ps.paired(self.rep([1, 0, 0], 1), self.rep([3, 1, 0], 3))
+        with self.assertRaisesRegex(ps.Refused, "metric"):
+            ps.paired(self.rep([1, 0, 0], 1), self.rep([3, 1, 0], 3), metric="pass@2")
+
+    def run_cli(self, *args):
+        recs = [dict(r, pzl=str(Path(self.tmp.name) / r["pzl"])) for r in self.recs]  # the suite check reads the files
+        sfile = Path(self.tmp.name) / "s.json"
+        sfile.write_text(json.dumps(suite(recs)))
+        dirs = {}
+        for name, solves, k in (("one", [1, 0, 0], 1), ("three", [3, 1, 0], 3)):
+            out = Path(self.tmp.name) / name
+            out.mkdir(exist_ok=True)
+            (out / "puzzle-results.jsonl").write_text("".join(json.dumps(x) + "\n" for x in self.rows(solves, k, recs)))
+            dirs[name] = str(out)
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            rc = ps.main(["--suite", str(sfile), "--split", "open"] + [dirs.get(x, x) for x in args])
+        return rc, buf.getvalue(), err.getvalue()
+
+    def test_the_command_pairs_two_ks_only_on_pass_at_k(self):
+        rc, out, _ = self.run_cli("--k", "1", "one", "--paired-with", "three", "--paired-k", "3", "--paired-metric",
+                                  "pass@k")
+        self.assertEqual(rc, 0)
+        self.assertIn("paired B pass@3 - A pass@1", out)
+        self.assertIn("+0.333", out)
+        rc, _, err = self.run_cli("--k", "1", "one", "--paired-with", "three", "--paired-k", "3")
+        self.assertEqual(rc, 2, "pass@1 of a k=1 and a k=3 run is no pair")
+        self.assertIn("differ in k", err)
+        with self.assertRaises(SystemExit):
+            self.run_cli("--k", "1", "one", "--paired-k", "3")      # --paired-k names the paired runs' k
+        with self.assertRaises(SystemExit):
+            self.run_cli("--k", "1", "one", "--paired-with", "three", "--paired-k", "3", "--paired-metric", "pass@k",
+                         "--against", "one", "three")
 
 
 class PriceCeilingRefusalTest(unittest.TestCase):
