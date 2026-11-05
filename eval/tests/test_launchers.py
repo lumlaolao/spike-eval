@@ -1,8 +1,9 @@
 """Every file that launches a game JVM, by the rule it follows for conditions (docs/STANDARDS.md section 4).
 
 A repository rule, not a script's test: a file that names a game JVM's main (`forge.spike.LlmSpikeHeadless`,
-`forge.spike.LlmSpikeGui`) or its launcher (`run-llm-headless.sh`, `run-llm-spike.sh`) must be listed below with how its games get their conditions, so the rule's list of launchers cannot go stale (the
-standards reviews of #346: the first wording named every launcher, the second missed harness_acceptance.sh).
+`forge.spike.LlmSpikeGui`) or its launcher (`run-llm-headless.sh`, `run-llm-spike.sh`) must be listed below with
+how its games get their conditions, so the rule's list of launchers cannot go stale (the standards reviews of #346:
+the first wording named every launcher, the second missed harness_acceptance.sh; #347's missed run-llm-spike.sh).
 """
 import os
 import subprocess
@@ -37,7 +38,8 @@ LAUNCHERS = {
 
 
 def naming_files():
-    out = subprocess.run(["git", "grep", "-lE", r"forge\.spike\.LlmSpike(Headless|Gui)\b|run-llm-(headless|spike)\.sh", "--",
+    out = subprocess.run(["git", "grep", "-lE",
+                          r"forge\.spike\.LlmSpike(Headless|Gui)\b|run-llm-(headless|spike)\.sh", "--",
                           "*.py", "*.sh", ":!eval/tests/*"], cwd=str(evalpath.REPO), stdout=subprocess.PIPE,
                          universal_newlines=True)
     return sorted(out.stdout.split())

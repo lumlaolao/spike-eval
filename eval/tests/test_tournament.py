@@ -12,12 +12,15 @@ import sys
 import tempfile
 import types
 import urllib.request
+from unittest import mock
 from pathlib import Path
 
+import argparse
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
-import tournament as T
+import tournament as T  # noqa: E402
+import run_batch  # noqa: E402
 
 
 def ok(msg):
@@ -27,9 +30,6 @@ def ok(msg):
 def test_a_tournament_game_never_inherits_a_condition_from_the_shell():
     # pr-review of #347: _match_env copied the whole shell, so an exported ONE_TIER, PROPOSE_ACTIONS or SHADOW_AI reached
     # every bracket game. Every condition run_batch.py pins is dropped; the tournament's own settings still arrive.
-    import argparse
-    import run_batch
-    from unittest import mock
     names = {n: "1" for n in run_batch.CONDITION_ENV_KEYS + ("SHADOW_AI",)}
     a = {"path": "/a.txt", "label": "A", "model": "x/a"}
     b = {"path": "/b.txt", "label": "B", "model": "x/b"}

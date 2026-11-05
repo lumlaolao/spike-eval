@@ -89,6 +89,9 @@ CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_T
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
                       "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
                       "CLAUDE_CLI_THINKING_TOKENS")
+# Every name run_batch.py pins from its flags: CONDITION_ENV_KEYS, and SHADOW_AI (pinned apart, by --shadow-ai). A
+# launcher that does not go through run_batch.py strips these from the shell (STANDARDS section 4).
+PINNED_ENV_KEYS = CONDITION_ENV_KEYS + ("SHADOW_AI",)
 # Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
 # resume comparison folds them out of `env_overrides` and back into their own condition field, so a
 # directory made with `--env LOOKAHEAD=1` (or PLAN_EXECUTE / TIER_FAST_TYPES) resumes under the flag.
