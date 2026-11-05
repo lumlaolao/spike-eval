@@ -77,7 +77,6 @@ class TestProposalAudit(unittest.TestCase):
         self.assertIn("HEADLINE", pa.render(sheet))
         self.assertIn("no proposal rows", pa.render({}))
 
-
     def test_combat_proposals_are_their_own_sheet(self):
         # The attack and the blocks are proposed under the same arm (answer-tool-v16): counted per kind, never pooled
         # with the play headline, and an empty declaration is a combat proposal's pass.

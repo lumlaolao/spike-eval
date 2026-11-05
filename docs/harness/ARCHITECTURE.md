@@ -502,11 +502,17 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   attack-target ask is not made); `answer.declare_blockers` a list of `{blocker, attacker}` by handle; an empty list
   attacks or blocks with none. Both properties are in the schema under the arm only, beside `action`.
   - *The verdict is the menu's own:* an attacker is checked with `CombatUtil.canAttack(creature, defender)`, the
-    attack as a whole with `CombatUtil.validateAttackers` (global limits, alone/with-others restrictions, requirements);
-    each block with `CombatUtil.canBlock(attacker, blocker, combat)` and the set with `blocksError` (the requirement
-    and restriction halves of `validateBlocks` and the global block cap) (`attackProposalError`,
-    `blockProposalError`). The sentence only says which rule failed; a failure to word it is a generic restriction,
-    never a changed verdict.
+    attack as a whole with `CombatUtil.validateAttackers` (global limits, alone/with-others restrictions, requirements)
+    on a scratch combat; each block with `CombatUtil.canBlock(attacker, blocker, combat)` with the set's other blocks
+    in place (`firstBlockNotAllowed`), and the set with `blocksError` (the requirement and restriction halves of
+    `validateBlocks` and the global block cap) (`attackProposalError`, `blockProposalError`). The sentence only says
+    which rule failed; a failure to word it is a generic restriction, never a changed verdict.
+  - *A block is judged beside the others:* `canBlock` refuses a block while some requirement the blocker could obey
+    looks unmet, so judged on a combat with no blocks yet, Hill Giant blocking Grizzly Bears beside Wall of Stone
+    blocking Gaea's Protector ("must be blocked if able") was refused, though the Wall obeys the requirement (CR
+    509.1c; pr-review of #349). The menu's tool check had the same flaw and uses the same rule now
+    (`theMenuAcceptsABlockBesideAMustBeBlockedAttacker`). The text-grammar block path still adds pairs one by one,
+    so its verdict depends on the order the pairs are named.
   - *Categories the checker names:* summoning sickness, tapped, defender, evasion (flying without flying or reach,
     any keyword static such as shadow or landwalk, "can't be blocked"), number (menace and other minimum or maximum
     blockers, Silent Arbiter's caps, a creature blocking more attackers than it may), requirement (a creature that

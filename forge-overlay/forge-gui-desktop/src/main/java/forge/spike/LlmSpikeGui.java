@@ -374,7 +374,9 @@ public final class LlmSpikeGui {
      *  after a part that targets (Searing Blaze, Goblin Welder) is left to the cast, as before.
      *  Epoch 78 (2026-11-05, answer-tool-v16): under PROPOSE_ACTIONS the attack and the blocks are proposed by handle
      *  and checked by the engine (CombatUtil, blocksError), refused with the rule they break, four tries, then no attack
-     *  or the fixed block fallback; the candidate lists are not shown. Unchanged off the arm.
+     *  or the fixed block fallback; the candidate lists are not shown. Off the arm one fix (pr-review of #349): the menu's
+     *  tool check judges each block with the set's other blocks in place, so a block beside a "must be blocked if able"
+     *  attacker's blocker is no longer refused (it was judged on a combat with no blocks yet).
      */
     static final String HARNESS_EPOCH = "harness-epoch-78";
 
@@ -3151,7 +3153,7 @@ public final class LlmSpikeGui {
                 String err = attackProposalError(a.declared, attacker, combat, declared);
                 if (err == null) {
                     a.options = new ArrayList<>();
-                    for (Card c : declared.keySet()) if (legal.indexOf(c) >= 0) a.options.add(legal.indexOf(c) + 1);
+                    for (Card c : declared.keySet()) { int i = legal.indexOf(c); if (i >= 0) a.options.add(i + 1); }
                 }
                 return err;
             });
@@ -3166,13 +3168,9 @@ public final class LlmSpikeGui {
                 if (!makeAttackLegal(combat, why)) auto("attackers(" + why + ")->none");
                 return;
             }
-            List<Integer> picks = new ArrayList<>();
-            for (Map.Entry<Card, GameEntity> e : declared.entrySet()) {
-                combat.addAttacker(e.getKey(), e.getValue());
-                if (legal.indexOf(e.getKey()) >= 0) picks.add(legal.indexOf(e.getKey()));
-            }
+            for (Map.Entry<Card, GameEntity> e : declared.entrySet()) combat.addAttacker(e.getKey(), e.getValue());
             lastShadowChoice = shadow;
-            lastPicks = picks;
+            lastPicks = ta.zeroBased();
             evalDec("attackers", legal.size(), declared.size(), tierOf(true), 0, null, labels);
             p("[ROUTER] attackers: " + AnswerTool.renderDeclared(ta.declared, true));
             formBands(combat);
@@ -3207,7 +3205,7 @@ public final class LlmSpikeGui {
             }
             for (Card[] pr : declared) combat.addBlocker(pr[1], pr[0]);
             lastShadowChoice = shadow;
-            evalDec("blockers", blkLabels.size(), declared.size(), "smart", 0, null, blkLabels);
+            evalDec("blockers", blkLabels.size(), declared.size(), tierOf(true), 0, null, blkLabels);
             p("[ROUTER] blockers: " + (declared.isEmpty() ? "NONE" : AnswerTool.renderDeclared(ta.declared, false)));
         }
 
@@ -3940,11 +3938,14 @@ public final class LlmSpikeGui {
                 if (proposesCombat()) { proposeBlockers(defender, combat, atk.toString(), blkLabels, atkLabels, blkList, atkList, shadowBlk); return; }
                 AnswerTool.Spec blockSpec = AnswerTool.Spec.blocks(blkLabels, atkLabels, blkLimits).check(ans -> {
                     List<Card[]> pairs = new ArrayList<>();
-                    for (int[] pr : ans.blocks) {
-                        if (!CombatUtil.canBlock(atkList.get(pr[1] - 1), blkList.get(pr[0] - 1), combat))
-                            return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
-                                    + pr[1] + " (" + atkLabels.get(pr[1] - 1) + ").";
-                        pairs.add(new Card[] {blkList.get(pr[0] - 1), atkList.get(pr[1] - 1)});
+                    for (int[] pr : ans.blocks) pairs.add(new Card[] {blkList.get(pr[0] - 1), atkList.get(pr[1] - 1)});
+                    String cap = blockCapError(defender, pairs);
+                    if (cap != null) return "these blocks are not legal together: " + cap;
+                    int bad = firstBlockNotAllowed(combat, pairs);   // each pair with the others in place (pr-review of #349)
+                    if (bad >= 0) {
+                        int[] pr = ans.blocks.get(bad);
+                        return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
+                                + pr[1] + " (" + atkLabels.get(pr[1] - 1) + ").";
                     }
                     String err = blocksError(combat, defender, pairs);
                     return err == null ? null : "these blocks are not legal together: " + err;
@@ -4343,7 +4344,7 @@ public final class LlmSpikeGui {
                     // --lookahead with --propose-actions).
                     String reply = ask(b, prompt, nativeSim && attempt == 0 && !propose ? simulateTool : null);
                     noteAnswerVia(attempt);
-                    if (propose && lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals));
+                    if (propose && lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, "action"));
                     if (answerLost()) break;     // two invalid replies: PASS below, recorded as play(unparsed)
                     AnswerTool.Answer ta = toolAnswer();
                     if (ta != null) {            // the notes are fields of the answer; nothing is read from prose
@@ -9565,7 +9566,7 @@ public final class LlmSpikeGui {
             proposedTarget = null;
             if ("pass".equals(pr.verb)) { hit[0] = passIdx; return null; }
             Card c = observer == null ? null : observer.currentCard(pr.card);
-            if (c == null) return "FORMAT: no object @" + pr.card + " is in view now; use a handle from the state above.";
+            if (c == null) return notInView(pr.card);
             if ("play_land".equals(pr.verb)) {
                 // One land per name is on the menu: a copy in the same zone stands for this one.
                 for (int i = 0; i < landCards.size(); i++) {
@@ -9730,9 +9731,6 @@ public final class LlmSpikeGui {
             return "ILLEGAL (restriction): the engine does not allow " + r + " to be played this way now.";
         }
 
-        /** The decision row's proposal fields: every `answer` call of the ask, in order, with its verdict, and whether the
-         *  first proposal that was well formed was legal (null when none was). A FORMAT error is not counted as a rules
-         *  error (it is an unknown handle or field), so `first_try_legal` measures the rules only. */
         // ---- PROPOSE_ACTIONS combat: the attack and the blocks, proposed by handle and checked by the engine. The verdict
         // is the engine's own (CombatUtil.canAttack / validateAttackers, CombatUtil.canBlock / blocksError: the menu's checks);
         // the sentence only names which rule failed, never what is legal instead.
@@ -9745,7 +9743,7 @@ public final class LlmSpikeGui {
             Map<Card, GameEntity> want = new java.util.LinkedHashMap<>();
             for (String[] p : decl) {
                 Card c = observer == null ? null : observer.currentCard(Integer.parseInt(p[0]));
-                if (c == null) return "FORMAT: no object @" + p[0] + " is in view now; use a handle from the state above.";
+                if (c == null) return notInView(p[0]);
                 GameEntity d = defenderNamed(p[1], me, combat);
                 if (d == null) return "FORMAT: no player, planeswalker or battle \"" + p[1] + "\" is in view; give \"opponent\" or a handle such as \"@7\".";
                 if (!combat.getDefenders().contains(d))
@@ -9754,40 +9752,81 @@ public final class LlmSpikeGui {
                 if (!CombatUtil.canAttack(c, d)) return combatWhy(() -> attackerRejection(c, d, me), refOf(c) + " to attack");
                 want.put(c, d);
             }
-            List<Card> added = new ArrayList<>();
-            try {
-                for (Map.Entry<Card, GameEntity> e : want.entrySet()) { combat.addAttacker(e.getKey(), e.getValue()); added.add(e.getKey()); }
-                if (!CombatUtil.validateAttackers(combat)) return combatWhy(() -> attackSetRejection(me, combat, want), "this attack");
-            } finally {
-                for (Card c : added) combat.removeFromCombat(c);
-            }
+            // The whole attack is tried on a scratch combat: removeFromCombat leaves an empty band behind in the real one.
+            Combat trial = new Combat(me);
+            for (Card c : combat.getAttackers()) trial.addAttacker(c, combat.getDefenderByAttacker(c));
+            for (Map.Entry<Card, GameEntity> e : want.entrySet()) trial.addAttacker(e.getKey(), e.getValue());
+            if (!CombatUtil.validateAttackers(trial)) return combatWhy(() -> attackSetRejection(me, trial, want), "this attack");
             out.putAll(want);
             return null;
         }
 
+        private static String notInView(Object handle) {
+            return "FORMAT: no object @" + handle + " is in view now; use a handle from the state above.";
+        }
+
         /** The blocks {@code decl} proposes ({blocker handle, attacker handle}): null when the engine allows them, with
          *  {@code out} holding the pairs {blocker, attacker}; else "FORMAT: ..." or "ILLEGAL (category): ...". Each pair is
-         *  checked as the menu checks it (CombatUtil.canBlock on the combat as declared), then the set ({@link #blocksError}). */
+         *  checked as the menu checks it ({@link #firstBlockNotAllowed}: CombatUtil.canBlock with the set's other blocks in
+         *  place), then the set ({@link #blocksError}). */
         String blockProposalError(List<String[]> decl, Player me, Combat combat, List<Card[]> out) {
             out.clear();
             List<Card[]> pairs = new ArrayList<>();
             Map<Card, Integer> uses = new java.util.HashMap<>();
             for (String[] p : decl) {
                 Card b = observer == null ? null : observer.currentCard(Integer.parseInt(p[0]));
-                if (b == null) return "FORMAT: no object @" + p[0] + " is in view now; use a handle from the state above.";
+                if (b == null) return notInView(p[0]);
                 Card a = observer.currentCard(Integer.parseInt(p[1]));
-                if (a == null) return "FORMAT: no object @" + p[1] + " is in view now; use a handle from the state above.";
+                if (a == null) return notInView(p[1]);
                 if (!combat.isAttacking(a)) return "ILLEGAL (combat): " + refOf(a) + " is not attacking.";
-                if (!CombatUtil.canBlock(a, b, combat)) return combatWhy(() -> blockerRejection(a, b, me, combat), refOf(b) + " to block " + refOf(a));
                 int limit = b.canBlockAny() ? Integer.MAX_VALUE : 1 + b.canBlockAdditional();
                 if (uses.merge(b, 1, Integer::sum) > limit)
                     return "ILLEGAL (number): " + refOf(b) + " can block only " + (limit == 1 ? "one attacker." : limit + " attackers.");
                 pairs.add(new Card[] {b, a});
             }
+            String cap = blockCapError(me, pairs);
+            if (cap != null) return "ILLEGAL (number): " + cap;
+            int bad = firstBlockNotAllowed(combat, pairs);
+            if (bad >= 0) {
+                Card b = pairs.get(bad)[0], a = pairs.get(bad)[1];
+                return combatWhy(() -> withBlocks(combat, pairs, bad, () -> blockerRejection(a, b, me, combat)), refOf(b) + " to block " + refOf(a));
+            }
             String err = blocksError(combat, me, pairs);
             if (err != null) return combatWhy(() -> blockSetRejection(err, me, combat, pairs), "these blocks");
             out.addAll(pairs);
             return null;
+        }
+
+        /** The first pair the engine does not allow, judged as the declaration stands: CombatUtil.canBlock with every other
+         *  pair of the set in place, so a requirement another blocker obeys (CR 509.1c: "must be blocked if able", a lure)
+         *  does not refuse this one; -1 when every pair is allowed. Judged alone, on a combat with no blocks yet, a creature
+         *  beside a must-be-blocked attacker's blocker was refused (pr-review of #349). The combat is left as it was. */
+        static int firstBlockNotAllowed(Combat combat, List<Card[]> pairs) {
+            for (int i = 0; i < pairs.size(); i++) {
+                Card b = pairs.get(i)[0], a = pairs.get(i)[1];
+                if (!withBlocks(combat, pairs, i, () -> CombatUtil.canBlock(a, b, combat))) return i;
+            }
+            return -1;
+        }
+
+        /** {@code f} with the blocks of {@code pairs} but the one at {@code except} added to the combat, then removed. */
+        private static <T> T withBlocks(Combat combat, List<Card[]> pairs, int except, java.util.function.Supplier<T> f) {
+            List<Card[]> on = new ArrayList<>();
+            try {
+                for (int i = 0; i < pairs.size(); i++) if (i != except) { combat.addBlocker(pairs.get(i)[1], pairs.get(i)[0]); on.add(pairs.get(i)); }
+                return f.get();
+            } finally {
+                for (Card[] pr : on) combat.removeBlockAssignment(pr[1], pr[0]);
+            }
+        }
+
+        /** A global block cap (Silent Arbiter) the set exceeds, as {@link #blocksError} words it, or null. Checked before
+         *  the pairs, which the cap would otherwise refuse one by one without saying why. */
+        static String blockCapError(Player defender, List<Card[]> pairs) {
+            java.util.Set<Card> blocking = new java.util.HashSet<>();
+            for (Card[] pr : pairs) blocking.add(pr[0]);
+            int cap = forge.game.staticability.StaticAbilityBlockRestrict.blockRestrictNum(defender);
+            return blocking.size() > cap ? "no more than " + cap + " creature" + (cap == 1 ? "" : "s") + " can block each combat." : null;
         }
 
         /** A combat rejection's sentence, worked out with no model ask possible; the verdict is already the engine's, so a
@@ -9803,8 +9842,8 @@ public final class LlmSpikeGui {
 
         /** What a proposed attack names: nothing or "opponent" (the defending player), a player's name, or a handle. */
         private GameEntity defenderNamed(String name, Player me, Combat combat) {
-            if (name == null) { for (Player p : combat.getDefendingPlayers()) return p; return null; }
-            Object t = targetNamed(name, me);
+            if (name == null || name.trim().isEmpty()) { for (Player p : combat.getDefendingPlayers()) return p; return null; }
+            Object t = targetNamed(name.trim().matches("\\d+") ? "@" + name.trim() : name, me);
             return t instanceof GameEntity ? (GameEntity) t : null;
         }
 
@@ -9963,11 +10002,10 @@ public final class LlmSpikeGui {
             return (text.contains(" must ") ? "ILLEGAL (requirement): " : "ILLEGAL (restriction): ") + text;
         }
 
-        /** The decision row's proposal fields for a play ({@code action}). */
-        static String proposalRecord(List<String[]> calls) { return proposalRecord(calls, "action"); }
-
-        /** The decision row's proposal fields: each call's proposal under {@code field} (`action`, `declare_attackers` or
-         *  `declare_blockers`), its verdict and category, and `first_try_legal`. */
+        /** The decision row's proposal fields: every `answer` call of the ask in order, its proposal under {@code field}
+         *  (`action`, `declare_attackers` or `declare_blockers`), its verdict and category, and `first_try_legal`: whether
+         *  the first well-formed proposal was legal (null when none was). A FORMAT error is not a rules error (an unknown
+         *  handle or field), so `first_try_legal` measures the rules only. */
         static String proposalRecord(List<String[]> calls, String field) {
             StringBuilder b = new StringBuilder(",\"proposals\":[");
             Boolean firstLegal = null;

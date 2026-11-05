@@ -166,7 +166,8 @@ final class AnswerTool {
             + "blocks with `declare_blockers` (each blocker's handle and the handle of the attacker it blocks); an empty list "
             + "attacks or blocks with none. The engine checks the whole declaration; if the rules forbid it you are told "
             + "which rule it breaks (such as summoning sickness, tapped, defender, flying, menace, a requirement) and may "
-            + "declare again, up to " + MAX_INVALID_PROPOSALS + " tries in all; after that you attack or block with none.\n";
+            + "declare again, up to " + MAX_INVALID_PROPOSALS + " tries in all; after that you attack or block with none, or "
+            + "with the smallest legal declaration when none is not allowed.\n";
 
 
     enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD, ACTION, ATTACK_PROPOSAL, BLOCK_PROPOSAL }
@@ -740,8 +741,8 @@ final class AnswerTool {
                     + (a.keySet().isEmpty() ? "" : " (you gave " + String.join(", ", a.keySet()) + ")") + ".");
         if ((s.kind == Kind.ATTACK_PROPOSAL || s.kind == Kind.BLOCK_PROPOSAL) && absent(a, field))
             return Result.bad("FORMAT: this decision is answered with `" + field + "`, the "
-                    + (s.kind == Kind.ATTACK_PROPOSAL ? "attack you propose, such as [{\"attacker\": \"@12\", \"defender\": "
-                       + "\"opponent\"}]" : "blocks you propose, such as [{\"blocker\": \"@3\", \"attacker\": \"@12\"}]")
+                    + (s.kind == Kind.ATTACK_PROPOSAL ? "attack" : "blocks") + " you propose, such as ["
+                    + declareExample(s.kind == Kind.ATTACK_PROPOSAL) + "]"
                     + ", or [] for none; there is no numbered list to pick from"
                     + (a.keySet().isEmpty() ? "" : " (you gave " + String.join(", ", a.keySet()) + ")") + ".");
         if (field != null && absent(a, field))
@@ -911,14 +912,19 @@ final class AnswerTool {
         return null;
     }
 
-    private static final Pattern HANDLE = Pattern.compile("^@?\\s*(\\d+)$");
+    private static final Pattern HANDLE = Pattern.compile("@?\\s*(\\d+)");
+
+    /** One entry of `declare_attackers` or `declare_blockers`, for the form errors. */
+    static String declareExample(boolean attack) {
+        return attack ? "{\"attacker\": \"@12\", \"defender\": \"opponent\"}" : "{\"blocker\": \"@3\", \"attacker\": \"@12\"}";
+    }
 
     /** Reads `declare_attackers` or `declare_blockers` into {@code out.declared}: the form only (handles, each creature
      *  once); the site checks the rules. An error starting "FORMAT:", or null. */
     static String declaredOf(JsonObject a, boolean attack, Answer out) {
         String field = attack ? DECLARE_ATTACKERS : DECLARE_BLOCKERS;
         String first = attack ? "attacker" : "blocker", second = attack ? "defender" : "attacker";
-        String example = attack ? "{\"attacker\": \"@12\", \"defender\": \"opponent\"}" : "{\"blocker\": \"@3\", \"attacker\": \"@12\"}";
+        String example = declareExample(attack);
         if (!a.get(field).isJsonArray()) return "FORMAT: `" + field + "` is a list such as [" + example + "], or [] for none.";
         java.util.Set<String> fields = declareProperty(attack).getAsJsonObject("items").getAsJsonObject("properties").keySet();
         List<String[]> pairs = new ArrayList<>();
@@ -929,11 +935,11 @@ final class AnswerTool {
             for (String k : o.keySet()) if (!fields.contains(k)) return "FORMAT: an entry of `" + field + "` has no field `" + k + "`.";
             String x = str(o, first), y = str(o, second);
             java.util.regex.Matcher mx = x == null ? null : HANDLE.matcher(x);
-            if (mx == null || !mx.find()) return "FORMAT: `" + first + "` is a handle such as \"@12\".";
+            if (mx == null || !mx.matches()) return "FORMAT: `" + first + "` is a handle such as \"@12\".";
             String h2 = y;
             if (!attack) {
                 java.util.regex.Matcher my = y == null ? null : HANDLE.matcher(y);
-                if (my == null || !my.find()) return "FORMAT: `attacker` is the handle of an attacking creature, such as \"@12\".";
+                if (my == null || !my.matches()) return "FORMAT: `attacker` is the handle of an attacking creature, such as \"@12\".";
                 h2 = my.group(1);
                 if (!seen.add(mx.group(1) + ">" + h2)) return "FORMAT: @" + mx.group(1) + " blocks @" + h2 + " twice.";
             } else if (!seen.add(mx.group(1))) {

@@ -73,6 +73,9 @@ def rows(paths):
 
 COMBAT_FIELDS = {"declare_attackers": "attack", "declare_blockers": "block"}
 KINDS = {"attackers": "attack", "blockers": "block"}  # a row's `type` -> its sheet; anything else is a play
+# What a decision lost to four refusals became: the arm's fixed fallback for each kind (render and match_review).
+LOST_AS = {"play": "played as PASS", "attack": "declared none",
+           "block": "took the fixed fallback blocks (none, or the smallest legal set under a requirement)"}
 
 
 def kind_of(row):
@@ -166,13 +169,12 @@ def render(sheet):
     lines = []
     for seat, s in sheet.items():
         lines.append("%s: %d play decisions, %d proposals" % (seat, s["decisions"], s["proposals"]))
-        lines += render_one(s, "non-pass", "pass", "played as PASS")
+        lines += render_one(s, "non-pass", "pass", LOST_AS["play"])
         for kind in ("attack", "block"):
             if kind in s:
                 k = s[kind]
                 lines.append("%s %s: %d decisions, %d proposals" % (seat, kind, k["decisions"], k["proposals"]))
-                lines += render_one(k, "non-empty", "an empty declaration",
-                                    "declared none" if kind == "attack" else "the fixed fallback blocks")
+                lines += render_one(k, "non-empty", "an empty declaration", LOST_AS[kind])
     return "\n".join(lines)
 
 

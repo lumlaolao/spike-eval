@@ -1384,8 +1384,9 @@ def build_parser():
                          "its own --out.")
     ap.add_argument("--propose-actions", action="store_true",
                     help="PROPOSE_ACTIONS=1: the hidden-menu measurement arm. The seat is not shown the legal "
-                         "plays; it proposes one (`answer.action`) and the rules engine checks it, returning the "
-                         "rule a rejected proposal breaks (docs/harness/ARCHITECTURE.md, 'The propose condition'). "
+                         "plays, attackers or blockers; it proposes each play, its attack and its blocks "
+                         "(`answer.action`, `declare_attackers`, `declare_blockers`) and the rules engine checks them, "
+                         "returning the rule a rejected proposal breaks (docs/harness/ARCHITECTURE.md, 'The propose condition'). "
                          "Exploratory only; needs the answer tool; refused with --lookahead (its preview takes menu "
                          "numbers). A separate condition that must live in its own --out.")
     ap.add_argument("--tier-fast-types", metavar="TYPES", default=None,

@@ -150,8 +150,7 @@ def review(path):
                 if proposal_audit.lost_to_refusals(r):
                     add("PROPOSAL", r, "%s: %d proposals refused (%s), %s" % (
                         r.get("type"), len(props), ", ".join(str(p.get("category") or p.get("verdict")) for p in props),
-                        {"attackers": "declared none", "blockers": "took the fixed fallback blocks"}.get(r.get("type"),
-                                                                                                         "played as PASS")))
+                        proposal_audit.LOST_AS[proposal_audit.kind_of(r)]))
                 elif LOST.search(str(r.get("fallback") or "")):
                     add("LOST", r, "%s: %s" % (r.get("type"), r.get("fallback")))
                 # `attempts` and `retry_ms` count every round of the conversation, lookups included: a decision is
