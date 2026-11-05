@@ -109,7 +109,8 @@ session. No decision was lost, so the pre-registered stop rule (section 3) was *
 after 61 minutes, on the `[CLAUDE-CLI-NO-ANSWER]` log line, which says the seat takes its fixed legal option even when a
 retry follows. That stop is a deviation from the pre-registration, recorded here as one. Run directory `runs/tvs` (kept
 by its author in the worktree `tvs-wt`): `A-low-k1`, `B-max-k1`, `C-low-k3`, `driver.log`, and the drivers and
-`tvs_compute.py` that wrote the tables below.
+`tvs_compute.py` that wrote the tables below. Every row was played on a `harness-epoch-80` build (the scorer's header
+line); main is now at epoch 82, so these rows do not pool with later runs.
 
 ### 4.1 What happened to arm B on splice-06da
 
@@ -146,7 +147,7 @@ more, which is a different condition from the one designed, and the override tha
 - On the two storm boards the same effort stayed under 120 s.
 - The prompt is the same size on every board (median 7K to 8K tokens). What grows is the thinking.
 
-**Why this is a stop, not a setting to change:**
+**Why the deadline is not a setting to change on this lane:**
 - `puzzle_solve.py` refuses `--call-timeout-minutes` for a `claude-cli:` model ("ClaudeCliBridge reads neither").
 - The bridge's own override, `CLAUDE_DEADLINE_MS`, is a shell variable. `puzzle_solve.py` neither pins it nor records
   it in the manifest, so setting it would run arm B under a deadline no row records. That is the unrecorded condition
@@ -163,7 +164,7 @@ runs/tvs/<arm>`. Every floor (random, PASS, first) is 0.000, as on all 12 puzzle
 | arm | puzzles | attempts | solved | pass@1 (Wilson 95%) | pass@3 (Wilson 95%) |
 |---|---|---|---|---|---|
 | A: k=1, low | 3 | 3 | 2 | 0.667 [0.208, 0.939] | - |
-| C: k=3, low | 3 | 9 | 6 | 0.667 | 0.667 [0.208, 0.939] |
+| C: k=3, low | 3 | 9 | 6 | 0.667 (bootstrap [0.000, 1.000], clustered [0.013, 1.320]) | 0.667 [0.208, 0.939] |
 | B: k=1, max | 2 (storms) | 2 | 2 | 1.000 [0.342, 1.000] | - |
 
 Per puzzle (1 solved, 0 failed; C's attempts in seed order):
@@ -176,8 +177,15 @@ Per puzzle (1 solved, 0 failed; C's attempts in seed order):
 
 The pre-registered contrasts, on the two storm boards the arms share:
 - B - A pass@1: +0.000, 95% CI [0.000, 0.000] (`--paired-with`).
-- B pass@1 vs C pass@3: +0.000, CROSS-K (`--paired-with runs/tvs/C-low-k3 --paired-k 3 --paired-metric pass@k`, with
-  `runs/tvs/B-max-k1` as the first run).
+- B pass@1 vs C pass@3: +0.000, CROSS-K. The scorer's line, verbatim (`--k 1 --ids <the two storms> runs/tvs/B-max-k1
+  --paired-with runs/tvs/C-low-k3 --paired-k 3 --paired-metric pass@k`; the scorer names the first run A and the
+  paired run B, so its "B pass@3" is arm C and its "A pass@1" is arm B):
+
+  ```
+  paired B pass@3 - A pass@1  +0.000  95% CI [0.000, 0.000]  clustered [0.000, 0.000]  (2 puzzles, ids sorted,
+  10000 resamples, seed 7)  CROSS-K 1 vs 3 (any of each run's own k: an oracle verifier); floors from k alone:
+  random +0.000, PASS +0.000, first +0.000
+  ```
 
 Both are zeros on two boards that every attempt of every arm solved. **Shows:** the storm boards are at the ceiling for
 this model at either effort, so they cannot separate the arms. The only board that could (splice-06da: A 0, C 0 of 3) is
@@ -186,13 +194,15 @@ three boards, which is the replicate the design expected.
 
 ### 4.3 Compute: the match was not what the probe predicted
 
-From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[end]` lines):
+From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[end]` lines). The first two rows cover all three boards; B has no splice row, so the last three rows compare the arms on the two storm boards alone:
 
 | arm | attempts | per attempt: model calls | completion tokens | model minutes | per solve: completion tokens |
 |---|---|---|---|---|---|
 | A: k=1, low | 3 | 26.0 | 35,521 | 3.6 | 53,281 |
 | C: k=3, low | 9 | 25.3 | 36,967 | 3.6 | 55,450 |
-| B: k=1, max | 2 | 32.0 | 264,212 | 19.3 | 264,212 |
+| B: k=1, max (storm boards only) | 2 | 32.0 | 264,212 | 19.3 | 264,212 |
+| A: k=1, low (storm boards only) | 2 | 31.0 | 27,535 | 3.2 | 27,535 |
+| C: k=3, low (storm boards only) | 6 | 30.3 | 28,794 | 3.2 | 28,794 |
 
 **Shows:** on the storm boards one max-effort attempt spent 255K to 274K completion tokens. Three low-effort attempts
 on the same board spent 84K to 89K in all. So B cost about three times C's whole budget, not the same.
