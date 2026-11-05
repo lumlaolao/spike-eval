@@ -398,7 +398,8 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   and validation makes a wrong one explainable.
 - *Why one fixed schema instead of one per decision:* tool definitions open the cache prefix. A schema
   that changed every decision discarded the whole cache on every call. A per-decision enum is kept as a
-  measurement arm (`ANSWER_SCHEMA=per-decision`).
+  measurement arm (`ANSWER_SCHEMA=per-decision`), reachable only from a direct JVM launch: a batch pins the default
+  (`run_batch.CONDITION_ENV_KEYS`).
 - *Why `tool_choice` is per model* (`AnswerTool.toolChoiceFor`, `PROMPT-CRAFT.md` rule 2):
   - **OpenAI models get "required":** measured on Luna, it keeps the reasoning, and a text-only reply
     becomes impossible.

@@ -371,7 +371,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "RUN_DISCIPLINE": "discipline",
         "SMART_MODEL": "smart_a", "SMART_MODEL_A": "smart_a", "SMART_MODEL_B": "smart_b",
         "FAST_MODEL": "fast_a", "FAST_MODEL_A": "fast_a", "FAST_MODEL_B": "fast_b",
-"DECK_A_NAME": "deck_a", "DECK_B_NAME": "deck_b",
+        "DECK_A_NAME": "deck_a", "DECK_B_NAME": "deck_b",
         "CLAUDE_BRIDGE_EFFORT": "claude_effort_smart",
         "CLAUDE_BRIDGE_EFFORT_FAST": "claude_effort_fast",
         "CLAUDE_BRIDGE_EFFORT_SMART": "claude_effort_smart",
@@ -412,10 +412,8 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "LlmSpikePuzzle.java": "the puzzle runner: its row stamps its own condition (puzzle_score.BRIDGE_CONDITIONS)",
         "PuzzleArms.java": "the puzzle search arms: a search budget, not the seat",
     }
-    # Conditions recorded somewhere other than the game line. OPENROUTER_TIMEOUT_MS changes decisions (a call past
-    # it is lost to the fixed legal option): puzzle_solve.py --call-timeout-minutes records it per puzzle (STANDARDS
-    # section 4, PR #329), and Build.run strips a shell value. A run_batch.py game under an operator's value is not
-    # stamped yet.
+    # Conditions recorded somewhere other than a game-line field of their own. OPENROUTER_TIMEOUT_MS is no longer
+    # here: it is stamped openrouter_timeout_ms (pr-review of #355; puzzle_solve.py also records it per puzzle).
     # RULES_FILE picks the Comprehensive Rules text the seat's rules tool returns: that text's date is stamped
     # `rules_effective` (standards of #344: it touches what the seat reads, so it is no allowlist entry).
     # This set also holds a name that is only pinned, not recorded: OPENROUTER_IDLE_MS (HttpDeadline's stall cut)
@@ -424,7 +422,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
     # value is not stamped.
     # DECKLIST=0 drops each seat's own decklist from its plan: the stamped plan_a / plan_b text shows it, no condition
     # field does (it was aliased to deck_a, the deck's name, which does not), so every launcher pins its default.
-    RECORDED_ELSEWHERE = {"OPENROUTER_TIMEOUT_MS", "RULES_FILE", "OPENROUTER_IDLE_MS", "DECKLIST"}
+    RECORDED_ELSEWHERE = {"RULES_FILE", "OPENROUTER_IDLE_MS", "DECKLIST"}
     # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
     # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
     # required to have a stamp -- the sha is what partitions those experiments.
@@ -462,20 +460,19 @@ class GameLineStampCoverageTest(unittest.TestCase):
         for name, why in self.NOT_GAME_LINE.items():
             self.assertTrue(why.strip(), name)
 
-    # A condition the game reads and stamps is also pinned by run_batch.py (scrubbed from the shell, set only by a
-    # flag or left at its default), or is named here with why a shell value may reach a game (standards of #342, #344
-    # and #354: PROPOSE_AUDIT, RULES_FILE, ONE_CHAT_TURNS and OPENROUTER_IDLE_MS were each stamped but not pinned).
+    # Rule: docs/STANDARDS.md section 4 (a stamped condition is pinned, or named here with why).
     NOT_PINNED = {
         "CLAUDE_CLI_SEAT": "consent: the development lane's opt-in is the operator's to give; stamped dev_lane",
         "CLAUDE_DEADLINE_MS": "development lane only (a claude-cli: seat, never a score); stamped claude_deadline_ms",
         "OPENROUTER_BASE_URL": "the endpoint the operator's secrets.env names; stamped, and aggregate splits on it",
         "OPENROUTER_MODEL_CFG": "the per-model config override puzzle_solve.py sets; stamped model_cfg_sha",
-        "OPENROUTER_PROVIDER_SORT": "routing; stamped provider_sort, and the served provider is recorded per call",
-        "OPENROUTER_TIMEOUT_MS": "recorded by puzzle_solve.py --call-timeout-minutes; a batch's value is a known gap",
-        "PROMPT_CACHE": "cost: a cached prefix is the same prompt bytes; stamped prompt_cache",
+        "OPENROUTER_PROVIDER_SORT": "routing; stamped openrouter_provider_sort (provenance, not a condition)",
+        "OPENROUTER_TIMEOUT_MS": "stamped openrouter_timeout_ms, a condition field; the sanity arms, acceptance and "
+                                 "the gauntlet set it, and puzzle_solve.py records it per puzzle",
+        "PROMPT_CACHE": "cost: a cached prefix is the same prompt bytes; stamped prompt_cache (provenance)",
         "RULES_FILE": "the rules text's date is stamped rules_effective; the file is pinned per engine release",
-        "SMART_BUDGET": "a per-game call cap, a loop guard no recorded game reaches; acceptance and the gauntlet set it",
-        "FAST_BUDGET": "a per-game call cap, a loop guard no recorded game reaches; acceptance and the gauntlet set it",
+        "SMART_BUDGET": "a loop guard; stamped smart_budget, a condition field, so a shell value is its own experiment",
+        "FAST_BUDGET": "a loop guard; stamped fast_budget, a condition field, so a shell value is its own experiment",
     }
 
     def test_every_stamped_condition_is_pinned_or_says_why(self):
@@ -487,6 +484,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
         self.assertEqual(sorted(n for n in conditions if n not in scrubbed and n not in self.NOT_PINNED), [],
                          "pin these in run_batch.CONDITION_ENV_KEYS, or name them in NOT_PINNED with why")
         self.assertEqual(sorted(n for n in self.NOT_PINNED if n in scrubbed), [], "a NOT_PINNED entry is pinned")
+        self.assertEqual(sorted(set(self.NOT_PINNED) - conditions), [], "a NOT_PINNED entry is not a stamped condition")
         for name, why in self.NOT_PINNED.items():
             self.assertTrue(why.strip(), name)
 

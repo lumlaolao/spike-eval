@@ -96,8 +96,7 @@ CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_T
                       # changes what a chat seat is carried; the stall cut can lose a call to the fixed option
                       # (pr-review of #354).
                       "ONE_CHAT_TURNS", "OPENROUTER_IDLE_MS",
-                      # The answer tool's per-decision schema and tool_choice arms (stamped in answer_tool_version), and
-                      # DECKLIST=0's pre-decklist prompt: measurement arms with no flag yet, so a batch runs the default.
+                      # Measurement arms with no flag (the docstring, docs/harness/SETTINGS.md): pinned to their defaults.
                       "DECKLIST")
 # Every name run_batch.py pins from its flags: CONDITION_ENV_KEYS, and SHADOW_AI (pinned apart, by --shadow-ai). A
 # launcher that does not go through run_batch.py strips these from the shell (STANDARDS section 4).
