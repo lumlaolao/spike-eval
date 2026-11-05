@@ -134,10 +134,10 @@ most log questions).
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
   every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
   (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` builds the same names from `CONDITION_ENV_KEYS`
-  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), every `OPENROUTER*` name by prefix, and
+  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), as does the tournament
+  (`tournament._match_env`). The puzzle runner also strips every `OPENROUTER*` name by prefix, and
   `CLAUDE_DEADLINE_MS`, which `puzzle_solve.py` sets from `--call-timeout-minutes`
-  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363), and so
-  does the tournament (`tournament._match_env`). A launcher that goes through `run_batch.py`
+  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363). A launcher that goes through `run_batch.py`
   (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
   (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
   acceptance canaries in `harness_acceptance.sh`) are never scored and rely on the game-line stamps.
