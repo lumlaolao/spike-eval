@@ -46,7 +46,7 @@ gets in play.
 
 ## 2. The lever, measured before the design (probes, not runs)
 
-`runs/tvs/probe/` on CLI 2.1.318 (`cli-version.txt`): `bash run_probe.sh` sends `prompt.txt`, a fixed 140-word
+`runs/tvs/probe/` on CLI 2.1.318 (`cli-version.txt`): `bash run_probe.sh` sends `prompt.txt`, a fixed 110-word
 mana-counting puzzle, through `claude -p --model claude-haiku-5-5` with the bridge's flags (`--tools ""
 --strict-mcp-config --no-session-persistence --setting-sources "" --disable-slash-commands`), four runs a setting, six
 settings, and keeps each result (`<setting>-<i>.json`); `python3 probe_table.py` prints the table below from the
@@ -183,9 +183,9 @@ Per puzzle (1 solved, 0 failed; C's attempts in seed order):
 
 The pre-registered contrasts, on the two storm boards the arms share:
 - B - A pass@1: +0.000, 95% CI [0.000, 0.000] (`--paired-with`).
-- B pass@1 vs C pass@3: +0.000, CROSS-K. The scorer's line, verbatim (`--k 1 --ids <the two storms> runs/tvs/B-max-k1
-  --paired-with runs/tvs/C-low-k3 --paired-k 3 --paired-metric pass@k`; the scorer names the first run A and the
-  paired run B, so its "B pass@3" is arm C and its "A pass@1" is arm B):
+- B pass@1 vs C pass@3: +0.000, CROSS-K. The scorer's line, wrapped and with its padding collapsed (`--k 1 --ids <the
+  two storms> runs/tvs/B-max-k1 --paired-with runs/tvs/C-low-k3 --paired-k 3 --paired-metric pass@k`; the scorer names
+  the first run A and the paired run B, so its "B pass@3" is arm C and its "A pass@1" is arm B):
 
   ```
   paired B pass@3 - A pass@1  +0.000  95% CI [0.000, 0.000]  clustered [0.000, 0.000]  (2 puzzles, ids sorted,
@@ -201,7 +201,7 @@ three boards, which is the replicate the design expected.
 ### 4.3 Compute: the match was not what the probe predicted
 
 From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[end]` lines). B has no splice
-row, so the last three rows compare the arms on the two storm boards alone:
+row, so the last three rows (the script's "storm only" lines) compare the arms on the two storm boards alone:
 
 | arm | attempts | per attempt: model calls | completion tokens | model minutes | per solve: completion tokens |
 |---|---|---|---|---|---|
