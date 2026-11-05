@@ -552,7 +552,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
 - **The static rules probe's engine labeller** (`RulesProbeLabelExport`, diagnostic, never a score): the same checker
   labels every proposal the solver could make on a built `.pzl` board and on one-line near-miss variants of it, with
   no game and no model; the label is the checker's (null legal, "ILLEGAL (category)" its category and sentence), so
-  it inherits that checker's defects. What it proposes, what it drops (FORMAT, `SUBSTITUTED`), how to run it and why
+  it inherits that checker's defects. What it proposes, what it drops (FORMAT), how to run it and why
   in shards: its class comment. Always-on tests: `RulesProbeLabelTest`. Items, floors, contrast pairs and audit
   samples: `eval/rules_probe.py` (`engine`, `engine-report`, `audit-sample`). Results:
   `eval/research/2026-11-05-rules-probe.md`, section 9.

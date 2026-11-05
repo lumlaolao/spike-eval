@@ -50,7 +50,7 @@ import static forge.spike.ProposeActionsTest.prop;
  * accepted is legal, "ILLEGAL (category): reason" is the checker's category and sentence, a FORMAT error is dropped (it
  * is about how the proposal is written, not the rules). Near-miss variants change one line of the board; each is
  * labelled by the checker, never by the edit. The label is the propose checker's: it inherits that checker's defects
- * (SUBSTITUTED below; its category order, section 9.3 of the note) and Forge's rules bugs.
+ * (the menu's own, section 9.3 of the note) and Forge's rules bugs.
  *
  * Named Export, not Test: acceptance compiles it and never runs it. RulesProbeLabelTest holds the always-on tests. Run:
  *   java -Dharness.rules.file=$REPO/data/rules/MagicCompRules.txt -Dharness.probe.out=/abs/raw-K.jsonl.gz
@@ -71,11 +71,6 @@ public class RulesProbeLabelExport {
     /** Ways to cast that a card may lack: named on every non-land card, so a cast way the card does not have is an
      *  item (Flashback on Desperate Ritual was a refusal a model made, runs/propose/e75-haiku-hard-propose). */
     static final List<String> WRONG_WAYS = List.of("Flashback", "Evoke", "alternative", "flash");
-    /** The verdict of an activation the checker accepted for another card's menu entry: matchProposal lets a menu mana
-     *  ability stand for every copy of the card's name ("another copy's entry stands for this one"), whatever the copy's
-     *  zone or tapped state, so a tapped Mountain or one in hand reads as legal beside an untapped one. No label. It drops
-     *  some legal items too: a second untapped copy's ability, matched to the first copy's entry, is dropped with them. */
-    static final String SUBSTITUTED = "SUBSTITUTED:";
     private static final Pattern ILLEGAL = Pattern.compile("^ILLEGAL \\(([^)]+)\\): (.*)$", Pattern.DOTALL);
 
     @BeforeClass
@@ -108,8 +103,7 @@ public class RulesProbeLabelExport {
         String name, where, targetName, targetWhere, verdict;
         boolean manaAbility;
         String label() {
-            return verdict == null ? "legal" : verdict.startsWith("ILLEGAL") ? "illegal"
-                    : verdict.startsWith(SUBSTITUTED) ? "substituted" : "format";
+            return verdict == null ? "legal" : verdict.startsWith("ILLEGAL") ? "illegal" : "format";
         }
         String category() {
             java.util.regex.Matcher m = verdict == null ? null : ILLEGAL.matcher(verdict);
@@ -173,8 +167,8 @@ public class RulesProbeLabelExport {
         return z + "/" + (c.getController() == me ? "you" : "opp");
     }
 
-    /** Every candidate proposal at the board's priority, labelled. FORMAT and SUBSTITUTED verdicts are kept here (the
-     *  writer drops them) so a test can see them. */
+    /** Every candidate proposal at the board's priority, labelled. FORMAT verdicts are kept here (the writer drops them)
+     *  so a test can see them. */
     static List<Labelled> label(Board b) {
         List<Card> cards = visible(b);
         LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(b.me, b.ownMain, true);
@@ -226,10 +220,10 @@ public class RulesProbeLabelExport {
         l.manaAbility = manaAbility;
         int[] hit = {-1};
         try {
-            l.verdict = b.ctrl.matchProposal(p.copy(), po.spells, po.landPlays, po.landCards, passIdx, b.me, b.ownMain, hit);
-            if (l.verdict == null && "activate".equals(p.verb) && hit[0] >= 1 && hit[0] <= po.spells.size()
-                    && po.spells.get(hit[0] - 1).getHostCard() != c)
-                l.verdict = SUBSTITUTED + " the menu entry of " + po.spells.get(hit[0] - 1).getHostCard();
+            // A copy, as the live caller passes: an accepted copy's ability replaces its menu entry, and the next
+            // candidate must be checked against the menu the engine built.
+            l.verdict = b.ctrl.matchProposal(p.copy(), new ArrayList<>(po.spells), po.landPlays, po.landCards, passIdx, b.me,
+                    b.ownMain, hit);
         } catch (Exception e) {
             return null;   // the checker cannot judge it: no label rather than a guessed one
         } finally {
@@ -447,7 +441,7 @@ public class RulesProbeLabelExport {
     static JsonObject export(List<File> files, File repo, Writer w, int k, int n, int limit, boolean baseOnly) throws IOException {
         String epoch = LlmSpikeGui.HARNESS_EPOCH, obsVersion = SeatObservation.VERSION;
         String pin = new String(java.nio.file.Files.readAllBytes(new File(repo, "FORGE_COMMIT").toPath()), StandardCharsets.UTF_8).trim();
-        int boards = 0, failed = 0, rows = 0, formats = 0, substituted = 0;
+        int boards = 0, failed = 0, rows = 0, formats = 0;
         for (int i = 0; i < files.size() && boards < limit; i++) {
             if (i % n != k) continue;
             File f = files.get(i);
@@ -477,7 +471,6 @@ public class RulesProbeLabelExport {
                     w.write("\n");
                     for (Labelled l : ls) {
                         if ("format".equals(l.label())) { formats++; continue; }
-                        if ("substituted".equals(l.label())) { substituted++; continue; }
                         w.write(row(board, v.getKey(), sid, l).toString());
                         w.write("\n");
                         rows++;
@@ -499,7 +492,9 @@ public class RulesProbeLabelExport {
         sum.addProperty("boards_labelled", boards);
         sum.addProperty("rows", rows);
         sum.addProperty("format_dropped", formats);
-        sum.addProperty("substituted_dropped", substituted);
+        // Always 0 since harness-epoch-82 (#360: the checker refuses a copy that cannot pay, never borrows another copy's
+        // entry); written so the raw schema's summary keeps its keys (the epoch-80 run dropped 13,684 such rows).
+        sum.addProperty("substituted_dropped", 0);
         sum.addProperty("failed", failed);
         w.write(sum.toString());
         w.write("\n");

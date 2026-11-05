@@ -341,6 +341,12 @@ rejection category on a constructed board, which is the evidence it would work.
 
 ## 9. The engine labeller, built (2026-11-05)
 
+**Provenance.** Every number in this section comes from one export on a `harness-epoch-80` build, before PR #360
+(epoch 82) changed the propose checker; it was not re-run after. Under #360 a copy that cannot pay its own cost is
+refused (a tapped Mountain's `{T}` is now `cost`), so the export drops no `SUBSTITUTED` rows (`substituted_dropped`
+is always 0), and the category order moved (control before cast ways; the rest of the cost before zone or
+restriction). The commands below, run at a later build, give a different set.
+
 **Answer: the labeller works, but its labels are the propose checker's, and the audit found two classes of wrong
 ones.** Of 60 negatives drawn from the final set and read by hand, 56 were illegal (Wilson 95% 0.84-0.97 over the
 sample; per-cell draws, so not an estimate over the set's 524,040 negatives); all four errors are legal plays the
@@ -368,8 +374,9 @@ items were in the old one).
 - Defects found while building it, each a test: the seat named "Seat" beside the player "Solver" (`parse_window`
   read every board as the opponent's turn); "Keyword Effects", the engine object holding a player's hexproof under
   Leyline of Sanctity, offered as a card (effect objects are left out); the checker's mana-ability fallback accepting
-  a tapped Mountain's `{T}` ability because an untapped copy was on the menu (such rows are dropped, `SUBSTITUTED`;
-  this drops some legal items too, a second untapped copy's ability among them); the opponent holding priority in
+  a tapped Mountain's `{T}` ability because an untapped copy was on the menu (in this run such rows were dropped,
+  `SUBSTITUTED`, with some legal items, a second untapped copy's ability among them; #360 fixed the fallback after
+  this run, and the labeller no longer drops any); the opponent holding priority in
   the opp-turn and split-second variants (the solver is now given priority). The first three were seen red before
   their fix; the seat name was asserted with its fix.
 - `eval/rules_probe.py`: `engine` (rows to items), `engine-report` (boards, copies, drops, conflicts, from the rows),
@@ -488,7 +495,7 @@ either: "a legal action is never hidden" does not hold there. Both are written u
 format (`issue-drafts/` in the run directory: `not-offered`, sev:high each), with a third, `not-shown` (sev:low): the
 state lists "Keyword Effects", the engine object holding a player's hexproof, as a card with a handle in the command
 zone (`SeatObservation`'s command lines). Filing them is pending. The checker's own defects (the category order, the
-mana-ability copy fallback) are PR #360's.
+mana-ability copy fallback) were fixed by PR #360 (epoch 82), after this run.
 
 **The category misses** (5 among the 56 right labels, 9 counting the wrong labels): `rejection` asks `playable` before
 it checks a non-mana cost and answers "restriction" or "zone" whatever made it fail: Dread Return's flashback with too
@@ -532,8 +539,8 @@ and does not yet separate strong models: with 96 items the interval is about 0.0
   beyond the bounds above, nor what other classes a larger sample would find. Until the two menu defects are fixed,
   leave out Disturb casts and boards with Heritage Druid, or relabel them by hand (the two `not-offered` reports in
   `issue-drafts/`, 9.3).
-- **The categories' reliability** beyond the audit: the ordering fault in `rejection` is understood and fixed apart
-  (PR #360), not here.
+- **The categories' reliability** beyond the audit: the ordering fault in `rejection` was fixed by PR #360 after
+  this run; the categories at epoch 82 were not re-measured.
   Score categories on timing, land drop and target only, or not at all.
 - **The leak** that limits a JVM to about 375 boards was not found.
 - **Whether the variants are fair positions.** A board built for its main phase, moved to combat or the opponent's
