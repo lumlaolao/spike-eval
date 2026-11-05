@@ -104,6 +104,11 @@ most log questions).
 ## 4. Code
 
 - **Match the file you are in**: its naming, comment density and idiom.
+- **A copy of a constant has one source and a test.** When a Python script needs a list the Java harness
+  (or another script) owns, it imports it; where it cannot (Java to Python), a test reads the source and
+  asserts the copy equal (`eval/tooluse/tools.json` against `NativeTools`, `rules_probe.KEEP_ENV` against
+  `ClaudeCliBridge.KEEP_ENV`, `run_batch.PINNED_ENV_KEYS` imported by `tournament.py` and
+  `puzzle_baselines.py`; `eval/tests/test_launchers.py` names the diagnostic launchers that need not).
 - **A comment says why**, or what would break, and cites the evidence when there is some (a run, a
   count, an engine line). It does not narrate the code or the history of the edit.
 - **No silent fallbacks.** A failure branch takes a deterministic legal option and logs it. Never
