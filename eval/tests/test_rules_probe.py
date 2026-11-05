@@ -8,6 +8,7 @@ trimmed to the lines the miner reads.
 
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -291,7 +292,8 @@ class TestMining(unittest.TestCase):
                        "creature that player controls.]",
                        "Mutiny @5 {R} [Target creature an opponent controls deals damage equal to its power to another "
                        "target creature that player controls.]",
-                       "Goblin Bombardment @5 [Sacrifice a creature: Goblin Bombardment deals 1 damage to any target.]"):
+                       "Goblin Bombardment @5 [Sacrifice a creature: Goblin Bombardment deals 1 damage to any "
+                       "target.]"):
             p = TARGET_PROMPT.replace("Shock @5 {R} [Shock deals 2 damage to any target.]", source)
             self.assertEqual(rp.items_from_row(dict(TARGET_ROW, prompt=p), PROV, 2), [], source)
 
@@ -429,6 +431,30 @@ class TestScoring(unittest.TestCase):
         self.assertIn("balanced_accuracy", s["floor"])
         self.assertEqual(s["subtle_positions_by_source"], {"audit2-random": 2})   # Counterspell, Hands of Binding
 
+    def test_the_floor_and_balance_draw_on_the_same_positions(self):
+        # Two abilities of one card are one position (the handle is not in the key); when the mana ability comes
+        # first, the floor once dropped the position that balance kept.
+        legal = rp.items_from_row(MENU_ROW, PROV, 7)
+        mana = by(legal, "activate", "@13")
+        other = dict(mana, id="0" + mana["id"][1:], mana_ability=False, option="ACTIVATE Plains @13 [{1}: x]")
+        items = [mana, other] + [i for i in legal if i is not mana]
+        pool = rp.position_pool(items)
+        self.assertIn(other["id"], [i["id"] for i in pool])
+        self.assertNotIn(mana["id"], [i["id"] for i in pool])
+        self.assertEqual(rp.floor_report(items)[0]["positions"], len(pool))
+        self.assertEqual({i["id"] for i in rp.balance(items, 100, 1)} <= {i["id"] for i in pool}, True)
+
+    def test_a_pilot_is_scored_on_the_items_the_current_miner_reproduces(self):
+        # Matched by file, row, verb and handle: the same label, and a name that is a name (the first miner glued a
+        # hand entry's "(was @N)" tail into it).
+        old = rp.items_from_row(MENU_ROW, PROV, 7)
+        swap, hero, opt = by(old, "cast", "@2"), by(old, "cast", "@5"), by(old, "cast", "@8")
+        relabelled = dict(opt, label="illegal")
+        garbled = dict(hero, proposal=dict(hero["proposal"], name="Changeling Hero 4{W} @5 (was @3), Forest"))
+        gone = dict(swap, proposal=dict(swap["proposal"], card="@99"))
+        kept = rp.reproduced([swap, relabelled, garbled, gone], old)
+        self.assertEqual([i["id"] for i in kept], [swap["id"]])
+
     def test_the_category_is_scored_on_engine_labelled_illegal_items_it_called_illegal(self):
         items = self.items()
         for i in items:
@@ -467,27 +493,51 @@ class TestAsk(unittest.TestCase):
         for k in ("MAX_THINKING_TOKENS", "ANTHROPIC_MODEL", "CLAUDE_CODE_SESSION", "OPENROUTER_API_KEY"):
             self.assertNotIn(k, allowed)
 
-    def test_ask_runs_claude_with_the_filtered_environment(self):
-        # A fake `claude` on PATH records the environment it was given and answers like the CLI.
-        it = by(rp.items_from_row(PROPOSE_ROW, PROV, 3), "cast", "@3")
+    def test_ask_runs_every_claude_child_with_the_same_filtered_environment(self):
+        # A fake `claude` on PATH appends the environment it was given and answers like the CLI. Two items: the second
+        # child once got the first reply's JSON envelope as its environment (pr-review of #350, round 2).
+        items = rp.items_from_row(PROPOSE_ROW, PROV, 3)[:2]
         with tempfile.TemporaryDirectory() as d:
             fake = Path(d) / "claude"
             reply = json.dumps({"result": json.dumps({"legal": False, "category": "timing"}), "total_cost_usd": 0.001})
             fake.write_text("#!%s\nimport json, os, sys\nsys.stdin.read()\n"
-                            "json.dump(dict(os.environ), open(%r, 'w'))\nprint(%r)\n"
-                            % (sys.executable, str(Path(d) / "env.json"), reply))
+                            "open(%r, 'a').write(json.dumps(dict(os.environ)) + '\\n')\nprint(%r)\n"
+                            % (sys.executable, str(Path(d) / "env.jsonl"), reply))
             fake.chmod(0o755)
             out = Path(d) / "answers.jsonl"
             environ = {"PATH": d + os.pathsep + os.environ.get("PATH", ""), "HOME": d, "CLAUDE_CLI_SEAT": "1",
                        "ANTHROPIC_API_KEY": "sk-should-not-reach", "MAX_THINKING_TOKENS": "1"}
-            rp.ask([it], "claude-cli:claude-haiku-5-5", str(out), environ=environ)
-            seen = json.loads((Path(d) / "env.json").read_text())
-            self.assertNotIn("ANTHROPIC_API_KEY", seen)
-            self.assertNotIn("MAX_THINKING_TOKENS", seen)
-            self.assertNotIn("CLAUDE_CLI_SEAT", seen)
-            row = json.loads(out.read_text().strip())
-            self.assertEqual((row["answer"], row["model"]), ({"legal": False, "category": "timing"},
-                                                             "claude-cli:claude-haiku-5-5"))
+            rp.ask(items, "claude-cli:claude-haiku-5-5", str(out), environ=environ)
+            seen = [json.loads(ln) for ln in (Path(d) / "env.jsonl").read_text().splitlines()]
+            self.assertEqual(len(seen), 2)
+            self.assertEqual(seen[0], seen[1])
+            for k in ("ANTHROPIC_API_KEY", "MAX_THINKING_TOKENS", "CLAUDE_CLI_SEAT"):
+                self.assertNotIn(k, seen[0])
+            self.assertEqual(seen[0]["PATH"], environ["PATH"])
+            rows = [json.loads(ln) for ln in out.read_text().splitlines()]
+            self.assertEqual([r["id"] for r in rows], [i["id"] for i in items])
+            for r in rows:
+                self.assertEqual((r["answer"], r["model"], r["cost_usd"]),
+                                 ({"legal": False, "category": "timing"}, "claude-cli:claude-haiku-5-5", 0.001))
+
+    def test_the_kept_environment_lists_equal_the_cli_bridges(self):
+        java = (Path(__file__).resolve().parents[2] / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+                / "ClaudeCliBridge.java").read_text(encoding="utf-8")
+
+        def strings(name, end):
+            body = java[java.index(name):]
+            return re.findall(r'"([A-Z_a-z*]+)"', body[:body.index(end)])
+        self.assertEqual(sorted(strings("KEEP_ENV =", ")));")), sorted(rp.KEEP_ENV))
+        self.assertEqual(strings("API_KEY_ENV =", ");"), list(rp.API_KEY_ENV))
+        provider = strings("PROVIDER_ENV =", "));")
+        java_map, key = {}, None
+        for w in provider:
+            if w.startswith("CLAUDE_CODE_USE_"):
+                key = w
+                java_map[key] = []
+            else:
+                java_map[key].append(w.replace("*", ""))   # VERTEX_REGION_* is a prefix
+        self.assertEqual(java_map, {k: list(v) for k, v in rp.PROVIDER_ENV.items()})
 
     def test_a_reply_is_read_from_its_json_object_and_anything_else_is_no_answer(self):
         self.assertEqual(rp.parse_reply('noise {"legal": false, "category": "timing"} tail'),

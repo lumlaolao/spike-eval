@@ -27,7 +27,7 @@ Usage:
   python3 eval/rules_probe.py stats <items>.jsonl [--floor] [--json]
   python3 eval/rules_probe.py balance <items>.jsonl --per-cell N --seed S --out <set>.jsonl
   python3 eval/rules_probe.py ask <set>.jsonl --model claude-cli:<model> --out <answers>.jsonl   (CLAUDE_CLI_SEAT=1)
-  python3 eval/rules_probe.py score <set>.jsonl <answers>.jsonl [--json]
+  python3 eval/rules_probe.py score <set>.jsonl <answers>.jsonl [--reproduced-by <items>.jsonl] [--json]
 
 Stdlib only. `ask` is the Claude CLI development lane only (`claude-cli:` spec of a listed model, CLAUDE_CLI_SEAT=1,
 never a benchmark score); its child gets an allow-listed environment, so no API key bills a paid API.
@@ -445,16 +445,35 @@ def mine(paths, repo_pin=None, cards=None):
     return dedupe(out)
 
 
-def balance(items, per_cell, seed, keep_mana_abilities=False):
-    """One item per position (`position_key`), then at most `per_cell` per (kind, illegal category, difficulty), and
-    as many legal items as illegal ones."""
-    rng = random.Random(seed)
+def position_pool(items, keep_mana_abilities=False):
+    """One item per position (`position_key`), the first by id, mana abilities left out unless kept: the pool `balance`
+    draws from and the floor is measured on."""
     pool, seen = [], set()
     for i in sorted(items, key=lambda i: i["id"]):
         k = position_key(i)
         if (keep_mana_abilities or not i.get("mana_ability")) and k not in seen:
             seen.add(k)
             pool.append(i)
+    return pool
+
+
+def reproduced(pilot, items):
+    """The pilot items `items` (a later mine) reproduce: the same file, row, verb and handle with the same label, and a
+    name without a handle in it (the first miner glued a hand entry's "(was @N)" tail into a name). The pilot's own
+    item (its state as the pilot asked it) is returned."""
+    def key(i):
+        p = i["provenance"]
+        return p.get("source_file"), p.get("row"), i["proposal"].get("verb"), i["proposal"].get("card")
+    now = {key(i): i for i in items}
+    return [i for i in pilot if key(i) in now and now[key(i)]["label"] == i["label"]
+            and "@" not in (i["proposal"].get("name") or "")]
+
+
+def balance(items, per_cell, seed, keep_mana_abilities=False):
+    """One item per position (`position_key`), then at most `per_cell` per (kind, illegal category, difficulty), and
+    as many legal items as illegal ones."""
+    rng = random.Random(seed)
+    pool = position_pool(items, keep_mana_abilities)
     cells = {}
     for i in pool:
         if i["label"] == "illegal":
@@ -486,20 +505,10 @@ def position_key(item):
     return hashlib.sha256(json.dumps([lines, p], sort_keys=True).encode()).hexdigest()
 
 
-def _first_per_position(items):
-    seen, out = set(), []
-    for i in items:
-        k = position_key(i)
-        if k not in seen:
-            seen.add(k)
-            out.append(i)
-    return out
-
-
 def floor_report(items):
-    """The state-reading floor over one item per position: its balanced accuracy, and per stratum (label, kind,
-    difficulty) how many it gets right."""
-    pos = [i for i in _first_per_position(items) if not i.get("mana_ability")]   # as `balance` leaves them out
+    """The state-reading floor over `position_pool` (balance's positions): its balanced accuracy, and per stratum
+    (label, kind, difficulty) how many it gets right."""
+    pos = position_pool(items)
     strata = {}
     for i in pos:
         key = "%s %s %s" % (i["label"], i.get("kind"), i.get("difficulty") if i["label"] == "illegal" else "-")
@@ -517,6 +526,7 @@ def stats(items, floor=False):
     def count(f, sub):
         return dict(Counter(f(i) for i in sub).most_common())
     illegal = [i for i in items if i["label"] == "illegal"]
+    illegal_pos = [i for i in position_pool(items, keep_mana_abilities=True) if i["label"] == "illegal"]
     states = {hashlib.sha256(i["state"].encode()).hexdigest() for i in items}
     out = {"items": len(items), "states": len(states),
             "positions": len({position_key(i) for i in items}),
@@ -535,10 +545,10 @@ def stats(items, floor=False):
             "illegal_positions_by_cell": count(
                 lambda i: "%s / %s (%s) / %s" % (i.get("kind"), i.get("category"), i.get("category_source"),
                                                  i.get("difficulty")),
-                [i for i in _first_per_position(items) if i["label"] == "illegal"]),
+                illegal_pos),
             "subtle_positions_by_source": count(
                 lambda i: i["provenance"].get("puzzle") or Path(i["provenance"].get("source_run", "")).name,
-                [i for i in _first_per_position(items) if i["label"] == "illegal" and i.get("difficulty") == "subtle"])}
+                [i for i in illegal_pos if i.get("difficulty") == "subtle"])}
     if floor:
         out["floor"], out["floor_by_stratum"] = floor_report(items)
     return out
@@ -598,7 +608,9 @@ PROVIDER_ENV = {
 def child_env(parent):
     """The CLI child's environment: the allow-listed part of `parent` and its LC_* locale; API keys and a provider's
     switch with its credentials only when the operator sets CLAUDE_CLI_ALLOW_API_KEY=1. Everything else, among it
-    MAX_THINKING_TOKENS, ANTHROPIC_MODEL, the launching session's CLAUDE* and the OPENROUTER* variables, is dropped."""
+    MAX_THINKING_TOKENS, ANTHROPIC_MODEL, the launching session's CLAUDE* and the OPENROUTER* variables, is dropped.
+    The lists are ClaudeCliBridge's (a test keeps them equal); the probe is deliberately stricter on a provider's
+    switch, which the bridge keeps whenever it is set and this keeps only with CLAUDE_CLI_ALLOW_API_KEY=1."""
     keep, prefixes = set(KEEP_ENV), ["LC_"]
     if parent.get(API_KEY_OPT_IN) == "1":
         keep.update(API_KEY_ENV)
@@ -617,8 +629,6 @@ def check_cli_lane(spec, env=None):
     why = cost_report.cli_opt_in_refusal([spec], env)
     if why is None and not cost_report.is_cli(spec):
         why = "%s is not the Claude CLI lane: give %s<model>" % (spec, cost_report.CLI_PREFIX)
-    if why is None and env.get(cost_report.CLI_OPT_IN) != "1":
-        why = "the Claude CLI lane needs %s=1" % cost_report.CLI_OPT_IN
     model = str(spec)[len(cost_report.CLI_PREFIX):]
     if why is None and model not in CLI_MODELS:
         why = "%s is not a model rules_probe asks (%s)" % (model, ", ".join(CLI_MODELS))
@@ -647,7 +657,7 @@ def parse_reply(text):
 def ask(items, spec, out, cards=None, timeout=180, environ=None):
     environ = os.environ if environ is None else environ
     model = check_cli_lane(spec, environ)
-    env = child_env(environ)
+    child = child_env(environ)
     done = set()
     if Path(out).is_file():
         done = {json.loads(ln)["id"] for ln in open(out) if ln.startswith("{")}
@@ -660,10 +670,10 @@ def ask(items, spec, out, cards=None, timeout=180, environ=None):
                     "--disable-slash-commands", "--system-prompt", "You judge plays in Magic: The Gathering."]
             try:
                 r = subprocess.run(argv, input=render(it, cards), capture_output=True, text=True, timeout=timeout,
-                                   env=env)
-                env = json.loads(r.stdout) if r.stdout.strip().startswith("{") else {}
-                text = env.get("result", r.stdout)
-                cost = env.get("total_cost_usd")
+                                   env=child)
+                envelope = json.loads(r.stdout) if r.stdout.strip().startswith("{") else {}
+                text = envelope.get("result", r.stdout)
+                cost = envelope.get("total_cost_usd")
             except (subprocess.TimeoutExpired, ValueError) as e:
                 text, cost = f"ERROR {e}", None
             fh.write(json.dumps({"id": it["id"], "model": spec, "reply": text, "answer": parse_reply(text),
@@ -787,6 +797,7 @@ def main(argv=None):
     c.add_argument("items")
     c.add_argument("answers")
     c.add_argument("--json", action="store_true")
+    c.add_argument("--reproduced-by", metavar="ITEMS", help="score only the items a later mine reproduces")
     args = ap.parse_args(argv)
     if args.cmd == "mine":
         items = mine(args.runs, cards=card_index(args.forge_home))
@@ -802,7 +813,10 @@ def main(argv=None):
         ask(_read(args.items), args.model, args.out, card_index(args.forge_home))
     elif args.cmd == "score":
         ans = {r["id"]: r["answer"] for r in _read(args.answers) if r.get("answer") is not None}
-        print(json.dumps(score(_read(args.items), ans), indent=None if args.json else 1))
+        items = _read(args.items)
+        if args.reproduced_by:
+            items = reproduced(items, _read(args.reproduced_by))
+        print(json.dumps(score(items, ans), indent=None if args.json else 1))
     return 0
 
 

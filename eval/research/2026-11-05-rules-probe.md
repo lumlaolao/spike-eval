@@ -8,8 +8,8 @@ of the engine labeller the prototype does not have.
 
 **Answer: build it, but as a diagnostic beside PUZ and the propose arm, never as a headline score, and only with the
 engine labeller (section 6).** The legal/illegal label is exact and free. The negatives mined from recorded rows are
-mostly trivial: a state-reading heuristic with three rules scores 0.80 balanced accuracy on them. Of 55,878 illegal
-positions, 3,012 (5.4%) are subtle, and the categories of mined negatives can only be inferred. Haiku 5.5 scored
+mostly trivial: a state-reading heuristic with three rules scores 0.80 balanced accuracy on them. Of 55,879 illegal
+positions, 3,013 (5.4%) are subtle, and the categories of mined negatives can only be inferred. Haiku 5.5 scored
 accuracy 0.944 (Wilson 95% 0.85-0.98) on 54 pilot items against the floor's 0.70 (0.57-0.81), 10 of 10 on the subtle
 items: the mined items separate a model from the floor, not strong models from each other. The value is in negatives
 built on purpose and labelled by the engine with its category, sorted by a difficulty that a floor checks, and the
@@ -101,7 +101,7 @@ distinct puzzles) contain a play or target row that yields an item. `runs/rules-
 | distinct positions | 139,680 | `position_key`: the state without handles, plan, history and log; two attempts at one puzzle collapse |
 | legal / illegal | 106,012 / 83,601 | 20,721 of the legal are mana abilities (`[{T}: Add ...]`), left out by `balance` and the floor |
 | play / target items | 160,556 / 29,057 | |
-| illegal positions | 55,879 | over 495 card names |
+| illegal positions | 55,879 | 495 card names |
 | engine-verdict negatives | 10 | the only proposals the propose arm refused (section 2.2) |
 
 By source: puzzles 163,597 items, propose runs 24,779 (the keyword-gauntlet audit games and the Haiku pilots), demo
@@ -111,22 +111,22 @@ carries the repository's `FORGE_COMMIT` at mining with `engine_pin_source: "repo
 
 ### 2.1 Rule-category balance and difficulty of the negatives
 
-`stats` field `illegal_positions_by_cell` (one item per position, the first mined; 55,878 positions, one fewer than
-`illegal_positions` because one position's first item is legal):
+`stats` field `illegal_positions_by_cell` (over `position_pool`, the pool `balance` draws from: one item per
+position, the first by id):
 
 | kind / category (source) / difficulty | positions |
 |---|---|
 | play / timing (inferred) / trivial | 29,284 |
 | target / target (engine) / trivial | 12,577 |
-| play / cost (inferred) / trivial | 9,768 |
+| play / cost (inferred) / trivial | 9,743 |
 | play / cost (inferred) / subtle | 2,227 |
 | play / restriction-or-target (inferred) / subtle | 524 |
 | play / land drop (inferred) / trivial | 485 |
 | play / unknown (inferred) / none | 374 |
-| play / unknown (inferred) / trivial | 348 |
+| play / unknown (inferred) / trivial | 373 |
 | play / timing-or-restriction (inferred) / subtle | 114 |
 | play / timing-or-cost (inferred) / subtle | 90 |
-| target / target (engine) / subtle | 57 |
+| target / target (engine) / subtle | 58 |
 | play / timing-or-cost (inferred) / trivial | 20 |
 | play / timing (engine) | 5 |
 | play / cost (engine) | 5 |
@@ -145,14 +145,14 @@ menu offers (it lists one PLAY LAND a land name), a card chosen earlier in the s
 failed to pay is not offered again there, `failedInWindow`), and a target ask an earlier choice of the same play
 narrowed (X announced, a second or "another" target, a sacrifice in the text).
 
-- **The balance is poor**: timing and target make 75% of illegal positions (41,861 of the 55,878 in the table);
+- **The balance is poor**: timing and target make 75% of illegal positions (41,861 of 55,879);
   zone, control and type never occur (a menu never lists a card in the wrong zone, so its absence cannot make one); restriction appears
   only inside "-or-" categories.
-- **Subtle negatives are 3,012 positions (5.4% of the 55,878)**; 52,482 (93.9%) are trivial and 384 have no
-  difficulty (category unknown or an engine verdict). `stats` field `subtle_positions_by_source`: 1,879 come from the
+- **Subtle negatives are 3,013 positions (5.4% of 55,879)**; 52,482 (93.9%) are trivial and 384 have no
+  difficulty (category unknown or an engine verdict). `stats` field `subtle_positions_by_source`: 1,880 come from the
   keyword gauntlet's random-policy games in `runs/propose` (552 cards); the generated hard-puzzle families give few
   (grave 365, landfall 325, copy 237).
-- **Target negatives are mostly a type mismatch**: 12,577 of 12,634 target positions are trivial.
+- **Target negatives are mostly a type mismatch**: 12,577 of 12,635 target positions are trivial.
 
 ### 2.2 Negatives the models made themselves
 
@@ -169,18 +169,18 @@ model's real mistake, with the engine's category and sentence) and should be kep
 
 `rules_probe.heuristic` reads the state only: a land needs a sorcery window and an unused land drop; a card whose mana
 value exceeds the mana available, or a creature (a P/T in the hand line) outside a sorcery window, is illegal; a land
-is not a legal target; everything else is legal. `stats --floor` scores it over one item per position, mana abilities
-left out (120,834 positions):
+is not a legal target; everything else is legal. `stats --floor` scores it over `position_pool`, the positions
+`balance` draws from (one item per position, mana abilities left out; 120,841 positions):
 
 | stratum | positions | floor right |
 |---|---|---|
-| balanced accuracy, all | 120,834 | **0.801** (recall legal 0.979, illegal 0.622) |
-| legal play | 61,604 | 97.8% |
-| legal target | 3,352 | 99.1% |
+| balanced accuracy, all | 120,841 | **0.801** (recall legal 0.979, illegal 0.622) |
+| legal play | 61,611 | 97.8% |
+| legal target | 3,351 | 99.1% |
 | illegal play, trivial | 39,905 | 75.3% |
 | illegal play, subtle | 2,955 | 2.4% |
 | illegal target, trivial | 12,577 | 36.7% |
-| illegal target, subtle | 57 | 1.8% |
+| illegal target, subtle | 58 | 1.7% |
 
 **A set drawn from the mined distribution has a floor of 0.80**, so a model at 0.85 would know almost nothing beyond
 reading mana and phase. On the subtle strata the floor is right on about 2% of negatives against about 98% of legal
@@ -224,7 +224,7 @@ and 30 legal, from five epochs (mixed on purpose for a pilot; a score would take
 eval/rules_probe.py ask <set> --model haiku` (the first version's form; the committed one takes
 `claude-cli:claude-haiku-5-5`), card text from Forge's card scripts prepended for the proposed card, no rules lookup;
 notional CLI cost $0.066. Files (git-ignored, this worktree): `runs/rules-probe/pilot-1105/set-pc2.jsonl` (the 60),
-`haiku-pc2.jsonl` (the answers), `select_kept.py` and `set-kept.jsonl` (below).
+`haiku-pc2.jsonl` (the answers).
 
 **The pilot found label errors in the first miner: 5 of the 60 items were wrong (8%; Wilson 95% 3.6%-18.1%, the
 share of pilot items whose label or question was wrong)**, all read by hand: a second Mountain labelled illegal (the
@@ -236,10 +236,11 @@ handle "(was @N)" in the hand line. All three faults are fixed and tested
 `test_an_earlier_handle_in_the_hand_line_does_not_merge_two_cards`). A sixth item, a legal target ask of Krenko, Mob
 Boss, is no longer mined (its source sacrifices); the final miner's residual error rate was not measured.
 
-`python3 runs/rules-probe/pilot-1105/select_kept.py <set-pc2> <items-all> <haiku-pc2> <set-kept>` keeps the 54 items
-the committed miner reproduces (same file, row, verb and handle) with the same label and an unmangled name; then
-`python3 eval/rules_probe.py score runs/rules-probe/pilot-1105/set-kept.jsonl \
-runs/rules-probe/pilot-1105/haiku-pc2.jsonl`:
+`python3 eval/rules_probe.py score runs/rules-probe/pilot-1105/set-pc2.jsonl \
+runs/rules-probe/pilot-1105/haiku-pc2.jsonl --reproduced-by runs/rules-probe/items-all.jsonl` scores the 54 items the committed miner reproduces
+(`rules_probe.reproduced`: the same file, row, verb and handle with the same label, and a name without a handle in
+it). The states scored are the pilot's own, as Haiku was asked them: they still carry the seat's plan line and its
+last play's note, which the committed miner now strips.
 
 | | n | Haiku correct | state-reading floor correct |
 |---|---|---|---|
@@ -307,7 +308,7 @@ rejection category on a constructed board, which is the evidence it would work.
 3. Score it, in the development lane first, on Haiku; then on Luna only with the owner's consent (paid). Haiku's
    0.944 on mined items says the v1 set must be harder than the mined distribution to be worth a model's call.
 4. Do not mine more of the current distribution: 190k items add little over a few thousand, and 94% of their negatives
-   are trivial (52,482 of 55,878 illegal positions, section 2.1). If mined items are wanted, the free source with the
+   are trivial (52,482 of 55,879 illegal positions, section 2.1). If mined items are wanted, the free source with the
    most card variety is the keyword gauntlet with the random policy (`bash eval/keyword_gauntlet.sh`, no model, 552 cards),
    which gave most of the subtle positions here.
 5. Audit labels before trusting any set: read a sample of every new negative class by hand, as the pilot did; three
