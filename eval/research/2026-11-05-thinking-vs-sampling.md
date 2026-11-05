@@ -115,7 +115,8 @@ by its author in the worktree `tvs-wt`): `A-low-k1`, `B-max-k1`, `C-low-k3`, `dr
 
 `B-max-k1/hard-splice-06dad20af5b3/jvm.log`: `[CLAUDE-CLI-NO-ANSWER] no result within 300000 ms -> no answer; the
 seat takes its fixed legal option`, four times, in three decisions (twice in one, `jvm.log` lines 61 and 63). Each is
-followed by `[BRIDGE Solver/smart] no reply (attempt 2/3) -> restarting session` (lines 37, 62, 71) and then the
+followed by `[BRIDGE Solver/smart] no reply (attempt 2/3) -> restarting session` (lines 37, 62 and 71; line 64 is the
+second restart, attempt 3/3, in the decision cut twice) and then the
 model's own `answer` call. In the game's 14 `decision` rows no `fallback` is set except the two
 `splice(none payable)->none` rows, which are the `[AUTO-LEGAL]` lines 47 and 58 (no splice cost was payable) and are
 the `auto=2` of the final tally, `[TALLY] smart=12 fast=0 auto=2 ... avgSmart=306201ms`. The three cut decisions are
@@ -140,7 +141,7 @@ more, which is a different condition from the one designed, and the override tha
 
 **Shows:**
 - At effort max, a hard splice board's median decision ran 227 s and 52K completion tokens, so the 300 s deadline
-  (`ModelCfg`, which the `claude-cli:` seat takes: `ClaudeCliBridge.deadlineFor`) cuts the decisions it most needs to
+  (`ModelCfg`, which the `claude-cli:` seat takes: `ClaudeCliBridge.deadlineFor`) cuts the calls it most needs to
   think about.
 - On the two storm boards the same effort stayed under 120 s.
 - The prompt is the same size on every board (median 7K to 8K tokens). What grows is the thinking.
@@ -151,7 +152,8 @@ more, which is a different condition from the one designed, and the override tha
   it in the manifest, so setting it would run arm B under a deadline no row records. That is the unrecorded condition
   STANDARDS section 4 forbids.
 
-So arm B, as designed, cannot run on this lane without losing the hardest decisions.
+So arm B, as designed, cannot run on this lane without its hardest decisions restarting from a fresh session after
+the deadline.
 
 ### 4.2 Solves on the puzzles every arm reached (development lane, not a score)
 
