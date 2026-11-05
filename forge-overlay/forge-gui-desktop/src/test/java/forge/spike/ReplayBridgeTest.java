@@ -60,6 +60,7 @@ public class ReplayBridgeTest {
         LlmSpikeGui.EvalLog.closeForTest();
         LlmSpikeGui.puzzleSolverSeat = null;
         LlmSpikeGui.puzzleBrief = null;
+        LlmSpikeGui.SEED_USED = 0L;
     }
 
     /** One puzzle game as the runner plays it, with its game log written to a fresh file under {@code dir}. */
@@ -106,11 +107,7 @@ public class ReplayBridgeTest {
         return out;
     }
 
-    private static ReplayBridge replayOf(LlmSpikePuzzle.Played p) {
-        LlmSpikeGui.PlayerControllerLLM seat = LlmSpikePuzzle.solverLlm(p.game);
-        Assert.assertNotNull(seat, "the solver is the model seat");
-        return seat.replayBridge();
-    }
+    private static ReplayBridge replayOf(LlmSpikePuzzle.Played p) { return LlmSpikePuzzle.replayLine(p.game); }
 
     @Test
     public void aRecordedGameReplaysToTheSameEngineLogAndOutcome() throws Exception {
@@ -118,9 +115,13 @@ public class ReplayBridgeTest {
         Assert.assertEquals(rec.played.status, "solved", "the written line solves the board: " + rec.played.logLines);
         Assert.assertNotNull(rec.log, "the recording has a game log");
 
+        // The attempt's result row beside its game log, as the runner writes it: the replay must give its outcome.
+        writeResult(rec, rec.played.status, LlmSpikePuzzle.logFingerprint(rec.played.logLines));
         Game1 rep = play(board(), ReplayBridge.PREFIX + rec.log.getPath(), tempDir("rep"));
         ReplayBridge b = replayOf(rep.played);
         Assert.assertNotNull(b, "a replay: spec builds the replay bridge");
+        Assert.assertEquals(b.report().get("replay_recorded_status"), "solved", "the recorded outcome was read");
+        Assert.assertEquals(b.report().get("replay_version"), "replay-bridge-v1", "the stamp's literal (eval/versions.py)");
         Assert.assertNull(b.drift, "nothing drifted");
         Assert.assertTrue(b.reproduced(), "every recorded turn and decision row was used: " + b.report());
         Assert.assertTrue(b.turns.size() > 10, "the splice line is a dozen decisions or more: " + b.turns.size());
@@ -149,6 +150,61 @@ public class ReplayBridgeTest {
         Assert.assertTrue(decisions(rep.log).size() < decisions(rec.log).size(),
                 "the replay stopped: " + decisions(rep.log).size() + " rows of " + decisions(rec.log).size());
         Assert.assertEquals(b.report().get("replay_drift"), b.drift);
+        // The runner ends the game at the drift: the seat is asked nothing more (it was asked again, a reaction
+        // window with five castable spells, when only the 200 ms poll stopped it).
+        Assert.assertEquals(b.asksAfterDrift, 0, "asks served after the drift");
+    }
+
+    private static void writeResult(Game1 rec, String status, String logSha) throws Exception {
+        JsonObject row = new JsonObject();
+        row.addProperty("schema", "pzl-result-v1");
+        row.addProperty("seed", SEED);
+        row.addProperty("status", status);
+        row.addProperty("log_sha256", logSha);
+        Files.write(new File(rec.log.getParentFile(), "puzzle-results.jsonl").toPath(),
+                (row + "\n").getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void anOutcomeOtherThanTheRecordedOneIsADriftAtTheEnd() throws Exception {
+        Game1 rec = play(board(), "script:" + SPLICE.getPath(), tempDir("rec3"));
+        writeResult(rec, "failed", "0000");
+        Game1 rep = play(board(), ReplayBridge.PREFIX + rec.log.getPath(), tempDir("rep3"));
+        ReplayBridge b = replayOf(rep.played);
+        Assert.assertNotNull(b.drift, "every turn matched but the outcome did not");
+        Assert.assertTrue(b.drift.startsWith("game end:") && b.drift.contains("solved") && b.drift.contains("failed"), b.drift);
+        Assert.assertEquals(rep.played.status, "drift");
+        Assert.assertEquals(b.report().get("replay_recorded_status"), "failed");
+    }
+
+    @Test
+    public void aReplayWithTheGameLogOffIsRefused() throws Exception {
+        Game1 rec = play(board(), "script:" + SPLICE.getPath(), tempDir("rec4"));
+        LlmSpikeGui.EvalLog.closeForTest();
+        MyRandom.setRandom(new java.util.Random(SEED));
+        LlmSpikeGui.SEED_USED = SEED;
+        String spec = ReplayBridge.PREFIX + rec.log.getPath();
+        try {
+            LlmSpikePuzzle.playOnce(SPLICE, "splice_06dad20af5b3", board(), "llm", "ai", spec, spec, SEED, 120_000L, 0, true, true);
+            Assert.fail("a replay ran with no game log, so no decision row could be checked");
+        } catch (IllegalStateException expected) {
+            Assert.assertTrue(expected.getMessage().contains("EVAL_OUT"), expected.getMessage());
+        }
+        Assert.assertNull(LlmSpikeGui.FORK_HOOK, "the fork hook is left as it was");
+    }
+
+    @Test
+    public void aReplayOnOneTierOnlyIsRefused() {
+        ReplayBridge.requireBothTiers("replay:a", "replay:a");
+        ReplayBridge.requireBothTiers("openrouter:x/y", "openrouter:x/z");
+        for (String[] pair : new String[][] {{"replay:a", "openrouter:x/y"}, {"openrouter:x/y", "replay:a"}, {"replay:a", "replay:b"}}) {
+            try {
+                ReplayBridge.requireBothTiers(pair[0], pair[1]);
+                Assert.fail("built " + Arrays.toString(pair));
+            } catch (IllegalArgumentException expected) {
+                Assert.assertTrue(expected.getMessage().contains("both tiers"), expected.getMessage());
+            }
+        }
     }
 
     private static File recording(String... rows) throws Exception {
@@ -221,6 +277,107 @@ public class ReplayBridgeTest {
                 "after a drift nothing more is replayed");
     }
 
+    private static final String PICKS = "== Turn 1 MAIN2 (active: Solver | priority: you) ==\n\n"
+            + "DECISION: Choose cards to sacrifice:\n"
+            + "  1) Mountain @8\n"
+            + "  2) Mountain @9\n"
+            + "ANSWER: call `answer` with `options`: the numbers you pick, exactly 1.";
+    private static final String BLOCKS = "== Turn 2 COMBAT_DECLARE_BLOCKERS (active: Opponent | priority: you) ==\n\n"
+            + "DECISION: Declare blockers.\n"
+            + "ATTACKERS: 1 = Grizzly Bears 2/2 @2\n"
+            + "YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = Boggart Ram-Gang 3/3 @4\n"
+            + "ANSWER: call `answer` with `blocks`: the pairs you declare.";
+
+    @Test
+    public void aQuestionWithTheSameNumberedOptionsButAnotherRangeOrListDrifts() throws Exception {
+        String[][] cases = {
+                {PICKS, PICKS.replace("exactly 1", "exactly 2"), "exactly"},
+                {BLOCKS, BLOCKS.replace("; 2 = Boggart Ram-Gang 3/3 @4", ""), "Boggart"},
+        };
+        for (String[] c : cases) {
+            ReplayBridge b = ReplayBridge.fromFile("Solver/smart",
+                    recording(callRow(1, c[0], "TOOL CALL answer {\"options\":[1]}")).getPath());
+            b.chat(messages(c[1]), "[]", true);
+            Assert.assertNotNull(b.drift, "drifts: " + c[1]);
+            Assert.assertTrue(b.drift.contains(c[2]), b.drift);
+            ReplayBridge same = ReplayBridge.fromFile("Solver/smart",
+                    recording(callRow(1, c[0], "TOOL CALL answer {\"options\":[1]}")).getPath());
+            same.chat(messages(c[0]), "[]", true);
+            Assert.assertNull(same.drift, "the recorded question itself is no drift");
+        }
+    }
+
+    private static String decisionRow(String type, int n, int choice, String... options) {
+        JsonObject o = new JsonObject();
+        o.addProperty("t", "decision");
+        o.addProperty("seat", "Solver");
+        o.addProperty("type", type);
+        o.addProperty("n_options", n);
+        o.addProperty("choice", choice);
+        JsonArray a = new JsonArray();
+        for (String x : options) a.add(x);
+        o.add("options", a);
+        return o.toString();
+    }
+
+    private static final List<String> SPIKE_PASS = Arrays.asList("CAST Lava Spike @2 {R}", "PASS (do nothing)");
+
+    @Test
+    public void aDecisionRowOtherThanTheRecordedOneDrifts() throws Exception {
+        String rec = recording(callRow(1, MENU, "TOOL CALL answer {\"option\":1}"),
+                decisionRow("play", 2, 0, SPIKE_PASS.toArray(new String[0]))).getPath();
+        ReplayBridge same = ReplayBridge.fromFile("Solver/smart", rec);
+        same.onDecisionRow("Opponent", "play", 2, -1, SPIKE_PASS);
+        same.onDecisionRow("Solver", "play", 2, 0, SPIKE_PASS);
+        Assert.assertNull(same.drift, "the recorded row, and another seat's row, are no drift");
+        String[][] wrong = {{"play", "2", "-1"}, {"target", "2", "0"}, {"play", "3", "0"}};
+        for (String[] w : wrong) {
+            ReplayBridge b = ReplayBridge.fromFile("Solver/smart", rec);
+            b.onDecisionRow("Solver", w[0], Integer.parseInt(w[1]), Integer.parseInt(w[2]), SPIKE_PASS);
+            Assert.assertNotNull(b.drift, Arrays.toString(w));
+            Assert.assertTrue(b.drift.startsWith("decision row 1: "), b.drift);
+        }
+        ReplayBridge relabelled = ReplayBridge.fromFile("Solver/smart", rec);
+        relabelled.onDecisionRow("Solver", "play", 2, 0, Arrays.asList("CAST Lava Spike @3 {R}", "PASS (do nothing)"));
+        Assert.assertTrue(relabelled.drift.startsWith("decision row 1: "), String.valueOf(relabelled.drift));
+        same.onDecisionRow("Solver", "play", 2, -1, SPIKE_PASS);
+        Assert.assertNotNull(same.drift, "a second row where the recording has one");
+        Assert.assertTrue(same.drift.contains("after the recording's last"), same.drift);
+    }
+
+    @Test
+    public void anAskWithANewRefusalOrAnotherMessageCountDrifts() throws Exception {
+        // The recording's second round: its answer was refused once and asked again.
+        JsonArray recMsgs = new JsonArray();
+        recMsgs.add(NativeTools.message("user", MENU));
+        recMsgs.add(JsonParser.parseString(ReplayBridge.turnOf("TOOL CALL set_plan {\"goal\":\"burn\"}", 1).messageJson));
+        JsonObject tool = new JsonObject();
+        tool.addProperty("role", "tool");
+        tool.addProperty("tool_call_id", "x");
+        tool.addProperty("content", "Plan recorded. It does not answer the decision: call `answer`.");
+        recMsgs.add(tool);
+        JsonObject row = JsonParser.parseString(callRow(1, MENU, "TOOL CALL answer {\"option\":1}")).getAsJsonObject();
+        row.addProperty("round", 1);
+        row.add("messages", recMsgs);
+        String rec = recording(row.toString()).getPath();
+
+        ReplayBridge same = ReplayBridge.fromFile("Solver/smart", rec);
+        same.chat(recMsgs.toString(), "[]", true);
+        Assert.assertNull(same.drift, "the recorded round itself");
+
+        JsonArray refused = recMsgs.deepCopy();
+        refused.get(2).getAsJsonObject().addProperty("content", "ERROR: `option` must be 1..2. Nothing was done.");
+        ReplayBridge b = ReplayBridge.fromFile("Solver/smart", rec);
+        b.chat(refused.toString(), "[]", true);
+        Assert.assertNotNull(b.drift, "a refusal the recording did not have");
+        Assert.assertTrue(b.drift.contains("a refusal"), b.drift);
+
+        ReplayBridge c = ReplayBridge.fromFile("Solver/smart", rec);
+        c.chat(messages(MENU), "[]", true);
+        Assert.assertNotNull(c.drift, "a first round where the recording's was the second");
+        Assert.assertTrue(c.drift.contains("1 messages where the recording had 3"), c.drift);
+    }
+
     @Test
     public void aDirectoryRecordingIsReadForTheSeedPlayed() throws Exception {
         File dir = tempDir("dir");
@@ -235,9 +392,9 @@ public class ReplayBridgeTest {
         } catch (IllegalArgumentException expected) {
             Assert.assertTrue(expected.getMessage().contains("seed 3"), expected.getMessage());
         }
+        LlmSpikeGui.SEED_USED = 2L;
         LLMBridge b = LlmSpikeGui.LLMBridgeFactory.create("Solver/smart", ReplayBridge.PREFIX + dir.getPath(), "");
         Assert.assertTrue(b instanceof ReplayBridge, String.valueOf(b));
         Assert.assertTrue(b.supportsNativeTools());
-        Assert.assertEquals(Arrays.asList(LlmSpikeGui.LLMBridgeFactory.ROUTED_PREFIXES).contains(ReplayBridge.PREFIX), true);
     }
 }

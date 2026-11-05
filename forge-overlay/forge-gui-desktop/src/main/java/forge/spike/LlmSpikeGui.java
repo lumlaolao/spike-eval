@@ -1299,6 +1299,7 @@ public final class LlmSpikeGui {
             boolean optedIn = "1".equals(env(ClaudeCliBridge.OPT_IN));
             LLMBridgeFactory.requireCliOptIn(smartModel, mode, optedIn, seat + "/smart");
             LLMBridgeFactory.requireCliOptIn(fastModel, mode, optedIn, seat + "/fast");
+            if ("llm".equals(mode)) ReplayBridge.requireBothTiers(smartModel, fastModel);
             // A seat that never asks a model (floor, random, the puzzle arms) gets placeholders on both tiers, whatever
             // they name (a default "haiku", an openrouter: or claude-cli: spec): no bridge to a model is ever made for it.
             if (!"llm".equals(mode))

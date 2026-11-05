@@ -25,12 +25,17 @@ import java.util.Objects;
  * own answer path, and every skip, side field and RNG draw of the model seat is the recorded game's.
  *
  * <p>Nothing is guessed. A turn is served only to the ask it was recorded for: the same answer field, the same option
- * labels in order, the same turn and step, the same number of messages, and no refusal the recording did not have.
+ * labels in order, the same listed items ({@code N = ...}: blockers, attackers, amounts), the same answer range (picks,
+ * number, amounts), the same turn and step, the same number of messages, and no refusal the recording did not have.
  * Each decision row the seat writes is checked against the recorded one too (type, n_options, choice, options;
- * {@link #onDecisionRow}, wired by the puzzle runner while the game log is on). The first difference is the
- * {@link #drift}: recorded, every later ask answered with the do-nothing option, and the runner ends the game; the
- * result is void ({@code status: drift}). Prompt text that differs while the question is the same (a later epoch's
- * wording) is no drift; it is counted in {@link #promptDiffs}.
+ * {@link #onDecisionRow}, wired by the puzzle runner, which refuses a replay with the game log off since no row is
+ * written then). When the attempt's result row is beside its game log ({@code puzzle-results.jsonl}, same seed), the
+ * game's end must give its status and engine log ({@link #atEnd}). The first difference is the {@link #drift}:
+ * recorded, the game ended at once ({@link #onDrift}, set by the runner), and the result is void
+ * ({@code status: drift}). An ask that still comes after it gets the do-nothing answer; for a field with no empty
+ * value (card, action, declare_attackers, declare_blockers) that answer is refused and the seat takes its fixed legal
+ * option, which is no longer the recorded game either way. Prompt text that differs while the question is the same (a
+ * later epoch's wording) is no drift; it is counted in {@link #promptDiffs}.
  */
 final class ReplayBridge implements LLMBridge {
     static final String PREFIX = "replay:";
@@ -70,14 +75,23 @@ final class ReplayBridge implements LLMBridge {
     /** Asks served whose prompt text differed from the recorded one while the question was the same. */
     int promptDiffs = 0;
     String firstPromptDiff = null;
+    /** Asks served after the drift: zero when the game was ended at it. */
+    int asksAfterDrift = 0;
+    /** Run once, on the thread that found the drift (the puzzle runner ends the game there). */
+    volatile Runnable onDrift = null;
+    /** The attempt's own result (its puzzle-results.jsonl row for the seed), or null when the recording has none. */
+    String recordedStatus = null, recordedLogSha = null;
 
     ReplayBridge(String label, String source, List<Turn> turns, List<Row> rows) {
         this.label = label;
-        this.seat = label.contains("/") ? label.substring(0, label.indexOf('/')) : label;
+        this.seat = seatOf(label);
         this.source = source;
         this.turns = turns;
         this.rows = rows;
     }
+
+    /** The seat a bridge label names ("Solver/smart" -> "Solver"). */
+    static String seatOf(String label) { return label.contains("/") ? label.substring(0, label.indexOf('/')) : label; }
 
     /** The recording at {@code path}: a game log, or the attempt directory holding one per seed. */
     static File recordingFor(String path, long seed) {
@@ -93,6 +107,14 @@ final class ReplayBridge implements LLMBridge {
         return hits.get(0);
     }
 
+    /** Both tiers replay one recording, or neither does: a replay on one tier would mix its turns with a model's. */
+    static void requireBothTiers(String smartSpec, String fastSpec) {
+        boolean s = smartSpec != null && smartSpec.startsWith(PREFIX), f = fastSpec != null && fastSpec.startsWith(PREFIX);
+        if ((s || f) && !(s && f && smartSpec.equals(fastSpec)))
+            throw new IllegalArgumentException("replay: both tiers must name the same recording (smart " + smartSpec
+                    + ", fast " + fastSpec + ")");
+    }
+
     /** The spec's recording for the engine seed this game was seeded with (LlmSpikeGui.SEED_USED). */
     static ReplayBridge fromSpec(String label, String rest) {
         return fromFile(label, recordingFor(rest, LlmSpikeGui.SEED_USED).getPath());
@@ -103,7 +125,7 @@ final class ReplayBridge implements LLMBridge {
         List<String> lines;
         try { lines = Files.readAllLines(new File(path).toPath(), StandardCharsets.UTF_8); }
         catch (IOException e) { throw new IllegalArgumentException("replay: cannot read " + path + ": " + e); }
-        String seat = label.contains("/") ? label.substring(0, label.indexOf('/')) : label;
+        String seat = seatOf(label);
         List<Turn> turns = new ArrayList<>();
         List<Row> rows = new ArrayList<>();
         for (String l : lines) {
@@ -135,7 +157,36 @@ final class ReplayBridge implements LLMBridge {
             }
         }
         if (turns.isEmpty()) throw new IllegalArgumentException("replay: no model turn of seat " + seat + " in " + path);
-        return new ReplayBridge(label, path, turns, rows);
+        ReplayBridge b = new ReplayBridge(label, path, turns, rows);
+        b.readResult(new File(path));
+        return b;
+    }
+
+    /** The attempt's result row: puzzle-results.jsonl beside the game log, the row of the seed in its name. */
+    private void readResult(File log) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^game-(-?\\d+)-").matcher(log.getName());
+        File results = new File(log.getAbsoluteFile().getParentFile(), "puzzle-results.jsonl");
+        if (!m.find() || !results.isFile()) return;
+        try {
+            for (String l : Files.readAllLines(results.toPath(), StandardCharsets.UTF_8)) {
+                if (l.trim().isEmpty()) continue;
+                JsonObject r = JsonParser.parseString(l).getAsJsonObject();
+                if (!m.group(1).equals(str(r, "seed"))) continue;
+                recordedStatus = str(r, "status");
+                recordedLogSha = str(r, "log_sha256");
+            }
+        } catch (IOException | RuntimeException e) {
+            throw new IllegalArgumentException("replay: cannot read " + results + ": " + e);
+        }
+    }
+
+    /** The game is over with {@code status} and engine log fingerprint {@code logSha}: the recorded attempt's, when it
+     *  has a result row. */
+    void atEnd(String status, String logSha) {
+        if (recordedStatus == null) return;
+        if (!recordedStatus.equals(status)) fail("game end: status " + status + " where the recording's was " + recordedStatus);
+        else if (recordedLogSha != null && !recordedLogSha.equals(logSha))
+            fail("game end: engine log " + logSha + " where the recording's was " + recordedLogSha);
     }
 
     private static String str(JsonObject o, String k) {
@@ -151,7 +202,7 @@ final class ReplayBridge implements LLMBridge {
 
     /** The recorded turn's calls, as the model served them; a turn with no call is its text. */
     static NativeTools.Turn turnOf(String raw, int seq) {
-        String marker = "TOOL CALL ";
+        String marker = NativeTools.Call.RENDER_PREFIX;
         if (!raw.startsWith(marker)) {
             JsonObject msg = new JsonObject();
             msg.addProperty("role", "assistant");
@@ -185,16 +236,18 @@ final class ReplayBridge implements LLMBridge {
         m.put("replay_turns_used", pos);
         m.put("replay_rows", rows.size());
         m.put("replay_rows_matched", rowPos);
+        m.put("replay_recorded_status", recordedStatus == null ? "" : recordedStatus);
         m.put("replay_prompt_diffs", promptDiffs);
         if (firstPromptDiff != null) m.put("replay_first_prompt_diff", firstPromptDiff);
         return m;
     }
 
     private void fail(String why) {
-        if (drift == null) {
-            drift = why;
-            System.out.println("[REPLAY] DRIFT " + why);
-        }
+        if (drift != null) return;
+        drift = why;
+        System.out.println("[REPLAY] DRIFT " + why);
+        Runnable stop = onDrift;
+        if (stop != null) stop.run();
     }
 
     @Override public boolean supportsNativeTools() { return true; }
@@ -208,6 +261,7 @@ final class ReplayBridge implements LLMBridge {
     /** A text ask has no recorded turn to serve: the recording answered by call. */
     @Override public String ask(String prompt) {
         calls++;
+        if (drift != null) asksAfterDrift++;
         fail("a text ask (no `answer` offered); the recording answered every ask by call");
         return null;
     }
@@ -220,7 +274,7 @@ final class ReplayBridge implements LLMBridge {
         ScriptBridge.Question live = new ScriptBridge.Question(prompt);
         boolean retry = retrying;
         retrying = false;
-        if (drift != null) return doNothing(live);
+        if (drift != null) { asksAfterDrift++; return doNothing(live); }
         int idx = retry && pos > 0 ? pos - 1 : pos;
         if (idx == pos && idx < turns.size()) pos++;
         if (idx >= turns.size()) {
@@ -259,8 +313,33 @@ final class ReplayBridge implements LLMBridge {
             return "asked at T" + live.turn + " " + live.phase + " where the recording's was at T" + rec.turn + " " + rec.phase;
         List<String> a = new ArrayList<>(rec.options.values()), b = new ArrayList<>(live.options.values());
         if (!a.equals(b)) return "options " + b + " where the recording's were " + a;
+        a = listed(rec); b = listed(live);
+        if (!a.equals(b)) return "lists " + b + " where the recording's were " + a;
+        a = ranges(rec); b = ranges(live);
+        if (!a.equals(b)) return "answer range " + b + " where the recording's was " + a;
         if (!rec.head().equals(live.head())) return "asked \"" + live.head() + "\" where the recording asked \"" + rec.head() + "\"";
         return null;
+    }
+
+    private static final java.util.regex.Pattern LISTED = java.util.regex.Pattern.compile("(?m)^([A-Z][A-Z ]*):\\s*(\\d+ = .*)$");
+
+    /** The numbered lists of the DECISION block ("YOUR BLOCKERS: 1 = Typhoid Rats 1/1 @3; 2 = ..."), one per line. */
+    static List<String> listed(ScriptBridge.Question q) {
+        List<String> out = new ArrayList<>();
+        java.util.regex.Matcher m = LISTED.matcher(q.block);
+        while (m.find()) out.add(m.group(1) + ": " + m.group(2).trim());
+        return out;
+    }
+
+    /** The answer's range as the ask states it: how many picks, the number's lower end, the amounts and their sum. */
+    static List<String> ranges(ScriptBridge.Question q) {
+        List<String> out = new ArrayList<>();
+        for (java.util.regex.Pattern p : new java.util.regex.Pattern[] {ScriptBridge.PICK_RANGE, ScriptBridge.NUMBER_FROM,
+                ScriptBridge.AMOUNTS_SPEC}) {
+            java.util.regex.Matcher m = p.matcher(q.prompt);
+            while (m.find()) out.add(m.group());
+        }
+        return out;
     }
 
     private static String firstDifference(String a, String b) {

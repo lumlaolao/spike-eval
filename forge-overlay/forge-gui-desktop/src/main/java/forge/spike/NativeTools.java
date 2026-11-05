@@ -122,7 +122,9 @@ final class NativeTools {
     static final class Call {
         final String id, name, arguments;
         Call(String id, String name, String arguments) { this.id = id; this.name = name; this.arguments = arguments; }
-        String render() { return "TOOL CALL " + name + " " + (arguments == null ? "{}" : arguments); }
+        /** What {@link #render} puts before a call's name; ReplayBridge reads recorded turns back by it. */
+        static final String RENDER_PREFIX = "TOOL CALL ";
+        String render() { return RENDER_PREFIX + name + " " + (arguments == null ? "{}" : arguments); }
     }
 
     /** What the system preamble says instead of the text grammar. */
