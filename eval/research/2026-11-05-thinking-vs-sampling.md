@@ -46,23 +46,29 @@ gets in play.
 
 ## 2. The lever, measured before the design (probes, not runs)
 
-Three probes in `<scratchpad>/probe/` on CLI 2.1.318. Each sends a fixed 140-word mana-counting puzzle through `claude
--p --model claude-haiku-5-5` with the bridge's flags (`--tools "" --strict-mcp-config --no-session-persistence
---setting-sources "" --disable-slash-commands`). Thinking is approximated as output tokens minus the result's
-characters / 4.
+`runs/tvs/probe/` on CLI 2.1.318 (`cli-version.txt`): `bash run_probe.sh` sends `prompt.txt`, a fixed 140-word
+mana-counting puzzle, through `claude -p --model claude-haiku-5-5` with the bridge's flags (`--tools ""
+--strict-mcp-config --no-session-persistence --setting-sources "" --disable-slash-commands`), four runs a setting, six
+settings, and keeps each result (`<setting>-<i>.json`); `python3 probe_table.py` prints the table below from the
+CLI's own count, `usage.output_tokens_details.thinking_tokens`. All 24 runs returned a result.
 
-| Setting | n | thinking tokens (approx.), each run | mean |
-|---|---|---|---|
-| `MAX_THINKING_TOKENS=1024` | 4 | 18,208 / 10,801 / 8,230 / 18,085 | 13,800 |
-| `MAX_THINKING_TOKENS=31999` | 4 | 4,161 / 9,747 / 13,575 / 7,944 | 8,900 |
-| `--effort low` | 4 | 4,234 / 8,023 / 15,061 / 11,354 | 9,700 |
-| `--effort high` | 4 | 18,871 / 10,136 / 17,794 / 10,943 | 14,400 |
-| CLI default (no flag) | 3 | 8,895 / 10,222 / 10,262 | 9,800 |
-| `--effort max` | 3 | 29,049 / 35,871 / 35,798 | 33,600 |
+| Setting | n | thinking tokens, each run | mean | mean wall |
+|---|---|---|---|---|
+| `MAX_THINKING_TOKENS=1024` | 4 | 6,091 / 15,805 / 6,524 / 7,976 | 9,100 | 48 s |
+| `MAX_THINKING_TOKENS=31999` | 4 | 9,738 / 7,229 / 8,821 / 10,488 | 9,100 | 49 s |
+| `--effort low` | 4 | 3,589 / 5,697 / 13,227 / 7,833 | 7,600 | 42 s |
+| `--effort high` | 4 | 12,645 / 8,265 / 9,181 / 6,633 | 9,200 | 49 s |
+| CLI default (no flag) | 4 | 8,305 / 6,948 / 5,879 / 8,024 | 7,300 | 40 s |
+| `--effort max` | 4 | 31,299 / 31,320 / 23,432 / 28,116 | 28,500 | 128 s |
 
 **Shows:** `MAX_THINKING_TOKENS`, which `--claude-cli-thinking-tokens` sets, does not cap Haiku 5.5's thinking through
-this CLI: a budget of 1024 thought 18,208 tokens. Its two settings do not separate. `--effort` does, at the top:
-max thought about 3.4x what low did, and low is about the CLI default.
+this CLI: a budget of 1024 thought 6,091 to 15,805 tokens, and its two settings have the same mean. `--effort` separates
+only at the top: max thought about 3.7x what low did; low, high and the default overlap run to run.
+
+**A deviation, recorded:** the design (section 3) was written from a first probe of the same settings whose per-run
+results were not kept (it estimated thinking as output tokens less the reply's characters / 4, and read max as 3.4x
+low and high as 1.5x). This table is the re-run, made after the study so that every number has a file; the
+pre-registration's "about 3.4x" stays as it was written.
 
 So the thinking lever in this study is the CLI's effort (`--claude-cli-effort`), which `puzzle_solve.py` already pins
 in the condition (`CLAUDE_BRIDGE_EFFORT`, both tiers), refuses on a resume under another value
@@ -206,11 +212,13 @@ From the rows' budget fields (`tvs_compute.py`; wall time from `driver.log`'s `[
 
 **Shows:** on the storm boards one max-effort attempt spent 255K to 274K completion tokens. Three low-effort attempts
 on the same board spent 84K to 89K in all. So B cost about three times C's whole budget, not the same.
-- The probe's 3.4x (section 2) measured one short prompt. On the same storm boards, max effort spent 9 to 11
+- The probe's 3.7x (section 2) measured one short prompt. On the same storm boards, max effort spent 9 to 11
   times A's completion tokens per attempt (255K to 274K against 24K to 31K).
 - Model time per call grew about 4x on the storm boards (medians 21-27 s against 5-6 s).
 
-A compute-matched design on this lane would set B's effort to `high` (1.5x in the probe), or give C k=7 to 8.
+A compute-matched design on this lane would not use `high`, which thought about as much as low in the probe (1.2x, inside
+the run-to-run spread); it would give C about k=7 (264,212 / 36,967, all boards) to k=9 (264,212 / 28,794, storm
+boards).
 
 ---
 
@@ -221,15 +229,15 @@ A compute-matched design on this lane would set B's effort to `high` (1.5x in th
   by hand.
 - **Effort max on hard boards.** Whether max effort solves splice-06da is not known: its game was stopped by hand
   after the deadline restarted three of its decisions.
-- **Compute match.** Effort max does not match k=3 at effort low in compute; it costs about 3x more. Whether `high`
-  matches k=3 was not measured in games.
+- **Compute match.** Effort max does not match k=3 at effort low in compute; it costs about 3x more. `high` thought about
+  as much as low in the probe, so it is not a middle setting on this model; it was not measured in games.
 - **Families.** The run covered storm and splice only; ping, fling, drain and elf were not reached.
 - **`MAX_THINKING_TOKENS`.** Why it does not cap this model's thinking through the CLI (section 2) was not traced.
-  The probe shows the effect only: a budget of 1024 thought up to 18K tokens.
+  The probe shows the effect only: a budget of 1024 thought up to 15,805 tokens.
 
 What would reopen the study:
 - A recorded deadline for the CLI seat: a `puzzle_solve.py` flag that sets `CLAUDE_DEADLINE_MS`, is written to the
   manifest `record`, and is refused for pooling and pairing as `call_timeout_ms` is. Then rerun with a deadline above
   B's longest call (876 s seen, so 20 to 30 minutes), the same for every arm.
-- Then rerun arm B at `high` or C at k=8, so the compute is matched by measurement.
+- Then rerun C at k=7 to 9 against B at max, so the compute is matched by measurement.
 - Use boards below the ceiling: the storm boards are solved by every attempt.
