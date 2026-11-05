@@ -1312,6 +1312,7 @@ public final class LlmSpikeGui {
             boolean optedIn = "1".equals(env(ClaudeCliBridge.OPT_IN));
             LLMBridgeFactory.requireCliOptIn(smartModel, mode, optedIn, seat + "/smart");
             LLMBridgeFactory.requireCliOptIn(fastModel, mode, optedIn, seat + "/fast");
+            if ("llm".equals(mode)) ReplayBridge.requireBothTiers(smartModel, fastModel);
             // A seat that never asks a model (floor, random, the puzzle arms) gets placeholders on both tiers, whatever
             // they name (a default "haiku", an openrouter: or claude-cli: spec): no bridge to a model is ever made for it.
             if (!"llm".equals(mode))
@@ -1320,8 +1321,8 @@ public final class LlmSpikeGui {
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
                 smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
-            // A script is one line: both tiers must read it from one position.
-            if (ONE_TIER || smartB instanceof ScriptBridge) return new LLMBridge[] {smartB, smartB};
+            // A script is one line, and a replay one recording: both tiers must read it from one position.
+            if (ONE_TIER || smartB instanceof ScriptBridge || smartB instanceof ReplayBridge) return new LLMBridge[] {smartB, smartB};
             return new LLMBridge[] {smartB,
                     LLMBridgeFactory.create(seat + "/fast", fastModel, framingFor(seat, deckPlan, true, fastModel))};
         }
@@ -1398,6 +1399,8 @@ public final class LlmSpikeGui {
         }
         /** The written line this seat plays (ScriptBridge), or null for any other seat. */
         ScriptBridge scriptBridge() { return smart instanceof ScriptBridge ? (ScriptBridge) smart : null; }
+        /** The recording this seat replays (ReplayBridge), or null for any other seat. */
+        ReplayBridge replayBridge() { return smart instanceof ReplayBridge ? (ReplayBridge) smart : null; }
 
         // ---------------- candidate labels: one seam, two renderers ----------------
         // Faithful profile: every menu option is rendered by the observer, so what the model can pick
@@ -12274,6 +12277,8 @@ public final class LlmSpikeGui {
                 b.relaxed = relaxed;
                 return b;
             }
+            // A recorded attempt's model turns served again (ReplayBridge): no model, nothing leaves.
+            if (spec.startsWith(ReplayBridge.PREFIX)) return ReplayBridge.fromSpec(label, spec.substring(ReplayBridge.PREFIX.length()));
             // The greedy-preview floor: zero-model, the seat's own one-ply previews (GreedyBridge).
             if (spec.startsWith(GreedyBridge.PREFIX)) return new GreedyBridge(label);
             if (spec.startsWith("openrouter:")) {
@@ -12309,7 +12314,7 @@ public final class LlmSpikeGui {
         /** The prefixes the factory routes; any other spec was the retired bare-name lane. Mirrors
          *  eval/cost_report.py KNOWN_PREFIXES (eval/test_cost_report.py checks the two lists agree). */
         static final String[] ROUTED_PREFIXES = {"openrouter:", DecisionsBridge.PREFIX, ClaudeCliBridge.PREFIX,
-                ScriptBridge.PREFIX, GreedyBridge.PREFIX};
+                ScriptBridge.PREFIX, GreedyBridge.PREFIX, ReplayBridge.PREFIX};
 
         /** True for a spec no lane takes: a bare Claude name such as `opus`, once the CLI text lane. */
         static boolean isBare(String spec) {
