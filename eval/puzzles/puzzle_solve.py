@@ -123,6 +123,8 @@ def condition(a):
     # The hidden-menu arm only when asked for, so a directory from before it resumes unchanged.
     if getattr(a, "propose_actions", False):
         cond["PROPOSE_ACTIONS"] = "1"
+    if getattr(a, "propose_terse", False):
+        cond["PROPOSE_TERSE"] = "1"
     if cost_report.is_cli_lane(getattr(a, "model", None)):
         cond.update(cost_report.cli_env(getattr(a, "claude_cli_effort", None), getattr(a, "claude_cli_thinking_tokens", None)))
     return cond
@@ -304,6 +306,8 @@ def main(argv=None):
     ap.add_argument("--propose-actions", action="store_true",
                     help="PROPOSE_ACTIONS=1: the hidden-menu arm; the seat proposes each play, its attack and its "
                          "blocks (`answer.action`, `declare_attackers`, `declare_blockers`) and the engine checks them")
+    ap.add_argument("--propose-terse", action="store_true",
+                    help="PROPOSE_TERSE=1, with --propose-actions: a refused proposal is told only that it is illegal")
     ap.add_argument("--build", default=None)
     ap.add_argument("--allow-no-record", action="store_true",
                     help="run on a build without Transcript (no http or engine record; the manifest says so)")
@@ -330,6 +334,8 @@ def main(argv=None):
     ap.add_argument("--resume", action="store_true",
                     help="skip puzzles whose k attempts on this suite are already in --out (a run stopped part way)")
     a = ap.parse_args(argv)
+    if a.propose_terse and not a.propose_actions:
+        raise SystemExit("--propose-terse without --propose-actions: it words the arm's refusals, and a menu game has none")
     if cost_report.lane_of(a.model) and a.memory_tools:
         raise SystemExit("--memory-tools with a %s: model: such a seat cannot call a lookup, so the run would record "
                          "MEMORY_TOOLS=1 for a seat that never used it (the JVM refuses it too)" % a.model.split(":", 1)[0])

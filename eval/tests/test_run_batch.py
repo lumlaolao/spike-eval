@@ -377,6 +377,26 @@ class TestProposeActions(unittest.TestCase):
         arm = run_batch.batch_condition(make_args(propose_actions=True), cited=False)
         self.assertEqual(run_batch.condition_diff(base, arm), [("propose_actions", False, True)])
 
+    def test_the_terse_refusal_is_its_own_condition_and_needs_the_arm(self):
+        # PROPOSE_TERSE refuses an illegal proposal with "ILLEGAL: that play is not legal now." (no rule): set only by
+        # --propose-terse, never from the shell, and a terse game never resumes into a detailed batch or the reverse.
+        with mock.patch.dict(os.environ, {"PROPOSE_TERSE": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.build_env(make_args(propose_actions=True), 7100, False, Path(d))["PROPOSE_TERSE"], "0")
+            self.assertEqual(run_batch.build_env(make_args(propose_actions=True, propose_terse=True), 7100, False,
+                                                 Path(d))["PROPOSE_TERSE"], "1")
+        self.assertIn("PROPOSE_TERSE", run_batch.CONDITION_ENV_KEYS)
+        detailed = run_batch.resume_expectation(make_args(propose_actions=True))
+        terse = run_batch.resume_expectation(make_args(propose_actions=True, propose_terse=True))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, propose_actions=True), detailed))  # before it
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, propose_actions=True, propose_terse=True), detailed))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, propose_actions=True, propose_terse=True), terse))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, propose_actions=True), terse))
+        base = run_batch.batch_condition(make_args(propose_actions=True), cited=False)
+        arm = run_batch.batch_condition(make_args(propose_actions=True, propose_terse=True), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, arm), [("propose_terse", False, True)])
+        self.assertIn("--propose-actions", run_batch.propose_refusal(make_args(propose_terse=True)))
+        self.assertIsNone(run_batch.propose_refusal(make_args(propose_actions=True, propose_terse=True)))
+
     def test_the_checker_audit_is_pinned_off_and_an_audited_game_never_resumes_in(self):
         # PROPOSE_AUDIT registers handles early (a condition, pr-review of #342): a shell's value never reaches a game.
         with mock.patch.dict(os.environ, {"PROPOSE_AUDIT": "1"}, clear=False), tempfile.TemporaryDirectory() as d:

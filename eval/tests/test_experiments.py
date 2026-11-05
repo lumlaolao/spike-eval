@@ -37,6 +37,7 @@ GUI = (evalpath.REPO / "forge-overlay" / "forge-gui-desktop" / "src"
        / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java")
 # The claude-cli: seat's own settings (effort, deadline, thinking budget, the CLI binary) are read there.
 CLI_BRIDGE = GUI.with_name("ClaudeCliBridge.java")
+ANSWER_TOOL = GUI.with_name("AnswerTool.java")
 
 
 def game_line_keys():
@@ -379,6 +380,9 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "OPENROUTER_BASE_URL": "openrouter_base_url", "OPENROUTER_MODEL_CFG": "model_cfg_sha",
         # A claude-cli: seat's thinking budget, per identity; the opt-in that lets one play, the dev_lane label.
         "CLAUDE_CLI_THINKING_TOKENS": "claude_cli_thinking_tokens_a", "CLAUDE_CLI_SEAT": "dev_lane",
+        # AnswerTool.protocolVersion() folds these into the answer tool's stamp ("+strict", "+per-decision", "+choice=").
+        "ANSWER_TOOL_STRICT": "answer_tool_version", "ANSWER_SCHEMA": "answer_tool_version",
+        "ANSWER_TOOL_CHOICE": "answer_tool_version",
     }
     # Read by the harness, but not a condition: each entry says why it changes nothing the seat reads or decides
     # (STANDARDS section 4; test_every_allowlist_entry_says_why). One that ever did would need a stamp.
@@ -424,8 +428,15 @@ class GameLineStampCoverageTest(unittest.TestCase):
         self.assertNotIn("SHADOW_AI", self.NON_CONDITION_ENV)
         self.assertIn("shadow_ai", set(game_line_keys()))
 
+    def test_the_terse_refusal_is_a_stamped_condition(self):
+        # PROPOSE_TERSE changes what an illegal proposal is told: stamped, keyed, never pooled with the detailed arm.
+        self.assertIn("propose_terse", set(game_line_keys()))
+        self.assertIn(("propose_terse", False), aggregate.PROVENANCE_FIELDS)
+
     def test_every_env_read_is_stamped_or_allowlisted(self):
-        java = GUI.read_text(encoding="utf-8") + CLI_BRIDGE.read_text(encoding="utf-8")
+        # AnswerTool's reads too: PROPOSE_ACTIONS and PROPOSE_TERSE are read there, not in the game-line writer.
+        java = (GUI.read_text(encoding="utf-8") + CLI_BRIDGE.read_text(encoding="utf-8")
+                + ANSWER_TOOL.read_text(encoding="utf-8"))
         keys = set(game_line_keys())
         self.assertIn("native_tools", keys)          # the extraction found the game-line statement
         # Every env-reading form in this file: System.getenv("X"), the getOrDefault fallbacks, the

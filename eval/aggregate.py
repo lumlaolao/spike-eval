@@ -169,6 +169,8 @@ PROVENANCE_FIELDS = (
     # The hidden-menu arm (PROPOSE_ACTIONS, harness-epoch-74): every line before it was a menu game.
     ("propose_actions", False),
     ("propose_audit", False),
+    # PROPOSE_TERSE (harness-epoch-80): a rules refusal said only "ILLEGAL", not the rule; every line before it did.
+    ("propose_terse", False),
     # SHADOW_AI asks Forge's AI on the side for a label (a DAgger corpus). Its targets are reset before the seat's cast
     # and the RNG restored, but an AI timeout weakens that isolation ([SHADOW] ... WEAKENED): a condition (#345).
     ("shadow_ai", False),

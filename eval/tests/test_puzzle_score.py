@@ -214,6 +214,17 @@ class ScoreV2Test(unittest.TestCase):
         with self.assertRaisesRegex(ps.Refused, "play interfaces"):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
 
+    def test_terse_and_detailed_refusals_are_never_pooled(self):
+        # PROPOSE_TERSE: an illegal proposal was told only "ILLEGAL", not the rule; the detailed arm is another condition.
+        rows = self.rows([4, 2, 0])
+        for r in rows:
+            r["propose_actions"] = True
+            r["propose_terse"] = True
+        ps.score(self.m, rows, "open", k=4, n_boot=20)
+        del rows[0]["propose_terse"]
+        with self.assertRaisesRegex(ps.Refused, "refusal texts"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+
     def test_attempts_from_two_decisions_bridge_versions_are_never_pooled(self):
         # A jev: solver's questions are versioned like the interface (DecisionsBridge.VERSION).
         rows = self.rows([4, 2, 0], decisions_bridge_version="decisions-bridge-v1")

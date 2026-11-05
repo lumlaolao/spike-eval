@@ -450,6 +450,20 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   restriction. Kaggle Game Arena says only "illegal"; a list of what would be legal is a hidden menu. A malformed
   proposal (an unknown handle, ability 3 of a card with two, `option` instead of `action`) is a `FORMAT:` error,
   recorded apart.
+- **The terse arm** (`PROPOSE_TERSE=1`, with the propose arm only; harness-epoch-80, answer-tool-v17): a rules
+  refusal says only "ILLEGAL: that play is not legal now." (an attack or blocks: "that declaration";
+  `AnswerTool.shownRefusal`), Game Arena's form, and the preamble and the `action` schema say the seat is told only
+  that it is illegal. It measures the message's share of repair
+  (Gumaan 2026: a failure message can make a repeat more likely). The substitution is made where the refusal is sent
+  (`AnswerTool.converse`), so the check, the categories and the four tries are the detailed arm's. A `FORMAT:` error
+  keeps its text: it says what is malformed, not which rule applies. The row keeps the engine's diagnosis in
+  `error` and `category`, and what the seat was told in `error_shown`, so both arms count the same rules
+  (`proposal_audit.py`'s `repair` and `refusal_text`). Stamped `propose_terse` on the game line and puzzle row and
+  `answer-tool-v17+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
+  pinned by `run_batch.py --propose-terse` and `puzzle_solve.py --propose-terse`, each refused without
+  `--propose-actions`. The preamble's general ANSWERS sentence ("you are told why") is the same in both arms: it is
+  about answers to listed decisions, and the b2 block was played with it. Results: the research note's section "Does
+  the refusal's reason matter? The terse arm".
 - **Four tries** (`AnswerTool.MAX_INVALID_PROPOSALS`), then the fixed legal option, PASS. A decision lost to four
   refusals is the model's error, not a lost answer: `match_review` lists it as PROPOSAL and the harness-decided gate
   does not count it (`proposal_audit.lost_to_refusals`, one rule for both: `answer_via` lost after four invalid
@@ -457,7 +471,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v16+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v17+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls

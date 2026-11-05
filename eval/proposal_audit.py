@@ -15,10 +15,14 @@ condition") and reports, per seat:
 - `legal_within`: the share of decisions with a legal proposal by the 1st, 2nd, 3rd and 4th try.
 - `lost`: decisions whose four tries were all refused (played as PASS), and `lost_other`: decisions with no accepted
   proposal lost another way (no `answer` call after a refusal); `format_errors`: malformed proposals, not counted as
-  rules errors; `categories`: the rule each refused proposal broke.
+  rules errors; `categories`: the rule each refused proposal broke (the engine's diagnosis, recorded under
+  PROPOSE_TERSE too, where the seat is told only "ILLEGAL").
+- `repair`: the decisions a rules refusal opened, and whether each became a play, a pass (always legal, so not rules
+  knowledge) or nothing; the same action sent again after a refusal (`exact_repeats`). `refusal_text`: terse or
+  detailed, from the rows' `error_shown`. Few decisions are opened on most positions: say the n beside any rate.
 - Each rate has its Wilson 95% interval (`*_ci`).
 
-The attack and the blocks are proposed under the same arm (answer-tool-v16, `declare_attackers` / `declare_blockers`).
+The attack and the blocks are proposed under the same arm (harness-epoch-78, `declare_attackers` / `declare_blockers`).
 Their rows (`type` attackers / blockers) get their own sheets, `attack` and `block` beside the play sheet, with the same
 fields: an empty declaration is a combat proposal's pass (attacking or blocking with none is almost always legal), so
 their headline is first-try legality of non-empty declarations. They are never pooled with the play headline.
@@ -68,6 +72,7 @@ def rows(paths):
                     except ValueError:
                         continue
                     if r.get("t") == "decision" and isinstance(r.get("proposals"), list):
+                        r["_game"] = str(f)   # one file is one game: repair's later-decision repeats stay in it
                         yield r
 
 
@@ -91,6 +96,16 @@ def verb_of(p):
             return verb if p[field] else "pass"
     a = p.get("action")
     return a.get("verb") if isinstance(a, dict) else None
+
+
+def move_of(p):
+    """What a proposal proposed, the same for two identical proposals: its `action`, or its combat declaration."""
+    if not isinstance(p, dict):
+        return None
+    for field in ("action",) + tuple(COMBAT_FIELDS):
+        if field in p:
+            return {field: p[field]}
+    return None
 
 
 def summarize(decisions):
@@ -132,6 +147,55 @@ def summarize(decisions):
         out[key + "_ci"] = [round(x, 4) for x in wilson_ci(sum(xs), len(xs))] if xs else None
     out["legal_within"] = {str(k + 1): round(within[k] / n, 4) if n else None for k in range(TRIES)}
     out["categories"] = dict(cats.most_common())
+    out["repair"] = repair(decisions)
+    shown = [p for r in decisions for p in r["proposals"] if p.get("verdict") == "illegal"]
+    out["refusal_text"] = (None if not shown else "terse" if all(p.get("error_shown") for p in shown)
+                           else "detailed" if not any(p.get("error_shown") for p in shown) else "mixed")
+    return out
+
+
+def repair(decisions):
+    """After a rules refusal: decisions whose first well-formed proposal was refused by a rule (`opened`), and what
+    each became: a play (`to_play`; for combat, a non-empty declaration), a pass (`to_pass`; for combat, an empty
+    one: always legal, so a repair to it is not rules knowledge), or nothing accepted (`unrepaired`);
+    `within`: the share accepted by try k, counted as legal_within counts tries. `exact_repeats`: refused proposals
+    whose next try in the same decision sent the same action (Gumaan 2026's repeat), out of `followed`, the refused
+    proposals with a next try. `refused_again`: of the distinct actions refused in a game (`refused_distinct`), those
+    refused again in a later decision of the same game: the refusal taught nothing that lasted past its decision.
+    Rows are read in file order, which is the game's order."""
+    out = {"opened": 0, "to_play": 0, "to_pass": 0, "unrepaired": 0, "followed": 0, "exact_repeats": 0}
+    at = Counter()
+    first, again = {}, set()   # (game, action) -> the decision it was first refused at; those refused in a later one
+    for i, r in enumerate(decisions):
+        ps = r["proposals"]
+        for p in ps:
+            if p.get("verdict") != "illegal":
+                continue
+            key = (r.get("_game"), json.dumps(move_of(p), sort_keys=True))
+            if key not in first:
+                first[key] = i
+            elif first[key] < i:
+                again.add(key)
+        for p, nxt in zip(ps, ps[1:]):
+            if p.get("verdict") == "illegal":
+                out["followed"] += 1
+                out["exact_repeats"] += move_of(p) == move_of(nxt)
+        formed = [p for p in ps if p.get("verdict") != "format"]
+        if not formed or formed[0].get("verdict") != "illegal":
+            continue
+        out["opened"] += 1
+        k = next((j for j, p in enumerate(ps) if p.get("verdict") == "accepted"), None)
+        if k is None:
+            out["unrepaired"] += 1
+            continue
+        out["to_pass" if verb_of(ps[k]) == "pass" else "to_play"] += 1
+        at[k] += 1
+    out["refused_distinct"], out["refused_again"] = len(first), len(again)
+    n = out["opened"]
+    out["to_play_share"] = round(out["to_play"] / n, 4) if n else None
+    out["to_play_ci"] = [round(x, 4) for x in wilson_ci(out["to_play"], n)] if n else None
+    out["within"] = {str(k + 1): round(sum(at[i] for i in range(k + 1)) / n, 4) if n else None for k in range(1, TRIES)}
+    out["exact_repeat_share"] = round(out["exact_repeats"] / out["followed"], 4) if out["followed"] else None
     return out
 
 
@@ -160,7 +224,20 @@ def render_one(s, what, null_move, fallback):
         "  legal within 1/2/3/4 tries: %s" % " / ".join(str(s["legal_within"][str(k)]) for k in range(1, TRIES + 1)),
         "  lost (all %d tries refused, %s): %d; lost another way: %d; format errors: %d"
         % (TRIES, fallback, s["lost"], s["lost_other"], s["format_errors"]),
-    ] + (["  refused by rule: " + ", ".join("%s %d" % kv for kv in s["categories"].items())] if s["categories"] else [])
+    ] + (["  refused by rule: " + ", ".join("%s %d" % kv for kv in s["categories"].items())]
+         if s["categories"] else []) + repair_lines(s)
+
+
+def repair_lines(s):
+    rp = s["repair"]
+    if not rp["opened"] and not rp["refused_distinct"]:
+        return []
+    return ["  repair after a rules refusal (%s text): %d opened; to a move %d %s %s, to the null move %d, "
+            "none accepted %d; accepted by try 2/3/4: %s; exact repeats %d of %d; "
+            "refused again in a later decision %d of %d"
+            % (s["refusal_text"], rp["opened"], rp["to_play"], rp["to_play_share"], rp["to_play_ci"], rp["to_pass"],
+               rp["unrepaired"], " / ".join(str(rp["within"][str(k)]) for k in range(2, TRIES + 1)),
+               rp["exact_repeats"], rp["followed"], rp["refused_again"], rp["refused_distinct"])]
 
 
 def render(sheet):

@@ -381,8 +381,11 @@ public final class LlmSpikeGui {
      *  (the global cap, then each pair with the others in place, then blocksError), as a tool answer is; added one by one,
      *  a legal block written before the block that obeys a "must be blocked if able" requirement was dropped. A pair the
      *  blocker can never make (CombatUtil.canBlock without combat) is not used and leaves the name for the next pair.
+     *  Epoch 80 (2026-11-05, answer-tool-v17): the PROPOSE_TERSE arm, under PROPOSE_ACTIONS only: a rules refusal of a
+     *  play or a combat declaration says only that it is illegal, with no rule, to measure the message's share of
+     *  repair. Unchanged off it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-79";
+    static final String HARNESS_EPOCH = "harness-epoch-80";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -10051,6 +10054,10 @@ public final class LlmSpikeGui {
                  .append(",\"verdict\":\"").append(verdict).append('"');
                 if (category != null) b.append(",\"category\":\"").append(jsonEscape(category)).append('"');
                 if (err != null) b.append(",\"error\":\"").append(jsonEscape(err)).append('"');
+                // PROPOSE_TERSE: `error` is the engine's diagnosis; the seat was told only this.
+                String shown = AnswerTool.shownRefusal(err, "action".equals(field) ? AnswerTool.Kind.ACTION
+                        : AnswerTool.DECLARE_ATTACKERS.equals(field) ? AnswerTool.Kind.ATTACK_PROPOSAL : AnswerTool.Kind.BLOCK_PROPOSAL);
+                if (shown != null && !shown.equals(err)) b.append(",\"error_shown\":\"").append(jsonEscape(shown)).append('"');
                 b.append('}');
             }
             return b.append("],\"first_try_legal\":").append(firstLegal).toString();
@@ -12610,6 +12617,7 @@ public final class LlmSpikeGui {
                 // on-game with an off-game, and a legacy line that carries neither reads MISSING.
                 + ",\"plan_execute\":" + PlayerControllerLLM.PLAN_EXECUTE
                 + ",\"propose_actions\":" + AnswerTool.proposeActions()
+                + ",\"propose_terse\":" + AnswerTool.proposeTerse()
                 + ",\"propose_audit\":" + PlayerControllerLLM.PROPOSE_AUDIT
                 + ",\"shadow_ai\":" + PlayerControllerLLM.SHADOW
                 + ",\"tier_fast_types\":\"" + jsonEscape(PlayerControllerLLM.tierFastTypesLabel()) + "\""
