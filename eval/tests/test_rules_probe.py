@@ -624,14 +624,17 @@ class TestEngineLabels(unittest.TestCase):
     def test_a_negative_is_subtle_only_when_the_zone_reading_floor_misses_it(self):
         rows = [engine_raw(verb="play_land", card="@11", name="Gravecrawler", category="type"),   # not in hand
                 engine_raw(verb="cast", card="@2", name="Blood Artist", category="zone"),          # on the battlefield
-                engine_raw(verb="cast", card="@13", name="Lightning Bolt", category="cost", cost="Flashback"),
+                engine_raw(verb="cast", card="@13", name="Lightning Bolt", category="cost", cost="Flashback",
+                           reason='Lightning Bolt @13 cannot be cast for a cost named "Flashback".'),
                 engine_raw(verb="cast", card="@13", name="Lightning Bolt", category="target", targets=["@14"],
                            target_names=["Hill Giant"])]
         by_sig = {i["signature"]: i["difficulty"] for i in rp.engine_items(engine_file(rows))}
         self.assertEqual(by_sig["play_land|Gravecrawler|None|None|None|None"], "trivial")
         self.assertEqual(by_sig["cast|Blood Artist|None|None|None|None"], "trivial")
-        self.assertEqual(by_sig["cast|Lightning Bolt|None|None|Flashback|None"], "subtle")
         self.assertEqual(by_sig["cast|Lightning Bolt|None|None|None|Hill Giant"], "subtle")
+        # A way to cast the card does not have: the card's own text, which `ask` shows, settles it (82% of the
+        # subtle positions of the first full export were these).
+        self.assertEqual(by_sig["cast|Lightning Bolt|None|None|Flashback|None"], "card-text")
 
     def test_the_zone_reading_floor_reads_where_the_card_is_and_what_it_can_activate(self):
         def floor(**kw):
@@ -650,6 +653,19 @@ class TestEngineLabels(unittest.TestCase):
         self.assertFalse(floor(verb="activate", card="@14"), "the opponent's permanent")
         self.assertFalse(rp.zone_floor({"state": ENGINE_COMBAT_STATE,
                                         "proposal": {"verb": "play_land", "card": "@1"}})["legal"])
+
+    def test_the_zone_reading_floor_refuses_a_target_in_a_hand_or_marked_hexproof_or_shroud(self):
+        # runs: the hand audit's Lava Spike targeting Fork in hand and the opp-hexproof variant's Gladecover Scout.
+        st = ENGINE_STATE.replace("Hill Giant 3/3 [untapped] @14", "Hill Giant 3/3 [untapped] @14, "
+                                  "Gladecover Scout 1/1 [untapped] [hexproof] @16")
+
+        def floor(target):
+            return rp.zone_floor({"state": st, "proposal": {"verb": "cast", "card": "@13", "targets": [target]}})
+        self.assertFalse(floor("@1")["legal"], "a card in your hand")
+        self.assertFalse(floor("@16")["legal"], "the opponent's hexproof creature")
+        self.assertTrue(floor("@14")["legal"])
+        self.assertTrue(floor("@11")["legal"], "a graveyard card: some spells target one, the floor cannot tell")
+        self.assertTrue(floor("opponent")["legal"])
 
     def test_two_targets_of_one_spell_are_two_positions(self):
         rows = [engine_raw(label="legal", targets=["@14"], target_names=["Hill Giant"]),

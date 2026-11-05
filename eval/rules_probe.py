@@ -432,10 +432,16 @@ def zone_floor(item):
     p, st = item["proposal"], item["state"]
     if p.get("verb") == "target":
         return heuristic(item)
-    lands = {b["handle"] for b in board_permanents(st) if b["kind"] == "land"}
-    if any(t in lands for t in p.get("targets") or []):
-        return {"legal": False}
+    perms = board_permanents(st)
+    lands = {b["handle"] for b in perms if b["kind"] == "land"}
     where, abilities = zones(st)
+    # A target the state shows cannot be one: a land, a card in your hand, a permanent marked shroud or, the
+    # opponent's, hexproof. A graveyard card may be a legal target (the floor cannot tell).
+    untargetable = {b["handle"] for b in perms
+                    if any("shroud" in k or ("hexproof" in k and b["side"] == "opponent's") for k in b["keywords"])}
+    for t in p.get("targets") or []:
+        if t in lands or t in untargetable or where.get(t, (None, None))[1] == "hand":
+            return {"legal": False}
     side, zone = where.get(p.get("card"), (None, None))
     hand = next((h for h in parse_hand(st) if h["handle"] == p.get("card")), None)
     if p.get("verb") == "play_land":
@@ -467,12 +473,17 @@ def read_raw(path):
         return [json.loads(ln) for ln in fh if ln.startswith("{")]
 
 
+# The checker's sentence for a cast way the card does not have (LlmSpikeGui.rejection).
+WRONG_WAY = "cannot be cast for a cost named"
+
+
 def engine_items(rows):
     """Probe items from the engine labeller's rows (RulesProbeLabelTest): the state row each names, the proposal, the
     checker's label, category and sentence. A FORMAT verdict (how a proposal is written, not a rule) or a row whose
     state is missing is no item. A negative is "trivial" when the zone-reading floor calls it illegal and "subtle"
     when it does not: the difficulty is defined by that floor, so the floor is right on no subtle negative by
-    construction."""
+    construction. A subtle one that names a way to cast the card does not have is "card-text": the card's own text,
+    which `ask` shows, settles it."""
     states = {r["id"]: r for r in rows if r.get("t") == "state"}
     out = []
     for r in rows:
@@ -492,6 +503,8 @@ def engine_items(rows):
                    mana_ability=bool(r.get("mana_ability")), signature=r.get("signature"))
         if illegal:
             it["difficulty"] = "subtle" if zone_floor(it)["legal"] else "trivial"
+            if it["difficulty"] == "subtle" and WRONG_WAY in (it["reason"] or ""):
+                it["difficulty"] = "card-text"
         out.append(it)
     return dedupe(out)
 
