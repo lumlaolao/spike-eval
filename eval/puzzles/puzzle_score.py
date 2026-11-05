@@ -63,7 +63,9 @@ BRIDGE_CONDITIONS = (("decisions_bridge_version", "decisions bridge versions"),
                      # PROPOSE_AUDIT, the checker audit: a diagnostic that registers handles early, so a condition.
                      ("propose_audit", "checker audits (true: PROPOSE_AUDIT on)"),
                      # PROPOSE_TERSE (harness-epoch-80): a refused proposal was told only "ILLEGAL", not the rule.
-                     ("propose_terse", "refusal texts (true: terse, no rule named)"))
+                     ("propose_terse", "refusal texts (true: terse, no rule named)"),
+                     # PROPOSE_NOTEBOOK (harness-epoch-81): a proposal decision listed the game's earlier refusals.
+                     ("propose_notebook", "refusal notebooks (true: earlier refusals listed)"))
 
 # A condition read from a puzzle's manifest when the directory has none (a baseline arm): not known, not "unset".
 NO_MANIFEST = "n/a"
