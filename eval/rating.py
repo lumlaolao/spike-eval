@@ -71,7 +71,7 @@ SERVED_BY_IDENT = {ident: tuple(f for f in aggregate.SERVED_FIELDS if f.endswith
                    for ident in ("a", "b")}
 # A setting of the llm seat (its model, tools, tiers, time); part of that player's identity.
 PLAYER_FIELDS = (
-    "smart_budget", "fast_budget", "claude_deadline_ms", "game_cap_ms", "openrouter_base_url",
+    "smart_budget", "fast_budget", "claude_deadline_ms", "openrouter_timeout_ms", "game_cap_ms", "openrouter_base_url",
     "checkpoint_sha", "model_cfg_sha", "claude_effort_smart", "claude_effort_fast",
     "memory_tools", "memory_tools_version", "native_tools", "native_tools_seats",
     "native_tools_version", "native_tools_downgraded", "rules_tool", "rules_tool_version",

@@ -312,6 +312,17 @@ class ScoreV2Test(unittest.TestCase):
         with self.assertRaisesRegex(ps.Refused, "refusal texts"):
             ps.score(self.m, rows, "open", k=4, n_boot=20)
 
+    def test_attempts_with_and_without_the_refusal_notebook_are_never_pooled(self):
+        # PROPOSE_NOTEBOOK: a proposal decision listed the game's earlier refusals; without it, another condition.
+        rows = self.rows([4, 2, 0])
+        for r in rows:
+            r["propose_actions"] = True
+            r["propose_notebook"] = True
+        ps.score(self.m, rows, "open", k=4, n_boot=20)
+        del rows[0]["propose_notebook"]
+        with self.assertRaisesRegex(ps.Refused, "refusal notebooks"):
+            ps.score(self.m, rows, "open", k=4, n_boot=20)
+
     def test_attempts_from_two_decisions_bridge_versions_are_never_pooled(self):
         # A jev: solver's questions are versioned like the interface (DecisionsBridge.VERSION).
         rows = self.rows([4, 2, 0], decisions_bridge_version="decisions-bridge-v1")

@@ -24,7 +24,10 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
    `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS` (written by
    `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `engine-patches/`, `eval/`,
    `scripts/` or a root launcher (any `*.sh` at the root; `eval/tests/test_pr_format.py` fails when one is missing from
-   `pr_format.CODE_PATHS`). The sha must be the PR's current head.
+   `pr_format.CODE_PATHS`). The sha must be the PR's current head, and N covers every stage: one PASS line per stage
+   in `ALL_STAGES` (`eval/harness_acceptance.sh`), two for canary, 19 today. `record-acceptance` checks the counts
+   against the run's own `<OUT>/summary.txt` and refuses a `STAGES` subset, which is prose in Evidence, never this line
+   (PR #357).
 
 It merges exactly the commit it checked, with a merge commit. Never squash: the commit list is the
 record of what was reviewed. Merging your own PR is fine once the gate passes.
@@ -144,7 +147,10 @@ most log questions).
   `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
   (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
   entry; each allowlist entry carries the reason it changes nothing the seat sees (`NON_CONDITION_ENV` maps
-  each name to its reason; `test_every_allowlist_entry_says_why`).
+  each name to its reason; `test_every_allowlist_entry_says_why`). Every condition the scan finds stamped or
+  recorded elsewhere is also pinned by `run_batch.py`, or named in `NOT_PINNED` with why a shell value may reach a
+  game, and every `NOT_PINNED` name is still a condition the scan finds (an entry that stops being one is removed;
+  `test_every_stamped_condition_is_pinned_or_says_why`; PRs #342, #344, #354, #355).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
   per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329) may
   instead be recorded in each puzzle's `batch-manifest.json` `record`, provided

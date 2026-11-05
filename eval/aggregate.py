@@ -80,6 +80,8 @@ PROVENANCE_FIELDS = (
     ("smart_budget", "unknown"),
     ("fast_budget", "unknown"),
     ("claude_deadline_ms", "unknown"),
+    # OPENROUTER_TIMEOUT_MS as the operator set it; "" unset, as every line before the stamp (pr-review of #355).
+    ("openrouter_timeout_ms", ""),
     ("game_cap_ms", "unknown"),
     # Resolved model identity (added 2026-07-26). The configured spec is not an
     # identity: SMART_MODEL_A="openrouter:default_model" against a local server
@@ -171,6 +173,8 @@ PROVENANCE_FIELDS = (
     ("propose_audit", False),
     # PROPOSE_TERSE (harness-epoch-80): a rules refusal said only "ILLEGAL", not the rule; every line before it did.
     ("propose_terse", False),
+    # PROPOSE_NOTEBOOK (harness-epoch-81): a proposal decision listed the game's earlier refusals; no line before it did.
+    ("propose_notebook", False),
     # SHADOW_AI asks Forge's AI on the side for a label (a DAgger corpus). Its targets are reset before the seat's cast
     # and the RNG restored, but an AI timeout weakens that isolation ([SHADOW] ... WEAKENED): a condition (#345).
     ("shadow_ai", False),
