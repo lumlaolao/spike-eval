@@ -323,9 +323,9 @@ public class ProposeActionsTest {
         Assert.assertTrue(reject(ctrl, me, true, prop("activate", handle(ctrl, sick), 1, null, null)).contains("summoning sickness"));
     }
 
-    /** The menu lists a land's mana ability once per name, and another copy's entry stands for an untapped copy. A tapped
-     *  copy's ability, or one in the hand, is not that play: before, it matched the other Mountain's entry, that
-     *  Mountain was tapped, and the arm counted the illegal proposal as legal (engine labeller of PR #359). */
+    /** The menu lists a land's mana ability once per name. A tapped copy's ability, or one in the hand, is not a legal
+     *  play: before, it matched the other Mountain's entry, that Mountain was tapped, and the arm counted the illegal
+     *  proposal as legal (engine labeller of PR #359). An untapped copy is accepted and is the one tapped. */
     @Test
     public void aLandsManaAbilityIsRefusedWhenThatLandCannotPayIt() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -342,6 +342,33 @@ public class ProposeActionsTest {
         LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
         SpellAbility got = po.spells.get(hit[0] - 1);
         Assert.assertTrue(got.isManaAbility() && got.getHostCard() == untapped, "the untapped Mountain is the one tapped: " + got);
+    }
+
+    /** Two untapped Forests, one enchanted by Utopia Sprawl: the menu lists one Forest's mana, the first. The proposed
+     *  copy is the one tapped, so the Sprawl's extra mana comes too; tapping the other copy for it cost the seat a mana
+     *  (pr-review of #360). */
+    @Test
+    public void theProposedCopyOfALandIsTheOneTapped() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card plain = card("Forest", me, ZoneType.Battlefield);
+        Card sprawled = card("Forest", me, ZoneType.Battlefield);
+        Card sprawl = card("Utopia Sprawl", me, ZoneType.Battlefield);
+        sprawl.setChosenColors(List.of("green"));
+        sprawl.attachToEntity(sprawled, null, true);
+        g.getTriggerHandler().resetActiveTriggers();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        int passIdx = 1 + po.spells.size() + po.landPlays.size();
+        int[] hit = {-1};
+        Assert.assertNull(ctrl.matchProposal(prop("activate", handle(ctrl, sprawled), 1, null, null), po.spells, po.landPlays,
+                po.landCards, passIdx, me, true, hit));
+        SpellAbility got = po.spells.get(hit[0] - 1);
+        Assert.assertSame(got.getHostCard(), sprawled, "the other Forest would be tapped: " + got);
+        got.setActivatingPlayer(me);
+        ctrl.playSpellAbilityNoStack(got, true);
+        Assert.assertTrue(sprawled.isTapped() && !plain.isTapped(), "the proposed Forest is the one tapped");
+        Assert.assertEquals(me.getManaPool().totalMana(), 2, "the Forest's mana and the Sprawl's");
     }
 
     /** Forge's canPlay already asks whether the non-mana part of the cost can be paid (CostPayment.canPayAdditionalCosts),
@@ -411,6 +438,16 @@ public class ProposeActionsTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
         assertCategory(verdict(ctrl, me, true, prop("activate", handle(ctrl, skeleton), 1, null, null), new int[] {-1}), "control");
         assertCategory(verdict(ctrl, me, true, prop("cast", handle(ctrl, looting), null, null, "flash"), new int[] {-1}), "control");
+        // Checking an opponent's ability leaves its activator as it was (pr-review of #360). The menu's enumeration
+        // (Forge's getSpellAbilities over every available card) sets it on its own, so it runs first here.
+        Card pyro = card("Prodigal Pyromancer", rival, ZoneType.Battlefield);
+        int h = handle(ctrl, pyro);
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        SpellAbility ping = LlmSpikeGui.PlayerControllerLLM.proposalAbilities(pyro).get(0);
+        ping.setActivatingPlayer(rival);
+        assertCategory(ctrl.matchProposal(prop("activate", h, 1, null, null), po.spells, po.landPlays, po.landCards,
+                1 + po.spells.size() + po.landPlays.size(), me, true, new int[] {-1}), "control");
+        Assert.assertSame(ping.getActivatingPlayer(), rival, "the seat was left as the opponent's activator");
     }
 
     /** Off the propose arm the checker is never reached: the seat picks from the menu, the menu's first play is made,
