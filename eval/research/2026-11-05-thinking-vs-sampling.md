@@ -101,19 +101,28 @@ for this model records a cap that did not hold (section 7).
 
 ---
 
-## 4. Results: stopped at puzzle 3 of 12 by the stop rule
+## 4. Results: stopped by hand at puzzle 3 of 12
 
-**The study did not finish.** On the third puzzle, arm B (effort max) lost decisions to the CLI seat's per-call
-deadline. That met the stop rule (section 3), and the run was stopped by hand after 61 minutes. Run directory
-`runs/tvs` (kept by its author in the worktree `tvs-wt`): `A-low-k1`, `B-max-k1`, `C-low-k3`, `driver.log`, and the
-drivers and `tvs_compute.py` that wrote the tables below.
+**The study did not finish.** On the third puzzle, arm B (effort max) ran into the CLI seat's 300 s per-call deadline:
+four calls were cut, in three decisions, and each decision was answered by the model when the bridge restarted its
+session. No decision was lost, so the pre-registered stop rule (section 3) was **not** met. The run was stopped by hand
+after 61 minutes, on the `[CLAUDE-CLI-NO-ANSWER]` log line, which says the seat takes its fixed legal option even when a
+retry follows. That stop is a deviation from the pre-registration, recorded here as one. Run directory `runs/tvs` (kept
+by its author in the worktree `tvs-wt`): `A-low-k1`, `B-max-k1`, `C-low-k3`, `driver.log`, and the drivers and
+`tvs_compute.py` that wrote the tables below.
 
-### 4.1 The defect that stopped arm B
+### 4.1 What happened to arm B on splice-06da
 
 `B-max-k1/hard-splice-06dad20af5b3/jvm.log`: `[CLAUDE-CLI-NO-ANSWER] no result within 300000 ms -> no answer; the
-seat takes its fixed legal option`, four times, in three decisions (twice in one, `jvm.log` lines 61 and 63). Those
-three decisions are the three `context_call` rows over 300 s below (520, 554 and 876 s, each with its retry); two of
-them went to the fixed legal option. The game's final tally is `[TALLY] smart=12 fast=0 auto=2 ... avgSmart=306201ms`.
+seat takes its fixed legal option`, four times, in three decisions (twice in one, `jvm.log` lines 61 and 63). Each is
+followed by `[BRIDGE Solver/smart] no reply (attempt 2/3) -> restarting session` (lines 37, 62, 71) and then the
+model's own `answer` call. In the game's 14 `decision` rows no `fallback` is set except the two
+`splice(none payable)->none` rows, which are the `[AUTO-LEGAL]` lines 47 and 58 (no splice cost was payable) and are
+the `auto=2` of the final tally, `[TALLY] smart=12 fast=0 auto=2 ... avgSmart=306201ms`. The three cut decisions are
+the three `context_call` rows over 300 s below (520, 554 and 876 s, each including its restarted session). So the
+deadline did not take B's answers; it made its three hardest decisions restart from a fresh session after 300 s or
+more, which is a different condition from the one designed, and the override that would lift it
+(`CLAUDE_DEADLINE_MS`) is not recorded by the puzzle runner.
 `puzzle_watch.py` flagged it `NO-ANSWER x4`. Per-call figures, from each game's `context_call` rows (`elapsed_ms`,
 `completion_tokens`):
 
@@ -161,17 +170,17 @@ Per puzzle (1 solved, 0 failed; C's attempts in seed order):
 |---|---|---|---|
 | storm-5bf9 | 1 | 1 | 111 |
 | storm-88f9 | 1 | 1 | 111 |
-| splice-06da | 0 | (lost: 4 decisions to the deadline) | 000 |
+| splice-06da | 0 | (stopped by hand; no result row) | 000 |
 
 The pre-registered contrasts, on the two storm boards the arms share:
 - B - A pass@1: +0.000, 95% CI [0.000, 0.000] (`--paired-with`).
 - B pass@1 vs C pass@3: +0.000, CROSS-K (`--paired-with runs/tvs/C-low-k3 --paired-k 3 --paired-metric pass@k`, with
   `runs/tvs/B-max-k1` as the first run).
 
-Both are zeros on two boards that every attempt of every arm solved. **Shows:** the storm boards are at the ceiling
-for this model at either effort, so they cannot separate the arms. The only board that could (splice-06da: A 0, C
-0 of 3) is the one where B lost its decisions. C's seed-1 attempt matches A's on all three boards, which is the
-replicate the design expected.
+Both are zeros on two boards that every attempt of every arm solved. **Shows:** the storm boards are at the ceiling for
+this model at either effort, so they cannot separate the arms. The only board that could (splice-06da: A 0, C 0 of 3) is
+the one where B's calls ran into the deadline and the game was stopped by hand. C's seed-1 attempt matches A's on all
+three boards, which is the replicate the design expected.
 
 ### 4.3 Compute: the match was not what the probe predicted
 
@@ -196,9 +205,10 @@ A compute-matched design on this lane would set B's effort to `high` (1.5x in th
 ## 5. What was not determined
 
 - **The question itself.** Whether one long-thinking attempt beats several short ones at matched compute is not
-  determined. The run reached 3 of 12 puzzles; two of them sit at the ceiling and the third lost arm B's decisions.
-- **Effort max on hard boards.** Whether max effort solves splice-06da when its calls may finish is not known: the
-  deadline cut its decisions.
+  determined. The run reached 3 of 12 puzzles; two of them sit at the ceiling, and on the third arm B's game was stopped
+  by hand.
+- **Effort max on hard boards.** Whether max effort solves splice-06da is not known: its game was stopped by hand
+  after the deadline restarted three of its decisions.
 - **Compute match.** Effort max does not match k=3 at effort low in compute; it costs about 3x more. Whether `high`
   matches k=3 was not measured in games.
 - **Families.** The run covered storm and splice only; ping, fling, drain and elf were not reached.

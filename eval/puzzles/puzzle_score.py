@@ -88,6 +88,11 @@ def pass_hat(c, n, j):
     return math.comb(c, j) / math.comb(n, j)
 
 
+def any_of(rate, k):
+    """The chance a policy that solves an attempt with probability `rate` solves at least once in k attempts."""
+    return 1 - (1 - rate) ** k
+
+
 def p_solved_by_policy(rate, k):
     """Chance a policy with per-attempt solve rate `rate` gets c >= k/2 in k attempts (the
     'puzzles solved' floor for that policy)."""
@@ -330,7 +335,7 @@ def aggregate(rows, k, n_boot=2000, seed=0):
             # One 0/1 per puzzle, so the count interval applies at any k.
             "ci95_wilson": list(wilson_ci(sum(int(r["pass@k"]) for r in rows), len(rows))) if rows else None,
             # A trivial arm gets k tries too.
-            "floors": {arm: _mean([1 - (1 - r[arm + "_rate"]) ** k for r in rows]) for arm in ("random", "pass", "first")},
+            "floors": {arm: _mean([any_of(r[arm + "_rate"], k) for r in rows]) for arm in ("random", "pass", "first")},
         }
     ai = [r["ai_rate"] for r in rows if r["ai_rate"] is not None]
     if len(ai) == len(rows):
@@ -450,8 +455,9 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7, metric="pass@1"):
     sorted, so the resample does not depend on the order results were read) and its clustered interval. With
     base=(C, D), the difference of differences (B - A) - (D - C). Refuses runs of other puzzles, suites or k.
     metric="pass@k": each run's own pass@k (any of its k attempts), so a k=1 run pairs with a k=n run: one attempt
-    against n; the compute match is measured from the budget line, not assumed. The pair is labelled cross-k, with
-    what each trivial arm gains from the change in k alone (`k_floors`); pass@1 under two k is still refused."""
+    against n; whether the compute matches is for the reader to check on each run's budget line. The pair is
+    labelled cross-k, with what each trivial arm gains from the change in k alone (`k_floors`); pass@1 under two k is
+    still refused."""
     if metric not in PAIR_METRICS:
         raise Refused("paired metric %r: one of %s" % (metric, ", ".join(PAIR_METRICS)))
     reps = [rep_a, rep_b] + list(base or ())
@@ -482,7 +488,7 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7, metric="pass@1"):
     # More attempts raise pass@k for a solver with no skill (pr-review of #361): a trivial arm's own gain, puzzle by
     # puzzle, is what the paired difference must beat.
     by_id = {p["id"]: p for p in rep_a["puzzles"]}
-    k_floors = ({arm: _mean([(1 - (1 - by_id[p][arm + "_rate"]) ** ks[1]) - (1 - (1 - by_id[p][arm + "_rate"]) ** ks[0])
+    k_floors = ({arm: _mean([any_of(by_id[p][arm + "_rate"], ks[1]) - any_of(by_id[p][arm + "_rate"], ks[0])
                              for p in ids]) for arm in ("random", "pass", "first")}
                 if cross_k and not base else None)
     return {"metric": metric, "k": ks, "cross_k": cross_k, "k_floors": k_floors, "n_puzzles": len(ids),
@@ -498,6 +504,8 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7, metric="pass@1"):
 def render_paired(c, n_boot, seed):
     """The paired line, with what makes it a comparison across conditions."""
     metric, ks = c.get("metric", "pass@1"), c.get("k") or []
+    floors = ("; floors from k alone: random %s, PASS %s, first %s"
+              % tuple(signed(c["k_floors"][a]) for a in ("random", "pass", "first"))) if c.get("k_floors") else ""
     if metric == "pass@k" and len(ks) == 2:
         name = "B pass@%d - A pass@%d" % (ks[1], ks[0])
     else:
@@ -505,9 +513,7 @@ def render_paired(c, n_boot, seed):
     return ("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)%s%s%s"
             % (name, signed(c["mean"]), _ci(c["ci95"]),
                _ci(c["ci95_clustered"]), c["n_puzzles"], n_boot, seed,
-               "  CROSS-K %s (any of each run's own k: an oracle verifier)%s" % (" vs ".join(map(str, ks)), (
-                   "; floors from k alone: random %s, PASS %s, first %s" % tuple(
-                       signed(c["k_floors"][a]) for a in ("random", "pass", "first")) if c.get("k_floors") else ""))
+               "  CROSS-K %s (any of each run's own k: an oracle verifier)%s" % (" vs ".join(map(str, ks)), floors)
                if c.get("cross_k") else "",
                "  CROSS-EPOCH %s" % " vs ".join(e or "unstamped" for e in c["epochs"]) if c["cross_epoch"] else "",
                "  CROSS-MAX-TOKENS %s" % " vs ".join("default" if t is None else str(t) for t in c["max_tokens"])
