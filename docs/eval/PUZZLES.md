@@ -330,11 +330,11 @@ python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v
   under). A resume into a directory made under another model, suite or seat condition, or on
   another build (`puzzle_solve.resume_conflicts` lists what counts), is refused.
 - Each model call has a deadline: the model's own (`ModelCfg`, 300 s for the seat; a `jev:` seat 120 s,
-  `DecisionsBridge`) unless `--call-timeout-minutes` sets one for every tier (`OPENROUTER_TIMEOUT_MS`, or `CLAUDE_DEADLINE_MS` for a
-  `claude-cli:` seat, recorded as `record.call_timeout_ms`; a resume under another value is refused; an `openrouter:`,
-  `jev:` or `claude-cli:` seat only, since no other bridge reads one; a shell `CLAUDE_DEADLINE_MS` never reaches a
-  puzzle game). A call past it is retried, then its decision goes to a fixed legal option (the frontier5
-  run's deadlines: `docs/harness/FRONTIER5.md`, "How it ran").
+  `DecisionsBridge`) unless `--call-timeout-minutes` sets one for every tier (`OPENROUTER_TIMEOUT_MS`, or
+  `CLAUDE_DEADLINE_MS` for a `claude-cli:` seat, recorded as `record.call_timeout_ms`; a resume under another value
+  is refused; an `openrouter:`, `jev:` or `claude-cli:` seat only, since no other bridge reads one; a shell
+  `CLAUDE_DEADLINE_MS` never reaches a puzzle game). A call past it is retried, then its decision goes to a fixed
+  legal option (the frontier5 run's deadlines: `docs/harness/FRONTIER5.md`, "How it ran").
   A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
   `ModelCfg` (about 15 minutes), not from this flag. A game capped while a longer call is in flight can outlive that
   grace and leave its puzzle's later seeds unplayed. A resume that replayed them would redraw only the slow puzzles,

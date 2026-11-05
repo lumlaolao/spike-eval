@@ -901,9 +901,9 @@ and returns it as `structured_output`. No text is parsed.
     It is stamped `claude_cli_thinking_tokens_a` / `_b` on the game line, and `claude_cli_thinking_tokens` on the puzzle
     row.
 - **Deadline:** `CLAUDE_DEADLINE_MS`, else the model's `ModelCfg` timeout (`timeoutMs`, the same for both tiers on this
-  lane). A puzzle run sets it from `--call-timeout-minutes` and records it (`record.call_timeout_ms`); the puzzle
-  runner strips a shell value, so no puzzle game runs under a deadline its manifest does not name. After it the process and its children are killed. The prompt is written to stdin on its own thread, so a
-  process that never reads it cannot hold the call past its deadline.
+  lane). A puzzle run sets it from `--call-timeout-minutes` and records it, never from the shell
+  (`docs/eval/PUZZLES.md`). After it the process and its children are killed. The prompt is written to stdin on its
+  own thread, so a process that never reads it cannot hold the call past its deadline.
 - **Failure:** any of these gives no answer (`[CLAUDE-CLI-NO-ANSWER]` in the log, with the tail of the process's
   stderr): a non-zero exit, an `is_error` result, output that is no result, or the deadline. The seat's bridge retry
   runs, then the caller takes its fixed legal option, never Forge's AI.

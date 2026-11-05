@@ -333,7 +333,8 @@ def main(argv=None):
                          "as unsolved")
     ap.add_argument("--call-timeout-minutes", type=int, default=None,
                     help="deadline on each model call, whole minutes (default: each model's own); a call past it is "
-                         "retried, then its decision goes to a fixed legal option (a claude-cli: seat: CLAUDE_DEADLINE_MS)")
+                         "retried, then its decision goes to a fixed legal option "
+                         "(a claude-cli: seat: CLAUDE_DEADLINE_MS)")
     ap.add_argument("--max-tokens", type=int, default=None,
                     help="max_tokens on each smart-tier call, its thinking budget too (default: each model's own, "
                          "32000); the fast tier keeps 8192 with reasoning off")
