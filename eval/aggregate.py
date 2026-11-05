@@ -80,6 +80,8 @@ PROVENANCE_FIELDS = (
     ("smart_budget", "unknown"),
     ("fast_budget", "unknown"),
     ("claude_deadline_ms", "unknown"),
+    # OPENROUTER_TIMEOUT_MS as the operator set it; "" unset, as every line before the stamp (pr-review of #355).
+    ("openrouter_timeout_ms", ""),
     ("game_cap_ms", "unknown"),
     # Resolved model identity (added 2026-07-26). The configured spec is not an
     # identity: SMART_MODEL_A="openrouter:default_model" against a local server

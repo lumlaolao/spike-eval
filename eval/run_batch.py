@@ -13,7 +13,8 @@ always one experiment. --context-profile, --memory-tools, --rules-tool,
 --text-tools, --text-answers, --answer-tool-strict, --lookahead, --one-tier/--two-tier, --no-coaching,
 --one-chat, --turn-chat, --plan-execute and --tier-fast-types are the only way to set CONDITION_ENV_KEYS (ambient
 values are scrubbed, --env is refused for them); unset means the JVM's historical baseline. ONE_CHAT_TURNS and
-OPENROUTER_IDLE_MS have no flag: a batch runs their defaults.
+OPENROUTER_IDLE_MS (and ANSWER_SCHEMA, ANSWER_TOOL_CHOICE, DECKLIST) have no flag: a
+batch runs their defaults.
 
 Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
@@ -85,7 +86,7 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 # carries coaching, a two-sentence reasoning cap and a 25-decision turn cap; it is only ever a named arm.
 DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
-                      "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
+                      "ANSWER_TOOL", "ANSWER_TOOL_STRICT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE",
                       "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT", "PROPOSE_ACTIONS", "PROPOSE_AUDIT",
                       "PROPOSE_TERSE",
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
@@ -94,7 +95,9 @@ CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_T
                       # No flag sets these: a batch, a puzzle run and a tournament run their defaults. The chat cap
                       # changes what a chat seat is carried; the stall cut can lose a call to the fixed option
                       # (pr-review of #354).
-                      "ONE_CHAT_TURNS", "OPENROUTER_IDLE_MS")
+                      "ONE_CHAT_TURNS", "OPENROUTER_IDLE_MS",
+                      # Measurement arms with no flag (the docstring, docs/harness/SETTINGS.md): pinned to their defaults.
+                      "DECKLIST")
 # Every name run_batch.py pins from its flags: CONDITION_ENV_KEYS, and SHADOW_AI (pinned apart, by --shadow-ai). A
 # launcher that does not go through run_batch.py strips these from the shell (STANDARDS section 4).
 PINNED_ENV_KEYS = CONDITION_ENV_KEYS + ("SHADOW_AI",)

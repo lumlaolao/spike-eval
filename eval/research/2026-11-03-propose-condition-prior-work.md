@@ -460,3 +460,39 @@ development lane, arms interleaved per puzzle with the order alternating. Both a
   at this block's rate). The next block should raise the rate of refusals (storm and other sorcery-timing puzzles,
   several attempts per puzzle) and pre-register repaired-to-a-move and refused-again as its outcomes, then measure
   GPT-6 Luna's base rate on the detailed arm first.
+
+### Repeated refusals in every propose log on disk (2026-11-05)
+
+`python3 eval/proposal_audit.py --json <run>` over every propose-arm run directory with a model seat (Claude Haiku 5.5,
+development lane, never a score), and per puzzle directory for the split. The runs differ in build and epoch, so each
+row is its own run and no rate is pooled across them.
+
+| Run | Refusal text | Play decisions | Refusal-opened | Repaired to a move | Resent within its decision | Refused again in a later decision |
+|---|---|---|---|---|---|---|
+| runs/propose/haiku-rules-propose | n/a (no refusal) | 48 | 0 | - | - | - |
+| runs/propose/haiku-rules-propose-v2 | n/a (no refusal) | 50 | 0 | - | - | - |
+| runs/propose/e75-haiku-rules-propose | n/a (no refusal) | 56 | 0 | - | - | - |
+| runs/propose/e75-haiku-hard-propose | detailed | 260 | 9 | 5 | 0 of 10 | 0 of 10 |
+| runs/terse/smoke-64dc1f33-detailed | detailed | 53 | 3 | 2 | 0 of 4 | 1 of 3 |
+| runs/terse/b2-detailed | detailed | 259 | 18 | 10 | 0 of 21 | 5 of 11 |
+| runs/terse/smoke-64dc1f33-terse | terse | 36 | 8 | 5 | 0 of 8 | 3 of 5 |
+| runs/terse/b2-terse | terse | 247 | 6 | 3 | 0 of 6 | 1 of 5 |
+
+The two b2 rows are the b2 block above, one row per arm.
+
+- **Within a decision** no run resent a refused proposal: 0 in each of the five runs that had one to resend (10, 4, 21,
+  8 and 6 refused tries). The tries are not independent (b2-detailed's 21 come from 18 decisions in about 20 puzzle
+  runs), so no interval is given for a combined rate. The repeat Gumaan 2026 reports did not appear in these runs.
+- **Across decisions** the same refused play recurs in a later decision of the same game in 1 of 3, 5 of 11, 3 of 5 and
+  1 of 5 distinct refused actions, and 0 of 10 in e75-haiku-hard-propose. There is no floor yet: a card that stays in
+  hand can be proposed again with no feedback effect at all; the survey's E2 floor (refusals re-paired with decisions at
+  random) is not computed.
+- **Puzzle set or build: not determined.** All ten of e75-haiku-hard-propose's refused actions are on puzzles b2 also
+  played (eight of its twelve puzzles are b2's); on those puzzles e75 refused 0 of 10 again and b2-detailed 3 of 6.
+  b2-detailed's five come from fling-0a55 (1), ping-1734 (2), splice-0551 (1) and splice-06da (1), none from the storm
+  puzzles; the only storm repeats are in smoke-64dc1f33-terse (storm-5bf9 2 of 2, storm-88f9 1 of 3). The two blocks
+  differ in build and epoch (e75 at harness-epoch-75, b2 on overlay 187b31cea8dd) and the tries cluster, so they are
+  not compared; a block on one build over these puzzles would settle it.
+- A block that tests a notebook of earlier refusals (E1 of
+  `eval/research/2026-11-05-agent-compute-and-feedback-survey.md`) should hold the build fixed and compare arms on the
+  same puzzles, with the shuffled floor beside it.

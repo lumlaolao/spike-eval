@@ -12552,6 +12552,8 @@ public final class LlmSpikeGui {
                 + ",\"smart_budget\":" + PlayerControllerLLM.smartBudget()
                 + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
                 + ",\"claude_deadline_ms\":" + ClaudeCliBridge.deadlineMs()
+                + ",\"openrouter_timeout_ms\":\"" + (OpenRouterBridge.TIMEOUT_MS_ENV == null ? ""
+                        : String.valueOf(OpenRouterBridge.TIMEOUT_MS_ENV)) + "\""
                 + ",\"game_cap_ms\":" + capMs
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
