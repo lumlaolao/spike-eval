@@ -53,6 +53,12 @@ leaving `--safe-mode` out changes the thinking was not measured), four runs a se
 result (`<setting>-<i>.json`); `python3 probe_table.py` prints the table below from the CLI's own count,
 `usage.output_tokens_details.thinking_tokens`. All 24 runs returned a result.
 
+**A correction (after merge).** The probe's shell exported `MAX_THINKING_TOKENS=31999`, and `run_probe.sh` does not
+unset it, so every setting but the two that set it ran under that budget: the "CLI default (no flag)" row is
+`MAX_THINKING_TOKENS=31999` with no flag, and the three effort rows carry it too. The bridge's seats never inherit it
+(its child environment is an allow-list, `ClaudeCliBridge.childEnv`). Since the two budget rows have the same mean, the
+finding that the budget does not bind holds; what the CLI does with the variable unset was not measured.
+
 | Setting | n | thinking tokens, each run | mean | mean wall |
 |---|---|---|---|---|
 | `MAX_THINKING_TOKENS=1024` | 4 | 6,091 / 15,805 / 6,524 / 7,976 | 9,100 | 48 s |
@@ -154,11 +160,11 @@ more, which is a different condition from the one designed, and the override tha
 - On the two storm boards the same effort stayed under 120 s.
 - The prompt is the same size on every board (median 7K to 8K tokens). What grows is the thinking.
 
-**Why the deadline is not a setting to change on this lane:**
-- `puzzle_solve.py` refuses `--call-timeout-minutes` for a `claude-cli:` model ("ClaudeCliBridge reads neither").
-- The bridge's own override, `CLAUDE_DEADLINE_MS`, is a shell variable. `puzzle_solve.py` neither pins it nor records
-  it in the manifest, so setting it would run arm B under a deadline no row records. That is the unrecorded condition
-  STANDARDS section 4 forbids.
+**Why the deadline was not a setting to change on this lane** (when the study ran; since fixed, section 5):
+- `puzzle_solve.py` refused `--call-timeout-minutes` for a `claude-cli:` model ("ClaudeCliBridge reads neither").
+- The bridge's own override, `CLAUDE_DEADLINE_MS`, was a shell variable. `puzzle_solve.py` neither pinned it nor
+  recorded it in the manifest, so setting it would have run arm B under a deadline no row records. That is the
+  unrecorded condition STANDARDS section 4 forbids.
 
 So arm B, as designed, cannot run on this lane without its hardest decisions restarting from a fresh session after
 the deadline.
@@ -238,8 +244,10 @@ boards).
   The probe shows the effect only: a budget of 1024 thought up to 15,805 tokens.
 
 What would reopen the study:
-- A recorded deadline for the CLI seat: a `puzzle_solve.py` flag that sets `CLAUDE_DEADLINE_MS`, is written to the
-  manifest `record`, and is refused for pooling and pairing as `call_timeout_ms` is. Then rerun with a deadline above
-  B's longest call (876 s seen, so 20 to 30 minutes), the same for every arm.
+- A recorded deadline for the CLI seat: done after the study. `--call-timeout-minutes` now sets `CLAUDE_DEADLINE_MS`
+  for a `claude-cli:` seat, records it as `record.call_timeout_ms` (refused for a resume, pooling and pairing), and a
+  shell value no longer reaches a puzzle game. Still open: a deadline above 5 minutes needs `--k 1` (the post-cap
+  grace rule, `docs/eval/PUZZLES.md`), so B can take 20 to 30 minutes (876 s was its longest call) but C at k>1
+  cannot take the same deadline until that rule is lifted.
 - Then rerun C at k=7 to 9 against B at max, so the compute is matched by measurement.
 - Use boards below the ceiling: the storm boards are solved by every attempt.

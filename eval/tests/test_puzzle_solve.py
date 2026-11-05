@@ -670,7 +670,6 @@ class GameCapTest(unittest.TestCase):
         # A condition the seat never ran under would split a pair or a resume over a difference that is not there.
         cli = ClaudeCliSeatTest()
         for model, flag, value in (("claude-cli:claude-opus-5-5", "--max-tokens", "131072"),
-                                   ("claude-cli:claude-opus-5-5", "--call-timeout-minutes", "3"),
                                    ("jev:typesafe/jev-1.14", "--max-tokens", "131072"),
                                    ("greedy:", "--max-tokens", "131072"),
                                    ("greedy:", "--call-timeout-minutes", "3")):
@@ -681,6 +680,21 @@ class GameCapTest(unittest.TestCase):
         envs, manifest = run_openrouter("jev:typesafe/jev-1.14", "--call-timeout-minutes", "3")
         self.assertEqual(envs[0]["OPENROUTER_TIMEOUT_MS"], "180000")
         self.assertEqual(manifest["record"]["call_timeout_ms"], 180000)
+
+    def test_a_cli_seat_takes_the_call_deadline_as_its_own(self):
+        # ClaudeCliBridge reads CLAUDE_DEADLINE_MS, not OPENROUTER_TIMEOUT_MS. The thinking-vs-sampling study stopped
+        # because a CLI seat's deadline could only come from the shell, where no manifest records it
+        # (eval/research/2026-11-05-thinking-vs-sampling.md, section 4.1).
+        with mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            root, rec, envs = run_solve(classes_with_transcript(), "-j", "1", "--call-timeout-minutes", "20",
+                                        model="claude-cli:claude-haiku-5-5")
+        manifest = json.loads((root / rec["id"] / "batch-manifest.json").read_text())
+        self.assertEqual(envs[0]["CLAUDE_DEADLINE_MS"], "1200000")
+        self.assertNotIn("OPENROUTER_TIMEOUT_MS", envs[0], "a deadline the CLI bridge never reads")
+        self.assertEqual(manifest["record"]["call_timeout_ms"], 1200000)
+        with mock.patch.dict(os.environ, {"CLAUDE_CLI_SEAT": "1"}):
+            root, rec, envs = run_solve(classes_with_transcript(), "-j", "1", model="claude-cli:claude-haiku-5-5")
+        self.assertNotIn("CLAUDE_DEADLINE_MS", envs[0], "unset: the model's own deadline (ModelCfg)")
 
     def test_the_call_deadline_reaches_the_jvm_and_the_manifest_and_is_off_by_default(self):
         # Owner, 2026-10-26: no model is cut off mid-thought; the 300 s per-call deadline fired for four models.

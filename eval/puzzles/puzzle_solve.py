@@ -276,7 +276,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS=str(cap_ms), TRANSCRIPTS="1")
     if call_ms:
-        env["OPENROUTER_TIMEOUT_MS"] = str(call_ms)   # every tier's deadline; Build.run strips it from the shell
+        # Every tier's deadline, by the name the seat's bridge reads; Build.run strips both from the shell.
+        env["CLAUDE_DEADLINE_MS" if cost_report.is_cli_lane(model) else "OPENROUTER_TIMEOUT_MS"] = str(call_ms)
     if max_tokens:
         env["OPENROUTER_MODEL_CFG"] = json.dumps({k: {"maxTokens": max_tokens} for k in MODEL_CFG_KEYS})
     for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
@@ -332,7 +333,7 @@ def main(argv=None):
                          "as unsolved")
     ap.add_argument("--call-timeout-minutes", type=int, default=None,
                     help="deadline on each model call, whole minutes (default: each model's own); a call past it is "
-                         "retried, then its decision goes to a fixed legal option")
+                         "retried, then its decision goes to a fixed legal option (a claude-cli: seat: CLAUDE_DEADLINE_MS)")
     ap.add_argument("--max-tokens", type=int, default=None,
                     help="max_tokens on each smart-tier call, its thinking budget too (default: each model's own, "
                          "32000); the fast tier keeps 8192 with reasoning off")
@@ -359,9 +360,11 @@ def main(argv=None):
         if on and not a.model.startswith("openrouter:"):
             raise SystemExit("%s is for an openrouter: chat model; %s sends no provider preferences" % (flag, a.model))
     # A condition the seat's bridge never reads would split a pair or a resume over a difference that is not there:
-    # ClaudeCliBridge reads neither, DecisionsBridge (jev:) reads only OPENROUTER_TIMEOUT_MS.
+    # ClaudeCliBridge reads no token cap (its deadline is CLAUDE_DEADLINE_MS), DecisionsBridge (jev:) reads only
+    # OPENROUTER_TIMEOUT_MS.
     for flag, on, prefixes in (("--max-tokens", a.max_tokens is not None, ("openrouter:",)),
-                               ("--call-timeout-minutes", a.call_timeout_minutes is not None, ("openrouter:", "jev:"))):
+                               ("--call-timeout-minutes", a.call_timeout_minutes is not None,
+                                ("openrouter:", "jev:", cost_report.CLI_PREFIX))):
         if on and not a.model.startswith(prefixes):
             raise SystemExit("%s is for a %s model; %s never reads it" % (flag, " or ".join(prefixes), a.model))
     quantizations = None

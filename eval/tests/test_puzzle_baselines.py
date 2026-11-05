@@ -409,6 +409,21 @@ class BuildFreshnessTest(unittest.TestCase):
             b.run({"ONE_TIER": "1"}, tempfile.mkdtemp())
         self.assertEqual(seen.get("ONE_TIER"), "1", "a caller's own setting still reaches the game")
 
+    def test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell(self):
+        # puzzle_solve.py records the deadline it sets (--call-timeout-minutes, record.call_timeout_ms); one exported
+        # in the shell would run a CLI seat under a deadline no manifest names (thinking-vs-sampling note, 4.1).
+        b = pb.Build(self.make("b3", "aaaaaaaaaaaa"), self.forge)
+        seen = {}
+        def call(cmd, **kw):
+            seen.update(kw["env"])
+            return 0
+        with mock.patch.dict(os.environ, {"CLAUDE_DEADLINE_MS": "1800000"}), \
+                mock.patch.object(pb.subprocess, "call", call):
+            b.run({}, tempfile.mkdtemp(), keep_model_env=True)
+            self.assertNotIn("CLAUDE_DEADLINE_MS", seen)
+            b.run({"CLAUDE_DEADLINE_MS": "600000"}, tempfile.mkdtemp(), keep_model_env=True)
+            self.assertEqual(seen.get("CLAUDE_DEADLINE_MS"), "600000", "the one puzzle_solve.py sets still reaches it")
+
     def test_a_build_of_other_sources_or_unrecorded_is_refused(self):
         for name, sha in (("other", "bbbbbbbbbbbb"), ("unrecorded", None), ("empty", "")):
             with self.assertRaises(SystemExit, msg=name) as cm:

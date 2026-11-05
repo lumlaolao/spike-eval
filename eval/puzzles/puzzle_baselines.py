@@ -152,7 +152,9 @@ class Build:
         Zero-model unless keep_model_env (puzzle_solve.py, which passes the model and key in env_extra)."""
         out_dir = Path(out_dir).resolve()  # the JVM runs from the Forge checkout
         out_dir.mkdir(parents=True, exist_ok=True)
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENROUTER", "PZL_", "FORK_"))}
+        # CLAUDE_DEADLINE_MS too: puzzle_solve.py sets and records a CLI seat's deadline (--call-timeout-minutes).
+        env = {k: v for k, v in os.environ.items()
+               if not k.startswith(("OPENROUTER", "PZL_", "FORK_")) and k != "CLAUDE_DEADLINE_MS"}
         # Every condition run_batch.py pins, and the shadow labeller: a shell value never reaches a puzzle game
         # unrecorded; puzzle_solve.py sets the ones a puzzle uses (its condition()) through env_extra below.
         for name in run_batch.PINNED_ENV_KEYS:
