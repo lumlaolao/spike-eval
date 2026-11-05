@@ -201,6 +201,9 @@ class PassAtKTest(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("paired B pass@3 - A pass@1", out)
         self.assertIn("+0.333", out)
+        # pr-review of #361: more attempts raise pass@k for a solver with no skill, so the cross-k line prints what each
+        # trivial arm gains from the change in k alone (fixture random rate 0.1: 1 - 0.9**3 - 0.1 = +0.171).
+        self.assertRegex(out, r"CROSS-K 1 vs 3 .*floors from k alone: random \+0\.171")
         rc, _, err = self.run_cli("--k", "1", "one", "--paired-with", "three", "--paired-k", "3")
         self.assertEqual(rc, 2, "pass@1 of a k=1 and a k=3 run is no pair")
         self.assertIn("differ in k", err)

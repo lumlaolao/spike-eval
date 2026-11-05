@@ -452,7 +452,8 @@ What each column, flag and exit code means: `python3 eval/puzzles/puzzle_watch.p
 With c solves in k attempts:
 - **pass@1** = c/k;
 - **pass^j** = C(c,j)/C(k,j), for j = 2 and k: every one of j attempts solves, a reliability measure;
-- **pass@k** (k > 1) = 1 when any attempt solves (Chen et al. 2021's estimator at j = k): what retries buy with the
+- **pass@k** (k > 1) = 1 when any of the first k attempts by seed solves (Chen et al. 2021's estimator with n = k,
+  where it reduces to any-of-k): what retries buy with the
   engine's goal check as an oracle verifier. A game cannot be replayed, so it is a ceiling, never a score;
 - **solved** = c ≥ k/2;
 - **margin** = pass@1 − the random rate.
@@ -469,7 +470,9 @@ Two runs on the same puzzles (two solvers, or two conditions) are compared puzzl
 `--paired-with RESULTS`: the mean per-puzzle pass@1 difference, its bootstrap interval over puzzles (ids sorted,
 seed 7) and its clustered interval. `--against C D` gives the difference of differences, (B - A) - (D - C).
 `--paired-metric pass@k --paired-k N` compares each run's own pass@k instead, so a k=1 run pairs with a k=N run (one
-attempt against N at about the same compute); the line is labelled `CROSS-K`, and pass@1 under two k is still refused.
+attempt against N; the compute match is measured from the budget line, not assumed). The line is labelled `CROSS-K`
+with what each trivial arm gains from the change in k alone (`floors from k alone`), and pass@1 under two k is still
+refused.
 Runs of other puzzles, suites, splits, k, game caps or call deadlines are refused; a pair under two token caps
 is labelled `CROSS-MAX-TOKENS`. Lookups per condition: `eval/puzzles/puzzle_tool_use.py`.
 

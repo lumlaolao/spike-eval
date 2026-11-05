@@ -111,7 +111,9 @@ drivers and `tvs_compute.py` that wrote the tables below.
 ### 4.1 The defect that stopped arm B
 
 `B-max-k1/hard-splice-06dad20af5b3/jvm.log`: `[CLAUDE-CLI-NO-ANSWER] no result within 300000 ms -> no answer; the
-seat takes its fixed legal option`, four times in 11 smart calls (`[TALLY] smart=11 ... avgSmart=312720ms`).
+seat takes its fixed legal option`, four times, in three decisions (twice in one, `jvm.log` lines 61 and 63). Those
+three decisions are the three `context_call` rows over 300 s below (520, 554 and 876 s, each with its retry); two of
+them went to the fixed legal option. The game's final tally is `[TALLY] smart=12 fast=0 auto=2 ... avgSmart=306201ms`.
 `puzzle_watch.py` flagged it `NO-ANSWER x4`. Per-call figures, from each game's `context_call` rows (`elapsed_ms`,
 `completion_tokens`):
 

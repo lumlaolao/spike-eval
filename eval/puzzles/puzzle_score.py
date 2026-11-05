@@ -21,10 +21,10 @@ k=1, where it is the solved share) also carry a Wilson interval: a bootstrap ove
 Paired mode (--paired-with B, and --against C D): two runs on the same puzzles of the same suite, split and k,
 compared puzzle by puzzle. It prints the mean per-puzzle pass@1 difference B - A (or the difference of differences
 (B - A) - (D - C)), its percentile bootstrap interval over puzzles (ids sorted, --paired-bootstrap resamples,
---paired-seed) and its clustered normal interval. --paired-metric pass@k compares each run's own pass@k, so a k=1 run
-pairs with a k=n run (--paired-k n): one attempt against n at about the same compute, labelled CROSS-K. What it cannot say: it resamples puzzles only (the attempt
-noise is inside each per-puzzle rate), it does not correct for several comparisons, and result rows written
-before harness_epoch was stamped cannot be told apart by epoch.
+--paired-seed) and its clustered normal interval. Paired pass@k across two k (--paired-metric pass@k, --paired-k n)
+is described in docs/eval/PUZZLES.md. What it cannot say: it resamples puzzles only (the attempt noise is inside each
+per-puzzle rate), it does not correct for several comparisons, and result rows written before harness_epoch was
+stamped cannot be told apart by epoch.
 
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
 call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
@@ -261,8 +261,8 @@ def per_puzzle(manifest, attempts, k):
             "k": k, "solves": c, "pass@1": c / k,
             "pass^2": pass_hat(c, k, 2) if k >= 2 else None,
             "pass^k": pass_hat(c, k, k),
-            # Any of the k attempts solves (Chen et al. 2021's estimator at j = k): what retries with an oracle
-            # verifier (the engine's goal check) buy. A real game cannot be replayed, so it is a ceiling, not play.
+            # Any of the run's first k attempts (by seed) solves: what retries buy with the engine's goal check as an
+            # oracle. A game cannot be replayed, so a ceiling, not play.
             "pass@k": 1.0 if c else 0.0,
             "solved": 2 * c >= k,
             "random_rate": rate["random"], "pass_rate": rate["pass"], "first_rate": rate["first"],
@@ -450,7 +450,8 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7, metric="pass@1"):
     sorted, so the resample does not depend on the order results were read) and its clustered interval. With
     base=(C, D), the difference of differences (B - A) - (D - C). Refuses runs of other puzzles, suites or k.
     metric="pass@k": each run's own pass@k (any of its k attempts), so a k=1 run pairs with a k=n run: one attempt
-    against n at about the same compute. The pair is then labelled cross-k; pass@1 under two k is still refused."""
+    against n; the compute match is measured from the budget line, not assumed. The pair is labelled cross-k, with
+    what each trivial arm gains from the change in k alone (`k_floors`); pass@1 under two k is still refused."""
     if metric not in PAIR_METRICS:
         raise Refused("paired metric %r: one of %s" % (metric, ", ".join(PAIR_METRICS)))
     reps = [rep_a, rep_b] + list(base or ())
@@ -477,7 +478,15 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7, metric="pass@1"):
     epochs = [r.get("harness_epoch") for r in reps]
     tokens = [r.get("max_tokens") for r in reps]
     ks = [r["aggregate"]["k"] for r in reps]
-    return {"metric": metric, "k": ks, "cross_k": len(set(ks)) > 1,"n_puzzles": len(ids), "mean": _mean(diffs), "ci95": bootstrap_ci(diffs, _mean, n_boot, seed),
+    cross_k = len(set(ks)) > 1
+    # More attempts raise pass@k for a solver with no skill (pr-review of #361): a trivial arm's own gain, puzzle by
+    # puzzle, is what the paired difference must beat.
+    by_id = {p["id"]: p for p in rep_a["puzzles"]}
+    k_floors = ({arm: _mean([(1 - (1 - by_id[p][arm + "_rate"]) ** ks[1]) - (1 - (1 - by_id[p][arm + "_rate"]) ** ks[0])
+                             for p in ids]) for arm in ("random", "pass", "first")}
+                if cross_k and not base else None)
+    return {"metric": metric, "k": ks, "cross_k": cross_k, "k_floors": k_floors, "n_puzzles": len(ids),
+            "mean": _mean(diffs), "ci95": bootstrap_ci(diffs, _mean, n_boot, seed),
             "ci95_clustered": clustered_ci(diffs), "solvers": [r.get("solver") for r in reps],
             "difference_of_differences": bool(base),
             # A difference across interfaces is a measurement of the change, and is labelled as one.
@@ -496,7 +505,9 @@ def render_paired(c, n_boot, seed):
     return ("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)%s%s%s"
             % (name, signed(c["mean"]), _ci(c["ci95"]),
                _ci(c["ci95_clustered"]), c["n_puzzles"], n_boot, seed,
-               "  CROSS-K %s (any of each run's own k: an oracle verifier)" % " vs ".join(map(str, ks))
+               "  CROSS-K %s (any of each run's own k: an oracle verifier)%s" % (" vs ".join(map(str, ks)), (
+                   "; floors from k alone: random %s, PASS %s, first %s" % tuple(
+                       signed(c["k_floors"][a]) for a in ("random", "pass", "first")) if c.get("k_floors") else ""))
                if c.get("cross_k") else "",
                "  CROSS-EPOCH %s" % " vs ".join(e or "unstamped" for e in c["epochs"]) if c["cross_epoch"] else "",
                "  CROSS-MAX-TOKENS %s" % " vs ".join("default" if t is None else str(t) for t in c["max_tokens"])
