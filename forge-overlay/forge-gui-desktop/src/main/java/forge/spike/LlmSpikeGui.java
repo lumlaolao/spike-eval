@@ -384,8 +384,11 @@ public final class LlmSpikeGui {
      *  Epoch 80 (2026-11-05, answer-tool-v17): the PROPOSE_TERSE arm, under PROPOSE_ACTIONS only: a rules refusal of a
      *  play or a combat declaration says only that it is illegal, with no rule, to measure the message's share of
      *  repair. Unchanged off it.
+     *  Epoch 81 (2026-11-05, answer-tool-v18): the PROPOSE_NOTEBOOK arm, under PROPOSE_ACTIONS only: a play, attack or
+     *  blocks decision lists this game's earlier rules refusals of the seat's proposals as it was told them (REFUSED
+     *  EARLIER, the last 8), to measure whether the record stops the repeat across decisions. Unchanged off it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-80";
+    static final String HARNESS_EPOCH = "harness-epoch-81";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3136,6 +3139,19 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** PROPOSE_NOTEBOOK: this seat's rules refusals in this game, oldest first, as {@link AnswerTool#notebookEntries}
+         *  wrote them; one controller plays one game. */
+        private final List<String> refusalNotebook = new ArrayList<>();
+
+        /** Notes the rules refusals of the ask just made ({@code lastAnswer}) for the later decisions' REFUSED EARLIER. */
+        private void noteRefusals(AnswerTool.Kind k, String where) {
+            if (AnswerTool.proposeNotebook() && lastAnswer != null)
+                refusalNotebook.addAll(AnswerTool.notebookEntries(lastAnswer.proposals, k, "turn " + safeTurn() + ", " + where));
+        }
+
+        /** REFUSED EARLIER for the next proposal decision: empty off PROPOSE_NOTEBOOK and before any refusal. */
+        private String refusedEarlier() { return AnswerTool.notebookSection(refusalNotebook); }
+
         /** PROPOSE_ACTIONS on a seat that answers by call: the attack and the blocks are proposed, not picked. The windows
          *  asked are the menu's (a seat with no creature that can attack, or none that can block, is not asked). */
         private boolean proposesCombat() { return AnswerTool.proposeActions() && observer != null && answerToolFor(smart); }
@@ -3154,7 +3170,7 @@ public final class LlmSpikeGui {
          *  when attacking with none breaks a requirement, as on the menu), never Forge's AI. */
         private void proposeAttackers(Player attacker, Combat combat, CardCollection legal, List<String> labels,
                                       Integer shadow, String question) {
-            String prompt = snapshot() + "\nPRIORITY: you\nDECISION: " + question + "\n" + PROPOSE_ATTACK_PROMPT;
+            String prompt = snapshot() + refusedEarlier() + "\nPRIORITY: you\nDECISION: " + question + "\n" + PROPOSE_ATTACK_PROMPT;
             Map<Card, GameEntity> declared = new java.util.LinkedHashMap<>();
             AnswerTool.Spec spec = AnswerTool.Spec.attackProposal(labels).check(a -> {
                 String err = attackProposalError(a.declared, attacker, combat, declared);
@@ -3169,6 +3185,7 @@ public final class LlmSpikeGui {
             String reply = ask(smart, prompt);
             noteAnswerVia(0);
             if (lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, AnswerTool.DECLARE_ATTACKERS));
+            noteRefusals(AnswerTool.Kind.ATTACK_PROPOSAL, "declare attackers");
             AnswerTool.Answer ta = toolAnswer();
             if (ta == null) {
                 String why = answerLost() || reply != null ? "unparsed" : "bridge-down";
@@ -3188,7 +3205,7 @@ public final class LlmSpikeGui {
          *  the smallest legal set when a requirement forbids none), never Forge's AI. */
         private void proposeBlockers(Player defender, Combat combat, String incoming, List<String> blkLabels, List<String> atkLabels,
                                      List<Card> blkList, List<Card> atkList, Integer shadow) {
-            String prompt = snapshot() + "\nDECISION: COMBAT — declare blockers. Incoming: " + incoming + ". " + PROPOSE_BLOCK_PROMPT;
+            String prompt = snapshot() + refusedEarlier() + "\nDECISION: COMBAT — declare blockers. Incoming: " + incoming + ". " + PROPOSE_BLOCK_PROMPT;
             List<Card[]> declared = new ArrayList<>();
             AnswerTool.Spec spec = AnswerTool.Spec.blockProposal(blkLabels, atkLabels).check(a -> {
                 String err = blockProposalError(a.declared, defender, combat, declared);
@@ -3205,6 +3222,7 @@ public final class LlmSpikeGui {
             String reply = ask(smart, prompt);
             noteAnswerVia(0);
             if (lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, AnswerTool.DECLARE_BLOCKERS));
+            noteRefusals(AnswerTool.Kind.BLOCK_PROPOSAL, "declare blockers");
             AnswerTool.Answer ta = toolAnswer();
             if (ta == null) {
                 auto("blockers(" + (answerLost() || reply != null ? "unparsed" : "bridge-down") + ")->" + fallbackBlocks(defender, combat));
@@ -4330,7 +4348,7 @@ public final class LlmSpikeGui {
                 if (rnd != null) choice = 1 + PuzzleArms.pick(rnd, passIdx, true); // random arm: uniform incl. PASS (last)
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
-                            ? (propose ? proposePromptPrefix(snapshot(), phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
+                            ? (propose ? proposePromptPrefix(snapshot() + refusedEarlier(), phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
                               + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
                               + (!SKIP_HEUR && observer != null && attempt == 0 ? (playTool ? YIELD_TOOL_HINT : YIELD_HINT) : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
@@ -4339,7 +4357,7 @@ public final class LlmSpikeGui {
                             // above: in runs/lines/blocks the model spent both tools searching its archive
                             // for the question and the decision was lost (3 of 9 games, one a PASS on its
                             // own main phase). decideOne and decideMany already re-send the state.
-                            : playRetryPrompt(playPromptPrefix(snapshot(), phh.getPhase(), ownMain, shownMenu), passIdx))
+                            : playRetryPrompt(playPromptPrefix(snapshot() + refusedEarlier(), phh.getPhase(), ownMain, shownMenu), passIdx))
                             + lookCtx
                             + (lookaheadOn && attempt == 0 && !nativeSim
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()
@@ -4369,6 +4387,8 @@ public final class LlmSpikeGui {
                     String reply = ask(b, prompt, nativeSim && attempt == 0 && !propose ? simulateTool : null);
                     noteAnswerVia(attempt);
                     if (propose && lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, "action"));
+                    if (propose) noteRefusals(AnswerTool.Kind.ACTION, "priority (" + phh.getPhase()
+                            + (ownMain ? ", your main phase" : ", instant-speed window") + ")");
                     if (answerLost()) break;     // two invalid replies: PASS below, recorded as play(unparsed)
                     AnswerTool.Answer ta = toolAnswer();
                     if (ta != null) {            // the notes are fields of the answer; nothing is read from prose
@@ -12620,6 +12640,7 @@ public final class LlmSpikeGui {
                 + ",\"plan_execute\":" + PlayerControllerLLM.PLAN_EXECUTE
                 + ",\"propose_actions\":" + AnswerTool.proposeActions()
                 + ",\"propose_terse\":" + AnswerTool.proposeTerse()
+                + ",\"propose_notebook\":" + AnswerTool.proposeNotebook()
                 + ",\"propose_audit\":" + PlayerControllerLLM.PROPOSE_AUDIT
                 + ",\"shadow_ai\":" + PlayerControllerLLM.SHADOW
                 + ",\"tier_fast_types\":\"" + jsonEscape(PlayerControllerLLM.tierFastTypesLabel()) + "\""

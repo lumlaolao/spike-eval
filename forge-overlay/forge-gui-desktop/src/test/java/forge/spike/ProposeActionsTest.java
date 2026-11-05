@@ -51,6 +51,7 @@ public class ProposeActionsTest {
         LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
         AnswerTool.PROPOSE_FOR_TEST = null;
         AnswerTool.TERSE_FOR_TEST = null;
+        AnswerTool.NOTEBOOK_FOR_TEST = null;
     }
 
     // ------------------------------------------------------------------ helpers
@@ -1091,5 +1092,126 @@ public class ProposeActionsTest {
         calls.add(new String[] {"{\"declare_attackers\":[{\"attacker\":\"@3\"}]}", "ILLEGAL (tapped): it is tapped."});
         String rec = LlmSpikeGui.PlayerControllerLLM.proposalRecord(calls, AnswerTool.DECLARE_ATTACKERS);
         Assert.assertTrue(rec.contains("\"category\":\"tapped\"") && rec.contains(AnswerTool.TERSE_COMBAT_REJECTION), rec);
+    }
+
+    // ------------------------------------------------------------------ the refusal notebook (PROPOSE_NOTEBOOK)
+
+    /** Two play decisions in one game, each a refused Grizzly Bears (no green mana) and then Lightning Bolt: the play
+     *  decision prompts, one per decision. */
+    private static List<String> twoPlayDecisions(boolean notebook) {
+        AnswerTool.NOTEBOOK_FOR_TEST = notebook;
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Hand);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        ProposalModel model = new ProposalModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String refused = "{\"verb\":\"cast\",\"card\":\"@" + handle(ctrl, bears) + "\"}";
+        String ok = "{\"verb\":\"cast\",\"card\":\"@" + handle(ctrl, bolt) + "\",\"targets\":[\"opponent\"]}";
+        for (int i = 0; i < 2; i++) {
+            model.actions.add(refused);
+            model.actions.add(ok);
+            Assert.assertNotNull(ctrl.chooseSpellAbilityToPlay(), "decision " + (i + 1) + " was not played");
+        }
+        List<String> asks = new ArrayList<>();
+        for (String q : model.prompts)
+            if (q.contains("Propose ONE") && (asks.isEmpty() || !asks.get(asks.size() - 1).equals(q))) asks.add(q);
+        Assert.assertEquals(asks.size(), 2, "two play decisions were asked");
+        return asks;
+    }
+
+    /** PROPOSE_NOTEBOOK: a later decision's prompt lists the game's earlier rules refusals as the seat was told them (the
+     *  same refused play came back in a later decision in 6 of 24 detailed and 4 of 10 terse propose logs). A decision's
+     *  own refusals are in its conversation already, so its prompt lists only earlier decisions'. */
+    @Test
+    public void aLaterDecisionCarriesAnEarlierRefusal() {
+        List<String> asks = twoPlayDecisions(true);
+        Assert.assertFalse(asks.get(0).contains("REFUSED EARLIER"), "the first decision has nothing to list: " + asks.get(0));
+        String second = asks.get(1);
+        Assert.assertTrue(second.contains("REFUSED EARLIER (harness record"), second);
+        Assert.assertTrue(second.contains("the last " + AnswerTool.NOTEBOOK_CAP), "the cap is said: " + second);
+        Assert.assertTrue(java.util.regex.Pattern.compile("\n- turn \\d+, [^\n]*: you proposed cast @\\d+; you were told: ILLEGAL \\(cost\\)")
+                .matcher(second).find(), "the refusal with its rule: " + second);
+        Assert.assertEquals(second.split("\n- turn ", -1).length - 1, 1, "one entry, the first decision's one refusal");
+        Assert.assertTrue(second.indexOf("REFUSED EARLIER") < second.indexOf("DECISION:"), "the section precedes the decision");
+        Assert.assertTrue(AnswerTool.instructions().contains("REFUSED EARLIER"), "the preamble describes the section");
+        Assert.assertTrue(AnswerTool.protocolVersion().contains("+propose+notebook"), AnswerTool.protocolVersion());
+    }
+
+    /** The terse notebook names no rule: it never says more than the arm's refusal did. */
+    @Test
+    public void aTerseNotebookNamesNoRule() {
+        AnswerTool.TERSE_FOR_TEST = true;
+        String second = twoPlayDecisions(true).get(1);
+        Assert.assertTrue(second.contains("you were told: " + AnswerTool.TERSE_REJECTION), second);
+        Assert.assertFalse(second.contains("ILLEGAL ("), "the notebook named a rule: " + second);
+        Assert.assertTrue(AnswerTool.protocolVersion().contains("+terse+notebook"), AnswerTool.protocolVersion());
+    }
+
+    /** Off the arm every prompt byte is the same: the on-arm prompts with the section cut out are the off-arm prompts; the
+     *  switch does nothing without PROPOSE_ACTIONS. */
+    @Test
+    public void offTheNotebookEveryPromptIsUnchanged() {
+        List<String> on = twoPlayDecisions(true);
+        List<String> off = twoPlayDecisions(false);
+        Assert.assertFalse(off.get(1).contains("REFUSED EARLIER"), off.get(1));
+        Assert.assertEquals(on.get(0), off.get(0));
+        Assert.assertNotEquals(on.get(1), off.get(1));
+        Assert.assertEquals(on.get(1).replaceAll("\nREFUSED EARLIER \\([^\n]*\\):\n(- [^\n]*\n)+", ""), off.get(1));
+        Assert.assertFalse(AnswerTool.instructions().contains("REFUSED EARLIER"), "the preamble moved");
+        Assert.assertFalse(AnswerTool.protocolVersion().contains("+notebook"));
+        AnswerTool.NOTEBOOK_FOR_TEST = true;
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        Assert.assertFalse(AnswerTool.proposeNotebook(), "the notebook without the propose arm");
+        Assert.assertEquals(AnswerTool.notebookSection(List.of("turn 1, x: you proposed y; you were told: z")), "");
+    }
+
+    /** The attack and the blocks are noted like a play; a form error is not a rules refusal and is not noted; the section
+     *  keeps the last NOTEBOOK_CAP entries and says how many there were. */
+    @Test
+    public void theNotebookNotesCombatAndKeepsTheLastEntries() {
+        AnswerTool.NOTEBOOK_FOR_TEST = true;
+        List<String[]> calls = new ArrayList<>();
+        calls.add(new String[] {"{\"declare_attackers\":[{\"attacker\":\"@3\"}]}", "ILLEGAL (tapped): it is tapped."});
+        calls.add(new String[] {"{\"declare_attackers\":[{\"attacker\":\"@99\"}]}", "FORMAT: no object @99 is in view now."});
+        calls.add(new String[] {"{\"declare_attackers\":[]}", null});
+        Assert.assertEquals(AnswerTool.notebookEntries(calls, AnswerTool.Kind.ATTACK_PROPOSAL, "turn 4, declare attackers"),
+                List.of("turn 4, declare attackers: you proposed the attack @3 -> opponent; you were told: ILLEGAL (tapped): it is tapped."));
+        List<String[]> blocks = new ArrayList<>();
+        blocks.add(new String[] {"{\"declare_blockers\":[{\"blocker\":\"@5\",\"attacker\":\"@8\"}]}", "ILLEGAL (flying): it has flying."});
+        AnswerTool.TERSE_FOR_TEST = true;
+        Assert.assertEquals(AnswerTool.notebookEntries(blocks, AnswerTool.Kind.BLOCK_PROPOSAL, "turn 5, declare blockers"),
+                List.of("turn 5, declare blockers: you proposed the blocks @5 blocks @8; you were told: "
+                        + AnswerTool.TERSE_COMBAT_REJECTION));
+        List<String> many = new ArrayList<>();
+        for (int i = 1; i <= AnswerTool.NOTEBOOK_CAP + 1; i++) many.add("entry " + i);
+        String section = AnswerTool.notebookSection(many);
+        Assert.assertFalse(section.contains("- entry 1\n"), "the oldest entry is kept: " + section);
+        Assert.assertTrue(section.contains("- entry 2\n") && section.contains("- entry " + (AnswerTool.NOTEBOOK_CAP + 1) + "\n"), section);
+        Assert.assertTrue(section.contains((AnswerTool.NOTEBOOK_CAP + 1) + " in all"), section);
+        Assert.assertEquals(AnswerTool.notebookSection(new ArrayList<>()), "", "an empty notebook shows no section");
+    }
+
+    /** The attack decision carries the notebook too: a second attack lists the first's refusal. */
+    @Test
+    public void aLaterAttackCarriesAnEarlierRefusal() {
+        AnswerTool.NOTEBOOK_FOR_TEST = true;
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0);
+        Card sick = card("Grizzly Bears", me, ZoneType.Battlefield);
+        sick.setSickness(true);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        for (int i = 0; i < 2; i++) {
+            model.declarations.add("[{\"attacker\":\"@" + handle(ctrl, sick) + "\"}]");
+            model.declarations.add("[{\"attacker\":\"@" + handle(ctrl, giant) + "\",\"defender\":\"opponent\"}]");
+            ctrl.declareAttackers(me, new Combat(me));
+        }
+        String last = model.prompts.get(model.prompts.size() - 1);
+        Assert.assertTrue(last.contains("REFUSED EARLIER") && last.contains("you proposed the attack @" + handle(ctrl, sick)
+                + " -> opponent; you were told: ILLEGAL (summoning sickness)"), last);
+        Assert.assertFalse(model.prompts.get(0).contains("REFUSED EARLIER"), model.prompts.get(0));
     }
 }

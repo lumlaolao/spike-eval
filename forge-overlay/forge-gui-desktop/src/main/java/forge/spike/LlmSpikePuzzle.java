@@ -937,6 +937,7 @@ public final class LlmSpikePuzzle {
         // The hidden-menu arm, only when on: a row without it saw the menu, as every row before the arm did.
         if (AnswerTool.proposeActions()) row.put("propose_actions", true);
         if (AnswerTool.proposeTerse()) row.put("propose_terse", true);
+        if (AnswerTool.proposeNotebook()) row.put("propose_notebook", true);
         if (LlmSpikeGui.PlayerControllerLLM.PROPOSE_AUDIT) row.put("propose_audit", true);
         // Either tier, as the game line's jevA (LlmSpikeGui): a fast-tier jev: solver is a jev: solver too.
         if ("llm".equals(ctlA) && (DecisionsBridge.isSpec(smartA) || DecisionsBridge.isSpec(fastA)))

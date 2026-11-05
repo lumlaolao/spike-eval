@@ -460,11 +460,29 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   keeps its text: it says what is malformed, not which rule applies. The row keeps the engine's diagnosis in
   `error` and `category`, and what the seat was told in `error_shown`, so both arms count the same rules
   (`proposal_audit.py`'s `repair` and `refusal_text`). Stamped `propose_terse` on the game line and puzzle row and
-  `answer-tool-v17+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
+  `answer-tool-v18+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
   pinned by `run_batch.py --propose-terse` and `puzzle_solve.py --propose-terse`, each refused without
   `--propose-actions`. The preamble's general ANSWERS sentence ("you are told why") is the same in both arms: it is
   about answers to listed decisions, and the b2 block was played with it. Results: the research note's section "Does
   the refusal's reason matter? The terse arm".
+- **The notebook arm** (`PROPOSE_NOTEBOOK=1`, with the propose arm only, terse or detailed; harness-epoch-81,
+  answer-tool-v18): each play, attack and blocks decision carries REFUSED EARLIER (`AnswerTool.notebookSection`), the
+  seat's proposals the rules engine refused in earlier decisions of this game, each as "turn N, the decision: you
+  proposed X; you were told: Y", where Y is the refusal exactly as it was sent (`AnswerTool.shownRefusal`: the rule in
+  the detailed arm, only "ILLEGAL" in the terse one), so the notebook never says more than the refusals did. The last
+  8 entries (`NOTEBOOK_CAP`), oldest first, and the section says so (and how many there were when more). A `FORMAT:`
+  error is not noted (it is not a rule). The section sits between the state and the DECISION line, is absent before
+  the first refusal, and the preamble says what it is; off the arm every prompt byte is unchanged
+  (`ProposeActionsTest.offTheNotebookEveryPromptIsUnchanged`). *Why:* within a decision no refused play was sent
+  again (0 of 49), but across decisions of one game the same refused play came back (`proposal_audit.py`'s
+  `refused_again` over the propose runs on disk: 6 of 24 distinct refused actions detailed, 4 of 10 terse, the
+  runs not pooled); an in-context record of past
+  errors is Reflexion's and Mistake Notebook Learning's (arXiv 2512.11485) form. It is the engine's verdicts only: no
+  advice, nothing chosen for the seat. A decision's own refusals are in its conversation already, so they are noted
+  after it. Stamped `propose_notebook` on the game line and puzzle row and `+notebook` on the answer-tool stamp; keyed
+  by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`; pinned by `run_batch.py --propose-notebook`
+  and `puzzle_solve.py --propose-notebook`, each refused without `--propose-actions`. Its outcome is
+  `proposal_audit.py`'s `refused_again` against the arm without it.
 - **Four tries** (`AnswerTool.MAX_INVALID_PROPOSALS`), then the fixed legal option, PASS. A decision lost to four
   refusals is the model's error, not a lost answer: `match_review` lists it as PROPOSAL and the harness-decided gate
   does not count it (`proposal_audit.lost_to_refusals`, one rule for both: `answer_via` lost after four invalid
@@ -472,7 +490,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v17+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v18+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls

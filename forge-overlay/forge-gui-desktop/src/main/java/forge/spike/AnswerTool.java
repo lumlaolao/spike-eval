@@ -64,8 +64,11 @@ final class AnswerTool {
      *  `declare_blockers`, by handle), checked by the engine like a play, with the same four tries. Unchanged off the arm.
      *  v17 (2026-11-05): the PROPOSE_TERSE arm ({@link #proposeTerse}): a rules refusal of a play or a combat
      *  declaration says only that it is illegal ({@link #terseRejection}), and the preamble and the schema say so.
+     *  Unchanged off the arm.
+     *  v18 (2026-11-05): the PROPOSE_NOTEBOOK arm ({@link #proposeNotebook}): a proposal decision lists this game's
+     *  earlier rules refusals as the seat was told them, the last {@link #NOTEBOOK_CAP}, and the preamble says so.
      *  Unchanged off the arm. */
-    static final String VERSION = "answer-tool-v17";
+    static final String VERSION = "answer-tool-v18";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -113,6 +116,55 @@ final class AnswerTool {
         return err != null && err.startsWith("ILLEGAL (") && proposeTerse() ? terseRejection(k) : err;
     }
 
+    /** PROPOSE_NOTEBOOK=1, under PROPOSE_ACTIONS only: each play, attack and blocks decision carries REFUSED EARLIER
+     *  ({@link #notebookSection}), this game's earlier rules refusals of the seat's proposals, each as the seat was told
+     *  it ({@link #shownRefusal}: the rule in the detailed arm, only "ILLEGAL" in the terse one). An in-context record of
+     *  past errors (Reflexion; Mistake Notebook Learning, arXiv 2512.11485): within a decision no refused play was sent
+     *  again, but across decisions the same refused play came back (eval/research/2026-11-03-propose-condition-prior-
+     *  work.md). Engine facts only. docs/harness/ARCHITECTURE.md, "The notebook arm". Stamped `propose_notebook`. */
+    static boolean proposeNotebook() {
+        return proposeActions() && (NOTEBOOK_FOR_TEST != null ? NOTEBOOK_FOR_TEST : "1".equals(System.getenv("PROPOSE_NOTEBOOK")));
+    }
+    /** Tests only: as {@link #PROPOSE_FOR_TEST}, for {@link #proposeNotebook}. */
+    static volatile Boolean NOTEBOOK_FOR_TEST = null;
+    /** The entries REFUSED EARLIER shows at most: the most recent ones. */
+    static final int NOTEBOOK_CAP = 8;
+
+    /** The notebook lines for one ask's {@code calls} of a {@code k} proposal, made {@code when} ("turn 3, declare
+     *  attackers"): one per rules refusal, "when: you proposed X; you were told: Y", Y exactly the refusal the seat was
+     *  sent. A FORMAT error says what is malformed, not a rule, and is not noted. */
+    static List<String> notebookEntries(List<String[]> calls, Kind k, String when) {
+        List<String> out = new ArrayList<>();
+        for (String[] c : calls)
+            if (c[1] != null && c[1].startsWith("ILLEGAL ("))
+                out.add(when + ": you proposed " + renderProposal(c[0], k) + "; you were told: " + shownRefusal(c[1], k));
+        return out;
+    }
+
+    /** A proposal's arguments in one line ("cast @12 targeting opponent", "the attack @3 -> opponent"); read by the
+     *  form check alone, so nothing is checked or set again. */
+    private static String renderProposal(String args, Kind k) {
+        JsonObject a = NativeTools.arguments(args);
+        Answer x = new Answer();
+        boolean attack = k == Kind.ATTACK_PROPOSAL;
+        String err = a == null ? "" : k == Kind.ACTION ? proposalOf(a, x) : declaredOf(a, attack, x);
+        if (err != null) return args;   // not reached: a rules refusal passed the form check
+        return k == Kind.ACTION ? x.action.render() : (attack ? "the attack " : "the blocks ") + renderDeclared(x.declared, attack);
+    }
+
+    /** REFUSED EARLIER, the section a proposal decision carries under {@link #proposeNotebook}: the last
+     *  {@link #NOTEBOOK_CAP} of {@code entries}, oldest first, and the cap said. Empty off the arm or with no entry, so
+     *  the prompt is byte for byte the arm's without it. */
+    static String notebookSection(List<String> entries) {
+        if (!proposeNotebook() || entries.isEmpty()) return "";
+        int from = Math.max(0, entries.size() - NOTEBOOK_CAP);
+        StringBuilder b = new StringBuilder("\nREFUSED EARLIER (harness record: your proposals the rules engine refused in "
+                + "earlier decisions of this game, and what you were told; the last " + NOTEBOOK_CAP + " at most, oldest first"
+                + (from > 0 ? "; " + entries.size() + " in all" : "") + "):\n");
+        for (int i = from; i < entries.size(); i++) b.append("- ").append(entries.get(i)).append('\n');
+        return b.toString();
+    }
+
     /** Invalid `answer` calls a proposal may make before its decision is lost (two elsewhere). Repair gains level off
      *  after two to five rounds of checker feedback (COPRA; Goedel-Prover-V2); Kaggle Game Arena allows four tries. */
     static final int MAX_INVALID_PROPOSALS = 4;
@@ -129,7 +181,7 @@ final class AnswerTool {
     static String protocolVersion() {
         String env = System.getenv("ANSWER_TOOL_CHOICE");
         return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : "") + (proposeActions() ? "+propose" : "")
-                + (proposeTerse() ? "+terse" : "") + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
+                + (proposeTerse() ? "+terse" : "") + (proposeNotebook() ? "+notebook" : "") + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
     }
 
     /**
@@ -198,8 +250,14 @@ final class AnswerTool {
             + "attacks or blocks with none. The engine checks the whole declaration; if the rules forbid it you are told "
             + (terse ? TERSE_PROMISE : COMBAT_RULE_PROMISE) + " and may "
             + "declare again, up to " + MAX_INVALID_PROPOSALS + " tries in all; after that you attack or block with none, or "
-            + "with the smallest legal declaration when none is not allowed.\n";
+            + "with the smallest legal declaration when none is not allowed.\n"
+            + (proposeNotebook() ? NOTEBOOK_INSTRUCTIONS : "");
     }
+
+    /** The preamble's sentence on REFUSED EARLIER, under {@link #proposeNotebook} only. */
+    static final String NOTEBOOK_INSTRUCTIONS = "REFUSED EARLIER, when a decision shows it, lists proposals of yours that the "
+            + "rules engine refused in earlier decisions of this game, each with what you were told then (the last "
+            + NOTEBOOK_CAP + " at most).\n";
 
 
     enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD, ACTION, ATTACK_PROPOSAL, BLOCK_PROPOSAL }
