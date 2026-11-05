@@ -38,7 +38,8 @@ undefined: the random seat's outcome never varies.
    free block from the same seed distribution (or the whole seed panel), also played with `--controller-a ai`.
 3. Adopt the adjusted estimate only if the interval on 1 - rho^2 sits clearly below 1, and report the plain win rate
    beside it, each with its interval. At rho near 0 a block of 20 seeds gives rho to about +-0.45 (Fisher z), 40
-   seeds about +-0.3; with 20 seeds an observed rho near 0.6 or more is needed before 1 - rho^2 is clearly below 1.
+   seeds about +-0.3. With 20 seeds an observed rho near 0.6 is the least that puts rho's interval above 0, and then
+   1 - rho^2 is at most about 0.95: a useful bound needs a larger observed rho or a second block.
 
 ## What was not determined
 
@@ -49,5 +50,5 @@ undefined: the random seat's outcome never varies.
   in seat B on the same deal, where a deal's luck can move the two games in opposite directions. It says nothing
   about two pilots in the same seat on the same deal.
 - Seat A won 24 of 39 decided games (0.62, Wilson [0.46, 0.75]). Seat A is not the player on the play (a coin flip
-  decides that: A went first in 19 of 40); the player on the play won 21 of 39 decided games (0.54, about [0.38,
-  0.69]). Neither shows an edge.
+  decides that: A went first in 19 of 40); the player on the play won 21 of 39 decided games (0.54, Wilson [0.39,
+  0.68]). Neither shows an edge.
