@@ -75,8 +75,9 @@ fixed). Section 8 says what was not determined.
   items from any board the engine can build, so a leaked set can be replaced; the category of a refusal from the same
   checker the propose arm uses, so the static probe and the in-game measurement share one definition of "illegal".
 - **Lacks:** the judge-question genre (layers, replacement-effect ordering, "what happens") is not a legality question
-  and is not covered; the label is Forge's, so a Forge rules bug becomes a wrong label (the 2026-11-03 note, Jericho's
-  validity oracle has false negatives); the category is "the first check the play fails" in Forge's order
+  and is not covered; the label is the propose checker's, so it inherits that checker's defects and Forge's rules
+  bugs as wrong labels (the 2026-11-03 note, Jericho's validity oracle has false negatives; section 9.3 found two such
+  classes); the category is "the first check the play fails" in Forge's order
   (`LlmSpikeGui.rejection`), which is one valid answer where the rules may admit several.
 
 ## 2. The data the repository already holds
@@ -275,6 +276,9 @@ tests the observation as much as the rules.
 
 ## 6. The engine labeller (designed, not built)
 
+*Built later the same day: section 9; how the labeller is actually run (a class named Export, not a test the
+acceptance runner runs, in shards) is section 9.1 and the class comment of `RulesProbeLabelExport`.*
+
 Mined rows give exact legal/illegal labels but only inferred categories, and they give negatives only where a game
 happened to reach them. A labeller that runs the propose checker on a built board fixes both:
 
@@ -332,3 +336,215 @@ rejection category on a constructed board, which is the evidence it would work.
 - **Activated abilities' negatives** are not mined: a menu row does not list the abilities a card has but cannot use
   now (the propose arm's YOUR ACTIVATED ABILITIES does; only its refused proposals were used).
 - **Licensing** of boards adapted from RulesGuru for any released set.
+
+---
+
+## 9. The engine labeller, built (2026-11-05)
+
+**Provenance.** Every number in this section comes from one export on a `harness-epoch-80` build, before PR #360
+(epoch 82) changed the propose checker; it was not re-run after. Under #360 a copy that cannot pay its own cost is
+refused (a tapped Mountain's `{T}` is now `cost`), so the export drops no `SUBSTITUTED` rows (`substituted_dropped`
+is always 0), and the category order moved (control before cast ways; the rest of the cost before zone or
+restriction). The commands below, run at a later build, give a different set.
+
+**Answer: the labeller works, but its labels are the propose checker's, and the audit found two classes of wrong
+ones.** Of 60 negatives drawn from the final set and read by hand, 56 were illegal (Wilson 95% 0.84-0.97 over the
+sample; per-cell draws, so not an estimate over the set's 524,040 negatives); all four errors are legal plays the
+checker refuses because the play menu does not offer them (9.3). Categories were right on 51 of 60. Of 30 legal
+items, 30 were legal. Over the 1,371 boards the labeller gives 572,952 items with every rejection category the engine
+names, and 7,995 contrast pairs (one play, legal on a board and illegal on a one-line variant, or the reverse). Most
+negatives are trivial by construction (every card with every verb), so a floor that reads zones scores 0.849 balanced
+accuracy over the set; on a 96-item contrast set drawn to strip that out, Haiku 5.5 scored balanced 0.968 against
+that floor's 0.683 balanced. The set separates a model from the floor; Haiku is near the ceiling again.
+
+*What moved after review of PR #359:* the position key (9.2) kept two same-name cards of one state apart (823 old
+positions had merged two labels), which moved every position count, the subtle stratum and the contrast set; the
+zone floor (0.849) did not move. The first version of this section reported 60 of 60 negatives right on two samples
+drawn per cell, half of them from an export before the priority fix; both samples are now drawn from the final set
+by a committed sampler, and they found the four wrong labels. The Haiku numbers are on the new draw (34 of its 96
+items were in the old one).
+
+### 9.1 What was built
+
+- `RulesProbeLabelExport` (`forge-overlay/forge-gui-desktop/src/test/java/forge/spike/`, named Export so acceptance
+  compiles it and never runs it): what it proposes, what it drops, the variants, how to run it and why in shards are
+  in its class comment. `RulesProbeLabelTest` holds the always-on tests: one built board and its variants labelled
+  with known legal and illegal items and categories, the export's rows, and the output path refused inside the
+  repository (outside `runs/`) or the Forge checkout.
+- Defects found while building it, each a test: the seat named "Seat" beside the player "Solver" (`parse_window`
+  read every board as the opponent's turn); "Keyword Effects", the engine object holding a player's hexproof under
+  Leyline of Sanctity, offered as a card (effect objects are left out); the checker's mana-ability fallback accepting
+  a tapped Mountain's `{T}` ability because an untapped copy was on the menu (dropped as `SUBSTITUTED` in this run,
+  with some legal items, a second untapped copy's ability among them; see Provenance); the opponent holding priority
+  in the opp-turn and split-second variants (the solver is now given priority). The first three were seen red before
+  their fix; the seat name was asserted with its fix.
+- `eval/rules_probe.py`: `engine` (rows to items), `engine-report` (boards, copies, drops, conflicts, from the rows),
+  `audit-sample` (positions of one label, round robin over cells), `zone_floor`, `contrast_pairs`,
+  `balance --contrast`, and in `score` the contrast pairs right on both sides and a category baseline.
+
+Run directory: `runs/rules-probe/engine-label-1105/` in the main clone (git-ignored): `raw-0..5.jsonl.gz`
+(the labeller's rows), `items.jsonl.gz`, `stats.json`, `report.json`, `set-contrast.jsonl` (the 96 items),
+`haiku-contrast.jsonl` (Haiku's answers), `audit-illegal-1105.txt`, `audit-illegal-2026.txt`, `audit-legal-1105.txt`
+(the samples), `audit-verdicts.jsonl` (each sampled id with its verdict and, for a wrong one, why) and
+`issue-drafts/` (the three defect reports of 9.3, written to the defect-hunt format and not yet filed). Commands, from
+the repository root, after the export of the class comment (`-Dharness.probe.out=$PWD/runs/rules-probe/<name>/raw-K.jsonl.gz`):
+
+```
+python3 eval/rules_probe.py engine <dir>/raw-[0-5].jsonl.gz --out <dir>/items.jsonl.gz
+python3 eval/rules_probe.py stats <dir>/items.jsonl.gz --floor --json > <dir>/stats.json
+python3 eval/rules_probe.py engine-report <dir>/raw-[0-5].jsonl.gz > <dir>/report.json
+python3 eval/rules_probe.py balance <dir>/items.jsonl.gz --per-cell 5 --seed 1105 --contrast --out <dir>/set-contrast.jsonl
+python3 eval/rules_probe.py audit-sample <dir>/items.jsonl.gz --label illegal --n 30 --seed 1105   # and --seed 2026
+python3 eval/rules_probe.py audit-sample <dir>/items.jsonl.gz --label legal --n 30 --seed 1105
+CLAUDE_CLI_SEAT=1 python3 eval/rules_probe.py ask <dir>/set-contrast.jsonl --model claude-cli:claude-haiku-5-5 \
+    --out <dir>/haiku-contrast.jsonl
+python3 eval/rules_probe.py score <dir>/set-contrast.jsonl <dir>/haiku-contrast.jsonl
+python3 eval/rules_probe.py count <dir>/items.jsonl.gz --label illegal --name "Lantern Bearer" --category target
+python3 eval/rules_probe.py count <dir>/items.jsonl.gz --label illegal --reason-has "mana cost" \
+    --solver-board-has "Heritage Druid"
+```
+
+The export was run twice, before and after the review's changes; every shard's rows and drop counts were the same.
+
+### 9.2 The set
+
+From `report.json` (`engine-report`, the rows and the labeller's summary rows):
+
+| | count |
+|---|---|
+| `.pzl` files under `eval/puzzles` | 1,372, all read by the labeller (`boards_labelled`) |
+| boards with a state | 1,371: `rules-pilot/batch14-drafts/d2_9` throws in Forge's setup in all 7 of its variants (`failed`) |
+| distinct boards | 1,042: 329 drafts are copies of a released rules-pilot board (`boards_copying_another`) |
+| board variants put down | 9,959 (`state_rows`); 7,718 distinct states; 34 `summon-sick` edits change nothing the state shows |
+| rows written | 640,507, after 11,179 FORMAT and 13,684 substituted rows were dropped |
+| conflicting labels | 0: no state and proposal carry two labels (`label_conflicts`) |
+
+From `stats.json` (`stats --floor`):
+
+| | count |
+|---|---|
+| items | 572,952: legal 48,912 (10,792 of them mana abilities), illegal 524,040; 1,060 card names among negatives |
+| positions | 410,136; `position_pool` (mana abilities out) 399,859: legal 30,639, illegal 369,220 |
+| positions with two labels | 0 (`position_label_conflicts`) |
+
+A position is the item without its handles, for an engine item with each object named by what the state says of it
+(side, zone, its entry: "Swamp [tapped]", "Hill Giant 3/3 [untapped] [hexproof]"). The first key stripped handles
+and named no zone, so a Swamp in hand and one on the battlefield were one position with whichever label came first:
+823 such positions had merged two labels (pr-review of #359).
+
+Illegal items by engine category: cost 134,468, zone 130,807, target 127,432, type 118,302, timing 11,269, control
+981, restriction 635, land drop 146.
+
+**The floors.** The note's state-reading floor (`heuristic`, section 2.3) cannot see zones: balanced accuracy
+**0.550** over the positions (recall legal 0.983, illegal 0.118). `zone_floor` adds where things are (its docstring):
+**0.849** balanced (recall legal 0.966, illegal 0.733). Any score on this set must beat 0.849.
+
+**Difficulty**, defined by that floor: *trivial* when `zone_floor` calls a negative illegal, *subtle* when it does not,
+*card-text* when it is subtle only because it names a way to cast the card lacks. Positions: trivial 270,603,
+card-text 80,273, subtle **18,344** (5.0% of illegal positions); the zone floor is right on none of the last two by
+construction. `subtle_positions_by_reason` (`stats`, `reason_kind`): a target the spell's text rules out 9,477; split
+second on the stack 2,630; a sorcery-speed spell at instant speed 1,791; a target in a zone the spell does not target
+1,433; a static forbids the target 1,242; mana of the wrong colour or amount 561; an ability's own limits or an
+effect 540; a `{T}` cost of a tapped or sick permanent 387; a sorcery-speed ability 148; the rest under 135 each.
+
+**Contrast pairs** (`contrast_pairs_by_variant`): 7,995. Split second 2,696, opponent's turn 1,561, combat 1,561,
+Leyline 1,338, a tapped land 521, a sick creature 165, a land played 146, a hexproof creature 7. In all 7
+`opp-hexproof` pairs the edit made a Craterhoof Behemoth cast legal. The first version of this section read that as
+the engine at work (Gladecover Scout is an Elf, and Priest of Titania counts Elves). In the one pair checked by hand
+(`hard/gen2/hoofdrain_4f7ac995ab62`), Craterhoof was already castable on the base board: Priest of Titania makes 4,
+Heritage Druid taps itself, Nettle Sentinel and Fyndhorn Elves for GGG, and two Forests make 9. So the base label is
+wrong, which is the second class in 9.3.
+
+### 9.3 Label audit (section 7 item 5)
+
+Two samples of 30 negatives (`audit-sample --label illegal`, seeds 1105 and 2026) and one of 30 legal items
+(`--label legal`, seed 1105), all from the final set, read by hand against the Comprehensive Rules, the state and
+the card's text. The sampler draws round robin over cells, so every cell is sampled about equally whatever its size.
+In each negative sample, 13 cells (kind, category, difficulty) gave 2 items and 4 gave 1 (play/zone and target/target,
+trivial and subtle). The legal sample drew 1 per (kind, verb, variant, mana ability) cell over 30 cells (the sampler's CELLS line names the
+mana flag since review round 3; the first printout merged the two and read 22 cells). One negative
+was drawn in both samples. Verdicts, with the reason for each miss: `audit-verdicts.jsonl`.
+
+| sample | n | label right | Wilson 95% | category right | Wilson 95% |
+|---|---|---|---|---|---|
+| negatives, seed 1105 | 30 | 28 | 0.79-0.98 | 26 | 0.70-0.95 |
+| negatives, seed 2026 | 30 | 28 | 0.79-0.98 | 25 | 0.66-0.93 |
+| negatives pooled (59 distinct) | 60 | 56 | 0.84-0.97 | 51 | 0.74-0.92 |
+| legal, seed 1105 | 30 | 30 | 0.89-1.00 | n/a | |
+
+The intervals are over the sample. Because cells are drawn equally, a cell's errors weigh by the cell's share of the
+sample, not of the set; the rates are not estimates over the 524,040 negatives.
+
+**The four wrong labels**, two classes, both legal plays the menu does not offer, so the checker refuses them:
+- *Disturb onto an Aura* (`rules-pilot/authored-drafts/y_105`, base and opp-hexproof): Lantern Bearer's Disturb casts
+  Lanterns' Lift, an Aura, from the graveyard for {2}{U}; with UUU floating and Grizzly Bears to enchant it is legal
+  (it is that board's own solution), and the checker answers "it has no legal target now". In the set: 12
+  positions of that board (the cast named as Disturb, as "alternative" and as the face, on the four variants where the
+  target is the refusal; its timing refusals are right), `count --label illegal --name "Lantern Bearer" --category
+  target` (9.1).
+- *Mana from Heritage Druid* (`hard/gen2/hoofdrain_1760166562b2` base, `hoofdrain_4962cb5b4d19` summon-sick):
+  Craterhoof Behemoth is payable (Priest of Titania's Elves plus Heritage Druid's "tap three untapped Elves", which
+  has no {T} symbol, so a sick Druid can pay it), and the checker answers "you cannot pay its mana cost now". At
+  most 194 mana-cost negatives on 47 boards have Heritage Druid on the solver's battlefield (188 of them Craterhoof;
+  `count --label illegal --reason-has "mana cost" --solver-board-has "Heritage Druid"`, 9.1); not all are wrong, and
+  they are a large share of the small play/cost/subtle cell (948 positions).
+
+Both are the menu's (`enumeratePlayOptions`, `seatCanPay`), so a menu seat on those boards cannot make the play
+either: "a legal action is never hidden" does not hold there. Both are written up for a fix in the defect-hunt
+format (`issue-drafts/` in the run directory: `not-offered`, sev:high each), with a third, `not-shown` (sev:low): the
+state lists "Keyword Effects", the engine object holding a player's hexproof, as a card with a handle in the command
+zone (`SeatObservation`'s command lines). Filing them is pending. The checker's own defects (the category order, the
+mana-ability copy fallback) are PR #360's (see Provenance).
+
+**The category misses** (5 among the 56 right labels, 9 counting the wrong labels): at epoch 80, `rejection` asked
+`playable` before it checked a non-mana cost and answered "restriction" or "zone" whatever made it fail: Dread
+Return's flashback with too few creatures, Colossal Dreadmaw's escape under Underworld Breach, Spawning Pit with no
+charge counters and Eldritch Evolution with no creature to sacrifice are cost; Reassembling Skeleton's ability on
+the battlefield is zone. The propose arm's category counts from that epoch inherit this.
+
+One legal item is flagged, not counted wrong: The One Ring activated in a cleanup step (`rules-pilot/RP_096`,
+opp-leyline). It is legal with the priority the state gives the solver, but in a cleanup step no player normally gets
+priority (CR 514.3): the board's own premise, which the labeller keeps.
+
+### 9.4 Haiku 5.5 on a contrast set (development lane, not a score)
+
+`balance --per-cell 5 --seed 1105 --contrast` drew 96 items: 52 negatives with a contrast partner, 5 per (kind,
+category, difficulty) cell where the cell had 5 (11 cells), and their 44 legal partners. `ask` with
+`claude-cli:claude-haiku-5-5` and `CLAUDE_CLI_SEAT=1`, card text prepended, no rules lookup; notional CLI cost $0.045.
+One epoch (harness-epoch-80), one engine pin.
+
+| | n | Haiku | zone floor | state-reading floor |
+|---|---|---|---|---|
+| all: accuracy | 96 | 93: **0.969** (Wilson 95% 0.91-0.99) | 65: 0.677 | 61: 0.635 |
+| all: balanced accuracy | 96 | **0.968** | **0.683** | 0.653 |
+| legal | 44 | 42 | 33 | |
+| illegal, trivial | 32 | 31 | 32 | |
+| illegal, subtle | 20 | 20 | 0 | |
+| contrast pairs, both sides right | 52 | 46 (Wilson 95% 0.77-0.95) | 14 (0.17-0.40) | |
+| category, on negatives Haiku called illegal | 51 | 25: 0.49 (0.36-0.62) | always the commonest category: 0.20 | |
+
+Haiku's three errors: Stoke the Flames at an opponent under Leyline of Sanctity called legal, and two legal casts
+called illegal (Glacial Ray at the opponent; Fury Sliver, which Hostage Taker lets the solver cast with any mana).
+One item of the 96 is a known wrong label (Craterhoof on `hoofdrain_4f7ac995ab62` base, 9.2): Haiku agreed with the
+label, so by the rules it is one more Haiku error and its pair is not a contrast pair. Category: 0.49 against 0.20
+for always naming the commonest category, on a category the audit found unreliable (above).
+
+**What it shows:** the set separates a model from the floor (balanced 0.968 against 0.683; 46 of 52 pairs against 14)
+and does not yet separate strong models: with 96 items the interval is about 0.08 wide.
+
+### 9.5 What was not determined
+
+- **The wrong labels' rate over the set.** The audit found two classes; it cannot say how many items each holds
+  beyond the bounds above, nor what other classes a larger sample would find. Until the two menu defects are fixed,
+  leave out Disturb casts and boards with Heritage Druid, or relabel them by hand (the two `not-offered` reports in
+  `issue-drafts/`, 9.3).
+- **The categories' reliability** beyond the audit: the ordering fault in `rejection` was fixed by #360 and the
+  categories were not re-measured (Provenance).
+  Score categories on timing, land drop and target only, or not at all.
+- **The leak** that limits a JVM to about 375 boards was not found.
+- **Whether the variants are fair positions.** A board built for its main phase, moved to combat or the opponent's
+  turn with the solver given priority (and a board set in a cleanup step), is legal to ask about but not a position a
+  game reaches that way.
+- **A stronger floor.** `zone_floor` knows no card text; one that read type lines and printed cast ways would move
+  most card-text negatives and about 1,800 subtle ones to trivial. The subtle stratum is "what this floor misses".
+- **Model separation**, **correlation with play**, **licensing** (section 8) are unchanged: one model, 96 items.

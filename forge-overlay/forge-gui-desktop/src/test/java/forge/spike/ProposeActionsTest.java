@@ -61,7 +61,7 @@ public class ProposeActionsTest {
         return ctrl.observer().handleOf(c);
     }
 
-    private static AnswerTool.Proposal prop(String verb, Integer card, Integer ability, String face, String cost) {
+    static AnswerTool.Proposal prop(String verb, Integer card, Integer ability, String face, String cost) {
         AnswerTool.Proposal p = new AnswerTool.Proposal();
         p.verb = verb; p.card = card; p.ability = ability; p.face = face; p.cost = cost;
         return p;
