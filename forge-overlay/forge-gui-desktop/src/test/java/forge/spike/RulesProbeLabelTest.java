@@ -178,4 +178,26 @@ public class RulesProbeLabelTest {
         Assert.assertNull(RulesProbeLabelExport.outputRefusal("/tmp/probe/raw.jsonl.gz", repo, forge));
         Assert.assertNull(RulesProbeLabelExport.outputRefusal("/x/repository-copy/raw.jsonl", repo, forge), "a prefix only");
     }
+
+    /** The checkout is FORGE_HOME when it is set (the JVM's working directory's parent otherwise), and a path is judged
+     *  where it really is: a symlink into the repository is the repository (review round 3 of #359). */
+    @Test
+    public void theGuardReadsForgeHomeAndResolvesRealPaths() throws Exception {
+        Assert.assertEquals(RulesProbeLabelExport.forgeRoot("/x/forge", "/y/forge/forge-gui-desktop"), new File("/x/forge"));
+        Assert.assertEquals(RulesProbeLabelExport.forgeRoot("", "/y/forge/forge-gui-desktop"), new File("/y/forge"));
+        Assert.assertEquals(RulesProbeLabelExport.forgeRoot(null, "/y/forge/forge-gui-desktop"), new File("/y/forge"));
+        File dir = Files.createTempDirectory("rules-probe-guard").toFile().getCanonicalFile();
+        File repo = new File(dir, "repo"), forge = new File(dir, "forge");
+        Assert.assertTrue(new File(repo, "runs").mkdirs() && new File(repo, "eval").mkdirs() && forge.mkdirs());
+        File link = new File(dir, "link");
+        Files.createSymbolicLink(link.toPath(), repo.toPath());
+        Assert.assertNotNull(RulesProbeLabelExport.outputRefusal(link + "/eval/raw.jsonl", repo, forge),
+                "a symlink into the repository");
+        Assert.assertNull(RulesProbeLabelExport.outputRefusal(link + "/runs/rules-probe/raw.jsonl", repo, forge),
+                "the repository's runs/, through the symlink");
+        File forgeLink = new File(dir, "forge-link");
+        Files.createSymbolicLink(forgeLink.toPath(), forge.toPath());
+        Assert.assertNotNull(RulesProbeLabelExport.outputRefusal(forge + "/new/raw.jsonl", repo, forgeLink),
+                "a checkout named by a symlink");
+    }
 }

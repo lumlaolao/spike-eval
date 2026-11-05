@@ -57,9 +57,10 @@ import static forge.spike.ProposeActionsTest.prop;
  *        -Dharness.probe.shard=K/6 ... org.testng.TestNG -testclass forge.spike.RulesProbeLabelExport
  * from $FORGE_HOME/forge-gui-desktop, K = 0..5, one JVM after another. -Dharness.probe.boards (comma-separated paths
  * under the repository, default eval/puzzles), -Dharness.probe.limit (boards) and -Dharness.probe.variants=base narrow
- * it. The output must be an absolute path outside the repository and the Forge checkout. Each shard writes one state row
- * per board variant, one row per labelled proposal and a closing summary row (its drop counts);
- * `python3 eval/rules_probe.py engine` turns the rows into probe items.
+ * it. The output must be an absolute path outside the Forge checkout (FORGE_HOME, or the working directory's parent),
+ * and in the repository only under its git-ignored runs/, both judged where the path really is (outputRefusal). Each
+ * shard writes one state row per board variant, one row per labelled proposal and a closing summary row (its drop
+ * counts); `python3 eval/rules_probe.py engine` turns the rows into probe items.
  *
  * Why shards: a JVM keeps something of every board it builds (not found). With -Xmx2g one JVM ran out of heap after
  * about 375 of the 1,372 boards under eval/puzzles (each board up to nine variants), so six shards of about 229 boards
@@ -408,11 +409,29 @@ public class RulesProbeLabelExport {
     static String outputRefusal(String path, File repo, File forge) {
         java.nio.file.Path p = java.nio.file.Paths.get(path);
         if (!p.isAbsolute()) return "-Dharness.probe.out must be an absolute path: " + path;
-        p = p.normalize();
-        java.nio.file.Path r = repo.toPath().toAbsolutePath().normalize(), f = forge.toPath().toAbsolutePath().normalize();
+        p = real(p);
+        java.nio.file.Path r = real(repo.toPath()), f = real(forge.toPath());
         if (p.startsWith(f)) return "-Dharness.probe.out is inside the Forge checkout " + f + ": " + p;
         if (p.startsWith(r) && !p.startsWith(r.resolve("runs"))) return "-Dharness.probe.out is in the repository outside runs/: " + p;
         return null;
+    }
+
+    /** The Forge checkout: FORGE_HOME when set, else the parent of the JVM's working directory (forge-gui-desktop). */
+    static File forgeRoot(String forgeHome, String userDir) {
+        if (forgeHome != null && !forgeHome.trim().isEmpty()) return new File(forgeHome.trim());
+        return new File(userDir).getAbsoluteFile().getParentFile();
+    }
+
+    /** {@code p} where it really is: its longest existing ancestor with symlinks resolved, then the rest as written. */
+    private static java.nio.file.Path real(java.nio.file.Path p) {
+        p = p.toAbsolutePath().normalize();
+        java.nio.file.Path existing = p, rest = p.getFileSystem().getPath("");
+        while (existing != null && !java.nio.file.Files.exists(existing)) {
+            rest = existing.getFileName().resolve(rest);
+            existing = existing.getParent();
+        }
+        try { return existing == null ? p : existing.toRealPath().resolve(rest).normalize(); }
+        catch (IOException e) { return p; }
     }
 
     /** A board's id: its path under eval/puzzles without ".pzl", or its file name for a board elsewhere. */
@@ -493,7 +512,7 @@ public class RulesProbeLabelExport {
         String outPath = System.getProperty("harness.probe.out");
         Assert.assertNotNull(outPath, "name the output: -Dharness.probe.out=/absolute/path/raw.jsonl.gz");
         File repo = PuzzleSetupTest.repoRoot();
-        String refused = outputRefusal(outPath, repo, new File(System.getProperty("user.dir")).getAbsoluteFile().getParentFile());
+        String refused = outputRefusal(outPath, repo, forgeRoot(System.getenv("FORGE_HOME"), System.getProperty("user.dir")));
         Assert.assertNull(refused, refused);
         List<File> files = boardFiles(repo, System.getProperty("harness.probe.boards", "eval/puzzles"));
         String[] shard = System.getProperty("harness.probe.shard", "0/1").split("/");
