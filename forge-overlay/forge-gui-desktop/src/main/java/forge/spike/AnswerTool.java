@@ -62,7 +62,6 @@ final class AnswerTool {
      *  v15 (2026-11-04): `action.cost` says an optional cost such as Kicker is asked when the spell is cast.
      *  v16 (2026-11-05): under PROPOSE_ACTIONS the attack and the blocks are proposed too (`declare_attackers`,
      *  `declare_blockers`, by handle), checked by the engine like a play, with the same four tries. Unchanged off the arm.
-
      *  v17 (2026-11-05): the PROPOSE_TERSE arm ({@link #proposeTerse}): a rules refusal of a play or a combat
      *  declaration says only that it is illegal ({@link #terseRejection}), and the preamble and the schema say so.
      *  Unchanged off the arm. */
@@ -93,13 +92,9 @@ final class AnswerTool {
     /** Tests only: the condition on or off without the environment variable (null: read the environment). */
     static volatile Boolean PROPOSE_FOR_TEST = null;
 
-    /** PROPOSE_TERSE=1, under PROPOSE_ACTIONS only: a proposal the rules refuse is told {@link #terseRejection}, Kaggle
-     *  Game Arena's binary verdict, in place of "ILLEGAL (category): the rule it breaks". A measurement arm for the
-     *  message's share of repair (eval/research/2026-11-03-propose-condition-prior-work.md: Game Arena's harness has a
-     *  reason-giving variant but no published comparison; Gumaan 2026 finds a failure message can make a repeat more
-     *  likely). A FORMAT error keeps its text in both arms: it says what is malformed, not which rule applies. The row
-     *  keeps the engine's diagnosis, so both arms count the same rule categories. The play, the attack and the blocks
-     *  are refused alike, and the preamble and the `action` schema say so. Stamped `propose_terse`. */
+    /** PROPOSE_TERSE=1, under PROPOSE_ACTIONS only: a rules refusal is told {@link #terseRejection}, not the rule; a
+     *  FORMAT error keeps its text and the row keeps the diagnosis. docs/harness/ARCHITECTURE.md, "The terse arm".
+     *  Stamped `propose_terse`. */
     static boolean proposeTerse() {
         return proposeActions() && (TERSE_FOR_TEST != null ? TERSE_FOR_TEST : "1".equals(System.getenv("PROPOSE_TERSE")));
     }
@@ -174,8 +169,7 @@ final class AnswerTool {
                 + "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
                 + "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
                 + "decision, alongside the answer.\n"
-                + (!proposeActions() ? "" : proposeTerse() ? PROPOSE_INSTRUCTIONS.replace(RULE_PROMISE, TERSE_PROMISE)
-                        .replace(COMBAT_RULE_PROMISE, TERSE_PROMISE) : PROPOSE_INSTRUCTIONS);
+                + (proposeActions() ? proposeInstructions() : "");
     }
 
     /** What the preamble says a rules refusal tells, in each arm ({@link #proposeTerse}). */
@@ -183,14 +177,16 @@ final class AnswerTool {
     static final String COMBAT_RULE_PROMISE =
             "which rule it breaks (such as summoning sickness, tapped, defender, flying, menace, a requirement)";
     static final String TERSE_PROMISE = "only that it is illegal, not why,";
-    /** The preamble's paragraph on proposing a play, under PROPOSE_ACTIONS only. */
-    static final String PROPOSE_INSTRUCTIONS = "PLAYS: when you have priority you are not shown a list of legal plays. "
+    /** The preamble's paragraphs on proposing a play and combat, under PROPOSE_ACTIONS only. */
+    static String proposeInstructions() {
+        boolean terse = proposeTerse();
+        return "PLAYS: when you have priority you are not shown a list of legal plays. "
             + "Propose one with `action`: `verb` (play_land, cast, activate or pass), `card` (the handle of the card or "
             + "permanent, such as \"@12\"), and for an ability `ability` (its number in YOUR ACTIVATED ABILITIES). Give `face` "
             + "to cast one face or half of a card, and `cost` to cast it another way the card allows (its name as the card "
             + "prints it, such as \"Flashback\" or \"Prototype\", \"alternative\" for a \"rather than pay this spell's mana cost\" "
             + "cost, or \"flash\" for a cast the card allows at a time you could not otherwise cast it). "
-            + "The rules engine checks the proposal. If the rules do not allow it now you are told " + RULE_PROMISE
+            + "The rules engine checks the proposal. If the rules do not allow it now you are told " + (terse ? TERSE_PROMISE : RULE_PROMISE)
             + " and may propose again, up to "
             + MAX_INVALID_PROPOSALS + " tries in all; after that you pass. A malformed proposal (an unknown handle or "
             + "ability number) is told what is wrong. Give a play's target in `targets` (a handle, or \"you\" or \"opponent\"); "
@@ -200,9 +196,10 @@ final class AnswerTool {
             + "(each attacker's handle, and its `defender`: \"opponent\", or the handle of a planeswalker or battle) and your "
             + "blocks with `declare_blockers` (each blocker's handle and the handle of the attacker it blocks); an empty list "
             + "attacks or blocks with none. The engine checks the whole declaration; if the rules forbid it you are told "
-            + COMBAT_RULE_PROMISE + " and may "
+            + (terse ? TERSE_PROMISE : COMBAT_RULE_PROMISE) + " and may "
             + "declare again, up to " + MAX_INVALID_PROPOSALS + " tries in all; after that you attack or block with none, or "
             + "with the smallest legal declaration when none is not allowed.\n";
+    }
 
 
     enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD, ACTION, ATTACK_PROPOSAL, BLOCK_PROPOSAL }

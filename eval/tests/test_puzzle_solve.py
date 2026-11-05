@@ -193,7 +193,7 @@ class ResumeTest(unittest.TestCase):
                                "--out", str(root / "o"), "--propose-terse"])
         self.assertIn("--propose-actions", str(cm.exception.code))
 
-    BUILD ={"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
+    BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
              "stale_build_allowed": False}
 
     def test_a_resume_with_another_price_ceiling_is_refused(self):
