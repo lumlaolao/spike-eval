@@ -28,8 +28,8 @@ import com.google.gson.JsonPrimitive;
  * <p>Each ask is one request: the state is the seat's system preamble and the ask's messages as the harness renders
  * them; the questions come from the decision's typed legal values ({@link AnswerTool.Spec}), never from the prompt
  * text. A decision with no closed option list (a card name, a wide number range, a large division) is not sent: the
- * bridge gives no answer, says so in the log, and the seat takes its fixed legal option (never Forge's AI). Every such
- * bound is listed in docs/harness/MODEL-LIMITS.md.
+ * bridge gives no answer, says so in the log, and the seat's bridge retry runs, then it takes its fixed legal option
+ * (never Forge's AI). Every such bound is listed in docs/harness/MODEL-LIMITS.md.
  *
  * <p>What it cannot do: look anything up (the seat runs without MEMORY_TOOLS and LOOKAHEAD, refused at construction),
  * state a plan, yield, or write a reason. Egress, key and loopback rules are OpenRouterBridge's.
@@ -138,7 +138,7 @@ final class DecisionsBridge implements LLMBridge {
 
     private void noAnswer(String why) {
         System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] " + why + ": not put to a decision model -> "
-                + "no answer; the seat takes its fixed legal option");
+                + LLMBridge.NO_ANSWER);
     }
 
     /** The game text: the system preamble, then each message's text in order (the decision, and on a correction round

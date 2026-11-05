@@ -208,7 +208,8 @@ class EachPuzzleTest(unittest.TestCase):
 
     def test_a_claude_cli_seat_that_gave_no_answer_is_flagged(self):
         # ClaudeCliBridge logs [CLAUDE-CLI-NO-ANSWER] for a process that failed, timed out or reported an error.
-        line = "[CLAUDE-CLI Solver/smart] [CLAUDE-CLI-NO-ANSWER] exit 1: x -> no answer; the seat takes its fixed legal option"
+        line = ("[CLAUDE-CLI Solver/smart] [CLAUDE-CLI-NO-ANSWER] exit 1: x -> no answer; the seat re-asks while it has "
+                "attempts left, then takes its fixed legal option")
         self.assertIn("NO-ANSWER", puzzle_watch.flags_of([line], [], puzzle_watch.tool_audit.audit([])))
         self.assertNotIn("NO-ANSWER", puzzle_watch.flags_of(["[CLAUDE-CLI Solver/smart] claude-cli-bridge-v2 -> TOOL CALL "
                                                              "answer {\"option\":2}"], [], puzzle_watch.tool_audit.audit([])))
