@@ -19,7 +19,7 @@ TOOLS = [{"type": "function", "function": {"name": n}} for n in ("inspect", "mem
 
 def policy(**kw):
     a = dict(policy="pass", log=None, stall_call=0, stall_ms=0, memory_call=0, native_calls=0, rules_call=0,
-             refuse_tools=False)
+             refuse_tools=False, http_error=0)
     a.update(kw)
     return fms.Policy(argparse.Namespace(**a))
 
@@ -149,6 +149,25 @@ class RefuseToolsTest(unittest.TestCase):
             self.assertIn("support tool use", out["error"]["message"])
             status, out = self.post(port, {"messages": [{"role": "user", "content": "  1) A\n  2) PASS\nCHOICE: <n>"}]})
             self.assertEqual((status, out["choices"][0]["message"]["content"]), (200, "CHOICE: 2"))
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+
+class HttpErrorTest(RefuseToolsTest):
+    """--http-error 402: the provider refuses every call the way OpenRouter does when the credits run out
+    (issue #369), so a zero-cost game shows what a dead bridge leaves on the game line."""
+
+    def test_every_request_is_answered_with_the_status_and_logged(self):
+        fms.Handler.policy = policy(http_error=402)
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), fms.Handler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            port = srv.server_address[1]
+            for b in (body(), {"messages": [{"role": "user", "content": "  1) A\n  2) PASS\nCHOICE: <n>"}]}):
+                status, out = self.post(port, b)
+                self.assertEqual(status, 402)
+                self.assertIn("exceed your available credits", out["error"]["message"])
         finally:
             srv.shutdown()
             srv.server_close()
