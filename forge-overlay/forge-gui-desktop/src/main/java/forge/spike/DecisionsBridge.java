@@ -138,7 +138,7 @@ final class DecisionsBridge implements LLMBridge {
 
     private void noAnswer(String why) {
         System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] " + why + ": not put to a decision model -> "
-                + "no answer; the seat takes its fixed legal option");
+                + "no answer; the seat re-asks while it has attempts left, then takes its fixed legal option");
     }
 
     /** The game text: the system preamble, then each message's text in order (the decision, and on a correction round

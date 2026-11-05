@@ -263,8 +263,8 @@ final class ClaudeCliBridge implements LLMBridge {
     }
 
     private void noAnswer(String why) {
-        System.out.println("[CLAUDE-CLI " + label + "] [CLAUDE-CLI-NO-ANSWER] " + why + " -> no answer; the seat takes its "
-                + "fixed legal option");
+        System.out.println("[CLAUDE-CLI " + label + "] [CLAUDE-CLI-NO-ANSWER] " + why
+                + " -> no answer; the seat re-asks while it has attempts left, then takes its fixed legal option");
     }
 
     // ------------------------------------------------------------------ what is sent
