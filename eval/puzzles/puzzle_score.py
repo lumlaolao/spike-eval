@@ -8,6 +8,7 @@ k attempts per puzzle (default 4, distinct seeds). Per puzzle, with c solves in 
 
   pass@1   = c/k                      (the headline ingredient)
   pass^j   = C(c,j)/C(k,j), j=2 and k (every one of j attempts solves: reliability)
+  pass@k   = 1 if c > 0, at k > 1     (any of k solves: retries with the engine as an oracle verifier, a ceiling)
   solved   = c >= k/2
   margin   = pass@1 - random_rate     (random_rate = the puzzle's uniform-random solve rate)
 
@@ -20,9 +21,10 @@ k=1, where it is the solved share) also carry a Wilson interval: a bootstrap ove
 Paired mode (--paired-with B, and --against C D): two runs on the same puzzles of the same suite, split and k,
 compared puzzle by puzzle. It prints the mean per-puzzle pass@1 difference B - A (or the difference of differences
 (B - A) - (D - C)), its percentile bootstrap interval over puzzles (ids sorted, --paired-bootstrap resamples,
---paired-seed) and its clustered normal interval. What it cannot say: it resamples puzzles only (the attempt
-noise is inside each per-puzzle rate), it does not correct for several comparisons, and result rows written
-before harness_epoch was stamped cannot be told apart by epoch.
+--paired-seed) and its clustered normal interval. Paired pass@k across two k (--paired-metric pass@k, --paired-k n)
+is described in docs/eval/PUZZLES.md. What it cannot say: it resamples puzzles only (the attempt noise is inside each
+per-puzzle rate), it does not correct for several comparisons, and result rows written before harness_epoch was
+stamped cannot be told apart by epoch.
 
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
 call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
@@ -86,6 +88,11 @@ def pass_hat(c, n, j):
     if j > n or j < 0:
         raise ValueError("pass^%d needs at least %d attempts, have %d" % (j, j, n))
     return math.comb(c, j) / math.comb(n, j)
+
+
+def any_of(rate, k):
+    """The chance a policy that solves an attempt with probability `rate` solves at least once in k attempts."""
+    return 1 - (1 - rate) ** k
 
 
 def p_solved_by_policy(rate, k):
@@ -261,6 +268,9 @@ def per_puzzle(manifest, attempts, k):
             "k": k, "solves": c, "pass@1": c / k,
             "pass^2": pass_hat(c, k, 2) if k >= 2 else None,
             "pass^k": pass_hat(c, k, k),
+            # Any of the run's first k attempts (by seed) solves: what retries buy with the engine's goal check as an
+            # oracle. A game cannot be replayed, so a ceiling, not play.
+            "pass@k": 1.0 if c else 0.0,
             "solved": 2 * c >= k,
             "random_rate": rate["random"], "pass_rate": rate["pass"], "first_rate": rate["first"],
             "ai_rate": rate.get("ai"),
@@ -321,6 +331,14 @@ def aggregate(rows, k, n_boot=2000, seed=0):
                 "if_independent": _mean([r["pass@1"] ** j for r in rows]),
                 "floors": {arm: _mean([r[arm + "_rate"] ** j for r in rows]) for arm in ("random", "pass", "first")},
             }
+    if k > 1:
+        out["pass@k"] = {
+            "value": stat_of("pass@k")(rows), "ci95": bootstrap_ci(rows, stat_of("pass@k"), n_boot, seed),
+            # One 0/1 per puzzle, so the count interval applies at any k.
+            "ci95_wilson": list(wilson_ci(sum(int(r["pass@k"]) for r in rows), len(rows))) if rows else None,
+            # A trivial arm gets k tries too.
+            "floors": {arm: _mean([any_of(r[arm + "_rate"], k) for r in rows]) for arm in ("random", "pass", "first")},
+        }
     ai = [r["ai_rate"] for r in rows if r["ai_rate"] is not None]
     if len(ai) == len(rows):
         mr, ma, mp = out["pass@1"]["floors"]["random"], _mean(ai), out["pass@1"]["value"]
@@ -431,17 +449,26 @@ def integrity(rows):
             "tainted": sum(1 for r in rows if r.get("tainted_by_deckout"))}
 
 
-def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
+PAIR_METRICS = ("pass@1", "pass@k")
+
+
+def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7, metric="pass@1"):
     """B minus A, puzzle by puzzle: the mean per-puzzle pass@1 difference, its bootstrap interval over puzzles (ids
     sorted, so the resample does not depend on the order results were read) and its clustered interval. With
-    base=(C, D), the difference of differences (B - A) - (D - C). Refuses runs of other puzzles, suites or k."""
+    base=(C, D), the difference of differences (B - A) - (D - C). Refuses runs of other puzzles, suites or k.
+    metric="pass@k": each run's own pass@k (any of its k attempts), so a k=1 run pairs with a k=n run: one attempt
+    against n; whether the compute matches is for the reader to check on each run's budget line. The pair is
+    labelled cross-k, with what each trivial arm gains from the change in k alone (`k_floors`); pass@1 under two k is
+    still refused."""
+    if metric not in PAIR_METRICS:
+        raise Refused("paired metric %r: one of %s" % (metric, ", ".join(PAIR_METRICS)))
     reps = [rep_a, rep_b] + list(base or ())
     first = reps[0]
     for r in reps[1:]:
         for key in ("suite_sha256", "split"):
             if r.get(key) != first.get(key):
                 raise Refused("paired runs differ in %s (%s vs %s)" % (key, first.get(key), r.get(key)))
-        if r["aggregate"]["k"] != first["aggregate"]["k"]:
+        if metric == "pass@1" and r["aggregate"]["k"] != first["aggregate"]["k"]:
             raise Refused("paired runs differ in k")
     # A cap and a deadline are conditions, compared across every run that recorded one; a run with none (a baseline
     # arm, no manifest) is not known to differ.
@@ -449,7 +476,7 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
         known = sorted({r.get(key) for r in reps} - {unknown}, key=str)
         if len(known) > 1:
             raise Refused("paired runs differ in %s (%s)" % (key, " vs ".join(map(str, known))))
-    rates = [{p["id"]: p["pass@1"] for p in r["puzzles"]} for r in reps]
+    rates = [{p["id"]: p[metric] for p in r["puzzles"]} for r in reps]
     if any(set(x) != set(rates[0]) for x in rates):
         raise Refused("paired runs cover different puzzles")
     ids = sorted(rates[0])
@@ -458,7 +485,16 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
         diffs = [d - (rates[3][p] - rates[2][p]) for d, p in zip(diffs, ids)]
     epochs = [r.get("harness_epoch") for r in reps]
     tokens = [r.get("max_tokens") for r in reps]
-    return {"n_puzzles": len(ids), "mean": _mean(diffs), "ci95": bootstrap_ci(diffs, _mean, n_boot, seed),
+    ks = [r["aggregate"]["k"] for r in reps]
+    cross_k = len(set(ks)) > 1
+    # More attempts raise pass@k for a solver with no skill (pr-review of #361): a trivial arm's own gain, puzzle by
+    # puzzle, is what the paired difference must beat.
+    by_id = {p["id"]: p for p in rep_a["puzzles"]}
+    k_floors = ({arm: _mean([any_of(by_id[p][arm + "_rate"], ks[1]) - any_of(by_id[p][arm + "_rate"], ks[0])
+                             for p in ids]) for arm in ("random", "pass", "first")}
+                if cross_k and not base else None)
+    return {"metric": metric, "k": ks, "cross_k": cross_k, "k_floors": k_floors, "n_puzzles": len(ids),
+            "mean": _mean(diffs), "ci95": bootstrap_ci(diffs, _mean, n_boot, seed),
             "ci95_clustered": clustered_ci(diffs), "solvers": [r.get("solver") for r in reps],
             "difference_of_differences": bool(base),
             # A difference across interfaces is a measurement of the change, and is labelled as one.
@@ -469,9 +505,18 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
 
 def render_paired(c, n_boot, seed):
     """The paired line, with what makes it a comparison across conditions."""
-    return ("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)%s%s"
-            % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", signed(c["mean"]), _ci(c["ci95"]),
+    metric, ks = c.get("metric", "pass@1"), c.get("k") or []
+    floors = ("; floors from k alone: random %s, PASS %s, first %s"
+              % tuple(signed(c["k_floors"][a]) for a in ("random", "pass", "first"))) if c.get("k_floors") else ""
+    if metric == "pass@k" and len(ks) == 2:
+        name = "B pass@%d - A pass@%d" % (ks[1], ks[0])
+    else:
+        name = "(B - A) - (D - C)" if c["difference_of_differences"] else "B - A"
+    return ("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)%s%s%s"
+            % (name, signed(c["mean"]), _ci(c["ci95"]),
                _ci(c["ci95_clustered"]), c["n_puzzles"], n_boot, seed,
+               "  CROSS-K %s (any of each run's own k: an oracle verifier)%s" % (" vs ".join(map(str, ks)), floors)
+               if c.get("cross_k") else "",
                "  CROSS-EPOCH %s" % " vs ".join(e or "unstamped" for e in c["epochs"]) if c["cross_epoch"] else "",
                "  CROSS-MAX-TOKENS %s" % " vs ".join("default" if t is None else str(t) for t in c["max_tokens"])
                if c["cross_max_tokens"] else ""))
@@ -506,14 +551,14 @@ def render(rep):
     lines.append("  " + ("solve rate" if dev else "headline") + " %-28s %s  95%% CI %s (clustered %s)   floors: random 0.000, PASS %s, first %s"
                  % (h["name"], _fmt(h["value"]), _ci(h["ci95"]), _ci(h.get("ci95_clustered")), _fmt(h["floors"]["pass"]),
                     _fmt(h["floors"]["first"])))
-    for key in ("pass@1", "pass^2", "pass^k"):
+    for key in ("pass@1", "pass^2", "pass^k", "pass@k"):
         if key in a:
             b = a[key]
             extra = ("  (if independent %s)" % _fmt(b["if_independent"])) if "if_independent" in b else ""
             if b.get("ci95_wilson"):
                 extra += "  (Wilson %s)" % _ci(b["ci95_wilson"])
             lines.append("  %-37s %s  95%% CI %s   floors: random %s, PASS %s, first %s%s"
-                         % (key, _fmt(b["value"]), _ci(b["ci95"]), _fmt(b["floors"]["random"]),
+                         % ("pass@k (any of k solves)" if key == "pass@k" else key, _fmt(b["value"]), _ci(b["ci95"]), _fmt(b["floors"]["random"]),
                             _fmt(b["floors"]["pass"]), _fmt(b["floors"]["first"]), extra))
     if a["pass@1"].get("ci95_clustered"):
         lines.append("  pass@1 clustered 95%% CI %s; smallest difference two runs of this size detect: %s"
@@ -557,6 +602,11 @@ def main(argv=None):
                     help="also score these results (same suite, split, k) and print B minus A, puzzle by puzzle")
     ap.add_argument("--against", nargs=2, default=None, metavar=("C", "D"),
                     help="with --paired-with: the difference of differences (B - A) - (D - C); C and D are dirs")
+    ap.add_argument("--paired-k", type=int, default=None, metavar="N",
+                    help="with --paired-with: the paired runs' attempts per puzzle (default --k); another k pairs only "
+                         "on --paired-metric pass@k")
+    ap.add_argument("--paired-metric", choices=PAIR_METRICS, default="pass@1",
+                    help="with --paired-with: compare per-puzzle pass@1 (default) or each run's own pass@k (any of k)")
     ap.add_argument("--paired-bootstrap", type=int, default=10000, help="resamples for the paired interval")
     ap.add_argument("--paired-seed", type=int, default=7, help="RNG seed for the paired interval")
     ap.add_argument("results", nargs="+")
@@ -567,14 +617,20 @@ def main(argv=None):
         ap.error("--against needs --paired-with")
     if a.paired_bootstrap < 1:
         ap.error("--paired-bootstrap must be >= 1")
+    if a.paired_k is not None and not a.paired_with:
+        ap.error("--paired-k needs --paired-with")
+    if a.paired_k is not None and a.paired_k < 1:
+        ap.error("--paired-k must be >= 1")
+    if a.paired_k not in (None, a.k) and a.against:
+        ap.error("--against with --paired-k: a difference of differences pairs four runs of one k")
     try:
         manifest = pf.load_suite(a.suite)
         problems = pf.validate_suite(manifest)
         if problems:
             raise Refused("suite does not validate: " + "; ".join(problems[:5]))
         ids = set(a.ids.split(",")) if a.ids else None
-        def scored(paths):  # every run of one command scored alike, the paired ones too
-            return score(manifest, load_rows(paths), a.split, a.k, a.solver, a.bootstrap, a.seed, ids)
+        def scored(paths, k=a.k):  # every run of one command scored alike, the paired ones too
+            return score(manifest, load_rows(paths), a.split, k, a.solver, a.bootstrap, a.seed, ids)
         rep = scored(a.results)
     except Refused as e:
         print("REFUSED: %s" % e, file=sys.stderr)
@@ -583,7 +639,8 @@ def main(argv=None):
     if a.paired_with:
         try:
             base = (scored([a.against[0]]), scored([a.against[1]])) if a.against else None
-            rep["paired"] = paired(rep, scored(a.paired_with), base, n_boot=a.paired_bootstrap, seed=a.paired_seed)
+            rep["paired"] = paired(rep, scored(a.paired_with, a.paired_k or a.k), base, n_boot=a.paired_bootstrap,
+                                   seed=a.paired_seed, metric=a.paired_metric)
         except Refused as e:
             print("REFUSED: %s" % e, file=sys.stderr)
             return 2
