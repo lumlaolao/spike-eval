@@ -80,7 +80,7 @@ import run_batch
 fields = json.load(open(sys.argv[1] + "/eval/suites/panels-v1.json"))["pilot_condition"]["fields"]
 cond = {k.upper(): ("1" if v else "0") if isinstance(v, bool) else str(v) for k, v in fields.items()}
 scrub = list(run_batch.RUN_DEFINING_KEYS + run_batch.CITED_FORCED_KEYS) + [
-    "SHADOW_AI", "AUTO_EXIT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE", "OPENROUTER_MODEL_CFG", "PROMPT_CACHE", "DECKLIST",
+    "SHADOW_AI", "AUTO_EXIT", "OPENROUTER_MODEL_CFG", "PROMPT_CACHE",
     "PUZZLE", "PUZZLE_DIRS", "SMART_BUDGET", "FAST_BUDGET"]
 scrub += [k for k in os.environ if k.startswith((run_batch.CTX_OVERRIDE_PREFIX, "PZL_", "FORK_"))]
 for k in dict.fromkeys(scrub):
