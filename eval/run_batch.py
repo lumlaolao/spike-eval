@@ -90,6 +90,9 @@ CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_T
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
                       "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
                       "CLAUDE_CLI_THINKING_TOKENS")
+# Every name run_batch.py pins from its flags: CONDITION_ENV_KEYS, and SHADOW_AI (pinned apart, by --shadow-ai). A
+# launcher that does not go through run_batch.py strips these from the shell (STANDARDS section 4).
+PINNED_ENV_KEYS = CONDITION_ENV_KEYS + ("SHADOW_AI",)
 # Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
 # resume comparison folds them out of `env_overrides` and back into their own condition field, so a
 # directory made with `--env LOOKAHEAD=1` (or PLAN_EXECUTE / TIER_FAST_TYPES) resumes under the flag.
@@ -488,7 +491,7 @@ def resume_expectation(args):
     # The hidden-menu arm (harness-epoch-74): a line from before it was a menu game.
     expect["propose_actions"] = [True] if getattr(args, "propose_actions", False) else [False, ABSENT]
     expect["propose_audit"] = [False, ABSENT]
-    # A line from before the terse arm (harness-epoch-78) told every refusal its rule.
+    # A line from before the terse arm (harness-epoch-79) told every refusal its rule.
     expect["propose_terse"] = [True] if getattr(args, "propose_terse", False) else [False, ABSENT]
     # The shadow labeler is stamped on the game line (aggregate.PROVENANCE_FIELDS); older lines carry no stamp.
     expect["shadow_ai"] = [True] if getattr(args, "shadow_ai", False) else [False, ABSENT]
@@ -1390,8 +1393,9 @@ def build_parser():
                          "its own --out.")
     ap.add_argument("--propose-actions", action="store_true",
                     help="PROPOSE_ACTIONS=1: the hidden-menu measurement arm. The seat is not shown the legal "
-                         "plays; it proposes one (`answer.action`) and the rules engine checks it, returning the "
-                         "rule a rejected proposal breaks (docs/harness/ARCHITECTURE.md, 'The propose condition'). "
+                         "plays, attackers or blockers; it proposes each play, its attack and its blocks "
+                         "(`answer.action`, `declare_attackers`, `declare_blockers`) and the rules engine checks them, "
+                         "returning the rule a rejected proposal breaks (docs/harness/ARCHITECTURE.md, 'The propose condition'). "
                          "Exploratory only; needs the answer tool; refused with --lookahead (its preview takes menu "
                          "numbers). A separate condition that must live in its own --out.")
     ap.add_argument("--propose-terse", action="store_true",

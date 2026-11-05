@@ -86,6 +86,9 @@ OPENROUTER_API_KEY=sk-... OPENROUTER_ALLOW_EGRESS=1 \
 
 `--draft-only` stops after the draft. The run is resumable: re-invoke with the same
 `--out` and completed matches are skipped (state in `bracket.json`).
+A bracket's games run at the JVM's defaults: the tournament strips every condition `run_batch.py` pins from the
+shell (PR #347). `bracket.json` does not record a condition, so do not resume a bracket begun before that change
+from a shell that exported one; start it again with a new `--out`.
 
 ## Cost & time
 
