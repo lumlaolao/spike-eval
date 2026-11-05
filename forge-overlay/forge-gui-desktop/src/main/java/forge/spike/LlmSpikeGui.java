@@ -100,6 +100,9 @@ interface LLMBridge {
     // to reap CLI subprocesses (see the System.exit comment in LlmSpikeHeadless.main).
     /** One-shot reset for stateful bridges (CLI); stateless backends (API) can no-op. */
     default void restart() { }
+    /** The tail of a bridge's no-answer log line: what askModel does with a null (its retry, then the caller's fixed
+     *  legal option). One place, so the bridges' lines cannot drift from the retry. */
+    String NO_ANSWER = "no answer; the seat re-asks while it has attempts left, then takes its fixed legal option";
     /** True when this backend can take native function definitions (see {@link NativeTools}). */
     default boolean supportsNativeTools() { return false; }
     /** One assistant turn over a whole message list (a JSON array, system preamble excluded), with

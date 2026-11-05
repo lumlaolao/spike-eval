@@ -315,6 +315,9 @@ public class ClaudeCliBridgeTest {
         String log = LineFindingProbeTest.logOf(() -> Assert.assertNull(bridge().chat(messages(USER), tools(spec, false), true,
                 spec), "a failed process answered"));
         Assert.assertTrue(log.contains("[CLAUDE-CLI-NO-ANSWER] exit 1") && log.contains("boom: not logged in"), log);
+        // One process's failure is not the decision's: askModel re-asks before the fixed legal option. In the
+        // thinking-vs-sampling run (arm B), every decision whose call was cut was answered on a later attempt.
+        Assert.assertTrue(log.contains("re-asks while it has attempts left"), log);
         Files.delete(dir.resolve("stderr"));
         write("exit", "0");
         reply("{\"type\":\"result\",\"subtype\":\"error_max_structured_output_retries\",\"is_error\":true,\"result\":\"\","
