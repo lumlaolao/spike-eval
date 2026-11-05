@@ -30,6 +30,8 @@ Usage:
   python3 eval/rules_probe.py engine <labeller rows>.jsonl[.gz] [...] --out <items>.jsonl[.gz]
   python3 eval/rules_probe.py engine-report <labeller rows>.jsonl[.gz] [...]
   python3 eval/rules_probe.py audit-sample <items>.jsonl --label illegal|legal --n N --seed S
+  python3 eval/rules_probe.py count <items>.jsonl [--label L] [--category C] [--name CARD] [--cost WAY] [--reason-has TEXT]
+      [--solver-board-has NAME]
   python3 eval/rules_probe.py stats <items>.jsonl [--floor] [--json]
   python3 eval/rules_probe.py balance <items>.jsonl --per-cell N --seed S [--contrast] --out <set>.jsonl
   python3 eval/rules_probe.py ask <set>.jsonl --model claude-cli:<model> --out <answers>.jsonl   (CLAUDE_CLI_SEAT=1)
@@ -531,6 +533,30 @@ def contrast_pairs(items):
     return pairs
 
 
+def cell_key(item, label):
+    """The audit's cell: a negative's kind, category and difficulty; a legal item's kind, verb, variant and whether it
+    is a mana ability."""
+    if label == "illegal":
+        return item.get("kind"), item.get("category"), item.get("difficulty")
+    return item.get("kind"), item["proposal"].get("verb"), item["provenance"].get("variant"), bool(item.get("mana_ability"))
+
+
+def count(items, label=None, category=None, cost=None, reason=None, solver_board=None, name=None):
+    """Positions (`position_pool`, mana abilities kept) matching every filter given: the label, the engine category,
+    the card proposed, the named cast way, a phrase of the engine's sentence, a card name on the solver's own board line. With the boards
+    they are on and the card names proposed: the command behind the note's counts of a wrong-label class."""
+    def on_solver_board(i):
+        you = i["state"].split("\nOPP [")[0]
+        return any(ln.startswith("  board:") and solver_board in ln for ln in you.split("\n"))
+    hits = [i for i in position_pool(items, keep_mana_abilities=True)
+            if (label is None or i["label"] == label) and (category is None or i.get("category") == category)
+            and (name is None or i["proposal"].get("name") == name)
+            and (cost is None or i["proposal"].get("cost") == cost) and (reason is None or reason in (i.get("reason") or ""))
+            and (solver_board is None or on_solver_board(i))]
+    return {"positions": len(hits), "boards": len({i["provenance"].get("board") for i in hits}),
+            "names": dict(Counter(i["proposal"].get("name") for i in hits).most_common(8))}
+
+
 def audit_sample(items, label, n, seed):
     """`n` positions of one label for reading by hand, round robin over cells (a negative's kind, category and
     difficulty; a legal item's kind, verb, variant and whether it is a mana ability), one drawn at random from each
@@ -541,9 +567,7 @@ def audit_sample(items, label, n, seed):
     for i in position_pool(items, keep_mana_abilities=True):
         if i["label"] != label:
             continue
-        key = (i.get("kind"), i.get("category"), i.get("difficulty")) if label == "illegal" else \
-            (i.get("kind"), i["proposal"].get("verb"), i["provenance"].get("variant"), bool(i.get("mana_ability")))
-        cells.setdefault(key, []).append(i)
+        cells.setdefault(cell_key(i, label), []).append(i)
     for key in cells:
         cells[key].sort(key=lambda i: i["id"])
         rng.shuffle(cells[key])
@@ -1054,8 +1078,7 @@ def score(items, answers):
               if i["label"] == "illegal" and i.get("category_source") == "engine" and a and a.get("legal") is False]
     cat = [a.get("category") == i.get("category") for i, a in scored]
     commonest = Counter(i.get("category") for i, _ in scored).most_common(1)
-    ids = {i["id"] for i in items}
-    pairs = [pr for pr in contrast_pairs(items) if pr[0]["id"] in ids and pr[1]["id"] in ids]
+    pairs = contrast_pairs(items)
 
     def both(judge):
         return sum(1 for pr in pairs if all(judge(x)["legal"] is (x["label"] == "legal") for x in pr))
@@ -1143,6 +1166,14 @@ def main(argv=None):
     s2.add_argument("--n", type=int, required=True)
     s2.add_argument("--seed", type=int, required=True)
     s2.add_argument("--forge-home", default=os.environ.get("FORGE_HOME", "/root/forge"))
+    k = sub.add_parser("count", help="positions matching every filter given, with their boards and card names")
+    k.add_argument("items")
+    k.add_argument("--label", choices=("legal", "illegal"))
+    k.add_argument("--category")
+    k.add_argument("--name", help="the card proposed")
+    k.add_argument("--cost")
+    k.add_argument("--reason-has", dest="reason")
+    k.add_argument("--solver-board-has", dest="solver_board")
     a = sub.add_parser("ask")
     a.add_argument("items")
     a.add_argument("--model", required=True, help="claude-cli:<model>, a model of CLI_MODELS")
@@ -1172,11 +1203,13 @@ def main(argv=None):
         print(json.dumps(engine_report([r for f in args.raw for r in read_raw(f)]), indent=1))
     elif args.cmd == "audit-sample":
         sample = audit_sample(_read(args.items), args.label, args.n, args.seed)
-        cells = Counter((i.get("kind"), i.get("category"), i.get("difficulty")) if args.label == "illegal" else
-                        (i.get("kind"), i["proposal"].get("verb"), i["provenance"].get("variant")) for i in sample)
+        cells = Counter(cell_key(i, args.label) for i in sample)
         sys.stdout.write(audit_text(sample, card_index(args.forge_home)))
         print("CELLS (n per cell): " + "; ".join("%s: %d" % ("/".join(map(str, k)), v) for k, v in sorted(
             cells.items(), key=lambda kv: str(kv[0]))))
+    elif args.cmd == "count":
+        print(json.dumps(count(_read(args.items), args.label, args.category, args.cost, args.reason,
+                               args.solver_board, args.name)))
     elif args.cmd == "ask":
         ask(_read(args.items), args.model, args.out, card_index(args.forge_home))
     elif args.cmd == "score":

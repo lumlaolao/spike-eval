@@ -729,6 +729,32 @@ class TestEngineLabels(unittest.TestCase):
         self.assertEqual(r["state_rows"], 3)
         self.assertEqual(r["label_conflicts"], 0)
 
+    def test_count_reads_positions_by_label_category_cost_reason_and_the_solvers_board(self):
+        # The note's counts of a wrong-label class (Disturb casts refused for their target; mana-cost refusals beside
+        # Heritage Druid) come from this command, not a scratch script (standards review of #359).
+        st = ENGINE_STATE.replace("Blood Artist 0/1 [untapped] @2", "Heritage Druid 1/1 [untapped] @2")
+        rows = [engine_raw(category="target", cost="Disturb", reason="it has no legal target now."),
+                engine_raw(category="cost", reason="you cannot pay its mana cost now."),
+                engine_raw(verb="play_land", card="@1", name="Swamp", label="legal")]
+        items = rp.engine_items(engine_file(rows, {"s-base": ("base", st)}))
+        self.assertEqual(rp.count(items, label="illegal", cost="Disturb", category="target")["positions"], 1)
+        heritage = rp.count(items, label="illegal", reason="mana cost", solver_board="Heritage Druid")
+        self.assertEqual((heritage["positions"], heritage["boards"], heritage["names"]),
+                         (1, 1, {"Lightning Bolt": 1}))
+        self.assertEqual(rp.count(items, label="illegal", solver_board="Hill Giant")["positions"], 0,
+                         "the opponent's board is not the solver's")
+        self.assertEqual(rp.count(items, label="legal")["positions"], 1)
+        self.assertEqual(rp.count(items, label="illegal", name="Lightning Bolt", category="target")["positions"], 1)
+        self.assertEqual(rp.count(items, name="Swamp")["positions"], 1)
+
+    def test_one_cell_key_draws_the_audit_and_names_its_cells(self):
+        legal = rp.engine_items(engine_file([engine_raw(verb="activate", card="@9", name="Swamp", label="legal",
+                                                        ability=1)]))[0]
+        legal["mana_ability"] = True
+        self.assertEqual(rp.cell_key(legal, "legal"), ("play", "activate", "base", True))
+        bad = rp.engine_items(engine_file([engine_raw()]))[0]
+        self.assertEqual(rp.cell_key(bad, "illegal"), ("play", "cost", bad["difficulty"]))
+
     def test_a_subtle_reason_is_grouped_by_the_rule_it_names(self):
         self.assertEqual(rp.reason_kind({"category": "timing", "reason": "a spell with split second is on the "
                                          "stack; no spell can be cast until it resolves.", "proposal": {}}),
