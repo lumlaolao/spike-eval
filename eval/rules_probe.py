@@ -9,6 +9,9 @@ person or a model:
   the engine's; the CATEGORY of such an item is inferred from the state, in the engine's order of checks
   (`LlmSpikeGui.rejection`), and marked `category_source: "inferred"`.
 - `engine-verdict`: a proposal the PROPOSE_ACTIONS arm refused, with the engine's category and sentence.
+- `engine-label`: a proposal on a built board, labelled by the PROPOSE_ACTIONS checker itself with its category and
+  sentence (`engine`, reading RulesProbeLabelTest's rows): no game, every category the engine names, and near-miss
+  variants of each board. Its negatives' difficulty is the zone-reading floor's (`zone_floor`): subtle when it misses.
 - target asks: a battlefield permanent the target list left out is not a legal target of that spell. An ask whose
   list an earlier choice of the same play narrowed (X announced, a second or "another" target, a sacrifice in the
   cost) is not mined: what it left out may be a legal target of the card.
@@ -24,8 +27,9 @@ why and what the set measures.
 
 Usage:
   python3 eval/rules_probe.py mine <run dir> [...] --out <items>.jsonl [--forge-home DIR]
+  python3 eval/rules_probe.py engine <labeller rows>.jsonl[.gz] [...] --out <items>.jsonl[.gz]
   python3 eval/rules_probe.py stats <items>.jsonl [--floor] [--json]
-  python3 eval/rules_probe.py balance <items>.jsonl --per-cell N --seed S --out <set>.jsonl
+  python3 eval/rules_probe.py balance <items>.jsonl --per-cell N --seed S [--contrast] --out <set>.jsonl
   python3 eval/rules_probe.py ask <set>.jsonl --model claude-cli:<model> --out <answers>.jsonl   (CLAUDE_CLI_SEAT=1)
   python3 eval/rules_probe.py score <set>.jsonl <answers>.jsonl [--reproduced-by <items>.jsonl] [--json]
 
@@ -34,6 +38,7 @@ never a benchmark score); its child gets an allow-listed environment, so no API 
 """
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -49,6 +54,8 @@ import cost_report
 from aggregate import wilson_ci
 
 SCHEMA = "rules-probe-item-v1"
+# The engine labeller's rows (RulesProbeLabelTest.SCHEMA; a test keeps the two equal).
+ENGINE_RAW_SCHEMA = "rules-probe-engine-raw-v1"
 # The engine's rejection categories (LlmSpikeGui.proposalRejection), the answer vocabulary of `ask`.
 CATEGORIES = ("timing", "cost", "zone", "target", "land drop", "control", "type", "restriction")
 REPO = Path(__file__).resolve().parents[1]
@@ -378,6 +385,134 @@ def mine_rows(rows, prov, cards=None):
     return out
 
 
+# ---------------------------------------------------------------------------------------------------- engine labels
+
+ZONE_LINES = (("  hand(", "hand"), ("  board:", "battlefield"), ("  lands:", "battlefield"),
+              ("  graveyard(", "graveyard"), ("  exile(", "exile"), ("  command:", "command"))
+
+
+def zones(state):
+    """handle -> (side, zone) for every object the state shows, and handle -> the number of abilities YOUR ACTIVATED
+    ABILITIES lists for it. Side is "you", "opp" or None (the stack)."""
+    where, abilities, side, in_abilities = {}, {}, None, False
+    for ln in state.split("\n"):
+        ln = re.sub(r" ?\(was @\d+\)", "", ln)
+        if ln.startswith("YOU ["):
+            side, in_abilities = "you", False
+            continue
+        if ln.startswith("OPP ["):
+            side, in_abilities = "opp", False
+            continue
+        if ln.startswith("STACK"):
+            for h in re.findall(r"@(\d+)(?!\d)", ln):
+                where.setdefault("@" + h, (None, "stack"))
+            side = None
+            continue
+        if ln.startswith("  YOUR ACTIVATED ABILITIES"):
+            in_abilities = True
+            continue
+        if in_abilities and ln.startswith("    "):
+            m = re.search(r"@(\d+): (.*)$", ln)
+            if m:
+                abilities["@" + m.group(1)] = len(re.findall(r"(?:^| )\d+\) ", m.group(2)))
+            continue
+        in_abilities = False
+        zone = next((z for prefix, z in ZONE_LINES if ln.startswith(prefix)), None)
+        if zone and side:
+            for h in re.findall(r"@(\d+)(?!\d)", ln):
+                where.setdefault("@" + h, (side, zone))
+    return where, abilities
+
+
+def zone_floor(item):
+    """A second floor for the labeller's items, which name every visible card with every verb: the state-reading floor
+    (`heuristic`) plus where the card is. A land is played from your hand (a hand card with no cost); a card on the
+    battlefield or the stack, an opponent's card, or a card outside your hand with no way to cast named is not cast;
+    only a card YOUR ACTIVATED ABILITIES lists, or your land, is activated. It knows no card text."""
+    p, st = item["proposal"], item["state"]
+    if p.get("verb") == "target":
+        return heuristic(item)
+    lands = {b["handle"] for b in board_permanents(st) if b["kind"] == "land"}
+    if any(t in lands for t in p.get("targets") or []):
+        return {"legal": False}
+    where, abilities = zones(st)
+    side, zone = where.get(p.get("card"), (None, None))
+    hand = next((h for h in parse_hand(st) if h["handle"] == p.get("card")), None)
+    if p.get("verb") == "play_land":
+        if side != "you" or zone != "hand" or (hand and hand.get("cost")):
+            return {"legal": False}
+        return heuristic(item)
+    if p.get("verb") == "cast":
+        if side != "you" or zone in ("battlefield", "stack"):
+            return {"legal": False}
+        if zone != "hand":
+            return {"legal": bool(p.get("cost"))}
+        if hand and hand.get("cost") is None and not hand.get("pt"):
+            return {"legal": False}
+        return heuristic(item)
+    if p.get("verb") == "activate":
+        if side != "you":
+            return {"legal": False}
+        return {"legal": p.get("card") in abilities or p.get("card") in lands}
+    return heuristic(item)
+
+
+def _open(path, mode="r"):
+    return gzip.open(path, mode + "t", encoding="utf-8") if str(path).endswith(".gz") else \
+        open(path, mode, encoding="utf-8")
+
+
+def read_raw(path):
+    with _open(path) as fh:
+        return [json.loads(ln) for ln in fh if ln.startswith("{")]
+
+
+def engine_items(rows):
+    """Probe items from the engine labeller's rows (RulesProbeLabelTest): the state row each names, the proposal, the
+    checker's label, category and sentence. A FORMAT verdict (how a proposal is written, not a rule) or a row whose
+    state is missing is no item. A negative is "trivial" when the zone-reading floor calls it illegal and "subtle"
+    when it does not: the difficulty is defined by that floor, so the floor is right on no subtle negative by
+    construction."""
+    states = {r["id"]: r for r in rows if r.get("t") == "state"}
+    out = []
+    for r in rows:
+        if r.get("t") == "state" or r.get("label") not in ("legal", "illegal"):
+            continue
+        st = states.get(r.get("state_id"))
+        if st is None:
+            continue
+        p = r["proposal"]
+        prov = {"board": r.get("board"), "variant": r.get("variant"), "harness_epoch": st.get("harness_epoch"),
+                "observation_version": st.get("observation_version"), "engine_pin": st.get("engine_pin"),
+                "engine_pin_source": "labeller", "source_run": "rules-probe-label", "puzzle": r.get("board")}
+        illegal = r["label"] == "illegal"
+        it = _item("target" if p.get("targets") else "play", st["text"], p, r["label"], prov, None,
+                   label_source="engine-label", category=r.get("category") if illegal else None,
+                   category_source="engine" if illegal else None, reason=r.get("reason") if illegal else None,
+                   mana_ability=bool(r.get("mana_ability")), signature=r.get("signature"))
+        if illegal:
+            it["difficulty"] = "subtle" if zone_floor(it)["legal"] else "trivial"
+        out.append(it)
+    return dedupe(out)
+
+
+def contrast_pairs(items):
+    """(legal, illegal) pairs of one play (`signature`) on a board and one of its variants, with the two labels: the
+    edit that made the variant changed the engine's answer. Either side may be the base board's."""
+    base = {}
+    for i in items:
+        if i["provenance"].get("variant") == "base" and i.get("signature"):
+            base.setdefault((i["provenance"].get("board"), i["signature"]), i)
+    pairs = []
+    for i in sorted(items, key=lambda x: x["id"]):
+        v = i["provenance"].get("variant")
+        b = base.get((i["provenance"].get("board"), i.get("signature")))
+        if v in (None, "base") or b is None or b["label"] == i["label"]:
+            continue
+        pairs.append((b, i) if b["label"] == "legal" else (i, b))
+    return pairs
+
+
 def dedupe(items):
     out, seen = [], set()
     for i in items:
@@ -469,11 +604,19 @@ def reproduced(pilot, items):
             and "@" not in (i["proposal"].get("name") or "")]
 
 
-def balance(items, per_cell, seed, keep_mana_abilities=False):
+def balance(items, per_cell, seed, keep_mana_abilities=False, contrast=False):
     """One item per position (`position_key`), then at most `per_cell` per (kind, illegal category, difficulty), and
-    as many legal items as illegal ones."""
+    as many legal items as illegal ones. With `contrast` (engine-labelled items), only negatives with a contrast
+    partner (`contrast_pairs`) are drawn, and each brings its partner as its legal item."""
     rng = random.Random(seed)
     pool = position_pool(items, keep_mana_abilities)
+    partner = {}
+    if contrast:
+        in_pool = {i["id"] for i in pool}
+        for legal, illegal in contrast_pairs(items):
+            if legal["id"] in in_pool and illegal["id"] in in_pool:
+                partner.setdefault(illegal["id"], legal)
+        pool = [i for i in pool if i["label"] == "legal" or i["id"] in partner]
     cells = {}
     for i in pool:
         if i["label"] == "illegal":
@@ -483,6 +626,9 @@ def balance(items, per_cell, seed, keep_mana_abilities=False):
         c = sorted(cells[key], key=lambda i: i["id"])
         rng.shuffle(c)
         chosen.extend(c[:per_cell])
+    if contrast:
+        legal = {partner[i["id"]]["id"]: partner[i["id"]] for i in chosen}
+        return sorted(chosen + list(legal.values()), key=lambda i: i["id"])
     legal = sorted((i for i in pool if i["label"] == "legal"), key=lambda i: i["id"])
     rng.shuffle(legal)
     chosen.extend(legal[:len(chosen)])
@@ -500,6 +646,8 @@ def position_key(item):
     lines = [re.sub(r" ?@\d+(\(was @\d+\))?", "", ln) for ln in item["state"].split("\n") if POSITION_LINES.match(ln)]
     p = dict(item["proposal"])
     p.pop("card", None)
+    if "target_names" in p:            # an engine item's target by name: its handle differs between variants
+        p["targets"] = p.pop("target_names")
     if p.get("source"):
         p["source"] = re.sub(r" @\d+", "", p["source"])
     return hashlib.sha256(json.dumps([lines, p], sort_keys=True).encode()).hexdigest()
@@ -507,18 +655,21 @@ def position_key(item):
 
 def floor_report(items):
     """The state-reading floor over `position_pool` (balance's positions): its balanced accuracy, and per stratum
-    (label, kind, difficulty) how many it gets right."""
+    (label, kind, difficulty) how many it gets right; the zone-reading floor (`zone_floor`) beside it."""
     pos = position_pool(items)
     strata = {}
     for i in pos:
         key = "%s %s %s" % (i["label"], i.get("kind"), i.get("difficulty") if i["label"] == "illegal" else "-")
-        cell = strata.setdefault(key, {"n": 0, "floor_correct": 0})
+        cell = strata.setdefault(key, {"n": 0, "floor_correct": 0, "zone_floor_correct": 0})
         cell["n"] += 1
         cell["floor_correct"] += heuristic(i)["legal"] is (i["label"] == "legal")
+        cell["zone_floor_correct"] += zone_floor(i)["legal"] is (i["label"] == "legal")
     per, bal = _tally(pos, {i["id"]: heuristic(i) for i in pos})
+    _, zbal = _tally(pos, {i["id"]: zone_floor(i) for i in pos})
     return {"positions": len(pos), "balanced_accuracy": round(bal, 4) if bal is not None else None,
             "recall_legal": round(per["legal"][0] / per["legal"][1], 4) if per["legal"][1] else None,
-            "recall_illegal": round(per["illegal"][0] / per["illegal"][1], 4) if per["illegal"][1] else None}, \
+            "recall_illegal": round(per["illegal"][0] / per["illegal"][1], 4) if per["illegal"][1] else None,
+            "zone_reading_balanced": round(zbal, 4) if zbal is not None else None}, \
         dict(sorted(strata.items()))
 
 
@@ -546,6 +697,11 @@ def stats(items, floor=False):
                 lambda i: "%s / %s (%s) / %s" % (i.get("kind"), i.get("category"), i.get("category_source"),
                                                  i.get("difficulty")),
                 illegal_pos),
+            "by_variant_label": count(lambda i: "%s/%s" % (i["provenance"].get("variant"), i["label"]),
+                                      [i for i in items if i.get("label_source") == "engine-label"]),
+            "contrast_pairs_by_variant": count(
+                lambda pr: next(x["provenance"].get("variant") for x in pr if x["provenance"].get("variant") != "base"),
+                contrast_pairs([i for i in items if i.get("label_source") == "engine-label"])),
             "subtle_positions_by_source": count(
                 lambda i: i["provenance"].get("puzzle") or Path(i["provenance"].get("source_run", "")).name,
                 [i for i in illegal_pos if i.get("difficulty") == "subtle"])}
@@ -570,13 +726,21 @@ Answer with one JSON object and nothing else: {{"legal": true}} or {{"legal": fa
 def render(item, cards=None):
     p = item["proposal"]
     nm = p.get("name") or ""
-    if p.get("verb") == "target":
+    if p.get("verb") == "activate" and p.get("ability") is not None:
+        play = f"activate ability {p['ability']} (as numbered in YOUR ACTIVATED ABILITIES) of {nm} {p.get('card')}"
+    elif p.get("verb") == "target":
         play = f"choose {nm} {p['card']} as the target of {p.get('source')} {p.get('source_text') or ''}".rstrip()
     else:
         play = {"cast": "cast", "play_land": "play the land", "activate": "activate an ability of",
                 "play": "play"}.get(p.get("verb"), p.get("verb")) + f" {nm} {p.get('card')}".replace("  ", " ")
+        if p.get("face"):
+            play += f" (face: {p['face']})"
         if p.get("cost"):
             play += f" (cast way: {p['cost']})"
+    if p.get("targets"):
+        named = p.get("target_names") or [None] * len(p["targets"])
+        play += " targeting " + ", ".join(t if t in ("you", "opponent") or not n else f"{n} {t}"
+                                          for t, n in zip(p["targets"], named))
     card = ""
     info = cards(nm) if cards and nm else None
     if info:
@@ -726,6 +890,7 @@ def score(items, answers):
            for a in [answers.get(i["id"])]
            if i["label"] == "illegal" and i.get("category_source") == "engine" and a and a.get("legal") is False]
     hper, hbal = _tally(items, {i["id"]: heuristic(i) for i in items})
+    zper, zbal = _tally(items, {i["id"]: zone_floor(i) for i in items})
     legal_share = per["legal"][1] / n if n else 0.0
     return {"n": n, "missing": sum(1 for i in items if answers.get(i["id"]) is None),
             "accuracy": round(right / n, 4) if n else None, "accuracy_ci": [round(x, 4) for x in wilson_ci(right, n)],
@@ -735,7 +900,9 @@ def score(items, answers):
             "floors": {"always_legal_accuracy": round(legal_share, 4), "always_legal_balanced": 0.5,
                        "majority_accuracy": round(max(legal_share, 1 - legal_share), 4),
                        "state_reading_balanced": round(hbal, 4) if hbal is not None else None,
-                       "state_reading_accuracy": round((hper["legal"][0] + hper["illegal"][0]) / n, 4) if n else None},
+                       "state_reading_accuracy": round((hper["legal"][0] + hper["illegal"][0]) / n, 4) if n else None,
+                       "zone_reading_balanced": round(zbal, 4) if zbal is not None else None,
+                       "zone_reading_accuracy": round((zper["legal"][0] + zper["illegal"][0]) / n, 4) if n else None},
             "category_n": len(cat), "category_accuracy": round(sum(cat) / len(cat), 4) if cat else None}
 
 
@@ -744,7 +911,7 @@ def score(items, answers):
 def _read(path):
     """Items from a file `_write` wrote: each state is stored once, as a {"t": "state"} row the items name."""
     states, items = {}, []
-    with open(path, encoding="utf-8") as fh:
+    with _open(path) as fh:
         for ln in fh:
             if not ln.startswith("{"):
                 continue
@@ -761,7 +928,7 @@ def _read(path):
 
 def _write(items, out):
     written = set()
-    with open(out, "w", encoding="utf-8") as fh:
+    with _open(out, "w") as fh:
         for i in items:
             sid = hashlib.sha256(i["state"].encode("utf-8")).hexdigest()[:16]
             if sid not in written:
@@ -788,6 +955,11 @@ def main(argv=None):
     b.add_argument("--per-cell", type=int, required=True)
     b.add_argument("--seed", type=int, required=True)
     b.add_argument("--out", required=True)
+    b.add_argument("--contrast", action="store_true", help="engine items: negatives with a contrast partner, each "
+                   "with its partner as the legal item")
+    e = sub.add_parser("engine", help="items from the engine labeller's rows (RulesProbeLabelTest)")
+    e.add_argument("raw", nargs="+")
+    e.add_argument("--out", required=True)
     a = sub.add_parser("ask")
     a.add_argument("items")
     a.add_argument("--model", required=True, help="claude-cli:<model>, a model of CLI_MODELS")
@@ -806,7 +978,11 @@ def main(argv=None):
     elif args.cmd == "stats":
         print(json.dumps(stats(_read(args.items), floor=args.floor), indent=None if args.json else 1))
     elif args.cmd == "balance":
-        items = balance(_read(args.items), args.per_cell, args.seed)
+        items = balance(_read(args.items), args.per_cell, args.seed, contrast=args.contrast)
+        _write(items, args.out)
+        print(f"{len(items)} items -> {args.out}")
+    elif args.cmd == "engine":
+        items = dedupe([i for f in args.raw for i in engine_items(read_raw(f))])
         _write(items, args.out)
         print(f"{len(items)} items -> {args.out}")
     elif args.cmd == "ask":
