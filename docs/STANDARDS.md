@@ -137,8 +137,8 @@ most log questions).
   and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), as does the tournament
   (`tournament._match_env`). The puzzle runner also strips every `OPENROUTER*` name by prefix, and
   `CLAUDE_DEADLINE_MS`, which `puzzle_solve.py` sets from `--call-timeout-minutes`
-  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363). A launcher that goes through `run_batch.py`
-  (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
+  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363). A launcher that goes
+  through `run_batch.py` (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
   (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
   acceptance canaries in `harness_acceptance.sh`) are never scored and rely on the game-line stamps.
   `eval/tests/test_launchers.py` classifies every file that launches a game, so a new one is named here.
