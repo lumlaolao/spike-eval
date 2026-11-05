@@ -54,10 +54,22 @@ result (`<setting>-<i>.json`); `python3 probe_table.py` prints the table below f
 `usage.output_tokens_details.thinking_tokens`. All 24 runs returned a result.
 
 **A correction (after merge).** The probe's shell exported `MAX_THINKING_TOKENS=31999`, and `run_probe.sh` does not
-unset it, so every setting but the two that set it ran under that budget: the "CLI default (no flag)" row is
+unset it, so every setting but the two that set it ran under that budget: the table's "no flag" row is
 `MAX_THINKING_TOKENS=31999` with no flag, and the three effort rows carry it too. The bridge's seats never inherit it
-(its child environment is an allow-list, `ClaudeCliBridge.childEnv`). Since the two budget rows have the same mean, the
-finding that the budget does not bind holds; what the CLI does with the variable unset was not measured.
+(its child environment is an allow-list, `ClaudeCliBridge.childEnv`). So three settings were run again with it unset
+(`runs/tvs/probe/unset/`: `run_probe.sh` runs each under `env -u MAX_THINKING_TOKENS`, `probe_table.py` prints this;
+the same CLI, 2.1.318; 12 of 12 returned a result):
+
+| Setting, `MAX_THINKING_TOKENS` unset | n | thinking tokens, each run | mean | mean wall |
+|---|---|---|---|---|
+| `--effort low` | 4 | 1,526 / 5,544 / 14,369 / 12,462 | 8,500 | 45 s |
+| no flag (the CLI's own default) | 4 | 5,955 / 8,197 / 7,161 / 18,242 | 9,900 | 52 s |
+| `--effort max` | 4 | 40,384 / 21,394 / 26,067 / 19,017 | 26,700 | 118 s |
+
+**Shows:** unset, one max-effort run thought 40,384 tokens, past the 31,999 the exported runs had (two of those sat
+at 31,299 and 31,320), so the export may have capped max effort. Max over low is 3.1x unset and 3.8x exported, four
+runs a side with wide spread: about 3x to 4x, not a sharper figure. The low budget (1024) still did not bind, so the
+finding that the thinking budget is not this lane's lever holds.
 
 | Setting | n | thinking tokens, each run | mean | mean wall |
 |---|---|---|---|---|
@@ -65,12 +77,13 @@ finding that the budget does not bind holds; what the CLI does with the variable
 | `MAX_THINKING_TOKENS=31999` | 4 | 9,738 / 7,229 / 8,821 / 10,488 | 9,100 | 49 s |
 | `--effort low` | 4 | 3,589 / 5,697 / 13,227 / 7,833 | 7,600 | 42 s |
 | `--effort high` | 4 | 12,645 / 8,265 / 9,181 / 6,633 | 9,200 | 49 s |
-| CLI default (no flag) | 4 | 8,305 / 6,948 / 5,879 / 8,024 | 7,300 | 40 s |
+| no flag (`MAX_THINKING_TOKENS=31999` from the shell) | 4 | 8,305 / 6,948 / 5,879 / 8,024 | 7,300 | 40 s |
 | `--effort max` | 4 | 31,299 / 31,320 / 23,432 / 28,116 | 28,500 | 128 s |
 
 **Shows:** `MAX_THINKING_TOKENS`, which `--claude-cli-thinking-tokens` sets, does not cap Haiku 5.5's thinking through
 this CLI: a budget of 1024 thought 6,091 to 15,805 tokens, and its two settings have the same mean. `--effort` separates
-only at the top: max thought about 3.8x what low did; low, high and the default overlap run to run.
+only at the top: max thought about 3.8x what low did (3.1x with the budget unset, the correction above); low, high and
+no flag overlap run to run.
 
 **A deviation, recorded:** the design (section 3) was written from a first probe of the same settings whose per-run
 results were not kept (it estimated thinking as output tokens less the reply's characters / 4, and read max as 3.4x
@@ -161,7 +174,8 @@ more, which is a different condition from the one designed, and the override tha
 - The prompt is the same size on every board (median 7K to 8K tokens). What grows is the thinking.
 
 **Why the deadline was not a setting to change on this lane** (when the study ran; since fixed, section 5):
-- `puzzle_solve.py` refused `--call-timeout-minutes` for a `claude-cli:` model ("... is for a openrouter: or jev: model; ... never reads it").
+- `puzzle_solve.py` refused `--call-timeout-minutes` for a `claude-cli:` model ("... is for a openrouter: or jev: model;
+  ... never reads it").
 - The bridge's own override, `CLAUDE_DEADLINE_MS`, was a shell variable. `puzzle_solve.py` neither pinned it nor
   recorded it in the manifest, so setting it would have run arm B under a deadline no row records. That is the
   unrecorded condition STANDARDS section 4 forbids.
@@ -220,7 +234,7 @@ row, so the last three rows (the script's "storm only" lines) compare the arms o
 
 **Shows:** on the storm boards one max-effort attempt spent 255K to 274K completion tokens. Three low-effort attempts
 on the same board spent 84K to 89K in all. So B cost about three times C's whole budget, not the same.
-- The probe's 3.8x (section 2) measured one short prompt. On the same storm boards, max effort spent 9 to 11
+- The probe's 3x to 4x (section 2) measured one short prompt. On the same storm boards, max effort spent 9 to 11
   times A's completion tokens per attempt (255K to 274K against 24K to 31K).
 - Model time per call grew about 4x on the storm boards (medians 21-27 s against 5-6 s).
 
