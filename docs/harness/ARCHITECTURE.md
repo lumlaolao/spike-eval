@@ -549,6 +549,13 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   next target unasked), but it registers handles early, so an audited game's prompts can differ: it is a condition,
   stamped `propose_audit` on the game line and puzzle row and never pooled with a plain run. `run_batch.py` pins it
   off and the puzzle runner strips it: it runs only in the keyword gauntlet.
+- **The static rules probe's engine labeller** (`RulesProbeLabelExport`, diagnostic, never a score): the same checker
+  labels every proposal the solver could make on a built `.pzl` board and on one-line near-miss variants of it, with
+  no game and no model; the label is the checker's (null legal, "ILLEGAL (category)" its category and sentence), so
+  it inherits that checker's defects. What it proposes, what it drops (FORMAT), how to run it and why
+  in shards: its class comment. Always-on tests: `RulesProbeLabelTest`. Items, floors, contrast pairs and audit
+  samples: `eval/rules_probe.py` (`engine`, `engine-report`, `audit-sample`). Results:
+  `eval/research/2026-11-05-rules-probe.md`, section 9.
 - **Side-effect settings are conditions too.** The shadow labeller (`SHADOW_AI`, `run_batch.py --shadow-ai`) asks
   Forge's AI on the side for a DAgger label; its targets are reset before the seat's cast, but an AI timeout weakens
   the game's isolation (`[SHADOW] ... WEAKENED`), so it is stamped `shadow_ai` on the game line, keyed by
