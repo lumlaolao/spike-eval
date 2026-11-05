@@ -78,5 +78,44 @@ class TestProposalAudit(unittest.TestCase):
         self.assertIn("no proposal rows", pa.render({}))
 
 
+    def test_combat_proposals_are_their_own_sheet(self):
+        # The attack and the blocks are proposed under the same arm (answer-tool-v16): counted per kind, never pooled
+        # with the play headline, and an empty declaration is a combat proposal's pass.
+        def combat(kind, field, *ps):
+            r = {"t": "decision", "seat": "Seat", "type": kind, "proposals": [{field: d, "verdict": v, **({"category": c} if c else {})}
+                                                                             for d, v, c in ps]}
+            if not any(v == "accepted" for _, v, _ in ps):
+                r.update(answer_via="lost", answer_invalid=len(ps))
+            return r
+        atk = [{"attacker": "@3"}]
+        blk = [{"blocker": "@4", "attacker": "@9"}]
+        rs = [
+            row(prop("cast", "accepted")),
+            combat("attackers", "declare_attackers", (atk, "illegal", "summoning sickness"), (atk[:0], "accepted", None)),
+            combat("attackers", "declare_attackers", (atk, "accepted", None)),
+            combat("attackers", "declare_attackers", ([], "accepted", None)),
+            combat("blockers", "declare_blockers", *[(blk, "illegal", "evasion")] * 4),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            with open(Path(d) / "game-1-0.jsonl", "w") as f:
+                for r in rs:
+                    f.write(json.dumps(r) + "\n")
+            sheet = pa.audit([d])
+        s = sheet["Seat"]
+        self.assertEqual(s["decisions"], 1, "the play sheet holds only play rows")
+        self.assertEqual(s["first_try_legal_nonpass"], 1.0)
+        a, b = s["attack"], s["block"]
+        self.assertEqual(a["decisions"], 3)
+        self.assertEqual(a["first_try_legal_nonpass"], 0.5, "of the two non-empty first attacks, one was legal")
+        self.assertEqual(a["pass_first_share"], round(1 / 3, 4), "the empty attack is the combat pass")
+        self.assertEqual(a["categories"], {"summoning sickness": 1})
+        self.assertEqual((b["decisions"], b["lost"]), (1, 1))
+        self.assertEqual(b["categories"], {"evasion": 4})
+        text = pa.render(sheet)
+        self.assertIn("attack: 3 decisions", text)
+        self.assertIn("block: 1 decisions", text)
+        self.assertTrue(pa.lost_to_refusals(rs[-1]), "a block set lost to four refusals is the model's error")
+
+
 if __name__ == "__main__":
     unittest.main()

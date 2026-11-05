@@ -85,8 +85,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   "creature that player controls", Goblin Welder), unknown before the cast, so it is left to the cast
   (`aSubAbilityTargetThatDependsOnTheFirstTargetDoesNotHideThePlay`).
 - **The one exception is a measurement arm:** under `PROPOSE_ACTIONS=1` the play menu is built as always but not
-  shown; the seat proposes its play and the menu checks it (section 6, "The propose condition"). Nothing legal is
-  refused there either: a proposal is accepted exactly when it names a play the menu would have offered.
+  shown; the seat proposes its play, its attack and its blocks, and the engine checks them (section 6, "The propose
+  condition"). Nothing legal is refused there either: a proposal is accepted exactly when the menu's own checks allow it.
 - Mana abilities are on the menu, one per card name and ability, so mana can be floated.
 - What a choice offers is also only what can be paid: a keyword cost's count (conspire, multikicker, squad,
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
@@ -429,7 +429,7 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
-### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, owner 2026-11-03)
+### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, owner 2026-11-03)
 
 The menu makes illegal plays impossible, so the benchmark cannot see whether a model knows the rules. This arm
 removes the menu from the play decision and treats the rules engine as a type checker: the seat proposes a play,
@@ -455,7 +455,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v15+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v16+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls
@@ -494,9 +494,39 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   `aggregate.PROVENANCE_FIELDS`, expected on resume, and stripped from puzzle games (PR #345; STANDARDS section 4).
   The puzzle runner strips every condition `run_batch.py` pins (`CONDITION_ENV_KEYS`) and `SHADOW_AI` from the
   shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it.
+- **Combat (epoch 78, answer-tool-v16):** the attack and the blocks are proposed too, so the candidate lists (which
+  creatures can attack, which can block, and what) are not shown. `answer.declare_attackers` is a list of
+  `{attacker, defender}` by handle (`defender` "opponent" by default, or a planeswalker's or battle's handle; the
+  attack-target ask is not made); `answer.declare_blockers` a list of `{blocker, attacker}` by handle; an empty list
+  attacks or blocks with none. Both properties are in the schema under the arm only, beside `action`.
+  - *The verdict is the menu's own:* an attacker is checked with `CombatUtil.canAttack(creature, defender)`, the
+    attack as a whole with `CombatUtil.validateAttackers` (global limits, alone/with-others restrictions, requirements);
+    each block with `CombatUtil.canBlock(attacker, blocker, combat)` and the set with `blocksError` (the requirement
+    and restriction halves of `validateBlocks` and the global block cap) (`attackProposalError`,
+    `blockProposalError`). The sentence only says which rule failed; a failure to word it is a generic restriction,
+    never a changed verdict.
+  - *Categories the checker names:* summoning sickness, tapped, defender, evasion (flying without flying or reach,
+    any keyword static such as shadow or landwalk, "can't be blocked"), number (menace and other minimum or maximum
+    blockers, Silent Arbiter's caps, a creature blocking more attackers than it may), requirement (a creature that
+    attacks or blocks each combat if able, lure, goad, must-block), restriction (Ensnaring Bridge and every other
+    "can't attack" or "can't block" static, named with its source; can't attack or block alone), and zone, control,
+    type and combat (an attacker that is not attacking, a defender that cannot be attacked). Read from Forge's own
+    statics (`StaticAbilityCantAttackBlock`: Defender and Flying are keyword statics there) and its
+    `AttackConstraints`.
+  - *Four tries, then the menu's fallback:* no attack (or, when attacking with none breaks a requirement, the
+    engine's legal declaration, `makeAttackLegal`, as on the menu), and the fixed block fallback (`fallbackBlocks`:
+    none, or the smallest legal set under a requirement). Never Forge's AI.
+  - *The record:* the attackers and blockers rows carry `proposals` (each entry under `declare_attackers` or
+    `declare_blockers`) and `first_try_legal`, by the play's rule; their `raw_reply` ends in the menu's PICKS / BLOCKS
+    line over the hidden lists. `proposal_audit.py` gives each its own sheet (`attack`, `block`), never pooled with
+    the play headline; an empty declaration is the combat pass there, so the combat headline is first-try legality
+    of non-empty declarations.
+  - *The same windows are asked:* as for plays, the seat is asked to attack only when some creature can attack and to
+    block only when some creature can block (the menu's skips), which says that much.
 - **Not yet hidden:** the targets of a play with modes, several targets or divided amounts, a spell on the stack as a
-  target, attackers, blockers and the cost choices keep their candidate lists (each can be checked with
-  `sa.canTarget`, `CombatUtil` and `blocksError`, which already returns a reason).
+  target, the cost choices, the members of a band (asked as a list after a banding creature attacks) and the order of
+  damage assignment keep their candidate lists (each can be checked with `sa.canTarget` and
+  `AttackingBand.isValidBand`).
 
 **The tool list never changes within a game:** `answer`, `set_plan`, the lookups, and `simulate` on a
 lookahead seat, declared on every ask. A call that does not apply gets an error saying why.
