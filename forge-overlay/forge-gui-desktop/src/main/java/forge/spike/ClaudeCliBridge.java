@@ -418,7 +418,7 @@ final class ClaudeCliBridge implements LLMBridge {
             proc = pb.start();
             ByteArrayOutputStream out = new ByteArrayOutputStream(), err = new ByteArrayOutputStream();
             Thread reader = drain(proc.getInputStream(), out, "stdout");
-            drain(proc.getErrorStream(), err, "stderr");
+            Thread errReader = drain(proc.getErrorStream(), err, "stderr");
             final OutputStream stdin = proc.getOutputStream();
             Thread writer = new Thread(() -> {
                 try (OutputStream in = stdin) {
@@ -434,6 +434,7 @@ final class ClaudeCliBridge implements LLMBridge {
                 return null;
             }
             reader.join(5000);
+            errReader.join(5000);   // stderr's tail goes in the no-answer line: read it only once it is drained
             String text = out.toString(StandardCharsets.UTF_8);
             JsonObject result = resultOf(text);
             if (result != null) bill(result);
