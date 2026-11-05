@@ -377,8 +377,12 @@ public final class LlmSpikeGui {
      *  or the fixed block fallback; the candidate lists are not shown. Off the arm one fix (pr-review of #349): the menu's
      *  tool check judges each block with the set's other blocks in place, so a block beside a "must be blocked if able"
      *  attacker's blocker is no longer refused (it was judged on a combat with no blocks yet).
+     *  Epoch 79 (2026-11-05, pr-review of #349): a text-grammar BLOCKS: line is judged as a set before any block is added
+     *  (the global cap, then each pair with the others in place, then blocksError), as a tool answer is; added one by one,
+     *  a legal block written before the block that obeys a "must be blocked if able" requirement was dropped. A pair the
+     *  blocker can never make (CombatUtil.canBlock without combat) is not used and leaves the name for the next pair.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-78";
+    static final String HARNESS_EPOCH = "harness-epoch-79";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3678,7 +3682,7 @@ public final class LlmSpikeGui {
             try {
                 CardCollection blocking = CardLists.filterControlledBy(combat.getAllBlockers(), defender);
                 int cap = forge.game.staticability.StaticAbilityBlockRestrict.blockRestrictNum(defender);
-                if (blocking.size() > cap) return "no more than " + cap + " creature" + (cap == 1 ? "" : "s") + " can block each combat.";
+                if (blocking.size() > cap) return blockCapWords(cap);
                 String err = CombatUtil.validateBlocks(combat, defender);
                 if (err == null || blocking.size() < cap || !namesANonBlocker(err, defender, blocking)) return err;
                 for (Card b : blocking) {
@@ -3990,22 +3994,39 @@ public final class LlmSpikeGui {
                     if (none != null) illegalBlocks(defender, combat, none);
                     return;
                 }
-                int assigned = 0;
-                List<String> dropped = new ArrayList<>();
+                // The pairs are gathered and judged as a set before any is added, as the tool's are: added one by one,
+                // the verdict depended on the order they were written in (a block beside a "must be blocked if able"
+                // attacker's blocker, written first, was refused; pr-review of #349).
+                List<Card[]> pairs = new ArrayList<>();
+                List<String> written = new ArrayList<>(), dropped = new ArrayList<>();
+                Map<Card, Integer> uses = new java.util.HashMap<>();
+                int able = blockers.size();
                 for (String[] pair : blockPairs(line, blockers, attackers)) {
                     Card b = matchCard(blockers, pair[0]);
                     Card a = matchCard(attackers, pair[1]);
-                    if (a != null && b != null && CombatUtil.canBlock(a, b, combat)) {
-                        combat.addBlocker(a, b); assigned++;
-                        if (!CombatUtil.canBlockMoreCreatures(b, combat.getAttackersBlockedBy(b))) blockers.remove(b);
-                    } else dropped.add(flat(pair[0]) + "->" + flat(pair[1]));
+                    String label = flat(pair[0]) + "->" + flat(pair[1]);
+                    // A block the blocker can never make (a flyer, "can't block") is not used and leaves its name for the
+                    // next pair (pr-review of #351): with one Bears, "Bears->Serra Angel, Bears->Goblin Raider" blocks the Raider.
+                    if (a == null || b == null || !CombatUtil.canBlock(a, b)) { dropped.add(label); continue; }
+                    pairs.add(new Card[] {b, a});
+                    written.add(label);
+                    // A blocker at its limit leaves the names matched, so a second "Grizzly Bears" names the other one.
+                    if (uses.merge(b, 1, Integer::sum) >= blockLimit(b)) blockers.remove(b);
                 }
+                String cap = blockCapError(defender, pairs);
+                if (cap == null) {
+                    for (int bad; (bad = firstBlockNotAllowed(combat, pairs)) >= 0; ) { pairs.remove(bad); dropped.add(written.remove(bad)); }
+                    for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
+                } else {
+                    dropped.addAll(written);   // over the cap nothing is declared: every pair is not used, and the re-ask says why
+                }
+                int assigned = cap == null ? pairs.size() : 0;
                 lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
                 // A pair that named no legal block used to vanish; the row says how many were not used.
-                evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0,
+                evalDec("blockers", able, assigned, "smart", 0,
                         dropped.isEmpty() ? null : "blockers(unparsed-pairs:" + dropped.size() + ")", blkLabels); // choice = # blocks
                 p("[ROUTER] blockers: assigned " + assigned + (dropped.isEmpty() ? "" : ", not used: " + String.join("; ", dropped)));
-                String err = blocksError(combat, defender, new ArrayList<>());
+                String err = cap != null ? cap : blocksError(combat, defender, new ArrayList<>());
                 if (err != null) illegalBlocks(defender, combat, err);
             } catch (Exception e) {
                 // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
@@ -9779,7 +9800,7 @@ public final class LlmSpikeGui {
                 Card a = observer.currentCard(Integer.parseInt(p[1]));
                 if (a == null) return notInView(p[1]);
                 if (!combat.isAttacking(a)) return "ILLEGAL (combat): " + refOf(a) + " is not attacking.";
-                int limit = b.canBlockAny() ? Integer.MAX_VALUE : 1 + b.canBlockAdditional();
+                int limit = blockLimit(b);
                 if (uses.merge(b, 1, Integer::sum) > limit)
                     return "ILLEGAL (number): " + refOf(b) + " can block only " + (limit == 1 ? "one attacker." : limit + " attackers.");
                 pairs.add(new Card[] {b, a});
@@ -9826,7 +9847,15 @@ public final class LlmSpikeGui {
             java.util.Set<Card> blocking = new java.util.HashSet<>();
             for (Card[] pr : pairs) blocking.add(pr[0]);
             int cap = forge.game.staticability.StaticAbilityBlockRestrict.blockRestrictNum(defender);
-            return blocking.size() > cap ? "no more than " + cap + " creature" + (cap == 1 ? "" : "s") + " can block each combat." : null;
+            return blocking.size() > cap ? blockCapWords(cap) : null;
+        }
+
+        /** How many attackers {@code b} may block (CR 509.1a): one, more when a card says so, or any number. */
+        static int blockLimit(Card b) { return b.canBlockAny() ? Integer.MAX_VALUE : 1 + b.canBlockAdditional(); }
+
+        /** The words of a global block cap's objection; {@link #blockSetRejection} reads its "no more than" start. */
+        static String blockCapWords(int cap) {
+            return "no more than " + cap + " creature" + (cap == 1 ? "" : "s") + " can block each combat.";
         }
 
         /** A combat rejection's sentence, worked out with no model ask possible; the verdict is already the engine's, so a
@@ -9842,8 +9871,9 @@ public final class LlmSpikeGui {
 
         /** What a proposed attack names: nothing or "opponent" (the defending player), a player's name, or a handle. */
         private GameEntity defenderNamed(String name, Player me, Combat combat) {
-            if (name == null || name.trim().isEmpty()) { for (Player p : combat.getDefendingPlayers()) return p; return null; }
-            Object t = targetNamed(name.trim().matches("\\d+") ? "@" + name.trim() : name, me);
+            String n = name == null ? "" : name.trim();
+            if (n.isEmpty()) { for (Player p : combat.getDefendingPlayers()) return p; return null; }
+            Object t = targetNamed(n.matches("\\d+") ? "@" + n : n, me);
             return t instanceof GameEntity ? (GameEntity) t : null;
         }
 

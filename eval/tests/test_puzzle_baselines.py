@@ -399,6 +399,8 @@ class BuildFreshnessTest(unittest.TestCase):
             seen.update(kw["env"])
             return 0
         names = {n: "1" for n in run_batch.CONDITION_ENV_KEYS + ("SHADOW_AI",)}
+        # A name added to PINNED_ENV_KEYS alone (the list the runner strips) must still be tested here.
+        self.assertEqual(tuple(names), run_batch.PINNED_ENV_KEYS)
         with mock.patch.dict(os.environ, names), mock.patch.object(pb.subprocess, "call", call):
             self.assertEqual(b.run({}, tempfile.mkdtemp()), 0)
         self.assertEqual([n for n in names if n in seen], [])

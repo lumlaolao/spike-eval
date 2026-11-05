@@ -31,6 +31,8 @@ def test_a_tournament_game_never_inherits_a_condition_from_the_shell():
     # pr-review of #347: _match_env copied the whole shell, so an exported ONE_TIER, PROPOSE_ACTIONS or SHADOW_AI reached
     # every bracket game. Every condition run_batch.py pins is dropped; the tournament's own settings still arrive.
     names = {n: "1" for n in run_batch.CONDITION_ENV_KEYS + ("SHADOW_AI",)}
+    # A name added to PINNED_ENV_KEYS alone (the list the tournament strips) must still be tested here.
+    assert tuple(names) == run_batch.PINNED_ENV_KEYS, (tuple(names), run_batch.PINNED_ENV_KEYS)
     a = {"path": "/a.txt", "label": "A", "model": "x/a"}
     b = {"path": "/b.txt", "label": "B", "model": "x/b"}
     args = argparse.Namespace(cap_minutes=1, forge_home=tempfile.mkdtemp(), record=False, record_fps=4)
