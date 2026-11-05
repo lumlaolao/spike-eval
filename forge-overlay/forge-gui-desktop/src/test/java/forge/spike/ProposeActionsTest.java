@@ -1328,7 +1328,7 @@ public class ProposeActionsTest {
         model.actions.add(unread);   // the last round: its refusal is appended and no turn follows
         Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "an ask out of rounds passes");
         Assert.assertTrue(model.actions.isEmpty(), "every round was taken: " + model.actions.size() + " left");
-        Assert.assertEquals(playAsks(model).size(), 1, "the text retry was asked");
+        Assert.assertEquals(playAsks(model).size(), 1, "the text retry was not asked: one proposal decision only");
         model.actions.add(ok);
         card("Mountain", me, ZoneType.Hand);   // another spot, so the next window is asked
         Assert.assertNotNull(ctrl.chooseSpellAbilityToPlay());
