@@ -49,7 +49,7 @@ import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import deck_legality  # noqa: E402
 import puzzle_format  # noqa: E402  forge_checkout: the Forge checkout, $FORGE_HOME as given
 from run_batch import (  # noqa: E402  provenance helpers, reused verbatim
-    REPO_ROOT, _engine_sha, _overlay_sha, _spike_drift,
+    CONDITION_ENV_KEYS, REPO_ROOT, _engine_sha, _overlay_sha, _spike_drift,
 )
 
 DECKS_DIR = REPO_ROOT / "eval" / "decks"
@@ -374,6 +374,10 @@ def run_match(a, b, match_id, out_dir, args, rng):
 
 def _match_env(a, b, seed, swap, mp4, jdir, args):
     env = os.environ.copy()
+    # Every condition run_batch.py pins, and the shadow labeller: a shell value never reaches a bracket game
+    # unrecorded (pr-review of #347); the games run at the JVM's defaults, as the tournament always meant.
+    for name in CONDITION_ENV_KEYS + ("SHADOW_AI",):
+        env.pop(name, None)
     env.update({
         "GAME_SEED": str(seed),
         "CONTROLLER_A": "llm", "CONTROLLER_B": "llm",

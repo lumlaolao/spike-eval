@@ -493,7 +493,9 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   the game's isolation (`[SHADOW] ... WEAKENED`), so it is stamped `shadow_ai` on the game line, keyed by
   `aggregate.PROVENANCE_FIELDS`, expected on resume, and stripped from puzzle games (PR #345; STANDARDS section 4).
   The puzzle runner strips every condition `run_batch.py` pins (`CONDITION_ENV_KEYS`) and `SHADOW_AI` from the
-  shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it.
+  shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it; the tournament (`tournament.py`)
+  strips the same list, so a bracket game runs at the JVM's defaults (`eval/tests/test_launchers.py` lists every
+  launcher and how its games get their conditions).
 - **Not yet hidden:** the targets of a play with modes, several targets or divided amounts, a spell on the stack as a
   target, attackers, blockers and the cost choices keep their candidate lists (each can be checked with
   `sa.canTarget`, `CombatUtil` and `blocksError`, which already returns a reason).
