@@ -424,3 +424,37 @@ Next, in order: the same pilot on GPT-6 Luna (paid; the default game model); a s
 (implication 1) to measure the message's share; hiding attackers and blockers (ARCHITECTURE.md, "The propose
 condition", not yet hidden). Done since the pilot: targets named in the proposal, and the checker audit
 (implication 10).
+
+### Does the refusal's reason matter? The terse arm (2026-11-05)
+
+`PROPOSE_TERSE=1` (ARCHITECTURE.md, "The terse arm") tells a refused proposal only "ILLEGAL: that play is not legal
+now." The check, its categories and the four tries are those of the detailed arm, and the row keeps the engine's
+reason, so both arms count the same rule categories. Twelve puzzles of `puzzles-hard-gen-v1` open (storm 2, splice 5,
+ping 3, fling 2: the families with refusals in the block above), one attempt each, Claude Haiku 5.5 on the
+development lane, arms interleaved per puzzle with the order alternating. Both arms ran on one build (overlay
+187b31cea8dd, the arm's commit f306f14 before it merged main and took harness-epoch-80). Run directories:
+`runs/terse/b2-detailed`, `runs/terse/b2-terse`; notional CLI cost $0.94 and $0.89. A smoke run on an
+earlier build (`runs/terse/smoke-64dc1f33-*`) is not pooled.
+
+| Arm | Solved (pass@1) | 95% CI (Wilson) | Play decisions | Pass first | Non-pass first-try legal | Refusal-opened decisions | Repaired to a move | Refused again later | Format errors |
+|---|---|---|---|---|---|---|---|---|---|
+| detailed | 5/12 | 0.19-0.68 | 259 | 48% | 0.867 [0.80, 0.91], n=135 | 18 | 10 (0.56 [0.34, 0.75]) | 5 of 11 | 8 |
+| terse | 3/12 | 0.09-0.53 | 247 | 50% | 0.951 [0.90, 0.98], n=123 | 6 | 3 (0.50 [0.19, 0.81]) | 1 of 5 | 16 |
+
+- **Floors:** random, PASS and first-option solve 0 of the 12. Repaired-to-a-move has a floor of zero; "repaired" as
+  the block above counted it (a pass after a refusal included) does not: 8 of 18 and 3 of 6 refusal-opened decisions
+  ended in a pass.
+- **Solve rate:** paired terse minus detailed -0.167, 95% CI [-0.417, 0.000] (clustered [-0.387, 0.054]); two flips,
+  both to the detailed arm (ping-1178, fling-05dc), none the other way. Not resolved: two runs of this size detect
+  about 0.59.
+- **The refusals:** no proposal was lost (all four tries refused) in either arm, and no proposal was resent word for
+  word inside its decision (0 of 21, 0 of 6). What does recur is the same refused play in a later decision of the same
+  game (`refused_again`), which is where a reason could teach something.
+- **Unexpected:** the terse arm's first tries were more often legal (0.95 against 0.87), before any refusal of that
+  decision was shown. The decisions are clustered by puzzle and the detailed arm played longer lines in the puzzles
+  it solved, so this is not a finding; if it holds, the candidates are the preamble (the arms' PLAYS paragraphs
+  differ by one sentence) and what a game's earlier refusals taught.
+- **Power:** at the observed 0.5 to 1.5 refusal-opened decisions per puzzle run, a 0.25 difference in
+  repaired-to-a-move needs about 53 opened decisions per arm, some 70 puzzle runs per arm. The next block should raise
+  the rate of refusals (storm and other sorcery-timing puzzles, several attempts per puzzle) and pre-register
+  repaired-to-a-move and refused-again as its outcomes, then measure GPT-6 Luna's base rate on the detailed arm first.
