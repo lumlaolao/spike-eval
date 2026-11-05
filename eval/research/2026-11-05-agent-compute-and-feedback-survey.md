@@ -4,7 +4,8 @@
 (the Moonlight PTCG-Bench review, HTTP 429). 25 were corrected (wrong author lists, titles, ids, numbers or
 attributions, or claims reworded to what the page says), and 1 was removed (the Moonlight review, unreadable). Two
 claims that rested only on sources that do not state them were removed: the Kaggle Game Arena retry-then-forfeit rule
-(chess.com and Decrypt state no illegal-move rule) and the PTCG-Bench masking result (not in the arXiv abstract). Every
+(chess.com and Decrypt state no illegal-move rule). PTCG-Bench's masking result, first dropped as absent from the
+abstract, is restored from the paper's full HTML text (review of PR #356). Every
 arXiv claim is now abstract-only: the full PDFs were not read, so no ablation, table or figure from a paper is quoted.
 Venue claims that the arXiv pages do not show are marked unverified. The ExpeL project page, the kagisearch README, the
 PokéChamp PMLR page and the Hugging Face card were read in full; the other non-arXiv pages were read as fetched.
@@ -66,9 +67,8 @@ errors across episodes or decisions, beyond what in-decision feedback already gi
    Mandlekar, Chaowei Xiao, Yuke Zhu, Linxi Fan, Anima Anandkumar. arXiv:2305.16291 (first submitted 25 May 2023).
    https://arxiv.org/abs/2305.16291 [abstract]. A skill library of executable code for storing and retrieving complex
    behaviours, reused later. The abstract reports 3.3x more unique items than the prior state of the art. (unverified:
-   the 3.1x figure from the earlier draft; the NeurIPS 2023 and TMLR 2024 venues; the author affiliations NVIDIA,
-   Caltech, UT Austin, Stanford and UW Madison; the claim that skills are built from environment feedback, execution
-   errors and self-verification.)
+   the NeurIPS 2023 and TMLR 2024 venues; the author affiliations NVIDIA, Caltech, UT Austin, Stanford and UW Madison;
+   the claim that skills are built from environment feedback, execution errors and self-verification.)
 
 **Finding for this harness.** The evidence supports storing failure causes across episodes, not only retrying within a
 decision. The mechanism that matters is a retrieved, specific note ("this play class is refused because X") that the
@@ -129,12 +129,13 @@ predicting the result of a move) beat sampling more candidates, or searching a t
    planner's world model is actually tracked. (unverified: the linear-versus-nonlinear probe comparison in earlier
    drafts; the abstract does not give it.)
 
-**Finding for this harness.** The engine's preview is a perfect world model. RAP's world model is the LLM itself, and
-Schultz et al. use a trained transformer as world model. The expected gain is therefore plausibly larger than in papers
-where the model simulates itself; that is a hypothesis, not a finding of any source. The Snell abstract says test-time
-compute's effectiveness depends on prompt difficulty; a hard-puzzle benchmark may show the least benefit, which would be
-a result to report. Best-of-N has no check on the candidates, so the comparison to lookahead must hold the token budget
-fixed.
+**Finding for this harness.** The engine's preview is an exact world model on public state; hidden cards are resampled
+(the simulate copy shuffles every library and re-deals the opponent's hand: docs/harness/ARCHITECTURE.md). RAP's world
+model is the LLM itself, and Schultz et al. use a trained transformer as world model. The expected gain is therefore
+plausibly larger than in papers where the model simulates itself; that is a hypothesis, not a finding of any source. The
+Snell abstract says test-time compute's effectiveness depends on prompt difficulty; a hard-puzzle benchmark may show the
+least benefit, which would be a result to report. Best-of-N has no check on the candidates, so the comparison to
+lookahead must hold the token budget fixed.
 
 ---
 
@@ -147,14 +148,12 @@ fixed.
 1. **ChessArena: A Chess Testbed for Evaluating Strategic Reasoning Capabilities of Large Language Models.** Jincheng
    Liu, Sijun He, Jingjing Wu, Xiangsen Wang, Yang Chen, Zhaoqi Kuang, Siqi Bao, Yuan Yao. arXiv:2509.24239 (first
    submitted 29 Sep 2025). https://arxiv.org/abs/2509.24239 [abstract]. The abstract says that no model beats Maia-1100
-   (human amateur level) and that some models lose to random play. It gives no illegal-move rates. (The earlier draft's
-   rates of about 0.5% to 2% per move, and 1.8% for Claude-3-7-Sonnet in blitz, are not in the abstract and are
-   removed.)
+   (human amateur level) and that some models lose to random play. It gives no illegal-move rates.
 
 2. **Chess puzzle benchmark (kagisearch/llm-chess-puzzles).** GitHub repository, README dated April 2025.
    https://github.com/kagisearch/llm-chess-puzzles [page]. On 1,000 Lichess puzzles, the README reports illegal-move
-   rates of 8.9% for GPT-4o, 46.4% for Claude 3 Opus and 59.0% for Claude 3 Haiku. (The earlier draft's 12.7% for GPT-4o
-   is The Register's figure, see item 3, not the README's.) The models are from the 2024 generation.
+   rates of 8.9% for GPT-4o, 46.4% for Claude 3 Opus and 59.0% for Claude 3 Haiku. The models are from the 2024
+   generation.
 
 3. **The Register, 4 June 2024** (corroborating for item 2).
    https://www.theregister.com/2024/06/04/chess_puzzle_benchmark_llm [secondary]. Reports 12.7% illegal moves for GPT-4o
@@ -164,17 +163,15 @@ fixed.
 4. **Emergent World Models and Latent Variable Estimation in Chess-Playing Language Models.** Adam Karvonen (sole
    author). arXiv:2403.15498 (first submitted 21 Mar 2024; v2 14 Jul 2024). https://arxiv.org/abs/2403.15498 [abstract].
    A model solely trained on next-character prediction of real games, with no a priori knowledge of the game, shows
-   internal board-state representations under linear probes and contrastive activations. The earlier draft's 16-layer
-   model and 99.8% legal-move rate are not in the abstract and are removed. Shows that the model's internal state can be
-   probed without any rules text in the prompt; the legality claim is removed.
+   internal board-state representations under linear probes and contrastive activations. The abstract gives no
+   legal-move rate. Shows that the model's internal state can be probed without any rules text in the prompt.
 
 5. **PTCG-Bench: Can LLM Agents Master Pokémon Trading Card Game?** Dongdong Hua, Yifei Sun, Renhong Huang, Feng Gao,
    Chunping Wang, Yang Yang. arXiv:2605.29653 (first submitted 28 May 2026; v2 19 Sep 2026).
    https://arxiv.org/abs/2605.29653 [abstract]. The abstract says LLM agents reach non-trivial gameplay performance,
    that sustained self-evolution is hard, and that performance is sensitive to harness design. It names no
-   invalid-action metric, no legal-action masking and no rating figures. (The earlier draft's arXiv id 2503.04094 is
-   PokéChamp, source 15; the earlier 118 and 115 rating-point ablations rested only on the Moonlight review and are
-   removed.) (unverified: the invalid-action metric, which the full paper may report.)
+   invalid-action metric, masking or rating figure. The full text (https://arxiv.org/html/2605.29653 [page], Table 2)
+   does: with legal-action masking Glicko-2 1726 and an invalid-action rate of 3.3%; without it 1608 and 15.9%.
 
 6. **Game Reasoning Arena: A Framework and Benchmark for Assessing Reasoning Capabilities of LLMs via Game Play.** Lucia
    Cipolina-Kun, Marianna Nezhurina, Jenia Jitsev (LAION). arXiv:2508.03368 (first submitted 5 Aug 2025).
@@ -186,8 +183,7 @@ fixed.
    (https://www.chess.com/news/view/which-ai-model-is-the-best-at-chess-kaggle-game-arena, updated 4 Aug 2025) and
    Decrypt (https://decrypt.co/333478/google-top-ai-models-against-live-chess-tournament, 4 Aug 2025). Neither article
    states an illegal-move rule. Chess.com says LLMs "have been known to both make illegal moves and absurd
-   resignations"; Decrypt quotes a user's unanswered question on what happens after the allowed rethinks run out. The
-   earlier draft's retry rule (rethink up to a small number of times, then lose) has no source here and is removed. No
+   resignations"; Decrypt quotes a user's unanswered question on what happens after the allowed rethinks run out. No
    primary Kaggle or DeepMind document was found.
 
 8. **MageBench / mage-bench.** A fork of XMage with an LLM harness that lets agents play through structured tools.
@@ -211,9 +207,9 @@ fixed.
 
 **Finding for this harness.** Three ways of scoring illegality appear: (a) a per-move illegal rate, reported as a
 quality signal (kagisearch, source 2); (b) the engine masks illegal moves, so the rate is zero by construction; this is
-the design of the harness's engine-validated menu, and no source here measures its effect; (c) the harness's "propose"
-arm is a measurement-only design. The sources do not score the question the harness asks: whether a refusal text changes
-the next decision. (A retry-then-forfeit rule was described in an earlier draft; no source states it, so it is removed.)
+the design of the harness's engine-validated menu, and PTCG-Bench measures its effect (masking off: rating 1726 to 1608,
+invalid rate 3.3% to 15.9%; source 5); (c) the harness's "propose" arm is a measurement-only design. The sources do not
+score the question the harness asks: whether a refusal text changes the next decision.
 
 ---
 
@@ -228,8 +224,8 @@ the next decision. (A retry-then-forfeit rule was described in an earlier draft;
    for creating environments to train and evaluate LLMs" and links the Environments Hub as an integration partner. The
    docs page describes an environment as "dataset + harness + scoring rules", packaged as an installable module with a
    pyproject.toml. The page does not use the word "rubric". The README gives no version number; its tests mirror a
-   `verifiers/v1` layout. The earlier draft's v0.1.x versus v1 disagreement is not established here; check the
-   repository before building on it.
+   `verifiers/v1` layout. Whether the package is at v0.1.x or v1 is not established here; check the repository before
+   building on it.
 
 2. **SPIRAL: Self-Play on Zero-Sum Games Incentivizes Reasoning via Multi-Agent Multi-Turn Reinforcement Learning.** Bo
    Liu, Leon Guertler, Simon Yu, Zichen Liu, Penghui Qi, Daniel Balcells, Mickel Liu, Cheston Tan, Weiyan Shi, Min Lin,
@@ -241,10 +237,10 @@ the next decision. (A retry-then-forfeit rule was described in an earlier draft;
    they are removed.)
 
 3. **TextArena.** Leon Guertler, Bobby Cheng, Simon Yu, Bo Liu, Leshem Choshen, Cheston Tan. arXiv:2504.11442 (first
-   submitted 15 Apr 2025). https://arxiv.org/pdf/2504.11442 [abstract]. "57+ unique environments" spanning
+   submitted 15 Apr 2025). https://arxiv.org/abs/2504.11442 [abstract]. "57+ unique environments" spanning
    single-player, two-player and multi-player setups, with an online-play system that gives real-time TrueSkill scores
-   and supports matches against humans and other submitted models. (The earlier draft's "over 50" is corrected to 57+.
-   unverified: the Gym-style API; the abstract does not mention it.)
+   and supports matches against humans and other submitted models. (unverified: the Gym-style API; the abstract does not
+   mention it.)
 
 4. **lmgame-Bench: How Good are LLMs at Playing Games?** Lanxiang Hu, Mingjia Huo, Yuxuan Zhang, Haoyang Yu, Eric P.
    Xing, Ion Stoica, Tajana Rosing, Haojian Jin, Hao Zhang. arXiv:2505.15146 (first submitted 21 May 2025).
@@ -257,9 +253,8 @@ the next decision. (A retry-then-forfeit rule was described in an earlier draft;
    "CWM: An Open-Weights LLM for Research on Code Generation with World Models." arXiv:2510.02387 (first submitted 30
    Sep 2025). https://arxiv.org/abs/2510.02387 [abstract]. A 32-billion-parameter open-weights model, mid-trained on
    observation-action trajectories from Python interpreter and agentic Docker environments. It is a research testbed.
-   (The earlier draft's "execution traces", "production performance has not been evaluated" and "Oct 2025" are corrected
-   or removed. unverified: Meta affiliation; the page gives no affiliations.) Relevant as a model trained to predict an
-   engine's state transitions, a learned counterpart to the engine preview.
+   (unverified: Meta affiliation; the page gives no affiliations.)
+   Relevant as a model trained to predict an engine's state transitions, a learned counterpart to the engine preview.
 
 6. **PokéChamp: an Expert-level Minimax Language Agent.** Seth Karten, Andy Luu Nguyen, Chi Jin. arXiv:2503.04094
    (first submitted 6 Mar 2025). PMLR vol. 267 (Proceedings of ICML 2025), pp. 29205-29222.
@@ -269,10 +264,10 @@ the next decision. (A retry-then-forfeit rule was described in an earlier draft;
    ladder. The abstract reports no illegal-move rates. It is a Pokémon video game agent, not a card-game one.
 
 **Finding for this harness.** Two design points recur. First, the scoring rule for an illegal attempt (masked, penalised
-or retried) is a design choice that the reward must state; no source here measures how large its effect is. Second,
-self-play and rating systems need variance control, which a fixed panel against Forge's AI does not require but a
-training run would. The harness's engine already gives a verifier with no false positives; what it lacks is a reward for
-the decision's quality that does not depend on the opponent.
+or retried) is a design choice that the reward must state. Second, self-play and rating systems need variance control,
+which a fixed panel against Forge's AI does not require but a training run would. The harness's engine already gives a
+verifier whose labels are the engine's rulings (engine bugs, as engine-patches/ records, are its error source); what it
+lacks is a reward for the decision's quality that does not depend on the opponent.
 
 ---
 
@@ -315,8 +310,9 @@ sets or counterfactual boards?
    is the same separation applied to a different axis.
 
 **Finding for this harness.** The contrast-set method transfers directly. Engine-labelled counterfactual boards are
-free: the engine decides the legality of each variant, so the labels cannot be wrong. I found no MTG-specific paper that
-does this. I found no paper that gives a legality-consistency score across a contrast set for a game engine.
+free: the engine decides the legality of each variant, so the labels are the engine's rulings (its bugs are the error
+source). I found no MTG-specific paper that does this. I found no paper that gives a legality-consistency score across a
+contrast set for a game engine.
 
 ---
 
@@ -327,7 +323,8 @@ the majority label). Sample sizes are rough and assume the default puzzle suite 
 of about 100 cards.
 
 **E1. Cross-decision error notebook in the terse arm (most directly testable).**
-- Hypothesis: the terse-vs-detailed gap on puzzles (5/12 vs 3/12) comes from information the model cannot recover across
+- Hypothesis: the unresolved terse-vs-detailed difference on puzzles (5/12 vs 3/12, paired CI [-0.417, 0.000] in the
+  03 note) comes from information the model cannot recover across
   decisions, not from the refusal text itself. A notebook of cause-level notes (built from refused plays, clustered by
   rule, in the style of Mistake Notebook Learning and ExpeL) closes most of the gap with terse refusals.
 - Arms: terse; terse + notebook; detailed; detailed + notebook.
@@ -335,15 +332,12 @@ of about 100 cards.
 - Secondary metric: repeat-refusal rate, the share of refused plays re-proposed later in the same game. Its floor is the
   no-notebook rate.
 - Sample: 12 puzzles x 4 seeds = 48 per arm. Roughly 35 per arm to separate 25% from 58% solve rates at 80% power (my
-  calculation, not from a source).
+  calculation, not from a source), if the runs were independent; they cluster on 12 puzzles, so the real need is larger.
 
-**E2. Repeat-refusal rate as a diagnostic in existing logs (no new games).**
-- Hypothesis: the same refused play recurs in later decisions more often than within a decision, as observed; the rate
-  is stable across the propose and terse arms, so the metric measures memory, not refusal wording.
-- Arms: the existing propose, terse and detailed logs.
-- Primary metric: repeat-refusal rate per 100 decisions. Floor: the rate for a shuffled refusal-to-decision pairing,
-  which is the random baseline.
-- Sample: all decisions in the logs already on disk. Cheap, and it should come first, since E1 depends on it.
+**E2. Repeat-refusal rate in the existing logs (no new games): done.** See
+`eval/research/2026-11-03-propose-condition-prior-work.md`, "Repeated refusals in every propose log on disk": no refused
+play was resent within its decision in any run; across decisions repeats followed the build, not the puzzle set. The
+shuffled refusal-to-decision floor proposed here is not yet computed.
 
 **E3. Compute-matched lookahead vs best-of-N vs LATS-style search on puzzles.**
 - Hypothesis (from Snell and LATS, extrapolated to this setting; neither source tests puzzles): at a fixed token budget,
@@ -415,15 +409,7 @@ nothing to run and should come first.
   benchmark's design only.
 - Every arXiv claim is abstract-only. None of the Q1 ablation numbers, the Q3 figures from full papers, or the Q5 probe
   results were available. Read the PDFs before any claim goes into a paper or a results table.
-- The Kaggle Game Arena rules are not documented in any source I could read; the earlier retry rule is removed.
-- The PTCG-Bench full paper (arXiv:2605.29653) may report the invalid-action metric that the abstract does not; it was
-  not read.
-
----
-
-## Sources (consolidated)
-
-Q1
+- The Kaggle Game Arena rules are not documented in any source I could read.
 - Shinn et al., Reflexion, arXiv:2303.11366 (NeurIPS 2023 unverified). https://arxiv.org/abs/2303.11366 [abstract]
 - Su et al., Mistake Notebook Learning, arXiv:2512.11485 (2025-26; Findings of ACL 2026 unverified).
   https://arxiv.org/abs/2512.11485 [abstract]
@@ -459,7 +445,7 @@ Q4
 - Prime Intellect, Verifiers and Environments Hub. https://github.com/PrimeIntellect-ai/verifiers [page];
   https://docs.primeintellect.ai/tutorials-environments/environments.md [page]
 - Liu et al., SPIRAL, arXiv:2506.24119, ICLR 2026. https://arxiv.org/abs/2506.24119 [abstract]
-- Guertler et al., TextArena, arXiv:2504.11442. https://arxiv.org/pdf/2504.11442 [abstract]
+- Guertler et al., TextArena, arXiv:2504.11442. https://arxiv.org/abs/2504.11442 [abstract]
 - Hu et al., lmgame-Bench, arXiv:2505.15146. https://arxiv.org/abs/2505.15146 [abstract]
 - Meta FAIR CodeGen, CWM, arXiv:2510.02387. https://arxiv.org/abs/2510.02387 [abstract]
 - Karten et al., PokéChamp, arXiv:2503.04094, ICML 2025 (PMLR 267). https://proceedings.mlr.press/v267/karten25a.html

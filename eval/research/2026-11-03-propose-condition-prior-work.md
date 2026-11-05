@@ -464,22 +464,33 @@ development lane, arms interleaved per puzzle with the order alternating. Both a
 ### Repeated refusals in every propose log on disk (2026-11-05)
 
 `python3 eval/proposal_audit.py --json <run>` over every propose-arm run directory with a model seat (Claude Haiku 5.5,
-development lane, never a score). The runs differ in build, epoch and puzzle set, so the rows are not pooled into a
-rate; they are read side by side.
+development lane, never a score), and per puzzle directory for the split. The runs differ in build and epoch, so each
+row is its own run and no rate is pooled across them.
 
 | Run | Refusal text | Play decisions | Refusal-opened | Repaired to a move | Resent within its decision | Refused again in a later decision |
 |---|---|---|---|---|---|---|
-| runs/propose/haiku-rules-propose, -v2, e75-haiku-rules-propose | detailed | 154 | 0 | - | - | - |
+| runs/propose/haiku-rules-propose | detailed | 48 | 0 | - | - | - |
+| runs/propose/haiku-rules-propose-v2 | detailed | 50 | 0 | - | - | - |
+| runs/propose/e75-haiku-rules-propose | detailed | 56 | 0 | - | - | - |
 | runs/propose/e75-haiku-hard-propose | detailed | 260 | 9 | 5 | 0 of 10 | 0 of 10 |
 | runs/terse/smoke-64dc1f33-detailed | detailed | 53 | 3 | 2 | 0 of 4 | 1 of 3 |
 | runs/terse/b2-detailed | detailed | 259 | 18 | 10 | 0 of 21 | 5 of 11 |
 | runs/terse/smoke-64dc1f33-terse | terse | 36 | 8 | 5 | 0 of 8 | 3 of 5 |
 | runs/terse/b2-terse | terse | 247 | 6 | 3 | 0 of 6 | 1 of 5 |
 
-- Within a decision, no refused proposal was resent: 0 of 49 across five runs and both texts (Wilson 95% upper bound
-  0.073). The repeat effect Gumaan 2026 reports does not appear for this model at this scale.
-- Across decisions it does: 6 of 24 distinct refused actions under detailed refusals, 4 of 10 under terse ones.
-  The rules-sample runs had no refusal at all, and the e75 hard block none repeated (0 of 10) where b2 had 5 of 11:
-  the rate depends on the puzzles (a sorcery proposed at instant speed each turn in the storm lines), so the next
-  block should hold the puzzle set fixed and compare arms on it, as E1 of
-  `eval/research/2026-11-05-agent-compute-and-feedback-survey.md` proposes.
+The b2 rows are the terse block's runs above, split this way.
+
+- **Within a decision** no run resent a refused proposal: 0 in each of the five runs that had one to resend (10, 4, 21,
+  8 and 6 tries with a next try). The tries are not independent (b2-detailed's 21 come from 18 decisions in about 20
+  puzzle runs), so no interval is given for a combined rate. The repeat Gumaan 2026 reports did not appear in these runs.
+- **Across decisions** the same refused play recurs in a later decision of the same game in 1 of 3, 5 of 11, 3 of 5 and
+  1 of 5 distinct refused actions, and 0 of 10 in e75-haiku-hard-propose. There is no floor yet: a card that stays in
+  hand can be proposed again with no feedback effect at all; the survey's E2 floor (refusals re-paired with decisions at
+  random) is not computed.
+- **Not the puzzle set.** All ten of e75-haiku-hard-propose's refused actions are on puzzles b2 also played (eight of
+  its twelve puzzles are b2's); on those puzzles b2-detailed refused 3 of 6 again and e75 0 of 10. b2-detailed's five
+  come from fling-0a55 (1), ping-1734 (2), splice-0551 (1) and splice-06da (1), none from the storm puzzles; the only
+  storm repeats are in smoke-64dc1f33-terse (storm-5bf9 2 of 2, storm-88f9 1 of 3). The difference follows the build
+  (e75 at harness-epoch-75, b2 on overlay 187b31cea8dd); that it is the build and not chance is a hypothesis, untested.
+- A block that tests a notebook of earlier refusals (E1 of `eval/research/2026-11-05-agent-compute-and-feedback-survey.md`)
+  should hold the build fixed and compare arms on the same puzzles, with the shuffled floor beside it.
