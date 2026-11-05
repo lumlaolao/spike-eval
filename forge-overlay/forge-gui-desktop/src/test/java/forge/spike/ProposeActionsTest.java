@@ -10,7 +10,10 @@ import java.util.Deque;
 import java.util.List;
 
 import forge.game.Game;
+import forge.game.GameEntity;
 import forge.game.card.Card;
+import forge.game.combat.Combat;
+import forge.game.combat.CombatUtil;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
@@ -88,6 +91,26 @@ public class ProposeActionsTest {
         Assert.assertTrue(on.has("action"));
         Assert.assertTrue(AnswerTool.instructions().contains("PLAYS:"));
         Assert.assertTrue(AnswerTool.protocolVersion().contains("+propose"), AnswerTool.protocolVersion());
+        Assert.assertTrue(on.has("declare_attackers") && on.has("declare_blockers"), "the combat proposals are in the schema");
+        Assert.assertTrue(AnswerTool.instructions().contains("COMBAT:"));
+        Assert.assertFalse(off.has("declare_attackers") || off.has("declare_blockers"), "the default schema's bytes move");
+    }
+
+    @Test
+    public void aMalformedCombatProposalIsAFormatError() {
+        AnswerTool.Spec a = AnswerTool.Spec.attackProposal(List.of("Grizzly Bears"));
+        String menu = AnswerTool.validate(a, "{\"options\":[1]}").error;
+        Assert.assertTrue(menu.startsWith("FORMAT:") && menu.contains("no numbered list") && menu.contains("declare_attackers"), menu);
+        Assert.assertTrue(AnswerTool.validate(a, "{\"declare_attackers\":[{\"attacker\":\"Bears\"}]}").error.startsWith("FORMAT:"));
+        Assert.assertTrue(AnswerTool.validate(a, "{\"declare_attackers\":[{\"attacker\":\"@3\"},{\"attacker\":\"@3\"}]}").error
+                .contains("twice"));
+        AnswerTool.Result ok = AnswerTool.validate(a, "{\"declare_attackers\":[{\"attacker\":\"@3\",\"defender\":\"@9\"},{\"attacker\":\"4\"}]}");
+        Assert.assertNull(ok.error);
+        Assert.assertEquals(AnswerTool.renderDeclared(ok.answer.declared, true), "@3 -> @9, @4 -> opponent");
+        AnswerTool.Spec b = AnswerTool.Spec.blockProposal(List.of("Grizzly Bears"), List.of("Hill Giant"));
+        Assert.assertTrue(AnswerTool.validate(b, "{\"blocks\":[]}").error.contains("declare_blockers"));
+        Assert.assertTrue(AnswerTool.validate(b, "{\"declare_blockers\":[{\"blocker\":\"@3\"}]}").error.startsWith("FORMAT: `attacker`"));
+        Assert.assertNull(AnswerTool.validate(b, "{\"declare_blockers\":[]}").error, "no blocks is well formed");
     }
 
     @Test
@@ -109,13 +132,23 @@ public class ProposeActionsTest {
         calls.add(new String[] {"{\"action\":{\"verb\":\"cast\",\"card\":\"@99\"}}", "FORMAT: no object @99 is in view now."});
         calls.add(new String[] {"{\"action\":{\"verb\":\"cast\",\"card\":\"@4\"}}", "ILLEGAL (timing): a sorcery."});
         calls.add(new String[] {"{\"action\":{\"verb\":\"pass\"}}", null});
-        JsonObject row = JsonParser.parseString("{\"x\":1" + LlmSpikeGui.PlayerControllerLLM.proposalRecord(calls) + "}").getAsJsonObject();
+        JsonObject row = JsonParser.parseString("{\"x\":1" + LlmSpikeGui.PlayerControllerLLM.proposalRecord(calls, "action") + "}").getAsJsonObject();
         JsonArray ps = row.getAsJsonArray("proposals");
         Assert.assertEquals(ps.size(), 3);
         Assert.assertEquals(ps.get(0).getAsJsonObject().get("verdict").getAsString(), "format");
         Assert.assertEquals(ps.get(1).getAsJsonObject().get("category").getAsString(), "timing");
         Assert.assertEquals(ps.get(2).getAsJsonObject().get("verdict").getAsString(), "accepted");
         Assert.assertFalse(row.get("first_try_legal").getAsBoolean(), "the first well-formed proposal was illegal");
+        // A combat proposal is recorded under its own field, by the same rule.
+        List<String[]> combat = new ArrayList<>();
+        combat.add(new String[] {"{\"declare_blockers\":[{\"blocker\":\"@3\",\"attacker\":\"@7\"}]}", "ILLEGAL (evasion): flying."});
+        combat.add(new String[] {"{\"declare_blockers\":[]}", null});
+        JsonObject crow = JsonParser.parseString("{\"x\":1" + LlmSpikeGui.PlayerControllerLLM.proposalRecord(combat, "declare_blockers") + "}").getAsJsonObject();
+        JsonArray cps = crow.getAsJsonArray("proposals");
+        Assert.assertEquals(cps.get(0).getAsJsonObject().getAsJsonArray("declare_blockers").size(), 1);
+        Assert.assertEquals(cps.get(0).getAsJsonObject().get("category").getAsString(), "evasion");
+        Assert.assertEquals(cps.get(1).getAsJsonObject().getAsJsonArray("declare_blockers").size(), 0);
+        Assert.assertFalse(crow.get("first_try_legal").getAsBoolean());
     }
 
     // ------------------------------------------------------------------ soundness: the menu is reachable
@@ -496,5 +529,427 @@ public class ProposeActionsTest {
         Assert.assertEquals(model.results.stream().filter(r -> r.contains("ILLEGAL (cost)")).count(), 3L,
                 "three corrections are sent; the fourth illegal try ends the decision");
         Assert.assertEquals(model.actions.size(), 2, "exactly four tries were taken");
+    }
+
+    // ------------------------------------------------------------------ combat: the attack and the blocks
+
+    private static String[] pair(LlmSpikeGui.PlayerControllerLLM ctrl, Card first, Object second) {
+        String s = second == null ? null : second instanceof Card ? String.valueOf(handle(ctrl, (Card) second)) : (String) second;
+        return new String[] {String.valueOf(handle(ctrl, first)), s};
+    }
+
+    private static String attackError(LlmSpikeGui.PlayerControllerLLM ctrl, Player me, Combat combat, String[]... decl) {
+        return ctrl.attackProposalError(java.util.Arrays.asList(decl), me, combat, new java.util.LinkedHashMap<>());
+    }
+
+    private static String blockError(LlmSpikeGui.PlayerControllerLLM ctrl, Player me, Combat combat, String[]... decl) {
+        return ctrl.blockProposalError(java.util.Arrays.asList(decl), me, combat, new ArrayList<>());
+    }
+
+    private static void assertCategory(String err, String category) {
+        Assert.assertNotNull(err, "accepted, expected ILLEGAL (" + category + ")");
+        Assert.assertTrue(err.startsWith("ILLEGAL (" + category + "): "), err);
+    }
+
+    /** Each attack rule is refused with its own category, and the attack proposal leaves the combat as it found it. */
+    @Test
+    public void eachAttackRuleIsNamed() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card ready = card("Hill Giant", me, ZoneType.Battlefield);
+        Card sick = card("Grizzly Bears", me, ZoneType.Battlefield);
+        sick.setSickness(true);
+        Card tapped = card("Savannah Lions", me, ZoneType.Battlefield);
+        tapped.setTapped(true);
+        Card wall = card("Wall of Stone", me, ZoneType.Battlefield);
+        Card mine = card("Llanowar Elves", me, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat combat = new Combat(me);
+        assertCategory(attackError(ctrl, me, combat, pair(ctrl, sick, null)), "summoning sickness");
+        assertCategory(attackError(ctrl, me, combat, pair(ctrl, tapped, null)), "tapped");
+        String def = attackError(ctrl, me, combat, pair(ctrl, wall, null));
+        assertCategory(def, "defender");
+        Assert.assertTrue(def.contains("defender"), def);
+        assertCategory(attackError(ctrl, me, combat, pair(ctrl, ready, "@" + handle(ctrl, mine))), "combat");
+        Assert.assertTrue(attackError(ctrl, me, combat, new String[] {"999", null}).startsWith("FORMAT:"), "an unknown handle");
+        Assert.assertNull(attackError(ctrl, me, combat, pair(ctrl, ready, "opponent"), pair(ctrl, mine, null)));
+        Assert.assertNull(attackError(ctrl, me, combat), "no attack is legal here");
+        Assert.assertTrue(combat.getAttackers().isEmpty(), "checking an attack declares nothing");
+        // A static of another permanent (Ensnaring Bridge, an empty hand): named with its source.
+        card("Ensnaring Bridge", me, ZoneType.Battlefield);
+        String bridge = attackError(ctrl, me, combat, pair(ctrl, ready, null));
+        assertCategory(bridge, "restriction");
+        Assert.assertTrue(bridge.contains("Ensnaring Bridge"), bridge);
+
+        // The attack as a whole: a global limit, a creature that can't attack alone, a creature that must attack.
+        g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        me = g.getPlayers().get(0); rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        String arbiter = attackError(ctrl, me, new Combat(me), pair(ctrl, bears, null), pair(ctrl, giant, null));
+        assertCategory(arbiter, "number");
+        Assert.assertTrue(arbiter.contains("1"), arbiter);
+
+        g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        me = g.getPlayers().get(0);
+        Card flunkies = card("Mogg Flunkies", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        assertCategory(attackError(ctrl, me, new Combat(me), pair(ctrl, flunkies, null)), "restriction");
+
+        g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        me = g.getPlayers().get(0);
+        Card juggernaut = card("Juggernaut", me, ZoneType.Battlefield);
+        Card elf = card("Llanowar Elves", me, ZoneType.Battlefield);
+        ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat c = new Combat(me);
+        g.getPhaseHandler().setCombat(c);   // the engine counts a requirement on the game's combat, as in a game
+        String must = attackError(ctrl, me, c, pair(ctrl, elf, null));
+        assertCategory(must, "requirement");
+        Assert.assertTrue(must.contains("Juggernaut"), must);
+        assertCategory(attackError(ctrl, me, c), "requirement");
+        Assert.assertNull(attackError(ctrl, me, c, pair(ctrl, juggernaut, null)));
+    }
+
+    /** Soundness: every attacker the engine allows, at every defender it allows, is accepted alone. */
+    @Test
+    public void everyLegalAttackIsAccepted() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Serra Angel", me, ZoneType.Battlefield);
+        Card hasty = card("Raging Goblin", me, ZoneType.Battlefield);
+        hasty.setSickness(true);
+        card("Jace, the Mind Sculptor", rival, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat combat = new Combat(me);
+        int checked = 0;
+        for (Card c : me.getCreaturesInPlay())
+            for (GameEntity d : combat.getDefenders()) {
+                if (!CombatUtil.canAttack(c, d)) continue;
+                java.util.Map<Card, GameEntity> out = new java.util.LinkedHashMap<>();
+                String err = ctrl.attackProposalError(java.util.Collections.singletonList(
+                        pair(ctrl, c, d instanceof Card ? "@" + handle(ctrl, (Card) d) : "opponent")), me, combat, out);
+                Assert.assertNull(err, c + " -> " + d);
+                Assert.assertSame(out.get(c), d);
+                checked++;
+            }
+        Assert.assertEquals(checked, 6, "three creatures, two defenders each");
+    }
+
+    /** Each block rule is refused with its own category. */
+    @Test
+    public void eachBlockRuleIsNamed() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card angel = card("Serra Angel", rival, ZoneType.Battlefield);
+        Card brute = card("Boggart Brute", rival, ZoneType.Battlefield);
+        Card idle = card("Hill Giant", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card spider = card("Giant Spider", me, ZoneType.Battlefield);
+        Card tapped = card("Savannah Lions", me, ZoneType.Battlefield);
+        tapped.setTapped(true);
+        Card ghast = card("Bloodghast", me, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat combat = new Combat(rival);
+        combat.addAttacker(angel, me);
+        combat.addAttacker(brute, me);
+        String fly = blockError(ctrl, me, combat, pair(ctrl, bears, angel));
+        assertCategory(fly, "evasion");
+        Assert.assertTrue(fly.toLowerCase().contains("flying"), fly);
+        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, spider, angel)), "reach blocks a flyer");
+        assertCategory(blockError(ctrl, me, combat, pair(ctrl, tapped, brute)), "tapped");
+        assertCategory(blockError(ctrl, me, combat, pair(ctrl, ghast, brute)), "restriction");
+        String menace = blockError(ctrl, me, combat, pair(ctrl, bears, brute));
+        assertCategory(menace, "number");
+        Assert.assertTrue(menace.toLowerCase().contains("menace") || menace.contains("two or more"), menace);
+        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, bears, brute), pair(ctrl, spider, brute)), "two block menace");
+        assertCategory(blockError(ctrl, me, combat, pair(ctrl, bears, idle)), "combat");
+        assertCategory(blockError(ctrl, me, combat, pair(ctrl, idle, brute)), "control");
+        Assert.assertTrue(blockError(ctrl, me, combat, new String[] {"999", String.valueOf(handle(ctrl, brute))}).startsWith("FORMAT:"));
+        Assert.assertNull(blockError(ctrl, me, combat), "no blocks is legal here");
+        Assert.assertTrue(combat.getAllBlockers().isEmpty(), "checking blocks declares nothing");
+        String twice = blockError(ctrl, me, combat, pair(ctrl, spider, angel), pair(ctrl, spider, brute));
+        assertCategory(twice, "number");
+
+        // A lure: every creature able to block it must.
+        g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        me = g.getPlayers().get(0); rival = g.getPlayers().get(1);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", rival, ZoneType.Battlefield);
+        Card mine = card("Grizzly Bears", me, ZoneType.Battlefield);
+        ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        combat.addAttacker(giant, me);
+        assertCategory(blockError(ctrl, me, combat, pair(ctrl, mine, giant)), "requirement");
+        assertCategory(blockError(ctrl, me, combat), "requirement");
+        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, mine, unicorn)));
+    }
+
+    /** Soundness: every block the engine allows alone is accepted alone. */
+    @Test
+    public void everyLegalBlockIsAccepted() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card angel = card("Serra Angel", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Giant Spider", me, ZoneType.Battlefield);
+        card("Wall of Stone", me, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat combat = new Combat(rival);
+        combat.addAttacker(angel, me);
+        combat.addAttacker(bears, me);
+        int checked = 0;
+        for (Card b : me.getCreaturesInPlay())
+            for (Card a : combat.getAttackers()) {
+                if (!CombatUtil.canBlock(a, b, combat)) continue;
+                List<Card[]> out = new ArrayList<>();
+                Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, b, a)), b + " blocks " + a);
+                checked++;
+            }
+        Assert.assertEquals(checked, 4, "Bears and Wall block the Bears; the Spider blocks both");
+    }
+
+    /** A model that answers the combat decisions with the next scripted declaration and anything else with option 1. */
+    static final class CombatModel extends Recorder {
+        final Deque<String> declarations = new ArrayDeque<>();
+        final List<String> results = new ArrayList<>();
+        CombatModel(String... d) { super("CHOICE: 1"); for (String x : d) declarations.add(x); }
+        @Override public boolean supportsNativeTools() { return true; }
+        @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+            JsonArray msgs = JsonParser.parseString(messagesJson).getAsJsonArray();
+            String first = msgs.get(0).getAsJsonObject().get("content").getAsString();
+            prompts.add(first);
+            JsonObject last = msgs.get(msgs.size() - 1).getAsJsonObject();
+            if ("tool".equals(last.has("role") ? last.get("role").getAsString() : "")) results.add(last.get("content").getAsString());
+            String field = first.contains("`declare_attackers`") ? "declare_attackers" : first.contains("`declare_blockers`") ? "declare_blockers"
+                    : first.contains("call `answer` with `blocks`") ? "blocks" : null;
+            String args = field == null ? "{\"option\":1}" : "{\"" + field + "\":" + (declarations.isEmpty() ? "[]" : declarations.poll()) + "}";
+            List<NativeTools.Call> calls = new ArrayList<>();
+            calls.add(new NativeTools.Call("c" + (results.size() + prompts.size()), AnswerTool.NAME, args));
+            return NativeTools.Turn.ofCalls(calls);
+        }
+    }
+
+    /** The attack is proposed, not picked: no list of who can attack, an illegal attack is told its rule and repaired in
+     *  the same ask, and the repaired attack is the one declared. */
+    @Test
+    public void aRejectedAttackIsRepairedInTheSameAsk() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card sick = card("Grizzly Bears", me, ZoneType.Battlefield);
+        sick.setSickness(true);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        model.declarations.add("[{\"attacker\":\"@" + handle(ctrl, sick) + "\"},{\"attacker\":\"@" + handle(ctrl, giant) + "\"}]");
+        model.declarations.add("[{\"attacker\":\"@" + handle(ctrl, giant) + "\",\"defender\":\"opponent\"}]");
+        Combat combat = new Combat(me);
+        ctrl.declareAttackers(me, combat);
+        Assert.assertEquals(combat.getAttackers(), java.util.Collections.singletonList(giant));
+        Assert.assertSame(combat.getDefenderByAttacker(giant), rival);
+        Assert.assertTrue(model.results.stream().anyMatch(r -> r.contains("ILLEGAL (summoning sickness)")), String.valueOf(model.results));
+        String ask = model.prompts.stream().filter(p -> p.contains("`declare_attackers`")).findFirst().orElse("");
+        Assert.assertTrue(ask.contains("not shown which creatures can attack"), ask);
+        Assert.assertFalse(ask.contains("Hill Giant (3/3)"), "the candidate list was shown: " + ask);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Four illegal attacks lose the decision to no attack, never to Forge's AI. */
+    @Test
+    public void fourIllegalAttacksDeclareNone() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0);
+        Card wall = card("Wall of Stone", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        for (int i = 0; i < 6; i++) model.declarations.add("[{\"attacker\":\"@" + handle(ctrl, wall) + "\"}]");
+        Combat combat = new Combat(me);
+        ctrl.declareAttackers(me, combat);
+        Assert.assertTrue(combat.getAttackers().isEmpty(), "a lost attack declares none: " + combat.getAttackers());
+        Assert.assertEquals(model.results.stream().filter(r -> r.contains("ILLEGAL (defender)")).count(), 3L);
+        Assert.assertEquals(model.declarations.size(), 2, "exactly four tries were taken");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** The blocks are proposed, not picked: no list of who can block, an illegal block is told its rule and repaired. */
+    @Test
+    public void aRejectedBlockIsRepairedInTheSameAsk() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card angel = card("Serra Angel", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card mine = card("Hill Giant", me, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(angel, me);
+        combat.addAttacker(bears, me);
+        model.declarations.add("[{\"blocker\":\"@" + handle(ctrl, mine) + "\",\"attacker\":\"@" + handle(ctrl, angel) + "\"}]");
+        model.declarations.add("[{\"blocker\":\"@" + handle(ctrl, mine) + "\",\"attacker\":\"@" + handle(ctrl, bears) + "\"}]");
+        ctrl.declareBlockers(me, combat);
+        Assert.assertEquals(combat.getBlockers(bears), java.util.Collections.singletonList(mine));
+        Assert.assertTrue(combat.getBlockers(angel).isEmpty());
+        Assert.assertTrue(model.results.stream().anyMatch(r -> r.contains("ILLEGAL (evasion)")), String.valueOf(model.results));
+        String ask = model.prompts.stream().filter(p -> p.contains("`declare_blockers`")).findFirst().orElse("");
+        Assert.assertTrue(ask.contains("not shown which creatures can block"), ask);
+        Assert.assertFalse(ask.contains("YOUR BLOCKERS") || ask.contains("Your blockers:"), "the blocker list was shown: " + ask);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Four illegal block sets lose the decision to no blocks (the fixed fallback), never to Forge's AI. */
+    @Test
+    public void fourIllegalBlocksDeclareNone() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card angel = card("Serra Angel", rival, ZoneType.Battlefield);
+        Card mine = card("Grizzly Bears", me, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(angel, me);
+        // The Bears cannot block the flyer, yet ableBlockers is empty, so give the seat a legal blocker to be asked at all.
+        Card spider = card("Giant Spider", me, ZoneType.Battlefield);
+        for (int i = 0; i < 6; i++)
+            model.declarations.add("[{\"blocker\":\"@" + handle(ctrl, mine) + "\",\"attacker\":\"@" + handle(ctrl, angel) + "\"}]");
+        ctrl.declareBlockers(me, combat);
+        Assert.assertTrue(combat.getAllBlockers().isEmpty(), "a lost block set declares none: " + combat.getAllBlockers());
+        Assert.assertFalse(combat.getAllBlockers().contains(spider));
+        Assert.assertEquals(model.declarations.size(), 2, "exactly four tries were taken");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** A "must be blocked if able" attacker blocked by one creature, and another creature blocking a second attacker, is
+     *  legal (CR 509.1c: the requirement is obeyed). Each pair used to be judged on a combat with no blocks yet, where the
+     *  requirement looked unmet, so the second block was refused (pr-review of #349). */
+    @Test
+    public void aBlockBesideAMustBeBlockedAttackerIsAccepted() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card protector = card("Gaea's Protector", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card wall = card("Wall of Stone", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat combat = new Combat(rival);
+        combat.addAttacker(protector, me);
+        combat.addAttacker(bears, me);
+        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, wall, protector), pair(ctrl, giant, bears)));
+        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, giant, bears), pair(ctrl, wall, protector)), "in either order");
+        assertCategory(blockError(ctrl, me, combat, pair(ctrl, giant, bears)), "requirement");
+        Assert.assertTrue(combat.getAllBlockers().isEmpty(), "checking blocks declares nothing");
+    }
+
+    /** The menu's own block check had the same flaw: off the arm, the same legal pair of blocks is accepted as answered. */
+    @Test
+    public void theMenuAcceptsABlockBesideAMustBeBlockedAttacker() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card protector = card("Gaea's Protector", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card wall = card("Wall of Stone", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(protector, me);
+        combat.addAttacker(bears, me);
+        // The menu numbers blockers in ableBlockers order (the seat's creatures as listed) and attackers as declared.
+        List<Card> able = LlmSpikeGui.PlayerControllerLLM.ableBlockers(me, combat);
+        model.declarations.add("[{\"blocker\":" + (able.indexOf(wall) + 1) + ",\"attacker\":1},{\"blocker\":"
+                + (able.indexOf(giant) + 1) + ",\"attacker\":2}]");
+        ctrl.declareBlockers(me, combat);
+        Assert.assertEquals(combat.getBlockers(protector), java.util.Collections.singletonList(wall));
+        Assert.assertEquals(combat.getBlockers(bears), java.util.Collections.singletonList(giant), "the answer as given: " + model.results);
+    }
+
+    /** A creature that can block an additional creature blocks two; a third is over its limit. */
+    @Test
+    public void aCreatureThatBlocksAnAdditionalCreatureBlocksTwo() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card guard = card("Night Market Guard", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", rival, ZoneType.Battlefield);
+        g.getAction().checkStateEffects(true);   // the Guard's CanBlockAmount is a continuous effect
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat combat = new Combat(rival);
+        combat.addAttacker(lions, me);
+        combat.addAttacker(bears, me);
+        combat.addAttacker(giant, me);
+        Assert.assertNull(blockError(ctrl, me, combat, pair(ctrl, guard, lions), pair(ctrl, guard, bears)));
+        assertCategory(blockError(ctrl, me, combat, pair(ctrl, guard, lions), pair(ctrl, guard, bears), pair(ctrl, guard, giant)), "number");
+    }
+
+    /** A must-attack creature whose attack has a cost (Propaganda) is not required to attack (CR 508.1d): no attack is
+     *  legal. */
+    @Test
+    public void aRequirementWithAnAttackCostDoesNotForceTheAttack() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Juggernaut", me, ZoneType.Battlefield);
+        card("Propaganda", rival, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat c = new Combat(me);
+        g.getPhaseHandler().setCombat(c);
+        Assert.assertNull(attackError(ctrl, me, c), "an empty attack is legal when the requirement's attack costs");
+    }
+
+    /** Checking an attack leaves no trace on the combat: no attacker, no empty band (removeFromCombat keeps a band). And a
+     *  defender may be named by a bare number, or left blank for the opponent. */
+    @Test
+    public void checkingAnAttackLeavesNoBandAndTakesABareHandle() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card jace = card("Jace, the Mind Sculptor", rival, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        Combat combat = new Combat(me);
+        java.util.Map<Card, GameEntity> out = new java.util.LinkedHashMap<>();
+        Assert.assertNull(ctrl.attackProposalError(java.util.Collections.singletonList(
+                new String[] {String.valueOf(handle(ctrl, giant)), String.valueOf(handle(ctrl, jace))}), me, combat, out));
+        Assert.assertSame(out.get(giant), jace, "a bare number is a handle");
+        Assert.assertNull(ctrl.attackProposalError(java.util.Collections.singletonList(
+                new String[] {String.valueOf(handle(ctrl, giant)), " "}), me, combat, out));
+        Assert.assertSame(out.get(giant), rival, "a blank defender is the opponent");
+        Assert.assertTrue(combat.getAttackingBandsOf(rival).isEmpty() && combat.getAttackingBandsOf(jace).isEmpty(),
+                "the check left a band behind");
+    }
+
+    /** A planeswalker named in the proposal is what the creature attacks, through the whole ask. */
+    @Test
+    public void anAttackOnAPlaneswalkerIsProposedThroughTheAsk() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card jace = card("Jace, the Mind Sculptor", rival, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        model.declarations.add("[{\"attacker\":\"@" + handle(ctrl, giant) + "\",\"defender\":\"@" + handle(ctrl, jace) + "\"}]");
+        Combat combat = new Combat(me);
+        ctrl.declareAttackers(me, combat);
+        Assert.assertSame(combat.getDefenderByAttacker(giant), jace);
+        Assert.assertFalse(model.prompts.stream().anyMatch(p -> p.contains("Where does")), "no attack-target list was asked");
+    }
+
+    /** Off the arm the combat asks are the menu's: the numbered candidates, answered with `options` and `blocks`. */
+    @Test
+    public void offTheArmCombatIsTheMenu() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        CombatModel model = new CombatModel();
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.declareAttackers(me, new Combat(me));
+        Assert.assertFalse(model.prompts.stream().anyMatch(p -> p.contains("declare_attackers")), "a combat proposal off the arm");
+        Assert.assertTrue(model.prompts.stream().anyMatch(p -> p.contains("Hill Giant (3/3)")), "the menu lists the attackers");
     }
 }

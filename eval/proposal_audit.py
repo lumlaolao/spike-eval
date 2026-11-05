@@ -18,6 +18,11 @@ condition") and reports, per seat:
   rules errors; `categories`: the rule each refused proposal broke.
 - Each rate has its Wilson 95% interval (`*_ci`).
 
+The attack and the blocks are proposed under the same arm (answer-tool-v16, `declare_attackers` / `declare_blockers`).
+Their rows (`type` attackers / blockers) get their own sheets, `attack` and `block` beside the play sheet, with the same
+fields: an empty declaration is a combat proposal's pass (attacking or blocking with none is almost always legal), so
+their headline is first-try legality of non-empty declarations. They are never pooled with the play headline.
+
 Stdlib only. A row from a menu game has no `proposals` and is skipped.
 """
 
@@ -66,8 +71,25 @@ def rows(paths):
                         yield r
 
 
+COMBAT_FIELDS = {"declare_attackers": "attack", "declare_blockers": "block"}
+KINDS = {"attackers": "attack", "blockers": "block"}  # a row's `type` -> its sheet; anything else is a play
+# What a decision lost to four refusals became: the arm's fixed fallback for each kind (render and match_review).
+LOST_AS = {"play": "played as PASS", "attack": "declared none",
+           "block": "took the fixed fallback blocks (none, or the smallest legal set under a requirement)"}
+
+
+def kind_of(row):
+    return KINDS.get(row.get("type"), "play")
+
+
 def verb_of(p):
-    a = p.get("action") if isinstance(p, dict) else None
+    """A proposal's verb: the play's, or for a combat declaration "attack" / "block", and "pass" when it is empty."""
+    if not isinstance(p, dict):
+        return None
+    for field, verb in COMBAT_FIELDS.items():
+        if isinstance(p.get(field), list):
+            return verb if p[field] else "pass"
+    a = p.get("action")
     return a.get("verb") if isinstance(a, dict) else None
 
 
@@ -114,10 +136,31 @@ def summarize(decisions):
 
 
 def audit(paths):
-    by_seat = defaultdict(list)
+    """Per seat: the play sheet, and an `attack` / `block` sheet when the seat proposed combat."""
+    by_seat = defaultdict(lambda: defaultdict(list))
     for r in rows(paths):
-        by_seat[r.get("seat", "?")].append(r)
-    return {seat: summarize(rs) for seat, rs in sorted(by_seat.items())}
+        by_seat[r.get("seat", "?")][kind_of(r)].append(r)
+    out = {}
+    for seat, kinds in sorted(by_seat.items()):
+        out[seat] = summarize(kinds.get("play", []))
+        for kind in ("attack", "block"):
+            if kinds.get(kind):
+                out[seat][kind] = summarize(kinds[kind])
+    return out
+
+
+def render_one(s, what, null_move, fallback):
+    return [
+        "  HEADLINE first-try legal, %s: %s %s (n=%d)"
+        % (what, s["first_try_legal_nonpass"], s["first_try_legal_nonpass_ci"], s["nonpass_first_proposals"]),
+        "  the same, a malformed first try counted as not legal: %s %s"
+        % (s["first_try_legal_nonpass_strict"], s["first_try_legal_nonpass_strict_ci"]),
+        "  first-try legal, all: %s %s  (%s first: %s; a seat that only does that scores 1.0)"
+        % (s["first_try_legal"], s["first_try_legal_ci"], null_move, s["pass_first_share"]),
+        "  legal within 1/2/3/4 tries: %s" % " / ".join(str(s["legal_within"][str(k)]) for k in range(1, TRIES + 1)),
+        "  lost (all %d tries refused, %s): %d; lost another way: %d; format errors: %d"
+        % (TRIES, fallback, s["lost"], s["lost_other"], s["format_errors"]),
+    ] + (["  refused by rule: " + ", ".join("%s %d" % kv for kv in s["categories"].items())] if s["categories"] else [])
 
 
 def render(sheet):
@@ -126,17 +169,12 @@ def render(sheet):
     lines = []
     for seat, s in sheet.items():
         lines.append("%s: %d play decisions, %d proposals" % (seat, s["decisions"], s["proposals"]))
-        lines.append("  HEADLINE first-try legal, non-pass: %s %s (n=%d)"
-                     % (s["first_try_legal_nonpass"], s["first_try_legal_nonpass_ci"], s["nonpass_first_proposals"]))
-        lines.append("  the same, a malformed first try counted as not legal: %s %s"
-                     % (s["first_try_legal_nonpass_strict"], s["first_try_legal_nonpass_strict_ci"]))
-        lines.append("  first-try legal, all: %s %s  (pass first: %s; a seat that only passes scores 1.0)"
-                     % (s["first_try_legal"], s["first_try_legal_ci"], s["pass_first_share"]))
-        lines.append("  legal within 1/2/3/4 tries: %s" % " / ".join(str(s["legal_within"][str(k)]) for k in range(1, TRIES + 1)))
-        lines.append("  lost (all %d tries refused, played as PASS): %d; lost another way: %d; format errors: %d"
-                     % (TRIES, s["lost"], s["lost_other"], s["format_errors"]))
-        if s["categories"]:
-            lines.append("  refused by rule: " + ", ".join("%s %d" % kv for kv in s["categories"].items()))
+        lines += render_one(s, "non-pass", "pass", LOST_AS["play"])
+        for kind in ("attack", "block"):
+            if kind in s:
+                k = s[kind]
+                lines.append("%s %s: %d decisions, %d proposals" % (seat, kind, k["decisions"], k["proposals"]))
+                lines += render_one(k, "non-empty", "an empty declaration", LOST_AS[kind])
     return "\n".join(lines)
 
 

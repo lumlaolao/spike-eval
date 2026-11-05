@@ -302,7 +302,8 @@ def main(argv=None):
     ap.add_argument("--memory-tools", action="store_true")
     ap.add_argument("--rules-tool", action="store_true")
     ap.add_argument("--propose-actions", action="store_true",
-                    help="PROPOSE_ACTIONS=1: the hidden-menu arm; the seat proposes each play and the engine checks it")
+                    help="PROPOSE_ACTIONS=1: the hidden-menu arm; the seat proposes each play, its attack and its "
+                         "blocks (`answer.action`, `declare_attackers`, `declare_blockers`) and the engine checks them")
     ap.add_argument("--build", default=None)
     ap.add_argument("--allow-no-record", action="store_true",
                     help="run on a build without Transcript (no http or engine record; the manifest says so)")
