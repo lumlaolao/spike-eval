@@ -4,9 +4,9 @@
 (the Moonlight PTCG-Bench review, HTTP 429). 25 were corrected (wrong author lists, titles, ids, numbers or
 attributions, or claims reworded to what the page says), and 1 was removed (the Moonlight review, unreadable). Two
 claims that rested only on sources that do not state them were removed: the Kaggle Game Arena retry-then-forfeit rule
-(chess.com and Decrypt state no illegal-move rule). PTCG-Bench's masking result, first dropped as absent from the
-abstract, is restored from the paper's full HTML text (review of PR #356). Every
-other arXiv claim is abstract-only: no other full paper was read, so no other ablation, table or figure is quoted.
+(chess.com and Decrypt state no illegal-move rule). PTCG-Bench's masking result is read from the paper's full HTML
+text. Every other arXiv claim is abstract-only: no other full paper was read, so no other ablation, table or figure is
+quoted.
 Venue claims that the arXiv pages do not show are marked unverified. The ExpeL project page, the kagisearch README, the
 PokéChamp PMLR page and the Hugging Face card were read in full; the other non-arXiv pages were read as fetched.
 
@@ -328,7 +328,8 @@ of about 100 cards.
   recover across decisions, not from the refusal text itself, and a notebook of cause-level notes (built from refused
   plays, clustered by rule, in the style of Mistake Notebook Learning and ExpeL) narrows it under terse refusals.
 - Arms: terse; terse + notebook; detailed; detailed + notebook.
-- Primary metric: puzzles solved. Floor: terse without notebook (3/12 observed), and the random-legal floor.
+- Primary metric: puzzles solved. Floor: terse without notebook (3/12, Wilson 0.09-0.53, `runs/terse/b2-terse`; one
+  block cannot separate it from detailed's 5/12), and the random-legal floor.
 - Secondary metric: repeat-refusal rate, the share of refused plays re-proposed later in the same game. Its floor is the
   no-notebook rate.
 - Sample: 12 puzzles x 4 seeds = 48 per arm. Roughly 35 per arm to separate 25% from 58% solve rates at 80% power (my
@@ -407,8 +408,8 @@ shuffled floor is the open item.
 - No paper I could reach gives a Forge-based LLM evaluation.
 - The BALROG, Mind2Web and AgentBench illegal-action rates were searched for and not found. The BALROG hits were on the
   benchmark's design only.
-- Every arXiv claim is abstract-only except PTCG-Bench's Table 2, read from its HTML full text. None of the Q1 ablation
-  numbers, the other Q3 figures from full papers, or the Q5 probe results were available. Read the PDFs before any claim
+- None of the Q1 ablation numbers, the Q3 figures from full papers other than PTCG-Bench's Table 2, or the Q5 probe
+  results were available. Read the PDFs before any claim
   goes into a paper or a results table.
 - The Kaggle Game Arena rules are not documented in any source I could read.
 
@@ -438,7 +439,8 @@ Q3
 - kagisearch/llm-chess-puzzles, README April 2025. https://github.com/kagisearch/llm-chess-puzzles [page]
 - The Register, 4 June 2024. https://www.theregister.com/2024/06/04/chess_puzzle_benchmark_llm [secondary]
 - Karvonen, Emergent World Models in Chess-Playing LMs, arXiv:2403.15498. https://arxiv.org/abs/2403.15498 [abstract]
-- Hua et al., PTCG-Bench, arXiv:2605.29653. https://arxiv.org/abs/2605.29653 [abstract]
+- Hua et al., PTCG-Bench, arXiv:2605.29653. https://arxiv.org/abs/2605.29653 [abstract]; full text
+  https://arxiv.org/html/2605.29653 [page]
 - Cipolina-Kun et al., Game Reasoning Arena, arXiv:2508.03368. https://arxiv.org/abs/2508.03368 [abstract]
 - Kaggle Game Arena, 2025. chess.com
   https://www.chess.com/news/view/which-ai-model-is-the-best-at-chess-kaggle-game-arena [secondary]; Decrypt

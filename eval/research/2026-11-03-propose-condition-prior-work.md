@@ -469,9 +469,9 @@ row is its own run and no rate is pooled across them.
 
 | Run | Refusal text | Play decisions | Refusal-opened | Repaired to a move | Resent within its decision | Refused again in a later decision |
 |---|---|---|---|---|---|---|
-| runs/propose/haiku-rules-propose | detailed | 48 | 0 | - | - | - |
-| runs/propose/haiku-rules-propose-v2 | detailed | 50 | 0 | - | - | - |
-| runs/propose/e75-haiku-rules-propose | detailed | 56 | 0 | - | - | - |
+| runs/propose/haiku-rules-propose | n/a (no refusal) | 48 | 0 | - | - | - |
+| runs/propose/haiku-rules-propose-v2 | n/a (no refusal) | 50 | 0 | - | - | - |
+| runs/propose/e75-haiku-rules-propose | n/a (no refusal) | 56 | 0 | - | - | - |
 | runs/propose/e75-haiku-hard-propose | detailed | 260 | 9 | 5 | 0 of 10 | 0 of 10 |
 | runs/terse/smoke-64dc1f33-detailed | detailed | 53 | 3 | 2 | 0 of 4 | 1 of 3 |
 | runs/terse/b2-detailed | detailed | 259 | 18 | 10 | 0 of 21 | 5 of 11 |
@@ -481,9 +481,8 @@ row is its own run and no rate is pooled across them.
 The two b2 rows are the b2 block above, one row per arm.
 
 - **Within a decision** no run resent a refused proposal: 0 in each of the five runs that had one to resend (10, 4, 21,
-  8 and 6 refused tries followed by another try, one row each in the table). The tries are not independent
-  (b2-detailed's 21 come from 18 decisions in about 20 puzzle runs), so no interval is given for a combined rate. The
-  repeat Gumaan 2026 reports did not appear in these runs.
+  8 and 6 refused tries). The tries are not independent (b2-detailed's 21 come from 18 decisions in about 20 puzzle
+  runs), so no interval is given for a combined rate. The repeat Gumaan 2026 reports did not appear in these runs.
 - **Across decisions** the same refused play recurs in a later decision of the same game in 1 of 3, 5 of 11, 3 of 5 and
   1 of 5 distinct refused actions, and 0 of 10 in e75-haiku-hard-propose. There is no floor yet: a card that stays in
   hand can be proposed again with no feedback effect at all; the survey's E2 floor (refusals re-paired with decisions at
