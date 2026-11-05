@@ -504,6 +504,24 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   next target unasked), but it registers handles early, so an audited game's prompts can differ: it is a condition,
   stamped `propose_audit` on the game line and puzzle row and never pooled with a plain run. `run_batch.py` pins it
   off and the puzzle runner strips it: it runs only in the keyword gauntlet.
+- **The static rules probe's engine labeller** (`RulesProbeLabelTest`, diagnostic, never a score): the same checker
+  labels proposals on built boards with no game and no model. It puts a `.pzl` board down as the puzzle runner does
+  (`LlmSpikePuzzle.applyBoard` on a "Game-" thread, a propose seat for the solver named as its player and given
+  priority, which the checker does not ask about), and labels every proposal the solver could make then: every
+  visible card (engine effect objects left out) with each verb, each ability number,
+  each cast way the card has and four it may lack (Flashback, Evoke, alternative, flash), each face, and for a play
+  with one target each visible object and player. `matchProposal`'s null is legal, "ILLEGAL (category)" the label
+  with the engine's category and sentence; a `FORMAT:` error is dropped, and so is an activation the checker accepts
+  for another copy's menu entry (its mana-ability fallback lets an untapped Mountain stand for a tapped one or one
+  in hand; `SUBSTITUTED`). Near-miss variants edit one `[state]` line (combat, the opponent's turn, a land played, a
+  tapped land, a sick creature, a hexproof creature or Leyline of Sanctity for the opponent, Angel's Grace on the
+  stack) and are labelled by the engine, never by the edit. It runs only with `-Dharness.probe.out=<file>` (the
+  always-on tests label one built board), as shards of about 230 boards, one JVM after another (a JVM's heap fills
+  after about 400); `python3 eval/rules_probe.py engine` turns its rows into probe items, with a zone-reading floor
+  beside the state-reading one, a difficulty defined by that floor, and contrast pairs (one play, two labels, a board
+  and its variant). Its labels held up under a hand audit (60 of 60 negatives); its categories did not always
+  (`rejection` answers "restriction" or "zone" when `playable` fails, before it checks a non-mana cost). Results:
+  `eval/research/2026-11-05-rules-probe.md`, section 9.
 - **Side-effect settings are conditions too.** The shadow labeller (`SHADOW_AI`, `run_batch.py --shadow-ai`) asks
   Forge's AI on the side for a DAgger label; its targets are reset before the seat's cast, but an AI timeout weakens
   the game's isolation (`[SHADOW] ... WEAKENED`), so it is stamped `shadow_ai` on the game line, keyed by

@@ -65,6 +65,8 @@ import static forge.spike.LineFindingProbeTest.Recorder;
  * -Dharness.probe.boards, comma-separated paths under the repository) and writes one JSONL row per candidate plus one
  * state row per board variant; `python3 eval/rules_probe.py engine FILE --out ITEMS` turns them into probe items.
  * Without it the export test returns at once, so the suite is unaffected (acceptance fails a skipped test).
+ * A JVM keeps something of every board it builds: with -Xmx2g it ran out of heap after about 375 of the 1,376 boards
+ * (each with up to nine variants), so the export runs as shards (-Dharness.probe.shard=K/6), one JVM after another.
  * It cannot see a Forge rules bug: the label is Forge's.
  */
 public class RulesProbeLabelTest {
