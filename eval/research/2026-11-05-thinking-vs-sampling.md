@@ -38,9 +38,9 @@ It was re-scoped to the lever this lane has: how hard the model thinks.
   Error Bars to Evals", arXiv:2411.00640); `puzzle_score.py` follows it.
 
 **Inference:** these results are on problems where an attempt is cheap and independent. A Magic puzzle attempt is a
-whole game of 12 to 34 model calls (`context_call` rows per game in `runs/tvs`, section 4), and pass@k with the engine
-as verifier is an oracle a real game never has: you cannot replay a lost game. So pass@k here measures how much a solver
-*could* gain from retries, not what it gets in play.
+whole game of 14 to 34 model calls (`context_call` rows per finished game in `runs/tvs`, section 4), and pass@k with the
+engine as verifier is an oracle a real game never has: you cannot replay a lost game. So pass@k here measures how much
+a solver *could* gain from retries, not what it gets in play.
 
 ---
 
