@@ -67,6 +67,7 @@ def rows(paths):
                     except ValueError:
                         continue
                     if r.get("t") == "decision" and isinstance(r.get("proposals"), list):
+                        r["_game"] = str(f)   # one file is one game: repair's later-decision repeats stay in it
                         yield r
 
 
@@ -126,11 +127,25 @@ def repair(decisions):
     each became: a play (`to_play`), a pass (`to_pass`: a pass is always legal, so a repair to a pass is not rules
     knowledge), or nothing accepted (`unrepaired`); `within`: the share accepted by try k, counted as legal_within
     counts tries. `exact_repeats`: refused proposals whose next try in the same decision sent the same action
-    (Gumaan 2026's repeat), out of `followed`, the refused proposals with a next try."""
-    out = {"opened": 0, "to_play": 0, "to_pass": 0, "unrepaired": 0, "followed": 0, "exact_repeats": 0}
+    (Gumaan 2026's repeat), out of `followed`, the refused proposals with a next try. `refused_again`: of the distinct
+    actions refused in a game (`refused_distinct`), those refused again in a later decision of the same game: the
+    refusal taught nothing that lasted past its decision. Rows are read in file order, which is the game's order."""
+    out = {"opened": 0, "to_play": 0, "to_pass": 0, "unrepaired": 0, "followed": 0, "exact_repeats": 0,
+           "refused_distinct": 0, "refused_again": 0}
     at = Counter()
-    for r in decisions:
+    seen = {}   # (game, action) -> the decision index it was first refused at; True once refused again later
+    for i, r in enumerate(decisions):
         ps = r["proposals"]
+        for p in ps:
+            if p.get("verdict") != "illegal":
+                continue
+            key = (r.get("_game"), json.dumps(p.get("action"), sort_keys=True))
+            if key not in seen:
+                seen[key] = i
+                out["refused_distinct"] += 1
+            elif seen[key] is not True and seen[key] < i:
+                seen[key] = True
+                out["refused_again"] += 1
         for p, nxt in zip(ps, ps[1:]):
             if p.get("verdict") == "illegal":
                 out["followed"] += 1
@@ -180,10 +195,11 @@ def render(sheet):
         rp = s["repair"]
         if rp["opened"]:
             lines.append("  repair after a rules refusal (%s text): %d opened; to a play %d %s %s, to a pass %d, "
-                         "none accepted %d; accepted by try 2/3/4: %s; exact repeats %d of %d"
+                         "none accepted %d; accepted by try 2/3/4: %s; exact repeats %d of %d; refused again in a "
+                         "later decision %d of %d"
                          % (s["refusal_text"], rp["opened"], rp["to_play"], rp["to_play_share"], rp["to_play_ci"],
                             rp["to_pass"], rp["unrepaired"], " / ".join(str(rp["within"][str(k)]) for k in range(2, TRIES + 1)),
-                            rp["exact_repeats"], rp["followed"]))
+                            rp["exact_repeats"], rp["followed"], rp["refused_again"], rp["refused_distinct"]))
     return "\n".join(lines)
 
 

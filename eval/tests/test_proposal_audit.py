@@ -75,6 +75,18 @@ class TestProposalAudit(unittest.TestCase):
         self.assertEqual(rep["exact_repeat_share"], 0.5)
         self.assertEqual(pa.summarize([row(prop("pass", "accepted"))])["repair"]["opened"], 0)
 
+    def test_an_action_refused_again_in_a_later_decision_of_its_game_is_counted_once(self):
+        # b1-terse (hard-storm-5bf9): Gitaxian Probe "Flashback" refused in four decisions of one game.
+        probe = prop("cast", "illegal", "cost")
+        rs = [dict(row(probe, prop("pass", "accepted")), _game="g1") for _ in range(3)]
+        rs.append(dict(row(probe, prop("pass", "accepted")), _game="g2"))            # another game: a first refusal
+        rs.append(dict(row(probe, probe, prop("pass", "accepted")), _game="g2"))     # a later decision of g2
+        rep = pa.summarize(rs)["repair"]
+        self.assertEqual(rep["refused_distinct"], 2)
+        self.assertEqual(rep["refused_again"], 2)
+        one = pa.summarize([dict(row(probe, probe, prop("pass", "accepted")), _game="g")])["repair"]
+        self.assertEqual((one["refused_distinct"], one["refused_again"]), (1, 0), "a repeat inside one decision is not later")
+
     def test_the_sheet_names_the_refusal_text_the_seat_was_shown(self):
         terse = row(dict(prop("cast", "illegal", "timing"), error_shown="ILLEGAL: that play is not legal now."),
                     prop("cast", "accepted"))
