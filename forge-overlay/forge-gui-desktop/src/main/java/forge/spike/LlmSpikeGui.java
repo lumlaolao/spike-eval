@@ -379,7 +379,8 @@ public final class LlmSpikeGui {
      *  attacker's blocker is no longer refused (it was judged on a combat with no blocks yet).
      *  Epoch 79 (2026-11-05, pr-review of #349): a text-grammar BLOCKS: line is judged as a set before any block is added
      *  (the global cap, then each pair with the others in place, then blocksError), as a tool answer is; added one by one,
-     *  a legal block written before the block that obeys a "must be blocked if able" requirement was dropped.
+     *  a legal block written before the block that obeys a "must be blocked if able" requirement was dropped. A pair the
+     *  blocker can never make (CombatUtil.canBlock without combat) is not used and leaves the name for the next pair.
      */
     static final String HARNESS_EPOCH = "harness-epoch-79";
 
@@ -4003,16 +4004,21 @@ public final class LlmSpikeGui {
                 for (String[] pair : blockPairs(line, blockers, attackers)) {
                     Card b = matchCard(blockers, pair[0]);
                     Card a = matchCard(attackers, pair[1]);
-                    if (a == null || b == null) { dropped.add(flat(pair[0]) + "->" + flat(pair[1])); continue; }
+                    String label = flat(pair[0]) + "->" + flat(pair[1]);
+                    // A block the blocker can never make (a flyer, "can't block") is not used and leaves its name for the
+                    // next pair (pr-review of #351): with one Bears, "Bears->Serra Angel, Bears->Goblin Raider" blocks the Raider.
+                    if (a == null || b == null || !CombatUtil.canBlock(a, b)) { dropped.add(label); continue; }
                     pairs.add(new Card[] {b, a});
-                    written.add(flat(pair[0]) + "->" + flat(pair[1]));
+                    written.add(label);
                     // A blocker at its limit leaves the names matched, so a second "Grizzly Bears" names the other one.
-                    if (uses.merge(b, 1, Integer::sum) >= (b.canBlockAny() ? Integer.MAX_VALUE : 1 + b.canBlockAdditional())) blockers.remove(b);
+                    if (uses.merge(b, 1, Integer::sum) >= blockLimit(b)) blockers.remove(b);
                 }
                 String cap = blockCapError(defender, pairs);
                 if (cap == null) {
                     for (int bad; (bad = firstBlockNotAllowed(combat, pairs)) >= 0; ) { pairs.remove(bad); dropped.add(written.remove(bad)); }
                     for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
+                } else {
+                    dropped.addAll(written);   // over the cap nothing is declared: every pair is not used, and the re-ask says why
                 }
                 int assigned = cap == null ? pairs.size() : 0;
                 lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
@@ -9794,7 +9800,7 @@ public final class LlmSpikeGui {
                 Card a = observer.currentCard(Integer.parseInt(p[1]));
                 if (a == null) return notInView(p[1]);
                 if (!combat.isAttacking(a)) return "ILLEGAL (combat): " + refOf(a) + " is not attacking.";
-                int limit = b.canBlockAny() ? Integer.MAX_VALUE : 1 + b.canBlockAdditional();
+                int limit = blockLimit(b);
                 if (uses.merge(b, 1, Integer::sum) > limit)
                     return "ILLEGAL (number): " + refOf(b) + " can block only " + (limit == 1 ? "one attacker." : limit + " attackers.");
                 pairs.add(new Card[] {b, a});
@@ -9843,6 +9849,9 @@ public final class LlmSpikeGui {
             int cap = forge.game.staticability.StaticAbilityBlockRestrict.blockRestrictNum(defender);
             return blocking.size() > cap ? blockCapWords(cap) : null;
         }
+
+        /** How many attackers {@code b} may block (CR 509.1a): one, more when a card says so, or any number. */
+        static int blockLimit(Card b) { return b.canBlockAny() ? Integer.MAX_VALUE : 1 + b.canBlockAdditional(); }
 
         /** The words of a global block cap's objection; {@link #blockSetRejection} reads its "no more than" start. */
         static String blockCapWords(int cap) {

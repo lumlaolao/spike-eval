@@ -883,6 +883,52 @@ public class ProposeActionsTest {
         Assert.assertEquals(t.combat.getBlockers(t.bears), java.util.Collections.singletonList(t.giant), "the answer as given: " + model.results);
     }
 
+    /** The text grammar under a global block cap (Silent Arbiter, one blocker): two blocks written add nothing, the
+     *  re-ask carries the cap's reason, and a second breach ends in the fixed fallback, recorded as the harness's. */
+    @Test
+    public void theTextBlocksOverACapAreAskedAgainThenFallBack() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card giant = card("Hill Giant", rival, ZoneType.Battlefield);
+        card("Silent Arbiter", rival, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Savannah Lions", me, ZoneType.Battlefield);
+        Recorder model = new Recorder("BLOCKS: Grizzly Bears->Hill Giant, Savannah Lions->Hill Giant");
+        Assert.assertFalse(model.supportsNativeTools(), "the text path: a bridge without function calling");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(giant, me);
+        ctrl.declareBlockers(me, combat);
+        Assert.assertTrue(combat.getAllBlockers().isEmpty(), "over the cap twice: the fallback blocks none");
+        List<String> asks = model.prompts.stream().filter(p -> p.contains("declare blockers")).collect(java.util.stream.Collectors.toList());
+        Assert.assertEquals(asks.size(), 2, "asked once more");
+        Assert.assertTrue(asks.get(0).contains("End with EXACTLY: BLOCKS:"), "the BLOCKS: grammar was asked");
+        Assert.assertTrue(asks.get(1).contains("no more than 1 creature can block each combat"), asks.get(1));
+        Assert.assertTrue(ctrl.autoPicksCount() >= 1, "the fallback is recorded as the harness's own");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** A pair the blocker can never make (a flyer) does not use up its name: with one Grizzly Bears, "Bears->Serra Angel,
+     *  Bears->Goblin Raider" blocks the Raider, as before the set was judged as a whole (pr-review of #351). */
+    @Test
+    public void aTextBlockTheBlockerCannotMakeLeavesItsNameForTheNext() {
+        AnswerTool.PROPOSE_FOR_TEST = false;
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card angel = card("Serra Angel", rival, ZoneType.Battlefield);
+        Card raider = card("Goblin Raider", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Recorder model = new Recorder("BLOCKS: Grizzly Bears->Serra Angel, Grizzly Bears->Goblin Raider");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(angel, me);
+        combat.addAttacker(raider, me);
+        ctrl.declareBlockers(me, combat);
+        Assert.assertEquals(combat.getBlockers(raider), java.util.Collections.singletonList(bears));
+        Assert.assertTrue(combat.getBlockers(angel).isEmpty());
+    }
+
     /** A creature that can block an additional creature blocks two; a third is over its limit. */
     @Test
     public void aCreatureThatBlocksAnAdditionalCreatureBlocksTwo() {
