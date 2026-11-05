@@ -1,20 +1,19 @@
 # A free seed covariate for STR-AI: the premise, measured for free (2026-11-05)
 
-**Question.** STR-AI is a win rate over paid games against Forge's AI. A control variate (AIVAT, Burch et al.
-2018, arXiv:1612.06915; Brief B section 6 in `docs/eval/EVAL-DESIGN.md`) shrinks its interval with a covariate that
-shares the game's luck and whose mean is known. The candidate here: the outcome of a free game on the same seed with
-Forge's AI in the seat. If the model's result on a seed tracks that game's result, the paid sample needed for one
-interval falls by the factor 1 - rho^2.
+**Question.** STR-AI is a win rate over paid games against Forge's AI. A control variate shrinks such an estimate
+with a covariate that shares each game's luck and whose mean is known. The candidate here is the outcome of a free
+game on the same seed, in the same seat with the same deck, with Forge's AI as the pilot. This is the
+common-random-numbers form (cf. AIVAT, Burch et al., AAAI 2018, arXiv:1612.06915, which instead builds zero-mean
+corrections from value estimates; Brief B section 6 in `docs/eval/EVAL-DESIGN.md`). With the AI's win rate mu_X known,
+the estimate `Y_bar - beta (X_bar - mu_X)` has 1 - rho^2 of the plain estimate's variance at the best beta.
 
-**Answer so far: the covariate is valid and free, but its value is not determined and the prior is against it.**
+**Answer so far: the covariate is valid and free; whether it helps is not determined.**
 - The AI-in-seat game is a fixed function of the seed: 10 of 10 seeds replayed with the same winner and turn count
   (`runs/cv/ai-vs-ai` against `runs/cv/ai-vs-ai-rep`, seeds 1000 to 1009).
 - A random seat is no covariate: it lost all 40 seeds to Forge's AI (`runs/cv/random-vs-ai`), so it has no variance
   to share.
-- Its value needs the model's own games on the same seeds, which this note does not have. The one related number
-  in the repository is against it: within a seat-swap pair the measured correlation was about 0.02 (n = 22 pairs,
-  `docs/eval/EVAL-DESIGN.md`, "Honest pairing math"). If seed luck explains that little, an AI game on the seed will
-  explain little too.
+- Its value is rho between the model's game and the AI's game on the same seed, which needs the model's games. The
+  repository holds no measurement of it (below, "What was not determined").
 
 ## What was run (free, zero-model)
 
@@ -23,24 +22,32 @@ in the worktree `cv-wt` under `runs/cv/` (git-ignored, like every run).
 
 | Run | Command | Result |
 |---|---|---|
-| `ai-vs-ai` | `run_batch.py --seeds 1000..1039 --exploratory --jobs 4 --deck eval/decks/burn.txt --controller-a ai --controller-b ai --budget-usd 0.01` | A 24, B 15, draw 1; median 13 turns |
+| `ai-vs-ai` | `run_batch.py --seeds 1000..1039 --exploratory --jobs 4 --deck eval/decks/burn.txt --controller-a ai --controller-b ai --budget-usd 0.01` | A 24, B 15, draw 1; median 12.5 turns |
 | `random-vs-ai` | the same with `--controller-a random` | A 0, B 40; median 9 turns |
 | `ai-vs-ai-rep` | `ai-vs-ai` again on seeds 1000..1009 | 10 of 10 identical to `ai-vs-ai` (winner and turns) |
 
-`runs/cv/tools/seed_corr.py RUN_X RUN_Y` pairs two runs by `(seed, swap)` and prints both win rates, phi with a
-bootstrap interval and 1 - rho^2. On `ai-vs-ai` against `random-vs-ai` it has nothing to compute: Y is constant.
+Pairing two runs means matching game lines (`t: "game"`) by `seed` and `swap`, scoring each 1 if `winner` is `A` and
+0 if `B`, and leaving out a seed drawn in either run. On `ai-vs-ai` against `random-vs-ai` the correlation is
+undefined: the random seat's outcome never varies.
 
-## How to settle it at no extra cost
+## How to settle it
 
-Every paid STR-AI block already plays fixed seeds. Before or after it, play the same seeds with `--controller-a ai`
-(free, minutes) and run `seed_corr.py` on the two directories. One block of 20 seeds gives rho to about +-0.4; a
-second block narrows it. Adopt the estimator only if the interval on 1 - rho^2 sits clearly below 1, and then report
-the plain win rate beside the adjusted one, each with its interval (a covariate never replaces the raw number).
+1. Play the paid block's seeds with `--controller-a ai` beside it (free, minutes) and pair the two runs as above to
+   estimate rho and beta.
+2. mu_X is not those seeds' mean: estimating it from the same seeds removes the gain. Take it from a much larger
+   free block from the same seed distribution (or the whole seed panel), also played with `--controller-a ai`.
+3. Adopt the adjusted estimate only if the interval on 1 - rho^2 sits clearly below 1, and report the plain win rate
+   beside it, each with its interval. At rho near 0 a block of 20 seeds gives rho to about +-0.45 (Fisher z), 40
+   seeds about +-0.3; with 20 seeds an observed rho near 0.6 or more is needed before 1 - rho^2 is clearly below 1.
 
 ## What was not determined
 
 - rho between the model's games and the AI game on the same seed (needs paid games, or the claude-cli development
   lane, never a score).
-- Whether a mirror differs from the non-mirror matchup the 0.02 came from.
-- Seat A won 24 of 39 decided burn-mirror games here (0.62); with 39 games the Wilson interval is [0.46, 0.75], so a
-  first-seat edge is not shown.
+- The one related number in the repository, a within-pair correlation of about 0.02 (n = 22 pairs, non-mirror,
+  `docs/eval/EVAL-DESIGN.md`, "Honest pairing math"), is a different quantity: one identity's results in seat A and
+  in seat B on the same deal, where a deal's luck can move the two games in opposite directions. It says nothing
+  about two pilots in the same seat on the same deal.
+- Seat A won 24 of 39 decided games (0.62, Wilson [0.46, 0.75]). Seat A is not the player on the play (a coin flip
+  decides that: A went first in 19 of 40); the player on the play won 21 of 39 decided games (0.54, about [0.38,
+  0.69]). Neither shows an edge.
