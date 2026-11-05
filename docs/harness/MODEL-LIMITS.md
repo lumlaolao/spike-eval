@@ -92,9 +92,10 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 
 A decision model answers only typed questions over a closed list of keys (`docs/harness/ARCHITECTURE.md` section 9,
 "The Decisions bridge"). Where a decision cannot be put that way it is not sent: the bridge gives no answer, logs
-`[JEV-NO-ANSWER]` with the reason, and the seat takes its fixed legal option. "Bound" counts the asks of the three
-puzzles of the first Jev run, read from Luna's rows (`runs/puzzles/hard-gen2-luna/<id>/game-*.jsonl`, 116 asks);
-the first Jev game (`runs/puzzles/jev-test-1`, 2026-10-24) is not counted here. `DB` is `DecisionsBridge.java`.
+`[JEV-NO-ANSWER]` with the reason, and the seat's bridge retry runs, then it takes its fixed legal option. "Bound"
+counts the asks of the three puzzles of the first Jev run, read from Luna's rows
+(`runs/puzzles/hard-gen2-luna/<id>/game-*.jsonl`, 116 asks); the first Jev game (`runs/puzzles/jev-test-1`,
+2026-10-24) is not counted here. `DB` is `DecisionsBridge.java`.
 
 | Limit | Where | Bound | Decision | Value |
 |---|---|---|---|---|

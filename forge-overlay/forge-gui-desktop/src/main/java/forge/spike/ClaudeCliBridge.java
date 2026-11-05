@@ -263,8 +263,7 @@ final class ClaudeCliBridge implements LLMBridge {
     }
 
     private void noAnswer(String why) {
-        System.out.println("[CLAUDE-CLI " + label + "] [CLAUDE-CLI-NO-ANSWER] " + why
-                + " -> no answer; the seat re-asks while it has attempts left, then takes its fixed legal option");
+        System.out.println("[CLAUDE-CLI " + label + "] [CLAUDE-CLI-NO-ANSWER] " + why + " -> " + LLMBridge.NO_ANSWER);
     }
 
     // ------------------------------------------------------------------ what is sent
@@ -434,15 +433,17 @@ final class ClaudeCliBridge implements LLMBridge {
                 return null;
             }
             reader.join(5000);
-            errReader.join(5000);   // stderr's tail goes in the no-answer line: read it only once it is drained
             String text = out.toString(StandardCharsets.UTF_8);
             JsonObject result = resultOf(text);
             if (result != null) bill(result);
             if (proc.exitValue() != 0 && (result == null || !result.has("structured_output"))) {
-                noAnswer("exit " + proc.exitValue() + ": " + LlmSpikeGui.oneLine(text) + stderrTail(err));
+                noAnswer("exit " + proc.exitValue() + ": " + LlmSpikeGui.oneLine(text) + drainedTail(errReader, err));
                 return null;
             }
-            if (result == null) { noAnswer("no JSON result: " + LlmSpikeGui.oneLine(text) + stderrTail(err)); return null; }
+            if (result == null) {
+                noAnswer("no JSON result: " + LlmSpikeGui.oneLine(text) + drainedTail(errReader, err));
+                return null;
+            }
             return result;
         } catch (Exception e) {
             noAnswer("error: " + e);
@@ -453,6 +454,13 @@ final class ClaudeCliBridge implements LLMBridge {
                 proc.destroyForcibly();
             }
         }
+    }
+
+    /** The stderr tail of a process that has exited, once its drain thread has copied it (bounded: a child that keeps
+     *  the pipe open costs at most 5 s). Only the lines that print it wait, so an answered call never does. */
+    private static String drainedTail(Thread errReader, ByteArrayOutputStream err) throws InterruptedException {
+        errReader.join(5000);
+        return stderrTail(err);
     }
 
     private static String stderrTail(ByteArrayOutputStream err) {
