@@ -432,7 +432,7 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
-### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, owner 2026-11-03)
+### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, checker epoch 82, owner 2026-11-03)
 
 The menu makes illegal plays impossible, so the benchmark cannot see whether a model knows the rules. This arm
 removes the menu from the play decision and treats the rules engine as a type checker: the seat proposes a play,
@@ -446,9 +446,19 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   accepted when it names one of its plays, and that play is carried out the usual way (targets, modes, X and costs
   are the usual follow-up asks). Soundness is the menu's: `ProposeActionsTest.everyMenuPlayIsReachableByAProposal`
   builds every menu play's proposal and checks it lands on that play.
+  A land's mana ability is on the menu once per name, so another copy's entry stands for the proposed land only when
+  that land could be activated itself (`playable`): a tapped copy's ability, or one in the hand, is refused for its
+  rule (cost, zone). Before epoch 82 it matched the other copy's entry, tapped that land, and counted the illegal
+  proposal legal (PR #359's engine labeller; `aLandsManaAbilityIsRefusedWhenThatLandCannotPayIt`).
 - **A rejection names the rule, never the alternatives** (`proposalRejection`): "ILLEGAL (category): one sentence",
   the first engine check the play fails, in the categories timing, cost, zone, target, land drop, control, type and
-  restriction. Kaggle Game Arena says only "illegal"; a list of what would be legal is a hidden menu. A malformed
+  restriction. Forge's `canPlay` asks the zone, the timing, the play's own limits and the non-mana cost
+  (`CostPayment.canPayAdditionalCosts`) as one answer, so the checker asks them one by one, in the order that names
+  the rule broken (epoch 82): whose card it is (control, before any cost name or zone), the zone, the timing (a loyalty
+  ability is sorcery speed, CR 606.3; an ability's own phase or turn), then a sacrifice, exile or discard the seat
+  cannot pay (cost: Fling or Eldritch Evolution with no creature, Dread Return's flashback or an Underworld Breach
+  escape short of what it needs, Peregrin Took with no Foods), and only then "restriction". Before, those read as
+  restriction or zone; `ProposeActionsTest` pins one position per case. Kaggle Game Arena says only "illegal"; a list of what would be legal is a hidden menu. A malformed
   proposal (an unknown handle, ability 3 of a card with two, `option` instead of `action`) is a `FORMAT:` error,
   recorded apart.
 - **The terse arm** (`PROPOSE_TERSE=1`, with the propose arm only; harness-epoch-80, answer-tool-v17): a rules
