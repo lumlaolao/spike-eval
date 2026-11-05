@@ -276,7 +276,8 @@ tests the observation as much as the rules.
 
 ## 6. The engine labeller (designed, not built)
 
-*Built later the same day: section 9.*
+*Built later the same day: section 9; how the labeller is actually run (a class named Export, not a test the
+acceptance runner runs, in shards) is section 9.1 and the class comment of `RulesProbeLabelExport`.*
 
 Mined rows give exact legal/illegal labels but only inferred categories, and they give negatives only where a game
 happened to reach them. A labeller that runs the propose checker on a built board fixes both:
@@ -375,10 +376,11 @@ items were in the old one).
   `audit-sample` (positions of one label, round robin over cells), `zone_floor`, `contrast_pairs`,
   `balance --contrast`, and in `score` the contrast pairs right on both sides and a category baseline.
 
-Run directory: `runs/rules-probe/engine-label-1105/` in the worktree that made it (git-ignored): `raw-0..5.jsonl.gz`
+Run directory: `runs/rules-probe/engine-label-1105/` in the main clone (git-ignored): `raw-0..5.jsonl.gz`
 (the labeller's rows), `items.jsonl.gz`, `stats.json`, `report.json`, `set-contrast.jsonl` (the 96 items),
 `haiku-contrast.jsonl` (Haiku's answers), `audit-illegal-1105.txt`, `audit-illegal-2026.txt`, `audit-legal-1105.txt`
-(the samples) and `audit-verdicts.jsonl` (each sampled id with its verdict and, for a wrong one, why). Commands, from
+(the samples), `audit-verdicts.jsonl` (each sampled id with its verdict and, for a wrong one, why) and
+`issue-drafts/` (the three defect reports of 9.3, written to the defect-hunt format and not yet filed). Commands, from
 the repository root, after the export of the class comment (`-Dharness.probe.out=$PWD/runs/rules-probe/<name>/raw-K.jsonl.gz`):
 
 ```
@@ -391,6 +393,9 @@ python3 eval/rules_probe.py audit-sample <dir>/items.jsonl.gz --label legal --n 
 CLAUDE_CLI_SEAT=1 python3 eval/rules_probe.py ask <dir>/set-contrast.jsonl --model claude-cli:claude-haiku-5-5 \
     --out <dir>/haiku-contrast.jsonl
 python3 eval/rules_probe.py score <dir>/set-contrast.jsonl <dir>/haiku-contrast.jsonl
+python3 eval/rules_probe.py count <dir>/items.jsonl.gz --label illegal --name "Lantern Bearer" --category target
+python3 eval/rules_probe.py count <dir>/items.jsonl.gz --label illegal --reason-has "mana cost" \
+    --solver-board-has "Heritage Druid"
 ```
 
 The export was run twice, before and after the review's changes; every shard's rows and drop counts were the same.
@@ -450,7 +455,8 @@ Two samples of 30 negatives (`audit-sample --label illegal`, seeds 1105 and 2026
 (`--label legal`, seed 1105), all from the final set, read by hand against the Comprehensive Rules, the state and
 the card's text. The sampler draws round robin over cells, so every cell is sampled about equally whatever its size.
 In each negative sample, 13 cells (kind, category, difficulty) gave 2 items and 4 gave 1 (play/zone and target/target,
-trivial and subtle). The legal sample drew 1 or 2 per (verb, variant, mana ability) cell over 22 cells. One negative
+trivial and subtle). The legal sample drew 1 per (kind, verb, variant, mana ability) cell over 30 cells (the sampler's CELLS line names the
+mana flag since review round 3; the first printout merged the two and read 22 cells). One negative
 was drawn in both samples. Verdicts, with the reason for each miss: `audit-verdicts.jsonl`.
 
 | sample | n | label right | Wilson 95% | category right | Wilson 95% |
@@ -466,17 +472,23 @@ sample, not of the set; the rates are not estimates over the 524,040 negatives.
 **The four wrong labels**, two classes, both legal plays the menu does not offer, so the checker refuses them:
 - *Disturb onto an Aura* (`rules-pilot/authored-drafts/y_105`, base and opp-hexproof): Lantern Bearer's Disturb casts
   Lanterns' Lift, an Aura, from the graveyard for {2}{U}; with UUU floating and Grizzly Bears to enchant it is legal
-  (it is that board's own solution), and the checker answers "it has no legal target now". In the set: the 4
-  target-labelled Disturb items of that board (its timing ones are right; counted by hand over the items with a scratch script, not a committed command).
+  (it is that board's own solution), and the checker answers "it has no legal target now". In the set: 12
+  positions of that board (the cast named as Disturb, as "alternative" and as the face, on the four variants where the
+  target is the refusal; its timing refusals are right), `count --label illegal --name "Lantern Bearer" --category
+  target` (9.1).
 - *Mana from Heritage Druid* (`hard/gen2/hoofdrain_1760166562b2` base, `hoofdrain_4962cb5b4d19` summon-sick):
   Craterhoof Behemoth is payable (Priest of Titania's Elves plus Heritage Druid's "tap three untapped Elves", which
-  has no {T} symbol, so a sick Druid can pay it), and the checker answers "you cannot pay its mana cost now". By a scratch
-  count (not a committed command), at most 194 mana-cost negatives on 47 boards have Heritage Druid on the solver's battlefield (188 of them
-  Craterhoof); not all are wrong, and they are a large share of the small play/cost/subtle cell (948 positions).
+  has no {T} symbol, so a sick Druid can pay it), and the checker answers "you cannot pay its mana cost now". At
+  most 194 mana-cost negatives on 47 boards have Heritage Druid on the solver's battlefield (188 of them Craterhoof;
+  `count --label illegal --reason-has "mana cost" --solver-board-has "Heritage Druid"`, 9.1); not all are wrong, and
+  they are a large share of the small play/cost/subtle cell (948 positions).
 
 Both are the menu's (`enumeratePlayOptions`, `seatCanPay`), so a menu seat on those boards cannot make the play
-either: "a legal action is never hidden" does not hold there. Reported for a separate fix; this PR does not change
-the checker.
+either: "a legal action is never hidden" does not hold there. Both are written up for a fix in the defect-hunt
+format (`issue-drafts/` in the run directory: `not-offered`, sev:high each), with a third, `not-shown` (sev:low): the
+state lists "Keyword Effects", the engine object holding a player's hexproof, as a card with a handle in the command
+zone (`SeatObservation`'s command lines). Filing them is pending. The checker's own defects (the category order, the
+mana-ability copy fallback) are PR #360's.
 
 **The category misses** (5 among the 56 right labels, 9 counting the wrong labels): `rejection` asks `playable` before
 it checks a non-mana cost and answers "restriction" or "zone" whatever made it fail: Dread Return's flashback with too
@@ -518,8 +530,10 @@ and does not yet separate strong models: with 96 items the interval is about 0.0
 
 - **The wrong labels' rate over the set.** The audit found two classes; it cannot say how many items each holds
   beyond the bounds above, nor what other classes a larger sample would find. Until the two menu defects are fixed,
-  leave out Disturb casts and boards with Heritage Druid, or relabel them by hand.
-- **The categories' reliability** beyond the audit: the ordering fault in `rejection` is understood, not fixed here.
+  leave out Disturb casts and boards with Heritage Druid, or relabel them by hand (the two `not-offered` reports in
+  `issue-drafts/`, 9.3).
+- **The categories' reliability** beyond the audit: the ordering fault in `rejection` is understood and fixed apart
+  (PR #360), not here.
   Score categories on timing, land drop and target only, or not at all.
 - **The leak** that limits a JVM to about 375 boards was not found.
 - **Whether the variants are fair positions.** A board built for its main phase, moved to combat or the opponent's
