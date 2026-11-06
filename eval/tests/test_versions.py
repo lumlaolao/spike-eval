@@ -53,11 +53,35 @@ class VersionsTest(unittest.TestCase):
     }
 
     @staticmethod
-    def asserted(text, value):
-        """Whether `value` is a whole token (not part of a longer version) on a line that is not a comment: a stage
-        asserts a stamp as a quoted value or inside the log line it greps for ("[OBSERVATION] observation-...")."""
+    def code_lines(text, java=False):
+        """The text's lines with comments removed: `//` and `/* */` in Java, else a `#` that starts a word outside
+        quotes (shell and the Python heredocs in a gate script). A value only a comment names pins nothing."""
+        if java:
+            text = re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
+        out = []
+        for line in text.splitlines():
+            quote, cut = None, len(line)
+            for k, ch in enumerate(line):
+                if quote:
+                    if ch == quote and line[k - 1] != "\\":
+                        quote = None
+                elif ch in "\"'":
+                    quote = ch
+                elif java and line.startswith("//", k):
+                    cut = k
+                    break
+                elif not java and ch == "#" and (k == 0 or line[k - 1].isspace()):
+                    cut = k
+                    break
+            out.append(line[:cut])
+        return out
+
+    @classmethod
+    def asserted(cls, text, value, java=False):
+        """Whether `value` is a whole token (not part of a longer version) in code, not a comment: a stage asserts a
+        stamp as a quoted value or inside the log line it greps for ("[OBSERVATION] observation-...")."""
         token = re.compile(r"(?<![\w-])" + re.escape(value) + r"(?![\w-])")
-        return any(token.search(line) for line in text.splitlines() if not line.lstrip().startswith(("#", "//")))
+        return any(token.search(line) for line in cls.code_lines(text, java))
 
     def test_every_stamp_is_pinned_by_value_in_acceptance(self):
         # STANDARDS section 4: each stamp is asserted by literal value in a stage of eval/harness_acceptance.sh, so a
@@ -74,13 +98,29 @@ class VersionsTest(unittest.TestCase):
         self.assertEqual(sorted(set(self.PINNED_ELSEWHERE) - set(values)), [], "a PINNED_ELSEWHERE entry names no stamp")
         for name, where in self.PINNED_ELSEWHERE.items():
             if where:
-                self.assertTrue(self.asserted(read(where), values[name]), "%s no longer pins %s" % (where, name))
-        self.assertIn('"$REPO/FORGE_COMMIT"', gate, "preflight no longer reads the engine pin")
+                self.assertTrue(self.asserted(read(where), values[name], java=where.endswith(".java")),
+                                "%s no longer pins %s" % (where, name))
+        self.assertTrue(any(re.match(r'\s*PIN="\$\(cat "\$REPO/FORGE_COMMIT"', line) for line in self.code_lines(gate)),
+                        "preflight no longer reads the engine pin")
 
     def test_a_comment_does_not_pin_a_stamp(self):
-        self.assertFalse(self.asserted('# move it WITH "one-chat-v3"\n// "one-chat-v3"', "one-chat-v3"))
-        self.assertTrue(self.asserted('elif game.get("v")!="one-chat-v3":', "one-chat-v3"))
-        self.assertFalse(self.asserted('x = "one-chat-v30"', "one-chat-v3"))
+        v = "one-chat-v3"
+        self.assertTrue(self.asserted('elif game.get("v")!="one-chat-v3":', v))
+        self.assertTrue(self.asserted('grep -qF "[X] one-chat-v3 ok" log  # pinned', v))     # a code line with a comment
+        self.assertFalse(self.asserted('# move it WITH "one-chat-v3"', v))                     # a whole-line comment
+        self.assertFalse(self.asserted('if game and True:  # game.get("v")!="one-chat-v3":', v))  # a trailing comment
+        self.assertFalse(self.asserted('x = "one-chat-v30"', v))                               # a longer version
+        self.assertTrue(self.asserted('s = "a # b one-chat-v3"', v))                           # a # inside quotes
+        self.assertTrue(self.asserted('Assert.assertEquals(x, "one-chat-v3");', v, java=True))
+        self.assertFalse(self.asserted('// Assert.assertEquals(x, "one-chat-v3");', v, java=True))
+        self.assertFalse(self.asserted('/* Assert.assertEquals(x,\n "one-chat-v3"); */ f();', v, java=True))
+        self.assertTrue(self.asserted('String u = "http://x"; Assert.assertEquals(x, "one-chat-v3");', v, java=True))
+
+    def test_preflight_that_no_longer_reads_the_engine_pin_is_caught(self):
+        live = 'PIN="$(cat "$REPO/FORGE_COMMIT" 2>/dev/null)"; CUR=x'
+        self.assertTrue(any(re.match(r'\s*PIN="\$\(cat "\$REPO/FORGE_COMMIT"', l) for l in self.code_lines(live)))
+        dead = 'PIN=""  # was: "$REPO/FORGE_COMMIT"'
+        self.assertFalse(any(re.match(r'\s*PIN="\$\(cat "\$REPO/FORGE_COMMIT"', l) for l in self.code_lines(dead)))
 
     def test_the_page_matches_the_code(self):
         self.assertEqual(versions.main(["--check"]), 0, "run: python3 eval/versions.py --write")
