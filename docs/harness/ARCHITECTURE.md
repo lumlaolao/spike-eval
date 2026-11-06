@@ -1057,17 +1057,18 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     in a row), 0 when nothing was lost.
   - `aggregate.bridge_down_decisions` is the one reader (`aggregate.py`, `defect_analyzer.py`, `run_batch.py`): the
     game line's count, or on a line from before the fields the transport failures in its log (`aggregate.paired_log`:
-    the log whose `[EVAL] jsonl` names the game file, else `game-<seed>-<0|1>.log` unless that names another game file;
-    every caller passes the game's own file, so they all pair alike). `aggregate.log_bridge_down` counts an ask whose last attempt, the outcome line after `[BRIDGE
-    <label>] no reply (attempt N/N)` and before that seat's next line, is an HTTP error not followed by
-    `[ROUTING-FILTER]` or `[NATIVE-TOOLS->TEXT]`, a `java`/`javax` net or io error other than `HttpTimeoutException`
-    and `UncheckedIOException` (a connect timeout counts), a stalled connection, or a Decisions call with no headers.
-    Never the `(bridge-down)` fallback rows: a model's non-answer writes those too.
+    the log whose `[EVAL] jsonl` names the game file, else `game-<seed>-<0|1>.log` unless that names another game
+    file; every caller passes the game's own file, so they all pair alike). `aggregate.log_bridge_down` counts an ask
+    whose last attempt, the outcome line after `[BRIDGE <label>] no reply (attempt N/N)` and before that seat's next
+    line, is an HTTP error not followed by `[ROUTING-FILTER]` or `[NATIVE-TOOLS->TEXT]`, a `java`/`javax` net or io
+    error other than `HttpTimeoutException` and `UncheckedIOException` (a connect timeout counts), a stalled
+    connection, or a Decisions call with no headers. Never the `(bridge-down)` fallback rows: a model's non-answer
+    writes those too.
   - `aggregate.py` leaves such a game out of every count a score is taken over (the strict score's `started`, and the
     fallback and harness-decided gates, included; the recorded winner is kept); `panel_score.py` and `rating.py` refuse
     it whatever the flags; `defect_analyzer.py` fails on it (`bridge_down_total`). In `run_batch.py` a game just
     played on a dead bridge is status `bridge-down` (a problem in the batch summary, not retried in the run, where an
-    outage would repeat); a later resume sets it aside under `crashed/` (`bridgedown-swap<n>-<game file>`, still
+    outage would repeat); a later resume under its condition sets it aside under `crashed/` (`bridgedown-swap<n>-<game file>`, still
     priced) and plays the seed again.
   - *Why any, not a share:* the 2026-11-05 block that ran out of credits (`runs/cv/luna-vs-ai`, kept by the issue's
     hunter) scored 20 decisive games; on it `python3 eval/aggregate.py runs/cv/luna-vs-ai` now reads 2 decisive and 18

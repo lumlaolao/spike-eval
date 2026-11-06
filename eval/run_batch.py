@@ -66,7 +66,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
-from aggregate import bridge_down_decisions, game_log, log_game_file, paired_log  # noqa: E402  dead games (#369)
+# Games a dead model bridge played (issue #369) and the log each game names.
+from aggregate import bridge_down_decisions, game_log, log_game_file, paired_log  # noqa: E402
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
@@ -564,17 +565,19 @@ def combo_status(out_dir, seed, swap, expect=None):
     return status
 
 
-def set_aside_dead_bridge(out_dir, seed, swap):
+def set_aside_dead_bridge(out_dir, seed, swap, expect=None):
     """Move every game file of (seed, swap) whose game lost a decision to a dead model bridge
     (aggregate.bridge_down_decisions: its count, or its log's transport failures on an older line), and the log it was
     judged by, under crashed/ (bridgedown-, named after the game file, so a second dead replay does not overwrite the
-    first), so the replay is the game scored while the old one is kept and still priced. Returns the moved names."""
+    first), so the replay is the game scored while the old one is kept and still priced. Only a game under `expect`
+    (the resume's condition) is moved: another condition's dead game is that batch's. Returns the moved names."""
     out_dir = Path(out_dir)
     tag = "bridgedown-swap%d-" % (1 if swap else 0)
     moved = []
     for path in sorted(out_dir.glob("game-%d-*.jsonl" % seed)):
         dead = next((rec for rec in iter_game_lines_of(path)
-                     if bool(rec.get("swap", False)) == swap and bridge_down_decisions(rec, out_dir)), None)
+                     if bool(rec.get("swap", False)) == swap and game_line_matches(rec, expect)
+                     and bridge_down_decisions(rec, out_dir)), None)
         if dead is not None:
             log_path = paired_log(dead, out_dir)          # none of its own: no other game's log is moved
             moved += _move_to_crashed(out_dir, [(path, tag + path.name)]
@@ -757,11 +760,6 @@ CRASHED_DIR = "crashed"
 RETRYABLE = ("nonzero-exit", "no-game-line", "timeout")
 
 
-def attempt_jsonl(log_path):
-    """The game file an attempt wrote, as its JVM named it in its log ("[EVAL] jsonl <name>"), or None."""
-    return log_game_file(log_path)
-
-
 def play_with_retries(play, seed, swap, out_dir, retries, over_budget):
     """play() up to retries+1 times while it fails in a RETRYABLE way, setting each failed attempt aside.
     Returns the last result, or (seed, swap, "budget", 0) when the budget stops the first attempt."""
@@ -782,7 +780,7 @@ def set_aside(out_dir, seed, swap, attempt):
     """Move one crashed attempt's log and game file under crashed/, named by attempt. Returns the moved names."""
     out_dir = Path(out_dir)
     log_path = game_log(out_dir, seed, swap)
-    name = attempt_jsonl(log_path)
+    name = log_game_file(log_path)
     tag = "attempt%d-swap%d-" % (attempt, 1 if swap else 0)
     return _move_to_crashed(out_dir, [(p, tag + p.name) for p in ([out_dir / name] if name else []) + [log_path]])
 
@@ -1664,7 +1662,7 @@ def run_block(args):
             "and will be replayed (aggregate.py keeps the two apart): %s"
             % (len(foreign), ", ".join("%d/swap%d" % (s, w) for s, w in foreign)))
     for seed, swap in todo:
-        moved = set_aside_dead_bridge(out_dir, seed, swap)
+        moved = set_aside_dead_bridge(out_dir, seed, swap, resume_expectation(args))
         if moved:
             log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; set aside %s and playing "
                 "it again" % (seed, swap, ", ".join(moved)))

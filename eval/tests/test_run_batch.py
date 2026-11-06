@@ -985,6 +985,13 @@ class TestResumeIdentity(unittest.TestCase):
             Path(d, "game-7201-0.log").write_text("[EVAL] jsonl game-7201-5000.jsonl\nanother game's log\n")
             self.assertEqual(run_batch.set_aside_dead_bridge(d, 7201, False), ["bridgedown-swap0-game-7201-1000.jsonl"])
             self.assertTrue(Path(d, "game-7201-0.log").is_file(), "another game's log stays")
+        with tempfile.TemporaryDirectory() as d:
+            # A resume under one condition never moves another condition's dead game.
+            write_game(d, "game-7202-1000.jsonl", game_line(7202, False, context_profile="v2-memory", memory_tools=True,
+                                                            bridge_down_decisions_a=1, bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7202, False, run_batch.resume_expectation(make_args())),
+                             [])
+            self.assertTrue(Path(d, "game-7202-1000.jsonl").is_file())
         expect = run_batch.resume_expectation(make_args())
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "missing")
@@ -1334,4 +1341,4 @@ class TestCrashRerun(unittest.TestCase):
             self.assertAlmostEqual(run_batch.spent_usd(self.out), before)
             self.assertGreater(before, 0)
             self.assertAlmostEqual(run_batch.spent_usd_tree(self.out), before)
-            self.assertEqual(run_batch.attempt_jsonl(self.out / "crashed" / "attempt1-swap0-game-3-0.log"), "game-3-1.jsonl")
+            self.assertEqual(run_batch.log_game_file(self.out / "crashed" / "attempt1-swap0-game-3-0.log"), "game-3-1.jsonl")

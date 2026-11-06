@@ -153,6 +153,22 @@ def test_crashed_game_fails_the_invariants():
         check("and fails the invariants", report["hard_invariants"]["pass"] is False)
 
 
+def test_a_crash_only_its_log_shows_fails_the_invariants():
+    """Round-6 review of #374: the crash check reads the paired log, which it never received before. A game whose
+    thread died after its line was written (no game_error on it) is a crash all the same."""
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-4-1000.jsonl", [game_line(seed=4, swap=False),
+                                                  dec(seat="model-a", dtype="mulligan", n_options=2, choice=0)])
+        write_text(dpath / "game-4-0.log", "[model-a] [ROUTER] mulligan: 2/7 lands -> asking x/model-a...\n"
+                   "[OPENROUTER model-a/smart] replied in 4000 ms\n"
+                   "[HEADLESS] game thread threw: java.lang.IllegalStateException: boom")
+        report = da.build_report([dpath])
+        check("a crash only the log shows is counted", report["hard_invariants"]["game_crash_count"] == 1,
+              str(report["hard_invariants"]))
+        check("and fails the invariants", report["hard_invariants"]["pass"] is False)
+
+
 def test_silent_drop_detected():
     """C5 signature: two 'play(react) -> asking' log lines for a seat that
     never produces a matching jsonl row (bridge-down->PASS branch that
@@ -414,6 +430,7 @@ def main():
     test_malformed_lines_and_no_log_are_tolerated()
     test_shadow_choice_field_invisible_to_merge_gate()
     test_crashed_game_fails_the_invariants()
+    test_a_crash_only_its_log_shows_fails_the_invariants()
     test_a_block_set_that_stood_illegal_is_counted()
     print()
     if FAILURES:
