@@ -186,29 +186,67 @@ PROVENANCE_FIELDS = (
 # score is taken over (docs/harness/ARCHITECTURE.md, "A game the model's bridge did not play"). The model's own lost
 # decisions (an empty answer, a deadline spent reasoning, a routing refusal) are not counted and stay scored.
 BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b")
-# The fallback rows that name a decision with no reply, for a game line written before the fields. They also name a
-# non-answer, which is the model's: on such a line the count can only over-state, and a replay settles it.
-BRIDGE_DOWN_FALLBACK = "(bridge-down)"
+# For a game line from before the fields: its paired game-<seed>-<0|1>.log, in the bridges' own words. An ask's last
+# attempt follows "[BRIDGE <label>] no reply (attempt N/N)"; it was lost to the transport when that attempt's outcome
+# line is an HTTP error, an IO error (a java.net or java.io exception other than the request deadline's
+# HttpTimeoutException), or a connection that sent nothing, and the next line does not say the status
+# was a routing filter's or a refusal of function calling (the provider answered). A non-answer, a wall-clock
+# timeout or a reply is not. Failures a retry recovered count nothing.
+_LAST_ATTEMPT = re.compile(r"\[BRIDGE ([^\]]+)\] no reply \(attempt (\d+)/(\d+)\)")
+_OUTCOME = re.compile(r"^\[(?:OPENROUTER|JEV) ([^\]]+)\] (.*)$")
+_TRANSPORT = re.compile(r"^(?:\[JEV-NO-ANSWER\] )?(?:HTTP \d+|stalled connection|"
+                        r"error: java\.(?:net|io|nio)\.(?!http\.HttpTimeoutException)|"
+                        r"no response within .*\((?:no-headers|silent)\))")
+_ANSWERED_STATUS = ("[ROUTING-FILTER]", "[NATIVE-TOOLS->TEXT]")
 
 
-def bridge_down_rows(game, rows):
-    """For a game line from before the fields: its decision rows whose fallback says (bridge-down). 0 on a line
-    whose provider refused function calling (native_tools_downgraded): that ask's lost decision also reads
-    (bridge-down), but the bridge answered."""
-    if game.get("native_tools_downgraded"):
-        return 0
-    return sum(1 for r in rows if BRIDGE_DOWN_FALLBACK in str(r.get("fallback") or ""))
+def log_bridge_down(text):
+    """Decisions a game log shows lost to the transport (the rule above)."""
+    lines = text.splitlines()
+    pending, lost = set(), 0
+    for i, line in enumerate(lines):
+        m = _LAST_ATTEMPT.search(line)
+        if m:
+            if m.group(2) == m.group(3):
+                pending.add(m.group(1))
+            continue
+        m = _OUTCOME.match(line)
+        if not m or m.group(1) not in pending:
+            continue
+        label, rest = m.group(1), m.group(2)
+        pending.discard(label)
+        if _TRANSPORT.match(rest):
+            nxt = _OUTCOME.match(lines[i + 1]) if i + 1 < len(lines) else None
+            if not (nxt and nxt.group(1) == label and nxt.group(2).startswith(_ANSWERED_STATUS)):
+                lost += 1
+    return lost
 
 
-def bridge_down_decisions(game, rows=None):
-    """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else
-    bridge_down_rows over `rows` (or the `_bridge_down_rows` parse_dir_full attached)."""
+def paired_log(game, log_dir):
+    """The game's own log in `log_dir`, as run_batch.py names it (game-<seed>-<0|1>.log), or None."""
+    seed = game.get("seed")
+    if seed is None or log_dir is None:
+        return None
+    p = Path(log_dir) / ("game-%s-%d.log" % (seed, 1 if game.get("swap") else 0))
+    return p if p.is_file() else None
+
+
+def bridge_down_decisions(game, log_dir=None):
+    """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else the transport
+    failures its paired log in `log_dir` shows (log_bridge_down; parse_dir_full keeps that as `_bridge_down_log`).
+    The one reader aggregate.py, defect_analyzer.py and run_batch.py share."""
     if any(f in game for f in BRIDGE_DOWN_FIELDS):
         return sum(v for v in (game.get(f) for f in BRIDGE_DOWN_FIELDS)
                    if isinstance(v, int) and not isinstance(v, bool) and v > 0)
-    if rows is not None:
-        return bridge_down_rows(game, rows)
-    return game.get("_bridge_down_rows") or 0
+    if "_bridge_down_log" in game:
+        return game["_bridge_down_log"]
+    p = paired_log(game, log_dir)
+    if p is None:
+        return 0
+    try:
+        return log_bridge_down(p.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return 0
 
 
 def scored_winner(game):
@@ -496,14 +534,9 @@ def parse_dir_full(path):
             warnings.append("unreadable file %s: %s" % (fp.name, e))
             continue
         rows_by_file[fp.name] = rows
-        file_games = [g for g in games if g.get("_file") == fp.name]
-        if len(file_games) == 1:
-            g = file_games[0]
-            g["_bridge_down_rows"] = bridge_down_rows(g, [r for r in rows if r.get("t") == "decision"])
-        elif len(file_games) > 1 and not all(any(f in g for f in BRIDGE_DOWN_FIELDS) for g in file_games):
-            warnings.append("%s: %d game lines in one file; a line from before the bridge-down count is not "
-                            "judged by its rows" % (fp.name, len(file_games)))
-        for g in file_games:
+        for g in (g for g in games if g.get("_file") == fp.name):
+            if not any(f in g for f in BRIDGE_DOWN_FIELDS):
+                g["_bridge_down_log"] = bridge_down_decisions(g, path)
             lost = bridge_down_decisions(g)
             if lost:
                 warnings.append("%s: %d decision(s) lost to a dead model bridge -> counted as invalid"
@@ -644,10 +677,9 @@ def p90(values):
 def summarize_games(games):
     counts = Counter()
     for g in games:
-        w = g.get("winner")
+        w = scored_winner(g)
         if bridge_down_decisions(g):
-            counts["bridge_down"] += 1  # invalid: a decision was the harness's fallback, not the model's
-            w = "invalid"
+            counts["bridge_down"] += 1  # invalid: a decision was the bridge's fallback, not the model's
         if w in ("A", "B"):
             counts["decisive"] += 1
             # Seat-bias diagnostic. winner is identity-keyed, so seat 1
@@ -958,6 +990,10 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
     llm arm the gate is vacuous (never fails)."""
     # A name that is llm in any game is treated as llm (identity-keyed config
     # is stable within a batch; mixed config is surfaced by provenance).
+    # Over the scored games only: a dead-bridge game's fallbacks are the bridge's, and it is in no score (#369).
+    dead = {g["_file"] for g in games if g.get("_file") and bridge_down_decisions(g)}
+    games = [g for g in games if not bridge_down_decisions(g)]
+    decisions = [d for d in decisions if d.get("_file") not in dead]
     llm_names = set()
     any_llm_arm = False
     for g in games:

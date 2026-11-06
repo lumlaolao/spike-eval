@@ -24,9 +24,10 @@ silent-drop reconciliation requires a paired log.
 Usage:
   python3 eval/defect_analyzer.py <dir> [<dir> ...] [--json PATH] [--summary PATH]
 
-Exit codes: 0 clean; 1 a hard invariant failed (tier=ai count > 0, a
+Exit codes: 0 clean; 1 a hard invariant failed (build_report's
+hard_invariants, named in docs/STANDARDS.md section 4: tier=ai count > 0, a
 silent-drop gap > 0 anywhere, a crashed game, or a decision lost to a dead
-model bridge: aggregate.bridge_down_decisions, issue #369); 2 usage/input error (not a directory, or no
+model bridge, aggregate.bridge_down_decisions, issue #369); 2 usage/input error (not a directory, or no
 game-*.jsonl file found in any given directory).
 """
 
@@ -394,11 +395,12 @@ def summarize(pairs, label):
                or "game thread threw" in (p.get("log_text") or "")]
 
     # --- decisions lost to a dead model bridge (issue #369: a 402 game read overall=PASS while this report's own
-    # fallback table listed play(bridge-down) 260): the game line's count, or its rows on a line from before it
+    # fallback table listed play(bridge-down) 260): the game line's count, or on a line from before it the transport
+    # failures in its paired log (aggregate.bridge_down_decisions, the one reader)
     bridge_down = {}
     for p in pairs:
         if p.get("games"):
-            n = bridge_down_decisions(p["games"][-1], p["decisions"])
+            n = bridge_down_decisions(p["games"][-1], Path(p["jsonl"]).parent)
             if n:
                 bridge_down[str(p["jsonl"])] = n
 

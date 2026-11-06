@@ -927,24 +927,40 @@ class TestResumeIdentity(unittest.TestCase):
 
 
     def test_a_game_that_lost_decisions_to_a_dead_bridge_is_set_aside_and_replayed(self):
-        # Issue #369: panel_score.py and rating.py refuse such a game and say "replay it"; a resume must do so.
+        # Issue #369: panel_score.py and rating.py refuse such a game and say "replay it"; a resume must do so,
+        # for a line that carries the count and for one from before it whose log shows the 402s.
+        log_402 = "".join("[OPENROUTER Seat/smart] HTTP 402: credits\n"
+                          "[Seat] [BRIDGE Seat/smart] no reply (attempt %d/3) -> restarting session\n" % n
+                          for n in (2, 3)) + "[OPENROUTER Seat/smart] HTTP 402: credits\n"
         with tempfile.TemporaryDirectory() as d:
             write_game(d, "game-7100-1000.jsonl", game_line(7100, False, bridge_down_decisions_a=3,
                                                             bridge_down_decisions_b=0))
             write_game(d, "game-7100-1001.jsonl", game_line(7100, True, bridge_down_decisions_a=0,
                                                             bridge_down_decisions_b=0))
             Path(d, "game-7100-0.log").write_text("the dead game's log\n")
-            combos = [(7100, False), (7100, True)]
+            write_game(d, "game-7101-1000.jsonl", game_line(7101, False))         # before the field: the 402 run
+            Path(d, "game-7101-0.log").write_text(log_402)
+            write_game(d, "game-7101-1001.jsonl", game_line(7101, True))          # before it, model answered nothing
+            Path(d, "game-7101-1.log").write_text(log_402.replace("HTTP 402: credits", "non-answer -> bridge-down"))
+            combos = [(7100, False), (7100, True), (7101, False), (7101, True)]
             todo, skipped, foreign = run_batch.plan_combos(d, combos, run_batch.resume_expectation(make_args()))
-            self.assertEqual((todo, skipped, foreign), ([(7100, False)], [(7100, True)], []))
+            self.assertEqual((todo, skipped, foreign), ([(7100, False), (7101, False)], [(7100, True), (7101, True)], []))
             self.assertEqual(run_batch.set_aside_dead_bridge(d, 7100, True), [], "a healthy game stays")
             moved = run_batch.set_aside_dead_bridge(d, 7100, False)
-            self.assertEqual(sorted(moved), ["bridgedown-swap0-game-7100-0.log", "bridgedown-swap0-game-7100-1000.jsonl"])
-            self.assertFalse(Path(d, "game-7100-1000.jsonl").exists())
+            self.assertEqual(sorted(moved), ["bridgedown-swap0-game-7100-1000.jsonl", "bridgedown-swap0-game-7100-1000.log"])
             self.assertTrue(Path(d, run_batch.CRASHED_DIR, "bridgedown-swap0-game-7100-1000.jsonl").is_file(),
                             "kept, never deleted")
             self.assertTrue(Path(d, "game-7100-1001.jsonl").is_file())
-
+            self.assertEqual(sorted(run_batch.set_aside_dead_bridge(d, 7101, False)),
+                             ["bridgedown-swap0-game-7101-1000.jsonl", "bridgedown-swap0-game-7101-1000.log"])
+            # The replay died the same way: its set-aside names do not collide with the first.
+            write_game(d, "game-7100-2000.jsonl", game_line(7100, False, bridge_down_decisions_a=1,
+                                                            bridge_down_decisions_b=0))
+            Path(d, "game-7100-0.log").write_text("the replay's log\n")
+            self.assertEqual(sorted(run_batch.set_aside_dead_bridge(d, 7100, False)),
+                             ["bridgedown-swap0-game-7100-2000.jsonl", "bridgedown-swap0-game-7100-2000.log"])
+            self.assertEqual(Path(d, run_batch.CRASHED_DIR, "bridgedown-swap0-game-7100-1000.log").read_text(),
+                             "the dead game's log\n")
 
 class TestManifest(unittest.TestCase):
 

@@ -49,6 +49,47 @@ def decision_line(tier, latency, dtype="play", fallback=None):
             "latency_ms": latency, "fallback": fallback}
 
 
+# Game logs in the bridges' words (issue #369). Every attempt of an ask failed in transport (402): one decision lost.
+LOG_402 = """[Seat] [ROUTER] play(main): 2 castable -> asking x...
+[OPENROUTER Seat/smart] HTTP 402: {"error":{"message":"This request requires more credits"}}
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] HTTP 402: {"error":{"message":"This request requires more credits"}}
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] HTTP 402: {"error":{"message":"This request requires more credits"}}
+[Seat] [ROUTER] play: PASS
+"""
+# The model answered with nothing every time: its own decision lost, scored.
+LOG_NON_ANSWER = """[OPENROUTER Seat/smart] non-answer -> treating as bridge-down
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] non-answer -> treating as bridge-down
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] wall-clock timeout after 300000 ms (deadline 300000 ms)
+"""
+# Transport failures the retries recovered: nothing lost (18 of 75 recorded healthy games have such lines).
+LOG_RECOVERED = """[OPENROUTER Seat/smart] HTTP 502: upstream request failed
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] stalled connection (no-headers for 90000 ms) -> retrying instead of waiting
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] replied in 4000 ms
+"""
+# A routing filter's refusal, and a refusal of function calling, at the last attempt: the provider answered.
+LOG_REFUSALS = """[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] HTTP 404: no endpoints
+[OPENROUTER Seat/smart] [ROUTING-FILTER] HTTP 404 under fp8: no endpoint the filter allows took the request
+[Seat] [BRIDGE Seat/fast] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/fast] HTTP 404: No endpoints found that support tool use.
+[OPENROUTER Seat/fast] [NATIVE-TOOLS->TEXT] the provider refused function calling for m
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] error: java.net.ConnectException: Connection refused
+[Seat] [BRIDGE Seat/fast] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[JEV Seat/fast] [JEV-NO-ANSWER] no response within 4000 ms (no-headers)
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] error: java.net.http.HttpTimeoutException: request timed out
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] error: java.lang.IllegalStateException: Not a JSON Object
+"""
+
+
 def write_jsonl(d, name, lines):
     with open(Path(d) / name, "w") as f:
         for ln in lines:
@@ -524,7 +565,8 @@ def test_strict_score_counts_every_started_game():
 def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
     """Issue #369: a provider answering 402 to every call left the seat passing; the game was scored
     decisive. The game line's bridge_down_decisions_a/_b make it invalid; a line from before the field
-    is judged by its "(bridge-down)" fallback rows; a game with no lost decision is unchanged."""
+    is judged by the transport failures in its paired log, never by its (bridge-down) rows; a game with
+    no lost decision is unchanged."""
     with tempfile.TemporaryDirectory() as d:
         dead = dict(game_line(1, False, "B", ctrl_b="ai"), bridge_down_decisions_a=21, bridge_down_decisions_b=0,
                     circuit_breaker_trips_a=1, circuit_breaker_trips_b=0)
@@ -536,7 +578,10 @@ def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
         write_jsonl(d, "game-1-1001.jsonl", [decision_line("smart", 900), healthy])
         write_jsonl(d, "game-2-1000.jsonl", [decision_line("auto", 0, fallback="play(bridge-down)->PASS"),
                                              legacy_dead])
-        write_jsonl(d, "game-2-1001.jsonl", [decision_line("auto", 0, fallback="play(unparsed)->PASS"), legacy_ok])
+        Path(d, "game-2-0.log").write_text(LOG_402)
+        # A model that answered with nothing: (bridge-down) rows, but no transport failure in its log.
+        write_jsonl(d, "game-2-1001.jsonl", [decision_line("auto", 0, fallback="play(bridge-down)->PASS"), legacy_ok])
+        Path(d, "game-2-1.log").write_text(LOG_NON_ANSWER)
         s = aggregate.build_summary(Path(d), 200, 1)
         g = s["games"]
         check("a bridge-down game is not decisive", g["decisive"] == 2, str(g))
@@ -547,15 +592,31 @@ def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
         check("the warning names the game", any("dead model bridge" in w for w in s["warnings"]), str(s["warnings"]))
         check("the recorded winner is kept on the line", dead["winner"] == "B")
         check("a healthy line counts nothing", aggregate.bridge_down_decisions(healthy) == 0)
-        check("a line carrying the field is judged by it", aggregate.bridge_down_decisions(
-            dead, [decision_line("auto", 0, fallback="play(bridge-down)->PASS")]) == 21)
+        check("a line carrying the field is judged by it", aggregate.bridge_down_decisions(dead, d) == 21)
         check("the strict score leaves the dead games out of started", arm["started"] == 2, str(arm))
 
 
+def test_an_old_line_is_judged_by_the_transport_failures_in_its_log():
+    """A lost decision is an ask whose LAST attempt failed in transport: an HTTP error that is not a routing or
+    function-calling refusal, an IO error, a connection that sent nothing. Recovered failures and the model's own
+    non-answers and timeouts count nothing."""
+    check("402 on every attempt is one lost decision", aggregate.log_bridge_down(LOG_402) == 1)
+    check("twice that is two", aggregate.log_bridge_down(LOG_402 + LOG_402) == 2)
+    check("non-answers and a timeout are the model's", aggregate.log_bridge_down(LOG_NON_ANSWER) == 0)
+    check("recovered failures lose nothing", aggregate.log_bridge_down(LOG_RECOVERED) == 0)
+    check("refusals are answers; an IO error and a silent connection are not",
+          aggregate.log_bridge_down(LOG_REFUSALS) == 2, str(aggregate.log_bridge_down(LOG_REFUSALS)))
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-5-1000.jsonl", [decision_line("auto", 0, fallback="play(bridge-down)->PASS"),
+                                             game_line(5, False, "A")])
+        check("an old line with no log counts nothing", aggregate.bridge_down_decisions(game_line(5, False, "A"), d) == 0)
+        Path(d, "game-5-0.log").write_text(LOG_402)
+        check("its paired log is read", aggregate.bridge_down_decisions(game_line(5, False, "A"), d) == 1)
+        check("the other seat order's log is not", aggregate.bridge_down_decisions(game_line(5, True, "A"), d) == 0)
+
+
 def test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out():
-    """Identity B's count counts too; a seed whose swap twin lost decisions to the bridge is not a usable pair; a
-    legacy line whose provider refused function calling is not judged by its (bridge-down) rows; two game lines in
-    one file are said, not judged by rows."""
+    """Identity B's count counts too; a seed whose swap twin lost decisions to the bridge is not a usable pair."""
     with tempfile.TemporaryDirectory() as d:
         b_dead = dict(game_line(1, False, "A", ctrl_b="ai"), bridge_down_decisions_a=0, bridge_down_decisions_b=2)
         twin = dict(game_line(1, True, "A", ctrl_b="ai"), bridge_down_decisions_a=0, bridge_down_decisions_b=0)
@@ -570,14 +631,21 @@ def test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out():
         p = s["paired"]
         check("the dead twin's seed is excluded as non-decisive",
               p.get("n_pairs_excluded_nondecisive") == 1 and p.get("n_pairs_used") == 1, str(p))
-    downgraded = dict(game_line(3, False, "A"), native_tools_downgraded="Identity-A/smart")
-    rows = [decision_line("auto", 0, fallback="play(bridge-down)->PASS")]
-    check("a tool refusal's lost ask is not a dead bridge", aggregate.bridge_down_decisions(downgraded, rows) == 0)
-    check("a legacy line is judged by its rows", aggregate.bridge_down_decisions(game_line(3, False, "A"), rows) == 1)
+
+
+def test_the_gates_are_over_the_scored_games():
+    """A dead-bridge game's fallbacks are the bridge's, not the harness's choices: the fallback and
+    harness-decided gates read the games a score is taken over."""
     with tempfile.TemporaryDirectory() as d:
-        write_jsonl(d, "game-4-1000.jsonl", rows + [game_line(4, False, "A"), game_line(4, True, "B")])
-        w = aggregate.parse_dir_full(Path(d))["warnings"]
-        check("two legacy game lines in one file are said", any("2 game lines in one file" in x for x in w), str(w))
+        dead = dict(game_line(1, False, "B", ctrl_b="ai"), bridge_down_decisions_a=30, bridge_down_decisions_b=0)
+        ok = dict(game_line(1, True, "A", ctrl_b="ai"), bridge_down_decisions_a=0, bridge_down_decisions_b=0)
+        seat = dict(seat="mono-red")       # the llm identity's deck name, so the gate attributes the rows
+        write_jsonl(d, "game-1-1000.jsonl", [dict(decision_line("auto", 0, fallback="play(bridge-down)->PASS"),
+                                                  **seat)] * 30 + [dead])
+        write_jsonl(d, "game-1-1001.jsonl", [dict(decision_line("smart", 900), **seat)] * 30 + [ok])
+        fg = aggregate.build_summary(Path(d), 200, 1)["fallback_gate"]
+        check("the dead game's fallbacks do not fail the gate", fg["failed"] is False, str(fg))
+        check("the gate read the scored game's rows", fg.get("n_llm_decisions") == 30, str(fg))
 
 
 def main():
@@ -593,6 +661,8 @@ def main():
     test_strict_score_counts_every_started_game()
     test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
     test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out()
+    test_an_old_line_is_judged_by_the_transport_failures_in_its_log()
+    test_the_gates_are_over_the_scored_games()
     test_mixed_provenance()
     test_provenance_legacy_unknown()
     test_model_identity_attributable()

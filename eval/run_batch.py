@@ -538,36 +538,24 @@ def has_game_line(out_dir, seed, swap, expect=None):
     dead model bridge (issue #369): it is set aside and played again."""
     for rec in iter_game_lines(out_dir, seed):
         if rec.get("seed") == seed and bool(rec.get("swap", False)) == swap:
-            if game_line_matches(rec, expect) and not bridge_down_decisions(rec):
+            if game_line_matches(rec, expect) and not bridge_down_decisions(rec, out_dir):
                 return True
     return False
 
 
 def set_aside_dead_bridge(out_dir, seed, swap):
-    """Move every game file of (seed, swap) whose game line lost a decision to a dead model bridge, and the combo's
-    log, under crashed/ (prefixed bridgedown-), so the replay's game is the one scored while the old one is kept and
-    still priced. Returns the moved names; [] when the combo has no such game."""
+    """Move every game file of (seed, swap) whose game lost a decision to a dead model bridge
+    (aggregate.bridge_down_decisions: its count, or its log's transport failures on an older line), and the combo's
+    log, under crashed/ (bridgedown-, named after the game file, so a second dead replay does not overwrite the
+    first), so the replay is the game scored while the old one is kept and still priced. Returns the moved names."""
     out_dir = Path(out_dir)
-    dead = []
+    log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
+    tag = "bridgedown-swap%d-" % (1 if swap else 0)
     for path in sorted(out_dir.glob("game-%d-*.jsonl" % seed)):
-        for rec in iter_game_lines_of(path):
-            if bool(rec.get("swap", False)) == swap and bridge_down_decisions(rec):
-                dead.append(path)
-                break
-    if not dead:
-        return []
-    dest = out_dir / CRASHED_DIR
-    dest.mkdir(exist_ok=True)
-    man = out_dir / "batch-manifest.json"
-    if man.is_file() and not (dest / man.name).exists():
-        shutil.copy(str(man), str(dest / man.name))
-    moved = []
-    for p in dead + [out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))]:
-        if p.is_file():
-            target = dest / ("bridgedown-swap%d-%s" % (1 if swap else 0, p.name))
-            p.rename(target)
-            moved.append(target.name)
-    return moved
+        if any(bool(rec.get("swap", False)) == swap and bridge_down_decisions(rec, out_dir)
+               for rec in iter_game_lines_of(path)):
+            return _move_to_crashed(out_dir, [(path, tag + path.name), (log_path, tag + path.stem + ".log")])
+    return []
 
 
 def plan_combos(out_dir, combos, expect=None):
@@ -775,22 +763,27 @@ def play_with_retries(play, seed, swap, out_dir, retries, over_budget):
 
 
 def set_aside(out_dir, seed, swap, attempt):
-    """Move one crashed attempt's log and game file under crashed/, named by attempt. Returns the moved
-    names. The batch manifest is copied there once, so cost_report can price the unfinished game."""
+    """Move one crashed attempt's log and game file under crashed/, named by attempt. Returns the moved names."""
     out_dir = Path(out_dir)
-    dest = out_dir / CRASHED_DIR
+    log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
+    name = attempt_jsonl(log_path)
+    tag = "attempt%d-swap%d-" % (attempt, 1 if swap else 0)
+    return _move_to_crashed(out_dir, [(p, tag + p.name) for p in ([out_dir / name] if name else []) + [log_path]])
+
+
+def _move_to_crashed(out_dir, moves):
+    """Move each (path, new name) that exists under crashed/; the batch manifest is copied there once, so cost_report
+    can price what was set aside. Returns the moved names."""
+    dest = Path(out_dir) / CRASHED_DIR
     dest.mkdir(exist_ok=True)
-    man = out_dir / "batch-manifest.json"
+    man = Path(out_dir) / "batch-manifest.json"
     if man.is_file() and not (dest / man.name).exists():
         shutil.copy(str(man), str(dest / man.name))
-    log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
     moved = []
-    name = attempt_jsonl(log_path)
-    for p in ([out_dir / name] if name else []) + [log_path]:
+    for p, name in moves:
         if p.is_file():
-            target = dest / ("attempt%d-swap%d-%s" % (attempt, 1 if swap else 0, p.name))
-            p.rename(target)
-            moved.append(target.name)
+            p.rename(dest / name)
+            moved.append(name)
     return moved
 
 
