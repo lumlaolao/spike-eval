@@ -2,8 +2,7 @@
 
 Idea 8 of [novel-ideas](2026-11-05-novel-ideas.md): does STR-AI against one Forge AI profile equal STR-AI against
 another? The free method is [seed-control-variate](2026-11-05-seed-control-variate.md)'s (`--controller-a ai
---controller-b ai`, a game is a fixed function of its seed). Read-only code and file reading; no JVM, no game, no
-model call.
+--controller-b ai`, a game is a fixed function of its seed).
 
 ## Question
 
@@ -11,7 +10,8 @@ Do Forge's AI profiles (`Cautious`, `Default`, `Experimental`, `Reckless` under
 `$FORGE_HOME/forge-gui/res/ai/*.ai`) change outcomes enough that the win rate against one is not the win rate
 against another? Planned measure: Forge AI (default) in seat A against each profile in seat B on one deck mirror and
 one non-mirror pair, 40 seeds each (1100-1139; outside every reserved block in `eval/seed_policy.py`), plus the
-random seat against each profile as a weak-pilot floor.
+random seat against each profile as a floor for the A seat (expected near 0: the random seat won 0 of 39 decided
+games against Forge's AI in the seed note).
 
 ## Answer so far
 
@@ -27,10 +27,9 @@ at a design (below). Two findings from the read, both bearing on STR-AI:
   `AiProfileUtil.getAIProp` finds nothing and returns the compiled default of each `AiProps` key. Those differ from
   `Default.ai` on 25 of its 121 keys (e.g. `MULLIGAN_THRESHOLD` 5 vs 4, `CHANCE_TO_ATTACK_INTO_TRADE` 40 vs 0,
   `USE_BERSERK_AGGRESSIVELY` false vs true); from `Cautious.ai` on 43, `Experimental.ai` 51, `Reckless.ai` 58
-  (key-by-key parse of `AiProps.java` against each file; the parse covers the 122 enum keys, and a scripted
-  comparison, not a game, is the evidence). So "the Forge AI" in STR-AI is a fifth, unnamed configuration, and even
-  the default profile would be a different opponent. `AiProps` (not `Default.ai`) is the one the panels in
-  `eval/suites/panels-v1.json` were scored against.
+  (key-by-key over the 122 `AiProps` keys; a scripted comparison, no game). So "the Forge AI" in STR-AI is a
+  fifth, unnamed configuration, and even the default profile would be a different opponent. Every game played through this harness, the panels in
+  `eval/suites/panels-v1.json` included, met the compiled defaults: no profile is set anywhere in `forge-overlay`.
 
 Floor: with no games there is no rate and no floor to quote. The profiles do differ on the aggression, trade, mulligan
 and combat-trick keys, so a spread is plausible; its size is undetermined.
@@ -43,15 +42,16 @@ grep -rn "AI_PROFILE\|aiProfile\|AiProfile" eval/run_batch.py forge-overlay   # 
 grep -rn "AiProfile" $FORGE_HOME/forge-ai $FORGE_HOME/forge-gui/src/main      # LobbyPlayerAi, GamePlayerUtil
 ```
 
-Forge checkout `$FORGE_HOME` at `34a8662b79` (it carries uncommitted changes to three files; none touches profiles).
+Forge checkout `$FORGE_HOME` at `34a8662b79` (four modified source files, `ComputerUtilMana`,
+`GameCopier`, `Player` and `MagicStack`; none touches profiles).
 No run directory exists under `runs/profiles/`.
 
 ## Design to make it measurable (needs an overlay change; not done here)
 
 1. In `LlmSpikeGui.seatFor`, read `AI_PROFILE_A` / `AI_PROFILE_B` for an `ai` seat and call
-   `LobbyPlayerAi.setAiProfile`; refuse a name not in `AiProfileUtil.getProfilesDisplayList()`. Check that
-   `FModel` has run `loadAllProfiles` in the headless path, or an unknown profile silently falls back to compiled
-   defaults again.
+   `LobbyPlayerAi.setAiProfile`; refuse a name not in `AiProfileUtil.getProfilesDisplayList()`. The profiles are
+   loaded: `LlmSpikeHeadless` calls `FModel.initialize`, which runs `AiProfileUtil.loadAllProfiles` (`FModel.java`
+   "Preload AI profiles"); an unknown name would still fall back silently to the compiled defaults, hence the refusal.
 2. Add `--ai-profile-a/--ai-profile-b` to `run_batch.py` as condition keys, stamp the profile on the game line, and
    treat an empty value as the current compiled-default arm (kept as the baseline so old results stay comparable).
 3. Update ARCHITECTURE and the version stamp, and record an acceptance run (CLAUDE.md "Keep the documents true").
@@ -72,7 +72,6 @@ spread, not a measurement of a small one.
 ## Not determined
 
 - Any win rate, median turn count or difference between profiles, mirror or non-mirror, and the random-seat floor.
-- Whether `FModel.loadAllProfiles` has run in the headless launch (needed for design step 1).
 - How far the compiled-default AI is from `Default.ai` in play, not only in keys.
 - The seed-pair correlation rho between profiles, which sets the real sample size.
 
