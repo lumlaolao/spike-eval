@@ -399,8 +399,10 @@ public final class LlmSpikeGui {
      *  Epoch 83 (2026-11-06, #367): the payment check also tries the "tap N untapped X you control" mana abilities the
      *  engine's greedy test skipped (seatCanPay, tapTypeStep), so a spell Heritage Druid's mana pays (Craterhoof with
      *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
+     *  Epoch 84 (2026-11-06, #380): "X target creatures" with X announced as 0 takes no target; one was set, and the
+     *  stack refused the paid play (Rot-Curse Rakshasa's renew).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-83";
+    static final String HARNESS_EPOCH = "harness-epoch-84";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -460,7 +462,8 @@ public final class LlmSpikeGui {
 
     // ==================== FORK ROLLOUT FORCER (Milestone D rollout — additive, inert) ====================
     // Everything in this fenced block is a no-op in every normal run: FORK_FORCER is null unless
-    // LlmSpikeFork's rollout mode installs one, and forkForce() returns null immediately in that case.
+    // LlmSpikeFork's rollout mode, or the keyword sweep (KeywordSurfaceSweepTest.chooseFromMenu), installs
+    // one, and forkForce() returns null immediately in that case.
     // The seed-42 floor/floor canary is the regression gate proving inertness.
 
     /** Fork-mode decision forcer (LlmSpikeFork rollout, EVAL-DESIGN.md §3.1(b)). Consulted by exactly
@@ -503,6 +506,7 @@ public final class LlmSpikeGui {
                 if (!sa.usesTargeting()) continue;
                 if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(activator);
+                if (PlayerControllerLLM.noTargetAtX(root, sa)) continue;
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) continue;
                 List<forge.game.GameObject> cands = PlayerControllerLLM.targetCandidates(sa, tr);
@@ -4918,6 +4922,13 @@ public final class LlmSpikeGui {
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
         private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false, false); }
 
+        /** Whether {@code sa}, part of {@code root}, takes no target at the X announced: "X target creatures" at X=0
+         *  (Rot-Curse Rakshasa's renew; a target set anyway made the stack refuse the paid play, issue #380). An
+         *  unannounced X is not read, and a fixed count of targets (Banefire's one) is kept at any X. */
+        static boolean noTargetAtX(SpellAbility root, SpellAbility sa) {
+            return root.getXManaCostPaid() != null && sa.getMaxTargets() < 1;
+        }
+
         /** The `simulate` call of a target choice: the play ({@code root}) previewed with {@code sa} aimed at the
          *  numbered candidate (runs/loop/g03 asked for it twice while aiming Wasteland). Null where the seat has no
          *  native preview. */
@@ -4970,6 +4981,7 @@ public final class LlmSpikeGui {
                         if (dt <= 0) continue;
                     }
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
+                    if (noTargetAtX(root, sa)) continue;
                     TargetRestrictions tr = sa.getTargetRestrictions();
                     if (tr == null) continue;
                     List<forge.game.GameObject> cands = targetCandidates(sa, tr);
@@ -5352,6 +5364,10 @@ public final class LlmSpikeGui {
          *  other cost part to the engine's own decision. The cost is read AFTER optional keyword costs
          *  are added, so a sacrifice that arrives that way (Casualty) is covered too. Only an ability
          *  that defers targeting to another player stays on the inherited path.
+         *  It returns true on every branch, also when nothing was played, as Forge's AI controller does. The
+         *  engine's priority loop asks the seat again either way; true restarts the round of passes from the seat
+         *  (PhaseHandler), so false would be an engine-facing change. Whether the play was made is read from
+         *  {@link #playsNotMade()} and the game, never from this value (issue #380; docs/STANDARDS.md section 5).
          *  RE-DIFF against {@code handlePlayingSpellAbility} on every engine re-pin (ENGINE-PIN.md). */
         @Override
         public boolean playChosenSpellAbility(SpellAbility sa) {
@@ -5496,10 +5512,11 @@ public final class LlmSpikeGui {
         /** #105: a MANA ability's tap-type cost (Heritage Druid: "Tap three untapped Elves you control")
          *  is paid inside {@code ComputerUtilMana} with a hard-coded {@code AiCostDecision}, so Forge's AI
          *  chose which Elves to tap. When the engine's own test payment of this cost plans to use such an
-         *  ability, the seat activates it first through {@link LlmCostDecision}, keeping out the other
-         *  sources that plan taps; the engine then pays from the floating mana, which it always spends
-         *  first. A source that also chooses a color stays the engine's, said as a fallback, as is any
-         *  such source the engine's real payment uses without the seat having activated it. A mana
+         *  ability, or, when that plan is null, the first activation {@code tapTypeStep} finds (#367), the
+         *  seat activates it first through {@link LlmCostDecision}, keeping out the other sources that
+         *  plan taps; the engine then pays from the floating mana, which it always spends first. A source
+         *  that also chooses a color stays the engine's, said as a fallback, as is any such source the
+         *  engine's real payment uses without the seat having activated it. A mana
          *  ability's own mana cost (a filter paid mid-payment) is left alone: a test payment there
          *  would clear what the outer payment has set aside. */
         @Override
@@ -5780,8 +5797,9 @@ public final class LlmSpikeGui {
             return String.join(", ", n);
         }
 
-        /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses; adds to
-         *  {@code said} each source whose engine activation it has already reported. */
+        /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses, or, when that plan is
+         *  null, the first activation {@code tapTypeStep} finds (#367); adds to {@code said} each source whose
+         *  engine activation it has already reported. */
         private void prepayTapTypeManaAbilities(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect, Set<Card> said) {
             final Player me = getPlayer();
             // Without such a source on the battlefield nothing runs, so every other payment is unchanged.
