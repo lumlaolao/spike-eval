@@ -152,8 +152,8 @@ def already_done(out, k, suite_sha, cap_ms=None):
     again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones)."""
     if cap_ms is not None and ((ps.record_of(Path(out)) or {}).get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) < cap_ms:
         return False
-    seeds = {r.get("seed") for r in pb.read_results(out)
-             if r.get("suite_sha256") == suite_sha and not r.get("routing_refusals")}
+    seeds = {r.get("seed") for r in ps.with_log_counts(pb.read_results(out), out)
+             if r.get("suite_sha256") == suite_sha and not ps.lost_decisions(r)}
     return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
 
 
@@ -465,13 +465,17 @@ def main(argv=None):
                     print("[budget] not started: %s ($%.2f at the dearest endpoint)"
                           % (pid, spent(out_root, bound=True)), flush=True)
                     continue
-                # A row with a decision lost to a routing filter is no result (puzzle_score refuses it): say so, go on.
+                # A row with a decision lost to a routing filter or a dead bridge is no result (puzzle_score refuses
+                # it): say so, go on.
                 refused = [r for r in rows if r.get("routing_refusals")]
-                solved = sum(1 for r in rows if not r.get("routing_refusals") and ps.attempt_success(r)[0])
-                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s"
+                dead = [r for r in rows if r.get("bridge_down_decisions")]
+                solved = sum(1 for r in rows if not ps.lost_decisions(r) and ps.attempt_success(r)[0])
+                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s%s"
                       % (pid, rc, len(rows), solved, spent(out_root),
                          "  [ROUTING-FILTER] %d attempt(s) lost decisions to the routing filter: replay with --resume"
-                         % len(refused) if refused else ""), flush=True)
+                         % len(refused) if refused else "",
+                         "  [BRIDGE-DOWN] %d attempt(s) lost decisions to a dead model bridge: replay with --resume"
+                         % len(dead) if dead else ""), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
         run_file(finished=False, stopped=repr(e))
         raise

@@ -1127,6 +1127,8 @@ if r.get("harness_epoch") != "harness-epoch-84": p.append("harness_epoch=%r (mov
 for k in ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups"):
     if not isinstance(r.get(k), int): p.append("%s=%r" % (k, r.get(k)))
 if isinstance(r.get("model_calls"), int) and r["model_calls"] < 1: p.append("model_calls=0 for a played line")
+# Issue #378: the decisions a dead bridge lost, which puzzle_score.py refuses; a written line has a live bridge.
+if r.get("bridge_down_decisions") != 0: p.append("bridge_down_decisions=%r for a bridge that answered" % r.get("bridge_down_decisions"))
 print("; ".join(p) or "ok")
 PY
 )

@@ -27,7 +27,8 @@ Usage:
 Exit codes: 0 clean; 1 a hard invariant failed (build_report's
 hard_invariants, named in docs/STANDARDS.md section 4: tier=ai count > 0, a
 silent-drop gap > 0 anywhere, a crashed game, or a decision lost to a dead
-model bridge, aggregate.bridge_down_decisions, issue #369); 2 usage/input error (not a directory, or no
+model bridge, aggregate.bridge_down_decisions, issue #369, or a puzzle result row's
+bridge_down_decisions, issue #378); 2 usage/input error (not a directory, or no
 game-*.jsonl file found in any given directory).
 """
 
@@ -294,9 +295,25 @@ def model_consulted(d):
 
 # ------------------------------------------------------------- summarizing
 
-def summarize(pairs, label):
+def puzzle_rows(dir_path):
+    """The puzzle result rows (LlmSpikePuzzle, puzzle-results.jsonl) in dir_path, each tagged with its file; a puzzle
+    attempt has no game line, so its row carries what the game line would (bridge_down_decisions, issue #378)."""
+    path = Path(dir_path) / "puzzle-results.jsonl"
+    rows = []
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                rows.append(dict(row, _file=str(path)))
+    return rows
+
+
+def summarize(pairs, label, puzzles=()):
     """Build the full metrics dict for one directory's (already-paired) list
-    of game dicts, as returned by pair_dir()."""
+    of game dicts, as returned by pair_dir(), and its puzzle result rows (puzzle_rows())."""
     decisions = [d for p in pairs for d in p["decisions"]]
     n_games = len(pairs)
     n_skipped = sum(p["n_skipped"] for p in pairs)
@@ -422,6 +439,9 @@ def summarize(pairs, label):
             n = bridge_down_decisions(dict(p["games"][-1], _file=Path(p["jsonl"]).name), Path(p["jsonl"]).parent)
             if n:
                 bridge_down[str(p["jsonl"])] = n
+    for r in puzzles:   # a puzzle attempt's own count (issue #378)
+        if r.get("bridge_down_decisions"):
+            bridge_down["%s %s seed %s" % (r["_file"], r.get("id"), r.get("seed"))] = r["bridge_down_decisions"]
 
     return {
         "label": label,
@@ -462,17 +482,19 @@ def build_report(dirs):
         uniq.append(d)
 
     per_dir = {}
-    all_pairs = []
+    all_pairs, all_puzzles = [], []
     for d in uniq:
         pairs = pair_dir(d)
+        puzzles = puzzle_rows(d)
+        all_puzzles.extend(puzzles)
         # tag each decision with its source jsonl for forced-pick examples
         for p in pairs:
             for dec in p["decisions"]:
                 dec["_srcfile"] = p["jsonl"]
-        per_dir[str(d)] = summarize(pairs, str(d))
+        per_dir[str(d)] = summarize(pairs, str(d), puzzles)
         all_pairs.extend(pairs)
 
-    combined = summarize(all_pairs, "combined")
+    combined = summarize(all_pairs, "combined", all_puzzles)
     ai_ok = combined["ai_tier_count"] == 0
     drop_ok = combined["silent_drop_total"] == 0
     crash_ok = combined["game_crash_count"] == 0

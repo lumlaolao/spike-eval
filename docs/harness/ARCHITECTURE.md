@@ -957,7 +957,8 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
   - prompt, completion, cached and cache-write tokens;
   - its price, from `eval/cost_report.py` with `eval/pricing/prices.json`.
 - A puzzle attempt's result row carries what a model seat spent (`PlayerControllerLLM.budget()`, harness-epoch-69):
-  `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms`, `lookups`. Tokens come from the bridge's bill
+  `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms`, `lookups`, and `bridge_down_decisions` (issue
+  #378, below). Tokens come from the bridge's bill
   (`LLMBridge.getBilledPromptTokens()`/`getBilledCompletionTokens()`), read as a difference around each ask:
   `OpenRouterBridge` bills every send that came back, a truncation retry's first send included. A bridge that keeps no
   bill returns -1 and the seat adds its last usage only when the ask answered. A bridge that wraps another
@@ -1077,6 +1078,16 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     played on a dead bridge is status `bridge-down` (a problem in the batch summary, not retried in the run, where an
     outage would repeat); a later resume under its condition sets it aside under `crashed/`
     (`bridgedown-swap<n>-<game file>`, still priced) and plays the seed again.
+  - A puzzle attempt (issue #378) has no game line: its result row carries the solver seat's own count
+    (`bridge_down_decisions`, from `PlayerControllerLLM.budget()`, 0 when nothing was lost; only the solver is
+    counted, since `puzzle_solve.py` pins the opponent to Forge's AI, `CONTROLLER_B=ai`). `puzzle_score.py` refuses a
+    row with any (`bridge_down`, summed with `routing_refusals` in `lost_decisions`), `puzzle_solve.py` and
+    `puzzle_watch.py` flag it `BRIDGE-DOWN`, `--resume` sets the puzzle's rows aside and plays it again, and
+    `defect_analyzer.py` reads the rows of a directory's `puzzle-results.jsonl` into `bridge_down_total`.
+  - A puzzle row from before the field is judged by its puzzle directory's `jvm.log` (`with_log_counts`, the same
+    `aggregate.log_bridge_down` reader as an old game line). That log holds every attempt of the puzzle, so a dead
+    bridge in any attempt refuses them all, and `already_done` plays the puzzle again; `set_aside_partial` renames
+    the log with the rows, so the two stay paired.
   - *Why any, not a share:* the 2026-11-05 block that ran out of credits (`runs/cv/luna-vs-ai`, kept by the issue's
     hunter) scored 20 decisive games; on it `python3 eval/aggregate.py runs/cv/luna-vs-ai` now reads 2 decisive and 18
     invalid, and `python3 eval/defect_analyzer.py runs/cv/luna-vs-ai` `bridge_down_total=355` (its game lines predate
