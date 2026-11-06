@@ -71,7 +71,8 @@ attempts.
 
 Four of the 30 unwinnable positions are the end positions (the turn is over); without them the model agrees on 27 of
 27 and the baseline on 26. The 30 are the search's own count (`step_regret.py --summary`: 72 searches, 1 proven,
-30 unwinnable, 41 not found); a refined search at 2400 replaces the 600 one at its position. C seed 1's K=0 and K=1
+30 unwinnable, 41 not found), which counts every search, the 8 refinements at 2400 included. Per position (64,
+a refined position counted once by its 2400 verdict): 1 proven, 30 unwinnable, 33 not found. C seed 1's K=0 and K=1
 were never searched (the scan stopped at the proven K=4); the model decides them too.
 
 Internal check: along each recorded attempt the model's shortfall (opponent's life minus the most damage still

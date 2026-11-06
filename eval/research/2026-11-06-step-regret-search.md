@@ -54,5 +54,7 @@ assuming PASS loses). C seed 3 has A's menu; its state was not recomputed.
 
 - Whether the handover is exact inside multi-step hooks (it switches inside row K's write; single-choice decisions
   and plays are covered by `StepRegretTest`).
-- An unforced search after K is not checked against the recording (only forced probes are).
+- The 72 searches ran on `replay-bridge-v2`, before each rollout checked its first decision after K against the
+  recording's row K+1 (`replay-bridge-v3`); they were not re-run. The board model's 31 of 31 agreement is the only
+  cross-check of them.
 - Any board family other than splice.

@@ -135,8 +135,9 @@ The whole call took 30.1 s wall for 2 JVMs and 6 attempts, cost $0.000, 48 reque
 - A rollout takes a median 0.70 s; a proven search averages 75 s and a `not_found` one 211 s (166 searches in
   `runs/puzzles`, from the main-branch note).
 - Four failed splice attempts (14 to 17 model decisions, budget 600 rollouts): 72 searches in 364 minutes
-  (the source says "about 6 CPU-hours"; it is wall time with 2 JVMs), roughly 5 minutes a search. Counted once
-  each (`step_regret.py --summary`): 1 proven, 30 unwinnable (all exhausted) and 41 not found (41/72 = 57%).
+  (the source says "about 6 CPU-hours"; it is wall time with 2 JVMs), roughly 5 minutes a search. Counted per
+  search (`step_regret.py --summary`): 1 proven, 30 unwinnable (all exhausted) and 41 not found (41/72 = 57%); per
+  position (64, a refined one counted once) 33 of 64 (52%) stay not found.
   Positions more than about 7 decisions from the end were all `not_found`. No attempt got an exact regret step; one
   got a bracket (K 4 to 10).
 
