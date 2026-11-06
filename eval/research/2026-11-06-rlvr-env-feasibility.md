@@ -111,9 +111,9 @@ The whole call took 30.1 s wall for 2 JVMs and 6 attempts, cost $0.000, 48 reque
   policy (PP04 `SpellEffect`, PP20 `LifeReachedZero`), so they are short; a solved attempt is longer.
 - **Existing acceptance games** (`runs/harness-acceptance/accept-b3d31f8/part1/answertool`, `part3/faketool`,
   `part3/faithful`): 20 to 30 model decisions in 24 to 61 requests, bridge latency 18 to 27 ms median. A 108-turn game
-  has 1558 decision rows of which only 20 to 30 reach the model, so its 49 to 70 s (`Match Duration`) is the engine, not the transport. A
-  real model decision costs seconds, so the loopback is 2 to 3 orders of magnitude below the policy it serves. The
-  one real-game figure on file is "a finished game is 14 to 34 calls"
+  has 1558 decision rows of which only 20 to 30 reach the model, so its 49 to 70 s (`Match Duration`) is the engine,
+  not the transport. A real model decision costs seconds, so the loopback is 2 to 3 orders of magnitude below the
+  policy it serves. The one real-game figure on file is "a finished game is 14 to 34 calls"
   ([thinking-vs-sampling](2026-11-05-thinking-vs-sampling.md)).
 
 ## 3. Reward signals today, and their cost
