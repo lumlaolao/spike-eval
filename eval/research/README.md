@@ -36,6 +36,7 @@ experiment in progress), **negative** (measured; does not help as proposed), **o
 | 2026-11-06 | [loss-awareness-regex-fails](2026-11-06-loss-awareness-regex-fails.md) | After the regret step, do seats say they can no longer win? | **negative (method)**: a reply-text pattern shows win claims as often in lost positions as in winnable ones (drain 19.7% vs 20.7%), but a sample check shows its "concede" matches are mostly local rules statements; measuring it needs a stated belief (a forecast field) scored against the board model |
 | 2026-11-06 | [ai-profile-spread](2026-11-06-ai-profile-spread.md) | Does STR-AI change with the Forge AI profile | not measured: no way to select a profile; the harness AI is the compiled `AiProps` defaults, not `Default.ai` (25 keys differ) |
 | 2026-11-06 | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) | Can the harness be an RL env with engine rewards | terminal rewards yes, no JVM change (loopback endpoint as `step`; legal set is prompt text, parsed; tens of ms per call on a stub, epoch-76 build); process rewards are offline labels, from unmerged work (41 of 72 searches `not_found`) |
+| 2026-11-06 | [contrast-sets](2026-11-06-contrast-sets.md) | Can splice puzzles come in contrast pairs (one visible detail, a different winning line) | yes, from a card swap only: 58 single-detail pairs trap one way (0 two-way; a life, Mountain, Alchemist or added card alone never contrasts, the model is monotone); 36 trap both ways with the life moved too; 10 pairs engine-checked (own lines 20/20 solve, cross lines 15/15 fail); zero-model floors (random x20, first, ai) solve 0 of 20 boards, pair score 0 of 10; no model run |
 
 ## Ideas
 
@@ -53,7 +54,7 @@ From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-
 | 8 | Robustness across Forge AI profiles, best of three | open; blocked on an overlay switch (design in the note) | [ai-profile-spread](2026-11-06-ai-profile-spread.md) |
 | 9 | MCTS with an LLM prior as a measured arm | open | |
 | 10 | Exportable RLVR environment with engine process rewards | open; terminal-reward env feasible with a Python adapter (stub policy, epoch-76 build); process rewards offline, unmerged inputs | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) |
-| E1-E8 | Survey ideas (error notebook, compute-matched lookahead, world-model fidelity, contrast sets, ...) | E5 **adopted** (#359); rest open | [survey](2026-11-05-agent-compute-and-feedback-survey.md) |
+| E1-E8 | Survey ideas (error notebook, compute-matched lookahead, world-model fidelity, contrast sets, ...) | E5 **adopted** (#359) for rules; E5 for play (splice contrast pairs) built, no model run, **open**; rest open | [survey](2026-11-05-agent-compute-and-feedback-survey.md), [contrast-sets](2026-11-06-contrast-sets.md) |
 
 ## Techniques
 
