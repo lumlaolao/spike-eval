@@ -41,6 +41,16 @@ class LineCompareTest(unittest.TestCase):
         self.assertAlmostEqual(lc.sign_test(8, 0), 2 / 256.0)       # 0.0078: eight discordant pairs, all one way
         self.assertAlmostEqual(lc.sign_test(6, 1), 16 / 128.0)
 
+    def test_a_capped_game_is_counted_from_its_capped_field(self):
+        # #250: a capped game line carries "capped": true; its win_condition is the engine's (a raw Draw).
+        with tempfile.TemporaryDirectory() as d:
+            for name, capped in (("game-1-1.jsonl", True), ("game-2-1.jsonl", False)):
+                with open(os.path.join(d, name), "w") as f:
+                    f.write(json.dumps({"t": "game", "seed": int(name[5]), "swap": False, "winner": "invalid" if capped else "A",
+                                        "turns": 9, "win_condition": "Draw", "capped": capped, "context_sha": "x"}) + "\n")
+            a = lc.arm(d)
+        self.assertEqual((a["games"], a["capped"]), (2, 1))
+
     def test_option_labels_are_reduced_to_the_card(self):
         self.assertEqual(lc.name_of(FLASHBACK), "Cabal Therapy")
         self.assertEqual(lc.name_of("CAST Ajani, Nacatl Pariah 1/2 @3 1{W} [Ajani - Creature 1 / 2]"), "Ajani, Nacatl Pariah")
