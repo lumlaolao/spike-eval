@@ -465,8 +465,7 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   (`runs/luna-v8/g3`, two turns). The main phases with an empty stack always ask (answer-tool-v9).
   The yield's own text says so (answer-tool-v19, #399): the seat's own main phase asks again once the stack is
   empty, so a window there with its own trigger or spell pending is passed, and `end-of-turn` lasts through this
-  turn's end step. The text had said "your own main phases always ask too"; 638 recorded windows in 49 games passed
-  the seat's own main phase with its own items on the stack. The text arm's `YIELD_HINT` keeps its words (a legacy
+  turn's end step (#399 has the recorded windows behind it). The text arm's `YIELD_HINT` keeps its words (a legacy
   profile's bytes).
 
 **No text alternative (answer-tool-v7).**

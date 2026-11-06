@@ -61,8 +61,7 @@ public class AnswerToolTest {
     }
 
     /** A yield says when the seat is still asked as the play loop does it (#399): its own main phase asks only once the
-     *  stack is empty (its own triggers pending are passed), and end-of-turn covers this turn's end step. The old text
-     *  said "your own main phases always ask too"; 638 recorded windows passed the seat's own main phase. */
+     *  stack is empty (its own triggers pending are passed), and end-of-turn covers this turn's end step. */
     @Test
     public void theYieldSaysWhenTheSeatIsStillAsked() {
         String fixed = new AnswerTool.Ask(AnswerTool.Spec.one(2), false).definitions().toString();
