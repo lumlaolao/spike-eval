@@ -51,7 +51,7 @@ A witness script is the seat's recorded model decisions before K as script lines
 `opponent`, a splice pick), then `puzzle_gen.written_line` of the model's line from the state at K (it now starts from
 a pool, a tapped Alchemist and a stack). `witness_verdict` calls it proven only when the witness game asked the same
 question with the same options at every row up to K, the state read from row K's prompt equals the recording's, the
-script arm played every line with no drift, and the game was solved; else `failed` (a model error) or `drift`. The
+witness took the option the model says keeps the win at row K, the script arm played every line with no drift, and the game was solved; else `failed` (a model error) or `drift`. The
 build is the one the search ran on (overlay `c57ec70bb79d`; this branch's overlay has moved on with main's harness
 fixes, none in this board's path), so the witnesses and the search see the same engine.
 
@@ -70,9 +70,9 @@ model; the baseline "all lost" gets 30 of those 48. Unchecked: the 18 model-lost
 attempts.
 
 Four of the 30 unwinnable positions are the end positions (the turn is over); without them the model agrees on 27 of
-27 and the baseline on 26. The search note counted 28 unwinnable; per unique position the rows hold 30 (the A attempt
-was scanned twice and K=10 to 11 were refined at 2400). C seed 1's K=0 and K=1 were never searched (the scan stopped
-at the proven K=4); the model decides them too.
+27 and the baseline on 26. The 30 are the search's own count (`step_regret.py --summary`: 72 searches, 1 proven,
+30 unwinnable, 41 not found); a refined search at 2400 replaces the 600 one at its position. C seed 1's K=0 and K=1
+were never searched (the scan stopped at the proven K=4); the model decides them too.
 
 Internal check: along each recorded attempt the model's shortfall (opponent's life minus the most damage still
 reachable) never decreases, as it must against an opponent that cannot act: 0 up to the regret step, then 3 (A, C
@@ -83,7 +83,7 @@ more damage, in a position already lost).
 
 | Attempt | Regret K | Position | The seat took | Options that keep the win | Floor | After the step |
 |---|---|---|---|---|---|---|
-| A seed 1 | 4 | opp 17, pool 3, a ping on the stack, Alchemist tapped | cast Desperate Ritual | PASS | 1/4 | 14 reachable of 17 |
+| A seed 1 | 4 | opp 17, pool 3, a ping on the stack, Alchemist tapped | cast Desperate Ritual | PASS | 1/4 | 14 reachable of 17 (17 before) |
 | C seed 1 | 5 | opp 16, pool 3, stack empty, Alchemist tapped | cast Desperate Ritual | either Lava Spike | 2/6 | 13 of 16 |
 | C seed 2 | 4 | as A seed 1 | cast Desperate Ritual | PASS | 1/4 | 14 of 17 |
 | C seed 3 | 5 | as A seed 1 | cast Desperate Ritual | PASS | 1/4 | 14 of 17 |

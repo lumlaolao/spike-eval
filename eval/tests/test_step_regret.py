@@ -144,5 +144,30 @@ class StepRegretTest(unittest.TestCase):
             fake2 = FakeSearch(dict(fake.by_k))
             self.assertEqual(sr.analyse(log, fake2, emit=lambda r: None)["status"], "never_proven")
 
+    def test_the_summary_counts_each_search_once(self):
+        with tempfile.TemporaryDirectory() as d:
+            def put(rel, *rows):
+                f = Path(d) / rel / "step-search.jsonl"
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text("".join(json.dumps(r) + "\n" for r in rows))
+            put("A/game-1-1/k000", {"verdict": "not_found", "budget": 600})
+            # A search run twice into one dir (a resumed scan) holds two rows: one search.
+            put("A/game-1-1/k008", {"verdict": "not_found", "budget": 600}, {"verdict": "not_found", "budget": 600})
+            put("A/game-1-1/k010-b2400", {"verdict": "not_found", "budget": 2400})
+            put("A/game-1-1/k011-b2400", {"verdict": "unwinnable", "budget": 2400})
+            put("A/game-1-1/k012", {"verdict": "unwinnable", "budget": 600})
+            put("B/game-2-1/k004", {"verdict": "proven", "budget": 600})
+            # Forced options are one search each (REPLAY_FORCE=all writes them into one dir).
+            put("B/game-2-1/k004-fall", {"verdict": "proven", "forced": 0, "budget": 600},
+                {"verdict": "unwinnable", "forced": 1, "budget": 600})
+            t = sr.summary([Path(d) / "A", Path(d) / "B"])
+            self.assertEqual(t["searches"], 8)
+            self.assertEqual(t["verdicts"], {"proven": 2, "unwinnable": 3, "not_found": 3, "drift": 0, "error": 0,
+                                             "refused": 0})
+            self.assertEqual(t["not_found_by_budget"], {600: 2, 2400: 1})
+            self.assertEqual(sr.summary_line(t), "searches 8: proven 2, unwinnable 3, not_found 3 (2 at 600, 1 at "
+                                                 "2400), drift 0, error 0, refused 0")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -168,11 +168,9 @@ class Runner:
     def __init__(self, build, log, pzl, env, out, budget, lines, cap_ms):
         self.build, self.log, self.pzl, self.env, self.out = build, Path(log).resolve(), Path(pzl).resolve(), env, Path(out)
         self.budget, self.lines, self.cap_ms = budget, lines, cap_ms
-        self.n = 0
         self.resume = False
 
     def __call__(self, k, force=None, budget=None):
-        self.n += 1
         budget = budget or self.budget
         d = self.out / ("k%03d%s%s" % (k, "" if force is None else "-f%s" % force,
                                        "" if budget == self.budget else "-b%d" % budget))
@@ -300,11 +298,38 @@ def analyse(log, search, jobs=1, emit=print, refine_budget=None, refine_most=3):
     return summary
 
 
+def summary(dirs):
+    """The verdict totals over every search under `dirs` (each <game>/k<K>[...]/step-search.jsonl): a search is one
+    dir, or one forced option of it; a dir holding the same search twice (a resumed scan) counts it once."""
+    seen = {}
+    for d in dirs:
+        for f in sorted(Path(d).rglob("step-search.jsonl")):
+            for r in read_jsonl(f):
+                seen[(str(f.parent), r.get("forced"))] = r   # the last row of a search wins
+    verdicts = dict.fromkeys(("proven", "unwinnable", "not_found", "drift", "error", "refused"), 0)
+    by_budget = {}
+    for r in seen.values():
+        v = r.get("verdict") or "error"
+        verdicts[v] = verdicts.get(v, 0) + 1
+        if v == "not_found":
+            by_budget[r.get("budget")] = by_budget.get(r.get("budget"), 0) + 1
+    return {"searches": len(seen), "verdicts": verdicts, "not_found_by_budget": dict(sorted(by_budget.items()))}
+
+
+def summary_line(t):
+    v = t["verdicts"]
+    nf = ", ".join("%d at %s" % (n, b) for b, n in t["not_found_by_budget"].items())
+    return "searches %d: %s" % (t["searches"], ", ".join(
+        "%s %d%s" % (k, n, " (%s)" % nf if k == "not_found" and nf else "") for k, n in v.items()))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("attempt", help="an attempt dir (each game-<seed>-*.jsonl) or one game log")
+    ap.add_argument("attempt", nargs="?", help="an attempt dir (each game-<seed>-*.jsonl) or one game log")
     ap.add_argument("--seed", type=int, help="only this seed's game log of the dir")
-    ap.add_argument("--out", required=True, help="where the searches and step-regret.jsonl go")
+    ap.add_argument("--out", help="where the searches and step-regret.jsonl go (required unless --summary)")
+    ap.add_argument("--summary", nargs="+", metavar="OUT", help="print the verdict totals of the searches already in "
+                                                               "these --out dirs (each search once) and stop")
     ap.add_argument("--pzl", help="the board (default: the manifest's .pzl beside the attempt)")
     ap.add_argument("--build", help="dir with classes/ and classpath.txt (default: the newest acceptance build of this "
                                     "checkout)")
@@ -318,6 +343,11 @@ def main(argv=None):
     ap.add_argument("--resume", action="store_true", help="reuse each search already in --out (same build only)")
     ap.add_argument("--jobs", type=int, default=1, help="JVMs at once (positions searched together; default 1)")
     a = ap.parse_args(argv)
+    if a.summary:
+        print(summary_line(summary(a.summary)))
+        return
+    if not a.attempt or not a.out:
+        ap.error("an attempt and --out are needed (unless --summary)")
     import puzzle_baselines as pb   # the isolated-build launcher (imported here: the tests need no build)
     build = pb.Build(a.build, allow_stale=a.allow_stale_build)
     out = Path(a.out)

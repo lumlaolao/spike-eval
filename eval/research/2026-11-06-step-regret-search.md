@@ -13,7 +13,13 @@ leaves the middle of the attempt undecided: no attempt got an exact step, one go
 Branch `feat/step-regret` (commits 6bae8ec, 6a02a38, d37da4c), overlay `c57ec70bb79d`, `replay-bridge-v2`.
 `eval/puzzles/step_regret.py` searches the position before each model decision from the end until one is proven;
 budget 600 rollouts, the boundary re-searched at 2400, Forge AI opponent, each attempt's recorded seed. Rows:
-`runs/step-regret/{A-low-k1,C-low-k3}/step-regret.jsonl` (git-ignored).
+`runs/step-regret/{A-low-k1,C-low-k3}/step-regret.jsonl` (git-ignored). Per attempt dir:
+
+```bash
+python3 eval/puzzles/step_regret.py <attempt dir> --out runs/step-regret/<A-low-k1 or C-low-k3> --budget 600 \
+  --refine-budget 2400 --refine-most 2 --jobs 2 --resume
+python3 eval/puzzles/step_regret.py --summary runs/step-regret/A-low-k1 runs/step-regret/C-low-k3
+```
 
 | Attempt | Model decisions | Status | Last proven K | First unwinnable K | Searches | Search time |
 |---|---|---|---|---|---|---|
@@ -22,14 +28,19 @@ budget 600 rollouts, the boundary re-searched at 2400, Forge AI opponent, each a
 | C seed 2 | 14 | never proven | none | 10 | 17 | 101 min |
 | C seed 3 | 17 | never proven | none | 12 | 20 | 133 min |
 
-Verdicts over all searches: 1 proven, 28 unwinnable (every one exhausted, 0 capped rollouts), 41 not found, 0 drift.
+Verdicts over all searches, each counted once (`--summary`; C seed 1's K=8 and 9 each hold one search written twice):
+
+    searches 72: proven 1, unwinnable 30, not_found 41 (38 at 600, 3 at 2400), drift 0, error 0, refused 0
+
+Every unwinnable search was exhausted with 0 capped rollouts. (An earlier version of this note said 28 unwinnable, a
+hand tally that summed to 70.)
 Every position more than about 7 decisions from the end was not found: the search proves late positions lost but
 cannot settle the 12-plus-step middle, where the attempt was lost. About 6 CPU-hours.
 
 ## What the board model says (a cross-check, never the verdict)
 
 `puzzle_gen.splice_best` puts the loss, in all four games, at casting the second Desperate Ritual before a Lava
-Spike can carry it as a splice. In A, 16 damage was needed and reachable before that cast and 13 after. At that
+Spike can carry it as a splice (the damage reachable before and after it: `2026-11-06-step-regret-board-model.md`). At that
 decision only PASS keeps the win in A and C seed 2 (1 of 4 options), and either Lava Spike in C seed 1 (2 of 6,
 assuming PASS loses). C seed 3 has A's menu; its state was not recomputed.
 

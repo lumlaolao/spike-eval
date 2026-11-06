@@ -30,7 +30,7 @@ experiment in progress), **negative** (measured; does not help as proposed), **o
 | 2026-11-06 | [step-regret-search](2026-11-06-step-regret-search.md) | Does replay-then-search label the regret step | not yet: 0 drift in 72 searches, but no exact step on 4 attempts (one bracket); the middle positions are not found |
 | 2026-11-06 | [step-regret-board-model](2026-11-06-step-regret-board-model.md) | Can the splice board's model label every position and the regret step | yes: agrees with the search on 31 of 31 decided (baseline "all lost" 30); all 18 model-winnable positions engine-witnessed (was 1); regret at the second bare Desperate Ritual in all 4, its lost side and floor (1/4 three times, 2/6) model-derived |
 | 2026-11-06 | [ai-profile-spread](2026-11-06-ai-profile-spread.md) | Does STR-AI change with the Forge AI profile | not measured: no way to select a profile; the harness AI is the compiled `AiProps` defaults, not `Default.ai` (25 keys differ) |
-| 2026-11-06 | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) | Can the harness be an RL env with engine rewards | terminal rewards yes, no JVM change (loopback endpoint as `step`; legal set is prompt text, parsed; tens of ms per call on a stub, epoch-76 build); process rewards are offline labels, from unmerged work (41 of 70 verdicts `not_found`) |
+| 2026-11-06 | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) | Can the harness be an RL env with engine rewards | terminal rewards yes, no JVM change (loopback endpoint as `step`; legal set is prompt text, parsed; tens of ms per call on a stub, epoch-76 build); process rewards are offline labels, from unmerged work (41 of 72 searches `not_found`) |
 
 ## Ideas
 
