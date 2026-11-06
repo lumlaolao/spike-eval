@@ -400,7 +400,8 @@ def summarize(pairs, label):
     bridge_down = {}
     for p in pairs:
         if p.get("games"):
-            n = bridge_down_decisions(p["games"][-1], log_text=p.get("log_text") or "")
+            # The game's own file, so paired_log judges it by the log that names it, as aggregate.py does.
+            n = bridge_down_decisions(dict(p["games"][-1], _file=Path(p["jsonl"]).name), Path(p["jsonl"]).parent)
             if n:
                 bridge_down[str(p["jsonl"])] = n
 

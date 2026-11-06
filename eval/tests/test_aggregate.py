@@ -632,7 +632,6 @@ def test_an_old_line_is_judged_by_the_transport_failures_in_its_log():
         Path(d, "game-5-0.log").write_text(LOG_402)
         check("its paired log is read", aggregate.bridge_down_decisions(game_line(5, False, "A"), d) == 1)
         check("the other seat order's log is not", aggregate.bridge_down_decisions(game_line(5, True, "A"), d) == 0)
-        check("a log text handed in is read", aggregate.bridge_down_decisions(game_line(6, False, "A"), None, LOG_402) == 1)
         # A log that names its game file wins over the seat-order name (a launcher that named the logs otherwise).
         Path(d, "game-5-1.log").write_text("[EVAL] jsonl game-5-2000.jsonl\n" + LOG_402)
         named = dict(game_line(5, False, "A"), _file="game-5-2000.jsonl")

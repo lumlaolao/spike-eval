@@ -1057,8 +1057,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     in a row), 0 when nothing was lost.
   - `aggregate.bridge_down_decisions` is the one reader (`aggregate.py`, `defect_analyzer.py`, `run_batch.py`): the
     game line's count, or on a line from before the fields the transport failures in its log (`aggregate.paired_log`:
-    the log whose `[EVAL] jsonl` names the game file, else `game-<seed>-<0|1>.log`; `defect_analyzer.py` passes the
-    log it paired). `aggregate.log_bridge_down` counts an ask whose last attempt, the outcome line after `[BRIDGE
+    the log whose `[EVAL] jsonl` names the game file, else `game-<seed>-<0|1>.log` unless that names another game file;
+    every caller passes the game's own file, so they all pair alike). `aggregate.log_bridge_down` counts an ask whose last attempt, the outcome line after `[BRIDGE
     <label>] no reply (attempt N/N)` and before that seat's next line, is an HTTP error not followed by
     `[ROUTING-FILTER]` or `[NATIVE-TOOLS->TEXT]`, a `java`/`javax` net or io error other than `HttpTimeoutException`
     and `UncheckedIOException` (a connect timeout counts), a stalled connection, or a Decisions call with no headers.

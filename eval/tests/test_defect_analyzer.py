@@ -380,6 +380,14 @@ def test_decisions_lost_to_a_dead_bridge_fail_the_invariants():
           str(r["hard_invariants"]))
     r = run(dict(game_line(seed=3), bridge_down_decisions_a=0, bridge_down_decisions_b=0), rows, log_402)
     check("a line whose count is 0 passes", r["hard_invariants"]["pass"] is True, str(r["hard_invariants"]))
+    # Round-5 review of #374: a log naming a third game file is neither game's; the analyzer must agree with aggregate.
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-7-1000.jsonl", [game_line(seed=7, swap=False)])
+        write_lines(Path(d) / "game-7-2000.jsonl", [game_line(seed=7, swap=True)])
+        write_text(Path(d) / "game-7-0.log", "[EVAL] jsonl game-7-3000.jsonl\n" + log_402)
+        r = da.build_report([Path(d)])
+        check("a log that names another game file is not judged against these games",
+              r["hard_invariants"].get("bridge_down_total") == 0, str(r["hard_invariants"]))
 
 
 def test_the_standards_name_every_hard_invariant():

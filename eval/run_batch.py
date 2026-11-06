@@ -66,7 +66,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
-from aggregate import bridge_down_decisions, game_log, paired_log  # noqa: E402  dead-bridge games (issue #369)
+from aggregate import bridge_down_decisions, game_log, log_game_file, paired_log  # noqa: E402  dead games (#369)
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
@@ -576,8 +576,9 @@ def set_aside_dead_bridge(out_dir, seed, swap):
         dead = next((rec for rec in iter_game_lines_of(path)
                      if bool(rec.get("swap", False)) == swap and bridge_down_decisions(rec, out_dir)), None)
         if dead is not None:
-            log_path = paired_log(dead, out_dir) or game_log(out_dir, seed, swap)
-            moved += _move_to_crashed(out_dir, [(path, tag + path.name), (log_path, tag + path.stem + ".log")])
+            log_path = paired_log(dead, out_dir)          # none of its own: no other game's log is moved
+            moved += _move_to_crashed(out_dir, [(path, tag + path.name)]
+                                      + ([(log_path, tag + path.stem + ".log")] if log_path else []))
     return moved
 
 
@@ -758,15 +759,7 @@ RETRYABLE = ("nonzero-exit", "no-game-line", "timeout")
 
 def attempt_jsonl(log_path):
     """The game file an attempt wrote, as its JVM named it in its log ("[EVAL] jsonl <name>"), or None."""
-    try:
-        with open(log_path, encoding="utf-8", errors="replace") as f:
-            for line in f:
-                m = re.match(r"\[EVAL\] jsonl (game-[0-9-]+\.jsonl)\s*$", line)
-                if m:
-                    return m.group(1)
-    except OSError:
-        pass
-    return None
+    return log_game_file(log_path)
 
 
 def play_with_retries(play, seed, swap, out_dir, retries, over_budget):

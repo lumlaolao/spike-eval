@@ -195,7 +195,7 @@ _TRANSPORT = re.compile(r"^(?:\[JEV-NO-ANSWER\] )?(?:HTTP \d+|stalled connection
                         r"error: javax?\.(?:net|io|nio)\.(?!http\.HttpTimeoutException|UncheckedIOException)|"
                         r"no response within .*\((?:no-headers|silent)\))")
 _ANSWERED_STATUS = ("[ROUTING-FILTER]", "[NATIVE-TOOLS->TEXT]")
-_EVAL_JSONL = re.compile(r"^\[EVAL\] jsonl (\S+)", re.M)
+_EVAL_JSONL = re.compile(r"\[EVAL\] jsonl (game-[0-9-]+\.jsonl)\s*$")
 
 
 def log_bridge_down(text):
@@ -231,6 +231,19 @@ def game_log(log_dir, seed, swap):
     return Path(log_dir) / ("game-%s-%d.log" % (seed, 1 if swap else 0))
 
 
+def log_game_file(log_path):
+    """The game file a game's JVM named in its log ("[EVAL] jsonl <name>"), or None (no such line, no log)."""
+    try:
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = _EVAL_JSONL.match(line)
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return None
+
+
 def paired_log(game, log_dir):
     """The game's own log in `log_dir`, or None. When the game knows its file (`_file`), the log whose "[EVAL] jsonl"
     line names it; else, or when no log names a file, the one named for its seat order. A log that names another
@@ -240,13 +253,7 @@ def paired_log(game, log_dir):
         return None
     swap = bool(game.get("swap"))
     own = game_log(log_dir, seed, swap)
-    names = {}
-    for p in (own, game_log(log_dir, seed, not swap)):
-        try:
-            m = _EVAL_JSONL.search(p.read_text(encoding="utf-8", errors="replace")) if p.is_file() else None
-        except OSError:
-            m = None
-        names[p] = m.group(1) if m else None
+    names = {p: log_game_file(p) for p in (own, game_log(log_dir, seed, not swap))}
     mine = game.get("_file")
     if mine:
         for p, name in names.items():
@@ -257,17 +264,15 @@ def paired_log(game, log_dir):
     return own
 
 
-def bridge_down_decisions(game, log_dir=None, log_text=None):
+def bridge_down_decisions(game, log_dir=None):
     """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else the transport
-    failures its log shows (log_bridge_down over `log_text`, or the paired log in `log_dir`; parse_dir_full keeps
-    the result as `_bridge_down_log`). The one reader aggregate.py, defect_analyzer.py and run_batch.py share."""
+    failures its paired log in `log_dir` shows (paired_log, log_bridge_down; parse_dir_full keeps the result as
+    `_bridge_down_log`). The one reader aggregate.py, defect_analyzer.py and run_batch.py share."""
     if any(f in game for f in BRIDGE_DOWN_FIELDS):
         return sum(v for v in (game.get(f) for f in BRIDGE_DOWN_FIELDS)
                    if isinstance(v, int) and not isinstance(v, bool) and v > 0)
     if "_bridge_down_log" in game:
         return game["_bridge_down_log"]
-    if log_text is not None:
-        return log_bridge_down(log_text)
     p = paired_log(game, log_dir)
     if p is None:
         return 0

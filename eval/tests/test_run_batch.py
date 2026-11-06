@@ -938,6 +938,7 @@ class TestResumeIdentity(unittest.TestCase):
             write_game(d, "game-7100-1001.jsonl", game_line(7100, True, bridge_down_decisions_a=0,
                                                             bridge_down_decisions_b=0))
             Path(d, "game-7100-0.log").write_text("the dead game's log\n")
+            Path(d, "game-7100-1.log").write_text("[EVAL] jsonl game-7100-1001.jsonl\nthe healthy game's log\n")
             write_game(d, "game-7101-1000.jsonl", game_line(7101, False))         # before the field: the 402 run
             Path(d, "game-7101-0.log").write_text(log_402)
             write_game(d, "game-7101-1001.jsonl", game_line(7101, True))          # before it, model answered nothing
@@ -977,6 +978,13 @@ class TestResumeIdentity(unittest.TestCase):
             moved = run_batch.set_aside_dead_bridge(d, 7200, False)
             self.assertEqual(sorted(moved), ["bridgedown-swap0-game-7200-2000.jsonl", "bridgedown-swap0-game-7200-2000.log"])
             self.assertTrue(Path(d, "game-7200-1000.jsonl").is_file(), "the healthy file stays")
+        with tempfile.TemporaryDirectory() as d:
+            # A dead game with no log of its own: only its file moves, never the other seat order's log.
+            write_game(d, "game-7201-1000.jsonl", game_line(7201, False, bridge_down_decisions_a=1,
+                                                            bridge_down_decisions_b=0))
+            Path(d, "game-7201-0.log").write_text("[EVAL] jsonl game-7201-5000.jsonl\nanother game's log\n")
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7201, False), ["bridgedown-swap0-game-7201-1000.jsonl"])
+            self.assertTrue(Path(d, "game-7201-0.log").is_file(), "another game's log stays")
         expect = run_batch.resume_expectation(make_args())
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "missing")
