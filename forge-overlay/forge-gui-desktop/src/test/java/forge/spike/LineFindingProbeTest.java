@@ -358,22 +358,37 @@ public class LineFindingProbeTest {
     }
 
     /** A spliced cast that fails to pay is the splice set's failure, not the card's (#392): the plain cast stays on the
-     *  menu (it was dropped for the rest of the window), and the seat's next prompt says the cast was not made (it said
-     *  nothing). The seat here accepts every splice, as the check before #392 let it: both cost {2}{R}{R}{R}. */
+     *  menu (it was dropped for the rest of the window), and the seat's next menu says the cast was not made, once (a
+     *  land drop keeps the window, and the note was repeated on every menu until it changed). The seat's first splice
+     *  answer is taken unchecked, as before #392: both cards, {2}{R}{R}{R} from three Mountains. Asked again, the seat
+     *  picks the same set twice: the set that failed is refused with the reason, then Lava Spike is cast plain. */
     @Test
     public void aSplicedCastThatFailsToPayLeavesThePlainCastOfferedAndSaysSo() {
+        // The note is new seat text, so it is the faithful profile's only (a legacy prompt stays byte-identical).
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try { splicedCastThatFailsToPay(); } finally { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null; }
+    }
+
+    private void splicedCastThatFailsToPay() {
         Game g = bareGame(PhaseType.MAIN1);
-        Player me = g.getPlayers().get(0);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
         for (int i = 0; i < 3; i++) card("Mountain", me, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Hand);
         card("Lava Spike", me, ZoneType.Hand);
         card("Glacial Ray", me, ZoneType.Hand);
         card("Desperate Ritual", me, ZoneType.Hand);
+        final String failed = "could not be paid, so nothing was played";
         GoldenChecksTest.Script model = new GoldenChecksTest.Script(PLAY)
-                .on("You have priority", GoldenChecksTest.choiceWith("CAST Lava Spike"))
+                // The menu that carries the note plays the land; every other menu casts Lava Spike.
+                .on("You have priority", p -> GoldenChecksTest.choiceWith(p.contains(failed) ? "PLAY LAND Mountain" : "CAST Lava Spike").apply(p))
+                .on("SPLICE", p -> "PICKS: 1,2")
                 .on("Choose the TARGET", GoldenChecksTest.choiceWith("Rival"));
+        final int[] splices = {0};
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
                 new LobbyPlayerAi("Seat", null), "Seat", "", model, model, "llm") {
-            @Override public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) { return cards; }
+            @Override public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) {
+                return splices[0]++ == 0 ? cards : super.chooseCardsForSplice(sa, cards);
+            }
         };
         me.dangerouslySetController(ctrl);
         List<SpellAbility> first = ctrl.chooseSpellAbilityToPlay();
@@ -381,11 +396,30 @@ public class LineFindingProbeTest {
         String log = logOf(() -> ctrl.playChosenSpellAbility(first.get(0)));
         Assert.assertTrue(log.contains("FAILED to pay for"), log);
         Assert.assertEquals(ctrl.playsNotMade(), 1);
+        // The next menu says so, naming the splice set, and the seat plays its land.
+        List<SpellAbility> land = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(land, "nothing was chosen at the menu after the failure");
+        String noted = model.prompts.stream().filter(q -> q.contains("You have priority")).reduce((a, b) -> b).orElse("");
+        Assert.assertTrue(noted.contains("Glacial Ray, Desperate Ritual spliced onto it and its cost " + failed), noted);
+        Assert.assertTrue(land.get(0).isLandAbility(), "the land was played: " + land.get(0));
+        ctrl.playChosenSpellAbility(land.get(0));
+        // The menu after the land drop (same window) offers Lava Spike again and does not repeat the note.
+        int before = model.prompts.size();
         List<SpellAbility> next = ctrl.chooseSpellAbilityToPlay();
-        Assert.assertNotNull(next, "nothing was chosen at the next menu");
+        Assert.assertNotNull(next, "nothing was chosen at the menu after the land");
         Assert.assertEquals(next.get(0).getHostCard().getName(), "Lava Spike", "the plain cast is offered again");
-        String asked = model.prompts.stream().filter(q -> q.contains("You have priority")).reduce((a, b) -> b).orElse("");
-        Assert.assertTrue(asked.contains("its cost could not be paid, so nothing was played"), asked);
+        String after = model.prompts.get(before);
+        Assert.assertTrue(after.contains("You have priority") && !after.contains(failed), "the note was repeated: " + after);
+        String cast = logOf(() -> ctrl.playChosenSpellAbility(next.get(0)));
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("the spell with them failed when you cast it in this window")),
+                "the failed set was not refused with its reason");
+        Assert.assertTrue(cast.contains("[AUTO-LEGAL] splice(unpayable set)->none"), cast);
+        Assert.assertEquals(model.prompts.stream().filter(q -> q.substring(q.lastIndexOf("DECISION:")).contains("SPLICE")).count(), 2L,
+                "the splice ask, then asked once more");
+        Assert.assertEquals(ctrl.playsNotMade(), 1, "the plain cast was made");
+        GoldenChecksTest.resolveAll(g);
+        Assert.assertEquals(rival.getLife(), 17, "Lava Spike resolved plain");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
     /** A play that cannot be paid for is not a play, and the log must say so (the audited game logged a failed

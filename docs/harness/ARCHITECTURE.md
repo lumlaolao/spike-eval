@@ -195,11 +195,15 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - a play that failed to pay, was forbidden by a static or was refused by the stack for want of a target is not
   offered again in the same window (turn, phase, top of the stack), as Forge's AI skips a failed ability: the
   seat was offered the same unpayable play 999 times. A spliced cast's failure is keyed on its splice set, so the
-  plain cast stays offered, and a failed payment is told to the seat on its next play menu, as a cancel is
-  (harness-epoch-85, #392: a failed Lava Spike with two splices hid every Lava Spike for the window, silently).
-  A splice set is never the cause now: the SPLICE ask offers each card the cast can pay alone, checks the picked
-  set together, asks once more with its total cost when the pool cannot pay it all (or when that set's cast already
-  failed to pay in the window, so it is not retried without end), then casts with no splice.
+  plain cast stays offered (harness-epoch-85, #392: a failed Lava Spike with two splices hid every Lava Spike for
+  the window, silently). The SPLICE ask offers each card the cast can pay alone and checks the picked set
+  together: a set the pool cannot pay as a whole is asked once more with the reason, and a second such pick casts
+  the spell with no splice (a fixed legal option, logged, as an invalid band is). This is a legality fix and applies
+  under every profile. A splice set the check passes can still fail at payment; that set is refused for the rest
+  of the window. Under the faithful profile a failed payment is also told to the seat, once, on its next play
+  menu (naming the splice set), as a cancel is; every such note is printed once and then dropped (a land drop
+  keeps the window, and the note was repeated on every menu after it). A legacy profile gets no new note, so its
+  prompts stay byte-identical.
   A play that fails to pay, is cancelled at its cost or is refused by the stack for want of a target is undone by
   the engine's own rollback (`GameActionUtil.rollbackAbility`, the human path's): the card goes back to the zone it
   was cast from and the mana paid is refunded; a non-mana cost already paid (a tap, life) is not, as the copied

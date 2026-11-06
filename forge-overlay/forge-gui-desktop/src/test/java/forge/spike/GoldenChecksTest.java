@@ -2655,7 +2655,7 @@ public class GoldenChecksTest {
                 .on("SPLICE", p -> p.contains("more than you can pay") ? picks("Glacial Ray").apply(p) : "PICKS: 1,2")
                 .on("Choose the TARGET", choiceWith("Rival"));
         playAndResolve(seat(g, model, model), g, "Lava Spike with a payable splice");
-        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("costs {2}{R}{R}{R}, more than you can pay")),
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("costs more than you can pay, so it would not be cast")),
                 "the unpayable set was not asked again with its cost");
         Assert.assertEquals(rival.getLife(), 15, "3 + 2 damage");
         Assert.assertTrue(has(me, ZoneType.Graveyard, "Lava Spike"), "Lava Spike was cast");
