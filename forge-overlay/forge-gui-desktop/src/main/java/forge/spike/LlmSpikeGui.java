@@ -462,7 +462,8 @@ public final class LlmSpikeGui {
 
     // ==================== FORK ROLLOUT FORCER (Milestone D rollout — additive, inert) ====================
     // Everything in this fenced block is a no-op in every normal run: FORK_FORCER is null unless
-    // LlmSpikeFork's rollout mode installs one, and forkForce() returns null immediately in that case.
+    // LlmSpikeFork's rollout mode, or the keyword sweep (KeywordSurfaceSweepTest.chooseFromMenu), installs
+    // one, and forkForce() returns null immediately in that case.
     // The seed-42 floor/floor canary is the regression gate proving inertness.
 
     /** Fork-mode decision forcer (LlmSpikeFork rollout, EVAL-DESIGN.md §3.1(b)). Consulted by exactly
@@ -505,6 +506,7 @@ public final class LlmSpikeGui {
                 if (!sa.usesTargeting()) continue;
                 if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(activator);
+                if (PlayerControllerLLM.noTargetAtX(root, sa)) continue;
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) continue;
                 List<forge.game.GameObject> cands = PlayerControllerLLM.targetCandidates(sa, tr);
@@ -4920,6 +4922,13 @@ public final class LlmSpikeGui {
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
         private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false, false); }
 
+        /** Whether {@code sa}, part of {@code root}, takes no target at the X announced: "X target creatures" at X=0
+         *  (Rot-Curse Rakshasa's renew; a target set anyway made the stack refuse the paid play, issue #380). An
+         *  unannounced X is not read, and a fixed count of targets (Banefire's one) is kept at any X. */
+        static boolean noTargetAtX(SpellAbility root, SpellAbility sa) {
+            return root.getXManaCostPaid() != null && sa.getMaxTargets() < 1;
+        }
+
         /** The `simulate` call of a target choice: the play ({@code root}) previewed with {@code sa} aimed at the
          *  numbered candidate (runs/loop/g03 asked for it twice while aiming Wasteland). Null where the seat has no
          *  native preview. */
@@ -4972,9 +4981,7 @@ public final class LlmSpikeGui {
                         if (dt <= 0) continue;
                     }
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
-                    // "X target creatures" with X announced as 0 takes no target: one set anyway made the stack refuse
-                    // the paid play (Rot-Curse Rakshasa's renew; issue #380 found it). An unannounced X is left alone.
-                    if (root.getXManaCostPaid() != null && sa.getMaxTargets() < 1) continue;
+                    if (noTargetAtX(root, sa)) continue;
                     TargetRestrictions tr = sa.getTargetRestrictions();
                     if (tr == null) continue;
                     List<forge.game.GameObject> cands = targetCandidates(sa, tr);
@@ -5507,8 +5514,9 @@ public final class LlmSpikeGui {
          *  chose which Elves to tap. When the engine's own test payment of this cost plans to use such an
          *  ability, or, when that plan is null, the first activation {@code tapTypeStep} finds (#367), the
          *  seat activates it first through {@link LlmCostDecision}, keeping out the other sources that
-         *  plan taps; the engine then pays from the floating mana, which it always spends first. A source that also chooses a color stays the engine's, said as a fallback, as is any
-         *  such source the engine's real payment uses without the seat having activated it. A mana
+         *  plan taps; the engine then pays from the floating mana, which it always spends first. A source
+         *  that also chooses a color stays the engine's, said as a fallback, as is any such source the
+         *  engine's real payment uses without the seat having activated it. A mana
          *  ability's own mana cost (a filter paid mid-payment) is left alone: a test payment there
          *  would clear what the outer payment has set aside. */
         @Override

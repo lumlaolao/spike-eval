@@ -127,6 +127,14 @@ public class GoldenChecksTest {
         return Integer.parseInt(m.group(1));
     }
 
+    /** Hands {@code sa} to the seat's play path and asserts it was made: read from playsNotMade(), never from the
+     *  path's return (docs/STANDARDS.md section 5). */
+    static void playMade(LlmSpikeGui.PlayerControllerLLM ctrl, SpellAbility sa, String what) {
+        int notMade = ctrl.playsNotMade();
+        ctrl.playChosenSpellAbility(sa);
+        Assert.assertEquals(ctrl.playsNotMade(), notMade, what + " was not made");
+    }
+
     static Function<String, String> choice(String label) { return p -> "CHOICE: " + opt(p, label); }
 
     static Function<String, String> picks(String... labels) {
@@ -460,8 +468,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Counterspell was offered");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0);
+        playMade(ctrl, r.get(0), "Counterspell");
         Assert.assertTrue(g.getStack().peekAbility().getTargets().getFirstTargetedSpell() != null, "it targets the spell itself");
         g.getStack().resolveStack();
         Assert.assertTrue(g.getStack().isEmpty(), "Ponder did not stay on the stack");
@@ -486,8 +493,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Stifle was offered");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0);
+        playMade(ctrl, r.get(0), "Stifle");
         SpellAbility aimed = g.getStack().peekAbility().getTargets().getFirstTargetedSpell();
         Assert.assertTrue(aimed != null && aimed.isActivatedAbility() && aimed.getHostCard().getName().equals("Polluted Delta"),
                 "Stifle targets the fetch ability: " + aimed);
@@ -516,11 +522,44 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the renew was offered");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "the renew at X=0 was not made");
+        playMade(ctrl, r.get(0), "the renew at X=0");
         Assert.assertTrue(g.getCardState(rakshasa).isInZone(ZoneType.Exile), "the renew's exile cost was not paid");
         Assert.assertEquals(g.getStack().size(), 1);
         Assert.assertTrue(g.getStack().peekAbility().getTargets().isEmpty(), "a target was set at X=0");
+    }
+
+    /** A fixed count of targets is kept at X=0: Banefire ("X damage to any target") cast for {R} still takes its one
+     *  target. Pins the X=0 guard's shape: it reads the target count, not X alone. */
+    @Test
+    public void aFixedTargetXSpellAtXZeroKeepsItsTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Banefire", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Banefire"))
+                .on("Every integer", p -> "NUMBER: 0");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Banefire was offered");
+        playMade(ctrl, r.get(0), "Banefire at X=0");
+        Assert.assertEquals(g.getStack().size(), 1);
+        Assert.assertEquals(g.getStack().peekAbility().getTargets().size(), 1, "Banefire's target at X=0");
+    }
+
+    /** The fork rollout's first-legal targeting keeps the same rule: the renew at X=0 takes no target. */
+    @Test
+    public void forkTargetingAtXZeroSetsNoTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card rakshasa = card("Rot-Curse Rakshasa", me, ZoneType.Graveyard);
+        SpellAbility renew = rakshasa.getSpellAbilities().stream().filter(SpellAbility::usesTargeting).findFirst().orElseThrow();
+        renew.setActivatingPlayer(me);
+        renew.setXManaCostPaid(0);
+        LlmSpikeGui.forceTargetsFirstLegal(me, renew);
+        Assert.assertTrue(renew.getTargets().isEmpty(), "a target was set at X=0: " + renew.getTargets());
     }
 
     /** A number the cast announces (Announce$ X): Disrupting Shoal's pitch cost exiles a blue card with mana value X and
@@ -540,8 +579,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the pitch was offered");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "the Shoal was cast");
+        playMade(ctrl, r.get(0), "the Shoal");
         Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.substring(q.lastIndexOf("DECISION:")).startsWith("DECISION: Choose X for CAST Disrupting Shoal")),
                 "the seat was asked X");
         Assert.assertTrue(me.getCardsIn(ZoneType.Exile).stream().anyMatch(c -> c.getName().equals("Brainstorm")), "Brainstorm was pitched");
@@ -565,8 +603,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Toxic Deluge was offered");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0);
+        playMade(ctrl, r.get(0), "Toxic Deluge");
         Assert.assertEquals(me.getLife(), 18, "X = 2 life was paid");
         g.getStack().resolveStack();
         g.getAction().checkStateEffects(true);
@@ -592,8 +629,7 @@ public class GoldenChecksTest {
     static void playAndResolve(LlmSpikeGui.PlayerControllerLLM ctrl, Game g, String what) {
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, what + " was offered");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, what + " was played");
+        playMade(ctrl, r.get(0), what);
         resolveAll(g);
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
@@ -929,8 +965,7 @@ public class GoldenChecksTest {
         card("Island", me, ZoneType.Library);
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Script("CHOICE: 1").on("You have priority", choiceWith("Altar")),
                 new Script("CHOICE: 1"));
-        ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "Altar cast");
+        playMade(ctrl, ctrl.chooseSpellAbilityToPlay().get(0), "the Altar");
         g.getStack().resolveStack();
         g.getTriggerHandler().runWaitingTriggers();
         g.getStack().addAllTriggeredAbilitiesToStack();
@@ -959,8 +994,7 @@ public class GoldenChecksTest {
             return choiceWith("+1: Add").apply(p);
         });
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
-        ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "Lukka's +1 activated");
+        playMade(ctrl, ctrl.chooseSpellAbilityToPlay().get(0), "Lukka's +1");
         resolveAll(g);
         Assert.assertEquals(me.getManaPool().totalMana(), 2, "{R}{G} floats");
         ctrl.chooseSpellAbilityToPlay();
@@ -983,8 +1017,7 @@ public class GoldenChecksTest {
             return choiceWith("CAST Changeling Berserker").apply(p);
         }).on("MANA: you are paying", picks("Island"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
-        ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "Forest tapped");
+        playMade(ctrl, ctrl.chooseSpellAbilityToPlay().get(0), "the Forest's mana");
         Assert.assertEquals(me.getManaPool().totalMana(), 1, "{G} floats");
         playAndResolve(ctrl, g, "Changeling Berserker with the floating {G}");
         Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getName().equals("Changeling Berserker")),
@@ -1385,8 +1418,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r);
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "the Mountain tapped for mana");
+        playMade(ctrl, r.get(0), "the Mountain's mana");
         Assert.assertEquals(me.getManaPool().totalMana(), 1, "{R} floats");
         Assert.assertEquals(menu[0].split("ACTIVATE Mountain", -1).length - 1, 1, "one option per kind of land: " + menu[0]);
         Assert.assertTrue(menu[0].contains("ACTIVATE Island"), "the Island too");
@@ -1671,8 +1703,7 @@ public class GoldenChecksTest {
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Fact or Fiction was offered at the reduced cost");
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("reduce the cost by")), "a reduction was asked while pricing");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "it was cast");
+        playMade(ctrl, r.get(0), "the cast");
         Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("reduce the cost by")), "the reduction was the seat's when paying");
         Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).allMatch(Card::isTapped), "paid with the two Islands");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
@@ -2038,8 +2069,7 @@ public class GoldenChecksTest {
         Assert.assertNotNull(r, "the Probe was not on the menu: " + PromptFidelityTest.promptWith(model, "DECISION:"));
         Assert.assertEquals(r.get(0).getHostCard().getName(), "Gitaxian Probe");
         int autos = ctrl.autoPicksCount();
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0, "the Probe was not paid for");
+        playMade(ctrl, r.get(0), "the Probe");
         Assert.assertEquals(me.getLife(), 18);
         // Paying with life was the only way: the harness paid it, so it says so with a tier=auto row (standards, #277).
         Assert.assertEquals(ctrl.autoPicksCount(), autos + 1, "the forced life payment left no auto row");
@@ -2249,8 +2279,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0);
+        playMade(ctrl, r.get(0), "Green Sun's Zenith");
         while (!g.getStack().isEmpty()) g.getStack().resolveStack();
         List<String> picks = new ArrayList<>();
         for (String p : model.prompts) {
@@ -2319,8 +2348,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0);
+        playMade(ctrl, r.get(0), "Green Sun's Zenith");
         while (!g.getStack().isEmpty()) g.getStack().resolveStack();
         Assert.assertEquals(picks[0], 2, "declined, kept searching, then picked");
         Assert.assertEquals(cancels[0], 1);

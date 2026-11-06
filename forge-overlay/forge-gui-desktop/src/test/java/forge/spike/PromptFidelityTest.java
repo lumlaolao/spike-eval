@@ -248,7 +248,7 @@ public class PromptFidelityTest {
         java.util.List<forge.game.spellability.SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, decisions(model));
         ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0);
+        Assert.assertEquals(ctrl.playsNotMade(), 0, "a cancel is the seat's own choice, not a play that failed");
         Assert.assertTrue(model.asked(costAsk), decisions(model));
         Assert.assertTrue(g.getStack().isEmpty(), "nothing was put on the stack");
         Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "after cancelling, the model passed");
@@ -318,8 +318,7 @@ public class PromptFidelityTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         java.util.List<forge.game.spellability.SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, decisions(model));
-        ctrl.playChosenSpellAbility(r.get(0));
-        Assert.assertEquals(ctrl.playsNotMade(), 0);
+        GoldenChecksTest.playMade(ctrl, r.get(0), "Gitaxian Probe");
         Assert.assertTrue(model.asked("Each Phyrexian symbol"), decisions(model));
         Assert.assertFalse(g.getStack().isEmpty(), "Gitaxian Probe was cast");
         return me;

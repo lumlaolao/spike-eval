@@ -114,8 +114,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   activated ability's alternative cost is offered (Forge Anew: equip for {0}; the menu expanded alternative costs for
   spells only), and an "up to one" target with a single candidate is asked with "No target" offered.
 - "X target creatures" with X announced as 0 takes no target (Rot-Curse Rakshasa's renew): one was set, and the
-  stack refused the paid play. The keyword sweep found it once its play gate stopped reading the play path's return
-  (harness-epoch-84, issue #380; `anXTargetAbilityAtXZeroTakesNoTarget`).
+  stack refused the paid play. A fixed count of targets is kept at X=0 (Banefire), and the fork rollout's
+  first-legal targeting follows the same rule (harness-epoch-84, issue #380; `anXTargetAbilityAtXZeroTakesNoTarget`,
+  `aFixedTargetXSpellAtXZeroKeepsItsTarget`, `forkTargetingAtXZeroSetsNoTarget`).
 - Forge's static `AiCache` is cleared where Forge's AI clears it, at the seat's priority ask (epoch 54). It holds
   answers keyed by the game (`isPreventCombatDamageThisTurn`) that the seat's pricing and combat helpers read; uncleared
   they lasted the whole game, and in the puzzle prover every finished game stayed in memory until the heap ran out.
@@ -1203,10 +1204,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      must be on the seat's menu, and the menu must offer nothing else. Playthrough: each such play is made by the
      seat with a fake model that answers every ask in its own format, resolves, hands nothing to Forge's AI,
      reads no answer it cannot parse and keeps `AskContract` on every ask. Each play is chosen from the seat's own
-     menu (the fork forcer picks it), so its X, modes and targets are set as in a game; handed to the play path
-     directly, 342 targeted plays went untargeted and were refused unseen. Whether it was made is read from
-     `playsNotMade()` and the log (an unpaid, refused or cancelled play), never from `playChosenSpellAbility`'s
-     return, which is true whatever happened (issue #380). Any gap fails the test. The five
+     menu (the fork forcer picks it), so its X, modes and targets are set as in a game. Whether it was made is read
+     from `playsNotMade()` and the log (an unpaid, refused or cancelled play; issue #380). Any gap fails the test. The five
      keywords with no card to sweep are pinned (no card uses Absorb, Frenzy or Poisonous; the agendas are
      Conspiracy draft only).
    - **The keyword gauntlet (`eval/keyword_gauntlet.sh`, on demand, no model cost):** the sweep's cards (552 of its
