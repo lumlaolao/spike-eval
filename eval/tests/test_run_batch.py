@@ -926,6 +926,26 @@ class TestResumeIdentity(unittest.TestCase):
             self.assertFalse(run_batch.has_game_line(d, 7101, False))
 
 
+    def test_a_game_that_lost_decisions_to_a_dead_bridge_is_set_aside_and_replayed(self):
+        # Issue #369: panel_score.py and rating.py refuse such a game and say "replay it"; a resume must do so.
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7100-1000.jsonl", game_line(7100, False, bridge_down_decisions_a=3,
+                                                            bridge_down_decisions_b=0))
+            write_game(d, "game-7100-1001.jsonl", game_line(7100, True, bridge_down_decisions_a=0,
+                                                            bridge_down_decisions_b=0))
+            Path(d, "game-7100-0.log").write_text("the dead game's log\n")
+            combos = [(7100, False), (7100, True)]
+            todo, skipped, foreign = run_batch.plan_combos(d, combos, run_batch.resume_expectation(make_args()))
+            self.assertEqual((todo, skipped, foreign), ([(7100, False)], [(7100, True)], []))
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7100, True), [], "a healthy game stays")
+            moved = run_batch.set_aside_dead_bridge(d, 7100, False)
+            self.assertEqual(sorted(moved), ["bridgedown-swap0-game-7100-0.log", "bridgedown-swap0-game-7100-1000.jsonl"])
+            self.assertFalse(Path(d, "game-7100-1000.jsonl").exists())
+            self.assertTrue(Path(d, run_batch.CRASHED_DIR, "bridgedown-swap0-game-7100-1000.jsonl").is_file(),
+                            "kept, never deleted")
+            self.assertTrue(Path(d, "game-7100-1001.jsonl").is_file())
+
+
 class TestManifest(unittest.TestCase):
 
     def test_manifest_written_once_and_invocations_appended(self):

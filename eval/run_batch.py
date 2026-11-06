@@ -66,6 +66,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
+from aggregate import bridge_down_decisions  # noqa: E402  a game the model's bridge did not play (issue #369)
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
@@ -434,20 +435,25 @@ def iter_game_lines(out_dir, seed=None):
     files). Defensive: skip unparseable lines and unreadable files."""
     pattern = "game-%d-*.jsonl" % seed if seed is not None else "game-*.jsonl"
     for path in sorted(Path(out_dir).glob(pattern)):
-        try:
-            with open(path, "r", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        rec = json.loads(line)
-                    except (json.JSONDecodeError, ValueError):
-                        continue
-                    if isinstance(rec, dict) and rec.get("t") == "game":
-                        yield rec
-        except OSError:
-            continue
+        yield from iter_game_lines_of(path)
+
+
+def iter_game_lines_of(path):
+    """The parseable game lines of one file; nothing when it is unreadable."""
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if isinstance(rec, dict) and rec.get("t") == "game":
+                    yield rec
+    except OSError:
+        return
 
 
 # Sentinel: the game line may lack this field entirely (legacy harness).
@@ -528,12 +534,40 @@ def has_game_line(out_dir, seed, swap, expect=None):
     """True if some game-<seed>-*.jsonl in out_dir has a final game line
     matching this seed/swap combo AND (when expect is given) the recorded
     condition. A game played under another profile/tool setting is not
-    "already complete" for this batch."""
+    "already complete" for this batch, nor is one that lost a decision to a
+    dead model bridge (issue #369): it is set aside and played again."""
     for rec in iter_game_lines(out_dir, seed):
         if rec.get("seed") == seed and bool(rec.get("swap", False)) == swap:
-            if game_line_matches(rec, expect):
+            if game_line_matches(rec, expect) and not bridge_down_decisions(rec):
                 return True
     return False
+
+
+def set_aside_dead_bridge(out_dir, seed, swap):
+    """Move every game file of (seed, swap) whose game line lost a decision to a dead model bridge, and the combo's
+    log, under crashed/ (prefixed bridgedown-), so the replay's game is the one scored while the old one is kept and
+    still priced. Returns the moved names; [] when the combo has no such game."""
+    out_dir = Path(out_dir)
+    dead = []
+    for path in sorted(out_dir.glob("game-%d-*.jsonl" % seed)):
+        for rec in iter_game_lines_of(path):
+            if bool(rec.get("swap", False)) == swap and bridge_down_decisions(rec):
+                dead.append(path)
+                break
+    if not dead:
+        return []
+    dest = out_dir / CRASHED_DIR
+    dest.mkdir(exist_ok=True)
+    man = out_dir / "batch-manifest.json"
+    if man.is_file() and not (dest / man.name).exists():
+        shutil.copy(str(man), str(dest / man.name))
+    moved = []
+    for p in dead + [out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))]:
+        if p.is_file():
+            target = dest / ("bridgedown-swap%d-%s" % (1 if swap else 0, p.name))
+            p.rename(target)
+            moved.append(target.name)
+    return moved
 
 
 def plan_combos(out_dir, combos, expect=None):
@@ -703,7 +737,8 @@ def spent_usd(out_dir):
 
 
 # A crashed attempt's files go here before its game is played again, so aggregate.py (which reads the
-# directory's own game files) never counts them, while spend and the record keep them.
+# directory's own game files) never counts them, while spend and the record keep them; so do a dead-bridge
+# game's on resume (set_aside_dead_bridge, issue #369).
 CRASHED_DIR = "crashed"
 # Failures a second attempt can fix: the JVM died, wrote no game line, or hung. A condition mismatch or
 # a launch error would fail the same way again.
@@ -1619,6 +1654,11 @@ def run_block(args):
         log("[warn] %d combo(s) have a game line recorded under a DIFFERENT condition "
             "and will be replayed (aggregate.py keeps the two apart): %s"
             % (len(foreign), ", ".join("%d/swap%d" % (s, w) for s, w in foreign)))
+    for seed, swap in todo:
+        moved = set_aside_dead_bridge(out_dir, seed, swap)
+        if moved:
+            log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; set aside %s and playing "
+                "it again" % (seed, swap, ", ".join(moved)))
     if not todo:
         log("Nothing to do.")
         return 0, out_dir
