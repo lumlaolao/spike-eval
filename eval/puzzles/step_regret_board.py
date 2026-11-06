@@ -123,6 +123,16 @@ def cast(state, card, splices):
     return dict(state, hand=tuple(hand), mana=state["mana"] - cost, stack=top + [item] + state["stack"], pending=None)
 
 
+def _resolved(state):
+    """The position once its stack has resolved, taking a ping in response to each untap trigger the Alchemist can
+    use: (damage on the stack and from those pings, mana then, the Alchemist untapped then, the pings first)."""
+    st = state["stack"]
+    k = sum(1 for x in st if x["untap"])
+    extra = k - (0 if state["u"] else 1) if state["alch"] and k else 0
+    return (sum(x["dmg"] for x in st) + extra, state["mana"] + sum(x["mana"] for x in st),
+            state["u"] or bool(state["alch"] and k), extra)
+
+
 def value(state):
     """The most damage the position can still deal to the opponent: what is on the stack, the pings its untap
     triggers allow, then puzzle_gen.splice_best from the resolved position."""
@@ -133,14 +143,7 @@ def value(state):
         sets = [tuple(p["splices"])] if p["splices"] is not None else _splice_options(state, p["card"])
         after = [cast(state, p["card"], s) for s in sets]
         return max([value(a) for a in after if a is not None], default=0)
-    st = state["stack"]
-    dmg = sum(x["dmg"] for x in st)
-    mana = state["mana"] + sum(x["mana"] for x in st)
-    k = sum(1 for x in st if x["untap"])
-    u = state["u"]
-    if state["alch"] and k:
-        dmg += k - (0 if u else 1)
-        u = True
+    dmg, mana, u, _ = _resolved(state)
     (best, _, _), _ = pg.splice_best(list(state["hand"]), mana, state["alch"], untapped=u)
     return dmg + best
 
@@ -296,10 +299,7 @@ def winning_line(state):
     if state.get("pending") or state.get("ended"):
         raise NotModeled("a line is written from a priority position only")
     st = state["stack"]
-    k = sum(1 for x in st if x["untap"])
-    extra = k - (0 if state["u"] else 1) if state["alch"] and k else 0
-    u = state["u"] or bool(state["alch"] and k)
-    mana = state["mana"] + sum(x["mana"] for x in st)
+    _, mana, u, extra = _resolved(state)
     (_, _, line), _ = pg.splice_best(list(state["hand"]), mana, state["alch"], untapped=u)
     items = ["ping"] * extra + ["ping" if x is None else ("cast", x[0], x[1]) for x in line]
     stack = [("untap",) if x["untap"] else ("obj", x["mana"], 0, x["dmg"], 0) for x in reversed(st)]
@@ -324,10 +324,11 @@ def script_for(rows, k):
     return {"k": k, "prefix": len(pre), "lines": pre + lines, "dealt": dealt, "opp": state["opp"], "option": option}
 
 
-def witness_verdict(recorded, witness, k, result):
+def witness_verdict(recorded, witness, k, result, option=None):
     """An engine witness for position k: "proven" when the witness game reached the recording's position k (every
-    decision row before it the same question, row k's state the same) and the script arm played its line to a solve;
-    "failed" when it reached k, played the line and lost (the model was wrong); else "drift: <why>"."""
+    decision row before it the same question, row k's state the same), took `option` there (when given: the option
+    the model says keeps the win) and the script arm played its line to a solve; "failed" when all that held and it
+    lost (the model was wrong); else "drift: <why>"."""
     if len(witness) <= k:
         return "drift: the witness game has %d decision rows, not %d" % (len(witness), k + 1)
     for i in range(k + 1):
@@ -338,6 +339,8 @@ def witness_verdict(recorded, witness, k, result):
     sa, sb_ = parse_state(recorded[k].get("prompt") or ""), parse_state(witness[k].get("prompt") or "")
     if sa != sb_:
         return "drift: K=%d state %s, the recording's %s" % (k, sb_, sa)
+    if option is not None and chosen_label(witness[k]) != option:
+        return "drift: K=%d the witness took %r, not %r" % (k, chosen_label(witness[k]), option)
     if result.get("script_drift") or not result.get("script_played"):
         return "drift: the line did not play: %s" % (result.get("script_drift") or "lines unplayed")
     return "proven" if result.get("status") == "solved" else "failed"
@@ -426,8 +429,9 @@ def main(argv=None):
                     k = int(d.name.rsplit("-k", 1)[1])
                     games = sorted(d.rglob("game-*.jsonl"))
                     res = [r for f in sorted(d.rglob("puzzle-results.jsonl")) for r in sr.read_jsonl(f)]
+                    drows = sr.decision_rows(log)
                     v = ("drift: no witness game or result row" if not games or not res else
-                         witness_verdict(sr.decision_rows(log), sr.decision_rows(games[-1]), k, res[-1]))
+                         witness_verdict(drows, sr.decision_rows(games[-1]), k, res[-1], script_for(drows, k)["option"]))
                     w = {"t": "step_regret_witness", "version": VERSION, "source_game": str(log), "k": k,
                          "verdict": v, "witness_dir": str(d)}
                     rows.append(w)

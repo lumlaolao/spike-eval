@@ -199,6 +199,10 @@ class AttemptTest(unittest.TestCase):
         other[2] = dict(other[2], options=["CAST Lava Spike @1 {R}", "PASS (do nothing)"])
         self.assertTrue(sb.witness_verdict(rec, other, 3, solved).startswith("drift: row 2"))
         self.assertTrue(sb.witness_verdict(rec, rec[:2], 3, solved).startswith("drift: the witness game"))
+        # The witness must take, at row K, the option the model says keeps the win.
+        self.assertEqual(sb.witness_verdict(rec, rec, 3, solved, option="CAST Lava Spike @1 {R}"), "proven")
+        self.assertTrue(sb.witness_verdict(rec, rec, 3, solved, option="PASS (do nothing)")
+                        .startswith("drift: K=3 the witness took"))
 
     def test_agreement_with_the_search_and_its_baseline(self):
         traj = sb.trajectory(self.rows())
