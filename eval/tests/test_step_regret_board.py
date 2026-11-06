@@ -65,6 +65,15 @@ class ParseTest(unittest.TestCase):
             sb.parse_state(prompt([], stack=[bad]))
         with self.assertRaises(sb.NotModeled):
             sb.parse_state(prompt(["Grapeshot"]))
+        # splice2 boards can add Kiln Fiend or Goblin Electromancer (a pump, a cost reducer): not in the model.
+        with self.assertRaises(sb.NotModeled):
+            sb.parse_state(prompt(["Lava Spike"]).replace("[defender] @7", "[defender] @7, Kiln Fiend 1/2 @6"))
+
+
+    def test_an_empty_hand_reads_as_empty(self):
+        # The prompt writes "(empty)" for an empty hand (every solved attempt ends there); was a crash.
+        s = sb.parse_state(prompt([], pool=1, alch="tapped").replace("hand(0): (none)", "hand(0): (empty)"))
+        self.assertEqual((s["hand"], s["mana"]), ((), 1))
 
 
 class ValueTest(unittest.TestCase):
@@ -166,6 +175,38 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual((fl["n_options"], fl["floor"]), (6, 2 / 6))
         self.assertEqual(fl["model_label"], "CAST Desperate Ritual @3 1{R}")
 
+    def test_an_attempt_with_no_model_decision_is_its_own_status(self):
+        # Every decision lost to the fixed legal option (the model never answered): no position to label.
+        rows = [dict(r, tier="auto") for r in self.rows()]
+        traj = sb.trajectory(rows)
+        self.assertEqual(traj, [])
+        self.assertEqual(sb.regret(traj)["status"], "no_model_decision")
+
+    def test_the_floor_at_a_splice_question_counts_payable_sets(self):
+        # A regret step can be a splice question (two haiku attempts): its answers are the sets of offered cards,
+        # each copy its own option; a set the pool cannot pay is no answer, so it is out of the denominator.
+        hand = ["Desperate Ritual", "Desperate Ritual", "Glacial Ray", "Lava Spike", "Lava Spike"]
+        p = prompt(hand, pool=3, alch=None, opp=10)
+        rows = [{"t": "decision", "seat": "Solver", "tier": "smart", "type": "play", "choice": 0, "prompt": p,
+                 "options": ["CAST Lava Spike @4 {R}", "PASS (do nothing)"]},
+                {"t": "decision", "seat": "Solver", "tier": "smart", "type": "splice", "choice": 2, "prompt": p,
+                 "options": ["Desperate Ritual 1{R} @1", "Desperate Ritual 1{R} @2", "Glacial Ray 1{R} @3"],
+                 "raw_reply": "PICKS: 3"}]
+        fl = sb.floor_at(rows, 1)
+        self.assertEqual(fl["n_options"], 4, "none, either Ritual, the Ray: any two cost 5 of 3")
+        self.assertEqual(fl["kept"], ["splice: Desperate Ritual", "splice: Desperate Ritual"])
+        self.assertEqual((fl["floor"], fl["model_label"]), (0.5, "splice: Glacial Ray"))
+        self.assertFalse(fl["options"]["splice: none"])
+
+    def test_a_splice_set_the_pool_cannot_pay_is_undone_not_lost(self):
+        # Recorded (jev, a Luna attempt): Lava Spike carrying two Glacial Rays (5 mana) with 4; the engine cancels
+        # the cast and the next prompt has the same hand and pool. Was valued 0, so a lost dip mid-attempt.
+        hand = ["Glacial Ray", "Glacial Ray", "Lava Spike"]
+        s = sb.parse_state(prompt(hand, pool=4, alch=None, opp=5))
+        t = dict(s, pending={"card": "Lava Spike", "splices": ("Glacial Ray", "Glacial Ray")})
+        self.assertEqual(sb.value(t), sb.value(s))
+        self.assertTrue(sb.winnable(t))
+
     def test_the_recorded_prefix_as_script_lines(self):
         self.assertEqual(sb.prefix_lines(self.rows(), 6),
                          ["cast Desperate Ritual", "pass", "cast Lava Spike", "opponent", "pass"])
@@ -210,6 +251,25 @@ class AttemptTest(unittest.TestCase):
         a = sb.agreement(traj, verdicts)
         self.assertEqual((a["decided"], a["agree"], a["baseline_agree"]), (3, 3, 2))
         self.assertEqual(a["disagreements"], [])
+
+    def test_a_survey_row_per_attempt_refusals_included(self):
+        # Surveying every recorded attempt: a board outside the model is a refused row (not a crash), and each row
+        # carries the attempt's model, epoch and status from its result row, so conditions are never pooled.
+        with tempfile.TemporaryDirectory() as d:
+            res = {"seed": 1, "status": "failed", "solver_model": "m:x", "harness_epoch": "harness-epoch-9"}
+            for name, rows in (("a", self.rows()),
+                               ("b", [dict(self.rows()[0], prompt=prompt(["Grapeshot"], opp=3))])):
+                (Path(d) / name).mkdir()
+                (Path(d) / name / "game-1-5.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+                (Path(d) / name / "puzzle-results.jsonl").write_text(json.dumps(res) + "\n")
+            out = Path(d) / "board.jsonl"
+            sb.main([str(Path(d) / "a"), str(Path(d) / "b"), "--out", str(out)])
+            got = [json.loads(x) for x in out.read_text().splitlines()]
+        self.assertEqual([g["status"] for g in got], ["exact", "refused"])
+        self.assertIn("Grapeshot", got[1]["refused"])
+        self.assertEqual({(g["solver_model"], g["harness_epoch"], g["attempt_status"]) for g in got},
+                         {("m:x", "harness-epoch-9", "failed")})
+        self.assertEqual((got[0]["n_decisions"], got[0]["floor"]["floor"]), (5, 2 / 6))
 
     def test_search_verdicts_take_the_decided_one(self):
         with tempfile.TemporaryDirectory() as d:

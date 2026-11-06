@@ -14,7 +14,8 @@ every position winnable or not. It is a MODEL verdict, exact only when the model
      and a splice is offered when the spell plus its splices are payable from the pool and untapped lands.
   4. Thermo-Alchemist pings once per untap; each instant or sorcery cast untaps it (a pending untap trigger over an
      untapped Alchemist is one more ping, taken in response).
-  5. A spell being cast at a target or splice question is committed (CANCEL is not a recorded option).
+  5. A spell being cast at a target or splice question is committed (CANCEL is not a recorded option), except that
+     a splice set the pool cannot pay is undone (the next prompt has the same hand and pool).
 
 Anything outside the model (another card, an unknown stack item) is refused (NotModeled), never guessed. Position K
 is the game after the seat's first K decision rows, as in step_regret.py; the end is the last decision applied.
@@ -22,6 +23,7 @@ is the game after the seat's first K decision rows, as in step_regret.py; the en
   python3 eval/puzzles/step_regret_board.py <attempt dir or game log>... --search runs/step-regret/x/step-regret.jsonl
 """
 import argparse
+import itertools
 import json
 import os
 import re
@@ -33,7 +35,7 @@ import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_gen as pg  # noqa: E402
 import step_regret as sr  # noqa: E402
 
-VERSION = "step-regret-board-v1"
+VERSION = "step-regret-board-v2"
 CARDS = pg.SPLICE_CARDS
 
 
@@ -79,12 +81,17 @@ def parse_state(prompt):
         raise NotModeled("mana pool %r" % you)
     hand_ln = _line(prompt, "  hand(", "YOU [")
     body = hand_ln.split("): ", 1)[1] if "): " in hand_ln else ""
-    hand = [] if body.startswith("(none)") or not body.strip() else [
+    hand = [] if body.startswith(("(none)", "(empty)")) or not body.strip() else [
         re.match(r"\s*(.+?) (?:\S*\{|@)", c).group(1) for c in re.split(r", (?=[A-Z])", body)]
     for c in hand:
         if c not in CARDS:
             raise NotModeled("card %r" % c)
     board = _line(prompt, "  board:", "YOU [")
+    perms = board.split(": ", 1)[1]
+    if not perms.startswith("(no nonland permanents)"):
+        for x in re.split(r", (?=[A-Z])", perms):
+            if not x.startswith("Thermo-Alchemist "):
+                raise NotModeled("permanent %r" % x[:60])
     alch = "Thermo-Alchemist" in board
     lands = int(re.search(r"lands: (\d+) untapped", _line(prompt, "  lands:", "YOU [")).group(1))
     opp_ln = _line(prompt, "OPP [")
@@ -142,6 +149,8 @@ def value(state):
     if p:
         sets = [tuple(p["splices"])] if p["splices"] is not None else _splice_options(state, p["card"])
         after = [cast(state, p["card"], s) for s in sets]
+        if p["splices"] is not None and after[0] is None:
+            return value(dict(state, pending=None))    # unpayable: the engine undoes the cast (same hand, pool)
         return max([value(a) for a in after if a is not None], default=0)
     dmg, mana, u, _ = _resolved(state)
     (best, _, _), _ = pg.splice_best(list(state["hand"]), mana, state["alch"], untapped=u)
@@ -226,6 +235,8 @@ def trajectory(rows):
     there, the model's value and verdict."""
     out = []
     pos = sr.positions(rows)
+    if len(pos) == 1:
+        return out                                     # no model decision: nothing the model chose to label
     for i, k, row in pos:
         if row is None:
             last = pos[-2][1]
@@ -247,6 +258,8 @@ def regret(traj):
     step is exact under the model, unless the verdicts are not monotone (a model error: reported, not used)."""
     w = [p["winnable"] for p in traj]
     out = {"regret_index": None, "regret_k": None}
+    if not traj:
+        return dict(out, status="no_model_decision")
     if all(w):
         return dict(out, status="won_at_end")
     j = w.index(False)
@@ -257,16 +270,35 @@ def regret(traj):
     return dict(out, status="exact", regret_index=j - 1, regret_k=traj[j - 1]["k"])
 
 
+def _splice_answers(state, row):
+    """The answers to a splice question: each set of its offered cards (a copy is its own option) the pool and
+    untapped lands can pay with the spell, as (label, state with the spell committed to that set)."""
+    names = [re.match(r"(.+?) \S*\{", o).group(1) for o in row.get("options") or []]
+    out = []
+    for n in range(len(names) + 1):
+        for idx in itertools.combinations(range(len(names)), n):
+            sp = tuple(names[i] for i in idx)
+            if cast(state, state["pending"]["card"], sp) is not None:
+                out.append(("splice: %s" % (", ".join(sp) or "none"),
+                            dict(state, pending=dict(state["pending"], splices=sp))))
+    return out
+
+
 def floor_at(rows, k):
-    """At decision row k: every option's verdict after it is taken, and the share that keep the win."""
+    """At decision row k: every option's verdict after it is taken, and the share that keep the win. At a splice
+    question the options are the payable sets of offered cards."""
     row = rows[k]
     s = position_state(rows, k)
-    opts = row.get("options") or []
-    verdicts = {o: winnable(after_option(s, o)) for o in opts}
-    kept = [o for o in opts if verdicts[o]]
-    return {"k": k, "type": row.get("type"), "n_options": len(opts), "kept": kept,
-            "floor": len(kept) / len(opts) if opts else None, "model_label": chosen_label(row),
-            "options": {o: verdicts[o] for o in opts}}
+    if row.get("type") == "splice":
+        answers = [(label, winnable(t)) for label, t in _splice_answers(s, row)]
+        model = "splice: %s" % (", ".join(_picks(row)) or "none")
+    else:
+        answers = [(o, winnable(after_option(s, o))) for o in row.get("options") or []]
+        model = chosen_label(row)
+    kept = [o for o, w in answers if w]
+    return {"k": k, "type": row.get("type"), "n_options": len(answers), "kept": kept,
+            "floor": len(kept) / len(answers) if answers else None, "model_label": model,
+            "options": dict(answers)}
 
 
 # ------------------------------------------------------------------ an engine witness: the model's line, written
@@ -375,13 +407,21 @@ def agreement(traj, verdicts):
 
 
 def analyse(log, verdicts):
-    rows = sr.decision_rows(log)
-    traj = trajectory(rows)
-    reg = regret(traj)
+    """One attempt's row: its result row's model, epoch and status (never pooled across them), then every position's
+    verdict, the regret step and its floor; a board outside the model is status "refused" with the reason."""
+    res = sr.result_row(log) or {}
     out = {"t": "step_regret_board", "version": VERSION, "source_game": str(log), "seed": sr.seed_of(log),
-           "positions": traj, "agreement": agreement(traj, verdicts), **reg}
-    if reg["status"] == "exact":
-        out["floor"] = floor_at(rows, reg["regret_k"])
+           "solver_model": res.get("solver_model"), "harness_epoch": res.get("harness_epoch"),
+           "attempt_status": res.get("status")}
+    rows = sr.decision_rows(log)
+    try:
+        traj = trajectory(rows)
+        reg = regret(traj)
+        out.update(positions=traj, n_decisions=max(0, len(traj) - 1), agreement=agreement(traj, verdicts), **reg)
+        if reg["status"] == "exact":
+            out["floor"] = floor_at(rows, reg["regret_k"])
+    except NotModeled as e:
+        out.update(status="refused", refused=str(e))
     return out
 
 
@@ -401,6 +441,9 @@ def main(argv=None):
         for log in sr.game_logs(att):
             r = analyse(log, sv.get(str(log), {}))
             rows.append(r)
+            if r["status"] == "refused":
+                print("%s seed %s: refused (%s)" % (Path(log).parent.name, r["seed"], r["refused"]))
+                continue
             if a.scripts:
                 drows = sr.decision_rows(log)
                 for p in r["positions"]:
