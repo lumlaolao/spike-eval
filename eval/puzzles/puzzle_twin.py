@@ -19,7 +19,9 @@ What it cannot do: it renames, so it measures name recall, not recall of the rul
 whole. Words of a name left in prose (`1 Alchemist(s)` in a generated `Rule:`) are not whole names and stay; the seat
 is not shown `Name:` or `Rule:`. It does not prove a twin board plays as its original (that needs the engine: the
 proof replay and a name-mapped log comparison), and it does not yet make a suite record (`twin_of`, the inherited
-split) or pair scores (`puzzle_score.py`); those come later.
+split; `twin_line` gives its reference line the twin's own log hash) or pair scores (`puzzle_score.py`); those come
+later. Known limitation: the seat cuts a long description at a word boundary, so a twin name longer or shorter than
+the original moves the cut, and a cut description shows a few more or fewer words (engine check, finding 2).
 
 The manifest holds, per card, the original's path and sha256, the twin name and the edited lines, never a whole
 Forge script: `install` regenerates each twin from the checkout's original, as `engine_patches.py` does for the
@@ -28,7 +30,11 @@ third-party works. Stdlib only.
 
   python3 eval/puzzles/puzzle_twin.py make --suite eval/suites/puzzles-rules-sample-v1.json --ids rules-RP_017 \
       --seed 1 --out runs/twins/rules-v1 [--forge F]
-  python3 eval/puzzles/puzzle_twin.py install --manifest runs/twins/rules-v1/twin-manifest.json --forge F
+  python3 eval/puzzles/puzzle_twin.py install --manifest runs/twins/rules-v1/twin-manifest.json --forge F [--keep|--replace]
+
+`install` refuses (exit 1) to delete twins another manifest installed, and to put one card under two twin names; a
+sidecar `zz_twins/twins-installed.json` records what each install wrote. `--keep` adds this manifest beside the
+others, `--replace` deletes the others.
 """
 
 import argparse
@@ -401,15 +407,48 @@ def make_twins(suite, ids, forge, out, seed, repo=REPO):
     return manifest
 
 
-def install(manifest, forge):
-    """Write each twin script, regenerated from the checkout's original, to <forge>/TWINS_DIR, remove the twins no
-    longer in the manifest, and write the edition file; returns the paths written. Every card is checked before
-    anything is written: an original whose sha256 moved, a twin that comes out different, or a twin name that is
-    now a real card stops it with TwinRefused naming the card."""
+def twin_line(line, row):
+    """The reference `line` of a twin record: the original's, plus `twin_log_sha256`, the hash of the log of the
+    twin's own solved replay `row`. The game log names its cards, so the original's hash can never match a twin's
+    replay; `puzzle_baselines.check_replay` compares a twin to its own hash and an original to its own."""
+    if not row or row.get("status") != "solved" or not row.get("log_sha256"):
+        raise TwinRefused("the twin replay is not a solved game with a log hash: %s" % (row or {}).get("status"))
+    return dict(line, twin_log_sha256=row["log_sha256"])
+
+
+INSTALLED = "twins-installed.json"  # beside the scripts; Forge reads only .txt there
+
+
+def _installed(folder):
+    """{twin name: {original, twin_sha256}} of what an earlier install wrote; {} when none. A twin script with no
+    record (not written by install) is listed with original None."""
+    try:
+        rec = json.loads((folder / INSTALLED).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        rec = {}
+    for f in folder.glob("*.txt") if folder.is_dir() else ():
+        if not any(script_file(t) == f.name for t in rec):
+            m = re.search(r"^Name:(.*)$", f.read_text(encoding="utf-8", errors="replace"), re.M)
+            rec[m.group(1).strip() if m else f.stem] = {"original": None, "twin_sha256": None}
+    return rec
+
+
+def install(manifest, forge, others="refuse"):
+    """Write each twin script, regenerated from the checkout's original, to <forge>/TWINS_DIR and the edition file;
+    returns the paths written. `others` says what to do with a twin installed earlier that is not in this manifest
+    (another suite's): "refuse" (default, TwinRefused naming them), "keep" or "replace" (delete them). Whatever
+    `others` is, a card already installed under another twin name, or a twin name already on another card or with
+    another script, is refused: one card has one twin in a checkout. Every card is checked before anything is
+    written: an original whose sha256 moved, a twin that comes out different, or a twin name that is now a real
+    card stops it with TwinRefused naming the card."""
+    if others not in ("refuse", "keep", "replace"):
+        raise ValueError("others: %r" % others)
     forge = Path(forge)
     index = real_card_index(forge)
     real = {n.lower() for n in index}
-    planned = {}
+    folder = forge / TWINS_DIR
+    have = _installed(folder)
+    planned, record = {}, {}
     for c in manifest.get("cards", []):
         src = forge / CARDSFOLDER / c["script"]
         if not src.is_file():
@@ -422,20 +461,35 @@ def install(manifest, forge):
             raise TwinRefused("%s: the twin %s comes out different" % (c["original"], c["twin"]))
         if c["twin"].lower() in real:
             raise TwinRefused("%s: the twin %s is a real card in %s" % (c["original"], c["twin"], forge))
+        for t, h in have.items():
+            if h["original"] == c["original"] and t != c["twin"]:
+                raise TwinRefused("%s: already installed as the twin %s, this manifest has %s (--replace removes "
+                                  "the installed twins)" % (c["original"], t, c["twin"]))
+            if t == c["twin"] and (h["original"] != c["original"] or h["twin_sha256"] != c["twin_sha256"]):
+                raise TwinRefused("%s: the twin name %s is installed for %s with another script (--replace removes "
+                                  "the installed twins)" % (c["original"], t, h["original"] or "an unknown card"))
         planned[script_file(c["twin"])] = text
-    folder = forge / TWINS_DIR
+        record[c["twin"]] = {"original": c["original"], "twin_sha256": c["twin_sha256"]}
+    extra = sorted(t for t in have if t not in record)
+    if extra and others == "refuse":
+        raise TwinRefused("%d twins installed from another manifest would be deleted: %s. --keep leaves them, "
+                          "--replace removes them" % (len(extra), ", ".join(extra[:5]) + (" ..." if len(extra) > 5 else "")))
     folder.mkdir(parents=True, exist_ok=True)
-    for old in sorted(folder.glob("*.txt")):
-        if old.name not in planned:
-            old.unlink()
+    if others == "keep":
+        record.update({t: have[t] for t in extra})
+    else:
+        for old in sorted(folder.glob("*.txt")):
+            if old.name not in planned:
+                old.unlink()
     written = []
     for fname, text in sorted(planned.items()):
         (folder / fname).write_text(text, encoding="utf-8")
         written.append(folder / fname)
-    twins = sorted(c["twin"] for c in manifest.get("cards", []))
+    (folder / INSTALLED).write_text(json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     edition = forge / EDITION_FILE
     edition.parent.mkdir(parents=True, exist_ok=True)
-    edition.write_text(EDITION + "".join("%d C %s\n" % (i, t) for i, t in enumerate(twins, 1)), encoding="utf-8")
+    edition.write_text(EDITION + "".join("%d C %s\n" % (i, t) for i, t in enumerate(sorted(record), 1)),
+                       encoding="utf-8")
     written.append(edition)
     return written
 
@@ -452,6 +506,9 @@ def main(argv=None):
     ins = sub.add_parser("install", help="write the twin scripts and edition into a Forge checkout")
     ins.add_argument("--manifest", required=True)
     ins.add_argument("--forge", required=True, help="the checkout to write into (no default, on purpose)")
+    grp = ins.add_mutually_exclusive_group()
+    grp.add_argument("--keep", action="store_true", help="leave twins installed from another manifest")
+    grp.add_argument("--replace", action="store_true", help="delete twins installed from another manifest")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "make":
@@ -469,7 +526,8 @@ def main(argv=None):
             for r in m["refused"]:
                 print("REFUSED %s: %s" % (r["id"], r["reason"]))
         else:
-            written = install(json.loads(Path(a.manifest).read_text(encoding="utf-8")), a.forge)
+            written = install(json.loads(Path(a.manifest).read_text(encoding="utf-8")), a.forge,
+                             "keep" if a.keep else "replace" if a.replace else "refuse")
             print("wrote %d files under %s" % (len(written), a.forge))
     except TwinRefused as e:
         print("REFUSED: %s" % e, file=sys.stderr)

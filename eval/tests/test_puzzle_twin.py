@@ -318,8 +318,8 @@ class MakeAndInstallTest(unittest.TestCase):
             stale = forge / tw.TWINS_DIR / "old_twin.txt"
             stale.parent.mkdir(parents=True)
             stale.write_text("Name:Old Twin\n")
-            written = tw.install(manifest, forge)
-            self.assertFalse(stale.exists(), "a twin no longer in the manifest is removed")
+            written = tw.install(manifest, forge, others="replace")
+            self.assertFalse(stale.exists(), "--replace removes a twin that is not in the manifest")
             for path in written:
                 self.assertTrue(Path(path).resolve().is_relative_to(forge.resolve())
                                 if hasattr(Path, "is_relative_to") else str(path).startswith(str(forge)))
@@ -342,6 +342,66 @@ class MakeAndInstallTest(unittest.TestCase):
             with self.assertRaisesRegex(tw.TwinRefused, "Glimmer Rite"):
                 tw.install(manifest, forge)
             self.assertFalse((forge / tw.TWINS_DIR).exists(), "nothing is written when one card fails")
+
+    def second_manifest(self, manifest, twin=None, original="Ember Wisp"):
+        """A second suite's manifest holding one card of the first (renamed when `twin` is given)."""
+        card = [dict(c) for c in manifest["cards"] if c["original"] == original]
+        if twin:
+            card[0]["twin"] = twin
+        return dict(manifest, cards=card)
+
+    def test_install_refuses_to_delete_twins_another_manifest_installed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            before = sorted(p.name for p in (forge / tw.TWINS_DIR).glob("*.txt"))
+            self.assertGreater(len(before), 1)
+            with self.assertRaisesRegex(tw.TwinRefused, "another manifest"):
+                tw.install(self.second_manifest(manifest), forge)
+            self.assertEqual(sorted(p.name for p in (forge / tw.TWINS_DIR).glob("*.txt")), before)
+
+    def test_install_keep_adds_a_second_manifest_and_replace_removes_the_first(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            only_glimmer = self.second_manifest(manifest, original="Glimmer Rite")
+            only_ember = self.second_manifest(manifest)
+            tw.install(only_glimmer, forge)
+            tw.install(only_ember, forge, others="keep")
+            self.assertEqual(len(list((forge / tw.TWINS_DIR).glob("*.txt"))), 2)
+            edition = (forge / tw.EDITION_FILE).read_text(encoding="utf-8")
+            for c in only_glimmer["cards"] + only_ember["cards"]:
+                self.assertIn(" C %s\n" % c["twin"], edition, "the edition lists every installed twin")
+            tw.install(only_ember, forge, others="replace")
+            self.assertEqual(len(list((forge / tw.TWINS_DIR).glob("*.txt"))), 1)
+            self.assertEqual(tw.install(only_ember, forge) and 1, 1, "installing the same manifest again is fine")
+
+    def test_install_refuses_one_card_under_two_twin_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(self.second_manifest(manifest), forge)
+            other = self.second_manifest(manifest, twin="Zorvak Bel")
+            for mode in ("refuse", "keep"):
+                with self.assertRaisesRegex(tw.TwinRefused, "Ember Wisp"):
+                    tw.install(other, forge, others=mode)
+
+    def test_the_cli_refuses_with_a_nonzero_exit_and_replace_overrides(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            second = Path(tmp) / "second.json"
+            second.write_text(json.dumps(self.second_manifest(manifest)), encoding="utf-8")
+            args = ["install", "--manifest", str(second), "--forge", str(forge)]
+            self.assertEqual(tw.main(args), 1)
+            self.assertEqual(tw.main(args + ["--replace"]), 0)
+
+    def test_a_twin_line_carries_the_hash_of_the_twins_own_log(self):
+        line = {"arm": "ai", "seed": 1, "log_sha256": "L"}
+        twin = tw.twin_line(line, {"status": "solved", "log_sha256": "T"})
+        self.assertEqual((twin["log_sha256"], twin["twin_log_sha256"]), ("L", "T"))
+        self.assertNotIn("twin_log_sha256", line, "the original's line is not changed")
+        for bad in (None, {"status": "failed", "log_sha256": "T"}, {"status": "solved"}):
+            with self.assertRaises(tw.TwinRefused):
+                tw.twin_line(line, bad)
 
     def test_the_cli_never_writes_into_the_repositorys_eval_folder(self):
         with self.assertRaises(SystemExit) as cm:
