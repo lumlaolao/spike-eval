@@ -1021,6 +1021,13 @@ public final class LlmSpikeGui {
         static String failedPlayKey(SpellAbility sa) {
             return sa.getHostCard().getId() + "|" + sa.getAlternativeCost() + "|" + sa.getCardStateName() + "|" + sa.getDescription();
         }
+        /** The key of {@code play} cast with {@code splices} spliced onto it: its failure is that set's, not the card's. */
+        static String spliceKey(String play, Iterable<Card> splices) {
+            List<Integer> ids = new ArrayList<>();
+            for (Card c : splices) ids.add(c.getId());
+            java.util.Collections.sort(ids);
+            return play + "|splice " + ids;
+        }
         private String cancelNote = null;
         /** Set by {@link LlmCostDecision} for the one cost ask it is making when that ask may be answered
          *  "cancel" (a play not committed yet: CostPayment decides every part before paying any); the ask
@@ -3385,13 +3392,17 @@ public final class LlmSpikeGui {
             String again = "";
             for (int attempt = 0; attempt < 2; attempt++) {
                 List<Card> picked = pickCards("splice", q + again, payable);
-                if (picked.size() < 2) return picked;
+                if (picked.isEmpty()) return picked;
+                // A set whose cast already failed to pay in this window is not taken again: the plain cast stays offered
+                // (#392), so a set the check passes and the payment fails must not be retried without end.
+                boolean failed = failedInWindow.contains(spliceKey(failedPlayKey(sa), picked));
                 SpellAbility with = spliced(sa, picked);
-                if (payableSpliced(with)) return picked;
+                if (!failed && (picked.size() < 2 || payableSpliced(with))) return picked;
                 String set = names(picked, false, 10), total = with == null ? "?" : String.valueOf(with.getPayCosts().getTotalMana());
-                again = " You chose " + set + ": the spell with all of them costs " + total + ", more than you can pay,"
-                        + " so it would not be cast. Choose a set you can pay for together, or none.";
-                p("[ROUTER] splice: " + set + " cannot be paid together (" + total + ")");
+                again = " You chose " + set + ": " + (failed ? "the spell with them could not be paid for when you cast it."
+                        : "the spell with all of them costs " + total + ", more than you can pay, so it would not be cast.")
+                        + " Choose a set you can pay for together, or none.";
+                p("[ROUTER] splice: " + set + (failed ? " failed to pay in this window" : " cannot be paid together (" + total + ")"));
             }
             auto("splice(unpayable set)->none");
             return new ArrayList<>();
@@ -5437,7 +5448,7 @@ public final class LlmSpikeGui {
                     sa.resetTargets();
                     ensureTargetsSet(sa);
                     // A failure of the spliced spell is that set's, not the card's: the plain cast stays offered (#392).
-                    chosenKey += "|splice " + sa.getSplicedCards();
+                    chosenKey = spliceKey(chosenKey, sa.getSplicedCards());
                 }
                 sa.setHostCard(game.getAction().moveToStack(source, sa));
             }
