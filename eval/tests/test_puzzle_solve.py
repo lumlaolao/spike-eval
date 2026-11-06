@@ -117,6 +117,16 @@ class ResumeTest(unittest.TestCase):
         self.write(out, [{"seed": 1, "suite_sha256": "S", "routing_refusals": 0}])
         self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
 
+    def test_an_attempt_a_dead_bridge_played_is_played_again(self):
+        # Issue #378: puzzle_score refuses such a row, so a resume replays the puzzle (its rows set aside, still priced).
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "bridge_down_decisions": 11}])
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "run")
+        self.assertTrue((out / "puzzle-results.partial0.jsonl").is_file(), "the dead attempt's row is kept aside")
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "bridge_down_decisions": 0}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
     def test_a_puzzle_cut_off_part_way_keeps_its_paid_rows_aside_and_is_played_again(self):
         out = Path(tempfile.mkdtemp()) / "p"
         for _ in range(2):   # cut off twice: neither set of rows overwrites the other

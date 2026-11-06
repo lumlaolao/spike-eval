@@ -483,6 +483,11 @@ other puzzles, suites, splits, k, game caps or call deadlines are refused; a pai
 - mix solvers;
 - score a puzzle with fewer than k attempts, or with a seed repeated;
 - score an unscoreable row (one where the goal was not enforced);
+- score a row with a decision lost to a routing filter (`routing_refusals`) or to a dead model bridge
+  (`bridge_down_decisions`: a transport failure on every retry, such as a 402 when the credits ran out, issue #378;
+  `docs/harness/ARCHITECTURE.md`). `puzzle_solve.py` flags it on the progress line (`[BRIDGE-DOWN]`),
+  `puzzle_watch.py` as `BRIDGE-DOWN`, `defect_analyzer.py` fails on it (`bridge_down_total`), and `--resume` plays the
+  puzzle again with the row set aside (`puzzle-results.partial<n>.jsonl`);
 - pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
   stamped one is refused too);
 - pool or pair attempts under two per-call deadlines (`call_timeout_ms`, the same way; a run with no manifest is not

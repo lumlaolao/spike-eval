@@ -226,6 +226,20 @@ class PriceCeilingRefusalTest(unittest.TestCase):
         self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "solved"}), (True, None))
 
 
+class DeadBridgeRefusalTest(unittest.TestCase):
+    """Issue #378: an attempt whose model bridge was dead (a 402 when the credits ran out) lost its decisions to the
+    transport, not the model (bridge_down_decisions, issue #369's rule); it was scored a plain unsolved attempt."""
+
+    def test_an_attempt_a_dead_bridge_played_is_refused_and_one_it_did_not_is_scored(self):
+        row = {"id": "p", "seed": 1, "status": "failed", "bridge_down_decisions": 11}
+        with self.assertRaisesRegex(ps.Refused, "dead model bridge"):
+            ps.attempt_success(row)
+        self.assertEqual(ps.attempt_success(dict(row, bridge_down_decisions=0)), (False, None))
+        self.assertEqual(ps.lost_decisions(row), 11)
+        self.assertEqual(ps.lost_decisions(dict(row, routing_refusals=2)), 13)
+        self.assertEqual(ps.lost_decisions({"id": "p"}), 0, "a row from before the field counts nothing")
+
+
 class ReplayRowRefusalTest(unittest.TestCase):
     """pr-review of #365: a replay (ReplayBridge, `replay:`) plays a recorded attempt's answers again; its solved row
     scored PUZ 1.000. A replay is not an attempt, whatever its status."""

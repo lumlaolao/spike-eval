@@ -1074,6 +1074,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     played on a dead bridge is status `bridge-down` (a problem in the batch summary, not retried in the run, where an
     outage would repeat); a later resume under its condition sets it aside under `crashed/` (`bridgedown-swap<n>-<game file>`, still
     priced) and plays the seed again.
+  - A puzzle attempt (issue #378) has no game line: its result row carries the seat's own count
+    (`bridge_down_decisions`, from `PlayerControllerLLM.budget()`, 0 when nothing was lost), `puzzle_score.py`
+    refuses a row with any (`lost_decisions`, beside `routing_refusals`), `puzzle_solve.py` and `puzzle_watch.py` flag
+    it `BRIDGE-DOWN`, `--resume` sets the puzzle's rows aside and plays it again, and `defect_analyzer.py` reads the
+    rows of a directory's `puzzle-results.jsonl` into `bridge_down_total`. A row from before the field counts nothing.
   - *Why any, not a share:* the 2026-11-05 block that ran out of credits (`runs/cv/luna-vs-ai`, kept by the issue's
     hunter) scored 20 decisive games; on it `python3 eval/aggregate.py runs/cv/luna-vs-ai` now reads 2 decisive and 18
     invalid, and `python3 eval/defect_analyzer.py runs/cv/luna-vs-ai` `bridge_down_total=355` (its game lines predate

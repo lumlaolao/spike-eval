@@ -27,7 +27,8 @@ per-puzzle rate), it does not correct for several comparisons, and result rows w
 stamped cannot be told apart by epoch.
 
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
-call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
+call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row or one that lost
+decisions to a routing filter or a dead model bridge. Stdlib only.
 """
 
 import argparse
@@ -102,6 +103,12 @@ def p_solved_by_policy(rate, k):
     return sum(math.comb(k, c) * rate ** c * (1 - rate) ** (k - c) for c in range(need, k + 1))
 
 
+def lost_decisions(row):
+    """Decisions the attempt lost that were not the model's: to a routing filter (routing_refusals) or to a dead model
+    bridge (bridge_down_decisions, issue #378). attempt_success refuses a row with any; a resume plays it again."""
+    return (row.get("routing_refusals") or 0) + (row.get("bridge_down_decisions") or 0)
+
+
 def attempt_success(row):
     """(success, note). A capped game counts as a failure (it cannot vanish); a solve decided by an
     empty-library deck-out is not evidence and counts as a failure; an unscoreable row and a replay are refused."""
@@ -118,6 +125,10 @@ def attempt_success(row):
         raise Refused("row for %s (seed %s): %s decisions lost under the routing filter (no endpoint it allows answered "
                       "after every retry), so they were not the model's; replay it with --resume"
                       % (row.get("id"), row.get("seed"), row["routing_refusals"]))
+    if row.get("bridge_down_decisions"):
+        raise Refused("row for %s (seed %s): %s decisions lost to a dead model bridge (a transport failure on every "
+                      "retry: a 402, an outage), so they were not the model's; replay it with --resume"
+                      % (row.get("id"), row.get("seed"), row["bridge_down_decisions"]))
     if status == "invalid":
         return False, "capped"
     if status not in ("solved", "failed"):
