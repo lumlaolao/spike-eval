@@ -46,6 +46,24 @@ class VersionsTest(unittest.TestCase):
         self.assertEqual(sorted(set(self.NOT_STAMPED) - found), [], "a NOT_STAMPED entry names no constant")
         self.assertTrue(all(why.strip() for why in self.NOT_STAMPED.values()))
 
+    # Stamps whose value no acceptance stage names, each with why and where it is pinned instead (#372).
+    PINNED_ELSEWHERE = {
+        "ReplayBridge.VERSION": "asserted by value in ReplayBridgeTest, which the javatests stage runs",
+        "FORGE_COMMIT": "the engine pin: preflight checks the checkout against it, by sha, not by this short form",
+    }
+
+    def test_every_stamp_is_pinned_by_value_in_acceptance(self):
+        # STANDARDS section 4: each stamp is asserted by literal value in a stage of eval/harness_acceptance.sh, so a
+        # version that moves without the gate moving turns acceptance red. one-chat-v3 was pinned nowhere (#372).
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        with open(os.path.join(root, "eval", "harness_acceptance.sh"), encoding="utf-8") as f:
+            gate = f.read()
+        names = [name for name, _, _, _ in versions.read_stamps()]
+        unpinned = [name for name, value, _, _ in versions.read_stamps()
+                    if value not in gate and name not in self.PINNED_ELSEWHERE]
+        self.assertEqual(unpinned, [], "pin each value in a stage of eval/harness_acceptance.sh, or say why not")
+        self.assertEqual(sorted(set(self.PINNED_ELSEWHERE) - set(names)), [], "a PINNED_ELSEWHERE entry names no stamp")
+
     def test_the_page_matches_the_code(self):
         self.assertEqual(versions.main(["--check"]), 0, "run: python3 eval/versions.py --write")
 

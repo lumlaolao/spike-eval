@@ -133,7 +133,8 @@ most log questions).
   neither in `versions.STAMPS` nor in its `NOT_STAMPED` table with the reason it is not a result stamp:
   `test_every_version_constant_is_a_stamp_or_says_why`, #365, #370) and is stamped on the game line. Legacy profiles stay byte-identical. Each stamp is asserted by literal value in a
   stage of `eval/harness_acceptance.sh`, so a version that moves without the gate moving turns it
-  red. Runs across a version, or across an opt-in flag, are never pooled for a comparison; a
+  red (`eval/tests/test_versions.py` `test_every_stamp_is_pinned_by_value_in_acceptance` checks each one, with the
+  stamps pinned another way named and why). Runs across a version, or across an opt-in flag, are never pooled for a comparison; a
   pooled count may be shown for description only when it is labelled, names the arms, and the
   per-arm counts are beside it.
 - **JSONL is additive-only.** New fields; never a renamed or re-typed one. Readers use `.get()`.
