@@ -85,8 +85,8 @@ fixed). Section 8 says what was not determined.
 Every number in this section comes from the committed miner and two commands, run in this worktree:
 
 ```
-FORGE_HOME=/root/forge python3 eval/rules_probe.py mine /home/user/mtg-forge-llm-agent/runs/propose \
-    /home/user/mtg-forge-llm-agent/runs/demo /home/user/mtg-forge-llm-agent/runs/puzzles \
+FORGE_HOME=/root/forge python3 eval/rules_probe.py mine runs/propose \
+    runs/demo runs/puzzles \
     --out runs/rules-probe/items-all.jsonl
 python3 eval/rules_probe.py stats runs/rules-probe/items-all.jsonl --floor
 ```
