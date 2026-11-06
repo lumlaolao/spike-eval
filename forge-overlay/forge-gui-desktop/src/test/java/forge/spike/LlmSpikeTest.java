@@ -2083,10 +2083,11 @@ public class LlmSpikeTest {
     }
 
     /** {G}x6 from one Druid and six other Elves needs the Druid twice. The engine's test payment uses a
-     *  source once, so it finds no plan and the seat is never asked; the real payment activates the
-     *  Druid twice with Forge AI's choice of Elves. That must be said, once, not left silent. */
+     *  source once, so it finds no plan; the real payment then activated the Druid twice with Forge AI's
+     *  choice of Elves, said as a fallback. The search the menu's check uses (#367) finds the two
+     *  activations, so the seat chooses the Elves both times and nothing falls back. */
     @Test
-    public void anEngineActivationOfATapTypeSourceIsSaid() {
+    public void aTapTypeSourceTheEngineCannotPlanIsStillTheSeats() {
         Game game = buildBareGame();
         Player me = game.getPlayers().get(0);
         addBattlefieldCard("Heritage Druid", me);
@@ -2100,10 +2101,13 @@ public class LlmSpikeTest {
         forge.game.spellability.SpellAbility spell = baloth.getFirstSpellAbility();
         spell.setActivatingPlayer(me);
 
+        Assert.assertNull(forge.ai.ComputerUtilMana.getManaSourcesToPayCost(new forge.game.mana.ManaCostBeingPaid(
+                new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G G G G G G"))), spell, me, false),
+                "fixture: the engine's own test payment finds no plan");
         Assert.assertTrue(ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G G G G G G")),
                 null, spell, null, null, false), "{G}x6 was not paid");
-        Assert.assertEquals(bridge.prompts.size(), 0, "fixture: the engine's plan was expected to be empty");
-        Assert.assertEquals(ctrl.aiDelegationsCount(), 1, "the engine's choice of Elves was not said exactly once");
+        Assert.assertEquals(bridge.prompts.size(), 2, "which Elves the Druid taps was not asked for each activation: " + bridge.prompts);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "the engine chose Elves");
     }
 
     /** The engine's real payment does not raise toPay again (CostPayment already did), so the plan
