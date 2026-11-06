@@ -406,8 +406,10 @@ public final class LlmSpikeGui {
      *  Epoch 86 (2026-11-06, #391): a puzzle's solver is shown its own cards' cost, type line and rules text: the setup
      *  cards in <your_deck> (LlmSpikePuzzle.solverPlan), each later one as it is first seen (YOUR CARDS SINCE THE START,
      *  observation-faithful-v43). PUZ results before and after never pool.
+     *  Epoch 87 (2026-11-06, #395): the target ask's preview of a modal spell plays the mode the seat chose
+     *  (lookahead-preview-v16); every target of a chosen mode was "preview unavailable" ("failed to target").
      */
-    static final String HARNESS_EPOCH = "harness-epoch-86";
+    static final String HARNESS_EPOCH = "harness-epoch-87";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

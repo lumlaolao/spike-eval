@@ -61,7 +61,9 @@ final class PlayerLookahead {
     // v14 (2026-10-18): the same, for every copy: GameCopier is patched, and the harness-side parking is gone.
     // v15 (2026-10-19, runs/loop/g28 T6): a counterspell is aimed at the spell on the copy's stack (Force of Negation
     // against Seam Rip was unavailable, then countered nothing), and the delta reports exile counts.
-    static final String VERSION = "lookahead-preview-v15";
+    // v16 (2026-11-06, issue #395): a modal spell's target is previewed in the mode the seat chose; the copy chose the
+    // modes again with Forge's AI, and the seat's target on the AI's mode failed to target (Barbed Lightning).
+    static final String VERSION = "lookahead-preview-v16";
 
     private PlayerLookahead() { }
 
@@ -196,6 +198,23 @@ final class PlayerLookahead {
             }
         } catch (RuntimeException ignore) { }
         return live;
+    }
+
+    /** The modes the seat chose for modal option {@code sa}, as its mode list holds them: each chained ability matched
+     *  by its text. Null when {@code sa} is not modal, already has a chosen list (Forge's own mode choice sets one),
+     *  has no mode chained, or chains an ability that is not one of its modes. */
+    static java.util.List<forge.game.spellability.AbilitySub> chainedModes(forge.game.spellability.SpellAbility sa) {
+        if (sa.getApi() != forge.game.ability.ApiType.Charm || sa.getChosenList() != null || sa.getSubAbility() == null)
+            return null;
+        java.util.List<forge.game.spellability.AbilitySub> modes = new java.util.ArrayList<>();
+        for (forge.game.spellability.AbilitySub sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility()) {
+            forge.game.spellability.AbilitySub mode = null;
+            for (forge.game.spellability.AbilitySub c : sa.getAdditionalAbilityList("Choices"))
+                if (java.util.Objects.equals(c.getParam("SpellDescription"), sub.getParam("SpellDescription"))) mode = c;
+            if (mode == null) return null;
+            modes.add(mode);
+        }
+        return modes;
     }
 
     /** True when an ability of {@code sa}'s chain is aimed at a spell on the stack. */
@@ -403,6 +422,16 @@ final class PlayerLookahead {
                 savedTargets.put(s, t);
             }
         }
+        // A modal option whose modes the seat chose holds them only as its chained abilities, so the copy's cast had
+        // Forge's AI choose the modes again, and the seat's target for its mode was put on the AI's: the stack refused
+        // it ("failed to target", issue #395). The chosen list the copy takes is set, and cleared in the finally.
+        java.util.List<forge.game.spellability.SpellAbility> modesListed = new java.util.ArrayList<>();
+        for (forge.game.spellability.SpellAbility o : liveOptions) {
+            java.util.List<forge.game.spellability.AbilitySub> modes = chainedModes(o);
+            if (modes == null) continue;
+            o.setChosenList(modes);
+            modesListed.add(o);
+        }
         enter();
         try {
             MyRandom.setRandom(new Random(seed));
@@ -508,6 +537,7 @@ final class PlayerLookahead {
                     for (forge.game.GameObject go : e.getValue()) e.getKey().getTargets().add(go);
                 } catch (Exception ignore) { }
             }
+            for (forge.game.spellability.SpellAbility o : modesListed) o.setChosenList(null);
             MyRandom.setRandom(liveRandom);
             exit();
         }

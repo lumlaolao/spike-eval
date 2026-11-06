@@ -603,6 +603,52 @@ public class LookaheadProbeTest {
                 "Seam Rip was countered and exiled on the copy: " + report);
     }
 
+    /** The target ask's preview of a modal spell whose mode the seat chose ({@code aimed} is that mode), as
+     *  targetPreview calls it. The seat's mode choice chains the mode and sets no chosen list. */
+    private static String previewChosenMode(Game g, Player me, forge.game.card.Card card, int mode,
+                                            forge.game.GameEntity at) {
+        forge.game.spellability.SpellAbility sa = spellOn(card);
+        sa.setActivatingPlayer(me);
+        forge.game.ability.effects.CharmEffect.chainAbilities(sa,
+                new java.util.ArrayList<>(java.util.Collections.singletonList(sa.getAdditionalAbilityList("Choices").get(mode))));
+        String report = PlayerLookahead.previewLine(g, me, java.util.Collections.singletonList(sa), 5L, null,
+                sa.getSubAbility(), at);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertNull(sa.getChosenList(), "the preview leaves the live spell's modes as the seat chose them");
+        Assert.assertTrue(sa.getSubAbility().getTargets().isEmpty(), "the preview leaves the live mode untargeted");
+        return report;
+    }
+
+    /** Issue #395 (keyword gauntlet, random policy, seed e86r, kw08): each target of Barbed Lightning's
+     *  player-or-planeswalker mode, which the seat chose, previewed "unavailable" ("Couldn't add to stack, failed to
+     *  target"): the copy let Forge's AI choose the mode again and gave its creature mode the seat's player. */
+    @Test
+    public void aChosenModesTargetIsPreviewedInThatMode() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) LineFindingProbeTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.card("Grizzly Bears", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card bolt = LineFindingProbeTest.card("Barbed Lightning", me, forge.game.zone.ZoneType.Hand);
+        String report = previewChosenMode(g, me, bolt, 1, opp);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("Barbed Lightning") && report.contains("Rival life 20 -> 17"), report);
+    }
+
+    /** Issue #395 (kw08): Betrayal of Flesh, its destroy mode the only legal one, aimed at the seat's own creature:
+     *  the copy's AI chose the mode with a target of its own, and the seat's was added to it. */
+    @Test
+    public void aForcedModeAimedAtTheSeatsOwnCreatureIsPreviewed() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 6; i++) LineFindingProbeTest.card("Swamp", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card mine = LineFindingProbeTest.card("Grizzly Bears", me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.card("Craw Wurm", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card betrayal = LineFindingProbeTest.card("Betrayal of Flesh", me, forge.game.zone.ZoneType.Hand);
+        String report = previewChosenMode(g, me, betrayal, 0, mine);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Grizzly Bears") && !report.contains("Craw Wurm"), report);
+    }
+
     /** The model can aim the preview: a hint naming a legal target is honoured. */
     @Test
     public void previewCastHonoursATargetHint() {
