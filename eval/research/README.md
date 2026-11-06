@@ -27,6 +27,7 @@ experiment in progress), **negative** (measured; does not help as proposed), **o
 | 2026-11-05 | [step-regret-feasibility](2026-11-05-step-regret-feasibility.md) | Can the engine label the first losing decision | yes once a recorded attempt replays (#365), then search |
 | 2026-11-05 | [twin-cards-feasibility](2026-11-05-twin-cards-feasibility.md) | Renamed cards as a recall-vs-reading test | Forge loads set-less scripts; a missing card is silently skipped |
 | 2026-11-06 | [forecast-floors](2026-11-06-forecast-floors.md) | What a model's P(win) forecast must beat | life difference alone is the floor: Brier about 0.21 on Luna turns (base 0.245); no signal on Luna turns 1-3 |
+| 2026-11-06 | [step-regret-search](2026-11-06-step-regret-search.md) | Does replay-then-search label the regret step | not yet: 0 drift in 72 searches, but no exact step on 4 attempts (one bracket); the middle positions are not found |
 
 ## Ideas
 
@@ -35,7 +36,7 @@ From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-
 | # | Idea | Status | Where |
 |---|---|---|---|
 | 1 | Same-seed control variate for STR-AI | free part done; paid rho **parked** (the provider account answered HTTP 402, issue #369) | [seed-control-variate](2026-11-05-seed-control-variate.md), #364 |
-| 2 | Step regret: the first decision that loses a won puzzle | ReplayBridge **adopted** (#365); labeller **running** | [step-regret-feasibility](2026-11-05-step-regret-feasibility.md) |
+| 2 | Step regret: the first decision that loses a won puzzle | ReplayBridge **adopted** (#365); labeller built, **negative** on 4 splice attempts (draft PR, `feat/step-regret`) | [step-regret-search](2026-11-06-step-regret-search.md) |
 | 3 | Twin cards: every card renamed, recall vs reading | **draft PR** #371; engine check **running** | [twin-cards-feasibility](2026-11-05-twin-cards-feasibility.md) |
 | 4 | IRT calibration from a free population | **negative** on today's data | [irt-pilot](2026-11-05-irt-pilot.md) |
 | 5 | Self-forecast calibration: P(win) probes, Brier/AUROC | free floors done; paid probe (about $0.11) **parked** (HTTP 402, issue #369) | [forecast-floors](2026-11-06-forecast-floors.md) |
