@@ -289,6 +289,31 @@ public class ProposeActionsTest {
         Assert.assertFalse(err.contains("Forest"), "a rejection names the rule, not what to do instead: " + err);
     }
 
+    /** Heritage Druid's "Tap three untapped Elves you control: Add {G}{G}{G}" has no {T}, so it may tap itself and Elves
+     *  that tap for mana of their own. Priest of Titania (4), the Druid tapping itself, Nettle Sentinel and Fyndhorn
+     *  Elves (3) and a Forest pay Craterhoof Behemoth's 8; the payment check tapped Fyndhorn Elves for its own {G}
+     *  first, left the Druid two Elves, and the menu hid the cast (#367). */
+    @Test
+    public void aTapUntappedElvesManaAbilityCountsTowardTheMenu() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Forest", me, ZoneType.Battlefield);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves", "Priest of Titania"))
+            card(elf, me, ZoneType.Battlefield);
+        Card hoof = card("Craterhoof Behemoth", me, ZoneType.Hand);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertTrue(po.spells.stream().anyMatch(sa -> sa.getHostCard() == hoof), "the board pays 8: " + po.spells);
+        Assert.assertNull(verdict(ctrl, me, true, prop("cast", handle(ctrl, hoof), null, null, null), new int[] {-1}));
+        // The cast the menu offers is one the seat's payment makes: the Druid taps itself, Nettle and Fyndhorn.
+        SpellAbility spell = hoof.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+        Assert.assertTrue(ctrl.payManaCost(spell.getPayCosts().getCostMana(), spell, null, null, false), "the {5}{G}{G}{G} was not paid");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).allMatch(Card::isTapped), "every permanent paid: " + me.getCardsIn(ZoneType.Battlefield));
+        Assert.assertEquals(me.getManaPool().totalMana(), 0, "nothing left floating");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "the engine chose nothing the seat owns");
+    }
+
     @Test
     public void aSecondLandBreaksTheLandDrop() {
         Game g = bareGame(PhaseType.MAIN1);

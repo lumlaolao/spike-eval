@@ -75,6 +75,15 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - What can be paid is decided by `legallyPayable`: the engine's mana and non-mana tests. Forge AI's
   `ComputerUtilCost.canPayCost` adds its own taste on top. It refused, half the time at random, a planeswalker
   ability that spends all its loyalty, and refused ward costs and casualty creatures it would not pay.
+- The engine's mana test is greedy: each source once, in its own order, and a "tap N untapped X you control" part
+  (Heritage Druid) takes the lowest-power cards. It tapped Fyndhorn Elves for its own {G} before the Druid, left the
+  Druid two Elves, and hid Craterhoof Behemoth on a board that pays 8 (#367). When it fails, `seatCanPay` searches the
+  tap-type mana abilities it skipped (`tapTypeStep`: each set of cards the tap part may take, those that tap for no
+  mana of their own first, the rest paid by the engine's test with them tapped; three activations deep, 48 tests at
+  most; every card untapped again). It tries only the abilities the seat's payment activates itself (a tap part and at
+  most {T}, fixed colors), and that payment starts from the activation it found (`prepayTapTypeManaAbilities`), the
+  seat choosing the cards among those the rest of the payment does not need. Druid-twice payments the engine could
+  not plan are the seat's too, no longer Forge AI's choice of Elves (harness-epoch-83).
 - A cost may be paid with the ability's own target, as a human may (Goblin Bombardment sacrificing the creature it
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
