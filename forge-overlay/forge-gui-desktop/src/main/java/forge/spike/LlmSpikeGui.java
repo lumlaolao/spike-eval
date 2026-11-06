@@ -408,8 +408,11 @@ public final class LlmSpikeGui {
      *  observation-faithful-v43). PUZ results before and after never pool.
      *  Epoch 87 (2026-11-06, #395): the target ask's preview of a modal spell plays the mode the seat chose
      *  (lookahead-preview-v16); every target of a chosen mode was "preview unavailable" ("failed to target").
+     *  Epoch 88 (2026-11-06, #398): a puzzle's FACTS say a side has no combat left before the puzzle's last turn
+     *  (observation-faithful-v44); a lethal "next combat" after the solver's last combat was cited by 33 attempts.
+     *  PUZ results before and after never pool.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-87";
+    static final String HARNESS_EPOCH = "harness-epoch-88";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -610,6 +613,11 @@ public final class LlmSpikeGui {
      *  puzzle's turn limit and description), stated in the solver's system prompt in place of "win the game". Null
      *  outside puzzle mode. */
     static volatile String puzzleBrief = null;
+
+    /** PZL axis: the last turn the puzzle's game can be played in, read off the Puzzle Goal card's trigger
+     *  ({@link LlmSpikePuzzle#lastTurn}), so the seat's FACTS never promise a combat after it (#398). -1 outside
+     *  puzzle mode, and for a goal with no turn count. */
+    static volatile int puzzleLastTurn = -1;
 
     /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name
      *  equality: two seats may share a display name. */

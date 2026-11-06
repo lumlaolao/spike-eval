@@ -269,6 +269,43 @@ public class SeatObservationTest {
         Assert.assertTrue(r.contains("instant speed"), r);
     }
 
+    /** A puzzle's last turn ends the game, so after the solver's last combat before it there is no next combat to
+     *  be lethal in (#398: 32 of 33 failed attempts that cited the line passed on "the next combat is lethal").
+     *  Before that combat, and outside puzzles, the clock is unchanged. */
+    @Test
+    public void aPuzzleSolverIsNotPromisedACombatAfterItsTurnLimit() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        rival.setLife(2, null);
+        me.setLife(2, null);
+        SeatObservation o = observerFor(g, 0);
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN2, me, 1);
+        String game = render(o, "");
+        Assert.assertTrue(game.contains("your next combat: 2 attacker(s) dealing 3 unblocked; their life 2 -> 0 = LETHAL"), game);
+        try {
+            LlmSpikeGui.puzzleLastTurn = 1;
+            String after = render(o, "");
+            Assert.assertTrue(after.contains("your next combat: none before the puzzle's turn limit"), after);
+            Assert.assertTrue(after.contains("their next combat: none before the puzzle's turn limit"), after);
+            Assert.assertFalse(after.contains("= LETHAL"), after);
+            g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me, 1);
+            String before = render(o, "");
+            Assert.assertTrue(before.contains("your next combat: 2 attacker(s) dealing 3 unblocked; their life 2 -> 0 = LETHAL"), before);
+            Assert.assertTrue(before.contains("their next combat: none before the puzzle's turn limit"), before);
+            LlmSpikeGui.puzzleLastTurn = 2;
+            g.getPhaseHandler().devModeSet(PhaseType.MAIN2, me, 1);
+            String next = render(o, "");
+            Assert.assertTrue(next.contains("your next combat: none before the puzzle's turn limit"), next);
+            Assert.assertTrue(next.contains("their next combat: 1 attacker(s) dealing 2 unblocked; YOUR life 2 -> 0 = LETHAL"), next);
+        } finally {
+            LlmSpikeGui.puzzleLastTurn = -1;
+        }
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN2, me, 1);
+        Assert.assertEquals(render(o, ""), game);
+    }
+
     /** A card the opponent has played 2+ times is named as RECURRING — a threat the model would
      *  otherwise have to re-derive from a long log. Played once: not recurring. */
     @Test

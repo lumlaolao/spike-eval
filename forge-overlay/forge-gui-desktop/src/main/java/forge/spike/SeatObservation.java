@@ -98,7 +98,9 @@ final class SeatObservation {
     // Effect's Effect", runs/loop/g33 T13).
     // v43 (2026-11-06, #391): a puzzle's solver gets YOUR CARDS SINCE THE START, the text of each own card first seen
     // after setup (drawn, tutored, returned); the setup cards are in its system prompt. Not on a game seat.
-    static final String VERSION = "observation-faithful-v43";
+    // v44 (2026-11-06, #398): in a puzzle, a side with no combat left before the puzzle's last turn reads "your/their
+    // next combat: none before the puzzle's turn limit" in FACTS, not a clock for a combat the game never reaches.
+    static final String VERSION = "observation-faithful-v44";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
@@ -612,6 +614,11 @@ final class SeatObservation {
     /** Unblocked damage a side could deal in its NEXT combat, and the life left after it. */
     private void clock(Player from, Player to, String label, StringBuilder b) {
         try {
+            if (!combatBeforeLimit(from)) {
+                if (b.length() > 0) b.append(" | ");
+                b.append(label).append(": none before the puzzle's turn limit");
+                return;
+            }
             List<Card> legal = new ArrayList<>();
             for (Card c : from.getCreaturesInPlay())
                 if (forge.game.combat.CombatUtil.canAttackNextTurn(c, to)) legal.add(c);
@@ -623,6 +630,20 @@ final class SeatObservation {
              .append(to.getLife()).append(" -> ").append(Math.max(0, to.getLife() - dmg));
             if (dmg > 0 && dmg >= to.getLife()) b.append(" = LETHAL");
         } catch (Exception ignore) { }
+    }
+
+    /** Whether `from` still has a combat before a puzzle's last turn ends the game (#398: on the limit turn after
+     *  combat, a lethal "next combat" was a combat the game never reaches). True outside puzzles. Turns alternate
+     *  between the two players; an extra turn is not counted. */
+    private boolean combatBeforeLimit(Player from) {
+        int last = LlmSpikeGui.puzzleLastTurn;
+        if (last < 0) return true;
+        PhaseHandler ph = game.getPhaseHandler();
+        int turn = ph.getTurn();
+        boolean active = ph.getPlayerTurn() == from;
+        if (active && turn <= last && (ph.getPhase() == null || !ph.getPhase().isAfter(forge.game.phase.PhaseType.COMBAT_END)))
+            return true;
+        return turn + (active ? 2 : 1) <= last;
     }
 
     private Player playerFromView(PlayerView v) {

@@ -48,7 +48,9 @@ public class PuzzleSetupTest {
     /** Both statics the runner sets: a brief left behind turns every later test's system prompt into a puzzle's
      *  (SeatObservationTest's non-puzzle framing failed after this class, pr-review of PR #273). */
     @AfterMethod
-    public void clearSolverSeat() { LlmSpikeGui.puzzleSolverSeat = null; LlmSpikeGui.puzzleBrief = null; }
+    public void clearSolverSeat() {
+        LlmSpikeGui.puzzleSolverSeat = null; LlmSpikeGui.puzzleBrief = null; LlmSpikeGui.puzzleLastTurn = -1;
+    }
 
     /** The solver's plan and own-card tracking read DECKLIST: an exported DECKLIST=0 must not fail these tests
      *  (round 4 of PR #394), so each runs against an empty environment and puts it back. */
@@ -102,6 +104,22 @@ public class PuzzleSetupTest {
         if (thrown[0] != null) throw new AssertionError("board did not apply", thrown[0]);
         if (t.isAlive()) throw new AssertionError("board did not apply in 60 s");
         return game;
+    }
+
+    /** The seat's FACTS stop promising a next combat after the puzzle's last turn (#398), which is read off the goal
+     *  card Forge installs: a Survive goal wins at the upkeep after its last turn (drain2, Turns:1, so turn 1), a Win
+     *  goal loses at the cleanup of its last turn (RP_114, Turns:2, so turn 2). */
+    @Test
+    public void aPuzzlesLastTurnIsReadOffItsGoalCard() throws Exception {
+        try {
+            gameOf(FileSection.parseSections(FileUtil.readFile(
+                    new File(REPO, "eval/puzzles/hard/gen2/drain2_eaca60c560dc.pzl"))), "drain2_eaca60c560dc");
+            Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 1);
+            boardOf("RP_114.pzl");
+            Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 2);
+        } finally {
+            LlmSpikeGui.puzzleLastTurn = -1;
+        }
     }
 
     /** A puzzle's solver reads its own cards' rules text, as a game seat reads its deck's (#391): the splice board's

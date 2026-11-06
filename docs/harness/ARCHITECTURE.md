@@ -397,6 +397,14 @@ setup block is not repeated in either per-decision block (`SeatObservation.cardT
 per-decision block prints is not printed by the other. A game seat's state bytes at observation-faithful-v43 equal
 v42's: the new block is off there.
 
+**A puzzle's FACTS stop at its last turn** (#398, observation-faithful-v44). `LlmSpikePuzzle.applyBoard` reads the
+last turn off the Puzzle Goal card's turn trigger (`lastTurn`: the turn whose cleanup the solver loses at, or the
+turn before the upkeep a Survive goal wins at) into `LlmSpikeGui.puzzleLastTurn`. A side with no combat left before
+it (`SeatObservation.combatBeforeLimit`: its own turn past combat, or no turn of its own left; an extra turn is not
+counted) reads `your next combat: none before the puzzle's turn limit` (or `their`) in place of its clock. In 2828
+recorded puzzle games, 33 attempts cited a lethal next combat after the solver's last combat, and 32 failed. A game
+seat (`puzzleLastTurn` -1) is unchanged.
+
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
 - the state;
