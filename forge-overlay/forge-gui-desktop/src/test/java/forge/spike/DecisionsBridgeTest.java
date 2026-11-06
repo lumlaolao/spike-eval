@@ -50,6 +50,12 @@ public class DecisionsBridgeTest {
     public void startServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.setExecutor(Executors.newCachedThreadPool());
+        // Answers nothing for 1.5 s: past a 100 ms bridge deadline.
+        server.createContext("/slow/", ex -> {
+            read(ex);
+            try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            respond(ex, 200, "{}");
+        });
         server.createContext("/", ex -> {
             String body = read(ex);
             bodies.add(body);
@@ -75,6 +81,19 @@ public class DecisionsBridgeTest {
         bodies.clear(); auths.clear(); paths.clear();
         status = 200;
         reply = q -> "{}";
+    }
+
+    /** The request's own timeout must never beat the deadline loop (issue #388): every call that runs out its time
+     *  stops at the deadline, none ends in the client's HttpTimeoutException. */
+    @Test(timeOut = 20000)
+    public void everyTimedOutCallStopsAtTheDeadlineNeverTheRequestsOwnTimeout() {
+        DecisionsBridge b = new DecisionsBridge("Seat/smart", "typesafe/jev-1.14", "p",
+                base.replace("/api/v1", "/slow/api/v1"), 100, null, null);
+        for (int i = 0; i < 40; i++) {
+            Assert.assertNull(b.chat(messages(USER), "[]", true,
+                    AnswerTool.Spec.one(2).labels(List.of("CAST Lava Spike", "PASS"))));
+            Assert.assertEquals(HttpDeadline.LAST_STOP.get(), "deadline", "call " + i);
+        }
     }
 
     private DecisionsBridge bridge() { return bridge(null); }

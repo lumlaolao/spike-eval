@@ -12384,7 +12384,7 @@ public final class LlmSpikeGui {
 
             String sentBody = body.toString();
             HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(sentBody, StandardCharsets.UTF_8))
-                    .timeout(Duration.ofMillis(remaining))
+                    .timeout(HttpDeadline.requestTimeout(remaining))
                     .build();
             // HttpRequest.timeout() above bounds only the wait for the response HEADERS; the body
             // read is unbounded, and OpenRouter dribbles keepalives for the whole generation. See

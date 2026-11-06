@@ -799,6 +799,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   a reply; a row holding the API key's value is refused. Not covered: the Claude CLI lane, the body of a response
   cut off by its deadline (its status and headers are kept, `HttpDeadline.LAST_INFO`), and a response body that was
   not valid UTF-8 (the bridges read bodies as text).
+  A call that runs out its time in the headers phase is always the `stop="deadline"` row: the request's own timeout is
+  set `HttpDeadline.REQUEST_MARGIN_MS` past the deadline loop's, so the client's `HttpTimeoutException` (an `error`
+  row) never beats it (#388). The client's connect timeout still equals the deadline.
 
 ### The Decisions bridge (`jev:` seats)
 
