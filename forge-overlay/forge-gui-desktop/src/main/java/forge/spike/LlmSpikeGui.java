@@ -9334,6 +9334,9 @@ public final class LlmSpikeGui {
                     CardCollection cands = CardLists.filter(CardLists.getValidCards(me.getCardsIn(ZoneType.Battlefield),
                             part.getType().split(";"), me, host, ma), CardPredicates.CAN_TAP);
                     if (!part.canTapSource) cands.remove(host);
+                    // A card the paid ability taps for its own {T} is never one of them, as in the engine's
+                    // checkTapTypeCost (Elvish Lyrist's {G}, {T}: pr-review of #375).
+                    if (sa.getPayCosts() != null && sa.getPayCosts().hasTapCost()) cands.remove(sa.getHostCard());
                     if (n <= 0 || cands.size() < n) continue;
                     // Cards that make no mana of their own by tapping go first: tapping them costs the payment nothing.
                     cands.sort(java.util.Comparator.comparingInt(c -> c.getManaAbilities().anyMatch(m ->
@@ -9349,11 +9352,15 @@ public final class LlmSpikeGui {
                         if (ma.getPayCosts().hasTapCost()) step.taps.add(host);
                         for (Card c : step.taps) c.setTapped(true);
                         try {
-                            if (rest.isPaid()) return step;
+                            if (rest.isPaid()) {
+                                if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
+                                continue;
+                            }
                             if (ComputerUtilMana.canPayManaCost(new forge.game.mana.ManaCostBeingPaid(rest), sa, me, effect)) {
                                 Set<Card> plan = AiCardMemory.getMemorySet(me, AiCardMemory.MemorySet.PAYS_TAP_COST);
                                 if (plan != null) step.reserved.addAll(plan);
-                                return step;
+                                if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
+                                step.reserved.clear();   // that plan leaves sa's own tap unpaid: look deeper
                             }
                             TapTypeStep next = tapTypeSearch(rest, sa, me, effect, budget, depth - 1);
                             if (next != null) {
@@ -9368,6 +9375,18 @@ public final class LlmSpikeGui {
                 }
             }
             return null;
+        }
+
+        /** Whether {@code sa}'s own {T} and tap parts can still be paid beside a payment the search found: its taps are
+         *  tapped already, and {@code restTaps} (what the rest of the payment taps) is tapped for the check. A cost
+         *  with neither is not asked. */
+        private static boolean ownTapPartsPayable(SpellAbility sa, java.util.Collection<Card> restTaps, boolean effect) {
+            Cost c = sa.getPayCosts();
+            if (c == null || (!c.hasTapCost() && !c.hasSpecificCostType(forge.game.cost.CostTapType.class))) return true;
+            List<Card> tapped = new ArrayList<>();
+            for (Card card : restTaps) if (!card.isTapped()) { card.setTapped(true); tapped.add(card); }
+            try { return CostPayment.canPayAdditionalCosts(c, sa, effect); }
+            finally { for (Card card : tapped) card.setTapped(false); }
         }
 
         /** {@code ma}'s tap part, when the search may try it: activatable now, a cost of that tap part and at most

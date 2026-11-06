@@ -80,7 +80,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   Druid two Elves, and hid Craterhoof Behemoth on a board that pays 8 (#367). When it fails, `seatCanPay` searches the
   tap-type mana abilities it skipped (`tapTypeStep`: each set of cards the tap part may take, those that tap for no
   mana of their own first, the rest paid by the engine's test with them tapped; three activations deep, 48 tests at
-  most; every card untapped again). It tries only the abilities the seat's payment activates itself (a tap part and at
+  most; every card untapped again). Like the engine's test, it never lets the tap part take the card the paid ability
+  taps for its own {T}, and a payment it finds must leave that ability's own {T} and tap parts payable. It tries only the abilities the seat's payment activates itself (a tap part and at
   most {T}, fixed colors), and that payment starts from the activation it found (`prepayTapTypeManaAbilities`), the
   seat choosing the cards among those the rest of the payment does not need. Druid-twice payments the engine could
   not plan are the seat's too, no longer Forge AI's choice of Elves (harness-epoch-83).

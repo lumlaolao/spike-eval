@@ -314,6 +314,37 @@ public class ProposeActionsTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "the engine chose nothing the seat owns");
     }
 
+    /** One mana short (no Forest: Priest 4 and the Druid's 3 are 7), the search finds no payment and Craterhoof stays
+     *  off the menu (pr-review of #375). */
+    @Test
+    public void aTapUntappedElvesBoardOneManaShortDoesNotOfferTheSpell() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves", "Priest of Titania"))
+            card(elf, me, ZoneType.Battlefield);
+        Card hoof = card("Craterhoof Behemoth", me, ZoneType.Hand);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertFalse(po.spells.stream().anyMatch(sa -> sa.getHostCard() == hoof), "the board pays 7 of 8: " + po.spells);
+    }
+
+    /** Elvish Lyrist's "{G}, {T}, Sacrifice" taps the Lyrist itself, so the Druid cannot take it as one of its three
+     *  Elves: with only the Druid, Nettle Sentinel and the Lyrist there is no {G}, and the ability is not offered. The
+     *  search let the Druid tap the Lyrist, which the engine's own test never does (pr-review of #375). */
+    @Test
+    public void aTapUntappedElvesPartNeverTakesTheCardTheAbilityTaps() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Heritage Druid", me, ZoneType.Battlefield);
+        card("Nettle Sentinel", me, ZoneType.Battlefield);
+        Card lyrist = card("Elvish Lyrist", me, ZoneType.Battlefield);
+        card("Glorious Anthem", g.getPlayers().get(1), ZoneType.Battlefield);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertFalse(po.spells.stream().anyMatch(sa -> sa.getHostCard() == lyrist && !sa.isManaAbility()),
+                "the Lyrist's ability needs a {G} no other Elf can make: " + po.spells);
+    }
+
     @Test
     public void aSecondLandBreaksTheLandDrop() {
         Game g = bareGame(PhaseType.MAIN1);
