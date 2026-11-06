@@ -17,7 +17,7 @@ anything.
 
 ```bash
 RUN="runs/<arm> [more arms]"
-python3 eval/defect_analyzer.py $RUN          # hard invariants: ai tier = 0, silent drops = 0, fallbacks, truncation
+python3 eval/defect_analyzer.py $RUN          # the four hard invariants (docs/STANDARDS.md section 4), fallbacks, truncation
 python3 eval/tool_audit.py $RUN               # every tool request: served / REFUSED / FAILED / empty / bad-args / exhausted
 python3 eval/plan_audit.py $RUN               # plays that contradict the seat's own stated plan
 python3 eval/line_report.py $RUN              # sacrifices, optional triggers, activations, casts from outside the hand

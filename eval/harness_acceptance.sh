@@ -26,8 +26,8 @@
 #   pytests    python3 -m unittest discover -s eval/tests; eval/tests/test_script_suites.py runs the script-style files
 #              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
-#              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and the
-#              unchanged eval/defect_analyzer.py hard gates (ai=0, silent drops=0)
+#              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and every
+#              eval/defect_analyzer.py hard invariant (docs/STANDARDS.md section 4)
 #   gaming     empty-reply and garbage-reply LLM seats vs Forge AI must not beat the floor seat (seed 42); so must
 #              one whose provider answers 402 to every call, and its game line counts the decisions lost to the
 #              dead bridge, aggregate.py scores it invalid and defect_analyzer.py fails it on that invariant alone
@@ -453,8 +453,7 @@ if has_stage gaming; then
     say "gaming: floor seat vs Forge AI, then empty-reply, garbage-reply and out-of-credits (402) LLM seats vs Forge AI (seed 42)"
     # MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0: the recipe scored games use, so nothing is decided for the seat.
     play gaming-floor 42 CONTROLLER_A=floor CONTROLLER_B=ai MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0
-    # 402: every call refused as out of credits (issue #369): a transport failure, so the game line counts the
-    # decisions lost to it. An empty or garbage reply is the model answering: nothing is counted for it.
+    # 402: out of credits, a transport failure the game line counts (issue #369); empty and garbage are the model's.
     for pol in empty garbage 402; do
       sdir="$OUT/gaming-$pol-server"; mkdir -p "$sdir"; : > "$sdir/fake_requests.jsonl"
       case $pol in 402) SRV="--policy pass --http-error 402";; *) SRV="--policy $pol";; esac

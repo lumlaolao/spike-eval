@@ -98,12 +98,8 @@ is the Forge AI, every game line carries the cell's pinned `deck_sha`, only publ
 played, one pilot with one set of settings played every cell, `aggregate.py`'s fallback and
 harness-decided gates pass in every cell, no sanity arm beats the floor, and every game belongs to
 one benchmark version. Exit 0 valid, 1 not valid (still printed), 2 refused. A cell holding a game whose pilot lost a
-decision to a dead model bridge (`bridge_down_decisions_a` / `_b` on the game line, issue #369) is refused, and a
-`run_batch.py` resume sets that game aside and plays the seed again. A dead bridge is a transport failure only: an
-HTTP error other than a refusal of function calling or of a routing filter (402 out of credits, 401, 429, 5xx), an IO
-error, or a connection that sent nothing. The model's own lost decisions (an empty or unreadable answer, a deadline
-spent reasoning, a routing refusal) are scored as they are. `aggregate.py` leaves such a game out of every count,
-the strict score's included, and `rating.py` refuses it whatever the flags (`docs/harness/ARCHITECTURE.md`).
+decision to a dead model bridge is refused, and a resume plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game
+the model's bridge did not play is not scored").
 
 **The pilot condition** (review E2, E9): the panels file's `pilot_condition` pins how an llm pilot plays:
 the faithful profile, one tier, answers by the `answer` call, the native lookup tools and the lookahead
