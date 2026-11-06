@@ -26,9 +26,12 @@
 #   pytests    python3 -m unittest discover -s eval/tests; eval/tests/test_script_suites.py runs the script-style files
 #              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
-#              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and the
-#              unchanged eval/defect_analyzer.py hard gates (ai=0, silent drops=0)
-#   gaming     empty-reply and garbage-reply LLM seats vs Forge AI must not beat the floor seat (seed 42)
+#              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and every
+#              eval/defect_analyzer.py hard invariant (docs/STANDARDS.md section 4)
+#   gaming     empty-reply and garbage-reply LLM seats vs Forge AI must not beat the floor seat (seed 42); so must
+#              one whose provider answers 402 to every call, and its game line counts the decisions lost to the
+#              dead bridge, aggregate.py scores it invalid and defect_analyzer.py fails it on that invariant alone
+#              (issue #369); the empty and garbage seats, whose model answered, count none
 #   faketool   one MEMORY_TOOLS=1 game with the LLM seat on a loopback fake model (eval/fake_model_server.py):
 #              real OpenRouter transport + parsing, memory tool round trips, one forced request timeout, no
 #              Authorization header on the wire, analyzer gates, provenance stamped as loopback
@@ -447,12 +450,14 @@ fi
 # (docs/eval/BENCHMARK-RESEARCH.md, point 10). Also: no Forge-AI decisions and no harness-decided choice.
 if has_stage gaming; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail gaming "no compiled classes"; else
-    say "gaming: floor seat vs Forge AI, then empty-reply and garbage-reply LLM seats vs Forge AI (seed 42)"
+    say "gaming: floor seat vs Forge AI, then empty-reply, garbage-reply and out-of-credits (402) LLM seats vs Forge AI (seed 42)"
     # MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0: the recipe scored games use, so nothing is decided for the seat.
     play gaming-floor 42 CONTROLLER_A=floor CONTROLLER_B=ai MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0
-    for pol in empty garbage; do
+    # 402: out of credits, a transport failure the game line counts (issue #369); empty and garbage are the model's.
+    for pol in empty garbage 402; do
       sdir="$OUT/gaming-$pol-server"; mkdir -p "$sdir"; : > "$sdir/fake_requests.jsonl"
-      python3 "$REPO/eval/fake_model_server.py" --port 0 --policy $pol --log "$sdir/fake_requests.jsonl" >"$sdir/fake_server.out" 2>&1 &
+      case $pol in 402) SRV="--policy pass --http-error 402";; *) SRV="--policy $pol";; esac
+      python3 "$REPO/eval/fake_model_server.py" --port 0 $SRV --log "$sdir/fake_requests.jsonl" >"$sdir/fake_server.out" 2>&1 &
       FAKE_PID=$!
       PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
       play gaming-$pol 42 CONTROLLER_A=llm CONTROLLER_B=ai SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
@@ -460,8 +465,8 @@ if has_stage gaming; then
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
     done
     GVERDICT="$(cd "$REPO/eval" && python3 - "$OUT" <<'PYEOF'
-import glob, json, sys
-import match_review
+import glob, json, subprocess, sys
+import aggregate, match_review
 out = sys.argv[1]; problems = []; facts = []
 def load(tag):
     files = glob.glob("%s/%s/game-*.jsonl" % (out, tag))
@@ -473,9 +478,28 @@ def load(tag):
     return next((r for r in rows if r.get("t") == "game"), None), rows
 floor, _ = load("gaming-floor")
 if floor is None: problems.append("floor game has no game row")
-for pol in ("empty", "garbage"):
+floor_lost = None if floor is None else aggregate.bridge_down_decisions(floor)
+if floor_lost: problems.append("floor game counts %d decisions lost to a dead bridge" % floor_lost)
+for pol in ("empty", "garbage", "402"):
     g, rows = load("gaming-" + pol)
     if g is None: problems.append("%s: no game row" % pol); continue
+    lost = g.get("bridge_down_decisions_a")
+    if pol != "402":
+        if lost != 0: problems.append("%s: bridge_down_decisions_a=%s for a model that answered" % (pol, lost))
+    else:
+        # Issue #369: a seat whose transport failed is counted on the line, invalid and an analyzer failure on
+        # that invariant alone.
+        if not lost: problems.append("402: bridge_down_decisions_a=%s on a seat that was never answered" % lost)
+        gs = aggregate.summarize_games(aggregate.parse_dir_full("%s/gaming-402" % out)["games"])
+        if gs.get("invalid") != 1 or gs.get("bridge_down") != 1: problems.append("402: aggregate read %s" % gs)
+        dj = "%s/gaming-402/defects.json" % out
+        rc = subprocess.run([sys.executable, "defect_analyzer.py", "%s/gaming-402" % out, "--json", dj],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+        hi = json.load(open(dj))["hard_invariants"] if rc in (0, 1) else {}
+        others = [k for k in ("ai_tier_ok", "silent_drop_ok", "game_crash_ok") if hi.get(k) is not True]
+        if rc != 1 or hi.get("bridge_down_ok") is not False or others:
+            problems.append("402: defect_analyzer rc=%d bridge_down_ok=%s other invariants failing=%s"
+                            % (rc, hi.get("bridge_down_ok"), others))
     dec = [r for r in rows if r.get("t") == "decision"]
     model = sum(1 for r in dec if r.get("tier") in ("smart", "fast"))
     ai = sum(1 for r in dec if r.get("tier") == "ai")
@@ -491,7 +515,8 @@ for pol in ("empty", "garbage"):
     if played: problems.append("%s: the harness acted for the seat: %s" % (pol, sorted(set(played))[:3]))
     log = open("%s/gaming-%s/game.log" % (out, pol), errors="replace").read()
     if "[FALLBACK->AI]" in log: problems.append("%s: [FALLBACK->AI] in log" % pol)
-    facts.append("%s winner=%s turns=%s asked=%d model_rows=%d" % (pol, g.get("winner"), g.get("turns"), asked, model))
+    facts.append("%s winner=%s turns=%s asked=%d model_rows=%d bridge_down=%s"
+                 % (pol, g.get("winner"), g.get("turns"), asked, model, lost))
 if floor is not None: facts.insert(0, "floor winner=%s turns=%s" % (floor.get("winner"), floor.get("turns")))
 print(("FAIL " if problems else "PASS ") + "; ".join(problems + facts))
 PYEOF

@@ -90,16 +90,23 @@ final class DecisionsBridge implements LLMBridge {
 
     /** A text ask has no typed options to put to the model. */
     @Override public String ask(String prompt) {
+        transportFailure = false;
         noAnswer("a text ask (no `answer` offered)");
         return null;
     }
 
     @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+        transportFailure = false;
         noAnswer("an ask without the decision's typed options");
         return null;
     }
 
+    /** The last send failed in transport (LLMBridge.lastFailureWasTransport). */
+    private volatile boolean transportFailure = false;
+    @Override public boolean lastFailureWasTransport() { return transportFailure; }
+
     @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls, AnswerTool.Spec spec) {
+        transportFailure = false;
         if (spec == null) return chat(messagesJson, toolsJson, allowCalls);
         Composed q = compose(spec);
         if (q.refusal != null) { noAnswer(spec.kind + " (" + q.refusal + ")"); return null; }
@@ -457,11 +464,13 @@ final class DecisionsBridge implements LLMBridge {
                     .timeout(Duration.ofMillis(timeoutMs)).build();
             HttpResponse<String> resp = Transcript.send("decisions", label, client, req, body, timeoutMs);
             if (resp == null) {
-                System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] no response within " + timeoutMs + " ms ("
-                        + HttpDeadline.LAST_STOP.get() + ")");
+                String why = HttpDeadline.LAST_STOP.get();
+                transportFailure = HttpDeadline.gaveNoReply(why);
+                System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] no response within " + timeoutMs + " ms (" + why + ")");
                 return null;
             }
             if (resp.statusCode() != 200) {
+                transportFailure = true;
                 System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] HTTP " + resp.statusCode() + ": " + LlmSpikeGui.oneLine(resp.body()));
                 return null;
             }
@@ -469,6 +478,7 @@ final class DecisionsBridge implements LLMBridge {
             bill(o);
             return o;
         } catch (Exception e) {
+            transportFailure = HttpDeadline.transportError(e);
             System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] error: " + e);
             return null;
         }
