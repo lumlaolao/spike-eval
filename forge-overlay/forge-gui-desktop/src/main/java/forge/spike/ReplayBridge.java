@@ -42,7 +42,9 @@ import java.util.regex.Pattern;
  */
 final class ReplayBridge implements LLMBridge {
     static final String PREFIX = "replay:";
-    static final String VERSION = "replay-bridge-v2";   // v2 (2026-11-05): the handover to the search arm (step regret)
+    // v2 (2026-11-05): the handover to the search arm (step regret). v3 (2026-11-06): every step-search rollout checks
+    // that its first decision after the handover is the recording's row K+1 (LlmSpikePuzzle.firstAfterMismatch).
+    static final String VERSION = "replay-bridge-v3";
 
     /** One recorded model turn: the ask it answered and what came back (null: the bridge gave no reply). */
     static final class Turn {
@@ -300,8 +302,8 @@ final class ReplayBridge implements LLMBridge {
     @Override public String ask(String prompt) {
         calls++;
         if (drift != null) asksAfterDrift++;
-        if (handedOver) { fail("a text ask after the handover: the search arm asks nothing"); return null; }
-        fail("a text ask (no `answer` offered); the recording answered every ask by call");
+        fail(handedOver ? "a text ask after the handover: the search arm asks nothing"
+                : "a text ask (no `answer` offered); the recording answered every ask by call");
         return null;
     }
 

@@ -187,9 +187,41 @@ public class StepRegretTest {
         LlmSpikePuzzle.StepResult probe = LlmSpikePuzzle.stepProbe(SPLICE, ID, board(), true,
                 ReplayBridge.PREFIX + rec.getPath(), SEED, splice, 120_000L);
         Assert.assertNotNull(probe.refused, "a multi-pick decision is not forced in v1: " + probe);
+        Assert.assertTrue(probe.refused.contains("multi-pick"), "refused for the multi-pick, not another reason: " + probe);
 
         LlmSpikePuzzle.StepResult past = search(rec, rows.size() + 1, null);
         Assert.assertEquals(past.verdict, "drift", "the game ended before the handover: " + past);
+    }
+
+    /** The recording with decision row {@code i}'s first option renamed: the replay up to it still matches. */
+    private static File withRowChanged(File log, int i) throws Exception {
+        List<String> out = new ArrayList<>();
+        int seen = 0;
+        for (String l : Files.readAllLines(log.toPath(), StandardCharsets.UTF_8)) {
+            JsonObject r = JsonParser.parseString(l).getAsJsonObject();
+            if ("decision".equals(r.get("t").getAsString()) && "Solver".equals(r.get("seat").getAsString()) && seen++ == i) {
+                com.google.gson.JsonArray o = r.getAsJsonArray("options");
+                o.set(0, new com.google.gson.JsonPrimitive("CAST Something Else @99"));
+                l = r.toString();
+            }
+            out.add(l);
+        }
+        File f = new File(Files.createTempDirectory("step-regret-changed").toFile(), log.getName());
+        f.getParentFile().deleteOnExit();
+        f.deleteOnExit();
+        Files.write(f.toPath(), out, StandardCharsets.UTF_8);
+        return f;
+    }
+
+    @Test
+    public void anUnforcedSearchWhoseFirstDecisionIsNotTheRecordingsIsADrift() throws Exception {
+        // The handover switches inside row K's write, so the rest of that hook runs the arm's branches: the first
+        // decision after it must still be the recording's row K+1, or the position searched is not the recorded one.
+        File rec = record(SPLICE.getPath(), "solved");
+        int last = rows(rec).size() - 1;
+        LlmSpikePuzzle.StepResult r = search(withRowChanged(rec, last), last, null);
+        Assert.assertEquals(r.verdict, "drift", "the row after the handover differs from the recording's: " + r);
+        Assert.assertTrue(String.valueOf(r.drift).contains("the first decision after the handover"), r.toString());
     }
 
     /** The next long of the engine RNG after building a Solver seat of {@code mode} with {@code bridge} on seed 7. */

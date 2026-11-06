@@ -147,8 +147,10 @@ python3 eval/puzzles/step_regret.py <attempt dir> --out runs/step-regret/<name> 
 - Position K is the game after the seat's first K decision rows. The runner (`REPLAY_HANDOVER=K`) replays them
   exactly (`ReplayBridge`), hands the seat to the search arm with no draw from the engine RNG, and searches the
   rest against the recorded opponent (Forge AI) on the recorded seed: `proven`, `unwinnable` (every line played,
-  none capped), `not_found` (no verdict) or `drift`. Rows: `step-search.jsonl` per search, `step-regret.jsonl`
-  (`t: "step_regret"`, `t: "step_regret_summary"`) per attempt.
+  none capped), `not_found` (no verdict) or `drift`. The seat switches inside row K's write, so the rest of that
+  hook runs the arm's branches (no yield, no CANCEL); each rollout is a `drift` unless its first decision after K is
+  the recording's row K+1, asked the same way. Rows: `step-search.jsonl` per search, `step-regret.jsonl`
+  (`t: "step_regret"`, `t: "step_regret_summary"`) per attempt; `--summary <out dirs>` prints the verdict totals.
 - Against a deterministic opponent a lost win never comes back, so the scan runs from the end and stops at the
   first proven position. The regret decision is exact only when the next position is `unwinnable`; else the
   summary gives `last_proven_k`, `first_unwinnable_k` and a bracket. The floor at an exact step forces each
@@ -159,7 +161,8 @@ python3 eval/puzzles/step_regret.py <attempt dir> --out runs/step-regret/<name> 
   attempt are `unwinnable` (seconds to 20 minutes); 38 searches at 600 and 3 at 2400 came back `not_found`; one
   position is proven (C seed 1, K=4). So no attempt got an exact regret step and no floor was taken: C seed 1 is a bracket (K 4 to 10), the
   other three only a bound (lost by K=10 to 12). About 6 CPU-hours at 2 JVMs. The board's own model (`puzzle_gen.splice_best`, a check, never the verdict) puts
-  the regret at casting the second Desperate Ritual before a Lava Spike could carry it (16 damage needed, 13 left)
+  the regret at casting the second Desperate Ritual before a Lava Spike could carry it (the damage reachable before and
+  after it: `eval/research/2026-11-06-step-regret-board-model.md`)
   in all four. The prover's unwinnable side needs every line played, which a 4-spell position with pings does not
   allow at 2400 rollouts: step regret is exact near the end of a long board and a bracket elsewhere
   (`docs/harness/HARD-PUZZLES.md`).

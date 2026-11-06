@@ -122,7 +122,7 @@ public class ReplayBridgeTest {
         ReplayBridge b = replayOf(rep.played);
         Assert.assertNotNull(b, "a replay: spec builds the replay bridge");
         Assert.assertEquals(b.report().get("replay_recorded_status"), "solved", "the recorded outcome was read");
-        Assert.assertEquals(b.report().get("replay_version"), "replay-bridge-v2", "the stamp's literal (eval/versions.py)");
+        Assert.assertEquals(b.report().get("replay_version"), "replay-bridge-v3", "the stamp's literal (eval/versions.py)");
         Assert.assertNull(b.drift, "nothing drifted");
         Assert.assertTrue(b.reproduced(), "every recorded turn and decision row was used: " + b.report());
         Assert.assertTrue(b.turns.size() > 10, "the splice line is a dozen decisions or more: " + b.turns.size());
