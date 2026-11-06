@@ -60,6 +60,7 @@ public class ReplayBridgeTest {
         LlmSpikeGui.EvalLog.closeForTest();
         LlmSpikeGui.puzzleSolverSeat = null;
         LlmSpikeGui.puzzleBrief = null;
+        LlmSpikeGui.puzzleLastTurn = -1;
         LlmSpikeGui.SEED_USED = 0L;
     }
 

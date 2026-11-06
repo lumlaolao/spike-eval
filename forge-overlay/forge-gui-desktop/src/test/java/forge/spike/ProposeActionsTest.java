@@ -364,7 +364,7 @@ public class ProposeActionsTest {
         hold.setActivatingPlayer(me);
         Assert.assertFalse(forge.ai.ComputerUtilMana.canPayManaCost(hold, me, 0, false), "fixture: the engine's own test fails");
         hold.getTargets().add(bears);
-        Assert.assertTrue(ctrl.playChosenSpellAbility(hold), "the offered play was not paid");
+        GoldenChecksTest.playMade(ctrl, hold, "the offered play");
         Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).allMatch(Card::isTapped), "the Hunter and the three Elves paid: "
                 + me.getCardsIn(ZoneType.Battlefield));
         Assert.assertFalse(g.getStack().isEmpty(), "the ability is on the stack");

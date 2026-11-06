@@ -69,7 +69,7 @@ under the legacy profile, where the contract does not run; they are not counted.
 | harmonize | chooseNumber (harmonize's power to tap; only payable powers) | 0 / 0 | no | harmonizeTapsACreatureToReduceItsCost |
 | attack-bands | declareAttackers (which attackers join a banding attacker's band) | 0 / 0 | no | aBandingAttackerFormsABand |
 | exert, enlist | exertAttackers, enlistAttackers (Forge AI until 2026-10-17) | 0 / 0 | no | exertAndEnlistAreTheSeats |
-| splice | chooseCardsForSplice (payable splices only) | 0 / 0 | no | spliceOntoArcaneIsTheSeats |
+| splice | chooseCardsForSplice (payable splices only; the picked set checked together, asked once more, then none) | 0 / 0 | no | spliceOntoArcaneIsTheSeats, aSpliceSetThePoolCannotPayTogetherIsAskedAgain, LineFindingProbeTest.aSplicedCastThatFailsToPayLeavesThePlainCastOfferedAndSaysSo |
 | flip, shield | chooseFlipResult, divideShield | 0 / 0 | no | aFlipCallAndAShieldSplitAreTheSeats |
 | roll-ignore, roll-reroll, roll-modify, roll-swap | chooseRollToIgnore, chooseDiceToReroll, chooseRollToModify, chooseRollToSwap, chooseRollSwapValue, choosePDRollToIgnore | 0 / 0 | no | diceChoicesAreTheSeats, unSetAndVariantChoicesAreTheSeats |
 | sticker, crank, sprocket, sector, starting-hand, assist, assist-pay | the sticker, contraption, attraction, multiple-hands and assist hooks | 0 / 0 | no | unSetAndVariantChoicesAreTheSeats |

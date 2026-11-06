@@ -461,7 +461,7 @@ final class DecisionsBridge implements LLMBridge {
             String auth = LlmSpikeGui.OpenRouterBridge.authorizationHeader(apiKey, endpoint);
             if (auth != null) rb.header("Authorization", auth);
             HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                    .timeout(Duration.ofMillis(timeoutMs)).build();
+                    .timeout(HttpDeadline.requestTimeout(timeoutMs)).build();
             HttpResponse<String> resp = Transcript.send("decisions", label, client, req, body, timeoutMs);
             if (resp == null) {
                 String why = HttpDeadline.LAST_STOP.get();

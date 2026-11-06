@@ -37,6 +37,7 @@ import org.testng.annotations.Test;
 import static forge.spike.LineFindingProbeTest.Recorder;
 import static forge.spike.LineFindingProbeTest.bareGame;
 import static forge.spike.LineFindingProbeTest.card;
+import static forge.spike.LineFindingProbeTest.logOf;
 import static forge.spike.LineFindingProbeTest.seat;
 
 /**
@@ -66,6 +67,9 @@ public class KeywordSurfaceSweepTest {
     public void init() { new LineFindingProbeTest().initializeModel(); }
 
     static final int PER_KEYWORD = 3;
+
+    /** A model reply that takes the first option. */
+    static final String PLAY = "PLAN: use it\nCHOICE: 1";
 
     /** Up to {@link #PER_KEYWORD} cards per keyword, the first by name that are not Alchemy rebalances. */
     static Map<Keyword, List<String>> samples() {
@@ -214,6 +218,105 @@ public class KeywordSurfaceSweepTest {
         g.getAction().checkStateEffects(true);
     }
 
+    /** What went wrong with one play the seat was handed: {@code notMadeBefore} is its {@code playsNotMade()} before
+     *  the play, {@code log} what the play printed. Empty when the play was made cleanly. A cancel is not counted in
+     *  {@code playsNotMade()}, so it is read from the log. */
+    static List<String> playVerdict(LlmSpikeGui.PlayerControllerLLM ctrl, int notMadeBefore, String log) {
+        List<String> bad = new ArrayList<>();
+        if (ctrl.playsNotMade() > notMadeBefore) bad.add("not played");
+        if (ctrl.aiDelegationsCount() > 0) bad.add("Forge AI chose " + ctrl.aiDelegationsCount() + "x");
+        for (String line : log.split("\n"))
+            if (line.contains("(unparsed)") || line.contains("FALLBACK->AI") || line.contains("Couldn't add to stack")
+                    || line.contains("failed to target") || line.contains("Exception") || line.contains("FAILED to pay")
+                    || line.contains("nothing was played") || line.contains("play: cancelled"))
+                bad.add("log: " + oneLine(line));
+        return bad;
+    }
+
+    /** The sweep's verdict reports an offered play the seat could not pay (issue #380): a verdict read from the play
+     *  path's return passed Dismember cast with no land to pay for it. The count and the log each catch it alone. */
+    @Test
+    public void theVerdictReportsAnOfferedPlayThatWasNotPaid() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        SpellAbility cast = card("Dismember", me, ZoneType.Hand).getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder(PLAY), new Recorder(PLAY));
+        int notMade = ctrl.playsNotMade();
+        String out = logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertTrue(out.contains("FAILED to pay for"), out);
+        Assert.assertEquals(g.getStack().size(), 0, "fixture: Dismember was cast");
+        Assert.assertTrue(playVerdict(ctrl, notMade, "").contains("not played"), "the count missed the unpaid play");
+        Assert.assertFalse(playVerdict(ctrl, ctrl.playsNotMade(), out).isEmpty(), "the log missed the unpaid play");
+    }
+
+    /** A paid play the stack refuses for want of a target prints no line the log check reads; only the count sees
+     *  it (Murder with no creature on the battlefield, handed to the play path untargeted). */
+    @Test
+    public void theVerdictCountsAPaidPlayTheStackRefused() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+        SpellAbility cast = card("Murder", me, ZoneType.Hand).getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder(PLAY), new Recorder(PLAY));
+        int notMade = ctrl.playsNotMade();
+        String out = logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertTrue(out.contains("the stack refused it"), out);
+        Assert.assertTrue(playVerdict(ctrl, notMade, out).contains("not played"), "the stack's refusal passed the verdict");
+    }
+
+    /** A cancel is the seat's own choice and is not counted in playsNotMade(); the verdict reads it from the log
+     *  (Lightning Bolt cancelled at its target step, then a pass). */
+    @Test
+    public void theVerdictReportsACancelledPlay() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                if (prompt.contains("DECISION: Choose the TARGET")) {
+                    Matcher m = Pattern.compile("(?m)^\\s*(\\d+)\\) CANCEL:").matcher(prompt);
+                    Assert.assertTrue(m.find(), "the target ask offers cancel: " + prompt);
+                    return "CHOICE: " + m.group(1);
+                }
+                return PromptFidelityTest.choiceOf(prompt, prompt.contains("NOTE: you chose") ? "PASS" : "CAST Lightning Bolt");
+            }
+        };
+        // The faithful profile is the model seat's, which offers the cancel.
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        LlmSpikeGui.PlayerControllerLLM ctrl;
+        int notMade;
+        String out;
+        try {
+            ctrl = seat(g, model, model);
+            notMade = ctrl.playsNotMade();
+            out = logOf(() -> Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "after cancelling, the model passed"));
+        } finally { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null; }
+        Assert.assertEquals(ctrl.playsNotMade(), notMade, "fixture: a cancel is not counted");
+        Assert.assertFalse(playVerdict(ctrl, notMade, out).isEmpty(), "a cancelled play passed the verdict");
+    }
+
+    /** The play {@code sa} names, chosen by the seat from its own menu (the fork forcer picks its index): the menu
+     *  sets its X, modes and targets. Null when the menu did not hand back that play. */
+    static SpellAbility chooseFromMenu(LlmSpikeGui.PlayerControllerLLM ctrl, Player me, boolean ownMain, SpellAbility sa) {
+        List<SpellAbility> menu = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, ownMain, true).spells;
+        String want = key(sa);
+        int pick = menu.stream().map(KeywordSurfaceSweepTest::key).toList().indexOf(want);
+        if (pick < 0) return null;
+        LlmSpikeGui.FORK_FORCER = (i, pl, seat, type, n, options) -> "play".equals(type) && pl == me ? pick : null;
+        List<SpellAbility> chosen;
+        try { chosen = ctrl.chooseSpellAbilityToPlay(); }
+        finally { LlmSpikeGui.FORK_FORCER = null; }
+        if (chosen == null || chosen.isEmpty() || !key(chosen.get(0)).equals(want)) return null;
+        return chosen.get(0);
+    }
+
     /** Plays one option the engine allows, through the seat, and returns what went wrong (empty when nothing). */
     static List<String> playThrough(Keyword k, String name, Moment m, ZoneType zone, String optKey) {
         List<String> bad = new ArrayList<>();
@@ -231,15 +334,20 @@ public class KeywordSurfaceSweepTest {
             SpellAbility sa = menuOptions(c, me, m.mine && m.phase.isMain()).get(optKey);
             if (sa == null) return bad; // a parity gap, reported there
             System.setOut(new PrintStream(log, true, StandardCharsets.UTF_8));
-            boolean played = ctrl.playChosenSpellAbility(sa);
+            int notMade = ctrl.playsNotMade();
+            SpellAbility play = sa;
+            if (!sa.isLandAbility()) {
+                play = chooseFromMenu(ctrl, me, m.mine && m.phase.isMain(), sa);
+                if (play == null) {
+                    bad.add("the seat's menu did not play it");
+                    bad.addAll(playVerdict(ctrl, notMade, log.toString(StandardCharsets.UTF_8)));
+                    return bad;
+                }
+            }
+            ctrl.playChosenSpellAbility(play);
             resolveAll(g);
             System.setOut(was);
-            if (!played) bad.add("not played");
-            if (ctrl.aiDelegationsCount() > 0) bad.add("Forge AI chose " + ctrl.aiDelegationsCount() + "x");
-            for (String line : log.toString(StandardCharsets.UTF_8).split("\n"))
-                if (line.contains("(unparsed)") || line.contains("FALLBACK->AI") || line.contains("Couldn't add to stack")
-                        || line.contains("failed to target") || line.contains("Exception"))
-                    bad.add("log: " + oneLine(line));
+            bad.addAll(playVerdict(ctrl, notMade, log.toString(StandardCharsets.UTF_8)));
             for (String u : model.unknown) bad.add("ask with no known answer format: " + oneLine(u));
             for (String p : new ArrayList<>(asked)) {
                 try { AskContract.checkOne(k + "/" + name, p); }
