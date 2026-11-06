@@ -8,7 +8,7 @@ model call.
 ## Question
 
 Do Forge's AI profiles (`Cautious`, `Default`, `Experimental`, `Reckless` under
-`/root/forge/forge-gui/res/ai/*.ai`) change outcomes enough that the win rate against one is not the win rate
+`$FORGE_HOME/forge-gui/res/ai/*.ai`) change outcomes enough that the win rate against one is not the win rate
 against another? Planned measure: Forge AI (default) in seat A against each profile in seat B on one deck mirror and
 one non-mirror pair, 40 seeds each (1100-1139; outside every reserved block in `eval/seed_policy.py`), plus the
 random seat against each profile as a weak-pilot floor.
@@ -38,13 +38,12 @@ and combat-trick keys, so a spread is plausible; its size is undetermined.
 ## What was run
 
 ```
-cd /home/user/mtg-forge-llm-agent && git fetch -q origin main && git worktree add /home/user/prof-wt \
-  -b research/ai-profiles origin/main            # head 8a2b943
+# on research/ai-profiles from main 8a2b943
 grep -rn "AI_PROFILE\|aiProfile\|AiProfile" eval/run_batch.py forge-overlay   # no hit in either
-grep -rn "AiProfile" /root/forge/forge-ai /root/forge/forge-gui/src/main      # LobbyPlayerAi, GamePlayerUtil
+grep -rn "AiProfile" $FORGE_HOME/forge-ai $FORGE_HOME/forge-gui/src/main      # LobbyPlayerAi, GamePlayerUtil
 ```
 
-Forge checkout `/root/forge` at `34a8662b79` (it carries uncommitted changes to three files; none touches profiles).
+Forge checkout `$FORGE_HOME` at `34a8662b79` (it carries uncommitted changes to three files; none touches profiles).
 No run directory exists under `runs/profiles/`.
 
 ## Design to make it measurable (needs an overlay change; not done here)
@@ -76,3 +75,5 @@ spread, not a measurement of a small one.
 - Whether `FModel.loadAllProfiles` has run in the headless launch (needed for design step 1).
 - How far the compiled-default AI is from `Default.ai` in play, not only in keys.
 - The seed-pair correlation rho between profiles, which sets the real sample size.
+
+Owner decision on which opponent STR-AI means: issue #381.
