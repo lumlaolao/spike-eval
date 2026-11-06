@@ -409,7 +409,7 @@ public final class LlmSpikeGui {
      *  Epoch 87 (2026-11-06, #395): the target ask's preview of a modal spell plays the mode the seat chose
      *  (lookahead-preview-v16); every target of a chosen mode was "preview unavailable" ("failed to target").
      *  Epoch 88 (2026-11-06, #398): a puzzle's FACTS say a side has no combat left before the puzzle's last turn
-     *  (observation-faithful-v44); a lethal "next combat" after the solver's last combat was cited by 33 attempts.
+     *  (observation-faithful-v44); recorded attempts passed citing a lethal "next combat" the game never reached.
      *  PUZ results before and after never pool.
      */
     static final String HARNESS_EPOCH = "harness-epoch-88";
@@ -614,9 +614,8 @@ public final class LlmSpikeGui {
      *  outside puzzle mode. */
     static volatile String puzzleBrief = null;
 
-    /** PZL axis: the last turn the puzzle's game can be played in, read off the Puzzle Goal card's trigger
-     *  ({@link LlmSpikePuzzle#lastTurn}), so the seat's FACTS never promise a combat after it (#398). -1 outside
-     *  puzzle mode, and for a goal with no turn count. */
+    /** PZL axis: the last turn the puzzle's game can be played in ({@link LlmSpikePuzzle#lastTurn}), so the seat's
+     *  FACTS never promise a combat after it (#398). -1 outside puzzle mode. */
     static volatile int puzzleLastTurn = -1;
 
     /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name

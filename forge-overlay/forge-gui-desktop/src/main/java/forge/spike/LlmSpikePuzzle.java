@@ -20,8 +20,10 @@ import forge.game.GameRules;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
+import forge.game.player.Player;
 import forge.game.player.PlayerOutcome;
 import forge.game.player.RegisteredPlayer;
+import forge.game.trigger.Trigger;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.puzzle.Puzzle;
 import forge.localinstance.properties.ForgeConstants;
@@ -248,10 +250,10 @@ public final class LlmSpikePuzzle {
      *  the turn whose cleanup the solver loses at, or the turn before the upkeep it wins at (Survive). -1 when no
      *  trigger counts turns ("win before opponent's next turn", a permanent goal with no limit). */
     static int lastTurn(Game game) {
-        for (forge.game.player.Player p : game.getPlayers())
+        for (Player p : game.getPlayers())
             for (Card c : p.getZone(ZoneType.Command))
                 if ("Puzzle Goal".equals(c.getName()))
-                    for (forge.game.trigger.Trigger t : c.getTriggers())
+                    for (Trigger t : c.getTriggers())
                         if (t.hasParam("TurnCount")) {
                             int n = Integer.parseInt(t.getParam("TurnCount"));
                             return "Upkeep".equalsIgnoreCase(t.getParam("Phase")) ? n - 1 : n;
@@ -262,7 +264,7 @@ public final class LlmSpikePuzzle {
     /** Forge writes its whole goal description on the Puzzle Goal card, which `inspect` reads: the card gets the
      *  solver's brief, so a rules puzzle's name and "Goal: Survive" stay hidden there too. */
     static void tellGoalCard(Game game, String brief) {
-        for (forge.game.player.Player p : game.getPlayers())
+        for (Player p : game.getPlayers())
             for (Card c : p.getZone(ZoneType.Command))
                 if ("Puzzle Goal".equals(c.getName())) c.setOracleText(brief);
     }

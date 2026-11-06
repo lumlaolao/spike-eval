@@ -33,6 +33,7 @@ import forge.game.event.GameEventSpellAbilityCast;
 import forge.game.keyword.Keyword;
 import forge.game.keyword.KeywordInterface;
 import forge.game.phase.PhaseHandler;
+import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.PlayerView;
 import forge.game.spellability.SpellAbility;
@@ -633,15 +634,16 @@ final class SeatObservation {
     }
 
     /** Whether `from` still has a combat before a puzzle's last turn ends the game (#398: on the limit turn after
-     *  combat, a lethal "next combat" was a combat the game never reaches). True outside puzzles. Turns alternate
-     *  between the two players; an extra turn is not counted. */
+     *  combat, a lethal "next combat" was a combat the game never reaches). From the end-of-combat step on, this
+     *  turn's combat is over. True outside puzzles. Turns alternate between the two players; an extra turn is not
+     *  counted. */
     private boolean combatBeforeLimit(Player from) {
         int last = LlmSpikeGui.puzzleLastTurn;
         if (last < 0) return true;
         PhaseHandler ph = game.getPhaseHandler();
         int turn = ph.getTurn();
         boolean active = ph.getPlayerTurn() == from;
-        if (active && turn <= last && (ph.getPhase() == null || !ph.getPhase().isAfter(forge.game.phase.PhaseType.COMBAT_END)))
+        if (active && turn <= last && (ph.getPhase() == null || ph.getPhase().isBefore(PhaseType.COMBAT_END)))
             return true;
         return turn + (active ? 2 : 1) <= last;
     }

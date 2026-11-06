@@ -45,7 +45,7 @@ public class PuzzleSetupTest {
         return new File(rules).getAbsoluteFile().getParentFile().getParentFile().getParentFile();
     }
 
-    /** Both statics the runner sets: a brief left behind turns every later test's system prompt into a puzzle's
+    /** The statics the runner sets: a brief left behind turns every later test's system prompt into a puzzle's
      *  (SeatObservationTest's non-puzzle framing failed after this class, pr-review of PR #273). */
     @AfterMethod
     public void clearSolverSeat() {
@@ -111,15 +111,11 @@ public class PuzzleSetupTest {
      *  goal loses at the cleanup of its last turn (RP_114, Turns:2, so turn 2). */
     @Test
     public void aPuzzlesLastTurnIsReadOffItsGoalCard() throws Exception {
-        try {
-            gameOf(FileSection.parseSections(FileUtil.readFile(
-                    new File(REPO, "eval/puzzles/hard/gen2/drain2_eaca60c560dc.pzl"))), "drain2_eaca60c560dc");
-            Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 1);
-            boardOf("RP_114.pzl");
-            Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 2);
-        } finally {
-            LlmSpikeGui.puzzleLastTurn = -1;
-        }
+        gameOf(FileSection.parseSections(FileUtil.readFile(
+                new File(REPO, "eval/puzzles/hard/gen2/drain2_eaca60c560dc.pzl"))), "drain2_eaca60c560dc");
+        Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 1);
+        boardOf("RP_114.pzl");
+        Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 2);
     }
 
     /** A puzzle's solver reads its own cards' rules text, as a game seat reads its deck's (#391): the splice board's

@@ -401,9 +401,11 @@ v42's: the new block is off there.
 last turn off the Puzzle Goal card's turn trigger (`lastTurn`: the turn whose cleanup the solver loses at, or the
 turn before the upkeep a Survive goal wins at) into `LlmSpikeGui.puzzleLastTurn`. A side with no combat left before
 it (`SeatObservation.combatBeforeLimit`: its own turn past combat, or no turn of its own left; an extra turn is not
-counted) reads `your next combat: none before the puzzle's turn limit` (or `their`) in place of its clock. In 2828
-recorded puzzle games, 33 attempts cited a lethal next combat after the solver's last combat, and 32 failed. A game
-seat (`puzzleLastTurn` -1) is unchanged.
+counted; the end-of-combat step is past combat) reads `your next combat: none before the puzzle's turn limit` (or
+`their`) in place of its clock. In 2828 recorded puzzle games the old line read LETHAL on turn 1 after combat in 311,
+and a regex over the replies there found 33 that passed citing a later combat (32 of them failed; a lower bound on
+reliance, with no baseline for those boards without the line). A goal with no turn count ("win before opponent's
+next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLastTurn` -1) is unchanged.
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
@@ -564,7 +566,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v43+propose`, `answer-tool-v18+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v44+propose`, `answer-tool-v18+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls

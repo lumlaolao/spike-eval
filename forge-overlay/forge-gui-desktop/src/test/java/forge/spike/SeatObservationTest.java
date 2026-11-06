@@ -75,7 +75,10 @@ public class SeatObservationTest {
      *  against an empty environment and puts the old one back. */
     private Map<String, String> savedEnv;
     @BeforeMethod
-    public void emptyEnvironment() { savedEnv = LlmSpikeGui.envOverride; LlmSpikeGui.envOverride = Map.of(); }
+    public void emptyEnvironment() {
+        savedEnv = LlmSpikeGui.envOverride; LlmSpikeGui.envOverride = Map.of();
+        LlmSpikeGui.puzzleLastTurn = -1;  // a puzzle board applied by an earlier class sets it (pr-review of #398)
+    }
     @AfterMethod
     public void restoreEnvironment() { LlmSpikeGui.envOverride = savedEnv; }
 
@@ -269,9 +272,9 @@ public class SeatObservationTest {
         Assert.assertTrue(r.contains("instant speed"), r);
     }
 
-    /** A puzzle's last turn ends the game, so after the solver's last combat before it there is no next combat to
-     *  be lethal in (#398: 32 of 33 failed attempts that cited the line passed on "the next combat is lethal").
-     *  Before that combat, and outside puzzles, the clock is unchanged. */
+    /** A puzzle's last turn ends the game, so once the solver's last combat before it has ended there is no next
+     *  combat to be lethal in (#398), from the end-of-combat step on. Before that, and outside puzzles, the clock is
+     *  unchanged. */
     @Test
     public void aPuzzleSolverIsNotPromisedACombatAfterItsTurnLimit() {
         Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
@@ -286,6 +289,9 @@ public class SeatObservationTest {
         Assert.assertTrue(game.contains("your next combat: 2 attacker(s) dealing 3 unblocked; their life 2 -> 0 = LETHAL"), game);
         try {
             LlmSpikeGui.puzzleLastTurn = 1;
+            g.getPhaseHandler().devModeSet(PhaseType.COMBAT_END, me, 1);
+            Assert.assertTrue(render(o, "").contains("your next combat: none before the puzzle's turn limit"));
+            g.getPhaseHandler().devModeSet(PhaseType.MAIN2, me, 1);
             String after = render(o, "");
             Assert.assertTrue(after.contains("your next combat: none before the puzzle's turn limit"), after);
             Assert.assertTrue(after.contains("their next combat: none before the puzzle's turn limit"), after);
