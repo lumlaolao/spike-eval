@@ -615,7 +615,10 @@ public class LookaheadProbeTest {
         forge.game.ability.effects.CharmEffect.chainAbilities(sa, chosen);
         forge.game.spellability.SpellAbility aimed = null;
         for (forge.game.spellability.SpellAbility s = sa.getSubAbility(); s != null; s = s.getSubAbility())
-            if (java.util.Objects.equals(s.getParam("SpellDescription"), choices.get(aim).getParam("SpellDescription"))) aimed = s;
+            if (java.util.Objects.equals(s.getParam("SpellDescription"), choices.get(aim).getParam("SpellDescription"))) {
+                aimed = s;
+                break;
+            }
         Assert.assertNotNull(aimed, "fixture: the aimed mode is chained");
         String report = PlayerLookahead.previewLine(g, me, java.util.Collections.singletonList(sa), 5L, null, aimed, at);
         System.out.println("[LOOKAHEAD] " + report);
@@ -712,6 +715,49 @@ public class LookaheadProbeTest {
         String report = previewChosenModes(g, me, flashback, new int[] {0}, 0, thopter);
         Assert.assertFalse(report.startsWith("(preview unavailable"), report);
         Assert.assertTrue(report.contains("left the battlefield: Ornithopter") && report.contains("Rival no change"), report);
+    }
+
+    /** pr-review of #397, round 2: a mode's own ability can carry mode text of its own (Erebos's Intervention: "You gain
+     *  X life." after the -X/-X), which matched none of the modes, so the copy's AI chose the modes again. */
+    @Test
+    public void aModesOwnAbilityWithModeTextIsPartOfThatMode() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) LineFindingProbeTest.card("Swamp", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card bears = LineFindingProbeTest.card("Grizzly Bears", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility sa = spellOn(LineFindingProbeTest.card("Erebos's Intervention", me, forge.game.zone.ZoneType.Hand));
+        sa.setXManaCostPaid(2);
+        String report = previewChosenModes(g, me, sa, new int[] {0}, 0, bears);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("life 20 -> 22") && report.contains("left the battlefield: Grizzly Bears"), report);
+    }
+
+    /** pr-review of #397, round 2: a mode's own targeted ability that carries mode text (A-Ready to Rumble's "deals 5
+     *  damage to target creature") on a cast the simulator plays as the copy's own version. No card has both, so the
+     *  shape is forced: Quandrix Command, which takes that path when a mode counters a spell, with mode text put on its
+     *  shuffle mode's own targeted ability. */
+    @Test
+    public void aModesOwnTargetedAbilityKeepsItsTargetOnTheCopysVersion() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (String n : new String[] {"Forest", "Island", "Island"}) LineFindingProbeTest.card(n, me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.card("Grizzly Bears", opp, forge.game.zone.ZoneType.Graveyard);
+        LineFindingProbeTest.rivalCasts(g, "Ornithopter", null);
+        g.getAction().checkStaticAbilities();
+        forge.game.spellability.SpellAbility sa = spellOn(LineFindingProbeTest.card("Quandrix Command", me, forge.game.zone.ZoneType.Hand));
+        sa.setActivatingPlayer(me);
+        forge.game.ability.effects.CharmEffect.chainAbilities(sa, new java.util.ArrayList<>(java.util.Arrays.asList(
+                sa.getAdditionalAbilityList("Choices").get(1), sa.getAdditionalAbilityList("Choices").get(3))));
+        forge.game.spellability.SpellAbility shuffle = sa;
+        while (shuffle.getSubAbility() != null) shuffle = shuffle.getSubAbility();
+        shuffle.putParam("SpellDescription", "Shuffle up to three target cards.");
+        forge.game.spellability.SpellAbility aimed = sa.getSubAbility().getSubAbility();
+        String report = PlayerLookahead.previewLine(g, me, java.util.Collections.singletonList(sa), 5L, "Ornithopter", aimed, opp);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertNull(sa.getChosenList(), "the preview leaves the live spell's modes as the seat chose them");
+        Assert.assertTrue(shuffle.getTargets().isEmpty(), "the preview leaves the live ability untargeted");
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("Rival library 0 -> 1"), "Grizzly Bears was shuffled into the library: " + report);
     }
 
     /** The model can aim the preview: a hint naming a legal target is honoured. */

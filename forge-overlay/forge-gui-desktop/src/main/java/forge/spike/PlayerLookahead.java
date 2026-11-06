@@ -148,10 +148,6 @@ final class PlayerLookahead {
         return any;
     }
 
-    /** The copy's version of a live option cast for an alternative cost (Force of Will's pitch: pay 1 life and exile a
-     *  blue card). The simulator matches an ability by its text among the card's own abilities, where the alternative
-     *  is not, and fell back to the hard cast, which the copy could not pay (runs/c3/doomsday-game T8, T19). Any other
-     *  option is returned as it is, for the simulator to map. Targets set on the live option are carried over. */
     /** The copy's version of mana ability {@code live}: the host's mana ability with the same description. */
     static forge.game.spellability.SpellAbility manaAbilityOnCopy(forge.game.spellability.SpellAbility live, GameSimulator sim) {
         try {
@@ -167,6 +163,11 @@ final class PlayerLookahead {
         return null;
     }
 
+    /** The copy's version of a live option cast for an alternative cost (Force of Will's pitch: pay 1 life and exile a
+     *  blue card). The simulator matches an ability by its text among the card's own abilities, where the alternative
+     *  is not, and fell back to the hard cast, which the copy could not pay (runs/c3/doomsday-game T8, T19). Any other
+     *  option is returned as it is, for the simulator to map. Targets set on the live option are carried over,
+     *  and its chosen modes ({@link #carryModes}). */
     static forge.game.spellability.SpellAbility alternativeOnCopy(forge.game.spellability.SpellAbility live, GameSimulator sim, Player seat) {
         try {
             forge.game.card.Card host = live.getHostCard();
@@ -195,21 +196,34 @@ final class PlayerLookahead {
         return live;
     }
 
-    /** The modes the seat chose for modal option {@code sa}, as its mode list holds them: each chained mode matched by
-     *  its text, the abilities a mode chains after itself (Bushwhack's fight) skipped. Null when {@code sa} is not
-     *  modal, already has a chosen list (Forge's own mode choice sets one), has no mode chained, or chains a mode that
-     *  is not one of its own. */
+    /** The modes the seat chose for modal option {@code sa}, as its mode list holds them. Null when {@code sa} is not
+     *  modal, already has a chosen list (Forge's own mode choice sets one), or its chain is not read as its modes. */
     static java.util.List<forge.game.spellability.AbilitySub> chainedModes(forge.game.spellability.SpellAbility sa) {
-        if (sa.getApi() != forge.game.ability.ApiType.Charm || sa.getChosenList() != null || sa.getSubAbility() == null)
-            return null;
+        if (sa.getApi() != forge.game.ability.ApiType.Charm || sa.getChosenList() != null) return null;
+        java.util.List<java.util.Map.Entry<forge.game.spellability.AbilitySub, forge.game.spellability.SpellAbility>> walk =
+                modeWalk(sa, sa.getAdditionalAbilityList("Choices"));
+        if (walk == null || walk.isEmpty()) return null;
         java.util.List<forge.game.spellability.AbilitySub> modes = new java.util.ArrayList<>();
-        for (forge.game.spellability.AbilitySub sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility()) {
-            if (!sub.hasParam("SpellDescription")) continue;
-            forge.game.spellability.AbilitySub mode = modeLike(sa.getAdditionalAbilityList("Choices"), sub);
+        for (java.util.Map.Entry<forge.game.spellability.AbilitySub, forge.game.spellability.SpellAbility> e : walk) modes.add(e.getKey());
+        return modes;
+    }
+
+    /** {@code sa}'s chained modes, each paired with the mode of {@code choices} it is a copy of. The engine chains a
+     *  copy of each chosen mode with the abilities that mode chains itself (CharmEffect.chainAbilities), so a mode
+     *  starts where the one before it, as long as its own chain, ends; its own abilities may carry mode text (Erebos's
+     *  Intervention's "You gain X life."). Null when a mode's start matches none of {@code choices}. */
+    private static java.util.List<java.util.Map.Entry<forge.game.spellability.AbilitySub, forge.game.spellability.SpellAbility>>
+            modeWalk(forge.game.spellability.SpellAbility sa, java.util.List<forge.game.spellability.AbilitySub> choices) {
+        java.util.List<java.util.Map.Entry<forge.game.spellability.AbilitySub, forge.game.spellability.SpellAbility>> walk =
+                new java.util.ArrayList<>();
+        forge.game.spellability.SpellAbility m = sa.getSubAbility();
+        while (m != null) {
+            forge.game.spellability.AbilitySub mode = modeLike(choices, m);
             if (mode == null) return null;
-            modes.add(mode);
+            walk.add(new java.util.AbstractMap.SimpleImmutableEntry<>(mode, m));
+            for (forge.game.spellability.SpellAbility t = mode; t != null && m != null; t = t.getSubAbility()) m = m.getSubAbility();
         }
-        return modes.isEmpty() ? null : modes;
+        return walk;
     }
 
     /** Aims {@code a}, an ability on the copy, at the copy's versions of live ability {@code l}'s targets. */
@@ -224,29 +238,21 @@ final class PlayerLookahead {
     }
 
     /** Gives {@code alt}, the copy's version of a live option the simulator plays as it is, the live option's chosen
-     *  modes, each aimed where the live mode and the abilities chained after it are: the engine copies modes and
-     *  targets only for an option it maps itself (Wreck and Rebuild's flashback chose its modes again on the copy). */
+     *  modes, each aimed along its whole chain where the live mode is: the engine copies modes and targets only for an
+     *  option it maps itself (Wreck and Rebuild's flashback chose its modes again on the copy). */
     private static void carryModes(forge.game.spellability.SpellAbility live, forge.game.spellability.SpellAbility alt,
                                    GameSimulator sim) {
         if (live.getApi() != forge.game.ability.ApiType.Charm || live.getChosenList() == null) return;
-        java.util.List<forge.game.spellability.AbilitySub> choices = alt.getAdditionalAbilityList("Choices");
+        java.util.List<java.util.Map.Entry<forge.game.spellability.AbilitySub, forge.game.spellability.SpellAbility>> walk =
+                modeWalk(live, alt.getAdditionalAbilityList("Choices"));
+        if (walk == null || walk.isEmpty()) return;
         java.util.List<forge.game.spellability.AbilitySub> modes = new java.util.ArrayList<>();
-        for (forge.game.spellability.AbilitySub m : live.getChosenList()) {
-            forge.game.spellability.AbilitySub c = modeLike(choices, m);
-            if (c == null) return;
-            modes.add(c);
+        for (java.util.Map.Entry<forge.game.spellability.AbilitySub, forge.game.spellability.SpellAbility> e : walk) {
+            modes.add(e.getKey());
+            forge.game.spellability.SpellAbility a = e.getKey(), l = e.getValue();
+            for (; a != null && l != null; a = a.getSubAbility(), l = l.getSubAbility()) copyTargets(l, a, sim);
         }
         alt.setChosenList(modes);
-        for (forge.game.spellability.SpellAbility m = live.getSubAbility(); m != null; m = m.getSubAbility()) {
-            forge.game.spellability.AbilitySub c = m.hasParam("SpellDescription") ? modeLike(choices, m) : null;
-            if (c == null) continue;
-            forge.game.spellability.SpellAbility l = m, a = c;
-            do {
-                copyTargets(l, a, sim);
-                l = l.getSubAbility();
-                a = a.getSubAbility();
-            } while (l != null && a != null && !l.hasParam("SpellDescription"));
-        }
     }
 
     /** The first of {@code choices} with {@code sa}'s mode text, as the engine matches modes (SpellAbilityChoiceCopier). */
