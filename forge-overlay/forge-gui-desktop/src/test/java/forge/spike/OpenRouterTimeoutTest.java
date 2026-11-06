@@ -453,6 +453,29 @@ public class OpenRouterTimeoutTest {
         Assert.assertTrue(credits.lastFailureWasTransport());
     }
 
+    /** A connection that sends no headers is no reply, as is a port nobody listens on (an IO error): transport
+     *  failures. The deadline running out is the model's time. The bridges read the stop through gaveNoReply. */
+    @Test
+    public void aSilentConnectionAndARefusedConnectionAreDeadBridges() throws Exception {
+        String[] stop = new String[1]; boolean[] ok = new boolean[1];
+        timed("/noheaders", stop, ok);
+        Assert.assertEquals(stop[0], "no-headers");
+        Assert.assertTrue(HttpDeadline.gaveNoReply(stop[0]), "no headers is no reply");
+        Assert.assertTrue(HttpDeadline.gaveNoReply("silent"));
+        Assert.assertFalse(HttpDeadline.gaveNoReply("deadline"), "the deadline is the model's time");
+        Assert.assertFalse(HttpDeadline.transportError(new java.net.http.HttpTimeoutException("headers")),
+                "the request deadline is the model's time");
+        Assert.assertFalse(HttpDeadline.transportError(new IllegalStateException("not JSON")), "an unreadable reply");
+        int closed;
+        try (java.net.ServerSocket ss = new java.net.ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())) {
+            closed = ss.getLocalPort();
+        }
+        LlmSpikeGui.OpenRouterBridge refused = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, "http://127.0.0.1:" + closed + "/v1", BUDGET_MS);
+        Assert.assertNull(refused.ask("what is the play?"));
+        Assert.assertTrue(refused.lastFailureWasTransport(), "connection refused is an IO error");
+    }
+
     /** A bridge pointed at a loopback endpoint needs no API key, and the deadline still applies. */
     @Test
     public void aLoopbackBridgeNeedsNoKeyAndStillHonoursItsDeadline() {

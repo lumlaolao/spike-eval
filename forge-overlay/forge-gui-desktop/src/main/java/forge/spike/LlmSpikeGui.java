@@ -12037,7 +12037,7 @@ public final class LlmSpikeGui {
                 return r;
             } catch (Exception e) {
                 System.out.println("[OPENROUTER " + label + "] error: " + e);
-                transportFailure = true; // the request itself failed (connection refused or reset, an IO error)
+                transportFailure = HttpDeadline.transportError(e);
                 return null;
             }
         }
@@ -12125,7 +12125,7 @@ public final class LlmSpikeGui {
                 String why = HttpDeadline.LAST_STOP.get();
                 // A connection that sent no headers, or went silent, gave no reply; the wall-clock deadline is the
                 // model's time spent (a reasoner that never answered).
-                transportFailure = "no-headers".equals(why) || "silent".equals(why);
+                transportFailure = HttpDeadline.gaveNoReply(why);
                 if (transportFailure)
                     System.out.println("[OPENROUTER " + label + "] stalled connection (" + why + " for " + HttpDeadline.IDLE_MS
                             + " ms) -> retrying instead of waiting out the " + timeoutMs + " ms deadline");

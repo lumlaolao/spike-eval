@@ -43,6 +43,14 @@ final class HttpDeadline {
 
     /** Why the last {@link #send} on this thread returned null: "deadline", "no-headers" or "silent", or null. */
     static final ThreadLocal<String> LAST_STOP = new ThreadLocal<>();
+    /** The connection gave no reply (no headers, or it went silent): the transport failed (issue #369). A "deadline"
+     *  stop is the model's time spent. */
+    static boolean gaveNoReply(String stop) { return "no-headers".equals(stop) || "silent".equals(stop); }
+    /** An exception from a send that is the transport failing (connection refused or reset, an IO error); not the
+     *  request's own deadline (HttpTimeoutException: the model's time), nor a reply that could not be read. */
+    static boolean transportError(Exception e) {
+        return e instanceof java.io.IOException && !(e instanceof java.net.http.HttpTimeoutException);
+    }
     /** The status and headers of the last {@link #send} on this thread, once they arrived (null before): a call cut
      *  off after its headers still has them, for the run's record (Transcript). */
     static final ThreadLocal<HttpResponse.ResponseInfo> LAST_INFO = new ThreadLocal<>();

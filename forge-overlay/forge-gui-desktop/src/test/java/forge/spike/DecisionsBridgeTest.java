@@ -245,6 +245,27 @@ public class DecisionsBridgeTest {
         Assert.assertTrue(bodies.isEmpty());
     }
 
+    /** Issue #369: a 402 (credits gone) is the transport failing; a 200 whose answers cannot be read is the model's
+     *  reply, and a refused question is never sent. Only the first counts against the game. */
+    @Test
+    public void onlyATransportFailureIsADeadBridge() {
+        AnswerTool.Spec spec = AnswerTool.Spec.one(2).labels(List.of("CAST Lava Spike @4", "PASS (do nothing)"));
+        DecisionsBridge b = bridge();
+        status = 402;
+        reply = q -> "{\"error\":{\"message\":\"This request would exceed your available credits\"}}";
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertTrue(b.lastFailureWasTransport(), "a 402 is the transport failing");
+        status = 200;
+        reply = q -> "{\"answers\":{\"unknown\":{\"type\":\"noul\"}}}";
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertFalse(b.lastFailureWasTransport(), "malformed answers on a 200 are the model's");
+        reply = q -> "not json at all";
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertFalse(b.lastFailureWasTransport(), "an unreadable 200 body is the model's, not an IO error");
+        Assert.assertNull(b.chat(messages(USER), "[]", true, AnswerTool.Spec.card()));
+        Assert.assertFalse(b.lastFailureWasTransport(), "a question it cannot put is not sent");
+    }
+
     /** Naming a card has no closed list of options: no answer, nothing sent, the harness's fixed option follows. */
     @Test
     public void namingACardGetsNoAnswerAndSendsNothing() {

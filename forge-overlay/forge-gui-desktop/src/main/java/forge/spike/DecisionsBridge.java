@@ -463,7 +463,7 @@ final class DecisionsBridge implements LLMBridge {
             HttpResponse<String> resp = Transcript.send("decisions", label, client, req, body, timeoutMs);
             if (resp == null) {
                 String why = HttpDeadline.LAST_STOP.get();
-                transportFailure = "no-headers".equals(why) || "silent".equals(why);
+                transportFailure = HttpDeadline.gaveNoReply(why);
                 System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] no response within " + timeoutMs + " ms (" + why + ")");
                 return null;
             }
@@ -476,7 +476,7 @@ final class DecisionsBridge implements LLMBridge {
             bill(o);
             return o;
         } catch (Exception e) {
-            transportFailure = true;
+            transportFailure = HttpDeadline.transportError(e);
             System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] error: " + e);
             return null;
         }
