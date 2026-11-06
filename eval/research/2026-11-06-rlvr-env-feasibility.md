@@ -100,8 +100,8 @@ The whole call took 30.1 s wall for 2 JVMs and 6 attempts, cost $0.000, 48 reque
 | forge-PP04 | 1 / 2 / 3 | 3495 / 1331 / 1027 ms | 8 | 227 / 207 / 105 | 28 / 26 / 13 |
 | forge-PP20 | 1 / 2 / 3 | 2778 / 1070 / 783 ms | 8 | 256 / 112 / 94 | 32 / 14 / 12 |
 
-- **Per model call**: 12 to 26 ms on the warm attempts, 28 to 32 ms on a JVM's first. This is the bridge's HTTP round
-  trip to a Python stdlib stub, JSON included. It varies run to run (an earlier, unrecorded run of the same command
+- **Per model call** (`model_ms` / `model_calls` of the result rows): 12 to 26 ms on the warm attempts, 28 to 32 ms
+  on a JVM's first. This is the bridge's HTTP round trip to a Python stdlib stub, JSON included. It varies run to run (an earlier, unrecorded run of the same command
   was faster), so read it as "tens of milliseconds at most".
 - **Per attempt, all in**: 0.78 to 1.33 s warm, 2.8 to 3.5 s the first: on a warm attempt at most about 0.17 s per
   model decision with the engine included (about 0.44 s on a JVM's first).
@@ -110,10 +110,11 @@ The whole call took 30.1 s wall for 2 JVMs and 6 attempts, cost $0.000, 48 reque
 - **Decisions per attempt**: 8 model calls and 4 to 5 `solver_actions`. All 6 attempts `failed` under the `first`
   policy (PP04 `SpellEffect`, PP20 `LifeReachedZero`), so they are short; a solved attempt is longer.
 - **Existing acceptance games** (`runs/harness-acceptance/accept-b3d31f8/part1/answertool`, `part3/faketool`,
-  `part3/faithful`): 20 to 30 model decisions in 24 to 61 requests, bridge latency 18 to 27 ms median. A 108-turn game
-  has 1558 decision rows of which only 20 to 30 reach the model, so its 49 to 70 s (`Match Duration`) is the engine,
-  not the transport. A real model decision costs seconds, so the loopback is 2 to 3 orders of magnitude below the
-  policy it serves. The one real-game figure on file is "a finished game is 14 to 34 calls"
+  `part3/faithful`): 20 to 30 model decisions in 24 to 61 requests, bridge latency 18 to 27 ms median. The two
+  54-turn games (`part3`) hold 1881 and 1901 JSONL rows, of which only 20 to 30 are model decisions, and run 49 and
+  70 s (`Match Duration`): that time is the engine, not the transport; `part1/answertool` ends on turn 4 in 4 s. A
+  real model decision costs seconds, so the loopback is 2 to 3 orders of magnitude below the policy it serves. The
+  one real-game figure on file is "a finished game is 14 to 34 calls"
   ([thinking-vs-sampling](2026-11-05-thinking-vs-sampling.md)).
 
 ## 3. Reward signals today, and their cost
