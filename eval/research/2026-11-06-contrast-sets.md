@@ -138,18 +138,41 @@ spell there made on B, then B's best line from that point.
 | contrast_09 | `splice2_7245b7790faf` (opp 17) | Lightning Bolt -> Desperate Ritual | one-way | Desperate Ritual alone, Lava Spike spliced with Desperate Ritual, Desperate Ritual alone, Glacial Ray alone (4) | Lightning Bolt; Shock | Desperate Ritual alone | 13 of 17 / fails, 4 short | not castable | yes |
 | contrast_10 | `splice_5c731f69fe82` (opp 18) | one more Glacial Ray; opponent at 19 | two-way | Desperate Ritual alone, Desperate Ritual spliced with Desperate Ritual, Lava Spike spliced with Desperate Ritual + Glacial Ray (3) | Desperate Ritual spliced with Glacial Ray | Desperate Ritual alone; Glacial Ray alone; Glacial Ray spliced with Desperate Ritual; Shock | 18 of 19 / fails, 1 short | 16 of 18 / fails, 2 short | yes |
 
+## Floors (zero-model arms on all 20 boards)
+
+```bash
+python3 eval/puzzles/puzzle_baselines.py --build runs/harness-acceptance/<stamp> run --suite <20-record manifest> \
+  --baselines-only --arms random,first,ai --rollouts 20 -j 2 --out-dir runs/contrast/floors --write <manifest>
+```
+
+Build compiled from this branch's overlay `4c5de4a329c8` (the engine check's); the 20 `.pzl` files as records of a
+throwaway manifest (not committed), 560 games (20 boards x (20 random seeds 1..20 + 4 `first` + 4 `ai`)), 2 JVMs under
+the shared lock. Result rows: `runs/contrast/rows-floors.jsonl` (git-ignored); game logs deleted (disk).
+
+| Arm | Games | Single-board solved (boards x seeds) | Per-board rate, 95% Wilson | Pair score (both sides solved) | Pairs where any seed solved both |
+|---|---|---|---|---|---|
+| random (20 seeds per board) | 400 | 0 of 20 boards, 0 of 400 rollouts | 0% (0 to 16% over boards; 0 to 0.95% over rollouts) | 0 of 10 pairs, per-seed both-solved probability 0 (0 to 28% over pairs) | 0 of 10 |
+| first (first option of every menu, 4 seeds) | 80 | 0 of 20 | 0% (0 to 16%) | 0 of 10 (0 to 28%) | 0 of 10 |
+| ai (Forge AI as the solver, 4 seeds) | 80 | 0 of 20 | 0% (0 to 16%) | 0 of 10 (0 to 28%) | 0 of 10 |
+
+**Every arm solves no side of any pair: 0 of 20 boards, so 0 of 10 pairs, on all three arms.** Per pair, the side each
+arm solves is none, for all ten pairs (`01` to `10`, sides `a` and `b`), on every seed tried. These are hard splice
+boards, exactly lethal, so the floor is the bottom of the scale: a pair score above 0 needs a solver that finds a
+multi-spell line, and the whole range above 0 is open for a model to show. The interval on a floor of 0 of 10 pairs is 0% to 28%, so a model's pair score is distinguished
+from the floor only above 3 of 10. The trivial one-line baseline (same line on both sides, pair score 0) and the
+random, `first` and `ai` floors therefore coincide at 0; the pair metric's baseline is 0, and a model's single-board
+rate is the number to read beside it.
+
 ## Not determined
 
 - **No model has been run on any pair.** Whether a model fails these more than the base boards is the experiment
   (paid; parked with the other paid probes on HTTP 402, issue #369).
 - **How to score a pair.** The pair score is the share of pairs with both sides solved (Gardner et al.'s consistency),
-  reported next to the single-board solve rate over the same boards. Its trivial baseline is a model that ignores the
-  changed detail and plays one line on both: by construction it solves at most one side of every pair, so its pair
-  score is 0 whatever its single-board rate (on a one-way pair a model can still solve both by playing each side's
-  line, which is the point). A random legal policy's pair rate is the product of its two sides' random solve rates,
-  each measurable with `puzzle_baselines.py run --arms random`; not run. The gap between single-board and pair rate is
-  the reading-versus-pattern signal; with 10 pairs its interval is wide (a 95% Wilson interval on 5 of 10 is 24% to
-  76%), so a scored set wants the 36 two-way pairs and more boards.
+  reported next to the single-board solve rate over the same boards. A model that ignores the changed detail and plays
+  one line on both solves at most one side of every pair by construction, so its pair score is 0 whatever its
+  single-board rate (on a one-way pair a model can still solve both by playing each side's line, which is the point).
+  The zero-model floors are measured below. With 10 pairs the interval is wide (a 95% Wilson interval on 5 of 10 is
+  24% to 76%), so a scored set wants the 36 two-way pairs and more boards.
 - **The lost side of each cross line is the model's.** The engine shows that one line (the other side's move, then
   this board's best line) falls short; that every line after the move loses is the model's verdict, as for the regret
   steps (a script cannot prove a loss).
