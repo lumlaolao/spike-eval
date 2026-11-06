@@ -637,6 +637,17 @@ def test_an_old_line_is_judged_by_the_transport_failures_in_its_log():
         Path(d, "game-5-1.log").write_text("[EVAL] jsonl game-5-2000.jsonl\n" + LOG_402)
         named = dict(game_line(5, False, "A"), _file="game-5-2000.jsonl")
         check("the log naming the game file is the pair", aggregate.paired_log(named, d) == Path(d, "game-5-1.log"))
+    with tempfile.TemporaryDirectory() as d:
+        # Two game files of one seed and seat order, one log naming the second: it is the second's, never the first's.
+        Path(d, "game-7-0.log").write_text("[EVAL] jsonl game-7-2000.jsonl\n" + LOG_402)
+        first = dict(game_line(7, False, "A"), _file="game-7-1000.jsonl")
+        second = dict(game_line(7, False, "A"), _file="game-7-2000.jsonl")
+        check("a log that names another game file is not this game's", aggregate.paired_log(first, d) is None)
+        check("so the first game counts nothing", aggregate.bridge_down_decisions(first, d) == 0)
+        check("the second counts its 402s", aggregate.bridge_down_decisions(second, d) == 1)
+    seat_with_slash = LOG_SILENT_LAST.replace("Seat", "R/G")
+    check("a seat name with a slash bounds its own asks", aggregate.log_bridge_down(seat_with_slash) == 0,
+          str(aggregate.log_bridge_down(seat_with_slash)))
 
 
 def test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out():

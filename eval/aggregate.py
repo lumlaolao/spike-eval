@@ -180,19 +180,13 @@ PROVENANCE_FIELDS = (
     ("shadow_ai", False),
 )
 
-# Decisions whose model ask failed in TRANSPORT after every retry (a 402 when the credits ran out, a 401, a 429, a
-# 5xx, an IO error, a connection that sent nothing), per identity (issue #369). Each took a fixed legal fallback, so a
-# game with any is not the model's: it is invalid here, whatever its recorded winner, and left out of every count a
-# score is taken over (docs/harness/ARCHITECTURE.md, "A game the model's bridge did not play"). The model's own lost
-# decisions (an empty answer, a deadline spent reasoning, a routing refusal) are not counted and stay scored.
+# Decisions lost to a dead model bridge, per identity (issue #369; the rule and its reasons:
+# docs/harness/ARCHITECTURE.md, "A game the model's bridge did not play is not scored").
 BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b")
-# For a game line from before the fields: its paired game-<seed>-<0|1>.log, in the bridges' own words. An ask's last
-# attempt follows "[BRIDGE <label>] no reply (attempt N/N)"; it was lost to the transport when that attempt's outcome
-# line, before the seat's next line of its own, is an HTTP error, an IO error (a java/javax net or io exception other
-# than the request deadline's HttpTimeoutException or an UncheckedIOException; a connect timeout counts), or a
-# connection that sent nothing, and the next line does not say the status was a routing filter's or a refusal of
-# function calling (the provider answered). A non-answer, a wall-clock timeout, a reply, or no outcome line at all (a
-# bridge that refused function calling returns at once) is not. Failures a retry recovered count nothing.
+# A line from before the fields is judged by its log (log_bridge_down): an ask's last attempt is the outcome line after
+# "[BRIDGE <label>] no reply (attempt N/N)" and before that seat's next line; _TRANSPORT is HttpDeadline.transportError
+# and gaveNoReply in the bridges' log words, and an outcome followed by an _ANSWERED_STATUS line was the provider's
+# answer.
 _LAST_ATTEMPT = re.compile(r"\[BRIDGE ([^\]]+)\] no reply \(attempt (\d+)/(\d+)\)")
 _OUTCOME = re.compile(r"^\[(?:OPENROUTER|JEV) ([^\]]+)\] (.*)$")
 _SEAT_LINE = re.compile(r"^\[([^\]]+)\] ")
@@ -201,6 +195,7 @@ _TRANSPORT = re.compile(r"^(?:\[JEV-NO-ANSWER\] )?(?:HTTP \d+|stalled connection
                         r"error: javax?\.(?:net|io|nio)\.(?!http\.HttpTimeoutException|UncheckedIOException)|"
                         r"no response within .*\((?:no-headers|silent)\))")
 _ANSWERED_STATUS = ("[ROUTING-FILTER]", "[NATIVE-TOOLS->TEXT]")
+_EVAL_JSONL = re.compile(r"^\[EVAL\] jsonl (\S+)", re.M)
 
 
 def log_bridge_down(text):
@@ -212,7 +207,7 @@ def log_bridge_down(text):
         if m:
             pending.pop(m.group(1), None)
             if m.group(2) == m.group(3):
-                pending[m.group(1)] = m.group(1).split("/")[0]
+                pending[m.group(1)] = m.group(1).rsplit("/", 1)[0]
             continue
         m = _OUTCOME.match(line)
         if not m:
@@ -237,21 +232,29 @@ def game_log(log_dir, seed, swap):
 
 
 def paired_log(game, log_dir):
-    """The game's own log in `log_dir`, or None: the one whose "[EVAL] jsonl <name>" names the game's file when the
-    game knows it (`_file`), else the one named for its seat order."""
+    """The game's own log in `log_dir`, or None. When the game knows its file (`_file`), the log whose "[EVAL] jsonl"
+    line names it; else, or when no log names a file, the one named for its seat order. A log that names another
+    game file is that game's, never this one's."""
     seed = game.get("seed")
     if seed is None or log_dir is None:
         return None
     swap = bool(game.get("swap"))
-    named = "[EVAL] jsonl %s" % game["_file"] if game.get("_file") else None
-    for p in (game_log(log_dir, seed, swap), game_log(log_dir, seed, not swap)) if named else ():
+    own = game_log(log_dir, seed, swap)
+    names = {}
+    for p in (own, game_log(log_dir, seed, not swap)):
         try:
-            if p.is_file() and named in p.read_text(encoding="utf-8", errors="replace"):
-                return p
+            m = _EVAL_JSONL.search(p.read_text(encoding="utf-8", errors="replace")) if p.is_file() else None
         except OSError:
-            pass
-    p = game_log(log_dir, seed, swap)
-    return p if p.is_file() else None
+            m = None
+        names[p] = m.group(1) if m else None
+    mine = game.get("_file")
+    if mine:
+        for p, name in names.items():
+            if name == mine:
+                return p
+    if not own.is_file() or (mine and names[own] and names[own] != mine):
+        return None
+    return own
 
 
 def bridge_down_decisions(game, log_dir=None, log_text=None):
@@ -704,9 +707,8 @@ def p90(values):
 def summarize_games(games):
     counts = Counter()
     for g in games:
-        lost = bridge_down_decisions(g)
-        w = "invalid" if lost else g.get("winner")      # scored_winner's rule, with the count kept
-        if lost:
+        w = scored_winner(g)
+        if bridge_down_decisions(g):
             counts["bridge_down"] += 1  # invalid: a decision was the bridge's fallback, not the model's
         if w in ("A", "B"):
             counts["decisive"] += 1
@@ -1019,9 +1021,8 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
     # A name that is llm in any game is treated as llm (identity-keyed config
     # is stable within a batch; mixed config is surfaced by provenance).
     # Over the scored games only: a dead-bridge game's fallbacks are the bridge's, and it is in no score (#369).
-    dead_games = {id(g) for g in games if bridge_down_decisions(g)}
-    dead = {g.get("_file") for g in games if id(g) in dead_games} - {None}
-    games = [g for g in games if id(g) not in dead_games]
+    dead = {g.get("_file") for g in games if bridge_down_decisions(g)} - {None}
+    games = [g for g in games if not bridge_down_decisions(g)]
     decisions = [d for d in decisions if d.get("_file") not in dead]
     llm_names = set()
     any_llm_arm = False

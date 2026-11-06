@@ -962,6 +962,34 @@ class TestResumeIdentity(unittest.TestCase):
             self.assertEqual(Path(d, run_batch.CRASHED_DIR, "bridgedown-swap0-game-7100-1000.log").read_text(),
                              "the dead game's log\n")
 
+    def test_the_file_judged_dead_is_the_one_set_aside_and_its_status_is_under_the_runs_condition(self):
+        # Round-4 review of #374: two old game files of one combo and one log naming the second; only the second is
+        # dead and moved. A dead game under the run's condition beside a healthy one of another is bridge-down, not
+        # a condition mismatch.
+        log_402 = "[EVAL] jsonl game-7200-2000.jsonl\n" + "".join(
+            "[OPENROUTER Seat/smart] HTTP 402: credits\n"
+            "[Seat] [BRIDGE Seat/smart] no reply (attempt %d/3) -> restarting session\n" % n for n in (2, 3)) \
+            + "[OPENROUTER Seat/smart] HTTP 402: credits\n"
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7200-1000.jsonl", game_line(7200, False))
+            write_game(d, "game-7200-2000.jsonl", game_line(7200, False))
+            Path(d, "game-7200-0.log").write_text(log_402)
+            moved = run_batch.set_aside_dead_bridge(d, 7200, False)
+            self.assertEqual(sorted(moved), ["bridgedown-swap0-game-7200-2000.jsonl", "bridgedown-swap0-game-7200-2000.log"])
+            self.assertTrue(Path(d, "game-7200-1000.jsonl").is_file(), "the healthy file stays")
+        expect = run_batch.resume_expectation(make_args())
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "missing")
+            write_game(d, "game-7300-1000.jsonl", game_line(7300, False, context_profile="v2-memory", memory_tools=True,
+                                                            bridge_down_decisions_a=0, bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "foreign")
+            write_game(d, "game-7300-2000.jsonl", game_line(7300, False, bridge_down_decisions_a=2,
+                                                            bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "dead")
+            write_game(d, "game-7300-3000.jsonl", game_line(7300, False, bridge_down_decisions_a=0,
+                                                            bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "ok")
+
 class TestManifest(unittest.TestCase):
 
     def test_manifest_written_once_and_invocations_appended(self):
