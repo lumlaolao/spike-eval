@@ -401,8 +401,10 @@ public final class LlmSpikeGui {
      *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
      *  Epoch 84 (2026-11-06, #380): "X target creatures" with X announced as 0 takes no target; one was set, and the
      *  stack refused the paid play (Rot-Curse Rakshasa's renew).
+     *  Epoch 85 (2026-11-06, #392): a splice set the cast cannot pay together is asked again with its cost, then cast
+     *  with no splice; a spliced cast that fails leaves the plain cast offered; a failed payment is told to the seat.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-84";
+    static final String HARNESS_EPOCH = "harness-epoch-85";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1018,6 +1020,14 @@ public final class LlmSpikeGui {
         private final java.util.Set<String> failedInWindow = new java.util.HashSet<>();
         static String failedPlayKey(SpellAbility sa) {
             return sa.getHostCard().getId() + "|" + sa.getAlternativeCost() + "|" + sa.getCardStateName() + "|" + sa.getDescription();
+        }
+        static boolean hasSplices(SpellAbility sa) { return sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty(); }
+        /** The key of {@code play} cast with {@code splices} spliced onto it: its failure is that set's, not the card's. */
+        static String spliceKey(String play, Iterable<Card> splices) {
+            List<Integer> ids = new ArrayList<>();
+            for (Card c : splices) ids.add(c.getId());
+            java.util.Collections.sort(ids);
+            return play + "|splice " + ids;
         }
         private String cancelNote = null;
         /** Set by {@link LlmCostDecision} for the one cost ask it is making when that ask may be answered
@@ -3369,21 +3379,50 @@ public final class LlmSpikeGui {
         }
 
         /** Splice onto Arcane (CR 702.47): which cards in hand are spliced onto the spell. Only splices the whole cast can
-         *  still pay are offered: an unpayable one fails the cast. */
+         *  still pay are offered: an unpayable one fails the cast. Each is checked alone for the menu, and the set the
+         *  seat picks is checked together: two payable splices can cost more than the pool holds (#392: Glacial Ray and
+         *  Desperate Ritual onto Lava Spike, {2}{R}{R}{R} from {R:3}). Such a set, or one whose cast already failed in this
+         *  window, is asked once more, then the spell is cast with no splice (splicing is optional, CR 702.47a). A legality
+         *  fix, so under every profile. */
         @Override
         public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) {
             List<Card> payable = new ArrayList<>();
-            for (Card c : cards) {
-                try {
-                    SpellAbility with = sa.copy();
-                    forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
-                    with.setActivatingPlayer(getPlayer());
-                    if (legallyPayable(with, getPlayer(), false)) payable.add(c);
-                } catch (Exception ignore) { /* not offered */ }
-            }
+            for (Card c : cards) if (payableSpliced(spliced(sa, List.of(c)))) payable.add(c);
             if (payable.isEmpty()) { clearLast(); auto("splice(none payable)->none"); return payable; }
-            return pickCards("splice", "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
-                    + " effect, you pay its splice cost too, and it stays in your hand.", payable);
+            String q = "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
+                    + " effect, you pay its splice cost too, and it stays in your hand.";
+            String again = "";
+            for (int attempt = 0; attempt < 2; attempt++) {
+                List<Card> picked = pickCards("splice", q + again, payable);
+                if (picked.isEmpty()) return picked;
+                // A set whose cast already failed to pay in this window is not taken again: the plain cast stays offered
+                // (#392), so a set the check passes and the payment fails must not be retried without end.
+                boolean failed = failedInWindow.contains(spliceKey(failedPlayKey(sa), picked));
+                SpellAbility with = spliced(sa, picked);
+                if (!failed && (picked.size() < 2 || payableSpliced(with))) return picked;
+                String set = names(picked, false, 10), total = with == null ? "?" : String.valueOf(with.getPayCosts().getTotalMana());
+                // No cost in the seat's text: the printed total is before reductions, the check is after them.
+                again = " You chose " + set + ": " + (failed ? "the spell with them failed when you cast it in this window."
+                        : "the spell with all of them costs more than you can pay, so it would not be cast.")
+                        + " Choose a set you can pay for together, or none. Another set you cannot pay for casts it with no splice.";
+                p("[ROUTER] splice: " + set + (failed ? " failed to pay in this window" : " cannot be paid together (" + total + ")"));
+            }
+            auto("splice(unpayable set)->none");
+            return new ArrayList<>();
+        }
+
+        /** A copy of {@code sa} with {@code splices} spliced onto it, or null when the engine cannot build one. */
+        private SpellAbility spliced(SpellAbility sa, List<Card> splices) {
+            try {
+                SpellAbility with = sa.copy();
+                for (Card c : splices) forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
+                with.setActivatingPlayer(getPlayer());
+                return with;
+            } catch (Exception e) { return null; }
+        }
+
+        private boolean payableSpliced(SpellAbility with) {
+            try { return with != null && legallyPayable(with, getPlayer(), false); } catch (Exception e) { return false; }
         }
 
         /** A coin flip the seat calls (heads or tails), or, with Krark's Thumb, the result it keeps. */
@@ -4382,10 +4421,14 @@ public final class LlmSpikeGui {
                 // own refusals are noted after it (the header says "earlier decisions").
                 final String notebook = refusedEarlier();
                 if (rnd != null) choice = 1 + PuzzleArms.pick(rnd, passIdx, true); // random arm: uniform incl. PASS (last)
+                // A note is said once, on the next menu: it stayed until the window changed, and a land drop keeps the
+                // window, so it was repeated on every menu after it (#392 review).
+                final String note = cancelNote;
+                cancelNote = null;
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
                             ? (propose ? proposePromptPrefix(snapshot() + notebook, phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
-                              + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
+                              + (note != null && attempt == 0 ? "NOTE: " + note + "\n" : "")
                               + (!SKIP_HEUR && observer != null && attempt == 0 ? (playTool ? YIELD_TOOL_HINT : YIELD_HINT) : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             // The retry carries the WHOLE decision again. It used to be this one sentence
@@ -5394,7 +5437,7 @@ public final class LlmSpikeGui {
                 return played;
             }
 
-            final String chosenKey = failedPlayKey(sa);
+            String chosenKey = failedPlayKey(sa);
             final Player ai = getPlayer();
             final Card source = sa.getHostCard();
             final Game game = source.getGame();
@@ -5408,9 +5451,11 @@ public final class LlmSpikeGui {
                 sa = forge.game.ability.AbilityUtils.addSpliceEffects(sa);
                 // A spliced spell is a new copy with the spliced effects at its end: its targets are the seat's again,
                 // all of them (the copied routine asked Forge's AI whether to go on, and dropped the play when it said no).
-                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
+                if (hasSplices(sa)) {
                     sa.resetTargets();
                     ensureTargetsSet(sa);
+                    // A failure of the spliced spell is that set's, not the card's: the plain cast stays offered (#392).
+                    chosenKey = spliceKey(chosenKey, sa.getSplicedCards());
                 }
                 sa.setHostCard(game.getAction().moveToStack(source, sa));
             }
@@ -5454,7 +5499,7 @@ public final class LlmSpikeGui {
                     return true;
                 }
                 playSeen(sa, hz);
-                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
+                if (hasSplices(sa))
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
                 return true;
             }
@@ -5470,6 +5515,16 @@ public final class LlmSpikeGui {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
                 playsNotMade++;
+                // The seat is told, as after a cancel: a play that silently did not happen read as made (#392). New seat
+                // text, so not on a legacy profile (docs/STANDARDS.md section 4: legacy stays byte-identical).
+                if (observer != null) {
+                    boolean spliced = hasSplices(sa);
+                    cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa)
+                            + (spliced ? " with " + names(sa.getSplicedCards(), false, 10) + " spliced onto it" : "")
+                            + " and its cost could not be paid, so nothing was played." + (spliced
+                            ? " The spell with no splice, or with a set you can pay for, is still on the menu."
+                            : " It is not offered again in this priority window.");
+                }
             }
             costCancelled = false;
             sa.setSkip(true);
