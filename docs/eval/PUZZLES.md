@@ -168,7 +168,9 @@ python3 eval/puzzles/step_regret.py <attempt dir> --out runs/step-regret/<name> 
   `puzzle_gen.splice_best`, refusing anything outside the model. Model-derived, never an engine proof: on the 4
   attempts above it agrees with all 31 decided search positions (the "all lost" baseline: 30) and puts the regret
   step at the second bare Desperate Ritual in each (floor 1/4, or 2/6 in C seed 1); its assumptions are in
-  `eval/research/2026-11-06-step-regret-board-model.md`.
+  `eval/research/2026-11-06-step-regret-board-model.md`. `--scripts DIR` writes an engine witness per position it
+  calls winnable (the recorded prefix, then its line) for `puzzle_baselines.py line`; `--witnesses DIR` checks each
+  game reached the recorded position: all 18 were proven.
 
 ## Proving a written line
 

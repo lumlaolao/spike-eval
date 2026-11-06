@@ -166,6 +166,40 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual((fl["n_options"], fl["floor"]), (6, 2 / 6))
         self.assertEqual(fl["model_label"], "CAST Desperate Ritual @3 1{R}")
 
+    def test_the_recorded_prefix_as_script_lines(self):
+        self.assertEqual(sb.prefix_lines(self.rows(), 6),
+                         ["cast Desperate Ritual", "pass", "cast Lava Spike", "opponent", "pass"])
+        self.assertEqual(sb.prefix_lines(self.rows(), 3), ["cast Desperate Ritual", "pass"])
+
+    def test_the_witness_script_at_a_winnable_position(self):
+        w = sb.script_for(self.rows(), 0)
+        self.assertEqual(w["prefix"], 0)
+        self.assertEqual(w["lines"][:3], ["cast Lava Spike", "opponent", "Desperate Ritual"])
+        self.assertGreaterEqual(w["dealt"], w["opp"])
+        self.assertEqual(w["option"], "CAST Lava Spike @1 {R}", "the menu option the first line takes")
+        with self.assertRaises(ValueError):
+            sb.script_for(self.rows(), 3)   # lost: the model has no line to write
+
+    def test_a_witness_from_a_stack_with_a_ping_waits_for_it(self):
+        s = sb.parse_state(prompt(["Lava Spike"], pool=1, alch="tapped", stack=[PING], opp=5))
+        lines, dealt = sb.winning_line(s)
+        self.assertEqual((lines, dealt), (["cast Lava Spike", "opponent", "activate Thermo-Alchemist"], 5))
+
+    def test_a_witness_game_is_checked_against_the_recording(self):
+        rec = self.rows()
+        solved = {"status": "solved", "script_played": True, "script_drift": ""}
+        self.assertEqual(sb.witness_verdict(rec, rec, 3, solved), "proven")
+        self.assertEqual(sb.witness_verdict(rec, rec, 3, dict(solved, status="failed")), "failed")
+        self.assertEqual(sb.witness_verdict(rec, rec, 3, dict(solved, script_played=False, script_drift="x")),
+                         "drift: the line did not play: x")
+        other = [dict(r) for r in rec]
+        other[3] = dict(other[3], prompt=prompt(["Lava Spike", "Lava Spike"], pool=3, alch=None, opp=11))
+        self.assertTrue(sb.witness_verdict(rec, other, 3, solved).startswith("drift: K=3 state"))
+        other = [dict(r) for r in rec]
+        other[2] = dict(other[2], options=["CAST Lava Spike @1 {R}", "PASS (do nothing)"])
+        self.assertTrue(sb.witness_verdict(rec, other, 3, solved).startswith("drift: row 2"))
+        self.assertTrue(sb.witness_verdict(rec, rec[:2], 3, solved).startswith("drift: the witness game"))
+
     def test_agreement_with_the_search_and_its_baseline(self):
         traj = sb.trajectory(self.rows())
         verdicts = {0: "proven", 2: "unwinnable", 3: "not_found", 6: "unwinnable"}

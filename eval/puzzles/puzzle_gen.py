@@ -427,7 +427,7 @@ def red_search(hand, mountains, alchemist, reducer, splice=True, kiln=False):
     return go(tuple(sorted(hand)), 0, 0, 0, mountains, mountains, bool(alchemist), 0)
 
 
-def written_line(line, hand, mountains, alchemist, reducer, kiln):
+def written_line(line, hand, mountains, alchemist, reducer, kiln, pool=0, alch_untapped=None, stack=()):
     """The written [solution] for a red_search line, played on a model of the stack the way the script arm plays it
     (ScriptBridge): each line is taken at the first priority where it fits, and while it does not fit the stack
     resolves one object a pass. A card is castable the moment its own cost is, so a spell would go on the stack
@@ -442,10 +442,14 @@ def written_line(line, hand, mountains, alchemist, reducer, kiln):
     there is a choice, and the order of two or more of the seat's triggers (the first named resolves first). A
     Grapeshot copy's target is asked when the storm trigger resolves.
 
+    A line written from a position mid-turn (step_regret_board.py) starts from `pool` mana already floating, the
+    Alchemist tapped unless `alch_untapped`, and `stack` (bottom first, in this function's encoding) unresolved.
+
     Returns (lines, damage the model deals, mana left). Raises ValueError when the line cannot be played as the
     search meant it."""
-    out, held, stack = [], list(hand), []
-    s = {"pool": 0, "untapped": mountains, "mtns": mountains, "alch": bool(alchemist), "rites": 0, "yard": 0,
+    out, held, stack = [], list(hand), list(stack)
+    s = {"pool": pool, "untapped": mountains, "mtns": mountains,
+         "alch": bool(alchemist) if alch_untapped is None else bool(alchemist and alch_untapped), "rites": 0, "yard": 0,
          "dealt": 0, "power": 0}
     storm = 0
 

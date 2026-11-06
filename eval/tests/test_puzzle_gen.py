@@ -79,6 +79,20 @@ class GeneratedFamiliesTest(unittest.TestCase):
         self.assertEqual(down, up - 1)
         self.assertIsNotNone(line[0], "no ping first")
 
+    def test_a_written_line_from_a_position_mid_turn(self):
+        # step_regret_board.py writes the model's line from a recorded position: mana already in the pool, the
+        # Alchemist tapped, a ping on the stack (the A attempt at K=4 of splice_06dad20af5b3).
+        hand = ["Desperate Ritual", "Glacial Ray", "Lava Spike", "Lava Spike", "Lightning Bolt"]
+        (dmg, _, line), _ = pg.splice_best(hand, 3, True, untapped=False)
+        items = ["ping" if x is None else ("cast", x[0], x[1]) for x in line]
+        lines, dealt, _ = pg.written_line(items, hand, 0, True, False, False, pool=3, alch_untapped=False,
+                                          stack=[("ping",)])
+        self.assertEqual(dealt, dmg + 1, "the ping on the stack resolves too")
+        self.assertEqual(lines[0], "cast Lava Spike", "the sorcery waits for the ping (the bridge passes)")
+        self.assertEqual(lines[2], "Desperate Ritual", "carrying the Ritual")
+        with self.assertRaises(ValueError):
+            pg.written_line([("cast", "Glacial Ray", ())], ["Glacial Ray"], 0, True, False, False, pool=1)
+
     def test_the_splice_search_splices_two_copies_of_one_card(self):
         # Forge offers every copy in hand: two Desperate Rituals spliced onto one Arcane spell. Picking splice
         # cards by name found 19 here.

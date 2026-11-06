@@ -266,6 +266,83 @@ def floor_at(rows, k):
             "options": {o: verdicts[o] for o in opts}}
 
 
+# ------------------------------------------------------------------ an engine witness: the model's line, written
+
+def script_line(row):
+    """A recorded model decision as a ScriptBridge line: the words its option starts with."""
+    if row.get("type") == "splice":
+        return "; ".join(_picks(row)) or "none"
+    label = chosen_label(row) or ""
+    if label.startswith("PASS"):
+        return "pass"
+    if row.get("type") == "target":
+        m = re.match(r"(opponent|you) \(", label)
+        if m:
+            return m.group(1)
+    m = re.match(r"(CAST|ACTIVATE) (.+?)(?: \d+/\d+)? @\d+", label)
+    if m:
+        return "%s %s" % (m.group(1).lower(), m.group(2))
+    raise NotModeled("no script line for %r" % label)
+
+
+def prefix_lines(rows, k):
+    """The seat's model decisions before row k, as script lines (an auto row asks the bridge nothing)."""
+    return [script_line(r) for r in rows[:k] if r.get("tier") in sr.MODEL_TIERS]
+
+
+def winning_line(state):
+    """The model's best line from `state` written for the script arm (puzzle_gen.written_line, from the pool, the
+    Alchemist and the stack as they are): (lines, damage dealt from here)."""
+    if state.get("pending") or state.get("ended"):
+        raise NotModeled("a line is written from a priority position only")
+    st = state["stack"]
+    k = sum(1 for x in st if x["untap"])
+    extra = k - (0 if state["u"] else 1) if state["alch"] and k else 0
+    u = state["u"] or bool(state["alch"] and k)
+    mana = state["mana"] + sum(x["mana"] for x in st)
+    (_, _, line), _ = pg.splice_best(list(state["hand"]), mana, state["alch"], untapped=u)
+    items = ["ping"] * extra + ["ping" if x is None else ("cast", x[0], x[1]) for x in line]
+    stack = [("untap",) if x["untap"] else ("obj", x["mana"], 0, x["dmg"], 0) for x in reversed(st)]
+    lines, dealt, _ = pg.written_line(items, list(state["hand"]), 0, state["alch"], False, False, pool=state["mana"],
+                                      alch_untapped=state["u"], stack=stack)
+    return lines, dealt
+
+
+def script_for(rows, k):
+    """The witness script for position k: the recorded prefix, then the model's line from k. Raises ValueError when
+    the model's line does not reach the opponent's life (the model calls the position lost)."""
+    state = position_state(rows, k)
+    lines, dealt = winning_line(state)
+    if dealt < state["opp"]:
+        raise ValueError("K=%d: the model's line deals %d of %d" % (k, dealt, state["opp"]))
+    first = lines[0].lower()
+    opts = rows[k].get("options") or []
+    option = next((o for o in opts if o.lower().startswith(first)), None)
+    if option is None:   # the line does not fit this menu: the bridge passes (it waits for its window)
+        option = next((o for o in opts if o.startswith("PASS")), None)
+    pre = prefix_lines(rows, k)
+    return {"k": k, "prefix": len(pre), "lines": pre + lines, "dealt": dealt, "opp": state["opp"], "option": option}
+
+
+def witness_verdict(recorded, witness, k, result):
+    """An engine witness for position k: "proven" when the witness game reached the recording's position k (every
+    decision row before it the same question, row k's state the same) and the script arm played its line to a solve;
+    "failed" when it reached k, played the line and lost (the model was wrong); else "drift: <why>"."""
+    if len(witness) <= k:
+        return "drift: the witness game has %d decision rows, not %d" % (len(witness), k + 1)
+    for i in range(k + 1):
+        a, b = recorded[i], witness[i]
+        if (a.get("type"), a.get("options")) != (b.get("type"), b.get("options")):
+            return "drift: row %d is %s %s, the recording's %s %s" % (i, b.get("type"), b.get("options"),
+                                                                       a.get("type"), a.get("options"))
+    sa, sb_ = parse_state(recorded[k].get("prompt") or ""), parse_state(witness[k].get("prompt") or "")
+    if sa != sb_:
+        return "drift: K=%d state %s, the recording's %s" % (k, sb_, sa)
+    if result.get("script_drift") or not result.get("script_played"):
+        return "drift: the line did not play: %s" % (result.get("script_drift") or "lines unplayed")
+    return "proven" if result.get("status") == "solved" else "failed"
+
+
 def search_verdicts(files):
     """{source_game: {k: verdict}} from step-regret.jsonl rows; a decided verdict wins over not_found; two decided
     verdicts that disagree are refused."""
@@ -310,6 +387,10 @@ def main(argv=None):
     ap.add_argument("attempts", nargs="+", help="attempt dirs (each game-<seed>-*.jsonl) or game logs")
     ap.add_argument("--search", nargs="*", default=[], help="step-regret.jsonl files of the exact search")
     ap.add_argument("--out", help="write one JSON row per attempt here")
+    ap.add_argument("--scripts", help="write a witness script (the recorded prefix, then the model's line) for every "
+                                      "position the model calls winnable into this dir")
+    ap.add_argument("--witnesses", help="dir of witness runs (<game stem>-k<K>/, puzzle_baselines.py line --out-dir): "
+                                        "each checked against its recording")
     a = ap.parse_args(argv)
     sv = search_verdicts(a.search)
     rows = []
@@ -317,6 +398,16 @@ def main(argv=None):
         for log in sr.game_logs(att):
             r = analyse(log, sv.get(str(log), {}))
             rows.append(r)
+            if a.scripts:
+                drows = sr.decision_rows(log)
+                for p in r["positions"]:
+                    if p["winnable"] and p["type"] == "play":
+                        w = script_for(drows, p["k"])
+                        f = Path(a.scripts) / ("%s-k%03d.txt" % (Path(log).stem, p["k"]))
+                        f.parent.mkdir(parents=True, exist_ok=True)
+                        f.write_text("# %s K=%d: %d recorded lines, then the model's line (%d of %d); option %r\n"
+                                     "[solution]\n%s\n" % (Path(log).name, p["k"], w["prefix"], w["dealt"], w["opp"],
+                                                            w["option"], "\n".join(w["lines"])))
             ag = r["agreement"]
             print("%s seed %s: %s regret K=%s | agree %d/%d (baseline %d/%d)" % (
                 Path(log).parent.parent.name, r["seed"], r["status"], r["regret_k"], ag["agree"], ag["decided"],
@@ -329,6 +420,18 @@ def main(argv=None):
                 f = r["floor"]
                 print("  floor at K=%d: %d of %d keep the win %s; the model took %r" % (
                     f["k"], len(f["kept"]), f["n_options"], f["kept"], f["model_label"]))
+        if a.witnesses:
+            for log in sr.game_logs(att):
+                for d in sorted(Path(a.witnesses).glob("%s-k*" % Path(log).stem)):
+                    k = int(d.name.rsplit("-k", 1)[1])
+                    games = sorted(d.rglob("game-*.jsonl"))
+                    res = [r for f in sorted(d.rglob("puzzle-results.jsonl")) for r in sr.read_jsonl(f)]
+                    v = ("drift: no witness game or result row" if not games or not res else
+                         witness_verdict(sr.decision_rows(log), sr.decision_rows(games[-1]), k, res[-1]))
+                    w = {"t": "step_regret_witness", "version": VERSION, "source_game": str(log), "k": k,
+                         "verdict": v, "witness_dir": str(d)}
+                    rows.append(w)
+                    print("witness %s K=%d: %s" % (Path(log).stem, k, v))
     if a.out:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text("".join(json.dumps(r) + "\n" for r in rows))
