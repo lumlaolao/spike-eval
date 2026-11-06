@@ -371,7 +371,19 @@ def test_decisions_lost_to_a_dead_bridge_fail_the_invariants():
     check("a line whose count is 0 passes", r["hard_invariants"]["pass"] is True, str(r["hard_invariants"]))
 
 
+
+def test_the_standards_name_every_hard_invariant():
+    """docs/STANDARDS.md section 4 lists the run oracle's hard invariants; a new one must be named there."""
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-1-1000.jsonl", [game_line(seed=1)])
+        hi = da.build_report([Path(d)])["hard_invariants"]
+    names = sorted(k for k in hi if k not in ("pass",) and not k.endswith("_ok"))
+    text = " ".join((evalpath.REPO / "docs" / "STANDARDS.md").read_text(encoding="utf-8").split())
+    check("STANDARDS names every hard invariant", all("`%s=0`" % n in text for n in names), str(names))
+
+
 def main():
+    test_the_standards_name_every_hard_invariant()
     test_decisions_lost_to_a_dead_bridge_fail_the_invariants()
     test_one_candidate_in_a_subset_decision_is_not_a_forced_pick()
     test_parse_log_text()

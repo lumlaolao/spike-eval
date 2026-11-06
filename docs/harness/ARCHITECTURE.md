@@ -1029,20 +1029,31 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
   **`defect_analyzer.py`** is the run oracle: `ai_tier_count=0` and no silent drops, or the run fails.
-- **A game the model's bridge did not play is not scored** (issue #369). When every retry of a model ask gets no
-  reply (`askModel`: a 402 when the credits run out, a 401, an outage), the decision takes its fixed fallback, and the
-  seat counts it once per decision for its identity; the game line carries `bridge_down_decisions_a` / `_b` and
-  `circuit_breaker_trips_a` / `_b` (five dead decisions in a row), 0 when nothing was lost. A provider refusing
-  function calling is not counted: it answered, and `native_tools_downgraded` records it.
+- **A game the model's bridge did not play is not scored** (issue #369). The rule is TRANSPORT: when every retry of a
+  model ask fails in transport, the decision takes its fixed fallback and the seat counts it for its identity.
+  - A transport failure (`LLMBridge.lastFailureWasTransport`, set by `OpenRouterBridge` and `DecisionsBridge`): an HTTP
+    status other than a refusal of function calling or of a routing filter (402 when the credits run out, 401, 429,
+    5xx), an IO error, or a connection that sent no headers or went silent.
+  - Not counted, the model's own decisions lost and scored as they are ("a reply that calls nothing ... the decision is
+    lost to a fixed legal option", `CLAUDE.md`): an empty or unreadable answer (after the truncation retry), the
+    deadline running out while the model reasoned, a routing-filter refusal (`routing_refusals` on a puzzle row), and
+    a refusal of function calling (`native_tools_downgraded`). A `claude-cli:` seat (never scored) counts nothing.
+  - The game line carries `bridge_down_decisions_a` / `_b` and `circuit_breaker_trips_a` / `_b` (five dead decisions
+    in a row), 0 when nothing was lost.
   - `aggregate.bridge_down_decisions` reads the count (on a line from before the field, the game's `(bridge-down)`
-    fallback rows); `aggregate.py` scores any such game invalid (`scored_winner`; the line's winner is kept),
-    `panel_score.py` and `rating.py` refuse it whatever the flags (a fake-model sanity arm, which never answers by
-    design, aside), and `defect_analyzer.py` fails on it (`bridge_down_total`).
-  - *Why any, not a share:* the 2026-11-05 block that ran out of credits scored 20 decisive games with 349 decisions
-    lost, seeds 1009-1019 with no model decision at all; 79 epoch-stamped OpenRouter games in the local runs outside
-    it lost none, so no threshold has data behind it.
+    fallback rows, unless the line says native tools were downgraded; those rows also name a non-answer, so an old
+    line can only over-count). `aggregate.py` leaves such a game out of every count a score is taken over, the strict
+    score's `started` included (the recorded winner is kept); `panel_score.py` and `rating.py` refuse it whatever the
+    flags (a fake-model sanity arm aside); `defect_analyzer.py` fails on it (`bridge_down_total`); and a
+    `run_batch.py` resume sets the game aside under `crashed/` (`bridgedown-` files, still priced) and plays it again.
+  - *Why any, not a share:* the 2026-11-05 block that ran out of credits (`runs/cv/luna-vs-ai`, kept by the issue's
+    hunter) scored 20 decisive games; `python3 eval/defect_analyzer.py runs/cv/luna-vs-ai` now reads
+    `bridge_down_total=280` over 18 games, and `aggregate.py` 2 decisive, 18 invalid. The other 79 game lines in the
+    author's `runs/` directories with a `harness_epoch` and a non-loopback `openrouter:` seat had no `(bridge-down)`
+    decision row (`grep -c '(bridge-down)'` on each such `game-*.jsonl`), so no threshold has data behind it.
   - Acceptance `gaming` plays a seat whose provider answers 402 to every call (`fake_model_server.py --http-error
-    402`) and checks the count, the invalid game and the analyzer failure.
+    402`) and checks the count, the invalid game and the analyzer failing on that invariant alone; the empty and
+    garbage seats, whose model answered, must count none.
 - **Seed governance (`eval/seed_policy.py`):** some seed blocks are reserved for evaluation, and no
   training data may come from them.
 - **The three headline scores:**
