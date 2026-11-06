@@ -403,8 +403,9 @@ turn before the upkeep a Survive goal wins at) into `LlmSpikeGui.puzzleLastTurn`
 it (`SeatObservation.combatBeforeLimit`: its own turn past combat, or no turn of its own left; an extra turn is not
 counted; the end-of-combat step is past combat) reads `your next combat: none before the puzzle's turn limit` (or
 `their`) in place of its clock. In 2828 recorded puzzle games the old line read LETHAL on turn 1 after combat in 311,
-and a regex over the replies there found 33 that passed citing a later combat (32 of them failed; a lower bound on
-reliance, with no baseline for those boards without the line). A goal with no turn count ("win before opponent's
+and a regex over the replies there found 33 that passed citing a later combat (10.6%, 32 of them failed), against 5 of
+577 (0.9%) where the clock was not lethal and 0 of 1273 with no clock: an association across different boards, and a
+lower bound on reliance (#398). A goal with no turn count ("win before opponent's
 next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLastTurn` -1) is unchanged.
 
 **User message per decision:**
