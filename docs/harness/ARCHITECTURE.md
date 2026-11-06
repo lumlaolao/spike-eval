@@ -397,6 +397,16 @@ setup block is not repeated in either per-decision block (`SeatObservation.cardT
 per-decision block prints is not printed by the other. A game seat's state bytes at observation-faithful-v43 equal
 v42's: the new block is off there.
 
+**A puzzle's FACTS stop at its last turn** (#398, observation-faithful-v44). `LlmSpikePuzzle.applyBoard` reads the
+last turn off the Puzzle Goal card's turn trigger (`lastTurn`: the turn whose cleanup the solver loses at, or the
+turn before the upkeep a Survive goal wins at) into `LlmSpikeGui.puzzleLastTurn`. A side with no combat left before
+it (`SeatObservation.combatBeforeLimit`: its own turn past combat, or no turn of its own left; an extra turn is not
+counted; the end-of-combat step is past combat) reads `your next combat: none before the puzzle's turn limit` (or
+`their`) in place of its clock. Why: the seat reads FACTS as engine fact, and in recorded 1-turn puzzles seats passed
+after combat citing that lethal "next combat" (#398 has the counts, their pattern and their limits: an association,
+and in drain the positions were already lost). A goal with no turn count ("win before opponent's
+next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLastTurn` -1) is unchanged.
+
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
 - the state;
@@ -556,7 +566,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v43+propose`, `answer-tool-v18+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v44+propose`, `answer-tool-v18+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls

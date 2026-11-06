@@ -93,6 +93,7 @@ public class RulesProbeLabelExport {
         AnswerTool.PROPOSE_FOR_TEST = null;
         LlmSpikeGui.puzzleSolverSeat = null;
         LlmSpikeGui.puzzleBrief = null;
+        LlmSpikeGui.puzzleLastTurn = -1;
     }
 
     // ------------------------------------------------------------------ the labeller
