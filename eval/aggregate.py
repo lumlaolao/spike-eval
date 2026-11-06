@@ -188,14 +188,17 @@ PROVENANCE_FIELDS = (
 BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b")
 # For a game line from before the fields: its paired game-<seed>-<0|1>.log, in the bridges' own words. An ask's last
 # attempt follows "[BRIDGE <label>] no reply (attempt N/N)"; it was lost to the transport when that attempt's outcome
-# line is an HTTP error, an IO error (a java.net or java.io exception other than the request deadline's
-# HttpTimeoutException), or a connection that sent nothing, and the next line does not say the status
-# was a routing filter's or a refusal of function calling (the provider answered). A non-answer, a wall-clock
-# timeout or a reply is not. Failures a retry recovered count nothing.
+# line, before the seat's next line of its own, is an HTTP error, an IO error (a java/javax net or io exception other
+# than the request deadline's HttpTimeoutException or an UncheckedIOException; a connect timeout counts), or a
+# connection that sent nothing, and the next line does not say the status was a routing filter's or a refusal of
+# function calling (the provider answered). A non-answer, a wall-clock timeout, a reply, or no outcome line at all (a
+# bridge that refused function calling returns at once) is not. Failures a retry recovered count nothing.
 _LAST_ATTEMPT = re.compile(r"\[BRIDGE ([^\]]+)\] no reply \(attempt (\d+)/(\d+)\)")
 _OUTCOME = re.compile(r"^\[(?:OPENROUTER|JEV) ([^\]]+)\] (.*)$")
+_SEAT_LINE = re.compile(r"^\[([^\]]+)\] ")
 _TRANSPORT = re.compile(r"^(?:\[JEV-NO-ANSWER\] )?(?:HTTP \d+|stalled connection|"
-                        r"error: java\.(?:net|io|nio)\.(?!http\.HttpTimeoutException)|"
+                        r"error: java\.net\.http\.HttpConnectTimeoutException|"
+                        r"error: javax?\.(?:net|io|nio)\.(?!http\.HttpTimeoutException|UncheckedIOException)|"
                         r"no response within .*\((?:no-headers|silent)\))")
 _ANSWERED_STATUS = ("[ROUTING-FILTER]", "[NATIVE-TOOLS->TEXT]")
 
@@ -203,18 +206,24 @@ _ANSWERED_STATUS = ("[ROUTING-FILTER]", "[NATIVE-TOOLS->TEXT]")
 def log_bridge_down(text):
     """Decisions a game log shows lost to the transport (the rule above)."""
     lines = text.splitlines()
-    pending, lost = set(), 0
+    pending, lost = {}, 0                       # bridge label -> its seat, awaiting the last attempt's outcome
     for i, line in enumerate(lines):
         m = _LAST_ATTEMPT.search(line)
         if m:
+            pending.pop(m.group(1), None)
             if m.group(2) == m.group(3):
-                pending.add(m.group(1))
+                pending[m.group(1)] = m.group(1).split("/")[0]
             continue
         m = _OUTCOME.match(line)
-        if not m or m.group(1) not in pending:
+        if not m:
+            seat = _SEAT_LINE.match(line)
+            if seat:                            # the seat moved on: its last attempt printed no outcome
+                for label in [k for k, v in pending.items() if v == seat.group(1)]:
+                    del pending[label]
             continue
         label, rest = m.group(1), m.group(2)
-        pending.discard(label)
+        if pending.pop(label, None) is None:
+            continue
         if _TRANSPORT.match(rest):
             nxt = _OUTCOME.match(lines[i + 1]) if i + 1 < len(lines) else None
             if not (nxt and nxt.group(1) == label and nxt.group(2).startswith(_ANSWERED_STATUS)):
@@ -222,24 +231,40 @@ def log_bridge_down(text):
     return lost
 
 
+def game_log(log_dir, seed, swap):
+    """Where run_batch.py writes a game's log: game-<seed>-<0|1>.log."""
+    return Path(log_dir) / ("game-%s-%d.log" % (seed, 1 if swap else 0))
+
+
 def paired_log(game, log_dir):
-    """The game's own log in `log_dir`, as run_batch.py names it (game-<seed>-<0|1>.log), or None."""
+    """The game's own log in `log_dir`, or None: the one whose "[EVAL] jsonl <name>" names the game's file when the
+    game knows it (`_file`), else the one named for its seat order."""
     seed = game.get("seed")
     if seed is None or log_dir is None:
         return None
-    p = Path(log_dir) / ("game-%s-%d.log" % (seed, 1 if game.get("swap") else 0))
+    swap = bool(game.get("swap"))
+    named = "[EVAL] jsonl %s" % game["_file"] if game.get("_file") else None
+    for p in (game_log(log_dir, seed, swap), game_log(log_dir, seed, not swap)) if named else ():
+        try:
+            if p.is_file() and named in p.read_text(encoding="utf-8", errors="replace"):
+                return p
+        except OSError:
+            pass
+    p = game_log(log_dir, seed, swap)
     return p if p.is_file() else None
 
 
-def bridge_down_decisions(game, log_dir=None):
+def bridge_down_decisions(game, log_dir=None, log_text=None):
     """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else the transport
-    failures its paired log in `log_dir` shows (log_bridge_down; parse_dir_full keeps that as `_bridge_down_log`).
-    The one reader aggregate.py, defect_analyzer.py and run_batch.py share."""
+    failures its log shows (log_bridge_down over `log_text`, or the paired log in `log_dir`; parse_dir_full keeps
+    the result as `_bridge_down_log`). The one reader aggregate.py, defect_analyzer.py and run_batch.py share."""
     if any(f in game for f in BRIDGE_DOWN_FIELDS):
         return sum(v for v in (game.get(f) for f in BRIDGE_DOWN_FIELDS)
                    if isinstance(v, int) and not isinstance(v, bool) and v > 0)
     if "_bridge_down_log" in game:
         return game["_bridge_down_log"]
+    if log_text is not None:
+        return log_bridge_down(log_text)
     p = paired_log(game, log_dir)
     if p is None:
         return 0
@@ -497,6 +522,7 @@ def parse_dir_full(path):
         warnings.append("no game-*.jsonl files found in %s" % path)
     for fp in files:
         found_game = False
+        file_games = []
         n_bad = 0
         rows = []
         try:
@@ -521,6 +547,7 @@ def parse_dir_full(path):
                     elif t == "game":
                         rec["_file"] = fp.name
                         games.append(rec)
+                        file_games.append(rec)
                         found_game = True
                     elif t == "context_call":
                         rec["_file"] = fp.name
@@ -534,10 +561,10 @@ def parse_dir_full(path):
             warnings.append("unreadable file %s: %s" % (fp.name, e))
             continue
         rows_by_file[fp.name] = rows
-        for g in (g for g in games if g.get("_file") == fp.name):
+        for g in file_games:
+            lost = bridge_down_decisions(g, path)
             if not any(f in g for f in BRIDGE_DOWN_FIELDS):
-                g["_bridge_down_log"] = bridge_down_decisions(g, path)
-            lost = bridge_down_decisions(g)
+                g["_bridge_down_log"] = lost
             if lost:
                 warnings.append("%s: %d decision(s) lost to a dead model bridge -> counted as invalid"
                                 % (fp.name, lost))
@@ -677,8 +704,9 @@ def p90(values):
 def summarize_games(games):
     counts = Counter()
     for g in games:
-        w = scored_winner(g)
-        if bridge_down_decisions(g):
+        lost = bridge_down_decisions(g)
+        w = "invalid" if lost else g.get("winner")      # scored_winner's rule, with the count kept
+        if lost:
             counts["bridge_down"] += 1  # invalid: a decision was the bridge's fallback, not the model's
         if w in ("A", "B"):
             counts["decisive"] += 1
@@ -991,8 +1019,9 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
     # A name that is llm in any game is treated as llm (identity-keyed config
     # is stable within a batch; mixed config is surfaced by provenance).
     # Over the scored games only: a dead-bridge game's fallbacks are the bridge's, and it is in no score (#369).
-    dead = {g["_file"] for g in games if g.get("_file") and bridge_down_decisions(g)}
-    games = [g for g in games if not bridge_down_decisions(g)]
+    dead_games = {id(g) for g in games if bridge_down_decisions(g)}
+    dead = {g.get("_file") for g in games if id(g) in dead_games} - {None}
+    games = [g for g in games if id(g) not in dead_games]
     decisions = [d for d in decisions if d.get("_file") not in dead]
     llm_names = set()
     any_llm_arm = False

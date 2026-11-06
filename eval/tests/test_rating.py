@@ -183,11 +183,15 @@ class TestConditionGuard(unittest.TestCase):
         games[0]["bridge_down_decisions_a"] = 0
         rating.rate([], resamples=0, games=games)
 
-    def test_a_fake_model_sanity_arm_that_never_answers_is_rated(self):
+    def test_a_fake_model_sanity_arm_is_rated_and_refused_only_when_its_transport_failed(self):
+        # Its empty replies are the model answering (count 0); a 402 from its loopback server is not.
         games = simulate([("llm:openrouter:fake/harness-model", "ai", -800, 3)])
         for g in games:
-            g["bridge_down_decisions_a"], g["_fake_policy"] = 40, "empty"
+            g["bridge_down_decisions_a"], g["_fake_policy"] = 0, "empty"
         rating.rate([], resamples=0, games=games)
+        games[0]["bridge_down_decisions_a"] = 2
+        with self.assertRaises(rating.InvalidGameError):
+            rating.rate([], resamples=0, games=games)
 
     def test_no_forge_ai_means_no_scale(self):
         with self.assertRaises(rating.MixedConditionError):

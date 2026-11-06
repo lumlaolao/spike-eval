@@ -233,17 +233,25 @@ class TestMirrorPanel(unittest.TestCase):
             self.score()
         self.assertIn("dead model bridge", str(cm.exception))
 
-    def test_an_empty_sanity_arm_never_answers_by_design_and_is_not_refused(self):
+    def test_an_empty_sanity_arm_counts_no_dead_bridge_and_one_whose_transport_failed_is_refused(self):
         panel_run(self.root, "mirror", sanity=ZERO_ARMS)
         panel, pool, _ = ps.load_panel(PANELS, "mirror")
         for c in panel["cells"]:
             d = sanity_arms.arm_dir(self.root / c["id"], "empty")
             ov = sanity_arms.arm_overrides("empty")
             write_block(d, ps.cell_deck_sha(c, pool), results(0), controller_a=ov["controller_a"],
-                        smart_a=ov["smart_a"], bridge_down_decisions_a=40, bridge_down_decisions_b=0)
+                        smart_a=ov["smart_a"], bridge_down_decisions_a=0, bridge_down_decisions_b=0)
             (d / "batch-manifest.json").write_text(json.dumps({"condition": {"fake_policy": "empty"}}))
         r = self.score()
         self.assertTrue(r["valid"], r["problems"] + r["gate_failures"] + r["sanity"]["violations"])
+        c = panel["cells"][0]
+        ov = sanity_arms.arm_overrides("empty")
+        write_block(sanity_arms.arm_dir(self.root / c["id"], "empty"), ps.cell_deck_sha(c, pool), results(0),
+                    controller_a=ov["controller_a"], smart_a=ov["smart_a"], bridge_down_decisions_a=3,
+                    bridge_down_decisions_b=0)
+        with self.assertRaises(ps.PanelError) as cm:
+            self.score()
+        self.assertIn("dead model bridge", str(cm.exception))
 
     def test_a_sanity_arm_that_beats_the_floor_invalidates_the_panel(self):
         arms = dict(ZERO_ARMS, garbage=lambda cid: results(1) if cid == "goblins" else results(0))

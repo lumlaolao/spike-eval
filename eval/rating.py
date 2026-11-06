@@ -30,7 +30,7 @@ aggregate.py's experiment key minus the fields that name who played (arm fields,
 per-seat model settings) and the deck matchup; those must agree across every game, and each llm
 player's own settings (tools, tiers, budgets, served model) must agree across its games. Anything
 else is refused unless --allow-mixed-conditions is passed. A game whose llm seat lost a decision to a dead model
-bridge (aggregate.bridge_down_decisions; a fake-model sanity arm aside) is refused whatever the flags. Games of
+bridge (aggregate.bridge_down_decisions) is refused whatever the flags. Games of
 different benchmark versions (eval/benchmark_version.py) never pool.
 
 Decks: a game's decks are its run directory's batch-manifest deck_a/deck_b files (identity-keyed, like
@@ -104,12 +104,12 @@ class InvalidGameError(Exception):
 
 def bridge_down_problems(games):
     """One refusal per game that lost a decision to a dead model bridge (aggregate.bridge_down_decisions): those
-    decisions were the harness's fixed fallbacks, not the model's. A sanity arm on the fake model (its manifest's
-    fake_policy, tag_fake_policy) never answers by design and is not refused."""
+    decisions were the bridge's fixed fallbacks, not the model's. A sanity arm on the fake model counts none: its
+    empty and garbage replies are the model answering."""
     out = []
     for g in games:
         n = aggregate.bridge_down_decisions(g)
-        if n and not g.get("_fake_policy"):
+        if n:
             out.append("%s seed %s swap %s lost %d decision(s) to a dead model bridge; replay it"
                        % (g.get("_dir") or g.get("_file") or "?", g.get("seed"), bool(g.get("swap")), n))
     return out

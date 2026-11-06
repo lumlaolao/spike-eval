@@ -65,7 +65,7 @@ LOG_NON_ANSWER = """[OPENROUTER Seat/smart] non-answer -> treating as bridge-dow
 [Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
 [OPENROUTER Seat/smart] wall-clock timeout after 300000 ms (deadline 300000 ms)
 """
-# Transport failures the retries recovered: nothing lost (18 of 75 recorded healthy games have such lines).
+# Transport failures the retries recovered: nothing lost.
 LOG_RECOVERED = """[OPENROUTER Seat/smart] HTTP 502: upstream request failed
 [Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
 [OPENROUTER Seat/smart] stalled connection (no-headers for 90000 ms) -> retrying instead of waiting
@@ -87,6 +87,22 @@ LOG_REFUSALS = """[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restartin
 [OPENROUTER Seat/smart] error: java.net.http.HttpTimeoutException: request timed out
 [Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
 [OPENROUTER Seat/smart] error: java.lang.IllegalStateException: Not a JSON Object
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] error: java.io.UncheckedIOException: closed
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER Seat/smart] error: java.net.http.HttpConnectTimeoutException: HTTP connect timed out
+"""
+# The last attempt printed nothing (a bridge that refused function calling returns at once); a later error the
+# retries recovered must not be read as its outcome (round-3 review of #374).
+LOG_SILENT_LAST = """[Seat] [BRIDGE Seat/fast] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(main): 1 castable -> asking x...
+[OPENROUTER Seat/fast] HTTP 502: upstream request failed
+[Seat] [BRIDGE Seat/fast] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/fast] replied in 900 ms
+[Seat] [BRIDGE Seat/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] HTTP 502: upstream request failed
 """
 
 
@@ -604,8 +620,11 @@ def test_an_old_line_is_judged_by_the_transport_failures_in_its_log():
     check("twice that is two", aggregate.log_bridge_down(LOG_402 + LOG_402) == 2)
     check("non-answers and a timeout are the model's", aggregate.log_bridge_down(LOG_NON_ANSWER) == 0)
     check("recovered failures lose nothing", aggregate.log_bridge_down(LOG_RECOVERED) == 0)
-    check("refusals are answers; an IO error and a silent connection are not",
-          aggregate.log_bridge_down(LOG_REFUSALS) == 2, str(aggregate.log_bridge_down(LOG_REFUSALS)))
+    check("refusals, a request deadline and unreadable replies are answers; an IO error, a silent connection and a "
+          "connect timeout are not", aggregate.log_bridge_down(LOG_REFUSALS) == 3,
+          str(aggregate.log_bridge_down(LOG_REFUSALS)))
+    check("a last attempt with no outcome line before the seat's next line counts nothing",
+          aggregate.log_bridge_down(LOG_SILENT_LAST) == 0, str(aggregate.log_bridge_down(LOG_SILENT_LAST)))
     with tempfile.TemporaryDirectory() as d:
         write_jsonl(d, "game-5-1000.jsonl", [decision_line("auto", 0, fallback="play(bridge-down)->PASS"),
                                              game_line(5, False, "A")])
@@ -613,6 +632,11 @@ def test_an_old_line_is_judged_by_the_transport_failures_in_its_log():
         Path(d, "game-5-0.log").write_text(LOG_402)
         check("its paired log is read", aggregate.bridge_down_decisions(game_line(5, False, "A"), d) == 1)
         check("the other seat order's log is not", aggregate.bridge_down_decisions(game_line(5, True, "A"), d) == 0)
+        check("a log text handed in is read", aggregate.bridge_down_decisions(game_line(6, False, "A"), None, LOG_402) == 1)
+        # A log that names its game file wins over the seat-order name (a launcher that named the logs otherwise).
+        Path(d, "game-5-1.log").write_text("[EVAL] jsonl game-5-2000.jsonl\n" + LOG_402)
+        named = dict(game_line(5, False, "A"), _file="game-5-2000.jsonl")
+        check("the log naming the game file is the pair", aggregate.paired_log(named, d) == Path(d, "game-5-1.log"))
 
 
 def test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out():

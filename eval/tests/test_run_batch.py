@@ -1265,6 +1265,30 @@ class TestCrashRerun(unittest.TestCase):
             self.assertEqual((r[2], len(calls)), ("nonzero-exit", 1))  # the budget stops the retry
             self.assertEqual(run_batch.play_with_retries(play(["ok"]), 5, False, self.out, 1, lambda: True)[2], "budget")
 
+    def test_a_game_played_on_a_dead_bridge_is_reported_as_such_and_not_played_again_at_once(self):
+        # Round-3 review of #374: a dead-bridge game read as "exited 0 but wrote no game line", which is retryable,
+        # so in a credit outage every game was set aside and played twice. It is its own status, not retried in the
+        # run (an outage would only repeat); a later --resume replays it (set_aside_dead_bridge).
+        line = game_line(5, False, bridge_down_decisions_a=4, bridge_down_decisions_b=0)
+
+        def fake_run(*a, **kw):
+            (self.out / "game-5-900.jsonl").write_text(json.dumps(line) + "\n")
+            return mock.Mock(returncode=0)
+
+        args = make_args()
+        args.forge_home, args.cap_minutes = self.out, 0
+        with mock.patch.object(run_batch, "log") as logged, mock.patch.object(run_batch, "build_env", return_value={}), \
+                mock.patch.object(run_batch.subprocess, "run", side_effect=fake_run):
+            r = run_batch.run_one(args, 5, False, self.out)
+            self.assertEqual(r[2], "bridge-down")
+            self.assertTrue(any("dead model bridge" in str(c) for c in logged.call_args_list), logged.call_args_list)
+            self.assertNotIn("bridge-down", run_batch.RETRYABLE)
+            calls = []
+            r = run_batch.play_with_retries(lambda: calls.append(1) or (5, False, "bridge-down", 0), 5, False,
+                                            self.out, 1, lambda: False)
+            self.assertEqual((r[2], len(calls)), ("bridge-down", 1))
+        self.assertTrue((self.out / "game-5-900.jsonl").is_file(), "kept for the resume to set aside")
+
     def test_a_set_aside_attempt_still_counts_against_the_budget_once(self):
         self.crash(3, 0, "game-3-1.jsonl")
         prices = {"x/y": {"prompt": 1.0, "completion": 1.0}}

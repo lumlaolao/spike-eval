@@ -66,7 +66,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
-from aggregate import bridge_down_decisions  # noqa: E402  a game the model's bridge did not play (issue #369)
+from aggregate import bridge_down_decisions, game_log  # noqa: E402  a game the bridge did not play (issue #369)
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
@@ -359,7 +359,7 @@ def build_env(args, seed, swap, out_dir):
 def run_one(args, seed, swap, out_dir):
     """Run one game. Returns (seed, swap, status, exit_code)."""
     env = build_env(args, seed, swap, out_dir)
-    log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
+    log_path = game_log(out_dir, seed, swap)
     # The in-game wall-clock cap is GAME_CAP_MS (worker.join(capMs) in
     # LlmSpikeHeadless). The subprocess timeout below is a backstop for a WEDGED
     # JVM only. A HEALTHY game's subprocess wall time is NOT just the cap: the
@@ -416,9 +416,15 @@ def run_one(args, seed, swap, out_dir):
         return (seed, swap, "nonzero-exit", code)
     # Exit 0 but no game line means the game crashed before summarizing;
     # aggregate.py will count the file (if any) as invalid.
-    if not has_game_line(out_dir, seed, swap):
+    if not has_game_line(out_dir, seed, swap, count_dead=True):
         log("[warn] seed=%d swap=%d exited 0 but wrote no game line" % (seed, swap))
         return (seed, swap, "no-game-line", code)
+    # A game whose seat lost decisions to a dead model bridge (issue #369) is not scored. It is not played again
+    # in this run, where the outage would only repeat; a later --resume sets it aside and replays it.
+    if not has_game_line(out_dir, seed, swap):
+        log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; not scored, a --resume replays it"
+            % (seed, swap))
+        return (seed, swap, "bridge-down", code)
     # A game line whose recorded condition is not the one we launched means
     # the JVM did not honor the requested profile/tools: never count it done.
     if not has_game_line(out_dir, seed, swap, resume_expectation(args)):
@@ -530,15 +536,16 @@ def resume_expectation(args):
     return expect
 
 
-def has_game_line(out_dir, seed, swap, expect=None):
+def has_game_line(out_dir, seed, swap, expect=None, count_dead=False):
     """True if some game-<seed>-*.jsonl in out_dir has a final game line
     matching this seed/swap combo AND (when expect is given) the recorded
     condition. A game played under another profile/tool setting is not
-    "already complete" for this batch, nor is one that lost a decision to a
-    dead model bridge (issue #369): it is set aside and played again."""
+    "already complete" for this batch, nor (unless count_dead) is one that lost
+    a decision to a dead model bridge (issue #369): it is set aside and played
+    again."""
     for rec in iter_game_lines(out_dir, seed):
         if rec.get("seed") == seed and bool(rec.get("swap", False)) == swap:
-            if game_line_matches(rec, expect) and not bridge_down_decisions(rec, out_dir):
+            if game_line_matches(rec, expect) and (count_dead or not bridge_down_decisions(rec, out_dir)):
                 return True
     return False
 
@@ -549,7 +556,7 @@ def set_aside_dead_bridge(out_dir, seed, swap):
     log, under crashed/ (bridgedown-, named after the game file, so a second dead replay does not overwrite the
     first), so the replay is the game scored while the old one is kept and still priced. Returns the moved names."""
     out_dir = Path(out_dir)
-    log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
+    log_path = game_log(out_dir, seed, swap)
     tag = "bridgedown-swap%d-" % (1 if swap else 0)
     for path in sorted(out_dir.glob("game-%d-*.jsonl" % seed)):
         if any(bool(rec.get("swap", False)) == swap and bridge_down_decisions(rec, out_dir)
@@ -765,7 +772,7 @@ def play_with_retries(play, seed, swap, out_dir, retries, over_budget):
 def set_aside(out_dir, seed, swap, attempt):
     """Move one crashed attempt's log and game file under crashed/, named by attempt. Returns the moved names."""
     out_dir = Path(out_dir)
-    log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
+    log_path = game_log(out_dir, seed, swap)
     name = attempt_jsonl(log_path)
     tag = "attempt%d-swap%d-" % (attempt, 1 if swap else 0)
     return _move_to_crashed(out_dir, [(p, tag + p.name) for p in ([out_dir / name] if name else []) + [log_path]])

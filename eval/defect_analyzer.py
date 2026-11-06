@@ -200,7 +200,7 @@ def pair_dir(dir_path):
 
         pairs.append({
             "jsonl": str(jp), "log": str(log_path) if log_path else None,
-            "seed": seed, "swap": swap, "decisions": decisions,
+            "seed": seed, "swap": swap, "decisions": decisions, "log_text": log_text,
             "games": games, "n_skipped": n_skipped, "log_events": log_events,
         })
     return pairs
@@ -400,7 +400,7 @@ def summarize(pairs, label):
     bridge_down = {}
     for p in pairs:
         if p.get("games"):
-            n = bridge_down_decisions(p["games"][-1], Path(p["jsonl"]).parent)
+            n = bridge_down_decisions(p["games"][-1], log_text=p.get("log_text") or "")
             if n:
                 bridge_down[str(p["jsonl"])] = n
 
