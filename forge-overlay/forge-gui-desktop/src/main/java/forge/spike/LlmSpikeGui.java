@@ -401,8 +401,10 @@ public final class LlmSpikeGui {
      *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
      *  Epoch 84 (2026-11-06, #380): "X target creatures" with X announced as 0 takes no target; one was set, and the
      *  stack refused the paid play (Rot-Curse Rakshasa's renew).
+     *  Epoch 85 (2026-11-06, #392): a splice set the cast cannot pay together is asked again with its cost, then cast
+     *  with no splice; a spliced cast that fails leaves the plain cast offered; a failed payment is told to the seat.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-84";
+    static final String HARNESS_EPOCH = "harness-epoch-85";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3365,21 +3367,44 @@ public final class LlmSpikeGui {
         }
 
         /** Splice onto Arcane (CR 702.47): which cards in hand are spliced onto the spell. Only splices the whole cast can
-         *  still pay are offered: an unpayable one fails the cast. */
+         *  still pay are offered: an unpayable one fails the cast. Each is checked alone for the menu, and the set the
+         *  seat picks is checked together: two payable splices can cost more than the pool holds (#392: Glacial Ray and
+         *  Desperate Ritual onto Lava Spike, {2}{R}{R}{R} from {R:3}). Such a set is asked once more with its cost, then
+         *  the spell is cast with no splice (splicing is optional, CR 702.47a), so the cast never fails for it. */
         @Override
         public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) {
             List<Card> payable = new ArrayList<>();
-            for (Card c : cards) {
-                try {
-                    SpellAbility with = sa.copy();
-                    forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
-                    with.setActivatingPlayer(getPlayer());
-                    if (legallyPayable(with, getPlayer(), false)) payable.add(c);
-                } catch (Exception ignore) { /* not offered */ }
-            }
+            for (Card c : cards) if (payableSpliced(spliced(sa, List.of(c)))) payable.add(c);
             if (payable.isEmpty()) { clearLast(); auto("splice(none payable)->none"); return payable; }
-            return pickCards("splice", "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
-                    + " effect, you pay its splice cost too, and it stays in your hand.", payable);
+            String q = "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
+                    + " effect, you pay its splice cost too, and it stays in your hand.";
+            String again = "";
+            for (int attempt = 0; attempt < 2; attempt++) {
+                List<Card> picked = pickCards("splice", q + again, payable);
+                if (picked.size() < 2) return picked;
+                SpellAbility with = spliced(sa, picked);
+                if (payableSpliced(with)) return picked;
+                String set = names(picked, false, 10), total = with == null ? "?" : String.valueOf(with.getPayCosts().getTotalMana());
+                again = " You chose " + set + ": the spell with all of them costs " + total + ", more than you can pay,"
+                        + " so it would not be cast. Choose a set you can pay for together, or none.";
+                p("[ROUTER] splice: " + set + " cannot be paid together (" + total + ")");
+            }
+            auto("splice(unpayable set)->none");
+            return new ArrayList<>();
+        }
+
+        /** A copy of {@code sa} with {@code splices} spliced onto it, or null when the engine cannot build one. */
+        private SpellAbility spliced(SpellAbility sa, List<Card> splices) {
+            try {
+                SpellAbility with = sa.copy();
+                for (Card c : splices) forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
+                with.setActivatingPlayer(getPlayer());
+                return with;
+            } catch (Exception e) { return null; }
+        }
+
+        private boolean payableSpliced(SpellAbility with) {
+            try { return with != null && legallyPayable(with, getPlayer(), false); } catch (Exception e) { return false; }
         }
 
         /** A coin flip the seat calls (heads or tails), or, with Krark's Thumb, the result it keeps. */
@@ -5390,7 +5415,7 @@ public final class LlmSpikeGui {
                 return played;
             }
 
-            final String chosenKey = failedPlayKey(sa);
+            String chosenKey = failedPlayKey(sa);
             final Player ai = getPlayer();
             final Card source = sa.getHostCard();
             final Game game = source.getGame();
@@ -5407,6 +5432,8 @@ public final class LlmSpikeGui {
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
                     sa.resetTargets();
                     ensureTargetsSet(sa);
+                    // A failure of the spliced spell is that set's, not the card's: the plain cast stays offered (#392).
+                    chosenKey += "|splice " + sa.getSplicedCards();
                 }
                 sa.setHostCard(game.getAction().moveToStack(source, sa));
             }
@@ -5466,6 +5493,11 @@ public final class LlmSpikeGui {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
                 playsNotMade++;
+                // The seat is told, as after a cancel: a play that silently did not happen read as made (#392).
+                boolean spliced = sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty();
+                cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa) + " and its cost could not be paid, so nothing was"
+                        + " played." + (spliced ? " The spell with no splice, or with a set you can pay for, is still on the menu."
+                        : " It is not offered again in this priority window.");
             }
             costCancelled = false;
             sa.setSkip(true);

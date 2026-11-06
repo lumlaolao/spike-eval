@@ -2615,6 +2615,27 @@ public class GoldenChecksTest {
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("SPLICE")), "an unpayable splice was offered");
     }
 
+    /** A splice SET is checked as a whole (#392): Glacial Ray and Desperate Ritual are each payable onto Lava Spike from
+     *  three Mountains, but not both ({2}{R}{R}{R}). The set was accepted, the cast failed and was undone, and Lava Spike
+     *  left the menu. Now the seat is asked again with the cost, and its payable set is cast. */
+    @Test
+    public void aSpliceSetThePoolCannotPayTogetherIsAskedAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain");
+        card("Lava Spike", me, ZoneType.Hand);
+        card("Glacial Ray", me, ZoneType.Hand);
+        card("Desperate Ritual", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("CAST Lava Spike"))
+                .on("SPLICE", p -> p.contains("more than you can pay") ? picks("Glacial Ray").apply(p) : "PICKS: 1,2")
+                .on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Lava Spike with a payable splice");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("costs {2}{R}{R}{R}, more than you can pay")),
+                "the unpayable set was not asked again with its cost");
+        Assert.assertEquals(rival.getLife(), 15, "3 + 2 damage");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Lava Spike"), "Lava Spike was cast");
+    }
+
     /** A coin flip's call, and the result kept; shield counters divided. */
     @Test
     public void aFlipCallAndAShieldSplitAreTheSeats() {

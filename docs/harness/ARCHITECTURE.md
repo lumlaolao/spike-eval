@@ -194,7 +194,11 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   phase, stack, board, menu) was already passed;
 - a play that failed to pay, was forbidden by a static or was refused by the stack for want of a target is not
   offered again in the same window (turn, phase, top of the stack), as Forge's AI skips a failed ability: the
-  seat was offered the same unpayable play 999 times.
+  seat was offered the same unpayable play 999 times. A spliced cast's failure is keyed on its splice set, so the
+  plain cast stays offered, and a failed payment is told to the seat on its next play menu, as a cancel is
+  (harness-epoch-85, #392: a failed Lava Spike with two splices hid every Lava Spike for the window, silently).
+  A splice set is never the cause now: the SPLICE ask offers each card the cast can pay alone, checks the picked
+  set together, asks once more with its total cost when the pool cannot pay it all, then casts with no splice.
   A play that fails to pay, is cancelled at its cost or is refused by the stack for want of a target is undone by
   the engine's own rollback (`GameActionUtil.rollbackAbility`, the human path's): the card goes back to the zone it
   was cast from and the mana paid is refunded; a non-mana cost already paid (a tap, life) is not, as the copied

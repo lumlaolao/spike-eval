@@ -357,6 +357,37 @@ public class LineFindingProbeTest {
         Assert.assertEquals(me.getManaPool().totalMana(), 0);
     }
 
+    /** A spliced cast that fails to pay is the splice set's failure, not the card's (#392): the plain cast stays on the
+     *  menu (it was dropped for the rest of the window), and the seat's next prompt says the cast was not made (it said
+     *  nothing). The seat here accepts every splice, as the check before #392 let it: both cost {2}{R}{R}{R}. */
+    @Test
+    public void aSplicedCastThatFailsToPayLeavesThePlainCastOfferedAndSaysSo() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Mountain", me, ZoneType.Battlefield);
+        card("Lava Spike", me, ZoneType.Hand);
+        card("Glacial Ray", me, ZoneType.Hand);
+        card("Desperate Ritual", me, ZoneType.Hand);
+        GoldenChecksTest.Script model = new GoldenChecksTest.Script(PLAY)
+                .on("You have priority", GoldenChecksTest.choiceWith("CAST Lava Spike"))
+                .on("Choose the TARGET", GoldenChecksTest.choiceWith("Rival"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                new LobbyPlayerAi("Seat", null), "Seat", "", model, model, "llm") {
+            @Override public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) { return cards; }
+        };
+        me.dangerouslySetController(ctrl);
+        List<SpellAbility> first = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(first, "Lava Spike was offered");
+        String log = logOf(() -> ctrl.playChosenSpellAbility(first.get(0)));
+        Assert.assertTrue(log.contains("FAILED to pay for"), log);
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+        List<SpellAbility> next = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(next, "nothing was chosen at the next menu");
+        Assert.assertEquals(next.get(0).getHostCard().getName(), "Lava Spike", "the plain cast is offered again");
+        String asked = model.prompts.stream().filter(q -> q.contains("You have priority")).reduce((a, b) -> b).orElse("");
+        Assert.assertTrue(asked.contains("its cost could not be paid, so nothing was played"), asked);
+    }
+
     /** A play that cannot be paid for is not a play, and the log must say so (the audited game logged a failed
      *  Bombardment as "casts Goblin Bombardment"). The seat picks Bombardment at the opponent; its only creature
      *  leaves before the payment, so nothing can be sacrificed. (Sacrificing the ability's own target is legal and
