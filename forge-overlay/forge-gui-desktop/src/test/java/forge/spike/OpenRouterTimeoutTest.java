@@ -70,7 +70,7 @@ public class OpenRouterTimeoutTest {
     private static final AtomicInteger handlersReleased = new AtomicInteger();
 
     private HttpServer server;
-    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase, creditsBase, emptyBase, truncatedBase, noHeadersBase;
+    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase, creditsBase, emptyBase, truncatedBase, truncatedResetBase, noHeadersBase;
 
     @BeforeClass
     public void startServer() throws IOException {
@@ -151,6 +151,13 @@ public class OpenRouterTimeoutTest {
                 respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"length\"}]}");
             else { try { ex.sendResponseHeaders(503, -1); ex.close(); } catch (Exception ignore) { } }
         });
+        // The same, but the retry's connection is closed before any reply: the send throws an IOException.
+        server.createContext("/truncatedreset/chat/completions", ex -> {
+            drain(ex);
+            if (truncatedCalls.incrementAndGet() % 2 == 1)
+                respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"length\"}]}");
+            else ex.close();
+        });
         server.createContext("/nohead/chat/completions", ex -> { drain(ex); sleep(5000); respond(ex, "{\"late\":true}"); });
         server.createContext("/empty/chat/completions", ex -> {
             drain(ex);
@@ -165,6 +172,7 @@ public class OpenRouterTimeoutTest {
         emptyBase = base + "/empty";
         noHeadersBase = base + "/nohead";
         truncatedBase = base + "/truncated503";
+        truncatedResetBase = base + "/truncatedreset";
         slowBase = base + "/slow";
         billedBase = base + "/billed";
     }
@@ -481,6 +489,12 @@ public class OpenRouterTimeoutTest {
         Assert.assertNull(bridge.ask("what is the play?"));
         Assert.assertEquals(bridge.lastSendCount(), 2, "the truncated reply was retried");
         Assert.assertFalse(bridge.lastFailureWasTransport(), "the answer that was kept is the model's");
+        truncatedCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge reset = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, truncatedResetBase, BUDGET_MS);
+        Assert.assertNull(reset.ask("what is the play?"));
+        Assert.assertEquals(truncatedCalls.get(), 2, "the truncated reply was retried");
+        Assert.assertFalse(reset.lastFailureWasTransport(), "a retry whose connection was closed keeps the model's loss");
     }
 
     /** A connection that sends no headers is no reply, as is a port nobody listens on (an IO error): transport

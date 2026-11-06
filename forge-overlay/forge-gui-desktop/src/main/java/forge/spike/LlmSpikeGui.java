@@ -12180,7 +12180,14 @@ public final class LlmSpikeGui {
                             + (reasoner ? (floored ? "-LOW-REASONING" : "-NO-REASONING") : "")
                             + "] finish_reason=length @ max_tokens=" + maxTokens + " -> retrying at " + retryTokens
                             + (reasoner ? (floored ? " with its lowest reasoning effort" : " with reasoning disabled") : ""));
-                    OrResult retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
+                    OrResult retry;
+                    try {
+                        retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
+                    } catch (Exception e) {
+                        // The retry's own failure, even a reset connection, leaves the first answer as the one kept.
+                        System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY] the retry failed: " + e);
+                        retry = null;
+                    }
                     if (retry != null) bill(retry);
                     // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
                     // original reply is a better final result than a garbled/empty retry, and either way
