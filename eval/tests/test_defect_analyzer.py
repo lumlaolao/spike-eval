@@ -169,6 +169,70 @@ def test_a_crash_only_its_log_shows_fails_the_invariants():
         check("and fails the invariants", report["hard_invariants"]["pass"] is False)
 
 
+def test_a_crash_is_listed_under_the_one_file_that_owns_its_log():
+    """Issue #385: every log of the directory belongs to exactly one game file: the file its "[EVAL] jsonl" line
+    names when that file exists here, else the file pair_dir paired it with. A crash is listed under its owner, once,
+    whether or not the owner has a game line."""
+    crash = "[HEADLESS] game thread threw: java.lang.StackOverflowError"
+    names = lambda f: "[EVAL] jsonl %s\n" % f
+
+    def game(d, name, swap=False, error=None):
+        line = game_line(seed=7, swap=swap)
+        if error:
+            line["game_error"] = error
+        write_lines(d / name, [line])
+
+    def empty(d, name):  # a game that crashed before its line
+        write_text(d / name, "")
+
+    def case_no_eval_line(d):
+        game(d, "game-7-1000.jsonl"), game(d, "game-7-2000.jsonl")
+        write_text(d / "game-7-0.log", crash)
+
+    def case_names_an_absent_file(d):
+        game(d, "game-7-1000.jsonl")
+        write_text(d / "game-7-0.log", names("game-7-9999.jsonl") + crash)
+
+    def case_names_the_second_game_file(d):
+        game(d, "game-7-1000.jsonl"), game(d, "game-7-2000.jsonl")
+        write_text(d / "game-7-0.log", names("game-7-2000.jsonl") + crash)
+
+    def case_the_first_file_has_no_game_line(d):
+        empty(d, "game-7-1000.jsonl"), game(d, "game-7-2000.jsonl")
+        write_text(d / "game-7-0.log", names("game-7-2000.jsonl") + crash)
+
+    def case_the_second_file_has_no_game_line(d):
+        game(d, "game-7-1000.jsonl"), empty(d, "game-7-2000.jsonl")
+        write_text(d / "game-7-0.log", names("game-7-2000.jsonl") + crash)
+
+    def case_the_other_swap_log_names_the_file(d):
+        game(d, "game-7-1000.jsonl")
+        write_text(d / "game-7-0.log", "clean")
+        write_text(d / "game-7-1.log", names("game-7-1000.jsonl") + crash)
+
+    def case_a_game_error_and_a_crash_in_the_sibling(d):
+        game(d, "game-7-1000.jsonl", error="x"), game(d, "game-7-2000.jsonl")
+        write_text(d / "game-7-0.log", names("game-7-2000.jsonl") + crash)
+
+    table = [
+        ("a log with no EVAL line is the first file's, once", case_no_eval_line, ["game-7-1000.jsonl"]),
+        ("a log naming an absent file stays with its pair", case_names_an_absent_file, ["game-7-1000.jsonl"]),
+        ("a log naming the second game file", case_names_the_second_game_file, ["game-7-2000.jsonl"]),
+        ("the first file has no game line", case_the_first_file_has_no_game_line, ["game-7-2000.jsonl"]),
+        ("the second file has no game line", case_the_second_file_has_no_game_line, ["game-7-2000.jsonl"]),
+        ("a log of the other swap, unpaired, names the file", case_the_other_swap_log_names_the_file,
+         ["game-7-1000.jsonl"]),
+        ("a game_error file and a crash in its sibling", case_a_game_error_and_a_crash_in_the_sibling,
+         ["game-7-1000.jsonl", "game-7-2000.jsonl"]),
+    ]
+    for name, setup, want in table:
+        with tempfile.TemporaryDirectory() as d:
+            setup(Path(d))
+            c = da.build_report([Path(d)])["combined"]
+            got = sorted(Path(f).name for f in c["game_crash_files"])
+            check("crash owner: " + name, got == want and c["game_crash_count"] == len(want), "%s != %s" % (got, want))
+
+
 def test_silent_drop_detected():
     """C5 signature: two 'play(react) -> asking' log lines for a seat that
     never produces a matching jsonl row (bridge-down->PASS branch that
@@ -448,6 +512,7 @@ def main():
     test_shadow_choice_field_invisible_to_merge_gate()
     test_crashed_game_fails_the_invariants()
     test_a_crash_only_its_log_shows_fails_the_invariants()
+    test_a_crash_is_listed_under_the_one_file_that_owns_its_log()
     test_a_block_set_that_stood_illegal_is_counted()
     print()
     if FAILURES:
