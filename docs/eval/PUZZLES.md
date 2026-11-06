@@ -367,7 +367,8 @@ python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v
   (below), and every model result on the frozen suites is re-run at epoch 86 or later. The zero-model baselines read
   no prompt and are unaffected.
 - Each result row carries `harness_epoch` and, for a model seat, what the attempt spent: `model_calls`,
-  `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
+  `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, `lookups`, and
+  `bridge_down_decisions` (decisions lost to a dead model bridge).
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
 - `--max-price-at-list` (an `openrouter:` model only) sends every request a price ceiling at the model's list
@@ -489,6 +490,7 @@ other puzzles, suites, splits, k, game caps or call deadlines are refused; a pai
 - mix solvers;
 - score a puzzle with fewer than k attempts, or with a seed repeated;
 - score an unscoreable row (one where the goal was not enforced);
+- score a row with a decision lost to a routing filter or a dead model bridge (`docs/harness/ARCHITECTURE.md`);
 - pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
   stamped one is refused too);
 - pool or pair attempts under two per-call deadlines (`call_timeout_ms`, the same way; a run with no manifest is not

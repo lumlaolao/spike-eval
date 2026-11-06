@@ -226,6 +226,46 @@ class PriceCeilingRefusalTest(unittest.TestCase):
         self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "solved"}), (True, None))
 
 
+# A puzzle JVM log (the 402 run of issue #378): the ask's last attempt failed in transport.
+LOG_402 = "\n".join(['[OPENROUTER Solver/smart] HTTP 402: {"error": {"message": "credits"}}',
+                     "[Solver] [BRIDGE Solver/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms",
+                     '[OPENROUTER Solver/smart] HTTP 402: {"error": {"message": "credits"}}',
+                     "[Solver] [BRIDGE Solver/smart] no reply (attempt 3/3) -> restarting session, retrying in 2000ms",
+                     '[OPENROUTER Solver/smart] HTTP 402: {"error": {"message": "credits"}}']) + "\n"
+
+
+class DeadBridgeRefusalTest(unittest.TestCase):
+    """Issue #378: an attempt whose model bridge was dead (a 402 when the credits ran out) lost its decisions to the
+    transport, not the model (bridge_down_decisions, issue #369's rule); it was scored a plain unsolved attempt."""
+
+    def test_an_attempt_a_dead_bridge_played_is_refused_and_one_it_did_not_is_scored(self):
+        row = {"id": "p", "seed": 1, "status": "failed", "bridge_down_decisions": 11}
+        with self.assertRaisesRegex(ps.Refused, "dead model bridge"):
+            ps.attempt_success(row)
+        self.assertEqual(ps.attempt_success(dict(row, bridge_down_decisions=0)), (False, None))
+        self.assertEqual(ps.lost_decisions(row), 11)
+        self.assertEqual(ps.lost_decisions(dict(row, routing_refusals=2)), 13)
+        self.assertEqual(ps.lost_decisions({"id": "p"}), 0, "a row from before the field counts nothing")
+
+    def old_dir(self, log, **row):
+        d = Path(tempfile.mkdtemp())
+        (d / "puzzle-results.jsonl").write_text(json.dumps(dict({"schema": "pzl-result-v1", "id": "p", "seed": 1,
+                                                                 "status": "failed", "model_calls": 11}, **row)) + "\n")
+        (d / "jvm.log").write_text(log)
+        return d
+
+    def test_a_row_from_before_the_field_is_judged_by_its_puzzles_jvm_log(self):
+        # pr-review of #389: a row written before bridge_down_decisions, played during an outage, still scored.
+        rows = ps.load_rows([self.old_dir(LOG_402)])
+        with self.assertRaisesRegex(ps.Refused, "jvm.log"):
+            ps.attempt_success(rows[0])
+        self.assertEqual(ps.lost_decisions(rows[0]), 1)
+        clean = ps.load_rows([self.old_dir("[Solver] played\n")])
+        self.assertEqual(ps.attempt_success(clean[0]), (False, None), "a log with no transport failure is scored")
+        counted = ps.load_rows([self.old_dir(LOG_402, bridge_down_decisions=0)])
+        self.assertEqual(ps.attempt_success(counted[0]), (False, None), "a row's own count is read, not the log")
+
+
 class ReplayRowRefusalTest(unittest.TestCase):
     """pr-review of #365: a replay (ReplayBridge, `replay:`) plays a recorded attempt's answers again; its solved row
     scored PUZ 1.000. A replay is not an attempt, whatever its status."""
