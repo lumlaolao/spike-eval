@@ -339,7 +339,8 @@ def main(argv=None):
         env = dict(m.get("condition", {}).get("env", {}))
         run = Runner(build, log, pzl, env, out / Path(log).stem, a.budget, a.lines, a.cap_ms)
         if a.resume:
-            if not pb.ran_on(run.out, build):
+            # A game not searched yet has nothing to reuse; one that was must have run on this build.
+            if any(run.out.rglob("build.json")) and not pb.ran_on(run.out, build):
                 raise SystemExit("--resume: %s was not run on build %s" % (run.out, build.overlay_sha))
             run.resume = True
 
