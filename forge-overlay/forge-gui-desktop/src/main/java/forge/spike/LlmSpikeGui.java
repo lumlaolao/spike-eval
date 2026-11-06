@@ -414,8 +414,11 @@ public final class LlmSpikeGui {
      *  Epoch 89 (2026-11-06, #399): the answer tool's yield says the seat's own main phase asks again only once the stack
      *  is empty, and end-of-turn lasts through this turn's end step (answer-tool-v19). The text arm's YIELD_HINT is a
      *  legacy profile's bytes and keeps its words.
+     *  Epoch 90 (2026-11-06, #366): a spell cast as another face counts its targets as that face (targetCandidates), as
+     *  the engine casts it: a Disturb cast whose back face is an Aura (Lantern Bearer's Lanterns' Lift) was never on
+     *  the menu, its "enchant creature" counted against the creature front face in the graveyard.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-89";
+    static final String HARNESS_EPOCH = "harness-epoch-90";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1475,7 +1478,18 @@ public final class LlmSpikeGui {
                     if (sa.canTargetSpellAbility(si.getSpellAbility())) out.add(si.getSpellAbility());
                 return out;
             }
-            return new ArrayList<>(tr.getAllCandidates(sa, false));
+            // A spell cast as another face (Disturb's back face, an adventure) targets as that face, as the engine casts it
+            // (PlaySpellAbility: setSplitStateToPlayAbility before targeting): counted as Lantern Bearer's front face,
+            // Lanterns' Lift's "enchant creature" had no target and the Disturb cast was never offered (#366).
+            Card host = sa.getHostCard();
+            forge.card.CardStateName cast = sa.isSpell() && host != null && !host.isInPlay() ? sa.getCardStateName() : null;
+            forge.card.CardStateName was = host == null ? null : host.getCurrentStateName();
+            boolean switched = cast != null && cast != was && host.hasState(cast) && host.setState(cast, false);
+            try {
+                return new ArrayList<>(tr.getAllCandidates(sa, false));
+            } finally {
+                if (switched) host.setState(was, false);
+            }
         }
 
         /** A target as the seat reads it: a spell on the stack as its card (the text it had before), an ability on the

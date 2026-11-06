@@ -320,6 +320,31 @@ public class GoldenChecksTest {
                 "the colour was asked in the middle of the payment");
     }
 
+    /** A Disturb cast of an Aura back face plays out (#366): the seat casts Lantern Bearer from its graveyard by Disturb,
+     *  picks Grizzly Bears as the creature Lanterns' Lift enchants, and the Aura resolves attached to it. */
+    @Test
+    public void aDisturbAuraIsCastOntoTheChosenCreature() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Lantern Bearer", me, ZoneType.Graveyard);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choiceWith("Disturb"))
+                .on("MANA:", p -> "PICKS: NONE")
+                .on("DECISION:", choiceWith("Grizzly Bears"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the Disturb cast is offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        Card lift = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Lanterns' Lift"))
+                .findFirst().orElse(null);
+        Assert.assertNotNull(lift, "Lanterns' Lift is on the battlefield: " + me.getCardsIn(ZoneType.Battlefield));
+        Assert.assertEquals(lift.getAttachedTo(), bears, "it enchants the creature the seat chose");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+    }
+
     /** Doomsday's own decisions (owner, 2026-10-16: combo lines must play out). The five cards and their order are the
      *  combo; in the C3 games Doomsday never resolved for the seat, so this was never seen. The seat picks the five from
      *  library and graveyard, then stacks them; the library is exactly that pile, and Forge's AI decides nothing. */
