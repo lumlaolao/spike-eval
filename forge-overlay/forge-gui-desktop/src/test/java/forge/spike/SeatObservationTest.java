@@ -67,6 +67,15 @@ public class SeatObservationTest {
     @AfterClass
     public void clearProfileOverride() { PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null; }
 
+    /** The solver's plan and own-card tracking read DECKLIST (aSolverWithNoSetupCardsStillReadsACardItDraws and
+     *  the solver tests beside it): an exported DECKLIST=0 must not fail them (round 4 of PR #394), so each test runs
+     *  against an empty environment and puts the old one back. */
+    private java.util.Map<String, String> savedEnv;
+    @org.testng.annotations.BeforeMethod
+    public void emptyEnvironment() { savedEnv = LlmSpikeGui.envOverride; LlmSpikeGui.envOverride = java.util.Map.of(); }
+    @org.testng.annotations.AfterMethod
+    public void restoreEnvironment() { LlmSpikeGui.envOverride = savedEnv; }
+
     // ---- fixtures -----------------------------------------------------------------------------
 
     static Game bareGame() {

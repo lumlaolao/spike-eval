@@ -49,6 +49,14 @@ public class PuzzleSetupTest {
     @AfterMethod
     public void clearSolverSeat() { LlmSpikeGui.puzzleSolverSeat = null; LlmSpikeGui.puzzleBrief = null; }
 
+    /** The solver's plan and own-card tracking read DECKLIST: an exported DECKLIST=0 must not fail these tests
+     *  (round 4 of PR #394), so each runs against an empty environment and puts it back. */
+    private Map<String, String> savedEnv;
+    @org.testng.annotations.BeforeMethod
+    public void emptyEnvironment() { savedEnv = LlmSpikeGui.envOverride; LlmSpikeGui.envOverride = Map.of(); }
+    @AfterMethod
+    public void restoreEnvironment() { LlmSpikeGui.envOverride = savedEnv; }
+
     @BeforeClass
     public void initializeModel() {
         if (GuiBase.getInterface() == null) {
@@ -117,7 +125,7 @@ public class PuzzleSetupTest {
         LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
         try {
             Assert.assertEquals(LlmSpikePuzzle.solverPlan(sections), "", "DECKLIST=0 keeps the solver's cards out");
-        } finally { LlmSpikeGui.envOverride = null; }
+        } finally { LlmSpikeGui.envOverride = Map.of(); }
     }
 
     /** Who records the text of its own cards first seen after setup (YOUR CARDS SINCE THE START): the puzzle's solver,
@@ -135,7 +143,7 @@ public class PuzzleSetupTest {
         LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
         try {
             Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver under DECKLIST=0");
-        } finally { LlmSpikeGui.envOverride = null; }
+        } finally { LlmSpikeGui.envOverride = Map.of(); }
         LlmSpikeGui.puzzleSolverSeat = null;
         Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "a game seat");
     }

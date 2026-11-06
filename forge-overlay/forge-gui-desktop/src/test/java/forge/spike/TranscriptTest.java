@@ -245,6 +245,22 @@ public class TranscriptTest {
         Assert.assertFalse(r.get(0).has("response_body"));
     }
 
+    /** The request's own timeout must never beat the deadline loop: a call that runs out its time is always a
+     *  {@code stop="deadline"} row, never an {@code error} row (issue #388). Many short calls, so a race that
+     *  loses one time in a few shows up here and not only under load. */
+    @Test(timeOut = 20000)
+    public void everyTimedOutCallRecordsTheDeadlineNeverTheRequestsOwnTimeout() throws IOException {
+        LlmSpikeGui.OpenRouterBridge b = chatBridge(base.replace("/api/v1", "/slow/api/v1"), 100);
+        int calls = 40;
+        for (int i = 0; i < calls; i++) b.chat(MESSAGES, TOOLS, true);
+        List<JsonObject> r = rows("response");
+        Assert.assertEquals(r.size(), calls);
+        for (JsonObject row : r) {
+            Assert.assertEquals(row.has("stop") ? row.get("stop").getAsString() : null, "deadline", row.toString());
+            Assert.assertFalse(row.has("error"), row.toString());
+        }
+    }
+
     /** A call cut off after its status and headers came keeps them (the generation id is one). */
     @Test(timeOut = 10000)
     public void aCallCutOffAfterItsHeadersKeepsThem() throws IOException {
