@@ -64,7 +64,9 @@ import forge.util.MyRandom;
  *                        CONTROLLER_B=search every opponent choice must be beaten; with ai, the Forge AI's.
  *   PZL_SEARCH_BUDGET=N  rollouts the search may play (default 2000); PZL_SEARCH_LINES=N winning lines
  *                        tried per choice point before giving up on it (default 32)
- *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual.
+ *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual. SMART_MODEL_A=FAST_MODEL_A=
+ *                        replay:<game.jsonl|attempt dir> with CONTROLLER_A=llm replays a recorded attempt
+ *                        ({@link ReplayBridge}) on the same seeds (PZL_SEEDS / GAME_SEED) and the recorded env.
  *
  * Run: PUZZLE=PS_MSH1 CONTROLLER_A=random bash run-llm-headless.sh
  */
@@ -304,9 +306,14 @@ public final class LlmSpikePuzzle {
      *  only part of a deterministic replay that differs from run to run. Two rollouts with the same
      *  fingerprint played the same game; the verifier relies on that. */
     static String logFingerprint(List<String> logLines) {
+        return sha256(String.join("\n", withoutWallClock(logLines)));
+    }
+
+    /** The game log without its wall-clock line, the part {@link #logFingerprint} leaves out. */
+    static List<String> withoutWallClock(List<String> logLines) {
         List<String> kept = new ArrayList<>();
         for (String l : logLines) if (!l.startsWith("GAME_OUTCOME: Match Duration")) kept.add(l);
-        return sha256(String.join("\n", kept));
+        return kept;
     }
 
     /** The sha256 of the .pzl file's bytes, as eval/puzzle_format.py freezes it (sha256_file). It hashed the text
@@ -593,128 +600,150 @@ public final class LlmSpikePuzzle {
         players.add(opp);
         Match match = new Match(rules, players, "LlmPuzzle");
         final Game game = match.createGame();
+        // A replay seat (ReplayBridge) checks each decision row it writes against the recorded one; the hook is the
+        // fork hook, null in every other run, and is put back when the game is over. Rows are written only with the
+        // game log on, so a replay without it is refused rather than left unchecked.
+        final ReplayBridge replay = replayLine(game);
+        if (replay != null && !LlmSpikeGui.EvalLog.on())
+            throw new IllegalStateException("a replay checks every decision row against the recording, and rows are "
+                    + "written only with the game log on: set EVAL_OUT (" + replay.source + ")");
+        // The game ends at the drift, on the game thread, before the seat is asked anything more: whatever followed
+        // would not be the recorded game (the poll below is the backstop).
+        if (replay != null) replay.onDrift = () -> game.setGameOver(GameEndReason.Draw);
+        LlmSpikeGui.ForkHook hookBefore = LlmSpikeGui.FORK_HOOK;
+        if (replay != null) LlmSpikeGui.FORK_HOOK = (i, p, seat, type, n, choice, opts) -> replay.onDecisionRow(seat, type, n, choice, opts);
+        try {
+            if (rollout == 0 && !quiet) System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
+            if (!quiet) System.out.println("[PZL] solver=" + ctlA + " opponent=" + ctlB + " seed=" + seed
+                    + " cap=" + (capMs / 1000) + "s rollout=" + rollout);
 
-        if (rollout == 0 && !quiet) System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
-        if (!quiet) System.out.println("[PZL] solver=" + ctlA + " opponent=" + ctlB + " seed=" + seed
-                + " cap=" + (capMs / 1000) + "s rollout=" + rollout);
+            // Set inside the start-game hook, immediately after the board is applied. This observes the
+            // real post-apply state rather than racing it ONLY because the worker below is named
+            // "Game-puzzle" -- see the thread-name note there.
+            final boolean[] goalInstalled = {false};
+            final String[] goalOracle = {""};
 
-        // Set inside the start-game hook, immediately after the board is applied. This observes the
-        // real post-apply state rather than racing it ONLY because the worker below is named
-        // "Game-puzzle" -- see the thread-name note there.
-        final boolean[] goalInstalled = {false};
-        final String[] goalOracle = {""};
-
-        long t0 = System.currentTimeMillis();
-        Thread worker = new Thread(() -> {
-            try {
-                match.startGame(game, () -> {
-                    applyBoard(game, puzzle);
-                    // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
-                    PuzzleArms.Line setupLine = PuzzleArms.searchLine;
-                    if (setupLine != null) setupLine.clearChoices();
-                    for (Card c : game.getPlayers().get(0).getZone(ZoneType.Command)) {
-                        if ("Puzzle Goal".equals(c.getName())) {
-                            goalInstalled[0] = true;
-                            goalOracle[0] = String.valueOf(c.getOracleText());
+            long t0 = System.currentTimeMillis();
+            Thread worker = new Thread(() -> {
+                try {
+                    match.startGame(game, () -> {
+                        applyBoard(game, puzzle);
+                        // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
+                        PuzzleArms.Line setupLine = PuzzleArms.searchLine;
+                        if (setupLine != null) setupLine.clearChoices();
+                        for (Card c : game.getPlayers().get(0).getZone(ZoneType.Command)) {
+                            if ("Puzzle Goal".equals(c.getName())) {
+                                goalInstalled[0] = true;
+                                goalOracle[0] = String.valueOf(c.getOracleText());
+                            }
                         }
-                    }
-                    if (!quiet) System.out.println("[PZL] goal enforcement installed: " + goalInstalled[0]);
-                });
-            } catch (Throwable t) {
-                System.out.println("[PZL] game thread threw: " + t);
-                t.printStackTrace(System.out);
+                        if (!quiet) System.out.println("[PZL] goal enforcement installed: " + goalInstalled[0]);
+                    });
+                } catch (Throwable t) {
+                    System.out.println("[PZL] game thread threw: " + t);
+                    t.printStackTrace(System.out);
+                }
+            // THREAD NAME IS LOAD-BEARING. ThreadUtil.isGameThread() is literally
+            // `Thread.currentThread().getName().startsWith("Game")`, and GameState.applyToGame routes
+            // through GameAction.invoke, which runs its runnable INLINE on a game thread but posts it to
+            // a background pool otherwise. Named "forge-puzzle" the board application was asynchronous:
+            // the hook returned before any of the puzzle state existed, the goal card check read an
+            // empty command zone, and the first turn began on a blank board -- the floor solver "won"
+            // PS_THB1b on turn 2 because the opponent decked out of an empty library. Do not rename this
+            // thread without re-reading ThreadUtil.
+            }, "Game-puzzle");
+            worker.setDaemon(true);
+            worker.start();
+            // A search rollout past its choice cap is ended here, unsolved (PuzzleArms.Line.maxDraws).
+            // A replay that drifted is ended here too: nothing after the drift is the recorded game.
+            PuzzleArms.Line searchLine = PuzzleArms.searchLine;
+            while (worker.isAlive() && System.currentTimeMillis() - t0 < capMs) {
+                worker.join(Math.max(1, Math.min(200, capMs - (System.currentTimeMillis() - t0))));
+                if (((searchLine != null && searchLine.stopped()) || (replay != null && replay.drift != null)) && worker.isAlive()) {
+                    game.setGameOver(GameEndReason.Draw);
+                    worker.join(10_000L);
+                    break;
+                }
             }
-        // THREAD NAME IS LOAD-BEARING. ThreadUtil.isGameThread() is literally
-        // `Thread.currentThread().getName().startsWith("Game")`, and GameState.applyToGame routes
-        // through GameAction.invoke, which runs its runnable INLINE on a game thread but posts it to
-        // a background pool otherwise. Named "forge-puzzle" the board application was asynchronous:
-        // the hook returned before any of the puzzle state existed, the goal card check read an
-        // empty command zone, and the first turn began on a blank board -- the floor solver "won"
-        // PS_THB1b on turn 2 because the opponent decked out of an empty library. Do not rename this
-        // thread without re-reading ThreadUtil.
-        }, "Game-puzzle");
-        worker.setDaemon(true);
-        worker.start();
-        // A search rollout past its choice cap is ended here, unsolved (PuzzleArms.Line.maxDraws).
-        PuzzleArms.Line searchLine = PuzzleArms.searchLine;
-        while (worker.isAlive() && System.currentTimeMillis() - t0 < capMs) {
-            worker.join(Math.max(1, Math.min(200, capMs - (System.currentTimeMillis() - t0))));
-            if (searchLine != null && searchLine.stopped() && worker.isAlive()) {
+            boolean capped = worker.isAlive();
+            if (capped) {
+                System.out.println("[PZL] wall-clock cap reached; this puzzle is INVALID, not a failure");
                 game.setGameOver(GameEndReason.Draw);
-                worker.join(10_000L);
-                break;
+                // maxDecisionMs(), not maxConfiguredTimeoutMs(): a null reply sends the router into
+                // its retry loop, where each further attempt gets a FULL fresh timeout. Budgeting
+                // for one timeout meant a game capped on attempt 2 or 3 was killed with the ask
+                // still in flight -- the silent drop this grace exists to prevent.
+                worker.join(LlmSpikeGui.ModelCfg.maxDecisionMs() + 10_000L);
             }
-        }
-        boolean capped = worker.isAlive();
-        if (capped) {
-            System.out.println("[PZL] wall-clock cap reached; this puzzle is INVALID, not a failure");
-            game.setGameOver(GameEndReason.Draw);
-            // maxDecisionMs(), not maxConfiguredTimeoutMs(): a null reply sends the router into
-            // its retry loop, where each further attempt gets a FULL fresh timeout. Budgeting
-            // for one timeout meant a game capped on attempt 2 or 3 was killed with the ask
-            // still in flight -- the silent drop this grace exists to prevent.
-            worker.join(LlmSpikeGui.ModelCfg.maxDecisionMs() + 10_000L);
-        }
-        long durMs = System.currentTimeMillis() - t0;
-        // The static AiCache holds the game it was filled for: cleared after every rollout so a search keeps one.
-        forge.ai.AiCache.clear();
+            long durMs = System.currentTimeMillis() - t0;
+            // The static AiCache holds the game it was filled for: cleared after every rollout so a search keeps one.
+            forge.ai.AiCache.clear();
 
-        // A run where the goal card never got installed is UNSCOREABLE, not a loss: without it the
-        // solver simply never loses on time, so "not solved" would be indistinguishable from
-        // "harness broken". This is the check that makes the axis honest, so it outranks the result.
-        boolean solved = false;
-        int turns = -1;
-        String winCond = "?";
-        try {
-            GameOutcome outcome = game.getOutcome();
-            if (outcome != null) {
-                solved = outcome.isWinner(solverSeat);
-                turns = outcome.getLastTurnNumber();
-                winCond = String.valueOf(outcome.getWinCondition());
+            // A run where the goal card never got installed is UNSCOREABLE, not a loss: without it the
+            // solver simply never loses on time, so "not solved" would be indistinguishable from
+            // "harness broken". This is the check that makes the axis honest, so it outranks the result.
+            boolean solved = false;
+            int turns = -1;
+            String winCond = "?";
+            try {
+                GameOutcome outcome = game.getOutcome();
+                if (outcome != null) {
+                    solved = outcome.isWinner(solverSeat);
+                    turns = outcome.getLastTurnNumber();
+                    winCond = String.valueOf(outcome.getWinCondition());
+                }
+            } catch (Exception ignore) {}
+
+            // DECK-OUT TAINT. Puzzle libraries are hand-authored and usually near-empty: 275 of the 300
+            // suite rows give a player fewer library cards than the turn limit needs, and 8 multi-turn
+            // rows give the opponent ZERO. Whoever draws first from an empty library loses on a state-based
+            // action, which decides the game for reasons that have nothing to do with the puzzle's line --
+            // in BOTH directions. A do-nothing solver can be handed a free "solve" when the opponent decks
+            // out, and a correct solver can be denied one when it decks out first. So the reason each side
+            // lost is recorded, not just who won: a solve whose opponent was Milled is not evidence.
+            String solverLoss = lossOf(game, 0), oppLoss = lossOf(game, 1);
+            String solverLossSpell = lossSpellOf(game, 0), oppLossSpell = lossSpellOf(game, 1);
+            boolean tainted = "Milled".equals(solverLoss) || "Milled".equals(oppLoss);
+
+            // An unbounded goal is UNSCOREABLE, not a result: the card is installed and the game runs,
+            // but the limit never arrives, so a "solve" means "won eventually" rather than "won in N".
+            // A rules puzzle is solved when its acceptance state holds at the end, whoever won (PuzzleAcceptance).
+            List<String> acceptanceFailed = null;
+            if (sections.get("acceptance") != null && !capped) {
+                PuzzleAcceptance.Verdict av = PuzzleAcceptance.parse(sections.get("acceptance"))
+                        .evaluate(PuzzleAcceptance.of(game));
+                solved = av.accepted;
+                acceptanceFailed = av.failed;
             }
-        } catch (Exception ignore) {}
 
-        // DECK-OUT TAINT. Puzzle libraries are hand-authored and usually near-empty: 275 of the 300
-        // suite rows give a player fewer library cards than the turn limit needs, and 8 multi-turn
-        // rows give the opponent ZERO. Whoever draws first from an empty library loses on a state-based
-        // action, which decides the game for reasons that have nothing to do with the puzzle's line --
-        // in BOTH directions. A do-nothing solver can be handed a free "solve" when the opponent decks
-        // out, and a correct solver can be denied one when it decks out first. So the reason each side
-        // lost is recorded, not just who won: a solve whose opponent was Milled is not evidence.
-        String solverLoss = lossOf(game, 0), oppLoss = lossOf(game, 1);
-        String solverLossSpell = lossSpellOf(game, 0), oppLossSpell = lossSpellOf(game, 1);
-        boolean tainted = "Milled".equals(solverLoss) || "Milled".equals(oppLoss);
+            String status = capped ? "invalid"
+                    : (!goalInstalled[0] || !bounded) ? "unscoreable"
+                    : (solved ? "solved" : "failed");
 
-        // An unbounded goal is UNSCOREABLE, not a result: the card is installed and the game runs,
-        // but the limit never arrives, so a "solve" means "won eventually" rather than "won in N".
-        // A rules puzzle is solved when its acceptance state holds at the end, whoever won (PuzzleAcceptance).
-        List<String> acceptanceFailed = null;
-        if (sections.get("acceptance") != null && !capped) {
-            PuzzleAcceptance.Verdict av = PuzzleAcceptance.parse(sections.get("acceptance"))
-                    .evaluate(PuzzleAcceptance.of(game));
-            solved = av.accepted;
-            acceptanceFailed = av.failed;
+            List<String> logLines = new ArrayList<>();
+            List<GameLogEntry> entries = new ArrayList<>();
+            try {
+                entries = game.getGameLog().getAllEntries();
+                for (GameLogEntry e : entries) logLines.add(e.type() + ": " + e.message());
+            } catch (Exception e) {
+                logLines.add("INFORMATION: (log unavailable: " + e + ")");
+            }
+            // A replay that is not the recorded game (a drift, or another outcome than the recorded one) is no result,
+            // whatever the engine then decided.
+            if (replay != null && !capped) {
+                replay.atEnd(status, logFingerprint(logLines));
+                if (!replay.reproduced()) status = "drift";
+            }
+            Played pl = new Played();
+            pl.game = game; pl.status = status; pl.solved = solved; pl.turns = turns;
+            pl.winCond = winCond; pl.durMs = durMs; pl.goalInstalled = goalInstalled[0]; pl.goalOracle = goalOracle[0];
+            pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
+            pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.entries = entries; pl.healthy = !worker.isAlive();
+            pl.acceptanceFailed = acceptanceFailed;
+            return pl;
+        } finally {
+            if (replay != null) LlmSpikeGui.FORK_HOOK = hookBefore;
         }
-
-        String status = capped ? "invalid"
-                : (!goalInstalled[0] || !bounded) ? "unscoreable"
-                : (solved ? "solved" : "failed");
-
-        List<String> logLines = new ArrayList<>();
-        List<GameLogEntry> entries = new ArrayList<>();
-        try {
-            entries = game.getGameLog().getAllEntries();
-            for (GameLogEntry e : entries) logLines.add(e.type() + ": " + e.message());
-        } catch (Exception e) {
-            logLines.add("INFORMATION: (log unavailable: " + e + ")");
-        }
-        Played pl = new Played();
-        pl.game = game; pl.status = status; pl.solved = solved; pl.turns = turns;
-        pl.winCond = winCond; pl.durMs = durMs; pl.goalInstalled = goalInstalled[0]; pl.goalOracle = goalOracle[0];
-        pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
-        pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.entries = entries; pl.healthy = !worker.isAlive();
-        pl.acceptanceFailed = acceptanceFailed;
-        return pl;
     }
 
 
@@ -805,6 +834,9 @@ public final class LlmSpikePuzzle {
         if (llm != null && "llm".equals(ctlA)) extra.putAll(llm.budget());
         // A written line (CONTROLLER_A=llm, SMART_MODEL=script:<file>): whether the game played it as written.
         putWritten(extra, "", game);
+        // A replay (CONTROLLER_A=llm, SMART_MODEL=replay:<recording>): whether it played the recorded game.
+        ReplayBridge replay = replayLine(game);
+        if (replay != null) extra.putAll(replay.report());
         if (arm instanceof PuzzleArms.ArmRandom) {
             PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
             extra.put("draws", ar.draws());
@@ -858,6 +890,12 @@ public final class LlmSpikePuzzle {
     static ScriptBridge writtenLine(Game game) {
         LlmSpikeGui.PlayerControllerLLM l = solverLlm(game);
         return l == null ? null : l.scriptBridge();
+    }
+
+    /** The recording the solver replays (ReplayBridge), or null when the solver is no replay seat. */
+    static ReplayBridge replayLine(Game game) {
+        LlmSpikeGui.PlayerControllerLLM l = solverLlm(game);
+        return l == null ? null : l.replayBridge();
     }
 
     /** Plays the solver seat chose that did not happen (PlayerControllerLLM.playsNotMade), 0 for another seat. */

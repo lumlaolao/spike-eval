@@ -495,12 +495,12 @@ public class ClaudeCliBridgeTest {
         }
         LlmSpikeGui.LLMBridgeFactory.requireCliOptIn("claude-cli:claude-opus-5-5", "llm", true, "Seat/smart");
         for (String spec : new String[] {"openrouter:openai/gpt-6-luna", "jev:typesafe/jev-1.14", "greedy:", "script:x.txt",
-                "claude-cli:opus"}) {
+                "replay:game-1-1.jsonl", "claude-cli:opus"}) {
             Assert.assertFalse(LlmSpikeGui.LLMBridgeFactory.isBare(spec), spec);
         }
         Assert.assertEquals(new java.util.TreeSet<>(Arrays.asList(LlmSpikeGui.LLMBridgeFactory.ROUTED_PREFIXES)),
                 new java.util.TreeSet<>(List.of("openrouter:", DecisionsBridge.PREFIX, ClaudeCliBridge.PREFIX, ScriptBridge.PREFIX,
-                        GreedyBridge.PREFIX)));
+                        GreedyBridge.PREFIX, ReplayBridge.PREFIX)));
         for (String typo : new String[] {"Claude-CLI:opus", "cli:opus", "claude_cli:opus", "openrouter:x/claude-cli:y"}) {
             try {
                 LlmSpikeGui.LLMBridgeFactory.create("Seat/smart", typo, "p");
