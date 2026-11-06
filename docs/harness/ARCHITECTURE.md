@@ -1045,7 +1045,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
   **`defect_analyzer.py`** is the run oracle: its four hard invariants (`docs/STANDARDS.md` section 4) hold, or the
-  run fails.
+  run fails. Its crash check gives every log of the
+  directory exactly one owner: the game file its `[EVAL] jsonl` line names when that file is in the directory, else
+  the file `pair_dir` paired it with (seat order, one claim per log), else none; a file's crash is the crash its owned
+  logs show (or its `game_error`), so a crash is listed once, under the file it happened in, with or without a game line.
 - **A game the model's bridge did not play is not scored** (issue #369). The rule is TRANSPORT: when every retry of a
   model ask fails in transport, the decision takes its fixed fallback and the seat counts it for its identity.
   - A transport failure (`LLMBridge.lastFailureWasTransport`, set by `OpenRouterBridge` and `DecisionsBridge`): an HTTP
@@ -1073,8 +1076,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     fallback and harness-decided gates, included; the recorded winner is kept); `panel_score.py` and `rating.py` refuse
     it whatever the flags; `defect_analyzer.py` fails on it (`bridge_down_total`). In `run_batch.py` a game just
     played on a dead bridge is status `bridge-down` (a problem in the batch summary, not retried in the run, where an
-    outage would repeat); a later resume under its condition sets it aside under `crashed/` (`bridgedown-swap<n>-<game file>`, still
-    priced) and plays the seed again.
+    outage would repeat); a later resume under its condition sets it aside under `crashed/`
+    (`bridgedown-swap<n>-<game file>`, still priced) and plays the seed again.
   - A puzzle attempt (issue #378) has no game line: its result row carries the solver seat's own count
     (`bridge_down_decisions`, from `PlayerControllerLLM.budget()`, 0 when nothing was lost; only the solver is
     counted, since `puzzle_solve.py` pins the opponent to Forge's AI, `CONTROLLER_B=ai`). `puzzle_score.py` refuses a
