@@ -127,7 +127,13 @@ public class ReplayBridgeTest {
         Assert.assertTrue(b.reproduced(), "every recorded turn and decision row was used: " + b.report());
         Assert.assertTrue(b.turns.size() > 10, "the splice line is a dozen decisions or more: " + b.turns.size());
         Assert.assertEquals(rep.played.status, rec.played.status);
-        Assert.assertEquals(rep.played.logLines, rec.played.logLines, "the same engine log, line for line");
+        // Line for line except the wall-clock "Match Duration" line, which logFingerprint leaves out too: it read 00s
+        // against 01s under load in #373's acceptance while every engine line matched.
+        Assert.assertEquals(LlmSpikePuzzle.withoutWallClock(rep.played.logLines),
+                LlmSpikePuzzle.withoutWallClock(rec.played.logLines),
+                "the same engine log, line for line");
+        Assert.assertEquals(LlmSpikePuzzle.logFingerprint(rep.played.logLines),
+                LlmSpikePuzzle.logFingerprint(rec.played.logLines));
         Assert.assertEquals(decisions(rep.log), decisions(rec.log), "the same decision rows");
     }
 
@@ -194,8 +200,8 @@ public class ReplayBridgeTest {
         Assert.assertNull(LlmSpikeGui.FORK_HOOK, "the fork hook is left as it was");
     }
 
-    /** The refusal where a game builds its seat from model strings (oneTierPair), before any bridge is made: the fast
-     *  tier's spec is a closed loopback port, so even a bridge built by mistake would send nothing anywhere. */
+    /** The refusal where a game builds its seat from model strings (oneTierPair): the fast tier's spec is never
+     *  contacted, since requireBothTiers runs before LLMBridgeFactory.create makes any bridge. */
     @Test
     public void aSeatWithAReplayOnOneTierIsRefusedWhereItIsBuilt() throws Exception {
         new LineFindingProbeTest().initializeModel();
@@ -440,5 +446,31 @@ public class ReplayBridgeTest {
         LLMBridge b = LlmSpikeGui.LLMBridgeFactory.create("Solver/smart", ReplayBridge.PREFIX + dir.getPath(), "");
         Assert.assertTrue(b instanceof ReplayBridge, String.valueOf(b));
         Assert.assertTrue(b.supportsNativeTools());
+    }
+
+    /** ReplayBridge.RANGES copies the wording AnswerTool writes for an answer's range. If AnswerTool rewords one, ranges()
+     *  would find nothing in the recorded and the live ask alike and the range check would switch off without a test
+     *  going red (simplify review of #365). Each kind that writes a range (MANY, MANY_REPEAT, NUMBER, ALLOC) is built
+     *  through AnswerTool itself and must yield one statement holding both ends. */
+    @Test
+    public void everyAnswerRangeAnswerToolWritesIsReadWithBothEnds() {
+        assertRangeRead(AnswerTool.Spec.many(5, 1, 3), "1", "3");
+        assertRangeRead(AnswerTool.Spec.many(5, 2, 2), "2");
+        assertRangeRead(AnswerTool.Spec.repeat(5, 1, 3), "1", "3");
+        assertRangeRead(AnswerTool.Spec.repeat(5, 2, 2), "2");
+        assertRangeRead(AnswerTool.Spec.number(-1, 4), "-1", "4");
+        assertRangeRead(AnswerTool.Spec.number(0, 12), "0", "12");
+        assertRangeRead(AnswerTool.Spec.alloc(3, 6), "3", "6");
+    }
+
+    /** One range statement read from the ask AnswerTool writes for {@code spec}, holding each of {@code ends} as a whole
+     *  number (a sign and the digits around it count, so "1" is not found in "-1" or "12"). */
+    private static void assertRangeRead(AnswerTool.Spec spec, String... ends) {
+        String line = AnswerTool.instruction(spec, false);
+        List<String> found = ReplayBridge.ranges(new ScriptBridge.Question(line));
+        Assert.assertEquals(found.size(), 1, spec.kind + ": " + line);
+        for (String v : ends)
+            Assert.assertTrue(java.util.regex.Pattern.compile("(?<![-\\d])" + java.util.regex.Pattern.quote(v) + "(?!\\d)")
+                    .matcher(found.get(0)).find(), v + " in " + found + " from " + line);
     }
 }

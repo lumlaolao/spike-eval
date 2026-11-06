@@ -306,9 +306,14 @@ public final class LlmSpikePuzzle {
      *  only part of a deterministic replay that differs from run to run. Two rollouts with the same
      *  fingerprint played the same game; the verifier relies on that. */
     static String logFingerprint(List<String> logLines) {
+        return sha256(String.join("\n", withoutWallClock(logLines)));
+    }
+
+    /** The game log without its wall-clock line, the part {@link #logFingerprint} leaves out. */
+    static List<String> withoutWallClock(List<String> logLines) {
         List<String> kept = new ArrayList<>();
         for (String l : logLines) if (!l.startsWith("GAME_OUTCOME: Match Duration")) kept.add(l);
-        return sha256(String.join("\n", kept));
+        return kept;
     }
 
     /** The sha256 of the .pzl file's bytes, as eval/puzzle_format.py freezes it (sha256_file). It hashed the text
