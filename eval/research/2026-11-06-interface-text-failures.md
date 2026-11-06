@@ -35,6 +35,12 @@ needs attackers, so the three groups are different boards. The regex finds only 
 bound. The replies are explicit. One read "the next combat is lethal per the state's combat estimate" with the
 opponent at 4 and the puzzle ending at that cleanup.
 
+**Was the position still winnable when they cited it? In drain, no.** 31 games cited a later combat at a decision
+whose own prompt read LETHAL. 18 are drain attempts the exact board model (`board_drain.py`) labels. In all 14 that
+map to a labelled position, the position was already lost before the citing pass, which came after the attempt's
+regret step. The other 4 did not map, and the 13 non-drain games have no model. So the line explained passes in
+positions already lost. No loss in drain is shown to come from it.
+
 The fix reads the last turn off the Puzzle Goal card's trigger, and a side with no combat left reads `none before the
 puzzle's turn limit`. Checked zero-model: on the fixed build, the written line of `drain2_eaca60c560dc` solved (script
 arm, seed 1). All 50 of its post-combat decisions read `your next combat: none before the puzzle's turn limit | their
@@ -55,8 +61,9 @@ and was not.
 - Text the harness labels as engine fact carries weight with the seat. A line that is true in a game and false in a
   puzzle needs the puzzle's frame (its last turn) wherever the seat reads it. The same check applies to any other
   FACTS or estimate line.
-- After #398 lands, the citation rate in the LETHAL group should fall toward the 0.9% group. Whether the solve rate
-  on those boards moves needs paid runs at the new epoch (PUZ conditions never pool across the epoch change).
+- After #398 lands, the citation rate in the LETHAL group should fall toward the 0.9% group. The drain check above
+  predicts little change in the solve rate. Only paid runs at the new epoch would show it (PUZ conditions never pool
+  across the epoch change).
 
 ## Not determined
 
