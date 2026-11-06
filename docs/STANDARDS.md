@@ -34,7 +34,8 @@ record of what was reviewed. Merging your own PR is fine once the gate passes.
 
 The gate is a record, not a proof. Verdict and acceptance lines are written by the author's
 session, and GitHub does not enforce the script (no branch protection); CI (`.github/workflows/tests.yml`)
-runs only the Python suite, as a check that is not required. Writing a verdict
+runs only the Python suite, as a check that is not required. It is paused (owner, 2026-11-06: the month's Actions
+minutes are spent) and runs only when started by hand; the local acceptance run is the evidence. Writing a verdict
 no skill produced, or merging any other way, is a violation the next `standards` review reports.
 Because a verdict is for one head, finish the fixes first, then run acceptance and the three
 skills on the final commit; a re-review after fixes checks the fixes and the delta.
@@ -92,7 +93,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/` | drivers, analyzers, statistics (the demo, harness-env and puzzle scripts in their folders) | stdlib only; a script imports a script in another folder by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); a script in its own folder is imported directly, without it (`import aggregate` in `eval/panel_score.py`; `eval/tests/test_scripts_start.py` resolves both); each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks (`eval/tests/test_untested_list.py`; its pinned `MAX_UNTESTED` is lowered in the PR that removes a name) |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `eval/research/` | dated literature and pilot notes behind a design decision (`YYYY-MM-DD-<topic>.md`), plus one `README.md` that catalogues them | as `docs/eval/`: each claim cites its source or a run directory; a note is history, and the current rule lives in `docs/harness/ARCHITECTURE.md` or `docs/eval/`; `README.md`, the only undated file, lists every note and dates its idea statuses (`eval/tests/test_research_index.py`) |
-| `.github/workflows/` | CI: the Python suite (`tests.yml`) on every PR and push to main, on the Python floor and a current one | no secrets, `permissions: contents: read`, `pull_request` (never `pull_request_target`), each action pinned to a commit SHA with its tag in a comment (`.github/dependabot.yml` proposes updates weekly); not the merge gate (section 1) |
+| `.github/workflows/` | CI: the Python suite (`tests.yml`) on the Python floor and a current one; on every PR and push to main, paused to a manual run since 2026-11-06 (the file says how to restore it) | no secrets, `permissions: contents: read`, `pull_request` (never `pull_request_target`), each action pinned to a commit SHA with its tag in a comment (`.github/dependabot.yml` proposes updates weekly); not the merge gate (section 1) |
 | `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder, or for what is not a script there: a launcher (`test_setup.py`), a data set (`test_modern_puzzles.py`) or a repository rule (`test_doc_paths.py`, `test_untested_list.py`, `test_gate_parses.py`, `test_launchers.py`, `test_research_index.py`) | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
 | `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/tests/test_pr_format.py`; the shell scripts are thin wrappers |
@@ -217,9 +218,9 @@ most log questions).
   absent); acceptance fetches the text first, so there it runs.
 - A test of the seat's play path reads `ctrl.playsNotMade()` or the game state (the card moved, the mana tapped), never the
   return value of `PlayerControllerLLM.playChosenSpellAbility`: it never returns false, so a play that was not made
-  still passes (issue #380; `grep -rn 'assertTrue(.*playChosenSpellAbility' forge-overlay` finds the asserted sites,
-  and `KeywordSurfaceSweepTest` reads it into a variable). `playsNotMade()` does not count a cancel; a cancel is read
-  from the game. Checked by review.
+  still passes (issue #380; `grep -rn 'assert.*playChosenSpellAbility\|= *ctrl.playChosenSpellAbility'
+  forge-overlay` finds a site that reads it, and finds none). `playsNotMade()` does not count a cancel; a cancel is
+  read from the game or the log (`KeywordSurfaceSweepTest.playVerdict`). Checked by review.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the

@@ -1,12 +1,16 @@
-# The Python suite on every pull request and every push to main: no Forge build, no API key, a read-only token,
-# on the Python floor (3.9, macOS's own python3; docs/STANDARDS.md section 4) and a current one. The full gate is
-# acceptance (section 1).
+# The Python suite on the Python floor (3.9, macOS's own python3; docs/STANDARDS.md section 4) and a current one:
+# no Forge build, no API key, a read-only token. The full gate is acceptance (section 1).
+#
+# PAUSED (owner, 2026-11-06): the account's Actions minutes for the month are spent, so the suite runs only when
+# started by hand (Actions > tests > Run workflow). To restore it on every PR and push to main, put back:
+#   on:
+#     pull_request:
+#     push:
+#       branches: [main]
 name: tests
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

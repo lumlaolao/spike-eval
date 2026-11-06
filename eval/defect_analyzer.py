@@ -27,7 +27,8 @@ Usage:
 Exit codes: 0 clean; 1 a hard invariant failed (build_report's
 hard_invariants, named in docs/STANDARDS.md section 4: tier=ai count > 0, a
 silent-drop gap > 0 anywhere, a crashed game, or a decision lost to a dead
-model bridge, aggregate.bridge_down_decisions, issue #369); 2 usage/input error (not a directory, or no
+model bridge, aggregate.bridge_down_decisions, issue #369, or a puzzle result row's
+bridge_down_decisions, issue #378); 2 usage/input error (not a directory, or no
 game-*.jsonl file found in any given directory).
 """
 
@@ -39,7 +40,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from aggregate import bridge_down_decisions
+from aggregate import bridge_down_decisions, log_game_file
 
 # ------------------------------------------------------------- log parsing
 #
@@ -150,7 +151,9 @@ def pair_dir(dir_path):
     seed + best-effort unclaimed-log matching for crashed/no-game-line
     files). Returns a list of dicts:
       {jsonl, log, seed, swap, decisions, games, n_skipped, log_text,
-       log_events (or None if unpaired)}
+       log_events (or None if unpaired), crash_text}
+    crash_text is the text of the logs this file OWNS. Every log of the directory has exactly one owner: the file its
+    "[EVAL] jsonl" line names when that file is in the directory, else the file it was paired with above, else none.
     """
     dir_path = Path(dir_path)
     jsonls = sorted(dir_path.glob("game-*.jsonl"))
@@ -162,6 +165,7 @@ def pair_dir(dir_path):
             log_by_key[(int(m.group(1)), int(m.group(2)))] = lp
 
     used_logs = set()
+    log_texts = {}
     pairs = []
     for jp in jsonls:
         decisions, games, n_skipped = parse_jsonl_file(jp)
@@ -197,12 +201,27 @@ def pair_dir(dir_path):
                 log_text = None
             if log_text is not None:
                 log_events = parse_log_text(log_text)
+                log_texts[log_path] = log_text
 
         pairs.append({
             "jsonl": str(jp), "log": str(log_path) if log_path else None,
             "seed": seed, "swap": swap, "decisions": decisions, "log_text": log_text,
-            "games": games, "n_skipped": n_skipped, "log_events": log_events,
+            "games": games, "n_skipped": n_skipped, "log_events": log_events, "crash_text": "",
         })
+
+    by_file = {Path(p["jsonl"]).name: p for p in pairs}
+    paired_with = {p["log"]: p for p in pairs if p["log"]}
+    for lp in logs:
+        named = log_game_file(lp)
+        owner = by_file.get(named) or paired_with.get(str(lp))
+        if owner is None:
+            continue
+        if lp not in log_texts:
+            try:
+                log_texts[lp] = lp.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+        owner["crash_text"] += log_texts[lp] + "\n"
     return pairs
 
 
@@ -276,9 +295,25 @@ def model_consulted(d):
 
 # ------------------------------------------------------------- summarizing
 
-def summarize(pairs, label):
+def puzzle_rows(dir_path):
+    """The puzzle result rows (LlmSpikePuzzle, puzzle-results.jsonl) in dir_path, each tagged with its file; a puzzle
+    attempt has no game line, so its row carries what the game line would (bridge_down_decisions, issue #378)."""
+    path = Path(dir_path) / "puzzle-results.jsonl"
+    rows = []
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                rows.append(dict(row, _file=str(path)))
+    return rows
+
+
+def summarize(pairs, label, puzzles=()):
     """Build the full metrics dict for one directory's (already-paired) list
-    of game dicts, as returned by pair_dir()."""
+    of game dicts, as returned by pair_dir(), and its puzzle result rows (puzzle_rows())."""
     decisions = [d for p in pairs for d in p["decisions"]]
     n_games = len(pairs)
     n_skipped = sum(p["n_skipped"] for p in pairs)
@@ -392,7 +427,7 @@ def summarize(pairs, label):
     # --- games whose thread crashed (runs/luna-v8/g2: a StackOverflowError scored as a draw)
     crashed = [str(p["jsonl"]) for p in pairs
                if any(g.get("game_error") for g in p.get("games") or [])
-               or "game thread threw" in (p.get("log_text") or "")]
+               or "game thread threw" in (p.get("crash_text") or "")]
 
     # --- decisions lost to a dead model bridge (issue #369: a 402 game read overall=PASS while this report's own
     # fallback table listed play(bridge-down) 260): the game line's count, or on a line from before it the transport
@@ -404,6 +439,9 @@ def summarize(pairs, label):
             n = bridge_down_decisions(dict(p["games"][-1], _file=Path(p["jsonl"]).name), Path(p["jsonl"]).parent)
             if n:
                 bridge_down[str(p["jsonl"])] = n
+    for r in puzzles:   # a puzzle attempt's own count (issue #378)
+        if r.get("bridge_down_decisions"):
+            bridge_down["%s %s seed %s" % (r["_file"], r.get("id"), r.get("seed"))] = r["bridge_down_decisions"]
 
     return {
         "label": label,
@@ -444,17 +482,19 @@ def build_report(dirs):
         uniq.append(d)
 
     per_dir = {}
-    all_pairs = []
+    all_pairs, all_puzzles = [], []
     for d in uniq:
         pairs = pair_dir(d)
+        puzzles = puzzle_rows(d)
+        all_puzzles.extend(puzzles)
         # tag each decision with its source jsonl for forced-pick examples
         for p in pairs:
             for dec in p["decisions"]:
                 dec["_srcfile"] = p["jsonl"]
-        per_dir[str(d)] = summarize(pairs, str(d))
+        per_dir[str(d)] = summarize(pairs, str(d), puzzles)
         all_pairs.extend(pairs)
 
-    combined = summarize(all_pairs, "combined")
+    combined = summarize(all_pairs, "combined", all_puzzles)
     ai_ok = combined["ai_tier_count"] == 0
     drop_ok = combined["silent_drop_total"] == 0
     crash_ok = combined["game_crash_count"] == 0

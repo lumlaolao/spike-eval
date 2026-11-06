@@ -42,6 +42,18 @@ final class HttpDeadline {
         catch (NumberFormatException e) { return 90000; }
     }
 
+    /** How far past the loop's deadline the request's own {@link HttpRequest.Builder#timeout} (the headers phase)
+     *  fires (issue #388). Were the two the same number, the client's {@code HttpTimeoutException} (an {@code error}
+     *  row) would race the poll loop's {@code left <= 0} check (a {@code stop="deadline"} row) at the deadline; the
+     *  margin lets the loop always get there first, and leaves the request timeout as the backstop for a loop that is
+     *  not running. The client's connect timeout is not given the margin: it equals the deadline. */
+    static final long REQUEST_MARGIN_MS = 2000;
+
+    /** The value for {@code HttpRequest.Builder.timeout} when {@link #send} is given {@code remainingMs}. */
+    static java.time.Duration requestTimeout(long remainingMs) {
+        return java.time.Duration.ofMillis(remainingMs + REQUEST_MARGIN_MS);
+    }
+
     /** Why the last {@link #send} on this thread returned null: "deadline", "no-headers" or "silent", or null. */
     static final ThreadLocal<String> LAST_STOP = new ThreadLocal<>();
     /** The connection gave no reply (no headers, or it went silent): the transport failed (issue #369). A "deadline"

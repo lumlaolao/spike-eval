@@ -399,8 +399,23 @@ public final class LlmSpikeGui {
      *  Epoch 83 (2026-11-06, #367): the payment check also tries the "tap N untapped X you control" mana abilities the
      *  engine's greedy test skipped (seatCanPay, tapTypeStep), so a spell Heritage Druid's mana pays (Craterhoof with
      *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
+     *  Epoch 84 (2026-11-06, #380): "X target creatures" with X announced as 0 takes no target; one was set, and the
+     *  stack refused the paid play (Rot-Curse Rakshasa's renew).
+     *  Epoch 85 (2026-11-06, #392): a splice set the cast cannot pay together is asked again with its cost, then cast
+     *  with no splice; a spliced cast that fails leaves the plain cast offered; a failed payment is told to the seat.
+     *  Epoch 86 (2026-11-06, #391): a puzzle's solver is shown its own cards' cost, type line and rules text: the setup
+     *  cards in <your_deck> (LlmSpikePuzzle.solverPlan), each later one as it is first seen (YOUR CARDS SINCE THE START,
+     *  observation-faithful-v43). PUZ results before and after never pool.
+     *  Epoch 87 (2026-11-06, #395): the target ask's preview of a modal spell plays the mode the seat chose
+     *  (lookahead-preview-v16); every target of a chosen mode was "preview unavailable" ("failed to target").
+     *  Epoch 88 (2026-11-06, #398): a puzzle's FACTS say a side has no combat left before the puzzle's last turn
+     *  (observation-faithful-v44); recorded attempts passed citing a lethal "next combat" the game never reached.
+     *  PUZ results before and after never pool.
+     *  Epoch 89 (2026-11-06, #399): the answer tool's yield says the seat's own main phase asks again only once the stack
+     *  is empty, and end-of-turn lasts through this turn's end step (answer-tool-v19). The text arm's YIELD_HINT is a
+     *  legacy profile's bytes and keeps its words.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-83";
+    static final String HARNESS_EPOCH = "harness-epoch-89";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -466,7 +481,8 @@ public final class LlmSpikeGui {
 
     // ==================== FORK ROLLOUT FORCER (Milestone D rollout — additive, inert) ====================
     // Everything in this fenced block is a no-op in every normal run: FORK_FORCER is null unless
-    // LlmSpikeFork's rollout mode installs one, and forkForce() returns null immediately in that case.
+    // LlmSpikeFork's rollout mode, or the keyword sweep (KeywordSurfaceSweepTest.chooseFromMenu), installs
+    // one, and forkForce() returns null immediately in that case.
     // The seed-42 floor/floor canary is the regression gate proving inertness.
 
     /** Fork-mode decision forcer (LlmSpikeFork rollout, EVAL-DESIGN.md §3.1(b)). Consulted by exactly
@@ -509,6 +525,7 @@ public final class LlmSpikeGui {
                 if (!sa.usesTargeting()) continue;
                 if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(activator);
+                if (PlayerControllerLLM.noTargetAtX(root, sa)) continue;
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) continue;
                 List<forge.game.GameObject> cands = PlayerControllerLLM.targetCandidates(sa, tr);
@@ -606,11 +623,25 @@ public final class LlmSpikeGui {
      *  outside puzzle mode. */
     static volatile String puzzleBrief = null;
 
+    /** PZL axis: the last turn the puzzle's game can be played in ({@link LlmSpikePuzzle#lastTurn}), so the seat's
+     *  FACTS never promise a combat after it (#398). -1 outside puzzle mode. */
+    static volatile int puzzleLastTurn = -1;
+
     /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name
      *  equality: two seats may share a display name. */
     static boolean isPuzzleSolver(LobbyPlayer lp) {
         LobbyPlayer solver = puzzleSolverSeat;
         return solver != null && lp == solver;
+    }
+
+    /** Whether a seat's state records the text of its own cards first seen after setup (SeatObservation, YOUR CARDS
+     *  SINCE THE START): only a puzzle's solver, whose deck text lists just its setup cards, and not under DECKLIST=0,
+     *  the opt-out from own-card text. An empty setup block is no reason to stop (a solver with only a token at setup
+     *  still draws cards it must read); a [state] that could not be read is logged and tracks, so its visible cards
+     *  are shown once, as new. A game seat's deck text lists every card it can hold; a puzzle opponent's seat is not
+     *  the solver. */
+    static boolean tracksOwnCards(boolean puzzleSolver) {
+        return puzzleSolver && !"0".equals(env("DECKLIST"));
     }
 
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
@@ -931,6 +962,7 @@ public final class LlmSpikeGui {
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
         private int lostToRouting = 0;   // decisions lost after a routing-filter refusal among their retries (budget())
+        private int lostToTransport = 0; // decisions lost to a dead bridge (the bridgeDown rule, issue #369; budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
          *  adds nothing) and wall time, the retries included. A puzzle result row carries them (budget()). */
         private long spentPromptTokens = 0, spentCompletionTokens = 0, spentModelMs = 0;
@@ -1020,6 +1052,14 @@ public final class LlmSpikeGui {
         static String failedPlayKey(SpellAbility sa) {
             return sa.getHostCard().getId() + "|" + sa.getAlternativeCost() + "|" + sa.getCardStateName() + "|" + sa.getDescription();
         }
+        static boolean hasSplices(SpellAbility sa) { return sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty(); }
+        /** The key of {@code play} cast with {@code splices} spliced onto it: its failure is that set's, not the card's. */
+        static String spliceKey(String play, Iterable<Card> splices) {
+            List<Integer> ids = new ArrayList<>();
+            for (Card c : splices) ids.add(c.getId());
+            java.util.Collections.sort(ids);
+            return play + "|splice " + ids;
+        }
         private String cancelNote = null;
         /** Set by {@link LlmCostDecision} for the one cost ask it is making when that ask may be answered
          *  "cancel" (a play not committed yet: CostPayment decides every part before paying any); the ask
@@ -1039,7 +1079,8 @@ public final class LlmSpikeGui {
         /** {@link #YIELD_HINT} for the answer tool: a field of the answer, not a line. */
         static final String YIELD_TOOL_HINT = "If you PASS, you may also give `yield` in your `answer` (end-of-turn or my-next-turn): "
                 + "until then you are not asked in windows where nothing of your opponent's is on the stack "
-                + "(anything they cast or activate always asks you; your own main phases always ask too). ";
+                + "(anything they cast or activate always asks you; your own main phase asks again once the stack is empty; "
+                + "end-of-turn lasts through this turn's end step). ";
 
         /** The play ask's notes under the answer tool: the plan through `set_plan`, the cast list, the
          *  card-interactions note and the opponent read as fields of `answer`. No line is asked for. */
@@ -1396,6 +1437,9 @@ public final class LlmSpikeGui {
             m.put("completion_tokens", spentCompletionTokens);
             m.put("model_ms", spentModelMs);
             m.put("lookups", contextMemory.lookupsUsed());
+            // Issue #378: the decisions a dead bridge lost (a 402 when the credits ran out, an outage; the game line's
+            // bridge_down_decisions rule). puzzle_score.py refuses a row with any; puzzle_solve.py --resume replays it.
+            m.put("bridge_down_decisions", lostToTransport);
             // Under a routing filter (price ceiling, precision list): the decisions lost to it after every retry
             // (puzzle_score.py refuses a row with any), and the HTTP refusals behind them, recovered ones included (a
             // diagnostic; a recovered one lost nothing).
@@ -2457,6 +2501,7 @@ public final class LlmSpikeGui {
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
+                observer.setTrackOwnCards(tracksOwnCards(isPuzzleSolver(getLobbyPlayer())));
                 observer.setDeckLines(deckLines);
                 observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
@@ -3381,21 +3426,50 @@ public final class LlmSpikeGui {
         }
 
         /** Splice onto Arcane (CR 702.47): which cards in hand are spliced onto the spell. Only splices the whole cast can
-         *  still pay are offered: an unpayable one fails the cast. */
+         *  still pay are offered: an unpayable one fails the cast. Each is checked alone for the menu, and the set the
+         *  seat picks is checked together: two payable splices can cost more than the pool holds (#392: Glacial Ray and
+         *  Desperate Ritual onto Lava Spike, {2}{R}{R}{R} from {R:3}). Such a set, or one whose cast already failed in this
+         *  window, is asked once more, then the spell is cast with no splice (splicing is optional, CR 702.47a). A legality
+         *  fix, so under every profile. */
         @Override
         public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) {
             List<Card> payable = new ArrayList<>();
-            for (Card c : cards) {
-                try {
-                    SpellAbility with = sa.copy();
-                    forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
-                    with.setActivatingPlayer(getPlayer());
-                    if (legallyPayable(with, getPlayer(), false)) payable.add(c);
-                } catch (Exception ignore) { /* not offered */ }
-            }
+            for (Card c : cards) if (payableSpliced(spliced(sa, List.of(c)))) payable.add(c);
             if (payable.isEmpty()) { clearLast(); auto("splice(none payable)->none"); return payable; }
-            return pickCards("splice", "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
-                    + " effect, you pay its splice cost too, and it stays in your hand.", payable);
+            String q = "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
+                    + " effect, you pay its splice cost too, and it stays in your hand.";
+            String again = "";
+            for (int attempt = 0; attempt < 2; attempt++) {
+                List<Card> picked = pickCards("splice", q + again, payable);
+                if (picked.isEmpty()) return picked;
+                // A set whose cast already failed to pay in this window is not taken again: the plain cast stays offered
+                // (#392), so a set the check passes and the payment fails must not be retried without end.
+                boolean failed = failedInWindow.contains(spliceKey(failedPlayKey(sa), picked));
+                SpellAbility with = spliced(sa, picked);
+                if (!failed && (picked.size() < 2 || payableSpliced(with))) return picked;
+                String set = names(picked, false, 10), total = with == null ? "?" : String.valueOf(with.getPayCosts().getTotalMana());
+                // No cost in the seat's text: the printed total is before reductions, the check is after them.
+                again = " You chose " + set + ": " + (failed ? "the spell with them failed when you cast it in this window."
+                        : "the spell with all of them costs more than you can pay, so it would not be cast.")
+                        + " Choose a set you can pay for together, or none. Another set you cannot pay for casts it with no splice.";
+                p("[ROUTER] splice: " + set + (failed ? " failed to pay in this window" : " cannot be paid together (" + total + ")"));
+            }
+            auto("splice(unpayable set)->none");
+            return new ArrayList<>();
+        }
+
+        /** A copy of {@code sa} with {@code splices} spliced onto it, or null when the engine cannot build one. */
+        private SpellAbility spliced(SpellAbility sa, List<Card> splices) {
+            try {
+                SpellAbility with = sa.copy();
+                for (Card c : splices) forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
+                with.setActivatingPlayer(getPlayer());
+                return with;
+            } catch (Exception e) { return null; }
+        }
+
+        private boolean payableSpliced(SpellAbility with) {
+            try { return with != null && legallyPayable(with, getPlayer(), false); } catch (Exception e) { return false; }
         }
 
         /** A coin flip the seat calls (heads or tails), or, with Krark's Thumb, the result it keeps. */
@@ -4394,10 +4468,14 @@ public final class LlmSpikeGui {
                 // own refusals are noted after it (the header says "earlier decisions").
                 final String notebook = refusedEarlier();
                 if (rnd != null) choice = 1 + PuzzleArms.pick(rnd, passIdx, true); // random arm: uniform incl. PASS (last)
+                // A note is said once, on the next menu: it stayed until the window changed, and a land drop keeps the
+                // window, so it was repeated on every menu after it (#392 review).
+                final String note = cancelNote;
+                cancelNote = null;
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
                             ? (propose ? proposePromptPrefix(snapshot() + notebook, phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
-                              + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
+                              + (note != null && attempt == 0 ? "NOTE: " + note + "\n" : "")
                               + (!SKIP_HEUR && observer != null && attempt == 0 ? (playTool ? YIELD_TOOL_HINT : YIELD_HINT) : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             // The retry carries the WHOLE decision again. It used to be this one sentence
@@ -4938,6 +5016,13 @@ public final class LlmSpikeGui {
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
         private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false, false); }
 
+        /** Whether {@code sa}, part of {@code root}, takes no target at the X announced: "X target creatures" at X=0
+         *  (Rot-Curse Rakshasa's renew; a target set anyway made the stack refuse the paid play, issue #380). An
+         *  unannounced X is not read, and a fixed count of targets (Banefire's one) is kept at any X. */
+        static boolean noTargetAtX(SpellAbility root, SpellAbility sa) {
+            return root.getXManaCostPaid() != null && sa.getMaxTargets() < 1;
+        }
+
         /** The `simulate` call of a target choice: the play ({@code root}) previewed with {@code sa} aimed at the
          *  numbered candidate (runs/loop/g03 asked for it twice while aiming Wasteland). Null where the seat has no
          *  native preview. */
@@ -4990,6 +5075,7 @@ public final class LlmSpikeGui {
                         if (dt <= 0) continue;
                     }
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
+                    if (noTargetAtX(root, sa)) continue;
                     TargetRestrictions tr = sa.getTargetRestrictions();
                     if (tr == null) continue;
                     List<forge.game.GameObject> cands = targetCandidates(sa, tr);
@@ -5372,6 +5458,10 @@ public final class LlmSpikeGui {
          *  other cost part to the engine's own decision. The cost is read AFTER optional keyword costs
          *  are added, so a sacrifice that arrives that way (Casualty) is covered too. Only an ability
          *  that defers targeting to another player stays on the inherited path.
+         *  It returns true on every branch, also when nothing was played, as Forge's AI controller does. The
+         *  engine's priority loop asks the seat again either way; true restarts the round of passes from the seat
+         *  (PhaseHandler), so false would be an engine-facing change. Whether the play was made is read from
+         *  {@link #playsNotMade()} and the game, never from this value (issue #380; docs/STANDARDS.md section 5).
          *  RE-DIFF against {@code handlePlayingSpellAbility} on every engine re-pin (ENGINE-PIN.md). */
         @Override
         public boolean playChosenSpellAbility(SpellAbility sa) {
@@ -5394,7 +5484,7 @@ public final class LlmSpikeGui {
                 return played;
             }
 
-            final String chosenKey = failedPlayKey(sa);
+            String chosenKey = failedPlayKey(sa);
             final Player ai = getPlayer();
             final Card source = sa.getHostCard();
             final Game game = source.getGame();
@@ -5408,9 +5498,11 @@ public final class LlmSpikeGui {
                 sa = forge.game.ability.AbilityUtils.addSpliceEffects(sa);
                 // A spliced spell is a new copy with the spliced effects at its end: its targets are the seat's again,
                 // all of them (the copied routine asked Forge's AI whether to go on, and dropped the play when it said no).
-                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
+                if (hasSplices(sa)) {
                     sa.resetTargets();
                     ensureTargetsSet(sa);
+                    // A failure of the spliced spell is that set's, not the card's: the plain cast stays offered (#392).
+                    chosenKey = spliceKey(chosenKey, sa.getSplicedCards());
                 }
                 sa.setHostCard(game.getAction().moveToStack(source, sa));
             }
@@ -5454,7 +5546,7 @@ public final class LlmSpikeGui {
                     return true;
                 }
                 playSeen(sa, hz);
-                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
+                if (hasSplices(sa))
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
                 return true;
             }
@@ -5470,6 +5562,16 @@ public final class LlmSpikeGui {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
                 playsNotMade++;
+                // The seat is told, as after a cancel: a play that silently did not happen read as made (#392). New seat
+                // text, so not on a legacy profile (docs/STANDARDS.md section 4: legacy stays byte-identical).
+                if (observer != null) {
+                    boolean spliced = hasSplices(sa);
+                    cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa)
+                            + (spliced ? " with " + names(sa.getSplicedCards(), false, 10) + " spliced onto it" : "")
+                            + " and its cost could not be paid, so nothing was played." + (spliced
+                            ? " The spell with no splice, or with a set you can pay for, is still on the menu."
+                            : " It is not offered again in this priority window.");
+                }
             }
             costCancelled = false;
             sa.setSkip(true);
@@ -5516,10 +5618,11 @@ public final class LlmSpikeGui {
         /** #105: a MANA ability's tap-type cost (Heritage Druid: "Tap three untapped Elves you control")
          *  is paid inside {@code ComputerUtilMana} with a hard-coded {@code AiCostDecision}, so Forge's AI
          *  chose which Elves to tap. When the engine's own test payment of this cost plans to use such an
-         *  ability, the seat activates it first through {@link LlmCostDecision}, keeping out the other
-         *  sources that plan taps; the engine then pays from the floating mana, which it always spends
-         *  first. A source that also chooses a color stays the engine's, said as a fallback, as is any
-         *  such source the engine's real payment uses without the seat having activated it. A mana
+         *  ability, or, when that plan is null, the first activation {@code tapTypeStep} finds (#367), the
+         *  seat activates it first through {@link LlmCostDecision}, keeping out the other sources that
+         *  plan taps; the engine then pays from the floating mana, which it always spends first. A source
+         *  that also chooses a color stays the engine's, said as a fallback, as is any such source the
+         *  engine's real payment uses without the seat having activated it. A mana
          *  ability's own mana cost (a filter paid mid-payment) is left alone: a test payment there
          *  would clear what the outer payment has set aside. */
         @Override
@@ -5800,8 +5903,9 @@ public final class LlmSpikeGui {
             return String.join(", ", n);
         }
 
-        /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses; adds to
-         *  {@code said} each source whose engine activation it has already reported. */
+        /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses, or, when that plan is
+         *  null, the first activation {@code tapTypeStep} finds (#367); adds to {@code said} each source whose
+         *  engine activation it has already reported. */
         private void prepayTapTypeManaAbilities(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect, Set<Card> said) {
             final Player me = getPlayer();
             // Without such a source on the battlefield nothing runs, so every other payment is unchanged.
@@ -8451,7 +8555,7 @@ public final class LlmSpikeGui {
                 Integer routing1 = b.getRoutingRefusals();
                 if (routing0 != null && routing1 != null && routing1 > routing0) lostToRouting++;
                 consecutiveBridgeFailures++;
-                if (b.lastFailureWasTransport()) bridgeDown.merge(seat, 1, Integer::sum);
+                if (b.lastFailureWasTransport()) { bridgeDown.merge(seat, 1, Integer::sum); lostToTransport++; }
                 if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
                     breakerTrips.merge(seat, 1, Integer::sum);
@@ -10715,6 +10819,8 @@ public final class LlmSpikeGui {
         LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel, String mode) {
             super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel; this.mode = mode;
         }
+        /** The plan the seat's system prompt carries in {@code <your_deck>}. */
+        String plan() { return plan; }
         @Override
         public Player createIngamePlayer(Game game, int id) {
             // A player of a preview COPY is the engine AI's, never the model's (PlayerLookahead.inPreview).
@@ -12311,7 +12417,7 @@ public final class LlmSpikeGui {
 
             String sentBody = body.toString();
             HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(sentBody, StandardCharsets.UTF_8))
-                    .timeout(Duration.ofMillis(remaining))
+                    .timeout(HttpDeadline.requestTimeout(remaining))
                     .build();
             // HttpRequest.timeout() above bounds only the wait for the response HEADERS; the body
             // read is unbounded, and OpenRouter dribbles keepalives for the whole generation. See
@@ -12686,7 +12792,12 @@ public final class LlmSpikeGui {
     /** Per-card rules text for a seat's deck, "  Name {cost} — oracle text", one per distinct card,
      *  from Forge's OWN card database (no external file, no network). Lets the model read what its
      *  cards do instead of recalling them. Empty on any failure. */
-    static String cardText(Deck d) {
+    static String cardText(Deck d) { return cardText(d, false); }
+
+    /** {@link #cardText(Deck)}, with each card's type line after its cost when {@code typeLine} ("  Lava Spike {R} |
+     *  Sorcery - Arcane — ..."): a puzzle's solver reads Arcane, Equipment or Aura nowhere else (#391). That form also
+     *  drops a land's "no cost" and the card script's literal line breaks ("\n"), which the deck form still prints. */
+    static String cardText(Deck d, boolean typeLine) {
         if (d == null) return "";
         try {
             java.util.TreeMap<String, String> lines = new java.util.TreeMap<>();
@@ -12699,11 +12810,13 @@ public final class LlmSpikeGui {
                     forge.card.CardRules r = pc.getRules();
                     if (r != null) {
                         String mc = r.getManaCost() == null ? "" : r.getManaCost().toString();
-                        if (!mc.isEmpty()) b.append(' ').append(mc);
+                        if (!mc.isEmpty() && !(typeLine && r.getManaCost().isNoCost())) b.append(' ').append(mc);
+                        if (typeLine && r.getType() != null) b.append(" | ").append(r.getType());
                         String t = r.getOracleText();
                         if (t != null && !t.isEmpty()) {
                             // Whole: a 400-character cut ended 7 cards of the deck pool mid-sentence
                             // (Animate Dead, Tamiyo, Ajani, Minsc & Boo, ...).
+                            if (typeLine) t = t.replace("\\n", " ");   // the card script's line breaks, as cardTextLine
                             t = t.replaceAll("\\s+", " ").trim();
                             b.append(" — ").append(t);
                         }

@@ -27,6 +27,7 @@ answer below.
 | `YOUR CARD INTERACTIONS` | the model's own statement of how its cards combine (labelled unverified) | model-authored (a field of the play answer), asked at most twice |
 | option labels | what each option costs and which zone it is cast from | the ability's own cost (`getPayCosts`) |
 | `OPPONENT CARDS YOU HAVE SEEN` | what each opponent card the seat has identified actually does | card database text, first seen onward |
+| `YOUR CARDS SINCE THE START` (a puzzle's solver seat only) | what each own card first identified after the puzzle's setup actually does (the setup cards are in `<your_deck>`) | card database text, first seen onward |
 
 Two rules hold throughout:
 

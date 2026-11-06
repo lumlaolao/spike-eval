@@ -20,8 +20,10 @@ import forge.game.GameRules;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
+import forge.game.player.Player;
 import forge.game.player.PlayerOutcome;
 import forge.game.player.RegisteredPlayer;
+import forge.game.trigger.Trigger;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.puzzle.Puzzle;
 import forge.localinstance.properties.ForgeConstants;
@@ -182,6 +184,57 @@ public final class LlmSpikePuzzle {
         LlmSpikeGui.puzzleBrief = seatBrief(sections, puzzle.getGoalDescription());
     }
 
+    /** The zones of the solver's own cards its YOUR CARDS block lists: the ones it can see. Its library is not one (an
+     *  author's library is the solver's hidden draw, and Forge keeps its order), nor is the opponent's side. The
+     *  per-decision block reads the same zones in play (SeatObservation.OWN_SEEN_ZONES), with the stack added. */
+    private static final java.util.Set<String> SEEN_ZONES =
+            java.util.Set.of("hand", "battlefield", "play", "graveyard", "exile", "command");
+
+    /** What the solver's seat is told about its own cards (#391): the YOUR CARDS block a game seat gets from its deck
+     *  (LlmSpikeGui.cardText, Forge's card database), here from the cards the [state] section puts on the solver's side
+     *  (p0, or "human": the zones it controls) in the zones it can see, with each card's type line. A face-down card is
+     *  listed only on the battlefield or foretold (CR 406.3: a face-down exiled card is hidden unless an effect lets its
+     *  owner look). Cards it sees later are SeatObservation's (YOUR CARDS SINCE THE START). DECKLIST=0, the game seat's
+     *  gate, gives none; so does a [state] it cannot read (logged). */
+    static String solverPlan(Map<String, List<String>> sections) {
+        if ("0".equals(LlmSpikeGui.env("DECKLIST"))) return "";
+        try {
+            Deck own = new Deck();
+            List<String> state = sections.get("state");
+            if (state != null) for (String line : state) {
+                String[] kv = line.split("=", 2);
+                if (kv.length != 2) continue;
+                String key = kv[0].trim().toLowerCase();
+                String zone = key.startsWith("p0") ? key.substring(2) : key.startsWith("human") ? key.substring(5) : null;
+                if (zone == null || !SEEN_ZONES.contains(zone)) continue;
+                boolean onBattlefield = zone.equals("battlefield") || zone.equals("play");
+                for (String element : kv[1].split(";")) {
+                    String[] parts = element.split("\\|");
+                    String name = parts[0].trim();
+                    if (name.isEmpty() || name.toLowerCase().startsWith("t:")) continue;   // a token: no database card
+                    boolean faceDown = false, foretold = false;
+                    for (int i = 1; i < parts.length; i++) {
+                        faceDown |= parts[i].trim().startsWith("FaceDown");
+                        foretold |= parts[i].trim().startsWith("Foretold");
+                    }
+                    if (faceDown && !onBattlefield && !foretold) continue;
+                    forge.item.PaperCard pc = forge.StaticData.instance().getCommonCards().getCard(name);
+                    if (pc != null) own.getMain().add(pc);
+                }
+            }
+            String text = LlmSpikeGui.cardText(own, true);
+            return text.isEmpty() ? "" : "YOUR CARDS (what each of your cards in this puzzle does; your library is not listed):\n" + text;
+        } catch (Exception e) {
+            System.out.println("[PUZZLE] the solver's YOUR CARDS could not be built (" + e + "): none");
+            return "";
+        }
+    }
+
+    /** The solver's seat, as playOnce seats it: its plan is {@link #solverPlan}. */
+    static LobbyPlayer solverSeat(Map<String, List<String>> sections, String ctlA, String smartA, String fastA) {
+        return LlmSpikeGui.seatFor(ctlA, "Solver", solverPlan(sections), smartA, fastA);
+    }
+
     /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
      *  .pzl's), the named cards Forge's setup drops, and on the Puzzle Goal card the brief the solver's prompt
      *  reads (LlmSpikeGui.puzzleBrief, set by {@link #briefSolver}), so the two cannot differ. */
@@ -190,12 +243,28 @@ public final class LlmSpikePuzzle {
         try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
         restoreNamedCards(puzzle);
         tellGoalCard(game, LlmSpikeGui.puzzleBrief);
+        LlmSpikeGui.puzzleLastTurn = lastTurn(game);
+    }
+
+    /** The last turn the game can be played in, from the Puzzle Goal card's turn trigger (Puzzle.addGoalEnforcement):
+     *  the turn whose cleanup the solver loses at, or the turn before the upkeep it wins at (Survive). -1 when no
+     *  trigger counts turns ("win before opponent's next turn", a permanent goal with no limit). */
+    static int lastTurn(Game game) {
+        for (Player p : game.getPlayers())
+            for (Card c : p.getZone(ZoneType.Command))
+                if ("Puzzle Goal".equals(c.getName()))
+                    for (Trigger t : c.getTriggers())
+                        if (t.hasParam("TurnCount")) {
+                            int n = Integer.parseInt(t.getParam("TurnCount"));
+                            return "Upkeep".equalsIgnoreCase(t.getParam("Phase")) ? n - 1 : n;
+                        }
+        return -1;
     }
 
     /** Forge writes its whole goal description on the Puzzle Goal card, which `inspect` reads: the card gets the
      *  solver's brief, so a rules puzzle's name and "Goal: Survive" stay hidden there too. */
     static void tellGoalCard(Game game, String brief) {
-        for (forge.game.player.Player p : game.getPlayers())
+        for (Player p : game.getPlayers())
             for (Card c : p.getZone(ZoneType.Command))
                 if ("Puzzle Goal".equals(c.getName())) c.setOracleText(brief);
     }
@@ -588,7 +657,7 @@ public final class LlmSpikePuzzle {
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
-        LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", "", smartA, fastA);
+        LobbyPlayer solverSeat = solverSeat(sections, ctlA, smartA, fastA);
         LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
                 : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
         RegisteredPlayer solver = new RegisteredPlayer(new Deck()).setPlayer(solverSeat);
