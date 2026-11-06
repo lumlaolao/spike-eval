@@ -65,11 +65,12 @@ public class OpenRouterTimeoutTest {
 
     private static final AtomicInteger completionCalls = new AtomicInteger();
     private static final AtomicInteger billedCalls = new AtomicInteger();
+    private static final AtomicInteger truncatedCalls = new AtomicInteger();
     private static final AtomicInteger handlersOpened = new AtomicInteger();
     private static final AtomicInteger handlersReleased = new AtomicInteger();
 
     private HttpServer server;
-    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase, creditsBase, emptyBase;
+    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase, creditsBase, emptyBase, truncatedBase, noHeadersBase;
 
     @BeforeClass
     public void startServer() throws IOException {
@@ -143,6 +144,14 @@ public class OpenRouterTimeoutTest {
             try { ex.sendResponseHeaders(402, b.length); try (OutputStream os = ex.getResponseBody()) { os.write(b); } }
             catch (Exception ignore) { }
         });
+        // The model spends its budget and answers nothing (finish_reason=length); the truncation retry then meets a 503.
+        server.createContext("/truncated503/chat/completions", ex -> {
+            drain(ex);
+            if (truncatedCalls.incrementAndGet() % 2 == 1)
+                respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"length\"}]}");
+            else { try { ex.sendResponseHeaders(503, -1); ex.close(); } catch (Exception ignore) { } }
+        });
+        server.createContext("/nohead/chat/completions", ex -> { drain(ex); sleep(5000); respond(ex, "{\"late\":true}"); });
         server.createContext("/empty/chat/completions", ex -> {
             drain(ex);
             respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"stop\"}]}");
@@ -154,6 +163,8 @@ public class OpenRouterTimeoutTest {
         loopbackBase = base + "/v1";
         creditsBase = base + "/credits";
         emptyBase = base + "/empty";
+        noHeadersBase = base + "/nohead";
+        truncatedBase = base + "/truncated503";
         slowBase = base + "/slow";
         billedBase = base + "/billed";
     }
@@ -460,6 +471,18 @@ public class OpenRouterTimeoutTest {
         Assert.assertTrue(credits.lastFailureWasTransport());
     }
 
+    /** The model's own empty, length-truncated answer is kept when the truncation retry fails in transport: the ask
+     *  is lost to the model, not to the bridge (round-3 review of #374). */
+    @Test
+    public void aTruncationRetryThatFailsInTransportLeavesTheModelsOwnLoss() {
+        truncatedCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, truncatedBase, BUDGET_MS);
+        Assert.assertNull(bridge.ask("what is the play?"));
+        Assert.assertEquals(bridge.lastSendCount(), 2, "the truncated reply was retried");
+        Assert.assertFalse(bridge.lastFailureWasTransport(), "the answer that was kept is the model's");
+    }
+
     /** A connection that sends no headers is no reply, as is a port nobody listens on (an IO error): transport
      *  failures. The deadline running out is the model's time. The bridges read the stop through gaveNoReply. */
     @Test
@@ -472,6 +495,18 @@ public class OpenRouterTimeoutTest {
         Assert.assertFalse(HttpDeadline.gaveNoReply("deadline"), "the deadline is the model's time");
         Assert.assertFalse(HttpDeadline.transportError(new java.net.http.HttpTimeoutException("headers")),
                 "the request deadline is the model's time");
+        Assert.assertTrue(HttpDeadline.transportError(new java.net.http.HttpConnectTimeoutException("connect")),
+                "a connect timeout made no connection");
+        long idle = HttpDeadline.IDLE_MS;
+        HttpDeadline.IDLE_MS = IDLE;
+        try {
+            LlmSpikeGui.OpenRouterBridge silent = new LlmSpikeGui.OpenRouterBridge(
+                    "test/smart", "deepseek/deepseek-v4-flash", null, noHeadersBase, LONG_DEADLINE);
+            Assert.assertNull(silent.ask("what is the play?"));
+            Assert.assertTrue(silent.lastFailureWasTransport(), "the bridge took no headers as no reply");
+        } finally {
+            HttpDeadline.IDLE_MS = idle;
+        }
         Assert.assertFalse(HttpDeadline.transportError(new IllegalStateException("not JSON")), "an unreadable reply");
         int closed;
         try (java.net.ServerSocket ss = new java.net.ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())) {

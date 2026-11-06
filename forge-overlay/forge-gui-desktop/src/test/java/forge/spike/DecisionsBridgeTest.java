@@ -264,6 +264,21 @@ public class DecisionsBridgeTest {
         Assert.assertFalse(b.lastFailureWasTransport(), "an unreadable 200 body is the model's, not an IO error");
         Assert.assertNull(b.chat(messages(USER), "[]", true, AnswerTool.Spec.card()));
         Assert.assertFalse(b.lastFailureWasTransport(), "a question it cannot put is not sent");
+        status = 402;
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertNull(b.ask(USER));
+        Assert.assertFalse(b.lastFailureWasTransport(), "a text ask is never sent, whatever came before");
+        status = 200;
+        // A Decisions endpoint that sends no headers within the idle window gave no reply.
+        reply = q -> { try { Thread.sleep(3000); } catch (InterruptedException ignore) { } return "{}"; };
+        long idle = HttpDeadline.IDLE_MS;
+        HttpDeadline.IDLE_MS = 500;
+        try {
+            Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+            Assert.assertTrue(b.lastFailureWasTransport(), "no headers is no reply");
+        } finally {
+            HttpDeadline.IDLE_MS = idle;
+        }
     }
 
     /** Naming a card has no closed list of options: no answer, nothing sent, the harness's fixed option follows. */

@@ -12018,6 +12018,7 @@ public final class LlmSpikeGui {
                     // the isNonAnswer() check right below still gets the final say.
                     if (retry != null && (retry.hasCalls() || !isNonAnswer(retry.content)))
                         r = retry.withContent(collapseDegenerateRepetition(retry.content));
+                    else transportFailure = false; // the answer kept is the first, which the provider sent
                 }
                 // A turn that is only tool calls has no text and is not a non-answer.
                 if (!r.hasCalls() && isNonAnswer(r.content)) {

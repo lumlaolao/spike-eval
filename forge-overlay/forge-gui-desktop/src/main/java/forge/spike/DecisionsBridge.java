@@ -90,11 +90,13 @@ final class DecisionsBridge implements LLMBridge {
 
     /** A text ask has no typed options to put to the model. */
     @Override public String ask(String prompt) {
+        transportFailure = false;
         noAnswer("a text ask (no `answer` offered)");
         return null;
     }
 
     @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+        transportFailure = false;
         noAnswer("an ask without the decision's typed options");
         return null;
     }
