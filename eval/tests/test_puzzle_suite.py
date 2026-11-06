@@ -224,6 +224,14 @@ class BaselineDecisionTest(unittest.TestCase):
                     {"script_unconsumed": 2}, {"log_sha256": "other"}):
             self.assertTrue(pb.check_replay(line, dict({"status": "solved", "log_sha256": "L"}, **bad)), bad)
 
+    def test_a_twin_line_is_checked_against_its_own_log_hash_and_an_original_against_none_other(self):
+        solved = {"status": "solved", "log_sha256": "T"}
+        twin = {"log_sha256": "L", "twin_log_sha256": "T"}
+        self.assertEqual(pb.check_replay(twin, solved), [], "the twin's log carries twin names, so its own hash")
+        self.assertTrue(pb.check_replay(twin, dict(solved, log_sha256="L")), "the original's hash does not do")
+        self.assertTrue(pb.check_replay(twin, dict(solved, log_sha256="other")))
+        self.assertTrue(pb.check_replay({"log_sha256": "L"}, solved), "an original line still needs its hash")
+
     def test_a_search_row_becomes_the_proof_and_a_malformed_proof_is_named(self):
         row = {"status": "proven", "search_replays": 62, "opponent_choice_points": 1, "line": "Solver:2:1",
                "solver_actions": 6, "actions": ["LAND: Solver played Swamp"], "search_drift": "", "seed": 1}

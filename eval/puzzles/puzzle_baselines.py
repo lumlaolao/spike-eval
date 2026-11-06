@@ -343,7 +343,9 @@ def check_replay(line, row):
         p.append("tape exhausted before the game ended")
     if row.get("script_unconsumed"):
         p.append("%s draws of the tape unused (the game ended differently)" % row["script_unconsumed"])
-    if line.get("log_sha256") and row.get("log_sha256") != line["log_sha256"]:
+    # A twin suite's line carries the hash of the twin's own log (twin names in it): puzzle_twin.twin_line.
+    want = line.get("twin_log_sha256") or line.get("log_sha256")
+    if want and row.get("log_sha256") != want:
         p.append("replayed game log differs from the recorded one")
     return p
 
