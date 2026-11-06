@@ -360,6 +360,12 @@ python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v
 - The system prompt states the puzzle's brief (`LlmSpikePuzzle.seatBrief`: goal, turn limit and anything the
   solver is told, such as the top cards of the library; never the name or difficulty label), in place of "win the
   game". The eval pool's archetype reference is left out.
+- Since harness-epoch-86 (#391) the system prompt also holds a YOUR CARDS block: the printed cost, type line and rules
+  text of each of the solver's own cards in the zones it can see (not its library, not the opponent's cards;
+  `DECKLIST=0` leaves it out). Before epoch 86 the solver was shown none of its own cards' text, so **PUZ results from
+  before and after epoch 86 are different conditions and never pool**: `puzzle_score.py` refuses a mix of epochs
+  (below), and every model result on the frozen suites is re-run at epoch 86 or later. The zero-model baselines read
+  no prompt and are unaffected.
 - Each result row carries `harness_epoch` and, for a model seat, what the attempt spent: `model_calls`,
   `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in

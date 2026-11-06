@@ -95,6 +95,29 @@ public class PuzzleSetupTest {
         return game;
     }
 
+    /** A puzzle's solver reads its own cards' rules text, as an STR seat reads its deck's (#391): the splice board's
+     *  answer turns on Splice onto Arcane, Lava Spike being Arcane and Thermo-Alchemist untapping, and its prompt said
+     *  none of it (the solver's plan was empty, so it had no <your_deck>). Its library (four Colossal Dreadmaw, the
+     *  solver's hidden draw) and the opponent's (Plains) are not shown. DECKLIST=0, the game seat's opt-out, gives none. */
+    @Test
+    public void aPuzzleSolverReadsItsOwnCardsButNotItsLibrary() throws Exception {
+        Map<String, List<String>> sections = FileSection.parseSections(
+                FileUtil.readFile(new File(REPO, "eval/puzzles/hard/gen2/splice2_325cd33e0a57.pzl")));
+        LlmSpikePuzzle.briefSolver(sections, new Puzzle(sections, "splice2_325cd33e0a57", false));
+        String system = LlmSpikeGui.PlayerControllerLLM.seatFraming("Solver", LlmSpikePuzzle.solverPlan(sections), true, false, true);
+        Assert.assertTrue(system.contains("<your_deck>\nYOUR CARDS"), system);
+        Assert.assertTrue(system.contains("Glacial Ray deals 2 damage to any target. Splice onto Arcane {1}{R}"), system);
+        String spike = system.lines().filter(l -> l.startsWith("  Lava Spike ")).findFirst().orElse("");
+        Assert.assertTrue(spike.contains("Arcane"), "Lava Spike's type line: " + spike);
+        Assert.assertTrue(system.contains("Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist."), system);
+        Assert.assertFalse(system.contains("Colossal Dreadmaw"), "the solver's library was shown");
+        Assert.assertFalse(system.contains("Plains"), "the opponent's library was shown");
+        LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
+        try {
+            Assert.assertEquals(LlmSpikePuzzle.solverPlan(sections), "", "DECKLIST=0 keeps the solver's cards out");
+        } finally { LlmSpikeGui.envOverride = null; }
+    }
+
     /** Gitaxian Probe's script tells Forge's AI never to pay its {U/P} with life (AIPhyrexianPayment$ Never), and the
      *  seat's menu asked the AI's payment check: with no blue source the Probe was "(not castable now)" and never on
      *  the menu, though 2 life pays it (hard draft h_0, its written line drifted there, 2026-10-20). Mutagenic Growth,

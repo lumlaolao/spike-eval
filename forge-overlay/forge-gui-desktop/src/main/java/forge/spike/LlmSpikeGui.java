@@ -401,8 +401,10 @@ public final class LlmSpikeGui {
      *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
      *  Epoch 84 (2026-11-06, #380): "X target creatures" with X announced as 0 takes no target; one was set, and the
      *  stack refused the paid play (Rot-Curse Rakshasa's renew).
+     *  Epoch 86 (2026-11-06, #391): a puzzle's solver is shown its own cards' cost, type line and rules text (YOUR CARDS
+     *  in <your_deck>, LlmSpikePuzzle.solverPlan); its plan was empty. PUZ results before and after never pool.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-84";
+    static final String HARNESS_EPOCH = "harness-epoch-86";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -12684,7 +12686,12 @@ public final class LlmSpikeGui {
     /** Per-card rules text for a seat's deck, "  Name {cost} — oracle text", one per distinct card,
      *  from Forge's OWN card database (no external file, no network). Lets the model read what its
      *  cards do instead of recalling them. Empty on any failure. */
-    static String cardText(Deck d) {
+    static String cardText(Deck d) { return cardText(d, false); }
+
+    /** {@link #cardText(Deck)}, with each card's type line after its cost when {@code typeLine} ("  Lava Spike {R} |
+     *  Sorcery - Arcane — ..."): a puzzle's solver reads Arcane, Equipment or Aura nowhere else (#391). That form also
+     *  drops a land's "no cost" and the card script's literal line breaks ("\n"), which the deck form still prints. */
+    static String cardText(Deck d, boolean typeLine) {
         if (d == null) return "";
         try {
             java.util.TreeMap<String, String> lines = new java.util.TreeMap<>();
@@ -12697,11 +12704,13 @@ public final class LlmSpikeGui {
                     forge.card.CardRules r = pc.getRules();
                     if (r != null) {
                         String mc = r.getManaCost() == null ? "" : r.getManaCost().toString();
-                        if (!mc.isEmpty()) b.append(' ').append(mc);
+                        if (!mc.isEmpty() && !(typeLine && r.getManaCost().isNoCost())) b.append(' ').append(mc);
+                        if (typeLine && r.getType() != null) b.append(" | ").append(r.getType());
                         String t = r.getOracleText();
                         if (t != null && !t.isEmpty()) {
                             // Whole: a 400-character cut ended 7 cards of the deck pool mid-sentence
                             // (Animate Dead, Tamiyo, Ajani, Minsc & Boo, ...).
+                            if (typeLine) t = t.replace("\\n", " ");   // the card script's line breaks, as cardTextLine
                             t = t.replaceAll("\\s+", " ").trim();
                             b.append(" — ").append(t);
                         }

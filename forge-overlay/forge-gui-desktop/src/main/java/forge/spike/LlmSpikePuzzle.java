@@ -182,6 +182,36 @@ public final class LlmSpikePuzzle {
         LlmSpikeGui.puzzleBrief = seatBrief(sections, puzzle.getGoalDescription());
     }
 
+    /** The zones of the solver's own cards its YOUR CARDS block lists: the ones it can see. Its library is not one (an
+     *  author's library is the solver's hidden draw, and Forge keeps its order), nor is the opponent's side. */
+    private static final java.util.Set<String> SEEN_ZONES =
+            java.util.Set.of("hand", "battlefield", "play", "graveyard", "exile", "command");
+
+    /** What the solver's seat is told about its own cards (#391): the YOUR CARDS block an STR seat gets from its deck
+     *  (LlmSpikeGui.cardText, Forge's card database), here from the cards the [state] section gives the solver (p0, or
+     *  "human") in the zones it can see, with each card's type line. Before, the solver got no deck text at all, so a
+     *  splice board never said which cards were Arcane or had Splice. Behind the game seat's gate: DECKLIST=0 gives none. */
+    static String solverPlan(Map<String, List<String>> sections) {
+        if ("0".equals(LlmSpikeGui.env("DECKLIST"))) return "";
+        Deck own = new Deck();
+        List<String> state = sections.get("state");
+        if (state != null) for (String line : state) {
+            String[] kv = line.split("=", 2);
+            if (kv.length != 2) continue;
+            String key = kv[0].trim().toLowerCase();
+            String zone = key.startsWith("p0") ? key.substring(2) : key.startsWith("human") ? key.substring(5) : null;
+            if (zone == null || !SEEN_ZONES.contains(zone)) continue;
+            for (String element : kv[1].split(";")) {
+                String name = element.split("\\|")[0].trim();
+                if (name.isEmpty() || name.startsWith("t:")) continue;   // a token has no card in the database
+                forge.item.PaperCard pc = forge.StaticData.instance().getCommonCards().getCard(name);
+                if (pc != null) own.getMain().add(pc);
+            }
+        }
+        String text = LlmSpikeGui.cardText(own, true);
+        return text.isEmpty() ? "" : "YOUR CARDS (what each of your cards in this puzzle does; your library is not listed):\n" + text;
+    }
+
     /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
      *  .pzl's), the named cards Forge's setup drops, and on the Puzzle Goal card the brief the solver's prompt
      *  reads (LlmSpikeGui.puzzleBrief, set by {@link #briefSolver}), so the two cannot differ. */
@@ -582,7 +612,7 @@ public final class LlmSpikePuzzle {
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
-        LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", "", smartA, fastA);
+        LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", solverPlan(sections), smartA, fastA);
         LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
                 : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
         RegisteredPlayer solver = new RegisteredPlayer(new Deck()).setPlayer(solverSeat);

@@ -371,6 +371,13 @@ turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its F
 in their `[acceptance]` section, 2026-10-20) and its name states the rule it tests. The
 Puzzle Goal card, which `inspect` reads, carries the same brief (`tellGoalCard`), and Forge's HumanControl warning
 stays in front of it. A result row's `goal_oracle` is that card's text as the seat sees it.
+Since harness-epoch-86 (#391) a puzzle's `<your_deck>` holds a YOUR CARDS block, as a game seat's does: each
+distinct card the `[state]` section gives the solver in a zone it can see (hand, battlefield, graveyard, exile,
+command; never its library, which is its hidden draw, nor any opponent card), from Forge's card database by the
+game seat's `cardText`, with its type line added (`LlmSpikePuzzle.solverPlan`). Before, the solver's plan was empty
+and nothing told it a card's text beyond its spell ability: a splice board never said which cards were Arcane or
+had Splice. `DECKLIST=0`, the game seat's opt-out, leaves it out; cards printed there are not repeated in OPPONENT
+CARDS YOU HAVE SEEN (`SeatObservation.cardTextLine`).
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
