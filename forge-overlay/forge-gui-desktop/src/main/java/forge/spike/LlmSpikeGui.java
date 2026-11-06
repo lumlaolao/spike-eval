@@ -401,8 +401,9 @@ public final class LlmSpikeGui {
      *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
      *  Epoch 84 (2026-11-06, #380): "X target creatures" with X announced as 0 takes no target; one was set, and the
      *  stack refused the paid play (Rot-Curse Rakshasa's renew).
-     *  Epoch 86 (2026-11-06, #391): a puzzle's solver is shown its own cards' cost, type line and rules text (YOUR CARDS
-     *  in <your_deck>, LlmSpikePuzzle.solverPlan); its plan was empty. PUZ results before and after never pool.
+     *  Epoch 86 (2026-11-06, #391): a puzzle's solver is shown its own cards' cost, type line and rules text: the setup
+     *  cards in <your_deck> (LlmSpikePuzzle.solverPlan), each later one as it is first seen (YOUR CARDS SINCE THE START,
+     *  observation-faithful-v43). PUZ results before and after never pool.
      */
     static final String HARNESS_EPOCH = "harness-epoch-86";
 
@@ -2447,6 +2448,7 @@ public final class LlmSpikeGui {
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
+                observer.setTrackOwnCards(puzzleBrief != null);   // a puzzle seat's deck text is only its setup cards
                 observer.setDeckLines(deckLines);
                 observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
@@ -10719,6 +10721,8 @@ public final class LlmSpikeGui {
         LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel, String mode) {
             super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel; this.mode = mode;
         }
+        /** The plan the seat's system prompt carries in {@code <your_deck>}. */
+        String plan() { return plan; }
         @Override
         public Player createIngamePlayer(Game game, int id) {
             // A player of a preview COPY is the engine AI's, never the model's (PlayerLookahead.inPreview).

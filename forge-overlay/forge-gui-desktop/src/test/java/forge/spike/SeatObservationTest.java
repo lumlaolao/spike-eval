@@ -388,6 +388,48 @@ public class SeatObservationTest {
         assertNoneOf(block, "opponent card text", "Thoughtseize", "Entomb", "Swamp:", "Delver of Secrets", "Force of Will");
     }
 
+    /** A puzzle's solver is told its setup cards in its system prompt (#391); an own card it sees later (here, drawn
+     *  from its library) gets its text in the state as it is first identified, once, and a card the setup listed is
+     *  not repeated. A game seat (no tracking) gets no such block: its deck text lists every card it can hold. */
+    @Test
+    public void aPuzzleSolversCardDrawnLaterIsShownWithItsText() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player me = g.getPlayers().get(0);
+        SeatObservation o = observerFor(g, 0);
+        o.setOwnDeckText(LlmSpikePuzzle.solverPlan(java.util.Map.of("state", List.of(
+                "p0battlefield=Volcanic Island;Volcanic Island;Delver of Secrets", "p0hand=Brainstorm;Force of Will",
+                "p0graveyard=Ponder"))));
+        o.setTrackOwnCards(true);
+        String before = render(o, "");
+        Assert.assertFalse(before.contains("YOUR CARDS SINCE THE START"), "the setup cards were repeated:\n" + before);
+        Card snap = me.getCardsIn(ZoneType.Library).get(0);
+        g.getAction().moveToHand(snap, null);
+        String after = render(o, "");
+        int at = after.indexOf("YOUR CARDS SINCE THE START");
+        Assert.assertTrue(at >= 0, after);
+        String block = after.substring(at, after.indexOf("OPPONENT CARDS YOU HAVE SEEN", at));
+        Assert.assertTrue(block.contains("  Snapcaster Mage: ") && block.contains("Flash"), block);
+        assertNoneOf(block, "own new cards", "Brainstorm", "Delver of Secrets", "Ponder", "Griselbrand");
+        SeatObservation game = observerFor(g, 0);
+        Assert.assertFalse(render(game, "").contains("YOUR CARDS SINCE THE START"), "a game seat got the puzzle block");
+    }
+
+    /** The puzzle form of the seat's own text (LlmSpikePuzzle.solverPlan, with a type line) also keeps a card it lists
+     *  out of OPPONENT CARDS YOU HAVE SEEN: the opponent's Griselbrand is the solver's own card too. */
+    @Test
+    public void aSolversOwnCardIsNotRepeatedAsTheOpponents() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        card("Orcish Bowmasters", rival, ZoneType.Battlefield);
+        SeatObservation o = observerFor(g, 0);
+        o.setOwnDeckText(LlmSpikePuzzle.solverPlan(java.util.Map.of("state", List.of("p0hand=Griselbrand"))));
+        String r = render(o, "");
+        int at = r.indexOf("OPPONENT CARDS YOU HAVE SEEN");
+        String block = r.substring(at, r.indexOf("STACK", at));
+        Assert.assertTrue(block.contains("  Orcish Bowmasters: "), block);
+        Assert.assertFalse(block.contains("  Griselbrand: "), "a card in the solver's YOUR CARDS was repeated:\n" + block);
+    }
+
     /** Text once seen stays known after the card leaves; a card already printed in the seat's own
      *  deck text is not printed twice; and the block never depends on the opponent's hidden cards. */
     @Test

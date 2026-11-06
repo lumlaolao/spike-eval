@@ -372,12 +372,14 @@ in their `[acceptance]` section, 2026-10-20) and its name states the rule it tes
 Puzzle Goal card, which `inspect` reads, carries the same brief (`tellGoalCard`), and Forge's HumanControl warning
 stays in front of it. A result row's `goal_oracle` is that card's text as the seat sees it.
 Since harness-epoch-86 (#391) a puzzle's `<your_deck>` holds a YOUR CARDS block, as a game seat's does: each
-distinct card the `[state]` section gives the solver in a zone it can see (hand, battlefield, graveyard, exile,
-command; never its library, which is its hidden draw, nor any opponent card), from Forge's card database by the
-game seat's `cardText`, with its type line added (`LlmSpikePuzzle.solverPlan`). Before, the solver's plan was empty
-and nothing told it a card's text beyond its spell ability: a splice board never said which cards were Arcane or
-had Splice. `DECKLIST=0`, the game seat's opt-out, leaves it out; cards printed there are not repeated in OPPONENT
-CARDS YOU HAVE SEEN (`SeatObservation.cardTextLine`).
+distinct card the `[state]` section puts on the solver's side (its zones, so by control) in a zone it can see (hand,
+battlefield, graveyard, exile, command; never its library, its hidden draw; a face-down card only on the
+battlefield or foretold, CR 406.3), from Forge's card database by the game seat's `cardText`, with its type line
+added (`LlmSpikePuzzle.solverPlan`, seated by `LlmSpikePuzzle.solverSeat`). An own card first seen after setup
+(drawn, tutored, returned) gets its text in the per-decision state as it is identified, as an opponent's card does:
+YOUR CARDS SINCE THE START (`SeatObservation`, puzzle seats only), so the cached system prompt is unchanged.
+`DECKLIST=0`, the game seat's opt-out, leaves the setup block out; cards printed there are not repeated in either
+per-decision block (`SeatObservation.cardTextLine`).
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
