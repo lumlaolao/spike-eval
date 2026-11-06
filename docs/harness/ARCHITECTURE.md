@@ -402,12 +402,9 @@ last turn off the Puzzle Goal card's turn trigger (`lastTurn`: the turn whose cl
 turn before the upkeep a Survive goal wins at) into `LlmSpikeGui.puzzleLastTurn`. A side with no combat left before
 it (`SeatObservation.combatBeforeLimit`: its own turn past combat, or no turn of its own left; an extra turn is not
 counted; the end-of-combat step is past combat) reads `your next combat: none before the puzzle's turn limit` (or
-`their`) in place of its clock. Measured before the fix (#398 and its comment, the issue's regex over `raw_reply`):
-of the 2828 local puzzle games under `runs/puzzles/` (container-local, git-ignored; epochs 70 to 72 where recorded,
-1448 of them at 70, 584 unrecorded; all models pooled, so descriptive), 2161 have a turn-1 decision in `MAIN2` or
-`END_OF_TURN`. Among those decisions a reply cited a later combat in 33 of the 311 games whose clock read LETHAL (10.6%,
-Wilson 95% 7.7 to 14.5; 32 of the 33 failed), 5 of the 577 with a clock not lethal (0.9%, 0.4 to 2.0) and 0 of the 1273
-with no clock (0 to 0.3): an association across different boards, and a lower bound on reliance. A goal with no turn count ("win before opponent's
+`their`) in place of its clock. Why: the seat reads FACTS as engine fact, and in recorded 1-turn puzzles seats passed
+after combat citing that lethal "next combat" (#398 has the counts, their pattern and their limits: an association,
+and in drain the positions were already lost). A goal with no turn count ("win before opponent's
 next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLastTurn` -1) is unchanged.
 
 **User message per decision:**
