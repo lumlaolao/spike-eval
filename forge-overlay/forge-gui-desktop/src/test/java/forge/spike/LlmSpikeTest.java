@@ -952,22 +952,43 @@ public class LlmSpikeTest {
                 "a dead bridge must never fall through to Forge's AI for this decision");
     }
 
+    /** A bridge whose transport fails on every ask (a provider answering 402 once the credits ran out). */
+    static final class CreditsGoneBridge implements LLMBridge {
+        private final String label;
+        int asks = 0;
+        CreditsGoneBridge(String label) { this.label = label; }
+        @Override public String ask(String prompt) { asks++; return null; }
+        @Override public boolean lastFailureWasTransport() { return true; }
+        @Override public String getLabel() { return label; }
+        @Override public String getModel() { return "credits-gone"; }
+        @Override public long getTotalMs() { return 0; }
+        @Override public int getCalls() { return asks; }
+    }
+
     /** Issue #369: a provider that answered HTTP 402 to every call left a seat that only passed, and the game line
-     *  said nothing, so the game was scored. Each decision the bridge never answered is counted per identity for the
-     *  game line, and so is each trip of the circuit breaker (five dead decisions in a row). */
-    @Test(timeOut = 60000)
+     *  said nothing, so the game was scored. Each decision whose ask failed in transport after every retry is counted
+     *  per identity for the game line, and so is each trip of the circuit breaker (five dead decisions in a row). A
+     *  model that answered with nothing (DeadBridge: no reply, not a transport failure) and one whose reply cannot be
+     *  read lost their own decisions: nothing is counted for them. */
+    @Test(timeOut = 90000)
     public void decisionsLostToADeadBridgeAreCountedOnTheGameLine() throws Exception {
         Game game = buildBareGame();
-        String dead = "seat-dead-369", alive = "seat-alive-369";
+        String dead = "seat-dead-369", silent = "seat-silent-369", alive = "seat-alive-369";
+        CreditsGoneBridge gone = new CreditsGoneBridge(dead + "/fast");
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
-                game, game.getPlayers().get(0), new LobbyPlayerAi(dead, null), dead, "",
-                new DeadBridge(dead + "/smart"), new DeadBridge(dead + "/fast"), "llm");
+                game, game.getPlayers().get(0), new LobbyPlayerAi(dead, null), dead, "", gone, gone, "llm");
         for (int i = 0; i < 5; i++)
             ctrl.confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?", null, null, null);
+        Assert.assertEquals(gone.asks, 5 * (LlmSpikeGui.PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS.length + 1),
+                "each decision was asked with every retry");
         Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(dead), 5, "one per decision, not one per retry");
         Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(dead), 1, "the fifth dead decision in a row trips it once");
 
-        // A reply that cannot be read is the model's failure, not a dead bridge.
+        new LlmSpikeGui.PlayerControllerLLM(game, game.getPlayers().get(1), new LobbyPlayerAi(silent, null), silent, "",
+                new DeadBridge(silent + "/smart"), new DeadBridge(silent + "/fast"), "llm")
+                .confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?", null, null, null);
+        Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(silent), 0, "no answer from the model is the model's");
+
         FixedReplyBridge talks = new FixedReplyBridge("I would rather not say.");
         new LlmSpikeGui.PlayerControllerLLM(game, game.getPlayers().get(1), new LobbyPlayerAi(alive, null), alive, "",
                 talks, talks, "llm")

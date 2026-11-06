@@ -549,6 +549,35 @@ def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
         check("a healthy line counts nothing", aggregate.bridge_down_decisions(healthy) == 0)
         check("a line carrying the field is judged by it", aggregate.bridge_down_decisions(
             dead, [decision_line("auto", 0, fallback="play(bridge-down)->PASS")]) == 21)
+        check("the strict score leaves the dead games out of started", arm["started"] == 2, str(arm))
+
+
+def test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out():
+    """Identity B's count counts too; a seed whose swap twin lost decisions to the bridge is not a usable pair; a
+    legacy line whose provider refused function calling is not judged by its (bridge-down) rows; two game lines in
+    one file are said, not judged by rows."""
+    with tempfile.TemporaryDirectory() as d:
+        b_dead = dict(game_line(1, False, "A", ctrl_b="ai"), bridge_down_decisions_a=0, bridge_down_decisions_b=2)
+        twin = dict(game_line(1, True, "A", ctrl_b="ai"), bridge_down_decisions_a=0, bridge_down_decisions_b=0)
+        ok1 = dict(game_line(2, False, "A", ctrl_b="ai"), bridge_down_decisions_a=0, bridge_down_decisions_b=0)
+        ok2 = dict(ok1, swap=True, winner="B")
+        write_jsonl(d, "game-1-1000.jsonl", [b_dead])
+        write_jsonl(d, "game-1-1001.jsonl", [twin])
+        write_jsonl(d, "game-2-1000.jsonl", [ok1])
+        write_jsonl(d, "game-2-1001.jsonl", [ok2])
+        s = aggregate.build_summary(Path(d), 200, 1)
+        check("identity B's count makes the game invalid", s["games"].get("bridge_down") == 1, str(s["games"]))
+        p = s["paired"]
+        check("the dead twin's seed is excluded as non-decisive",
+              p.get("n_pairs_excluded_nondecisive") == 1 and p.get("n_pairs_used") == 1, str(p))
+    downgraded = dict(game_line(3, False, "A"), native_tools_downgraded="Identity-A/smart")
+    rows = [decision_line("auto", 0, fallback="play(bridge-down)->PASS")]
+    check("a tool refusal's lost ask is not a dead bridge", aggregate.bridge_down_decisions(downgraded, rows) == 0)
+    check("a legacy line is judged by its rows", aggregate.bridge_down_decisions(game_line(3, False, "A"), rows) == 1)
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-4-1000.jsonl", rows + [game_line(4, False, "A"), game_line(4, True, "B")])
+        w = aggregate.parse_dir_full(Path(d))["warnings"]
+        check("two legacy game lines in one file are said", any("2 game lines in one file" in x for x in w), str(w))
 
 
 def main():
@@ -563,6 +592,7 @@ def main():
     test_harness_decided_gate()
     test_strict_score_counts_every_started_game()
     test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
+    test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out()
     test_mixed_provenance()
     test_provenance_legacy_unknown()
     test_model_identity_attributable()

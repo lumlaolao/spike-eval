@@ -77,8 +77,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 SERVED_MODEL = "fake/harness-model"
 # --http-error bodies, in OpenRouter's words.
-HTTP_ERRORS = {402: "This request would exceed your available credits. Add more credits to continue.",
-               401: "No auth credentials found"}
+HTTP_ERRORS = {402: "This request would exceed your available credits. Add more credits to continue."}
 OPTION_LINE = re.compile(r"^\s*(\d+)[.)]\s", re.M)
 
 

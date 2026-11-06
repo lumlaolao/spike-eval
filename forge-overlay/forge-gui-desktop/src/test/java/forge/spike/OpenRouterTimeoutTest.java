@@ -69,7 +69,7 @@ public class OpenRouterTimeoutTest {
     private static final AtomicInteger handlersReleased = new AtomicInteger();
 
     private HttpServer server;
-    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase;
+    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase, creditsBase, emptyBase;
 
     @BeforeClass
     public void startServer() throws IOException {
@@ -135,11 +135,25 @@ public class OpenRouterTimeoutTest {
                 try { ex.sendResponseHeaders(500, -1); ex.close(); } catch (Exception ignore) { }
             }
         });
+        // Issue #369: a provider out of credits answers 402 to every call; an empty answer is the model's.
+        server.createContext("/credits/chat/completions", ex -> {
+            drain(ex);
+            byte[] b = "{\"error\":{\"message\":\"This request would exceed your available credits\",\"code\":402}}"
+                    .getBytes(StandardCharsets.UTF_8);
+            try { ex.sendResponseHeaders(402, b.length); try (OutputStream os = ex.getResponseBody()) { os.write(b); } }
+            catch (Exception ignore) { }
+        });
+        server.createContext("/empty/chat/completions", ex -> {
+            drain(ex);
+            respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"stop\"}]}");
+        });
         server.start();
         String base = "http://127.0.0.1:" + server.getAddress().getPort();
         dribbleUrl = base + "/dribble";
         promptUrl = base + "/prompt";
         loopbackBase = base + "/v1";
+        creditsBase = base + "/credits";
+        emptyBase = base + "/empty";
         slowBase = base + "/slow";
         billedBase = base + "/billed";
     }
@@ -412,6 +426,31 @@ public class OpenRouterTimeoutTest {
         Assert.assertNull(bridge.ask("again?"));
         Assert.assertEquals(bridge.getBilledPromptTokens(), 80L, "an HTTP 500 is not billed");
         Assert.assertEquals(bridge.getBilledCompletionTokens(), 25L);
+    }
+
+    /** Issue #369: only a transport failure is a dead bridge. A 402 (credits gone) and a 500 are; an empty answer and a
+     *  deadline that ran out while the model reasoned are the model's, and the game stays scored. */
+    @Test
+    public void onlyATransportFailureIsADeadBridge() {
+        LlmSpikeGui.OpenRouterBridge credits = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, creditsBase, BUDGET_MS);
+        Assert.assertNull(credits.ask("what is the play?"));
+        Assert.assertTrue(credits.lastFailureWasTransport(), "a 402 is the transport failing");
+        LlmSpikeGui.OpenRouterBridge empty = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, emptyBase, BUDGET_MS);
+        Assert.assertNull(empty.ask("what is the play?"));
+        Assert.assertFalse(empty.lastFailureWasTransport(), "an empty answer is the model's");
+        LlmSpikeGui.OpenRouterBridge slow = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, slowBase, BUDGET_MS);
+        Assert.assertNull(slow.ask("what is the play?"));
+        Assert.assertFalse(slow.lastFailureWasTransport(), "the deadline running out is the model's time");
+        billedCalls.set(2);
+        LlmSpikeGui.OpenRouterBridge failing = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, billedBase, BUDGET_MS);
+        Assert.assertNull(failing.ask("again?"));
+        Assert.assertTrue(failing.lastFailureWasTransport(), "a 500 is the transport failing");
+        Assert.assertNull(credits.ask("and now?"));
+        Assert.assertTrue(credits.lastFailureWasTransport());
     }
 
     /** A bridge pointed at a loopback endpoint needs no API key, and the deadline still applies. */

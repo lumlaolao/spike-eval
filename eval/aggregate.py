@@ -180,25 +180,34 @@ PROVENANCE_FIELDS = (
     ("shadow_ai", False),
 )
 
-# Decisions whose model ask the seat's bridge never answered after every retry (a 402 when the credits ran out, a
-# 401, an outage), per identity (issue #369). Each took a fixed legal fallback, so a game with any is not the model's
-# and is invalid here, whatever its recorded winner. Any, not a share: 79 epoch-stamped OpenRouter games in the local
-# runs outside the block of the issue had none, so no threshold has data behind it, and the block's games lost 1 to 34.
+# Decisions whose model ask failed in TRANSPORT after every retry (a 402 when the credits ran out, a 401, a 429, a
+# 5xx, an IO error, a connection that sent nothing), per identity (issue #369). Each took a fixed legal fallback, so a
+# game with any is not the model's: it is invalid here, whatever its recorded winner, and left out of every count a
+# score is taken over (docs/harness/ARCHITECTURE.md, "A game the model's bridge did not play"). The model's own lost
+# decisions (an empty answer, a deadline spent reasoning, a routing refusal) are not counted and stay scored.
 BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b")
-# The fallback rows that name it, for a game line written before the fields.
+# The fallback rows that name a decision with no reply, for a game line written before the fields. They also name a
+# non-answer, which is the model's: on such a line the count can only over-state, and a replay settles it.
 BRIDGE_DOWN_FALLBACK = "(bridge-down)"
 
 
-def bridge_down_decisions(game, rows=()):
-    """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else the game's
-    decision rows whose fallback says (bridge-down) (a line from before the field; parse_dir_full attaches that count
-    as `_bridge_down_rows`). A line that carries the count is judged by it alone: a decision lost when a provider
-    refused function calling also reads (bridge-down), but that bridge answered and native_tools_downgraded says so."""
+def bridge_down_rows(game, rows):
+    """For a game line from before the fields: its decision rows whose fallback says (bridge-down). 0 on a line
+    whose provider refused function calling (native_tools_downgraded): that ask's lost decision also reads
+    (bridge-down), but the bridge answered."""
+    if game.get("native_tools_downgraded"):
+        return 0
+    return sum(1 for r in rows if BRIDGE_DOWN_FALLBACK in str(r.get("fallback") or ""))
+
+
+def bridge_down_decisions(game, rows=None):
+    """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else
+    bridge_down_rows over `rows` (or the `_bridge_down_rows` parse_dir_full attached)."""
     if any(f in game for f in BRIDGE_DOWN_FIELDS):
         return sum(v for v in (game.get(f) for f in BRIDGE_DOWN_FIELDS)
                    if isinstance(v, int) and not isinstance(v, bool) and v > 0)
-    if rows:
-        return sum(1 for r in rows if BRIDGE_DOWN_FALLBACK in str(r.get("fallback") or ""))
+    if rows is not None:
+        return bridge_down_rows(game, rows)
     return game.get("_bridge_down_rows") or 0
 
 
@@ -490,7 +499,11 @@ def parse_dir_full(path):
         file_games = [g for g in games if g.get("_file") == fp.name]
         if len(file_games) == 1:
             g = file_games[0]
-            g["_bridge_down_rows"] = bridge_down_decisions({}, [r for r in rows if r.get("t") == "decision"])
+            g["_bridge_down_rows"] = bridge_down_rows(g, [r for r in rows if r.get("t") == "decision"])
+        elif len(file_games) > 1 and not all(any(f in g for f in BRIDGE_DOWN_FIELDS) for g in file_games):
+            warnings.append("%s: %d game lines in one file; a line from before the bridge-down count is not "
+                            "judged by its rows" % (fp.name, len(file_games)))
+        for g in file_games:
             lost = bridge_down_decisions(g)
             if lost:
                 warnings.append("%s: %d decision(s) lost to a dead model bridge -> counted as invalid"
@@ -631,9 +644,10 @@ def p90(values):
 def summarize_games(games):
     counts = Counter()
     for g in games:
-        w = scored_winner(g)
+        w = g.get("winner")
         if bridge_down_decisions(g):
             counts["bridge_down"] += 1  # invalid: a decision was the harness's fallback, not the model's
+            w = "invalid"
         if w in ("A", "B"):
             counts["decisive"] += 1
             # Seat-bias diagnostic. winner is identity-keyed, so seat 1
@@ -659,7 +673,9 @@ def summarize_arms(games):
     are identity A's config, so attribution never flips on swap."""
     arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0})
     for g in games:
-        w = scored_winner(g)
+        if bridge_down_decisions(g):
+            continue                        # not played by the model: in no count, the strict score's included
+        w = g.get("winner")
         la, lb = arm_label(g, "a"), arm_label(g, "b")
         # Every started game, for the strict score: a game that ended in a draw or never finished (the
         # wall-clock cap, a crash) is not dropped there, so stalling a lost game into the cap cannot

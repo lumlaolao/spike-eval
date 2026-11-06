@@ -121,6 +121,11 @@ interface LLMBridge {
     /** HTTP refusals so far under a routing filter (OPENROUTER_MAX_PRICE, OPENROUTER_QUANTIZATIONS), or null when this
      *  bridge has neither. */
     default Integer getRoutingRefusals() { return null; }
+    /** Whether the most recent ask that returned no reply failed in TRANSPORT: an HTTP status other than a tool or
+     *  routing refusal (402 credits, 401, 429, 5xx), an IO error, or a connection that sent no reply. False when the
+     *  provider answered and the answer was empty or unreadable, the deadline ran out while the model reasoned, or a
+     *  routing filter refused it: those are the model's decisions lost, and stay scored (issue #369). */
+    default boolean lastFailureWasTransport() { return false; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -564,11 +569,10 @@ public final class LlmSpikeGui {
     // in the response's own `model` field — so that is what we record, alongside the spec we asked for.
     static final Map<String, String> servedModels = new ConcurrentHashMap<>();
 
-    // Issue #369: per deck identity (the seat's name, as above), the decisions whose model ask the bridge never answered
-    // after every retry (a 402 when the credits ran out, a 401, an outage), and the trips of the circuit breaker. Each
-    // took a fixed legal fallback, so the game is not the model's: aggregate.py counts it invalid, panel_score.py and
-    // rating.py refuse it, defect_analyzer.py fails on it. Before these, the game line said nothing and such a game
-    // (seeds 1009-1019 of a 2026-11-05 block made no model decision at all) was scored as decisive.
+    // Issue #369: per deck identity (the seat's name, as above), the decisions whose model ask failed in transport after
+    // every retry (LLMBridge.lastFailureWasTransport: a 402 when the credits ran out, a 401, an outage), and the trips of
+    // the circuit breaker. Each took a fixed legal fallback, so the game is not the model's: aggregate.py counts it
+    // invalid, panel_score.py and rating.py refuse it, defect_analyzer.py fails on it.
     static final Map<String, Integer> bridgeDown = new ConcurrentHashMap<>();
     static final Map<String, Integer> breakerTrips = new ConcurrentHashMap<>();
     static int bridgeDownDecisions(String seat) { return bridgeDown.getOrDefault(seat, 0); }
@@ -928,8 +932,6 @@ public final class LlmSpikeGui {
         // streak (reset the moment a reply succeeds, so it can fire again on a later streak).
         private int consecutiveBridgeFailures = 0;
         private boolean circuitBreakerTripped = false;
-        /** This decision already counted a dead-bridge ask (bridgeDown): one count per decision, not per ask. */
-        private boolean bridgeDownThisDecision = false;
 
         // Decision-record provenance (per-controller, so the two seats never cross-contaminate): the FULL
         // prompt + raw reply of the most recent model call for the decision currently being made. Cleared at
@@ -984,7 +986,6 @@ public final class LlmSpikeGui {
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
             lastShadowChoice = null; lastPicks = null;
             nextAnswer = null; lastAnswer = null; answerVia = null; answerInvalid = 0;
-            bridgeDownThisDecision = false;
         }
 
         // per-turn play-loop state (was static in v1 — now per-instance so two seats don't collide)
@@ -8375,7 +8376,6 @@ public final class LlmSpikeGui {
             long tAsk = System.currentTimeMillis();
             Integer routing0 = b.getRoutingRefusals();
             long billedPrompt0 = b.getBilledPromptTokens(), billedCompletion0 = b.getBilledCompletionTokens();
-            boolean native0 = b.supportsNativeTools();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
             lastTier = (b == smart) ? "smart" : "fast";
@@ -8411,12 +8411,7 @@ public final class LlmSpikeGui {
                 Integer routing1 = b.getRoutingRefusals();
                 if (routing0 != null && routing1 != null && routing1 > routing0) lostToRouting++;
                 consecutiveBridgeFailures++;
-                // A provider that refused function calling during this ask answered: it ended native tools, which
-                // the game line's native_tools_downgraded records. Every other null is a bridge that never answered.
-                if (!(native0 && !b.supportsNativeTools()) && !bridgeDownThisDecision) {
-                    bridgeDownThisDecision = true;
-                    bridgeDown.merge(seat, 1, Integer::sum);
-                }
+                if (b.lastFailureWasTransport()) bridgeDown.merge(seat, 1, Integer::sum);
                 if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
                     breakerTrips.merge(seat, 1, Integer::sum);
@@ -11930,6 +11925,9 @@ public final class LlmSpikeGui {
         /** False once the provider has refused a request BECAUSE it carried tools (see send()). */
         @Override public boolean supportsNativeTools() { return !nativeRefused; }
         private volatile boolean nativeRefused = false;
+        /** The last complete() failed in transport (LLMBridge.lastFailureWasTransport); set by send() and the IO catch. */
+        private volatile boolean transportFailure = false;
+        @Override public boolean lastFailureWasTransport() { return transportFailure; }
 
         /** A 4xx whose body talks about tools / functions is the provider saying this model or route
          *  has no function calling -- not a transient failure. Package-private for NativeToolsTest. */
@@ -11944,7 +11942,7 @@ public final class LlmSpikeGui {
         }
 
         @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
-            if (nativeRefused) return null; // refused once: do not send the same request again
+            if (nativeRefused) { transportFailure = false; return null; } // refused once: do not send it again
             String m = messagesJson.trim();
             // The caller hands a JSON array; send() splices its elements after the system preamble.
             OrResult r = complete(m.substring(1, m.length() - 1), toolsJson, allowCalls);
@@ -11964,6 +11962,7 @@ public final class LlmSpikeGui {
             // two lanes now mean the same thing by the same word.
             final long deadline = t0 + timeoutMs;
             lastSendCount = 0;
+            transportFailure = false;
             try {
                 int maxTokens = fastTier ? cfg.fastMaxTokens : cfg.maxTokens;
                 // reasoning_effort/temperature are smart-tier-only hints — the fast tier's contract is
@@ -12038,6 +12037,7 @@ public final class LlmSpikeGui {
                 return r;
             } catch (Exception e) {
                 System.out.println("[OPENROUTER " + label + "] error: " + e);
+                transportFailure = true; // the request itself failed (connection refused or reset, an IO error)
                 return null;
             }
         }
@@ -12123,7 +12123,10 @@ public final class LlmSpikeGui {
             HttpResponse<String> resp = Transcript.send("openrouter", label, client, req, sentBody, remaining);
             if (resp == null) {
                 String why = HttpDeadline.LAST_STOP.get();
-                if ("no-headers".equals(why) || "silent".equals(why))
+                // A connection that sent no headers, or went silent, gave no reply; the wall-clock deadline is the
+                // model's time spent (a reasoner that never answered).
+                transportFailure = "no-headers".equals(why) || "silent".equals(why);
+                if (transportFailure)
                     System.out.println("[OPENROUTER " + label + "] stalled connection (" + why + " for " + HttpDeadline.IDLE_MS
                             + " ms) -> retrying instead of waiting out the " + timeoutMs + " ms deadline");
                 else
@@ -12154,7 +12157,11 @@ public final class LlmSpikeGui {
                             + ": no endpoint the filter allows took the request; native tools kept");
                     return null;
                 }
-                if (toolsJson != null && refusesTools(resp.statusCode(), resp.body())) {
+                // A refusal of function calling is an answer (native tools end, native_tools_downgraded says so);
+                // any other status is the transport failing: 402 credits, 401, 429, 5xx.
+                boolean toolRefusal = toolsJson != null && refusesTools(resp.statusCode(), resp.body());
+                transportFailure = !toolRefusal;
+                if (toolRefusal) {
                     // Retrying the same request cannot work. Stop offering tools on this bridge so the
                     // seat keeps its lookups through the text grammar, and say so on the game line.
                     nativeRefused = true;

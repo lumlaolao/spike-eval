@@ -126,52 +126,57 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertTrue(targets and set(targets) <= {1, 2, 3}, targets)
 
 
+def post(port, body):
+    """POST one chat completion to the stub; (status, parsed body), an HTTP error included."""
+    req = urllib.request.Request("http://127.0.0.1:%d/v1/chat/completions" % port, data=json.dumps(body).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+
+def serve(p):
+    """The stub on a free port with policy `p`; the caller shuts it down."""
+    fms.Handler.policy = p
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), fms.Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv
+
+
 class RefuseToolsTest(unittest.TestCase):
     """--refuse-tools over real HTTP: the 404 wording is the one OpenRouterBridge.refusesTools reads."""
 
-    def post(self, port, body):
-        req = urllib.request.Request("http://127.0.0.1:%d/v1/chat/completions" % port, data=json.dumps(body).encode(),
-                                     headers={"Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=5) as r:
-                return r.status, json.loads(r.read())
-        except urllib.error.HTTPError as e:
-            return e.code, json.loads(e.read())
-
     def test_a_request_with_tools_is_refused_and_one_without_is_answered(self):
-        fms.Handler.policy = policy(refuse_tools=True)
-        srv = ThreadingHTTPServer(("127.0.0.1", 0), fms.Handler)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        srv = serve(policy(refuse_tools=True))
         try:
             port = srv.server_address[1]
-            status, out = self.post(port, body())
+            status, out = post(port, body())
             self.assertEqual(status, 404)
             self.assertIn("support tool use", out["error"]["message"])
-            status, out = self.post(port, {"messages": [{"role": "user", "content": "  1) A\n  2) PASS\nCHOICE: <n>"}]})
+            status, out = post(port, {"messages": [{"role": "user", "content": "  1) A\n  2) PASS\nCHOICE: <n>"}]})
             self.assertEqual((status, out["choices"][0]["message"]["content"]), (200, "CHOICE: 2"))
         finally:
             srv.shutdown()
             srv.server_close()
 
 
-class HttpErrorTest(RefuseToolsTest):
+class HttpErrorTest(unittest.TestCase):
     """--http-error 402: the provider refuses every call the way OpenRouter does when the credits run out
     (issue #369), so a zero-cost game shows what a dead bridge leaves on the game line."""
 
-    def test_every_request_is_answered_with_the_status_and_logged(self):
-        fms.Handler.policy = policy(http_error=402)
-        srv = ThreadingHTTPServer(("127.0.0.1", 0), fms.Handler)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
+    def test_an_out_of_credits_provider_refuses_every_request_with_402(self):
+        srv = serve(policy(http_error=402))
         try:
             port = srv.server_address[1]
             for b in (body(), {"messages": [{"role": "user", "content": "  1) A\n  2) PASS\nCHOICE: <n>"}]}):
-                status, out = self.post(port, b)
+                status, out = post(port, b)
                 self.assertEqual(status, 402)
                 self.assertIn("exceed your available credits", out["error"]["message"])
         finally:
             srv.shutdown()
             srv.server_close()
-
 
 if __name__ == "__main__":
     unittest.main()
