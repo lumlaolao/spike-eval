@@ -12973,6 +12973,9 @@ public final class LlmSpikeGui {
                 + ",\"openrouter_timeout_ms\":\"" + (OpenRouterBridge.TIMEOUT_MS_ENV == null ? ""
                         : String.valueOf(OpenRouterBridge.TIMEOUT_MS_ENV)) + "\""
                 + ",\"game_cap_ms\":" + capMs
+                // Whether the wall-clock cap stopped it (#250): its winner is then "invalid" and win_condition is whatever
+                // the engine held, which no reader can tell from a finished draw.
+                + ",\"capped\":" + capped
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
                 // The routing filters are conditions (aggregate.PROVENANCE_FIELDS): at list an open-weight model may

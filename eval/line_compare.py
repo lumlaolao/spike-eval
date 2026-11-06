@@ -74,7 +74,8 @@ def arm(run_dir):
         out["games"] += 1
         out["turns"] += int(game.get("turns") or 0)
         out["wins"] += 1 if game.get("winner") == "A" else 0
-        out["capped"] += 1 if "cap" in str(game.get("win_condition", "")).lower() else 0
+        # The game line's `capped` (#250); a line written before it has none, and its win_condition never named the cap.
+        out["capped"] += 1 if game.get("capped") else 0
         out["versions"].add(str(game.get("context_sha")))
         out["result"][(game.get("seed"), bool(game.get("swap")))] = game.get("winner") == "A"
         out["plan"] += sum(1 for r in rows if r.get("t") == "decision" and r.get("tier") == "plan")

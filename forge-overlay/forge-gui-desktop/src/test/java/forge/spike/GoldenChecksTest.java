@@ -3610,6 +3610,29 @@ public class GoldenChecksTest {
         Assert.assertEquals(LlmSpikeGui.finalWinner("B", true, null), "invalid");
     }
 
+    /** A game the wall-clock cap stopped says so on its game line (#250): its winner is "invalid" and its win_condition
+     *  is whatever the engine held (a raw Draw, or nothing), so readers that count capped games had nothing to read
+     *  (latency_report.py's `capped`, line_compare.py's "cap" in win_condition). A finished game says false. */
+    @Test
+    public void aCappedGameLineSaysItWasCapped() throws Exception {
+        for (boolean capped : new boolean[] {true, false}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("capped-line");
+            LlmSpikeGui.EvalLog.closeForTest();
+            LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+            java.io.File file = LlmSpikeGui.EvalLog.currentFile();
+            try {
+                LlmSpikeGui.writeGameSummary(g, 7, 1000, 60000, capped);
+            } finally {
+                LlmSpikeGui.EvalLog.closeForTest();
+            }
+            String line = java.nio.file.Files.readAllLines(file.toPath()).stream()
+                    .filter(l -> l.startsWith("{\"t\":\"game\"")).findFirst().orElse("");
+            Assert.assertTrue(line.contains("\"capped\":" + capped), line);
+            if (capped) Assert.assertTrue(line.contains("\"winner\":\"invalid\""), line);
+        }
+    }
+
     /** runs/luna-v8/g2: every delve exiled the whole graveyard unasked ("delve(all)"), and a larger graveyard
      *  forced exactly the generic amount. Delve exiles any number up to it, so fewer is the seat's choice. */
     @Test
