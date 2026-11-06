@@ -391,8 +391,11 @@ public final class LlmSpikeGui {
      *  docs/harness/ARCHITECTURE.md, "The notebook arm"). Unchanged off it.
      *  Epoch 82 (2026-11-05, PR #359's engine labeller): the PROPOSE_ACTIONS checker's land copies and refusal order
      *  (docs/harness/ARCHITECTURE.md, "The propose condition"). Unchanged off it.
+     *  Epoch 83 (2026-11-06, #367): the payment check also tries the "tap N untapped X you control" mana abilities the
+     *  engine's greedy test skipped (seatCanPay, tapTypeStep), so a spell Heritage Druid's mana pays (Craterhoof with
+     *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-82";
+    static final String HARNESS_EPOCH = "harness-epoch-83";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -5775,43 +5778,60 @@ public final class LlmSpikeGui {
             // (said) is not tried again; a round that activates nothing ends it.
             for (int round = 0; round < 8; round++) {
                 CardCollection plan = ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect);
-                if (plan == null) return;
                 boolean activated = false;
-                for (Card host : plan) {
+                if (plan == null) {
+                    // The engine's greedy test found no payment; the one the menu's check found (#367) starts here.
+                    TapTypeStep step = tapTypeStep(neededMana(toPay, sa, effect), sa, me, effect);
+                    if (step == null || said.contains(step.ability.getHostCard())) return;
+                    // What the paid ability's own tap part named stays out of the Druid's pick too.
+                    List<Card> ownTapPart = tapPartHolds.get(sa);
+                    if (ownTapPart != null) step.reserved.addAll(ownTapPart);
+                    activated = prepayOne(step.ability, step.reserved, toPay, sa, effect, said);
+                }
+                else for (Card host : plan) {
                     if (said.contains(host)) continue;
                     for (SpellAbility ma : host.getManaAbilities()) {
                         if (!hasTapTypeCost(ma)) continue;
-                        ma.setActivatingPlayer(me);
-                        if (!playable(ma, me) || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
-                            said.add(host);
-                            costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
-                            break;
-                        }
                         CardCollection others = new CardCollection(plan);
                         others.remove(host);
-                        LlmCostDecision decision = new LlmCostDecision(me, ma, effect).forPayment(sa, others);
-                        forge.game.spellability.AbilityManaPart part = ma.getManaPart();
-                        if (part == null || part.isAnyMana() || part.isComboMana() || ma.getApi() == ApiType.ManaReflected) {
-                            // Said here, or not at all when its tap leaves no choice, so the check after
-                            // the payment does not report it.
-                            said.add(host);
-                            if (decision.hasTapChoice(ma.getPayCosts().getCostPartByType(forge.game.cost.CostTapType.class)))
-                                costDecisionFellBack("mana-tap-cost", host.getName() + " also chooses a color");
-                            break;
-                        }
-                        if (new CostPayment(ma.getPayCosts(), ma).payComputerCosts(decision)) {
-                            getGame().getStack().addAndUnfreeze(ma);
-                            activated = true;
-                            p("[ROUTER] mana-tap-cost: activated " + host.getName() + " before paying " + toPay);
-                        } else {
-                            said.add(host);
-                            costDecisionFellBack("mana-tap-cost", host.getName() + " payment refused");
-                        }
+                        activated |= prepayOne(ma, others, toPay, sa, effect, said);
                         break;
                     }
                 }
                 if (!activated) return;
             }
+        }
+
+        /** Activates tap-type mana ability {@code ma} for {@code sa}'s payment, its tap part keeping {@code others}
+         *  out; whether it was. A source that cannot be activated so is added to {@code said}, with its reason. */
+        private boolean prepayOne(SpellAbility ma, CardCollection others, forge.card.mana.ManaCost toPay, SpellAbility sa,
+                boolean effect, Set<Card> said) {
+            final Player me = getPlayer();
+            Card host = ma.getHostCard();
+            ma.setActivatingPlayer(me);
+            if (!playable(ma, me) || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
+                said.add(host);
+                costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
+                return false;
+            }
+            LlmCostDecision decision = new LlmCostDecision(me, ma, effect).forPayment(sa, others);
+            forge.game.spellability.AbilityManaPart part = ma.getManaPart();
+            if (part == null || part.isAnyMana() || part.isComboMana() || ma.getApi() == ApiType.ManaReflected) {
+                // Said here, or not at all when its tap leaves no choice, so the check after
+                // the payment does not report it.
+                said.add(host);
+                if (decision.hasTapChoice(ma.getPayCosts().getCostPartByType(forge.game.cost.CostTapType.class)))
+                    costDecisionFellBack("mana-tap-cost", host.getName() + " also chooses a color");
+                return false;
+            }
+            if (new CostPayment(ma.getPayCosts(), ma).payComputerCosts(decision)) {
+                getGame().getStack().addAndUnfreeze(ma);
+                p("[ROUTER] mana-tap-cost: activated " + host.getName() + " before paying " + toPay);
+                return true;
+            }
+            said.add(host);
+            costDecisionFellBack("mana-tap-cost", host.getName() + " payment refused");
+            return false;
         }
 
         /** {@code toPay} as the real payment counts it (ComputerUtilMana.calculateManaCost with
@@ -9265,13 +9285,162 @@ public final class LlmSpikeGui {
             try { return check.getAsBoolean(); } finally { sa.putParam(AI_PHYREXIAN_HINT, hint); }
         }
         static boolean seatCanPay(SpellAbility sa, Player p, int extra, boolean effect) {
-            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(sa, p, extra, effect));
+            return seatCanPay(sa.getPayCosts(), sa, p, extra, effect);
         }
         static boolean seatCanPay(Cost cost, SpellAbility sa, Player p, int extra, boolean effect) {
-            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, extra, effect));
+            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, extra, effect)
+                    || (hasTapTypeManaSource(p)
+                        && tapTypeStep(ComputerUtilMana.calculateManaCost(cost, sa, p, true, extra, effect), sa, p, effect) != null));
         }
         static boolean seatCanPay(forge.game.mana.ManaCostBeingPaid cost, SpellAbility sa, Player p, boolean effect) {
-            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, effect));
+            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, effect)
+                    || (hasTapTypeManaSource(p) && tapTypeStep(cost, sa, p, effect) != null));
+        }
+
+        /** The first activation of a payment that starts with a "tap N untapped X you control" mana ability, which
+         *  Forge's greedy test payment skipped; null if none (#367; the board is in ProposeActionsTest). Each such
+         *  ability the seat's payment activates itself ({@code simulableTapPart}) is tried with each set of cards its
+         *  tap part may take, its mana spent on {@code need} and those cards tapped while the engine's test pays the
+         *  rest, up to {@link #TAP_TYPE_DEPTH} activations and {@link #TAP_TYPE_BUDGET} tests; every card is untapped
+         *  again before it returns. */
+        static TapTypeStep tapTypeStep(forge.game.mana.ManaCostBeingPaid need, SpellAbility sa, Player me, boolean effect) {
+            return tapTypeSearch(need, sa, me, effect, new int[] {TAP_TYPE_BUDGET}, TAP_TYPE_DEPTH);
+        }
+        static final int TAP_TYPE_DEPTH = 3, TAP_TYPE_BUDGET = 48;
+
+        /** A tap-type mana ability to activate first, and the cards the rest of the payment still taps (its tap part
+         *  must leave them alone). */
+        static final class TapTypeStep {
+            final SpellAbility ability;
+            final CardCollection taps = new CardCollection(), reserved = new CardCollection();
+            TapTypeStep(SpellAbility ability) { this.ability = ability; }
+        }
+
+        static boolean hasTapTypeManaSource(Player me) {
+            return me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getManaAbilities().anyMatch(ma ->
+                    ma.getPayCosts() != null && ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class)));
+        }
+
+        private static TapTypeStep tapTypeSearch(forge.game.mana.ManaCostBeingPaid need, SpellAbility sa, Player me,
+                boolean effect, int[] budget, int depth) {
+            if (depth <= 0) return null;
+            // A card the paid ability taps for its own {T} is never one of them, as in the engine's
+            // checkTapTypeCost (Elvish Lyrist's {G}, {T}: pr-review of #375).
+            Card ownTap = sa.getPayCosts() != null && sa.getPayCosts().hasTapCost() ? sa.getHostCard() : null;
+            for (Card host : new CardCollection(me.getCardsIn(ZoneType.Battlefield))) {
+                for (SpellAbility ma : host.getManaAbilities()) {
+                    forge.game.cost.CostTapType part = simulableTapPart(ma, sa, me, effect);
+                    if (part == null) continue;
+                    int n = part.getAbilityAmount(ma);
+                    CardCollection cands = CardLists.filter(CardLists.getValidCards(me.getCardsIn(ZoneType.Battlefield),
+                            part.getType().split(";"), me, host, ma), CardPredicates.CAN_TAP);
+                    if (!part.canTapSource) cands.remove(host);
+                    if (ownTap != null) cands.remove(ownTap);
+                    if (n <= 0 || cands.size() < n) continue;
+                    // Cards that make no mana of their own by tapping go first: tapping them costs the payment nothing.
+                    cands.sort(java.util.Comparator.comparingInt(c -> c.getManaAbilities().anyMatch(m ->
+                            m.getPayCosts() != null && m.getPayCosts().hasTapCost()) ? 1 : 0));
+                    forge.game.mana.ManaCostBeingPaid rest = new forge.game.mana.ManaCostBeingPaid(need);
+                    if (!spendPredicted(rest, ComputerUtilMana.predictMana(ma, me, nextShard(rest)), me)) continue;
+                    int[] idx = new int[n];
+                    for (int i = 0; i < n; i++) idx[i] = i;
+                    do {
+                        if (budget[0]-- <= 0) return null;
+                        TapTypeStep step = new TapTypeStep(ma);
+                        for (int i : idx) step.taps.add(cands.get(i));
+                        if (ma.getPayCosts().hasTapCost()) step.taps.add(host);
+                        for (Card c : step.taps) c.setTapped(true);
+                        try {
+                            if (rest.isPaid()) {
+                                // No test pays the rest, so PAYS_TAP_COST still names an earlier try's cards, which the
+                                // tap part's engine pick would avoid.
+                                AiCardMemory.clearMemorySet(me, AiCardMemory.MemorySet.PAYS_TAP_COST);
+                                if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
+                                continue;
+                            }
+                            if (ComputerUtilMana.canPayManaCost(rest, sa, me, effect)) {
+                                Set<Card> plan = AiCardMemory.getMemorySet(me, AiCardMemory.MemorySet.PAYS_TAP_COST);
+                                if (plan != null) step.reserved.addAll(plan);
+                                if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
+                                step.reserved.clear();   // that plan leaves sa's own tap unpaid: look deeper
+                            }
+                            TapTypeStep next = tapTypeSearch(rest, sa, me, effect, budget, depth - 1);
+                            if (next != null) {
+                                step.reserved.addAll(next.reserved);
+                                step.reserved.addAll(next.taps);
+                                return step;
+                            }
+                        } finally {
+                            for (Card c : step.taps) c.setTapped(false);
+                        }
+                    } while (nextCombination(idx, cands.size()));
+                }
+            }
+            return null;
+        }
+
+        /** Whether {@code sa}'s own tap parts can still be paid beside a payment the search found: its taps are tapped
+         *  already, and {@code restTaps} (what the rest of the payment taps) is tapped for the check. Its {T} is not
+         *  asked: the real payment pays it before the mana (Cost.sort), so the host is tapped by then (Elvish Hunter,
+         *  pr-review of #375), and the search never takes it ({@code ownTap}). */
+        private static boolean ownTapPartsPayable(SpellAbility sa, java.util.Collection<Card> restTaps, boolean effect) {
+            Cost c = sa.getPayCosts();
+            if (c == null || !c.hasSpecificCostType(forge.game.cost.CostTapType.class)) return true;
+            List<Card> tapped = new ArrayList<>();
+            for (Card card : restTaps) if (!card.isTapped()) { card.setTapped(true); tapped.add(card); }
+            try {
+                for (forge.game.cost.CostPart part : c.getCostParts())
+                    if (part instanceof forge.game.cost.CostTapType && !part.canPay(sa, sa.getActivatingPlayer(), effect)) return false;
+                return true;
+            } finally { for (Card card : tapped) card.setTapped(false); }
+        }
+
+        /** {@code ma}'s tap part, when the search may try it: activatable now, a cost of that tap part and at most
+         *  {T}, mana of fixed colors {@code sa} may spend. */
+        private static forge.game.cost.CostTapType simulableTapPart(SpellAbility ma, SpellAbility sa, Player me, boolean effect) {
+            Cost c = ma.getPayCosts();
+            if (c == null || ma.getApi() == ApiType.ManaReflected) return null;
+            forge.game.cost.CostTapType tapPart = null;
+            for (forge.game.cost.CostPart part : c.getCostParts()) {
+                if (part instanceof forge.game.cost.CostTapType && tapPart == null) tapPart = (forge.game.cost.CostTapType) part;
+                else if (!(part instanceof forge.game.cost.CostTap)) return null;
+            }
+            if (tapPart == null || tapPart.getType().contains("+withTotalPowerGE") || tapPart.getType().contains("sharesCreatureTypeWith"))
+                return null;
+            forge.game.spellability.AbilityManaPart mana = ma.getManaPart();
+            if (mana == null || mana.isAnyMana() || mana.isComboMana() || !mana.meetsManaRestrictions(sa)) return null;
+            ma.setActivatingPlayer(me);
+            return playable(ma, me) && CostPayment.canPayAdditionalCosts(c, ma, effect) ? tapPart : null;
+        }
+
+        private static forge.card.mana.ManaCostShard nextShard(forge.game.mana.ManaCostBeingPaid cost) {
+            List<forge.card.mana.ManaCostShard> unpaid = cost.getUnpaidShards();
+            return unpaid.isEmpty() ? forge.card.mana.ManaCostShard.GENERIC : unpaid.get(0);
+        }
+
+        /** Spends {@code produced} ("G G G", as ComputerUtilMana.predictMana says it) on {@code cost}, as the engine's
+         *  test payment does; whether any of it was needed. */
+        private static boolean spendPredicted(forge.game.mana.ManaCostBeingPaid cost, String produced, Player me) {
+            boolean used = false;
+            for (String unit : produced.trim().split("\\s+")) {
+                if (unit.isEmpty()) continue;
+                if (unit.chars().allMatch(Character::isDigit)) {
+                    for (int i = Integer.parseInt(unit); i > 0; i--) used |= cost.ai_payMana("1", me.getManaPool());
+                } else {
+                    used |= cost.ai_payMana(forge.card.MagicColor.toShortString(unit), me.getManaPool());
+                }
+            }
+            return used;
+        }
+
+        /** The next {@code idx.length}-of-{@code n} combination, in lexicographic order; false after the last. */
+        private static boolean nextCombination(int[] idx, int n) {
+            int k = idx.length, i = k - 1;
+            while (i >= 0 && idx[i] == n - k + i) i--;
+            if (i < 0) return false;
+            idx[i]++;
+            for (int j = i + 1; j < k; j++) idx[j] = idx[j - 1] + 1;
+            return true;
         }
 
         /** Whether the engine allows paying {@code cost} now: its mana and every other part, by the engine's own tests
