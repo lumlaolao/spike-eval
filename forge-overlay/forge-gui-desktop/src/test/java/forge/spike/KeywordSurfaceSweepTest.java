@@ -214,6 +214,64 @@ public class KeywordSurfaceSweepTest {
         g.getAction().checkStateEffects(true);
     }
 
+    /** What went wrong with one play the seat was handed: {@code notMadeBefore} is its {@code playsNotMade()} before
+     *  the play, {@code log} what the play printed. Empty when the play was made cleanly. Whether it was made is read
+     *  from {@code playsNotMade()} and the log, never from {@code playChosenSpellAbility}'s return, which is true
+     *  whatever happened (issue #380); a cancel is not counted in {@code playsNotMade()}, so it is read from the log. */
+    static List<String> playVerdict(LlmSpikeGui.PlayerControllerLLM ctrl, int notMadeBefore, String log) {
+        List<String> bad = new ArrayList<>();
+        if (ctrl.playsNotMade() > notMadeBefore) bad.add("not played");
+        if (ctrl.aiDelegationsCount() > 0) bad.add("Forge AI chose " + ctrl.aiDelegationsCount() + "x");
+        for (String line : log.split("\n"))
+            if (line.contains("(unparsed)") || line.contains("FALLBACK->AI") || line.contains("Couldn't add to stack")
+                    || line.contains("failed to target") || line.contains("Exception") || line.contains("FAILED to pay")
+                    || line.contains("nothing was played") || line.contains("play: cancelled"))
+                bad.add("log: " + oneLine(line));
+        return bad;
+    }
+
+    /** The sweep's verdict reports an offered play the seat could not pay (issue #380): the play path returns true
+     *  whatever happened, so a verdict read from the return value passed Dismember cast with no land to pay for it. */
+    @Test
+    public void theVerdictReportsAnOfferedPlayThatWasNotPaid() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card dismember = card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = dismember.getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        Recorder pass = new Recorder("PLAN: use it\nCHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        PrintStream was = System.out;
+        ByteArrayOutputStream log = new ByteArrayOutputStream();
+        int notMade = ctrl.playsNotMade();
+        try {
+            System.setOut(new PrintStream(log, true, StandardCharsets.UTF_8));
+            ctrl.playChosenSpellAbility(cast);
+        } finally { System.setOut(was); }
+        String out = log.toString(StandardCharsets.UTF_8);
+        Assert.assertTrue(out.contains("FAILED to pay for"), out);
+        Assert.assertEquals(g.getStack().size(), 0, "fixture: Dismember was cast");
+        Assert.assertFalse(playVerdict(ctrl, notMade, out).isEmpty(), "an unpaid play passed the sweep's verdict");
+    }
+
+    /** The play {@code sa} names, chosen by the seat from its own menu (the fork forcer picks its index): the menu
+     *  sets its X, modes and targets. Null when the menu did not hand back that play. */
+    static SpellAbility chooseFromMenu(LlmSpikeGui.PlayerControllerLLM ctrl, Player me, boolean ownMain, SpellAbility sa) {
+        List<SpellAbility> menu = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, ownMain, true).spells;
+        int at = -1;
+        for (int i = 0; i < menu.size() && at < 0; i++) if (key(menu.get(i)).equals(key(sa))) at = i;
+        if (at < 0) return null;
+        final int pick = at;
+        LlmSpikeGui.FORK_FORCER = (i, pl, seat, type, n, options) -> "play".equals(type) && pl == me ? pick : null;
+        List<SpellAbility> chosen;
+        try { chosen = ctrl.chooseSpellAbilityToPlay(); }
+        finally { LlmSpikeGui.FORK_FORCER = null; }
+        if (chosen == null || chosen.isEmpty() || chosen.get(0).getHostCard().getId() != sa.getHostCard().getId()) return null;
+        return chosen.get(0);
+    }
+
     /** Plays one option the engine allows, through the seat, and returns what went wrong (empty when nothing). */
     static List<String> playThrough(Keyword k, String name, Moment m, ZoneType zone, String optKey) {
         List<String> bad = new ArrayList<>();
@@ -231,15 +289,23 @@ public class KeywordSurfaceSweepTest {
             SpellAbility sa = menuOptions(c, me, m.mine && m.phase.isMain()).get(optKey);
             if (sa == null) return bad; // a parity gap, reported there
             System.setOut(new PrintStream(log, true, StandardCharsets.UTF_8));
-            boolean played = ctrl.playChosenSpellAbility(sa);
+            int notMade = ctrl.playsNotMade();
+            SpellAbility play = sa;
+            if (!sa.isLandAbility()) {
+                // Chosen from the seat's own menu, as in a game: X, modes and targets are set there, before the play
+                // path pays (handed to the play path directly, every targeted play went untargeted and was refused).
+                play = chooseFromMenu(ctrl, me, m.mine && m.phase.isMain(), sa);
+                if (play == null) {
+                    System.setOut(was);
+                    bad.add("the seat's menu did not play it");
+                    bad.addAll(playVerdict(ctrl, notMade, log.toString(StandardCharsets.UTF_8)));
+                    return bad;
+                }
+            }
+            ctrl.playChosenSpellAbility(play);
             resolveAll(g);
             System.setOut(was);
-            if (!played) bad.add("not played");
-            if (ctrl.aiDelegationsCount() > 0) bad.add("Forge AI chose " + ctrl.aiDelegationsCount() + "x");
-            for (String line : log.toString(StandardCharsets.UTF_8).split("\n"))
-                if (line.contains("(unparsed)") || line.contains("FALLBACK->AI") || line.contains("Couldn't add to stack")
-                        || line.contains("failed to target") || line.contains("Exception"))
-                    bad.add("log: " + oneLine(line));
+            bad.addAll(playVerdict(ctrl, notMade, log.toString(StandardCharsets.UTF_8)));
             for (String u : model.unknown) bad.add("ask with no known answer format: " + oneLine(u));
             for (String p : new ArrayList<>(asked)) {
                 try { AskContract.checkOne(k + "/" + name, p); }
