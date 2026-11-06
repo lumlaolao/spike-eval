@@ -13,6 +13,11 @@ board's. How often does a seat act on each one, and against what baseline?
 
 ## What was read (free: Python over the local game JSONL, no JVM, no model)
 
+Reproduce every count below with `python3 eval/fact_citations.py <runs dir>` (tested in
+`eval/tests/test_fact_citations.py`). Over the main checkout's `runs/puzzles` it prints 2828 games, 2161 with a
+turn-1 decision after combat, lethal 33 of 311, clock 5 of 577, none 0 of 1273, and 629 yield windows in 46 games.
+The 638 in 49 of #399 also counted three demo games elsewhere under `runs/`.
+
 The input is every `game-*.jsonl` under the main checkout's `runs/puzzles/`: 2828 puzzle games, all models, harness
 epochs 70 to 72 where recorded (1448 of the 2161 counted below at 70, 584 unrecorded). Conditions are mixed, so the rates below are descriptive. A per-condition split is possible but was
 not made.
