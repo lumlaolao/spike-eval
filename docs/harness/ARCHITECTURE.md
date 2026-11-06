@@ -90,7 +90,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
 - A play is not offered when a part of it that must target has no legal target: casting it only fails ("Couldn't add
-  to stack, failed to target"). That is legality, not judgment: the engine refuses the play. A sub-ability counts too
+  to stack, failed to target"). That is legality, not judgment: the engine refuses the play. A spell cast as another
+  face counts the targets of that face, as the engine casts it (`targetCandidates`; harness-epoch-90, #366): Lantern
+  Bearer's Disturb cast targets as Lanterns' Lift, an Aura, not as the creature in the graveyard. A sub-ability counts too
   (Govern the Guildless's forecast targets in its sub-ability and was offered with no creature in play;
   harness-epoch-77), but only when no earlier part targets: its targets may depend on that one (Searing Blaze's
   "creature that player controls", Goblin Welder), unknown before the cast, so it is left to the cast

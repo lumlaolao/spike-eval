@@ -190,6 +190,27 @@ public class ProposeActionsTest {
         Assert.assertEquals(hit[0], passIdx);
     }
 
+    /** A Disturb cast whose back face is an Aura is on the menu, with the creature it can enchant as a target (#366):
+     *  the menu counted the targets while the card was still its front face (a creature) in the graveyard, found
+     *  none, and hid the cast. Counting them leaves the card as it was. */
+    @Test
+    public void aDisturbCastOfAnAuraIsOfferedWithItsTargets() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card bearer = card("Lantern Bearer", me, ZoneType.Graveyard);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        SpellAbility disturb = po.spells.stream().filter(sa -> sa.getHostCard() == bearer
+                && "Disturb".equals(LlmSpikeGui.PlayerControllerLLM.castWay(sa))).findFirst().orElse(null);
+        Assert.assertNotNull(disturb, "the Disturb cast is not on the menu: " + po.spells);
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.targetCandidates(disturb, disturb.getTargetRestrictions())
+                .contains(bears), "the Aura's target ask must list Grizzly Bears");
+        Assert.assertEquals(bearer.getCurrentStateName(), forge.card.CardStateName.Original,
+                "counting the targets must leave the card its front face in the graveyard");
+    }
+
     /** PROPOSE_AUDIT is a diagnostic: auditing a menu of targeted plays must leave no target pending, or the seat's
      *  next targeted cast in a menu game is given the audit's last target without being asked (acceptance 196de57). */
     @Test
