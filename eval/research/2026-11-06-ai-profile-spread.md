@@ -10,8 +10,8 @@ Do Forge's AI profiles (`Cautious`, `Default`, `Experimental`, `Reckless` under
 `$FORGE_HOME/forge-gui/res/ai/*.ai`) change outcomes enough that the win rate against one is not the win rate
 against another? Planned measure: Forge AI (default) in seat A against each profile in seat B on one deck mirror and
 one non-mirror pair, 40 seeds each (1100-1139; outside every reserved block in `eval/seed_policy.py`), plus the
-random seat against each profile as a floor for the A seat (expected near 0: the random seat won 0 of 39 decided
-games against Forge's AI in the seed note).
+random seat against each profile as a floor for the A seat (expected near 0: the random seat won 0 of 40 games
+against Forge's AI, `random-vs-ai` in the seed note).
 
 ## Answer so far
 
@@ -28,8 +28,9 @@ at a design (below). Two findings from the read, both bearing on STR-AI:
   `Default.ai` on 25 of its 121 keys (e.g. `MULLIGAN_THRESHOLD` 5 vs 4, `CHANCE_TO_ATTACK_INTO_TRADE` 40 vs 0,
   `USE_BERSERK_AGGRESSIVELY` false vs true); from `Cautious.ai` on 43, `Experimental.ai` 51, `Reckless.ai` 58
   (key-by-key over the 122 `AiProps` keys; a scripted comparison, no game). So "the Forge AI" in STR-AI is a
-  fifth, unnamed configuration, and even the default profile would be a different opponent. Every game played through this harness, the panels in
-  `eval/suites/panels-v1.json` included, met the compiled defaults: no profile is set anywhere in `forge-overlay`.
+  fifth, unnamed configuration, and even the default profile would be a different opponent. Every game played
+  through this harness, the panels in `eval/suites/panels-v1.json` included, met the compiled defaults: no profile
+  is set anywhere in `forge-overlay` (`LlmSpikeGui.java:11226`, `LlmSpikePuzzle.java:586`).
 
 Floor: with no games there is no rate and no floor to quote. The profiles do differ on the aggression, trade, mulligan
 and combat-trick keys, so a spread is plausible; its size is undetermined.
