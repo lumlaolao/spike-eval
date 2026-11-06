@@ -113,6 +113,10 @@ most log questions).
   asserts the copy equal (`eval/tooluse/tools.json` against `NativeTools`, `rules_probe.KEEP_ENV` against
   `ClaudeCliBridge.KEEP_ENV`, `run_batch.PINNED_ENV_KEYS` imported by `tournament.py` and
   `puzzle_baselines.py`; `eval/tests/test_launchers.py` names the diagnostic launchers that need not).
+- **A class that parses another class's prompt wording holds a copy.** A Java pattern that reads text another
+  class writes has a test that builds that text through the writer, for every kind that writes it, and asserts the
+  pattern reads it (`ReplayBridgeTest.everyAnswerRangeAnswerToolWritesIsReadWithBothEnds` pins `ReplayBridge.RANGES`
+  to `AnswerTool.instruction`; #365, #373). `ScriptBridge`'s range patterns are a further copy, not yet pinned.
 - **A comment says why**, or what would break, and cites the evidence when there is some (a run, a
   count, an engine line). It does not narrate the code or the history of the edit.
 - **No silent fallbacks.** A failure branch takes a deterministic legal option and logs it. Never
