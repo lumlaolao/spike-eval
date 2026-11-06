@@ -152,7 +152,7 @@ def already_done(out, k, suite_sha, cap_ms=None):
     again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones)."""
     if cap_ms is not None and ((ps.record_of(Path(out)) or {}).get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) < cap_ms:
         return False
-    seeds = {r.get("seed") for r in pb.read_results(out)
+    seeds = {r.get("seed") for r in ps.with_log_counts(pb.read_results(out), out)
              if r.get("suite_sha256") == suite_sha and not ps.lost_decisions(r)}
     return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
 
