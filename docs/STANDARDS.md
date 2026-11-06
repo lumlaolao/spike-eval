@@ -214,9 +214,10 @@ most log questions).
   checkout (the CI runner: a lookup of a default checkout such as `/root/forge` treats a folder it cannot read as
   absent); acceptance fetches the text first, so there it runs.
 - A test of the seat's play path reads `ctrl.playsNotMade()` or the game state (the card moved, the mana tapped), never the
-  return value of `PlayerControllerLLM.playChosenSpellAbility`: it is true on every branch, so a play that was not made
-  still passes (issue #380; `ProposeActionsTest`, `KeywordSurfaceSweepTest`). Checked by review; a grep for
-  `assertTrue(.*playChosenSpellAbility` would make it a script check once the existing sites are converted.
+  return value of `PlayerControllerLLM.playChosenSpellAbility`: it never returns false, so a play that was not made
+  still passes (issue #380, which lists the sites to convert: `GoldenChecksTest`, `ProposeActionsTest`,
+  `KeywordSurfaceSweepTest`). `playsNotMade()` does not count a cancel; a cancel is read from the game. Checked by
+  review.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the
