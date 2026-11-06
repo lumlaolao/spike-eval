@@ -129,7 +129,8 @@ public class ReplayBridgeTest {
         Assert.assertEquals(rep.played.status, rec.played.status);
         // Line for line except the wall-clock "Match Duration" line, which logFingerprint leaves out too: it read 00s
         // against 01s under load in #373's acceptance while every engine line matched.
-        Assert.assertEquals(withoutDuration(rep.played.logLines), withoutDuration(rec.played.logLines),
+        Assert.assertEquals(LlmSpikePuzzle.withoutWallClock(rep.played.logLines),
+                LlmSpikePuzzle.withoutWallClock(rec.played.logLines),
                 "the same engine log, line for line");
         Assert.assertEquals(LlmSpikePuzzle.logFingerprint(rep.played.logLines),
                 LlmSpikePuzzle.logFingerprint(rec.played.logLines));
@@ -471,11 +472,5 @@ public class ReplayBridgeTest {
         for (String v : ends)
             Assert.assertTrue(java.util.regex.Pattern.compile("(?<![-\\d])" + java.util.regex.Pattern.quote(v) + "(?!\\d)")
                     .matcher(found.get(0)).find(), v + " in " + found + " from " + line);
-    }
-
-    private static List<String> withoutDuration(List<String> lines) {
-        List<String> kept = new ArrayList<>();
-        for (String l : lines) if (!l.startsWith("GAME_OUTCOME: Match Duration")) kept.add(l);
-        return kept;
     }
 }
