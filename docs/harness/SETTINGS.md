@@ -26,7 +26,7 @@ stamps the condition on the game line; `run-llm-headless.sh` and `run-llm-spike.
 | `EVAL_OUT` | off | directory for the per-decision and game JSONL |
 | `TRANSCRIPTS` | 0 (1 in `puzzle_solve.py` and `play-vs-llm.sh`) | with `EVAL_OUT`, keeps every HTTP request and response byte for byte (`docs/eval/PUZZLES.md`, "Keeping a run") |
 | `FORGE_CP_FILE` | `/tmp/forge_cp.txt` | Forge's classpath list: written by `setup.sh`, read by `run-llm-spike.sh`, `run-llm-headless.sh` and `play-vs-llm.sh` |
-| `GAME_CAP_MS` | 3 h headless | wall-clock cap; a capped game is invalid, never a draw, and its game line says `"capped": true` (#250) |
+| `GAME_CAP_MS` | 3 h headless | wall-clock cap; a capped game is invalid, never a draw, and its game line says `"capped": true` |
 | `SMART_BUDGET` / `FAST_BUDGET` | 10000 | per-game call caps: loop guards, not decision limits (`docs/harness/MODEL-LIMITS.md`) |
 | `OPENROUTER_BASE_URL`, `OPENROUTER_TIMEOUT_MS`, `OPENROUTER_IDLE_MS` | openrouter.ai, per model, 90000 | endpoint (recorded on the game line), call deadline (stamped `openrouter_timeout_ms`, a condition: a shell value is its own experiment), how long a silent connection may stall (a launcher pins it to the default: `run_batch.CONDITION_ENV_KEYS`). A `jev:` decision-model seat posts to the same base's `/alpha/decisions` (its `/v1` replaced) with a 120000 ms deadline unless `OPENROUTER_TIMEOUT_MS` is set |
 | `OPENROUTER_MODEL_CFG` | none | JSON override of the per-model config (`ModelCfg`: max tokens, timeouts, reasoning effort) |
