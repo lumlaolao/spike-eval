@@ -345,6 +345,32 @@ public class ProposeActionsTest {
                 "the Lyrist's ability needs a {G} no other Elf can make: " + po.spells);
     }
 
+    /** Elvish Hunter's "{1}{G}, {T}: Target creature doesn't untap" with the Druid, Nettle Sentinel and Fyndhorn Elves:
+     *  only the Druid tapping itself, Nettle and Fyndhorn pays (the engine's test spends Fyndhorn on the {G} first; the
+     *  Hunter taps for its own {T}). The real payment taps the Hunter before its mana (Cost.sort puts {T} first), so a
+     *  search that re-checked the ability's own {T} then found nothing and the offered play failed to pay (pr-review
+     *  of #375). It is offered and the seat's play path pays it. */
+    @Test
+    public void aTapAbilityWhoseManaNeedsTheSearchIsPaidByTheRealPayment() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card hunter = card("Elvish Hunter", me, ZoneType.Battlefield);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves")) card(elf, me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        SpellAbility hold = po.spells.stream().filter(sa -> sa.getHostCard() == hunter).findFirst().orElse(null);
+        Assert.assertNotNull(hold, "the Druid's GGG pays the Hunter's {1}{G}: " + po.spells);
+        hold.setActivatingPlayer(me);
+        Assert.assertFalse(forge.ai.ComputerUtilMana.canPayManaCost(hold, me, 0, false), "fixture: the engine's own test fails");
+        hold.getTargets().add(bears);
+        Assert.assertTrue(ctrl.playChosenSpellAbility(hold), "the offered play was not paid");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).allMatch(Card::isTapped), "the Hunter and the three Elves paid: "
+                + me.getCardsIn(ZoneType.Battlefield));
+        Assert.assertFalse(g.getStack().isEmpty(), "the ability is on the stack");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** Fear of Exposure costs {2}{G} and "tap two untapped creatures and/or lands". The Druid's {G}{G}{G} needs all three
      *  Elves (the engine's own test taps Fyndhorn for its {G} first and finds nothing), and then nothing is left for
      *  Fear's own tap part: the search's payment must leave the spell's own costs payable, so it is not offered

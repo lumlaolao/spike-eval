@@ -5783,6 +5783,9 @@ public final class LlmSpikeGui {
                     // The engine's greedy test found no payment; the one the menu's check found (#367) starts here.
                     TapTypeStep step = tapTypeStep(neededMana(toPay, sa, effect), sa, me, effect);
                     if (step == null || said.contains(step.ability.getHostCard())) return;
+                    // What the paid ability's own tap part named stays out of the Druid's pick too.
+                    List<Card> ownTapPart = tapPartHolds.get(sa);
+                    if (ownTapPart != null) step.reserved.addAll(ownTapPart);
                     activated = prepayOne(step.ability, step.reserved, toPay, sa, effect, said);
                 }
                 else for (Card host : plan) {
@@ -9291,20 +9294,15 @@ public final class LlmSpikeGui {
         }
         static boolean seatCanPay(forge.game.mana.ManaCostBeingPaid cost, SpellAbility sa, Player p, boolean effect) {
             return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, effect)
-                    || (hasTapTypeManaSource(p) && tapTypeStep(new forge.game.mana.ManaCostBeingPaid(cost), sa, p, effect) != null));
+                    || (hasTapTypeManaSource(p) && tapTypeStep(cost, sa, p, effect) != null));
         }
 
-        /** The first activation of a payment that starts with a "tap N untapped X you control" mana ability (#367).
-         *  Forge's test payment is greedy: it uses each source once, in its own order, and the tap part takes the
-         *  lowest-power cards. With Heritage Druid, Fyndhorn Elves, Nettle Sentinel, Priest of Titania and a Forest it
-         *  tapped Fyndhorn for its own {G} first, left the Druid two Elves, and called Craterhoof's {5}{G}{G}{G}
-         *  unpayable; the menu hid the cast. So when the engine's test fails, this searches the activations it skipped:
-         *  each such ability, with each set of cards its tap part may take (cards that tap for mana of their own last),
-         *  its mana spent on {@code need}, those cards tapped while the engine's test pays the rest, up to
-         *  {@link #TAP_TYPE_DEPTH} activations deep and {@link #TAP_TYPE_BUDGET} test payments in all. The cards are
-         *  untapped again before it returns. Only abilities whose cost is the tap part and at most {T}, making mana of
-         *  fixed colors this spell may spend, are tried: those are the ones the seat's payment activates itself
-         *  ({@code prepayTapTypeManaAbilities}), so what this finds is a payment the seat can make. Null if none. */
+        /** The first activation of a payment that starts with a "tap N untapped X you control" mana ability, which
+         *  Forge's greedy test payment skipped; null if none (#367; the board is in ProposeActionsTest). Each such
+         *  ability the seat's payment activates itself ({@code simulableTapPart}) is tried with each set of cards its
+         *  tap part may take, its mana spent on {@code need} and those cards tapped while the engine's test pays the
+         *  rest, up to {@link #TAP_TYPE_DEPTH} activations and {@link #TAP_TYPE_BUDGET} tests; every card is untapped
+         *  again before it returns. */
         static TapTypeStep tapTypeStep(forge.game.mana.ManaCostBeingPaid need, SpellAbility sa, Player me, boolean effect) {
             return tapTypeSearch(need, sa, me, effect, new int[] {TAP_TYPE_BUDGET}, TAP_TYPE_DEPTH);
         }
@@ -9354,10 +9352,13 @@ public final class LlmSpikeGui {
                         for (Card c : step.taps) c.setTapped(true);
                         try {
                             if (rest.isPaid()) {
+                                // No test pays the rest, so PAYS_TAP_COST still names an earlier try's cards, which the
+                                // tap part's engine pick would avoid.
+                                AiCardMemory.clearMemorySet(me, AiCardMemory.MemorySet.PAYS_TAP_COST);
                                 if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
                                 continue;
                             }
-                            if (ComputerUtilMana.canPayManaCost(new forge.game.mana.ManaCostBeingPaid(rest), sa, me, effect)) {
+                            if (ComputerUtilMana.canPayManaCost(rest, sa, me, effect)) {
                                 Set<Card> plan = AiCardMemory.getMemorySet(me, AiCardMemory.MemorySet.PAYS_TAP_COST);
                                 if (plan != null) step.reserved.addAll(plan);
                                 if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
@@ -9378,16 +9379,20 @@ public final class LlmSpikeGui {
             return null;
         }
 
-        /** Whether {@code sa}'s own {T} and tap parts can still be paid beside a payment the search found: its taps are
-         *  tapped already, and {@code restTaps} (what the rest of the payment taps) is tapped for the check. A cost
-         *  with neither is not asked. */
+        /** Whether {@code sa}'s own tap parts can still be paid beside a payment the search found: its taps are tapped
+         *  already, and {@code restTaps} (what the rest of the payment taps) is tapped for the check. Its {T} is not
+         *  asked: the real payment pays it before the mana (Cost.sort), so the host is tapped by then (Elvish Hunter,
+         *  pr-review of #375), and the search never takes it ({@code ownTap}). */
         private static boolean ownTapPartsPayable(SpellAbility sa, java.util.Collection<Card> restTaps, boolean effect) {
             Cost c = sa.getPayCosts();
-            if (c == null || (!c.hasTapCost() && !c.hasSpecificCostType(forge.game.cost.CostTapType.class))) return true;
+            if (c == null || !c.hasSpecificCostType(forge.game.cost.CostTapType.class)) return true;
             List<Card> tapped = new ArrayList<>();
             for (Card card : restTaps) if (!card.isTapped()) { card.setTapped(true); tapped.add(card); }
-            try { return CostPayment.canPayAdditionalCosts(c, sa, effect); }
-            finally { for (Card card : tapped) card.setTapped(false); }
+            try {
+                for (forge.game.cost.CostPart part : c.getCostParts())
+                    if (part instanceof forge.game.cost.CostTapType && !part.canPay(sa, sa.getActivatingPlayer(), effect)) return false;
+                return true;
+            } finally { for (Card card : tapped) card.setTapped(false); }
         }
 
         /** {@code ma}'s tap part, when the search may try it: activatable now, a cost of that tap part and at most
