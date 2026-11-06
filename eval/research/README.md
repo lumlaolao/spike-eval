@@ -27,6 +27,7 @@ experiment in progress), **negative** (measured; does not help as proposed), **o
 | 2026-11-05 | [step-regret-feasibility](2026-11-05-step-regret-feasibility.md) | Can the engine label the first losing decision | yes once a recorded attempt replays (#365), then search |
 | 2026-11-05 | [twin-cards-feasibility](2026-11-05-twin-cards-feasibility.md) | Renamed cards as a recall-vs-reading test | Forge loads set-less scripts; a missing card is silently skipped |
 | 2026-11-06 | [forecast-floors](2026-11-06-forecast-floors.md) | What a model's P(win) forecast must beat | life difference alone is the floor: Brier about 0.21 on Luna turns (base 0.245); no signal on Luna turns 1-3 |
+| 2026-11-06 | [ai-profile-spread](2026-11-06-ai-profile-spread.md) | Does STR-AI change with the Forge AI profile | not measured: no way to select a profile; the harness AI is the compiled `AiProps` defaults, not `Default.ai` (25 keys differ) |
 
 ## Ideas
 
@@ -41,7 +42,7 @@ From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-
 | 5 | Self-forecast calibration: P(win) probes, Brier/AUROC | free floors done; paid probe (about $0.11) **parked** (HTTP 402, issue #369) | [forecast-floors](2026-11-06-forecast-floors.md) |
 | 6 | A playbook the model curates across episodes | open | |
 | 7 | Budget-visible lookahead and its compute curve | open | |
-| 8 | Robustness across Forge AI profiles, best of three | open | |
+| 8 | Robustness across Forge AI profiles, best of three | open; blocked on an overlay switch (design in the note) | [ai-profile-spread](2026-11-06-ai-profile-spread.md) |
 | 9 | MCTS with an LLM prior as a measured arm | open | |
 | 10 | Exportable RLVR environment with engine process rewards | open | |
 | E1-E8 | Survey ideas (error notebook, compute-matched lookahead, world-model fidelity, contrast sets, ...) | E5 **adopted** (#359); rest open | [survey](2026-11-05-agent-compute-and-feedback-survey.md) |
