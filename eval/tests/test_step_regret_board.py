@@ -65,6 +65,10 @@ class ParseTest(unittest.TestCase):
             sb.parse_state(prompt([], stack=[bad]))
         with self.assertRaises(sb.NotModeled):
             sb.parse_state(prompt(["Grapeshot"]))
+        # A pass on an empty stack in the main phase can lead to the end step (a recorded propose-arm Haiku attempt),
+        # where Lava Spike is not castable and the pool is gone: outside the model, never read as a main phase.
+        with self.assertRaises(sb.NotModeled):
+            sb.parse_state(prompt(["Lava Spike"]).replace("MAIN2 (active", "END_OF_TURN (active"))
         # splice2 boards can add Kiln Fiend or Goblin Electromancer (a pump, a cost reducer): not in the model.
         with self.assertRaises(sb.NotModeled):
             sb.parse_state(prompt(["Lava Spike"]).replace("[defender] @7", "[defender] @7, Kiln Fiend 1/2 @6"))
@@ -197,6 +201,15 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(fl["kept"], ["splice: Desperate Ritual", "splice: Desperate Ritual"])
         self.assertEqual((fl["floor"], fl["model_label"]), (0.5, "splice: Glacial Ray"))
         self.assertFalse(fl["options"]["splice: none"])
+        # Its engine witness: the recorded prefix (the cast), the kept splice set, then the model's line after it.
+        w = sb.script_for(rows, 1)
+        self.assertEqual(w["option"], "splice: Desperate Ritual")
+        self.assertEqual(w["lines"][:2], ["cast Lava Spike", "Desperate Ritual"])
+        self.assertGreaterEqual(w["dealt"], w["opp"])
+        solved = {"status": "solved", "script_played": True, "script_drift": ""}
+        took = [rows[0], dict(rows[1], raw_reply="PICKS: 1")]
+        self.assertEqual(sb.witness_verdict(rows, took, 1, solved, option=w["option"]), "proven")
+        self.assertTrue(sb.witness_verdict(rows, rows, 1, solved, option=w["option"]).startswith("drift: K=1"))
 
     def test_a_splice_set_the_pool_cannot_pay_is_undone_not_lost(self):
         # Recorded (jev, a Luna attempt): Lava Spike carrying two Glacial Rays (5 mana) with 4; the engine cancels

@@ -9,7 +9,9 @@ every position winnable or not. It is a MODEL verdict, exact only when the model
 
   1. Every card is one of puzzle_gen.SPLICE_CARDS, all mana is red, the only mana is the pool, untapped Mountains
      and Desperate Ritual (the pool lasts the main phase), and nothing else deals damage.
-  2. The opponent has no cards, mana or permanents (cannot interact), and the turn ending loses.
+  2. The opponent has no cards, mana or permanents (cannot interact), and the turn ending loses: a pass on an
+     empty stack is valued 0, though the engine then goes to the end step (instants only; a position there is
+     refused, the model is a main phase).
   3. Every spell can wait for the stack to resolve before the next is cast (no line gains by casting in response),
      and a splice is offered when the spell plus its splices are payable from the pool and untapped lands.
   4. Thermo-Alchemist pings once per untap; each instant or sorcery cast untaps it (a pending untap trigger over an
@@ -74,6 +76,9 @@ def parse_state(prompt):
     """The model state from a seat prompt: hand (sorted names), mana (pool + untapped lands), alch (Thermo-Alchemist
     on the battlefield), u (it is untapped), stack (top first: dmg to the opponent, mana added, untap trigger), opp
     (the opponent's life), pending (a spell being cast: set by the decision rows, not the prompt)."""
+    head = re.match(r"== Turn \d+ (\w+)", prompt)
+    if head and head.group(1) not in ("MAIN1", "MAIN2"):
+        raise NotModeled("phase %s (the model is a main phase)" % head.group(1))
     you = _line(prompt, "YOU [")
     pool = re.search(r"mana pool ([^|]*)", you).group(1).strip()
     pool = 0 if pool.startswith("empty") else sum(int(n) for n in re.findall(r"\{R:(\d+)\}", pool))
@@ -344,14 +349,22 @@ def script_for(rows, k):
     """The witness script for position k: the recorded prefix, then the model's line from k. Raises ValueError when
     the model's line does not reach the opponent's life (the model calls the position lost)."""
     state = position_state(rows, k)
-    lines, dealt = winning_line(state)
+    if rows[k].get("type") == "splice":   # the first kept splice set, then the model's line from the cast
+        option = next((o for o in floor_at(rows, k)["kept"]), None)
+        if option is None:
+            raise ValueError("K=%d: no splice set keeps the win" % k)
+        sp = () if option == "splice: none" else tuple(option[len("splice: "):].split(", "))
+        lines, dealt = winning_line(cast(state, state["pending"]["card"], sp))
+        lines = ["; ".join(sp) or "none"] + lines
+    else:
+        lines, dealt = winning_line(state)
+        first = lines[0].lower()
+        opts = rows[k].get("options") or []
+        option = next((o for o in opts if o.lower().startswith(first)), None)
+        if option is None:   # the line does not fit this menu: the bridge passes (it waits for its window)
+            option = next((o for o in opts if o.startswith("PASS")), None)
     if dealt < state["opp"]:
         raise ValueError("K=%d: the model's line deals %d of %d" % (k, dealt, state["opp"]))
-    first = lines[0].lower()
-    opts = rows[k].get("options") or []
-    option = next((o for o in opts if o.lower().startswith(first)), None)
-    if option is None:   # the line does not fit this menu: the bridge passes (it waits for its window)
-        option = next((o for o in opts if o.startswith("PASS")), None)
     pre = prefix_lines(rows, k)
     return {"k": k, "prefix": len(pre), "lines": pre + lines, "dealt": dealt, "opp": state["opp"], "option": option}
 
@@ -371,8 +384,10 @@ def witness_verdict(recorded, witness, k, result, option=None):
     sa, sb_ = parse_state(recorded[k].get("prompt") or ""), parse_state(witness[k].get("prompt") or "")
     if sa != sb_:
         return "drift: K=%d state %s, the recording's %s" % (k, sb_, sa)
-    if option is not None and chosen_label(witness[k]) != option:
-        return "drift: K=%d the witness took %r, not %r" % (k, chosen_label(witness[k]), option)
+    took = ("splice: %s" % (", ".join(_picks(witness[k])) or "none") if witness[k].get("type") == "splice"
+            else chosen_label(witness[k]))
+    if option is not None and took != option:
+        return "drift: K=%d the witness took %r, not %r" % (k, took, option)
     if result.get("script_drift") or not result.get("script_played"):
         return "drift: the line did not play: %s" % (result.get("script_drift") or "lines unplayed")
     return "proven" if result.get("status") == "solved" else "failed"
