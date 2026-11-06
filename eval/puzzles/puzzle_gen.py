@@ -258,12 +258,12 @@ def splice_sets(rest, splices):
             for ks in itertools.product(*[range(rest.count(n) + 1) for n in names])]
 
 
-def splice_best(hand, mana, alchemist):
+def splice_best(hand, mana, alchemist, untapped=True):
     """The most damage the hand can deal, and one line that deals it, by exhaustive search over a model of the
     board: all mana red and paid from the pool (lands are only more pool); an Arcane spell may carry any of the
     splice cards still in hand, any copies of each (each paid again and kept); a ping before each spell while
-    Thermo-Alchemist is untapped. Returns (with_splice, without), each (damage, steps, line) with line a list of
-    (spell, splices) and None for a ping."""
+    Thermo-Alchemist is untapped (at the start only if `untapped`). Returns (with_splice, without), each (damage,
+    steps, line) with line a list of (spell, splices) and None for a ping."""
     from functools import lru_cache
 
     @lru_cache(maxsize=None)
@@ -286,8 +286,8 @@ def splice_best(hand, mana, alchemist):
                 d, st, ln = go(tuple(sorted(rest)), mana - cost + gain, True, allow)
                 best = max(best, (d + hit, st + 1, ((s, sp),) + ln), key=lambda x: (x[0], -x[1]))
         return best
-    with_splice = go(tuple(sorted(hand)), mana, True, True)
-    without = go(tuple(sorted(hand)), mana, True, False)
+    with_splice = go(tuple(sorted(hand)), mana, untapped, True)
+    without = go(tuple(sorted(hand)), mana, untapped, False)
     return with_splice, without
 
 

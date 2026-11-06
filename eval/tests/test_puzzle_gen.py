@@ -71,6 +71,14 @@ class GeneratedFamiliesTest(unittest.TestCase):
         self.assertTrue(any(x and x[1] for x in line))
         self.assertEqual(steps, 13)
 
+    def test_the_splice_search_from_a_tapped_alchemist(self):
+        # step_regret_board.py values positions mid-line, where the Alchemist may be tapped: one ping less.
+        hand = ["Lava Spike", "Lava Spike", "Desperate Ritual", "Glacial Ray", "Lightning Bolt", "Shock"]
+        (up, _, _), _ = pg.splice_best(hand, 3, True)
+        (down, _, line), _ = pg.splice_best(hand, 3, True, untapped=False)
+        self.assertEqual(down, up - 1)
+        self.assertIsNotNone(line[0], "no ping first")
+
     def test_the_splice_search_splices_two_copies_of_one_card(self):
         # Forge offers every copy in hand: two Desperate Rituals spliced onto one Arcane spell. Picking splice
         # cards by name found 19 here.

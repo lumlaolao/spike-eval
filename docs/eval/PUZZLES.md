@@ -163,6 +163,12 @@ python3 eval/puzzles/step_regret.py <attempt dir> --out runs/step-regret/<name> 
   in all four. The prover's unwinnable side needs every line played, which a 4-spell position with pings does not
   allow at 2400 rollouts: step regret is exact near the end of a long board and a bracket elsewhere
   (`docs/harness/HARD-PUZZLES.md`).
+- **On a splice board, the model labels every position** (`python3 eval/puzzles/step_regret_board.py <attempt dir>
+  --search <step-regret.jsonl>`): it reads the state from each recorded prompt and values it with
+  `puzzle_gen.splice_best`, refusing anything outside the model. Model-derived, never an engine proof: on the 4
+  attempts above it agrees with all 31 decided search positions (the "all lost" baseline: 30) and puts the regret
+  step at the second bare Desperate Ritual in each (floor 1/4, or 2/6 in C seed 1); its assumptions are in
+  `eval/research/2026-11-06-step-regret-board-model.md`.
 
 ## Proving a written line
 
