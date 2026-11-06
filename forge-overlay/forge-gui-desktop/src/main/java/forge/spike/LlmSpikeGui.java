@@ -616,6 +616,14 @@ public final class LlmSpikeGui {
         return solver != null && lp == solver;
     }
 
+    /** Whether a seat's state records the text of its own cards first seen after setup (SeatObservation, YOUR CARDS
+     *  SINCE THE START): only a puzzle's solver, whose deck text lists just its setup cards, and only when it has that
+     *  setup block (DECKLIST=0, or a [state] that could not be read, leaves it empty: then no own-card text at all).
+     *  A game seat's deck text lists every card it can hold; a puzzle opponent's seat is not the solver. */
+    static boolean tracksOwnCards(boolean puzzleSolver, String deckPlan) {
+        return puzzleSolver && deckPlan != null && !deckPlan.isEmpty();
+    }
+
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
      *  anything we don't handle or that fails. One instance per seat — all state is per-instance. */
     /**
@@ -2458,7 +2466,7 @@ public final class LlmSpikeGui {
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
-                observer.setTrackOwnCards(puzzleBrief != null);   // a puzzle seat's deck text is only its setup cards
+                observer.setTrackOwnCards(tracksOwnCards(isPuzzleSolver(getLobbyPlayer()), deckPlan));
                 observer.setDeckLines(deckLines);
                 observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);

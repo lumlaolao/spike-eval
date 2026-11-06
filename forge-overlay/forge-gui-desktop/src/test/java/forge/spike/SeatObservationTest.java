@@ -410,6 +410,11 @@ public class SeatObservationTest {
         String block = after.substring(at, after.indexOf("OPPONENT CARDS YOU HAVE SEEN", at));
         Assert.assertTrue(block.contains("  Snapcaster Mage: ") && block.contains("Flash"), block);
         assertNoneOf(block, "own new cards", "Brainstorm", "Delver of Secrets", "Ponder", "Griselbrand");
+        // A name the other block already prints is not printed twice: the opponent's Griselbrand (in their graveyard,
+        // seen at the first render) is the solver's own card too once it holds one.
+        card("Griselbrand", me, ZoneType.Hand);
+        String both = render(o, "");
+        Assert.assertEquals(both.split("  Griselbrand: ", -1).length - 1, 1, "Griselbrand printed twice:\n" + both);
         SeatObservation game = observerFor(g, 0);
         Assert.assertFalse(render(game, "").contains("YOUR CARDS SINCE THE START"), "a game seat got the puzzle block");
     }

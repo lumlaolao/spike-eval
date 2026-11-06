@@ -340,7 +340,7 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
   - engine state: YOU, OPP, `STACK (engine, ...)`, COMBAT, `FACTS (engine estimates ...)`;
   - Forge's game log: `GAME HISTORY (Forge game log, ...)`, `SINCE YOUR LAST DECISION (Forge game log, ...)`,
     REVEALS TO YOU;
-  - the card database: OPPONENT CARDS YOU HAVE SEEN;
+  - the card database: OPPONENT CARDS YOU HAVE SEEN, and, on a puzzle's solver seat, YOUR CARDS SINCE THE START;
   - the harness's record of what the seat saw: `KNOWN IN HIDDEN ZONES (harness record: ...)`;
   - the seat's own words: YOUR PLAN, YOUR OPPONENT PROFILE, YOUR CARD INTERACTIONS.
 - The guide repeats it in one paragraph, and says that no other model's words appear anywhere.
@@ -381,14 +381,20 @@ in their `[acceptance]` section, 2026-10-20) and its name states the rule it tes
 Puzzle Goal card, which `inspect` reads, carries the same brief (`tellGoalCard`), and Forge's HumanControl warning
 stays in front of it. A result row's `goal_oracle` is that card's text as the seat sees it.
 Since harness-epoch-86 (#391) a puzzle's `<your_deck>` holds a YOUR CARDS block, as a game seat's does: each
-distinct card the `[state]` section puts on the solver's side (its zones, so by control) in a zone it can see (hand,
+distinct card the `[state]` section puts on the solver's side (cards on your side: its zones, the battlefield read by
+control) in a zone it can see (hand,
 battlefield, graveyard, exile, command; never its library, its hidden draw; a face-down card only on the
 battlefield or foretold, CR 406.3), from Forge's card database by the game seat's `cardText`, with its type line
 added (`LlmSpikePuzzle.solverPlan`, seated by `LlmSpikePuzzle.solverSeat`). An own card first seen after setup
 (drawn, tutored, returned) gets its text in the per-decision state as it is identified, as an opponent's card does:
-YOUR CARDS SINCE THE START (`SeatObservation`, puzzle seats only), so the cached system prompt is unchanged.
-`DECKLIST=0`, the game seat's opt-out, leaves the setup block out; cards printed there are not repeated in either
-per-decision block (`SeatObservation.cardTextLine`).
+YOUR CARDS SINCE THE START (`SeatObservation`), so the cached system prompt is unchanged. Only the solver's seat
+records it, and only when it has the setup block (`LlmSpikeGui.tracksOwnCards`): a puzzle opponent's model seat
+does not, nor does a game seat, whose deck text lists every card it can hold. `DECKLIST=0`, the game seat's opt-out,
+gives the solver neither: no setup block, and no per-decision block (with no setup block every visible card would
+read as new); a `[state]` the runner cannot read does the same, with a `[PUZZLE]` log line. A card printed in the
+setup block is not repeated in either per-decision block (`SeatObservation.cardTextLine`), and a name one
+per-decision block prints is not printed by the other. A game seat's state bytes at observation-faithful-v43 equal
+v42's: the new block is off there.
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
@@ -549,7 +555,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v18+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v43+propose`, `answer-tool-v18+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls

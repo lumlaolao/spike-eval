@@ -183,7 +183,8 @@ public final class LlmSpikePuzzle {
     }
 
     /** The zones of the solver's own cards its YOUR CARDS block lists: the ones it can see. Its library is not one (an
-     *  author's library is the solver's hidden draw, and Forge keeps its order), nor is the opponent's side. */
+     *  author's library is the solver's hidden draw, and Forge keeps its order), nor is the opponent's side. The
+     *  per-decision block reads the same zones in play (SeatObservation.OWN_SEEN_ZONES), with the stack added. */
     private static final java.util.Set<String> SEEN_ZONES =
             java.util.Set.of("hand", "battlefield", "play", "graveyard", "exile", "command");
 
