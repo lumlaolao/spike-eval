@@ -95,6 +95,78 @@ public class PuzzleSetupTest {
         return game;
     }
 
+    /** A puzzle's solver reads its own cards' rules text, as a game seat reads its deck's (#391): the splice board's
+     *  answer turns on Splice onto Arcane, Lava Spike being Arcane and Thermo-Alchemist untapping. The seat is built by
+     *  the helper playOnce seats it with, and its plan is what its system prompt carries. Its library (four Colossal
+     *  Dreadmaw, the solver's hidden draw) and the opponent's (Plains) are not shown. DECKLIST=0, the game seat's
+     *  opt-out, gives none. */
+    @Test
+    public void aPuzzleSolverReadsItsOwnCardsButNotItsLibrary() throws Exception {
+        Map<String, List<String>> sections = FileSection.parseSections(
+                FileUtil.readFile(new File(REPO, "eval/puzzles/hard/gen2/splice2_325cd33e0a57.pzl")));
+        LlmSpikePuzzle.briefSolver(sections, new Puzzle(sections, "splice2_325cd33e0a57", false));
+        String plan = ((LlmSpikeGui.LobbyPlayerLLM) LlmSpikePuzzle.solverSeat(sections, "llm", NO_MODEL, NO_MODEL)).plan();
+        String system = LlmSpikeGui.PlayerControllerLLM.seatFraming("Solver", plan, true, false, true);
+        Assert.assertTrue(system.contains("<your_deck>\nYOUR CARDS"), system);
+        Assert.assertTrue(system.contains("Glacial Ray deals 2 damage to any target. Splice onto Arcane {1}{R}"), system);
+        String spike = system.lines().filter(l -> l.startsWith("  Lava Spike ")).findFirst().orElse("");
+        Assert.assertTrue(spike.contains("Arcane"), "Lava Spike's type line: " + spike);
+        Assert.assertTrue(system.contains("Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist."), system);
+        Assert.assertFalse(system.contains("Colossal Dreadmaw"), "the solver's library was shown");
+        Assert.assertFalse(system.contains("Plains"), "the opponent's library was shown");
+        LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
+        try {
+            Assert.assertEquals(LlmSpikePuzzle.solverPlan(sections), "", "DECKLIST=0 keeps the solver's cards out");
+        } finally { LlmSpikeGui.envOverride = null; }
+    }
+
+    /** Who records the text of its own cards first seen after setup (YOUR CARDS SINCE THE START): the puzzle's solver,
+     *  and no one else. Not a puzzle opponent's model seat (it is not the solver), not the solver under DECKLIST=0
+     *  (the opt-out from own-card text), not a game seat (no solver named). */
+    @Test
+    public void onlyThePuzzleSolverTracksItsLaterCards() throws Exception {
+        Map<String, List<String>> sections = FileSection.parseSections(
+                FileUtil.readFile(new File(REPO, "eval/puzzles/hard/gen2/splice2_325cd33e0a57.pzl")));
+        LobbyPlayer solver = LlmSpikePuzzle.solverSeat(sections, "llm", NO_MODEL, NO_MODEL);
+        LobbyPlayer opponent = LlmSpikeGui.seatFor("llm", "Opponent", "", NO_MODEL, NO_MODEL);
+        LlmSpikeGui.puzzleSolverSeat = solver;
+        Assert.assertTrue(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver");
+        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(opponent)), "the puzzle opponent's seat");
+        LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
+        try {
+            Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver under DECKLIST=0");
+        } finally { LlmSpikeGui.envOverride = null; }
+        LlmSpikeGui.puzzleSolverSeat = null;
+        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "a game seat");
+    }
+
+    /** Which [state] cards are the solver's to read: its side's zones it can see, by both key spellings (p0, human),
+     *  "play" for the battlefield; never the opponent's (p1, ai), its library, a token, or a face-down card in exile
+     *  that is not foretold (CR 406.3); a face-down permanent and a foretold card are its own to know. */
+    @Test
+    public void theSolversCardsAreItsSideItCanSeeAndNoOneElses() {
+        Map<String, List<String>> sections = Map.of("state", List.of(
+                "p1hand=Lightning Bolt", "aihand=Counterspell", "p1battlefield=Tarmogoyf",
+                "humangraveyard=Ponder", "p0play=Grizzly Bears", "p0battlefield=Exalted Angel|FaceDown",
+                "p0exile=Brainstorm|FaceDown;Saw It Coming|FaceDown|Foretold", "p0library=Colossal Dreadmaw",
+                "p0hand=t:w_1_1_soldier"));
+        String plan = LlmSpikePuzzle.solverPlan(sections);
+        for (String mine : new String[] {"  Ponder ", "  Grizzly Bears ", "  Exalted Angel ", "  Saw It Coming "})
+            Assert.assertTrue(plan.contains(mine), mine + " is the solver's: " + plan);
+        for (String not : new String[] {"Lightning Bolt", "Counterspell", "Tarmogoyf", "Brainstorm", "Colossal Dreadmaw", "soldier"})
+            Assert.assertFalse(plan.contains(not), not + " is not the solver's to read: " + plan);
+    }
+
+    /** The game seat's YOUR CARDS form, byte for byte: the puzzle's type-line form must not have moved it. */
+    @Test
+    public void theGameSeatsCardTextIsUnchanged() {
+        Deck d = new Deck();
+        d.getMain().add(forge.StaticData.instance().getCommonCards().getCard("Lightning Bolt"));
+        d.getMain().add(forge.StaticData.instance().getCommonCards().getCard("Mountain"));
+        Assert.assertEquals(LlmSpikeGui.cardText(d),
+                "  Lightning Bolt {R} — Lightning Bolt deals 3 damage to any target.\n  Mountain no cost — ({T}: Add {R}.)\n");
+    }
+
     /** Gitaxian Probe's script tells Forge's AI never to pay its {U/P} with life (AIPhyrexianPayment$ Never), and the
      *  seat's menu asked the AI's payment check: with no blue source the Probe was "(not castable now)" and never on
      *  the menu, though 2 life pays it (hard draft h_0, its written line drifted there, 2026-10-20). Mutagenic Growth,

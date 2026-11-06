@@ -403,8 +403,11 @@ public final class LlmSpikeGui {
      *  stack refused the paid play (Rot-Curse Rakshasa's renew).
      *  Epoch 85 (2026-11-06, #392): a splice set the cast cannot pay together is asked again with its cost, then cast
      *  with no splice; a spliced cast that fails leaves the plain cast offered; a failed payment is told to the seat.
+     *  Epoch 86 (2026-11-06, #391): a puzzle's solver is shown its own cards' cost, type line and rules text: the setup
+     *  cards in <your_deck> (LlmSpikePuzzle.solverPlan), each later one as it is first seen (YOUR CARDS SINCE THE START,
+     *  observation-faithful-v43). PUZ results before and after never pool.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-85";
+    static final String HARNESS_EPOCH = "harness-epoch-86";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -611,6 +614,16 @@ public final class LlmSpikeGui {
     static boolean isPuzzleSolver(LobbyPlayer lp) {
         LobbyPlayer solver = puzzleSolverSeat;
         return solver != null && lp == solver;
+    }
+
+    /** Whether a seat's state records the text of its own cards first seen after setup (SeatObservation, YOUR CARDS
+     *  SINCE THE START): only a puzzle's solver, whose deck text lists just its setup cards, and not under DECKLIST=0,
+     *  the opt-out from own-card text. An empty setup block is no reason to stop (a solver with only a token at setup
+     *  still draws cards it must read); a [state] that could not be read is logged and tracks, so its visible cards
+     *  are shown once, as new. A game seat's deck text lists every card it can hold; a puzzle opponent's seat is not
+     *  the solver. */
+    static boolean tracksOwnCards(boolean puzzleSolver) {
+        return puzzleSolver && !"0".equals(env("DECKLIST"));
     }
 
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
@@ -2455,6 +2468,7 @@ public final class LlmSpikeGui {
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
+                observer.setTrackOwnCards(tracksOwnCards(isPuzzleSolver(getLobbyPlayer())));
                 observer.setDeckLines(deckLines);
                 observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
@@ -10772,6 +10786,8 @@ public final class LlmSpikeGui {
         LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel, String mode) {
             super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel; this.mode = mode;
         }
+        /** The plan the seat's system prompt carries in {@code <your_deck>}. */
+        String plan() { return plan; }
         @Override
         public Player createIngamePlayer(Game game, int id) {
             // A player of a preview COPY is the engine AI's, never the model's (PlayerLookahead.inPreview).
@@ -12743,7 +12759,12 @@ public final class LlmSpikeGui {
     /** Per-card rules text for a seat's deck, "  Name {cost} — oracle text", one per distinct card,
      *  from Forge's OWN card database (no external file, no network). Lets the model read what its
      *  cards do instead of recalling them. Empty on any failure. */
-    static String cardText(Deck d) {
+    static String cardText(Deck d) { return cardText(d, false); }
+
+    /** {@link #cardText(Deck)}, with each card's type line after its cost when {@code typeLine} ("  Lava Spike {R} |
+     *  Sorcery - Arcane — ..."): a puzzle's solver reads Arcane, Equipment or Aura nowhere else (#391). That form also
+     *  drops a land's "no cost" and the card script's literal line breaks ("\n"), which the deck form still prints. */
+    static String cardText(Deck d, boolean typeLine) {
         if (d == null) return "";
         try {
             java.util.TreeMap<String, String> lines = new java.util.TreeMap<>();
@@ -12756,11 +12777,13 @@ public final class LlmSpikeGui {
                     forge.card.CardRules r = pc.getRules();
                     if (r != null) {
                         String mc = r.getManaCost() == null ? "" : r.getManaCost().toString();
-                        if (!mc.isEmpty()) b.append(' ').append(mc);
+                        if (!mc.isEmpty() && !(typeLine && r.getManaCost().isNoCost())) b.append(' ').append(mc);
+                        if (typeLine && r.getType() != null) b.append(" | ").append(r.getType());
                         String t = r.getOracleText();
                         if (t != null && !t.isEmpty()) {
                             // Whole: a 400-character cut ended 7 cards of the deck pool mid-sentence
                             // (Animate Dead, Tamiyo, Ajani, Minsc & Boo, ...).
+                            if (typeLine) t = t.replace("\\n", " ");   // the card script's line breaks, as cardTextLine
                             t = t.replaceAll("\\s+", " ").trim();
                             b.append(" — ").append(t);
                         }

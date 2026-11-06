@@ -96,7 +96,9 @@ final class SeatObservation {
     // subjectless second sentence ("... battlefield. gains haste") reads "It gains".
     // v42 (2026-10-19): an effect whose source is an effect carries no engine id ("Kumano Faces Kakkazan (111)'s
     // Effect's Effect", runs/loop/g33 T13).
-    static final String VERSION = "observation-faithful-v42";
+    // v43 (2026-11-06, #391): a puzzle's solver gets YOUR CARDS SINCE THE START, the text of each own card first seen
+    // after setup (drawn, tutored, returned); the setup cards are in its system prompt. Not on a game seat.
+    static final String VERSION = "observation-faithful-v43";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
@@ -262,28 +264,63 @@ final class SeatObservation {
 
     void setOwnDeckText(String t) { this.ownDeckText = t == null ? "" : t; }
 
+    /** A puzzle's solver: its system prompt lists only the cards it held at setup (LlmSpikePuzzle.solverPlan), so an
+     *  own card it sees later (drawn, tutored, returned) has its text recorded here as it is first identified, the way
+     *  an opponent card is. Off for a game seat, whose deck text lists every card it can hold. */
+    private boolean trackOwnCards = false;
+    private final java.util.LinkedHashMap<String, String> ownNewCardText = new java.util.LinkedHashMap<>();
+
+    void setTrackOwnCards(boolean on) { this.trackOwnCards = on; }
+
+    private String ownNewCardText() {
+        if (!trackOwnCards) return "";
+        try {
+            for (ZoneType z : OWN_SEEN_ZONES)
+                for (Card c : viewer.getCardsIn(z)) noteText(ownNewCardText, oppCardText, c);
+        } catch (Exception ignore) { }
+        return textBlock("YOUR CARDS SINCE THE START (printed rules text from the card database of your cards first seen after"
+                + " the puzzle began; ", ownNewCardText);
+    }
+
+    /** Record {@code c}'s printed text in {@code into} the first time the viewer can identify it, unless {@code other}
+     *  (the other side's block) or the seat's own deck text already has that name: one name is printed once. */
+    private void noteText(java.util.Map<String, String> into, java.util.Map<String, String> other, Card c) {
+        if (c.isToken() || !identityKnown(c)) return;
+        noteText(into, other, safeName(c));
+    }
+
+    private void noteText(java.util.Map<String, String> into, java.util.Map<String, String> other, String name) {
+        if (name == null || name.isEmpty() || into.containsKey(name) || other.containsKey(name)) return;
+        String line = cardTextLine(name);   // null when the deck text has it, or a basic land
+        if (line != null) into.put(name, line);
+    }
+
+    /** "{head}N cards):" and one "  Name: text" line per card, or "" when there is none. */
+    private static String textBlock(String head, java.util.Map<String, String> cards) {
+        if (cards.isEmpty()) return "";
+        int n = cards.size();
+        StringBuilder b = new StringBuilder(head).append(n).append(n == 1 ? " card" : " cards").append("):\n");
+        for (java.util.Map.Entry<String, String> e : cards.entrySet())
+            b.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+        return b.toString();
+    }
+
     private static final ZoneType[] PUBLIC_ZONES = { ZoneType.Battlefield, ZoneType.Stack, ZoneType.Graveyard, ZoneType.Exile, ZoneType.Command };
+    /** The zones of the viewer's own cards it can see (its hand, and the public zones it controls, so by control); never
+     *  its library. LlmSpikePuzzle.SEEN_ZONES lists the same at setup, without the stack: a setup card cast later is
+     *  already in the system prompt, and one first seen on the stack (cast from the library top) is recorded here. */
+    private static final ZoneType[] OWN_SEEN_ZONES = { ZoneType.Hand, ZoneType.Battlefield, ZoneType.Stack, ZoneType.Graveyard, ZoneType.Exile, ZoneType.Command };
 
     /** Record the text of every opponent card the viewer can identify right now. */
     private void noteOpponentCards() {
         try {
             for (Player opp : game.getPlayers()) {
                 if (opp == viewer) continue;
-                for (ZoneType z : PUBLIC_ZONES) {
-                    for (Card c : opp.getCardsIn(z)) {
-                        if (c.isToken() || !identityKnown(c)) continue;
-                        String name = safeName(c);
-                        if (name == null || name.isEmpty() || oppCardText.containsKey(name)) continue;
-                        String line = cardTextLine(name);
-                        if (line != null) oppCardText.put(name, line);
-                    }
-                }
+                for (ZoneType z : PUBLIC_ZONES)
+                    for (Card c : opp.getCardsIn(z)) noteText(oppCardText, ownNewCardText, c);
             }
-            for (KnownLoc k : knownHidden.values()) {
-                if (k.owner == viewer || oppCardText.containsKey(k.name)) continue;
-                String line = cardTextLine(k.name);
-                if (line != null) oppCardText.put(k.name, line);
-            }
+            for (KnownLoc k : knownHidden.values())
+                if (k.owner != viewer) noteText(oppCardText, ownNewCardText, k.name);
         } catch (Exception ignore) { }
     }
 
@@ -309,13 +346,7 @@ final class SeatObservation {
 
     private String opponentCardText() {
         noteOpponentCards();
-        if (oppCardText.isEmpty()) return "";
-        int n = oppCardText.size();
-        StringBuilder b = new StringBuilder("OPPONENT CARDS YOU HAVE SEEN (printed rules text from the card database; ")
-                .append(n).append(n == 1 ? " card" : " cards").append("):\n");
-        for (java.util.Map.Entry<String, String> e : oppCardText.entrySet())
-            b.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
-        return b.toString();
+        return textBlock("OPPONENT CARDS YOU HAVE SEEN (printed rules text from the card database; ", oppCardText);
     }
 
     void setDeckLines(String t) { this.deckLines = t == null ? "" : t; }
@@ -1112,6 +1143,7 @@ final class SeatObservation {
                 String landsPlayed = streamCastHistory(opp, true, ctx.castHistoryCap);
                 if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
             }
+            s.append(ownNewCardText());
             s.append(opponentCardText());
 
             s.append(STACK_LINE).append(stack()).append('\n');
