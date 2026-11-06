@@ -27,7 +27,8 @@ per-puzzle rate), it does not correct for several comparisons, and result rows w
 stamped cannot be told apart by epoch.
 
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
-call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
+call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row or one that lost
+decisions to a routing filter or a dead model bridge. Stdlib only.
 """
 
 import argparse
@@ -42,7 +43,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_format as pf  # noqa: E402
-from aggregate import wilson_ci  # noqa: E402
+from aggregate import log_bridge_down, wilson_ci  # noqa: E402
 
 
 # Puzzle-row fields only some solvers carry, each a condition two attempts must share (key, what it is called).
@@ -102,6 +103,31 @@ def p_solved_by_policy(rate, k):
     return sum(math.comb(k, c) * rate ** c * (1 - rate) ** (k - c) for c in range(need, k + 1))
 
 
+def bridge_down(row):
+    """Decisions the attempt lost to a dead model bridge (issue #378): the row's own count, or on a row from before
+    the field the transport failures in its puzzle's jvm.log (with_log_counts), which holds every attempt of it."""
+    return row.get("bridge_down_decisions", row.get("_bridge_down_log")) or 0
+
+
+def lost_decisions(row):
+    """Decisions the attempt lost that were not the model's: to a routing filter (routing_refusals) or to a dead model
+    bridge (bridge_down). attempt_success refuses a row with any; a resume plays it again."""
+    return (row.get("routing_refusals") or 0) + bridge_down(row)
+
+
+def with_log_counts(rows, puzzle_dir):
+    """Tag each row from before bridge_down_decisions with its puzzle directory's jvm.log count (aggregate's reader
+    for a game line from before its fields): the log is the puzzle's, not the attempt's, so a dead bridge in any
+    attempt refuses them all. set_aside_partial renames the log with the rows, so they stay paired."""
+    old = [r for r in rows if "bridge_down_decisions" not in r]
+    log = Path(puzzle_dir) / "jvm.log"
+    if old and log.is_file():
+        n = log_bridge_down(log.read_text(encoding="utf-8", errors="replace"))
+        for r in old:
+            r["_bridge_down_log"] = n
+    return rows
+
+
 def attempt_success(row):
     """(success, note). A capped game counts as a failure (it cannot vanish); a solve decided by an
     empty-library deck-out is not evidence and counts as a failure; an unscoreable row and a replay are refused."""
@@ -118,6 +144,11 @@ def attempt_success(row):
         raise Refused("row for %s (seed %s): %s decisions lost under the routing filter (no endpoint it allows answered "
                       "after every retry), so they were not the model's; replay it with --resume"
                       % (row.get("id"), row.get("seed"), row["routing_refusals"]))
+    if bridge_down(row):
+        raise Refused("row for %s (seed %s): %s decisions lost to a dead model bridge (a transport failure on every "
+                      "retry: a 402, an outage)%s, so they were not the model's; replay it with --resume"
+                      % (row.get("id"), row.get("seed"), bridge_down(row), "" if "bridge_down_decisions" in row
+                         else " in its puzzle's jvm.log (a row from before the count)"))
     if status == "invalid":
         return False, "capped"
     if status not in ("solved", "failed"):
@@ -139,6 +170,7 @@ def load_rows(paths):
             cap = None if record is None else record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
             call, tokens = ((NO_MANIFEST, NO_MANIFEST) if record is None
                             else (record.get("call_timeout_ms"), record.get("max_tokens")))
+            found = []
             for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                 line = line.strip()
                 if not line:
@@ -151,7 +183,8 @@ def load_rows(paths):
                     d.setdefault("game_cap_ms", cap)
                     d.setdefault("call_timeout_ms", call)
                     d.setdefault("max_tokens", tokens)
-                    rows.append(d)
+                    found.append(d)
+            rows.extend(with_log_counts(found, f.parent))
     return rows
 
 
