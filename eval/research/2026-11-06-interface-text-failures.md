@@ -14,12 +14,13 @@ board's. How often does a seat act on each one, and against what baseline?
 ## What was read (free: Python over the local game JSONL, no JVM, no model)
 
 The input is every `game-*.jsonl` under the main checkout's `runs/puzzles/`: 2828 puzzle games, all models, harness
-epochs 70 to 79. Conditions are mixed, so the rates below are descriptive. A per-condition split is possible but was
+epochs 70 to 72 where recorded (1448 of the 2161 counted below at 70, 584 unrecorded). Conditions are mixed, so the rates below are descriptive. A per-condition split is possible but was
 not made.
 
 ### The clock after the last combat (#398)
 
-The decisions read are those on turn 1 in `MAIN2` or `END_OF_TURN`. On the hard 1-turn boards (`Turns:1`), the
+The decisions read are those on turn 1 in `MAIN2` or `END_OF_TURN` (2161 of the 2828 games have one; the other 667
+have no decision after combat and are in no group). On the hard 1-turn boards (`Turns:1`), the
 solver's last combat is over there. A decision "cites a later combat" when its `raw_reply` matches
 `next combat|next attack|next turn|combat estimate|attack for lethal|lethal (in|next) combat|future turn|following turn`.
 
