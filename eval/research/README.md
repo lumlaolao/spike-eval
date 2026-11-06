@@ -26,7 +26,7 @@ experiment in progress), **negative** (measured; does not help as proposed), **o
 | 2026-11-05 | [irt-pilot](2026-11-05-irt-pilot.md) | Can existing results calibrate puzzle difficulty | no: one-model or k=1 matrices; zero-model arms misfit |
 | 2026-11-05 | [step-regret-feasibility](2026-11-05-step-regret-feasibility.md) | Can the engine label the first losing decision | yes once a recorded attempt replays (#365), then search |
 | 2026-11-05 | [twin-cards-feasibility](2026-11-05-twin-cards-feasibility.md) | Renamed cards as a recall-vs-reading test | Forge loads set-less scripts; a missing card is silently skipped |
-| 2026-11-06 | [forecast-floors](2026-11-06-forecast-floors.md) | What a model's P(win) forecast must beat | life difference alone: Brier about 0.21 on Luna turns (base 0.245); turns 1-3 carry no signal |
+| 2026-11-06 | [forecast-floors](2026-11-06-forecast-floors.md) | What a model's P(win) forecast must beat | life difference alone is the floor: Brier about 0.21 on Luna turns (base 0.245); no signal on Luna turns 1-3 |
 
 ## Ideas
 
@@ -38,7 +38,7 @@ From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-
 | 2 | Step regret: the first decision that loses a won puzzle | ReplayBridge **adopted** (#365); labeller **running** | [step-regret-feasibility](2026-11-05-step-regret-feasibility.md) |
 | 3 | Twin cards: every card renamed, recall vs reading | **draft PR** #371; engine check **running** | [twin-cards-feasibility](2026-11-05-twin-cards-feasibility.md) |
 | 4 | IRT calibration from a free population | **negative** on today's data | [irt-pilot](2026-11-05-irt-pilot.md) |
-| 5 | Self-forecast calibration: P(win) probes, Brier/AUROC | free floors done; paid probe (about $0.13) **parked** (HTTP 402, issue #369) | [forecast-floors](2026-11-06-forecast-floors.md) |
+| 5 | Self-forecast calibration: P(win) probes, Brier/AUROC | free floors done; paid probe (about $0.11) **parked** (HTTP 402, issue #369) | [forecast-floors](2026-11-06-forecast-floors.md) |
 | 6 | A playbook the model curates across episodes | open | |
 | 7 | Budget-visible lookahead and its compute curve | open | |
 | 8 | Robustness across Forge AI profiles, best of three | open | |

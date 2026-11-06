@@ -8,14 +8,17 @@ repository; the run directories are git-ignored and kept in the author's worktre
 
 ## Bottom line
 
-- **Life difference alone is the floor.** Every other public feature adds almost nothing.
+- **Life difference alone is the floor.** Every other public feature adds almost nothing to Brier (a little AUROC).
 - **On Forge's AI against itself** (burn mirror, held out by game), the floor reaches Brier 0.158 against 0.250 for
   the base rate, with AUROC 0.85.
-- **On the Luna seat's turns**, the floor is Brier about 0.21-0.22 (skill +0.10 to +0.14) and AUROC 0.73-0.77.
-- **Early turns carry no signal:** on turns 1-3 nothing beats the base rate.
-- **A forecast probe resolves only large differences:** the 54 usable Luna games cost about $0.13 to probe offline
-  from their prompts and detect a Brier difference of about 0.04 to 0.07. A difference of 0.02 needs 200 to 600
-  games.
+- **On the Luna seat's turns**, life difference scores Brier about 0.21-0.22 (skill +0.10 to +0.14) and AUROC
+  0.69-0.73. Over the base rate that skill is not resolved on 54 games: +.14 [.00,+.27] and +.10 [-.15,+.31].
+- **The Luna seat's early turns carry no signal:** on its turns 1-3 nothing beats the base rate. In the AI-vs-AI
+  burn mirror they do (life-difference AUROC 0.72 raw).
+- **A forecast probe resolves only large differences.** 44 of the 54 Luna games have the seat's turn-start prompt
+  recorded. Probing those 358 states offline costs about $0.11 at about $0.0003 a call (the estimate in
+  [novel-ideas](2026-11-05-novel-ideas.md) section 5). It detects a Brier difference of about 0.04 to 0.08. A
+  difference of 0.02 needs 200 to 600 games.
 
 ## Data
 
@@ -50,10 +53,10 @@ repeated 10 times. Intervals are a 2000-replicate game-level bootstrap.
 | Luna, fit on AI vs AI | all features | .220 [.166,.276] / +.10 [-.17,+.35] / .77 / .15 | .249 / -.04 / .61 | .200 / +.18 / .84 |
 | Luna, fit on AI vs AI | life difference | .220 [.173,.274] / +.10 / .73 / .11 | .258 / -.07 / .51 | .195 / +.20 / .80 |
 | Luna, fit on Luna | life difference | .210 [.171,.254] / +.14 [.00,+.27] / .69 / .06 | .253 / -.05 / n/a | .182 / +.25 / .78 |
-| Luna, fit on Luna | all features | .259 / -.06 / .62 (overfits) | | |
 
 Base rate Brier: 0.250 (AI vs AI), 0.245 (Luna). The floor fitted on AI vs AI ranks Luna states well but is
-miscalibrated there (ECE 0.15), because a life swing means more in the burn mirror.
+miscalibrated there (ECE 0.15), because a life swing means more in the burn mirror. Fitted on Luna games, all
+features overfit (Brier .259, skill -.06, AUROC .62).
 
 Raw life-difference AUROC with no fitting:
 
@@ -62,8 +65,10 @@ Raw life-difference AUROC with no fitting:
 | Luna | 0.51 | 0.61 | 0.80 |
 | AI vs AI | 0.72 | 0.81 | 0.90 |
 
-The in-domain early-turn AUROCs after cross-validation (0.08 to 0.31) are an artefact. About 80% of turn 1-3 states
-have a life difference of 0, so the ranking reduces to each fold's intercept.
+On the Luna seat's turns 1-3, the in-domain AUROCs after cross-validation (0.08 to 0.31, so "n/a" above) are an
+artefact. About 80% of those states have a life difference of 0, so the ranking reduces to each fold's intercept.
+For the same reason a fitted AUROC can sit below the raw one (AI vs AI turns 1-3: .65 fitted, .72 raw), because the
+cross-validation pools folds that each have their own intercept.
 
 **Features.** Held-out AI-vs-AI Brier is 0.158 with every feature:
 
