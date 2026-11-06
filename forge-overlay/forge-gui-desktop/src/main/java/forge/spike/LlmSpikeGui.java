@@ -958,6 +958,12 @@ public final class LlmSpikeGui {
         LLMBridge smartBridge() { return smart; }
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
+        /** The [TALLY] line's mean latency per tier that answered. One tier is one bridge for both (#251): its mean is
+         *  printed once, as avgSmart, not again as an avgFast for a tier that made no call. */
+        static String latencyAverages(LLMBridge smart, LLMBridge fast) {
+            return (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
+                    + (fast != smart && fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : "");
+        }
         private int lostToRouting = 0;   // decisions lost after a routing-filter refusal among their retries (budget())
         private int lostToTransport = 0; // decisions lost to a dead bridge (the bridgeDown rule, issue #369; budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
@@ -4339,8 +4345,7 @@ public final class LlmSpikeGui {
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
                         + " textParses=" + textParsesOnToolAsks
                         + (textFormatLeaks > 0 ? " text_format_leaks=" + textFormatLeaks : "")
-                        + (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
-                        + (fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : ""));
+                        + latencyAverages(smart, fast));
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
                         + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> " + routeLabel(b.getModel(), rnd != null));
                 playDecisionsThisTurn++;
