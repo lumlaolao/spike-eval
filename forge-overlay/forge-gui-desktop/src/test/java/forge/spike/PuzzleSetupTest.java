@@ -120,30 +120,24 @@ public class PuzzleSetupTest {
         } finally { LlmSpikeGui.envOverride = null; }
     }
 
-    /** Who records the text of its own cards first seen after setup (YOUR CARDS SINCE THE START): the puzzle's solver
-     *  with its setup block, and no one else. Not a puzzle opponent's model seat (it is not the solver), not a solver
-     *  under DECKLIST=0 (no setup block: every visible card would read as new), not a game seat (no solver named). */
+    /** Who records the text of its own cards first seen after setup (YOUR CARDS SINCE THE START): the puzzle's solver,
+     *  and no one else. Not a puzzle opponent's model seat (it is not the solver), not the solver under DECKLIST=0
+     *  (the opt-out from own-card text), not a game seat (no solver named). */
     @Test
-    public void onlyThePuzzleSolverWithItsSetupBlockTracksItsLaterCards() throws Exception {
+    public void onlyThePuzzleSolverTracksItsLaterCards() throws Exception {
         Map<String, List<String>> sections = FileSection.parseSections(
                 FileUtil.readFile(new File(REPO, "eval/puzzles/hard/gen2/splice2_325cd33e0a57.pzl")));
         LobbyPlayer solver = LlmSpikePuzzle.solverSeat(sections, "llm", NO_MODEL, NO_MODEL);
         LobbyPlayer opponent = LlmSpikeGui.seatFor("llm", "Opponent", "", NO_MODEL, NO_MODEL);
-        String plan = ((LlmSpikeGui.LobbyPlayerLLM) solver).plan();
         LlmSpikeGui.puzzleSolverSeat = solver;
-        Assert.assertTrue(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver), plan), "the solver");
-        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(opponent),
-                ((LlmSpikeGui.LobbyPlayerLLM) opponent).plan()), "the puzzle opponent's seat");
-        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(opponent), plan), "a seat not the solver");
+        Assert.assertTrue(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver");
+        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(opponent)), "the puzzle opponent's seat");
         LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
         try {
-            LobbyPlayer bare = LlmSpikePuzzle.solverSeat(sections, "llm", NO_MODEL, NO_MODEL);
-            LlmSpikeGui.puzzleSolverSeat = bare;
-            Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(bare),
-                    ((LlmSpikeGui.LobbyPlayerLLM) bare).plan()), "the solver under DECKLIST=0");
+            Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver under DECKLIST=0");
         } finally { LlmSpikeGui.envOverride = null; }
         LlmSpikeGui.puzzleSolverSeat = null;
-        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver), plan), "a game seat");
+        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "a game seat");
     }
 
     /** Which [state] cards are the solver's to read: its side's zones it can see, by both key spellings (p0, human),

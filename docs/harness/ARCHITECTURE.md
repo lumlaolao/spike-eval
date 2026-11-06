@@ -388,10 +388,11 @@ battlefield or foretold, CR 406.3), from Forge's card database by the game seat'
 added (`LlmSpikePuzzle.solverPlan`, seated by `LlmSpikePuzzle.solverSeat`). An own card first seen after setup
 (drawn, tutored, returned) gets its text in the per-decision state as it is identified, as an opponent's card does:
 YOUR CARDS SINCE THE START (`SeatObservation`), so the cached system prompt is unchanged. Only the solver's seat
-records it, and only when it has the setup block (`LlmSpikeGui.tracksOwnCards`): a puzzle opponent's model seat
-does not, nor does a game seat, whose deck text lists every card it can hold. `DECKLIST=0`, the game seat's opt-out,
-gives the solver neither: no setup block, and no per-decision block (with no setup block every visible card would
-read as new); a `[state]` the runner cannot read does the same, with a `[PUZZLE]` log line. A card printed in the
+records it (`LlmSpikeGui.tracksOwnCards`): a puzzle opponent's model seat does not, nor does a game seat, whose deck
+text lists every card it can hold. `DECKLIST=0`, the game seat's opt-out from own-card text, gives the solver
+neither block. A solver whose setup lists no card (only a token on the battlefield, say) has no setup block and
+still reads each card it draws. A `[state]` the runner cannot read gives no setup block, with a `[PUZZLE]` log line;
+its visible cards are then shown once in the per-decision block. A card printed in the
 setup block is not repeated in either per-decision block (`SeatObservation.cardTextLine`), and a name one
 per-decision block prints is not printed by the other. A game seat's state bytes at observation-faithful-v43 equal
 v42's: the new block is off there.

@@ -617,11 +617,13 @@ public final class LlmSpikeGui {
     }
 
     /** Whether a seat's state records the text of its own cards first seen after setup (SeatObservation, YOUR CARDS
-     *  SINCE THE START): only a puzzle's solver, whose deck text lists just its setup cards, and only when it has that
-     *  setup block (DECKLIST=0, or a [state] that could not be read, leaves it empty: then no own-card text at all).
-     *  A game seat's deck text lists every card it can hold; a puzzle opponent's seat is not the solver. */
-    static boolean tracksOwnCards(boolean puzzleSolver, String deckPlan) {
-        return puzzleSolver && deckPlan != null && !deckPlan.isEmpty();
+     *  SINCE THE START): only a puzzle's solver, whose deck text lists just its setup cards, and not under DECKLIST=0,
+     *  the opt-out from own-card text. An empty setup block is no reason to stop (a solver with only a token at setup
+     *  still draws cards it must read); a [state] that could not be read is logged and tracks, so its visible cards
+     *  are shown once, as new. A game seat's deck text lists every card it can hold; a puzzle opponent's seat is not
+     *  the solver. */
+    static boolean tracksOwnCards(boolean puzzleSolver) {
+        return puzzleSolver && !"0".equals(env("DECKLIST"));
     }
 
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
@@ -2466,7 +2468,7 @@ public final class LlmSpikeGui {
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
-                observer.setTrackOwnCards(tracksOwnCards(isPuzzleSolver(getLobbyPlayer()), deckPlan));
+                observer.setTrackOwnCards(tracksOwnCards(isPuzzleSolver(getLobbyPlayer())));
                 observer.setDeckLines(deckLines);
                 observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
