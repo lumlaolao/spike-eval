@@ -411,8 +411,11 @@ public final class LlmSpikeGui {
      *  Epoch 88 (2026-11-06, #398): a puzzle's FACTS say a side has no combat left before the puzzle's last turn
      *  (observation-faithful-v44); recorded attempts passed citing a lethal "next combat" the game never reached.
      *  PUZ results before and after never pool.
+     *  Epoch 89 (2026-11-06, #399): the answer tool's yield says the seat's own main phase asks again only once the stack
+     *  is empty, and end-of-turn lasts through this turn's end step (answer-tool-v19). The text arm's YIELD_HINT is a
+     *  legacy profile's bytes and keeps its words.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-88";
+    static final String HARNESS_EPOCH = "harness-epoch-89";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1070,7 +1073,8 @@ public final class LlmSpikeGui {
         /** {@link #YIELD_HINT} for the answer tool: a field of the answer, not a line. */
         static final String YIELD_TOOL_HINT = "If you PASS, you may also give `yield` in your `answer` (end-of-turn or my-next-turn): "
                 + "until then you are not asked in windows where nothing of your opponent's is on the stack "
-                + "(anything they cast or activate always asks you; your own main phases always ask too). ";
+                + "(anything they cast or activate always asks you; your own main phase asks again once the stack is empty; "
+                + "end-of-turn lasts through this turn's end step). ";
 
         /** The play ask's notes under the answer tool: the plan through `set_plan`, the cast list, the
          *  card-interactions note and the opponent read as fields of `answer`. No line is asked for. */

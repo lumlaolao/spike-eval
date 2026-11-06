@@ -60,6 +60,19 @@ public class AnswerToolTest {
                 "AnswerTool's fixed functions differ from eval/tooluse/answer_tools.json");
     }
 
+    /** A yield says when the seat is still asked as the play loop does it (#399): its own main phase asks only once the
+     *  stack is empty (its own triggers pending are passed), and end-of-turn covers this turn's end step. The old text
+     *  said "your own main phases always ask too"; 638 recorded windows passed the seat's own main phase. */
+    @Test
+    public void theYieldSaysWhenTheSeatIsStillAsked() {
+        String fixed = new AnswerTool.Ask(AnswerTool.Spec.one(2), false).definitions().toString();
+        for (String text : new String[] {fixed, LlmSpikeGui.PlayerControllerLLM.YIELD_TOOL_HINT}) {
+            Assert.assertFalse(text.contains("your own main phases always ask too"), text);
+            Assert.assertTrue(text.contains("your own main phase asks again once the stack is empty"), text);
+            Assert.assertTrue(text.contains("end-of-turn lasts through this turn's end step"), text);
+        }
+    }
+
     @Test
     public void aCallIsCheckedAgainstItsDecisionAndAMistakeIsExplained() {
         AnswerTool.Spec s = AnswerTool.Spec.one(3);

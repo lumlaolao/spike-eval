@@ -464,6 +464,11 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   opponent's on the stack until the turn it names. Given at the seat's own upkeep ("keep mana open"), it
   also passed that turn's main phases, so the seat lost its land drop and every sorcery-speed play
   (`runs/luna-v8/g3`, two turns). The main phases with an empty stack always ask (answer-tool-v9).
+  The yield's own text says so (answer-tool-v19, #399): the seat's own main phase asks again once the stack is
+  empty, so a window there with its own trigger or spell pending is passed, and `end-of-turn` lasts through this
+  turn's end step. The text had said "your own main phases always ask too"; 638 recorded windows in 49 games passed
+  the seat's own main phase with its own items on the stack. The text arm's `YIELD_HINT` keeps its words (a legacy
+  profile's bytes).
 
 **No text alternative (answer-tool-v7).**
 - A reply that calls nothing is reminded up to twice in the same conversation, then the decision is lost.
@@ -530,7 +535,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   keeps its text: it says what is malformed, not which rule applies. The row keeps the engine's diagnosis in
   `error` and `category`, and what the seat was told in `error_shown`, so both arms count the same rules
   (`proposal_audit.py`'s `repair` and `refusal_text`). Stamped `propose_terse` on the game line and puzzle row and
-  `answer-tool-v18+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
+  `answer-tool-v19+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
   pinned by `run_batch.py --propose-terse` and `puzzle_solve.py --propose-terse`, each refused without
   `--propose-actions`. The preamble's general ANSWERS sentence ("you are told why") is the same in both arms: it is
   about answers to listed decisions, and the b2 block was played with it. Results: the research note's section "Does
@@ -567,7 +572,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v44+propose`, `answer-tool-v18+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v44+propose`, `answer-tool-v19+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls
