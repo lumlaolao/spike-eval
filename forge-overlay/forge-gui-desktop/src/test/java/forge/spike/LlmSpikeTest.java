@@ -952,6 +952,52 @@ public class LlmSpikeTest {
                 "a dead bridge must never fall through to Forge's AI for this decision");
     }
 
+    /** A bridge whose transport fails on every ask (a provider answering 402 once the credits ran out). */
+    static final class CreditsGoneBridge implements LLMBridge {
+        private final String label;
+        int asks = 0;
+        CreditsGoneBridge(String label) { this.label = label; }
+        @Override public String ask(String prompt) { asks++; return null; }
+        @Override public boolean lastFailureWasTransport() { return true; }
+        @Override public String getLabel() { return label; }
+        @Override public String getModel() { return "credits-gone"; }
+        @Override public long getTotalMs() { return 0; }
+        @Override public int getCalls() { return asks; }
+    }
+
+    /** Issue #369: a provider that answered HTTP 402 to every call left a seat that only passed, and the game line
+     *  said nothing, so the game was scored. Each decision whose ask failed in transport after every retry is counted
+     *  per identity for the game line, and so is each trip of the circuit breaker (five dead decisions in a row). A
+     *  model that answered with nothing (DeadBridge: no reply, not a transport failure) and one whose reply cannot be
+     *  read lost their own decisions: nothing is counted for them. */
+    @Test(timeOut = 90000)
+    public void decisionsLostToADeadBridgeAreCountedOnTheGameLine() throws Exception {
+        Game game = buildBareGame();
+        String dead = "seat-dead-369", silent = "seat-silent-369", alive = "seat-alive-369";
+        CreditsGoneBridge gone = new CreditsGoneBridge(dead + "/fast");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, game.getPlayers().get(0), new LobbyPlayerAi(dead, null), dead, "", gone, gone, "llm");
+        for (int i = 0; i < 5; i++)
+            ctrl.confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?", null, null, null);
+        Assert.assertEquals(gone.asks, 5 * (LlmSpikeGui.PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS.length + 1),
+                "each decision was asked with every retry");
+        Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(dead), 5, "one per decision, not one per retry");
+        Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(dead), 1, "the fifth dead decision in a row trips it once");
+
+        new LlmSpikeGui.PlayerControllerLLM(game, game.getPlayers().get(1), new LobbyPlayerAi(silent, null), silent, "",
+                new DeadBridge(silent + "/smart"), new DeadBridge(silent + "/fast"), "llm")
+                .confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?", null, null, null);
+        Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(silent), 0, "no answer from the model is the model's");
+
+        FixedReplyBridge talks = new FixedReplyBridge("I would rather not say.");
+        new LlmSpikeGui.PlayerControllerLLM(game, game.getPlayers().get(1), new LobbyPlayerAi(alive, null), alive, "",
+                talks, talks, "llm")
+                .confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?", null, null, null);
+        Assert.assertFalse(talks.prompts.isEmpty(), "the live seat was asked");
+        Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(alive), 0);
+        Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(alive), 0);
+    }
+
     // ================================================================================
     // The model table is UNIFORM (2026-10-13). It used to give deepseek/gpt a larger fast budget
     // than everyone else and every row its own smart cap (4000/8000/16000), which made the harness
@@ -2037,10 +2083,11 @@ public class LlmSpikeTest {
     }
 
     /** {G}x6 from one Druid and six other Elves needs the Druid twice. The engine's test payment uses a
-     *  source once, so it finds no plan and the seat is never asked; the real payment activates the
-     *  Druid twice with Forge AI's choice of Elves. That must be said, once, not left silent. */
+     *  source once, so it finds no plan; the real payment then activated the Druid twice with Forge AI's
+     *  choice of Elves, said as a fallback. The search the menu's check uses (#367) finds the two
+     *  activations, so the seat chooses the Elves both times and nothing falls back. */
     @Test
-    public void anEngineActivationOfATapTypeSourceIsSaid() {
+    public void aTapTypeSourceTheEngineCannotPlanIsStillTheSeats() {
         Game game = buildBareGame();
         Player me = game.getPlayers().get(0);
         addBattlefieldCard("Heritage Druid", me);
@@ -2054,10 +2101,13 @@ public class LlmSpikeTest {
         forge.game.spellability.SpellAbility spell = baloth.getFirstSpellAbility();
         spell.setActivatingPlayer(me);
 
+        Assert.assertNull(forge.ai.ComputerUtilMana.getManaSourcesToPayCost(new forge.game.mana.ManaCostBeingPaid(
+                new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G G G G G G"))), spell, me, false),
+                "fixture: the engine's own test payment finds no plan");
         Assert.assertTrue(ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G G G G G G")),
                 null, spell, null, null, false), "{G}x6 was not paid");
-        Assert.assertEquals(bridge.prompts.size(), 0, "fixture: the engine's plan was expected to be empty");
-        Assert.assertEquals(ctrl.aiDelegationsCount(), 1, "the engine's choice of Elves was not said exactly once");
+        Assert.assertEquals(bridge.prompts.size(), 2, "which Elves the Druid taps was not asked for each activation: " + bridge.prompts);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "the engine chose Elves");
     }
 
     /** The engine's real payment does not raise toPay again (CostPayment already did), so the plan

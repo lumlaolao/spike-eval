@@ -153,6 +153,22 @@ def test_crashed_game_fails_the_invariants():
         check("and fails the invariants", report["hard_invariants"]["pass"] is False)
 
 
+def test_a_crash_only_its_log_shows_fails_the_invariants():
+    """Round-6 review of #374: the crash check reads the paired log, which it never received before. A game whose
+    thread died after its line was written (no game_error on it) is a crash all the same."""
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-4-1000.jsonl", [game_line(seed=4, swap=False),
+                                                  dec(seat="model-a", dtype="mulligan", n_options=2, choice=0)])
+        write_text(dpath / "game-4-0.log", "[model-a] [ROUTER] mulligan: 2/7 lands -> asking x/model-a...\n"
+                   "[OPENROUTER model-a/smart] replied in 4000 ms\n"
+                   "[HEADLESS] game thread threw: java.lang.IllegalStateException: boom")
+        report = da.build_report([dpath])
+        check("a crash only the log shows is counted", report["hard_invariants"]["game_crash_count"] == 1,
+              str(report["hard_invariants"]))
+        check("and fails the invariants", report["hard_invariants"]["pass"] is False)
+
+
 def test_silent_drop_detected():
     """C5 signature: two 'play(react) -> asking' log lines for a seat that
     never produces a matching jsonl row (bridge-down->PASS branch that
@@ -347,7 +363,62 @@ def test_one_candidate_in_a_subset_decision_is_not_a_forced_pick():
               [e["type"] for e in c["forced_pick_mislabels"]["examples"]] == ["target"])
 
 
+def test_decisions_lost_to_a_dead_bridge_fail_the_invariants():
+    """Issue #369: a 402 game printed overall=PASS while its own fallback table listed play(bridge-down) 260.
+    The game line's count fails the invariants; a line from before it is judged by the transport failures in its
+    paired log, never by (bridge-down) rows (a model's non-answer writes those too); a count of 0 passes."""
+    def run(line, rows, log=None):
+        with tempfile.TemporaryDirectory() as d:
+            write_lines(Path(d) / "game-3-1000.jsonl", rows + [line])
+            if log is not None:
+                write_text(Path(d) / "game-3-0.log", log)
+            return da.build_report([Path(d)])
+    rows = [dec(seat="model-a", dtype="mulligan", n_options=2, choice=0, raw_reply="KEEP"),
+            dec(seat="model-a", tier="auto", prompt=None, raw_reply=None, fallback="play(bridge-down)->PASS")]
+    log_402 = "\n".join(["[OPENROUTER model-a/smart] HTTP 402: credits",
+                         "[model-a] [BRIDGE model-a/smart] no reply (attempt 2/3) -> restarting session",
+                         "[OPENROUTER model-a/smart] HTTP 402: credits",
+                         "[model-a] [BRIDGE model-a/smart] no reply (attempt 3/3) -> restarting session",
+                         "[OPENROUTER model-a/smart] HTTP 402: credits"])
+    log_empty = log_402.replace("HTTP 402: credits", "non-answer -> treating as bridge-down")
+    dead = dict(game_line(seed=3), bridge_down_decisions_a=21, bridge_down_decisions_b=0)
+    r = run(dead, rows[:1])
+    check("the game line's count is the invariant", r["hard_invariants"].get("bridge_down_total") == 21,
+          str(r["hard_invariants"]))
+    check("and fails it", r["hard_invariants"]["pass"] is False)
+    check("the text says so", "bridge_down_total=21" in da.render_text(r))
+    r = run(game_line(seed=3), rows, log_402)
+    check("an old line is judged by its log's transport failures",
+          r["hard_invariants"].get("bridge_down_total") == 1, str(r["hard_invariants"]))
+    check("and fails", r["hard_invariants"]["pass"] is False)
+    r = run(game_line(seed=3), rows, log_empty)
+    check("an old line whose model answered with nothing passes", r["hard_invariants"].get("bridge_down_ok") is True,
+          str(r["hard_invariants"]))
+    r = run(dict(game_line(seed=3), bridge_down_decisions_a=0, bridge_down_decisions_b=0), rows, log_402)
+    check("a line whose count is 0 passes", r["hard_invariants"]["pass"] is True, str(r["hard_invariants"]))
+    # Round-5 review of #374: a log naming a third game file is neither game's; the analyzer must agree with aggregate.
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-7-1000.jsonl", [game_line(seed=7, swap=False)])
+        write_lines(Path(d) / "game-7-2000.jsonl", [game_line(seed=7, swap=True)])
+        write_text(Path(d) / "game-7-0.log", "[EVAL] jsonl game-7-3000.jsonl\n" + log_402)
+        r = da.build_report([Path(d)])
+        check("a log that names another game file is not judged against these games",
+              r["hard_invariants"].get("bridge_down_total") == 0, str(r["hard_invariants"]))
+
+
+def test_the_standards_name_every_hard_invariant():
+    """docs/STANDARDS.md section 4 lists the run oracle's hard invariants; a new one must be named there."""
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-1-1000.jsonl", [game_line(seed=1)])
+        hi = da.build_report([Path(d)])["hard_invariants"]
+    names = sorted(k for k in hi if k not in ("pass",) and not k.endswith("_ok"))
+    text = " ".join((evalpath.REPO / "docs" / "STANDARDS.md").read_text(encoding="utf-8").split())
+    check("STANDARDS names every hard invariant", all("`%s=0`" % n in text for n in names), str(names))
+
+
 def main():
+    test_the_standards_name_every_hard_invariant()
+    test_decisions_lost_to_a_dead_bridge_fail_the_invariants()
     test_one_candidate_in_a_subset_decision_is_not_a_forced_pick()
     test_parse_log_text()
     test_normalize_fallback_matches_analyze_corpus_convention()
@@ -359,6 +430,7 @@ def main():
     test_malformed_lines_and_no_log_are_tolerated()
     test_shadow_choice_field_invisible_to_merge_gate()
     test_crashed_game_fails_the_invariants()
+    test_a_crash_only_its_log_shows_fails_the_invariants()
     test_a_block_set_that_stood_illegal_is_counted()
     print()
     if FAILURES:

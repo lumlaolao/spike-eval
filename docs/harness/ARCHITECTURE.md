@@ -75,6 +75,17 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - What can be paid is decided by `legallyPayable`: the engine's mana and non-mana tests. Forge AI's
   `ComputerUtilCost.canPayCost` adds its own taste on top. It refused, half the time at random, a planeswalker
   ability that spends all its loyalty, and refused ward costs and casualty creatures it would not pay.
+- The engine's mana test is greedy: each source once, in its own order, and a "tap N untapped X you control" part
+  (Heritage Druid) takes the lowest-power cards. It tapped Fyndhorn Elves for its own {G} before the Druid, left the
+  Druid two Elves, and hid Craterhoof Behemoth on a board that pays 8 (#367). When it fails, `seatCanPay` searches the
+  tap-type mana abilities it skipped (`tapTypeStep`: each set of cards the tap part may take, those that tap for no mana
+  of their own first, the rest paid by the engine's test with them tapped; three activations deep, 48 tests at most;
+  every card untapped again). Like the engine's test, it never lets the tap part take the card the paid ability taps for
+  its own {T}, and a payment it finds must leave that ability's own tap parts payable. It tries only the
+  abilities the seat's payment activates itself (a tap part and at most {T}, fixed colors), and that payment starts from
+  the activation it found (`prepayTapTypeManaAbilities`), the seat choosing the cards among those the rest of the
+  payment does not need. Druid-twice payments the engine could not plan are the seat's too, no longer Forge AI's choice
+  of Elves (harness-epoch-83).
 - A cost may be paid with the ability's own target, as a human may (Goblin Bombardment sacrificing the creature it
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
@@ -1029,7 +1040,49 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - *Why pinned:* a baseline arm that silently inherited a setting would be pooled with a different
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
-  **`defect_analyzer.py`** is the run oracle: `ai_tier_count=0` and no silent drops, or the run fails.
+  **`defect_analyzer.py`** is the run oracle: its four hard invariants (`docs/STANDARDS.md` section 4) hold, or the
+  run fails.
+- **A game the model's bridge did not play is not scored** (issue #369). The rule is TRANSPORT: when every retry of a
+  model ask fails in transport, the decision takes its fixed fallback and the seat counts it for its identity.
+  - A transport failure (`LLMBridge.lastFailureWasTransport`, set by `OpenRouterBridge` and `DecisionsBridge`): an HTTP
+    status other than a refusal of function calling or of a routing filter (402 when the credits run out, 401, 429,
+    5xx), an IO error (`HttpDeadline.transportError`: an `IOException`, a connect timeout included, but not the
+    request's own `HttpTimeoutException`), or a connection that sent no headers or went silent
+    (`HttpDeadline.gaveNoReply`).
+  - Not counted, the model's own decisions lost and scored as they are ("a reply that calls nothing ... the decision is
+    lost to a fixed legal option", `CLAUDE.md`): an empty or unreadable answer (also when the truncation retry then
+    fails in transport: the answer kept is the first), the deadline running out while the model reasoned, a
+    routing-filter refusal (`routing_refusals` on a puzzle row), and a refusal of function calling
+    (`native_tools_downgraded`). A `claude-cli:` seat (never scored) counts nothing.
+  - The game line carries `bridge_down_decisions_a` / `_b` and `circuit_breaker_trips_a` / `_b` (five dead decisions
+    in a row), 0 when nothing was lost.
+  - `aggregate.bridge_down_decisions` is the one reader (`aggregate.py`, `defect_analyzer.py`, `run_batch.py`): the
+    game line's count, or on a line from before the fields the transport failures in its log (`aggregate.paired_log`:
+    the log whose `[EVAL] jsonl` names the game file, else `game-<seed>-<0|1>.log` unless that names another game
+    file; every caller passes the game's own file, so they all pair alike). `aggregate.log_bridge_down` counts an ask
+    whose last attempt, the outcome line after `[BRIDGE <label>] no reply (attempt N/N)` and before that seat's next
+    line, is an HTTP error not followed by `[ROUTING-FILTER]` or `[NATIVE-TOOLS->TEXT]`, a `java`/`javax` net or io
+    error other than `HttpTimeoutException` and `UncheckedIOException` (a connect timeout counts), a stalled
+    connection, or a Decisions call with no headers. Never the `(bridge-down)` fallback rows: a model's non-answer
+    writes those too.
+  - `aggregate.py` leaves such a game out of every count a score is taken over (the strict score's `started`, and the
+    fallback and harness-decided gates, included; the recorded winner is kept); `panel_score.py` and `rating.py` refuse
+    it whatever the flags; `defect_analyzer.py` fails on it (`bridge_down_total`). In `run_batch.py` a game just
+    played on a dead bridge is status `bridge-down` (a problem in the batch summary, not retried in the run, where an
+    outage would repeat); a later resume under its condition sets it aside under `crashed/` (`bridgedown-swap<n>-<game file>`, still
+    priced) and plays the seed again.
+  - *Why any, not a share:* the 2026-11-05 block that ran out of credits (`runs/cv/luna-vs-ai`, kept by the issue's
+    hunter) scored 20 decisive games; on it `python3 eval/aggregate.py runs/cv/luna-vs-ai` now reads 2 decisive and 18
+    invalid, and `python3 eval/defect_analyzer.py runs/cv/luna-vs-ai` `bridge_down_total=355` (its game lines predate
+    the fields: the log reader counts every lost ask, plan and lookup asks included; the decision rows' 280
+    `(bridge-down)` fallbacks are a subset). The other recorded games: every `runs/**/game-*.jsonl` in the author's
+    five worktrees (`mtg-forge-llm-agent`, `cv-wt`, `fc-wt`, `retier`, `tvs-wt`) whose game line has a `harness_epoch`
+    and an `openrouter:` seat that is not the loopback fake, 79 lines outside that block; `bridge_down_decisions(line,
+    <its dir>)` reads 0 for every one, though 18 of their logs hold an `HTTP <n>`, `error:` or `stalled connection`
+    line a retry recovered (a count of those lines would have called them dead). No threshold has data behind it.
+  - Acceptance `gaming` plays a seat whose provider answers 402 to every call (`fake_model_server.py --http-error
+    402`) and checks the count, the invalid game and the analyzer failing on that invariant alone; the empty and
+    garbage seats, whose model answered, must count none.
 - **Seed governance (`eval/seed_policy.py`):** some seed blocks are reserved for evaluation, and no
   training data may come from them.
 - **The three headline scores:**

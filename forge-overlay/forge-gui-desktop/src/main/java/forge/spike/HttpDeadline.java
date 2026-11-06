@@ -33,8 +33,9 @@ final class HttpDeadline {
 
     /** How long a connection may stay silent before it is treated as stalled (OPENROUTER_IDLE_MS, 0 turns it off).
      *  3 to 5 calls in each C3 game (2026-10-16) got nothing back until the 300 s deadline, once "header parser
-     *  received no bytes": 15-25 minutes of every game spent waiting on dead connections. */
-    static final long IDLE_MS = idleFromEnv();
+     *  received no bytes": 15-25 minutes of every game spent waiting on dead connections. Not final only so a test
+     *  can shorten it around one bridge call (and put it back); play reads the environment's value. */
+    static volatile long IDLE_MS = idleFromEnv();
 
     private static long idleFromEnv() {
         try { return Math.max(0, Long.parseLong(System.getenv().getOrDefault("OPENROUTER_IDLE_MS", "90000"))); }
@@ -43,6 +44,16 @@ final class HttpDeadline {
 
     /** Why the last {@link #send} on this thread returned null: "deadline", "no-headers" or "silent", or null. */
     static final ThreadLocal<String> LAST_STOP = new ThreadLocal<>();
+    /** The connection gave no reply (no headers, or it went silent): the transport failed (issue #369). A "deadline"
+     *  stop is the model's time spent. */
+    static boolean gaveNoReply(String stop) { return "no-headers".equals(stop) || "silent".equals(stop); }
+    /** An exception from a send that is the transport failing (connection refused or reset, an IO error); not the
+     *  request's own deadline (HttpTimeoutException: the model's time), nor a reply that could not be read. */
+    static boolean transportError(Exception e) {
+        // A connect timeout made no connection at all: transport. Its parent, the request's own timeout, is the deadline.
+        return e instanceof java.net.http.HttpConnectTimeoutException
+                || (e instanceof java.io.IOException && !(e instanceof java.net.http.HttpTimeoutException));
+    }
     /** The status and headers of the last {@link #send} on this thread, once they arrived (null before): a call cut
      *  off after its headers still has them, for the run's record (Transcript). */
     static final ThreadLocal<HttpResponse.ResponseInfo> LAST_INFO = new ThreadLocal<>();
