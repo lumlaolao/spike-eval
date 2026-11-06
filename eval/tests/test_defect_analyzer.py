@@ -185,6 +185,27 @@ def test_the_crash_check_pairs_logs_as_the_bridge_check_does():
         check("and counted once", c["game_crash_count"] == 1, str(c["game_crash_count"]))
 
 
+def test_the_crash_check_keeps_a_log_no_existing_file_claims():
+    """Round-1 review of #390. A log with no "[EVAL] jsonl" line goes to one file only (a crash counted once); a log
+    naming a game file that is not in the directory (moved to crashed/) is still the lone file's, so its crash stands."""
+    crash = "[HEADLESS] game thread threw: java.lang.StackOverflowError"
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-7-1000.jsonl", [game_line(seed=7, swap=False)])
+        write_lines(dpath / "game-7-2000.jsonl", [game_line(seed=7, swap=False)])
+        write_text(dpath / "game-7-0.log", crash)
+        c = da.build_report([dpath])["combined"]
+        check("a log naming no file is one file's crash, counted once", c["game_crash_count"] == 1,
+              str(c["game_crash_files"]))
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-7-1000.jsonl", [game_line(seed=7, swap=False)])
+        write_text(dpath / "game-7-0.log", "[EVAL] jsonl game-7-9999.jsonl\n" + crash)
+        c = da.build_report([dpath])["combined"]
+        check("a log naming an absent file still shows its crash", c["game_crash_count"] == 1,
+              str(c["game_crash_files"]))
+
+
 def test_silent_drop_detected():
     """C5 signature: two 'play(react) -> asking' log lines for a seat that
     never produces a matching jsonl row (bridge-down->PASS branch that
@@ -448,6 +469,7 @@ def main():
     test_crashed_game_fails_the_invariants()
     test_a_crash_only_its_log_shows_fails_the_invariants()
     test_the_crash_check_pairs_logs_as_the_bridge_check_does()
+    test_the_crash_check_keeps_a_log_no_existing_file_claims()
     test_a_block_set_that_stood_illegal_is_counted()
     print()
     if FAILURES:

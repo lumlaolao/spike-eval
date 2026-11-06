@@ -1044,7 +1044,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
   **`defect_analyzer.py`** is the run oracle: its four hard invariants (`docs/STANDARDS.md` section 4) hold, or the
-  run fails.
+  run fails. Its crash check reads a game's log by the bridge-down check's rule (`aggregate.paired_log`): a log goes
+  to another file only when it names a game file that exists in the directory (`[EVAL] jsonl`), else to the one file
+  `pair_dir` claimed it for, so a crash is listed once, under the file it happened in.
 - **A game the model's bridge did not play is not scored** (issue #369). The rule is TRANSPORT: when every retry of a
   model ask fails in transport, the decision takes its fixed fallback and the seat counts it for its identity.
   - A transport failure (`LLMBridge.lastFailureWasTransport`, set by `OpenRouterBridge` and `DecisionsBridge`): an HTTP

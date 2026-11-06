@@ -39,7 +39,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from aggregate import bridge_down_decisions, paired_log
+from aggregate import bridge_down_decisions, log_game_file, paired_log
 
 # ------------------------------------------------------------- log parsing
 #
@@ -390,16 +390,21 @@ def summarize(pairs, label):
     mulligan_missing_seats = sorted(s for s in all_seats if mulligan_counts.get(s, 0) == 0)
 
     # --- games whose thread crashed (runs/luna-v8/g2: a StackOverflowError scored as a draw)
-    # A file with a game line reads the log that names it (aggregate.paired_log, the bridge-down check's pairing);
-    # a file without one has no seed to pair by and keeps the log pair_dir chose.
+    # A log goes to another file only when it names a game file that exists in the directory (aggregate.paired_log's
+    # rule, as the bridge-down check uses); otherwise a file keeps the log pair_dir claimed for it, one claim per log.
+    texts = {p["log"]: p["log_text"] for p in pairs if p.get("log")}
+
     def crash_log_text(p):
-        if not p.get("games"):
-            return p.get("log_text") or ""
-        own = paired_log(dict(p["games"][-1], _file=Path(p["jsonl"]).name), Path(p["jsonl"]).parent)
-        try:
-            return own.read_text(encoding="utf-8", errors="replace") if own else ""
-        except OSError:
-            return ""
+        if p.get("games"):
+            jp = Path(p["jsonl"])
+            # _file: the game's own file, so paired_log judges it by the log that names it.
+            named = paired_log(dict(p["games"][-1], _file=jp.name), jp.parent)
+            if named is not None and log_game_file(named) == jp.name:
+                return texts.get(str(named)) or ""
+            other = log_game_file(Path(p["log"])) if p.get("log") else None
+            if other and other != jp.name and (jp.parent / other).is_file():
+                return ""
+        return p.get("log_text") or ""
 
     crashed = [str(p["jsonl"]) for p in pairs
                if any(g.get("game_error") for g in p.get("games") or [])
