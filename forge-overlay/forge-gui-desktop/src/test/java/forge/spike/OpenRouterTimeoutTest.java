@@ -336,11 +336,12 @@ public class OpenRouterTimeoutTest {
             CompletableFuture<HttpResponse<String>> f =
                     shared.sendAsync(get(dribbleUrl, NO_REQUEST_BOUND_MS), HttpResponse.BodyHandlers.ofString());
             // Cancel only once the server holds this exchange: under load (16 on 4 cores, PR #373's
-            // acceptance) a fixed 200 ms ended one request before it reached the server, and the
-            // count below saw 11 of 12. The claim is about exchanges that were open when cancelled.
-            long opened = System.currentTimeMillis() + 10_000;
-            while (handlersOpened.get() - openedBefore <= i && System.currentTimeMillis() < opened)
+            // acceptance) a fixed 200 ms cancelled one request before it arrived (count 11 of 12).
+            long arrival = System.currentTimeMillis() + 10_000;
+            while (handlersOpened.get() - openedBefore <= i && System.currentTimeMillis() < arrival)
                 Thread.sleep(10);
+            Assert.assertTrue(handlersOpened.get() - openedBefore > i,
+                    "request " + i + " never reached the server within 10 s");
             try { f.get(200, TimeUnit.MILLISECONDS); Assert.fail("dribble should not complete in 200ms"); }
             catch (TimeoutException expected) { f.cancel(true); }
         }
