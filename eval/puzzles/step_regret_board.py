@@ -19,6 +19,9 @@ every position winnable or not. It is a MODEL verdict, exact only when the model
   5. A spell being cast at a target or splice question is committed (CANCEL is not a recorded option), except that
      a splice set the pool cannot pay is undone (the next prompt has the same hand and pool).
 
+Another family's board gets its own model (family_of): drain and drain2 are valued by board_drain.py, with the same
+trajectory, regret, floor and witness steps; a family with no model is refused.
+
 Anything outside the model (another card, an unknown stack item) is refused (NotModeled), never guessed. Position K
 is the game after the seat's first K decision rows, as in step_regret.py; the end is the last decision applied.
 
@@ -37,12 +40,16 @@ import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_gen as pg  # noqa: E402
 import step_regret as sr  # noqa: E402
 
-VERSION = "step-regret-board-v2"
+VERSION = "step-regret-board-v3"
 CARDS = pg.SPLICE_CARDS
 
 
 class NotModeled(Exception):
-    """The position holds something the splice model does not cover."""
+    """The position holds something the board model does not cover."""
+
+
+# Run as a script, this module is __main__: board_drain must import this one (its NotModeled), not a second copy.
+sys.modules.setdefault("step_regret_board", sys.modules[__name__])
 
 
 # ------------------------------------------------------------------ reading the prompt
@@ -421,20 +428,37 @@ def agreement(traj, verdicts):
             "decided_proven": sum(1 for _, v in decided if v == "proven")}
 
 
+def family_of(res):
+    """The board model for a result row's board: this module (splice, splice2), board_drain (drain, drain2), or None
+    when no model covers the family."""
+    pid = res.get("id") or ""
+    if re.search(r"(^|[-_])drain2?[-_]", pid):
+        import board_drain
+        return board_drain
+    if re.search(r"(^|[-_])splice2?[-_]", pid):
+        return sys.modules[__name__]
+    return None
+
+
 def analyse(log, verdicts):
     """One attempt's row: its result row's model, epoch and status (never pooled across them), then every position's
-    verdict, the regret step and its floor; a board outside the model is status "refused" with the reason."""
+    verdict, the regret step and its floor; a board outside the model is status "refused" with the reason. The board
+    model is the family's (family_of; splice when the result row names no board)."""
     res = sr.result_row(log) or {}
     out = {"t": "step_regret_board", "version": VERSION, "source_game": str(log), "seed": sr.seed_of(log),
            "solver_model": res.get("solver_model"), "harness_epoch": res.get("harness_epoch"),
-           "attempt_status": res.get("status")}
+           "attempt_status": res.get("status"), "board": res.get("id")}
+    fam = family_of(res) if res.get("id") else sys.modules[__name__]
+    if fam is None:
+        return dict(out, status="refused", refused="no board model for %r" % res.get("id"))
+    out["model"] = getattr(fam, "VERSION", VERSION)
     rows = sr.decision_rows(log)
     try:
-        traj = trajectory(rows)
+        traj = fam.trajectory(rows)
         reg = regret(traj)
         out.update(positions=traj, n_decisions=max(0, len(traj) - 1), agreement=agreement(traj, verdicts), **reg)
         if reg["status"] == "exact":
-            out["floor"] = floor_at(rows, reg["regret_k"])
+            out["floor"] = fam.floor_at(rows, reg["regret_k"])
     except NotModeled as e:
         out.update(status="refused", refused=str(e))
     return out
@@ -447,6 +471,8 @@ def main(argv=None):
     ap.add_argument("--out", help="write one JSON row per attempt here")
     ap.add_argument("--scripts", help="write a witness script (the recorded prefix, then the model's line) for every "
                                       "position the model calls winnable into this dir")
+    ap.add_argument("--regret-only", action="store_true",
+                    help="with --scripts: one script per attempt, at its regret step (any question kind)")
     ap.add_argument("--witnesses", help="dir of witness runs (<game stem>-k<K>/, puzzle_baselines.py line --out-dir): "
                                         "each checked against its recording")
     a = ap.parse_args(argv)
@@ -459,16 +485,18 @@ def main(argv=None):
             if r["status"] == "refused":
                 print("%s seed %s: refused (%s)" % (Path(log).parent.name, r["seed"], r["refused"]))
                 continue
+            fam = family_of(sr.result_row(log) or {}) or sys.modules[__name__]
             if a.scripts:
                 drows = sr.decision_rows(log)
-                for p in r["positions"]:
-                    if p["winnable"] and p["type"] == "play":
-                        w = script_for(drows, p["k"])
-                        f = Path(a.scripts) / ("%s-k%03d.txt" % (Path(log).stem, p["k"]))
-                        f.parent.mkdir(parents=True, exist_ok=True)
-                        f.write_text("# %s K=%d: %d recorded lines, then the model's line (%d of %d); option %r\n"
-                                     "[solution]\n%s\n" % (Path(log).name, p["k"], w["prefix"], w["dealt"], w["opp"],
-                                                            w["option"], "\n".join(w["lines"])))
+                ks = ([r["regret_k"]] if r.get("regret_k") is not None else []) if a.regret_only else [
+                    p["k"] for p in r["positions"] if p["winnable"] and p["type"] == "play"]
+                for k in ks:
+                    w = fam.script_for(drows, k)
+                    f = Path(a.scripts) / ("%s-k%03d.txt" % (Path(log).stem, k))
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_text("# %s K=%d: %d recorded lines, then the model's line (%d of %d); option %r\n"
+                                 "[solution]\n%s\n" % (Path(log).name, k, w["prefix"], w["dealt"], w["opp"],
+                                                        w["option"], "\n".join(w["lines"])))
             ag = r["agreement"]
             print("%s seed %s: %s regret K=%s | agree %d/%d (baseline %d/%d)" % (
                 Path(log).parent.parent.name, r["seed"], r["status"], r["regret_k"], ag["agree"], ag["decided"],
@@ -488,8 +516,10 @@ def main(argv=None):
                     games = sorted(d.rglob("game-*.jsonl"))
                     res = [r for f in sorted(d.rglob("puzzle-results.jsonl")) for r in sr.read_jsonl(f)]
                     drows = sr.decision_rows(log)
+                    fam = family_of(sr.result_row(log) or {}) or sys.modules[__name__]
                     v = ("drift: no witness game or result row" if not games or not res else
-                         witness_verdict(drows, sr.decision_rows(games[-1]), k, res[-1], script_for(drows, k)["option"]))
+                         fam.witness_verdict(drows, sr.decision_rows(games[-1]), k, res[-1],
+                                             fam.script_for(drows, k)["option"]))
                     w = {"t": "step_regret_witness", "version": VERSION, "source_game": str(log), "k": k,
                          "verdict": v, "witness_dir": str(d)}
                     rows.append(w)
