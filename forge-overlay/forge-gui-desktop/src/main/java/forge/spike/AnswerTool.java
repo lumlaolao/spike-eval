@@ -67,9 +67,9 @@ final class AnswerTool {
      *  Unchanged off the arm.
      *  v18 (2026-11-05): the PROPOSE_NOTEBOOK arm ({@link #proposeNotebook}): a proposal decision lists this game's
      *  earlier rules refusals that the seat was told, every one, and the preamble says so.
-     *  Unchanged off the arm. */
-    // v19 (2026-11-06, #399): the yield says when the seat is still asked as the play loop does it: its own main phase
-    // only once the stack is empty, and end-of-turn through this turn's end step ("your own main phases always ask too").
+     *  Unchanged off the arm.
+     *  v19 (2026-11-06, #399): the yield says when the seat is still asked, as the play loop does it: its own main phase
+     *  once the stack is empty, and end-of-turn through this turn's end step. */
     static final String VERSION = "answer-tool-v19";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";

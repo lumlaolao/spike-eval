@@ -66,11 +66,16 @@ public class AnswerToolTest {
     @Test
     public void theYieldSaysWhenTheSeatIsStillAsked() {
         String fixed = new AnswerTool.Ask(AnswerTool.Spec.one(2), false).definitions().toString();
-        for (String text : new String[] {fixed, LlmSpikeGui.PlayerControllerLLM.YIELD_TOOL_HINT}) {
+        AnswerTool.Spec play = AnswerTool.Spec.one(3);
+        play.yield = true;  // the play ask's own schema (playSpec.yield): the copy a per-decision seat is sent
+        String perDecision = AnswerTool.definition(play).toString();
+        for (String text : new String[] {fixed, perDecision, LlmSpikeGui.PlayerControllerLLM.YIELD_TOOL_HINT}) {
             Assert.assertFalse(text.contains("your own main phases always ask too"), text);
             Assert.assertTrue(text.contains("your own main phase asks again once the stack is empty"), text);
             Assert.assertTrue(text.contains("end-of-turn lasts through this turn's end step"), text);
         }
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.YIELD_HINT.contains("your own main phases always ask too"),
+                "the text arm's hint is a legacy profile's bytes: it keeps its words (#399)");
     }
 
     @Test
