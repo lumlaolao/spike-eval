@@ -1,6 +1,6 @@
 """eval/research/README.md catalogues the research notes (docs/STANDARDS.md, the eval/research/ row): every dated
-note has a row, every note it links exists, and every other file in the folder is a dated note. Without this the
-catalogue is kept true only by its author's memory."""
+note has a row in the Notes table, every note it links exists, and every other file in the folder is a dated note.
+It does not check the PR numbers or code names the catalogue cites; those are read in review."""
 import os
 import re
 import sys
@@ -16,10 +16,11 @@ LINK = re.compile(r"\]\(([^)#]+\.md)\)")
 
 class ResearchIndexTest(unittest.TestCase):
     def setUp(self):
-        self.index = (FOLDER / "README.md").read_text()
+        self.index = (FOLDER / "README.md").read_text(encoding="utf-8")
+        self.notes_table = self.index.split("## Ideas")[0]
 
     def test_every_dated_note_has_a_row(self):
-        linked = set(LINK.findall(self.index))
+        linked = set(LINK.findall(self.notes_table))
         missing = sorted(p.name for p in FOLDER.glob("*.md") if DATED.match(p.name) and p.name not in linked)
         self.assertEqual(missing, [], "add a row to eval/research/README.md for each")
 

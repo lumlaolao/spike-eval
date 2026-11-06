@@ -4,8 +4,9 @@ Every research note, technique and idea for this benchmark, in one place. A note
 it is evidence for a decision, not the decision (that lives in `docs/`). Add a row here in the same commit as a new
 note (`eval/tests/test_research_index.py` checks it), and move an idea's status when a PR or a note changes it.
 
-Status words: **adopted** (in the harness or the eval on main), **draft PR** (open, not merged), **running** (an experiment in progress), **negative** (measured; does not help as
-proposed), **open** (proposed, nothing built), **parked** (blocked; the reason is given).
+Status words: **adopted** (in the harness or the eval on main), **draft PR** (open, not merged), **running** (an
+experiment in progress), **negative** (measured; does not help as proposed), **open** (proposed, nothing built),
+**parked** (blocked; the reason is given).
 
 ## Notes
 
