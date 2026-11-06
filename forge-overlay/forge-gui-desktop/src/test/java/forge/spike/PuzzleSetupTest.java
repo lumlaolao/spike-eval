@@ -116,6 +116,13 @@ public class PuzzleSetupTest {
         Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 1);
         boardOf("RP_114.pzl");
         Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, 2);
+        // A goal whose trigger counts no turn (the solver loses at the opponent's next upkeep) has no last turn: -1,
+        // and every clock stays as in a game.
+        List<String> drain = new ArrayList<>();
+        for (String line : FileUtil.readFile(new File(REPO, "eval/puzzles/hard/gen2/drain2_eaca60c560dc.pzl")))
+            drain.add(line.replace("Goal:Survive", "Goal:Win before opponent's next turn"));
+        gameOf(FileSection.parseSections(drain), "drain2_no_count");
+        Assert.assertEquals(LlmSpikeGui.puzzleLastTurn, -1);
     }
 
     /** A puzzle's solver reads its own cards' rules text, as a game seat reads its deck's (#391): the splice board's
