@@ -345,6 +345,22 @@ public class ProposeActionsTest {
                 "the Lyrist's ability needs a {G} no other Elf can make: " + po.spells);
     }
 
+    /** Fear of Exposure costs {2}{G} and "tap two untapped creatures and/or lands". The Druid's {G}{G}{G} needs all three
+     *  Elves (the engine's own test taps Fyndhorn for its {G} first and finds nothing), and then nothing is left for
+     *  Fear's own tap part: the search's payment must leave the spell's own costs payable, so it is not offered
+     *  (pr-review of #375). */
+    @Test
+    public void aTapUntappedElvesPaymentLeavesTheSpellsOwnTapPartPayable() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves")) card(elf, me, ZoneType.Battlefield);
+        Card fear = card("Fear of Exposure", me, ZoneType.Hand);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertFalse(po.spells.stream().anyMatch(sa -> sa.getHostCard() == fear),
+                "the Druid's three Elves leave no two to tap for Fear of Exposure: " + po.spells);
+    }
+
     @Test
     public void aSecondLandBreaksTheLandDrop() {
         Game g = bareGame(PhaseType.MAIN1);

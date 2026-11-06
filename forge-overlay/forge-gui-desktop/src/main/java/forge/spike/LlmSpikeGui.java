@@ -9326,6 +9326,9 @@ public final class LlmSpikeGui {
         private static TapTypeStep tapTypeSearch(forge.game.mana.ManaCostBeingPaid need, SpellAbility sa, Player me,
                 boolean effect, int[] budget, int depth) {
             if (depth <= 0) return null;
+            // A card the paid ability taps for its own {T} is never one of them, as in the engine's
+            // checkTapTypeCost (Elvish Lyrist's {G}, {T}: pr-review of #375).
+            Card ownTap = sa.getPayCosts() != null && sa.getPayCosts().hasTapCost() ? sa.getHostCard() : null;
             for (Card host : new CardCollection(me.getCardsIn(ZoneType.Battlefield))) {
                 for (SpellAbility ma : host.getManaAbilities()) {
                     forge.game.cost.CostTapType part = simulableTapPart(ma, sa, me, effect);
@@ -9334,9 +9337,7 @@ public final class LlmSpikeGui {
                     CardCollection cands = CardLists.filter(CardLists.getValidCards(me.getCardsIn(ZoneType.Battlefield),
                             part.getType().split(";"), me, host, ma), CardPredicates.CAN_TAP);
                     if (!part.canTapSource) cands.remove(host);
-                    // A card the paid ability taps for its own {T} is never one of them, as in the engine's
-                    // checkTapTypeCost (Elvish Lyrist's {G}, {T}: pr-review of #375).
-                    if (sa.getPayCosts() != null && sa.getPayCosts().hasTapCost()) cands.remove(sa.getHostCard());
+                    if (ownTap != null) cands.remove(ownTap);
                     if (n <= 0 || cands.size() < n) continue;
                     // Cards that make no mana of their own by tapping go first: tapping them costs the payment nothing.
                     cands.sort(java.util.Comparator.comparingInt(c -> c.getManaAbilities().anyMatch(m ->
