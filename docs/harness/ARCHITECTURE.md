@@ -1072,8 +1072,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     fallback and harness-decided gates, included; the recorded winner is kept); `panel_score.py` and `rating.py` refuse
     it whatever the flags; `defect_analyzer.py` fails on it (`bridge_down_total`). In `run_batch.py` a game just
     played on a dead bridge is status `bridge-down` (a problem in the batch summary, not retried in the run, where an
-    outage would repeat); a later resume under its condition sets it aside under `crashed/` (`bridgedown-swap<n>-<game file>`, still
-    priced) and plays the seed again.
+    outage would repeat); a later resume under its condition sets it aside under `crashed/`
+    (`bridgedown-swap<n>-<game file>`, still priced) and plays the seed again.
   - *Why any, not a share:* the 2026-11-05 block that ran out of credits (`runs/cv/luna-vs-ai`, kept by the issue's
     hunter) scored 20 decisive games; on it `python3 eval/aggregate.py runs/cv/luna-vs-ai` now reads 2 decisive and 18
     invalid, and `python3 eval/defect_analyzer.py runs/cv/luna-vs-ai` `bridge_down_total=355` (its game lines predate

@@ -169,6 +169,22 @@ def test_a_crash_only_its_log_shows_fails_the_invariants():
         check("and fails the invariants", report["hard_invariants"]["pass"] is False)
 
 
+def test_the_crash_check_pairs_logs_as_the_bridge_check_does():
+    """Issue #385: two game files for one (seed, swap) (a foreign-condition line and its replay) share one log. The
+    crash check read the log pair_dir chose (the first file claimed it); it now reads the log that names the file
+    (aggregate.paired_log), so the replay's crash is listed under the replay, not under the earlier file."""
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-7-1000.jsonl", [game_line(seed=7, swap=False)])
+        write_lines(dpath / "game-7-2000.jsonl", [game_line(seed=7, swap=False)])
+        write_text(dpath / "game-7-0.log", "[EVAL] jsonl game-7-2000.jsonl\n"
+                   "[HEADLESS] game thread threw: java.lang.StackOverflowError")
+        c = da.build_report([dpath])["combined"]
+        check("the crash is listed under the file the log names",
+              [Path(f).name for f in c["game_crash_files"]] == ["game-7-2000.jsonl"], str(c["game_crash_files"]))
+        check("and counted once", c["game_crash_count"] == 1, str(c["game_crash_count"]))
+
+
 def test_silent_drop_detected():
     """C5 signature: two 'play(react) -> asking' log lines for a seat that
     never produces a matching jsonl row (bridge-down->PASS branch that
@@ -431,6 +447,7 @@ def main():
     test_shadow_choice_field_invisible_to_merge_gate()
     test_crashed_game_fails_the_invariants()
     test_a_crash_only_its_log_shows_fails_the_invariants()
+    test_the_crash_check_pairs_logs_as_the_bridge_check_does()
     test_a_block_set_that_stood_illegal_is_counted()
     print()
     if FAILURES:

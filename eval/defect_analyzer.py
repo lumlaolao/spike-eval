@@ -39,7 +39,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from aggregate import bridge_down_decisions
+from aggregate import bridge_down_decisions, paired_log
 
 # ------------------------------------------------------------- log parsing
 #
@@ -390,9 +390,20 @@ def summarize(pairs, label):
     mulligan_missing_seats = sorted(s for s in all_seats if mulligan_counts.get(s, 0) == 0)
 
     # --- games whose thread crashed (runs/luna-v8/g2: a StackOverflowError scored as a draw)
+    # A file with a game line reads the log that names it (aggregate.paired_log, the bridge-down check's pairing);
+    # a file without one has no seed to pair by and keeps the log pair_dir chose.
+    def crash_log_text(p):
+        if not p.get("games"):
+            return p.get("log_text") or ""
+        own = paired_log(dict(p["games"][-1], _file=Path(p["jsonl"]).name), Path(p["jsonl"]).parent)
+        try:
+            return own.read_text(encoding="utf-8", errors="replace") if own else ""
+        except OSError:
+            return ""
+
     crashed = [str(p["jsonl"]) for p in pairs
                if any(g.get("game_error") for g in p.get("games") or [])
-               or "game thread threw" in (p.get("log_text") or "")]
+               or "game thread threw" in crash_log_text(p)]
 
     # --- decisions lost to a dead model bridge (issue #369: a 402 game read overall=PASS while this report's own
     # fallback table listed play(bridge-down) 260): the game line's count, or on a line from before it the transport
