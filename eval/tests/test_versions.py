@@ -46,23 +46,41 @@ class VersionsTest(unittest.TestCase):
         self.assertEqual(sorted(set(self.NOT_STAMPED) - found), [], "a NOT_STAMPED entry names no constant")
         self.assertTrue(all(why.strip() for why in self.NOT_STAMPED.values()))
 
-    # Stamps whose value no acceptance stage names, each with why and where it is pinned instead (#372).
+    # Stamps whose value no acceptance stage names, each with the file that pins it instead, checked below (#372).
     PINNED_ELSEWHERE = {
-        "ReplayBridge.VERSION": "asserted by value in ReplayBridgeTest, which the javatests stage runs",
-        "FORGE_COMMIT": "the engine pin: preflight checks the checkout against it, by sha, not by this short form",
+        "ReplayBridge.VERSION": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ReplayBridgeTest.java",
+        "FORGE_COMMIT": None,  # the engine pin: preflight compares the checkout's HEAD with the FORGE_COMMIT file
     }
+
+    @staticmethod
+    def asserted(text, value):
+        """Whether `value` is a whole token (not part of a longer version) on a line that is not a comment: a stage
+        asserts a stamp as a quoted value or inside the log line it greps for ("[OBSERVATION] observation-...")."""
+        token = re.compile(r"(?<![\w-])" + re.escape(value) + r"(?![\w-])")
+        return any(token.search(line) for line in text.splitlines() if not line.lstrip().startswith(("#", "//")))
 
     def test_every_stamp_is_pinned_by_value_in_acceptance(self):
         # STANDARDS section 4: each stamp is asserted by literal value in a stage of eval/harness_acceptance.sh, so a
-        # version that moves without the gate moving turns acceptance red. one-chat-v3 was pinned nowhere (#372).
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        with open(os.path.join(root, "eval", "harness_acceptance.sh"), encoding="utf-8") as f:
-            gate = f.read()
-        names = [name for name, _, _, _ in versions.read_stamps()]
-        unpinned = [name for name, value, _, _ in versions.read_stamps()
-                    if value not in gate and name not in self.PINNED_ELSEWHERE]
-        self.assertEqual(unpinned, [], "pin each value in a stage of eval/harness_acceptance.sh, or say why not")
-        self.assertEqual(sorted(set(self.PINNED_ELSEWHERE) - set(names)), [], "a PINNED_ELSEWHERE entry names no stamp")
+        # version that moves without the gate moving turns acceptance red; a stamp no stage asserts is caught (#372).
+        def read(rel):
+            with open(os.path.join(versions.REPO, rel), encoding="utf-8") as f:
+                return f.read()
+        gate = read("eval/harness_acceptance.sh")
+        stamps = versions.read_stamps()
+        unpinned = [name for name, value, _, _ in stamps
+                    if not self.asserted(gate, value) and name not in self.PINNED_ELSEWHERE]
+        self.assertEqual(unpinned, [], "pin each value in a stage of eval/harness_acceptance.sh, or say where else")
+        values = {name: value for name, value, _, _ in stamps}
+        self.assertEqual(sorted(set(self.PINNED_ELSEWHERE) - set(values)), [], "a PINNED_ELSEWHERE entry names no stamp")
+        for name, where in self.PINNED_ELSEWHERE.items():
+            if where:
+                self.assertTrue(self.asserted(read(where), values[name]), "%s no longer pins %s" % (where, name))
+        self.assertIn('"$REPO/FORGE_COMMIT"', gate, "preflight no longer reads the engine pin")
+
+    def test_a_comment_does_not_pin_a_stamp(self):
+        self.assertFalse(self.asserted('# move it WITH "one-chat-v3"\n// "one-chat-v3"', "one-chat-v3"))
+        self.assertTrue(self.asserted('elif game.get("v")!="one-chat-v3":', "one-chat-v3"))
+        self.assertFalse(self.asserted('x = "one-chat-v30"', "one-chat-v3"))
 
     def test_the_page_matches_the_code(self):
         self.assertEqual(versions.main(["--check"]), 0, "run: python3 eval/versions.py --write")

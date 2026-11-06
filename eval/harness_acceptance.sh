@@ -1072,9 +1072,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 elif game.get("turn_chat") is not True or game.get("turn_chat_version")!="turn-chat-v1":
     problems.append("turn_chat=%r version=%r"%(game.get("turn_chat"),game.get("turn_chat_version")))
-# ONE_CHAT's stamp is on every game line; pinned here, the one stage that runs the chat bridge (move it WITH
+# The ONE_CHAT stamp is on every game line; pinned here, the one stage that runs the chat bridge (move it WITH
 # ChatSessionBridge.VERSION; eval/tests/test_versions.py checks every stamp is pinned).
-elif game.get("one_chat_version")!="one-chat-v3":
+if game and game.get("one_chat_version")!="one-chat-v3":
     problems.append("one_chat_version=%r"%game.get("one_chat_version"))
 model=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
