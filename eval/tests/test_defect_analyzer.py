@@ -406,6 +406,22 @@ def test_decisions_lost_to_a_dead_bridge_fail_the_invariants():
               r["hard_invariants"].get("bridge_down_total") == 0, str(r["hard_invariants"]))
 
 
+def test_a_puzzle_attempt_a_dead_bridge_played_fails_the_invariants():
+    """Issue #378: a puzzle directory has no game line; its result rows carry the count (bridge_down_decisions)."""
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-1-1000.jsonl", [dec(seat="Solver", dtype="mulligan", n_options=2, choice=0,
+                                                        raw_reply="KEEP")])
+        write_lines(Path(d) / "puzzle-results.jsonl", [{"id": "PP20", "seed": 1, "status": "failed",
+                                                         "bridge_down_decisions": 11},
+                                                        {"id": "PP20", "seed": 2, "status": "failed",
+                                                         "bridge_down_decisions": 0}])
+        r = da.build_report([Path(d)])
+        check("the puzzle row's count is the invariant", r["hard_invariants"].get("bridge_down_total") == 11,
+              str(r["hard_invariants"]))
+        check("and fails it", r["hard_invariants"]["pass"] is False)
+        check("the text names the attempt", "PP20 seed 1" in da.render_text(r), da.render_text(r))
+
+
 def test_the_standards_name_every_hard_invariant():
     """docs/STANDARDS.md section 4 lists the run oracle's hard invariants; a new one must be named there."""
     with tempfile.TemporaryDirectory() as d:
@@ -419,6 +435,7 @@ def test_the_standards_name_every_hard_invariant():
 def main():
     test_the_standards_name_every_hard_invariant()
     test_decisions_lost_to_a_dead_bridge_fail_the_invariants()
+    test_a_puzzle_attempt_a_dead_bridge_played_fails_the_invariants()
     test_one_candidate_in_a_subset_decision_is_not_a_forced_pick()
     test_parse_log_text()
     test_normalize_fallback_matches_analyze_corpus_convention()

@@ -931,6 +931,7 @@ public final class LlmSpikeGui {
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
         private int lostToRouting = 0;   // decisions lost after a routing-filter refusal among their retries (budget())
+        private int lostToTransport = 0; // decisions lost to a dead bridge (the bridgeDown rule, issue #369; budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
          *  adds nothing) and wall time, the retries included. A puzzle result row carries them (budget()). */
         private long spentPromptTokens = 0, spentCompletionTokens = 0, spentModelMs = 0;
@@ -1392,6 +1393,9 @@ public final class LlmSpikeGui {
             m.put("completion_tokens", spentCompletionTokens);
             m.put("model_ms", spentModelMs);
             m.put("lookups", contextMemory.lookupsUsed());
+            // Issue #378: the decisions a dead bridge lost (a 402 when the credits ran out, an outage; the game line's
+            // bridge_down_decisions rule). puzzle_score.py refuses a row with any; puzzle_solve.py --resume replays it.
+            m.put("bridge_down_decisions", lostToTransport);
             // Under a routing filter (price ceiling, precision list): the decisions lost to it after every retry
             // (puzzle_score.py refuses a row with any), and the HTTP refusals behind them, recovered ones included (a
             // diagnostic; a recovered one lost nothing).
@@ -8481,7 +8485,7 @@ public final class LlmSpikeGui {
                 Integer routing1 = b.getRoutingRefusals();
                 if (routing0 != null && routing1 != null && routing1 > routing0) lostToRouting++;
                 consecutiveBridgeFailures++;
-                if (b.lastFailureWasTransport()) bridgeDown.merge(seat, 1, Integer::sum);
+                if (b.lastFailureWasTransport()) { bridgeDown.merge(seat, 1, Integer::sum); lostToTransport++; }
                 if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
                     breakerTrips.merge(seat, 1, Integer::sum);

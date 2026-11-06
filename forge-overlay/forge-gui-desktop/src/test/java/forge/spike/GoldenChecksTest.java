@@ -2160,6 +2160,31 @@ public class GoldenChecksTest {
         Assert.assertTrue((Integer) ctrl.budget().get("routing_refusals") >= 1, String.valueOf(ctrl.budget()));
     }
 
+    /** Issue #378: a puzzle attempt whose bridge was dead (a 402 when the credits ran out) was a plain failed row, and
+     *  PUZ pooled it. The row counts the decisions lost to a transport failure (bridge_down_decisions, the game line's
+     *  rule, issue #369), which puzzle_score.py refuses; a model that answered nothing is the model's and counts 0. */
+    @Test
+    public void aPuzzleRowCountsTheDecisionsADeadBridgeLost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicBoolean transport = new java.util.concurrent.atomic.AtomicBoolean();
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) { return null; }   // no reply on every retry
+            @Override public boolean lastFailureWasTransport() { return transport.get(); }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.budget().get("bridge_down_decisions"), 0, "the row always carries the count");
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(ctrl.budget().get("bridge_down_decisions"), 0,
+                "a model that answered nothing lost its own decision: " + ctrl.budget());
+        transport.set(true);
+        card("Shock", me, ZoneType.Hand);
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertTrue((Integer) ctrl.budget().get("bridge_down_decisions") >= 1, String.valueOf(ctrl.budget()));
+    }
+
     /** A bridge that reports no billing and fails its next ask still shows the last call's usage; the budget must not
      *  count it twice (pr-review of #282: a dead bridge reported a full call's tokens it never spent). */
     @Test
