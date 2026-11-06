@@ -51,7 +51,7 @@ repeated 10 times. Intervals are a 2000-replicate game-level bootstrap.
 | AI vs AI held out | all 13 features | .158 [.107,.213] / +.37 / .85 / .06 | .192 / +.23 / .76 | .144 / +.42 / .89 |
 | AI vs AI held out | life difference | .160 [.121,.207] / +.36 / .84 / .06 | .218 / +.13 / .65 | .129 / +.48 / .89 |
 | Luna, fit on AI vs AI | all features | .220 [.166,.276] / +.10 [-.17,+.35] / .77 / .15 | .249 / -.04 / .61 | .200 / +.18 / .84 |
-| Luna, fit on AI vs AI | life difference | .220 [.173,.274] / +.10 / .73 / .11 | .258 / -.07 / .51 | .195 / +.20 / .80 |
+| Luna, fit on AI vs AI | life difference | .220 [.173,.274] / +.10 [-.15,+.31] / .73 / .11 | .258 / -.07 / .51 | .195 / +.20 / .80 |
 | Luna, fit on Luna | life difference | .210 [.171,.254] / +.14 [.00,+.27] / .69 / .06 | .253 / -.05 / n/a | .182 / +.25 / .78 |
 
 Base rate Brier: 0.250 (AI vs AI), 0.245 (Luna). The floor fitted on AI vs AI ranks Luna states well but is
