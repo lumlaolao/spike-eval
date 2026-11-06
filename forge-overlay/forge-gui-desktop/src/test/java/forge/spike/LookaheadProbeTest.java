@@ -603,20 +603,31 @@ public class LookaheadProbeTest {
                 "Seam Rip was countered and exiled on the copy: " + report);
     }
 
-    /** The target ask's preview of a modal spell whose mode the seat chose ({@code aimed} is that mode), as
-     *  targetPreview calls it. The seat's mode choice chains the mode and sets no chosen list. */
-    private static String previewChosenMode(Game g, Player me, forge.game.card.Card card, int mode,
-                                            forge.game.GameEntity at) {
-        forge.game.spellability.SpellAbility sa = spellOn(card);
+    /** The target ask's preview of modal option {@code sa} with {@code modes} chosen (indexes into its mode list), aimed
+     *  at {@code at} through mode {@code aim}'s ability, as targetPreview calls it. The seat's mode choice chains the
+     *  modes and sets no chosen list. */
+    private static String previewChosenModes(Game g, Player me, forge.game.spellability.SpellAbility sa, int[] modes,
+                                             int aim, forge.game.GameEntity at) {
         sa.setActivatingPlayer(me);
-        forge.game.ability.effects.CharmEffect.chainAbilities(sa,
-                new java.util.ArrayList<>(java.util.Collections.singletonList(sa.getAdditionalAbilityList("Choices").get(mode))));
-        String report = PlayerLookahead.previewLine(g, me, java.util.Collections.singletonList(sa), 5L, null,
-                sa.getSubAbility(), at);
+        java.util.List<forge.game.spellability.AbilitySub> choices = sa.getAdditionalAbilityList("Choices");
+        java.util.List<forge.game.spellability.AbilitySub> chosen = new java.util.ArrayList<>();
+        for (int m : modes) chosen.add(choices.get(m));
+        forge.game.ability.effects.CharmEffect.chainAbilities(sa, chosen);
+        forge.game.spellability.SpellAbility aimed = null;
+        for (forge.game.spellability.SpellAbility s = sa.getSubAbility(); s != null; s = s.getSubAbility())
+            if (java.util.Objects.equals(s.getParam("SpellDescription"), choices.get(aim).getParam("SpellDescription"))) aimed = s;
+        Assert.assertNotNull(aimed, "fixture: the aimed mode is chained");
+        String report = PlayerLookahead.previewLine(g, me, java.util.Collections.singletonList(sa), 5L, null, aimed, at);
         System.out.println("[LOOKAHEAD] " + report);
         Assert.assertNull(sa.getChosenList(), "the preview leaves the live spell's modes as the seat chose them");
-        Assert.assertTrue(sa.getSubAbility().getTargets().isEmpty(), "the preview leaves the live mode untargeted");
+        for (forge.game.spellability.SpellAbility s = sa.getSubAbility(); s != null; s = s.getSubAbility())
+            Assert.assertTrue(s.getTargets().isEmpty(), "the preview leaves the live modes untargeted");
         return report;
+    }
+
+    private static String previewChosenMode(Game g, Player me, forge.game.card.Card card, int mode,
+                                            forge.game.GameEntity at) {
+        return previewChosenModes(g, me, spellOn(card), new int[] {mode}, mode, at);
     }
 
     /** Issue #395 (keyword gauntlet, random policy, seed e86r, kw08): each target of Barbed Lightning's
@@ -647,6 +658,60 @@ public class LookaheadProbeTest {
         String report = previewChosenMode(g, me, betrayal, 0, mine);
         Assert.assertFalse(report.startsWith("(preview unavailable"), report);
         Assert.assertTrue(report.contains("left the battlefield: Grizzly Bears") && !report.contains("Craw Wurm"), report);
+    }
+
+    /** pr-review of #397: a mode with an ability of its own (Bushwhack's fight: target creature you control, then
+     *  target creature you don't control) chains that ability after it, and the mode was not recognised: the copy's AI
+     *  chose the modes again, as in issue #395. */
+    @Test
+    public void aChosenModeWithItsOwnSubAbilityIsPreviewed() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        LineFindingProbeTest.card("Forest", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card bears = LineFindingProbeTest.card("Grizzly Bears", me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card whack = LineFindingProbeTest.card("Bushwhack", me, forge.game.zone.ZoneType.Hand);
+        String report = previewChosenMode(g, me, whack, 1, bears);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Elite Vanguard"), report);
+    }
+
+    /** pr-review of #397: two modes chosen (Brigid's Command), the seat aiming the second, the fight, whose own ability
+     *  follows it in the chain. */
+    @Test
+    public void theSecondOfTwoChosenModesIsPreviewedAtItsTarget() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (String n : new String[] {"Forest", "Forest", "Plains"}) LineFindingProbeTest.card(n, me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card wurm = LineFindingProbeTest.card("Craw Wurm", me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.card("Grizzly Bears", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card command = LineFindingProbeTest.card("Brigid's Command", me, forge.game.zone.ZoneType.Hand);
+        String report = previewChosenModes(g, me, spellOn(command), new int[] {1, 3}, 3, wurm);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Grizzly Bears"), report);
+    }
+
+    /** pr-review of #397: a modal spell cast for an alternative cost (Wreck and Rebuild's flashback) is the copy's own
+     *  version of that cost, which the engine does not give the live modes or their targets. */
+    @Test
+    public void aChosenModeOfAFlashbackCastIsPreviewed() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (String n : new String[] {"Mountain", "Mountain", "Mountain", "Forest", "Forest"})
+            LineFindingProbeTest.card(n, me, forge.game.zone.ZoneType.Battlefield);
+        // The seat aims at its own artifact; Forge's AI, choosing again, aimed at the rival's.
+        forge.game.card.Card thopter = LineFindingProbeTest.card("Ornithopter", me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.card("Juggernaut", opp, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.card("Wreck and Rebuild", me, forge.game.zone.ZoneType.Graveyard);
+        g.getAction().checkStaticAbilities();
+        forge.game.spellability.SpellAbility flashback = null;
+        for (forge.game.spellability.SpellAbility o : LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true).spells)
+            if (o.getHostCard() != null && o.getHostCard().getName().equals("Wreck and Rebuild")) flashback = o;
+        Assert.assertNotNull(flashback, "fixture: Wreck and Rebuild's flashback is offered");
+        Assert.assertFalse(flashback.getHostCard().getSpellAbilities().contains(flashback), "fixture: an alternative cost");
+        String report = previewChosenModes(g, me, flashback, new int[] {0}, 0, thopter);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Ornithopter") && report.contains("Rival no change"), report);
     }
 
     /** The model can aim the preview: a hint naming a legal target is honoured. */

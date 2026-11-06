@@ -61,8 +61,9 @@ final class PlayerLookahead {
     // v14 (2026-10-18): the same, for every copy: GameCopier is patched, and the harness-side parking is gone.
     // v15 (2026-10-19, runs/loop/g28 T6): a counterspell is aimed at the spell on the copy's stack (Force of Negation
     // against Seam Rip was unavailable, then countered nothing), and the delta reports exile counts.
-    // v16 (2026-11-06, issue #395): a modal spell's target is previewed in the mode the seat chose; the copy chose the
-    // modes again with Forge's AI, and the seat's target on the AI's mode failed to target (Barbed Lightning).
+    // v16 (2026-11-06, issue #395): a modal spell's target is previewed in the modes the seat chose, also for a mode
+    // with its own chained ability and a cast for an alternative cost; the copy chose the modes again with Forge's
+    // AI, and the seat's target on the AI's mode failed to target (Barbed Lightning).
     static final String VERSION = "lookahead-preview-v16";
 
     private PlayerLookahead() { }
@@ -185,14 +186,8 @@ final class PlayerLookahead {
                     if (!java.util.Objects.equals(alt.getDescription(), live.getDescription())) continue;
                     alt.setActivatingPlayer(copySeat);
                     forge.game.spellability.SpellAbility a = alt, l = live;
-                    for (; a != null && l != null; a = a.getSubAbility(), l = l.getSubAbility()) {
-                        if (l.getTargets() == null) continue;
-                        a.resetTargets();
-                        for (forge.game.GameObject t : l.getTargets()) {
-                            forge.game.GameObject ct = targetOnCopy(t, sim);
-                            if (ct != null) a.getTargets().add(ct);
-                        }
-                    }
+                    for (; a != null && l != null; a = a.getSubAbility(), l = l.getSubAbility()) copyTargets(l, a, sim);
+                    carryModes(live, alt, sim);
                     return alt;
                 }
             }
@@ -200,21 +195,66 @@ final class PlayerLookahead {
         return live;
     }
 
-    /** The modes the seat chose for modal option {@code sa}, as its mode list holds them: each chained ability matched
-     *  by its text. Null when {@code sa} is not modal, already has a chosen list (Forge's own mode choice sets one),
-     *  has no mode chained, or chains an ability that is not one of its modes. */
+    /** The modes the seat chose for modal option {@code sa}, as its mode list holds them: each chained mode matched by
+     *  its text, the abilities a mode chains after itself (Bushwhack's fight) skipped. Null when {@code sa} is not
+     *  modal, already has a chosen list (Forge's own mode choice sets one), has no mode chained, or chains a mode that
+     *  is not one of its own. */
     static java.util.List<forge.game.spellability.AbilitySub> chainedModes(forge.game.spellability.SpellAbility sa) {
         if (sa.getApi() != forge.game.ability.ApiType.Charm || sa.getChosenList() != null || sa.getSubAbility() == null)
             return null;
         java.util.List<forge.game.spellability.AbilitySub> modes = new java.util.ArrayList<>();
         for (forge.game.spellability.AbilitySub sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility()) {
-            forge.game.spellability.AbilitySub mode = null;
-            for (forge.game.spellability.AbilitySub c : sa.getAdditionalAbilityList("Choices"))
-                if (java.util.Objects.equals(c.getParam("SpellDescription"), sub.getParam("SpellDescription"))) mode = c;
+            if (!sub.hasParam("SpellDescription")) continue;
+            forge.game.spellability.AbilitySub mode = modeLike(sa.getAdditionalAbilityList("Choices"), sub);
             if (mode == null) return null;
             modes.add(mode);
         }
-        return modes;
+        return modes.isEmpty() ? null : modes;
+    }
+
+    /** Aims {@code a}, an ability on the copy, at the copy's versions of live ability {@code l}'s targets. */
+    private static void copyTargets(forge.game.spellability.SpellAbility l, forge.game.spellability.SpellAbility a,
+                                    GameSimulator sim) {
+        if (l.getTargets() == null) return;
+        a.resetTargets();
+        for (forge.game.GameObject t : l.getTargets()) {
+            forge.game.GameObject ct = targetOnCopy(t, sim);
+            if (ct != null) a.getTargets().add(ct);
+        }
+    }
+
+    /** Gives {@code alt}, the copy's version of a live option the simulator plays as it is, the live option's chosen
+     *  modes, each aimed where the live mode and the abilities chained after it are: the engine copies modes and
+     *  targets only for an option it maps itself (Wreck and Rebuild's flashback chose its modes again on the copy). */
+    private static void carryModes(forge.game.spellability.SpellAbility live, forge.game.spellability.SpellAbility alt,
+                                   GameSimulator sim) {
+        if (live.getApi() != forge.game.ability.ApiType.Charm || live.getChosenList() == null) return;
+        java.util.List<forge.game.spellability.AbilitySub> choices = alt.getAdditionalAbilityList("Choices");
+        java.util.List<forge.game.spellability.AbilitySub> modes = new java.util.ArrayList<>();
+        for (forge.game.spellability.AbilitySub m : live.getChosenList()) {
+            forge.game.spellability.AbilitySub c = modeLike(choices, m);
+            if (c == null) return;
+            modes.add(c);
+        }
+        alt.setChosenList(modes);
+        for (forge.game.spellability.SpellAbility m = live.getSubAbility(); m != null; m = m.getSubAbility()) {
+            forge.game.spellability.AbilitySub c = m.hasParam("SpellDescription") ? modeLike(choices, m) : null;
+            if (c == null) continue;
+            forge.game.spellability.SpellAbility l = m, a = c;
+            do {
+                copyTargets(l, a, sim);
+                l = l.getSubAbility();
+                a = a.getSubAbility();
+            } while (l != null && a != null && !l.hasParam("SpellDescription"));
+        }
+    }
+
+    /** The first of {@code choices} with {@code sa}'s mode text, as the engine matches modes (SpellAbilityChoiceCopier). */
+    private static forge.game.spellability.AbilitySub modeLike(java.util.List<forge.game.spellability.AbilitySub> choices,
+                                                               forge.game.spellability.SpellAbility sa) {
+        for (forge.game.spellability.AbilitySub c : choices)
+            if (java.util.Objects.equals(c.getParam("SpellDescription"), sa.getParam("SpellDescription"))) return c;
+        return null;
     }
 
     /** True when an ability of {@code sa}'s chain is aimed at a spell on the stack. */
@@ -422,18 +462,16 @@ final class PlayerLookahead {
                 savedTargets.put(s, t);
             }
         }
-        // A modal option whose modes the seat chose holds them only as its chained abilities, so the copy's cast had
-        // Forge's AI choose the modes again, and the seat's target for its mode was put on the AI's: the stack refused
-        // it ("failed to target", issue #395). The chosen list the copy takes is set, and cleared in the finally.
         java.util.List<forge.game.spellability.SpellAbility> modesListed = new java.util.ArrayList<>();
-        for (forge.game.spellability.SpellAbility o : liveOptions) {
-            java.util.List<forge.game.spellability.AbilitySub> modes = chainedModes(o);
-            if (modes == null) continue;
-            o.setChosenList(modes);
-            modesListed.add(o);
-        }
         enter();
         try {
+            // The seat's modes, which its mode choice only chains: else the copy's AI chose its own (issue #395).
+            for (forge.game.spellability.SpellAbility o : liveOptions) {
+                java.util.List<forge.game.spellability.AbilitySub> modes = chainedModes(o);
+                if (modes == null) continue;
+                o.setChosenList(modes);
+                modesListed.add(o);
+            }
             MyRandom.setRandom(new Random(seed));
             GameSimulator sim;
             UncopiedEffects parked = UncopiedEffects.park(live);   // the constructor is where the copy is made
