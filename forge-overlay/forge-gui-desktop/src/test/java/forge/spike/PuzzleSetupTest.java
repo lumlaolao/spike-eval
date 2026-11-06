@@ -8,6 +8,7 @@ import java.util.Map;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import forge.GuiDesktop;
@@ -52,7 +53,7 @@ public class PuzzleSetupTest {
     /** The solver's plan and own-card tracking read DECKLIST: an exported DECKLIST=0 must not fail these tests
      *  (round 4 of PR #394), so each runs against an empty environment and puts it back. */
     private Map<String, String> savedEnv;
-    @org.testng.annotations.BeforeMethod
+    @BeforeMethod
     public void emptyEnvironment() { savedEnv = LlmSpikeGui.envOverride; LlmSpikeGui.envOverride = Map.of(); }
     @AfterMethod
     public void restoreEnvironment() { LlmSpikeGui.envOverride = savedEnv; }
@@ -123,9 +124,7 @@ public class PuzzleSetupTest {
         Assert.assertFalse(system.contains("Colossal Dreadmaw"), "the solver's library was shown");
         Assert.assertFalse(system.contains("Plains"), "the opponent's library was shown");
         LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
-        try {
-            Assert.assertEquals(LlmSpikePuzzle.solverPlan(sections), "", "DECKLIST=0 keeps the solver's cards out");
-        } finally { LlmSpikeGui.envOverride = Map.of(); }
+        Assert.assertEquals(LlmSpikePuzzle.solverPlan(sections), "", "DECKLIST=0 keeps the solver's cards out");
     }
 
     /** Who records the text of its own cards first seen after setup (YOUR CARDS SINCE THE START): the puzzle's solver,
@@ -141,9 +140,8 @@ public class PuzzleSetupTest {
         Assert.assertTrue(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver");
         Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(opponent)), "the puzzle opponent's seat");
         LlmSpikeGui.envOverride = Map.of("DECKLIST", "0");
-        try {
-            Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver under DECKLIST=0");
-        } finally { LlmSpikeGui.envOverride = Map.of(); }
+        Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "the solver under DECKLIST=0");
+        LlmSpikeGui.envOverride = Map.of();
         LlmSpikeGui.puzzleSolverSeat = null;
         Assert.assertFalse(LlmSpikeGui.tracksOwnCards(LlmSpikeGui.isPuzzleSolver(solver)), "a game seat");
     }

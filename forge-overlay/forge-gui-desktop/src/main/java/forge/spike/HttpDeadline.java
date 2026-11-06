@@ -42,10 +42,11 @@ final class HttpDeadline {
         catch (NumberFormatException e) { return 90000; }
     }
 
-    /** How far past the loop's deadline the request's own {@link HttpRequest.Builder#timeout} fires (issue #388).
-     *  Both clocks were the same number, so the client's {@code HttpTimeoutException} (an {@code error} row) raced
-     *  the poll loop's {@code left <= 0} check (a {@code stop="deadline"} row) at the deadline. With the margin the
-     *  loop always gets there first; the request timeout is only the backstop for a loop that is not running. */
+    /** How far past the loop's deadline the request's own {@link HttpRequest.Builder#timeout} (the headers phase)
+     *  fires (issue #388). Were the two the same number, the client's {@code HttpTimeoutException} (an {@code error}
+     *  row) would race the poll loop's {@code left <= 0} check (a {@code stop="deadline"} row) at the deadline; the
+     *  margin lets the loop always get there first, and leaves the request timeout as the backstop for a loop that is
+     *  not running. The client's connect timeout is not given the margin: it equals the deadline. */
     static final long REQUEST_MARGIN_MS = 2000;
 
     /** The value for {@code HttpRequest.Builder.timeout} when {@link #send} is given {@code remainingMs}. */

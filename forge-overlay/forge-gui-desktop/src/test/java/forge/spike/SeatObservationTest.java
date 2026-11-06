@@ -2,6 +2,7 @@ package forge.spike;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -9,7 +10,9 @@ import com.google.common.collect.Lists;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import forge.GuiDesktop;
@@ -70,10 +73,10 @@ public class SeatObservationTest {
     /** The solver's plan and own-card tracking read DECKLIST (aSolverWithNoSetupCardsStillReadsACardItDraws and
      *  the solver tests beside it): an exported DECKLIST=0 must not fail them (round 4 of PR #394), so each test runs
      *  against an empty environment and puts the old one back. */
-    private java.util.Map<String, String> savedEnv;
-    @org.testng.annotations.BeforeMethod
-    public void emptyEnvironment() { savedEnv = LlmSpikeGui.envOverride; LlmSpikeGui.envOverride = java.util.Map.of(); }
-    @org.testng.annotations.AfterMethod
+    private Map<String, String> savedEnv;
+    @BeforeMethod
+    public void emptyEnvironment() { savedEnv = LlmSpikeGui.envOverride; LlmSpikeGui.envOverride = Map.of(); }
+    @AfterMethod
     public void restoreEnvironment() { LlmSpikeGui.envOverride = savedEnv; }
 
     // ---- fixtures -----------------------------------------------------------------------------
