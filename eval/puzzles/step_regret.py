@@ -251,12 +251,12 @@ def analyse(log, search, jobs=1, emit=print, refine_budget=None, refine_most=3):
             "pzl_sha256": res.get("pzl_sha256"), "recorded_status": res.get("status"),
             "recorded_epoch": res.get("harness_epoch")}
     t0 = time.time()
-    summary = dict(base, t="step_regret_summary", decision_rows=len(rows), model_decisions=len(pos) - 1)
+    record = dict(base, t="step_regret_summary", decision_rows=len(rows), model_decisions=len(pos) - 1)
     if res.get("status") == "solved":
         # The model's own line is the witness that every position on it is winnable: there is no regret step.
-        summary.update(status="solved", searches=0, wall_s=0.0)
-        emit(summary)
-        return summary
+        record.update(status="solved", searches=0, wall_s=0.0)
+        emit(record)
+        return record
     scanned = backward_scan(pos, lambda k: search(k)[0], jobs)
     refined = refine(pos, scanned, search, refine_budget, refine_most)
     for j in sorted(scanned):
@@ -268,7 +268,7 @@ def analyse(log, search, jobs=1, emit=print, refine_budget=None, refine_most=3):
                   **{x: scanned[j].get(x) for x in ("verdict", "replays", "budget", "capped_rollouts", "exhausted",
                                                     "line", "actions", "drift", "wall_s", "refined")}))
     reg = regret(pos, scanned)
-    summary.update(reg, searches=len(scanned) + refined, refined_searches=refined,
+    record.update(reg, searches=len(scanned) + refined, refined_searches=refined,
                    verdicts={v: sum(1 for r in scanned.values() if r.get("verdict") == v)
                              for v in ("proven", "unwinnable", "not_found", "drift", "error")})
     if reg["status"] == "exact":
@@ -276,7 +276,7 @@ def analyse(log, search, jobs=1, emit=print, refine_budget=None, refine_most=3):
         opts = search(k, "all")
         bound = opts[0].get("bound")
         if opts[0].get("refused") or opts[0].get("verdict") in ("drift", "error"):
-            summary.update(floor=None, floor_refused=opts[0].get("refused") or opts[0].get("drift") or opts[0].get("error"))
+            record.update(floor=None, floor_refused=opts[0].get("refused") or opts[0].get("drift") or opts[0].get("error"))
         else:
             for o in opts:
                 emit(dict(base, t="step_regret", kind="option", k=k, forced=o.get("forced"),
@@ -284,18 +284,18 @@ def analyse(log, search, jobs=1, emit=print, refine_budget=None, refine_most=3):
                           **{x: o.get(x) for x in ("verdict", "replays", "capped_rollouts", "exhausted", "line", "actions",
                                                    "wall_s")}))
             model_value = opts[0].get("model_value")
-            summary.update(floor(opts, bound), regret_decision={
+            record.update(floor(opts, bound), regret_decision={
                 "type": row.get("type"), "turn": row.get("turn"), "phase": row.get("phase"), "n_options": bound,
                 "options": row.get("options"), "model_value": model_value,
                 "model_label": option_label(row, model_value, bound),
                 "kept_win": [option_label(row, o.get("forced"), bound) for o in opts if o.get("verdict") == "proven"]})
             mv = [o for o in opts if o.get("forced") == model_value]
             # The model's own option, forced, is the position after the regret step: it must not be proven.
-            summary["model_option_verdict"] = mv[0].get("verdict") if mv else None
-        summary["searches"] += len(opts)
-    summary["wall_s"] = round(time.time() - t0, 1)
-    emit(summary)
-    return summary
+            record["model_option_verdict"] = mv[0].get("verdict") if mv else None
+        record["searches"] += len(opts)
+    record["wall_s"] = round(time.time() - t0, 1)
+    emit(record)
+    return record
 
 
 def summary(dirs):

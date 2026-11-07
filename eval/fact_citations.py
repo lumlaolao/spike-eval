@@ -21,7 +21,8 @@ import sys
 
 LETHAL_CLOCK = re.compile(r"your next combat: [^|]*= LETHAL")
 CITES_LATER_COMBAT = re.compile(
-    r"next combat|next attack|next turn|combat estimate|attack for lethal|lethal (in|next) combat", re.I)
+    r"next combat|next attack|next turn|combat estimate|attack for lethal|lethal (in|next) combat"
+    r"|future turn|following turn", re.I)
 LATE_PHASES = ("MAIN2", "END_OF_TURN")
 
 

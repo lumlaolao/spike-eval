@@ -31,13 +31,12 @@ tvs steps of the earlier note, 59 of 60 regret steps have an engine-proven winni
 of 45, B 10, P 3, S 2). The lost side (the position after the seat's choice) and the floors' other options are still
 the model's.
 
-**The prompt does not show what the main mistake turns on.** In these puzzle runs the seat is never given its own
-cards' rules text: Desperate Ritual reads `CAST Desperate Ritual @3 1{R} [Add {R}{R}{R}.]`, with no "Splice onto
-Arcane {1}{R}" and no "Arcane" on Lava Spike or Glacial Ray, and the system prompt says "You have no lookup tools:
-everything you need is in the message". At 28 of the 60 regret steps the prompt never mentions splice at all; at the
-rest it does only in the seat's own notes or at a splice question. A second candidate: after an unpayable splice set
-the engine undoes the cast and the harness drops that card from the play menu for the window, with no notice, though
-it is castable with a payable set (details below).
+**The prompt did not show what the main mistake turns on.** Every attempt here predates harness epoch 86 (#391),
+which added the `YOUR CARDS` block: the puzzle prompts never gave the seat its cards' rules text, so Desperate
+Ritual read `CAST Desperate Ritual @3 1{R} [Add {R}{R}{R}.]` with no "Splice onto Arcane {1}{R}" (details below). The
+R mistake and the missing text co-occur; whether the text causes it is not tested (an arm on the same boards at
+epoch 86 or later would). A second, separate candidate: after an unpayable splice set the engine undoes the cast and
+the harness drops that card from the play menu for the window, with no notice (details below).
 
 The step comes early: median model decision 3 (range 0 to 9), 21% of the way through the attempt (IQR 14% to 27%),
 followed by a median 12 more decisions (IQR 10 to 15, minimum 5); only 3 of 60 steps are within 7 decisions of the
@@ -94,26 +93,16 @@ Every one of the 35 matched its recording question for question up to the step, 
 nothing up to there. Outputs: `runs/where-lose/witness/` (16 MB with the logs, git-ignored),
 `runs/where-lose/witness-verdicts.json`.
 
-### What changed in `step_regret_board.py` (now `step-regret-board-v2`; each with a test written red first)
+### Model behaviour these attempts rely on (`step_regret_board.py`, `step-regret-board-v2`)
 
-- A hand of `(empty)` (how the prompt writes it; every solved attempt ends there) was a crash; it reads as empty.
-- An attempt with no model decision is status `no_model_decision`, not a crash.
-- A permanent of the seat's other than Thermo-Alchemist (splice2's Kiln Fiend, Goblin Electromancer) is refused.
-  None of the 75 labelled attempts has one; this closes a hole, it changes no verdict.
-- **A splice set the pool cannot pay is undone, not lost.** Two attempts (jev, one Luna) picked splice sets costing
-  more than they had; the engine undid the cast (the next prompt has the same hand and pool). The model valued that
-  committed cast at 0, a lost dip inside the attempt: the internal check (the shortfall never shrinks) failed on
-  exactly those two. Fixed; both dips were after the regret step, so no step moved. The check now holds on all 75.
-- At a splice question the floor counts the payable sets of offered cards (each copy its own option). Two regret
-  steps are splice questions (both Haiku), against the earlier note's assumption that none is.
-- Each row carries the attempt's model, epoch and status, and a board outside the model is a `refused` row.
-- **A position outside a main phase is refused.** Found by a witness: a propose-arm Haiku attempt (terse b2-detailed,
-  `splice_06dad20af5b3`) passed on an empty stack at its first decision, so the rest was the end step, where Lava
-  Spike cannot be cast. The model read those end-step prompts as a main phase, called them winnable and put the
-  regret step at decision 7; its witness drifted (the line could not cast Lava Spike). It is now refused (the step is
-  likely its first pass, which the model values as the turn ending, but the end step with instants is not modelled).
-- `script_for` at a splice question writes the first kept splice set and the line after the cast, and
-  `witness_verdict` compares a splice row by its picks.
+- A splice set the pool cannot pay is undone, not lost (two attempts, both after their regret step). At a splice
+  question the floor counts the payable sets of offered cards, each copy its own option; two regret steps are splice
+  questions (both Haiku).
+- A permanent other than Thermo-Alchemist, a position outside a main phase, an empty hand and an attempt with no
+  model decision are refused or read as such (status `refused` / `no_model_decision`); a propose-arm attempt that
+  passed into the end step (`splice_06dad20af5b3`, terse b2-detailed) is refused for that reason.
+- Each row carries the attempt's model, epoch and status. `script_for` writes the first kept splice set at a splice
+  question, and `witness_verdict` compares a splice row by its picks.
 
 ## Coverage
 
@@ -241,13 +230,7 @@ replayed. 0 failures: no winnable verdict at a regret step was wrong.
    25: Glacial Ray, Glacial Ray, PASS, with three Lava Spikes "(castable)" in hand). In these attempts it came after
    the regret step, so it decided nothing here.
 
-**Harness defect candidates** (not filed):
-- *The seat is not given its own cards' rules text in a puzzle.* Every regret step read; the message names Desperate
-  Ritual's mana ability only (`[Add {R}{R}{R}.]`), never its splice ability or the Arcane subtype of Lava Spike and
-  Glacial Ray, while the system prompt says everything needed is in the message. Games get `YOUR CARDS` from the
-  decklist (`LlmSpikeGui`, the `DECKLIST` gate); a puzzle's framing had the author's brief only (seen in the
-  epoch-72 transcript: no `<your_deck>` block). The epoch-82 decision prompts show no splice text either; the
-  epoch-82 framing was not read (the witnesses ask no model). The decision the puzzle is built on turns on that text.
+**Harness defect candidate** (not filed; the rules-text gap of these prompts was fixed at epoch 86):
 - *A cast undone for an unpayable splice set hides a legal play and says nothing.* After the undo the card is dropped
   from the play menu for the window though a payable cast exists (no splice, or a cheaper set), against the owner rule
   that a legal action is never hidden; the seat is not told the cast failed or why.
@@ -260,6 +243,6 @@ replayed. 0 failures: no winnable verdict at a regret step was wrong.
   `puzzle_gen.red_search` models those cards; wiring it in as the value would cover them. Also the end-step attempt.
 - **A model's ability.** Every model except Luna epoch 70 has 1 or 2 labelled failures per condition; the Haiku
   cells differ by arm and epoch and are never pooled. No claim that one model loses differently from another.
-- **Whether the missing rules text causes the R mistake.** The fix is an arm (puzzle framing with `YOUR CARDS`)
-  played on the same boards; until then the defect and the mistake only co-occur. Some seats wrote splice into their
-  own notes from recall (30 of 60 steps), and still cast the Ritual alone.
+- **Whether the missing rules text causes the R mistake.** Untested: the fix (`YOUR CARDS`, epoch 86) postdates every
+  attempt, so an arm on the same boards at epoch 86 or later would settle it. Some seats wrote splice into their own
+  notes from recall (30 of 60 steps), and still cast the Ritual alone.

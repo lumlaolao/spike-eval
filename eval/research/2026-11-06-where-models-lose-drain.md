@@ -37,7 +37,7 @@ drift**. The kinds:
   skip), so it was never asked again. Every recorded yield was read to find this.
 
 The step is early in most attempts: median model decision 4.5 (range 0 to 57), 14% of the way through (IQR 3% to
-49%), with a median 29 more decisions after it (minimum 1). Only 4 of 46 are within 7 decisions of the end. At every
+49%), with a median 28 more decisions after it (minimum 0; decisions after the step = n - K - 1, as in the splice note). Only 4 of 46 are within 7 decisions of the end. At every
 step the position is exactly winnable (shortfall 0) and the choice leaves it 1 to 5 short (2 in 18, 1 and 3 in 13
 each). The floor averages 0.54 (median 0.60, range 0.20 to 1.00): a uniformly random choice at the step keeps the win
 about half the time, more than at splice's steps (0.37).

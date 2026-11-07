@@ -409,12 +409,8 @@ final class ReplayBridge implements LLMBridge {
         return NativeTools.Turn.ofCalls(one);
     }
 
-    /** A decision row the seat just wrote (LlmSpikeGui.FORK_HOOK): it must be the next recorded row of this seat. */
-    void onDecisionRow(String rowSeat, String type, int n, int choice, List<String> options) {
-        onDecisionRow(rowSeat, type, n, choice, options, -1);
-    }
-
-    /** {@code draws}: the search draws made so far in the rollout (step search), -1 when there is no search line. After
+    /** A decision row the seat just wrote (LlmSpikeGui.FORK_HOOK): it must be the next recorded row of this seat.
+     *  {@code draws}: the search draws made so far in the rollout (step search), -1 when there is no search line. After
      *  the handover a row is the search arm's: the first one is kept ({@link #firstAfter}), none is checked. */
     void onDecisionRow(String rowSeat, String type, int n, int choice, List<String> options, int draws) {
         if (!seat.equals(rowSeat) || drift != null) return;

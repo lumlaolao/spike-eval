@@ -26,7 +26,7 @@ the model; 71 splice2 boards refused, each naming a card outside it) the script 
   None is the minimal Lava Spike / Lightning Bolt swap (same cost, same damage, only Arcane differs: 0 qualify).
 - **With the opponent's life moved by 1 to 3 as a second detail**, 1,570 of 4,857 pairs have no shared winning line;
   **36 trap both ways** (each side's winning spell is castable on the other and loses there, at every point the
-  lines part), 987 one way. A Thermo-Alchemist change plus life never contrasts (0 of 105 winnable): a ping is one
+  lines part), 987 one way. A Thermo-Alchemist change plus life never contrasts (0 of 105 winnable pairs contrast): a ping is one
   damage wherever it goes.
 
 The single-detail pair closest to the example asked for is `splice_a80fa0f9f24d` with one Desperate Ritual swapped for

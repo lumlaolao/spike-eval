@@ -12,6 +12,14 @@ shuffle arm is the experiment that would separate them; it is described below an
 
 ## What was read (free: Python over recorded rows, no JVM, no model)
 
+Command: `python3 eval/research_stats.py menu <board.jsonl> [...]` (tested in `eval/tests/test_research_stats.py`).
+**The drain row is reproduced here exactly** (34 matched of 46, 23 against 19.9, 18 against 16.5, 13 top picks
+against 7.0, mean position 0.42 / 0.52, 2 steps with several matching rows). **The splice row is not reproducible
+here:** 14 of its 60 steps name a game file that is not on this machine (the Haiku terse and thinking-vs-sampling
+runs), so its figures below (55 matched, 18 against 22.0, 40 against 38.1, 14 top picks against 11.5, mean position
+0.41 / 0.73) come from a one-off run whose inputs are not all kept. On the 46 steps the script can read it gives 43
+matched, 15 earliest-losing against 17.6, which is consistent with no lean.
+
 The inputs are the board-model rows from the two notes above: drain `runs/where-lose-drain/board.jsonl` (68
 attempts) and splice `runs/where-lose/board.jsonl` (119). Both directories are git-ignored and were read in the
 worktrees that wrote them. Each row with a `floor` (106 regret steps) gives the seat's pick (`model_label`) and,

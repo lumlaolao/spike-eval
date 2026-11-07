@@ -43,6 +43,16 @@ class FactCitationsTest(unittest.TestCase):
         self.assertTrue(fc.cites_later_combat([decision("", "attack for lethal next turn")]))
         self.assertFalse(fc.cites_later_combat([decision("", "WHY: sacrifice Bloodghast to drain 1")]))
 
+    def test_future_turn_and_following_turn_are_cited(self):
+        self.assertTrue(fc.cites_later_combat([decision("", "WHY: lethal on a future turn")]))
+        self.assertTrue(fc.cites_later_combat([decision("", "WHY: they die the following turn")]))
+
+    def test_the_note_quotes_the_scripts_pattern(self):
+        note = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "research",
+                            "2026-11-06-interface-text-failures.md")
+        with open(note, encoding="utf-8") as f:
+            self.assertIn("`" + fc.CITES_LATER_COMBAT.pattern + "`", f.read())
+
     def test_a_yield_skip_needs_own_main_a_stack_and_a_castable(self):
         base = {"t": "window", "reason": "yield:end-of-turn", "active": True, "phase": "MAIN2", "stack": 2,
                 "castable": 3}

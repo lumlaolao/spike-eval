@@ -4,19 +4,23 @@
 seats explained a pass with something the harness had told them. Two lines are the harness's own text, not the
 board's. How often does a seat act on each one, and against what baseline?
 
-**Answer.** Both statements are wrong in the situation where seats act on them. Both are now issues:
-- **#398, a fix on branch `fix/puzzle-facts-turn-limit` (not yet merged).** The FACTS line's `your next combat: ... = LETHAL`
-  appeared on a 1-turn puzzle's last turn after combat in 311 games. Seats there cited a later combat in 10.6% of
-  games, against 0.9% where the clock was not lethal and 0% with no clock.
-- **#399, filed.** The `yield` field says "your own main phases always ask too". Under a yield, the harness passes
-  the seat's own main phase whenever its own items are on the stack: 638 windows in 49 games.
+**Answer.** Both statements were wrong in the situation where seats act on them. Both were issues and are fixed:
+#398 by PR #400 (harness epoch 88) and #399 by PR #402, both merged 2026-11-06. The counts below are of the recorded
+games, which predate the fixes. They are descriptive: one corpus of 2828 puzzle games pooled over every model, over
+harness epochs 70 to 72 where recorded, with no control for board or model.
+- **#398.** The FACTS line's `your next combat: ... = LETHAL` appeared on a 1-turn puzzle's last turn after combat in
+  311 games. In the games with that clause a later combat was cited in 10.6%, against 0.9% in the games with a
+  non-lethal clock and 0% in the games with no clock.
+- **#399.** The `yield` field says "your own main phases always ask too". Under a yield, the harness passes the
+  seat's own main phase whenever its own items are on the stack: 629 windows in 46 games of this corpus.
 
 ## What was read (free: Python over the local game JSONL, no JVM, no model)
 
 Reproduce every count below with `python3 eval/fact_citations.py <runs dir>` (tested in
 `eval/tests/test_fact_citations.py`). Over the main checkout's `runs/puzzles` it prints 2828 games, 2161 with a
 turn-1 decision after combat, lethal 33 of 311, clock 5 of 577, none 0 of 1273, and 629 yield windows in 46 games.
-The 638 in 49 of #399 also counted three demo games elsewhere under `runs/`.
+The 638 in 49 of #399 also counted three demo games elsewhere under `runs/`. The script's citation pattern gained
+`future turn|following turn` in review; the counts were re-run on the same directory with it and did not change.
 
 The input is every `game-*.jsonl` under the main checkout's `runs/puzzles/`: 2828 puzzle games, all models, harness
 epochs 70 to 72 where recorded (1448 of the 2161 counted below at 70, 584 unrecorded). Conditions are mixed, so the rates below are descriptive. A per-condition split is possible but was
@@ -27,7 +31,8 @@ not made.
 The decisions read are those on turn 1 in `MAIN2` or `END_OF_TURN` (2161 of the 2828 games have one; the other 667
 have no decision after combat and are in no group). On the hard 1-turn boards (`Turns:1`), the
 solver's last combat is over there. A decision "cites a later combat" when its `raw_reply` matches
-`next combat|next attack|next turn|combat estimate|attack for lethal|lethal (in|next) combat|future turn|following turn`.
+`next combat|next attack|next turn|combat estimate|attack for lethal|lethal (in|next) combat|future turn|following turn`
+(`CITES_LATER_COMBAT` in `eval/fact_citations.py`; a test checks that this quote equals the constant).
 
 | The solver's FACTS clause in those decisions | Games | Cite a later combat | Wilson 95% |
 |---|---|---|---|
@@ -35,8 +40,8 @@ solver's last combat is over there. A decision "cites a later combat" when its `
 | a clock, not lethal | 577 | 5 (0.9%) | 0.4% to 2.0% |
 | no clock (no attacker) | 1273 | 0 (0.0%) | 0% to 0.3% |
 
-32 of the 33 games that cited a later combat failed. This is an association, not a measured cause: a lethal clock
-needs attackers, so the three groups are different boards. The regex finds only the stated reason, so 33 is a lower
+This is an association, not a measured cause: a lethal clock needs attackers, so the three groups are different
+boards. The regex finds only the stated reason, so 33 is a lower
 bound. The replies are explicit. One read "the next combat is lethal per the state's combat estimate" with the
 opponent at 4 and the puzzle ending at that cleanup.
 
@@ -46,7 +51,7 @@ map to a labelled position, the position was already lost before the citing pass
 regret step. The other 4 did not map, and the 13 non-drain games have no model. So the line explained passes in
 positions already lost. No loss in drain is shown to come from it.
 
-The fix reads the last turn off the Puzzle Goal card's trigger, and a side with no combat left reads `none before the
+The fix (#400) reads the last turn off the Puzzle Goal card's trigger, and a side with no combat left reads `none before the
 puzzle's turn limit`. Checked zero-model: on the fixed build, the written line of `drain2_eaca60c560dc` solved (script
 arm, seed 1). All 50 of its post-combat decisions read `your next combat: none before the puzzle's turn limit | their
 next combat: none before the puzzle's turn limit`.
@@ -66,9 +71,9 @@ and was not.
 - Text the harness labels as engine fact carries weight with the seat. A line that is true in a game and false in a
   puzzle needs the puzzle's frame (its last turn) wherever the seat reads it. The same check applies to any other
   FACTS or estimate line.
-- After #398 lands, the citation rate in the LETHAL group should fall toward the 0.9% group. The drain check above
-  predicts little change in the solve rate. Only paid runs at the new epoch would show it (PUZ conditions never pool
-  across the epoch change).
+- With #400 in, the citation rate in the LETHAL group should fall toward the 0.9% group. The drain check above
+  predicts little change in the solve rate. Only paid runs at epoch 88 or later would show it (PUZ conditions never
+  pool across the epoch change).
 
 ## Not determined
 
