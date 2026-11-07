@@ -6,8 +6,8 @@
 
 One JSON object per line, two kinds:
   {"type": "step", "episode_id", "group", "step", "kind", "messages", "legal", "action", "args", "accepted"}
-  {"type": "episode", "episode_id", "run_id", "group", "puzzle"|"seed", "reward", "valid", "n_steps", "stamps",
-   "info"}  (+ "eval_only" when the start is eval data)
+  {"type": "episode", "episode_id", "run_id", "group", "puzzle"|"seed"|"deck", "reward", "valid", "n_steps",
+   "stamps", "info", "guard", "puzzle_sha256"|"deck_sha256"}  (+ "eval_only" when the start is eval data)
 An episode's step lines come first, then its episode line, so a reader can stream. `load_episodes`,
 `grpo_groups` and `sft_examples` read the file back. Reward, validity and the training rules: eval/rl/README.md.
 
@@ -115,7 +115,7 @@ def run_episode(env, policy, group, episode_id, out, reset_kwargs, max_steps=400
             steps += 1
             if steps >= max_steps:   # a runaway episode is cut and never trained on
                 lines.append(dict(line, accepted=True))
-                info = {"valid": False, "error": "max_steps", "eval_only": list(env.eval_only)}
+                info = {"valid": False, "error": "max_steps"}
                 env.close()
                 break
             obs, reward, done, info = env.step(action)
@@ -129,9 +129,14 @@ def run_episode(env, policy, group, episode_id, out, reset_kwargs, max_steps=400
             raise StampMismatch("episode %s ran on %s, the file's episodes on %s" % (episode_id, stamps, pin["stamps"]))
     rec = {"type": "episode", "episode_id": episode_id, "run_id": run_id, "group": group, "reward": reward,
            "valid": bool(info.get("valid", False)), "n_steps": steps, "stamps": stamps, "info": info}
-    if info.get("eval_only"):
-        rec["eval_only"] = list(info["eval_only"])
-    rec.update({k: reset_kwargs[k] for k in ("puzzle", "seed") if k in reset_kwargs})
+    rec["guard"] = eval_only.GUARD_VERSION
+    if env.eval_only:   # from the env, not info: a cut episode has no result info (close() leaves it)
+        rec["eval_only"] = list(env.eval_only)
+    rec.update({k: reset_kwargs[k] for k in ("puzzle", "seed", "deck") if reset_kwargs.get(k) is not None})
+    if "puzzle" in rec:
+        rec["puzzle_sha256"] = eval_only.puzzle_sha(rec["puzzle"])
+    if "deck" in rec:
+        rec["deck_sha256"] = eval_only.deck_sha(rec["deck"])
     rec["puzzle_id"] = Path(reset_kwargs["puzzle"]).stem if "puzzle" in reset_kwargs else None
     out.write("".join(json.dumps(l, sort_keys=True) + "\n" for l in lines + [rec]))
     out.flush()
@@ -154,8 +159,8 @@ def run_group(env, policy_spec, group, resets, out, policy_seed=0, max_steps=400
 
 def load_episodes(path):
     """[{episode record + "steps": [step lines]}], in file order. A trailing episode cut off mid-write is dropped,
-    so are the step lines of a run that died before its episode line (the next episode's step 1 clears them) and
-    an episode whose steps are not numbered 1..n_steps."""
+    so are the step lines of a run that died before its episode line (the next episode's step 1 clears them), an
+    episode whose steps are not numbered 1..n_steps and an episode with no `guard` field (no guard saw its start)."""
     steps, eps = {}, []
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -170,14 +175,17 @@ def load_episodes(path):
             steps.setdefault(row["episode_id"], []).append(row)
         elif row.get("type") == "episode":
             own = steps.pop(row["episode_id"], [])
-            if [s.get("step") for s in own] == list(range(1, len(own) + 1)) and len(own) == row.get("n_steps"):
+            if [s.get("step") for s in own] == list(range(1, len(own) + 1)) and len(own) == row.get("n_steps") \
+                    and row.get("guard"):
                 eps.append(dict(row, steps=own))
     return eps
 
 
 def trainable(e):
-    """An episode a trainer may use: valid (no lost decision, no dead bridge, a verdict) and not marked eval-only."""
-    return bool(e.get("valid")) and not e.get("eval_only") and not e.get("info", {}).get("lost_decisions")
+    """An episode a trainer may use: valid (no lost decision, no dead bridge, a verdict), not marked eval-only, and
+    still clean when its recorded seed, puzzle hash and deck are judged again: the mark is not trusted."""
+    return (bool(e.get("valid")) and not e.get("eval_only") and not e.get("info", {}).get("lost_decisions")
+            and not eval_only.episode_reasons(e))
 
 
 def grpo_groups(episodes, normalize=True):

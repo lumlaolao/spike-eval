@@ -88,8 +88,8 @@ class Base(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def env(self, **stub_env):
-        e = mtg_env.MtgEnv(launcher=stub_launcher(**stub_env), out_root=self.root, step_timeout_s=20, first_timeout_s=20,
-                           guard=NO_GUARD)
+        e = mtg_env.MtgEnv(launcher=stub_launcher(**stub_env), out_root=self.root, step_timeout_s=20, first_timeout_s=20)
+        e.guard = NO_GUARD
         self.addCleanup(e.close)
         return e
 
@@ -197,8 +197,8 @@ class EnvTest(Base):
         os.environ["OPENROUTER_API_KEY"] = "k"
         self.addCleanup(os.environ.pop, "OPENROUTER_ALLOW_EGRESS", None)
         self.addCleanup(os.environ.pop, "OPENROUTER_API_KEY", None)
-        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20,
-                           guard=NO_GUARD)
+        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20)
+        env.guard = NO_GUARD
         self.addCleanup(env.close)
         env.reset(puzzle="/some/where/p.pzl", seed=4)
         out_dir = env.out_dir
@@ -214,7 +214,8 @@ class EnvTest(Base):
     def test_extra_env_applies_but_cannot_carry_the_egress_gate_or_a_key(self):
         extra = {"MY_FLAG": "yes", "OPENROUTER_ALLOW_EGRESS": "1", "OPENROUTER_API_KEY": "k"}
         env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20,
-                             guard=NO_GUARD, extra_env=extra)
+                             extra_env=extra)
+        env.guard = NO_GUARD
         self.addCleanup(env.close)
         env.reset(puzzle="x.pzl")
         out_dir = env.out_dir
@@ -246,8 +247,8 @@ class EnvTest(Base):
             socket.create_connection(("127.0.0.1", port), timeout=2)
 
     def test_step_timeout_ends_invalid(self):
-        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=3, STUB_SLEEP=30), out_root=self.root, step_timeout_s=1,
-                           guard=NO_GUARD)
+        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=3, STUB_SLEEP=30), out_root=self.root, step_timeout_s=1)
+        env.guard = NO_GUARD
         self.addCleanup(env.close)
         env.reset(puzzle="x.pzl")
         obs, reward, done, info = env.step(2)
@@ -255,7 +256,8 @@ class EnvTest(Base):
 
     def test_no_first_decision_raises(self):
         e = mtg_env.MtgEnv(launcher=lambda env, out: subprocess.Popen([sys.executable, "-c", "import sys; sys.exit(3)"]),
-                           out_root=self.root, first_timeout_s=10, guard=NO_GUARD)
+                           out_root=self.root, first_timeout_s=10)
+        e.guard = NO_GUARD
         with self.assertRaises(mtg_env.EnvError):
             e.reset(puzzle="x.pzl")
 

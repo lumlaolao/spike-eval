@@ -247,14 +247,14 @@ class MtgEnv:
 
     def __init__(self, launcher=None, out_root=None, keep_out=False, step_timeout_s=300.0, first_timeout_s=240.0,
                  call_timeout_ms=900000, game_cap_ms=1_800_000, model=MODEL_SPEC, extra_env=None,
-                 allow_eval_only=False, guard=None):
+                 allow_eval_only=False):
         self.launcher = launcher or JvmLauncher()
         self.out_root = Path(out_root) if out_root else None
         self.keep_out, self.step_timeout_s, self.first_timeout_s = keep_out, step_timeout_s, first_timeout_s
         self.call_timeout_ms, self.game_cap_ms, self.model = call_timeout_ms, game_cap_ms, model
         self.extra_env = dict(extra_env or {})
         self.allow_eval_only = allow_eval_only
-        self.guard = guard or eval_only.reasons   # a test's stand-in; no caller turns the guard off
+        self.guard = eval_only.reasons   # an attribute a test may replace; the constructor has no switch for it
         self.eval_only = []
         self.server = self.proc = self.out_dir = self.pending = None
         self.mode = self.puzzle_id = self.seed = None

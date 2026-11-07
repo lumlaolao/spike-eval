@@ -79,6 +79,22 @@ class PuzzleTest(unittest.TestCase):
         why = eval_only.reasons(puzzle=p)
         self.assertTrue(why and "not listed" in why[0], why)
 
+    def test_every_suite_file_with_puzzles_counts_and_only_open_passes(self):
+        p = self.tmp / "p.pzl"
+        p.write_text("[metadata]\nName:y\n")
+        h = puzzle_format.sha256_file(p)
+        d = self.tmp / "suites"
+        d.mkdir()
+        (d / "greedy-check-v0.json").write_text(json.dumps({"puzzles": [{"id": "a", "split": "heldout", "pzl_sha256": h}]}))
+        (d / "panels-v1.json").write_text(json.dumps({"panels": []}))   # no puzzles list: ignored
+        self.assertTrue(any("heldout puzzle" in w for w in eval_only.reasons(puzzle=p, suites_dir=d)))
+        (d / "greedy-check-v0.json").write_text(json.dumps({"puzzles": [{"id": "a", "pzl_sha256": h}]}))
+        self.assertTrue(eval_only.reasons(puzzle=p, suites_dir=d))   # a record with no split is not open
+        (d / "greedy-check-v0.json").write_text(json.dumps({"puzzles": [{"id": "a", "split": "calib", "pzl_sha256": h}]}))
+        self.assertTrue(eval_only.reasons(puzzle=p, suites_dir=d))
+        (d / "greedy-check-v0.json").write_text(json.dumps({"puzzles": [{"id": "a", "split": "open", "pzl_sha256": h}]}))
+        self.assertEqual(eval_only.reasons(puzzle=p, suites_dir=d), [])
+
     def test_an_open_listed_puzzle_passes(self):
         self.assertEqual(eval_only.reasons(puzzle=OPEN), [])
 
@@ -89,6 +105,24 @@ class DeckTest(unittest.TestCase):
             self.assertTrue(any("held-out deck" in w for w in eval_only.reasons(deck=ROOT / ("eval/decks/%s.txt" % slug))), slug)
         self.assertEqual(eval_only.reasons(deck=ROOT / "eval/decks/burn.txt"), [])
 
+    def test_a_copied_or_reformatted_held_out_deck_is_still_held_out(self):
+        tmp = Path(tempfile.mkdtemp(prefix="test-rl-deck-"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        text = (ROOT / "eval/decks/painter.txt").read_text()
+        lines = text.splitlines()
+        variants = {"copy.txt": text,
+                    "blank.txt": text + "\n\n",
+                    "spaces.txt": "\n".join("  " + l + "  " for l in lines) + "\n",
+                    "shuffled.txt": "# my deck\n" + "\n\n".join(reversed(lines)) + "\n"}
+        for name, body in variants.items():
+            (tmp / name).write_text(body)
+            self.assertTrue(any("held-out deck" in w for w in eval_only.reasons(deck=tmp / name)), name)
+        (tmp / "other.txt").write_text(text.replace("4 Ancient Tomb", "3 Ancient Tomb"))
+        self.assertEqual(eval_only.reasons(deck=tmp / "other.txt"), [])
+
+    def test_a_deck_that_cannot_be_read_is_refused(self):
+        self.assertTrue(eval_only.reasons(deck="/nonexistent/mine.txt"))
+
 
 class DuplicateTest(unittest.TestCase):
     def test_duplicate_groups_are_named(self):
@@ -96,6 +130,64 @@ class DuplicateTest(unittest.TestCase):
         self.assertTrue(eval_only.duplicate_groups(["a.pzl", "./a.pzl"], [], 2))
         self.assertTrue(eval_only.duplicate_groups([], [5, 5], 1))
         self.assertTrue(eval_only.duplicate_groups([], [5, 7], 4))   # 5..8 and 7..10 share seeds 7, 8
+
+    def test_a_puzzle_copied_under_another_name_is_a_duplicate(self):
+        tmp = Path(tempfile.mkdtemp(prefix="test-rl-dup-"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        shutil.copyfile(OPEN, tmp / "renamed.pzl")
+        self.assertTrue(eval_only.duplicate_groups([str(OPEN), str(tmp / "renamed.pzl")], [], 1))
+
+
+class FailClosedReaderTest(unittest.TestCase):
+    """The readers re-judge each episode; they do not trust the eval_only key."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="test-rl-readers-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def write(self, **ep):
+        rec = {"type": "episode", "episode_id": "e", "group": "g", "reward": 1.0, "valid": True, "n_steps": 1,
+               "info": {}, "guard": eval_only.GUARD_VERSION}
+        rec.update(ep)
+        step = {"type": "step", "episode_id": "e", "group": "g", "step": 1, "args": {"option": 2}, "accepted": True,
+                "messages": [{"role": "user", "content": "q"}]}
+        path = self.tmp / "r.jsonl"
+        path.write_text(json.dumps(step) + "\n" + json.dumps({k: v for k, v in rec.items() if v is not None}) + "\n")
+        return rollout.load_episodes(path)
+
+    def counts(self, eps):
+        return len(rollout.sft_examples(eps)), len(rollout.grpo_groups(eps))
+
+    def test_an_unmarked_panel_seed_episode_trains_nothing(self):
+        self.assertEqual(self.counts(self.write(seed=7800)), (0, 0))
+
+    def test_an_unmarked_held_out_deck_episode_trains_nothing(self):
+        sha = eval_only.deck_sha(ROOT / "eval/decks/painter.txt")
+        self.assertEqual(self.counts(self.write(seed=3, deck="/tmp/mine.txt", deck_sha256=sha)), (0, 0))
+
+    def test_an_unmarked_heldout_puzzle_episode_trains_nothing(self):
+        sha = puzzle_format.sha256_file(HELDOUT)
+        self.assertEqual(self.counts(self.write(puzzle="x.pzl", seed=1, puzzle_sha256=sha)), (0, 0))
+        self.assertEqual(self.counts(self.write(puzzle="x.pzl", seed=1, stamps={"pzl_sha256": sha})), (0, 0))
+
+    def test_a_puzzle_episode_with_no_content_hash_trains_nothing(self):
+        self.assertEqual(self.counts(self.write(puzzle="x.pzl", seed=1)), (0, 0))
+
+    def test_a_clean_guarded_episode_does_train(self):
+        sha = puzzle_format.sha256_file(OPEN)
+        self.assertEqual(self.counts(self.write(puzzle=str(OPEN), seed=1, puzzle_sha256=sha)), (1, 1))
+        self.assertEqual(self.counts(self.write(seed=1000)), (1, 1))
+
+    def test_an_episode_without_the_guard_field_is_dropped(self):
+        self.assertEqual(self.write(seed=1000, guard=None), [])
+
+    def test_a_list_of_episodes_handed_to_the_readers_is_judged_too(self):
+        e = self.write(seed=1000)[0]
+        e["seed"] = 7800   # not through load_episodes
+        self.assertEqual(self.counts([e]), (0, 0))
+        e.pop("guard")
+        e["seed"] = 1000
+        self.assertEqual(self.counts([e]), (0, 0))
 
 
 class CallSiteTest(unittest.TestCase):
@@ -108,6 +200,34 @@ class CallSiteTest(unittest.TestCase):
                            first_timeout_s=20, **kw)
         self.addCleanup(e.close)
         return e
+
+    def test_the_constructor_has_no_switch_for_the_guard(self):
+        with self.assertRaises(TypeError):
+            mtg_env.MtgEnv(guard=lambda **kw: [])
+
+    def test_a_cut_episode_keeps_its_eval_only_mark(self):
+        e = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=50), out_root=self.root, step_timeout_s=20,
+                           first_timeout_s=20, allow_eval_only=True)
+        self.addCleanup(e.close)
+        with open(Path(self.root) / "r.jsonl", "w") as out:
+            rec = rollout.run_episode(e, rollout.first_policy, "g", "g#0", out,
+                                      {"puzzle": str(HELDOUT), "seed": 1}, max_steps=3)
+        self.assertEqual(rec["info"]["error"], "max_steps")
+        self.assertTrue(any("heldout puzzle" in w for w in rec["eval_only"]), rec.get("eval_only"))
+
+    def test_the_episode_record_carries_the_guard_and_the_start(self):
+        e = self.env()
+        path = Path(self.root) / "r.jsonl"
+        with open(path, "w") as out:
+            rec = rollout.run_episode(e, lambda o: {"option": 2}, "g", "g#0", out, {"puzzle": str(OPEN), "seed": 1})
+        self.assertEqual(rec["guard"], eval_only.GUARD_VERSION)
+        self.assertEqual(rec["puzzle_sha256"], puzzle_format.sha256_file(OPEN))
+        self.assertNotIn("eval_only", rec)
+        deck = ROOT / "eval/decks/burn.txt"
+        with open(path, "w") as out:
+            rec = rollout.run_episode(self.env(), lambda o: {"option": 2}, "g", "g#1", out,
+                                      {"seed": 1000, "deck": str(deck)})
+        self.assertEqual((rec["deck"], rec["deck_sha256"]), (str(deck), eval_only.deck_sha(deck)))
 
     def test_reset_refuses_eval_only_data_unless_allowed(self):
         env = self.env()

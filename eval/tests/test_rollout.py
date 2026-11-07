@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "eval"))
 sys.path.insert(0, str(ROOT / "eval" / "rl"))
 sys.path.insert(0, str(ROOT / "eval" / "tests"))
+import eval_only  # noqa: E402
 import rollout  # noqa: E402
 from test_mtg_env import Base, stub_launcher  # noqa: E402
 
@@ -44,7 +45,8 @@ class RolloutTest(Base):
         self.assertEqual(eps[0]["group"], "p1")
 
     def test_grpo_and_sft(self):
-        eps = [{"group": "g", "episode_id": "g#%d" % i, "reward": r, "valid": v, "steps": [
+        eps = [{"group": "g", "episode_id": "g#%d" % i, "reward": r, "valid": v,
+            "guard": eval_only.GUARD_VERSION, "seed": 1000, "steps": [
             {"step": 1, "messages": [{"role": "user", "content": "q"}], "args": {"option": 2}}]}
             for i, (r, v) in enumerate([(1.0, True), (0.0, True), (0.0, True), (1.0, False)])]
         g = rollout.grpo_groups(eps)["g"]
@@ -80,6 +82,7 @@ class RolloutTest(Base):
 
 def episode(i, reward, valid=True, group="g", steps=1, **kw):
     return dict({"group": group, "episode_id": "%s#%d" % (group, i), "reward": reward, "valid": valid, "info": {},
+                 "guard": eval_only.GUARD_VERSION, "seed": 1000,
                  "steps": [{"step": k + 1, "messages": [{"role": "user", "content": "q"}], "args": {"option": 2}}
                            for k in range(steps)]}, **kw)
 
@@ -112,7 +115,8 @@ class ReaderTest(unittest.TestCase):
         path = Path(tempfile.mkdtemp(prefix="test-rollout-")) / "r.jsonl"
         self.addCleanup(shutil.rmtree, path.parent, True)
         step = lambda eid, n: json.dumps({"type": "step", "episode_id": eid, "group": "g", "step": n})  # noqa: E731
-        ep = json.dumps({"type": "episode", "episode_id": "r2:g#0", "group": "g", "reward": 0.0, "valid": True, "n_steps": 2})
+        ep = json.dumps({"type": "episode", "episode_id": "r2:g#0", "group": "g", "reward": 0.0, "valid": True, "n_steps": 2,
+                         "guard": eval_only.GUARD_VERSION, "seed": 1000})
         lines = [step("r1:g#0", 1), step("r1:g#0", 2), step("r2:g#0", 1), step("r2:g#0", 2), ep]
         path.write_text("\n".join(lines) + "\n")
         self.assertEqual([s["episode_id"] for s in rollout.load_episodes(path)[0]["steps"]], ["r2:g#0"] * 2)
@@ -133,12 +137,22 @@ class ReaderRobustnessTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, path.parent, True)
         step = lambda eid, n: json.dumps({"type": "step", "episode_id": eid, "group": "g", "step": n})  # noqa: E731
         ep = lambda eid, n: json.dumps({"type": "episode", "episode_id": eid, "group": "g", "reward": 0.0,  # noqa: E731
-                                        "valid": True, "n_steps": n})
+                                        "valid": True, "n_steps": n,
+                                        "guard": eval_only.GUARD_VERSION, "seed": 1000})
         path.write_text("\n".join([step("a", 1), step("a", 3), ep("a", 2),      # step 2 is missing
                                    step("b", 1), step("b", 2), ep("b", 2),      # whole
                                    '{"type": "step", "episode_id": "c", "step": 1, "mess' + "\n" + step("d", 1),   # glued
                                    ep("d", 1)]) + "\n")
         self.assertEqual([e["episode_id"] for e in rollout.load_episodes(path)], ["b", "d"])
+
+    def test_an_episode_with_fewer_steps_than_n_steps_is_dropped(self):
+        path = Path(tempfile.mkdtemp(prefix="test-rollout-")) / "r.jsonl"
+        self.addCleanup(shutil.rmtree, path.parent, True)
+        step = lambda n: json.dumps({"type": "step", "episode_id": "a", "group": "g", "step": n})  # noqa: E731
+        ep = json.dumps({"type": "episode", "episode_id": "a", "group": "g", "reward": 0.0, "valid": True,
+                         "n_steps": 5, "guard": eval_only.GUARD_VERSION, "seed": 1000})
+        path.write_text("\n".join([step(1), step(2), step(3), ep]) + "\n")   # 1..3 is contiguous, but not 1..5
+        self.assertEqual(rollout.load_episodes(path), [])
 
 
 class PolicyTest(unittest.TestCase):

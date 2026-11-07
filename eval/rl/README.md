@@ -77,10 +77,19 @@ reader trains on such an episode. So a trainer's own loop hits the guard, not on
 
 - a **seed** in `eval/seed_policy.py`'s reserved blocks or in any bank `eval/seed_registry.py` marks eval-only (the
   STR-AI panel seeds 7800-7999 are in the registry only); a puzzle's attempt seed counts;
-- a **deck** declared `held-out` in `eval/holdouts.json` (painter, sneak-and-show), by file or slug;
+- a **deck** declared `held-out` in `eval/holdouts.json` (painter, sneak-and-show), by slug or by **content**: the
+  sha256 of the deck's sorted, stripped, non-blank, non-comment lines, so a renamed, reordered or re-spaced copy is
+  refused too (an unreadable deck file is refused);
 - a **puzzle** by its bytes: the file's sha256 is looked up among every suite record's `pzl_sha256`, so a renamed
   copy keeps its split; it is heldout if any record with those bytes says heldout, and a puzzle no record lists is
-  refused too (its split is unknown).
+  refused too (its split is unknown). Every suite file with a `puzzles` list counts, and only `split: "open"` passes
+  (another split, or none, is refused).
+
+The readers do not trust the `eval_only` key. Each episode record carries `guard` (the version), `seed`, the puzzle's
+`puzzle_sha256` (or `stamps.pzl_sha256`) and a game's `deck` / `deck_sha256`; `load_episodes` drops an episode with no
+`guard` field, and `trainable` (so `sft_examples` and `grpo_groups`, also for a list built by hand) runs
+`eval_only.episode_reasons` on those fields again: an unmarked panel-seed, held-out-deck or heldout-puzzle episode
+trains nothing. `MtgEnv` has no constructor argument that turns the guard off (a test replaces `env.guard`).
 
 A game with no `deck=` plays the launcher's default decks, which the guard cannot see: pass the deck.
 
@@ -102,8 +111,13 @@ One JSON object per line; an episode's step lines come first, then its episode l
 {"type":"step","episode_id":"3f9a1c2e:drain_08bb#3","group":"drain_08bb","step":2,"kind":"decision",
  "messages":[...],"legal":{...},"action":2,"args":{"option":2},"accepted":true}
 {"type":"episode","episode_id":"3f9a1c2e:drain_08bb#3","run_id":"3f9a1c2e","group":"drain_08bb","puzzle":"...pzl",
- "seed":4,"puzzle_id":"drain_08bb","reward":0.0,"valid":true,"n_steps":9,"info":{...}}
+ "seed":4,"puzzle_id":"drain_08bb","puzzle_sha256":"...","reward":0.0,"valid":true,"n_steps":9,
+ "stamps":{"engine_sha":"...","overlay_sha":"...","harness_epoch":"...","pzl_sha256":"..."},"guard":2,"info":{...}}
 ```
+
+A game episode has `seed` and, when a deck was given, `deck` and `deck_sha256` instead of the puzzle fields. `guard` is
+`eval_only.GUARD_VERSION` and is on every episode. `eval_only` (a list of reasons) appears **only** on an episode played
+with `--allow-eval-only` whose start was eval data; a clean episode has no such key.
 
 `group` is the puzzle (one group = `--group-size` episodes of the same puzzle with attempt seeds 1..G); in game mode
 a group is G **different** games (seeds s..s+G-1, `group` = `game-<s>`), not G attempts at one start, so its

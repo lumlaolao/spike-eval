@@ -39,7 +39,9 @@ data").
 - **Games run through the same code.** G1 (burn deck, seed 42, random policy vs Forge's AI) played 15 turns in 38
   decisions and lost (winner B, `AllOpponentsLost`): reward 0, `valid=True`.
 - **Unit tests (stub JVM, no engine):** at the first commit 19 in `test_mtg_env.py` and 4 in `test_rollout.py`; now 42,
-  26 and 14 (`test_eval_only.py`), each new one broken once and seen red.
+  27 and 28 (`test_eval_only.py`). The guard's tests (`test_eval_only.py`) and the reader tests added in review round 3
+  were each seen red against the old code or a one-line mutation of the behaviour they pin; the earlier tests of
+  the first commit were not all individually broken, so no claim is made for them.
   A test that would have failed otherwise: the retry test (a request re-sent with the same messages must not become a
   second decision; it counts `deduped=1`, `decisions=2`, `requests=3`).
 
@@ -64,7 +66,7 @@ the end, so it holds the loopback round trip, the engine's work and the JVM exit
 
 - An episode is dominated by the JVM start (about 7 s of 8): the engine, not the loopback, is the cost, as the
   feasibility note's stub run said (10 s there was an upper bound; 7 s here).
-- 20 episodes of R1 plus R2 took 170 s wall (8.5 s each); R3's 40 took about 5 min.
+- 20 episodes of R1 plus R2 took 170 s wall (8.5 s each; the table's per-episode means give 12 x 8.3 + 8 x 8.1 = 164 s, the other 6 s is outside the episodes' own timers and was not measured separately); R3's 40 took about 5 min.
 - Decisions per episode are small because these puzzles are one-turn positions and the random policy often passes
   early (R1's drain puzzles have a 10-action line; random episodes ran 7 to 36 decisions).
 - The prompt is resent in full at every step: a drain step holds about 10 KB of messages, so R1 + R2 wrote 3.4 MB
