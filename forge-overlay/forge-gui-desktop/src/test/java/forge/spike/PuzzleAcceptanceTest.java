@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import forge.util.FileSection;
 import forge.util.FileUtil;
@@ -119,7 +120,7 @@ public class PuzzleAcceptanceTest {
         List<String> refused = new ArrayList<>();
         int read = 0;
         Path root = PuzzleSetupTest.repoRoot().toPath().resolve("eval/puzzles");
-        try (java.util.stream.Stream<Path> files = Files.walk(root)) {
+        try (Stream<Path> files = Files.walk(root)) {
             List<Path> puzzles = files.filter(x -> x.toString().endsWith(".pzl")).collect(Collectors.toList());
             for (Path f : puzzles) {
                 List<String> acceptance = FileSection.parseSections(FileUtil.readFile(f.toFile())).get("acceptance");
