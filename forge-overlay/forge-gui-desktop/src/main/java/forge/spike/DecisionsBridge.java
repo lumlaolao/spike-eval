@@ -226,7 +226,8 @@ final class DecisionsBridge implements LLMBridge {
                     for (int k = 0; k <= s.max; k++)
                         crit.addProperty(Integer.toString(k), k == 0 ? "Do not pick it." : "Pick it " + k + (k == 1 ? " time." : " times."));
                     c.questions.add("count" + i, question("choice", SITUATION + " The player picks between " + s.min + " and "
-                            + s.max + " in all, and the same option may be picked more than once. How many times should "
+                            + s.max + " in all, and the same option may be picked more than once"
+                            + (s.limit == null ? "" : "; " + s.limit) + ". How many times should "
                             + "option " + i + " (" + s.labels.get(i - 1) + ") be picked?", crit));
                 }
                 c.read = a -> {

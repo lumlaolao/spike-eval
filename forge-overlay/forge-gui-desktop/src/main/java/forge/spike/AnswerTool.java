@@ -321,6 +321,10 @@ final class AnswerTool {
         }
         Spec cancel(int oneBased) { this.cancel = oneBased; return this; }
         Spec check(Function<Answer, String> c) { this.check = c; return this; }
+        /** A limit the site checks that the schema cannot state (a pawprint charm's {P} budget), for a bridge that
+         *  builds its questions from the Spec alone (DecisionsBridge); null when there is none. */
+        String limit;
+        Spec limit(String l) { this.limit = l; return this; }
         Spec labels(List<String> l) { this.labels = new ArrayList<>(l); return this; }
     }
 

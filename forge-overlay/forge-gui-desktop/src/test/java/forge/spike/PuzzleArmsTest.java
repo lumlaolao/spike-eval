@@ -52,9 +52,8 @@ public class PuzzleArmsTest {
     }
 
     /** #269: the search arm drew the cap every time, so "choose up to five" (the Seasons, Hela's Arcanum, Moment of
-     *  Reckoning) was
-     *  never tried with fewer modes, and it branched over orders of the same modes. It draws a count, then a
-     *  non-decreasing multiset. */
+     *  Reckoning) was never tried with fewer modes, and it branched over orders of the same modes. It draws a count,
+     *  then a non-decreasing multiset. */
     @Test
     public void repeatModesOnTheSearchArmDrawsACountThenAMultiset() {
         // "up to five" (min 0): the count is a choice among 0..5 (bound 6); value 0 is no mode at all, as the engine

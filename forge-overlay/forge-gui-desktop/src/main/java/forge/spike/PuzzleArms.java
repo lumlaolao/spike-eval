@@ -74,9 +74,9 @@ final class PuzzleArms {
             while (picks.size() < hi) {
                 List<Integer> fit = new ArrayList<>();
                 for (int j = search ? from : 0; j < options; j++) if (cost[j] <= left) fit.add(j);
+                if (fit.isEmpty()) break;
                 boolean canStop = picks.size() >= min;
                 int n = fit.size() + (canStop ? 1 : 0);
-                if (fit.isEmpty()) break;
                 int v = r.nextInt(n);
                 if (v == fit.size()) break;                  // stop
                 int pick = fit.get(v);
