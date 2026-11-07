@@ -38,10 +38,10 @@ data").
   `answer`, the 61 puzzle episodes' requests equal their rows' `model_calls` (and `requests == decisions == n_steps` in all 62).
 - **Games run through the same code.** G1 (burn deck, seed 42, random policy vs Forge's AI) played 15 turns in 38
   decisions and lost (winner B, `AllOpponentsLost`): reward 0, `valid=True`.
-- **Unit tests (stub JVM, no engine):** at the first commit 19 in `test_mtg_env.py` and 4 in `test_rollout.py`; now 42,
-  27 and 28 (`test_eval_only.py`). The guard's tests (`test_eval_only.py`) and the reader tests added in review round 3
-  were each seen red against the old code or a one-line mutation of the behaviour they pin; the earlier tests of
-  the first commit were not all individually broken, so no claim is made for them.
+- **Unit tests (stub JVM, no engine):** at the first commit 19 in `test_mtg_env.py` and 4 in `test_rollout.py`; now 43,
+  29 and 39 (`test_eval_only.py`). In review round 4 each new guard and reader test was run against the code before the
+  change or against a one-line mutation of the behaviour it pins and failed; the earlier tests were not all
+  individually broken, so no claim is made for them.
   A test that would have failed otherwise: the retry test (a request re-sent with the same messages must not become a
   second decision; it counts `deduped=1`, `decisions=2`, `requests=3`).
 

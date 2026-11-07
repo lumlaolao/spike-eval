@@ -157,11 +157,9 @@ def run_group(env, policy_spec, group, resets, out, policy_seed=0, max_steps=400
 
 # ------------------------------------------------------------------ readers for training
 
-def load_episodes(path):
-    """[{episode record + "steps": [step lines]}], in file order. A trailing episode cut off mid-write is dropped,
-    so are the step lines of a run that died before its episode line (the next episode's step 1 clears them), an
-    episode whose steps are not numbered 1..n_steps and an episode with no `guard` field (no guard saw its start)."""
-    steps, eps = {}, []
+def read_episodes(path):
+    """(episodes, n_pre_guard): `load_episodes`'s records, and how many episode lines had no `guard` field."""
+    steps, eps, pre_guard = {}, [], 0
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -175,9 +173,21 @@ def load_episodes(path):
             steps.setdefault(row["episode_id"], []).append(row)
         elif row.get("type") == "episode":
             own = steps.pop(row["episode_id"], [])
-            if [s.get("step") for s in own] == list(range(1, len(own) + 1)) and len(own) == row.get("n_steps") \
-                    and row.get("guard"):
+            if not row.get("guard"):
+                pre_guard += 1
+            elif [s.get("step") for s in own] == list(range(1, len(own) + 1)) and len(own) == row.get("n_steps"):
                 eps.append(dict(row, steps=own))
+    return eps, pre_guard
+
+
+def load_episodes(path):
+    """[{episode record + "steps": [step lines]}], in file order. Dropped: a trailing episode cut off mid-write, the
+    step lines of a run that died before its episode line, an episode whose steps are not numbered 1..n_steps and
+    an episode with no `guard` field (written before the guard: counted on stderr)."""
+    eps, pre_guard = read_episodes(path)
+    if pre_guard:
+        print("load_episodes: dropped %d episode(s) in %s written before the guard (no guard field)" % (pre_guard, path),
+              file=sys.stderr)
     return eps
 
 
@@ -256,7 +266,7 @@ def main(argv=None):
     if dup:
         ap.error("a group would be played twice: %s" % "; ".join(dup))
     why = sorted({w for _, _, rs in resets for kw in rs for w in eval_only.reasons(
-        puzzle=kw.get("puzzle"), seeds=[kw["seed"]], deck=kw.get("deck"))})
+        puzzle=kw.get("puzzle"), seeds=[kw["seed"]], deck=kw.get("deck"), game=kw.get("puzzle") is None)})
     if why and not a.allow_eval_only:
         ap.error("eval-only data, never training data (eval/rl/README.md, \"Eval-only data\"): %s; "
                  "--allow-eval-only plays it marked eval_only" % "; ".join(why))
@@ -265,7 +275,11 @@ def main(argv=None):
     if out_path.exists() and out_path.stat().st_size:
         if not a.append:
             ap.error("%s is not empty: a rollout does not append unless --append" % a.out)
-        known = {json.dumps(e.get("stamps"), sort_keys=True): e["stamps"] for e in load_episodes(out_path) if e.get("stamps")}
+        old, pre_guard = read_episodes(out_path)
+        if pre_guard and not old:
+            ap.error("%s holds only episodes written before the guard (%d): the readers drop them, so appending "
+                     "pins no stamps; start a new file" % (a.out, pre_guard))
+        known = {json.dumps(e.get("stamps"), sort_keys=True): e["stamps"] for e in old if e.get("stamps")}
         if len(known) > 1:
             ap.error("%s already mixes builds or interfaces (%d stamp sets): it cannot take more" % (a.out, len(known)))
         if known:

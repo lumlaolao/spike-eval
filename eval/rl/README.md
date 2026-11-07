@@ -79,7 +79,10 @@ reader trains on such an episode. So a trainer's own loop hits the guard, not on
   STR-AI panel seeds 7800-7999 are in the registry only); a puzzle's attempt seed counts;
 - a **deck** declared `held-out` in `eval/holdouts.json` (painter, sneak-and-show), by slug or by **content**: the
   sha256 of the deck's sorted, stripped, non-blank, non-comment lines, so a renamed, reordered or re-spaced copy is
-  refused too (an unreadable deck file is refused);
+  refused too (an unreadable deck file is refused). The match is an exact multiset of card lines: a deck with one
+  card changed, or in another format, escapes it;
+- a **game with no deck**: it would play the launcher's default decks, which the guard cannot see, so a game episode
+  without `deck=` is refused (`allow_eval_only` marks it instead);
 - a **puzzle** by its bytes: the file's sha256 is looked up among every suite record's `pzl_sha256`, so a renamed
   copy keeps its split; it is heldout if any record with those bytes says heldout, and a puzzle no record lists is
   refused too (its split is unknown). Every suite file with a `puzzles` list counts, and only `split: "open"` passes
@@ -87,11 +90,15 @@ reader trains on such an episode. So a trainer's own loop hits the guard, not on
 
 The readers do not trust the `eval_only` key. Each episode record carries `guard` (the version), `seed`, the puzzle's
 `puzzle_sha256` (or `stamps.pzl_sha256`) and a game's `deck` / `deck_sha256`; `load_episodes` drops an episode with no
-`guard` field, and `trainable` (so `sft_examples` and `grpo_groups`, also for a list built by hand) runs
+`guard` field (counted on stderr; `rollout.py --append` refuses a file that holds only such episodes), and `trainable` (so `sft_examples` and `grpo_groups`, also for a list built by hand) runs
 `eval_only.episode_reasons` on those fields again: an unmarked panel-seed, held-out-deck or heldout-puzzle episode
-trains nothing. `MtgEnv` has no constructor argument that turns the guard off (a test replaces `env.guard`).
-
-A game with no `deck=` plays the launcher's default decks, which the guard cannot see: pass the deck.
+trains nothing. The recorded hashes are cross-checked where possible: `puzzle_sha256` and `stamps.pzl_sha256` are
+both judged (and a reason is added when they differ), and when the recorded puzzle or deck path can be read, its hash is
+computed again and a disagreement is a reason (a missing file falls back to the recorded hash). This stops accidents,
+not a deliberate forgery of a whole line: someone who rewrites the seed, the hashes and the file can pass.
+`MtgEnv` has no constructor argument that turns the guard off and no attribute to replace (a test patches
+`eval_only.reasons`); `extra_env` cannot set `PUZZLE`, `PZL_SEEDS`, `GAME_SEED`, `DECK_A`, `DECK_B`, `DECK_A_NAME` or
+`DECK_B_NAME` (`ValueError`), so it cannot change the start the guard judged.
 
 `reset(seed=<n>, deck=<file>)` runs a full game against Forge's AI with the same machinery. It has run once against
 a JVM (G1 in the research note: one game, a loss, 38 decisions) and otherwise against the stub.
@@ -133,7 +140,7 @@ new line if the file does not end in one (a crashed run's cut line). `rollout.py
 
 - `load_episodes(path)` -> episode records with their `steps`.
 - `grpo_groups(episodes)` -> `{group: [{episode_id, reward, advantage, steps}]}` over trainable episodes (valid, no
-  lost decision, not `eval_only`), with the group-relative advantage `(r - mean) / (std + 1e-6)`
+  lost decision, not `eval_only`, and clean when `eval_only.episode_reasons` judges it again), with the group-relative advantage `(r - mean) / (std + 1e-6)`
   (`normalize=False`: `r - mean`). 4 solved of 40 gives +3.0 and -0.33. A group with equal rewards (every hard puzzle
   under the random policy) has advantage 0 everywhere: no signal. So has a group left with **one** valid episode
   after the others were dropped (a lost decision, a dead bridge): its mean is its own reward. Pick puzzles with

@@ -22,6 +22,7 @@ import eval_only  # noqa: E402
 import rollout  # noqa: E402
 from test_mtg_env import Base, stub_launcher  # noqa: E402
 
+BURN = str(ROOT / "eval/decks/burn.txt")
 RP = str(ROOT / "eval/puzzles/rules-pilot/RP_017.pzl")
 import fake_model_server  # noqa: E402
 import mtg_env  # noqa: E402
@@ -46,7 +47,7 @@ class RolloutTest(Base):
 
     def test_grpo_and_sft(self):
         eps = [{"group": "g", "episode_id": "g#%d" % i, "reward": r, "valid": v,
-            "guard": eval_only.GUARD_VERSION, "seed": 1000, "steps": [
+            "guard": eval_only.GUARD_VERSION, "seed": 1000, "deck": BURN, "steps": [
             {"step": 1, "messages": [{"role": "user", "content": "q"}], "args": {"option": 2}}]}
             for i, (r, v) in enumerate([(1.0, True), (0.0, True), (0.0, True), (1.0, False)])]
         g = rollout.grpo_groups(eps)["g"]
@@ -82,7 +83,7 @@ class RolloutTest(Base):
 
 def episode(i, reward, valid=True, group="g", steps=1, **kw):
     return dict({"group": group, "episode_id": "%s#%d" % (group, i), "reward": reward, "valid": valid, "info": {},
-                 "guard": eval_only.GUARD_VERSION, "seed": 1000,
+                 "guard": eval_only.GUARD_VERSION, "seed": 1000, "deck": BURN,
                  "steps": [{"step": k + 1, "messages": [{"role": "user", "content": "q"}], "args": {"option": 2}}
                            for k in range(steps)]}, **kw)
 
@@ -116,7 +117,7 @@ class ReaderTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, path.parent, True)
         step = lambda eid, n: json.dumps({"type": "step", "episode_id": eid, "group": "g", "step": n})  # noqa: E731
         ep = json.dumps({"type": "episode", "episode_id": "r2:g#0", "group": "g", "reward": 0.0, "valid": True, "n_steps": 2,
-                         "guard": eval_only.GUARD_VERSION, "seed": 1000})
+                         "guard": eval_only.GUARD_VERSION, "seed": 1000, "deck": BURN})
         lines = [step("r1:g#0", 1), step("r1:g#0", 2), step("r2:g#0", 1), step("r2:g#0", 2), ep]
         path.write_text("\n".join(lines) + "\n")
         self.assertEqual([s["episode_id"] for s in rollout.load_episodes(path)[0]["steps"]], ["r2:g#0"] * 2)
@@ -138,7 +139,7 @@ class ReaderRobustnessTest(unittest.TestCase):
         step = lambda eid, n: json.dumps({"type": "step", "episode_id": eid, "group": "g", "step": n})  # noqa: E731
         ep = lambda eid, n: json.dumps({"type": "episode", "episode_id": eid, "group": "g", "reward": 0.0,  # noqa: E731
                                         "valid": True, "n_steps": n,
-                                        "guard": eval_only.GUARD_VERSION, "seed": 1000})
+                                        "guard": eval_only.GUARD_VERSION, "seed": 1000, "deck": BURN})
         path.write_text("\n".join([step("a", 1), step("a", 3), ep("a", 2),      # step 2 is missing
                                    step("b", 1), step("b", 2), ep("b", 2),      # whole
                                    '{"type": "step", "episode_id": "c", "step": 1, "mess' + "\n" + step("d", 1),   # glued
@@ -150,7 +151,7 @@ class ReaderRobustnessTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, path.parent, True)
         step = lambda n: json.dumps({"type": "step", "episode_id": "a", "group": "g", "step": n})  # noqa: E731
         ep = json.dumps({"type": "episode", "episode_id": "a", "group": "g", "reward": 0.0, "valid": True,
-                         "n_steps": 5, "guard": eval_only.GUARD_VERSION, "seed": 1000})
+                         "n_steps": 5, "guard": eval_only.GUARD_VERSION, "seed": 1000, "deck": BURN})
         path.write_text("\n".join([step(1), step(2), step(3), ep]) + "\n")   # 1..3 is contiguous, but not 1..5
         self.assertEqual(rollout.load_episodes(path), [])
 
@@ -348,6 +349,25 @@ class MainTest(Base):
         eps = rollout.load_episodes(path)
         self.assertEqual([e["n_steps"] for e in eps], [2])
         self.assertEqual(len([l for l in path.read_text().splitlines() if l.strip()]), 4)   # 1 dead + 2 steps + episode
+
+    def test_append_onto_a_file_of_only_pre_guard_episodes_is_refused(self):
+        self.patched()
+        path = Path(self.root) / "t.jsonl"
+        step = {"type": "step", "episode_id": "old:g#0", "step": 1, "args": {"option": 1}}
+        ep = {"type": "episode", "episode_id": "old:g#0", "group": "g", "reward": 1.0, "valid": True, "n_steps": 1}
+        path.write_text(json.dumps(step) + "\n" + json.dumps(ep) + "\n")
+        before = path.read_text()
+        rc, _, err = self.main("--puzzle", RP, "--out", str(path), "--append", "--policy", "first")
+        self.assertEqual((rc, "before the guard" in err, path.read_text()), (2, True, before))
+
+    def test_load_episodes_says_how_many_pre_guard_episodes_it_dropped(self):
+        path = Path(self.root) / "t.jsonl"
+        ep = {"type": "episode", "episode_id": "old:g#0", "group": "g", "reward": 1.0, "valid": True, "n_steps": 0}
+        path.write_text(json.dumps(ep) + "\n")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(rollout.load_episodes(path), [])
+        self.assertIn("dropped 1 episode", err.getvalue())
 
     def test_append_onto_a_file_of_another_build_is_refused(self):
         self.patched()

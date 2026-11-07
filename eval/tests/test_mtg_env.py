@@ -14,6 +14,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -21,9 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "eval"))
 sys.path.insert(0, str(ROOT / "eval" / "rl"))
+import eval_only  # noqa: E402
 import mtg_env  # noqa: E402
-
-NO_GUARD = lambda **kw: []  # noqa: E731  (these tests play made-up puzzles; the guard has test_eval_only.py)
 
 STUB = r'''
 import json, os, socket, sys, time, urllib.request
@@ -83,13 +83,21 @@ def stub_launcher(**stub_env):
 
 
 class Base(unittest.TestCase):
+    def no_guard(self):
+        """These tests play made-up puzzles; the guard has test_eval_only.py. Patches the one function reset calls."""
+        if not getattr(self, "_no_guard", False):
+            self._no_guard = True
+            patch = mock.patch.object(eval_only, "reasons", return_value=[])
+            patch.start()
+            self.addCleanup(patch.stop)
+
     def setUp(self):
         self.root = tempfile.mkdtemp(prefix="test-rl-env-")
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def env(self, **stub_env):
         e = mtg_env.MtgEnv(launcher=stub_launcher(**stub_env), out_root=self.root, step_timeout_s=20, first_timeout_s=20)
-        e.guard = NO_GUARD
+        self.no_guard()
         self.addCleanup(e.close)
         return e
 
@@ -198,7 +206,7 @@ class EnvTest(Base):
         self.addCleanup(os.environ.pop, "OPENROUTER_ALLOW_EGRESS", None)
         self.addCleanup(os.environ.pop, "OPENROUTER_API_KEY", None)
         env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20)
-        env.guard = NO_GUARD
+        self.no_guard()
         self.addCleanup(env.close)
         env.reset(puzzle="/some/where/p.pzl", seed=4)
         out_dir = env.out_dir
@@ -215,7 +223,7 @@ class EnvTest(Base):
         extra = {"MY_FLAG": "yes", "OPENROUTER_ALLOW_EGRESS": "1", "OPENROUTER_API_KEY": "k"}
         env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20,
                              extra_env=extra)
-        env.guard = NO_GUARD
+        self.no_guard()
         self.addCleanup(env.close)
         env.reset(puzzle="x.pzl")
         out_dir = env.out_dir
@@ -224,6 +232,11 @@ class EnvTest(Base):
         self.assertEqual(seen["MY_FLAG"], "yes")
         self.assertIsNone(seen["OPENROUTER_ALLOW_EGRESS"])
         self.assertIsNone(seen["OPENROUTER_API_KEY"])
+
+    def test_extra_env_cannot_override_the_judged_start(self):
+        for key in ("PUZZLE", "PZL_SEEDS", "GAME_SEED", "DECK_A", "DECK_B", "DECK_A_NAME", "DECK_B_NAME"):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), extra_env={key: "x"})
 
     def test_close_kills_the_process_and_closes_the_port(self):
         env = self.env(STUB_N=5)
@@ -248,7 +261,7 @@ class EnvTest(Base):
 
     def test_step_timeout_ends_invalid(self):
         env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=3, STUB_SLEEP=30), out_root=self.root, step_timeout_s=1)
-        env.guard = NO_GUARD
+        self.no_guard()
         self.addCleanup(env.close)
         env.reset(puzzle="x.pzl")
         obs, reward, done, info = env.step(2)
@@ -257,7 +270,7 @@ class EnvTest(Base):
     def test_no_first_decision_raises(self):
         e = mtg_env.MtgEnv(launcher=lambda env, out: subprocess.Popen([sys.executable, "-c", "import sys; sys.exit(3)"]),
                            out_root=self.root, first_timeout_s=10)
-        e.guard = NO_GUARD
+        self.no_guard()
         with self.assertRaises(mtg_env.EnvError):
             e.reset(puzzle="x.pzl")
 

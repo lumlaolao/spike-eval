@@ -4,11 +4,15 @@
 
     python3 eval/tests/test_eval_only.py
 """
+import io
 import json
+import os
+import contextlib
 import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +27,8 @@ from test_mtg_env import stub_launcher  # noqa: E402
 
 OPEN = ROOT / "eval/puzzles/rules-pilot/RP_017.pzl"
 HELDOUT = ROOT / "eval/puzzles/hard/gen/drain_0026d851c85f.pzl"
+BURN = ROOT / "eval/decks/burn.txt"
+GAME = {"seed": 1000, "deck": str(BURN)}
 
 
 def suite_with(dirpath, *records):
@@ -99,6 +105,32 @@ class PuzzleTest(unittest.TestCase):
         self.assertEqual(eval_only.reasons(puzzle=OPEN), [])
 
 
+class SuiteCacheTest(unittest.TestCase):
+    """The split cache is keyed on each suite file's path, mtime and size: an edit shows through either way."""
+
+    def setUp(self):
+        self.d = Path(tempfile.mkdtemp(prefix="test-rl-cache-"))
+        self.addCleanup(shutil.rmtree, self.d, True)
+        self.f = self.d / "puzzles-x.json"
+
+    def put(self, split, mtime_ns=None):
+        self.f.write_text(json.dumps({"puzzles": [{"id": "a", "split": split, "pzl_sha256": "h"}]}))
+        if mtime_ns is not None:
+            os.utime(self.f, ns=(mtime_ns, mtime_ns))
+
+    def test_a_changed_mtime_with_the_same_size_is_seen(self):
+        self.put("open", 10**18)
+        self.assertEqual(eval_only.puzzle_splits(self.d), {"h": {"open"}})
+        self.put("oper", 2 * 10**18)   # same length, other mtime
+        self.assertEqual(eval_only.puzzle_splits(self.d), {"h": {"oper"}})
+
+    def test_a_changed_size_with_the_same_mtime_is_seen(self):
+        self.put("open", 10**18)
+        self.assertEqual(eval_only.puzzle_splits(self.d), {"h": {"open"}})
+        self.put("heldout", 10**18)   # longer, same mtime
+        self.assertEqual(eval_only.puzzle_splits(self.d), {"h": {"heldout"}})
+
+
 class DeckTest(unittest.TestCase):
     def test_a_held_out_deck_is_refused_and_an_in_corpus_deck_is_not(self):
         for slug in ("painter", "sneak-and-show"):
@@ -122,6 +154,11 @@ class DeckTest(unittest.TestCase):
 
     def test_a_deck_that_cannot_be_read_is_refused(self):
         self.assertTrue(eval_only.reasons(deck="/nonexistent/mine.txt"))
+
+    def test_the_registry_is_read_once_per_judgement(self):
+        with mock.patch.object(Path, "read_text", autospec=True, side_effect=Path.read_text) as rt:
+            eval_only.reasons(deck=BURN)
+        self.assertEqual(sum(1 for c in rt.call_args_list if c.args[0].name == "holdouts.json"), 1)
 
 
 class DuplicateTest(unittest.TestCase):
@@ -173,16 +210,51 @@ class FailClosedReaderTest(unittest.TestCase):
     def test_a_puzzle_episode_with_no_content_hash_trains_nothing(self):
         self.assertEqual(self.counts(self.write(puzzle="x.pzl", seed=1)), (0, 0))
 
+    def test_a_game_episode_with_no_deck_trains_nothing(self):
+        self.assertEqual(self.counts(self.write(seed=1000)), (0, 0))
+        self.assertTrue(any("no deck" in w for w in eval_only.reasons(seeds=[1000], game=True)))
+
+    def test_the_recorded_puzzle_hashes_are_both_judged(self):
+        good, bad = puzzle_format.sha256_file(OPEN), puzzle_format.sha256_file(HELDOUT)
+        for top, stamp in ((good, bad), (bad, good)):
+            eps = self.write(puzzle="x.pzl", seed=1, puzzle_sha256=top, stamps={"pzl_sha256": stamp})
+            self.assertEqual(self.counts(eps), (0, 0))
+        why = eval_only.episode_reasons(eps[0])
+        self.assertTrue(any("disagree" in w for w in why), why)
+        self.assertTrue(any("heldout puzzle" in w for w in why), why)
+
+    def test_a_readable_puzzle_or_deck_is_hashed_again(self):
+        good = puzzle_format.sha256_file(OPEN)
+        self.assertEqual(self.counts(self.write(puzzle=str(HELDOUT), seed=1, puzzle_sha256=good)), (0, 0))
+        why = eval_only.episode_reasons(self.write(puzzle=str(HELDOUT), seed=1, puzzle_sha256=good)[0])
+        self.assertTrue(any("disagrees" in w for w in why), why)
+        painter = ROOT / "eval/decks/painter.txt"
+        self.assertEqual(self.counts(self.write(seed=3, deck=str(painter), deck_sha256=eval_only.deck_sha(BURN))), (0, 0))
+
+    def test_an_unreadable_puzzle_falls_back_to_the_recorded_stamp_hash(self):
+        sha = puzzle_format.sha256_file(OPEN)
+        self.assertEqual(self.counts(self.write(puzzle="/nonexistent/x.pzl", seed=1, stamps={"pzl_sha256": sha})), (1, 1))
+
+    def test_an_unreadable_puzzle_with_no_hash_says_it_has_none(self):
+        why = eval_only.episode_reasons(self.write(puzzle="/nonexistent/x.pzl", seed=1)[0])
+        self.assertTrue(any("no content hash" in w for w in why), why)
+
+    def test_the_default_attempt_seed_of_a_puzzle_and_no_seed_for_a_game(self):
+        sha = puzzle_format.sha256_file(OPEN)
+        self.assertEqual(self.counts(self.write(puzzle=str(OPEN), puzzle_sha256=sha)), (1, 1))   # attempt seed 1
+        self.assertEqual(self.counts(self.write(deck=str(BURN))), (0, 0))
+        self.assertIn("game episode records no seed", eval_only.episode_reasons(self.write(deck=str(BURN))[0]))
+
     def test_a_clean_guarded_episode_does_train(self):
         sha = puzzle_format.sha256_file(OPEN)
         self.assertEqual(self.counts(self.write(puzzle=str(OPEN), seed=1, puzzle_sha256=sha)), (1, 1))
-        self.assertEqual(self.counts(self.write(seed=1000)), (1, 1))
+        self.assertEqual(self.counts(self.write(**GAME)), (1, 1))
 
     def test_an_episode_without_the_guard_field_is_dropped(self):
-        self.assertEqual(self.write(seed=1000, guard=None), [])
+        self.assertEqual(self.write(guard=None, **GAME), [])
 
     def test_a_list_of_episodes_handed_to_the_readers_is_judged_too(self):
-        e = self.write(seed=1000)[0]
+        e = self.write(**GAME)[0]
         e["seed"] = 7800   # not through load_episodes
         self.assertEqual(self.counts([e]), (0, 0))
         e.pop("guard")
@@ -204,6 +276,22 @@ class CallSiteTest(unittest.TestCase):
     def test_the_constructor_has_no_switch_for_the_guard(self):
         with self.assertRaises(TypeError):
             mtg_env.MtgEnv(guard=lambda **kw: [])
+        self.assertFalse(hasattr(self.env(), "guard"))   # nothing on the env to replace: tests patch eval_only.reasons
+
+    def test_reset_calls_eval_only_reasons(self):
+        with mock.patch.object(eval_only, "reasons", return_value=["patched reason"]) as r:
+            with self.assertRaises(mtg_env.EnvError) as cm:
+                self.env().reset(puzzle=str(OPEN), seed=1)
+        self.assertIn("patched reason", str(cm.exception))
+        self.assertEqual(r.call_count, 1)
+
+    def test_a_game_with_no_deck_is_refused_unless_allowed(self):
+        with self.assertRaises(mtg_env.EnvError) as cm:
+            self.env().reset(seed=1000)
+        self.assertIn("no deck", str(cm.exception))
+        env = self.env(allow_eval_only=True)
+        env.reset(seed=1000)
+        self.assertTrue(any("no deck" in w for w in env.eval_only))
 
     def test_a_cut_episode_keeps_its_eval_only_mark(self):
         e = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=50), out_root=self.root, step_timeout_s=20,

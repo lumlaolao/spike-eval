@@ -48,6 +48,9 @@ DECISION_ONLY = {"CONTEXT_PROFILE": "v4-faithful", "MEMORY_TOOLS": "0", "RULES_T
                  "ANSWER_TOOL": "1", "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
 
 
+JUDGED_START = {"PUZZLE", "PZL_SEEDS", "GAME_SEED", "DECK_A", "DECK_B", "DECK_A_NAME", "DECK_B_NAME"}
+
+
 class EnvError(RuntimeError):
     pass
 
@@ -253,8 +256,10 @@ class MtgEnv:
         self.keep_out, self.step_timeout_s, self.first_timeout_s = keep_out, step_timeout_s, first_timeout_s
         self.call_timeout_ms, self.game_cap_ms, self.model = call_timeout_ms, game_cap_ms, model
         self.extra_env = dict(extra_env or {})
+        if set(self.extra_env) & JUDGED_START:
+            raise ValueError("extra_env cannot set %s: the guard judged the start reset was given"
+                             % sorted(set(self.extra_env) & JUDGED_START))
         self.allow_eval_only = allow_eval_only
-        self.guard = eval_only.reasons   # an attribute a test may replace; the constructor has no switch for it
         self.eval_only = []
         self.server = self.proc = self.out_dir = self.pending = None
         self.mode = self.puzzle_id = self.seed = None
@@ -271,8 +276,8 @@ class MtgEnv:
         self.close()
         if puzzle is None and seed is None:
             raise EnvError("reset needs puzzle=<.pzl> or seed=<n>")
-        self.eval_only = self.guard(puzzle=puzzle, seeds=[1 if seed is None else seed] if puzzle is not None
-                                    else [seed], deck=deck)
+        self.eval_only = eval_only.reasons(puzzle=puzzle, seeds=[1 if seed is None else seed] if puzzle is not None
+                                           else [seed], deck=deck, game=puzzle is None)
         if self.eval_only and not self.allow_eval_only:
             raise EnvError("eval-only data, never training data (eval/rl/README.md, \"Eval-only data\"): %s; "
                            "allow_eval_only=True plays it marked eval_only" % "; ".join(self.eval_only))
