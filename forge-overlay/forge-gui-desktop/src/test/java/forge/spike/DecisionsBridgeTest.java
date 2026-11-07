@@ -354,9 +354,16 @@ public class DecisionsBridgeTest {
         Assert.assertTrue(DecisionsBridge.compose(paw).questions.toString()
                 .contains("more than once; the picked options' {P} total at most 5. How many"));
         Assert.assertFalse(DecisionsBridge.compose(spec).questions.toString().contains("total at most"));
+        // Under a weighted cap (a pawprint charm, #417) the surer counts are kept while they fit: Season of Loss's
+        // {P}{P}{P} mode twice and {P}{P} and {P} once each (10 {P}) keeps one {P}{P}{P} and the {P}{P} (5 of 5).
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {1, 1, 2}, new double[] {0.5, 0.6, 0.9}, 0, 5,
+                new int[] {1, 2, 3}, 5), List.of(2, 3));
+        // Padding to a minimum under a cap takes the cheapest mode that fits when the surest does not.
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 0, 2}, new double[] {0.1, 0.1, 0.9}, 1, 5,
+                new int[] {1, 2, 3}, 2), List.of(1));
         // Too many: the surer counts are kept. Too few: the likeliest mode is repeated up to the minimum.
-        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3), List.of(1, 1, 1));
-        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3), List.of(2, 2, 2));
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3, null, -1), List.of(1, 1, 1));
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3, null, -1), List.of(2, 2, 2));
     }
 
     /** A blocker that may block several attackers gets a yes/no per attacker, so it can block two. */
@@ -565,7 +572,7 @@ public class DecisionsBridgeTest {
     /** A jev: seat answers through `answer` (the stamp and the preamble say so); it gets no native lookups. */
     @Test
     public void aJevSeatAnswersThroughTheAnswerToolWithoutLookups() {
-        Assert.assertEquals(DecisionsBridge.VERSION, "decisions-bridge-v2", "move this pin WITH DecisionsBridge.VERSION");
+        Assert.assertEquals(DecisionsBridge.VERSION, "decisions-bridge-v3", "move this pin WITH DecisionsBridge.VERSION");
         String spec = DecisionsBridge.PREFIX + "typesafe/jev-1.14";
         Assert.assertTrue(AnswerTool.usedBy(spec));
         Assert.assertFalse(NativeTools.usedBy(spec));

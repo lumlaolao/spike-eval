@@ -27,6 +27,7 @@ import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
 import forge.game.player.PlayerController.BinaryChoiceType;
+import forge.game.spellability.AbilitySub;
 import forge.game.spellability.OptionalCostValue;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
@@ -1156,6 +1157,82 @@ public class GoldenChecksTest {
         Assert.assertTrue(java.util.regex.Pattern.compile("(?m)^\\s*3\\) \\{P\\}\\{P\\}\\{P\\} — Each opponent")
                 .matcher(decision).find(), "the option shows its {P}: " + decision);
         Assert.assertTrue(decision.contains("may total at most 5"), "the question states the budget: " + decision);
+    }
+
+    /** #417: the repeatable-mode spec carries a pawprint charm's budget three ways: a tool answer over it is refused
+     *  where it is made (and the refusal is noted for the log), the Decisions bridge is told it, and it can trim to it.
+     *  Any other repeatable ask's spec is unchanged. */
+    @Test
+    public void theModesSpecCarriesAPawprintBudget() {
+        List<String> labels = List.of("{P} — sacrifice", "{P}{P} — draw", "{P}{P}{P} — lose life");
+        boolean[] refused = {false};
+        AnswerTool.Spec spec = LlmSpikeGui.PlayerControllerLLM.modesSpec(labels, 0, 5, new int[] {1, 2, 3}, 5,
+                () -> refused[0] = true);
+        Assert.assertEquals(spec.limit, "the picked options' {P} total at most 5");
+        Assert.assertEquals(spec.weights, new int[] {1, 2, 3});
+        Assert.assertEquals(spec.budget, 5);
+        Assert.assertNotNull(AnswerTool.validate(spec, "{\"options\":[3,3]}").error, "6 {P} of 5");
+        Assert.assertTrue(refused[0], "the refusal is noted for the log reason");
+        Assert.assertNull(AnswerTool.validate(spec, "{\"options\":[3,2]}").error, "5 {P} of 5");
+        AnswerTool.Spec plain = LlmSpikeGui.PlayerControllerLLM.modesSpec(labels, 3, 3, null, -1, () -> { });
+        Assert.assertNull(plain.limit);
+        Assert.assertNull(plain.weights);
+        Assert.assertNull(plain.check);
+    }
+
+    /** #417: the two other defaults of a pawprint charm's modes are within its budget, and are the do-nothing option:
+     *  the one taken when the seat's call budget is spent, and the one taken when the hook fails. */
+    @Test
+    public void aPawprintCharmsOtherDefaultsTakeNoMode() throws Exception {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        SpellAbility sa = card("Season of Loss", me, ZoneType.Hand).getFirstSpellAbility();
+        List<AbilitySub> possible = forge.game.ability.effects.CharmEffect.makePossibleOptions(sa);
+        Assert.assertEquals(possible.size(), 3);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.budgetSafeDefault(sa, possible, 0, 5, true),
+                Collections.emptyList(), "the hook-failure default, with readable {P} values");
+        Script model = new Script("PICKS: 3,3,3,3,3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        java.lang.reflect.Field calls = LlmSpikeGui.PlayerControllerLLM.class.getDeclaredField("smartCalls");
+        calls.setAccessible(true);
+        calls.setInt(ctrl, LlmSpikeGui.PlayerControllerLLM.SMART_BUDGET);   // the seat's call budget is spent
+        Assert.assertEquals(ctrl.chooseModeForAbility(sa, possible, 0, 5, true), Collections.emptyList(),
+                "the no-budget default");
+        Assert.assertTrue(model.prompts.isEmpty(), "no model call once the budget is spent");
+    }
+
+    /** A repeatable charm with no {P} budget (Fiery Confluence, "choose three, the same mode more than once") is the
+     *  model's: its answer is taken as given, with one ask and no refusal (the review of PR #418 caught a removed guard
+     *  that refused every such answer as over a budget of -1). */
+    @Test
+    public void aRepeatableCharmWithNoBudgetIsTheModels() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        SpellAbility sa = card("Fiery Confluence", me, ZoneType.Hand).getFirstSpellAbility();
+        sa.setActivatingPlayer(me);   // its modes have targets, which need a caster to count
+        List<AbilitySub> possible = forge.game.ability.effects.CharmEffect.makePossibleOptions(sa);
+        Script model = new Script("PICKS: 1,1,2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<AbilitySub>[] got = new List[1];
+        String log = LineFindingProbeTest.logOf(() -> got[0] = ctrl.chooseModeForAbility(sa, possible, 3, 3, true));
+        Assert.assertEquals(got[0], List.of(possible.get(0), possible.get(0), possible.get(1)), log);
+        Assert.assertFalse(log.contains("[AUTO-LEGAL] modes"), log);
+        Assert.assertEquals(model.prompts.stream().filter(p -> p.contains("MODAL SPELL")).count(), 1L, "asked once");
+        Assert.assertFalse(model.prompts.get(model.prompts.size() - 1).contains("Refused"), "no refusal shown");
+    }
+
+    /** Two over-budget answers are logged as over the budget, not as an unparsed reply (#417). */
+    @Test
+    public void twoOverBudgetAnswersAreLoggedAsOverBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        SpellAbility sa = card("Season of Loss", me, ZoneType.Hand).getFirstSpellAbility();
+        List<AbilitySub> possible = forge.game.ability.effects.CharmEffect.makePossibleOptions(sa);
+        Script model = new Script("PICKS: 3,3,3,3,3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String log = LineFindingProbeTest.logOf(() -> Assert.assertEquals(
+                ctrl.chooseModeForAbility(sa, possible, 0, 5, true), Collections.emptyList()));
+        Assert.assertTrue(log.contains("[AUTO-LEGAL] modes(repeat,over-budget)->0"), log);
     }
 
     /** Two over-budget answers: the modes the seat is given are the do-nothing option, none (docs/STANDARDS.md section 8),
