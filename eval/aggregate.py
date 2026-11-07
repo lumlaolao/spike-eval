@@ -173,6 +173,10 @@ PROVENANCE_FIELDS = (
     ("propose_audit", False),
     # PROPOSE_TERSE (harness-epoch-80): a rules refusal said only "ILLEGAL", not the rule; every line before it did.
     ("propose_terse", False),
+    # The Forge AI profile each identity's ai / ai-log seat played (AI_PROFILE_A / _B, issue #381). "" is the compiled
+    # AiProps defaults, the opponent of every game before the stamp, so an old line and an empty stamp pool.
+    ("ai_profile_a", ""),
+    ("ai_profile_b", ""),
     # PROPOSE_NOTEBOOK (harness-epoch-81): a proposal decision listed the game's earlier refusals; no line before it did.
     ("propose_notebook", False),
     # SHADOW_AI asks Forge's AI on the side for a label (a DAgger corpus). Its targets are reset before the seat's cast

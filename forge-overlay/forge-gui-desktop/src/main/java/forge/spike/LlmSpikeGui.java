@@ -41,6 +41,7 @@ import forge.ai.AiCardMemory;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCombat;
 import forge.ai.ComputerUtilMana;
+import forge.ai.AiProfileUtil;
 import forge.ai.LobbyPlayerAi;
 import forge.ai.PlayerControllerAi;
 import forge.deck.Deck;
@@ -11489,12 +11490,70 @@ public final class LlmSpikeGui {
 
     /** Map a CONTROLLER_A/B value to its LobbyPlayer ("human" refused: see {@link #HUMAN}): "ai" = plain Forge AI
      *  (untouched), "ai-log" = the Forge AI that logs every decision as an ai-teacher SFT row, anything else = the LLM
-     *  seat / one of its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode. */
+     *  seat / one of its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode.
+     *  No AI profile: the compiled AiProps defaults, as every seat was built before the switch. */
     static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel) {
+        return seatFor(ctl, name, plan, smartModel, fastModel, "");
+    }
+
+    /** As the five-argument {@code seatFor}, with the Forge AI profile of an "ai" / "ai-log" seat (AI_PROFILE_A /
+     *  AI_PROFILE_B). Empty (the default) leaves the seat exactly as it was built before the switch existed:
+     *  {@code new LobbyPlayerAi(name, null)}, whose empty profile name makes {@code AiProfileUtil.getAIProp} return the
+     *  compiled default of every AiProps key, which is none of Forge's four shipped profiles (issue #381; every
+     *  recorded STR-AI score met that opponent). A name is applied the way {@code GamePlayerUtil.createAiPlayer}
+     *  applies it ({@code setAiProfile}), after it is checked against the profiles Forge loaded
+     *  ({@link #aiProfileRefusal}); a profile on a seat that is no Forge AI is refused. */
+    static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel,
+                               String aiProfile) {
         if (HUMAN.equals(ctl)) throw new IllegalStateException(NO_WINDOW);
-        if ("ai".equals(ctl)) return new LobbyPlayerAi(name, null);
-        if ("ai-log".equals(ctl)) return new LobbyPlayerAiLogging(name);
+        boolean forgeAi = "ai".equals(ctl) || "ai-log".equals(ctl);
+        String profile = aiProfile(aiProfile);
+        if (!profile.isEmpty()) {
+            if (!forgeAi) throw new IllegalStateException("AI_PROFILE names '" + profile + "' for the seat " + name
+                    + ", which is controller '" + ctl + "', not a Forge AI (ai, ai-log): drop the profile");
+            String refusal = aiProfileRefusal(profile, shippedAiProfiles());
+            if (refusal != null) throw new IllegalStateException(refusal);
+        }
+        if (forgeAi) {
+            LobbyPlayerAi seat = "ai".equals(ctl) ? new LobbyPlayerAi(name, null) : new LobbyPlayerAiLogging(name);
+            if (!profile.isEmpty()) seat.setAiProfile(profile);
+            return seat;
+        }
         return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
+    }
+
+    /** The profiles Forge loaded ({@code FModel.initialize} runs {@code AiProfileUtil.loadAllProfiles}); empty when
+     *  none were loaded, which {@link #aiProfileRefusal} then reports. */
+    static List<String> shippedAiProfiles() {
+        try {
+            return AiProfileUtil.getAvailableProfiles();
+        } catch (RuntimeException e) {
+            return new ArrayList<>();
+        }
+    }
+
+    /** Why {@code profile} cannot seat a Forge AI, or null when it can (or is empty: the compiled defaults). An unknown
+     *  name would not fail inside Forge: {@code getAIProp} falls back silently to the compiled defaults, so a typo
+     *  would play the default arm under another name. Forge's "Random" entries are refused too: they change the
+     *  profile between games, which no condition can name. */
+    static String aiProfileRefusal(String profile, List<String> shipped) {
+        if (profile == null || profile.trim().isEmpty()) return null;
+        if (shipped.contains(profile)) return null;
+        return "AI profile '" + profile + "' is not one Forge loaded (" + (shipped.isEmpty() ? "none were loaded"
+                : String.join(", ", new java.util.TreeSet<>(shipped))) + "); leave AI_PROFILE_A/B empty for the "
+                + "compiled-default opponent";
+    }
+
+    /** An AI_PROFILE_A / AI_PROFILE_B value as every site reads it: trimmed, "" when unset. */
+    static String aiProfile(String raw) {
+        return raw == null ? "" : raw.trim();
+    }
+
+    /** The game line's two profile keys, from the same {@link #env} read the seats use (issue #381): a condition, ""
+     *  for the compiled AiProps defaults. */
+    static String aiProfileStamp() {
+        return ",\"ai_profile_a\":\"" + jsonEscape(aiProfile(env("AI_PROFILE_A"))) + "\""
+                + ",\"ai_profile_b\":\"" + jsonEscape(aiProfile(env("AI_PROFILE_B"))) + "\"";
     }
 
     /** Why a model seat ({@code ctl} llm) of identity {@code ident} cannot be built: a tier with no model named
@@ -11588,7 +11647,10 @@ public final class LlmSpikeGui {
             if (HUMAN.equals(ctlA) && HUMAN.equals(ctlB))
                 throw new IllegalStateException("only one human seat per match: the GUI asks one person");
         }
-        for (String[] s : new String[][] {{ctlA, "A"}, {ctlB, "B"}}) {
+        String profileA = aiProfile(env.get("AI_PROFILE_A")), profileB = aiProfile(env.get("AI_PROFILE_B"));
+        for (String[] s : new String[][] {{ctlA, "A", profileA}, {ctlB, "B", profileB}}) {
+            if (HUMAN.equals(s[0]) && !s[2].isEmpty()) throw new IllegalStateException("AI_PROFILE_" + s[1]
+                    + " names '" + s[2] + "' for the human seat: a person plays no Forge AI, drop the profile");
             String missing = missingModel(s[0], s[1], env);
             if (missing != null) throw new IllegalStateException(missing);
         }
@@ -11627,9 +11689,9 @@ public final class LlmSpikeGui {
         }
 
         RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(HUMAN.equals(ctlA) ? new LobbyPlayerHuman(nameA)
-                : seatFor(ctlA, nameA, planA, smartA, fastA));
+                : seatFor(ctlA, nameA, planA, smartA, fastA, profileA));
         RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(HUMAN.equals(ctlB) ? new LobbyPlayerHuman(nameB)
-                : seatFor(ctlB, nameB, planB, smartB, fastB));
+                : seatFor(ctlB, nameB, planB, smartB, fastB, profileB));
         boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
         System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
@@ -13117,6 +13179,8 @@ public final class LlmSpikeGui {
                 + ",\"bridge_down_decisions_b\":" + bridgeDownDecisions(nameB)
                 + ",\"circuit_breaker_trips_a\":" + circuitBreakerTrips(nameA)
                 + ",\"circuit_breaker_trips_b\":" + circuitBreakerTrips(nameB)
+                // The Forge AI profile of each seat, "" for the compiled AiProps defaults (issue #381): a condition.
+                + aiProfileStamp()
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
                 + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
