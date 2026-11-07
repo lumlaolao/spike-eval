@@ -18,9 +18,10 @@ files. A re-run needs a JVM under the lock (`eval/rl/README.md`).
 | **R3** | `--policy random --policy-seed 1 --group-size 40` on `MTGP_08.pzl` | 40 | 1 to 40 | 1 | 4/40 |
 | **G1** | `--policy random --game-seed 42 --deck eval/decks/burn.txt --max-steps 300` (game against Forge's AI) | 1 | game seed 42 | 0 | lost (winner B, 15 turns, 38 decisions) |
 
-Seed 42 is a harness canary seed, not a reserved block; the heldout puzzles above (MTGP_08 and the drain puzzles are
-`heldout` in their suites) were played for the floor only. Since this review `rollout.py` refuses them unless
-`--allow-eval-only`, which marks the episodes so the readers never train on them.
+Seed 42 is a harness canary seed, not a reserved block. `MTGP_08` is `heldout` in its suite and was played for the
+floor only (the three drain puzzles are `open`). Since this review the env refuses eval-only data unless
+`allow_eval_only`, which marks the episodes so the readers never train on them (`eval/rl/README.md`, "Eval-only
+data").
 
 ## What works
 
@@ -37,8 +38,8 @@ Seed 42 is a harness canary seed, not a reserved block; the heldout puzzles abov
   `answer`, the 61 puzzle episodes' requests equal their rows' `model_calls` (and `requests == decisions == n_steps` in all 62).
 - **Games run through the same code.** G1 (burn deck, seed 42, random policy vs Forge's AI) played 15 turns in 38
   decisions and lost (winner B, `AllOpponentsLost`): reward 0, `valid=True`.
-- **Unit tests (stub JVM, no engine):** at the first commit 19 in `test_mtg_env.py` and 4 in `test_rollout.py`; the
-  review fixes made them 37 and 19 (each new one broken once and seen red).
+- **Unit tests (stub JVM, no engine):** at the first commit 19 in `test_mtg_env.py` and 4 in `test_rollout.py`; now 42,
+  26 and 14 (`test_eval_only.py`), each new one broken once and seen red.
   A test that would have failed otherwise: the retry test (a request re-sent with the same messages must not become a
   second decision; it counts `deduped=1`, `decisions=2`, `requests=3`).
 
@@ -46,12 +47,8 @@ Conditions, reward and validity rules: `eval/rl/README.md` (the one home; this n
 
 ### One deviation from the brief: `NATIVE_TOOLS=1`
 
-The brief said to turn native tools off. With `NATIVE_TOOLS=0` the seat is on the text lane: the first probe (a run
-before P1, not kept) showed a `CHOICE: <number>` prompt, no `answer` function in the request, the env's tool-call
-reply unread, and 4 of 6 requests retries of the same ask, ending in a `failed` row after 2 decisions with
-`solver_actions=0`. The `answer` function travels with the native tools, so the env sets `NATIVE_TOOLS=1` and
-`MEMORY_TOOLS=0`; it only ever replies with `answer`, so the lookup functions the request also offers are never
-called. This is the condition `puzzle_solve.py` pins (`NATIVE_TOOLS=1 ANSWER_TOOL=1 MEMORY_TOOLS=0 LOOKAHEAD=0`).
+The brief said native tools off; on the text lane the seat never reads the env's tool-call reply, so the env pins
+`NATIVE_TOOLS=1` as `puzzle_solve.py` does (`eval/rl/README.md`, "How it works").
 
 ## Measured latency and episode length
 
@@ -78,7 +75,7 @@ the end, so it holds the loopback round trip, the engine's work and the JVM exit
 
 Beside any trained policy's solve rate, the same puzzles under the random policy (`.claude/rules/eval.md`):
 
-- `MTGP_08` (Forge's own, tier 1): R3 solved **4/40 = 10%** (Wilson 95%: 4% to 23%); R2 0/8. The suite
+- `MTGP_08` (Forge's own, tier 1): R3 solved **4/40 = 10%** (Wilson 95%: 4% to 23%); R2 0/8 (Wilson 95%: 0% to 32%). The suite
   (`puzzles-forge-builtin-v1`) records the engine's `random` arm at 7/40 = 17.5% for this puzzle, in the same interval.
   The policies are different random streams, so these are two samples of one rate, not a check of one by the other.
 - The three drain puzzles: **0/12** (Wilson 0% to 24%); the suite records `random` at 0/20 for each hard puzzle of the
@@ -108,13 +105,5 @@ Beside any trained policy's solve rate, the same puzzles under the random policy
 
 ## How this connects to fine-tuning
 
-- **GRPO groups over puzzles.** One group is `--group-size G` episodes of one puzzle with attempt seeds 1..G
-  (`group` = the puzzle id); `grpo_groups` gives each valid episode the group-relative advantage, and a
-  group with equal rewards drops out. The per-step training target is the `answer` call (`args`) given `messages`.
-  Train on the suites' `open` split; `heldout` stays out (`eval/seed_policy.py`, `docs/eval/PUZZLES.md`).
-- **The baseline.** The random policy's solve rate on the same puzzles (above) is the floor to report beside the
-  trained policy's; a policy that does not clear it on `heldout` has learned nothing the engine's menus did not
-  already give.
-- **Rejection-sampling SFT** keeps the solved episodes; from R3 that is 4 episodes and 25 decisions for 40
-  episodes (5 min), which is why the sampling policy should not be uniform random for long.
-- **Cost:** none in dollars; a trainer's inference is the new cost, and the JVM waits `call_timeout_ms` per request.
+GRPO groups and rejection-sampling SFT over these episodes, and the random floor to report beside a trained policy:
+`eval/rl/README.md` ("Trajectory format"). The random-policy rates above are that floor for these puzzles.

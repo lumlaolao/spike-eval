@@ -6,7 +6,8 @@
 
 One JSON object per line, two kinds:
   {"type": "step", "episode_id", "group", "step", "kind", "messages", "legal", "action", "args", "accepted"}
-  {"type": "episode", "episode_id", "run_id", "group", "puzzle"|"seed", "reward", "valid", "n_steps", "info"}
+  {"type": "episode", "episode_id", "run_id", "group", "puzzle"|"seed", "reward", "valid", "n_steps", "stamps",
+   "info"}  (+ "eval_only" when the start is eval data)
 An episode's step lines come first, then its episode line, so a reader can stream. `load_episodes`,
 `grpo_groups` and `sft_examples` read the file back. Reward, validity and the training rules: eval/rl/README.md.
 
@@ -23,13 +24,10 @@ import sys
 import uuid
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent))  # eval/
-sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # eval/, for evalpath, which adds eval/rl
 import evalpath  # noqa: E402,F401
+import eval_only  # noqa: E402
 import mtg_env  # noqa: E402
-import seed_policy  # noqa: E402
-import puzzle_format  # noqa: E402
 
 
 # ------------------------------------------------------------------ policies
@@ -94,10 +92,17 @@ def load_policy(spec, seed=0):
 
 # ------------------------------------------------------------------ rollout
 
-def run_episode(env, policy, group, episode_id, out, reset_kwargs, max_steps=400, run_id=None, eval_only=()):
-    """Play one episode, writing its step lines and then its episode line to `out`. Returns the episode record.
-    A step line is written once the next observation shows whether the engine took the answer (`accepted`: False
-    when that observation is a correction). The env is closed, and its JVM with it, if the policy raises."""
+class StampMismatch(RuntimeError):
+    """An episode ran on another build or interface than the ones already in the file."""
+
+
+def run_episode(env, policy, group, episode_id, out, reset_kwargs, max_steps=400, run_id=None, pin=None):
+    """Play one episode and write its step lines and then its episode line to `out`, all at once when it ends (a
+    crash leaves no half episode). A step line says whether the engine took the answer (`accepted`: False when
+    the next observation is a correction). The env is closed, and its JVM with it, if the policy raises.
+    `pin` ({} to start) holds the build stamps of the episodes already in the file: an episode with other stamps
+    raises StampMismatch before anything is written."""
+    lines = []
     try:
         obs = env.reset(**reset_kwargs)
         steps, reward, done, info = 0, 0.0, False, {}
@@ -109,70 +114,48 @@ def run_episode(env, policy, group, episode_id, out, reset_kwargs, max_steps=400
                     "action": action if not isinstance(action, tuple) else list(action), "args": args}
             steps += 1
             if steps >= max_steps:   # a runaway episode is cut and never trained on
-                out.write(json.dumps(dict(line, accepted=True), sort_keys=True) + "\n")
-                info = {"valid": False, "error": "max_steps"}
+                lines.append(dict(line, accepted=True))
+                info = {"valid": False, "error": "max_steps", "eval_only": list(env.eval_only)}
                 env.close()
                 break
             obs, reward, done, info = env.step(action)
-            out.write(json.dumps(dict(line, accepted=info.get("accepted", True)), sort_keys=True) + "\n")
+            lines.append(dict(line, accepted=info.get("accepted", True)))
     except BaseException:
         env.close()
         raise
+    stamps = info.get("stamps") or {}
+    if pin is not None and stamps:
+        if pin.setdefault("stamps", stamps) != stamps:
+            raise StampMismatch("episode %s ran on %s, the file's episodes on %s" % (episode_id, stamps, pin["stamps"]))
     rec = {"type": "episode", "episode_id": episode_id, "run_id": run_id, "group": group, "reward": reward,
-           "valid": bool(info.get("valid", False)), "n_steps": steps, "info": info}
-    if eval_only:
-        rec["eval_only"] = list(eval_only)
+           "valid": bool(info.get("valid", False)), "n_steps": steps, "stamps": stamps, "info": info}
+    if info.get("eval_only"):
+        rec["eval_only"] = list(info["eval_only"])
     rec.update({k: reset_kwargs[k] for k in ("puzzle", "seed") if k in reset_kwargs})
     rec["puzzle_id"] = Path(reset_kwargs["puzzle"]).stem if "puzzle" in reset_kwargs else None
-    out.write(json.dumps(rec, sort_keys=True) + "\n")
+    out.write("".join(json.dumps(l, sort_keys=True) + "\n" for l in lines + [rec]))
     out.flush()
     return rec
 
 
-def run_group(env, policy_spec, group, resets, out, policy_seed=0, max_steps=400, run_id=None, eval_only=()):
-    """One group: len(resets) episodes on the same start (a puzzle) with different seeds. Returns the records.
-    `run_id` (a uuid per invocation of this script) is in every episode id, so a crashed run's orphan step lines
-    cannot be taken for the steps of a later episode with the same group and index."""
+def run_group(env, policy_spec, group, resets, out, policy_seed=0, max_steps=400, run_id=None, pin=None):
+    """One group: len(resets) episodes of one puzzle (attempt seeds) or of different games (game seeds). Returns
+    the records. `run_id` (a uuid per invocation of this script) is in every episode id, so a crashed run's orphan
+    step lines cannot be taken for the steps of a later episode with the same group and index."""
     run_id = run_id or uuid.uuid4().hex[:8]
     recs = []
     for i, kw in enumerate(resets):
         policy = load_policy(policy_spec, seed="%s/%s/%s" % (policy_seed, group, i))
-        recs.append(run_episode(env, policy, group, "%s:%s#%d" % (run_id, group, i), out, kw, max_steps, run_id,
-                                eval_only))
+        recs.append(run_episode(env, policy, group, "%s:%s#%d" % (run_id, group, i), out, kw, max_steps, run_id, pin))
     return recs
-
-
-# ------------------------------------------------------------------ seed policy
-
-def puzzle_split(path):
-    """'open' or 'heldout' for a .pzl: the split of the suite record that lists it (a suite's pzl is a repository
-    path, or forge:<name>.pzl for Forge's own), else the id's own hash (puzzle_format.split_for) on the file stem."""
-    p = Path(path)
-    for suite in sorted((HERE.parent / "suites").glob("puzzles-*.json")):
-        for rec in json.loads(suite.read_text(encoding="utf-8")).get("puzzles", []):
-            pzl = rec.get("pzl", "")
-            if pzl.startswith("forge:"):
-                hit = pzl[len("forge:"):] == p.name
-            else:
-                hit = (puzzle_format.REPO / pzl).resolve() == p.resolve()
-            if hit:
-                return rec["split"]
-    return puzzle_format.split_for(p.stem)
-
-
-def eval_only_reasons(puzzles, seeds, attempt_seeds):
-    """Why this rollout's data must not train a model: a heldout puzzle, a seed in a reserved eval block."""
-    why = ["heldout puzzle %s" % p for p in puzzles if puzzle_split(p) == "heldout"]
-    for block, hit in seed_policy.check_seeds(list(seeds) + list(attempt_seeds)).items():
-        why.append("reserved seed block %s: %s" % (block, hit[:5]))
-    return why
 
 
 # ------------------------------------------------------------------ readers for training
 
 def load_episodes(path):
     """[{episode record + "steps": [step lines]}], in file order. A trailing episode cut off mid-write is dropped,
-    and so are the step lines of a run that died before its episode line: the next episode's step 1 clears them."""
+    so are the step lines of a run that died before its episode line (the next episode's step 1 clears them) and
+    an episode whose steps are not numbered 1..n_steps."""
     steps, eps = {}, []
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -186,7 +169,9 @@ def load_episodes(path):
                 steps.clear()   # one episode is written at a time: whatever is pending belongs to a dead one
             steps.setdefault(row["episode_id"], []).append(row)
         elif row.get("type") == "episode":
-            eps.append(dict(row, steps=steps.pop(row["episode_id"], [])))
+            own = steps.pop(row["episode_id"], [])
+            if [s.get("step") for s in own] == list(range(1, len(own) + 1)) and len(own) == row.get("n_steps"):
+                eps.append(dict(row, steps=own))
     return eps
 
 
@@ -199,8 +184,8 @@ def grpo_groups(episodes, normalize=True):
     """{group: [{"episode_id", "reward", "advantage", "steps"}]} for trainable episodes. The advantage is the
     group-relative one, (r - mean) / (std + 1e-6) (or r - mean when normalize is False). A group whose rewards
     are all equal, including one with a single valid episode left after the others were dropped, has advantage 0
-    everywhere, i.e. no gradient (the usual all-fail group of a hard puzzle). Steps the engine refused stay in
-    `steps` (flagged `accepted: false`): the trainer's loss decides what to do with them; `sft_examples` drops them."""
+    everywhere, i.e. no gradient (the usual all-fail group of a hard puzzle). `steps` holds only the decisions the
+    engine took: a refused answer is not a step to reinforce or to penalize."""
     groups = {}
     for e in episodes:
         if trainable(e):
@@ -212,7 +197,7 @@ def grpo_groups(episodes, normalize=True):
         std = statistics.pstdev(rs)
         out[g] = [{"episode_id": e["episode_id"], "reward": e["reward"],
                    "advantage": (e["reward"] - mean) / (std + 1e-6) if normalize else e["reward"] - mean,
-                   "steps": e["steps"]} for e in eps]
+                   "steps": [s for s in e["steps"] if s.get("accepted") is not False]} for e in eps]
     return out
 
 
@@ -256,28 +241,44 @@ def main(argv=None):
     if not a.puzzle and not a.game_seed:
         ap.error("give --puzzle or --game-seed")
     attempts = range(1, a.group_size + 1)
-    game_seeds = [s + i for s in a.game_seed for i in range(a.group_size)]
-    eval_only = eval_only_reasons(a.puzzle, game_seeds, attempts if a.puzzle else [])
-    if eval_only and not a.allow_eval_only:
-        ap.error("eval-only data, never training data (eval/seed_policy.py, docs/eval/PUZZLES.md): %s; "
-                 "--allow-eval-only plays it marked eval_only" % "; ".join(eval_only))
+    resets = [("puzzle", Path(p).stem, [{"puzzle": p, "seed": s} for s in attempts]) for p in a.puzzle]
+    resets += [("game", "game-%d" % s, [{"seed": s + i, "deck": a.deck} for i in range(a.group_size)])
+               for s in a.game_seed]
+    dup = eval_only.duplicate_groups(a.puzzle, a.game_seed, a.group_size)
+    if dup:
+        ap.error("a group would be played twice: %s" % "; ".join(dup))
+    why = sorted({w for _, _, rs in resets for kw in rs for w in eval_only.reasons(
+        puzzle=kw.get("puzzle"), seeds=[kw["seed"]], deck=kw.get("deck"))})
+    if why and not a.allow_eval_only:
+        ap.error("eval-only data, never training data (eval/rl/README.md, \"Eval-only data\"): %s; "
+                 "--allow-eval-only plays it marked eval_only" % "; ".join(why))
     out_path = Path(a.out)
-    if out_path.exists() and out_path.stat().st_size and not a.append:
-        ap.error("%s is not empty: a rollout does not append unless --append" % a.out)
+    pin, glue = {}, False
+    if out_path.exists() and out_path.stat().st_size:
+        if not a.append:
+            ap.error("%s is not empty: a rollout does not append unless --append" % a.out)
+        known = {json.dumps(e.get("stamps"), sort_keys=True): e["stamps"] for e in load_episodes(out_path) if e.get("stamps")}
+        if len(known) > 1:
+            ap.error("%s already mixes builds or interfaces (%d stamp sets): it cannot take more" % (a.out, len(known)))
+        if known:
+            pin["stamps"] = next(iter(known.values()))
+        with open(out_path, "rb") as f:   # a run that died mid-line left no newline: the next line must not glue on
+            f.seek(-1, 2)
+            glue = f.read(1) != b"\n"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex[:8]
-    env = mtg_env.MtgEnv(launcher=mtg_env.JvmLauncher(forge_home=a.forge), keep_out=a.keep_out)
+    env = mtg_env.MtgEnv(launcher=mtg_env.JvmLauncher(forge_home=a.forge), keep_out=a.keep_out,
+                         allow_eval_only=a.allow_eval_only)
     recs = []
     try:
         with open(out_path, "a", encoding="utf-8") as out:
-            for p in a.puzzle:
-                resets = [{"puzzle": p, "seed": s} for s in attempts]
-                recs += run_group(env, a.policy, Path(p).stem, resets, out, a.policy_seed, a.max_steps, run_id,
-                                  eval_only)
-            for s in a.game_seed:
-                resets = [{"seed": s + i, "deck": a.deck} for i in range(a.group_size)]
-                recs += run_group(env, a.policy, "game-%d" % s, resets, out, a.policy_seed, a.max_steps, run_id,
-                                  eval_only)
+            if glue:
+                out.write("\n")
+            for _, group, rs in resets:
+                recs += run_group(env, a.policy, group, rs, out, a.policy_seed, a.max_steps, run_id, pin)
+    except StampMismatch as e:
+        print("refusing to mix builds in one file: %s" % e, file=sys.stderr)
+        return 2
     finally:
         env.close()
     for r in recs:

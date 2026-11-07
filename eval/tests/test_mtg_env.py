@@ -23,13 +23,15 @@ sys.path.insert(0, str(ROOT / "eval"))
 sys.path.insert(0, str(ROOT / "eval" / "rl"))
 import mtg_env  # noqa: E402
 
+NO_GUARD = lambda **kw: []  # noqa: E731  (these tests play made-up puzzles; the guard has test_eval_only.py)
+
 STUB = r'''
 import json, os, socket, sys, time, urllib.request
 base, out = os.environ["OPENROUTER_BASE_URL"], os.environ["EVAL_OUT"]
 n = int(os.environ.get("STUB_N", "3"))
 json.dump({k: os.environ.get(k) for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "MEMORY_TOOLS",
            "NATIVE_TOOLS", "ANSWER_TOOL", "OPENROUTER_BASE_URL", "SMART_MODEL_A", "PUZZLE", "PZL_SEEDS",
-           "GAME_SEED", "CONTROLLER_A")}, open(os.path.join(out, "env.json"), "w"))
+           "GAME_SEED", "CONTROLLER_A", "MY_FLAG")}, open(os.path.join(out, "env.json"), "w"))
 def ask(i, timeout=30, text_i=None):
     kinds = {"2": ("number", "`number`: an integer from 0 through 5"),
              "3": ("options", "`options`: the numbers you pick, between 1 and 2")}
@@ -86,7 +88,8 @@ class Base(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def env(self, **stub_env):
-        e = mtg_env.MtgEnv(launcher=stub_launcher(**stub_env), out_root=self.root, step_timeout_s=20, first_timeout_s=20)
+        e = mtg_env.MtgEnv(launcher=stub_launcher(**stub_env), out_root=self.root, step_timeout_s=20, first_timeout_s=20,
+                           guard=NO_GUARD)
         self.addCleanup(e.close)
         return e
 
@@ -194,7 +197,8 @@ class EnvTest(Base):
         os.environ["OPENROUTER_API_KEY"] = "k"
         self.addCleanup(os.environ.pop, "OPENROUTER_ALLOW_EGRESS", None)
         self.addCleanup(os.environ.pop, "OPENROUTER_API_KEY", None)
-        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20)
+        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20,
+                           guard=NO_GUARD)
         self.addCleanup(env.close)
         env.reset(puzzle="/some/where/p.pzl", seed=4)
         out_dir = env.out_dir
@@ -206,6 +210,19 @@ class EnvTest(Base):
         self.assertEqual((seen["MEMORY_TOOLS"], seen["NATIVE_TOOLS"], seen["ANSWER_TOOL"]), ("0", "1", "1"))
         self.assertEqual((seen["PZL_SEEDS"], seen["PUZZLE"], seen["CONTROLLER_A"]), ("4", "/some/where/p.pzl", "llm"))
         self.assertTrue(seen["SMART_MODEL_A"].startswith("openrouter:rl/"))
+
+    def test_extra_env_applies_but_cannot_carry_the_egress_gate_or_a_key(self):
+        extra = {"MY_FLAG": "yes", "OPENROUTER_ALLOW_EGRESS": "1", "OPENROUTER_API_KEY": "k"}
+        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=1), out_root=self.root, keep_out=True, step_timeout_s=20,
+                             guard=NO_GUARD, extra_env=extra)
+        self.addCleanup(env.close)
+        env.reset(puzzle="x.pzl")
+        out_dir = env.out_dir
+        env.step(2)
+        seen = json.loads((out_dir / "env.json").read_text())
+        self.assertEqual(seen["MY_FLAG"], "yes")
+        self.assertIsNone(seen["OPENROUTER_ALLOW_EGRESS"])
+        self.assertIsNone(seen["OPENROUTER_API_KEY"])
 
     def test_close_kills_the_process_and_closes_the_port(self):
         env = self.env(STUB_N=5)
@@ -229,7 +246,8 @@ class EnvTest(Base):
             socket.create_connection(("127.0.0.1", port), timeout=2)
 
     def test_step_timeout_ends_invalid(self):
-        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=3, STUB_SLEEP=30), out_root=self.root, step_timeout_s=1)
+        env = mtg_env.MtgEnv(launcher=stub_launcher(STUB_N=3, STUB_SLEEP=30), out_root=self.root, step_timeout_s=1,
+                           guard=NO_GUARD)
         self.addCleanup(env.close)
         env.reset(puzzle="x.pzl")
         obs, reward, done, info = env.step(2)
@@ -237,7 +255,7 @@ class EnvTest(Base):
 
     def test_no_first_decision_raises(self):
         e = mtg_env.MtgEnv(launcher=lambda env, out: subprocess.Popen([sys.executable, "-c", "import sys; sys.exit(3)"]),
-                           out_root=self.root, first_timeout_s=10)
+                           out_root=self.root, first_timeout_s=10, guard=NO_GUARD)
         with self.assertRaises(mtg_env.EnvError):
             e.reset(puzzle="x.pzl")
 
@@ -303,6 +321,13 @@ class ScrubTest(unittest.TestCase):
 
 
 class ConstantsTest(unittest.TestCase):
+    def test_decision_only_is_the_puzzle_runners_condition_with_the_lookups_off(self):
+        import argparse
+        import puzzle_solve
+        cond = puzzle_solve.condition(argparse.Namespace(context_profile="v4-faithful", memory_tools=False,
+                                                         rules_tool=False, model="openrouter:rl/policy"))
+        self.assertEqual(mtg_env.DECISION_ONLY, cond)
+
     def test_add_opens_is_the_puzzle_runners_list(self):
         import puzzle_baselines
         self.assertIs(mtg_env.ADD_OPENS, puzzle_baselines.ADD_OPENS)
@@ -336,6 +361,15 @@ class VerdictTest(Base):
         _, reward, info = self.play(self.env(STUB_N=1, STUB_LOSTROW=1), 2, puzzle="x.pzl")
         self.assertEqual((info["status"], info["lost_decisions"], info["valid"], reward), ("solved", 1, False, 0.0))
 
+    def test_the_rows_stamps_are_in_the_info(self):
+        extra = '{"harness_epoch": "82", "pzl_sha256": "ab", "other": 1}'
+        _, _, info = self.play(self.env(STUB_N=1, STUB_EXTRA=extra), 2, puzzle="x.pzl")
+        self.assertEqual(info["stamps"], {"harness_epoch": "82", "pzl_sha256": "ab"})
+        extra = '{"engine_sha": "e1", "overlay_sha": "o1", "harness_epoch": "82", "observation_version": "v9"}'
+        _, _, info = self.play(self.env(STUB_N=1, STUB_MODE="game", STUB_EXTRA=extra), 2, seed=5)
+        self.assertEqual(info["stamps"], {"engine_sha": "e1", "overlay_sha": "o1", "harness_epoch": "82",
+                                          "observation_version": "v9"})
+
     def test_a_clean_episode_has_no_lost_decision(self):
         _, _, info = self.play(self.env(STUB_N=1), 2, puzzle="x.pzl")
         self.assertEqual((info["lost_decisions"], info["corrections"], info["valid"]), (0, 0, True))
@@ -368,8 +402,32 @@ class DedupeTest(Base):
             if obs:
                 seen.append(obs["step"])
         self.assertEqual(seen, [2])   # decisions 1 and its twin reached the policy as one; then decision 2
+        self.assertEqual((info["valid"], reward), (False, 0.0))   # the twin was not the policy's choice
         self.assertEqual((info["deduped_after_answer"], info["deduped"], info["decisions"]), (1, 0, 2))
         self.assertEqual(info["requests"], 3)
+
+
+class WordingTest(unittest.TestCase):
+    """parse_ask reads the question as AnswerTool.instruction and the menu builder in LlmSpikeGui word it. The
+    wording is Java's, so this pins the Java source: a reworded ask fails here, not as a silent empty legal set."""
+    JAVA = ROOT / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+
+    def test_the_ask_the_options_and_the_bounds_are_worded_as_the_parser_reads_them(self):
+        answer_tool = (self.JAVA / "AnswerTool.java").read_text(encoding="utf-8")
+        menu = (self.JAVA / "LlmSpikeGui.java").read_text(encoding="utf-8")
+        for fragment in ('"ANSWER: call `answer` with " + how', 'how = "`option`: one number from the list"',
+                         '"`options`: the numbers you pick, " + bounds(s)', '"exactly " + s.min', '"between " + s.min + " and " + s.max',
+                         '"`number`: an integer from " + s.min + " through " + s.max',
+                         '" numbers in the order listed, summing to " + s.max'):
+            self.assertIn(fragment, answer_tool)
+        self.assertIn('menu.append("  ").append(n++).append(") ")', menu)   # "  N) text", what OPTION reads
+        self.assertTrue(mtg_env.ASK_MARK.startswith("call `answer` with `"))
+
+    def test_a_request_worded_as_java_words_it_parses(self):
+        text = ("Options:\n  1) PASS\n  2) Cast Bolt\nANSWER: call `answer` with `amounts`: 2 numbers in the order "
+                "listed, summing to 7. Lookups do not count against the answer.\n")
+        lg = mtg_env.parse_ask([{"role": "user", "content": text}])
+        self.assertEqual((lg["field"], lg["count"], lg["total"]), ("amounts", 2, 7))
 
 
 class ShutdownTest(Base):

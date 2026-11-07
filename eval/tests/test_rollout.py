@@ -8,8 +8,10 @@ import argparse
 import contextlib
 import io
 import json
+import shutil
 import statistics
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,6 +20,8 @@ sys.path.insert(0, str(ROOT / "eval" / "rl"))
 sys.path.insert(0, str(ROOT / "eval" / "tests"))
 import rollout  # noqa: E402
 from test_mtg_env import Base, stub_launcher  # noqa: E402
+
+RP = str(ROOT / "eval/puzzles/rules-pilot/RP_017.pzl")
 import fake_model_server  # noqa: E402
 import mtg_env  # noqa: E402
 import unittest  # noqa: E402
@@ -105,16 +109,36 @@ class ReaderTest(unittest.TestCase):
         self.assertEqual([x["episode_id"] for x in groups], ["g#0", "g#3"])
 
     def test_a_crashed_episodes_orphan_steps_do_not_join_the_next_one(self):
-        path = Path(self.id() + ".jsonl")
+        path = Path(tempfile.mkdtemp(prefix="test-rollout-")) / "r.jsonl"
+        self.addCleanup(shutil.rmtree, path.parent, True)
         step = lambda eid, n: json.dumps({"type": "step", "episode_id": eid, "group": "g", "step": n})  # noqa: E731
-        ep = json.dumps({"type": "episode", "episode_id": "r2:g#0", "group": "g", "reward": 0.0, "valid": True})
+        ep = json.dumps({"type": "episode", "episode_id": "r2:g#0", "group": "g", "reward": 0.0, "valid": True, "n_steps": 2})
         lines = [step("r1:g#0", 1), step("r1:g#0", 2), step("r2:g#0", 1), step("r2:g#0", 2), ep]
         path.write_text("\n".join(lines) + "\n")
-        self.addCleanup(path.unlink)
         self.assertEqual([s["episode_id"] for s in rollout.load_episodes(path)[0]["steps"]], ["r2:g#0"] * 2)
         # the same ids: the old orphan steps 1-2 must not stay in front of the new run's 1-2
         path.write_text("\n".join([step("g#0", 1), step("g#0", 2), step("g#0", 1), step("g#0", 2), ep.replace("r2:", "")]) + "\n")
         self.assertEqual([s["step"] for s in rollout.load_episodes(path)[0]["steps"]], [1, 2])
+
+
+class ReaderRobustnessTest(unittest.TestCase):
+    def test_grpo_groups_hold_only_the_steps_the_engine_took(self):
+        e = episode(0, 1.0, steps=3)
+        e["steps"][1]["accepted"] = False
+        steps = rollout.grpo_groups([e])["g"][0]["steps"]
+        self.assertEqual([s["step"] for s in steps], [1, 3])
+
+    def test_an_episode_whose_steps_are_not_1_to_n_is_dropped(self):
+        path = Path(tempfile.mkdtemp(prefix="test-rollout-")) / "r.jsonl"
+        self.addCleanup(shutil.rmtree, path.parent, True)
+        step = lambda eid, n: json.dumps({"type": "step", "episode_id": eid, "group": "g", "step": n})  # noqa: E731
+        ep = lambda eid, n: json.dumps({"type": "episode", "episode_id": eid, "group": "g", "reward": 0.0,  # noqa: E731
+                                        "valid": True, "n_steps": n})
+        path.write_text("\n".join([step("a", 1), step("a", 3), ep("a", 2),      # step 2 is missing
+                                   step("b", 1), step("b", 2), ep("b", 2),      # whole
+                                   '{"type": "step", "episode_id": "c", "step": 1, "mess' + "\n" + step("d", 1),   # glued
+                                   ep("d", 1)]) + "\n")
+        self.assertEqual([e["episode_id"] for e in rollout.load_episodes(path)], ["b", "d"])
 
 
 class PolicyTest(unittest.TestCase):
@@ -217,6 +241,8 @@ FORGE_PZL = "/root/forge/forge-gui/res/puzzle/MTGP_08.pzl"   # listed in the bui
 
 
 class MainTest(Base):
+    stub = {}
+
     def main(self, *argv):
         err = io.StringIO()
         with contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(err):
@@ -228,14 +254,15 @@ class MainTest(Base):
 
     def patched(self):
         real = mtg_env.MtgEnv
-        mtg_env.MtgEnv = lambda **kw: real(launcher=stub_launcher(STUB_N=2), out_root=self.root, step_timeout_s=20,
-                                           first_timeout_s=20)
+        mtg_env.MtgEnv = lambda **kw: real(launcher=stub_launcher(**dict(dict(STUB_N=2), **self.stub)), out_root=self.root,
+                                           step_timeout_s=20, first_timeout_s=20,
+                                           allow_eval_only=kw.get("allow_eval_only", False))
         self.addCleanup(setattr, mtg_env, "MtgEnv", real)
 
     def test_main_plays_a_group_and_writes_a_file(self):
         self.patched()
         path = Path(self.root) / "o" / "t.jsonl"
-        rc, out, _ = self.main("--puzzle", "eval/puzzles/rules-pilot/RP_017.pzl", "--group-size", "2",
+        rc, out, _ = self.main("--puzzle", RP, "--group-size", "2",
                                "--policy", "first", "--out", str(path))
         self.assertEqual(rc, 0)
         eps = rollout.load_episodes(path)
@@ -247,11 +274,11 @@ class MainTest(Base):
         self.patched()
         path = Path(self.root) / "t.jsonl"
         path.write_text("{}\n")
-        rc, _, err = self.main("--puzzle", "eval/puzzles/rules-pilot/RP_017.pzl", "--out", str(path))
+        rc, _, err = self.main("--puzzle", RP, "--out", str(path))
         self.assertEqual(rc, 2)
         self.assertIn("--append", err)
         self.assertEqual(path.read_text(), "{}\n")
-        rc, _, _ = self.main("--puzzle", "eval/puzzles/rules-pilot/RP_017.pzl", "--out", str(path), "--append")
+        rc, _, _ = self.main("--puzzle", RP, "--out", str(path), "--append")
         self.assertEqual(rc, 0)
 
     def test_main_refuses_reserved_seeds_and_heldout_puzzles_unless_allowed(self):
@@ -272,10 +299,66 @@ class MainTest(Base):
         self.assertTrue(all(e["eval_only"] for e in eps))
         self.assertEqual(rollout.sft_examples(eps), [])
 
-    def test_an_open_puzzle_and_a_clean_seed_are_accepted(self):
-        self.assertEqual(rollout.puzzle_split("eval/puzzles/rules-pilot/RP_017.pzl"), "open")
-        self.assertEqual(rollout.puzzle_split("eval/puzzles/hard/gen/drain_0026d851c85f.pzl"), "heldout")
-        self.assertEqual(rollout.eval_only_reasons(["eval/puzzles/rules-pilot/RP_017.pzl"], [1000], [1, 2]), [])
+    def test_a_panel_seed_and_a_copied_heldout_puzzle_are_refused_in_main(self):
+        self.patched()
+        path = Path(self.root) / "t.jsonl"
+        rc, _, err = self.main("--game-seed", "7800", "--out", str(path))
+        self.assertEqual((rc, "eval-only in seed_registry" in err), (2, True))
+        copy = Path(self.root) / "renamed.pzl"
+        shutil.copyfile(ROOT / "eval/puzzles/hard/gen/drain_0026d851c85f.pzl", copy)
+        rc, _, err = self.main("--puzzle", str(copy), "--out", str(path))
+        self.assertEqual((rc, "heldout puzzle" in err), (2, True))
+        rc, _, err = self.main("--game-seed", "3", "--deck", str(ROOT / "eval/decks/painter.txt"), "--out", str(path))
+        self.assertEqual((rc, "held-out deck" in err), (2, True))
+        self.assertFalse(path.exists())
+
+    def test_the_attempt_seeds_of_a_group_are_checked(self):
+        self.patched()
+        rc, _, err = self.main("--puzzle", RP, "--group-size", "502", "--out", str(Path(self.root) / "t.jsonl"))
+        self.assertEqual((rc, "frozen-legacy" in err), (2, True))   # attempt seeds 1..502 reach 501
+
+    def test_a_group_is_not_played_twice(self):
+        self.patched()
+        path = Path(self.root) / "t.jsonl"
+        for argv in (["--puzzle", RP, "--puzzle", RP], ["--game-seed", "1000", "--game-seed", "1000"],
+                     ["--game-seed", "1000", "--game-seed", "1002", "--group-size", "4"]):
+            rc, _, err = self.main(*argv, "--out", str(path))
+            self.assertEqual((rc, "twice" in err), (2, True), argv)
+
+    def test_append_after_a_crash_does_not_glue_the_next_line_on(self):
+        self.patched()
+        path = Path(self.root) / "t.jsonl"
+        path.write_text('{"type": "step", "episode_id": "dead:g#0", "step": 1, "mess')   # cut mid-line, no newline
+        rc, _, _ = self.main("--puzzle", RP, "--out", str(path), "--append", "--policy", "first")
+        self.assertEqual(rc, 0)
+        eps = rollout.load_episodes(path)
+        self.assertEqual([e["n_steps"] for e in eps], [2])
+        self.assertEqual(len([l for l in path.read_text().splitlines() if l.strip()]), 4)   # 1 dead + 2 steps + episode
+
+    def test_append_onto_a_file_of_another_build_is_refused(self):
+        self.patched()
+        path = Path(self.root) / "t.jsonl"
+        self.stub = {"STUB_EXTRA": '{"harness_epoch": "82"}'}
+        self.assertEqual(self.main("--puzzle", RP, "--out", str(path), "--policy", "first")[0], 0)
+        self.assertEqual(self.main("--puzzle", RP, "--out", str(path), "--append", "--policy", "first")[0], 0)
+        before = path.read_text()
+        self.stub = {"STUB_EXTRA": '{"harness_epoch": "83"}'}
+        rc, _, err = self.main("--puzzle", RP, "--out", str(path), "--append", "--policy", "first")
+        self.assertEqual((rc, "mix builds" in err, path.read_text()), (2, True, before))
+
+
+class StampTest(Base):
+    def test_an_episode_records_the_rows_stamps_and_a_pin_refuses_another_build(self):
+        path = Path(self.root) / "r.jsonl"
+        pin = {}
+        with open(path, "w") as out:
+            rec = rollout.run_episode(self.env(STUB_N=1, STUB_EXTRA='{"harness_epoch": "82"}'), rollout.first_policy,
+                                      "g", "r:g#0", out, {"puzzle": "x.pzl"}, pin=pin)
+            self.assertEqual((rec["stamps"], pin["stamps"]), ({"harness_epoch": "82"}, {"harness_epoch": "82"}))
+            with self.assertRaises(rollout.StampMismatch):
+                rollout.run_episode(self.env(STUB_N=1, STUB_EXTRA='{"harness_epoch": "83"}'), rollout.first_policy,
+                                    "g", "r:g#1", out, {"puzzle": "x.pzl"}, pin=pin)
+        self.assertEqual(len(rollout.load_episodes(path)), 1)   # the mismatched one wrote nothing
 
 
 if __name__ == "__main__":

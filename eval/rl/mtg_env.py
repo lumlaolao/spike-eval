@@ -36,15 +36,14 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))  # eval/
 import evalpath  # noqa: E402,F401
+import eval_only  # noqa: E402  (the guard MtgEnv.reset calls)
 import fake_model_server  # noqa: E402  (its parser of the legal options is the one the env uses)
 from puzzle_baselines import ADD_OPENS  # noqa: E402  (the one list of the JVM's --add-opens)
 
 MODEL_SPEC = "openrouter:rl/policy"  # loopback: exempt from the egress gate, never sent a key
 OPTION = re.compile(r"(?m)^\s*(\d+)\) (.*)$")
 ASK_MARK = "call `answer` with `"
-# Settings that make every request a decision: no memory or rules lookups, no lookahead, no heuristics. NATIVE_TOOLS
-# stays 1: it carries the `answer` function (0 is the text lane, which this env cannot answer); the env only ever
-# replies with `answer`, so the lookup functions it also offers are never called.
+# Pinned by test_mtg_env.py against puzzle_solve.condition; why each: eval/rl/README.md, "How it works".
 DECISION_ONLY = {"CONTEXT_PROFILE": "v4-faithful", "MEMORY_TOOLS": "0", "RULES_TOOL": "0", "NATIVE_TOOLS": "1",
                  "ANSWER_TOOL": "1", "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
 
@@ -247,12 +246,16 @@ class MtgEnv:
     capped game, a missing row, a step timeout). `launcher(env, out_dir) -> Popen` starts the game process."""
 
     def __init__(self, launcher=None, out_root=None, keep_out=False, step_timeout_s=300.0, first_timeout_s=240.0,
-                 call_timeout_ms=900000, game_cap_ms=1_800_000, model=MODEL_SPEC, extra_env=None):
+                 call_timeout_ms=900000, game_cap_ms=1_800_000, model=MODEL_SPEC, extra_env=None,
+                 allow_eval_only=False, guard=None):
         self.launcher = launcher or JvmLauncher()
         self.out_root = Path(out_root) if out_root else None
         self.keep_out, self.step_timeout_s, self.first_timeout_s = keep_out, step_timeout_s, first_timeout_s
         self.call_timeout_ms, self.game_cap_ms, self.model = call_timeout_ms, game_cap_ms, model
         self.extra_env = dict(extra_env or {})
+        self.allow_eval_only = allow_eval_only
+        self.guard = guard or eval_only.reasons   # a test's stand-in; no caller turns the guard off
+        self.eval_only = []
         self.server = self.proc = self.out_dir = self.pending = None
         self.mode = self.puzzle_id = self.seed = None
         self.episode = self.corrections = 0
@@ -268,6 +271,11 @@ class MtgEnv:
         self.close()
         if puzzle is None and seed is None:
             raise EnvError("reset needs puzzle=<.pzl> or seed=<n>")
+        self.eval_only = self.guard(puzzle=puzzle, seeds=[1 if seed is None else seed] if puzzle is not None
+                                    else [seed], deck=deck)
+        if self.eval_only and not self.allow_eval_only:
+            raise EnvError("eval-only data, never training data (eval/rl/README.md, \"Eval-only data\"): %s; "
+                           "allow_eval_only=True plays it marked eval_only" % "; ".join(self.eval_only))
         self.episode += 1
         self.corrections, self.step_ms, self.finished = 0, [], False
         self.mode = "puzzle" if puzzle is not None else "game"
@@ -351,6 +359,8 @@ class MtgEnv:
         else:
             reward, info = 0.0, {"valid": False, "error": "step_timeout", "step_timeout_s": self.step_timeout_s}
         info.update(self._stats())
+        if self.eval_only:
+            info["eval_only"] = list(self.eval_only)
         self.finished = True
         self.close()
         return None, reward, True, info
@@ -380,6 +390,7 @@ class MtgEnv:
                       "log_sha256", "tainted_by_deckout", "acceptance", "bridge_down_decisions", "routing_refusals"):
                 if k in row:
                     info[k] = row[k]
+            info["stamps"] = _stamps(row)
             # puzzle_score.py counts only solved/failed, not a solve tainted by a deck-out, and refuses a row that
             # lost decisions to a dead bridge (a reply that came too late is the env's fault, not the policy's)
             ok = (row.get("status") in ("solved", "failed") and not row.get("tainted_by_deckout")
@@ -392,16 +403,21 @@ class MtgEnv:
                 return 0.0, info
             g = games[-1]
             info.update({k: g[k] for k in ("winner", "win_condition", "turns") if k in g})
-            # a capped game is invalid, never a draw; the game line's lost-decision counters as aggregate.py reads them
-            lost_to_bridge = (g.get("bridge_down_decisions_a") or 0) + (g.get("routing_refusals") or 0)
+            info["stamps"] = _stamps(g)
+            # a capped game is invalid, never a draw; `bridge_down_decisions_a` is the game line's lost-decision
+            # counter (the line has no routing_refusals: that is the puzzle row's)
             info["bridge_down_decisions_a"] = g.get("bridge_down_decisions_a") or 0
-            ok = g.get("winner") in ("A", "B") and not lost_to_bridge
+            ok = g.get("winner") in ("A", "B") and not info["bridge_down_decisions_a"]
             won = g.get("winner") == "A"
         info["lost_decisions"] = sum(1 for f in sorted(self.out_dir.glob("game-*.jsonl")) for r in _jsonl(f)
                                      if r.get("answer_via") == "lost")
         if rc != 0:
             info.setdefault("error", "jvm_rc %s" % rc)
-        info["valid"] = bool(ok and rc == 0 and not info["lost_decisions"])
+        # a request identical to the answered one was replied with the previous action (see the handler): the
+        # policy did not choose that step, so the episode is not its trajectory
+        if self.server.deduped_after_answer:
+            info.setdefault("error", "deduped_after_answer %d" % self.server.deduped_after_answer)
+        info["valid"] = bool(ok and rc == 0 and not info["lost_decisions"] and not self.server.deduped_after_answer)
         return (1.0 if won and info["valid"] else 0.0), info
 
     def _jvm_tail(self, n=600):
@@ -440,6 +456,14 @@ class MtgEnv:
 
     def __exit__(self, *exc):
         self.close()
+
+
+# What the result row or game line says about the build and the interface the episode ran on.
+STAMP_KEYS = ("engine_sha", "overlay_sha", "harness_epoch", "observation_version", "pzl_sha256")
+
+
+def _stamps(row):
+    return {k: row[k] for k in STAMP_KEYS if k in row}
 
 
 def _jsonl(path):

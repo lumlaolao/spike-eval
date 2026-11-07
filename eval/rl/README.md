@@ -2,7 +2,8 @@
 
 `MtgEnv` (`mtg_env.py`) exposes a Forge puzzle or game as `reset` / `step` with the engine's own verdict as the
 reward. `rollout.py` plays episodes with a policy and writes trajectories for GRPO-style training and for
-rejection-sampling SFT. Stdlib only, no model call, no egress. Design and limits:
+rejection-sampling SFT. `eval_only.py` keeps eval data out of the training data. Stdlib only, no model call, no
+egress. Design and limits:
 `eval/research/2026-11-06-rlvr-env-feasibility.md`; measurements: `eval/research/2026-11-07-rl-play-env.md`.
 
 ## How it works
@@ -30,7 +31,8 @@ A retried request is the same decision: while the ask is unanswered it joins the
 A request byte-identical to the one just answered is replied with that answer and counted in
 `info["deduped_after_answer"]`. The env cannot tell such a retry from a genuinely new decision with identical
 messages (the messages carry the whole state, so that needs a state that did not change); that decision would be
-answered with the previous action and not reach the policy. Check the count: it is 0 in a clean run.
+answered with the previous action and not reach the policy. Such an episode is `valid=False` (the policy did not
+choose that step); the count is 0 in a clean run.
 
 ```python
 import sys; sys.path.insert(0, "eval/rl")
@@ -60,11 +62,27 @@ On `done`, `step` returns `(None, reward, True, info)`. The reward is 1.0 for a 
 (identity A), else 0.0. `info["valid"]` is False, and the episode must not be trained on, for: a capped game or a
 draw, a missing result row or game line, a step timeout, a solve tainted by a deck-out, a decision lost to a dead
 bridge (`bridge_down_decisions` in the puzzle row, `bridge_down_decisions_a` in the game line) or a routing filter
-(`routing_refusals`, either mode), a decision the harness took with its fixed option after two refused answers
+(`routing_refusals`, the puzzle row only: the game line has no such field), a decision the harness took with its fixed option after two refused answers
 (`info["lost_decisions"]`, counted from the game's own decision rows, `answer_via == "lost"`), and a JVM that did
 not exit 0 (a finished puzzle or game exits 0: `LlmSpikePuzzle`, `LlmSpikeHeadless`; the code is `info["jvm_rc"]`).
-Also in `info`: `status`, `solver_actions`, `decisions`, `deduped`, `deduped_after_answer`, `corrections` (refused
+Also in `info`: `stamps` (the row's or game line's `engine_sha`, `overlay_sha`, `harness_epoch`,
+`observation_version`, `pzl_sha256`, whichever it carries), `status`, `solver_actions`, `decisions`, `deduped`, `deduped_after_answer`, `corrections` (refused
 steps), `step_ms_median`, `step_ms_max`, `startup_s`, `episode_s`.
+
+## Eval-only data
+
+`MtgEnv.reset` calls `eval_only.reasons` for every episode and raises `EnvError` unless `allow_eval_only=True`, in
+which case the episode's `info["eval_only"]` lists the reasons and `rollout` writes them on the episode record; no
+reader trains on such an episode. So a trainer's own loop hits the guard, not only the command line. It refuses:
+
+- a **seed** in `eval/seed_policy.py`'s reserved blocks or in any bank `eval/seed_registry.py` marks eval-only (the
+  STR-AI panel seeds 7800-7999 are in the registry only); a puzzle's attempt seed counts;
+- a **deck** declared `held-out` in `eval/holdouts.json` (painter, sneak-and-show), by file or slug;
+- a **puzzle** by its bytes: the file's sha256 is looked up among every suite record's `pzl_sha256`, so a renamed
+  copy keeps its split; it is heldout if any record with those bytes says heldout, and a puzzle no record lists is
+  refused too (its split is unknown).
+
+A game with no `deck=` plays the launcher's default decks, which the guard cannot see: pass the deck.
 
 `reset(seed=<n>, deck=<file>)` runs a full game against Forge's AI with the same machinery. It has run once against
 a JVM (G1 in the research note: one game, a loss, 38 decisions) and otherwise against the stub.
@@ -87,13 +105,17 @@ One JSON object per line; an episode's step lines come first, then its episode l
  "seed":4,"puzzle_id":"drain_08bb","reward":0.0,"valid":true,"n_steps":9,"info":{...}}
 ```
 
-`group` is the puzzle (one group = `--group-size` episodes of the same puzzle with attempt seeds 1..G). `args` is the
+`group` is the puzzle (one group = `--group-size` episodes of the same puzzle with attempt seeds 1..G); in game mode
+a group is G **different** games (seeds s..s+G-1, `group` = `game-<s>`), not G attempts at one start, so its
+advantage compares different positions. A run refuses a group it would play twice (a puzzle given twice, game seeds
+that overlap). The episode record carries `stamps`; `--append` refuses to add to a file whose episodes ran on other
+stamps (a rebuilt engine, another interface epoch), and to a file that already mixes them. `args` is the
 exact `answer` call made; `accepted` is False for a step the engine refused. The episode id starts with a run id (a
 uuid per `rollout.py` invocation), and `--out` must be empty unless `--append`, so a crashed run's orphan step lines
-cannot be glued to a later episode; `load_episodes` also drops pending step lines when a step 1 arrives.
-`rollout.py` refuses a heldout puzzle (its suite's `split`) and a seed in a reserved block (`eval/seed_policy.py`),
-since this is training data; `--allow-eval-only` plays them for a floor measurement and marks the episodes
-`eval_only`, which no reader trains on. Readers in `rollout.py`:
+cannot be glued to a later episode; `load_episodes` also drops pending step lines when a step 1 arrives, and an
+episode whose steps are not numbered 1..`n_steps`. An episode is written whole when it ends, and `--append` starts a
+new line if the file does not end in one (a crashed run's cut line). `rollout.py` refuses eval-only data (above);
+`--allow-eval-only` plays it for a floor measurement. Readers in `rollout.py`:
 
 - `load_episodes(path)` -> episode records with their `steps`.
 - `grpo_groups(episodes)` -> `{group: [{episode_id, reward, advantage, steps}]}` over trainable episodes (valid, no
@@ -102,16 +124,16 @@ since this is training data; `--allow-eval-only` plays them for a floor measurem
   under the random policy) has advantage 0 everywhere: no signal. So has a group left with **one** valid episode
   after the others were dropped (a lost decision, a dead bridge): its mean is its own reward. Pick puzzles with
   a random-policy solve rate strictly between 0 and 1 (`baselines.random` in `eval/suites/*.json`) and watch the
-  count of dropped episodes: dropping the unlucky ones biases a group. Steps with `accepted: false` stay in the
-  group's `steps` for the trainer to mask.
+  count of dropped episodes: dropping the unlucky ones biases a group. `steps` holds only the steps the engine
+  took (a step with `accepted: false` is dropped, as in `sft_examples`).
   Train on each step's `(messages, args)` weighted by the episode's advantage (the policy's per-step log-prob of
   the `answer` call given `messages`).
 - `sft_examples(episodes)` -> rejection sampling: for every trainable solved episode, one chat example per
   **accepted** step, `messages` plus the assistant `answer` tool call. A step the engine refused is never an example.
 
 The floor to report beside any trained policy's solve rate is the random policy's on the same puzzles (and `first`,
-`pass`): `eval/rl` numbers without it are not scores (`.claude/rules/eval.md`). Seeds 501-525 and 20000-30099 are
-eval-only (`eval/seed_policy.py`); puzzle splits are `heldout` / `open` in the suites: train on `open` only.
+`pass`): `eval/rl` numbers without it are not scores (`.claude/rules/eval.md`). Train on `open` puzzles only (the suites' `split`) and on seeds
+outside every eval-only block ("Eval-only data").
 
 ## Plugging in a trained policy
 
@@ -134,7 +156,7 @@ def policy(obs):
 
 ```python
 env = MtgEnv(call_timeout_ms=900000, step_timeout_s=300)       # the JVM waits this long for a reply
-for puzzle in batch:
+for puzzle in batch:      # an eval-only puzzle or seed raises EnvError here (allow_eval_only=True marks it instead)
     for g in range(G):
         recs.append(rollout.run_episode(env, policy, puzzle_id, f"{puzzle_id}#{g}", out, {"puzzle": puzzle, "seed": g + 1}))
 ```
