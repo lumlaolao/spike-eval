@@ -33,7 +33,9 @@ against two patterns:
 | splice | winnable | 607 | 19.9% | 0.7% |
 | splice | lost | 619 | 24.7% | 6.3% |
 
-Positions within an attempt are not independent, so no interval is given. Per failed attempt with a regret step, the
+These rates are withdrawn as evidence: the patterns fail the sample check below, so the table is description of a
+invalid measure, not a score, and carries no interval or baseline claim (positions within an attempt are not
+independent either, so a per-position interval would overstate its precision). Per failed attempt with a regret step, the
 seat never matched the concession pattern after the step in 20 of 46 drain attempts (the splice one-off said 44 of
 60; not reproducible here).
 
