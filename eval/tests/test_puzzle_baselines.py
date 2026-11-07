@@ -137,7 +137,13 @@ class VerifySearchLineTest(unittest.TestCase):
         rec = {"id": "p2", "pzl": "eval/puzzles/x.pzl", "reference_line": {"arm": "ai", "seed": 3, "solver_actions": 2,
                                                                          "log_sha256": "ab12"}}
         v = self.verify({"status": "solved", "line": "Solver:1:0", "solver_actions": 1, "log_sha256": "ab12"}, rec)
-        self.assertIn(v["status"], ("verified", "failed"))     # reached the replay, not "unverified"
+        self.assertEqual(v["status"], "verified")
+        self.assertNotIn("replay_line", v)
+
+    def test_a_failed_search_reproof_has_no_line_and_records_none(self):
+        # The search runner writes `line` only on a proof (LlmSpikePuzzle.java), so a failed re-proof's row has none.
+        v = self.verify({"status": "gave_up", "acceptance": "accepted"})
+        self.assertEqual(v["status"], "failed")
         self.assertNotIn("replay_line", v)
 
 
