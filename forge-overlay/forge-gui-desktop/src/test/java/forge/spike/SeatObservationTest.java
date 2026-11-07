@@ -1268,4 +1268,13 @@ public class SeatObservationTest {
         Assert.assertFalse(you.matches(".*\\| has ( \\||$).*"), you);
     }
 
+    /** The guide says what the player line shows of keywords as the line does it (#408): the ones the engine names, and
+     *  that an unnamed one (Winter Orb's) is read from its card's text, not "any keyword the player has". */
+    @Test
+    public void theGuideSaysWhichKeywordsAPlayerLineShows() {
+        Assert.assertFalse(SeatObservation.GUIDE.contains("any keyword the player has"), SeatObservation.GUIDE);
+        Assert.assertTrue(SeatObservation.GUIDE.contains("a keyword the engine leaves unnamed is read from its card's text"),
+                SeatObservation.GUIDE);
+    }
+
 }

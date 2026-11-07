@@ -412,7 +412,7 @@ next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLa
 **A player's keywords are on its line** (#368, observation-faithful-v45). A keyword granted to a player (Leyline of
 Sanctity's hexproof) is said on the player's line by its title (`| has hexproof`, `SeatObservation.playerLine`
 from `Player.getKeywords()`); a keyword the engine gives no title (Winter Orb's `UntapAdjust:Land:1`) is left to
-its card's rules text. The engine keeps those keywords on a "Keyword Effects" object in the command zone, which is
+its card's rules text, and the state guide says so (observation-faithful-v46, #408). The engine keeps those keywords on a "Keyword Effects" object in the command zone, which is
 not a card the seat could inspect, cast or target, so `commandCards` leaves it out of the `command:` line, where it had
 been listed with a handle.
 
@@ -579,7 +579,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v45+propose`, `answer-tool-v19+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v46+propose`, `answer-tool-v19+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls
