@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""MtgEnv: the Forge harness as a reset/step environment for RL (stdlib only; docs in eval/rl/README.md).
+"""MtgEnv: the Forge harness as a reset/step environment for RL (stdlib only). The conditions, the reward and the
+validity rules are in eval/rl/README.md, their one home.
 
 A loopback OpenAI-compatible server parks every chat-completions request of the game JVM; the request is the
 observation, the `answer` tool call written back is the action, and the JVM's exit is the end of the episode.
@@ -13,9 +14,9 @@ The reward is the engine's own verdict: a puzzle result row (solved = 1) or the 
         obs = obs_next
     env.close()
 
-No model is called and nothing leaves the machine: the server binds 127.0.0.1, the JVM is pointed at it, and
-OPENROUTER_ALLOW_EGRESS / OPENROUTER_API_KEY are removed from the JVM's environment.
+No model is called and nothing leaves the machine (eval/rl/README.md, "How it works").
 """
+import atexit
 import hashlib
 import json
 import os
@@ -28,6 +29,7 @@ import sys
 import tempfile
 import threading
 import time
+import weakref
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -35,6 +37,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))  # eval/
 import evalpath  # noqa: E402,F401
 import fake_model_server  # noqa: E402  (its parser of the legal options is the one the env uses)
+from puzzle_baselines import ADD_OPENS  # noqa: E402  (the one list of the JVM's --add-opens)
 
 MODEL_SPEC = "openrouter:rl/policy"  # loopback: exempt from the egress gate, never sent a key
 OPTION = re.compile(r"(?m)^\s*(\d+)\) (.*)$")
@@ -44,15 +47,6 @@ ASK_MARK = "call `answer` with `"
 # replies with `answer`, so the lookup functions it also offers are never called.
 DECISION_ONLY = {"CONTEXT_PROFILE": "v4-faithful", "MEMORY_TOOLS": "0", "RULES_TOOL": "0", "NATIVE_TOOLS": "1",
                  "ANSWER_TOOL": "1", "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
-ADD_OPENS = [
-    "java.desktop/java.beans", "java.desktop/javax.swing.border", "java.desktop/javax.swing.event",
-    "java.desktop/sun.swing", "java.desktop/java.awt.image", "java.desktop/java.awt.color",
-    "java.desktop/sun.awt.image", "java.desktop/javax.swing", "java.desktop/java.awt",
-    "java.desktop/java.awt.font", "java.base/java.util", "java.base/java.lang",
-    "java.base/java.lang.reflect", "java.base/java.text", "java.base/jdk.internal.misc",
-    "java.base/sun.nio.ch", "java.base/java.nio", "java.base/java.math",
-    "java.base/java.util.concurrent", "java.base/java.net",
-]
 
 
 class EnvError(RuntimeError):
@@ -120,6 +114,7 @@ class _Pending:
 
     def __init__(self, key, body, index):
         self.key, self.body, self.index = key, body, index
+        self.legal = {}   # parse_ask of the request, set when the policy is shown it
         self.reply = None
         self.event = threading.Event()
 
@@ -136,7 +131,8 @@ class _Server(ThreadingHTTPServer):
         self.last = None             # the answered _Pending (a retry after the answer gets it again)
         self.count = 0               # distinct decisions seen
         self.requests = 0            # every request, retries included
-        self.deduped = 0
+        self.deduped = 0             # a retry of the unanswered ask (the same decision, as intended)
+        self.deduped_after_answer = 0   # a request identical to the answered one: see the handler
         self.closing = False
 
     @property
@@ -165,8 +161,13 @@ class _Handler(BaseHTTPRequestHandler):
             if srv.current is not None and srv.current.key == key:   # the bridge re-asked an unanswered ask
                 srv.deduped += 1
                 pending = srv.current
-            elif srv.last is not None and srv.last.key == key:       # re-asked after the answer was written
-                srv.deduped += 1
+            elif srv.last is not None and srv.last.key == key:
+                # Byte-identical to the answered ask. It is taken for a retry whose connection died before the
+                # answer arrived and is replied with the same answer. The env cannot tell that from a genuinely
+                # new decision with the same messages (the messages carry the whole state, so that needs a
+                # state that did not change): such a decision is answered with the previous action and never
+                # reaches the policy. It is counted apart from `deduped` so a run shows how often it happened.
+                srv.deduped_after_answer += 1
                 pending = srv.last
             else:
                 srv.count += 1
@@ -231,12 +232,8 @@ class JvmLauncher:
 def scrubbed_environ():
     """The shell's environment without anything that could change a condition or reach a paid endpoint."""
     env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENROUTER", "PZL_", "FORK_", "CLAUDE_"))}
-    try:
-        import run_batch
-        keys = run_batch.PINNED_ENV_KEYS + run_batch.RUN_DEFINING_KEYS
-    except Exception:  # noqa: BLE001  (the prefix list above is the floor)
-        keys = ()
-    for k in keys:
+    import run_batch   # an import failure raises: a scrub that silently weakened would leak a condition
+    for k in run_batch.PINNED_ENV_KEYS + run_batch.RUN_DEFINING_KEYS:
         env.pop(k, None)
     return env
 
@@ -258,11 +255,13 @@ class MtgEnv:
         self.extra_env = dict(extra_env or {})
         self.server = self.proc = self.out_dir = self.pending = None
         self.mode = self.puzzle_id = self.seed = None
-        self.episode = self.steps = 0
+        self.episode = self.corrections = 0
         self.t_reset = self.startup_s = 0.0
         self.step_ms = []   # wall ms from the answer written to the next observation or the end
         self.finished = True
         self._scratch = None
+        ref = weakref.ref(self)   # a process that exits without close() must not leave the JVM running
+        atexit.register(lambda: ref() is not None and ref().close())
 
     # ---------------------------------------------------------------- lifecycle
     def reset(self, puzzle=None, seed=None, deck=None):
@@ -270,7 +269,7 @@ class MtgEnv:
         if puzzle is None and seed is None:
             raise EnvError("reset needs puzzle=<.pzl> or seed=<n>")
         self.episode += 1
-        self.steps, self.step_ms, self.finished = 0, [], False
+        self.corrections, self.step_ms, self.finished = 0, [], False
         self.mode = "puzzle" if puzzle is not None else "game"
         self.seed = seed
         root = self.out_root or Path(tempfile.mkdtemp(prefix="mtg-env-"))
@@ -323,10 +322,11 @@ class MtgEnv:
 
     def _observe(self, pending):
         self.pending = pending
-        self.steps = pending.index
         msgs = pending.body.get("messages") or []
+        pending.legal = parse_ask(msgs)
         correction = any(m.get("role") == "tool" and str(m.get("content", "")).startswith("ERROR:") for m in msgs[-3:])
-        return {"episode": self.episode, "step": pending.index, "messages": msgs, "legal": parse_ask(msgs),
+        self.corrections += correction
+        return {"episode": self.episode, "step": pending.index, "messages": msgs, "legal": pending.legal,
                 "schema": answer_schema(pending.body.get("tools")),
                 "kind": "correction" if correction else "decision"}
 
@@ -335,7 +335,7 @@ class MtgEnv:
             raise EnvError("step on a finished or unstarted episode: call reset")
         pending, self.pending = self.pending, None
         t0 = time.time()
-        args = as_arguments(action, parse_ask(pending.body.get("messages") or []))
+        args = as_arguments(action, pending.legal)
         with self.server.lock:
             pending.reply = chat_reply(args, pending.index)
             self.server.last, self.server.current = pending, None
@@ -343,7 +343,9 @@ class MtgEnv:
         kind, payload = self._next(self.step_timeout_s)
         self.step_ms.append(round((time.time() - t0) * 1000.0, 1))
         if kind == "obs":
-            return self._observe(payload), 0.0, False, {"step": payload.index, "args": args}
+            nxt = self._observe(payload)
+            # a correction means the engine refused `args`: the step was not an answer (rollout.py marks it so)
+            return nxt, 0.0, False, {"step": payload.index, "args": args, "accepted": nxt["kind"] != "correction"}
         if kind == "exit":
             reward, info = self._result(payload)
         else:
@@ -357,11 +359,16 @@ class MtgEnv:
         s, ms = self.server, sorted(self.step_ms)
         return {"episode": self.episode, "mode": self.mode, "puzzle": self.puzzle_id, "seed": self.seed,
                 "decisions": s.count, "requests": s.requests, "deduped": s.deduped,
+                "deduped_after_answer": s.deduped_after_answer, "corrections": self.corrections,
                 "step_ms_median": ms[len(ms) // 2] if ms else None, "step_ms_max": ms[-1] if ms else None,
                 "startup_s": round(self.startup_s, 2), "episode_s": round(time.time() - self.t_reset, 2)}
 
     # ---------------------------------------------------------------- reward
     def _result(self, rc):
+        """(reward, info). valid is False for an episode that must not be trained on: no verdict row, a verdict
+        the scorers refuse (a deck-out solve, a decision lost to a dead bridge or a routing filter), a decision the
+        harness took with its fixed option after two refused answers (`lost_decisions`, read off the game's own
+        decision rows: `answer_via` "lost"), or a JVM that did not exit 0. The reward is 1 only for a valid win."""
         info = {"jvm_rc": rc, "valid": True}
         if self.mode == "puzzle":
             rows = _jsonl(self.out_dir / "puzzle-results.jsonl")
@@ -375,17 +382,27 @@ class MtgEnv:
                     info[k] = row[k]
             # puzzle_score.py counts only solved/failed, not a solve tainted by a deck-out, and refuses a row that
             # lost decisions to a dead bridge (a reply that came too late is the env's fault, not the policy's)
-            info["valid"] = (row.get("status") in ("solved", "failed") and not row.get("tainted_by_deckout")
-                             and not row.get("bridge_down_decisions") and not row.get("routing_refusals"))
-            return (1.0 if row.get("status") == "solved" and info["valid"] else 0.0), info
-        games = [g for f in sorted(self.out_dir.glob("game-*.jsonl")) for g in _jsonl(f) if g.get("t") == "game"]
-        if not games:
-            info.update(valid=False, error="no game line", jvm_tail=self._jvm_tail())
-            return 0.0, info
-        g = games[-1]
-        info.update({k: g[k] for k in ("winner", "win_condition", "turns") if k in g})
-        info["valid"] = g.get("winner") in ("A", "B")  # a capped game is invalid, never a draw
-        return (1.0 if g.get("winner") == "A" else 0.0), info
+            ok = (row.get("status") in ("solved", "failed") and not row.get("tainted_by_deckout")
+                  and not row.get("bridge_down_decisions") and not row.get("routing_refusals"))
+            won = row.get("status") == "solved"
+        else:
+            games = [g for f in sorted(self.out_dir.glob("game-*.jsonl")) for g in _jsonl(f) if g.get("t") == "game"]
+            if not games:
+                info.update(valid=False, error="no game line", jvm_tail=self._jvm_tail())
+                return 0.0, info
+            g = games[-1]
+            info.update({k: g[k] for k in ("winner", "win_condition", "turns") if k in g})
+            # a capped game is invalid, never a draw; the game line's lost-decision counters as aggregate.py reads them
+            lost_to_bridge = (g.get("bridge_down_decisions_a") or 0) + (g.get("routing_refusals") or 0)
+            info["bridge_down_decisions_a"] = g.get("bridge_down_decisions_a") or 0
+            ok = g.get("winner") in ("A", "B") and not lost_to_bridge
+            won = g.get("winner") == "A"
+        info["lost_decisions"] = sum(1 for f in sorted(self.out_dir.glob("game-*.jsonl")) for r in _jsonl(f)
+                                     if r.get("answer_via") == "lost")
+        if rc != 0:
+            info.setdefault("error", "jvm_rc %s" % rc)
+        info["valid"] = bool(ok and rc == 0 and not info["lost_decisions"])
+        return (1.0 if won and info["valid"] else 0.0), info
 
     def _jvm_tail(self, n=600):
         try:

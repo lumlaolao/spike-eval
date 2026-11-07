@@ -11,8 +11,11 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,12 +30,14 @@ n = int(os.environ.get("STUB_N", "3"))
 json.dump({k: os.environ.get(k) for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "MEMORY_TOOLS",
            "NATIVE_TOOLS", "ANSWER_TOOL", "OPENROUTER_BASE_URL", "SMART_MODEL_A", "PUZZLE", "PZL_SEEDS",
            "GAME_SEED", "CONTROLLER_A")}, open(os.path.join(out, "env.json"), "w"))
-def ask(i, timeout=30):
+def ask(i, timeout=30, text_i=None):
     kinds = {"2": ("number", "`number`: an integer from 0 through 5"),
              "3": ("options", "`options`: the numbers you pick, between 1 and 2")}
     field, bounds = kinds.get(os.environ.get("STUB_FIELD_AT_%d" % i, ""), ("option", ""))
-    text = "Decision %d\n  1) PASS\n  2) Cast Bolt\n  3) Attack\ncall `answer` with `%s`. %s" % (i, field, bounds)
+    text = "Decision %d\n  1) PASS\n  2) Cast Bolt\n  3) Attack\ncall `answer` with `%s`. %s" % (i if text_i is None else text_i, field, bounds)
     msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": text}]
+    if str(i) in os.environ.get("STUB_ERR_AT", "").split(","):   # the engine refused the previous answer
+        msgs += [{"role": "assistant", "content": None}, {"role": "tool", "content": "ERROR: not a legal option."}]
     body = {"model": "x", "messages": msgs, "tool_choice": "required",
             "tools": [{"type": "function", "function": {"name": "answer", "parameters": {"type": "object"}}}]}
     req = urllib.request.Request(base + "/chat/completions", json.dumps(body).encode(), {"Content-Type": "application/json"})
@@ -48,16 +53,23 @@ for i in range(1, n + 1):
         except (socket.timeout, TimeoutError, OSError):
             pass
     answers.append(ask(i))
+    if i == 1 and os.environ.get("STUB_REPEAT"):   # a second, different decision with byte-identical messages
+        answers.append(ask(i))
 solved = all(a.get("option") == 2 for a in answers)
 if os.environ.get("STUB_NOROW"):
     sys.exit(0)
+extra = json.loads(os.environ.get("STUB_EXTRA", "{}"))
+if os.environ.get("STUB_LOSTROW"):   # the decision row of a decision the harness took with its fixed option
+    open(os.path.join(out, "game-1-0.jsonl"), "w").write(json.dumps({"t": "decision", "answer_via": "lost", "answer_invalid": 2}) + "\n")
 if os.environ.get("STUB_MODE") == "game":
-    open(os.path.join(out, "game-1-0.jsonl"), "w").write(json.dumps({"t": "game", "winner": os.environ.get("STUB_WINNER", "A" if solved else "B"), "turns": 7}) + "\n")
+    open(os.path.join(out, "game-1-0.jsonl"), "a").write(json.dumps(dict({"t": "game", "winner": os.environ.get("STUB_WINNER", "A" if solved else "B"), "turns": 7}, **extra)) + "\n")
 else:
     row = {"schema": "pzl-result-v1", "status": os.environ.get("STUB_STATUS") or ("solved" if solved else "failed"), "seed": 1, "solver_actions": n}
     if os.environ.get("STUB_LOST"):
         row["bridge_down_decisions"] = 1
+    row.update(extra)
     open(os.path.join(out, "puzzle-results.jsonl"), "w").write(json.dumps(row) + "\n")
+sys.exit(int(os.environ.get("STUB_EXIT", "0")))
 '''
 
 
@@ -136,7 +148,10 @@ class EnvTest(Base):
     def test_retried_request_is_one_decision(self):
         env = self.env(STUB_N=2, STUB_RETRY=1)
         env.reset(puzzle="x.pzl")
-        time.sleep(1.0)   # the stub's first request times out and is re-sent with the same messages
+        deadline = time.time() + 20   # the stub's first request times out and is re-sent with the same messages
+        while env.server.requests < 2 and time.time() < deadline:
+            time.sleep(0.05)
+        self.assertEqual(env.server.requests, 2)
         done = False
         while not done:
             obs, reward, done, info = env.step(2)
@@ -230,6 +245,152 @@ class EnvTest(Base):
         env = self.env(STUB_N=1)
         self.play(env, 2, puzzle="x.pzl")
         self.assertEqual(list(Path(self.root).iterdir()), [])
+
+
+class ServerTest(unittest.TestCase):
+    def setUp(self):
+        self.srv = mtg_env._Server()
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        self.addCleanup(self.srv.server_close)
+        self.addCleanup(self.srv.shutdown)
+
+    def post(self, headers=None):
+        req = urllib.request.Request(self.srv.base_url + "/chat/completions", b'{"messages": []}',
+                                     dict({"Content-Type": "application/json"}, **(headers or {})))
+        return urllib.request.urlopen(req, timeout=3)
+
+    def test_the_server_binds_loopback_only(self):
+        self.assertEqual(self.srv.server_address[0], "127.0.0.1")   # 0.0.0.0 would take the request from the network
+        self.assertTrue(self.srv.base_url.startswith("http://127.0.0.1:"))
+
+    def test_a_request_with_an_authorization_header_is_refused(self):
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            self.post({"Authorization": "Bearer sk-live"})
+        self.assertEqual(cm.exception.code, 401)
+        self.assertEqual(self.srv.requests, 0)   # refused before it counted as a decision
+
+    def test_a_malformed_body_is_a_400(self):
+        req = urllib.request.Request(self.srv.base_url + "/x", b"{not json", {"Content-Type": "application/json"})
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            urllib.request.urlopen(req, timeout=3)
+        self.assertEqual(cm.exception.code, 400)
+
+
+class ScrubTest(unittest.TestCase):
+    def test_every_scrubbed_prefix_is_removed_and_the_rest_kept(self):
+        names = ["OPENROUTER_X", "PZL_X", "FORK_X", "CLAUDE_X", "KEEP_ME_RL_TEST"]
+        for n in names:
+            os.environ[n] = "1"
+            self.addCleanup(os.environ.pop, n, None)
+        env = mtg_env.scrubbed_environ()
+        self.assertEqual([n for n in names if n in env], ["KEEP_ME_RL_TEST"])
+
+    def test_the_pinned_condition_names_are_removed(self):
+        import run_batch
+        name = run_batch.PINNED_ENV_KEYS[0]
+        os.environ[name] = "x"
+        self.addCleanup(os.environ.pop, name, None)
+        self.assertNotIn(name, mtg_env.scrubbed_environ())
+
+    def test_an_import_failure_of_run_batch_raises(self):
+        saved = sys.modules.get("run_batch")
+        sys.modules["run_batch"] = None   # `import run_batch` now raises ImportError
+        try:
+            with self.assertRaises(ImportError):
+                mtg_env.scrubbed_environ()
+        finally:
+            sys.modules["run_batch"] = saved
+
+
+class ConstantsTest(unittest.TestCase):
+    def test_add_opens_is_the_puzzle_runners_list(self):
+        import puzzle_baselines
+        self.assertIs(mtg_env.ADD_OPENS, puzzle_baselines.ADD_OPENS)
+
+
+class VerdictTest(Base):
+    def test_a_correction_observation_has_its_kind_and_marks_the_step_before_refused(self):
+        env = self.env(STUB_N=2, STUB_ERR_AT="2")
+        obs = env.reset(puzzle="x.pzl")
+        self.assertEqual(obs["kind"], "decision")
+        obs, _, _, info = env.step(1)
+        self.assertEqual((obs["kind"], obs["step"], info["accepted"]), ("correction", 2, False))
+        _, _, done, info = env.step(2)
+        self.assertEqual((done, info["corrections"]), (True, 1))
+
+    def test_an_accepted_step_says_so(self):
+        env = self.env(STUB_N=2)
+        env.reset(puzzle="x.pzl")
+        _, _, _, info = env.step(2)
+        self.assertTrue(info["accepted"])
+
+    def test_a_solve_tainted_by_a_deck_out_is_not_valid_and_not_rewarded(self):
+        _, reward, info = self.play(self.env(STUB_N=1, STUB_EXTRA='{"tainted_by_deckout": true}'), 2, puzzle="x.pzl")
+        self.assertEqual((info["status"], reward, info["valid"]), ("solved", 0.0, False))
+
+    def test_a_row_that_lost_decisions_to_routing_is_not_valid(self):
+        _, reward, info = self.play(self.env(STUB_N=1, STUB_EXTRA='{"routing_refusals": 2}'), 2, puzzle="x.pzl")
+        self.assertEqual((info["status"], reward, info["valid"]), ("solved", 0.0, False))
+
+    def test_a_decision_taken_by_the_fixed_option_after_two_refusals_is_lost_and_not_valid(self):
+        _, reward, info = self.play(self.env(STUB_N=1, STUB_LOSTROW=1), 2, puzzle="x.pzl")
+        self.assertEqual((info["status"], info["lost_decisions"], info["valid"], reward), ("solved", 1, False, 0.0))
+
+    def test_a_clean_episode_has_no_lost_decision(self):
+        _, _, info = self.play(self.env(STUB_N=1), 2, puzzle="x.pzl")
+        self.assertEqual((info["lost_decisions"], info["corrections"], info["valid"]), (0, 0, True))
+
+    def test_a_jvm_that_did_not_exit_zero_is_not_valid(self):
+        _, reward, info = self.play(self.env(STUB_N=1, STUB_EXIT=3), 2, puzzle="x.pzl")
+        self.assertEqual((info["jvm_rc"], info["valid"], reward, info["error"]), (3, False, 0.0, "jvm_rc 3"))
+
+    def test_a_game_that_lost_decisions_to_a_dead_bridge_is_not_valid(self):
+        _, reward, info = self.play(self.env(STUB_N=2, STUB_MODE="game", STUB_EXTRA='{"bridge_down_decisions_a": 1}'),
+                                    2, seed=5)
+        self.assertEqual((info["winner"], reward, info["valid"], info["bridge_down_decisions_a"]), ("A", 0.0, False, 1))
+
+    def test_a_game_with_a_lost_decision_or_a_bad_exit_is_not_valid(self):
+        _, reward, info = self.play(self.env(STUB_N=2, STUB_MODE="game", STUB_LOSTROW=1), 2, seed=5)
+        self.assertEqual((reward, info["valid"], info["lost_decisions"]), (0.0, False, 1))
+        _, reward, info = self.play(self.env(STUB_N=2, STUB_MODE="game", STUB_EXIT=1), 2, seed=5)
+        self.assertEqual((reward, info["valid"]), (0.0, False))
+
+
+class DedupeTest(Base):
+    def test_an_identical_request_after_the_answer_is_replied_with_it_and_counted_apart(self):
+        # Two genuinely different decisions with byte-identical messages cannot be told from a retry whose reply
+        # was lost: the second is answered with the first action and never reaches the policy. It is counted.
+        env = self.env(STUB_N=2, STUB_REPEAT=1)
+        env.reset(puzzle="x.pzl")
+        seen, done = [], False
+        while not done:
+            obs, reward, done, info = env.step(2)
+            if obs:
+                seen.append(obs["step"])
+        self.assertEqual(seen, [2])   # decisions 1 and its twin reached the policy as one; then decision 2
+        self.assertEqual((info["deduped_after_answer"], info["deduped"], info["decisions"]), (1, 0, 2))
+        self.assertEqual(info["requests"], 3)
+
+
+class ShutdownTest(Base):
+    def test_a_process_that_exits_without_close_leaves_no_child(self):
+        code = ("import subprocess, sys; sys.path[:0] = [%r, %r]\n"
+                "import mtg_env\n"
+                "e = mtg_env.MtgEnv(out_root=%r)\n"
+                "e.proc = subprocess.Popen(['sleep', '120'], start_new_session=True)\n"
+                "print(e.proc.pid, flush=True)\n") % (str(ROOT / "eval"), str(ROOT / "eval" / "rl"), self.root)
+        out = subprocess.run([sys.executable, "-c", code], stdout=subprocess.PIPE, universal_newlines=True, timeout=60)
+        pid = int(out.stdout.split()[0])
+        self.addCleanup(lambda: os.path.exists("/proc/%d" % pid) and os.kill(pid, 9))
+        def alive():
+            try:
+                return Path("/proc/%d/stat" % pid).read_text().split()[2] != "Z"
+            except OSError:
+                return False
+        deadline = time.time() + 10
+        while alive() and time.time() < deadline:
+            time.sleep(0.1)
+        self.assertFalse(alive(), "the child outlived its parent")
 
 
 if __name__ == "__main__":

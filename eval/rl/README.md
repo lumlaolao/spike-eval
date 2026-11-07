@@ -18,9 +18,19 @@ the seat is one blocking chat-completions request. The env's server parks it:
 - **done** = the JVM exits; the reward is read from the puzzle result row (`solved` = 1) or the game line
   (`winner == "A"` = 1).
 
-Settings are pinned so that every request is a decision: `MEMORY_TOOLS=0 NATIVE_TOOLS=0 RULES_TOOL=0 LOOKAHEAD=0`,
-`ANSWER_TOOL=1`. A retried request (same messages) is the same decision: it joins the parked one, and it is counted in
-`info["deduped"]`.
+Settings are pinned so that every request is a decision (`mtg_env.DECISION_ONLY`): `MEMORY_TOOLS=0 RULES_TOOL=0
+LOOKAHEAD=0`, `ANSWER_TOOL=1`, and `NATIVE_TOOLS=1` (the `answer` function travels with the native tools; with 0 the
+seat is on the text lane and the env's tool-call reply is never read). The env replies only with `answer`, so the
+lookup functions the request also offers are never called. The JVM's environment is the shell's minus every
+`OPENROUTER*`, `PZL_*`, `FORK_*`, `CLAUDE_*` name and `run_batch.PINNED_ENV_KEYS` / `RUN_DEFINING_KEYS`
+(`scrubbed_environ` raises if `run_batch` cannot be imported). The server accepts only loopback, and refuses a
+request that carries an `Authorization` header.
+
+A retried request is the same decision: while the ask is unanswered it joins the parked one (`info["deduped"]`).
+A request byte-identical to the one just answered is replied with that answer and counted in
+`info["deduped_after_answer"]`. The env cannot tell such a retry from a genuinely new decision with identical
+messages (the messages carry the whole state, so that needs a state that did not change); that decision would be
+answered with the previous action and not reach the policy. Check the count: it is 0 in a clean run.
 
 ```python
 import sys; sys.path.insert(0, "eval/rl")
@@ -42,12 +52,22 @@ re-asks (the message list ends with the error). An action is the `answer` call's
 (`option` / `number`), a list (`options` / `amounts`), a bool (`keep`). An illegal action is not filtered by the
 env: the engine refuses it and the next observation is a correction, which is itself a step.
 
-On `done`, `step` returns `(None, reward, True, info)`. `info` has `valid` (False: do not train on this episode: a
-capped game, a draw, a missing row, a step timeout), `status`, `solver_actions`, `decisions`, `deduped`,
-`step_ms_median`, `step_ms_max`, `startup_s`, `episode_s`, `jvm_rc`.
+A non-final `step` returns `info = {"step", "args", "accepted"}`: `accepted` is False when the next observation is a
+correction, i.e. the engine refused `args`. The engine takes a second refusal of the same decision as lost and
+decides with a fixed legal option (`AnswerTool.converse`, "two invalid replies").
 
-`reset(seed=<n>, deck=<file>)` runs a full game against Forge's AI with the same machinery (reward 1 when identity
-A wins). It has only been exercised against the stub, not a JVM (see the research note).
+On `done`, `step` returns `(None, reward, True, info)`. The reward is 1.0 for a **valid** solved puzzle / won game
+(identity A), else 0.0. `info["valid"]` is False, and the episode must not be trained on, for: a capped game or a
+draw, a missing result row or game line, a step timeout, a solve tainted by a deck-out, a decision lost to a dead
+bridge (`bridge_down_decisions` in the puzzle row, `bridge_down_decisions_a` in the game line) or a routing filter
+(`routing_refusals`, either mode), a decision the harness took with its fixed option after two refused answers
+(`info["lost_decisions"]`, counted from the game's own decision rows, `answer_via == "lost"`), and a JVM that did
+not exit 0 (a finished puzzle or game exits 0: `LlmSpikePuzzle`, `LlmSpikeHeadless`; the code is `info["jvm_rc"]`).
+Also in `info`: `status`, `solver_actions`, `decisions`, `deduped`, `deduped_after_answer`, `corrections` (refused
+steps), `step_ms_median`, `step_ms_max`, `startup_s`, `episode_s`.
+
+`reset(seed=<n>, deck=<file>)` runs a full game against Forge's AI with the same machinery. It has run once against
+a JVM (G1 in the research note: one game, a loss, 38 decisions) and otherwise against the stub.
 
 One JVM per episode, one port per episode. Run the JVM only under the shared lock on a shared machine
 (`~/.forge-agent-lock`); `rollout.py` does not take it.
@@ -58,27 +78,36 @@ One JVM per episode, one port per episode. Run the JVM only under the shared loc
 python3 eval/rl/rollout.py --puzzle P.pzl [--puzzle Q.pzl] --group-size 8 --policy random --out runs/rl/r.jsonl
 ```
 
-One JSON object per line; an episode's step lines come first, then its episode line (stream-friendly, appended):
+One JSON object per line; an episode's step lines come first, then its episode line (stream-friendly):
 
 ```
-{"type":"step","episode_id":"drain_08bb#3","group":"drain_08bb","step":2,"kind":"decision",
- "messages":[...],"legal":{...},"action":2,"args":{"option":2}}
-{"type":"episode","episode_id":"drain_08bb#3","group":"drain_08bb","puzzle":"...pzl","seed":4,"puzzle_id":"drain_08bb",
- "reward":0.0,"valid":true,"n_steps":9,"info":{...}}
+{"type":"step","episode_id":"3f9a1c2e:drain_08bb#3","group":"drain_08bb","step":2,"kind":"decision",
+ "messages":[...],"legal":{...},"action":2,"args":{"option":2},"accepted":true}
+{"type":"episode","episode_id":"3f9a1c2e:drain_08bb#3","run_id":"3f9a1c2e","group":"drain_08bb","puzzle":"...pzl",
+ "seed":4,"puzzle_id":"drain_08bb","reward":0.0,"valid":true,"n_steps":9,"info":{...}}
 ```
 
 `group` is the puzzle (one group = `--group-size` episodes of the same puzzle with attempt seeds 1..G). `args` is the
-exact `answer` call made. Readers in `rollout.py`:
+exact `answer` call made; `accepted` is False for a step the engine refused. The episode id starts with a run id (a
+uuid per `rollout.py` invocation), and `--out` must be empty unless `--append`, so a crashed run's orphan step lines
+cannot be glued to a later episode; `load_episodes` also drops pending step lines when a step 1 arrives.
+`rollout.py` refuses a heldout puzzle (its suite's `split`) and a seed in a reserved block (`eval/seed_policy.py`),
+since this is training data; `--allow-eval-only` plays them for a floor measurement and marks the episodes
+`eval_only`, which no reader trains on. Readers in `rollout.py`:
 
 - `load_episodes(path)` -> episode records with their `steps`.
-- `grpo_groups(episodes)` -> `{group: [{episode_id, reward, advantage, steps}]}` over valid episodes, with the
-  group-relative advantage `(r - mean) / (std + 1e-6)`. A group with equal rewards (every hard puzzle under the
-  random policy) has advantage 0 everywhere: no signal, so sample a policy that sometimes wins, or pick puzzles with
-  a random-policy solve rate strictly between 0 and 1 (`baselines.random` in `eval/suites/*.json`).
+- `grpo_groups(episodes)` -> `{group: [{episode_id, reward, advantage, steps}]}` over trainable episodes (valid, no
+  lost decision, not `eval_only`), with the group-relative advantage `(r - mean) / (std + 1e-6)`
+  (`normalize=False`: `r - mean`). 4 solved of 40 gives +3.0 and -0.33. A group with equal rewards (every hard puzzle
+  under the random policy) has advantage 0 everywhere: no signal. So has a group left with **one** valid episode
+  after the others were dropped (a lost decision, a dead bridge): its mean is its own reward. Pick puzzles with
+  a random-policy solve rate strictly between 0 and 1 (`baselines.random` in `eval/suites/*.json`) and watch the
+  count of dropped episodes: dropping the unlucky ones biases a group. Steps with `accepted: false` stay in the
+  group's `steps` for the trainer to mask.
   Train on each step's `(messages, args)` weighted by the episode's advantage (the policy's per-step log-prob of
   the `answer` call given `messages`).
-- `sft_examples(episodes)` -> rejection sampling: for every valid solved episode, one chat example per step,
-  `messages` plus the assistant `answer` tool call. Keep only reward 1.
+- `sft_examples(episodes)` -> rejection sampling: for every trainable solved episode, one chat example per
+  **accepted** step, `messages` plus the assistant `answer` tool call. A step the engine refused is never an example.
 
 The floor to report beside any trained policy's solve rate is the random policy's on the same puzzles (and `first`,
 `pass`): `eval/rl` numbers without it are not scores (`.claude/rules/eval.md`). Seeds 501-525 and 20000-30099 are
