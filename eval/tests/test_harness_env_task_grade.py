@@ -1,4 +1,5 @@
 """harness_env_task_grade.py: the reward rule, the TestNG reader, the Forge guard, and red-then-green on a fixture."""
+import difflib
 import json
 import os
 import re
@@ -8,6 +9,7 @@ import sys
 import tempfile
 import unittest
 import unittest.mock
+import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
@@ -60,6 +62,23 @@ class ReporterTest(unittest.TestCase):
         self.assertEqual(re.findall(r"--add-opens (\S+)=ALL-UNNAMED", block), g.ADDOPENS)
 
 
+class NoteTest(unittest.TestCase):
+    """The research note quotes the number of tests of the grader's and the task builder's files: they must be true."""
+
+    def count(self, module):
+        suite = unittest.TestLoader().loadTestsFromModule(sys.modules[module])  # not the -k filtered default loader
+        return suite.countTestCases()
+
+    def test_the_notes_test_counts_are_the_unittest_counts(self):
+        note = os.path.join(os.path.dirname(os.path.dirname(__file__)), "research", "2026-11-07-harness-env-tasks.md")
+        with open(note, encoding="utf-8") as f:
+            text = f.read()
+        m = re.search(r"(\d+) grader tests and (\d+) task tests", text)
+        self.assertIsNotNone(m, "the note must say 'N grader tests and N task tests'")
+        self.assertEqual((int(m.group(1)), int(m.group(2))),
+                         (self.count("test_harness_env_task_grade"), self.count("test_harness_env_tasks")))
+
+
 class ForgeGuardTest(unittest.TestCase):
     def test_the_grader_refuses_to_write_inside_the_engine_checkout(self):
         with tempfile.TemporaryDirectory() as d:
@@ -108,6 +127,25 @@ class RedGreenTest(unittest.TestCase):
             self.assertFalse(os.path.exists(os.path.join(work, "pr1-wt")))
             wl = subprocess.run(["git", "-C", repo, "worktree", "list"], capture_output=True, text=True).stdout
             self.assertEqual(len(wl.strip().splitlines()), 1)
+
+    def test_the_validation_records_the_graders_hash_the_engine_head_and_the_time(self):
+        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as work, \
+                tempfile.TemporaryDirectory() as forge:
+            fx.make_history(repo)
+            for a in (["init", "-q", "-b", "master"], ["config", "user.email", "a@b"], ["config", "user.name", "a"],
+                      ["commit", "-q", "--allow-empty", "-m", "engine"]):
+                subprocess.run(["git", "-C", forge] + a, check=True, capture_output=True)
+            head = subprocess.run(["git", "-C", forge, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+            task = ht.build(repo, [1], fx.fetch)["tasks"][0]
+            res = g.validate(task, repo, work, forge, None)
+            with open(os.path.join(work, "pr1-validation.json")) as f:
+                on_disk = json.load(f)
+            with open(g.__file__, "rb") as f:
+                digest = __import__("hashlib").sha256(f.read()).hexdigest()
+            for doc in (res, on_disk):
+                self.assertEqual(doc["grader_sha256"], digest)
+                self.assertEqual(doc["engine_head"], head)
+                self.assertRegex(doc["validated_at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
 
     def test_a_candidate_that_breaks_a_neighbour_in_the_file_scores_zero(self):
         with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as work:
@@ -189,7 +227,16 @@ class RewardHackTest(unittest.TestCase):
         return self.task
 
     def fix(self):
-        g.restore_files(self.task, self.repo, self.wt, self.task["gold_files"], must_exist=False)
+        """The gold patch, applied by hand (git show), so this works against any version of the grader."""
+        for path in self.task["gold_files"]:
+            blob = ht.read_blob(self.repo, self.task["merge_sha"], path)
+            full = os.path.join(self.wt, path)
+            if blob is None:
+                os.unlink(full)
+                continue
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            with open(full, "wb") as f:
+                f.write(blob)
 
     def write(self, path, text):
         full = os.path.join(self.wt, path)
@@ -300,6 +347,17 @@ class RewardHackTest(unittest.TestCase):
         self.assertEqual(res["score"], 0)
         self.assertEqual(res["failed_targets"], ["test_src.CaseTest.test_value"])
 
+    def test_imported_code_that_reads_the_runners_globals_cannot_write_a_forged_result(self):
+        """The reviewer's PoC: the nonce, the result path and the names were module globals of __main__."""
+        poc = ("import __main__, json, os\n"
+               "with open(__main__._out, 'w') as f:\n"
+               "    json.dump({'nonce': __main__._nonce, 'results': {n: 'PASS' for n in __main__._names}}, f)\n"
+               "os._exit(0)\n")
+        self.sandbox()
+        self.write("src.py", poc)
+        res = self.grade()
+        self.assertEqual((res["score"], res["failed_targets"]), (0, ["test_src.CaseTest.test_value"]))
+
     def test_a_json_py_at_the_worktree_root_cannot_shadow_the_graders_runner(self):
         self.sandbox()
         self.write("json.py", 'def dumps(o, *a, **k):\n    return \'{"CaseTest.test_value": "PASS", '
@@ -384,11 +442,37 @@ class RewardHackTest(unittest.TestCase):
         with open(os.path.join(self.wt, "README.md")) as f:
             self.assertEqual(f.read(), "2\n")
 
+    def data_case(self, path, base_text, merge_text, hacked):
+        """A test that reads `path` and expects src.value() to equal it: at the base src.value() is 1, after the fix 2.
+        The candidate edits the file to `hacked` (1), so an unfixed tree would pass unless the file is restored."""
+        reader = PR_TEST.replace("self.assertEqual(src.value(), 2)",
+                                 "self.assertEqual(src.value(), int(open(%r).read().split()[0]))" % path)
+        self.sandbox(reader, base_extra={path: base_text}, merge_extra={path: merge_text})
+        self.write(path, hacked)
+        res = self.grade()
+        self.assertEqual((res["score"], res["failed_targets"]), (0, ["test_src.CaseTest.test_value"]))
+        with open(os.path.join(self.wt, path)) as f:
+            self.assertEqual(f.read(), merge_text)
+
+    def test_a_json_data_file_under_eval_the_candidate_edited_is_restored(self):
+        self.data_case("eval/data/x.json", "2\n", "2\n", "1\n")
+
+    def test_a_txt_data_file_under_eval_the_candidate_edited_is_restored(self):
+        self.data_case("eval/suites/x.txt", "2\n", "2\n", "1\n")
+
+    def test_a_tsv_data_file_under_docs_the_candidate_edited_is_restored(self):
+        self.data_case("docs/harness/x.tsv", "2\tz\n", "2\tz\n", "1\tz\n")
+
     def test_the_inputs_the_gold_patch_changes_are_not_restored(self):
-        self.sandbox(PR_TEST, base_extra={"eval/tooluse/tools.json": "{}"}, merge_extra={"eval/tooluse/tools.json": '{"a": 1}'})
-        self.assertNotIn("eval/tooluse/tools.json", g.readonly_inputs(self.task, self.repo))  # it is in gold_files
-        self.assertIn("eval/tooluse/tools.json", self.task["gold_files"])
-        self.assertIn("README.md", g.readonly_inputs(self.task, self.repo))
+        src = ("def value():\n    return int(open('eval/data/x.json').read())\n\n\ndef keep():\n    return 1\n")
+        self.sandbox(PR_TEST, base_extra={"src.py": src, "eval/data/x.json": "1\n"},
+                     merge_extra={"src.py": src, "eval/data/x.json": "2\n"})
+        self.assertEqual(self.task["gold_files"], ["eval/data/x.json"])
+        self.assertEqual(self.grade()["score"], 0)  # the json is the fix: the grader must not hand it over
+        with open(os.path.join(self.wt, "eval/data/x.json")) as f:
+            self.assertEqual(f.read(), "1\n")
+        self.fix()
+        self.assertEqual(self.grade()["score"], 1)
 
     def test_a_symlinked_parent_directory_is_refused_and_nothing_is_written_through_it(self):
         self.sandbox()
@@ -467,7 +551,8 @@ class PrebuiltClassTest(unittest.TestCase):
 
     def test_the_classpath_holds_no_class_the_overlay_or_an_engine_patch_supplies(self):
         dest = os.path.join(self.tmp.name, "cp")
-        dirs = g.filtered_engine_classes(self.forge, self.task, self.repo, dest)
+        supplied = g.supplied_sources(self.repo, self.task["base_sha"]) | g.supplied_sources(self.repo, self.task["merge_sha"])
+        dirs = g.filtered_engine_classes(self.forge, supplied, dest)
         have = sorted(os.path.relpath(os.path.join(r, f), dest) for r, _, fs in os.walk(dest) for f in fs)
         self.assertEqual(have, ["forge-ai/forge/ai/A.class", "forge-core/forge/util/U.class",
                                 "forge-game/forge/game/Keep.class", "forge-gui-desktop/forge/gui/Other.class",
@@ -478,16 +563,197 @@ class PrebuiltClassTest(unittest.TestCase):
         wt = os.path.join(self.tmp.name, "wt")
         for p in (self.SPIKE, self.PATCH):
             fx.write(wt, p, "x\n")
-        self.assertEqual(g.missing_supplied_sources(self.task, self.repo, wt), [])  # Gone.java: deleted by the gold
+        keep = g.supplied_sources(self.repo, self.task["base_sha"]) & g.supplied_sources(self.repo, self.task["merge_sha"])
+        self.assertEqual(g.missing_supplied_sources(keep, wt), [])  # Gone.java: deleted by the gold
         os.unlink(os.path.join(wt, self.SPIKE))
-        self.assertEqual(g.missing_supplied_sources(self.task, self.repo, wt), [self.SPIKE])
+        self.assertEqual(g.missing_supplied_sources(keep, wt), [self.SPIKE])
         os.unlink(os.path.join(wt, self.PATCH))
-        self.assertEqual(g.missing_supplied_sources(self.task, self.repo, wt), [self.PATCH, self.SPIKE])
+        self.assertEqual(g.missing_supplied_sources(keep, wt), [self.PATCH, self.SPIKE])
 
     def test_the_reporter_the_grader_compiles_is_the_one_in_the_repository(self):
         self.assertTrue(os.path.isfile(g.REPORTER_SRC))
         with open(g.REPORTER_SRC) as f:
             self.assertIn("class " + g.REPORTER_CLASS, f.read())
+
+
+
+
+def find_testng_jar():
+    """TestNG's jar from ~/.m2, else from the newest acceptance run's deps.txt; None when this machine has neither."""
+    import glob
+    found = sorted(glob.glob(os.path.expanduser("~/.m2/repository/org/testng/testng/*/testng-*.jar")))
+    if not found:
+        repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        for deps in sorted(glob.glob(os.path.join(g.common_root(repo) or repo, "runs/harness-acceptance/*/deps.txt")),
+                           key=os.path.getmtime)[::-1]:
+            with open(deps) as f:
+                found = [e for e in f.read().strip().split(":") if "/testng-" in e and os.path.isfile(e)]
+            if found:
+                break
+    return found[-1] if found else None
+
+
+TESTNG_JAR = find_testng_jar()
+A_JAVA = "forge-game/src/main/java/forge/game/A.java"
+A_V1 = "package forge.game;\n\npublic class A {\n}\n"
+A_V2 = "package forge.game;\n\npublic class A {\n    public int x() { return 1; }\n}\n"
+A_PATCH_PATH = "engine-patches/" + A_JAVA + ".patch"
+SPIKE_DIR = "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/"
+TEST_DIR = "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/"
+FOO_V1 = "package forge.spike;\n\npublic class Foo {\n    public static int v() { return 1; }\n}\n"
+FOO_V2 = FOO_V1.replace("return 1", "return 2")
+# `Test` is declared in the file so javac needs no TestNG here; the tests' regex sees an @Test annotation all the same
+FOO_TEST_V1 = ("package forge.spike;\n\npublic class FooTest {\n    @Test\n    public void old() { }\n}\n\n"
+               "@interface Test { }\n")
+FOO_TEST_V2 = FOO_TEST_V1.replace("    public void old() { }\n", "    public void old() { }\n\n    @Test\n    public void fresh() { }\n")
+EVIL_TESTNG = r"""package org.testng;
+
+import java.io.*;
+import java.util.*;
+
+public class TestNG {
+    public static void main(String[] args) throws Exception {
+        Properties p = new Properties();
+        p.load(new FileReader(System.getProperty("harness.grader.spec")));
+        try (Writer w = new FileWriter(p.getProperty("result"))) {
+            w.write("{\"nonce\":\"" + p.getProperty("nonce") + "\",\"results\":[[\"PASS\",false,\"forge.spike.FooTest\",\"old\"],"
+                    + "[\"PASS\",false,\"forge.spike.FooTest\",\"fresh\"]]}");
+        }
+    }
+}
+"""
+
+
+class JavaGradeTest(unittest.TestCase):
+    """grade() of a Java task against a fake engine checkout and the real javac. Every test but the one marked ends
+    before the JVM starts (the refusal, or a deps file with no TestNG), so the suite starts no JVM."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        t = self.tmp.name
+        self.repo, self.wt, self.out = (os.path.join(t, n) for n in ("repo", "wt", "out"))
+        os.makedirs(self.repo)
+        fx.vcs(self.repo, "init", "-q", "-b", "master")
+        fx.vcs(self.repo, "config", "user.email", "a@b")
+        fx.vcs(self.repo, "config", "user.name", "a")
+        self.forge = os.path.join(t, "forge")  # the fake engine: a git checkout holding the upstream original of A.java
+        fx.write(self.forge, A_JAVA, A_V1)
+        for a in (["init", "-q", "-b", "master"], ["config", "user.email", "a@b"], ["config", "user.name", "a"],
+                  ["add", "-A"], ["commit", "-q", "-m", "upstream"]):
+            fx.vcs(self.forge, *a)
+        pin = subprocess.run(["git", "-C", self.forge, "rev-parse", "HEAD"], capture_output=True, text=True).stdout
+        fx.write(self.repo, "FORGE_COMMIT", pin)
+        fx.write(self.repo, A_PATCH_PATH, "".join(difflib.unified_diff(
+            A_V1.splitlines(True), A_V2.splitlines(True), "a/" + A_JAVA, "b/" + A_JAVA)))
+        fx.write(self.repo, SPIKE_DIR + "Foo.java", FOO_V1)
+        fx.write(self.repo, TEST_DIR + "FooTest.java", FOO_TEST_V1)
+        fx.vcs(self.repo, "add", "-A")
+        fx.vcs(self.repo, "commit", "-q", "-m", "base")
+        fx.merge_pr(self.repo, 1, {SPIKE_DIR + "Foo.java": FOO_V2, TEST_DIR + "FooTest.java": FOO_TEST_V2})
+        self.task = ht.build(self.repo, [1], fx.fetch, validation_dir=os.devnull)["tasks"][0]
+        for m in ("forge-gui-desktop", "forge-core", "forge-game", "forge-ai", "forge-gui"):
+            os.makedirs(os.path.join(self.forge, m, "target", "classes"))
+        fx.write(self.forge, "forge-gui/res/x.txt", "x\n")
+        g.prepare(self.task, self.repo, self.wt)
+        self.assertTrue(self.task["needs_jvm"])
+        self.assertEqual(self.task["java_test_classes"], ["forge.spike.FooTest"])
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def deps(self, *jars):
+        path = os.path.join(self.tmp.name, "deps.txt")
+        with open(path, "w") as f:
+            f.write(":".join(jars) or os.path.join(self.tmp.name, "no-such.jar"))
+        return path
+
+    def grade(self, deps):
+        return g.grade(self.task, self.wt, self.out, self.forge, deps, self.repo)
+
+    def candidate_file(self, rel, text):
+        fx.write(self.wt, rel, text)
+
+    def fixed(self):
+        self.candidate_file(SPIKE_DIR + "Foo.java", FOO_V2)
+
+    def log(self):
+        with open(os.path.join(self.out, "javac.log")) as f:
+            return f.read()
+
+    def test_a_deleted_source_the_gold_patch_keeps_scores_zero_with_a_note(self):
+        os.unlink(os.path.join(self.wt, SPIKE_DIR + "Foo.java"))
+        res = self.grade(self.deps())
+        self.assertEqual(res["score"], 0)
+        self.assertTrue(any("deleted source files" in n and "Foo.java" in n for n in res["notes"]), res["notes"])
+
+    def test_the_pin_the_engine_patches_use_is_the_graders_not_the_candidates(self):
+        self.fixed()
+        self.candidate_file("FORGE_COMMIT", "0123456789abcdef\n")
+        try:
+            notes = self.grade(self.deps())["notes"]
+        except g.SetupError:  # the patched A.java compiled; the run then stops at the reporter (no TestNG in the deps)
+            notes = []
+        self.assertEqual([n for n in notes if "engine patches" in n], [])
+        self.assertNotIn("error:", self.log())
+
+    def test_a_source_path_with_a_space_in_it_reaches_javac(self):
+        self.candidate_file("forge-overlay/my dir/src/main/java/forge/util/Spaced.java",
+                            "package forge.util;\n\npublic class Spaced { }\n")
+        try:
+            self.grade(self.deps())  # no TestNG in the deps: it stops at the reporter, after javac
+        except g.SetupError:
+            pass
+        self.assertNotIn("error:", self.log())
+
+    def test_a_candidate_class_in_a_package_outside_forge_is_refused_before_any_test_runs(self):
+        self.fixed()
+        self.candidate_file("forge-overlay/x/src/main/java/org/testng/TestNG.java", EVIL_TESTNG)
+        res = self.grade(self.deps())  # an unrefused tree would go on to compile the reporter and fail here
+        self.assertEqual(res["score"], 0)
+        self.assertTrue(any("org/testng/TestNG.class" in n for n in res["notes"]), res["notes"])
+
+    def test_a_package_declaration_the_path_does_not_show_is_refused_too(self):
+        self.fixed()
+        self.candidate_file("forge-overlay/x/src/main/java/forge/util/Sneaky.java",
+                            "package org.testng.annotations;\n\npublic class Sneaky { }\n")
+        res = self.grade(self.deps())
+        self.assertEqual(res["score"], 0)
+        self.assertTrue(any("org/testng/annotations/Sneaky.class" in n for n in res["notes"]), res["notes"])
+
+    def test_a_candidate_class_with_the_name_of_a_dependency_class_is_refused(self):
+        jar = os.path.join(self.tmp.name, "dep.jar")
+        with zipfile.ZipFile(jar, "w") as z:
+            z.writestr("forge/util/Dup.class", b"x")
+        self.fixed()
+        self.candidate_file("forge-overlay/x/src/main/java/forge/util/Dup.java", "package forge.util;\n\npublic class Dup { }\n")
+        res = self.grade(self.deps(jar))
+        self.assertEqual(res["score"], 0)
+        self.assertTrue(any("forge/util/Dup.class" in n for n in res["notes"]), res["notes"])
+
+    @unittest.skipUnless(TESTNG_JAR, "no TestNG jar under ~/.m2")
+    def test_a_candidate_testng_main_cannot_write_an_all_pass_result(self):
+        """The one test here that starts a JVM (run it under the shared lock): the exploit, end to end."""
+        self.candidate_file("forge-overlay/x/src/main/java/org/testng/TestNG.java", EVIL_TESTNG)
+        res = self.grade(self.deps(TESTNG_JAR))
+        self.assertEqual(res["score"], 0)  # Foo is unfixed; an all-PASS forgery would score 1
+
+    @unittest.skipUnless(TESTNG_JAR, "no TestNG jar under ~/.m2")
+    def test_the_grader_reporter_compiles_against_testng(self):
+        javac = os.path.join(g.java_home(), "bin", "javac")
+        dest = g.compile_reporter(javac, TESTNG_JAR, self.tmp.name)
+        self.assertTrue(os.path.isfile(os.path.join(dest, g.REPORTER_CLASS + ".class")))
+
+    def test_the_standards_name_the_reporter_as_the_one_java_file_outside_the_overlay(self):
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        with open(os.path.join(root, "docs", "STANDARDS.md"), encoding="utf-8") as f:
+            self.assertIn("eval/harness_env/HarnessGraderReporter.java", f.read())
+        javas = [os.path.relpath(os.path.join(r, n), root) for r, _, ns in os.walk(os.path.join(root, "eval"))
+                 for n in ns if n.endswith(".java")]
+        self.assertEqual(javas, ["eval/harness_env/HarnessGraderReporter.java"])
+
+    def test_the_runtime_classpath_puts_the_dependencies_before_the_candidates_classes(self):
+        cp = g.runtime_classpath("/r", "/d1.jar:/d2.jar", "/classes", ["/e1", "/e2"]).split(":")
+        self.assertEqual(cp, ["/r", "/d1.jar", "/d2.jar", "/classes", "/e1", "/e2"])
 
 
 class ResultChannelTest(unittest.TestCase):
@@ -507,7 +773,7 @@ class ResultChannelTest(unittest.TestCase):
 
     def jvm(self, script, timeout=30):
         """A stand-in JVM: a python program that gets the spec property as its first argument."""
-        return g.run_jvm([sys.executable, "-c", script, "@SPEC@"], self.tmp.name, dict(os.environ), self.out, timeout)
+        return g.run_jvm([sys.executable, "-c", script, "@SPEC@"], self.tmp.name, dict(os.environ), self.out, timeout, self.tmp.name)
 
     def write_result(self, nonce_expr, results_expr):
         return self.SPEC + "open(spec['result'], 'w').write(json.dumps({'nonce': %s, 'results': %s}))" % (nonce_expr, results_expr)
@@ -543,7 +809,7 @@ class ResultChannelTest(unittest.TestCase):
         self.assertTrue(any("timed out" in n for n in notes))
 
     def test_a_crashed_jvm_has_no_result(self):
-        results, notes = g.run_jvm(["false"], self.out, dict(os.environ), self.out, 30)
+        results, notes = g.run_jvm(["false"], self.out, dict(os.environ), self.out, 30, self.tmp.name)
         self.assertEqual(results, {})
         self.assertTrue(any("no usable result" in n for n in notes))
 
