@@ -39,7 +39,7 @@ Run all three skills on the PR's current head, in this order, and record each ve
 ```bash
 # skills: pr-review, simplify, standards  (.claude/skills/)
 # <sha> is the commit that was tested / the HEAD: line of the skill's report; refused if it is not the PR head
-python3 scripts/pr_format.py record-acceptance <n> <sha> /tmp/<OUT dir> 19 19 "1088 Java, 1116 Python"   # every stage; a subset is refused
+python3 scripts/pr_format.py record-acceptance <n> <sha> /tmp/<OUT dir> 12 12 "284 Java, 150 Python"
 python3 scripts/pr_format.py record-review <n> <sha> pr-review LOW "two nits"      # CLEAN/LOW/MEDIUM/HIGH/BLOCKER
 python3 scripts/pr_format.py record-review <n> <sha> simplify SUGGESTIONS "8 of 10 applied"   # or CLEAN
 python3 scripts/pr_format.py record-review <n> <sha> standards CLEAN                # or VIOLATIONS
