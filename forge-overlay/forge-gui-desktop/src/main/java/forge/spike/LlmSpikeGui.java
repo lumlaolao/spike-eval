@@ -421,8 +421,10 @@ public final class LlmSpikeGui {
      *  engine's "Keyword Effects" object is left out of the command zone (observation-faithful-v45).
      *  Epoch 92 (2026-11-07, #408): the state guide says the player line shows the keywords the engine names; an
      *  unnamed one is not shown, the card or effect that gives it is (observation-faithful-v46).
+     *  Epoch 93 (2026-11-07, #269): the puzzle prover (search arm) draws how many repeatable modes to choose, then a
+     *  multiset, so "choose up to N" is tried with fewer modes (PuzzleArms.repeatModes); the random arm is unchanged.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-92";
+    static final String HARNESS_EPOCH = "harness-epoch-93";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2311,10 +2313,8 @@ public final class LlmSpikeGui {
         private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num) {
             clearLast();
             long t0 = System.currentTimeMillis();
-            if (rnd != null) {                       // RANDOM arm: `num` uniform picks WITH replacement
-                List<Integer> res = new ArrayList<>();
-                int n = Math.max(1, Math.min(num, 8));
-                for (int i = 0; i < n; i++) res.add(rnd.nextInt(options.size()));
+            if (rnd != null) {                       // an arm: picks WITH replacement (PuzzleArms.repeatModes)
+                List<Integer> res = PuzzleArms.repeatModes(rnd, options.size(), min, num);
                 lastPicks = res;
                 List<String> picked = new ArrayList<>();
                 for (int i : res) picked.add(options.get(i));
