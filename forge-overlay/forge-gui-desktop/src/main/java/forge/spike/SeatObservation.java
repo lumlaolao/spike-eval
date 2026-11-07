@@ -103,8 +103,7 @@ final class SeatObservation {
     // next combat: none before the puzzle's turn limit" in FACTS, not a clock for a combat the game never reaches.
     // v45 (2026-11-07, #368): a keyword granted to a player is on its line ("| has hexproof"), and the engine's
     // "Keyword Effects" object is left out of the command zone, where it was listed with a handle like a card.
-    // v46 (2026-11-07, #408): the guide says the player line shows the keywords the engine names, and that an unnamed
-    // one is read from its card's text on the board (it said "any keyword the player has").
+    // v46 (2026-11-07, #408): the guide says the player line shows only the keywords the engine names.
     static final String VERSION = "observation-faithful-v46";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
@@ -142,7 +141,7 @@ final class SeatObservation {
             + "- YOU and OPP each start with a line of counts: life, poison (10 loses), any other counters, hand, library, "
             + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn, "
             + "then each keyword the engine names that the player has (\"has hexproof\"); a keyword the engine leaves unnamed is "
-            + "read from its card's text on the board.\n"
+            + "not shown here; the permanent that gives it is, and its printed rules text says what it does.\n"
             + HAND_TAGS_GUIDE
             + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
@@ -1229,7 +1228,7 @@ final class SeatObservation {
         try { if (p.hasLost()) b.append(" | HAS LOST"); } catch (Exception ignore) { }
         // A keyword granted to the player (Leyline of Sanctity's hexproof), by its title (#368). Its original is a script
         // string ("Protection:Player.Opponent:..."); one the engine gives no title (Winter Orb's "UntapAdjust:Land:1") is
-        // left out, as its card's rules text on the board says what it does.
+        // left out; the permanent that gives it is on the board.
         try {
             for (forge.game.keyword.KeywordInterface k : p.getKeywords()) {
                 String title = k.getTitle();
