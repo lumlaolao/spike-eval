@@ -15,10 +15,12 @@ against Forge's AI, `random-vs-ai` in the seed note).
 
 ## Answer so far
 
-**Not measured: the harness cannot select a profile without a code change, so no games were run.** The question stops
-at a design (below). Two findings from the read, both bearing on STR-AI:
+**Not measured: no games were run.** The switch now exists (below, "The switch"), but the experiment needs paid games
+and has not been run. Owner decision for now: the default opponent stays the compiled-default AI, so every recorded
+STR-AI score stays comparable; the profiles are a separate condition for this experiment. Two findings from the read,
+both bearing on STR-AI:
 
-- **No switch exists.** `run_batch.py` has no profile option and no env var or JVM property reaches one. The seat
+- **(Before the switch) no switch existed.** `run_batch.py` had no profile option and no env var or JVM property reached one. The seat
   factory builds the Forge AI as `new LobbyPlayerAi(name, null)` (`LlmSpikeGui.seatFor`, also
   `LlmSpikePuzzle`), whose `aiProfile` is the empty string. Forge selects a profile only in
   `GamePlayerUtil.createAiPlayer` (GUI preference `UI_CURRENT_AI_PROFILE`, or the `SimulateMatch -a` flag), which the
@@ -47,7 +49,16 @@ Forge checkout `$FORGE_HOME` at `34a8662b79` (four modified source files, `Compu
 `GameCopier`, `Player` and `MagicStack`; none touches profiles).
 No run directory exists under `runs/profiles/`.
 
-## Design to make it measurable (needs an overlay change; not done here)
+## The switch (built; the experiment is not run)
+
+`AI_PROFILE_A` / `AI_PROFILE_B` (`run_batch.py --ai-profile-a/-b`) seat a shipped profile on that identity's Forge AI
+seat. Empty, the default, builds `new LobbyPlayerAi(name, null)` exactly as before (`AiProfileSwitchTest`). The JVM
+refuses an unknown name, a Forge "Random" entry and a profile on a seat that is not `ai` / `ai-log`; the game line
+carries `ai_profile_a` / `ai_profile_b`; `aggregate.py`, the batch manifest and `rating.check_conditions` never pool two
+profiles. Unchanged by the switch: the puzzle runner (`puzzle_solve.py` strips the names, so PUZ meets the default). The
+design steps below were built as 1 to 3; step 4, the games, is still to do.
+
+## Design (as built, steps 1 to 3; step 4 is the experiment)
 
 1. In `LlmSpikeGui.seatFor`, read `AI_PROFILE_A` / `AI_PROFILE_B` for an `ai` seat and call
    `LobbyPlayerAi.setAiProfile`; refuse a name not in `AiProfileUtil.getProfilesDisplayList()`. The profiles are

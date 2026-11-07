@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import forge.LobbyPlayer;
-import forge.ai.LobbyPlayerAi;
 import forge.deck.Deck;
 import forge.game.Game;
 import forge.game.GameEndReason;
@@ -652,8 +651,7 @@ public final class LlmSpikePuzzle {
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
         LobbyPlayer solverSeat = solverSeat(sections, ctlA, smartA, fastA);
-        LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
-                : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
+        LobbyPlayer oppSeat = LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA, LlmSpikeGui.aiProfile(LlmSpikeGui.env("AI_PROFILE_B")));
         RegisteredPlayer solver = new RegisteredPlayer(new Deck()).setPlayer(solverSeat);
         solver.setStartingHand(0);
         RegisteredPlayer opp = new RegisteredPlayer(new Deck()).setPlayer(oppSeat);

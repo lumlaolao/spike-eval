@@ -167,6 +167,22 @@ class TestConditionGuard(unittest.TestCase):
             rating.rate([FIX / "compare-one-tier", FIX / "compare-two-tier"], resamples=0)
         self.assertIn("one_tier", str(cm.exception))
 
+    def test_games_against_two_forge_ai_profiles_are_refused(self):
+        # Issue #381: the opponent's profile is the environment, so a rating never pools two. The empty stamp (the
+        # compiled defaults) and a line from before the stamp are one opponent.
+        self.assertIn("ai_profile_a", aggregate.CONDITION_FIELDS)
+        self.assertIn("ai_profile_b", rating.ENV_FIELDS)
+        games = simulate([("random", "ai", -800, 3)])
+        rating.rate([], resamples=0, games=games)
+        for g in games[:2]:
+            g["ai_profile_b"] = ""
+        rating.rate([], resamples=0, games=games)
+        games[0]["ai_profile_b"] = "Reckless"
+        with self.assertRaises(rating.MixedConditionError) as cm:
+            rating.rate([], resamples=0, games=games)
+        self.assertIn("ai_profile_b", str(cm.exception))
+        self.assertTrue(rating.rate([], resamples=0, games=games, allow_mixed=True)["mixed_allowed"])
+
     def test_different_decks_do_not_count_as_different_conditions(self):
         games = simulate([("random", "ai", -800, 3)])
         games[0]["deck_sha"] = "e" * 12

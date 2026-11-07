@@ -91,6 +91,9 @@ CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_T
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE",
                       "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT", "PROPOSE_ACTIONS", "PROPOSE_AUDIT",
                       "PROPOSE_TERSE", "PROPOSE_NOTEBOOK",
+                      # The Forge AI profile of an ai / ai-log seat (--ai-profile-a / -b); "" = the compiled AiProps
+                      # defaults, the opponent every recorded STR-AI score met (issue #381).
+                      "AI_PROFILE_A", "AI_PROFILE_B",
                       # A CLI seat's settings: only --claude-cli-effort / --claude-cli-thinking-tokens set them.
                       "CLAUDE_BRIDGE_EFFORT", "CLAUDE_BRIDGE_EFFORT_SMART", "CLAUDE_BRIDGE_EFFORT_FAST",
                       "CLAUDE_CLI_THINKING_TOKENS",
@@ -145,7 +148,7 @@ CONDITION_KEYS = (
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
     "lookahead", "one_tier", "no_coaching", "one_chat", "turn_chat",
     "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens", "propose_actions",
-    "propose_audit", "propose_terse", "propose_notebook",
+    "propose_audit", "propose_terse", "propose_notebook", "ai_profile_a", "ai_profile_b",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
 )
@@ -267,6 +270,11 @@ def _spike_drift(forge_home, overlay_root=None):
 
 # ------------------------------------------------------------- env build
 
+def ai_profile(args, ident):
+    """--ai-profile-a / -b as it is pinned, compared and stamped: stripped, "" when not given (the compiled defaults)."""
+    return (getattr(args, "ai_profile_" + ident, None) or "").strip()
+
+
 def build_env(args, seed, swap, out_dir):
     env = os.environ.copy()
     # Scrub every run-defining / heuristic key from the ambient environment:
@@ -301,6 +309,10 @@ def build_env(args, seed, swap, out_dir):
     env["PROPOSE_TERSE"] = "1" if getattr(args, "propose_terse", False) else "0"
     # The refusal notebook: each proposal decision lists the game's earlier refusals (only with --propose-actions).
     env["PROPOSE_NOTEBOOK"] = "1" if getattr(args, "propose_notebook", False) else "0"
+    # The Forge AI profile per identity: pinned ("" when unset, which the JVM reads as unset) so a shell's value cannot
+    # change the opponent unrecorded.
+    env["AI_PROFILE_A"] = ai_profile(args, "a")
+    env["AI_PROFILE_B"] = ai_profile(args, "b")
     # The checker audit is a diagnostic of the gauntlet (keyword_gauntlet.sh), never of a batch: pinned off, so a shell's
     # PROPOSE_AUDIT=1 cannot change a game's handles unrecorded (pr-review of #342).
     env["PROPOSE_AUDIT"] = "0"
@@ -520,6 +532,10 @@ def resume_expectation(args):
     expect["propose_terse"] = [True] if getattr(args, "propose_terse", False) else [False, ABSENT]
     # A line from before the notebook arm (harness-epoch-81) listed no earlier refusal.
     expect["propose_notebook"] = [True] if getattr(args, "propose_notebook", False) else [False, ABSENT]
+    # A line from before the switch (issue #381) met the compiled AiProps defaults, as an empty stamp does.
+    for ident in ("a", "b"):
+        p = ai_profile(args, ident)
+        expect["ai_profile_" + ident] = [p] if p else ["", ABSENT]
     # The shadow labeler is stamped on the game line (aggregate.PROVENANCE_FIELDS); older lines carry no stamp.
     expect["shadow_ai"] = [True] if getattr(args, "shadow_ai", False) else [False, ABSENT]
     # The two opt-in play switches (issue #117). A line with no stamp is read as what a pre-flag
@@ -646,6 +662,8 @@ def batch_condition(args, cited):
         "propose_terse": bool(getattr(args, "propose_terse", False)),
         "propose_notebook": bool(getattr(args, "propose_notebook", False)),
         "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
+        "ai_profile_a": ai_profile(args, "a"),
+        "ai_profile_b": ai_profile(args, "b"),
         # A claude-cli: seat's pinned CLI settings ("cli-default" when unset); absent for every other batch.
         "claude_cli_effort": (getattr(args, "claude_cli_effort", None) or "cli-default") if has_cli_seat(args) else None,
         "claude_cli_thinking_tokens": (str(getattr(args, "claude_cli_thinking_tokens", None) or "cli-default")
@@ -718,6 +736,18 @@ def lane_refusals(args):
             flags += [("--one-chat", args.one_chat, no_chat), ("--turn-chat", args.turn_chat, no_chat)]
         out += ["%s with a %s seat: such a seat %s" % (flag, lane, reason) for flag, on, reason in flags if on]
     return out
+
+
+def ai_profile_refusal(args):
+    """Why --ai-profile-a / -b cannot run with this batch's controllers, or None: a profile belongs to a Forge AI seat
+    (the JVM refuses a name Forge did not load, and a profile on any other seat)."""
+    for ident in ("a", "b"):
+        p = ai_profile(args, ident)
+        ctl = getattr(args, "controller_" + ident, None)
+        if p and ctl not in ("ai", "ai-log"):
+            return ("--ai-profile-%s %s with --controller-%s %s: a profile configures a Forge AI seat (ai, ai-log)"
+                    % (ident, p, ident, ctl))
+    return None
 
 
 def propose_refusal(args):
@@ -817,6 +847,8 @@ def condition_diff_norm(m, k):
     if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat", "turn_chat",
              "propose_actions", "propose_audit", "propose_terse", "propose_notebook"):
         return bool(m.get(k))
+    if k in ("ai_profile_a", "ai_profile_b"):
+        return m.get(k) or ""        # a manifest from before the switch ran the compiled defaults
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
     if k == "plan_execute":
@@ -1464,6 +1496,14 @@ def build_parser():
                     help="PROPOSE_NOTEBOOK=1, with --propose-actions: each play, attack and blocks decision lists the "
                          "game's earlier refused proposals the seat was told, as it was told them (REFUSED EARLIER). "
                          "A separate condition that must live in its own --out.")
+    for ident in ("a", "b"):
+        ap.add_argument("--ai-profile-" + ident, metavar="NAME", default=None,
+                        help="AI_PROFILE_%s=<name>: play Forge's shipped AI profile (Cautious, Default, Experimental, "
+                             "Reckless; forge-gui/res/ai/*.ai) on identity %s's Forge AI seat (--controller-%s ai). "
+                             "Default empty: the compiled AiProps defaults, the opponent every recorded STR-AI score "
+                             "met, which is none of the four. An unknown name is refused by the JVM at start. A "
+                             "separate condition (ai_profile_%s on the game line) that must live in its own --out."
+                             % (ident.upper(), ident.upper(), ident, ident))
     ap.add_argument("--tier-fast-types", metavar="TYPES", default=None,
                     help="TIER_FAST_TYPES=<comma list>: route those decision types to the fast "
                          "(non-reasoning) tier instead of the smart one. Default empty (all smart); "
@@ -1517,7 +1557,7 @@ def main(argv=None):
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
     if args.one_tier and args.two_tier:
         raise SystemExit("run_batch: --one-tier and --two-tier contradict each other")
-    refusal = propose_refusal(args)
+    refusal = propose_refusal(args) or ai_profile_refusal(args)
     if refusal:
         raise SystemExit("run_batch: " + refusal)
     for kv in args.env or []:
