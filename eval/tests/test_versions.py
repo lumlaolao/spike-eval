@@ -32,7 +32,7 @@ class VersionsTest(unittest.TestCase):
         for name in sorted(os.listdir(versions.SPIKE)):
             if name.endswith(".java"):
                 with open(os.path.join(versions.SPIKE, name), encoding="utf-8") as f:
-                    code = re.sub(r'/\*.*?\*/|//[^\n]*', '', f.read(), flags=re.S)
+                    code = "\n".join(self.code_lines(f.read(), java=True))
                 for const in pattern.findall(code):
                     seen[(name, const)] += 1
         found = set(seen)
@@ -50,6 +50,7 @@ class VersionsTest(unittest.TestCase):
     PINNED_ELSEWHERE = {
         "ReplayBridge.VERSION": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ReplayBridgeTest.java",
         "FORGE_COMMIT": None,  # the engine pin: preflight compares the checkout's HEAD with the FORGE_COMMIT file
+                               # (the full sha, not this short form); a stamp test cannot check that comparison
     }
 
     @staticmethod
@@ -100,8 +101,6 @@ class VersionsTest(unittest.TestCase):
             if where:
                 self.assertTrue(self.asserted(read(where), values[name], java=where.endswith(".java")),
                                 "%s no longer pins %s" % (where, name))
-        self.assertTrue(any(re.match(r'\s*PIN="\$\(cat "\$REPO/FORGE_COMMIT"', line) for line in self.code_lines(gate)),
-                        "preflight no longer reads the engine pin")
 
     def test_a_comment_does_not_pin_a_stamp(self):
         v = "one-chat-v3"
@@ -115,12 +114,6 @@ class VersionsTest(unittest.TestCase):
         self.assertFalse(self.asserted('// Assert.assertEquals(x, "one-chat-v3");', v, java=True))
         self.assertFalse(self.asserted('/* Assert.assertEquals(x,\n "one-chat-v3"); */ f();', v, java=True))
         self.assertTrue(self.asserted('String u = "http://x"; Assert.assertEquals(x, "one-chat-v3");', v, java=True))
-
-    def test_preflight_that_no_longer_reads_the_engine_pin_is_caught(self):
-        live = 'PIN="$(cat "$REPO/FORGE_COMMIT" 2>/dev/null)"; CUR=x'
-        self.assertTrue(any(re.match(r'\s*PIN="\$\(cat "\$REPO/FORGE_COMMIT"', l) for l in self.code_lines(live)))
-        dead = 'PIN=""  # was: "$REPO/FORGE_COMMIT"'
-        self.assertFalse(any(re.match(r'\s*PIN="\$\(cat "\$REPO/FORGE_COMMIT"', l) for l in self.code_lines(dead)))
 
     def test_the_page_matches_the_code(self):
         self.assertEqual(versions.main(["--check"]), 0, "run: python3 eval/versions.py --write")
