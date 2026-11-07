@@ -325,6 +325,11 @@ final class AnswerTool {
          *  builds its questions from the Spec alone (DecisionsBridge); null when there is none. */
         String limit;
         Spec limit(String l) { this.limit = l; return this; }
+        /** MANY_REPEAT under a weighted cap (a pawprint charm: each option's {P}, and the total allowed): a bridge
+         *  that composes its answer (DecisionsBridge) trims it to fit. Null and -1 when there is none. */
+        int[] weights;
+        int budget = -1;
+        Spec budget(int[] w, int b) { this.weights = w == null ? null : w.clone(); this.budget = b; return this; }
         Spec labels(List<String> l) { this.labels = new ArrayList<>(l); return this; }
     }
 

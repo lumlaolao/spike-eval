@@ -107,7 +107,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A pawprint charm's modes (the Seasons, Hela's Arcanum: "choose up to five {P} worth of modes") total at most its {P}
   budget. Forge's engine does not check it; only its own controllers do, which the seat replaces. Each mode's label
   shows its {P} and the question the budget. A tool answer over it is refused in the call's own result
-  (`AnswerTool.Spec.check`; the Decisions bridge states the budget from `Spec.limit`), a text answer is asked again
+  (`AnswerTool.Spec.check`; the Decisions bridge states the budget from `Spec.limit` and keeps its composed counts within
+  it, `Spec.budget`, decisions-bridge-v3), a text answer is asked again
   ("those modes total 15 {P}; at most 5 are allowed"), and a second answer over it takes no mode, the do-nothing
   option. The arms draw within it (`PuzzleArms.repeatModes`; harness-epoch-94, #415).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
@@ -118,7 +119,7 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   declaration is legal, so a seat that kept its answer looped (epoch 66; authored puzzles x_0, x_15, x_18).
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
   tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
-  harness seats), but last, after every safe source (epoch 65). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
+  harness seats), but last, after every safe source (epoch 65) and after the sacrifice-cost sources too (epoch 95, #269). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
   activated ability's alternative cost is offered (Forge Anew: equip for {0}; the menu expanded alternative costs for
   spells only), and an "up to one" target with a single candidate is asked with "No target" offered.
 - "X target creatures" with X announced as 0 takes no target (Rot-Curse Rakshasa's renew): one was set, and the
@@ -857,7 +858,7 @@ and the correction round and the fixed legal option apply exactly as for any mod
   (priced by `eval/cost_report.py`: `typesafe/jev-1.14` is $0.042 per million input tokens, output free), and the
   provider's `usage.cost` is the `context_call` row's `cost_usd` (an additive key, written only by a bridge that
   reports a cost). A call that fails reports no usage of its own. `model_id` resolves the `jev:` prefix.
-- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v2`) is stamped per identity on the game line,
+- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v3`) is stamped per identity on the game line,
   `decisions_bridge_version_a` / `_b`, only for a `jev:` seat (keyed in `aggregate.PROVENANCE_FIELDS` with default
   "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on the puzzle
   row of a solver with a `jev:` tier (smart or fast, as on the game line), where `puzzle_score.py` refuses to pool two
@@ -872,7 +873,7 @@ How each decision kind (`AnswerTool.Kind`) is asked:
 | `ONE` | play menu, target, optional trigger, mode | one `choice`, criteria `"1".."n"` = the option labels | `option` = the chosen key |
 | `MANY`, at most one pick | splice, sacrifice one, scry 1, attack with one creature, a cost of one | one `choice` over the options, plus `"0"` = none when none is legal | `options` = `[k]`, or `[]` for `"0"` |
 | `MANY`, more than one pick | tap three creatures, trigger order, attackers, discard two | one `noul` per option ("should option i be one of the picks?") | every option at p >= 0.5, likeliest first, clamped to the decision's min and max; a CANCEL option is taken alone only when it is at p >= 0.5 and the likeliest, else never (`DecisionsBridge.topPicks`). An ordering decision reads the picks in that order |
-| `MANY_REPEAT` | modes that may repeat | one `choice` per mode: how many times, `"0".."max"` (up to 39) | the modes, each its count of times; above the maximum the surest counts are kept, below the minimum the surest picked mode is repeated (`DecisionsBridge.repeatPicks`) |
+| `MANY_REPEAT` | modes that may repeat | one `choice` per mode: how many times, `"0".."max"` (up to 39); the question states a site limit (`Spec.limit`: a pawprint charm's {P} budget, v2) | the modes, each its count of times; above the maximum the surest counts are kept, below the minimum the surest picked mode is repeated; under a weighted cap (`Spec.budget`) the surest counts are kept while they fit (v3, #417) (`DecisionsBridge.repeatPicks`) |
 | `KEEP` | mulligan | one `noul` ("keep this hand?") | `keep` = p >= 0.5 |
 | `NUMBER` | X, a number of counters, a wide keyword cost | one `choice` over every value, when the range has at most 40 | `number` = the chosen key; a wider range is not asked |
 | `BLOCKS` | declare blockers | one `choice` per blocker: `"0"` = no block, `"j"` = attacker j; a blocker that may block several attackers gets one `noul` per attacker instead | the pairs; a multi-blocker blocks every attacker at p >= 0.5, up to its limit |
