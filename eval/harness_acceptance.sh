@@ -356,8 +356,8 @@ EOF
     elif [ -n "$OWN_EXP" ] && [ "$OWN_N" != "$OWN_EXP" ]; then
       fail javatests "ownership count $OWN_N != pinned $OWN_EXP (update harness_acceptance.expected AND ControllerOwnershipTest deliberately)"
     # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
-    elif ! grep -qF "] decisions-bridge-v1 ONE -> answer" "$OUT/javatests.log"; then
-      fail javatests "no [JEV] answer stamped decisions-bridge-v1 (move this pin WITH DecisionsBridge.VERSION)"
+    elif ! grep -qF "] decisions-bridge-v2 ONE -> answer" "$OUT/javatests.log"; then
+      fail javatests "no [JEV] answer stamped decisions-bridge-v2 (move this pin WITH DecisionsBridge.VERSION)"
     # The claude-cli: seat's bridge version, by literal value, from a fake-CLI answer ClaudeCliBridgeTest drew through it.
     elif ! grep -qF "] claude-cli-bridge-v2 -> TOOL CALL answer" "$OUT/javatests.log"; then
       fail javatests "no [CLAUDE-CLI] answer stamped claude-cli-bridge-v2 (move this pin WITH ClaudeCliBridge.VERSION)"
@@ -832,7 +832,7 @@ else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
     if game.get("answer_tool_version")!="answer-tool-v19": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-89": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-94": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -925,7 +925,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-89": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-94": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -956,7 +956,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v44" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v46" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
@@ -1072,6 +1072,10 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 elif game.get("turn_chat") is not True or game.get("turn_chat_version")!="turn-chat-v1":
     problems.append("turn_chat=%r version=%r"%(game.get("turn_chat"),game.get("turn_chat_version")))
+# The ONE_CHAT stamp is on every game line; pinned here, the one stage that runs the chat bridge (move it WITH
+# ChatSessionBridge.VERSION; eval/tests/test_versions.py checks every stamp is pinned).
+if game and game.get("one_chat_version")!="one-chat-v3":
+    problems.append("one_chat_version=%r"%game.get("one_chat_version"))
 model=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
 if len(model)<10: problems.append("only %d model decisions"%len(model))
@@ -1123,7 +1127,7 @@ except Exception as e:
     print("no result rows: %s" % e); sys.exit()
 r = rows[-1] if rows and isinstance(rows[-1], dict) else {}
 p = []
-if r.get("harness_epoch") != "harness-epoch-89": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
+if r.get("harness_epoch") != "harness-epoch-94": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
 for k in ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups"):
     if not isinstance(r.get(k), int): p.append("%s=%r" % (k, r.get(k)))
 if isinstance(r.get("model_calls"), int) and r["model_calls"] < 1: p.append("model_calls=0 for a played line")

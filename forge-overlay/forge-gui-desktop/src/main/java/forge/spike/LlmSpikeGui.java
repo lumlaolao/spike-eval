@@ -414,8 +414,19 @@ public final class LlmSpikeGui {
      *  Epoch 89 (2026-11-06, #399): the answer tool's yield says the seat's own main phase asks again only once the stack
      *  is empty, and end-of-turn lasts through this turn's end step (answer-tool-v19). The text arm's YIELD_HINT is a
      *  legacy profile's bytes and keeps its words.
+     *  Epoch 90 (2026-11-06, #366): a spell cast as another face counts its targets as that face (targetCandidates), as
+     *  the engine casts it: a Disturb cast whose back face is an Aura (Lantern Bearer's Lanterns' Lift) was never on
+     *  the menu, its "enchant creature" counted against the creature front face in the graveyard.
+     *  Epoch 91 (2026-11-07, #368): a keyword granted to a player is said on its line ("| has hexproof"), and the
+     *  engine's "Keyword Effects" object is left out of the command zone (observation-faithful-v45).
+     *  Epoch 92 (2026-11-07, #408): the state guide says the player line shows the keywords the engine names; an
+     *  unnamed one is not shown, the card or effect that gives it is (observation-faithful-v46).
+     *  Epoch 93 (2026-11-07, #269): the puzzle prover (search arm) draws how many repeatable modes to choose, then a
+     *  multiset, so "choose up to N" is tried with fewer modes (PuzzleArms.repeatModes); the random arm is unchanged.
+     *  Epoch 94 (2026-11-07, #415): a pawprint charm's modes stay within its {P} budget: each mode's label shows its
+     *  {P}, the question the budget, an answer over it is refused and asked again, and the arms draw within it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-89";
+    static final String HARNESS_EPOCH = "harness-epoch-94";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -961,6 +972,12 @@ public final class LlmSpikeGui {
         LLMBridge smartBridge() { return smart; }
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
+        /** The [TALLY] line's mean latency per tier that answered. One tier is one bridge for both (#251): its mean is
+         *  printed once, as avgSmart, not again as an avgFast for a tier that made no call. */
+        static String latencyAverages(LLMBridge smart, LLMBridge fast) {
+            return (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
+                    + (fast != smart && fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : "");
+        }
         private int lostToRouting = 0;   // decisions lost after a routing-filter refusal among their retries (budget())
         private int lostToTransport = 0; // decisions lost to a dead bridge (the bridgeDown rule, issue #369; budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
@@ -1495,7 +1512,18 @@ public final class LlmSpikeGui {
                     if (sa.canTargetSpellAbility(si.getSpellAbility())) out.add(si.getSpellAbility());
                 return out;
             }
-            return new ArrayList<>(tr.getAllCandidates(sa, false));
+            // A spell cast as another face (Disturb's back face, an adventure) targets as that face, as the engine casts it
+            // (PlaySpellAbility: setSplitStateToPlayAbility before targeting): counted as Lantern Bearer's front face,
+            // Lanterns' Lift's "enchant creature" had no target and the Disturb cast was never offered (#366).
+            Card host = sa.getHostCard();
+            forge.card.CardStateName cast = sa.isSpell() && host != null && !host.isInPlay() ? sa.getCardStateName() : null;
+            forge.card.CardStateName was = host == null ? null : host.getCurrentStateName();
+            boolean switched = cast != null && cast != was && host.hasState(cast) && host.setState(cast, false);
+            try {
+                return new ArrayList<>(tr.getAllCandidates(sa, false));
+            } finally {
+                if (switched) host.setState(was, false);
+            }
         }
 
         /** A target as the seat reads it: a spell on the stack as its card (the text it had before), an ability on the
@@ -2304,13 +2332,15 @@ public final class LlmSpikeGui {
          *  picks up to `num` indices and the SAME index may appear again. decideMany dedupes via a
          *  LinkedHashSet, so this keeps duplicates instead. Null on bridge-down, or a reply with fewer
          *  than `min` parseable picks, so the caller can take its deterministic legal default. */
-        private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num) {
+        /** The last repeatable-mode ask ended on an answer over a pawprint charm's budget (its log reason). */
+        private boolean modesOverBudget;
+
+        private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num,
+                                                int[] pawCost, int paw) {
             clearLast();
             long t0 = System.currentTimeMillis();
-            if (rnd != null) {                       // RANDOM arm: `num` uniform picks WITH replacement
-                List<Integer> res = new ArrayList<>();
-                int n = Math.max(1, Math.min(num, 8));
-                for (int i = 0; i < n; i++) res.add(rnd.nextInt(options.size()));
+            if (rnd != null) {                       // an arm: picks WITH replacement (PuzzleArms.repeatModes)
+                List<Integer> res = PuzzleArms.repeatModes(rnd, options.size(), min, num, pawCost, paw);
                 lastPicks = res;
                 List<String> picked = new ArrayList<>();
                 for (int i : res) picked.add(options.get(i));
@@ -2320,11 +2350,22 @@ public final class LlmSpikeGui {
                 return res;
             }
             String base = buildDecideManyPrompt(snapshot(), question, options, min, num, observer != null, null);
+            String overBudget = null;
+            modesOverBudget = false;
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
+                        : overBudget != null ? base + "\n\n(" + overBudget + ")"
                         : base + "\n\n(Answer with ONE line only: PICKS: <" + min + " to " + num
                           + " numbers from the list; the same number may repeat>.)";
-                offerAnswer(b, AnswerTool.Spec.repeat(options.size(), min, num).labels(options));
+                AnswerTool.Spec spec = AnswerTool.Spec.repeat(options.size(), min, num).labels(options);
+                if (pawCost != null) {
+                    // The tool answer is checked where it is made, so a refusal comes back in the call's own result.
+                    spec.limit("the picked options' {P} total at most " + paw).check(a -> {
+                        int spent = pawprintsOf(a.zeroBased(), pawCost);
+                        return spent > paw ? "those modes total " + spent + " {P}; at most " + paw + " are allowed." : null;
+                    });
+                }
+                offerAnswer(b, spec);
                 String reply = ask(b, prompt);
                 noteAnswerVia(attempt);
                 if (reply == null) return null;
@@ -2339,6 +2380,14 @@ public final class LlmSpikeGui {
                         int idx = Integer.parseInt(m.group());
                         if (idx >= 1 && idx <= options.size()) out.add(idx - 1);
                     }
+                }
+                // A text answer past a pawprint charm's budget is not a legal choice: refused and asked again (#415).
+                int spent = pawCost == null ? 0 : pawprintsOf(out, pawCost);
+                if (out.size() >= min && pawCost != null && spent > paw) {
+                    overBudget = "Refused: those modes total " + spent + " {P}; at most " + paw + " are allowed. Choose again.";
+                    modesOverBudget = true;
+                    p("[ROUTER] modes(repeat): over the {P} budget, " + spent + " of " + paw);
+                    continue;
                 }
                 if (out.size() >= min) {
                     lastPicks = out;
@@ -2418,6 +2467,48 @@ public final class LlmSpikeGui {
             return null;
         }
 
+        /** A pawprint charm's {P} budget ("choose up to five {P} worth of modes"), or -1 for any other modal ability.
+         *  Forge's engine does not check it, only its own controllers do (PlayerControllerHuman, CharmAi), so the seat
+         *  and the arms must (#415). */
+        static int pawprintBudget(SpellAbility sa) {
+            if (sa == null || !sa.hasParam("Pawprint")) return -1;
+            return forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("Pawprint"), sa);
+        }
+
+        /** Each mode's {P}, in the order of `possible` (0 for a mode with none). */
+        static int[] pawprints(List<AbilitySub> possible) {
+            int[] out = new int[possible.size()];
+            for (int i = 0; i < out.length; i++) {
+                AbilitySub ab = possible.get(i);
+                out[i] = ab.hasParam("Pawprint")
+                        ? forge.game.ability.AbilityUtils.calculateAmount(ab.getHostCard(), ab.getParam("Pawprint"), ab) : 0;
+            }
+            return out;
+        }
+
+        /** The fixed legal modes when the hook fails: within a pawprint charm's budget too (#415). */
+        private static List<AbilitySub> budgetSafeDefault(SpellAbility sa, List<AbilitySub> possible, int min, int num,
+                                                          boolean allowRepeat) {
+            int paw = -1;
+            int[] cost = null;
+            try {
+                paw = allowRepeat ? pawprintBudget(sa) : -1;
+                cost = paw >= 0 ? pawprints(possible) : null;
+            } catch (Exception ignore) {
+                paw = allowRepeat && sa != null && sa.hasParam("Pawprint") ? 0 : -1;   // unreadable: no mode is safe
+                cost = paw >= 0 ? new int[possible.size()] : null;
+                if (cost != null) java.util.Arrays.fill(cost, 1);
+            }
+            return defaultModes(possible, min, num, allowRepeat, cost, paw);
+        }
+
+        /** The {P} the picked modes total. */
+        static int pawprintsOf(List<Integer> picks, int[] cost) {
+            int total = 0;
+            for (int i : picks) total += cost[i];
+            return total;
+        }
+
         /** `n` copies of one mode: a forced single mode under allowRepeat ("choose three, you may
          *  choose the same mode more than once") is that mode three times. */
         private static List<AbilitySub> repeated(AbilitySub sub, int n) {
@@ -2430,7 +2521,25 @@ public final class LlmSpikeGui {
          *  `min` distinct modes; with it, distinct first and then repeats of the first mode when the
          *  count exceeds the menu (legal only because allowRepeat permits it). */
         private static List<AbilitySub> defaultModes(List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
+            return defaultModes(possible, min, num, allowRepeat, null, -1);
+        }
+
+        /** As above; with a {P} budget (a pawprint charm, #415): the fewest modes allowed (none for every pawprint card,
+         *  the do-nothing option, docs/STANDARDS.md section 8), taken in order while they fit: legal. */
+        private static List<AbilitySub> defaultModes(List<AbilitySub> possible, int min, int num, boolean allowRepeat,
+                                                     int[] cost, int budget) {
             List<AbilitySub> out = new ArrayList<>();
+            if (allowRepeat && cost != null && budget >= 0) {
+                int left = budget, want = Math.max(0, min);
+                for (int i = 0; i < possible.size() && out.size() < want; i++) {
+                    while (cost[i] <= left && out.size() < want) {
+                        out.add(possible.get(i));
+                        left -= cost[i];
+                        if (cost[i] == 0) break;
+                    }
+                }
+                return out;
+            }
             if (!allowRepeat) {
                 for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) out.add(possible.get(i));
                 return out;
@@ -4345,8 +4454,7 @@ public final class LlmSpikeGui {
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
                         + " textParses=" + textParsesOnToolAsks
                         + (textFormatLeaks > 0 ? " text_format_leaks=" + textFormatLeaks : "")
-                        + (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
-                        + (fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : ""));
+                        + latencyAverages(smart, fast));
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
                         + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> " + routeLabel(b.getModel(), rnd != null));
                 playDecisionsThisTurn++;
@@ -7104,23 +7212,30 @@ public final class LlmSpikeGui {
                     num = most;
                 }
                 if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return repeated(possible.get(0), Math.max(min, Math.min(num, 1))); } // forced
+                final int paw = allowRepeat ? pawprintBudget(sa) : -1;
+                final int[] pawCost = paw >= 0 ? pawprints(possible) : null;
                 // No budget: deterministic legal modes (distinct first, then repeats), never Forge AI.
                 if (!smartOk()) {
-                    List<AbilitySub> defPick = defaultModes(possible, min, num, allowRepeat);
+                    List<AbilitySub> defPick = defaultModes(possible, min, num, allowRepeat, pawCost, paw);
                     auto("modes(no-budget)->first" + defPick.size());
                     return defPick;
                 }
                 List<String> labels = new ArrayList<>();
                 String host = sa.getHostCard() == null ? "" : safeName(sa.getHostCard());
-                for (AbilitySub ab : possible)
+                for (int mi = 0; mi < possible.size(); mi++) {
+                    AbilitySub ab = possible.get(mi);
                     labels.add((ab.hasParam("ModeCost") ? "+ " + costText(new Cost(ab.getParam("ModeCost"), false).toSimpleString()) + " — " : "")
+                            + (pawCost != null ? "{P}".repeat(pawCost[mi]) + " — " : "")
                             + (observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription())));
+                }
                 if (allowRepeat) {
                     List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
-                            + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
+                            + " (you may choose the same mode more than once"
+                            + (paw >= 0 ? "; the modes' {P} may total at most " + paw : "") + ").", labels, Math.max(0, min), num,
+                            pawCost, paw);
                     if (rp == null || rp.size() < min) {
-                        List<AbilitySub> defPick = defaultModes(possible, min, num, true);
-                        auto("modes(repeat,unparsed)->first" + defPick.size());
+                        List<AbilitySub> defPick = defaultModes(possible, min, num, true, pawCost, paw);
+                        auto((modesOverBudget ? "modes(repeat,over-budget)->" : "modes(repeat,unparsed)->first") + defPick.size());
                         return defPick;
                     }
                     List<AbilitySub> out = new ArrayList<>();
@@ -7151,7 +7266,7 @@ public final class LlmSpikeGui {
                 p("[ROUTER] modes: " + log);
                 return out;
             } catch (Exception e) {
-                List<AbilitySub> defPick = possible == null ? new ArrayList<>() : defaultModes(possible, min, num, allowRepeat);
+                List<AbilitySub> defPick = possible == null ? new ArrayList<>() : budgetSafeDefault(sa, possible, min, num, allowRepeat);
                 auto("modes(err)->first" + defPick.size());
                 return defPick;
             }
@@ -12974,6 +13089,9 @@ public final class LlmSpikeGui {
                 + ",\"openrouter_timeout_ms\":\"" + (OpenRouterBridge.TIMEOUT_MS_ENV == null ? ""
                         : String.valueOf(OpenRouterBridge.TIMEOUT_MS_ENV)) + "\""
                 + ",\"game_cap_ms\":" + capMs
+                // Whether the wall-clock cap stopped it (#250): its winner is then "invalid" and win_condition is whatever
+                // the engine held, which no reader can tell from a finished draw.
+                + ",\"capped\":" + capped
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
                 // The routing filters are conditions (aggregate.PROVENANCE_FIELDS): at list an open-weight model may

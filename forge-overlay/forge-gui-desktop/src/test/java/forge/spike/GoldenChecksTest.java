@@ -320,6 +320,31 @@ public class GoldenChecksTest {
                 "the colour was asked in the middle of the payment");
     }
 
+    /** A Disturb cast of an Aura back face plays out (#366): the seat casts Lantern Bearer from its graveyard by Disturb,
+     *  picks Grizzly Bears as the creature Lanterns' Lift enchants, and the Aura resolves attached to it. */
+    @Test
+    public void aDisturbAuraIsCastOntoTheChosenCreature() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Lantern Bearer", me, ZoneType.Graveyard);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choiceWith("Disturb"))
+                .on("MANA:", p -> "PICKS: NONE")
+                .on("DECISION:", choiceWith("Grizzly Bears"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the Disturb cast is offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        Card lift = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Lanterns' Lift"))
+                .findFirst().orElse(null);
+        Assert.assertNotNull(lift, "Lanterns' Lift is on the battlefield: " + me.getCardsIn(ZoneType.Battlefield));
+        Assert.assertEquals(lift.getAttachedTo(), bears, "it enchants the creature the seat chose");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+    }
+
     /** Doomsday's own decisions (owner, 2026-10-16: combo lines must play out). The five cards and their order are the
      *  combo; in the C3 games Doomsday never resolved for the seat, so this was never seen. The seat picks the five from
      *  library and graveyard, then stacks them; the library is exactly that pile, and Forge's AI decides nothing. */
@@ -1107,6 +1132,49 @@ public class GoldenChecksTest {
         playAndResolve(seat(g, model, model), g, "Dance of the Tumbleweeds, the {1} mode");
         Assert.assertTrue(modes[0] == null || !modes[0].contains("Create an X/X"), "the unpayable {3} mode was offered: " + modes[0]);
         Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).count(), 4L, "it fetched a land");
+    }
+
+    /** A pawprint charm's modes may total at most its {P} budget (#415): Forge's engine does not check it, only its own
+     *  controllers do, which the seat replaces. Season of Loss with its {P}{P}{P} mode chosen five times (15 of 5) is
+     *  refused and asked again; the seat's second, legal answer is the one cast. The question shows each mode's cost. */
+    @Test
+    public void aPawprintCharmsModesStayWithinItsBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        card("Hill Giant", me, ZoneType.Graveyard);
+        card("Season of Loss", me, ZoneType.Hand);
+        List<String> asked = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Season of Loss"))
+                .on("MODAL SPELL", p -> { asked.add(p); return asked.size() == 1 ? "PICKS: 3,3,3,3,3" : "PICKS: 3"; });
+        playAndResolve(seat(g, model, model), g, "Season of Loss");
+        Assert.assertEquals(rival.getLife(), 18, "one {P}{P}{P} mode (2 creature cards), not five");
+        Assert.assertTrue(asked.size() >= 2, "the over-budget answer was asked again");
+        // The card's own description has "{P}{P}{P} — " too: the option line of the decision is what this pins.
+        String decision = asked.get(0).substring(asked.get(0).lastIndexOf("MODAL SPELL"));
+        Assert.assertTrue(java.util.regex.Pattern.compile("(?m)^\\s*3\\) \\{P\\}\\{P\\}\\{P\\} — Each opponent")
+                .matcher(decision).find(), "the option shows its {P}: " + decision);
+        Assert.assertTrue(decision.contains("may total at most 5"), "the question states the budget: " + decision);
+    }
+
+    /** Two over-budget answers: the modes the seat is given are the do-nothing option, none (docs/STANDARDS.md section 8),
+     *  never the most modes that fit. */
+    @Test
+    public void twoOverBudgetAnswersTakeNoMode() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Season of Loss", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Season of Loss"))
+                .on("MODAL SPELL", p -> "PICKS: 3,3,3,3,3");
+        playAndResolve(seat(g, model, model), g, "Season of Loss");
+        Assert.assertEquals(rival.getLife(), 20, "no life lost: no mode was chosen");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).contains(bears), "no creature was sacrificed");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).anyMatch(c -> c.getName().equals("Season of Loss")),
+                "the spell was cast and resolved");
     }
 
     /** Escalate adds its cost for each mode beyond the first: the seat may choose as many modes as it can pay for, and no
@@ -3583,6 +3651,29 @@ public class GoldenChecksTest {
         Assert.assertEquals(LlmSpikeGui.finalWinner("A", false, null), "A");
         Assert.assertEquals(LlmSpikeGui.finalWinner("draw", false, "java.lang.StackOverflowError"), "invalid");
         Assert.assertEquals(LlmSpikeGui.finalWinner("B", true, null), "invalid");
+    }
+
+    /** A game the wall-clock cap stopped says so on its game line (#250): its winner is "invalid" and its win_condition
+     *  is whatever the engine held (a raw Draw, or nothing), so readers that count capped games had nothing to read
+     *  (latency_report.py's `capped`, line_compare.py's "cap" in win_condition). A finished game says false. */
+    @Test
+    public void aCappedGameLineSaysItWasCapped() throws Exception {
+        for (boolean capped : new boolean[] {true, false}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("capped-line");
+            LlmSpikeGui.EvalLog.closeForTest();
+            LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+            java.io.File file = LlmSpikeGui.EvalLog.currentFile();
+            try {
+                LlmSpikeGui.writeGameSummary(g, 7, 1000, 60000, capped);
+            } finally {
+                LlmSpikeGui.EvalLog.closeForTest();
+            }
+            String line = java.nio.file.Files.readAllLines(file.toPath()).stream()
+                    .filter(l -> l.startsWith("{\"t\":\"game\"")).findFirst().orElse("");
+            Assert.assertTrue(line.contains("\"capped\":" + capped), line);
+            if (capped) Assert.assertTrue(line.contains("\"winner\":\"invalid\""), line);
+        }
     }
 
     /** runs/luna-v8/g2: every delve exiled the whole graveyard unasked ("delve(all)"), and a larger graveyard

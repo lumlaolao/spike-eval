@@ -51,7 +51,8 @@ Forge enforces ("Win" or "Survive" by turn N).
   - a rules puzzle's search proof (`arm: search`, below);
   - a generated board's own `[solution]` (`arm: written`, with the step count it was gated at), replayed as
     written against Forge's AI, which must play every line and solve (the hard suite, below).
-- `verification`: the result of that replay, with the engine commit.
+- `verification`: the result of that replay, with the engine commit. A search re-proof may prove the puzzle on another
+  line; then `replay_line` and `replay_solver_actions` name it (#269).
 - `tier`:
   - 1: Forge's AI solves at least half its attempts;
   - 2: it does not, and the line takes three or fewer solver actions;
@@ -233,8 +234,11 @@ counters p0 Battlefield "Walking Ballista" P1P1 >= 3
 winner p0                                          p0, p1 or none
 ```
 
-A line it cannot read stops the run before any game. Result rows carry `acceptance` (accepted or rejected) and
-`acceptance_failed` (each failed condition with what was there).
+A line it cannot read stops the run before any game. A `counters` line names an enum counter (`P1P1`, in any case)
+or a one-word keyword counter (`Flying`; the two-word `First Strike` and `Double Strike` cannot be named). Any other
+name is refused: Forge makes a custom type for it, so a misspelt one read 0 on every card with no warning (#269). The
+few custom types real cards use (Replicating Ring's `NIGHT`, Promise of Loyalty's `VOW`) are refused with it. Result
+rows carry `acceptance` (accepted or rejected) and `acceptance_failed` (each failed condition with what was there).
 
 Two things the state does not say. When a player loses, Forge turns face up every face-down card that player owns
 (`Game.onPlayerLost`, CR 707.9), so a name condition on a face-down permanent reads its real name whenever the solver

@@ -335,7 +335,9 @@ class GroupingTest(unittest.TestCase):
                    # What happened to the seat's bridge in this game (issue #369): an outcome aggregate.py scores
                    # as invalid, not a condition.
                    "bridge_down_decisions_a", "bridge_down_decisions_b",
-                   "circuit_breaker_trips_a", "circuit_breaker_trips_b"}
+                   "circuit_breaker_trips_a", "circuit_breaker_trips_b",
+                   # Whether the wall-clock cap stopped the game (#250): an outcome (winner "invalid"), not a condition.
+                   "capped"}
         known = set(aggregate.CONDITION_FIELDS) | set(aggregate.NON_BEHAVIORAL_PROVENANCE) | outcome
         self.assertEqual([k for k in keys if k not in known], [],
                          "add the new game-line key to aggregate.PROVENANCE_FIELDS (or, if it is an "

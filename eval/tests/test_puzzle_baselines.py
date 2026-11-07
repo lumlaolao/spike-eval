@@ -108,6 +108,48 @@ class WrittenLineTest(unittest.TestCase):
             pb.Build = real
 
 
+class VerifySearchLineTest(unittest.TestCase):
+    """#269: a search re-proof may prove the puzzle on another line; the record says which line it proved."""
+
+    # rules-RP_017's committed reference line (eval/suites/puzzles-rules-sample-v1.json), as the search runner writes it.
+    LINE = "Solver:3:2 Solver:3:1 Solver:5:0 Solver:2:0"
+    REC = {"id": "rules-RP_017", "pzl": "eval/puzzles/rules-pilot/RP_017.pzl",
+           "reference_line": {"arm": "search", "seed": 1, "budget": 600, "line": LINE, "solver_actions": 1}}
+
+    def verify(self, row, rec=None):
+        with mock.patch.object(pb, "run_arm", return_value=[row]), \
+                mock.patch.object(pb.pf, "pzl_path", return_value=Path("eval/puzzles/x.pzl")):
+            return pb.verify_puzzle(None, rec or self.REC, tempfile.mkdtemp())["verification"]
+
+    def test_a_search_reproof_on_another_line_records_the_line_it_proved(self):
+        v = self.verify({"status": "proven", "acceptance": "accepted", "line": "Solver:3:1 Solver:2:0", "solver_actions": 2})
+        self.assertEqual(v["status"], "verified")
+        self.assertEqual((v["replay_line"], v["replay_solver_actions"]), ("Solver:3:1 Solver:2:0", 2))
+
+    def test_a_reproof_on_the_reference_line_adds_nothing(self):
+        v = self.verify({"status": "proven", "acceptance": "accepted", "line": self.LINE, "solver_actions": 1})
+        self.assertEqual(v["status"], "verified")
+        self.assertNotIn("replay_line", v)
+        self.assertNotIn("replay_solver_actions", v)
+
+    def test_only_a_search_reproof_records_a_replay_line(self):
+        # An ai-arm replay is checked against its game log, not re-proven: a `line` on its row is not a proof.
+        rec = {"id": "p2", "pzl": "eval/puzzles/x.pzl", "reference_line": {"arm": "ai", "seed": 3, "solver_actions": 2,
+                                                                         "log_sha256": "ab12"}}
+        v = self.verify({"status": "solved", "line": "Solver:1:0", "solver_actions": 1, "log_sha256": "ab12"}, rec)
+        self.assertEqual(v["status"], "verified")
+        self.assertNotIn("replay_line", v)
+
+    def test_a_failed_search_reproof_records_no_replay_line(self):
+        # The runner's statuses (LlmSpikePuzzle.java): a not_found row has no `line`; a drift row keeps the line the
+        # search found, which did not replay to the same solve. Neither is a line the puzzle was proven on.
+        for row in ({"status": "not_found", "acceptance": "accepted"},
+                    {"status": "drift", "acceptance": "accepted", "line": "Solver:3:1 Solver:2:0", "solver_actions": 2}):
+            v = self.verify(row)
+            self.assertEqual(v["status"], "failed", row)
+            self.assertNotIn("replay_line", v, row)
+
+
 class MinimalityTest(unittest.TestCase):
     """HARD-PUZZLES.md section 4, item 3: every solver action of a written line is needed; remove one, it fails."""
 

@@ -90,7 +90,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
 - A play is not offered when a part of it that must target has no legal target: casting it only fails ("Couldn't add
-  to stack, failed to target"). That is legality, not judgment: the engine refuses the play. A sub-ability counts too
+  to stack, failed to target"). That is legality, not judgment: the engine refuses the play. A spell cast as another
+  face counts the targets of that face, as the engine casts it (`targetCandidates`; harness-epoch-90, #366): Lantern
+  Bearer's Disturb cast targets as Lanterns' Lift, an Aura, not as the creature in the graveyard. A sub-ability counts too
   (Govern the Guildless's forecast targets in its sub-ability and was offered with no creature in play;
   harness-epoch-77), but only when no earlier part targets: its targets may depend on that one (Searing Blaze's
   "creature that player controls", Goblin Welder), unknown before the cast, so it is left to the cast
@@ -102,6 +104,12 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - What a choice offers is also only what can be paid: a keyword cost's count (conspire, multikicker, squad,
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
   the seat may give fails the cast (harness-epoch-43).
+- A pawprint charm's modes (the Seasons, Hela's Arcanum: "choose up to five {P} worth of modes") total at most its {P}
+  budget. Forge's engine does not check it; only its own controllers do, which the seat replaces. Each mode's label
+  shows its {P} and the question the budget. A tool answer over it is refused in the call's own result
+  (`AnswerTool.Spec.check`; the Decisions bridge states the budget from `Spec.limit`), a text answer is asked again
+  ("those modes total 15 {P}; at most 5 are allowed"), and a second answer over it takes no mode, the do-nothing
+  option. The arms draw within it (`PuzzleArms.repeatModes`; harness-epoch-94, #415).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
 - An attack the engine refuses (Silent Arbiter's one attacker, a creature that must attack) is recorded (an
   `attackers-refused` row and a `refused by the engine` log line), asked once more with the reason ("at most 1
@@ -407,6 +415,14 @@ after combat citing that lethal "next combat" (#398 has the counts, their patter
 and in drain the positions were already lost). A goal with no turn count ("win before opponent's
 next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLastTurn` -1) is unchanged.
 
+**A player's keywords are on its line** (#368, observation-faithful-v45). A keyword granted to a player (Leyline of
+Sanctity's hexproof) is said on the player's line by its title (`| has hexproof`, `SeatObservation.playerLine`
+from `Player.getKeywords()`); a keyword the engine gives no title (Winter Orb's `UntapAdjust:Land:1`) is not
+shown, the card or effect that gives it is, and the state guide says so (observation-faithful-v46, #408). The engine
+keeps those keywords on a "Keyword Effects" object in the command zone, which is not a card the seat could
+inspect, cast or target, so `commandCards` leaves it out of the `command:` line, where it had been listed with a
+handle.
+
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
 - the state;
@@ -570,7 +586,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v44+propose`, `answer-tool-v19+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v46+propose`, `answer-tool-v19+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls
@@ -841,7 +857,7 @@ and the correction round and the fixed legal option apply exactly as for any mod
   (priced by `eval/cost_report.py`: `typesafe/jev-1.14` is $0.042 per million input tokens, output free), and the
   provider's `usage.cost` is the `context_call` row's `cost_usd` (an additive key, written only by a bridge that
   reports a cost). A call that fails reports no usage of its own. `model_id` resolves the `jev:` prefix.
-- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped per identity on the game line,
+- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v2`) is stamped per identity on the game line,
   `decisions_bridge_version_a` / `_b`, only for a `jev:` seat (keyed in `aggregate.PROVENANCE_FIELDS` with default
   "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on the puzzle
   row of a solver with a `jev:` tier (smart or fast, as on the game line), where `puzzle_score.py` refuses to pool two
@@ -1024,7 +1040,7 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
 | `script:<file>` (a model spec, `CONTROLLER_A=llm`) | a written solution line played by the model seat (`ScriptBridge`): each line names the option the seat is shown, the bridge answers `answer` with it, and a line no option fits is a drift, never a guess |
 | `replay:<game.jsonl or attempt dir>` (a model spec, `CONTROLLER_A=llm`) | a recorded attempt played again by the model seat (`ReplayBridge`, step regret step 1): each `context_call` row of the seat is one model turn, served back with its calls exactly as recorded (`answer` with every side field, `set_plan`), so skips, side effects and RNG draws are the recorded game's. Each ask must be the recorded one (answer field, option labels in order, the `N = ...` lists such as blockers and attackers, the answer range with both ends ("exactly N" or "between N and M" picks, "an integer from N through M", "N numbers ... summing to S"), the DECISION line, turn and step, message count, no new refusal), each decision row must equal the recorded row (type, n_options, choice, options; checked through the fork hook by the puzzle runner, which refuses a replay with the game log off since no row is written then), and, when the attempt's `puzzle-results.jsonl` row is beside its game log, the game must end with its status and `log_sha256`. The first difference is a drift: the runner ends the game at once, on the game thread, and the row's `status` is `drift`. A replay row (`replay_version`) is never scored: `puzzle_score.py` refuses it as no attempt. Prompt wording that differs on the same question is counted (`replay_prompt_diffs`), not a drift. A dir is read for the seed played (`game-<seed>-*.jsonl`). Only the puzzle runner checks rows and outcomes and ends the game at a drift; elsewhere (`LlmSpikeHeadless` matches) a replay seat only logs `[REPLAY] DRIFT` and answers the do-nothing option from then on. Run: `PUZZLE=<attempt dir>/<id>.pzl CONTROLLER_A=llm CONTROLLER_B=ai SMART_MODEL_A=replay:<attempt dir> FAST_MODEL_A=replay:<attempt dir> PZL_SEEDS=<the recorded seeds> EVAL_OUT=<out> TRANSCRIPTS=1`, with the recording manifest's `condition.env`. Measured (PR #365): the 14 finished claude-cli attempts of the thinking-vs-sampling study (`runs/tvs/{A-low-k1,B-max-k1,C-low-k3}`, epoch 80, storm and splice boards) replay on epoch 82 to the recorded status, `log_sha256` and engine log; those recordings hold only `play` and `target` model decisions (plus harness-auto rows), so lookups, `yield`, `keep_untapped`, blocks and multi-picks are carried by the same path but not yet shown to replay |
 | `replay:` + `REPLAY_HANDOVER=K` (step regret step 2) | the replay seat for its first K decision rows, then the same seat handed to the search arm (`LlmSpikePuzzle.stepSearch`): after the K-th row matches, `ReplayBridge` runs the seat's `handOverToSearch`, which puts `PuzzleArms.Search` in `rnd` (no longer final) with no draw from the engine RNG (the search arm's own constructor draws one long, which would shift the rest of the game against the recording) and drops a yield the recording asked for; every later hook takes the arm's branches, so the search line's first draw is the first decision after K. The switch happens inside row K's write, so the rest of that hook already takes the arm's branches (its yield is dropped, no CANCEL is offered, its action intent is skipped); every rollout therefore checks that the first decision after the handover is the recording's row K+1 (same type, menu size and options, one search draw unless a multi-pick) or ends as a drift. After that first row no row is checked, no outcome is compared, and any ask is a drift. Each rollout replays the prefix (game log on, into a discarded sink, so the fork hook checks every row) and searches the rest against Forge AI on the recorded seed: `proven` (a line found and replayed once more), `unwinnable` (every line played, none capped by `PZL_SEARCH_MAX_DRAWS` or the wall clock), `not_found`, `drift`. `REPLAY_FORCE=o` forces the first decision after K (a probe rollout must find it to be the recording's row K+1, same type and options, one draw, bound n or n+1, the row's choice the draw's value; a multi-pick is refused in v1); `all` does each option. Rows go to `step-search.jsonl` (`step-search-v1`), never `puzzle-results.jsonl`. `eval/puzzles/step_regret.py` scans the positions before each model decision from the end until one is proven (W never comes back against a deterministic opponent), names the regret decision when the next position is `unwinnable` (a bracket when `not_found` lies between) and its floor (options kept / n, exact only when every option is decided) |
-| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is |
+| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is. A repeatable-mode choice is drawn as a count from its minimum (zero when the card allows it) to its cap, then a multiset in non-decreasing order (`PuzzleArms.repeatModes`, epoch 93, #269): "choose up to N" (the Seasons, Hela's Arcanum, Moment of Reckoning) is tried with fewer modes, and orders of the same modes are one branch; the random arm keeps its stream |
 
 - *Why the prover:* Forge's puzzle mode tests one opponent line, its AI's, so a solve can come from the AI
   blocking badly. A proof (`docs/eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and

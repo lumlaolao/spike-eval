@@ -2497,4 +2497,25 @@ public class LlmSpikeTest {
         Assert.assertEquals(bridge.prompts.size(), 1);
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
+
+    /** The [TALLY] line's averages name a tier that answered (#251): one tier shares a single bridge, so the fast tier's
+     *  average was the smart tier's printed again while fast=0. Two bridges still report both. */
+    @Test
+    public void aSharedBridgeReportsOneAverage() {
+        LLMBridge one = timed(4, 400), other = timed(2, 100);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.latencyAverages(one, one), " avgSmart=100ms");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.latencyAverages(one, other), " avgSmart=100ms avgFast=50ms");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.latencyAverages(timed(0, 0), timed(0, 0)), "");
+    }
+
+    private static LLMBridge timed(int calls, long ms) {
+        return new LLMBridge() {
+            @Override public String ask(String prompt) { return null; }
+            @Override public String getLabel() { return "t"; }
+            @Override public String getModel() { return "t"; }
+            @Override public long getTotalMs() { return ms; }
+            @Override public int getCalls() { return calls; }
+        };
+    }
+
 }

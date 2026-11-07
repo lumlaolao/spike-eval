@@ -42,6 +42,72 @@ public class PuzzleArmsTest {
         }
     }
 
+    /** A repeatable-mode choice on the random arm is the stream it always was: the cap's worth of uniform draws. */
+    @Test
+    public void repeatModesOnTheRandomArmDrawsTheCapUniformly() {
+        Random plain = new Random(42L);
+        List<Integer> expected = new ArrayList<>();
+        for (int i = 0; i < 5; i++) expected.add(plain.nextInt(4));
+        Assert.assertEquals(PuzzleArms.repeatModes(PuzzleArms.forMode("random", 42L), 4, 0, 5), expected);
+    }
+
+    /** #269: the search arm drew the cap every time, so "choose up to five" (the Seasons, Hela's Arcanum, Moment of
+     *  Reckoning) was never tried with fewer modes, and it branched over orders of the same modes. It draws a count,
+     *  then a non-decreasing multiset. */
+    @Test
+    public void repeatModesOnTheSearchArmDrawsACountThenAMultiset() {
+        // "up to five" (min 0): the count is a choice among 0..5 (bound 6); value 0 is no mode at all, as the engine
+        // allows, and value 1 is one mode, here index 2 of 4
+        Assert.assertEquals(searchRepeat(Collections.singletonList(new PuzzleArms.Step("Solver", 6, 0)), 4, 0, 5),
+                Collections.emptyList());
+        Assert.assertEquals(searchRepeat(Arrays.asList(new PuzzleArms.Step("Solver", 6, 1),
+                new PuzzleArms.Step("Solver", 4, 2)), 4, 0, 5), Collections.singletonList(2));
+        // one to three modes: each next pick is drawn from the modes at or after the last one, so [1, 1, 3] is one
+        // branch
+        Assert.assertEquals(searchRepeat(Arrays.asList(new PuzzleArms.Step("Solver", 3, 2),
+                new PuzzleArms.Step("Solver", 4, 1), new PuzzleArms.Step("Solver", 3, 0),
+                new PuzzleArms.Step("Solver", 3, 2)), 4, 1, 3), Arrays.asList(1, 1, 3));
+        // exactly N (min == num: 17 of the 24 repeatable cards, 14 of them choose three): no count is drawn, and once
+        // the last mode is reached the rest are forced, so [2, 2, 2] is one draw
+        Assert.assertEquals(searchRepeat(Collections.singletonList(new PuzzleArms.Step("Solver", 3, 2)), 3, 3, 3),
+                Arrays.asList(2, 2, 2));
+    }
+
+    /** #415: a pawprint charm's picks total at most its {P} budget on every arm. Season of Loss: modes of 1, 2 and 3
+     *  {P}, budget 5. On the search arm the {P}{P}{P} mode leaves 2, and no mode at or after it fits: one draw. */
+    @Test
+    public void repeatModesKeepsAPawprintCharmWithinItsBudget() {
+        int[] cost = {1, 2, 3};
+        for (long seed = 1; seed <= 300; seed++) {
+            List<Integer> picks = PuzzleArms.repeatModes(PuzzleArms.forMode("random", seed), 3, 0, 5, cost, 5);
+            int total = 0;
+            for (int i : picks) total += cost[i];
+            Assert.assertTrue(total <= 5, "seed " + seed + ": " + picks);
+        }
+        PuzzleArms.searchLine = new PuzzleArms.Line(Collections.singletonList(new PuzzleArms.Step("Solver", 4, 2)), 5L);
+        try {
+            Assert.assertEquals(PuzzleArms.repeatModes(PuzzleArms.forMode("search", 1L, "Solver"), 3, 0, 5, cost, 5),
+                    Collections.singletonList(2));
+            Assert.assertNull(PuzzleArms.searchLine.drift);
+            Assert.assertEquals(PuzzleArms.searchLine.taken.size(), 1, "no draw past the line");
+        } finally {
+            PuzzleArms.searchLine = null;
+        }
+    }
+
+    /** repeatModes on the search arm over exactly these draws: none drifts, and none is made past them. */
+    private static List<Integer> searchRepeat(List<PuzzleArms.Step> steps, int options, int min, int num) {
+        PuzzleArms.searchLine = new PuzzleArms.Line(steps, 5L);
+        try {
+            List<Integer> picks = PuzzleArms.repeatModes(PuzzleArms.forMode("search", 1L, "Solver"), options, min, num);
+            Assert.assertNull(PuzzleArms.searchLine.drift, "the draws asked are the ones the line holds");
+            Assert.assertEquals(PuzzleArms.searchLine.taken.size(), steps.size(), "no draw past the line");
+            return picks;
+        } finally {
+            PuzzleArms.searchLine = null;
+        }
+    }
+
     @Test
     public void scriptReplaysTheTapeExactly() {
         PuzzleArms.ArmRandom rec = (PuzzleArms.ArmRandom) PuzzleArms.forMode("random", 99L);

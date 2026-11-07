@@ -23,7 +23,8 @@ python3 scripts/pr_format.py check-branch          # commit subjects and bodies 
 python3 scripts/pr_format.py check-pr <n>          # title and body sections (when there is a PR)
 python3 -m unittest discover -s eval/tests -p 'test_*.py' 2>&1 | tail -3
 git diff --cached --name-only | grep -E '^(runs|datasets)/' && echo "generated data is staged"
-# every eval script has a test or is on the shrinking list; every path the agent-facing docs name exists
+# every eval script has a test or is on the shrinking list (the merge gate also fails a changed script still
+# listed, docs/STANDARDS.md section 1 item 4); every path the agent-facing docs name exists
 # (both also run in the suite above; run alone they say which file):
 python3 eval/tests/test_untested_list.py && python3 eval/tests/test_doc_paths.py
 ```
