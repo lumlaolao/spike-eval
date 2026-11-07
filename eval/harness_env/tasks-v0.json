@@ -583,7 +583,6 @@
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
    ],
    "validated": {
-    "file": "eval/harness_env/validation/pr409-validation.json",
     "well_posed": true
    },
    "view_id": "teb5c0de8aa"
@@ -839,7 +838,6 @@
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java"
    ],
    "validated": {
-    "file": "eval/harness_env/validation/pr404-validation.json",
     "well_posed": true
    },
    "view_id": "t4f79f743d5"
@@ -1424,7 +1422,6 @@
     "eval/tests/test_defect_analyzer.py"
    ],
    "validated": {
-    "file": "eval/harness_env/validation/pr390-validation.json",
     "well_posed": true
    },
    "view_id": "t827e31ee72"

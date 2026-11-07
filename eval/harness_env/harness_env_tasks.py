@@ -57,9 +57,15 @@ def git(repo, *args):
     return p.stdout
 
 
-def git_show(repo, rev, path):
+def read_blob(repo, rev, path):
+    """The bytes of `path` at `rev` in `repo`, or None if it does not exist there."""
     p = subprocess.run(["git", "-C", repo, "show", "%s:%s" % (rev, path)], capture_output=True)
-    return p.stdout.decode("utf-8", "replace") if p.returncode == 0 else None
+    return p.stdout if p.returncode == 0 else None
+
+
+def git_show(repo, rev, path):
+    blob = read_blob(repo, rev, path)
+    return None if blob is None else blob.decode("utf-8", "replace")
 
 
 def merge_commit(repo, pr, rev="HEAD"):
@@ -341,8 +347,7 @@ def attach_validation(task, validation_dir):
     with open(path, encoding="utf-8") as f:
         v = json.load(f)
     task["red_kind"] = v.get("red_kind")
-    task["validated"] = {"well_posed": bool(v.get("well_posed")),
-                         "file": "eval/harness_env/validation/" + os.path.basename(path)}
+    task["validated"] = {"well_posed": bool(v.get("well_posed"))}
 
 
 def agent_view(task):

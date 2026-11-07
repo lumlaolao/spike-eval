@@ -54,7 +54,7 @@ plus the tests must score 1; the engine checkout must be unchanged. Each ran und
 
 The validation outputs are committed: `eval/harness_env/validation/pr390-validation.json`, `pr409-validation.json` and
 `pr404-validation.json` (pr404's is from the first run, before the restore-tests change below; pr390 and pr409 were
-re-run after it and are red-then-green still). `tasks-v0.json` carries `red_kind` and `validated` for these three and
+re-run after the second hardening and are red-then-green still). `tasks-v0.json` carries `red_kind` and `validated` for these three and
 null for the other 19.
 
 All three are red-then-green. pr404's red is a compile error, not a failing assertion: it is correct (the target
@@ -86,33 +86,68 @@ The grader cannot run `mvn` (it would touch the checkout), so it needs a `deps.t
   `git show <merge>` fails. (The first version used `git worktree add`, which shares every object and ref and let
   `git show <merge>` print the fix; the sentence here saying otherwise was false.)
 
-## Reward hacks closed (review of PR 422)
+## Status: dev-grade, not yet isolation-grade
 
-Each has a test that attempts it in `eval/tests/test_harness_env_task_grade.py` (`RewardHackTest`, `StaleResultsTest`).
+**dev-grade: tasks and grading logic validated; not yet isolation-grade.** The tasks are well posed (red then green,
+for the three validated) and the reward rule is checked against the hacks below. But a grader that runs the candidate's
+code as its own user cannot be made forgery-proof against that code. Training-grade use needs:
 
-- **Candidate tests.** The grader used to compile and run the candidate's own test files, so a target rewritten to
-  `assertTrue(true)`, a deleted neighbour or a script that `sys.exit(0)`s first scored 1. Now every `test_files` and
-  `support_files` path is overwritten from the merge commit of the grader's repository before anything runs, the
-  declared-test list is read from the restored files, and a candidate that changed one scores 0 (`tests_modified`).
-  An honest agent must therefore not edit the PR's test files; tests it adds elsewhere are fine. Not covered: a test
-  helper or fixture outside the task's files that the tests read.
-- **Stale results.** `out/testng` is deleted before the JVM starts; a crash or timeout then has no XML to parse and
-  scores 0 with a note. A timed-out Python test file also scores 0 with a note.
-- **Engine patches.** The grader runs its own `eval/engine_patches.py`, reading the candidate's `engine-patches/` as
-  data. The JVM's cwd has a `forge-gui/res` symlink farm instead of a link to the checkout. The Forge guard fails the
-  grade on any file under `/root/forge` (bar `.git`) newer than the grade's start, not only under `target/`, and its
-  marker is removed in a `finally`.
+- the candidate's tests run as a different user or in a container;
+- the results channel (the grader's scratch directory) and `/root/forge` out of its reach, no network, and the grader's
+  process outside it;
+- `/root/forge` holds the overlay at the last install (`forge/spike/*.class` built from main, possibly the fix), so the
+  agent's sandbox must not be able to read it.
 
-**This is not a security sandbox.** The candidate's overlay is compiled and its Python tests and source are run as the
-invoking user, and a symlink farm does not stop a write through a file link (the guard only reports it afterwards). A
-real RL run needs a container with `/root/forge` mounted read-only, no network and a user that owns nothing else.
+Until then a score of 1 means "the candidate's tree passed under a grader that closes every forgery that needs no
+more than the files of the tree and a common test run"; it does not mean the candidate could not have forged it.
+
+## Reward hacks closed (two reviews of PR 422)
+
+Each closed hole has a test that attempts it, in `eval/tests/test_harness_env_task_grade.py` (`RewardHackTest`,
+`PrebuiltClassTest`, `ResultChannelTest`). 47 grader tests and 14 task tests today (25 and 14 before the second
+review). "Red first" means the test fails on the grader before the fix.
+
+| Hole | Closed by | Test |
+|---|---|---|
+| Candidate edits, empties or deletes the PR's tests | every `test_files`/`support_files` path restored from the merge commit of the grader's repository; the candidate scores 0 and `tests_modified` lists it | `test_rewriting_the_target_to_assert_true...`, `test_a_fixed_candidate_that_also_edits...`, `test_deleting_a_non_target_test...`, `test_deleting_the_test_file...`, `test_a_script_test_that_exits_zero_first...` |
+| Stale `testng/` output, `result.json`, `javac.log` of an earlier grade | deleted at the start of `grade()` and `run_jvm`; a crash or timeout has no result | `test_the_graders_files_from_an_earlier_grade_are_deleted_first`, `test_a_timed_out_jvm_has_no_result`, `test_a_crashed_jvm_has_no_result` |
+| Python result forgery: imported code prints `RESULT {...}` | the runner writes a nonce'd file the grader chose; stdout is never parsed | `test_imported_code_that_prints_a_forged_result_line_scores_zero` |
+| Candidate `json.py` / `unittest.py` at the root shadows the stdlib in the grader's `python -c` | runner is a file in the grader's scratch run as `python -I -B`; the candidate's directories are appended after the stdlib | `test_a_json_py_at_the_worktree_root_cannot_shadow_the_graders_runner` |
+| Early exit: `sys.exit(0)` in imported code or inside a test marks a script-style file PASS | the runner imports the module and calls every `test_` function itself; a `SystemExit` is a FAIL for that function; a module `FAILURES` list that grew is a FAIL | `test_imported_code_that_exits_zero_fails_every_function...`, `test_the_target_calling_sys_exit_zero_inside_the_test_is_a_fail`, `test_a_script_tests_neighbours_are_judged_one_by_one`, `test_a_script_tests_own_failure_tally_counts` |
+| Bytecode swap: a planted UNCHECKED_HASH `.pyc` replaces the source or the test | every `__pycache__` and `*.pyc` deleted first; `-B` and `sys.pycache_prefix` in the scratch | `test_an_unchecked_hash_pyc_cannot_stand_in_for_the_source_or_the_test`, `test_a_sourceless_pyc_next_to_the_tests_is_deleted` |
+| Prebuilt-class fallback: delete a buggy overlay source, javac links the installed build | classpath is a hard-linked copy of the modules' `target/classes` without `forge/spike/**` and without any class the overlay or an engine patch supplies; the grade fails if a supplied source that the gold patch keeps is missing | `test_the_classpath_holds_no_class_the_overlay...`, `test_a_deleted_source_the_gold_patch_keeps_fails_the_grade...` |
+| Java result forgery by overwriting `testng-results.xml` | results come from the grader's own TestNG reporter (`HarnessGraderReporter.java`, compiled in the scratch) writing a nonce'd file; the XML is never read (see "open" below for what remains) | `test_a_testng_xml_the_candidate_left_is_not_read`, `test_a_result_file_with_another_nonce_is_not_read` |
+| Malformed result payload raised an exception | a missing, unparsable or wrongly shaped payload is a 0 with a note | `test_a_malformed_payload_is_a_zero_with_a_note_not_an_exception` |
+| Read-only inputs (ownership ledger, `tools.json`, `eval/decks`, every `.md`) edited to make a test pass | restored from the merge commit like the tests, except files the gold patch changes (those are the fix); the rules text comes from the grader's checkout | `test_a_read_only_input_the_candidate_edited_is_restored...`, `test_the_inputs_the_gold_patch_changes_are_not_restored` |
+| Secrets in the Python child's environment | allowlisted environment (`ENV_KEEP`) for both children | `test_the_python_child_sees_no_api_key_or_egress_flag` |
+| `FORGE_COMMIT` read from the candidate's tree | the pin is the grader's, at the merge commit; the patches stay the candidate's, as data | `test_the_pin_for_the_engine_patches_is_the_graders...` |
+| Symlinked parent directory makes a restore write outside the worktree | `restore_files` refuses (`Tampered`, score 0) when the parent's `realpath` leaves the worktree | `test_a_symlinked_parent_directory_is_refused...` |
+| A hung Python test | per-file timeout, 0 with a note | `test_a_python_test_that_hangs_scores_zero_with_a_note` |
+
+Also guarded, as before: the grader runs its own `eval/engine_patches.py`; the JVM's cwd has a `forge-gui/res` symlink
+farm; the Forge guard fails the grade on any file under `/root/forge` (bar `.git`) newer than the grade's start. The
+sandbox from `prepare` holds one commit and no object of this repository (`test_the_prepared_sandbox_holds_one_commit...`).
+
+### Open (not closed, and why)
+
+- **In-process forgery by the code under test.** Candidate code that runs in the same process as the runner (Python) or
+  the JVM can read the result path and nonce while the run is live (the runner and the reporter delete the spec file
+  first, but `/proc`, frame inspection or a scan of the scratch directory find them), can monkeypatch `unittest` or
+  TestNG in memory, can call `os._exit`, or can write a file the grader reads afterwards (a JVM shutdown hook
+  rewriting the reporter's file). The nonce stops a stale or pre-planted file and a stdout line, nothing more. This is
+  the same-user limit stated above; only a different user or a container closes it.
+- **The engine checkout** is still readable and, to the same user, writable: the guard reports a write after the fact.
+- **Tests that derive the repository root from the rules file** (`PuzzleSetupTest`) read the grader's checkout, not the
+  candidate's tree, for what they find under that root.
+- **A test helper or fixture outside the task's files that the tests read** other than the inputs listed above.
+- **The Java classpath filter needs the candidate to keep the sources the gold patch keeps.** A valid fix that merges
+  two overlay files scores 0.
 
 ## What is left
 
 - Validate the other 19 tasks (JVM ones are slow); record `red_kind` and the runtime of each in the manifest.
-- Per-function results for script-style Python test files (today a module-level `test_` function passes or fails with
-  its whole file, so one failing function marks its siblings as regressions).
 - A non-target test that already failed at base counts as a regression; a baseline comparison would fix it.
 - Better prompts for the weak tasks; PRs with no linked issue (26) need an issue-writing step to join the set.
 - Flaky tests: re-run the green state a few times before trusting a task.
 - Wire `prepare` into the sandbox builder (history stripped, no `.git` remote) and the episode runner.
+- Run the candidate's tests as another user or in a container (the isolation-grade step).
