@@ -193,23 +193,6 @@ class ResumeTest(unittest.TestCase):
                                "--out", str(root / "o"), "--propose-terse"])
         self.assertIn("--propose-actions", str(cm.exception.code))
 
-    def test_the_refusal_notebook_is_pinned_only_when_asked_and_never_resumed_across(self):
-        # PROPOSE_NOTEBOOK: REFUSED EARLIER in a proposal decision. A directory without it resumes unchanged; adding the
-        # arm is refused, and it needs --propose-actions.
-        import argparse
-        base = dict(context_profile="v4-faithful", memory_tools=False, rules_tool=False, propose_actions=True)
-        without = puzzle_solve.condition(argparse.Namespace(**base))
-        notebook = puzzle_solve.condition(argparse.Namespace(**base, propose_notebook=True))
-        self.assertNotIn("PROPOSE_NOTEBOOK", without)
-        self.assertEqual(notebook["PROPOSE_NOTEBOOK"], "1")
-        root = Path(tempfile.mkdtemp())
-        puzzle_solve.write_manifest(root / "p", "m", "S", "p", without, self.BUILD)
-        self.assertEqual(len(puzzle_solve.resume_conflicts(root, ["p"], "m", "S", notebook, self.BUILD)), 1)
-        with self.assertRaises(SystemExit) as cm:
-            puzzle_solve.main(["--suite", "s.json", "--split", "open", "--model", "m", "--budget-usd", "0",
-                               "--out", str(root / "o"), "--propose-notebook"])
-        self.assertIn("--propose-actions", str(cm.exception.code))
-
     BUILD = {"build_dir": "/b", "build_overlay_sha": "aaaaaaaaaaaa", "checkout_overlay_sha": "aaaaaaaaaaaa",
              "stale_build_allowed": False}
 

@@ -125,8 +125,6 @@ def condition(a):
         cond["PROPOSE_ACTIONS"] = "1"
     if getattr(a, "propose_terse", False):
         cond["PROPOSE_TERSE"] = "1"
-    if getattr(a, "propose_notebook", False):
-        cond["PROPOSE_NOTEBOOK"] = "1"
     if cost_report.is_cli_lane(getattr(a, "model", None)):
         cond.update(cost_report.cli_env(getattr(a, "claude_cli_effort", None), getattr(a, "claude_cli_thinking_tokens", None)))
     return cond
@@ -310,9 +308,6 @@ def main(argv=None):
                          "blocks (`answer.action`, `declare_attackers`, `declare_blockers`) and the engine checks them")
     ap.add_argument("--propose-terse", action="store_true",
                     help="PROPOSE_TERSE=1, with --propose-actions: a refused proposal is told only that it is illegal")
-    ap.add_argument("--propose-notebook", action="store_true",
-                    help="PROPOSE_NOTEBOOK=1, with --propose-actions: each proposal decision lists the game's earlier "
-                         "refused proposals the seat was told, as it was told them")
     ap.add_argument("--build", default=None)
     ap.add_argument("--allow-no-record", action="store_true",
                     help="run on a build without Transcript (no http or engine record; the manifest says so)")
@@ -341,8 +336,6 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.propose_terse and not a.propose_actions:
         raise SystemExit("--propose-terse without --propose-actions: it words the arm's refusals, and a menu game has none")
-    if a.propose_notebook and not a.propose_actions:
-        raise SystemExit("--propose-notebook without --propose-actions: it lists the arm's refusals, and a menu game has none")
     if cost_report.lane_of(a.model) and a.memory_tools:
         raise SystemExit("--memory-tools with a %s: model: such a seat cannot call a lookup, so the run would record "
                          "MEMORY_TOOLS=1 for a seat that never used it (the JVM refuses it too)" % a.model.split(":", 1)[0])

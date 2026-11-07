@@ -432,7 +432,7 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
-### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, checker epoch 82, owner 2026-11-03)
+### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, owner 2026-11-03)
 
 The menu makes illegal plays impossible, so the benchmark cannot see whether a model knows the rules. This arm
 removes the menu from the play decision and treats the rules engine as a type checker: the seat proposes a play,
@@ -446,30 +446,11 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   accepted when it names one of its plays, and that play is carried out the usual way (targets, modes, X and costs
   are the usual follow-up asks). Soundness is the menu's: `ProposeActionsTest.everyMenuPlayIsReachableByAProposal`
   builds every menu play's proposal and checks it lands on that play.
-  A land's mana ability is on the menu once per name. A proposed copy that could be activated itself (`playable`)
-  is accepted on that entry, and its own ability takes the entry's place, so the copy proposed is the one tapped:
-  copies differ (Utopia Sprawl on one Forest, an awakened land; `theProposedCopyOfALandIsTheOneTapped`). A tapped
-  copy's ability, or one in the hand, is refused for its rule (cost, zone). Before epoch 82 the other copy's entry
-  was played: an illegal proposal counted legal and tapped another land (PR #359's engine labeller;
-  `aLandsManaAbilityIsRefusedWhenThatLandCannotPayIt`), and a legal one could tap the copy without the aura
-  (pr-review of #360).
 - **A rejection names the rule, never the alternatives** (`proposalRejection`): "ILLEGAL (category): one sentence",
   the first engine check the play fails, in the categories timing, cost, zone, target, land drop, control, type and
   restriction. Kaggle Game Arena says only "illegal"; a list of what would be legal is a hidden menu. A malformed
   proposal (an unknown handle, ability 3 of a card with two, `option` instead of `action`) is a `FORMAT:` error,
   recorded apart.
-  - *The order (epoch 82):* Forge's `canPlay` answers the zone, the timing, the play's own limits and the non-mana
-    cost (`CostPayment.canPayAdditionalCosts`) as one, so the checker asks them apart. An ability: control (its
-    activator rule), a tapped or summoning-sick creature's {T} (cost), split second, the timing when the card is in
-    the ability's zone (sorcery speed, which a loyalty ability always is, CR 606.3; then its own phase or turn), the
-    zone, a sacrifice, exile or discard it cannot pay when every restriction allows it (cost), restriction, then its
-    mana and target. A spell: land (type), on the battlefield or the stack (zone), control (before the face or the
-    cost named; a card an effect lets the seat play, and a graveyard under Shaman's Trance, are exempt), the cost
-    named, split second, timing, the rest of the cost, zone, restriction, then mana and target. Timing comes before
-    zone for a spell, so a sorcery proposed from a graveyard it cannot be cast from, at instant speed, reads as
-    timing. The cost cases pinned: Fling and Eldritch Evolution with no creature, Dread Return's flashback and an
-    Underworld Breach escape short of what they need, Peregrin Took with no Foods. Before, those read as
-    restriction or zone, and a loyalty ability in combat as restriction.
 - **The terse arm** (`PROPOSE_TERSE=1`, with the propose arm only; harness-epoch-80, answer-tool-v17): a rules
   refusal says only "ILLEGAL: that play is not legal now." (an attack or blocks: "that declaration";
   `AnswerTool.shownRefusal`), Game Arena's form, and the preamble and the `action` schema say the seat is told only
@@ -479,36 +460,11 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   keeps its text: it says what is malformed, not which rule applies. The row keeps the engine's diagnosis in
   `error` and `category`, and what the seat was told in `error_shown`, so both arms count the same rules
   (`proposal_audit.py`'s `repair` and `refusal_text`). Stamped `propose_terse` on the game line and puzzle row and
-  `answer-tool-v18+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
+  `answer-tool-v17+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
   pinned by `run_batch.py --propose-terse` and `puzzle_solve.py --propose-terse`, each refused without
   `--propose-actions`. The preamble's general ANSWERS sentence ("you are told why") is the same in both arms: it is
   about answers to listed decisions, and the b2 block was played with it. Results: the research note's section "Does
   the refusal's reason matter? The terse arm".
-- **The notebook arm** (`PROPOSE_NOTEBOOK=1`, with the propose arm only, terse or detailed; harness-epoch-81,
-  answer-tool-v18): each play, attack and blocks decision carries REFUSED EARLIER (`AnswerTool.notebookSection`), the
-  seat's proposals the rules engine refused in earlier decisions of this game, each as "turn N, the decision: you
-  proposed X; you were told: Y", where Y is the refusal exactly as it was sent (`AnswerTool.shownRefusal`: the rule in
-  the detailed arm, only "ILLEGAL" in the terse one), so the notebook never says more than the refusals did. Every
-  entry is shown, oldest first, and the section says so: nothing the seat was told is cut (STANDARDS section 8), and
-  a game bounds the list.
-  - **Only what the seat was told** (`AnswerTool.Ask.told`, pr-review of #357): a refusal is noted when its result
-    was in the conversation and the model took another turn after it. Three refusals are recorded on the row but
-    never read, and are not noted: the one that ends a decision (its result is not sent), an illegal call beside the
-    answer in the same reply (told "Not used"), and one sent in the ask's last round. A `FORMAT:` error is not noted
-    (it is not a rule).
-  - **Where:** between the state and the DECISION line; absent before the first refusal; the preamble says what it is.
-    A decision's own refusals are noted after it ends, so its prompts, the play's text retry included (built from the
-    notebook as it stood before the decision), list only earlier decisions'. A tool ask that runs out of rounds
-    returns no reply and the play passes, so that retry is not reached under this arm. Off the arm every prompt byte
-    is unchanged (`ProposeActionsTest.offTheNotebookEveryPromptIsUnchanged`).
-  - *Why:* within a decision the refused play was not resent, but across decisions of one game it came back: the
-    research note's section "Repeated refusals in every propose log on disk" gives the per-run counts. An in-context
-    record of past errors is Reflexion's and Mistake Notebook Learning's (arXiv 2512.11485) form. It is the engine's
-    verdicts only: no advice, nothing chosen for the seat.
-  - Stamped `propose_notebook` on the game line and puzzle row and `+notebook` on the answer-tool stamp; keyed by
-    `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`; pinned by `run_batch.py --propose-notebook`
-    and `puzzle_solve.py --propose-notebook`, each refused without `--propose-actions`. Its outcome is
-    `proposal_audit.py`'s `refused_again` against the arm without it.
 - **Four tries** (`AnswerTool.MAX_INVALID_PROPOSALS`), then the fixed legal option, PASS. A decision lost to four
   refusals is the model's error, not a lost answer: `match_review` lists it as PROPOSAL and the harness-decided gate
   does not count it (`proposal_audit.lost_to_refusals`, one rule for both: `answer_via` lost after four invalid
@@ -516,7 +472,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v18+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v42+propose`, `answer-tool-v17+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls
@@ -552,7 +508,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
 - **The static rules probe's engine labeller** (`RulesProbeLabelExport`, diagnostic, never a score): the same checker
   labels every proposal the solver could make on a built `.pzl` board and on one-line near-miss variants of it, with
   no game and no model; the label is the checker's (null legal, "ILLEGAL (category)" its category and sentence), so
-  it inherits that checker's defects. What it proposes, what it drops (FORMAT), how to run it and why
+  it inherits that checker's defects. What it proposes, what it drops (FORMAT, `SUBSTITUTED`), how to run it and why
   in shards: its class comment. Always-on tests: `RulesProbeLabelTest`. Items, floors, contrast pairs and audit
   samples: `eval/rules_probe.py` (`engine`, `engine-report`, `audit-sample`). Results:
   `eval/research/2026-11-05-rules-probe.md`, section 9.
