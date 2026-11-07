@@ -10,21 +10,38 @@ test classes the task names fails, is skipped or goes missing; else 0. Partial-c
 The trivial baseline of every task is the base state's score: 0 by construction (`validate` proves it), so a
 score of 1 means the tests the PR added now pass, never that nothing was tested.
 
+Result keys, stated once: a test is `<class>.<method>` for Java (class fully qualified), `<module>.<Class.method>` for
+a Python TestCase method and `<module>.<test_fn>` for a module-level function; a failed TestNG fixture is
+`<key><config>`. A declared test with no result is missing, which counts against the candidate.
+
+The tests are the grader's, not the candidate's: before anything runs, every file in the task's `test_files` and
+`support_files` is overwritten from the merge commit of the GRADER's repository (`--repo`). A candidate that edited,
+emptied or deleted one scores 0 (`tests_modified` lists them) and the run still uses the restored file, so the
+declared tests, the compile and the run all come from the PR's tests. Results left by an earlier grade in the out
+directory are deleted before the JVM starts, so a crash or a timeout reads as nothing ran (score 0), never as the
+old PASS file.
+
 How a Java task is run: the overlay of the CANDIDATE worktree is compiled with javac into a scratch directory over
 the pinned engine's classes (the same compile as eval/harness_acceptance.sh, engine patches applied to the pinned
-originals by the worktree's own eval/engine_patches.py), then the named TestNG classes run in one JVM with the same
-system properties. The acceptance script has no class filter (STAGES picks stages, not classes), and its compile
-stage needs `mvn` for the classpath, which this grader never runs: it takes the dependency classpath from a
-`deps.txt` an earlier acceptance run wrote (--deps-file, HARNESS_DEPS_FILE, or the newest under a runs/ tree).
-A Python task runs its test file in a subprocess (TestCase methods by unittest, module-level test_ functions by the file's own main).
+originals by the GRADER's own eval/engine_patches.py reading the candidate's engine-patches/ as data), then the
+named TestNG classes run in one JVM with the same system properties. The acceptance script has no class filter
+(STAGES picks stages, not classes), and its compile stage needs `mvn` for the classpath, which this grader never
+runs: it takes the dependency classpath from a `deps.txt` an earlier acceptance run wrote (--deps-file,
+HARNESS_DEPS_FILE, or the newest under a runs/ tree). A Python task runs its test file in a subprocess (TestCase
+methods by unittest, module-level test_ functions by the file's own main).
 
-It never writes to the Forge checkout ($FORGE_HOME, /root/forge): the engine is read for its classes and sources
-only; a `git status` and a "no file under target/ is newer" check run before and after, and a change fails the grade.
+This is NOT a security sandbox: the candidate's overlay is compiled and its code run as the invoking user. What it
+does guard is the engine checkout: the JVM starts in a scratch tree whose `forge-gui/res` is a symlink farm (new
+files land in the scratch tree), and a before/after check fails the grade if the checkout's HEAD or `git status`
+changed or any file under $FORGE_HOME (bar .git) is newer than the grade's start. A real RL run needs a container
+with the Forge checkout mounted read-only and no network.
 
 Usage:
-  harness_env_task_grade.py grade <tasks.json> <worktree> --task-id pr403 [--out DIR] [--deps-file F] [--forge F]
+  harness_env_task_grade.py grade <tasks.json> <worktree> --task-id pr403 [--out DIR] [--deps-file F] [--forge F] [--repo .]
   harness_env_task_grade.py validate <tasks.json> --task-id pr403 --work DIR [--repo .] [--deps-file F]
   harness_env_task_grade.py prepare <tasks.json> <dest> --task-id pr403 [--gold] [--repo .]
+`--repo` is the grader's own repository (it holds the merge commit); --task-id takes the manifest id or the
+agent's opaque id. `prepare` writes the base tree with the PR's tests and ONE fresh commit, no history, no remote.
 `validate` is the well-posedness check: base + the PR's tests must score 0, base + gold patch + tests must score 1.
 Run any JVM step under the shared lock (CLAUDE.md). Exit 0 graded (read `score`), 2 setup error, 1 validate failed.
 """
@@ -53,6 +70,8 @@ ADDOPENS = ("java.desktop/java.beans java.desktop/javax.swing.border java.deskto
             "java.base/jdk.internal.misc java.base/sun.nio.ch java.base/java.nio java.base/java.math "
             "java.base/java.util.concurrent java.base/java.net").split()
 WEIGHT_TARGET = 0.7
+# The grader's own copy: the candidate's eval/engine_patches.py is never executed (its patch diffs are read as data).
+GRADER_ENGINE_PATCHES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "engine_patches.py")
 
 
 class SetupError(RuntimeError):
@@ -64,9 +83,10 @@ class SetupError(RuntimeError):
 def score(targets, results, declared=None, compile_ok=True):
     """targets: [(key, ...)] keys; results: {key: 'PASS'|'FAIL'|'SKIP'|...} of every test run in the task's classes;
     declared: keys the classes declare (a declared test absent from results is missing, not passed)."""
-    target_keys = [t for t in targets]
-    declared = set(declared or []) | set(results) | set(target_keys)
-    others = sorted(k for k in declared if k not in set(target_keys))
+    target_keys = list(targets)
+    target_set = set(target_keys)
+    declared = set(declared or []) | set(results) | target_set
+    others = sorted(k for k in declared if k not in target_set)
     t_pass = [k for k in target_keys if results.get(k) == "PASS"]
     o_pass = [k for k in others if results.get(k) == "PASS"]
     regressions = [k for k in others if results.get(k) != "PASS"]
@@ -109,7 +129,8 @@ def parse_testng(xml_path):
 # ---------------------------------------------------------------- the Forge guard
 
 class ForgeGuard:
-    """Proves the engine checkout was only read: same HEAD, same `git status`, no file under */target/ newer."""
+    """Proves the engine checkout was only read: same HEAD, same `git status`, no file anywhere in it (bar .git)
+    newer than the guard's start. `close()` removes the marker; call it in a finally."""
 
     def __init__(self, forge):
         self.forge = forge
@@ -126,15 +147,16 @@ class ForgeGuard:
         return run("rev-parse", "HEAD") + run("status", "--porcelain")
 
     def newer(self):
-        for target in glob.glob(os.path.join(self.forge, "forge-*", "target")):
-            for root, _, files in os.walk(target):
-                for f in files:
-                    p = os.path.join(root, f)
-                    try:
-                        if os.stat(p).st_mtime > os.stat(self.marker.name).st_mtime:
-                            return p
-                    except OSError:
-                        pass
+        mark = os.stat(self.marker.name).st_mtime
+        for root, dirs, files in os.walk(self.forge):
+            dirs[:] = [d for d in dirs if d != ".git"]
+            for f in files:
+                p = os.path.join(root, f)
+                try:
+                    if os.lstat(p).st_mtime > mark:
+                        return p
+                except OSError:
+                    pass
         return None
 
     def problems(self):
@@ -143,9 +165,14 @@ class ForgeGuard:
             out.append("the Forge checkout's HEAD or git status changed")
         n = self.newer()
         if n:
-            out.append("a file under the engine's target/ is newer than the grade's start: " + n)
-        os.unlink(self.marker.name)
+            out.append("a file in the Forge checkout is newer than the grade's start: " + n)
         return out
+
+    def close(self):
+        try:
+            os.unlink(self.marker.name)
+        except OSError:
+            pass
 
 
 def refuse_forge_paths(forge, *paths):
@@ -158,15 +185,21 @@ def refuse_forge_paths(forge, *paths):
 
 # ---------------------------------------------------------------- Java
 
+def common_root(repo):
+    """The working directory that owns `repo`'s git objects (the main checkout, for a linked worktree), or None."""
+    p = subprocess.run(["git", "-C", repo, "rev-parse", "--git-common-dir"], capture_output=True, text=True)
+    if p.returncode != 0:
+        return None
+    return os.path.dirname(os.path.realpath(os.path.join(repo, p.stdout.strip())))
+
+
 def find_deps(explicit, repo):
     cands = [explicit, os.environ.get("HARNESS_DEPS_FILE")]
-    roots = [repo]
-    p = subprocess.run(["git", "-C", repo, "rev-parse", "--git-common-dir"], capture_output=True, text=True)
-    if p.returncode == 0:
-        roots.append(os.path.dirname(os.path.realpath(os.path.join(repo, p.stdout.strip()))))
-    for r in roots:
-        found = sorted(glob.glob(os.path.join(r, "runs", "harness-acceptance", "*", "deps.txt")), key=os.path.getmtime)
-        cands += found[::-1]
+    for r in (repo, common_root(repo)):
+        if r:
+            found = sorted(glob.glob(os.path.join(r, "runs", "harness-acceptance", "*", "deps.txt")),
+                           key=os.path.getmtime)
+            cands += found[::-1]
     for c in cands:
         if c and os.path.isfile(c) and os.path.getsize(c) > 0:
             return c
@@ -174,12 +207,8 @@ def find_deps(explicit, repo):
                      "an acceptance run writes one, and this grader never runs mvn")
 
 
-def find_rules(worktree):
-    cands = [os.path.join(worktree, "data", "rules", "MagicCompRules.txt")]
-    p = subprocess.run(["git", "-C", worktree, "rev-parse", "--git-common-dir"], capture_output=True, text=True)
-    if p.returncode == 0:
-        root = os.path.dirname(os.path.realpath(os.path.join(worktree, p.stdout.strip())))
-        cands.append(os.path.join(root, "data", "rules", "MagicCompRules.txt"))
+def find_rules(worktree, repo):
+    cands = [os.path.join(r, "data", "rules", "MagicCompRules.txt") for r in (worktree, repo, common_root(repo)) if r]
     for c in cands:
         if os.path.isfile(c):
             return c
@@ -224,7 +253,7 @@ def run_java(task, worktree, out, forge, deps_file, repo, timeout=3000):
                    ("forge-gui-desktop", "forge-core", "forge-game", "forge-ai", "forge-gui"))
     with open(deps_file) as f:
         cp = mods + f.read().strip()
-    ep = subprocess.run([sys.executable, os.path.join(worktree, "eval", "engine_patches.py"), "apply",
+    ep = subprocess.run([sys.executable, GRADER_ENGINE_PATCHES, "apply", "--repo", worktree,
                          "--forge", forge, "--out", engine_src], capture_output=True, text=True)
     if ep.returncode != 0:
         return {}, [], False, ["engine patches do not apply: " + (ep.stdout + ep.stderr).strip()[-300:]]
@@ -247,34 +276,48 @@ def run_java(task, worktree, out, forge, deps_file, repo, timeout=3000):
         if os.path.isfile(src):
             with open(src, encoding="utf-8") as f:
                 declared += ["%s.%s" % (fq, m) for m in het.java_tests(f.read())]
-    # Forge finds its resources (../forge-gui/res) from the working directory: a scratch directory laid out
-    # like the module tree, whose sibling forge-gui is a link to the checkout's, keeps the JVM out of the checkout.
-    cwd = os.path.join(out, "cwdroot", "forge-gui-desktop")
-    shutil.rmtree(os.path.join(out, "cwdroot"), ignore_errors=True)
+    # Forge finds its resources (../forge-gui/res) from the working directory: a scratch tree laid out like the
+    # module tree, whose forge-gui/res is a farm of symlinks to the checkout's files, keeps the JVM's cwd out of it.
+    cwdroot = os.path.join(out, "cwdroot")
+    cwd = os.path.join(cwdroot, "forge-gui-desktop")
+    shutil.rmtree(cwdroot, ignore_errors=True)
     os.makedirs(cwd)
-    os.symlink(os.path.join(forge, "forge-gui"), os.path.join(out, "cwdroot", "forge-gui"))
+    shutil.copytree(os.path.join(forge, "forge-gui", "res"), os.path.join(cwdroot, "forge-gui", "res"),
+                    copy_function=os.symlink)
     tsv = os.path.join(worktree, "docs/harness/controller-ownership.tsv")
     cmd = [java, "-XX:ActiveProcessorCount=1", "-Dapple.awt.UIElement=true", "-Xmx2048m"]
     for o in ADDOPENS:
         cmd += ["--add-opens", o + "=ALL-UNNAMED"]
     cmd += ["-Dharness.ownership.tsv=" + tsv,
             "-Dharness.surface.report=" + os.path.join(out, "surfaces.tsv"),
-            "-Dharness.rules.file=" + find_rules(worktree),
+            "-Dharness.rules.file=" + find_rules(worktree, repo),
             "-Dharness.decks.dir=" + os.path.join(worktree, "eval/decks"),
             "-Dharness.tooluse.json=" + os.path.join(worktree, "eval/tooluse/tools.json"),
             "-cp", classes + ":" + cp, "org.testng.TestNG", "-testclass", ",".join(classes_fq),
             "-d", os.path.join(out, "testng")]
     env = {k: v for k, v in os.environ.items() if k not in ("EVAL_OUT", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY")}
     env["MEMORY_TOOLS"] = "1"
+    results, jnotes = run_jvm(cmd, cwd, env, out, timeout)
+    shutil.rmtree(classes, ignore_errors=True)  # disk is tight; the log and the results stay
+    shutil.rmtree(cwdroot, ignore_errors=True)
+    return results, declared, True, notes + jnotes
+
+
+def run_jvm(cmd, cwd, env, out, timeout):
+    """Run the test JVM and read its TestNG results. -> (results, notes). Results of an earlier grade are deleted
+    first, so a crash or a timeout leaves nothing to parse: no result, score 0."""
+    shutil.rmtree(os.path.join(out, "testng"), ignore_errors=True)
+    notes = []
     try:
         r = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
         with open(os.path.join(out, "testng.log"), "w") as f:
             f.write(r.stdout + r.stderr)
+        if r.returncode != 0 and not os.path.isfile(os.path.join(out, "testng", "testng-results.xml")):
+            notes.append("test JVM exited %d and wrote no results" % r.returncode)
     except subprocess.TimeoutExpired:
-        notes.append("test JVM timed out after %ds" % timeout)
-    results = parse_testng(os.path.join(out, "testng", "testng-results.xml"))
-    shutil.rmtree(classes, ignore_errors=True)  # disk is tight; the log and the results stay
-    return results, declared, True, notes
+        notes.append("test JVM timed out after %ds: scored 0" % timeout)
+        return {}, notes
+    return parse_testng(os.path.join(out, "testng", "testng-results.xml")), notes
 
 
 # ---------------------------------------------------------------- Python
@@ -301,7 +344,7 @@ print("RESULT " + json.dumps(res))
 
 
 def run_python(task, worktree, timeout=1200):
-    """-> (results {key: status}, declared keys, notes). Key: '<module>.<name>' (name = Class.method or test_fn)."""
+    """-> (results {key: status}, declared keys, notes); a test file that times out has no results (score 0)."""
     results, declared, notes = {}, [], []
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     for pf in task["python_tests"]:
@@ -316,14 +359,22 @@ def run_python(task, worktree, timeout=1200):
         cases = [n for n in names if "." in n]
         funcs = [n for n in names if "." not in n]
         if cases or not funcs:  # TestCase methods are collected by unittest, one result each
-            p = subprocess.run([sys.executable, "-c", PY_RUNNER, tests_dir, pf["module"]], cwd=worktree, env=env,
-                               capture_output=True, text=True, timeout=timeout)
+            try:
+                p = subprocess.run([sys.executable, "-c", PY_RUNNER, tests_dir, pf["module"]], cwd=worktree, env=env,
+                                   capture_output=True, text=True, timeout=timeout)
+            except subprocess.TimeoutExpired:
+                notes.append("%s timed out after %ds: scored 0" % (pf["file"], timeout))
+                continue
             m = re.search(r"^RESULT (.*)$", p.stdout, re.M)
             for k, v in (json.loads(m.group(1)) if m else {}).items():
                 results["%s.%s" % (pf["module"], k)] = v
         if funcs:  # module-level test_ functions are run by the file's own main(): they pass or fail whole
-            p = subprocess.run([sys.executable, path], cwd=worktree, env=env, capture_output=True, text=True,
-                               timeout=timeout)
+            try:
+                p = subprocess.run([sys.executable, path], cwd=worktree, env=env, capture_output=True, text=True,
+                                   timeout=timeout)
+            except subprocess.TimeoutExpired:
+                notes.append("%s timed out after %ds: scored 0" % (pf["file"], timeout))
+                continue
             for n in funcs:
                 results["%s.%s" % (pf["module"], n)] = "PASS" if p.returncode == 0 else "FAIL"
             if p.returncode != 0:
@@ -334,44 +385,84 @@ def run_python(task, worktree, timeout=1200):
 # ---------------------------------------------------------------- grade
 
 def target_key(t):
-    if t["kind"] == "java":
-        return "%s.%s" % (t["class"], t["method"])
-    return "%s.%s" % (t["module"], t["method"])
+    return "%s.%s" % (t["class"] if t["kind"] == "java" else t["module"], t["method"])
 
 
 def pick(doc, task_id):
     for t in doc["tasks"]:
-        if t["id"] == task_id:
+        if task_id in (t["id"], t.get("view_id")):
             return t
     raise SetupError("no task %s in the manifest" % task_id)
 
 
+def read_blob(repo, rev, path):
+    """The bytes of `path` at `rev` in the grader's repository, or None if it does not exist there."""
+    p = subprocess.run(["git", "-C", repo, "show", "%s:%s" % (rev, path)], capture_output=True)
+    return p.stdout if p.returncode == 0 else None
+
+
+def restore_tests(task, repo, worktree):
+    """Overwrite the task's test and support files in the candidate tree with the merge commit's. -> the paths the
+    candidate had changed, emptied or deleted."""
+    modified = []
+    for path in task["test_files"]:
+        blob = read_blob(repo, task["merge_sha"], path)
+        if blob is None:
+            raise SetupError("%s is not in %s of the grader's repository %s" % (path, task["merge_sha"][:9], repo))
+        dest = os.path.join(worktree, path)
+        try:
+            with open(dest, "rb") as f:
+                same = f.read() == blob
+        except OSError:
+            same = False
+        if not same:
+            modified.append(path)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        if os.path.islink(dest):
+            os.unlink(dest)
+        with open(dest, "wb") as f:
+            f.write(blob)
+    return modified
+
+
 def grade(task, worktree, out, forge=DEFAULT_FORGE, deps_file=None, repo=None):
+    """Score a candidate tree. `repo` is the grader's own repository (it holds the merge commit the tests come from)."""
     worktree = os.path.abspath(worktree)
     out = os.path.abspath(out)
     refuse_forge_paths(forge, worktree, out)
     if not os.path.isdir(worktree):
         raise SetupError("no worktree " + worktree)
+    if not repo:
+        raise SetupError("grade needs the grader's repository (--repo): the tests are restored from its history")
     guard = ForgeGuard(forge) if task["needs_jvm"] and os.path.isdir(forge) else None
-    results, declared, notes, compile_ok = {}, [], [], True
-    if task["java_test_classes"]:
-        deps = find_deps(deps_file, repo or worktree)
-        r, d, compile_ok, n = run_java(task, worktree, out, forge, deps, repo or worktree)
-        results.update(r)
-        declared += d
-        notes += n
-    if task["python_tests"]:
-        r, d, n = run_python(task, worktree)
-        results.update(r)
-        declared += d
-        notes += n
-    res = score([target_key(t) for t in task["targets"]], results, declared, compile_ok)
-    problems = guard.problems() if guard else []
+    try:
+        modified = restore_tests(task, repo, worktree)
+        results, declared, notes, compile_ok = {}, [], [], True
+        if task["java_test_classes"]:
+            deps = find_deps(deps_file, repo)
+            r, d, compile_ok, n = run_java(task, worktree, out, forge, deps, repo)
+            results.update(r)
+            declared += d
+            notes += n
+        if task["python_tests"]:
+            r, d, n = run_python(task, worktree)
+            results.update(r)
+            declared += d
+            notes += n
+        res = score([target_key(t) for t in task["targets"]], results, declared, compile_ok)
+        forge_problems = guard.problems() if guard else []
+    finally:
+        if guard:
+            guard.close()
+    problems = list(forge_problems)
+    if modified:
+        problems.append("the candidate changed the task's test files (restored, score 0): " + ", ".join(modified))
     if problems:
         res["score"], res["partial"] = 0, 0.0
         notes += problems
-    res.update({"task": task["id"], "worktree": worktree, "notes": notes,
-                "forge_untouched": not problems, "graded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
+    res.update({"task": task["id"], "worktree": worktree, "notes": notes, "tests_modified": modified,
+                "forge_untouched": not forge_problems,
+                "graded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
     os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, "result.json"), "w") as f:
         json.dump(res, f, indent=1, sort_keys=True)
@@ -382,41 +473,54 @@ def grade(task, worktree, out, forge=DEFAULT_FORGE, deps_file=None, repo=None):
 # ---------------------------------------------------------------- prepare / validate
 
 def prepare(task, repo, dest, gold=False):
-    """Worktree at the base sha, plus the PR's test files (and, with gold, the PR's source files)."""
+    """The base tree plus the PR's test files (and, with gold, the PR's source files), as ONE fresh commit: the
+    sandbox shares no object, ref or remote with `repo`, so no log or show of it can reach the fix."""
     if os.path.exists(dest) and os.listdir(dest):
         raise SetupError("refusing a non-empty destination " + dest)
-    het.git(repo, "worktree", "add", "--detach", dest, task["base_sha"])
+    os.makedirs(dest, exist_ok=True)
+    # the tree id, not the commit id: `git archive <commit>` records the commit in a tar header comment
+    arch = subprocess.Popen(["git", "-C", repo, "archive", "--format=tar", task["base_sha"] + "^{tree}"],
+                            stdout=subprocess.PIPE)
+    untar = subprocess.run(["tar", "-x", "-C", dest], stdin=arch.stdout, capture_output=True)
+    arch.stdout.close()
+    if arch.wait() != 0 or untar.returncode != 0:
+        raise SetupError("git archive of the base tree failed: " + untar.stderr.decode()[-200:])
     apply_files(task, repo, dest, task["test_files"])
     if gold:
         apply_files(task, repo, dest, task["gold_files"])
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "task start", "--no-gpg-sign"]):
+        het.git(dest, "-c", "user.name=task", "-c", "user.email=task@invalid", *args)
 
 
 def apply_files(task, repo, dest, paths):
     for p in paths:
-        exists = subprocess.run(["git", "-C", repo, "cat-file", "-e", "%s:%s" % (task["merge_sha"], p)],
-                                capture_output=True).returncode == 0
-        if exists:
-            het.git(dest, "checkout", task["merge_sha"], "--", p)
-        elif os.path.exists(os.path.join(dest, p)):
-            os.unlink(os.path.join(dest, p))
+        blob = read_blob(repo, task["merge_sha"], p)
+        full = os.path.join(dest, p)
+        if blob is not None:
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            with open(full, "wb") as f:
+                f.write(blob)
+        elif os.path.exists(full):
+            os.unlink(full)
 
 
-def remove_worktree(repo, dest):
-    subprocess.run(["git", "-C", repo, "worktree", "remove", "--force", dest], capture_output=True)
+def remove_sandbox(repo, dest):
     shutil.rmtree(dest, ignore_errors=True)
+    subprocess.run(["git", "-C", repo, "worktree", "prune"], capture_output=True)
 
 
 def validate(task, repo, work, forge, deps_file):
     """Red on base + tests, green with the gold patch. -> dict with both scores and `well_posed`."""
-    dest = os.path.join(work, task["id"] + "-wt")
+    dest = tempfile.mkdtemp(prefix=task["id"] + "-wt-", dir=work)
     out = {"task": task["id"], "gold_lines": task["gold_lines"]}
     try:
+        shutil.rmtree(dest)
         prepare(task, repo, dest, gold=False)
         red = grade(task, dest, os.path.join(work, task["id"] + "-red"), forge, deps_file, repo)
         apply_files(task, repo, dest, task["gold_files"])
         green = grade(task, dest, os.path.join(work, task["id"] + "-green"), forge, deps_file, repo)
     finally:
-        remove_worktree(repo, dest)
+        remove_sandbox(repo, dest)
     out["red"] = {k: red[k] for k in ("score", "partial", "compile_ok", "targets_passed", "targets_total",
                                       "failed_targets", "regressions", "notes")}
     out["green"] = {k: green[k] for k in out["red"]}
