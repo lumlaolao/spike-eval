@@ -1,0 +1,2062 @@
+{
+ "generated": "2026-11-07T16:32:09Z",
+ "repo_head": "1c1c778f5d5fb077f2d4a41476a722b8da3a37a2",
+ "schema": "harness-env-tasks/1",
+ "skipped": [
+  {
+   "pr": 413,
+   "reason": "no closing issue with text (links: [412])"
+  },
+  {
+   "pr": 401,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 384,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 383,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 382,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 376,
+   "reason": "no source file changed besides tests and docs (nothing to fix)"
+  },
+  {
+   "pr": 377,
+   "reason": "no source file changed besides tests and docs (nothing to fix)"
+  },
+  {
+   "pr": 373,
+   "reason": "no closing issue with text (links: [365])"
+  },
+  {
+   "pr": 370,
+   "reason": "no source file changed besides tests and docs (nothing to fix)"
+  },
+  {
+   "pr": 365,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 364,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 363,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 362,
+   "reason": "no closing issue with text (links: [361, 360])"
+  },
+  {
+   "pr": 361,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 359,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 360,
+   "reason": "no closing issue with text (links: [359])"
+  },
+  {
+   "pr": 357,
+   "reason": "no closing issue with text (links: [356])"
+  },
+  {
+   "pr": 358,
+   "reason": "no closing issue with text (links: [357])"
+  },
+  {
+   "pr": 356,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 355,
+   "reason": "no closing issue with text (links: [354, 342, 344])"
+  },
+  {
+   "pr": 354,
+   "reason": "no closing issue with text (links: [353])"
+  },
+  {
+   "pr": 353,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 352,
+   "reason": "no source file changed besides tests and docs (nothing to fix)"
+  },
+  {
+   "pr": 350,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 351,
+   "reason": "no closing issue with text (links: [349, 351])"
+  },
+  {
+   "pr": 349,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 348,
+   "reason": "no closing issue with text (links: [347])"
+  },
+  {
+   "pr": 347,
+   "reason": "no closing issue with text (links: [346])"
+  },
+  {
+   "pr": 346,
+   "reason": "no closing issue with text (links: [345, 342])"
+  },
+  {
+   "pr": 345,
+   "reason": "no closing issue with text (links: [344])"
+  },
+  {
+   "pr": 344,
+   "reason": "no closing issue with text (links: [343, 342])"
+  },
+  {
+   "pr": 343,
+   "reason": "no closing issue with text (links: [342])"
+  },
+  {
+   "pr": 342,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 341,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 340,
+   "reason": "no test method added or changed (no red test)"
+  },
+  {
+   "pr": 339,
+   "reason": "no closing issue with text (links: none)"
+  },
+  {
+   "pr": 338,
+   "reason": "no closing issue with text (links: [336, 321, 322, 323, 328, 333])"
+  },
+  {
+   "pr": 337,
+   "reason": "no closing issue with text (links: [336])"
+  }
+ ],
+ "tasks": [
+  {
+   "base_sha": "95f12bd431ba42b8e0357a7b360efddcbda8d682",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/GOLDEN-CHECKS.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "f8e26f6c03a5fd598f2dab74236e06ab67dcdcdc",
+    "90f3bc3bfd3ffe6ea77a3fd174082db0d996b652",
+    "679ece8dc78bc5304fc61641e8ae797c5e6cbb66"
+   ],
+   "gold_file_count": 5,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/AnswerTool.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/DecisionsBridge.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/PuzzleArms.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 161,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr416",
+   "head_sha": "679ece8dc78bc5304fc61641e8ae797c5e6cbb66",
+   "id": "pr416",
+   "issue": 415,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.DecisionsBridgeTest",
+    "forge.spike.GoldenChecksTest",
+    "forge.spike.PuzzleArmsTest"
+   ],
+   "merge_sha": "1c1c778f5d5fb077f2d4a41476a722b8da3a37a2",
+   "merged_at": "2026-11-07T07:47:40-08:00",
+   "needs_jvm": true,
+   "pr": 416,
+   "pr_title": "fix(modes): a pawprint charm's modes stay within its budget, for the seat and the arms",
+   "prompt": "# not-validated: a pawprint charm's mode budget is never checked; the seat and the arms can exceed it\n\n**Defect.** A pawprint charm's mode budget is never enforced. The model seat, and every zero-model arm, can choose a\nset of modes whose pawprints exceed the card's budget, and the engine resolves it. This breaks \"the engine validates\nevery option\": an illegal play is possible.\n\n**Where.**\n- `forge-overlay/.../spike/LlmSpikeGui.java`: the `allowRepeat` branch of the modal-spell hook (`decideModesRepeat` and\n  its caller near the `MODAL SPELL \u2014 choose mode(s)` prompt).\n- `PuzzleArms.repeatModes` (PR #414) for the arms.\n- `AnswerTool.Spec.repeat` bounds only the count.\n\n**Evidence (engine source, pinned checkout).**\n- `CharmEffect.java` mentions `Pawprint` only in the description text (lines 117 and 183-184: \"{P} worth of modes\").\n  `makeChoices` / `chainAbilities` chain whatever the controller returns.\n- The budget is enforced only by the controllers: `PlayerControllerHuman.java` 2002-2006 and 2024 remove modes whose\n  pawprints exceed what is left, and `CharmAi` does the same. The harness replaces both.\n- Six cards in the pool have `Pawprint$`: Season of Gathering, Season of Loss, Season of the Bold, Season of the Burrow,\n  Season of Weaving, and Hela's Arcanum (each `CharmNum$ 5`, `MinCharmNum$ 0`, modes costing 1 to 3 pawprints).\n- Example: Season of Loss with five picks of its 3-pawprint mode is 15 pawprints against a budget of 5. Neither the seat\n  path nor the arm path refuses it.\n- Found by the pr-review of PR #414 (#269 item 2). The defect predates that PR.\n\n**What should have happened.** As `PlayerControllerHuman` does: the modes offered, or accepted, sum to at most the\n`Pawprint$` budget.\n- For the seat: offer only the modes that fit what is left, or validate the chosen multiset and ask again.\n- For the arms: draw within the budget.\n- One check, used by both branches.\n\n**Reproduce.** A unit test in `GoldenChecksTest`: cast Season of Loss with a scripted model that answers the 3-pawprint\nmode five times, and assert that the chosen modes' pawprints sum to at most 5 (today they sum to 15). Rung a; no game\nneeded.\n\n**Detector gap.** None of the sheet's scripts reads chosen modes against a budget.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/AskContract.java"
+   ],
+   "targets": [
+    {
+     "change": "changed",
+     "class": "forge.spike.DecisionsBridgeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
+     "kind": "java",
+     "method": "aJevSeatAnswersThroughTheAnswerToolWithoutLookups"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.DecisionsBridgeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
+     "kind": "java",
+     "method": "repeatableModesAreAskedAsACountPerMode"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aPawprintCharmsModesStayWithinItsBudget"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "twoOverBudgetAnswersTakeNoMode"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleArmsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java",
+     "kind": "java",
+     "method": "repeatModesKeepsAPawprintCharmWithinItsBudget"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.PuzzleArmsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java",
+     "kind": "java",
+     "method": "repeatModesOnTheSearchArmDrawsACountThenAMultiset"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/AskContract.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java"
+   ]
+  },
+  {
+   "base_sha": "a3537ca4fec6130fb7de99744e1c92dd15a03255",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "2039a80e2a293c9cacce62cdbc48d3d394cfe5c7",
+    "42e12499e1e32c7e6fb59c4978e735c0c9fb1a20"
+   ],
+   "gold_file_count": 3,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/PuzzleArms.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 38,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr414",
+   "head_sha": "42e12499e1e32c7e6fb59c4978e735c0c9fb1a20",
+   "id": "pr414",
+   "issue": 269,
+   "issue_link": "referenced",
+   "java_test_classes": [
+    "forge.spike.PuzzleArmsTest"
+   ],
+   "merge_sha": "95f12bd431ba42b8e0357a7b360efddcbda8d682",
+   "merged_at": "2026-11-07T07:16:23-08:00",
+   "needs_jvm": true,
+   "pr": 414,
+   "pr_title": "fix(search): the prover tries fewer repeatable modes, and each multiset once",
+   "prompt": "# Puzzle prover follow-ups left by the PR #268 review\n\nThe reviews of PR #268 found these LOW issues and left them for later. Each one is small and separate from the others.\n\n- [ ] **`PuzzleAcceptance` accepts a misspelled counter name.**\n  - `forge-overlay/.../spike/PuzzleAcceptance.java`, the `counters` condition.\n  - `CounterType.getType` creates a custom counter type for any name, so a typo like `P1p1` reads 0 without any warning. As a result, `counters ... P1p1 = 0` is always accepted.\n  - This contradicts the class contract: \"a line it cannot read is refused\".\n  - Fix: check the name against `CounterEnumType` and the keyword counters in `parseLine`.\n- [ ] **The search arm draws repeatable modes as ordered tuples of full size.**\n  - `LlmSpikeGui.java` `decideModesRepeat`, search arm.\n  - The arm always draws exactly `min(num, 8)` modes, with replacement, in order. For \"up to N\", the prover never tries fewer modes, for either seat. It also branches over orderings that are the same choice.\n  - Fix: for `Search`, draw a count in `[min, num]`, then a multiset.\n- [ ] **A lethal tap source can still pay before an \"unpreferred\" source.**\n  - `ComputerUtilMana.java`: since epoch 65, a lethal source goes into `useLastManaSources`.\n  - That list also holds sources whose cost sacrifices another permanent. It is sorted by `sortByEvaluateCreature`, which ranks creatures, so the order between two non-creatures is arbitrary.\n  - Fix: append lethal sources to their own list after `useLastManaSources`, and add a golden check with such a source.\n- [ ] **`PuzzleSearch`'s `gaveUp` path has no test.**\n  - `PuzzleSearch.java`: removing `!gaveUp &&` keeps every test green.\n  - The flag only feeds report fields (`search_exhausted`, `uniqueness_exhausted`), never a verdict.\n  - About 5000 toy configurations never reached the flaw it guards against. The only path to it needs a give-up at two levels at once.\n  - Fix: a toy board with `linesPerNode=1` where a nested prove gives up after the tree is fully played; assert `!r.exhausted`.\n- [ ] **The verification record does not say which line a re-proof proved.**\n  - `eval/puzzle_baselines.py` `verify_puzzle`: since PR #268, a search re-proof may prove the puzzle on another line.\n  - Fix: store `replay_line` and `replay_solver_actions` in `verification` when the line differs from `reference_line.line`.\n- [ ] **`gate10.sh` uses a GNU-only regex.**\n  - `scripts/puzzle-gate/gate10.sh` `jvms()`: `grep -c '\\(^\\|/\\)java$'` relies on GNU `\\|` in a basic regex.\n  - Fix: `grep -cE '(^|/)java$'`.\n- [ ] **The canary re-pin note does not name its runs.**\n  - `eval/harness_acceptance.expected` (2026-10-19 note) and `docs/harness/ACCEPTANCE.md` (the linux random re-pin row).\n  - Fix: name the run directories:\n    - head `runs/harness-acceptance/20261019T212427Z`;\n    - main's worktree run `20261019T213133Z`;\n    - the bd3b9b1 acceptance run that reproduced A/55/365.\n- [ ] **The epoch-62 `playConfirmed` change landed in a misleadingly titled commit.**\n  - It is in b0258d6, titled `data(rules-pilot)`, not in the `fix(seat) ... (epoch 62)` commit 343c0b6. History can't be rewritten, so note it in `docs/harness/ARCHITECTURE.md` instead.",
+   "prompt_note": "the issue is only referenced in the PR's Why, and may be a multi-item tracking issue (the prompt is its whole text, not the one item this PR fixes)",
+   "prompt_quality": "weak",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleArmsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java",
+     "kind": "java",
+     "method": "repeatModesOnTheRandomArmDrawsTheCapUniformly"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleArmsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java",
+     "kind": "java",
+     "method": "repeatModesOnTheSearchArmDrawsACountThenAMultiset"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java"
+   ]
+  },
+  {
+   "base_sha": "b9833ca05cd886101b5d54ce72626bc6356c6f16",
+   "doc_files": [
+    "docs/eval/PUZZLES.md"
+   ],
+   "fix_commits": [
+    "a73cdc8dee37df0058f75034f68dcd8c72801987",
+    "26400e20205df679cce074ea1ae0bb7f2e8d5a1c",
+    "bb2654c262d25d970f7a755bbae2d6fcd2692bd9"
+   ],
+   "gold_file_count": 1,
+   "gold_files": [
+    "eval/puzzles/puzzle_baselines.py"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 9,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr412",
+   "head_sha": "bb2654c262d25d970f7a755bbae2d6fcd2692bd9",
+   "id": "pr412",
+   "issue": 269,
+   "issue_link": "referenced",
+   "java_test_classes": [
+    "forge.spike.PuzzleAcceptanceTest"
+   ],
+   "merge_sha": "21fcac1e67adc966a0b540807496082fd0c46c14",
+   "merged_at": "2026-11-07T06:39:25-08:00",
+   "needs_jvm": true,
+   "pr": 412,
+   "pr_title": "fix(puzzles): a search re-proof on another line records the line it proved",
+   "prompt": "# Puzzle prover follow-ups left by the PR #268 review\n\nThe reviews of PR #268 found these LOW issues and left them for later. Each one is small and separate from the others.\n\n- [ ] **`PuzzleAcceptance` accepts a misspelled counter name.**\n  - `forge-overlay/.../spike/PuzzleAcceptance.java`, the `counters` condition.\n  - `CounterType.getType` creates a custom counter type for any name, so a typo like `P1p1` reads 0 without any warning. As a result, `counters ... P1p1 = 0` is always accepted.\n  - This contradicts the class contract: \"a line it cannot read is refused\".\n  - Fix: check the name against `CounterEnumType` and the keyword counters in `parseLine`.\n- [ ] **The search arm draws repeatable modes as ordered tuples of full size.**\n  - `LlmSpikeGui.java` `decideModesRepeat`, search arm.\n  - The arm always draws exactly `min(num, 8)` modes, with replacement, in order. For \"up to N\", the prover never tries fewer modes, for either seat. It also branches over orderings that are the same choice.\n  - Fix: for `Search`, draw a count in `[min, num]`, then a multiset.\n- [ ] **A lethal tap source can still pay before an \"unpreferred\" source.**\n  - `ComputerUtilMana.java`: since epoch 65, a lethal source goes into `useLastManaSources`.\n  - That list also holds sources whose cost sacrifices another permanent. It is sorted by `sortByEvaluateCreature`, which ranks creatures, so the order between two non-creatures is arbitrary.\n  - Fix: append lethal sources to their own list after `useLastManaSources`, and add a golden check with such a source.\n- [ ] **`PuzzleSearch`'s `gaveUp` path has no test.**\n  - `PuzzleSearch.java`: removing `!gaveUp &&` keeps every test green.\n  - The flag only feeds report fields (`search_exhausted`, `uniqueness_exhausted`), never a verdict.\n  - About 5000 toy configurations never reached the flaw it guards against. The only path to it needs a give-up at two levels at once.\n  - Fix: a toy board with `linesPerNode=1` where a nested prove gives up after the tree is fully played; assert `!r.exhausted`.\n- [ ] **The verification record does not say which line a re-proof proved.**\n  - `eval/puzzle_baselines.py` `verify_puzzle`: since PR #268, a search re-proof may prove the puzzle on another line.\n  - Fix: store `replay_line` and `replay_solver_actions` in `verification` when the line differs from `reference_line.line`.\n- [ ] **`gate10.sh` uses a GNU-only regex.**\n  - `scripts/puzzle-gate/gate10.sh` `jvms()`: `grep -c '\\(^\\|/\\)java$'` relies on GNU `\\|` in a basic regex.\n  - Fix: `grep -cE '(^|/)java$'`.\n- [ ] **The canary re-pin note does not name its runs.**\n  - `eval/harness_acceptance.expected` (2026-10-19 note) and `docs/harness/ACCEPTANCE.md` (the linux random re-pin row).\n  - Fix: name the run directories:\n    - head `runs/harness-acceptance/20261019T212427Z`;\n    - main's worktree run `20261019T213133Z`;\n    - the bd3b9b1 acceptance run that reproduced A/55/365.\n- [ ] **The epoch-62 `playConfirmed` change landed in a misleadingly titled commit.**\n  - It is in b0258d6, titled `data(rules-pilot)`, not in the `fix(seat) ... (epoch 62)` commit 343c0b6. History can't be rewritten, so note it in `docs/harness/ARCHITECTURE.md` instead.",
+   "prompt_note": "the issue is only referenced in the PR's Why, and may be a multi-item tracking issue (the prompt is its whole text, not the one item this PR fixes)",
+   "prompt_quality": "weak",
+   "python_tests": [
+    {
+     "file": "eval/tests/test_puzzle_baselines.py",
+     "module": "test_puzzle_baselines",
+     "style": "unittest"
+    }
+   ],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_baselines.py",
+     "kind": "python",
+     "method": "VerifySearchLineTest.test_a_reproof_on_the_reference_line_adds_nothing",
+     "module": "test_puzzle_baselines",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_baselines.py",
+     "kind": "python",
+     "method": "VerifySearchLineTest.test_a_search_reproof_on_another_line_records_the_line_it_proved",
+     "module": "test_puzzle_baselines",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_baselines.py",
+     "kind": "python",
+     "method": "VerifySearchLineTest.test_only_a_search_reproof_records_a_replay_line",
+     "module": "test_puzzle_baselines",
+     "style": "unittest"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.PuzzleAcceptanceTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleAcceptanceTest.java",
+     "kind": "java",
+     "method": "everyCommittedAcceptanceSectionParses"
+    }
+   ],
+   "test_files": [
+    "eval/tests/test_puzzle_baselines.py",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleAcceptanceTest.java"
+   ]
+  },
+  {
+   "base_sha": "fc03c709522c8aa402aa9ffde22a1aab61687e11",
+   "doc_files": [
+    "docs/eval/PUZZLES.md"
+   ],
+   "fix_commits": [
+    "da3828bfe779f6d27666a7dfd75b1534ff2fdfdb",
+    "4fce00b9236de017480f7c85bcc81e258f4ec480",
+    "2e6e63e9fa0bb4f012286892046a76c512ebcf6b"
+   ],
+   "gold_file_count": 1,
+   "gold_files": [
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/PuzzleAcceptance.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 19,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr411",
+   "head_sha": "2e6e63e9fa0bb4f012286892046a76c512ebcf6b",
+   "id": "pr411",
+   "issue": 269,
+   "issue_link": "referenced",
+   "java_test_classes": [
+    "forge.spike.PuzzleAcceptanceTest"
+   ],
+   "merge_sha": "b9833ca05cd886101b5d54ce72626bc6356c6f16",
+   "merged_at": "2026-11-07T06:21:18-08:00",
+   "needs_jvm": true,
+   "pr": 411,
+   "pr_title": "fix(puzzles): an acceptance line naming an unknown counter type is refused",
+   "prompt": "# Puzzle prover follow-ups left by the PR #268 review\n\nThe reviews of PR #268 found these LOW issues and left them for later. Each one is small and separate from the others.\n\n- [ ] **`PuzzleAcceptance` accepts a misspelled counter name.**\n  - `forge-overlay/.../spike/PuzzleAcceptance.java`, the `counters` condition.\n  - `CounterType.getType` creates a custom counter type for any name, so a typo like `P1p1` reads 0 without any warning. As a result, `counters ... P1p1 = 0` is always accepted.\n  - This contradicts the class contract: \"a line it cannot read is refused\".\n  - Fix: check the name against `CounterEnumType` and the keyword counters in `parseLine`.\n- [ ] **The search arm draws repeatable modes as ordered tuples of full size.**\n  - `LlmSpikeGui.java` `decideModesRepeat`, search arm.\n  - The arm always draws exactly `min(num, 8)` modes, with replacement, in order. For \"up to N\", the prover never tries fewer modes, for either seat. It also branches over orderings that are the same choice.\n  - Fix: for `Search`, draw a count in `[min, num]`, then a multiset.\n- [ ] **A lethal tap source can still pay before an \"unpreferred\" source.**\n  - `ComputerUtilMana.java`: since epoch 65, a lethal source goes into `useLastManaSources`.\n  - That list also holds sources whose cost sacrifices another permanent. It is sorted by `sortByEvaluateCreature`, which ranks creatures, so the order between two non-creatures is arbitrary.\n  - Fix: append lethal sources to their own list after `useLastManaSources`, and add a golden check with such a source.\n- [ ] **`PuzzleSearch`'s `gaveUp` path has no test.**\n  - `PuzzleSearch.java`: removing `!gaveUp &&` keeps every test green.\n  - The flag only feeds report fields (`search_exhausted`, `uniqueness_exhausted`), never a verdict.\n  - About 5000 toy configurations never reached the flaw it guards against. The only path to it needs a give-up at two levels at once.\n  - Fix: a toy board with `linesPerNode=1` where a nested prove gives up after the tree is fully played; assert `!r.exhausted`.\n- [ ] **The verification record does not say which line a re-proof proved.**\n  - `eval/puzzle_baselines.py` `verify_puzzle`: since PR #268, a search re-proof may prove the puzzle on another line.\n  - Fix: store `replay_line` and `replay_solver_actions` in `verification` when the line differs from `reference_line.line`.\n- [ ] **`gate10.sh` uses a GNU-only regex.**\n  - `scripts/puzzle-gate/gate10.sh` `jvms()`: `grep -c '\\(^\\|/\\)java$'` relies on GNU `\\|` in a basic regex.\n  - Fix: `grep -cE '(^|/)java$'`.\n- [ ] **The canary re-pin note does not name its runs.**\n  - `eval/harness_acceptance.expected` (2026-10-19 note) and `docs/harness/ACCEPTANCE.md` (the linux random re-pin row).\n  - Fix: name the run directories:\n    - head `runs/harness-acceptance/20261019T212427Z`;\n    - main's worktree run `20261019T213133Z`;\n    - the bd3b9b1 acceptance run that reproduced A/55/365.\n- [ ] **The epoch-62 `playConfirmed` change landed in a misleadingly titled commit.**\n  - It is in b0258d6, titled `data(rules-pilot)`, not in the `fix(seat) ... (epoch 62)` commit 343c0b6. History can't be rewritten, so note it in `docs/harness/ARCHITECTURE.md` instead.",
+   "prompt_note": "the issue is only referenced in the PR's Why, and may be a multi-item tracking issue (the prompt is its whole text, not the one item this PR fixes)",
+   "prompt_quality": "weak",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleAcceptanceTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleAcceptanceTest.java",
+     "kind": "java",
+     "method": "aCounterTypeTheEngineDoesNotKnowIsRefused"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleAcceptanceTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleAcceptanceTest.java",
+     "kind": "java",
+     "method": "everyCommittedAcceptanceSectionParses"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleAcceptanceTest.java"
+   ]
+  },
+  {
+   "base_sha": "6a23a6992fc81af2b5c42fc2617ee8800c701c76",
+   "doc_files": [
+    ".claude/skills/standards/SKILL.md",
+    "docs/STANDARDS.md"
+   ],
+   "fix_commits": [
+    "25d0f695e9373e2477ce1f7d4ad2acbdb13fd3c6",
+    "6d9be6cb156e8377a8b7edac7e4275c1dfbce553"
+   ],
+   "gold_file_count": 2,
+   "gold_files": [
+    "scripts/pr_format.py",
+    "scripts/pr_merge.sh"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 33,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr410",
+   "head_sha": "6d9be6cb156e8377a8b7edac7e4275c1dfbce553",
+   "id": "pr410",
+   "issue": 247,
+   "issue_link": "closing",
+   "java_test_classes": [],
+   "merge_sha": "fc03c709522c8aa402aa9ffde22a1aab61687e11",
+   "merged_at": "2026-11-07T05:59:41-08:00",
+   "needs_jvm": false,
+   "pr": 410,
+   "pr_title": "fix(gate): a changed eval script still on UNTESTED.txt fails check-pr --gate",
+   "prompt": "# pin the leave-on-change duty: a diffed eval/*.py still on eval/UNTESTED.txt fails the check\n\nFollow-up to #119 resolution: the STANDARDS row now states the duty (a listed file changed after 2026-10-13 gains its test and leaves the list in that PR), but nothing fails mechanically when it is ignored - the standards reviewer pairing loop only rejects a NO-TEST file off the list; a changed on-list file passes silently.\n\nPin it: for every eval/*.py in a PR diff (past its own paired test file), the file may not still be on eval/UNTESTED.txt.\n\nEnforcement spots: (a) extend the .claude/skills/standards/SKILL.md pairing loop with the failure clause (reviewer-side, cheap), (b) a diff-reading stage in eval/harness_acceptance.sh (harness-side - the house pin home, cf. the ownership counters and the canary outcomes file). Prefer (b) so the gate enforces it without reviewer attention; prove on main with a red run, fix, merge gate.",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [
+    {
+     "file": "eval/tests/test_pr_format.py",
+     "module": "test_pr_format",
+     "style": "unittest"
+    }
+   ],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "file": "eval/tests/test_pr_format.py",
+     "kind": "python",
+     "method": "PrFormatTest.test_a_changed_script_still_on_the_untested_list_fails_the_gate",
+     "module": "test_pr_format",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_pr_format.py",
+     "kind": "python",
+     "method": "PrFormatTest.test_check_pr_gate_hands_the_heads_list_to_the_gate",
+     "module": "test_pr_format",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_pr_format.py",
+     "kind": "python",
+     "method": "PrFormatTest.test_the_gate_reads_the_untested_list_at_the_pr_head",
+     "module": "test_pr_format",
+     "style": "unittest"
+    }
+   ],
+   "test_files": [
+    "eval/tests/test_pr_format.py"
+   ]
+  },
+  {
+   "base_sha": "3ac59eb4f1d564ce8a6dcdc6d29dc7c16d03b066",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "0b93a1c43b1e1255e03ca6f125d907cbe20572c9",
+    "5d31f0259c031549ca55a2c89d568c4cff051e4c",
+    "912bade0b0ea4aec045ac6c8146273e1e3337db0",
+    "c07a014cafcc5f174751dba4e46d3666f833f2ec"
+   ],
+   "gold_file_count": 3,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 20,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr409",
+   "head_sha": "c07a014cafcc5f174751dba4e46d3666f833f2ec",
+   "id": "pr409",
+   "issue": 408,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.SeatObservationTest"
+   ],
+   "merge_sha": "6a23a6992fc81af2b5c42fc2617ee8800c701c76",
+   "merged_at": "2026-11-07T05:33:40-08:00",
+   "needs_jvm": true,
+   "pr": 409,
+   "pr_title": "fix(observation): the state guide says which keywords a player line shows",
+   "prompt": "# not-shown: the state guide says a player line has any keyword; untitled ones are left to their cards\n\n## Defect\nThe state guide says each player's line carries \"any keyword the player has (\\\"has hexproof\\\")\". Since #407, a keyword the engine gives no title is left off that line: Winter Orb's `UntapAdjust:Land:1`, and nine other cards (Imi Statue, Winter Moon, Mungha Wurm, Krrik, Stoic Angel, Smoke, Static Orb, Dovin Baan, Damping Field). That is on purpose, since each is a battlefield permanent whose rules text is in the state. But the guide's \"any\" overstates what the line shows.\n\n## What should have happened\nThe guide sentence names what the line shows: the keywords the engine titles. A keyword with no title is read from its card's text on the board.\n\n## Where\n`forge-overlay/forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java` (the GUIDE text, the \"YOU and OPP each start with a line of counts\" sentence) and `playerLine` (the blank-title skip).\n\n## Reproduce without the game\nRead the guide sentence against `playerLine`. `SeatObservationTest.aPlayersGrantedKeywordIsOnItsLineNotACommandCard` (Winter Orb) shows the keyword left out.\n\n## Fixed when\nThe guide sentence matches the line, the observation version moves (a prompt change), and acceptance passes.\n\n## Seen\n- pr-review of PR #407 @ eea4fbf (MEDIUM, listed in its Not done)\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "changed",
+     "class": "forge.spike.SeatObservationTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+     "kind": "java",
+     "method": "aPlayersGrantedKeywordIsOnItsLineNotACommandCard"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.SeatObservationTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+     "kind": "java",
+     "method": "theGuideSaysWhichKeywordsAPlayerLineShows"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
+   ]
+  },
+  {
+   "base_sha": "79d77510e663ddbca1064c36c8dfb054b89b3229",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "8a360e61350474f1e83c80b812c33d53c79322d9",
+    "49f7e47d3421f511808b15612d7cf9b3843f9de5",
+    "eea4fbf9b610cb8af537edc24f9065973b241b21"
+   ],
+   "gold_file_count": 3,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 43,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr407",
+   "head_sha": "eea4fbf9b610cb8af537edc24f9065973b241b21",
+   "id": "pr407",
+   "issue": 368,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.SeatObservationTest"
+   ],
+   "merge_sha": "3ac59eb4f1d564ce8a6dcdc6d29dc7c16d03b066",
+   "merged_at": "2026-11-07T04:59:32-08:00",
+   "needs_jvm": true,
+   "pr": 407,
+   "pr_title": "fix(observation): a player's granted keywords are on its line, not a command-zone card",
+   "prompt": "# The state lists the engine's Keyword Effects object as a card with a handle\n\n## Defect\nThe state lists Forge's internal \"Keyword Effects\" object as a card in a player's command zone, with a handle, as if\nit were a card the seat could inspect, play or target.\n\n## What happened\nFound by the rules probe's engine labeller (PR #359), not in a game, PR head @ 96a6500 (the observation code is\nmain's). On every board where the opponent controls Leyline of Sanctity (the labeller's `opp-leyline` variant, e.g.\n`eval/puzzles/hard/gen/drain_5594934e5f40.pzl` with `p1battlefield=Leyline of Sanctity` added), the seat's state\nshows, under the opponent:\n\n```\nOPP [Opponent] life 20 | ...\n  board: Leyline of Sanctity [untapped] @12\n  command: Keyword Effects @13\n```\n\nThe labeller first offered `@13` as a card to cast, play and target (now excluded there with `Card.isImmutable()`).\n\n## What should have happened\n\"Keyword Effects\" is an engine effect object that holds keywords granted to a player, here the player hexproof\nLeyline gives: `forge-game/src/main/java/forge/game/player/Player.java` (about line 3642) builds it with\n`setGamePieceType(GamePieceType.EFFECT)`, `setName(\"Keyword Effects\")`, `setImageKey(ImageKeys.HIDDEN_CARD)` and adds\nit to the command zone. It is not a card. The state either leaves it out of the command line or says what it is\n(\"you have hexproof (Leyline of Sanctity)\"), and never gives it a handle a seat could name.\n\n## Evidence\nThe state lines above, from the labeller's rows for that board (export of `RulesProbeLabelExport`). Not checked:\nwhether the solver's own command line shows it when an effect grants the solver a keyword (the same `zoneList` call).\n\n## Where\n`forge-overlay/forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java` about lines 1091 and 1106:\n`zoneList(viewer.getCardsIn(ZoneType.Command), ...)` and `zoneList(opp.getCardsIn(ZoneType.Command), ...)` list every\nobject in the command zone; effect objects (`Card.isImmutable()`) other than the puzzle's goal are not filtered or\ndescribed.\n\n## Reproduce without the game\nA unit test in `SeatObservationTest`: `bareGame()`, `Leyline of Sanctity` on the rival's battlefield (so the engine\ncreates the Keyword Effects object; confirm with `rival.getCardsIn(ZoneType.Command)`), render the solver's snapshot,\nand assert it has no `Keyword Effects @` entry. It fails on main.\n\n## Fixed when\nThe state has no \"Keyword Effects\" entry with a handle; if the granted keyword is shown, it is shown as the player's\n(\"hexproof\"), and `AskContract` still passes.\n\n## Detector gap\n`match_review.py` LEAK looks for engine ids and placeholders; an engine effect object's name (\"Keyword Effects\",\n\"Effect\") listed as a card is the same kind of leak and could be added to it.\n\n## Seen\n- rules probe export, the opp-leyline variant of every board, PR #359 @ 96a6500\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.SeatObservationTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+     "kind": "java",
+     "method": "aPlayersGrantedKeywordIsOnItsLineNotACommandCard"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
+   ]
+  },
+  {
+   "base_sha": "49aac312a8457a7fb14c285d660f7241af727c75",
+   "doc_files": [
+    "docs/STANDARDS.md",
+    "docs/harness/ACCEPTANCE.md"
+   ],
+   "fix_commits": [
+    "cf4cd9bc0c8d627b1a1accc6540456858d577920",
+    "ed069a2d201392055fd29f8ac36ec37553cbaa43",
+    "6be11c0ac28b86188f7ba8b9c64c811ad4bee4ae",
+    "6d5eeae12d4822215fb9da22d96c55f7cafd027a",
+    "817cb452716ef9f581c16e433a3ffc24cc928d8a"
+   ],
+   "gold_file_count": 1,
+   "gold_files": [
+    "eval/harness_acceptance.sh"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 4,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr406",
+   "head_sha": "817cb452716ef9f581c16e433a3ffc24cc928d8a",
+   "id": "pr406",
+   "issue": 372,
+   "issue_link": "closing",
+   "java_test_classes": [],
+   "merge_sha": "79d77510e663ddbca1064c36c8dfb054b89b3229",
+   "merged_at": "2026-11-07T04:29:51-08:00",
+   "needs_jvm": false,
+   "pr": 406,
+   "pr_title": "test(versions): every stamp is pinned by value in acceptance, and one-chat-v3 now is",
+   "prompt": "# ChatSessionBridge.VERSION is pinned nowhere, and nothing checks that every stamp is\n\n## Defect\n`docs/STANDARDS.md` section 4 says \"Each stamp is asserted by literal value in a stage of `eval/harness_acceptance.sh`\",\nand nothing checks it. `ChatSessionBridge.VERSION` (`one-chat-v3`, the ONE_CHAT arm) appears in no acceptance stage and\nno Java test: a grep of the repository finds it only at `ChatSessionBridge.java:47`. The other 11 listed stamps are\npinned at least once.\n\n## What should have happened\nEvery value `eval/versions.py` reads (except `FORGE_COMMIT`) appears in `eval/harness_acceptance.sh` or is asserted by a\ntest the javatests stage runs, so a version that moves without the gate moving turns acceptance red.\n\n## Evidence\nFound by the standards review of PR #370 (`grep -rn \"one-chat-v3\"` gives `ChatSessionBridge.java:47` only).\n\n## Fix\nPin `one-chat-v3` (a literal assert in a ChatSessionBridge test or an acceptance grep), and add\n`test_every_stamp_is_pinned_by_value_in_acceptance` to `eval/tests/test_versions.py` with a named allowlist and\nreasons; extend STANDARDS section 4: \"(`eval/tests/test_versions.py` checks each listed stamp's value appears in\n`harness_acceptance.sh`)\". Red today on `one-chat-v3`.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [
+    {
+     "file": "eval/tests/test_versions.py",
+     "module": "test_versions",
+     "style": "unittest"
+    }
+   ],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "file": "eval/tests/test_versions.py",
+     "kind": "python",
+     "method": "VersionsTest.test_a_comment_does_not_pin_a_stamp",
+     "module": "test_versions",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_versions.py",
+     "kind": "python",
+     "method": "VersionsTest.test_every_stamp_is_pinned_by_value_in_acceptance",
+     "module": "test_versions",
+     "style": "unittest"
+    },
+    {
+     "change": "changed",
+     "file": "eval/tests/test_versions.py",
+     "kind": "python",
+     "method": "VersionsTest.test_every_version_constant_is_a_stamp_or_says_why",
+     "module": "test_versions",
+     "style": "unittest"
+    }
+   ],
+   "test_files": [
+    "eval/tests/test_versions.py"
+   ]
+  },
+  {
+   "base_sha": "d891fefe65e2b6b7eb8ec42f5ea693ff8147935c",
+   "doc_files": [
+    "docs/harness/ACCEPTANCE.md",
+    "docs/harness/SETTINGS.md"
+   ],
+   "fix_commits": [
+    "aa01b65eb10db497fda0204ba63df17c984c020f",
+    "bf5ddd86d518ac9defb8d95fbe93906b30794d78"
+   ],
+   "gold_file_count": 2,
+   "gold_files": [
+    "eval/line_compare.py",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 6,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr405",
+   "head_sha": "bf5ddd86d518ac9defb8d95fbe93906b30794d78",
+   "id": "pr405",
+   "issue": 250,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.GoldenChecksTest"
+   ],
+   "merge_sha": "49aac312a8457a7fb14c285d660f7241af727c75",
+   "merged_at": "2026-11-06T15:07:01-08:00",
+   "needs_jvm": true,
+   "pr": 405,
+   "pr_title": "fix(record): a game the wall-clock cap stopped says capped on its game line",
+   "prompt": "# record: a wall-clock-capped game omits the capped stamp; win_condition stays the engine raw Draw\n\n",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [
+    {
+     "file": "eval/tests/test_experiments.py",
+     "module": "test_experiments",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_line_compare.py",
+     "module": "test_line_compare",
+     "style": "unittest"
+    }
+   ],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "changed",
+     "file": "eval/tests/test_experiments.py",
+     "kind": "python",
+     "method": "GroupingTest.test_every_game_line_key_is_in_the_experiment_key_or_is_an_outcome",
+     "module": "test_experiments",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_line_compare.py",
+     "kind": "python",
+     "method": "LineCompareTest.test_a_capped_game_is_counted_from_its_capped_field",
+     "module": "test_line_compare",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aCappedGameLineSaysItWasCapped"
+    }
+   ],
+   "test_files": [
+    "eval/tests/test_experiments.py",
+    "eval/tests/test_line_compare.py",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java"
+   ]
+  },
+  {
+   "base_sha": "a9bc528dd194d8ea8cce4bfa664380c373696a05",
+   "doc_files": [],
+   "fix_commits": [
+    "62eafd1139acbe4238a0b8c189c0350592535a36"
+   ],
+   "gold_file_count": 1,
+   "gold_files": [
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 9,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr404",
+   "head_sha": "62eafd1139acbe4238a0b8c189c0350592535a36",
+   "id": "pr404",
+   "issue": 251,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.LlmSpikeTest"
+   ],
+   "merge_sha": "d891fefe65e2b6b7eb8ec42f5ea693ff8147935c",
+   "merged_at": "2026-11-06T14:44:09-08:00",
+   "needs_jvm": true,
+   "pr": 404,
+   "pr_title": "fix(record): the TALLY line gives one latency average when one bridge answers both tiers",
+   "prompt": "# record: [TALLY] prints avgFast as a copy of avgSmart while fast=0 (one-tier shares the bridge)\n\n",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.LlmSpikeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
+     "kind": "java",
+     "method": "aSharedBridgeReportsOneAverage"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java"
+   ]
+  },
+  {
+   "base_sha": "ffcdb57022192d7378697a418d2dc854c8c85498",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "16f5e231953662913e5330960e62a11bb3fbba9a"
+   ],
+   "gold_file_count": 2,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 24,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr403",
+   "head_sha": "16f5e231953662913e5330960e62a11bb3fbba9a",
+   "id": "pr403",
+   "issue": 366,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.GoldenChecksTest",
+    "forge.spike.ProposeActionsTest"
+   ],
+   "merge_sha": "a9bc528dd194d8ea8cce4bfa664380c373696a05",
+   "merged_at": "2026-11-06T14:26:35-08:00",
+   "needs_jvm": true,
+   "pr": 403,
+   "pr_title": "fix(menu): a spell cast as another face counts the targets of that face",
+   "prompt": "# A Disturb cast whose back face is an Aura is never on the play menu\n\n## Defect\nA Disturb cast whose back face is an Aura is never on the play menu: the menu's target check counts the Aura's\n\"enchant\" targets while the card is still its front face in the graveyard, finds none, and hides a legal cast.\n\n## What happened\nFound by the rules probe's engine labeller (PR #359, `RulesProbeLabelExport`), not in a game: board\n`eval/puzzles/rules-pilot/authored-drafts/y_105.pzl`, base variant, built from the PR head @ 96a6500 (the menu code\nis main's). The solver has Grizzly Bears, three blue mana floating and Lantern Bearer in its graveyard. The proposal\n`cast @2 (Disturb)` (and `cast @2 face \"Lanterns' Lift\"`) is refused by the propose checker with\n`ILLEGAL (target): it has no legal target now.`, because the menu (`enumeratePlayOptions`) offers no play of Lantern\nBearer at all. A menu seat on that board cannot make the play either. That play is the board's own solution.\n\n## What should have happened\nLantern Bearer (`forge-gui/res/cardsfolder/l/lantern_bearer_lanterns_lift.txt`): `K:Disturb:2 U`, \"You may cast this\ncard from your graveyard transformed for its disturb cost\"; its back face Lanterns' Lift is\n`Types:Enchantment Aura`, `K:Enchant:Creature`, \"Enchanted creature gets +1/+1 and has flying\". With {2}{U}\navailable and a creature on the battlefield, casting it by Disturb is legal (CR 702.146a; an Aura spell targets the\nobject it will enchant, CR 303.4a). The menu offers `CAST Lantern Bearer (Disturb)`, its target ask lists Grizzly\nBears and the opponent's Wall of Stone, and a proposal of it is accepted.\n\n## Evidence\nA scratch probe on the PR head (an empty `bareGame(MAIN1)`, three Islands and Grizzly Bears on the battlefield,\nLantern Bearer in the graveyard), printing each spell of the card and its alternative costs through the menu's own\ngates:\n\n```\ndisturb: menu plays of Lantern Bearer: NONE\nsa=[Lantern Bearer - Creature 1 / 1] way=null playable=false payable=true targets=- offerable=false\nsa=[Disturb {2}{U} (You may cast this card ...)] way=Disturb playable=true payable=true targets=0 of min 1 offerable=false\n```\n\nThe Disturb ability is playable and payable; `TargetRestrictions.getAllCandidates` gives 0 candidates for a minimum\nof 1, so `offerable` returns false. The labeller labels the cast \"ILLEGAL (target)\" in 12 positions of that board\n(named as Disturb, as \"alternative\" and as the face, on four variants: `python3 eval/rules_probe.py count <items>\n--label illegal --name \"Lantern Bearer\" --category target`, PR #359); its hand audit of 60 negatives found two of\nthem (note `eval/research/2026-11-05-rules-probe.md` section 9.3).\n\n## Where\n`forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java` `offerable` (about line 10110), the loop\n\"Skip a play a part of which has no legal target\": `targetCandidates(part, tr).size() < part.getMinTargets()` with\n`targetCandidates` (about line 1399) calling `tr.getAllCandidates(sa, false)`. For a transformed cast from the\ngraveyard the restrictions are evaluated against the card's current (front, creature) state, so \"a creature this Aura\ncan enchant\" matches nothing. Not confirmed which part of `getAllCandidates` drops them; the propose checker's\n`proposalRejection` -> `costOrTarget` runs the same count and gives the \"no legal target\" sentence.\n\n## Reproduce without the game\n1. A unit test in `ProposeActionsTest` (or `PuzzleSetupTest` with the board above): `bareGame(PhaseType.MAIN1)`,\n   three `Island` and `Grizzly Bears` on the solver's battlefield, `Lantern Bearer` in its graveyard, `seat(...)`;\n   assert that `enumeratePlayOptions(me, true, true).spells` holds a spell whose host is Lantern Bearer and whose\n   `castWay` is \"Disturb\". It fails on main today (no play of the card).\n2. The labeller on the one board: from `$FORGE_HOME/forge-gui-desktop`, run `org.testng.TestNG -testclass\n   forge.spike.RulesProbeLabelExport` with `-Dharness.probe.boards=eval/puzzles/rules-pilot/authored-drafts/y_105.pzl\n   -Dharness.probe.variants=base -Dharness.probe.out=/tmp/y105.jsonl` (its class comment has the full command), then\n   look for the row `\"cost\":\"Disturb\"`: `\"label\":\"illegal\",\"category\":\"target\"` today.\n\n## Fixed when\nOn that board the menu offers the Disturb cast, its target ask lists Grizzly Bears (and Wall of Stone), the cast\nresolves as Lanterns' Lift attached to the chosen creature, and the proposal `cast @<Lantern Bearer> (Disturb)\ntargeting @<Bears>` is accepted. The unit test above passes; the labeller labels the Disturb row legal.\n\n## Detector gap\nA reading-only defect in games (a missing menu option leaves no row). The labeller sees it as a negative; a check that\npuzzle solutions are on the menu step by step (the puzzle runner's scripted line) would catch it.\n\n## Seen\n- rules probe export, board `rules-pilot/authored-drafts/y_105`, variants base and opp-hexproof, PR #359 @ 96a6500\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aDisturbAuraIsCastOntoTheChosenCreature"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.ProposeActionsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java",
+     "kind": "java",
+     "method": "aDisturbCastOfAnAuraIsOfferedWithItsTargets"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java"
+   ]
+  },
+  {
+   "base_sha": "e8670bc6ac3e2641464d85291b3429c0b946e9e3",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "504086b9a5cb9a9ce56d4c7f9e82563e72aa4f87",
+    "15db025a234bc6b694601ce10c8d571a4267f358",
+    "d0ba4c0949018206e7dbc005439a6de8870dd216"
+   ],
+   "gold_file_count": 4,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "eval/tooluse/answer_tools.json",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/AnswerTool.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 29,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr402",
+   "head_sha": "d0ba4c0949018206e7dbc005439a6de8870dd216",
+   "id": "pr402",
+   "issue": 399,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.AnswerToolTest"
+   ],
+   "merge_sha": "ffcdb57022192d7378697a418d2dc854c8c85498",
+   "merged_at": "2026-11-06T13:38:28-08:00",
+   "needs_jvm": true,
+   "pr": 402,
+   "pr_title": "fix(answer-tool): the yield says when the seat is still asked, as the play loop does it",
+   "prompt": "# not-shown: the yield description says own main phases always ask; with own items on the stack they are passed\n\n## Defect\nThe `answer` tool's `yield` field tells the seat \"your own main phases always ask too\". The harness asks in the seat's own main phase under a yield only when the stack is empty. With the seat's own spells or triggers on the stack, those windows are passed for it without asking.\n\n## What happened\nGame: `runs/puzzles/frontier5-fill/z-ai_glm-5.3__hard-drain2-516c13f84175/hard-drain2-516c13f84175/game-1-1793005629731.jsonl`, puzzle `eval/puzzles/hard/gen2/drain2_516c13f84175.pzl`, lane openrouter, harness epoch 72. The seat answered PASS with `yield: end-of-turn` in its MAIN2. The next window was still in its MAIN2, with its own Blood Artist and Carrion Feeder triggers on the stack and 3 castable options. It was passed for the seat: `{\"t\":\"window\",\"phase\":\"MAIN2\",\"active\":true,\"reason\":\"yield:end-of-turn\",\"castable\":3,\"stack\":2,\"stack_top\":\"#2 Blood Artist (Solver) -> Opponent | #1 Carrion Feeder (Solver)\"}`.\n\n## What should have happened\nThe description and the behaviour should agree. Either the description says the seat is asked in its own main phase only on an empty stack, or the harness asks in its own main phase whenever it has something castable. Which one is a design choice (the skip saves model calls; the description promises more). The smallest fix is the text, with the `AnswerTool` version moving.\n\n## Evidence\nFree read of every local game JSONL under `runs/` (window rows): 638 windows in 49 games have `reason` `yield:*`, phase `MAIN1`/`MAIN2`, `active: true`, `stack > 0` and `castable > 0`. 46 of the games are puzzles (23 solved, 23 failed, so no harm is shown) and 3 are demo games.\n\n`AnswerTool.java` on main @ 0ea6532:\n```java\nJsonObject y = obj(\"type\", \"string\", \"description\", \"Optional, with PASS only. \\\"none\\\" (the default): you are asked \"\n        + \"as usual. Otherwise, until then you are not asked in windows where nothing of your opponent's is on the stack \"\n        + \"(anything they cast or activate always asks you; your own main phases always ask too).\");\n```\n`LlmSpikeGui.java` (the play loop's yield check):\n```java\nelse if (!oppOnStack && !(ownMain && me.getGame().getStack().isEmpty()))\n    return skipWindow(\"yield:\" + yieldUntil, options.size());\n```\n\nA related point for the same text: \"until then\" does not say whether `end-of-turn` covers the rest of this turn's end step. It does (the yield ends when the turn number changes). A seat that yields in its end step with its own triggers pending is not asked again that turn. One recorded attempt (deepseek v4 pro, `hard-drain2-516c13f84175`, a PASS with \"Let the stack resolve the three drain triggers before doing further sacrifices\" and `YIELD: end-of-turn`) expected to be asked again, and lost.\n\n## Where\n`forge-overlay/forge-gui-desktop/src/main/java/forge/spike/AnswerTool.java` (the `yield` property's description, `s.yield` branch). `forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java` (the `yieldUntil` check in the play loop, `skipWindow(\"yield:\" ...)`).\n\n## Reproduce without the game\nA unit test in `LlmSpikeTest` or `GoldenChecksTest`: the seat yields `end-of-turn` in its MAIN2; a trigger of its own goes on the stack with an instant-speed ability castable; assert the window is asked. Today a `yield:end-of-turn` window row is written instead. Or assert the description's text, if the fix is the text.\n\n## Fixed when\nThe `yield` description states exactly when the seat is still asked, including its own main phase with its own items on the stack and the rest of the current turn. Alternatively, the play loop asks in those windows. The `AnswerTool` version moves either way.\n\n## Detector gap\n`match_review.py`'s SKIP line counts `t:\"window\"` rows but treats yields as the seat's own choice. It could list yield skips in the seat's own main phase with a non-empty stack separately.\n\n## Seen\n- `runs/puzzles/frontier5-fill/z-ai_glm-5.3__hard-drain2-516c13f84175/.../game-1-1793005629731.jsonl`, epoch 72\n- 48 more games in the count above (local runs, not committed)\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.AnswerToolTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/AnswerToolTest.java",
+     "kind": "java",
+     "method": "theYieldSaysWhenTheSeatIsStillAsked"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/AnswerToolTest.java"
+   ]
+  },
+  {
+   "base_sha": "3619cc9ffc50609bda4c74da6d240a7038b5e2ef",
+   "doc_files": [
+    "docs/harness/ACCEPTANCE.md",
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "8d20a3e9b4dce340b19a917da4b879efa6fe1eef",
+    "7cec5ffa1de90e425c18a7e9cca4def986804854",
+    "455bb41013ffa35087ebb78410c8fde79a5cfc37",
+    "ba016cc2e41413f83be1be253f620b3975b63b22",
+    "3428ae055e8ca5a3079c22518773b477bb860d69",
+    "56934be186202b9503b031a7877c1344c1899e5f"
+   ],
+   "gold_file_count": 4,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikePuzzle.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 62,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr400",
+   "head_sha": "56934be186202b9503b031a7877c1344c1899e5f",
+   "id": "pr400",
+   "issue": 398,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.PuzzleSetupTest",
+    "forge.spike.ReplayBridgeTest",
+    "forge.spike.RulesProbeLabelExport",
+    "forge.spike.SeatObservationTest"
+   ],
+   "merge_sha": "e8670bc6ac3e2641464d85291b3429c0b946e9e3",
+   "merged_at": "2026-11-06T13:11:48-08:00",
+   "needs_jvm": true,
+   "pr": 400,
+   "pr_title": "fix(observation): a puzzle's FACTS promise no combat after its last turn",
+   "prompt": "# not-shown: a puzzle's FACTS line promises a lethal next combat after the turn limit's last combat\n\n## Defect\nIn a puzzle, the prompt's `FACTS` line keeps reporting \"your next combat: ... = LETHAL\" after the last combat before the turn limit. The seat loses at cleanup on the limit turn, so that combat never happens, and seats cite the line as their reason to pass.\n\n## What happened\nGame: `runs/puzzles/hard-gen2-luna/hard-drain2-eaca60c560dc/game-1-1792652911646.jsonl`, seed 1, puzzle `eval/puzzles/hard/gen2/drain2_eaca60c560dc.pzl` (`Turns:1`), lane openrouter (GPT-6 Luna), harness epoch 70. Turn 1, `END_OF_TURN`, decision `play`, jsonl line 101.\nThe opponent was at 4. The prompt said `your next combat: 2 attacker(s) dealing 7 unblocked; their life 4 -> 0 = LETHAL`. The seat passed with \"the next combat is lethal per the state's combat estimate\", yielded to end of turn, and lost at cleanup (`status: failed`).\n\n## What should have happened\nThe turn limit is in the seat's brief (\"Turns Limit: 1\"; `LlmSpikePuzzle.seatBrief`). `Puzzle.addGoalEnforcement` makes the solver lose at the cleanup of the limit turn (`LlmSpikePuzzle.java`, class comment). On that turn, once combat is over, the solver has no next combat. The `FACTS` line is labelled engine arithmetic, so it should not state a lethal combat that the game will never reach. On the limit turn after combat, it should say that no combat remains before the limit, or leave the solver's clock out.\n\n## Evidence\n<details><summary>jsonl line 101 (trimmed)</summary>\n\n```json\n{\"t\":\"decision\",\"seat\":\"Solver\",\"turn\":1,\"phase\":\"END_OF_TURN\",\"type\":\"play\",\n \"options\":[\"ACTIVATE Reassembling Skeleton 1/1 @18 in your GRAVEYARD [{1}{B}: Return ... tapped.]\",\"ACTIVATE Swamp @10 [{T}: Add {B}.]\",\"ACTIVATE Carrion Feeder 5/5 @14 [Sacrifice a creature: Put a +1/+1 counter on Carrion Feeder.]\",\"PASS (do nothing)\"],\n \"raw_reply\":\"WHY: The available activations cannot drain the remaining 4 life this turn. Passing preserves both attackers; the next combat is lethal per the state's combat estimate.\\nCHOICE: 4\\nYIELD: end-of-turn\",\n \"prompt\":\"... OPP [Opponent] life 4 ... FACTS (engine estimates, not truth): your next combat: 2 attacker(s) dealing 7 unblocked; their life 4 -> 0 = LETHAL | they can make up to 0 mana at instant speed right now ...\"}\n```\n</details>\n\n**Scale** (free read of every local puzzle game JSONL under `runs/puzzles/`, 2828 games). On turn 1, in `MAIN2` or `END_OF_TURN`, the LETHAL line appeared in 311 games. In 38 games a reply in that window cites a later combat (`next combat|next attack|next turn|combat estimate|attack for lethal`). 33 of those 38 also had the LETHAL line, and 32 of those 33 failed. The 5 boards checked by name are all `Turns:1` (drain2_516c13f84175, hoofdrain_60c5afda2f25, equip_199209eaae33, hoofdrain_56318b4ffe85, atog_13ebf470428b). The models include GPT-6 Luna, Mistral Medium 3.5 and GLM 5.3. Other cited lines: \"the 7/7 Carrion Feeder is already enough to attack for lethal next combat\", and \"passing preserves the only route to lethal shown by the next-combat estimate\".\n\nThe citation count is a regex over replies, so it is a lower bound on reliance and says nothing about cause: a seat that passed for this reason might also have lost without the line.\n\n## Where\n`forge-overlay/forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java:602` `facts()` calls `clock(viewer, opp, \"your next combat\", b)` (`:613`). `clock` counts creatures that `CombatUtil.canAttackNextTurn` allows, without regard to the turn or phase, and puzzle mode does not change it. This is unchanged on main @ 0ea6532.\n\n## Reproduce without the game\n1. A unit test in `SeatObservationTest`. Set up a puzzle with the brief set (`LlmSpikeGui.puzzleBrief` and a 1-turn limit), the solver's creatures able to attack for at least the opponent's life, and the game in `MAIN2` of turn 1 after combat. Assert that the observation does not contain `your next combat:` with `= LETHAL`. Today it does.\n2. A zero-model run: any `Turns:1` hard drain puzzle on the random arm. Grep the decision prompts in `MAIN2`/`END_OF_TURN` for `your next combat:`.\n\n## Fixed when\nOn the puzzle's limit turn after combat, the solver's `FACTS` clause either says that no combat remains before the limit or is absent. In ordinary games and in puzzles before the limit, the line is unchanged. The observation version moves (`docs/STANDARDS.md` section 4), and the change and its version are in `docs/harness/ARCHITECTURE.md`.\n\n## Detector gap\nA reading-only defect: no script compares the `FACTS` line against the puzzle's turn limit. `match_review.py` could flag a puzzle decision whose prompt claims a next combat that the turn limit rules out.\n\n## Seen\n- `runs/puzzles/hard-gen2-luna/hard-drain2-eaca60c560dc/game-1-1792652911646.jsonl` line 101, epoch 70\n- `runs/puzzles/frontier5-fill/openai_gpt-6-luna__hard-drain2-516c13f84175/.../game-1-1793004746697.jsonl`, epoch 72\n- 31 more in the scale count above (local runs, not committed)\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleSetupTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+     "kind": "java",
+     "method": "aPuzzlesLastTurnIsReadOffItsGoalCard"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.SeatObservationTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+     "kind": "java",
+     "method": "aPuzzleSolverIsNotPromisedACombatAfterItsTurnLimit"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ReplayBridgeTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/RulesProbeLabelExport.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
+   ]
+  },
+  {
+   "base_sha": "c8f299279444d4bc8ae66dcfa363a0b7d14f4821",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "7741948a0bbc6cd84d71637236ce1fde149f6467",
+    "c23f50088e46ed0f99e2e65b090be3af72a8186f",
+    "f0b22b156d9c2c7c696f8e1867d0553417d82c15",
+    "0462d1025742c756bcecc497bc501e4d17521a77"
+   ],
+   "gold_file_count": 3,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/PlayerLookahead.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 112,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr397",
+   "head_sha": "0462d1025742c756bcecc497bc501e4d17521a77",
+   "id": "pr397",
+   "issue": 395,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.LookaheadProbeTest"
+   ],
+   "merge_sha": "0ea65328e85a1d05ee4a5ee423150a6174773b39",
+   "merged_at": "2026-11-06T11:45:15-08:00",
+   "needs_jvm": true,
+   "pr": 397,
+   "pr_title": "fix(lookahead): a modal spell's target is previewed in the mode the seat chose",
+   "prompt": "# harness: a modal spell the seat casts fails to target at the stack add (Betrayal of Flesh, Barbed Lightning)\n\n**Defect (seen in the free keyword gauntlet; cause not yet determined).** A modal spell the seat cast fails at the stack\nadd with `[Couldn't add to stack, failed to target]` after its mode was chosen, so an offered play is not made.\n\n**Seen.** `GAUNTLET_POLICY=random GAUNTLET_SEED=e86r GAUNTLET_TOOLS=1 bash eval/keyword_gauntlet.sh`, game `g-kw08`\n(the seat's own cards), on main 5a1b6c2 (harness-epoch-86) and identically on 18af95f (before today's merges #374,\n#386, #389, #393, #394), so it is not new. `python3 eval/gauntlet_scan.py` fails on exactly these two lines:\n\n```\n[kw08] [ROUTER] optional-costs: (none)\n[kw08] [AUTO-LEGAL] modes(forced-only-legal)\nBetrayal of Flesh (54) - [Couldn't add to stack, failed to target] - Choose one ?\n? Destroy target creature.\n? Return target creature card from your graveyard to the battlefield.\n...\n[kw08] [ROUTER] modes: Barbed Lightning deals 3 damage to target player or planeswalker.\nBarbed Lightning (28) - [Couldn't add to stack, failed to target] - Choose one ?\n? CARDNAME deals 3 damage to target creature.\n? CARDNAME deals 3 damage to target player or planeswalker.\n```\n\nThe default (`first`) policy run is clean. Both are charm-type cards with entwine (Barbed Lightning) or escalate-like\nmodes (Betrayal of Flesh).\n\n**Questions for the fixer.** Was the chosen mode legal to target at the time (a player or planeswalker target always\nexists for Barbed Lightning's second mode, so this looks like the target step itself returning nothing, not an\nillegal mode)? Does the random policy's target answer, the `forced-only-legal` mode path, or the entwine/escalate\noptional cost leave the spell with an unset target? Compare `ensureTargetsSet` and the target ask for modal spells.\n\n**What should happen.** A mode the menu offers is castable with a legal target the seat chooses; if the seat's answer\ncannot be applied, a deterministic legal option is taken and logged; never a silent failed play (`playsNotMade`\ncounts it, but the seat's offered play is lost).\n\n**Detector.** `gauntlet_scan.py` already flags it (random policy only).\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.LookaheadProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java",
+     "kind": "java",
+     "method": "aChosenModeOfAFlashbackCastIsPreviewed"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LookaheadProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java",
+     "kind": "java",
+     "method": "aChosenModeWithItsOwnSubAbilityIsPreviewed"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LookaheadProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java",
+     "kind": "java",
+     "method": "aChosenModesTargetIsPreviewedInThatMode"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LookaheadProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java",
+     "kind": "java",
+     "method": "aForcedModeAimedAtTheSeatsOwnCreatureIsPreviewed"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LookaheadProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java",
+     "kind": "java",
+     "method": "aModesOwnAbilityWithModeTextIsPartOfThatMode"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LookaheadProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java",
+     "kind": "java",
+     "method": "aModesOwnTargetedAbilityKeepsItsTargetOnTheCopysVersion"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LookaheadProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java",
+     "kind": "java",
+     "method": "theSecondOfTwoChosenModesIsPreviewedAtItsTarget"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java"
+   ]
+  },
+  {
+   "base_sha": "5a1b6c2b64682228eb4bd930a14093fbf7302714",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md"
+   ],
+   "fix_commits": [
+    "3a38aaed6b73853518d315a0bf929c2d49a205e6",
+    "5c23186632020a943510d64acb0a5e20141abfe6"
+   ],
+   "gold_file_count": 3,
+   "gold_files": [
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/DecisionsBridge.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/HttpDeadline.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 16,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr396",
+   "head_sha": "5c23186632020a943510d64acb0a5e20141abfe6",
+   "id": "pr396",
+   "issue": 388,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.DecisionsBridgeTest",
+    "forge.spike.PuzzleSetupTest",
+    "forge.spike.SeatObservationTest",
+    "forge.spike.TranscriptTest"
+   ],
+   "merge_sha": "c8f299279444d4bc8ae66dcfa363a0b7d14f4821",
+   "merged_at": "2026-11-06T10:47:39-08:00",
+   "needs_jvm": true,
+   "pr": 396,
+   "pr_title": "fix(transcript): a timed-out call always records the deadline stop, never the client's timeout",
+   "prompt": "# test: TranscriptTest.aTimedOutCallIsRecordedWithItsStop races the request's own timeout\n\n**Defect (flaky test).** `TranscriptTest.aTimedOutCallIsRecordedWithItsStop` fails intermittently under load: its\n300 ms call ends in the request's own `HttpTimeoutException` (an `error` row) before `HttpDeadline`'s poll loop sees\nits deadline (a `stop=\"deadline\"` row).\n\n**Seen.** A first full acceptance on PR #374's head 2837d40 (javatests 1133/1134; passed on re-run), and a full\nacceptance on branch `fix/crash-check-pairing` @ 123292c (javatests 1145/1146; Java untouched by that change).\n\n**Cause (from PR #374's round-5 review, read not run).** `OpenRouterBridge.send` sets `HttpRequest.timeout(remaining)`\nto the same `remaining` the `HttpDeadline.send` poll loop uses, so at about 300 ms the client's own timeout races the\nloop's `left <= 0` check. Not caused by the `IDLE_MS` test seam (those tests set 500 and 800 ms and restore it).\n\n**What should happen.** The test is deterministic: either give the request timeout a margin past the loop's deadline\n(so the loop always records the stop first), or have the test accept that the deadline was reached in either form,\nwhichever matches the documented contract of a timed-out call's row. Do not loosen the assertion to pass.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.DecisionsBridgeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
+     "kind": "java",
+     "method": "everyTimedOutCallStopsAtTheDeadlineNeverTheRequestsOwnTimeout"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.PuzzleSetupTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+     "kind": "java",
+     "method": "aPuzzleSolverReadsItsOwnCardsButNotItsLibrary"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.PuzzleSetupTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+     "kind": "java",
+     "method": "onlyThePuzzleSolverTracksItsLaterCards"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.TranscriptTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/TranscriptTest.java",
+     "kind": "java",
+     "method": "everyTimedOutCallRecordsTheDeadlineNeverTheRequestsOwnTimeout"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/TranscriptTest.java"
+   ]
+  },
+  {
+   "base_sha": "ea3a2694b50e50c7a2e8bfbeb6fb91c1e3cc81a9",
+   "doc_files": [
+    "docs/eval/PUZZLES.md",
+    "docs/harness/ACCEPTANCE.md",
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/MATCH-MODEL.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "b4643a8d46d14119262782ad87513a7cd019b014",
+    "d8730d46dcba8587c9aeca1ab7ef6cf16c205df5",
+    "bc6e406ff794ca4306fbda04148416aa97fc3a79",
+    "cd7584e7c1741ac64394558a52de6127e626ad21",
+    "446e5bb037265105bdd83821904eed49d0eea06a",
+    "0202de2ece06414ff192c03c82d0b303cebfdc4b"
+   ],
+   "gold_file_count": 4,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikePuzzle.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/SeatObservation.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 166,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr394",
+   "head_sha": "0202de2ece06414ff192c03c82d0b303cebfdc4b",
+   "id": "pr394",
+   "issue": 391,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.PuzzleSetupTest",
+    "forge.spike.SeatObservationTest"
+   ],
+   "merge_sha": "5a1b6c2b64682228eb4bd930a14093fbf7302714",
+   "merged_at": "2026-11-06T09:31:58-08:00",
+   "needs_jvm": true,
+   "pr": 394,
+   "pr_title": "fix(puzzle): a puzzle's solver is shown its own cards' rules text",
+   "prompt": "# not-shown: a puzzle seat is never shown its own cards' rules text (no YOUR CARDS block)\n\n## Defect\nA puzzle seat is never shown the rules text of its own cards: `LlmSpikePuzzle` builds the solver with an empty plan, so the `<your_deck>` block (YOUR DECKLIST / YOUR CARDS) that every STR seat gets is absent, and nothing else in the prompt carries own-card oracle text, type lines or keywords. Only the opponent's cards get printed text (OPPONENT CARDS YOU HAVE SEEN). Under the default PUZ condition (no `--memory-tools`) the seat cannot look it up either.\n\n## What happened\nPuzzle `hard-splice2-325cd33e0a57` (suite `hard-gen2`, `eval/puzzles/hard/gen2/splice2_325cd33e0a57.pzl`), solver GPT-6 Luna, `puzzle_solve.py` without `--memory-tools`, harness-epoch-72; the code path is unchanged on main @ 837933b (harness-epoch-84). The board is a Splice-onto-Arcane puzzle: hand Desperate Ritual x2, Glacial Ray x2, Lava Spike x3; Thermo-Alchemist and two Mountains; opponent at 21. The solution needs to know that Lava Spike and Desperate Ritual are Arcane, that Glacial Ray and Desperate Ritual have Splice onto Arcane {1}{R}, and that Thermo-Alchemist untaps whenever you cast an instant or sorcery. The seat was told none of these. The puzzle was unsolved, and the record cannot say whether the model misplayed or was never told the facts.\n\n## What should have happened\nThe seat reads what its own cards do, as an STR seat does (`LlmSpikeGui.main`, the `DECKLIST` gate: \"YOUR CARDS (what each card in your deck does)\", from Forge's card DB). Glacial Ray reads `Glacial Ray deals 2 damage to any target. Splice onto Arcane {1}{R}` and is typed `Instant \u2014 Arcane`; Lava Spike is `Sorcery \u2014 Arcane`; Thermo-Alchemist's text includes \"Whenever you cast an instant or sorcery spell, untap Thermo-Alchemist.\" (`forge-gui/res/cardsfolder/g/glacial_ray.txt`, `l/lava_spike.txt`, `t/thermo_alchemist.txt`).\n\n## Evidence\n<details><summary>System prompt (first HTTP request, trimmed)</summary>\n\n```\nYou are solving a Magic: The Gathering puzzle as the player \"Solver\" against one opponent. ...\n<puzzle>\nTurns Limit: 1\nIt is your second main phase. You are at 20 life and control Thermo-Alchemist and two untapped Mountains. Your hand is Desperate Ritual, Glacial Ray, Desperate Ritual, Lava Spike, Lava Spike, Glacial Ray and Lava Spike. The opponent is at 21 life and controls nothing. Reduce the opponent to 0 life this turn.\n</puzzle>\n<how_this_works>\n...\nYou have no lookup tools: everything you need is in the message.\n```\nNo `<your_deck>` block.\n</details>\n\n<details><summary>Decision row 4 (the first play menu), state and menu</summary>\n\n```\n  hand(7): Desperate Ritual 1{R} @1 (castable), Glacial Ray 1{R} @2 (castable), Desperate Ritual 1{R} @3 (castable), Lava Spike {R} @4 (castable), Lava Spike {R} @5 (castable), Glacial Ray 1{R} @6 (castable), Lava Spike {R} @7 (castable)\n  board: Thermo-Alchemist 0/3 [untapped] [defender] @8\nDECISION: You have priority (MAIN2, your main phase). Choose ONE action:\n  1) CAST Desperate Ritual @1 1{R} [Add {R}{R}{R}.]\n  2) CAST Glacial Ray @2 1{R} [Glacial Ray deals 2 damage to any target.]\n  3) CAST Desperate Ritual @3 1{R} [Add {R}{R}{R}.]\n  4) CAST Lava Spike @4 {R} [Lava Spike deals 3 damage to target player or planeswalker.]\n  ...\n  8) ACTIVATE Thermo-Alchemist 0/3 @8 [{T}: Thermo-Alchemist deals 1 damage to each opponent.]\n```\n</details>\n\nAcross the whole recorded attempt (64 rows plus the HTTP transcript), the strings `Splice` and `Arcane` appear only in the model's own replies and in the later SPLICE decision itself; no harness text says which cards are Arcane, which have Splice, or that Thermo-Alchemist untaps. `OPPONENT CARDS YOU HAVE SEEN` is in the guide, so the opponent's cards would get printed text when seen; the seat's own never do.\n\n## Where\n- `forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikePuzzle.java:585` `playOnce`: `LlmSpikeGui.seatFor(ctlA, \"Solver\", \"\", smartA, fastA)` gives the solver an empty plan, so `seatFraming` (`LlmSpikeGui.java:1876`) prints no `<your_deck>`.\n- `LlmSpikeGui.java:11380-11391` (`main`): YOUR DECKLIST / YOUR CARDS are built only on the STR path (`decklist(deck)`, `cardText(deck)`); the puzzle path has no deck (empty `Deck`, the `[state]` section is the board) and no equivalent.\n- `SeatObservation.java:290-320`: `cardTextLine` / `opponentCardText` print database text for opponent cards only. The other oracle mentions (`SeatObservation.java:1463`, `:1490`) are inside `inspect`, the lookup tool, so they reach the seat only with `MEMORY_TOOLS=1`, and only if the seat asks.\n\n## Conditions and suites affected\n- Every PUZ condition run without `--memory-tools` (the default for `puzzle_solve.py`, `docs/eval/PUZZLES.md` \"no lookup tools unless `--memory-tools` is given\"), and every lane that cannot take it (`jev:`, `claude-cli:`). With `--memory-tools` the seat can `inspect` a card for its oracle and types, so it is not blind there, but it still must think to ask; the two conditions now differ in more than \"has lookups\".\n- Every frozen suite: `puzzles-forge-builtin-v1`, `puzzles-rules-sample-v1`, `puzzles-hard-gen-v1`, `-gen2-v1`, `-gen3-v1`. It bites hardest where the solution turns on a card's text beyond its spell ability (splice, Arcane subtype, triggered abilities of permanents, static abilities): the generated `splice2` family, Thermo-Alchemist boards, and similar.\n- It confounds the PUZ score: an unsolved puzzle may be \"model mistake\" or \"never shown the card\".\n\n## Reproduce without the game\n1. Unit test (`PuzzleSetupTest` or a new test beside it): load `eval/puzzles/hard/gen2/splice2_325cd33e0a57.pzl`, build the solver seat as `LlmSpikePuzzle.playOnce` does, and assert its system prompt (`seatFraming` with the plan the solver gets) contains `Splice onto Arcane` and `Arcane` for Glacial Ray / Lava Spike and Thermo-Alchemist's untap trigger. It fails on main: the plan is `\"\"`.\n2. Zero-model: `python3 eval/puzzles/puzzle_solve.py` on that board with the loopback fake model (`eval/fake_model_server.py`, as in `eval/harness_acceptance.sh`'s `scoring` stage) and `TRANSCRIPTS=1`; grep the recorded system prompt for `your_deck` and `Splice`: both absent.\n\n## Fixed when\nThe solver's system prompt carries a YOUR CARDS block built from the board's own cards (every card the solver owns in any zone of the `[state]` section: hand, battlefield, graveyard, exile, library if known), with each card's cost, type line and full oracle text, from the same `cardText` source the STR seat uses; and `SeatObservation.cardTextLine` then skips those cards as it does a deck's. A test asserts the block for the splice board above.\n\nMeasurement note: this changes the condition. It is a new `HARNESS_EPOCH` (and the puzzle framing is part of what the seat is shown), so PUZ results before and after do not pool. The zero-model baselines read no prompt and are unaffected; every model result on these suites must be re-run. Whether the library's cards are listed (an author may hide them) needs a decision; the safe default is the zones the solver can see.\n\n## Detector gap\nA reading-only defect: no script compares the cards on the solver's side of the board with the text it was shown. `match_review.py` could flag a puzzle prompt with no `<your_deck>` block while the solver owns nonland cards.\n\n## Seen\n- runs/puzzles/frontier5-fill/openai_gpt-6-luna__hard-splice2-325cd33e0a57, decision row 4, harness-epoch-72\n- runs/puzzles/frontier5-fill/typesafe_jev-1.14__hard-splice2-325cd33e0a57 (same board, decision-model lane), harness-epoch-72\n- Code path re-read on main @ 837933b (harness-epoch-84). No zero-model attempt run: no build at epoch 84 existed, and the shared Forge lock was held by another agent's acceptance run.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleSetupTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+     "kind": "java",
+     "method": "aPuzzleSolverReadsItsOwnCardsButNotItsLibrary"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleSetupTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+     "kind": "java",
+     "method": "onlyThePuzzleSolverTracksItsLaterCards"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleSetupTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+     "kind": "java",
+     "method": "theGameSeatsCardTextIsUnchanged"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.PuzzleSetupTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+     "kind": "java",
+     "method": "theSolversCardsAreItsSideItCanSeeAndNoOneElses"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.SeatObservationTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+     "kind": "java",
+     "method": "aPuzzleSolversCardDrawnLaterIsShownWithItsText"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.SeatObservationTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+     "kind": "java",
+     "method": "aSolverWithNoSetupCardsStillReadsACardItDraws"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.SeatObservationTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
+     "kind": "java",
+     "method": "aSolversOwnCardIsNotRepeatedAsTheOpponents"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
+   ]
+  },
+  {
+   "base_sha": "0c1b83d08a039c202ecb918d50d60f8eddaf7680",
+   "doc_files": [
+    "docs/harness/ACCEPTANCE.md",
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/GOLDEN-CHECKS.md",
+    "docs/harness/VERSIONS.md",
+    "docs/harness/controller-ownership.tsv"
+   ],
+   "fix_commits": [
+    "87f0681b305edc8ea90aff4978b8f8997784fc29",
+    "5884411bba54ec3a08f9dca88a7128bd976a9817",
+    "1cf50f11cac8f8389899629d05a537d74fe2c5a8",
+    "daf24b76b263d8ae98bb4c12cf974050f8021d0e"
+   ],
+   "gold_file_count": 2,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 93,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr393",
+   "head_sha": "daf24b76b263d8ae98bb4c12cf974050f8021d0e",
+   "id": "pr393",
+   "issue": 392,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.GoldenChecksTest",
+    "forge.spike.LineFindingProbeTest"
+   ],
+   "merge_sha": "ea3a2694b50e50c7a2e8bfbeb6fb91c1e3cc81a9",
+   "merged_at": "2026-11-06T08:56:14-08:00",
+   "needs_jvm": true,
+   "pr": 393,
+   "pr_title": "fix(splice): a splice set the cast cannot pay is asked again, not cast",
+   "prompt": "# not-offered: a cast undone for an unpayable splice set hides that card for the window, silently\n\n## Defect\nWhen the seat picks a splice set the whole cast cannot pay, the engine undoes the cast and the seat is told nothing; then `failedInWindow` removes that card from the play menu for the rest of the priority window, although it is still castable with no splice or with a payable set. A legal play is hidden, which CLAUDE.md forbids (\"a legal action is never hidden\").\n\n## What happened\nPuzzle `hard-splice-f3bc218b2fb5` (`eval/suites/puzzles-hard-gen-v1.json`), solver GPT-6 Luna, harness-epoch-70, no lookup tools; the same code is on main @ 837933b (harness-epoch-84). With `{R:3}` in the pool and no untapped sources, the seat cast Lava Spike ({R}) and, at the SPLICE ask (decision row 38), picked both Glacial Ray and Desperate Ritual (splice {1}{R} each): total {2}{R}{R}{R}, five mana against three. Each card alone was payable, so both were offered. The cast failed and was rolled back; the card came back as `Lava Spike {R} @15 (was @2) (castable)`. At the next play menu (row 47) Lava Spike is not offered, and nothing in the prompt says the cast failed. On `hard-splice2-325cd33e0a57` (`puzzles-hard-gen2-v1.json`) a `jev:` decision model picked the unpayable pair `Glacial Ray, Glacial Ray` three times, losing a different Lava Spike each time, until the menu offered no Lava Spike while three sat `(castable)` in hand.\n\n## What should have happened\nA failed cast is reported to the seat (what was chosen, that it could not be paid, and that nothing was played), and the card stays on the menu: Lava Spike for {R} is castable from {R:3} with no splice (CR 702.47a: splicing is optional and the splice cost is an additional cost). Better still, a splice set the cast cannot pay as a whole is never accepted: `chooseCardsForSplice` checks each card alone, while the ask lets the seat choose any subset.\n\n## Evidence\n<details><summary>Row 38 (SPLICE ask) and row 47 (next play menu), trimmed</summary>\n\n```\nrow 38  type=splice  reply: \"Splice both Arcane cards onto Lava Spike ... PICKS: 1,2\"\n  mana pool {R:3}; lands: 0 untapped / 3 total\n  hand(3): Lava Spike {R} @2 (castable), Glacial Ray 1{R} @4 (castable), Desperate Ritual 1{R} @5 (castable)\nDECISION: SPLICE [Lava Spike: Lava Spike deals 3 damage to target player or planeswalker.] This spell targets: Opponent.: choose the cards in your hand to splice onto it. ...\nChoose between 0 and 2 of these (by number):\n  1) Glacial Ray 1{R} @4\n  2) Desperate Ritual 1{R} @5\n\nrow 47  type=play\n  mana pool {R:3}\n  hand(3): Lava Spike {R} @15 (was @2) (castable), Glacial Ray 1{R} @4 (castable), Desperate Ritual 1{R} @5 (castable)\nDECISION: You have priority (MAIN2, your main phase). Choose ONE action:\n  1) CAST Glacial Ray @4 1{R} [Glacial Ray deals 2 damage to any target.]\n  2) CAST Desperate Ritual @5 1{R} [Add {R}{R}{R}.]\n  3) PASS (do nothing)\n```\nNo line in row 47's prompt mentions the failed cast (searched for `fail`, `not played`, `could not`, `undone`).\n</details>\n\n`jvm.log`, verbatim:\n```\n[Solver] [ROUTER] splice: Glacial Ray, Desperate Ritual\nComputerUtilMana: payManaCost() cost was not paid for Lava Spike deals 3 damage to target player or planeswalker. (Splicing Glacial Ray (4) onto it) (Splicing Desperate Ritual (5) onto it) ...\n[Solver] [ROUTER] play: FAILED to pay for Lava Spike @15 \u2014 cost: {2}{R}{R}{R} [Lava Spike deals 3 damage to target player or planeswalker.] -> nothing was played\n[Solver] [ROUTER] play: a play that failed to pay in this window is not offered again\n[Solver] [ROUTER] play(main): 2 castable -> asking ...\n```\nThe `jev:` run's `jvm.log` shows `splice: Glacial Ray, Glacial Ray` followed by `FAILED to pay for Lava Spike @16`, `@17`, `@18`, each `cost: {2}{R}{R}{R}`.\n\n## Where\n- `forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java:3370` `chooseCardsForSplice`: tests each card with `legallyPayable` on its own, then `pickCards` lets the seat pick any 0..N subset; a subset whose total the pool cannot meet is accepted.\n- `LlmSpikeGui.java:5393` (play routine): `chosenKey = failedPlayKey(sa)` is taken from the unspliced spell (host card id, alternative cost, state, description), so a failure of the spliced copy blacklists the plain cast of that card.\n- `LlmSpikeGui.java:5465-5468`: on a failed payment, `failedInWindow.add(chosenKey)`; unlike the cancel branch just above (which sets `cancelNote` \"... Choose again.\"), nothing is queued for the seat.\n- `LlmSpikeGui.java:4109`, `:4141`: the window key is `turn|phase|stack top`, so after the rollback (stack empty again) it is the same window and `options.removeIf(failedInWindow...)` drops Lava Spike.\n`failedInWindow` exists for a play that can never be paid (the keyword gauntlet's unpayable craft offered 999 times); here the failure belongs to the splice choice, not to the card.\n\n## Reproduce without the game\n1. Unit test on `PlayerControllerLLM` (no test covers `chooseCardsForSplice` or `failedInWindow` today): a game with `{R}{R}{R}` floating, Lava Spike, Glacial Ray and Desperate Ritual in hand; a scripted answer picks both splice cards; assert that after the failed cast (a) the next play menu still offers Lava Spike and (b) the next prompt states that the cast could not be paid. Both fail on main.\n2. Zero-model: `eval/puzzles/hard/gen2/splice2_325cd33e0a57.pzl` with a `script:` seat (`ScriptBridge.java`) that casts Desperate Ritual, then Lava Spike, and picks both Glacial Rays at the splice ask; grep `jvm.log` for `FAILED to pay for Lava Spike` followed by `not offered again`, and the next play row's menu for `Lava Spike`.\n\n## Fixed when\nAfter a splice set the cast cannot pay: the seat's next prompt says the cast of Lava Spike with that splice set could not be paid and nothing was played; the next play menu still offers `CAST Lava Spike`; and, preferably, the SPLICE ask refuses (or re-asks with the reason) a subset whose combined cost the cast cannot pay, so the failed cast never happens. `failedInWindow` still drops a play that cannot be paid at all.\n\n## Detector gap\n`defect_analyzer.py` (or `match_review.py`) could flag a `play` row whose state lists a hand card `(castable)` that has no `CAST` option on the menu, and a `FAILED to pay` log line not followed by a seat-visible notice.\n\n## Seen\n- runs/puzzles/hard-gen-luna-check/hard-splice-f3bc218b2fb5, rows 38 and 47, harness-epoch-70\n- runs/puzzles/frontier5-fill/typesafe_jev-1.14__hard-splice2-325cd33e0a57, three failed splices, harness-epoch-72\n- Code path re-read on main @ 837933b (harness-epoch-84). No zero-model run: no build at epoch 84 existed and the shared Forge lock was held by another agent.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aSpliceSetThePoolCannotPayTogetherIsAskedAgain"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LineFindingProbeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LineFindingProbeTest.java",
+     "kind": "java",
+     "method": "aSplicedCastThatFailsToPayLeavesThePlainCastOfferedAndSaysSo"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LineFindingProbeTest.java"
+   ]
+  },
+  {
+   "base_sha": "66b455bbb5f535dff4be7193d0c9345f49e5a238",
+   "doc_files": [
+    "docs/harness/ARCHITECTURE.md"
+   ],
+   "fix_commits": [
+    "123292cf90505dd5dd82022eac99852338c1f54a",
+    "eb2bec41fecd1abb5decd280d5c285d401af932d",
+    "7ead5795ab4de3bba5e3b14623ccb12cc9148d2c"
+   ],
+   "gold_file_count": 1,
+   "gold_files": [
+    "eval/defect_analyzer.py"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 26,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr390",
+   "head_sha": "f4c7015dfe22ad00c14811ac4180385d4a7929f9",
+   "id": "pr390",
+   "issue": 385,
+   "issue_link": "closing",
+   "java_test_classes": [],
+   "merge_sha": "0c1b83d08a039c202ecb918d50d60f8eddaf7680",
+   "merged_at": "2026-11-06T08:21:36-08:00",
+   "needs_jvm": false,
+   "pr": 390,
+   "pr_title": "fix(eval): every log has one owning game file in defect_analyzer's crash check",
+   "prompt": "# eval: defect_analyzer's crash check pairs logs differently from its bridge-down check\n\n**Defect (LOW, follow-up of PR #374).** `defect_analyzer.py`'s crash check (`\"game thread threw\" in log_text`, now\nlive since #374) reads the log `pair_dir` chose (seat-order name, then any unclaimed log of the seed), while the\nbridge-down check pairs through `aggregate.paired_log` by the game file the log names. In a directory with two game\nfiles for one (seed, swap) (a foreign-condition line plus its replay, which `run_batch.py` produces) a crashed\nreplay's crash is listed under the old file, and a game with `game_error` whose log a sibling claimed can be counted\ntwice. Pass/fail cannot change: a crash is reported only when one happened in the directory.\n\n**Fix.** Pair the crash check's log through `aggregate.paired_log(dict(last, _file=jp.name), dir)` for files with a\ngame line, so both checks share one pairing; add a two-files-one-log fixture to `test_defect_analyzer`.\n\nAlso from #374's last review (cosmetic): `docs/harness/ARCHITECTURE.md:1071` is 132 characters inside a bullet wrapped\nat 120.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [
+    {
+     "file": "eval/tests/test_defect_analyzer.py",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    }
+   ],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "file": "eval/tests/test_defect_analyzer.py",
+     "kind": "python",
+     "method": "test_a_crash_is_listed_under_the_one_file_that_owns_its_log",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    }
+   ],
+   "test_files": [
+    "eval/tests/test_defect_analyzer.py"
+   ]
+  },
+  {
+   "base_sha": "837933be1f031cfa23fd2e64ff3c9b7dfab2bad5",
+   "doc_files": [
+    "docs/eval/PUZZLES.md",
+    "docs/harness/ACCEPTANCE.md",
+    "docs/harness/ARCHITECTURE.md"
+   ],
+   "fix_commits": [
+    "f3edf49fad09a75005e38554e26b3d01c84405b0",
+    "7b9091fbad7798024875d03a3fc6b17413e2efcf",
+    "fc158e9450ce1a7325508fc1370070ca91dce798"
+   ],
+   "gold_file_count": 6,
+   "gold_files": [
+    "eval/defect_analyzer.py",
+    "eval/harness_acceptance.sh",
+    "eval/puzzles/puzzle_score.py",
+    "eval/puzzles/puzzle_solve.py",
+    "eval/puzzles/puzzle_watch.py",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 104,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr389",
+   "head_sha": "fc158e9450ce1a7325508fc1370070ca91dce798",
+   "id": "pr389",
+   "issue": 378,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.GoldenChecksTest"
+   ],
+   "merge_sha": "66b455bbb5f535dff4be7193d0c9345f49e5a238",
+   "merged_at": "2026-11-06T07:31:16-08:00",
+   "needs_jvm": true,
+   "pr": 389,
+   "pr_title": "fix(harness): a puzzle attempt played on a dead model bridge is refused, not scored unsolved",
+   "prompt": "# harness: a puzzle attempt played on a dead model bridge is scored as unsolved\n\n**Defect.** A puzzle attempt whose model bridge is dead (e.g. the provider answers HTTP 402, out of credits) is\nscored as an unsolved attempt. PUZ, a headline score, then reports a lower pass rate with nothing refusing it.\nThis is the puzzle side of #369, which PR #374 fixes for STR games only.\n\n**Where.** `eval/puzzles/puzzle_score.py` (refuses `routing_refusals` near line 117, not dead-bridge attempts);\nthe puzzle row written by `LlmSpikePuzzle` carries no transport-failure count.\n\n**What should happen.** The attempt row carries the count of decisions lost to a transport failure (the same rule\nas PR #374: a non-200 other than a function-calling or routing refusal, an IO error, a silent connection; never\nan empty answer or a deadline), and `puzzle_score.py` refuses or sets aside an attempt with a non-zero count, the\nway it treats routing refusals.\n\n**Reproduce.** A loopback fake-model server answering 402 (`fake_model_server --http-error 402`, from PR #374) as\nthe seat of one `puzzle_solve.py` attempt: today the row is `solved: false` and it is pooled.\n\n**Detector gap.** `puzzle_score.py` should refuse the pool; `defect_analyzer.py`'s `bridge_down_total` does not\nread puzzle rows.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [
+    {
+     "file": "eval/tests/test_defect_analyzer.py",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_puzzle_score.py",
+     "module": "test_puzzle_score",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_puzzle_solve.py",
+     "module": "test_puzzle_solve",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_puzzle_watch.py",
+     "module": "test_puzzle_watch",
+     "style": "unittest"
+    }
+   ],
+   "support_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ToolAnswerBridge.java"
+   ],
+   "targets": [
+    {
+     "change": "added",
+     "file": "eval/tests/test_defect_analyzer.py",
+     "kind": "python",
+     "method": "test_a_puzzle_attempt_a_dead_bridge_played_fails_the_invariants",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_score.py",
+     "kind": "python",
+     "method": "DeadBridgeRefusalTest.test_a_row_from_before_the_field_is_judged_by_its_puzzles_jvm_log",
+     "module": "test_puzzle_score",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_score.py",
+     "kind": "python",
+     "method": "DeadBridgeRefusalTest.test_an_attempt_a_dead_bridge_played_is_refused_and_one_it_did_not_is_scored",
+     "module": "test_puzzle_score",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_solve.py",
+     "kind": "python",
+     "method": "ResumeTest.test_a_row_from_before_the_field_whose_log_shows_a_dead_bridge_is_played_again",
+     "module": "test_puzzle_solve",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_solve.py",
+     "kind": "python",
+     "method": "ResumeTest.test_an_attempt_a_dead_bridge_played_is_played_again",
+     "module": "test_puzzle_solve",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_puzzle_watch.py",
+     "kind": "python",
+     "method": "EachPuzzleTest.test_a_row_a_dead_bridge_played_is_flagged_as_that",
+     "module": "test_puzzle_watch",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aPuzzleRowCountsTheDecisionsADeadBridgeLost"
+    }
+   ],
+   "test_files": [
+    "eval/tests/test_defect_analyzer.py",
+    "eval/tests/test_puzzle_score.py",
+    "eval/tests/test_puzzle_solve.py",
+    "eval/tests/test_puzzle_watch.py",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ToolAnswerBridge.java"
+   ]
+  },
+  {
+   "base_sha": "443b502ab57abc7ce5dbf27bcba79fdb1c03cfe1",
+   "doc_files": [
+    "docs/STANDARDS.md",
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "1736828101f890d87580b097cdaea8dcfc477f6a",
+    "8927f2e224c0fd21e976424b3b0055b18c1a7b16"
+   ],
+   "gold_file_count": 2,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 40,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr386",
+   "head_sha": "8927f2e224c0fd21e976424b3b0055b18c1a7b16",
+   "id": "pr386",
+   "issue": 380,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.GoldenChecksTest",
+    "forge.spike.KeywordSurfaceSweepTest",
+    "forge.spike.PromptFidelityTest",
+    "forge.spike.ProposeActionsTest"
+   ],
+   "merge_sha": "837933be1f031cfa23fd2e64ff3c9b7dfab2bad5",
+   "merged_at": "2026-11-06T06:10:32-08:00",
+   "needs_jvm": true,
+   "pr": 386,
+   "pr_title": "fix(harness): play gates read playsNotMade, and X=0 target abilities take no target",
+   "prompt": "# harness: playChosenSpellAbility returns true when nothing was played, so play gates cannot fail\n\n**Defect.** `PlayerControllerLLM.playChosenSpellAbility` returns true on every branch, including after\n`[ROUTER] play: FAILED to pay ... -> nothing was played`, a static that forbids the play, no legal target, and a\nCharm with no modes (`LlmSpikeGui.java` near 5396, 5400, 5420, 5448). Test gates that read the return value cannot\nsee an offered play the seat could not pay:\n- `KeywordSurfaceSweepTest.java:234` counts \"not played\" only through the return value, and its log scan does not\n  look for \"FAILED to pay\".\n- `ProposeActionsTest.java:367` (`assertTrue(ctrl.playChosenSpellAbility(hold), \"the offered play was not paid\")`,\n  PR #375) cannot fail; the test is still red-able through its tapped/stack assertions.\n\nIn play the effect is small: the log and `playsNotMade` record the failure; `PhaseHandler.java:1094` gives the seat\npriority again after the no-op (Forge's AI controller also always returns true; the human controller returns false).\n\n**What should happen.** Either return false where nothing was played (check the PhaseHandler priority effect, and\nthat snapshot restore stays off at the pin), or keep true, document it, and move the gates onto `playsNotMade()` or a\n\"FAILED to pay\" log match. Either way `ProposeActionsTest:367` asserts `playsNotMade() == 0`.\n\n**Also left from PR #375's last review (LOW):**\n- At payment time the tap-type search can use a card the spell's own tap part already named (`tapPartHolds`), since\n  CostTapType pays after mana; the holds are reserved only afterwards in `prepayOne`. Board: Fear of Exposure whose\n  tap part named Nettle Sentinel and Grizzly Bears, the only witness Druid + Nettle + Fyndhorn. Fix: pass the holds\n  to the search as excluded candidates. Plausible, not reproduced.\n- The javadocs of `prepayTapTypeManaAbilities` and the #105 `payManaCost` path still describe only the engine-plan\n  path; add \"or, when that plan is null, the first activation tapTypeStep finds (#367)\".\n\n**Detector gap.** A grep for `assertTrue(.*playChosenSpellAbility` in tests would catch the assertion pattern; the\nstandards review proposed it as a \u00a75 rule.\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aCounterspellCountersTheSpell"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aFixedTargetXSpellAtXZeroKeepsItsTarget"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aKeptSourceLeavesAPaymentTheEngineMakes"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aPhyrexianSpellPayableOnlyWithLifeIsCastWithLife"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aSearchDeclinedAgainAfterKeepSearchingEnds"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aSearchKeptGoingCanStillFetchAndLeavesNothingBehind"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "aShoalsXIsAnnouncedByTheSeat"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "anUpToCostReductionIsAskedWhenPayingNotWhilePricing"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "anXTargetAbilityAtXZeroTakesNoTarget"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "craftExilesAnArtifactFromEitherZone"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "floatingManaIsNotAskedWhilePricing"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "floatingManaIsOnTheMenu"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "forkTargetingAtXZeroSetsNoTarget"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "stifleCountersAnAbilityItNames"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.GoldenChecksTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+     "kind": "java",
+     "method": "toxicDelugesLifeIsTheSeats"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.KeywordSurfaceSweepTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/KeywordSurfaceSweepTest.java",
+     "kind": "java",
+     "method": "theVerdictCountsAPaidPlayTheStackRefused"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.KeywordSurfaceSweepTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/KeywordSurfaceSweepTest.java",
+     "kind": "java",
+     "method": "theVerdictReportsACancelledPlay"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.KeywordSurfaceSweepTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/KeywordSurfaceSweepTest.java",
+     "kind": "java",
+     "method": "theVerdictReportsAnOfferedPlayThatWasNotPaid"
+    },
+    {
+     "change": "changed",
+     "class": "forge.spike.ProposeActionsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java",
+     "kind": "java",
+     "method": "aTapAbilityWhoseManaNeedsTheSearchIsPaidByTheRealPayment"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/KeywordSurfaceSweepTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PromptFidelityTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java"
+   ]
+  },
+  {
+   "base_sha": "18af95ff25b331fac9568dd954e26dfe144451d4",
+   "doc_files": [
+    ".claude/skills/harness-audit/SKILL.md",
+    "docs/STANDARDS.md",
+    "docs/eval/SCORING.md",
+    "docs/harness/ACCEPTANCE.md",
+    "docs/harness/ARCHITECTURE.md"
+   ],
+   "fix_commits": [
+    "3964e4d5b84c5a9d231cdd5e3370bcbd349f5ef9",
+    "a1b21cb07067d2c2f93f4e87e5523c11fd7745c1",
+    "4bd14c0a635da2a90e3bce8f469a1ae50aa670f0",
+    "4e36cc06492568529769ffb7fee266cf49afd0a3",
+    "620ac90407f98fb6221bbe48ecefeb089980d6d0",
+    "44773bf43f702fc7cfa423d2d9994ea067377cf4",
+    "f381be731d96adea9a7d27d15e9d0adbef562422",
+    "3ecfeb8eca0499f89ac339bc68ffb5bbc7867b36",
+    "2d8e146147498e22aaa0d6535c97d861794fbd93",
+    "45fffebf1eaca67b2cf7b8960d68ed4380343da9",
+    "6f2f319af58571d76339ce8c0f775b226c7b759c",
+    "8e6ebfd5b201854113fa03e3a76277144954940c",
+    "282abaf4b2292243ecc4009f2e0ebbc463c57419",
+    "fd702497b633779d79edb1569c4010292f41e32d",
+    "1b2f480410bd7b70693fe7dbc42e2a9513fed246"
+   ],
+   "gold_file_count": 11,
+   "gold_files": [
+    "eval/aggregate.py",
+    "eval/defect_analyzer.py",
+    "eval/fake_model_server.py",
+    "eval/harness_acceptance.sh",
+    "eval/panel_score.py",
+    "eval/rating.py",
+    "eval/run_batch.py",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/ChatSessionBridge.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/DecisionsBridge.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/HttpDeadline.java",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 498,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr374",
+   "head_sha": "5fa8549b0e6053553dd370ff7e9c3c8e59b38e3f",
+   "id": "pr374",
+   "issue": 369,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.DecisionsBridgeTest",
+    "forge.spike.LlmSpikeTest",
+    "forge.spike.OpenRouterTimeoutTest"
+   ],
+   "merge_sha": "232caa38276999f3c30a944389ed2db3fd47934f",
+   "merged_at": "2026-11-06T04:58:25-08:00",
+   "needs_jvm": true,
+   "pr": 374,
+   "pr_title": "fix(harness): a game that lost decisions to a dead model bridge is invalid, not scored",
+   "prompt": "# A game whose provider refused every call is scored as a valid decisive game\n\n## Defect\nA game whose model provider refused every call is scored as a valid, decisive game. When OpenRouter answers HTTP 402\n(\"This request would exceed your available credits\"), each decision falls to its fixed legal option\n(`play(bridge-down)->PASS`, `mulligan(bridge-down)->KEEP`, `attackers(bridge-down)->none`), the game plays out with\na seat that only passes, and nothing on the game line says so: `aggregate.py` counts it decisive (invalid: 0) and\n`defect_analyzer.py`'s hard invariants report `overall=PASS`.\n\n## What happened\nAn exploratory 20-game block on 2026-11-05 (GPT-6 Luna seat vs Forge AI, burn mirror, seeds 1000-1019, harness-epoch-82,\noverlay 0582191d06fb, `run_batch.py --exploratory --jobs 3 --budget-usd 1.20 --memory-tools --lookahead`). The account's\ncredits ran out part way: 18 of 20 games lost decisions to the bridge (349 lost in all), and seeds 1009-1019 made no\nmodel decision at all (`match_review.py`: \"model decisions 0\", LOST 10-34 each, provider error x30-104). `aggregate.py`\nreported 20 decisive games and win rates over them; `defect_analyzer.py` printed `ai_tier_count=0 silent_drop_total=0\ngame_crash_count=0 overall=PASS` while its own fallback table listed `play(bridge-down) 260`, `mulligan(bridge-down) 11`,\n`attackers(bridge-down) 9`. The game line has no field naming the failure (no bridge-down count, no circuit-breaker flag).\n\n## What should have happened\nA game in which the seat's decisions were not the model's should not reach a win rate. Either the game line carries the\ncount of decisions lost to a dead bridge (and the circuit-breaker trip), and `aggregate.py` / `panel_score.py` /\n`rating.py` treat a game over a threshold (or any such game) as invalid, or the run stops when the provider answers a\nnon-retryable error such as 402 (credits) or 401, and the game is marked invalid. `defect_analyzer.py`'s hard\ninvariants should fail on bridge-down decisions in a scored run.\n\n## Evidence\n- `match_review.py` per game, e.g. seed 1012: `model decisions 0 | ... LOST 21`, `LOG provider error x66`.\n- `game-1004-0.log`: `[OPENROUTER Seat/smart] HTTP 402: {\"error\":{\"message\":\"This request would exceed your available\n  credits ...`, and a `circuit breaker` line.\n- `aggregate.py`: `total: 9 decisive: 9 ... invalid: 0` and `total: 11 decisive: 11 ... invalid: 0` (split only by an\n  unresolved served identity, not by the failure).\n- The run directory is kept locally (`runs/cv/luna-vs-ai` in the worktree that played it); not committed.\n\n## Where\n- The fallback: `LlmSpikeGui.PlayerControllerLLM.askModel` and the per-seat circuit breaker (`consecutiveBridgeFailures`,\n  `circuitBreakerTripped`), which log but write nothing to the game line.\n- The scorers: `eval/aggregate.py` (validity: only a missing game line or winner makes a game invalid),\n  `eval/panel_score.py`, `eval/rating.py`.\n- The oracle: `eval/defect_analyzer.py` hard invariants (`ai_tier_count`, `silent_drop_total`, `game_crash_count`).\n\n## Reproduce without paying\nA fake-model run where the loopback server answers HTTP 402 to every call (`eval/fake_model_server.py` has error\nmodes; add one if not): play one zero-cost game, then check that the game line carries the lost count and that\n`aggregate.py` counts the game invalid and `defect_analyzer.py` fails.\n\n## Fixed when\nThe 402 fake-model game is invalid in `aggregate.py`, refused by `panel_score.py`, and fails `defect_analyzer.py`'s\nhard invariants; a game with no bridge failure is unchanged (byte-identical game line apart from a new additive field).\n\n## Detector gap\n`defect_analyzer.py` already counts `(bridge-down)` fallbacks in its table but does not gate on them.\n\n## Seen\n- 2026-11-05, the 20-game block above (18 of 20 games affected).\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [
+    {
+     "file": "eval/tests/test_aggregate.py",
+     "module": "test_aggregate",
+     "style": "script"
+    },
+    {
+     "file": "eval/tests/test_defect_analyzer.py",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_experiments.py",
+     "module": "test_experiments",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_fake_model_server.py",
+     "module": "test_fake_model_server",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_panel_score.py",
+     "module": "test_panel_score",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_rating.py",
+     "module": "test_rating",
+     "style": "unittest"
+    },
+    {
+     "file": "eval/tests/test_run_batch.py",
+     "module": "test_run_batch",
+     "style": "unittest"
+    }
+   ],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "file": "eval/tests/test_aggregate.py",
+     "kind": "python",
+     "method": "test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out",
+     "module": "test_aggregate",
+     "style": "script"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_aggregate.py",
+     "kind": "python",
+     "method": "test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid",
+     "module": "test_aggregate",
+     "style": "script"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_aggregate.py",
+     "kind": "python",
+     "method": "test_an_old_line_is_judged_by_the_transport_failures_in_its_log",
+     "module": "test_aggregate",
+     "style": "script"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_aggregate.py",
+     "kind": "python",
+     "method": "test_the_gates_are_over_the_scored_games",
+     "module": "test_aggregate",
+     "style": "script"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_defect_analyzer.py",
+     "kind": "python",
+     "method": "test_a_crash_only_its_log_shows_fails_the_invariants",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_defect_analyzer.py",
+     "kind": "python",
+     "method": "test_decisions_lost_to_a_dead_bridge_fail_the_invariants",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_defect_analyzer.py",
+     "kind": "python",
+     "method": "test_the_standards_name_every_hard_invariant",
+     "module": "test_defect_analyzer",
+     "style": "unittest"
+    },
+    {
+     "change": "changed",
+     "file": "eval/tests/test_experiments.py",
+     "kind": "python",
+     "method": "GroupingTest.test_every_game_line_key_is_in_the_experiment_key_or_is_an_outcome",
+     "module": "test_experiments",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_fake_model_server.py",
+     "kind": "python",
+     "method": "HttpErrorTest.test_an_out_of_credits_provider_refuses_every_request_with_402",
+     "module": "test_fake_model_server",
+     "style": "unittest"
+    },
+    {
+     "change": "changed",
+     "file": "eval/tests/test_fake_model_server.py",
+     "kind": "python",
+     "method": "RefuseToolsTest.test_a_request_with_tools_is_refused_and_one_without_is_answered",
+     "module": "test_fake_model_server",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_panel_score.py",
+     "kind": "python",
+     "method": "TestMirrorPanel.test_a_cell_with_a_decision_lost_to_a_dead_bridge_is_refused",
+     "module": "test_panel_score",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_panel_score.py",
+     "kind": "python",
+     "method": "TestMirrorPanel.test_an_empty_sanity_arm_counts_no_dead_bridge_and_one_whose_transport_failed_is_refused",
+     "module": "test_panel_score",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_rating.py",
+     "kind": "python",
+     "method": "TestConditionGuard.test_a_fake_model_sanity_arm_is_rated_and_refused_only_when_its_transport_failed",
+     "module": "test_rating",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_rating.py",
+     "kind": "python",
+     "method": "TestConditionGuard.test_a_game_with_a_decision_lost_to_a_dead_bridge_is_refused",
+     "module": "test_rating",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_run_batch.py",
+     "kind": "python",
+     "method": "TestCrashRerun.test_a_game_played_on_a_dead_bridge_is_reported_as_such_and_not_played_again_at_once",
+     "module": "test_run_batch",
+     "style": "unittest"
+    },
+    {
+     "change": "changed",
+     "file": "eval/tests/test_run_batch.py",
+     "kind": "python",
+     "method": "TestCrashRerun.test_a_set_aside_attempt_still_counts_against_the_budget_once",
+     "module": "test_run_batch",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_run_batch.py",
+     "kind": "python",
+     "method": "TestResumeIdentity.test_a_game_that_lost_decisions_to_a_dead_bridge_is_set_aside_and_replayed",
+     "module": "test_run_batch",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "file": "eval/tests/test_run_batch.py",
+     "kind": "python",
+     "method": "TestResumeIdentity.test_the_file_judged_dead_is_the_one_set_aside_and_its_status_is_under_the_runs_condition",
+     "module": "test_run_batch",
+     "style": "unittest"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.DecisionsBridgeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
+     "kind": "java",
+     "method": "onlyATransportFailureIsADeadBridge"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.LlmSpikeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
+     "kind": "java",
+     "method": "decisionsLostToADeadBridgeAreCountedOnTheGameLine"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.OpenRouterTimeoutTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/OpenRouterTimeoutTest.java",
+     "kind": "java",
+     "method": "aSilentConnectionAndARefusedConnectionAreDeadBridges"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.OpenRouterTimeoutTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/OpenRouterTimeoutTest.java",
+     "kind": "java",
+     "method": "aTruncationRetryThatFailsInTransportLeavesTheModelsOwnLoss"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.OpenRouterTimeoutTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/OpenRouterTimeoutTest.java",
+     "kind": "java",
+     "method": "onlyATransportFailureIsADeadBridge"
+    }
+   ],
+   "test_files": [
+    "eval/tests/test_aggregate.py",
+    "eval/tests/test_defect_analyzer.py",
+    "eval/tests/test_experiments.py",
+    "eval/tests/test_fake_model_server.py",
+    "eval/tests/test_panel_score.py",
+    "eval/tests/test_rating.py",
+    "eval/tests/test_run_batch.py",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/OpenRouterTimeoutTest.java"
+   ]
+  },
+  {
+   "base_sha": "211f36a5d700f5d04366fd934731d87870f977a3",
+   "doc_files": [
+    "docs/harness/ACCEPTANCE.md",
+    "docs/harness/ARCHITECTURE.md",
+    "docs/harness/MODEL-LIMITS.md",
+    "docs/harness/VERSIONS.md"
+   ],
+   "fix_commits": [
+    "17b6325a51bd45368061375be953eb9987ec91f1",
+    "a6141328efa3cfb20ba9c720729a5e94347c08aa",
+    "350e2f44045eb6179c503d5f5553cf95dc1ce59d",
+    "0072d35fd813f01dbb46caa14737a02ac3f9a6e7"
+   ],
+   "gold_file_count": 2,
+   "gold_files": [
+    "eval/harness_acceptance.sh",
+    "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
+   ],
+   "gold_hidden": true,
+   "gold_lines": 235,
+   "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr375",
+   "head_sha": "0072d35fd813f01dbb46caa14737a02ac3f9a6e7",
+   "id": "pr375",
+   "issue": 367,
+   "issue_link": "closing",
+   "java_test_classes": [
+    "forge.spike.LlmSpikeTest",
+    "forge.spike.ProposeActionsTest"
+   ],
+   "merge_sha": "8a2b9439406ba26fec92815d34454890c7e3d25b",
+   "merged_at": "2026-11-05T21:02:17-08:00",
+   "needs_jvm": true,
+   "pr": 375,
+   "pr_title": "fix(payment): a tap-N-untapped mana ability counts toward what the menu can pay",
+   "prompt": "# The menu's payment check misses Heritage Druid's mana, hiding a payable Craterhoof\n\n## Defect\nThe menu's payment check does not count mana from Heritage Druid (\"Tap three untapped Elves you control: Add\n{G}{G}{G}\"), so a spell the board can pay for is hidden: Craterhoof Behemoth on the elf boards.\n\n## What happened\nFound by the rules probe's engine labeller (PR #359, `RulesProbeLabelExport`), not in a game, on the `hoofdrain`\nboards (`eval/puzzles/hard/gen2/hoofdrain_*.pzl`), PR head @ 96a6500 (the menu code is main's). On\n`hard/gen2/hoofdrain_1760166562b2` (base) the solver controls Heritage Druid, Nettle Sentinel, Fyndhorn Elves, Priest\nof Titania and a Forest, with Craterhoof Behemoth in hand; the menu offers no cast of it and the propose checker\nrefuses `cast @<Craterhoof>` with `ILLEGAL (cost): you cannot pay its mana cost now.` Same on\n`hoofdrain_4962cb5b4d19` (summon-sick variant) and on `hoofdrain_4f7ac995ab62` (base), whose Craterhoof becomes\n\"castable\" only when one more Elf joins the battlefield.\n\n## What should have happened\nCraterhoof Behemoth costs {5}{G}{G}{G} (`forge-gui/res/cardsfolder/c/craterhoof_behemoth.txt`). Priest of Titania:\n\"{T}: Add {G} for each Elf on the battlefield\" (4 here). Heritage Druid\n(`forge-gui/res/cardsfolder/h/heritage_druid.txt`): \"Tap three untapped Elves you control: Add {G}{G}{G}\"; that cost\nhas no {T} symbol, so it may tap Heritage Druid itself and creatures with summoning sickness (CR 302.6). Priest (4),\nthen Heritage Druid tapping itself, Nettle Sentinel and Fyndhorn Elves (3), then the Forest (1): 8 mana, the full\ncost. The menu offers the cast.\n\n## Evidence\nA scratch probe on the PR head (an empty `bareGame(MAIN1)`; Forest, Heritage Druid, Nettle Sentinel, Fyndhorn Elves\nand Priest of Titania on the solver's battlefield, not sick; Craterhoof Behemoth in hand), adding a Forest each step:\n\n```\nhoof, 8 available (Priest 4 + Druid GGG + Forest): menu plays of Craterhoof Behemoth: NONE\nhoof, 9 available (one more Forest):                menu plays of Craterhoof Behemoth: NONE\nhoof, 10 available:                                 menu plays of Craterhoof Behemoth: [Craterhoof Behemoth - Creature 5 / 5]\n```\n\nIt is offered exactly when the board pays 8 without Heritage Druid (Priest 4, Fyndhorn 1, three Forests), so the\ncheck never uses the Druid's ability. In the labeller's set, at most 194 mana-cost negatives on 47 boards have\nHeritage Druid on the solver's battlefield, 188 of them Craterhoof (`python3 eval/rules_probe.py count <items>\n--label illegal --reason-has \"mana cost\" --solver-board-has \"Heritage Druid\"`, PR #359; note section 9.3); not all\nare wrong.\n\n## Where\n`forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java` `offerable` (about line 10080):\n`payable = alt ? legallyPayable(...) : seatCanPay(sa, me, 0, false)`, `seatCanPay` at about line 9236. Not located\nfurther: the mana a \"tap N untapped <type> you control\" cost makes (`CostTapType` on a mana ability) is not in the\nsources the check counts. The state's own estimate (\"mana available ... Heritage Druid makes 3, Priest of Titania makes\n4\") counts it, so the observation and the menu disagree.\n\n## Reproduce without the game\n1. A unit test in `ProposeActionsTest`: the probe board above with one Forest; assert that\n   `enumeratePlayOptions(me, true, true).spells` holds a spell whose host is Craterhoof Behemoth. It fails on main.\n2. The labeller on one board: `-Dharness.probe.boards=eval/puzzles/hard/gen2/hoofdrain_1760166562b2.pzl\n   -Dharness.probe.variants=base` (the class comment of `RulesProbeLabelExport` has the full command); the\n   Craterhoof `cast` row is `\"label\":\"illegal\",\"category\":\"cost\"` today.\n\n## Fixed when\nOn the probe board with one Forest the menu offers `CAST Craterhoof Behemoth`, and the cast pays with the Priest, the\nDruid's three Elves and the Forest. The unit test passes; the labeller labels the base Craterhoof cast legal on\n`hoofdrain_1760166562b2`.\n\n## Detector gap\nA reading-only defect in games. `AskContract`'s hand-tag rule compares the hand's \"(castable)\" tag with the menu; a\ncheck that the state's \"mana available\" estimate covers a spell the menu refuses as unpayable would flag it.\n\n## Seen\n- rules probe export, boards `hard/gen2/hoofdrain_1760166562b2` (base), `hoofdrain_4962cb5b4d19` (summon-sick),\n  `hoofdrain_4f7ac995ab62` (base), PR #359 @ 96a6500\n\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_",
+   "prompt_note": "",
+   "prompt_quality": "ok",
+   "python_tests": [],
+   "support_files": [],
+   "targets": [
+    {
+     "change": "added",
+     "class": "forge.spike.LlmSpikeTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
+     "kind": "java",
+     "method": "aTapTypeSourceTheEngineCannotPlanIsStillTheSeats"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.ProposeActionsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java",
+     "kind": "java",
+     "method": "aTapAbilityWhoseManaNeedsTheSearchIsPaidByTheRealPayment"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.ProposeActionsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java",
+     "kind": "java",
+     "method": "aTapUntappedElvesBoardOneManaShortDoesNotOfferTheSpell"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.ProposeActionsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java",
+     "kind": "java",
+     "method": "aTapUntappedElvesManaAbilityCountsTowardTheMenu"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.ProposeActionsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java",
+     "kind": "java",
+     "method": "aTapUntappedElvesPartNeverTakesTheCardTheAbilityTaps"
+    },
+    {
+     "change": "added",
+     "class": "forge.spike.ProposeActionsTest",
+     "file": "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java",
+     "kind": "java",
+     "method": "aTapUntappedElvesPaymentLeavesTheSpellsOwnTapPartPayable"
+    }
+   ],
+   "test_files": [
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
+    "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java"
+   ]
+  }
+ ]
+}
