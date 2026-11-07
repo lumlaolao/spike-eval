@@ -1,0 +1,36 @@
+{
+ "engine_head": "34a8662b7966a6ee757411feae2ae8ff38cce436",
+ "gold_lines": 26,
+ "grader_sha256": "5462b896c043c4e3c477eb31ebab391f0daf2f1daee0c6469c4cf7532e143cb7",
+ "green": {
+  "compile_ok": true,
+  "failed_targets": [],
+  "notes": [],
+  "partial": 1.0,
+  "regressions": [],
+  "score": 1,
+  "targets_passed": 1,
+  "targets_total": 1
+ },
+ "red": {
+  "compile_ok": true,
+  "failed_targets": [
+   "test_defect_analyzer.test_a_crash_is_listed_under_the_one_file_that_owns_its_log"
+  ],
+  "notes": [
+   "eval/tests/test_defect_analyzer.py: 2 test(s) not passing, e.g. DefectAnalyzerSuite.test_every_check"
+  ],
+  "partial": 0.2824,
+  "regressions": [
+   "test_defect_analyzer.DefectAnalyzerSuite.test_every_check"
+  ],
+  "score": 0,
+  "targets_passed": 0,
+  "targets_total": 1
+ },
+ "red_kind": "tests",
+ "repo_head": "51495d65aa0a3e13d751c0d8da8bf5253cbfd548",
+ "task": "pr390",
+ "validated_at": "2026-11-07T18:44:18Z",
+ "well_posed": true
+}
