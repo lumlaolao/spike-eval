@@ -1,12 +1,18 @@
 package forge.spike;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import forge.util.FileSection;
+import forge.util.FileUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -82,6 +88,52 @@ public class PuzzleAcceptanceTest {
                 Assert.assertTrue(expected.getMessage().contains(bad), expected.getMessage());
             }
         }
+    }
+
+    /** #269: the engine makes a custom counter type for any name, so a misspelled one read 0 and "= 0" always held. */
+    @Test
+    public void aCounterTypeTheEngineDoesNotKnowIsRefused() {
+        for (String bad : new String[] {"counters p0 Battlefield \"Hooded Hydra\" P1P1S = 0",
+                "counters p0 Battlefield * LOYALT >= 3", "counters p0 Battlefield * Any = 0",
+                "counters p0 Battlefield * Hexproof:Card.Blak:black = 0", "counters p0 Battlefield * NIGHT >= 1"}) {
+            try {
+                PuzzleAcceptance.parse(Collections.singletonList(bad));
+                Assert.fail("accepted: " + bad);
+            } catch (IllegalArgumentException expected) {
+                Assert.assertTrue(expected.getMessage().contains("counter type"), expected.getMessage());
+            }
+        }
+        // Every name a committed puzzle uses still reads, in the engine's own case-insensitive spelling, and a
+        // keyword counter is a type too.
+        PuzzleAcceptance.parse(Arrays.asList("counters p0 Battlefield * P1P1 = 1", "counters p0 Battlefield * p1p1 = 1",
+                "counters p0 Battlefield * M1M1 = 1", "counters p0 Battlefield * LOYALTY = 1",
+                "counters p0 Battlefield * TIME = 1", "counters p0 Battlefield * REVIVAL = 1",
+                "counters p0 Battlefield * QUEST = 1", "counters p0 Battlefield * CHARGE = 1",
+                "counters p0 Battlefield * Flying = 1"));
+    }
+
+    /** Every committed puzzle's [acceptance] section parses as the runner parses it before a game, so a parser that
+     *  grows stricter (#269) cannot strand a committed puzzle unseen. */
+    @Test
+    public void everyCommittedAcceptanceSectionParses() throws IOException {
+        List<String> refused = new ArrayList<>();
+        int read = 0;
+        Path root = PuzzleSetupTest.repoRoot().toPath().resolve("eval/puzzles");
+        try (java.util.stream.Stream<Path> files = Files.walk(root)) {
+            List<Path> puzzles = files.filter(x -> x.toString().endsWith(".pzl")).collect(Collectors.toList());
+            for (Path f : puzzles) {
+                List<String> acceptance = FileSection.parseSections(FileUtil.readFile(f.toFile())).get("acceptance");
+                if (acceptance == null) continue;
+                read++;
+                try {
+                    PuzzleAcceptance.parse(acceptance);
+                } catch (IllegalArgumentException e) {
+                    refused.add(f + ": " + e.getMessage());
+                }
+            }
+        }
+        Assert.assertTrue(read >= 1000, "found only " + read + " acceptance sections");
+        Assert.assertEquals(refused, Collections.emptyList());
     }
 
     @Test
