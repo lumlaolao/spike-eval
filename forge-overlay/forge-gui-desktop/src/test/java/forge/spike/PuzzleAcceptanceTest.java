@@ -84,6 +84,27 @@ public class PuzzleAcceptanceTest {
         }
     }
 
+    /** #269: the engine makes a custom counter type for any name, so a misspelled one read 0 and "= 0" always held. */
+    @Test
+    public void aCounterTypeTheEngineDoesNotKnowIsRefused() {
+        for (String bad : new String[] {"counters p0 Battlefield \"Hooded Hydra\" P1P1S = 0",
+                "counters p0 Battlefield * LOYALT >= 3", "counters p0 Battlefield * Any = 0"}) {
+            try {
+                PuzzleAcceptance.parse(Collections.singletonList(bad));
+                Assert.fail("accepted: " + bad);
+            } catch (IllegalArgumentException expected) {
+                Assert.assertTrue(expected.getMessage().contains("counter type"), expected.getMessage());
+            }
+        }
+        // Every name a committed puzzle uses still reads, in the engine's own case-insensitive spelling, and a
+        // keyword counter is a type too.
+        PuzzleAcceptance.parse(Arrays.asList("counters p0 Battlefield * P1P1 = 1", "counters p0 Battlefield * p1p1 = 1",
+                "counters p0 Battlefield * M1M1 = 1", "counters p0 Battlefield * LOYALTY = 1",
+                "counters p0 Battlefield * TIME = 1", "counters p0 Battlefield * REVIVAL = 1",
+                "counters p0 Battlefield * QUEST = 1", "counters p0 Battlefield * CHARGE = 1",
+                "counters p0 Battlefield * Flying = 1"));
+    }
+
     @Test
     public void anEmptySectionIsRefused() {
         try {

@@ -195,7 +195,9 @@ counters p0 Battlefield "Walking Ballista" P1P1 >= 3
 winner p0                                          p0, p1 or none
 ```
 
-A line it cannot read stops the run before any game. Result rows carry `acceptance` (accepted or rejected) and
+A line it cannot read stops the run before any game. That includes a counter type the engine does not know: a
+`counters` line names an enum counter (`P1P1`, in any case) or a keyword counter (`Flying`), because Forge makes a
+custom type for any other name and it would always read 0 (#269). Result rows carry `acceptance` (accepted or rejected) and
 `acceptance_failed` (each failed condition with what was there).
 
 Two things the state does not say. When a player loses, Forge turns face up every face-down card that player owns

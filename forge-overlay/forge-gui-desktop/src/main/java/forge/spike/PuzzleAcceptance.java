@@ -7,6 +7,8 @@ import java.util.List;
 import forge.game.Game;
 import forge.game.GameOutcome;
 import forge.game.card.Card;
+import forge.game.card.CounterEnumType;
+import forge.game.card.CounterKeywordType;
 import forge.game.card.CounterType;
 import forge.game.player.Player;
 import forge.game.zone.ZoneType;
@@ -96,7 +98,7 @@ final class PuzzleAcceptance {
                             num(w.get(5)), null);
                 case "counters":
                     need(w.size() == 7);
-                    return new Cond(line, kind, player(w.get(1)), zone(w.get(2)), name(w.get(3)), w.get(4),
+                    return new Cond(line, kind, player(w.get(1)), zone(w.get(2)), name(w.get(3)), counter(w.get(4)),
                             op(w.get(5)), num(w.get(6)), null);
                 default:
                     throw new IllegalArgumentException("unknown condition");
@@ -143,6 +145,18 @@ final class PuzzleAcceptance {
     private static String zone(String s) {
         if (!ZONES.contains(s)) throw new IllegalArgumentException("zone must be one of " + ZONES);
         return s;
+    }
+
+    /** A counter type the engine knows: an enum counter in any case (P1P1, p1p1) or a keyword counter (Flying).
+     *  CounterType.getType makes a custom type for any other name, which no card has, so it would always read 0. */
+    private static String counter(String s) {
+        if (CounterKeywordType.isKeywordCounter(s)) return s;
+        try {
+            CounterEnumType.getType(s);
+            return s;
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("unknown counter type " + s);
+        }
     }
 
     private static String name(String s) {
