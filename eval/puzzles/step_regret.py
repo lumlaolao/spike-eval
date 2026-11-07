@@ -309,7 +309,8 @@ def summary(dirs):
     verdicts = dict.fromkeys(("proven", "unwinnable", "not_found", "drift", "error", "refused"), 0)
     by_budget = {}
     for r in seen.values():
-        v = r.get("verdict") or "error"
+        # A probe row (REPLAY_FORCE) has no verdict, only its drift or refusal, as `analyse` reads it.
+        v = r.get("verdict") or ("drift" if r.get("drift") else "refused" if r.get("refused") else "error")
         verdicts[v] = verdicts.get(v, 0) + 1
         if v == "not_found":
             by_budget[r.get("budget")] = by_budget.get(r.get("budget"), 0) + 1

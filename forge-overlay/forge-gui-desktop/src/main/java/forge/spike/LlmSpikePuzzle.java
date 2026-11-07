@@ -1106,8 +1106,10 @@ public final class LlmSpikePuzzle {
         if (live == null) return "the game ended before the first decision after the handover (the recording's row " + (k + 1) + ")";
         if (!rec.type.equals(live.type) || rec.n != live.n || !rec.options.equals(live.options))
             return "the first decision after the handover is " + live + ", the recording's row " + (k + 1) + " was " + rec;
-        if (!rec.multi && rb.drawsAtFirstAfter != 1)
-            return "the first decision after the handover took " + rb.drawsAtFirstAfter + " search draws, not one";
+        // A multi-pick may take several draws (at most its menu size); a draw beyond that was made in the rest of row K's hook.
+        if (rec.multi ? rb.drawsAtFirstAfter > rec.n : rb.drawsAtFirstAfter != 1)
+            return "the first decision after the handover took " + rb.drawsAtFirstAfter + " search draws, not "
+                    + (rec.multi ? "at most " + rec.n : "one");
         return null;
     }
 
@@ -1179,6 +1181,9 @@ public final class LlmSpikePuzzle {
         return r;
     }
 
+    /** Test seam: run once between the search and the replay of its witness line (null in play). */
+    static Runnable BEFORE_WITNESS;
+
     /** The position after the seat's first {@code k} decision rows of the recording {@code spec}, searched with
      *  {@code budget} rollouts; with {@code force}, the first decision after it is forced to that value (its bound from
      *  {@link #stepProbe}). Unwinnable only when every line was played and none was capped. */
@@ -1241,6 +1246,8 @@ public final class LlmSpikePuzzle {
                 if (f != null) main.add(0, f);
                 r.line = PuzzleSearch.lineText(main);
                 // The witness, replayed: it must solve again (the search arm's own check on its main line).
+                Runnable hook = BEFORE_WITNESS;
+                if (hook != null) hook.run();
                 PuzzleSearch.Rollout again = stepRollout(file, id, sections, bounded, spec, seed, capMs, n[0]++,
                         new PuzzleArms.Line(main, 0L), new int[1], null, true);
                 r.replays++;
@@ -1275,9 +1282,14 @@ public final class LlmSpikePuzzle {
         else {
             StepResult pr = stepProbe(file, id, sections, bounded, spec, seed, k, capMs);
             if ("probe".equals(force) || pr.drift != null || pr.refused != null) out.add(pr);
-            else if ("all".equals(force)) {
-                for (int o = 0; o < pr.bound; o++) out.add(stepSearch(file, id, sections, bounded, spec, seed, k, o, pr, budget, lines, capMs));
-            } else out.add(stepSearch(file, id, sections, bounded, spec, seed, k, Integer.parseInt(force), pr, budget, lines, capMs));
+            else {
+                List<Integer> forces = new ArrayList<>();
+                if ("all".equals(force)) for (int o = 0; o < pr.bound; o++) forces.add(o);
+                else forces.add(Integer.parseInt(force));
+                for (Integer o : forces) out.add(stepSearch(file, id, sections, bounded, spec, seed, k, o, pr, budget, lines, capMs));
+                // The probe's replay is in no row of its own: the first forced row carries it.
+                out.get(0).replays += pr.replays;
+            }
         }
         String dir = System.getenv("EVAL_OUT");
         for (StepResult r : out) {

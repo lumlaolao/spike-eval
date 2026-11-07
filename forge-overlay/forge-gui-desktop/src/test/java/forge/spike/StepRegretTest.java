@@ -224,6 +224,68 @@ public class StepRegretTest {
         Assert.assertTrue(String.valueOf(r.drift).contains("the first decision after the handover"), r.toString());
     }
 
+    /** A replay seat over {@code rows}, handed over after the first {@code k}, whose first decision after it was {@code live}. */
+    private static ReplayBridge bridgeAfter(List<ReplayBridge.Row> rows, int k, ReplayBridge.Row live, int draws) {
+        ReplayBridge.HANDOVER = k;
+        ReplayBridge rb;
+        try { rb = new ReplayBridge("Solver/smart", "rec", new ArrayList<>(), rows); }
+        finally { ReplayBridge.HANDOVER = -1; }
+        rb.firstAfter = live;
+        rb.drawsAtFirstAfter = draws;
+        return rb;
+    }
+
+    private static ReplayBridge.Row row(String type, int n, boolean multi) {
+        return new ReplayBridge.Row(type, n, 0, java.util.Arrays.asList("a", "b", "c").subList(0, n), multi);
+    }
+
+    @Test
+    public void theFirstDecisionAfterTheHandoverTakesOneDrawOrAMultiPicksAtMostItsMenu() {
+        List<ReplayBridge.Row> rows = new ArrayList<>();
+        rows.add(row("play", 3, false));
+        rows.add(row("splice", 3, true));
+        Assert.assertNull(LlmSpikePuzzle.firstAfterMismatch(bridgeAfter(rows, 0, row("play", 3, false), 1)));
+        String two = LlmSpikePuzzle.firstAfterMismatch(bridgeAfter(rows, 0, row("play", 3, false), 2));
+        Assert.assertNotNull(two, "a single-choice row that took two draws drifted");
+        Assert.assertTrue(two.contains("2 search draws"), two);
+        Assert.assertNotNull(LlmSpikePuzzle.firstAfterMismatch(bridgeAfter(rows, 0, row("play", 3, false), 0)), "none is not one");
+        // A multi-pick takes one draw per pick, up to its menu; more were drawn in the rest of row K's hook.
+        Assert.assertNull(LlmSpikePuzzle.firstAfterMismatch(bridgeAfter(rows, 1, row("splice", 3, true), 3)));
+        String four = LlmSpikePuzzle.firstAfterMismatch(bridgeAfter(rows, 1, row("splice", 3, true), 4));
+        Assert.assertNotNull(four, "a multi-pick row after more draws than its menu drifted");
+        Assert.assertTrue(four.contains("4 search draws"), four);
+    }
+
+    @Test
+    public void aGameThatEndsBeforeTheFirstDecisionAfterTheHandoverIsAMismatchNotACrash() {
+        List<ReplayBridge.Row> rows = new ArrayList<>();
+        rows.add(row("play", 3, false));
+        String m = LlmSpikePuzzle.firstAfterMismatch(bridgeAfter(rows, 0, null, -1));
+        Assert.assertNotNull(m);
+        Assert.assertTrue(m.contains("the game ended before the first decision after the handover"), m);
+        Assert.assertNull(LlmSpikePuzzle.firstAfterMismatch(bridgeAfter(rows, 1, null, -1)), "no row K+1 to check past the end");
+    }
+
+    @Test
+    public void theWitnessReplayChecksItsFirstDecisionToo() throws Exception {
+        // The search proves the position on the unchanged recording; the recording then changes under the witness
+        // replay, which still solves but whose first decision after the handover is no longer the recording's.
+        File rec = record(SPLICE.getPath(), "solved");
+        int last = rows(rec).size() - 1;
+        File changed = withRowChanged(rec, last);
+        LlmSpikePuzzle.BEFORE_WITNESS = () -> {
+            try { Files.copy(changed.toPath(), rec.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING); }
+            catch (java.io.IOException e) { throw new RuntimeException(e); }
+        };
+        try {
+            LlmSpikePuzzle.StepResult r = search(rec, last, null);
+            Assert.assertEquals(r.verdict, "drift", "the witness replay is checked like every rollout: " + r);
+            Assert.assertTrue(String.valueOf(r.drift).contains("the first decision after the handover"), r.toString());
+        } finally {
+            LlmSpikePuzzle.BEFORE_WITNESS = null;
+        }
+    }
+
     /** The next long of the engine RNG after building a Solver seat of {@code mode} with {@code bridge} on seed 7. */
     private static long nextAfterSeat(String mode, LLMBridge bridge) {
         forge.game.Game g = SeatObservationTest.bareGame();

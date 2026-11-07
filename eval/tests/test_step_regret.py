@@ -168,6 +168,21 @@ class StepRegretTest(unittest.TestCase):
             self.assertEqual(sr.summary_line(t), "searches 8: proven 2, unwinnable 3, not_found 3 (2 at 600, 1 at "
                                                  "2400), drift 0, error 0, refused 0")
 
+    def test_the_summary_reads_a_probe_rows_drift_and_refusal(self):
+        with tempfile.TemporaryDirectory() as d:
+            def put(rel, *rows):
+                f = Path(d) / rel / "step-search.jsonl"
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text("".join(json.dumps(r) + "\n" for r in rows))
+            # REPLAY_FORCE writes the probe itself (no verdict) when it drifted or was refused.
+            put("g/k001", {"k": 1, "drift": "replay: row 3 differs"})
+            put("g/k002", {"k": 2, "refused": "a multi-pick"})
+            put("g/k003", {"k": 3})
+            t = sr.summary([Path(d)])
+            self.assertEqual(t["verdicts"]["drift"], 1)
+            self.assertEqual(t["verdicts"]["refused"], 1)
+            self.assertEqual(t["verdicts"]["error"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
