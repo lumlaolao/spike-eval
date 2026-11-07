@@ -132,4 +132,45 @@ public class AiProfileSwitchTest {
             Assert.assertEquals(((LobbyPlayerAi) build(env).get(1).getPlayer()).getAiProfile(), "", "empty = unset");
         });
     }
+
+    private static <T> T withEnv(Map<String, String> env, java.util.function.Supplier<T> body) {
+        LlmSpikeGui.envOverride = env;
+        try {
+            return body.get();
+        } finally {
+            LlmSpikeGui.envOverride = null;
+        }
+    }
+
+    @Test
+    public void thePuzzleOpponentReadsAiProfileBThroughTheSameEnv() throws Exception {
+        withProbeProfile(() -> {
+            Map<String, String> env = new HashMap<>();
+            env.put("AI_PROFILE_A", "NotForTheOpponent");
+            Assert.assertEquals(((LobbyPlayerAi) withEnv(env, () -> LlmSpikePuzzle.opponentSeat("ai", "", ""))).getAiProfile(),
+                    "", "AI_PROFILE_B unset: the compiled defaults, whatever A names");
+            env.put("AI_PROFILE_B", " " + PROBE + " ");
+            LobbyPlayerAi opp = (LobbyPlayerAi) withEnv(env, () -> LlmSpikePuzzle.opponentSeat("ai", "", ""));
+            Assert.assertEquals(opp.getAiProfile(), PROBE);
+            Assert.assertEquals(AiProfileUtil.getAIProp(opp, AiProps.MULLIGAN_THRESHOLD), "9");
+            env.put("AI_PROFILE_B", "Defualt");
+            try {
+                withEnv(env, () -> LlmSpikePuzzle.opponentSeat("ai", "", ""));
+                Assert.fail("an unknown profile seated the puzzle opponent");
+            } catch (IllegalStateException e) {
+                Assert.assertTrue(e.getMessage().contains("'Defualt'"), e.getMessage());
+            }
+        });
+    }
+
+    @Test
+    public void theGameLineStampsTheProfilesTheSeatsRead() {
+        Map<String, String> env = new HashMap<>();
+        Assert.assertEquals(withEnv(env, LlmSpikeGui::aiProfileStamp),
+                ",\"ai_profile_a\":\"\",\"ai_profile_b\":\"\"", "unset: stamped empty");
+        env.put("AI_PROFILE_A", "  Reckless ");
+        env.put("AI_PROFILE_B", "Default");
+        Assert.assertEquals(withEnv(env, LlmSpikeGui::aiProfileStamp),
+                ",\"ai_profile_a\":\"Reckless\",\"ai_profile_b\":\"Default\"", "trimmed, per identity");
+    }
 }

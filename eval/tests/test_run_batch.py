@@ -430,6 +430,11 @@ class TestProposeActions(unittest.TestCase):
         self.assertIn("Forge AI seat", run_batch.ai_profile_refusal(make_args(controller_a="llm", ai_profile_a="Default")))
         self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_a="llm", controller_b="ai", ai_profile_b="Default")))
         self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_a="llm")))
+        # The benchmark's opponent is the compiled defaults: a profile is never a panel or a cited run.
+        for kw in ({"panel": "mirror"}, {"exploratory": False}):
+            msg = run_batch.ai_profile_refusal(make_args(controller_b="ai", ai_profile_b="Default", **kw))
+            self.assertIn("exploratory", msg or "", kw)
+        self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_b="ai", exploratory=False)))
 
     def test_the_refusal_notebook_is_its_own_condition_and_needs_the_arm(self):
         # PROPOSE_NOTEBOOK lists a game's earlier refused proposals in each proposal decision: set only by

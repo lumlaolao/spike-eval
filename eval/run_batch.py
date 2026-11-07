@@ -739,10 +739,14 @@ def lane_refusals(args):
 
 
 def ai_profile_refusal(args):
-    """Why --ai-profile-a / -b cannot run with this batch's controllers, or None: a profile belongs to a Forge AI seat
-    (the JVM refuses a name Forge did not load, and a profile on any other seat)."""
+    """Why --ai-profile-a / -b cannot run with this batch, or None. The benchmark's opponent stays Forge's compiled
+    defaults, so a profile is exploratory and never a panel; it belongs to a Forge AI seat (the JVM refuses a name
+    Forge did not load, and a profile on any other seat)."""
     for ident in ("a", "b"):
         p = ai_profile(args, ident)
+        if p and (getattr(args, "panel", None) or not getattr(args, "exploratory", False)):
+            return ("--ai-profile-%s is an exploratory condition, never a cited run or a panel: the benchmark's "
+                    "opponent is Forge's compiled defaults" % ident)
         ctl = getattr(args, "controller_" + ident, None)
         if p and ctl not in ("ai", "ai-log"):
             return ("--ai-profile-%s %s with --controller-%s %s: a profile configures a Forge AI seat (ai, ai-log)"
@@ -1498,12 +1502,9 @@ def build_parser():
                          "A separate condition that must live in its own --out.")
     for ident in ("a", "b"):
         ap.add_argument("--ai-profile-" + ident, metavar="NAME", default=None,
-                        help="AI_PROFILE_%s=<name>: play Forge's shipped AI profile (Cautious, Default, Experimental, "
-                             "Reckless; forge-gui/res/ai/*.ai) on identity %s's Forge AI seat (--controller-%s ai). "
-                             "Default empty: the compiled AiProps defaults, the opponent every recorded STR-AI score "
-                             "met, which is none of the four. An unknown name is refused by the JVM at start. A "
-                             "separate condition (ai_profile_%s on the game line) that must live in its own --out."
-                             % (ident.upper(), ident.upper(), ident, ident))
+                        help="AI_PROFILE_%s=<name>: a shipped Forge AI profile (Cautious, Default, Experimental, "
+                             "Reckless) for identity %s's ai seat. Default: the compiled AiProps, the STR-AI "
+                             "opponent. Exploratory only; its own --out." % (ident.upper(), ident.upper()))
     ap.add_argument("--tier-fast-types", metavar="TYPES", default=None,
                     help="TIER_FAST_TYPES=<comma list>: route those decision types to the fast "
                          "(non-reasoning) tier instead of the smart one. Default empty (all smart); "
@@ -1566,7 +1567,7 @@ def main(argv=None):
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / --text-answers / --answer-tool-strict / "
                              "--lookahead / --one-tier / --two-tier / --no-coaching / --one-chat / --turn-chat / --plan-execute / "
-                             "--tier-fast-types / --format so the condition is recorded and guarded." % k)
+                             "--tier-fast-types / --format / --ai-profile-a / --ai-profile-b so the condition is recorded and guarded." % k)
         if k in ("OPENROUTER_MAX_PRICE", "OPENROUTER_QUANTIZATIONS"):
             raise SystemExit("run_batch: --env %s is not allowed: a batch sends no price ceiling or precision filter "
                              "(a puzzle run has puzzle_solve.py --max-price-at-list / --quantizations)" % k)

@@ -11487,22 +11487,19 @@ public final class LlmSpikeGui {
                                String aiProfile) {
         if (HUMAN.equals(ctl)) throw new IllegalStateException(NO_WINDOW);
         boolean forgeAi = "ai".equals(ctl) || "ai-log".equals(ctl);
-        String profile = aiProfile == null ? "" : aiProfile.trim();
+        String profile = aiProfile(aiProfile);
         if (!profile.isEmpty()) {
             if (!forgeAi) throw new IllegalStateException("AI_PROFILE names '" + profile + "' for the seat " + name
                     + ", which is controller '" + ctl + "', not a Forge AI (ai, ai-log): drop the profile");
             String refusal = aiProfileRefusal(profile, shippedAiProfiles());
             if (refusal != null) throw new IllegalStateException(refusal);
         }
-        if ("ai".equals(ctl)) return withAiProfile(new LobbyPlayerAi(name, null), profile);
-        if ("ai-log".equals(ctl)) return withAiProfile(new LobbyPlayerAiLogging(name), profile);
+        if (forgeAi) {
+            LobbyPlayerAi seat = "ai".equals(ctl) ? new LobbyPlayerAi(name, null) : new LobbyPlayerAiLogging(name);
+            if (!profile.isEmpty()) seat.setAiProfile(profile);
+            return seat;
+        }
         return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
-    }
-
-    /** The Forge AI seat with {@code profile} applied; the empty profile returns it untouched. */
-    static LobbyPlayerAi withAiProfile(LobbyPlayerAi seat, String profile) {
-        if (profile != null && !profile.isEmpty()) seat.setAiProfile(profile);
-        return seat;
     }
 
     /** The profiles Forge loaded ({@code FModel.initialize} runs {@code AiProfileUtil.loadAllProfiles}); empty when
@@ -11527,9 +11524,16 @@ public final class LlmSpikeGui {
                 + "compiled-default opponent";
     }
 
-    /** An AI_PROFILE_A / AI_PROFILE_B value as a seat reads it: trimmed, "" when unset. */
+    /** An AI_PROFILE_A / AI_PROFILE_B value as every site reads it: trimmed, "" when unset. */
     static String aiProfile(String raw) {
         return raw == null ? "" : raw.trim();
+    }
+
+    /** The game line's two profile keys, from the same {@link #env} read the seats use (issue #381): a condition, ""
+     *  for the compiled AiProps defaults. */
+    static String aiProfileStamp() {
+        return ",\"ai_profile_a\":\"" + jsonEscape(aiProfile(env("AI_PROFILE_A"))) + "\""
+                + ",\"ai_profile_b\":\"" + jsonEscape(aiProfile(env("AI_PROFILE_B"))) + "\"";
     }
 
     /** Why a model seat ({@code ctl} llm) of identity {@code ident} cannot be built: a tier with no model named
@@ -11624,6 +11628,9 @@ public final class LlmSpikeGui {
                 throw new IllegalStateException("only one human seat per match: the GUI asks one person");
         }
         for (String[] s : new String[][] {{ctlA, "A"}, {ctlB, "B"}}) {
+            String profile = aiProfile(env.get("AI_PROFILE_" + s[1]));
+            if (HUMAN.equals(s[0]) && !profile.isEmpty()) throw new IllegalStateException("AI_PROFILE_" + s[1]
+                    + " names '" + profile + "' for the human seat: a person plays no Forge AI, drop the profile");
             String missing = missingModel(s[0], s[1], env);
             if (missing != null) throw new IllegalStateException(missing);
         }
@@ -13153,8 +13160,7 @@ public final class LlmSpikeGui {
                 + ",\"circuit_breaker_trips_a\":" + circuitBreakerTrips(nameA)
                 + ",\"circuit_breaker_trips_b\":" + circuitBreakerTrips(nameB)
                 // The Forge AI profile of each seat, "" for the compiled AiProps defaults (issue #381): a condition.
-                + ",\"ai_profile_a\":\"" + jsonEscape(System.getenv().getOrDefault("AI_PROFILE_A", "").trim()) + "\""
-                + ",\"ai_profile_b\":\"" + jsonEscape(System.getenv().getOrDefault("AI_PROFILE_B", "").trim()) + "\""
+                + aiProfileStamp()
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
                 + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""

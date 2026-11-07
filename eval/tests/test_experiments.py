@@ -365,7 +365,7 @@ class GroupingTest(unittest.TestCase):
             self.assertNotEqual(aggregate.game_condition(old), aggregate.game_condition(named), side)
         self.assertNotEqual(aggregate.game_condition(dict(old, ai_profile_b="Default")),
                             aggregate.game_condition(dict(old, ai_profile_b="Reckless")))
-        # Stamped on the game line (this test's scan reads LlmSpikeGui) and pinned by every launcher.
+        # Stamped on the game line (this test's scan reads LlmSpikeGui).
         self.assertIn("ai_profile_a", set(game_line_keys()))
         self.assertIn("ai_profile_b", set(game_line_keys()))
 

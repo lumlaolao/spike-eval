@@ -234,6 +234,12 @@ public final class LlmSpikePuzzle {
         return LlmSpikeGui.seatFor(ctlA, "Solver", solverPlan(sections), smartA, fastA);
     }
 
+    /** The opponent's seat, as playOnce seats it: AI_PROFILE_B names a Forge AI opponent's profile (empty: the compiled
+     *  defaults, the opponent PUZ always met; puzzle_solve.py strips the names). */
+    static LobbyPlayer opponentSeat(String ctlB, String smartA, String fastA) {
+        return LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA, LlmSpikeGui.env("AI_PROFILE_B"));
+    }
+
     /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
      *  .pzl's), the named cards Forge's setup drops, and on the Puzzle Goal card the brief the solver's prompt
      *  reads (LlmSpikeGui.puzzleBrief, set by {@link #briefSolver}), so the two cannot differ. */
@@ -651,7 +657,7 @@ public final class LlmSpikePuzzle {
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
         LobbyPlayer solverSeat = solverSeat(sections, ctlA, smartA, fastA);
-        LobbyPlayer oppSeat = LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA, LlmSpikeGui.aiProfile(LlmSpikeGui.env("AI_PROFILE_B")));
+        LobbyPlayer oppSeat = opponentSeat(ctlB, smartA, fastA);
         RegisteredPlayer solver = new RegisteredPlayer(new Deck()).setPlayer(solverSeat);
         solver.setStartingHand(0);
         RegisteredPlayer opp = new RegisteredPlayer(new Deck()).setPlayer(oppSeat);

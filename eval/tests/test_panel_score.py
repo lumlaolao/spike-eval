@@ -208,6 +208,16 @@ class TestMirrorPanel(unittest.TestCase):
             self.score()
         self.assertIn("identity B", str(cm.exception))
 
+    def test_a_cell_played_against_a_named_forge_ai_profile_is_refused(self):
+        # The benchmark's opponent is Forge's compiled defaults; an empty stamp (or none) is that opponent.
+        panel_run(self.root, "mirror", skip=("lands",))
+        for kw in ({"ai_profile_b": "Reckless"}, {"ai_profile_a": "Default", "ai_profile_b": ""}):
+            with self.subTest(kw=kw):
+                write_block(self.root / "lands", DOC["deck_pool"][10]["sha12"], results(4), **kw)
+                with self.assertRaises(ps.PanelError) as cm:
+                    self.score()
+                self.assertIn("Forge AI profile", str(cm.exception))
+
     def test_a_development_lane_cell_is_refused(self):
         # Owner, 2026-10-24: a claude-cli: seat is local development, never part of a benchmark score.
         panel_run(self.root, "mirror", skip=("lands",))

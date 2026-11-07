@@ -27,12 +27,12 @@ both bearing on STR-AI:
   harness does not call.
 - **The AI the benchmark plays is not any shipped profile.** With an empty profile name
   `AiProfileUtil.getAIProp` finds nothing and returns the compiled default of each `AiProps` key. Those differ from
-  `Default.ai` on 25 of its 121 keys (e.g. `MULLIGAN_THRESHOLD` 5 vs 4, `CHANCE_TO_ATTACK_INTO_TRADE` 40 vs 0,
+  `Default.ai` on 25 of 121 keys (e.g. `MULLIGAN_THRESHOLD` 5 vs 4, `CHANCE_TO_ATTACK_INTO_TRADE` 40 vs 0,
   `USE_BERSERK_AGGRESSIVELY` false vs true); from `Cautious.ai` on 43, `Experimental.ai` 51, `Reckless.ai` 58
-  (key-by-key over the 122 `AiProps` keys; a scripted comparison, no game). So "the Forge AI" in STR-AI is a
+  (each count is over the 121 keys every profile file sets; `AiProps` has 122 and one has no profile value, so it never differs; a scripted comparison, no game). So "the Forge AI" in STR-AI is a
   fifth, unnamed configuration, and even the default profile would be a different opponent. Every game played
-  through this harness, the panels in `eval/suites/panels-v1.json` included, met the compiled defaults: no profile
-  is set anywhere in `forge-overlay` (`LlmSpikeGui.java:11226`, `LlmSpikePuzzle.java:586`).
+  through this harness before the switch, the panels in `eval/suites/panels-v1.json` included, met the compiled
+  defaults: no profile was set anywhere in `forge-overlay`.
 
 Floor: with no games there is no rate and no floor to quote. The profiles do differ on the aggression, trade, mulligan
 and combat-trick keys, so a spread is plausible; its size is undetermined.
@@ -49,28 +49,21 @@ Forge checkout `$FORGE_HOME` at `34a8662b79` (four modified source files, `Compu
 `GameCopier`, `Player` and `MagicStack`; none touches profiles).
 No run directory exists under `runs/profiles/`.
 
-## The switch (built; the experiment is not run)
+## The switch and its design (built; the experiment is not run)
 
 `AI_PROFILE_A` / `AI_PROFILE_B` (`run_batch.py --ai-profile-a/-b`) seat a shipped profile on that identity's Forge AI
-seat. Empty, the default, builds `new LobbyPlayerAi(name, null)` exactly as before (`AiProfileSwitchTest`). The JVM
-refuses an unknown name, a Forge "Random" entry and a profile on a seat that is not `ai` / `ai-log`; the game line
-carries `ai_profile_a` / `ai_profile_b`; `aggregate.py`, the batch manifest and `rating.check_conditions` never pool two
-profiles. Unchanged by the switch: the puzzle runner (`puzzle_solve.py` strips the names, so PUZ meets the default). The
-design steps below were built as 1 to 3; step 4, the games, is still to do.
+seat through `LlmSpikeGui.seatFor` and `LobbyPlayerAi.setAiProfile`. Empty, the default, builds `new LobbyPlayerAi(name,
+null)` exactly as before (`AiProfileSwitchTest`). The JVM refuses a name not in the profiles `FModel.initialize` loaded
+(an unknown name would silently play the compiled defaults), a Forge "Random" entry, and a profile on a seat that is not
+`ai` / `ai-log`; `run_batch.py` refuses a profile on a panel or a cited run, and `panel_score.py` fails a cell that
+carries one. The game line carries `ai_profile_a` / `ai_profile_b` (empty is the compiled defaults, as is a line from
+before the stamp); `aggregate.py`, the batch manifest and `rating.check_conditions` never pool two profiles. The puzzle
+runner strips the names, so PUZ meets the default. Remaining design step: the games.
 
-## Design (as built, steps 1 to 3; step 4 is the experiment)
-
-1. In `LlmSpikeGui.seatFor`, read `AI_PROFILE_A` / `AI_PROFILE_B` for an `ai` seat and call
-   `LobbyPlayerAi.setAiProfile`; refuse a name not in `AiProfileUtil.getProfilesDisplayList()`. The profiles are
-   loaded: `LlmSpikeHeadless` calls `FModel.initialize`, which runs `AiProfileUtil.loadAllProfiles` (`FModel.java`
-   "Preload AI profiles"); an unknown name would still fall back silently to the compiled defaults, hence the refusal.
-2. Add `--ai-profile-a/--ai-profile-b` to `run_batch.py` as condition keys, stamp the profile on the game line, and
-   treat an empty value as the current compiled-default arm (kept as the baseline so old results stay comparable).
-3. Update ARCHITECTURE and the version stamp, and record an acceptance run (CLAUDE.md "Keep the documents true").
-4. Then run `run_batch.py --controller-a ai --controller-b ai --seeds 40 --exploratory --budget-usd 0.01 --jobs 3`
-   per (deck pair, B profile), seeds 1100-1139, plus `--controller-a random`; analyse with
-   `eval/analyze_ab_stage0.py ab`, paired by seed. Quote the A win rate with its Wilson 95% interval and median
-   turns, and always beside the mirror's 50% and the random-seat floor.
+Design of the experiment: run `run_batch.py --controller-a ai --controller-b ai --seeds 40 --exploratory --budget-usd
+0.01 --jobs 3` per (deck pair, B profile), seeds 1100-1139, plus `--controller-a random`; analyse with
+`eval/analyze_ab_stage0.py ab`, paired by seed. Quote the A win rate with its Wilson 95% interval and median turns,
+and always beside the mirror's 50% and the random-seat floor.
 
 ## Power (arithmetic, not measured)
 
