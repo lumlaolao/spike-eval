@@ -6,23 +6,30 @@ Implements the "adapter" section of [rlvr-env-feasibility](2026-11-06-rlvr-env-f
 time under the shared lock. Nothing in `forge-overlay/` or the Forge checkout was changed. Engine: the build at
 `/root/forge` (commit 34a8662b79), harness-epoch-82 (the epoch the puzzle rows record); no new build was made.
 
-Runs (trajectories were kept under the session scratchpad, not committed; each is one `rollout.py` command, a random
-policy seeded by `--policy-seed` unless said):
+Runs: each is one `rollout.py` command. The trajectories were kept in a session scratchpad and were **not kept**:
+the directory is gone, so every number below stands on this table and the prose, and none can be recomputed from
+files. A re-run needs a JVM under the lock (`eval/rl/README.md`).
 
-| Run | Command (abridged) | Episodes |
-|---|---|---|
-| **P1** | `--policy first --puzzle hard/gen/drain_08bba3eb8d53.pzl --group-size 1` | 1 |
-| **R1** | `--policy random --group-size 4` on `drain_08bba3eb8d53`, `drain_0a395c810ae5`, `drain_2d15c4dd0e32` (hard suite, 10-action reference lines) | 12 |
-| **R2** | `--policy random --group-size 8` on Forge's `MTGP_08.pzl` | 8 |
-| **R3** | `--policy random --policy-seed 1 --group-size 40` on `MTGP_08.pzl` | 40 |
-| **G1** | `--policy random --game-seed 42 --deck eval/decks/burn.txt --max-steps 300` (game against Forge's AI) | 1 |
+| Run | Command (abridged) | Episodes | Attempt seeds | Policy seed | Solved |
+|---|---|---|---|---|---|
+| **P1** | `--policy first --puzzle hard/gen/drain_08bba3eb8d53.pzl --group-size 1` | 1 | 1 | none (`first`) | not recorded; the suite's `first` arm is 0/4 on it |
+| **R1** | `--policy random --group-size 4` on `drain_08bba3eb8d53`, `drain_0a395c810ae5`, `drain_2d15c4dd0e32` (hard suite, 10-action reference lines) | 12 | 1 to 4 per puzzle | 0 (the default) | 0/12 |
+| **R2** | `--policy random --group-size 8` on Forge's `MTGP_08.pzl` | 8 | 1 to 8 | 0 | 0/8 |
+| **R3** | `--policy random --policy-seed 1 --group-size 40` on `MTGP_08.pzl` | 40 | 1 to 40 | 1 | 4/40 |
+| **G1** | `--policy random --game-seed 42 --deck eval/decks/burn.txt --max-steps 300` (game against Forge's AI) | 1 | game seed 42 | 0 | lost (winner B, 15 turns, 38 decisions) |
+
+Seed 42 is a harness canary seed, not a reserved block; the heldout puzzles above (MTGP_08 and the drain puzzles are
+`heldout` in their suites) were played for the floor only. Since this review `rollout.py` refuses them unless
+`--allow-eval-only`, which marks the episodes so the readers never train on them.
 
 ## What works
 
 - **A full loop, on the real engine.** `reset(puzzle=..., seed=...)` starts a JVM and returns the first decision;
   `step(action)` returns the next, and on the last one `(None, reward, True, info)` with the reward from the engine's
-  puzzle result row. All 62 episodes (P1, R1, R2, R3, G1) ended with a reward and `valid=True`; none needed a
-  retry, a correction round or a step timeout (`deduped=0`, 0 `correction` steps in every run).
+  puzzle result row. All 62 episodes (P1, R1, R2, R3, G1) ended with a reward and `valid=True` under the rules of that
+  commit (a verdict row, no deck-out, no bridge-down count); none needed a retry, a correction round or a step
+  timeout (`deduped=0`, 0 `correction` steps in every run). The later rules (a lost decision, a game's bridge-down
+  count, `jvm_rc`) were not applied to them: the game rows of G1 carried no `answer_via` count that was read.
 - **The reward is the engine's.** R3 solved 4 of 40 (reward 1, `status=solved`); the rest `failed`. The group has
   advantage +3.0 on a solved episode and -0.33 on the others (`rollout.grpo_groups`); `sft_examples` keeps the 4
   solved episodes' 25 decisions.
@@ -30,9 +37,12 @@ policy seeded by `--policy-seed` unless said):
   `answer`, the 61 puzzle episodes' requests equal their rows' `model_calls` (and `requests == decisions == n_steps` in all 62).
 - **Games run through the same code.** G1 (burn deck, seed 42, random policy vs Forge's AI) played 15 turns in 38
   decisions and lost (winner B, `AllOpponentsLost`): reward 0, `valid=True`.
-- **Unit tests (stub JVM, no engine):** 19 in `test_mtg_env.py` and 4 in `test_rollout.py`, about 12 s and 2 s.
+- **Unit tests (stub JVM, no engine):** at the first commit 19 in `test_mtg_env.py` and 4 in `test_rollout.py`; the
+  review fixes made them 37 and 19 (each new one broken once and seen red).
   A test that would have failed otherwise: the retry test (a request re-sent with the same messages must not become a
   second decision; it counts `deduped=1`, `decisions=2`, `requests=3`).
+
+Conditions, reward and validity rules: `eval/rl/README.md` (the one home; this note records only what was measured).
 
 ### One deviation from the brief: `NATIVE_TOOLS=1`
 
