@@ -6,7 +6,7 @@ seat's losing choice sit earlier on the menu than a uniformly random losing choi
 
 **Answer: no detectable lean, and this data cannot settle it.** Given that the seat picked a losing option, it picked
 the earliest losing option 23 times in 34 drain steps against 19.9 expected by chance, and 18 times in 55 splice steps
-against 22.0. The two families point in opposite directions, and both are within a few counts of chance. The menu order
+against 22.0 (a one-off read; not reproducible here, where the script reads 15 of 43 against 17.6 on 46 steps). The two families point in opposite directions, and both are within a few counts of chance. The menu order
 is fixed per board (casts, then activations, then PASS), so position and content are confounded. An option-order
 shuffle arm is the experiment that would separate them; it is described below and not built.
 

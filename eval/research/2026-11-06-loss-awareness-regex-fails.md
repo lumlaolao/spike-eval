@@ -16,7 +16,7 @@ Command: `python3 eval/research_stats.py loss-awareness <board.jsonl> [...]` (te
 rows it gives 1463 and 1080 replies, 19.7% and 6.8% for the lost positions and 1.0% concessions in winnable ones,
 as below; it counts 304 winnable claims (20.8%; the first run said 20.7%, one reply fewer) and 20 of 46 failed
 attempts that never match the concession pattern after the step (the first run said 18). The splice cells below come
-from a one-off run over 76 attempts, 14 of whose game files are not on this machine; the script on the 61 attempts
+from a one-off run over 75 attempts, 14 of whose game files are not on this machine; the script on the 61 attempts
 it can read gives 545 and 444 replies and different rates, so the splice figures are **not reproducible here**.
 
 The inputs are the board rows from the two notes (drain `runs/where-lose-drain/board.jsonl`, 68 attempts; splice

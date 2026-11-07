@@ -6,12 +6,14 @@
 
 Input: the rows `eval/puzzles/step_regret_board.py` / `board_drain.py` write (git-ignored under `runs/`), each naming
 its `source_game`. A row whose game file is not on this machine is skipped and counted. Descriptive only (no model, no
-JVM): a count over recorded attempts, pooled over whatever models are in the rows (docs/STANDARDS.md section 8).
+JVM): a count over recorded attempts, pooled over whatever models are in the rows (docs/STANDARDS.md section 6).
 """
 import json
 import os
 import re
 import sys
+
+from fact_citations import read_rows
 
 CLAIMS_WIN = re.compile(
     r"lethal|finish (them|the opponent)|win (this|the game)|enough (damage|drain|to (kill|win))|exactly enough"
@@ -19,17 +21,6 @@ CLAIMS_WIN = re.compile(
 CONCEDES = re.compile(
     r"cannot|can't|no (way|line|remaining)|not enough|out of reach|impossible|short of|unreachable", re.I)
 WHY = re.compile(r"WHY:\s*(.*)")
-
-
-def read_jsonl(path):
-    rows = []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            try:
-                rows.append(json.loads(line))
-            except ValueError:
-                continue
-    return rows
 
 
 def decisions(game_rows):
@@ -81,7 +72,7 @@ def menu_stats(steps):
     return {k: round(v, 2) if isinstance(v, float) else v for k, v in out.items()}
 
 
-def menu(board_rows, load=lambda p: read_jsonl(p)):
+def menu(board_rows):
     steps, skipped, unmatched, multi = [], 0, 0, 0
     for r in board_rows:
         if not r.get("floor"):
@@ -89,7 +80,7 @@ def menu(board_rows, load=lambda p: read_jsonl(p)):
         if not os.path.exists(r["source_game"]):
             skipped += 1
             continue
-        row, n = menu_row(r["floor"], r["regret_k"], decisions(load(r["source_game"])))
+        row, n = menu_row(r["floor"], r["regret_k"], decisions(read_rows(r["source_game"])))
         if row is None:
             unmatched += 1
             continue
@@ -98,7 +89,7 @@ def menu(board_rows, load=lambda p: read_jsonl(p)):
     return dict(menu_stats(steps), game_missing=skipped, unmatched=unmatched, several_rows=multi)
 
 
-def loss_awareness(board_rows, load=lambda p: read_jsonl(p)):
+def loss_awareness(board_rows):
     """Per position (joined to the k-th non-auto decision row) the WHY sentence against the two patterns; and, per
     failed attempt, whether no WHY after the regret step matches CONCEDES."""
     cells = {True: [0, 0, 0], False: [0, 0, 0]}
@@ -110,7 +101,7 @@ def loss_awareness(board_rows, load=lambda p: read_jsonl(p)):
             skipped += 1
             continue
         attempts += 1
-        auto = [x for x in decisions(load(r["source_game"])) if x.get("fallback") in (None, "None")]
+        auto = [x for x in decisions(read_rows(r["source_game"])) if x.get("fallback") in (None, "None")]
         concede_after = False
         for q in r["positions"]:
             if q["k"] >= len(auto):
@@ -137,7 +128,7 @@ def main(argv):
         print(__doc__)
         return 2
     for path in argv[1:]:
-        rows = read_jsonl(path)
+        rows = read_rows(path)
         fn = menu if argv[0] == "menu" else loss_awareness
         print(path, json.dumps(fn(rows), sort_keys=True))
     return 0

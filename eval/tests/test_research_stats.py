@@ -62,6 +62,14 @@ class TestResearchStats(unittest.TestCase):
         out = rs.loss_awareness([board(self.game)])
         self.assertEqual((out["lost"], out["never_concede_after_step"]), ([1, 0, 1], 0))
 
+    def test_the_note_quotes_the_scripts_patterns(self):
+        note = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "research",
+                            "2026-11-06-loss-awareness-regex-fails.md")
+        with open(note, encoding="utf-8") as f:
+            text = f.read()
+        for pattern in (rs.CLAIMS_WIN, rs.CONCEDES):
+            self.assertIn("`" + pattern.pattern + "`", text)
+
     def test_usage_error(self):
         self.assertEqual(rs.main([]), 2)
 

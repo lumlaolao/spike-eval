@@ -16,11 +16,11 @@ harness epochs 70 to 72 where recorded, with no control for board or model.
 
 ## What was read (free: Python over the local game JSONL, no JVM, no model)
 
-Reproduce every count below with `python3 eval/fact_citations.py <runs dir>` (tested in
+These counts reproduce with `python3 eval/fact_citations.py <runs dir>` (tested in
 `eval/tests/test_fact_citations.py`). Over the main checkout's `runs/puzzles` it prints 2828 games, 2161 with a
 turn-1 decision after combat, lethal 33 of 311, clock 5 of 577, none 0 of 1273, and 629 yield windows in 46 games.
-The 638 in 49 of #399 also counted three demo games elsewhere under `runs/`. The script's citation pattern gained
-`future turn|following turn` in review; the counts were re-run on the same directory with it and did not change.
+The 638 in 49 of #399 also counted three demo games elsewhere under `runs/`. The other counts in this note (the epoch split of the 2161, the 31 / 18 / 14 drain mapping, the 23 solved and 23
+failed yield games, the 50 post-combat decisions of the fixed line) are one-off reads with no committed script.
 
 The input is every `game-*.jsonl` under the main checkout's `runs/puzzles/`: 2828 puzzle games, all models, harness
 epochs 70 to 72 where recorded (1448 of the 2161 counted below at 70, 584 unrecorded). Conditions are mixed, so the rates below are descriptive. A per-condition split is possible but was
