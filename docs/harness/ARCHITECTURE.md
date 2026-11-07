@@ -119,7 +119,7 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   declaration is legal, so a seat that kept its answer looped (epoch 66; authored puzzles x_0, x_15, x_18).
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
   tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
-  harness seats), but last, after every safe source (epoch 65). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
+  harness seats), but last, after every safe source (epoch 65) and after the sacrifice-cost sources too (epoch 95, #269). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
   activated ability's alternative cost is offered (Forge Anew: equip for {0}; the menu expanded alternative costs for
   spells only), and an "up to one" target with a single candidate is asked with "No target" offered.
 - "X target creatures" with X announced as 0 takes no target (Rot-Curse Rakshasa's renew): one was set, and the

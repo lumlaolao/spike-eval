@@ -425,8 +425,10 @@ public final class LlmSpikeGui {
      *  multiset, so "choose up to N" is tried with fewer modes (PuzzleArms.repeatModes); the random arm is unchanged.
      *  Epoch 94 (2026-11-07, #415): a pawprint charm's modes stay within its {P} budget: each mode's label shows its
      *  {P}, the question the budget, an answer over it is refused and asked again, and the arms draw within it.
+     *  Epoch 95 (2026-11-07, #269): a source whose tap damage would be lethal pays after every other source, the
+     *  sacrifice-cost ones included (ComputerUtilMana patch); it shared their list, unordered among non-creatures.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-94";
+    static final String HARNESS_EPOCH = "harness-epoch-95";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
