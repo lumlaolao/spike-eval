@@ -123,7 +123,7 @@ public class ReplayBridgeTest {
         ReplayBridge b = replayOf(rep.played);
         Assert.assertNotNull(b, "a replay: spec builds the replay bridge");
         Assert.assertEquals(b.report().get("replay_recorded_status"), "solved", "the recorded outcome was read");
-        Assert.assertEquals(b.report().get("replay_version"), "replay-bridge-v1", "the stamp's literal (eval/versions.py)");
+        Assert.assertEquals(b.report().get("replay_version"), "replay-bridge-v3", "the stamp's literal (eval/versions.py)");
         Assert.assertNull(b.drift, "nothing drifted");
         Assert.assertTrue(b.reproduced(), "every recorded turn and decision row was used: " + b.report());
         Assert.assertTrue(b.turns.size() > 10, "the splice line is a dozen decisions or more: " + b.turns.size());
@@ -361,20 +361,20 @@ public class ReplayBridgeTest {
         String rec = recording(callRow(1, MENU, "TOOL CALL answer {\"option\":1}"),
                 decisionRow("play", 2, 0, SPIKE_PASS.toArray(new String[0]))).getPath();
         ReplayBridge same = ReplayBridge.fromFile("Solver/smart", rec);
-        same.onDecisionRow("Opponent", "play", 2, -1, SPIKE_PASS);
-        same.onDecisionRow("Solver", "play", 2, 0, SPIKE_PASS);
+        same.onDecisionRow("Opponent", "play", 2, -1, SPIKE_PASS, -1);
+        same.onDecisionRow("Solver", "play", 2, 0, SPIKE_PASS, -1);
         Assert.assertNull(same.drift, "the recorded row, and another seat's row, are no drift");
         String[][] wrong = {{"play", "2", "-1"}, {"target", "2", "0"}, {"play", "3", "0"}};
         for (String[] w : wrong) {
             ReplayBridge b = ReplayBridge.fromFile("Solver/smart", rec);
-            b.onDecisionRow("Solver", w[0], Integer.parseInt(w[1]), Integer.parseInt(w[2]), SPIKE_PASS);
+            b.onDecisionRow("Solver", w[0], Integer.parseInt(w[1]), Integer.parseInt(w[2]), SPIKE_PASS, -1);
             Assert.assertNotNull(b.drift, Arrays.toString(w));
             Assert.assertTrue(b.drift.startsWith("decision row 1: "), b.drift);
         }
         ReplayBridge relabelled = ReplayBridge.fromFile("Solver/smart", rec);
-        relabelled.onDecisionRow("Solver", "play", 2, 0, Arrays.asList("CAST Lava Spike @3 {R}", "PASS (do nothing)"));
+        relabelled.onDecisionRow("Solver", "play", 2, 0, Arrays.asList("CAST Lava Spike @3 {R}", "PASS (do nothing)"), -1);
         Assert.assertTrue(relabelled.drift.startsWith("decision row 1: "), String.valueOf(relabelled.drift));
-        same.onDecisionRow("Solver", "play", 2, -1, SPIKE_PASS);
+        same.onDecisionRow("Solver", "play", 2, -1, SPIKE_PASS, -1);
         Assert.assertNotNull(same.drift, "a second row where the recording has one");
         Assert.assertTrue(same.drift.contains("after the recording's last"), same.drift);
     }
