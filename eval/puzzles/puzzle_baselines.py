@@ -488,8 +488,9 @@ def verify_puzzle(build, rec, out_root):
            "replay_log_sha256": row.get("log_sha256") if row else None}
     if problems:
         ver["problems"] = problems
-    # A search re-proof may prove the puzzle on another line (check_search_replay); say which one (#269).
-    if check is check_search_replay and row and row.get("line") and row["line"] != line.get("line"):
+    # A search re-proof may prove the puzzle on another line (check_search_replay); say which one (#269). Only when it
+    # verifies: a drift row keeps the line the search found but did not replay to the same solve, so it proved nothing.
+    if not problems and check is check_search_replay and row.get("line") and row["line"] != line.get("line"):
         ver["replay_line"] = row["line"]
         ver["replay_solver_actions"] = row.get("solver_actions")
     return dict(rec, verification=ver)
