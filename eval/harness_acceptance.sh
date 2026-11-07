@@ -356,8 +356,8 @@ EOF
     elif [ -n "$OWN_EXP" ] && [ "$OWN_N" != "$OWN_EXP" ]; then
       fail javatests "ownership count $OWN_N != pinned $OWN_EXP (update harness_acceptance.expected AND ControllerOwnershipTest deliberately)"
     # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
-    elif ! grep -qF "] decisions-bridge-v1 ONE -> answer" "$OUT/javatests.log"; then
-      fail javatests "no [JEV] answer stamped decisions-bridge-v1 (move this pin WITH DecisionsBridge.VERSION)"
+    elif ! grep -qF "] decisions-bridge-v2 ONE -> answer" "$OUT/javatests.log"; then
+      fail javatests "no [JEV] answer stamped decisions-bridge-v2 (move this pin WITH DecisionsBridge.VERSION)"
     # The claude-cli: seat's bridge version, by literal value, from a fake-CLI answer ClaudeCliBridgeTest drew through it.
     elif ! grep -qF "] claude-cli-bridge-v2 -> TOOL CALL answer" "$OUT/javatests.log"; then
       fail javatests "no [CLAUDE-CLI] answer stamped claude-cli-bridge-v2 (move this pin WITH ClaudeCliBridge.VERSION)"

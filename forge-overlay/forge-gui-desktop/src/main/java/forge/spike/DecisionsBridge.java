@@ -38,8 +38,10 @@ final class DecisionsBridge implements LLMBridge {
     static final String PREFIX = "jev:";
     /** v1 (2026-10-24): one request per ask; choice / noul composition per decision kind. Stamped on the game line of a
      *  game with a jev: seat and on a jev: solver's puzzle row (eval/versions.py); pinned in DecisionsBridgeTest and in
-     *  eval/harness_acceptance.sh. */
-    static final String VERSION = "decisions-bridge-v1";
+     *  eval/harness_acceptance.sh.
+     *  v2 (2026-11-07, #415): a repeatable-mode question states the site's limit (a pawprint charm's {P} budget,
+     *  {@code Spec.limit}). */
+    static final String VERSION = "decisions-bridge-v2";
     /** The most values a number, a division or a mode's count is listed as. A wider one is not asked (no answer,
      *  logged). docs/harness/MODEL-LIMITS.md. */
     static final int MAX_LISTED = 40;

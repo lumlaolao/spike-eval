@@ -857,7 +857,7 @@ and the correction round and the fixed legal option apply exactly as for any mod
   (priced by `eval/cost_report.py`: `typesafe/jev-1.14` is $0.042 per million input tokens, output free), and the
   provider's `usage.cost` is the `context_call` row's `cost_usd` (an additive key, written only by a bridge that
   reports a cost). A call that fails reports no usage of its own. `model_id` resolves the `jev:` prefix.
-- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped per identity on the game line,
+- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v2`) is stamped per identity on the game line,
   `decisions_bridge_version_a` / `_b`, only for a `jev:` seat (keyed in `aggregate.PROVENANCE_FIELDS` with default
   "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on the puzzle
   row of a solver with a `jev:` tier (smart or fast, as on the game line), where `puzzle_score.py` refuses to pool two
