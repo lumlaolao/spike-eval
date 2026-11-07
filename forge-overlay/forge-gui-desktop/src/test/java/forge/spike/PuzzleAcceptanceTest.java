@@ -1,5 +1,9 @@
 package forge.spike;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -7,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import forge.util.FileSection;
+import forge.util.FileUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -103,6 +109,29 @@ public class PuzzleAcceptanceTest {
                 "counters p0 Battlefield * TIME = 1", "counters p0 Battlefield * REVIVAL = 1",
                 "counters p0 Battlefield * QUEST = 1", "counters p0 Battlefield * CHARGE = 1",
                 "counters p0 Battlefield * Flying = 1"));
+    }
+
+    /** Every committed puzzle's [acceptance] section parses as the runner parses it before a game, so a parser that
+     *  grows stricter (#269) cannot strand a committed puzzle unseen. */
+    @Test
+    public void everyCommittedAcceptanceSectionParses() throws IOException {
+        List<String> refused = new ArrayList<>();
+        int read = 0;
+        Path root = new File(PuzzleSetupTest.repoRoot(), "eval/puzzles").toPath();
+        try (java.util.stream.Stream<Path> files = Files.walk(root)) {
+            for (Path f : (Iterable<Path>) files.filter(x -> x.toString().endsWith(".pzl"))::iterator) {
+                List<String> acceptance = FileSection.parseSections(FileUtil.readFile(f.toFile())).get("acceptance");
+                if (acceptance == null) continue;
+                read++;
+                try {
+                    PuzzleAcceptance.parse(acceptance);
+                } catch (IllegalArgumentException e) {
+                    refused.add(f + ": " + e.getMessage());
+                }
+            }
+        }
+        Assert.assertTrue(read >= 1000, "found only " + read + " acceptance sections");
+        Assert.assertEquals(refused, Collections.emptyList());
     }
 
     @Test
