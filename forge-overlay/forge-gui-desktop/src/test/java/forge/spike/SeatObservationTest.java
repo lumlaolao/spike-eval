@@ -1234,4 +1234,24 @@ public class SeatObservationTest {
             PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
         }
     }
+
+    /** A keyword granted to a player (Leyline of Sanctity's hexproof) is the player's, said on its line, not a card in
+     *  its command zone (#368): the engine keeps it on a "Keyword Effects" object there, which the state listed with a
+     *  handle as if the seat could inspect, cast or target it. */
+    @Test
+    public void aPlayersGrantedKeywordIsOnItsLineNotACommandCard() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        card("Leyline of Sanctity", rival, ZoneType.Battlefield);
+        g.getAction().checkStaticAbilities();
+        Assert.assertTrue(rival.getCardsIn(ZoneType.Command).stream().anyMatch(c -> "Keyword Effects".equals(c.getName())),
+                "the engine holds the hexproof on its Keyword Effects object");
+        String r = render(observerFor(g, 0), "");
+        Assert.assertFalse(r.contains("Keyword Effects"), r);
+        String opp = r.lines().filter(l -> l.startsWith("OPP [")).findFirst().orElse("");
+        Assert.assertTrue(opp.contains("| has hexproof"), opp);
+        String you = r.lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("");
+        Assert.assertFalse(you.contains("| has "), you);
+    }
+
 }
