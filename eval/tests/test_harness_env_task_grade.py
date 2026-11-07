@@ -1,5 +1,7 @@
 """harness_env_task_grade.py: the reward rule, the TestNG reader, the Forge guard, and red-then-green on a fixture."""
 import difflib
+import glob
+import hashlib
 import json
 import os
 import re
@@ -77,6 +79,21 @@ class NoteTest(unittest.TestCase):
         self.assertIsNotNone(m, "the note must say 'N grader tests and N task tests'")
         self.assertEqual((int(m.group(1)), int(m.group(2))),
                          (self.count("test_harness_env_task_grade"), self.count("test_harness_env_tasks")))
+
+
+class ValidationStampTest(unittest.TestCase):
+    """A committed validation is evidence only for the grader that produced it."""
+
+    def test_each_committed_validation_names_the_current_grader_file(self):
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(here, "harness_env", "harness_env_task_grade.py"), "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        files = sorted(glob.glob(os.path.join(here, "harness_env", "validation", "pr*-validation.json")))
+        self.assertTrue(files)
+        for path in files:
+            with open(path, encoding="utf-8") as f:
+                self.assertEqual(json.load(f)["grader_sha256"], digest,
+                                 os.path.basename(path) + " was validated under another grader: re-run validate")
 
 
 class ForgeGuardTest(unittest.TestCase):
@@ -463,6 +480,12 @@ class RewardHackTest(unittest.TestCase):
     def test_a_tsv_data_file_under_docs_the_candidate_edited_is_restored(self):
         self.data_case("docs/harness/x.tsv", "2\tz\n", "2\tz\n", "1\tz\n")
 
+    def test_a_pzl_file_under_eval_the_candidate_edited_is_restored(self):
+        self.data_case("eval/puzzles/x.pzl", "2\n", "2\n", "1\n")
+
+    def test_a_jsonl_file_under_eval_the_candidate_edited_is_restored(self):
+        self.data_case("eval/testdata/x.jsonl", "2\n", "2\n", "1\n")
+
     def test_the_inputs_the_gold_patch_changes_are_not_restored(self):
         src = ("def value():\n    return int(open('eval/data/x.json').read())\n\n\ndef keep():\n    return 1\n")
         self.sandbox(PR_TEST, base_extra={"src.py": src, "eval/data/x.json": "1\n"},
@@ -670,6 +693,14 @@ class JavaGradeTest(unittest.TestCase):
     def grade(self, deps):
         return g.grade(self.task, self.wt, self.out, self.forge, deps, self.repo)
 
+    def grade_notes(self, deps):
+        """The notes of a grade that is accepted: with no TestNG in the deps it then stops at the reporter (SetupError),
+        after javac, which has no notes."""
+        try:
+            return self.grade(deps)["notes"]
+        except g.SetupError:
+            return []
+
     def candidate_file(self, rel, text):
         fx.write(self.wt, rel, text)
 
@@ -689,20 +720,14 @@ class JavaGradeTest(unittest.TestCase):
     def test_the_pin_the_engine_patches_use_is_the_graders_not_the_candidates(self):
         self.fixed()
         self.candidate_file("FORGE_COMMIT", "0123456789abcdef\n")
-        try:
-            notes = self.grade(self.deps())["notes"]
-        except g.SetupError:  # the patched A.java compiled; the run then stops at the reporter (no TestNG in the deps)
-            notes = []
+        notes = self.grade_notes(self.deps())  # the patched A.java compiled
         self.assertEqual([n for n in notes if "engine patches" in n], [])
         self.assertNotIn("error:", self.log())
 
     def test_a_source_path_with_a_space_in_it_reaches_javac(self):
         self.candidate_file("forge-overlay/my dir/src/main/java/forge/util/Spaced.java",
                             "package forge.util;\n\npublic class Spaced { }\n")
-        try:
-            self.grade(self.deps())  # no TestNG in the deps: it stops at the reporter, after javac
-        except g.SetupError:
-            pass
+        self.grade_notes(self.deps())
         self.assertNotIn("error:", self.log())
 
     def test_a_candidate_class_in_a_package_outside_forge_is_refused_before_any_test_runs(self):
@@ -736,10 +761,7 @@ class JavaGradeTest(unittest.TestCase):
             z.writestr("forge/util/Dup.class", b"x")
         self.candidate_file("forge-overlay/x/src/main/java/forge/util/Dup.java", "package forge.util;\n\npublic class Dup { }\n")
         self.fixed()
-        try:
-            notes = self.grade(self.deps(jar))["notes"]
-        except g.SetupError:  # accepted; the run stops at the reporter (no TestNG in the deps)
-            notes = []
+        notes = self.grade_notes(self.deps(jar))
         self.assertEqual([n for n in notes if "may not" in n], [])
 
     @unittest.skipUnless(TESTNG_JAR, "no TestNG jar under ~/.m2")
@@ -766,6 +788,30 @@ class JavaGradeTest(unittest.TestCase):
     def test_the_runtime_classpath_puts_the_dependencies_before_the_candidates_classes(self):
         cp = g.runtime_classpath("/r", "/d1.jar:/d2.jar", "/classes", ["/e1", "/e2"]).split(":")
         self.assertEqual(cp, ["/r", "/d1.jar", "/d2.jar", "/classes", "/e1", "/e2"])
+
+    def test_the_runtime_classpath_drops_the_forge_jars_of_the_dependency_list(self):
+        deps = "/m2/forge/forge-core/1/forge-core-1.jar:/d1.jar:/m2/forge/forge-gui/1/forge-gui-1.jar:/d2.jar"
+        cp = g.runtime_classpath("/r", deps, "/classes", ["/e1"]).split(":")
+        self.assertEqual(cp, ["/r", "/d1.jar", "/d2.jar", "/classes", "/e1"])
+
+    def test_a_class_of_an_old_forge_jar_loses_to_the_candidates_compiled_class(self):
+        """Real javac and java: forge/X says OLD in the jar of the dependency list and NEW in the candidate's classes."""
+        jh = g.java_home()
+        src = {}
+        for name, word in (("old", "OLD"), ("new", "NEW")):
+            d = os.path.join(self.tmp.name, "src-" + name)
+            fx.write(d, "forge/X.java", 'package forge;\n\npublic class X {\n    public static void main(String[] a) '
+                                        '{ System.out.println("%s"); }\n}\n' % word)
+            out = os.path.join(self.tmp.name, "cls-" + name)
+            os.makedirs(out)
+            subprocess.run([os.path.join(jh, "bin", "javac"), "-d", out, os.path.join(d, "forge/X.java")], check=True)
+            src[name] = out
+        jar = os.path.join(self.tmp.name, "forge-core-1.0.jar")
+        with zipfile.ZipFile(jar, "w") as z:
+            z.write(os.path.join(src["old"], "forge/X.class"), "forge/X.class")
+        cp = g.runtime_classpath(self.tmp.name, jar, src["new"], [])
+        run = subprocess.run([os.path.join(jh, "bin", "java"), "-cp", cp, "forge.X"], capture_output=True, text=True)
+        self.assertEqual(run.stdout.strip(), "NEW", run.stdout + run.stderr)
 
 
 class ResultChannelTest(unittest.TestCase):

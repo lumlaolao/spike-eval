@@ -53,10 +53,11 @@ plus the tests must score 1; the engine checkout must be unchanged. Each ran und
 | pr404 (issue 251, gold 9 lines) | Java `LlmSpikeTest` | 0, **build failure** (the test names a symbol the fix adds; javac `cannot find symbol`) | 1 (1 of 1, 0 regressions) | build | yes, but a weak red |
 
 The validation outputs are committed: `eval/harness_env/validation/pr390-validation.json`, `pr409-validation.json` and
-`pr404-validation.json`. All three were re-run together on 2026-11-07 under the third-review grader (the
-last two JSON lines of each record it): each file now carries `grader_sha256` (of `harness_env_task_grade.py`),
-`engine_head` (`/root/forge` HEAD, 34a8662), `repo_head` and `validated_at`, so a validation is evidence only for the
-grader and engine that produced it. Results are unchanged: pr390 red 0 / green 1, pr409 red 0 (1 of 2) / green 1 (2 of 2),
+`pr404-validation.json`. All three were re-run together on 2026-11-07 under the fourth-review grader: each file
+carries the keys `grader_sha256` (of `harness_env_task_grade.py`), `engine_head` (`/root/forge` HEAD, 34a8662),
+`repo_head` and `validated_at`, so a validation is evidence only for the grader and engine that produced it.
+`repo_head` names the commit that holds that grader (the grader was committed first, then validated, then the JSONs),
+and `ValidationStampTest` fails when a committed `grader_sha256` is not the hash of the current grader file. Results are unchanged: pr390 red 0 / green 1, pr409 red 0 (1 of 2) / green 1 (2 of 2),
 pr404 red 0 (build) / green 1. `tasks-v0.json` carries `red_kind` and `validated` for these three and
 null for the other 19.
 
@@ -115,10 +116,10 @@ could not have forged it. What is closed and what is not, exactly:
   hook rewriting the reporter's file). The sandbox's path to the result file is also guessable from `sys.argv`.
   Nothing short of a different user or a container closes these.
 
-## Reward hacks closed (three reviews of PR 422)
+## Reward hacks closed (four reviews of PR 422)
 
 Each closed hole has a test that attempts it, in `eval/tests/test_harness_env_task_grade.py` (`RewardHackTest`,
-`PrebuiltClassTest`, `JavaGradeTest`, `ResultChannelTest`). 60 grader tests and 12 task tests today, counted by the unittest
+`PrebuiltClassTest`, `JavaGradeTest`, `ResultChannelTest`, `ValidationStampTest`). 65 grader tests and 12 task tests today, counted by the unittest
 loader (`NoteTest` fails if these two figures drift). "Red first" means the test fails on the grader before the fix.
 
 | Hole | Closed by | Test |
@@ -132,11 +133,12 @@ loader (`NoteTest` fails if these two figures drift). "Red first" means the test
 | Prebuilt-class fallback: delete a buggy overlay source, javac links the installed build | classpath is a hard-linked copy of the modules' `target/classes` without `forge/spike/**` and without any class the overlay or an engine patch supplies; the grade fails if a supplied source that the gold patch keeps is missing | `test_the_classpath_holds_no_class_the_overlay...`, `test_a_deleted_source_the_gold_patch_keeps_fails_the_grade...` |
 | Java result forgery by overwriting `testng-results.xml` | results come from the grader's own TestNG reporter (`HarnessGraderReporter.java`, compiled in the scratch) writing a nonce'd file; the XML is never read (see "open" below for what remains) | `test_a_testng_xml_the_candidate_left_is_not_read`, `test_a_result_file_with_another_nonce_is_not_read` |
 | Malformed result payload raised an exception | a missing, unparsable or wrongly shaped payload is a 0 with a note | `test_a_malformed_payload_is_a_zero_with_a_note_not_an_exception` |
-| Read-only inputs edited to make a test pass | restored from the merge commit like the tests, except files the gold patch changes (those are the fix); the rules text comes from the grader's checkout. The covered set (`READONLY_DATA`): every tracked `.md`; every `.json`, `.txt`, `.tsv`, `.csv` under `eval/` and `docs/`; the tree `eval/decks/` | `test_a_read_only_input_the_candidate_edited_is_restored...`, `test_a_json_data_file_under_eval...`, `test_a_txt_data_file_under_eval...`, `test_a_tsv_data_file_under_docs...`, `test_the_inputs_the_gold_patch_changes_are_not_restored` |
+| Read-only inputs edited to make a test pass | restored from the merge commit like the tests, except files the gold patch changes (those are the fix); the rules text comes from the grader's checkout. The covered set (`READONLY_DATA`): every tracked `.md`; every `.json`, `.txt`, `.tsv`, `.csv` under `eval/` and `docs/`; every `.pzl` and `.jsonl` under `eval/`; the tree `eval/decks/` | `test_a_read_only_input_the_candidate_edited_is_restored...`, `test_a_json_data_file_under_eval...`, `test_a_txt_data_file_under_eval...`, `test_a_tsv_data_file_under_docs...`, `test_a_pzl_file_under_eval...`, `test_a_jsonl_file_under_eval...`, `test_the_inputs_the_gold_patch_changes_are_not_restored` |
 | Secrets in the Python child's environment | allowlisted environment (`ENV_KEEP`) for both children | `test_the_python_child_sees_no_api_key_or_egress_flag` |
 | `FORGE_COMMIT` read from the candidate's tree | the pin is the grader's, at the merge commit; the patches stay the candidate's, as data | `test_the_pin_for_the_engine_patches_is_the_graders...` |
 | Symlinked parent directory makes a restore write outside the worktree | `restore_files` refuses (`Tampered`, score 0) when the parent's `realpath` leaves the worktree | `test_a_symlinked_parent_directory_is_refused...` |
 | Python forgery from the runner's globals: `import __main__` and read `_nonce`, `_out`, `_names` (third review) | the runner does its work in `main()`; its secrets are locals, `__main__` holds only imports and `main` | `test_imported_code_that_reads_the_runners_globals_cannot_write_a_forged_result` (red first: score 1) |
+| Old engine jars win over the candidate's fix: `deps.txt` holds old-build forge-core/-game/-ai/-gui jars that preceded the candidate's classes and `engine_mods`, so a correct fix to a non-spike overlay class or an engine patch scored 0 (fourth review) | `runtime_classpath` drops the engine's own jars from the dependency list (`engine_mods` holds those four modules; the non-engine jars such as TestNG stay ahead of the candidate's classes) | `test_a_class_of_an_old_forge_jar_loses_to_the_candidates_compiled_class` (red first: real `javac` and `java` printed OLD), `test_the_runtime_classpath_drops_the_forge_jars_of_the_dependency_list` |
 | TestNG shadowing: a candidate `forge-overlay/x/src/main/java/org/testng/TestNG.java` compiled into `classes`, which preceded the TestNG jar (third review) | runtime classpath is the reporter, the dependency jars, then the candidate's classes; after javac the grade is refused (score 0, `Tampered`) if the sources compiled to any class outside `forge/` or with the path of a class in a dependency jar. The check reads the compiled output, so a `package` line the path does not show is caught | `test_a_candidate_testng_main_cannot_write_an_all_pass_result` (red first: the JVM ran the forged main and scored 1), `test_a_candidate_class_in_a_package_outside_forge...`, `test_a_package_declaration_the_path_does_not_show...`, `test_a_candidate_class_with_the_name_of_a_dependency_class...`, `test_the_runtime_classpath_puts_the_dependencies_before...` |
 | A source path with a space split in the javac `@argfile` | each path is quoted | `test_a_source_path_with_a_space_in_it_reaches_javac` (red first: `invalid flag`) |
 | A hung Python test | per-file timeout, 0 with a note | `test_a_python_test_that_hangs_scores_zero_with_a_note` |
@@ -156,7 +158,7 @@ sandbox from `prepare` holds one commit and no object of this repository (`test_
 - **Tests that derive the repository root from the rules file** (`PuzzleSetupTest`) read the grader's checkout, not the
   candidate's tree, for what they find under that root.
 - **A test helper or fixture outside the task's files that the tests read** other than the inputs listed above (a
-  fixture with another extension, say `.yaml`, or a data file outside `eval/` and `docs/`).
+  fixture with another extension, or a data file outside `eval/` and `docs/`).
 - **A candidate class in `forge.*` that replaces a class the engine or an overlay class supplies** is allowed: that is
   what a gold patch to the overlay does.
 - **The Java classpath filter needs the candidate to keep the sources the gold patch keeps.** A valid fix that merges

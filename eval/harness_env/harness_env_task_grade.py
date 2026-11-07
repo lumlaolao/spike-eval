@@ -14,42 +14,23 @@ Result keys, stated once: a test is `<class>.<method>` for Java (class fully qua
 a Python TestCase method and `<module>.<test_fn>` for a module-level function; a failed TestNG fixture is
 `<key><config>`. A declared test with no result is missing, which counts against the candidate.
 
-What comes from the grader, not the candidate (the grader's repository, `--repo`, at the task's merge commit):
-  - every file in the task's `test_files` and `support_files`, overwritten before anything runs; a candidate that
-    changed, emptied or deleted one scores 0 (`tests_modified`) and the run uses the restored file;
-  - the read-only inputs the tests read (READONLY_DATA: every `.md`, every .json/.txt/.tsv/.csv under eval/ and docs/,
-    eval/decks/), restored the same way but silently, bar any file the gold patch itself changes; the Comprehensive
-    Rules text and FORGE_COMMIT;
-  - the Python runner, the TestNG reporter and the engine-patch tool, all run from the grader's scratch directory;
-  - a parent directory of those files that is a symlink out of the worktree scores 0 (`Tampered`).
-Results of an earlier grade (result.json, javac.log, the JVM's output) are deleted first.
+The grader's own repository (`--repo`, at the task's merge commit) supplies the test files, their support files, the
+read-only inputs they read (READONLY_DATA; the gold patch's own files excepted), the Comprehensive Rules text, the
+Python runner, the TestNG reporter and the engine-patch tool. A candidate that changed, emptied or deleted a test
+scores 0 (`tests_modified`); one whose parent directory is a symlink out of the worktree scores 0 (`Tampered`).
 
-How a Java task is run: the overlay of the CANDIDATE worktree is compiled with javac into a scratch directory over
-the pinned engine's classes (the same compile as eval/harness_acceptance.sh, engine patches applied to the pinned
-originals by the GRADER's own eval/engine_patches.py reading the candidate's engine-patches/ as data), then the
-named TestNG classes run in one JVM with the same system properties. The classpath holds a hard-linked copy of the
-engine's target/classes WITHOUT forge/spike/** and without any class the overlay or an engine patch supplies (the
-installed engine holds builds of them, possibly with the fix), and the grade fails if the candidate deleted a
-supplied source the gold patch keeps. The runtime classpath puts the reporter and the dependency jars (TestNG)
-before the candidate's classes, and the grade is refused (score 0, `Tampered`) if the candidate's sources compile to a
-class outside the forge.* packages or named like a dependency's class. The results come from the grader's own TestNG reporter
-(HarnessGraderReporter.java) writing a file with a per-run nonce; testng-results.xml and stdout are never read.
-The acceptance script has no class filter (STAGES picks stages, not classes), and its compile stage needs `mvn` for the
-classpath, which this grader never runs: it takes the dependency classpath from a `deps.txt` an earlier acceptance
-run wrote (--deps-file, HARNESS_DEPS_FILE, or the newest under a runs/ tree).
+A Java task compiles the candidate's overlay with javac over the pinned engine (engine patches applied by the
+grader's own eval/engine_patches.py, reading the candidate's engine-patches/ as data), then runs the named TestNG
+classes in one JVM. A Python task runs every test of the named files in a runner of the grader's. Results come from
+a file with a per-run nonce that the grader's reporter or runner writes; stdout and testng-results.xml are never
+read. The acceptance script has no class filter and needs `mvn`, which this grader never runs: the dependency
+classpath comes from a `deps.txt` an earlier acceptance run wrote (--deps-file, HARNESS_DEPS_FILE, or the newest
+under a runs/ tree).
 
-How a Python task is run: bytecode is deleted from the worktree, then a runner of the grader's (in its scratch) is
-started as `python -I -B` with sys.pycache_prefix in the scratch, the candidate's directories appended AFTER the
-stdlib on sys.path, and an allowlisted environment; the runner keeps its secrets in function locals, not in the
-globals of `__main__`. The runner imports the test module and runs every unittest
-method and every module-level `test_` function itself, one result each; a SystemExit in an import or a test is a
-FAIL. A script-style module's own `FAILURES` list (what its check() appends to) counts too. Results go to a nonce'd
-file; stdout is never parsed. A malformed result is a 0 with a note.
-
-NOT A SECURITY SANDBOX: the candidate's code runs as the invoking user. What is closed, what is open and what
+NOT A SECURITY SANDBOX: the candidate's code runs as the invoking user. Closed and open forgeries, and what
 isolation-grade needs: eval/research/2026-11-07-harness-env-tasks.md, "Status". The engine checkout is only guarded
-(the JVM starts in a scratch tree whose `forge-gui/res` is a symlink farm; a before/after check fails the grade if
-the checkout's HEAD or `git status` changed or any file under $FORGE_HOME bar .git is newer than the grade's start).
+(the JVM starts in a scratch tree; the grade fails if the checkout's HEAD or `git status` changed or any file under
+$FORGE_HOME bar .git is newer than the grade's start).
 
 Usage:
   harness_env_task_grade.py grade <tasks.json> <worktree> --task-id pr403 [--out DIR] [--deps-file F] [--forge F] [--repo .]
@@ -227,8 +208,9 @@ def restore_files(task, repo, root, paths, must_exist=True):
 
 # Files a test reads and never writes. They are restored from the merge commit like the tests (a candidate edit is
 # silently undone, not penalised), except the ones the gold patch itself changes: those are the fix. The covered set:
-# every tracked `.md`; every `.json`, `.txt`, `.tsv` and `.csv` under eval/ and docs/; and the tree eval/decks/.
-READONLY_DATA = re.compile(r"^(.*\.md|(eval|docs)/.*\.(json|txt|tsv|csv)|eval/decks/.*)$")
+# every tracked `.md`; every `.json`, `.txt`, `.tsv` and `.csv` under eval/ and docs/; every `.pzl` and `.jsonl` under
+# eval/ (puzzle files and recorded runs the Java tests read); and the tree eval/decks/.
+READONLY_DATA = re.compile(r"^(.*\.md|(eval|docs)/.*\.(json|txt|tsv|csv)|eval/.*\.(pzl|jsonl)|eval/decks/.*)$")
 
 
 def readonly_inputs(task, repo):
@@ -423,23 +405,32 @@ def pin_repo(task, repo, worktree, dest):
     return dest
 
 
+def is_engine_entry(entry):
+    """A classpath entry that is an older build of one of the engine's own modules (forge-core-*.jar, ...)."""
+    return os.path.basename(entry).startswith("forge")
+
+
 def runtime_classpath(reporter, deps, classes, engine_mods):
-    """The grader's reporter and the dependency jars (TestNG) come BEFORE the candidate's classes, so a class the
-    candidate compiled can never replace one of theirs. (foreign_classes also refuses such a class outright.)"""
-    return ":".join([reporter, deps, classes] + list(engine_mods))
+    """The grader's reporter and the non-engine dependency jars (TestNG) come BEFORE the candidate's classes, so a
+    class the candidate compiled can never replace one of theirs (foreign_classes also refuses it outright). The
+    engine's own jars in `deps` (old builds of forge-core, -game, -ai, -gui) are dropped: `engine_mods` holds those
+    modules' current classes, and an old jar ahead of the candidate's classes would beat a correct fix."""
+    kept = [e for e in deps.split(":") if e and not is_engine_entry(e)]
+    return ":".join([reporter] + kept + [classes] + list(engine_mods))
 
 
 def foreign_classes(classes_dir, deps):
     """The classes the candidate's sources compiled to that they may not define: any outside the forge.* packages
-    (the overlay is Forge's `forge` package tree; `org/testng/TestNG` is not theirs) and any with the name of a class
-    in a dependency jar or directory other than a forge* one (the .m2 holds older builds of the engine's modules). A source can declare a package its path does not show, so this reads the
-    output, not the paths. -> sorted class paths."""
+    (the overlay is Forge's `forge` package tree; `org/testng/TestNG` is not theirs) and any with the name of a
+    class in a dependency jar or directory other than an engine one (the .m2 holds older builds of the engine's
+    modules). A source can declare a package its path does not show, so this reads the output, not the paths.
+    -> sorted class paths."""
     made = set()
     for root, _, files in os.walk(classes_dir):
         made.update(os.path.relpath(os.path.join(root, f), classes_dir) for f in files if f.endswith(".class"))
     bad = {c for c in made if not c.startswith("forge" + os.sep)}
     for entry in deps.split(":"):
-        if os.path.basename(entry).startswith("forge"):
+        if is_engine_entry(entry):
             continue  # an older build of the engine's own module: replacing its classes is what an overlay fix does
         if entry.endswith(".jar") and os.path.isfile(entry):
             with zipfile.ZipFile(entry) as z:
