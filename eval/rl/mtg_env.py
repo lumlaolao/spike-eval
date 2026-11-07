@@ -1,0 +1,478 @@
+#!/usr/bin/env python3
+"""MtgEnv: the Forge harness as a reset/step environment for RL (stdlib only). The conditions, the reward and the
+validity rules are in eval/rl/README.md, their one home.
+
+A loopback OpenAI-compatible server parks every chat-completions request of the game JVM; the request is the
+observation, the `answer` tool call written back is the action, and the JVM's exit is the end of the episode.
+The reward is the engine's own verdict: a puzzle result row (solved = 1) or the game line (identity A wins = 1).
+
+    env = MtgEnv()
+    obs = env.reset(puzzle="eval/puzzles/hard/gen/drain_08bba3eb8d53.pzl", seed=1)
+    done = False
+    while not done:
+        obs_next, reward, done, info = env.step(policy(obs))
+        obs = obs_next
+    env.close()
+
+No model is called and nothing leaves the machine (eval/rl/README.md, "How it works").
+"""
+import atexit
+import hashlib
+import json
+import os
+import queue
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import weakref
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent))  # eval/
+import evalpath  # noqa: E402,F401
+import eval_only  # noqa: E402  (the guard MtgEnv.reset calls)
+import fake_model_server  # noqa: E402  (its parser of the legal options is the one the env uses)
+from puzzle_baselines import ADD_OPENS  # noqa: E402  (the one list of the JVM's --add-opens)
+
+MODEL_SPEC = "openrouter:rl/policy"  # loopback: exempt from the egress gate, never sent a key
+OPTION = re.compile(r"(?m)^\s*(\d+)\) (.*)$")
+ASK_MARK = "call `answer` with `"
+# Pinned by test_mtg_env.py against puzzle_solve.condition; why each: eval/rl/README.md, "How it works".
+DECISION_ONLY = {"CONTEXT_PROFILE": "v4-faithful", "MEMORY_TOOLS": "0", "RULES_TOOL": "0", "NATIVE_TOOLS": "1",
+                 "ANSWER_TOOL": "1", "LOOKAHEAD": "0", "MULLIGAN_HEURISTIC": "0", "SKIP_HEURISTICS": "0"}
+
+
+JUDGED_START = {"PUZZLE", "PZL_SEEDS", "GAME_SEED", "DECK_A", "DECK_B", "DECK_A_NAME", "DECK_B_NAME"}
+
+
+class EnvError(RuntimeError):
+    pass
+
+
+def messages_key(messages):
+    """The identity of a request: a retried ask repeats the same messages array byte for byte."""
+    return hashlib.sha256(json.dumps(messages, sort_keys=True).encode()).hexdigest()
+
+
+def parse_ask(messages):
+    """The legal answer set of a request, read with the fake server's parser: the field the question wants,
+    its numbered options (number and text) and its bounds. {} for a request that asks nothing."""
+    text = next((str(m.get("content", "")) for m in reversed(messages)
+                 if m.get("role") == "user" and ASK_MARK in str(m.get("content", ""))), "")
+    if not text:
+        return {}
+    props = fake_model_server.Policy.decision_props(messages)
+    field = next(iter(props))
+    spec = props[field]
+    legal = {"field": field}
+    texts = {int(n): t.strip() for n, t in OPTION.findall(text)}
+    if field in ("option", "options"):
+        enum = spec["enum"] if field == "option" else spec["items"]["enum"]
+        legal["options"] = [{"n": n, "text": texts.get(n, "")} for n in enum]
+    if field == "options":
+        legal["min"], legal["max"] = spec.get("minItems", 0), spec.get("maxItems", len(legal["options"]))
+    elif field == "number":
+        legal["min"], legal["max"] = spec.get("minimum", 0), spec.get("maximum")
+    elif field == "amounts":
+        legal["count"] = spec.get("minItems", 1)
+        legal["total"] = int(re.search(r"summing to (-?\d+)", spec["description"]).group(1))
+    return legal
+
+
+def answer_schema(tools):
+    """The `answer` function's parameter schema as the harness sent it, or None."""
+    for t in tools or []:
+        fn = t.get("function", {})
+        if fn.get("name") == "answer":
+            return fn.get("parameters")
+    return None
+
+
+def as_arguments(action, legal=None):
+    """An action as the `answer` call's arguments: a dict as is, an int as {option} (or {number}), a list as
+    {options} (or {amounts}), a bool as {keep}, a str as {card}."""
+    field = (legal or {}).get("field")
+    if isinstance(action, dict):
+        return dict(action)
+    if isinstance(action, bool):
+        return {"keep": action}
+    if isinstance(action, int):
+        return {"number": action} if field == "number" else {"option": action}
+    if isinstance(action, (list, tuple)):
+        return {"amounts": list(action)} if field == "amounts" else {"options": list(action)}
+    if isinstance(action, str):
+        return {"card": action}
+    raise EnvError("unsupported action %r" % (action,))
+
+
+class _Pending:
+    """One parked decision: the request, and the handlers (original plus retries) waiting on its answer."""
+
+    def __init__(self, key, body, index):
+        self.key, self.body, self.index = key, body, index
+        self.legal = {}   # parse_ask of the request, set when the policy is shown it
+        self.reply = None
+        self.event = threading.Event()
+
+
+class _Server(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def __init__(self):
+        super().__init__(("127.0.0.1", 0), _Handler)
+        self.lock = threading.Lock()
+        self.events = queue.Queue()  # ("obs", _Pending) | ("exit", rc)
+        self.current = None          # the unanswered _Pending
+        self.last = None             # the answered _Pending (a retry after the answer gets it again)
+        self.count = 0               # distinct decisions seen
+        self.requests = 0            # every request, retries included
+        self.deduped = 0             # a retry of the unanswered ask (the same decision, as intended)
+        self.deduped_after_answer = 0   # a request identical to the answered one: see the handler
+        self.closing = False
+
+    @property
+    def base_url(self):
+        return "http://127.0.0.1:%d/v1" % self.server_address[1]
+
+
+class _Handler(BaseHTTPRequestHandler):
+    def log_message(self, fmt, *args):
+        pass
+
+    def do_POST(self):
+        srv = self.server
+        raw = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        if self.headers.get("Authorization") is not None:  # a loopback endpoint is never sent a key
+            return self._send(401, {"error": {"message": "loopback env refuses Authorization headers"}})
+        try:
+            body = json.loads(raw.decode("utf-8"))
+            key = messages_key(body.get("messages") or [])
+        except (ValueError, UnicodeDecodeError) as e:
+            return self._send(400, {"error": {"message": "bad request: %s" % e}})
+        with srv.lock:
+            srv.requests += 1
+            if srv.closing:
+                return self._send(503, {"error": {"message": "env closed"}})
+            if srv.current is not None and srv.current.key == key:   # the bridge re-asked an unanswered ask
+                srv.deduped += 1
+                pending = srv.current
+            elif srv.last is not None and srv.last.key == key:
+                # Byte-identical to the answered ask. It is taken for a retry whose connection died before the
+                # answer arrived and is replied with the same answer. The env cannot tell that from a genuinely
+                # new decision with the same messages (the messages carry the whole state, so that needs a
+                # state that did not change): such a decision is answered with the previous action and never
+                # reaches the policy. It is counted apart from `deduped` so a run shows how often it happened.
+                srv.deduped_after_answer += 1
+                pending = srv.last
+            else:
+                srv.count += 1
+                pending = srv.current = _Pending(key, body, srv.count)
+                srv.events.put(("obs", pending))
+        pending.event.wait()
+        if pending.reply is None:
+            return self._send(503, {"error": {"message": "env closed"}})
+        self._send(200, pending.reply)
+
+    def _send(self, status, obj):
+        data = json.dumps(obj).encode("utf-8")
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # a superseded connection: the bridge's retry carries the answer
+
+
+def chat_reply(arguments, index):
+    call = {"id": "call_answer_%d" % index, "type": "function",
+            "function": {"name": "answer", "arguments": json.dumps(arguments)}}
+    return {"id": "rl-%d" % index, "object": "chat.completion", "model": "rl/policy",
+            "choices": [{"index": 0, "finish_reason": "tool_calls",
+                         "message": {"role": "assistant", "content": None, "tool_calls": [call]}}],
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+
+
+class JvmLauncher:
+    """Starts LlmSpikeHeadless from a built Forge checkout (nothing is built or installed)."""
+
+    def __init__(self, forge_home=None, classpath_file=None, java=None, xmx="1536m"):
+        self.forge = Path(os.path.expandvars(forge_home or os.environ.get("FORGE_HOME") or "/root/forge")).expanduser()
+        self.cp_file = Path(classpath_file or os.environ.get("FORGE_CP_FILE") or "/tmp/forge_cp.txt")
+        self.java = java or os.environ.get("JAVA", "java")
+        self.xmx = xmx
+
+    def __call__(self, env, out_dir):
+        classes = self.forge / "forge-gui-desktop/target/classes"
+        if not (classes / "forge/spike/LlmSpikeHeadless.class").is_file():
+            raise EnvError("no compiled overlay in %s (this env builds nothing)" % classes)
+        if not self.cp_file.is_file():
+            raise EnvError("no classpath file %s" % self.cp_file)
+        args = []
+        for o in ADD_OPENS:
+            args += ["--add-opens", o + "=ALL-UNNAMED"]
+        args += ["-Xmx" + self.xmx, "-Dfile.encoding=UTF-8", "-Djava.util.Arrays.useLegacyMergeSort=true",
+                 "-Dapple.awt.UIElement=true", "-Djava.awt.headless=true",
+                 "-cp", "%s:%s" % (classes, self.cp_file.read_text().strip())]
+        argfile = Path(out_dir) / "java.args"
+        argfile.write_text("\n".join(args) + "\n")
+        log = open(Path(out_dir) / "jvm.log", "w")
+        return subprocess.Popen([self.java, "@%s" % argfile, "forge.spike.LlmSpikeHeadless"],
+                                cwd=str(self.forge / "forge-gui-desktop"), env=env, stdout=log,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+
+
+def scrubbed_environ():
+    """The shell's environment without anything that could change a condition or reach a paid endpoint."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENROUTER", "PZL_", "FORK_", "CLAUDE_"))}
+    import run_batch   # an import failure raises: a scrub that silently weakened would leak a condition
+    for k in run_batch.PINNED_ENV_KEYS + run_batch.RUN_DEFINING_KEYS:
+        env.pop(k, None)
+    return env
+
+
+class MtgEnv:
+    """reset(puzzle=<.pzl> [, seed]) | reset(seed=<n> [, deck=<file>]) -> obs; step(action) -> (obs, reward, done, info).
+
+    obs is {"episode", "step", "messages", "legal", "schema", "kind"} (kind "decision", or "correction" when the
+    engine refused the previous answer and re-asks); on done step returns obs None. The reward is 1.0 for a
+    solved puzzle / a won game, else 0.0; info["valid"] is False for an episode that must not be trained on (a
+    capped game, a missing row, a step timeout). `launcher(env, out_dir) -> Popen` starts the game process."""
+
+    def __init__(self, launcher=None, out_root=None, keep_out=False, step_timeout_s=300.0, first_timeout_s=240.0,
+                 call_timeout_ms=900000, game_cap_ms=1_800_000, model=MODEL_SPEC, extra_env=None,
+                 allow_eval_only=False):
+        self.launcher = launcher or JvmLauncher()
+        self.out_root = Path(out_root) if out_root else None
+        self.keep_out, self.step_timeout_s, self.first_timeout_s = keep_out, step_timeout_s, first_timeout_s
+        self.call_timeout_ms, self.game_cap_ms, self.model = call_timeout_ms, game_cap_ms, model
+        self.extra_env = dict(extra_env or {})
+        if set(self.extra_env) & JUDGED_START:
+            raise ValueError("extra_env cannot set %s: the guard judged the start reset was given"
+                             % sorted(set(self.extra_env) & JUDGED_START))
+        self.allow_eval_only = allow_eval_only
+        self.eval_only = []
+        self.server = self.proc = self.out_dir = self.pending = None
+        self.mode = self.puzzle_id = self.seed = None
+        self.episode = self.corrections = 0
+        self.t_reset = self.startup_s = 0.0
+        self.step_ms = []   # wall ms from the answer written to the next observation or the end
+        self.finished = True
+        self._scratch = None
+        ref = weakref.ref(self)   # a process that exits without close() must not leave the JVM running
+        atexit.register(lambda: ref() is not None and ref().close())
+
+    # ---------------------------------------------------------------- lifecycle
+    def reset(self, puzzle=None, seed=None, deck=None):
+        self.close()
+        if puzzle is None and seed is None:
+            raise EnvError("reset needs puzzle=<.pzl> or seed=<n>")
+        self.eval_only = eval_only.reasons(puzzle=puzzle, seeds=[1 if seed is None else seed] if puzzle is not None
+                                           else [seed], deck=deck, game=puzzle is None)
+        if self.eval_only and not self.allow_eval_only:
+            raise EnvError("eval-only data, never training data (eval/rl/README.md, \"Eval-only data\"): %s; "
+                           "allow_eval_only=True plays it marked eval_only" % "; ".join(self.eval_only))
+        self.episode += 1
+        self.corrections, self.step_ms, self.finished = 0, [], False
+        self.mode = "puzzle" if puzzle is not None else "game"
+        self.seed = seed
+        root = self.out_root or Path(tempfile.mkdtemp(prefix="mtg-env-"))
+        root.mkdir(parents=True, exist_ok=True)
+        self._scratch = None if self.out_root else root
+        self.out_dir = Path(tempfile.mkdtemp(prefix="ep%d-" % self.episode, dir=str(root)))
+        self.server = _Server()
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        env = scrubbed_environ()
+        env.update(DECISION_ONLY)
+        env.update({"CONTROLLER_A": "llm", "CONTROLLER_B": "ai", "SMART_MODEL_A": self.model,
+                    "FAST_MODEL_A": self.model, "OPENROUTER_BASE_URL": self.server.base_url,
+                    "OPENROUTER_TIMEOUT_MS": str(self.call_timeout_ms), "OPENROUTER_IDLE_MS": str(self.call_timeout_ms),
+                    "EVAL_OUT": str(self.out_dir), "GAME_CAP_MS": str(self.game_cap_ms)})
+        if self.mode == "puzzle":
+            self.puzzle_id = Path(puzzle).stem
+            env.update({"PUZZLE": str(Path(puzzle).resolve()), "PZL_SEEDS": str(1 if seed is None else int(seed))})
+        else:
+            self.puzzle_id = None
+            env["GAME_SEED"] = str(int(seed))
+            if deck:
+                env["DECK_A"] = env["DECK_B"] = str(Path(deck).resolve())
+        env.update(self.extra_env)
+        for k in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY"):
+            env.pop(k, None)
+        self.t_reset = time.time()
+        try:
+            self.proc = self.launcher(env, self.out_dir)
+        except Exception:
+            self.close()
+            raise
+        threading.Thread(target=self._watch, args=(self.proc, self.server), daemon=True).start()
+        kind, payload = self._next(self.first_timeout_s)
+        if kind != "obs":
+            tail = self._jvm_tail()
+            self.close()
+            raise EnvError("no first decision (%s, rc=%s): %s" % (kind, payload, tail))
+        self.startup_s = time.time() - self.t_reset
+        return self._observe(payload)
+
+    @staticmethod
+    def _watch(proc, server):
+        server.events.put(("exit", proc.wait()))
+
+    def _next(self, timeout):
+        try:
+            return self.server.events.get(timeout=timeout)
+        except queue.Empty:
+            return "timeout", None
+
+    def _observe(self, pending):
+        self.pending = pending
+        msgs = pending.body.get("messages") or []
+        pending.legal = parse_ask(msgs)
+        correction = any(m.get("role") == "tool" and str(m.get("content", "")).startswith("ERROR:") for m in msgs[-3:])
+        self.corrections += correction
+        return {"episode": self.episode, "step": pending.index, "messages": msgs, "legal": pending.legal,
+                "schema": answer_schema(pending.body.get("tools")),
+                "kind": "correction" if correction else "decision"}
+
+    def step(self, action):
+        if self.finished or self.pending is None:
+            raise EnvError("step on a finished or unstarted episode: call reset")
+        pending, self.pending = self.pending, None
+        t0 = time.time()
+        args = as_arguments(action, pending.legal)
+        with self.server.lock:
+            pending.reply = chat_reply(args, pending.index)
+            self.server.last, self.server.current = pending, None
+        pending.event.set()
+        kind, payload = self._next(self.step_timeout_s)
+        self.step_ms.append(round((time.time() - t0) * 1000.0, 1))
+        if kind == "obs":
+            nxt = self._observe(payload)
+            # a correction means the engine refused `args`: the step was not an answer (rollout.py marks it so)
+            return nxt, 0.0, False, {"step": payload.index, "args": args, "accepted": nxt["kind"] != "correction"}
+        if kind == "exit":
+            reward, info = self._result(payload)
+        else:
+            reward, info = 0.0, {"valid": False, "error": "step_timeout", "step_timeout_s": self.step_timeout_s}
+        info.update(self._stats())
+        if self.eval_only:
+            info["eval_only"] = list(self.eval_only)
+        self.finished = True
+        self.close()
+        return None, reward, True, info
+
+    def _stats(self):
+        s, ms = self.server, sorted(self.step_ms)
+        return {"episode": self.episode, "mode": self.mode, "puzzle": self.puzzle_id, "seed": self.seed,
+                "decisions": s.count, "requests": s.requests, "deduped": s.deduped,
+                "deduped_after_answer": s.deduped_after_answer, "corrections": self.corrections,
+                "step_ms_median": ms[len(ms) // 2] if ms else None, "step_ms_max": ms[-1] if ms else None,
+                "startup_s": round(self.startup_s, 2), "episode_s": round(time.time() - self.t_reset, 2)}
+
+    # ---------------------------------------------------------------- reward
+    def _result(self, rc):
+        """(reward, info). valid is False for an episode that must not be trained on: no verdict row, a verdict
+        the scorers refuse (a deck-out solve, a decision lost to a dead bridge or a routing filter), a decision the
+        harness took with its fixed option after two refused answers (`lost_decisions`, read off the game's own
+        decision rows: `answer_via` "lost"), or a JVM that did not exit 0. The reward is 1 only for a valid win."""
+        info = {"jvm_rc": rc, "valid": True}
+        if self.mode == "puzzle":
+            rows = _jsonl(self.out_dir / "puzzle-results.jsonl")
+            if not rows:
+                info.update(valid=False, error="no puzzle result row", jvm_tail=self._jvm_tail())
+                return 0.0, info
+            row = rows[-1]
+            for k in ("status", "solver_actions", "model_calls", "win_condition", "solver_loss_reason",
+                      "log_sha256", "tainted_by_deckout", "acceptance", "bridge_down_decisions", "routing_refusals"):
+                if k in row:
+                    info[k] = row[k]
+            info["stamps"] = _stamps(row)
+            # puzzle_score.py counts only solved/failed, not a solve tainted by a deck-out, and refuses a row that
+            # lost decisions to a dead bridge (a reply that came too late is the env's fault, not the policy's)
+            ok = (row.get("status") in ("solved", "failed") and not row.get("tainted_by_deckout")
+                  and not row.get("bridge_down_decisions") and not row.get("routing_refusals"))
+            won = row.get("status") == "solved"
+        else:
+            games = [g for f in sorted(self.out_dir.glob("game-*.jsonl")) for g in _jsonl(f) if g.get("t") == "game"]
+            if not games:
+                info.update(valid=False, error="no game line", jvm_tail=self._jvm_tail())
+                return 0.0, info
+            g = games[-1]
+            info.update({k: g[k] for k in ("winner", "win_condition", "turns") if k in g})
+            info["stamps"] = _stamps(g)
+            # a capped game is invalid, never a draw; `bridge_down_decisions_a` is the game line's lost-decision
+            # counter (the line has no routing_refusals: that is the puzzle row's)
+            info["bridge_down_decisions_a"] = g.get("bridge_down_decisions_a") or 0
+            ok = g.get("winner") in ("A", "B") and not info["bridge_down_decisions_a"]
+            won = g.get("winner") == "A"
+        info["lost_decisions"] = sum(1 for f in sorted(self.out_dir.glob("game-*.jsonl")) for r in _jsonl(f)
+                                     if r.get("answer_via") == "lost")
+        if rc != 0:
+            info.setdefault("error", "jvm_rc %s" % rc)
+        # a request identical to the answered one was replied with the previous action (see the handler): the
+        # policy did not choose that step, so the episode is not its trajectory
+        if self.server.deduped_after_answer:
+            info.setdefault("error", "deduped_after_answer %d" % self.server.deduped_after_answer)
+        info["valid"] = bool(ok and rc == 0 and not info["lost_decisions"] and not self.server.deduped_after_answer)
+        return (1.0 if won and info["valid"] else 0.0), info
+
+    def _jvm_tail(self, n=600):
+        try:
+            return (self.out_dir / "jvm.log").read_text(errors="replace")[-n:]
+        except (OSError, AttributeError):
+            return ""
+
+    # ---------------------------------------------------------------- shutdown
+    def close(self):
+        """Kill the JVM, release parked handlers, close the port, delete the scratch directory."""
+        proc, srv = self.proc, self.server
+        self.proc = self.server = self.pending = None
+        if proc is not None and proc.poll() is None:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except OSError:
+                proc.kill()
+            proc.wait()
+        if srv is not None:
+            with srv.lock:
+                srv.closing = True
+                for p in (srv.current, srv.last):
+                    if p is not None:
+                        p.event.set()
+            srv.shutdown()
+            srv.server_close()
+        if self.out_dir is not None and not self.keep_out:
+            shutil.rmtree(self.out_dir, ignore_errors=True)
+            if self._scratch is not None:
+                shutil.rmtree(self._scratch, ignore_errors=True)
+        self.finished = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+
+# What the result row or game line says about the build and the interface the episode ran on.
+STAMP_KEYS = ("engine_sha", "overlay_sha", "harness_epoch", "observation_version", "pzl_sha256")
+
+
+def _stamps(row):
+    return {k: row[k] for k in STAMP_KEYS if k in row}
+
+
+def _jsonl(path):
+    try:
+        return [json.loads(l) for l in Path(path).read_text(encoding="utf-8").splitlines() if l.strip()]
+    except (OSError, ValueError):
+        return []

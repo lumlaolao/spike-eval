@@ -38,10 +38,11 @@ experiment in progress), **negative** (measured; does not help as proposed), **o
 | 2026-11-06 | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) | Can the harness be an RL env with engine rewards | terminal rewards yes, no JVM change (loopback endpoint as `step`; legal set is prompt text, parsed; tens of ms per call on a stub, epoch-76 build); process rewards are offline labels, from unmerged work (41 of 72 searches `not_found`) |
 | 2026-11-06 | [contrast-sets](2026-11-06-contrast-sets.md) | Can splice puzzles come in contrast pairs (one visible detail, a different winning line) | yes, from a card swap only: 58 single-detail pairs trap one way (0 two-way; a life, Mountain, Alchemist or added card alone never contrasts, the model is monotone); 36 trap both ways with the life moved too; 10 pairs engine-checked (own lines 20/20 solve, cross lines 15/15 fail); zero-model floors (random x20, first, ai) solve 0 of 20 boards, pair score 0 of 10; no model run |
 | 2026-11-07 | [harness-env-tasks](2026-11-07-harness-env-tasks.md) | Can merged red-then-green PRs be tasks for a harness-building RL environment | 22 of 60 PRs qualify (108 target tests, 19 need a JVM); 3 validated red-then-green (one red is a build failure); the grader is dev-grade: it restores the PR's tests and closes the listed forgeries, but candidate code still runs as the grader's user |
+| 2026-11-07 | [rl-play-env](2026-11-07-rl-play-env.md) | A first working RL env over the harness (`eval/rl/`), measured on the real engine | works: 62 episodes with engine rewards, all valid before the refusal rules below (trajectories not kept: not reproducible from files); about 7 s of an 8 s episode is the JVM start; the random floor is 4/40 on MTGP_08 and 0/12 on the drain puzzles |
 
 ## Ideas
 
-From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-11-06.
+From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-11-06, except row 10 (2026-11-07).
 
 | # | Idea | Status | Where |
 |---|---|---|---|
@@ -54,7 +55,7 @@ From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-
 | 7 | Budget-visible lookahead and its compute curve | open | |
 | 8 | Robustness across Forge AI profiles, best of three | open; blocked on an overlay switch (design in the note) | [ai-profile-spread](2026-11-06-ai-profile-spread.md) |
 | 9 | MCTS with an LLM prior as a measured arm | open | |
-| 10 | Exportable RLVR environment with engine process rewards | open; terminal-reward env feasible with a Python adapter (stub policy, epoch-76 build); process rewards offline, unmerged inputs | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) |
+| 10 | Exportable RLVR environment with engine process rewards | terminal-reward env **built** (`eval/rl/`, 2026-11-07: reset/step with engine rewards, GRPO and SFT readers); process rewards still offline, unmerged inputs; no model trained | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md), [rl-play-env](2026-11-07-rl-play-env.md) |
 | E1-E8 | Survey ideas (error notebook, compute-matched lookahead, world-model fidelity, contrast sets, ...) | E5 **adopted** (#359) for rules; E5 for play (splice contrast pairs) built, no model run, **open**; rest open | [survey](2026-11-05-agent-compute-and-feedback-survey.md), [contrast-sets](2026-11-06-contrast-sets.md) |
 
 ## Techniques

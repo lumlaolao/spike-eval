@@ -9,7 +9,7 @@ from pathlib import Path
 
 EVAL = Path(__file__).resolve().parent
 REPO = EVAL.parent
-DIRS = (EVAL, EVAL / "demo", EVAL / "harness_env", EVAL / "puzzles")
+DIRS = (EVAL, EVAL / "demo", EVAL / "harness_env", EVAL / "puzzles", EVAL / "rl")
 
 for _d in reversed(DIRS):
     if str(_d) not in sys.path:
