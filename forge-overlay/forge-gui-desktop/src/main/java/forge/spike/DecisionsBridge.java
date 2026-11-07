@@ -40,8 +40,10 @@ final class DecisionsBridge implements LLMBridge {
      *  game with a jev: seat and on a jev: solver's puzzle row (eval/versions.py); pinned in DecisionsBridgeTest and in
      *  eval/harness_acceptance.sh.
      *  v2 (2026-11-07, #415): a repeatable-mode question states the site's limit (a pawprint charm's {P} budget,
-     *  {@code Spec.limit}). */
-    static final String VERSION = "decisions-bridge-v2";
+     *  {@code Spec.limit}).
+     *  v3 (2026-11-07, #417): a repeatable-mode answer under a weighted cap (that budget, {@code Spec.budget}) keeps the
+     *  surer counts while they fit, so it is not composed over the budget and refused. */
+    static final String VERSION = "decisions-bridge-v3";
     /** The most values a number, a division or a mode's count is listed as. A wider one is not asked (no answer,
      *  logged). docs/harness/MODEL-LIMITS.md. */
     static final int MAX_LISTED = 40;
@@ -239,7 +241,7 @@ final class DecisionsBridge implements LLMBridge {
                         counts[i - 1] = choiceOf(a, "count" + i, 0, s.max);
                         sure[i - 1] = probabilityOf(a, "count" + i, counts[i - 1]);
                     }
-                    return args("options", ints(repeatPicks(counts, sure, s.min, s.max)));
+                    return args("options", ints(repeatPicks(counts, sure, s.min, s.max, s.weights, s.budget)));
                 };
                 return c;
             }
@@ -431,6 +433,15 @@ final class DecisionsBridge implements LLMBridge {
      * the surest option picked at least once (else option 1) is picked again until the minimum.
      */
     static List<Integer> repeatPicks(int[] counts, double[] sure, int min, int max) {
+        return repeatPicks(counts, sure, min, max, null, -1);
+    }
+
+    /** As above, under a weighted cap ({@code weights}, {@code budget}: a pawprint charm's {P}, #417): the surer
+     *  counts are kept while they fit, so the composed answer is within the budget instead of refused. The padding to
+     *  {@code min} also only adds what fits. */
+    static List<Integer> repeatPicks(int[] counts, double[] sure, int min, int max, int[] weights, int budget) {
+        boolean capped = weights != null && budget >= 0;
+        int left = budget;
         List<Integer> order = new ArrayList<>();
         for (int i = 1; i <= counts.length; i++) order.add(i);
         order.sort(Comparator.comparingDouble((Integer i) -> -sure[i - 1]).thenComparingInt(i -> i));
@@ -438,12 +449,18 @@ final class DecisionsBridge implements LLMBridge {
         int total = 0;
         for (int i : order) {
             int take = Math.min(counts[i - 1], max - total);
+            if (capped && weights[i - 1] > 0) take = Math.min(take, left / weights[i - 1]);
             kept[i - 1] = take;
             total += take;
+            if (capped) left -= take * weights[i - 1];
         }
         int pad = 1;
         for (int i : order) if (counts[i - 1] > 0) { pad = i; break; }
-        while (total < min) { kept[pad - 1]++; total++; }
+        while (total < min && (!capped || weights[pad - 1] <= left)) {
+            kept[pad - 1]++;
+            total++;
+            if (capped) left -= weights[pad - 1];
+        }
         List<Integer> out = new ArrayList<>();
         for (int i = 1; i <= kept.length; i++) for (int k = 0; k < kept[i - 1]; k++) out.add(i);
         return out;
