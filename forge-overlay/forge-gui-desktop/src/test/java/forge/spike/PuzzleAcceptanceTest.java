@@ -1,6 +1,5 @@
 package forge.spike;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import forge.util.FileSection;
 import forge.util.FileUtil;
@@ -94,7 +94,8 @@ public class PuzzleAcceptanceTest {
     @Test
     public void aCounterTypeTheEngineDoesNotKnowIsRefused() {
         for (String bad : new String[] {"counters p0 Battlefield \"Hooded Hydra\" P1P1S = 0",
-                "counters p0 Battlefield * LOYALT >= 3", "counters p0 Battlefield * Any = 0"}) {
+                "counters p0 Battlefield * LOYALT >= 3", "counters p0 Battlefield * Any = 0",
+                "counters p0 Battlefield * Hexproof:Card.Blak:black = 0", "counters p0 Battlefield * NIGHT >= 1"}) {
             try {
                 PuzzleAcceptance.parse(Collections.singletonList(bad));
                 Assert.fail("accepted: " + bad);
@@ -117,9 +118,10 @@ public class PuzzleAcceptanceTest {
     public void everyCommittedAcceptanceSectionParses() throws IOException {
         List<String> refused = new ArrayList<>();
         int read = 0;
-        Path root = new File(PuzzleSetupTest.repoRoot(), "eval/puzzles").toPath();
+        Path root = PuzzleSetupTest.repoRoot().toPath().resolve("eval/puzzles");
         try (java.util.stream.Stream<Path> files = Files.walk(root)) {
-            for (Path f : (Iterable<Path>) files.filter(x -> x.toString().endsWith(".pzl"))::iterator) {
+            List<Path> puzzles = files.filter(x -> x.toString().endsWith(".pzl")).collect(Collectors.toList());
+            for (Path f : puzzles) {
                 List<String> acceptance = FileSection.parseSections(FileUtil.readFile(f.toFile())).get("acceptance");
                 if (acceptance == null) continue;
                 read++;
