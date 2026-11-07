@@ -108,6 +108,29 @@ class WrittenLineTest(unittest.TestCase):
             pb.Build = real
 
 
+class VerifySearchLineTest(unittest.TestCase):
+    """#269: a search re-proof may prove the puzzle on another line; the record says which line it proved."""
+
+    REC = {"id": "p1", "pzl": "eval/puzzles/x.pzl",
+           "reference_line": {"arm": "search", "seed": 1, "budget": 50, "line": "0,1,2", "solver_actions": 3}}
+
+    def verify(self, row):
+        with mock.patch.object(pb, "run_arm", return_value=[row]), \
+                mock.patch.object(pb.pf, "pzl_path", return_value=Path("eval/puzzles/x.pzl")):
+            return pb.verify_puzzle(None, self.REC, tempfile.mkdtemp())["verification"]
+
+    def test_a_search_reproof_on_another_line_records_the_line_it_proved(self):
+        v = self.verify({"status": "proven", "acceptance": "accepted", "line": "0,2", "solver_actions": 2})
+        self.assertEqual(v["status"], "verified")
+        self.assertEqual((v["replay_line"], v["replay_solver_actions"]), ("0,2", 2))
+
+    def test_a_reproof_on_the_reference_line_adds_nothing(self):
+        v = self.verify({"status": "proven", "acceptance": "accepted", "line": "0,1,2", "solver_actions": 3})
+        self.assertEqual(v["status"], "verified")
+        self.assertNotIn("replay_line", v)
+        self.assertNotIn("replay_solver_actions", v)
+
+
 class MinimalityTest(unittest.TestCase):
     """HARD-PUZZLES.md section 4, item 3: every solver action of a written line is needed; remove one, it fails."""
 

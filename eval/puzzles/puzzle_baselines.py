@@ -487,6 +487,10 @@ def verify_puzzle(build, rec, out_root):
            "replay_log_sha256": rows[0].get("log_sha256") if rows else None}
     if problems:
         ver["problems"] = problems
+    # A search re-proof may prove the puzzle on another line (check_search_replay); say which one (#269).
+    if check is check_search_replay and rows and rows[0].get("line") and rows[0].get("line") != line.get("line"):
+        ver["replay_line"] = rows[0]["line"]
+        ver["replay_solver_actions"] = rows[0].get("solver_actions")
     return dict(rec, verification=ver)
 
 
