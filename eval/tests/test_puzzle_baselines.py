@@ -137,8 +137,17 @@ class VerifySearchLineTest(unittest.TestCase):
         rec = {"id": "p2", "pzl": "eval/puzzles/x.pzl", "reference_line": {"arm": "ai", "seed": 3, "solver_actions": 2,
                                                                          "log_sha256": "ab12"}}
         v = self.verify({"status": "solved", "line": "Solver:1:0", "solver_actions": 1, "log_sha256": "ab12"}, rec)
-        self.assertIn(v["status"], ("verified", "failed"))     # reached the replay, not "unverified"
+        self.assertEqual(v["status"], "verified")
         self.assertNotIn("replay_line", v)
+
+    def test_a_failed_search_reproof_records_no_replay_line(self):
+        # The runner's statuses (LlmSpikePuzzle.java): a not_found row has no `line`; a drift row keeps the line the
+        # search found, which did not replay to the same solve. Neither is a line the puzzle was proven on.
+        for row in ({"status": "not_found", "acceptance": "accepted"},
+                    {"status": "drift", "acceptance": "accepted", "line": "Solver:3:1 Solver:2:0", "solver_actions": 2}):
+            v = self.verify(row)
+            self.assertEqual(v["status"], "failed", row)
+            self.assertNotIn("replay_line", v, row)
 
 
 class MinimalityTest(unittest.TestCase):
