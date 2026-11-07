@@ -43,7 +43,8 @@ STAMPS = (
      "how its structured output becomes `answer` and `set_plan` calls (only where such a seat plays)."),
     ("ReplayBridge.java", "VERSION", "(puzzle row `replay_version`)",
      "how a `replay:` seat serves a recorded attempt's model turns back and what it calls a drift (tooling only: the "
-     "seat is sent nothing new, so it is not a condition and does not move HARNESS_EPOCH; a replay row is never scored)."),
+     "seat is sent nothing new, so it is not a condition and does not move HARNESS_EPOCH; a replay row is never scored), "
+     "and its handover to the search arm after K rows (REPLAY_HANDOVER, step regret; `step-search.jsonl` rows)."),
     ("Transcript.java", "VERSION", "(puzzle row `transcript_version`, puzzle manifest `record.transcript_version`)",
      "the run's full record kept beside the rows (TRANSCRIPTS=1, on for every puzzle_solve.py run): the exact HTTP "
      "body of every model request and response, and each game's whole Forge log. Recording only: what the model is "
