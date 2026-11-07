@@ -1,0 +1,43 @@
+[metadata]
+Name:contrast_02a
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Thermo-Alchemist and three untapped Mountains. Your hand is Desperate Ritual, Desperate Ritual, Glacial Ray, Glacial Ray, Lava Spike and Lightning Bolt. The opponent is at 17 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:contrast-splice | pair contrast_02 side a of splice_30feb75fc23b (one Glacial Ray fewer; opponent at 16)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Desperate Ritual;Desperate Ritual;Glacial Ray;Glacial Ray;Lava Spike;Lightning Bolt
+p0battlefield=Thermo-Alchemist;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=17
+p1library=Plains;Plains;Plains
+[solution]
+activate Thermo-Alchemist
+cast Desperate Ritual
+activate Thermo-Alchemist
+cast Lava Spike
+opponent
+Desperate Ritual
+opponent
+activate Thermo-Alchemist
+cast Desperate Ritual
+none
+activate Thermo-Alchemist
+pass
+pass
+cast Glacial Ray
+opponent
+none
+activate Thermo-Alchemist
+cast Glacial Ray
+opponent
+activate Thermo-Alchemist
+cast Lightning Bolt
+opponent
+activate Thermo-Alchemist
+[acceptance]
+life p1 <= 0

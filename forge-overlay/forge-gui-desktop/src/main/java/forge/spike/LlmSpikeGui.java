@@ -452,6 +452,12 @@ public final class LlmSpikeGui {
                 System.out.println("[EVAL] jsonl " + file.getName());
             } catch (Exception e) { System.out.println("[EVAL] log init failed: " + e); }
         }
+        /** The game log on, its rows written nowhere: a step search (LlmSpikePuzzle.stepSearch) checks each replayed row
+         *  through the fork hook, which only a written row reaches, over hundreds of rollouts nobody reads. */
+        static synchronized void initDiscard() {
+            if (out != null) return;
+            out = new java.io.PrintWriter(java.io.Writer.nullWriter());
+        }
         static synchronized void write(String json) {
             if (out == null) return;
             if (json.startsWith("{\"t\":\"decision\"")) DemoFeed.beforeDecisionRow();  // display only (DEMO_FEED)
@@ -1358,7 +1364,9 @@ public final class LlmSpikeGui {
         // same legal menus — anchors the floor of the scale), "floor" (every decision takes the
         // deterministic fallback path — quantifies how much play strength the HARNESS contributes).
         private final String mode;
-        private final java.util.Random rnd; // non-null only in random mode
+        // Non-null for the zero-model arms. Set once when the seat is built, except on a replay seat with a handover
+        // (step regret): there it becomes the search arm after the K-th replayed decision row (handOverToSearch).
+        private java.util.Random rnd;
 
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel, String mode) {
@@ -1407,6 +1415,8 @@ public final class LlmSpikeGui {
             this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong(), seat) : null;
             this.smart = smartBridge;
             this.fast  = fastBridge;
+            ReplayBridge rb = replayBridge();
+            if (rb != null) rb.armHandover(this::handOverToSearch);
             this.ctx = profile();
             // The observer subscribes to the game's event bus (zone changes only, read-only) so
             // handle continuity is tracked as it happens. Legacy profiles never construct one, so
@@ -1464,6 +1474,16 @@ public final class LlmSpikeGui {
             }
             return m;
         }
+        /** Step regret: the replayed seat becomes the search arm, on the game thread, right after its K-th decision row.
+         *  Built with no draw from the engine RNG (the search arm's own constructor draws one long, which would shift the
+         *  rest of the game against the recorded one; Search never reads its seed). A yield the recording asked for is
+         *  dropped: every later window is the search's to choose. Every hook from here takes the arm's branches. */
+        private void handOverToSearch() {
+            rnd = new PuzzleArms.Search(0L, seat);
+            yieldUntil = null;
+            p("[REPLAY] handed over to the search arm");
+        }
+
         /** The written line this seat plays (ScriptBridge), or null for any other seat. */
         ScriptBridge scriptBridge() { return smart instanceof ScriptBridge ? (ScriptBridge) smart : null; }
         /** The recording this seat replays (ReplayBridge), or null for any other seat. */

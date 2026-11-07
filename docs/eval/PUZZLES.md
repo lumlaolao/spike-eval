@@ -138,6 +138,44 @@ python3 eval/puzzles/puzzle_baselines.py prove --suite S.json [--ids a,b] --budg
   damage and of a divided spell ("distribute 5 damage"); the other arms split evenly.
 - Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
 
+## Step regret: which decision lost a winnable attempt
+
+```bash
+python3 eval/puzzles/step_regret.py <attempt dir> --out runs/step-regret/<name> --budget 600 --jobs 2 \
+  [--refine-budget 2400 --refine-most 2] [--resume]
+```
+
+- Position K is the game after the seat's first K decision rows. The runner (`REPLAY_HANDOVER=K`) replays them
+  exactly (`ReplayBridge`), hands the seat to the search arm with no draw from the engine RNG, and searches the
+  rest against the recorded opponent (Forge AI) on the recorded seed: `proven`, `unwinnable` (every line played,
+  none capped), `not_found` (no verdict) or `drift`. The seat switches inside row K's write, so the rest of that
+  hook runs the arm's branches (no yield, no CANCEL); each rollout is a `drift` unless its first decision after K is
+  the recording's row K+1, asked the same way. Rows: `step-search.jsonl` per search, `step-regret.jsonl`
+  (`t: "step_regret"`, `t: "step_regret_summary"`) per attempt; `--summary <out dirs>` prints the verdict totals.
+- Against a deterministic opponent a lost win never comes back, so the scan runs from the end and stops at the
+  first proven position. The regret decision is exact only when the next position is `unwinnable`; else the
+  summary gives `last_proven_k`, `first_unwinnable_k` and a bracket. The floor at an exact step forces each
+  option (`REPLAY_FORCE`): options kept / n, exact only when every option is decided. v1 forces play and
+  single-choice decisions only.
+- **Limit, measured.** The 4 failed claude-cli attempts of `hard-splice-06dad20af5b3` (epoch 80, replayed on
+  epoch 82, budget 600, the boundary refined at 2400): 72 searches, no drift. The last 7 to 8 positions of each
+  attempt are `unwinnable` (seconds to 20 minutes); 38 searches at 600 and 3 at 2400 came back `not_found`; one
+  position is proven (C seed 1, K=4). So no attempt got an exact regret step and no floor was taken: C seed 1 is a bracket (K 4 to 10), the
+  other three only a bound (lost by K=10 to 12). About 6 CPU-hours at 2 JVMs. The board's own model (`puzzle_gen.splice_best`, a check, never the verdict) puts
+  the regret at casting the second Desperate Ritual before a Lava Spike could carry it (the damage reachable before and
+  after it: `eval/research/2026-11-06-step-regret-board-model.md`)
+  in all four. The prover's unwinnable side needs every line played, which a 4-spell position with pings does not
+  allow at 2400 rollouts: step regret is exact near the end of a long board and a bracket elsewhere
+  (`docs/harness/HARD-PUZZLES.md`).
+- **On a splice board, the model labels every position** (`python3 eval/puzzles/step_regret_board.py <attempt dir>
+  --search <step-regret.jsonl>`): it reads the state from each recorded prompt and values it with
+  `puzzle_gen.splice_best`, refusing anything outside the model. Model-derived, never an engine proof: on the 4
+  attempts above it agrees with all 31 decided search positions (the "all lost" baseline: 30) and puts the regret
+  step at the second bare Desperate Ritual in each (floor 1/4, or 2/6 in C seed 1); its assumptions are in
+  `eval/research/2026-11-06-step-regret-board-model.md`. `--scripts DIR` writes an engine witness per position it
+  calls winnable (the recorded prefix, then its line) for `puzzle_baselines.py line`; `--witnesses DIR` checks each
+  game reached the recorded position: all 18 were proven.
+
 ## Proving a written line
 
 ```bash
