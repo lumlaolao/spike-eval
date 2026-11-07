@@ -1255,7 +1255,7 @@ public class SeatObservationTest {
         card("Leyline of Sanctity", me, ZoneType.Battlefield);   // the seat's own line says its keywords too
         g.getAction().checkStaticAbilities();
         // A keyword is said by its title, not its script string ("Protection:Player.Opponent:each of your opponents"), and
-        // one with no title (Winter Orb's "UntapAdjust:Land:1") is left to its card's text, never a bare "| has ".
+        // one with no title (Winter Orb's "UntapAdjust:Land:1") is not shown, never as a bare "| has ".
         card("Absolute Virtue", me, ZoneType.Battlefield);
         card("Winter Orb", rival, ZoneType.Battlefield);
         g.getAction().checkStaticAbilities();

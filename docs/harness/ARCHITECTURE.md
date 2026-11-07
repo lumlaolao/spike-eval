@@ -413,8 +413,9 @@ next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLa
 Sanctity's hexproof) is said on the player's line by its title (`| has hexproof`, `SeatObservation.playerLine`
 from `Player.getKeywords()`); a keyword the engine gives no title (Winter Orb's `UntapAdjust:Land:1`) is not
 shown, the permanent that gives it is, and the state guide says so (observation-faithful-v46, #408). The engine
-keeps those keywords on a "Keyword Effects" object in the command zone, which is not a card the seat could inspect, cast or target, so `commandCards` leaves it out of the `command:` line, where it had
-been listed with a handle.
+keeps those keywords on a "Keyword Effects" object in the command zone, which is not a card the seat could
+inspect, cast or target, so `commandCards` leaves it out of the `command:` line, where it had been listed with a
+handle.
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
