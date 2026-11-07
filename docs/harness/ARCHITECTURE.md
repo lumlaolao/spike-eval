@@ -107,7 +107,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A pawprint charm's modes (the Seasons, Hela's Arcanum: "choose up to five {P} worth of modes") total at most its {P}
   budget. Forge's engine does not check it; only its own controllers do, which the seat replaces. Each mode's label
   shows its {P} and the question the budget. A tool answer over it is refused in the call's own result
-  (`AnswerTool.Spec.check`; the Decisions bridge states the budget from `Spec.limit`), a text answer is asked again
+  (`AnswerTool.Spec.check`; the Decisions bridge states the budget from `Spec.limit` and keeps its composed counts within
+  it, `Spec.budget`, decisions-bridge-v3), a text answer is asked again
   ("those modes total 15 {P}; at most 5 are allowed"), and a second answer over it takes no mode, the do-nothing
   option. The arms draw within it (`PuzzleArms.repeatModes`; harness-epoch-94, #415).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.

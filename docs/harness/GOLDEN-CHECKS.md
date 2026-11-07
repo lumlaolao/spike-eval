@@ -30,7 +30,7 @@ under the legacy profile, where the contract does not run; they are not counted.
 | phyrexian | payManaCost | 0 / 0 | yes | howAPhyrexianSymbolIsPaidIsTheModels |
 | number (incl. X) | chooseNumber, announceRequirements | 0 / 0 | yes | xAndModesAreTheModels, numbersAreTheModels |
 | number-value | chooseNumber (range wider than 12) | 0 / 0 | no | numbersAreTheModels |
-| modes | chooseModeForAbility | 7 / 0 | yes | xAndModesAreTheModels, spreeModesAreOfferedOnlyWhenPayable, escalateModesAreOfferedAsFarAsTheyCanBePaid, aPawprintCharmsModesStayWithinItsBudget, twoOverBudgetAnswersTakeNoMode, theModesSpecCarriesAPawprintBudget, aPawprintCharmsOtherDefaultsTakeNoMode |
+| modes | chooseModeForAbility | 3 / 0 | yes | xAndModesAreTheModels, spreeModesAreOfferedOnlyWhenPayable, escalateModesAreOfferedAsFarAsTheyCanBePaid, aPawprintCharmsModesStayWithinItsBudget, twoOverBudgetAnswersTakeNoMode, theModesSpecCarriesAPawprintBudget, aPawprintCharmsOtherDefaultsTakeNoMode, aRepeatableCharmWithNoBudgetIsTheModels, twoOverBudgetAnswersAreLoggedAsOverBudget |
 | ability-to-play | getAbilityToPlay | 0 / 0 | no | whichWayToPlayACardIsTheModels |
 | play-from-effect | playSaFromPlayEffect | 0 / 0 | no | castingFromAnEffectIsTheModels |
 | mulligan | mulliganKeepHand | 14 / 12 | no | theMulliganAndTheBottomAreTheModels |

@@ -430,15 +430,11 @@ final class DecisionsBridge implements LLMBridge {
     /**
      * The picks of a repeatable choice from each option's count ({@code counts[0]} is option 1) and the probability the
      * model gave that count, in option order. Above {@code max}, the surest counts are kept first; below {@code min},
-     * the surest option picked at least once (else option 1) is picked again until the minimum.
+     * the surest option picked at least once (else option 1) is picked again until the minimum. Under a weighted cap
+     * ({@code weights}, {@code budget}: a pawprint charm's {P}, #417; null and -1 for none) the surer counts are kept
+     * while they fit, so the composed answer is within the budget instead of refused, and the padding adds that option
+     * while it fits, else the cheapest option that does.
      */
-    static List<Integer> repeatPicks(int[] counts, double[] sure, int min, int max) {
-        return repeatPicks(counts, sure, min, max, null, -1);
-    }
-
-    /** As above, under a weighted cap ({@code weights}, {@code budget}: a pawprint charm's {P}, #417): the surer
-     *  counts are kept while they fit, so the composed answer is within the budget instead of refused. The padding to
-     *  {@code min} also only adds what fits. */
     static List<Integer> repeatPicks(int[] counts, double[] sure, int min, int max, int[] weights, int budget) {
         boolean capped = weights != null && budget >= 0;
         int left = budget;
@@ -456,6 +452,8 @@ final class DecisionsBridge implements LLMBridge {
         }
         int pad = 1;
         for (int i : order) if (counts[i - 1] > 0) { pad = i; break; }
+        if (capped && weights[pad - 1] > left)
+            for (int i = 1; i <= weights.length; i++) if (weights[i - 1] < weights[pad - 1]) pad = i;
         while (total < min && (!capped || weights[pad - 1] <= left)) {
             kept[pad - 1]++;
             total++;

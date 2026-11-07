@@ -2308,8 +2308,9 @@ public final class LlmSpikeGui {
             return null; // still short after retry -> caller's legal default
         }
 
-        /** The last repeatable-mode ask's last answer was over a pawprint charm's budget, on either lane (its log
-         *  reason). Set per attempt; a dead bridge clears it. */
+        /** The last attempt of a repeatable-mode ask saw an answer over a pawprint charm's budget, on either lane: on the
+         *  tool lane, any refusal over it in that attempt's conversation. The fallback's log reason; reset per attempt,
+         *  and cleared by a dead bridge. */
         private boolean modesOverBudget;
 
         /** The answer spec of a repeatable-mode ask. A pawprint charm's budget is on it three ways (#415, #417): the
@@ -2352,7 +2353,6 @@ public final class LlmSpikeGui {
                         : overBudget != null ? base + "\n\n(" + overBudget + ")"
                         : base + "\n\n(Answer with ONE line only: PICKS: <" + min + " to " + num
                           + " numbers from the list; the same number may repeat>.)";
-                // The tool answer is checked where it is made, so a refusal comes back in the call's own result.
                 offerAnswer(b, modesSpec(options, min, num, pawCost, paw, () -> modesOverBudget = true));
                 String reply = ask(b, prompt);
                 noteAnswerVia(attempt);
@@ -2374,7 +2374,7 @@ public final class LlmSpikeGui {
                 }
                 // A text answer past a pawprint charm's budget is not a legal choice: refused and asked again (#415).
                 int spent = pawCost == null ? 0 : pawprintsOf(out, pawCost);
-                if (out.size() >= min && spent > paw) {
+                if (out.size() >= min && pawCost != null && spent > paw) {   // paw is -1 for any other charm
                     overBudget = "Refused: those modes total " + spent + " {P}; at most " + paw + " are allowed. Choose again.";
                     modesOverBudget = true;
                     p("[ROUTER] modes(repeat): over the {P} budget, " + spent + " of " + paw);
@@ -2487,8 +2487,7 @@ public final class LlmSpikeGui {
                 cost = paw >= 0 ? pawprints(possible) : null;
             } catch (Exception ignore) {
                 if (allowRepeat && sa != null && sa.hasParam("Pawprint")) return new ArrayList<>();   // unreadable: none
-                paw = -1;
-                cost = null;
+                return defaultModes(possible, min, num, allowRepeat);
             }
             return defaultModes(possible, min, num, allowRepeat, cost, paw);
         }

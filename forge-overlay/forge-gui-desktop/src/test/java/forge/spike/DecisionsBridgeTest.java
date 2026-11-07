@@ -358,9 +358,12 @@ public class DecisionsBridgeTest {
         // {P}{P}{P} mode twice and {P}{P} and {P} once each (10 {P}) keeps one {P}{P}{P} and the {P}{P} (5 of 5).
         Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {1, 1, 2}, new double[] {0.5, 0.6, 0.9}, 0, 5,
                 new int[] {1, 2, 3}, 5), List.of(2, 3));
+        // Padding to a minimum under a cap takes the cheapest mode that fits when the surest does not.
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 0, 2}, new double[] {0.1, 0.1, 0.9}, 1, 5,
+                new int[] {1, 2, 3}, 2), List.of(1));
         // Too many: the surer counts are kept. Too few: the likeliest mode is repeated up to the minimum.
-        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3), List.of(1, 1, 1));
-        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3), List.of(2, 2, 2));
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3, null, -1), List.of(1, 1, 1));
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3, null, -1), List.of(2, 2, 2));
     }
 
     /** A blocker that may block several attackers gets a yes/no per attacker, so it can block two. */
