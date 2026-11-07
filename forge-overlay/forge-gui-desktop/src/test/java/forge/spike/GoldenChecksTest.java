@@ -236,6 +236,23 @@ public class GoldenChecksTest {
                 "the lethal source pays after the safe one: " + order);
     }
 
+    /** #269: a lethal source shared Forge's "use last" list with sources whose cost sacrifices another permanent, which
+     *  is sorted by creature value, so between two non-creatures the order was arbitrary: City of Brass at 1 life could
+     *  pay before Ashnod's Altar. A lethal source pays after every other source, unpreferred ones included. */
+    @Test
+    public void aLethalSourcePaysAfterAnUnpreferredOne() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        Card city = card("City of Brass", me, ZoneType.Battlefield);   // first, so insertion order cannot hide it
+        Card altar = card("Ashnod's Altar", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        forge.game.card.CardCollection order = forge.ai.ComputerUtilMana.getAvailableManaSources(me, true);
+        Assert.assertTrue(order.contains(city) && order.contains(altar), "both pay: " + order);
+        Assert.assertTrue(order.indexOf(altar) < order.indexOf(city), "the lethal source pays last: " + order);
+    }
+
     /** Rules pilot RP_006 (2026-10-18): Finale of Promise ("up to one target instant card and/or up to one target
      *  sorcery card") was never offered with nothing in the graveyard: the menu demanded at least one target. A spell
      *  whose targets are all "up to" is cast with none. */
