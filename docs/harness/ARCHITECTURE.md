@@ -104,6 +104,11 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - What a choice offers is also only what can be paid: a keyword cost's count (conspire, multikicker, squad,
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
   the seat may give fails the cast (harness-epoch-43).
+- A pawprint charm's modes (the Seasons, Hela's Arcanum: "choose up to five {P} worth of modes") total at most its {P}
+  budget. Forge's engine does not check it; only its own controllers do, which the seat replaces. Each mode's label
+  shows its {P} and the question the budget; an answer over it is refused and asked again ("those modes total 15
+  {P}; at most 5 are allowed"), then the modes are taken in order while they fit. The arms draw within it
+  (`PuzzleArms.repeatModes`; harness-epoch-94, #415).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
 - An attack the engine refuses (Silent Arbiter's one attacker, a creature that must attack) is recorded (an
   `attackers-refused` row and a `refused by the engine` log line), asked once more with the reason ("at most 1

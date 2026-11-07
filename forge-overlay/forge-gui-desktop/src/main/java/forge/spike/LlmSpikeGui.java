@@ -423,8 +423,10 @@ public final class LlmSpikeGui {
      *  unnamed one is not shown, the card or effect that gives it is (observation-faithful-v46).
      *  Epoch 93 (2026-11-07, #269): the puzzle prover (search arm) draws how many repeatable modes to choose, then a
      *  multiset, so "choose up to N" is tried with fewer modes (PuzzleArms.repeatModes); the random arm is unchanged.
+     *  Epoch 94 (2026-11-07, #415): a pawprint charm's modes stay within its {P} budget: each mode's label shows its
+     *  {P}, the question the budget, an answer over it is refused and asked again, and the arms draw within it.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-93";
+    static final String HARNESS_EPOCH = "harness-epoch-94";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2310,11 +2312,12 @@ public final class LlmSpikeGui {
          *  picks up to `num` indices and the SAME index may appear again. decideMany dedupes via a
          *  LinkedHashSet, so this keeps duplicates instead. Null on bridge-down, or a reply with fewer
          *  than `min` parseable picks, so the caller can take its deterministic legal default. */
-        private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num) {
+        private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num,
+                                                int[] pawCost, int paw) {
             clearLast();
             long t0 = System.currentTimeMillis();
             if (rnd != null) {                       // an arm: picks WITH replacement (PuzzleArms.repeatModes)
-                List<Integer> res = PuzzleArms.repeatModes(rnd, options.size(), min, num);
+                List<Integer> res = PuzzleArms.repeatModes(rnd, options.size(), min, num, pawCost, paw);
                 lastPicks = res;
                 List<String> picked = new ArrayList<>();
                 for (int i : res) picked.add(options.get(i));
@@ -2324,8 +2327,10 @@ public final class LlmSpikeGui {
                 return res;
             }
             String base = buildDecideManyPrompt(snapshot(), question, options, min, num, observer != null, null);
+            String overBudget = null;
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
+                        : overBudget != null ? base + "\n\n(" + overBudget + ")"
                         : base + "\n\n(Answer with ONE line only: PICKS: <" + min + " to " + num
                           + " numbers from the list; the same number may repeat>.)";
                 offerAnswer(b, AnswerTool.Spec.repeat(options.size(), min, num).labels(options));
@@ -2343,6 +2348,13 @@ public final class LlmSpikeGui {
                         int idx = Integer.parseInt(m.group());
                         if (idx >= 1 && idx <= options.size()) out.add(idx - 1);
                     }
+                }
+                // A pawprint charm's modes past its budget are not a legal choice: refused and asked again (#415).
+                if (out.size() >= min && pawCost != null && paw >= 0 && pawprintsOf(out, pawCost) > paw) {
+                    overBudget = "Refused: those modes total " + pawprintsOf(out, pawCost) + " {P}; at most " + paw
+                            + " are allowed. Choose again.";
+                    p("[ROUTER] modes(repeat): over the {P} budget, " + pawprintsOf(out, pawCost) + " of " + paw);
+                    continue;
                 }
                 if (out.size() >= min) {
                     lastPicks = out;
@@ -2422,6 +2434,32 @@ public final class LlmSpikeGui {
             return null;
         }
 
+        /** A pawprint charm's {P} budget ("choose up to five {P} worth of modes"), or -1 for any other modal ability.
+         *  Forge's engine does not check it, only its own controllers do (PlayerControllerHuman, CharmAi), so the seat
+         *  and the arms must (#415). */
+        static int pawprintBudget(SpellAbility sa) {
+            if (sa == null || !sa.hasParam("Pawprint")) return -1;
+            return forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("Pawprint"), sa);
+        }
+
+        /** Each mode's {P}, in the order of `possible` (0 for a mode with none). */
+        static int[] pawprints(List<AbilitySub> possible) {
+            int[] out = new int[possible.size()];
+            for (int i = 0; i < out.length; i++) {
+                AbilitySub ab = possible.get(i);
+                out[i] = ab.hasParam("Pawprint")
+                        ? forge.game.ability.AbilityUtils.calculateAmount(ab.getHostCard(), ab.getParam("Pawprint"), ab) : 0;
+            }
+            return out;
+        }
+
+        /** The {P} the picked modes total. */
+        static int pawprintsOf(List<Integer> picks, int[] cost) {
+            int total = 0;
+            for (int i : picks) total += cost[i];
+            return total;
+        }
+
         /** `n` copies of one mode: a forced single mode under allowRepeat ("choose three, you may
          *  choose the same mode more than once") is that mode three times. */
         private static List<AbilitySub> repeated(AbilitySub sub, int n) {
@@ -2434,7 +2472,24 @@ public final class LlmSpikeGui {
          *  `min` distinct modes; with it, distinct first and then repeats of the first mode when the
          *  count exceeds the menu (legal only because allowRepeat permits it). */
         private static List<AbilitySub> defaultModes(List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
+            return defaultModes(possible, min, num, allowRepeat, null, -1);
+        }
+
+        /** As above; with a {P} budget (a pawprint charm, #415) the modes are taken in order while they fit: legal. */
+        private static List<AbilitySub> defaultModes(List<AbilitySub> possible, int min, int num, boolean allowRepeat,
+                                                     int[] cost, int budget) {
             List<AbilitySub> out = new ArrayList<>();
+            if (allowRepeat && cost != null && budget >= 0) {
+                int left = budget;
+                for (int i = 0; i < possible.size() && out.size() < num; i++) {
+                    while (cost[i] <= left && out.size() < num) {
+                        out.add(possible.get(i));
+                        left -= cost[i];
+                        if (cost[i] == 0) break;
+                    }
+                }
+                return out;
+            }
             if (!allowRepeat) {
                 for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) out.add(possible.get(i));
                 return out;
@@ -7107,22 +7162,29 @@ public final class LlmSpikeGui {
                     num = most;
                 }
                 if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return repeated(possible.get(0), Math.max(min, Math.min(num, 1))); } // forced
+                final int paw = allowRepeat ? pawprintBudget(sa) : -1;
+                final int[] pawCost = paw >= 0 ? pawprints(possible) : null;
                 // No budget: deterministic legal modes (distinct first, then repeats), never Forge AI.
                 if (!smartOk()) {
-                    List<AbilitySub> defPick = defaultModes(possible, min, num, allowRepeat);
+                    List<AbilitySub> defPick = defaultModes(possible, min, num, allowRepeat, pawCost, paw);
                     auto("modes(no-budget)->first" + defPick.size());
                     return defPick;
                 }
                 List<String> labels = new ArrayList<>();
                 String host = sa.getHostCard() == null ? "" : safeName(sa.getHostCard());
-                for (AbilitySub ab : possible)
+                for (int mi = 0; mi < possible.size(); mi++) {
+                    AbilitySub ab = possible.get(mi);
                     labels.add((ab.hasParam("ModeCost") ? "+ " + costText(new Cost(ab.getParam("ModeCost"), false).toSimpleString()) + " — " : "")
+                            + (pawCost != null ? "{P}".repeat(pawCost[mi]) + " — " : "")
                             + (observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription())));
+                }
                 if (allowRepeat) {
                     List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
-                            + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
+                            + " (you may choose the same mode more than once"
+                            + (paw >= 0 ? "; the modes' {P} may total at most " + paw : "") + ").", labels, Math.max(0, min), num,
+                            pawCost, paw);
                     if (rp == null || rp.size() < min) {
-                        List<AbilitySub> defPick = defaultModes(possible, min, num, true);
+                        List<AbilitySub> defPick = defaultModes(possible, min, num, true, pawCost, paw);
                         auto("modes(repeat,unparsed)->first" + defPick.size());
                         return defPick;
                     }

@@ -1134,6 +1134,26 @@ public class GoldenChecksTest {
         Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).count(), 4L, "it fetched a land");
     }
 
+    /** A pawprint charm's modes may total at most its {P} budget (#415): Forge's engine does not check it, only its own
+     *  controllers do, which the seat replaces. Season of Loss with its {P}{P}{P} mode chosen five times (15 of 5) is
+     *  refused and asked again; the seat's second, legal answer is the one cast. The question shows each mode's cost. */
+    @Test
+    public void aPawprintCharmsModesStayWithinItsBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        card("Hill Giant", me, ZoneType.Graveyard);
+        card("Season of Loss", me, ZoneType.Hand);
+        List<String> asked = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Season of Loss"))
+                .on("MODAL SPELL", p -> { asked.add(p); return asked.size() == 1 ? "PICKS: 3,3,3,3,3" : "PICKS: 3"; });
+        playAndResolve(seat(g, model, model), g, "Season of Loss");
+        Assert.assertEquals(rival.getLife(), 18, "one {P}{P}{P} mode (2 creature cards), not five");
+        Assert.assertEquals(asked.size(), 2, "the over-budget answer was asked again");
+        Assert.assertTrue(asked.get(0).contains("{P}{P}{P}"), "each mode's cost is shown: " + asked.get(0));
+    }
+
     /** Escalate adds its cost for each mode beyond the first: the seat may choose as many modes as it can pay for, and no
      *  more (the random gauntlet's Borrowed Grace chose both modes with mana for one, and the cast failed to pay). */
     @Test
