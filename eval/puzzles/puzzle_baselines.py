@@ -481,16 +481,17 @@ def verify_puzzle(build, rec, out_root):
         tape = Path(tempfile.mkdtemp(prefix="pzl-tape-")) / "tape.txt"
         tape.write_text(line["tape"])
         rows = run_arm(build, pf.pzl_path(rec), "script", str(line["seed"]), out, {"PZL_TAPE": str(tape)})
-    problems = check(line, rows[0] if rows else None)
+    row = rows[0] if rows else None
+    problems = check(line, row)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
     ver = {"status": "verified" if not problems else "failed", "engine_sha": engine, "date": stamp,
-           "replay_log_sha256": rows[0].get("log_sha256") if rows else None}
+           "replay_log_sha256": row.get("log_sha256") if row else None}
     if problems:
         ver["problems"] = problems
     # A search re-proof may prove the puzzle on another line (check_search_replay); say which one (#269).
-    if check is check_search_replay and rows and rows[0].get("line") and rows[0].get("line") != line.get("line"):
-        ver["replay_line"] = rows[0]["line"]
-        ver["replay_solver_actions"] = rows[0].get("solver_actions")
+    if check is check_search_replay and row and row.get("line") and row["line"] != line.get("line"):
+        ver["replay_line"] = row["line"]
+        ver["replay_solver_actions"] = row.get("solver_actions")
     return dict(rec, verification=ver)
 
 

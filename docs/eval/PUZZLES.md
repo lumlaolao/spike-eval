@@ -51,8 +51,8 @@ Forge enforces ("Win" or "Survive" by turn N).
   - a rules puzzle's search proof (`arm: search`, below);
   - a generated board's own `[solution]` (`arm: written`, with the step count it was gated at), replayed as
     written against Forge's AI, which must play every line and solve (the hard suite, below).
-- `verification`: the result of that replay, with the engine commit. A search line may be proven again on another
-  line; then `replay_line` and `replay_solver_actions` say which (#269).
+- `verification`: the result of that replay, with the engine commit. A search re-proof may prove the puzzle on another
+  line; then `replay_line` and `replay_solver_actions` name it (#269).
 - `tier`:
   - 1: Forge's AI solves at least half its attempts;
   - 2: it does not, and the line takes three or fewer solver actions;
