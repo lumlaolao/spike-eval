@@ -426,8 +426,10 @@ public final class LlmSpikeGui {
      *  multiset, so "choose up to N" is tried with fewer modes (PuzzleArms.repeatModes); the random arm is unchanged.
      *  Epoch 94 (2026-11-07, #415): a pawprint charm's modes stay within its {P} budget: each mode's label shows its
      *  {P}, the question the budget, an answer over it is refused and asked again, and the arms draw within it.
+     *  Epoch 95 (2026-11-07, #269): a source whose tap damage would be lethal pays after every other source, the
+     *  sacrifice-cost ones included (ComputerUtilMana patch); it shared their list, unordered among non-creatures.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-94";
+    static final String HARNESS_EPOCH = "harness-epoch-95";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2309,13 +2311,29 @@ public final class LlmSpikeGui {
             return null; // still short after retry -> caller's legal default
         }
 
+        /** The last attempt of a repeatable-mode ask saw an answer over a pawprint charm's budget, on either lane: on the
+         *  tool lane, any refusal over it in that attempt's conversation. The fallback's log reason; reset per attempt,
+         *  and cleared by a dead bridge. */
+        private boolean modesOverBudget;
+
+        /** The answer spec of a repeatable-mode ask. A pawprint charm's budget is on it three ways (#415, #417): the
+         *  tool answer is checked ({@code check}, which calls {@code onRefuse}), the Decisions bridge is told it
+         *  ({@code limit}) and trims its composed answer to it ({@code budget}). */
+        static AnswerTool.Spec modesSpec(List<String> options, int min, int num, int[] pawCost, int paw, Runnable onRefuse) {
+            AnswerTool.Spec spec = AnswerTool.Spec.repeat(options.size(), min, num).labels(options);
+            if (pawCost == null) return spec;
+            return spec.limit("the picked options' {P} total at most " + paw).budget(pawCost, paw).check(a -> {
+                int spent = pawprintsOf(a.zeroBased(), pawCost);
+                if (spent <= paw) return null;
+                onRefuse.run();
+                return "those modes total " + spent + " {P}; at most " + paw + " are allowed.";
+            });
+        }
+
         /** The repeatable-mode ask (a Charm that "may choose the same mode more than once"): the model
          *  picks up to `num` indices and the SAME index may appear again. decideMany dedupes via a
          *  LinkedHashSet, so this keeps duplicates instead. Null on bridge-down, or a reply with fewer
          *  than `min` parseable picks, so the caller can take its deterministic legal default. */
-        /** The last repeatable-mode ask ended on an answer over a pawprint charm's budget (its log reason). */
-        private boolean modesOverBudget;
-
         private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num,
                                                 int[] pawCost, int paw) {
             clearLast();
@@ -2332,24 +2350,19 @@ public final class LlmSpikeGui {
             }
             String base = buildDecideManyPrompt(snapshot(), question, options, min, num, observer != null, null);
             String overBudget = null;
-            modesOverBudget = false;
             for (int attempt = 0; attempt < 2; attempt++) {
+                modesOverBudget = false;
                 String prompt = attempt == 0 ? base
                         : overBudget != null ? base + "\n\n(" + overBudget + ")"
                         : base + "\n\n(Answer with ONE line only: PICKS: <" + min + " to " + num
                           + " numbers from the list; the same number may repeat>.)";
-                AnswerTool.Spec spec = AnswerTool.Spec.repeat(options.size(), min, num).labels(options);
-                if (pawCost != null) {
-                    // The tool answer is checked where it is made, so a refusal comes back in the call's own result.
-                    spec.limit("the picked options' {P} total at most " + paw).check(a -> {
-                        int spent = pawprintsOf(a.zeroBased(), pawCost);
-                        return spent > paw ? "those modes total " + spent + " {P}; at most " + paw + " are allowed." : null;
-                    });
-                }
-                offerAnswer(b, spec);
+                offerAnswer(b, modesSpec(options, min, num, pawCost, paw, () -> modesOverBudget = true));
                 String reply = ask(b, prompt);
                 noteAnswerVia(attempt);
-                if (reply == null) return null;
+                if (reply == null) {
+                    if (!answerLost()) modesOverBudget = false;   // a dead bridge, not a refusal
+                    return null;
+                }
                 List<Integer> out = new ArrayList<>();
                 AnswerTool.Answer ta = toolAnswer();
                 if (ta != null) out.addAll(ta.zeroBased());
@@ -2364,7 +2377,7 @@ public final class LlmSpikeGui {
                 }
                 // A text answer past a pawprint charm's budget is not a legal choice: refused and asked again (#415).
                 int spent = pawCost == null ? 0 : pawprintsOf(out, pawCost);
-                if (out.size() >= min && pawCost != null && spent > paw) {
+                if (out.size() >= min && pawCost != null && spent > paw) {   // paw is -1 for any other charm
                     overBudget = "Refused: those modes total " + spent + " {P}; at most " + paw + " are allowed. Choose again.";
                     modesOverBudget = true;
                     p("[ROUTER] modes(repeat): over the {P} budget, " + spent + " of " + paw);
@@ -2468,17 +2481,16 @@ public final class LlmSpikeGui {
         }
 
         /** The fixed legal modes when the hook fails: within a pawprint charm's budget too (#415). */
-        private static List<AbilitySub> budgetSafeDefault(SpellAbility sa, List<AbilitySub> possible, int min, int num,
-                                                          boolean allowRepeat) {
-            int paw = -1;
-            int[] cost = null;
+        static List<AbilitySub> budgetSafeDefault(SpellAbility sa, List<AbilitySub> possible, int min, int num,
+                                                  boolean allowRepeat) {
+            int paw;
+            int[] cost;
             try {
                 paw = allowRepeat ? pawprintBudget(sa) : -1;
                 cost = paw >= 0 ? pawprints(possible) : null;
             } catch (Exception ignore) {
-                paw = allowRepeat && sa != null && sa.hasParam("Pawprint") ? 0 : -1;   // unreadable: no mode is safe
-                cost = paw >= 0 ? new int[possible.size()] : null;
-                if (cost != null) java.util.Arrays.fill(cost, 1);
+                if (allowRepeat && sa != null && sa.hasParam("Pawprint")) return new ArrayList<>();   // unreadable: none
+                return defaultModes(possible, min, num, allowRepeat);
             }
             return defaultModes(possible, min, num, allowRepeat, cost, paw);
         }
