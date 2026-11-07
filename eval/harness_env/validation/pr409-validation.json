@@ -1,0 +1,28 @@
+{
+ "gold_lines": 20,
+ "green": {
+  "compile_ok": true,
+  "failed_targets": [],
+  "notes": [],
+  "partial": 1.0,
+  "regressions": [],
+  "score": 1,
+  "targets_passed": 2,
+  "targets_total": 2
+ },
+ "red": {
+  "compile_ok": true,
+  "failed_targets": [
+   "forge.spike.SeatObservationTest.theGuideSaysWhichKeywordsAPlayerLineShows"
+  ],
+  "notes": [],
+  "partial": 0.65,
+  "regressions": [],
+  "score": 0,
+  "targets_passed": 1,
+  "targets_total": 2
+ },
+ "red_kind": "tests",
+ "task": "pr409",
+ "well_posed": true
+}

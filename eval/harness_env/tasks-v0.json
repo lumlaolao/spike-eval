@@ -1,7 +1,7 @@
 {
- "generated": "2026-11-07T16:32:09Z",
+ "generated": "2026-11-07T17:16:16Z",
  "repo_head": "1c1c778f5d5fb077f2d4a41476a722b8da3a37a2",
- "schema": "harness-env-tasks/1",
+ "schema": "harness-env-tasks/2",
  "skipped": [
   {
    "pr": 413,
@@ -198,6 +198,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/AskContract.java"
    ],
@@ -250,7 +251,9 @@
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t38ea9716d5"
   },
   {
    "base_sha": "a3537ca4fec6130fb7de99744e1c92dd15a03255",
@@ -287,6 +290,7 @@
    "prompt_note": "the issue is only referenced in the PR's Why, and may be a multi-item tracking issue (the prompt is its whole text, not the one item this PR fixes)",
    "prompt_quality": "weak",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -306,7 +310,9 @@
    ],
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleArmsTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t7aeec30b6e"
   },
   {
    "base_sha": "b9833ca05cd886101b5d54ce72626bc6356c6f16",
@@ -347,6 +353,7 @@
      "style": "unittest"
     }
    ],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -384,7 +391,9 @@
    "test_files": [
     "eval/tests/test_puzzle_baselines.py",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleAcceptanceTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t9245f03c42"
   },
   {
    "base_sha": "fc03c709522c8aa402aa9ffde22a1aab61687e11",
@@ -419,6 +428,7 @@
    "prompt_note": "the issue is only referenced in the PR's Why, and may be a multi-item tracking issue (the prompt is its whole text, not the one item this PR fixes)",
    "prompt_quality": "weak",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -438,7 +448,9 @@
    ],
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleAcceptanceTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "tdc251c9c73"
   },
   {
    "base_sha": "6a23a6992fc81af2b5c42fc2617ee8800c701c76",
@@ -478,6 +490,7 @@
      "style": "unittest"
     }
    ],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -507,7 +520,9 @@
    ],
    "test_files": [
     "eval/tests/test_pr_format.py"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t4f49d41e93"
   },
   {
    "base_sha": "3ac59eb4f1d564ce8a6dcdc6d29dc7c16d03b066",
@@ -546,6 +561,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": "tests",
    "support_files": [],
    "targets": [
     {
@@ -565,7 +581,12 @@
    ],
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
-   ]
+   ],
+   "validated": {
+    "file": "eval/harness_env/validation/pr409-validation.json",
+    "well_posed": true
+   },
+   "view_id": "teb5c0de8aa"
   },
   {
    "base_sha": "79d77510e663ddbca1064c36c8dfb054b89b3229",
@@ -603,6 +624,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -615,7 +637,9 @@
    ],
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t65a2cff3b0"
   },
   {
    "base_sha": "49aac312a8457a7fb14c285d660f7241af727c75",
@@ -657,6 +681,7 @@
      "style": "unittest"
     }
    ],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -686,7 +711,9 @@
    ],
    "test_files": [
     "eval/tests/test_versions.py"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t6feafc68f2"
   },
   {
    "base_sha": "d891fefe65e2b6b7eb8ec42f5ea693ff8147935c",
@@ -733,6 +760,7 @@
      "style": "unittest"
     }
    ],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -763,7 +791,9 @@
     "eval/tests/test_experiments.py",
     "eval/tests/test_line_compare.py",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t213b21d2c2"
   },
   {
    "base_sha": "a9bc528dd194d8ea8cce4bfa664380c373696a05",
@@ -794,6 +824,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": "build",
    "support_files": [],
    "targets": [
     {
@@ -806,7 +837,12 @@
    ],
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java"
-   ]
+   ],
+   "validated": {
+    "file": "eval/harness_env/validation/pr404-validation.json",
+    "well_posed": true
+   },
+   "view_id": "t4f79f743d5"
   },
   {
    "base_sha": "ffcdb57022192d7378697a418d2dc854c8c85498",
@@ -842,6 +878,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -862,7 +899,9 @@
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t21fa77d6ca"
   },
   {
    "base_sha": "e8670bc6ac3e2641464d85291b3429c0b946e9e3",
@@ -901,6 +940,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -913,7 +953,9 @@
    ],
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/AnswerToolTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t286320d75e"
   },
   {
    "base_sha": "3619cc9ffc50609bda4c74da6d240a7038b5e2ef",
@@ -959,6 +1001,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -981,7 +1024,9 @@
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ReplayBridgeTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/RulesProbeLabelExport.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t193e914f2c"
   },
   {
    "base_sha": "c8f299279444d4bc8ae66dcfa363a0b7d14f4821",
@@ -1020,6 +1065,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -1074,7 +1120,9 @@
    ],
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LookaheadProbeTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t12ce88dd77"
   },
   {
    "base_sha": "5a1b6c2b64682228eb4bd930a14093fbf7302714",
@@ -1113,6 +1161,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -1149,7 +1198,9 @@
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/TranscriptTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t9cffbee393"
   },
   {
    "base_sha": "ea3a2694b50e50c7a2e8bfbeb6fb91c1e3cc81a9",
@@ -1195,6 +1246,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -1250,7 +1302,9 @@
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PuzzleSetupTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/SeatObservationTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t4e64da8771"
   },
   {
    "base_sha": "0c1b83d08a039c202ecb918d50d60f8eddaf7680",
@@ -1258,8 +1312,7 @@
     "docs/harness/ACCEPTANCE.md",
     "docs/harness/ARCHITECTURE.md",
     "docs/harness/GOLDEN-CHECKS.md",
-    "docs/harness/VERSIONS.md",
-    "docs/harness/controller-ownership.tsv"
+    "docs/harness/VERSIONS.md"
    ],
    "fix_commits": [
     "87f0681b305edc8ea90aff4978b8f8997784fc29",
@@ -1267,13 +1320,14 @@
     "1cf50f11cac8f8389899629d05a537d74fe2c5a8",
     "daf24b76b263d8ae98bb4c12cf974050f8021d0e"
    ],
-   "gold_file_count": 2,
+   "gold_file_count": 3,
    "gold_files": [
+    "docs/harness/controller-ownership.tsv",
     "eval/harness_acceptance.sh",
     "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java"
    ],
    "gold_hidden": true,
-   "gold_lines": 93,
+   "gold_lines": 95,
    "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr393",
    "head_sha": "daf24b76b263d8ae98bb4c12cf974050f8021d0e",
    "id": "pr393",
@@ -1292,6 +1346,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -1312,7 +1367,9 @@
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LineFindingProbeTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t504245dbed"
   },
   {
    "base_sha": "66b455bbb5f535dff4be7193d0c9345f49e5a238",
@@ -1351,6 +1408,7 @@
      "style": "unittest"
     }
    ],
+   "red_kind": "tests",
    "support_files": [],
    "targets": [
     {
@@ -1364,7 +1422,12 @@
    ],
    "test_files": [
     "eval/tests/test_defect_analyzer.py"
-   ]
+   ],
+   "validated": {
+    "file": "eval/harness_env/validation/pr390-validation.json",
+    "well_posed": true
+   },
+   "view_id": "t827e31ee72"
   },
   {
    "base_sha": "837933be1f031cfa23fd2e64ff3c9b7dfab2bad5",
@@ -1427,6 +1490,7 @@
      "style": "unittest"
     }
    ],
+   "red_kind": null,
    "support_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ToolAnswerBridge.java"
    ],
@@ -1494,7 +1558,9 @@
     "eval/tests/test_puzzle_watch.py",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/GoldenChecksTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ToolAnswerBridge.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t48fbecdb81"
   },
   {
    "base_sha": "443b502ab57abc7ce5dbf27bcba79fdb1c03cfe1",
@@ -1534,6 +1600,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -1675,7 +1742,9 @@
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/KeywordSurfaceSweepTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/PromptFidelityTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "tb219393c41"
   },
   {
    "base_sha": "18af95ff25b331fac9568dd954e26dfe144451d4",
@@ -1774,6 +1843,7 @@
      "style": "unittest"
     }
    ],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -1967,7 +2037,9 @@
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/DecisionsBridgeTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/OpenRouterTimeoutTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "tfee204cd44"
   },
   {
    "base_sha": "211f36a5d700f5d04366fd934731d87870f977a3",
@@ -2008,6 +2080,7 @@
    "prompt_note": "",
    "prompt_quality": "ok",
    "python_tests": [],
+   "red_kind": null,
    "support_files": [],
    "targets": [
     {
@@ -2056,7 +2129,9 @@
    "test_files": [
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
     "forge-overlay/forge-gui-desktop/src/test/java/forge/spike/ProposeActionsTest.java"
-   ]
+   ],
+   "validated": null,
+   "view_id": "t034e0127ed"
   }
  ]
 }

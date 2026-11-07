@@ -15,8 +15,11 @@ a prompt. Everything else is listed under `skipped` with the reason. Whether the
 is not known from history; `harness_env_task_grade.py validate` proves it (red on base, green with the gold patch).
 
 Usage:
-  harness_env_tasks.py build --prs 403,407,409 [--repo .] [--out tasks.json] [--no-github]
-  harness_env_tasks.py recent --limit 40 [--repo .] [--out tasks.json]   # the last N first-parent PR merges
+  harness_env_tasks.py build --prs 403,407,409 [--repo .] [--rev HEAD] [--out tasks.json] [--no-github]
+  harness_env_tasks.py recent --limit 40 [--repo .] [--rev HEAD] [--out tasks.json]   # the last N first-parent merges
+`--rev` names the commit whose first-parent history is read (git objects only, no checkout of it).
+Each task carries `red_kind` and `validated` from eval/harness_env/validation/<id>-validation.json (null until
+`harness_env_task_grade.py validate` has been run and its JSON committed there).
 Reads git history and GitHub REST (`gh api`, GH_REPO or --github-repo); stdlib only; makes no model call.
 """
 import argparse
@@ -29,12 +32,13 @@ import re
 import subprocess
 import sys
 
-SCHEMA = "harness-env-tasks/1"
+SCHEMA = "harness-env-tasks/2"
+VALIDATION_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validation")
 DEFAULT_GH_REPO = "SeanCThomas0/spike-eval"
 
 JAVA_TEST_DIR = re.compile(r"(?:^|/)src/test/java/(.+)\.java$")
 PY_TEST = re.compile(r"^eval/tests/(test_[^/]+)\.py$")
-DOC_PATH = re.compile(r"^(docs/|.*\.md$|LICENSE$|NOTICE\.md$)")
+DOC_PATH = re.compile(r"^(.*\.md|LICENSE)$")  # prose only: a data file under docs/ (a .tsv) is source
 CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\s+#(\d+)", re.I)
 WHY_REF = re.compile(r"(?<![\w/])#(\d+)")
 JAVA_TEST_METHOD = re.compile(r"@Test\b[^\n]*\n(?:\s*@\w+[^\n]*\n)*\s*(?:public\s+|protected\s+|private\s+)?void\s+(\w+)\s*\(")
@@ -58,8 +62,9 @@ def git_show(repo, rev, path):
     return p.stdout.decode("utf-8", "replace") if p.returncode == 0 else None
 
 
-def merge_commit(repo, pr):
-    out = git(repo, "log", "--first-parent", "--grep=^Merge pull request #%d from" % pr, "-1", "--format=%H").strip()
+def merge_commit(repo, pr, rev="HEAD"):
+    out = git(repo, "log", rev, "--first-parent", "--grep=^Merge pull request #%d from" % pr, "-1",
+              "--format=%H").strip()
     return out or None
 
 
@@ -162,7 +167,7 @@ def python_style(text):
 
 
 def classify(path):
-    """('java'|'python'|'doc'|'source', detail)."""
+    """('java_test'|'python_test'|'doc'|'source', detail): detail is the class or module of a test file, else None."""
     m = JAVA_TEST_DIR.search(path)
     if m:
         return "java_test", m.group(1).replace("/", ".")
@@ -216,9 +221,9 @@ def linked_issues(pr_body, commit_messages):
 
 # ---------------------------------------------------------------- one task
 
-def build_task(repo, pr, fetch=None):
+def build_task(repo, pr, fetch=None, rev="HEAD"):
     """-> (task dict, None) or (None, reason). `fetch(path)` returns REST JSON (None: no GitHub, history only)."""
-    merge = merge_commit(repo, pr)
+    merge = merge_commit(repo, pr, rev)
     if not merge:
         return None, "no merge commit for #%d on the first-parent history" % pr
     parents = git(repo, "rev-list", "--parents", "-n", "1", merge).split()[1:]
@@ -294,39 +299,57 @@ def build_task(repo, pr, fetch=None):
         "needs_jvm": bool(java_classes),
         "grade_command": "python3 eval/harness_env/harness_env_task_grade.py grade <task.json> <worktree> --task-id pr%d" % pr,
         "gold_hidden": True,
+        "view_id": opaque_id(base, merge),
+        "red_kind": None, "validated": None,
     }
     return task, None
 
 
-def build(repo, prs, fetch=None):
+def build(repo, prs, fetch=None, rev="HEAD", validation_dir=VALIDATION_DIR):
     tasks, skipped = [], []
     for pr in prs:
         try:
-            task, why = build_task(repo, pr, fetch)
+            task, why = build_task(repo, pr, fetch, rev)
         except TaskError as e:
             task, why = None, "error: %s" % e
         if task:
+            attach_validation(task, validation_dir)
             tasks.append(task)
         else:
             skipped.append({"pr": pr, "reason": why})
     return {"schema": SCHEMA, "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "repo_head": git(repo, "rev-parse", "HEAD").strip(), "tasks": tasks, "skipped": skipped}
+            "repo_head": git(repo, "rev-parse", rev).strip(), "tasks": tasks, "skipped": skipped}
 
 
-def recent_prs(repo, limit):
-    out = git(repo, "log", "--first-parent", "-n", str(limit * 3), "--format=%s")
-    prs = []
-    for line in out.splitlines():
-        m = re.match(r"Merge pull request #(\d+) from", line)
-        if m:
-            prs.append(int(m.group(1)))
-    return prs[:limit]
+def recent_prs(repo, limit, rev="HEAD"):
+    """The PR numbers of the last `limit` first-parent merges reachable from `rev` (a non-PR merge is dropped)."""
+    out = git(repo, "log", rev, "--first-parent", "--merges", "-n", str(limit), "--format=%s")
+    nums = (re.match(r"Merge pull request #(\d+) from", line) for line in out.splitlines())
+    return [int(m.group(1)) for m in nums if m]
+
+
+def opaque_id(base, merge):
+    """A short id that names the task and nothing else: the agent never sees the PR number or either sha."""
+    return "t" + hashlib.sha256(("%s:%s" % (base, merge)).encode()).hexdigest()[:10]
+
+
+def attach_validation(task, validation_dir):
+    """Fill `red_kind` and `validated` from the committed validate output of this task, if there is one."""
+    path = os.path.join(validation_dir, task["id"] + "-validation.json")
+    if not os.path.isfile(path):
+        return
+    with open(path, encoding="utf-8") as f:
+        v = json.load(f)
+    task["red_kind"] = v.get("red_kind")
+    task["validated"] = {"well_posed": bool(v.get("well_posed")),
+                         "file": "eval/harness_env/validation/" + os.path.basename(path)}
 
 
 def agent_view(task):
-    """What the agent sees: the prompt and the grading rule, never the gold patch, the fix commits or the PR."""
-    keep = ("id", "base_sha", "prompt", "grade_command", "test_files")
-    view = {k: task[k] for k in keep}
+    """What the agent sees: an opaque id, the prompt and the grading rule. Never the PR number, a sha, the gold
+    patch or the fix commits, and no base sha either (the sandbox is the base tree with no history to look it up in)."""
+    view = {"id": task["view_id"], "prompt": task["prompt"], "test_files": task["test_files"],
+            "grade_command": task["grade_command"].replace(task["id"], task["view_id"])}
     view["targets"] = [{k: t[k] for k in t if k != "change"} for t in task["targets"]]
     return view
 
@@ -337,6 +360,7 @@ def main(argv):
     for name in ("build", "recent"):
         p = sub.add_parser(name)
         p.add_argument("--repo", default=os.getcwd())
+        p.add_argument("--rev", default="HEAD")
         p.add_argument("--out", default="-")
         p.add_argument("--github-repo", default=os.environ.get("GH_REPO", DEFAULT_GH_REPO))
         p.add_argument("--no-github", action="store_true", help="history only: a PR without an issue text is skipped")
@@ -345,9 +369,9 @@ def main(argv):
         else:
             p.add_argument("--limit", type=int, default=40)
     a = ap.parse_args(argv)
-    prs = [int(x) for x in a.prs.split(",") if x.strip()] if a.cmd == "build" else recent_prs(a.repo, a.limit)
+    prs = [int(x) for x in a.prs.split(",") if x.strip()] if a.cmd == "build" else recent_prs(a.repo, a.limit, a.rev)
     fetch = None if a.no_github else (lambda path: gh_api(path, a.github_repo))
-    doc = build(a.repo, prs, fetch)
+    doc = build(a.repo, prs, fetch, a.rev)
     text = json.dumps(doc, indent=1, sort_keys=True) + "\n"
     if a.out == "-":
         sys.stdout.write(text)

@@ -1,0 +1,48 @@
+{
+ "gold_lines": 26,
+ "green": {
+  "compile_ok": true,
+  "failed_targets": [],
+  "notes": [],
+  "partial": 1.0,
+  "regressions": [],
+  "score": 1,
+  "targets_passed": 1,
+  "targets_total": 1
+ },
+ "red": {
+  "compile_ok": true,
+  "failed_targets": [
+   "test_defect_analyzer.test_a_crash_is_listed_under_the_one_file_that_owns_its_log"
+  ],
+  "notes": [
+   "eval/tests/test_defect_analyzer.py exited 1: he first file has no game line, crash owner: the second file has no game line, crash owner: a log of the other swap, unpaired, names the file, crash owner: a game_error file and a crash in its sibling"
+  ],
+  "partial": 0.0,
+  "regressions": [
+   "test_defect_analyzer.DefectAnalyzerSuite.test_every_check",
+   "test_defect_analyzer.test_a_block_set_that_stood_illegal_is_counted",
+   "test_defect_analyzer.test_a_crash_only_its_log_shows_fails_the_invariants",
+   "test_defect_analyzer.test_a_puzzle_attempt_a_dead_bridge_played_fails_the_invariants",
+   "test_defect_analyzer.test_ai_tier_forced_pick_and_missing_mulligan",
+   "test_defect_analyzer.test_blocks_and_empty_picks_not_counted_as_parse_fail",
+   "test_defect_analyzer.test_clean_game_no_defects",
+   "test_defect_analyzer.test_crashed_game_fails_the_invariants",
+   "test_defect_analyzer.test_decisions_lost_to_a_dead_bridge_fail_the_invariants",
+   "test_defect_analyzer.test_has_choice_tag_accepts_non_digit_reply_shapes",
+   "test_defect_analyzer.test_malformed_lines_and_no_log_are_tolerated",
+   "test_defect_analyzer.test_normalize_fallback_matches_analyze_corpus_convention",
+   "test_defect_analyzer.test_one_candidate_in_a_subset_decision_is_not_a_forced_pick",
+   "test_defect_analyzer.test_parse_log_text",
+   "test_defect_analyzer.test_shadow_choice_field_invisible_to_merge_gate",
+   "test_defect_analyzer.test_silent_drop_detected",
+   "test_defect_analyzer.test_the_standards_name_every_hard_invariant"
+  ],
+  "score": 0,
+  "targets_passed": 0,
+  "targets_total": 1
+ },
+ "red_kind": "tests",
+ "task": "pr390",
+ "well_posed": true
+}

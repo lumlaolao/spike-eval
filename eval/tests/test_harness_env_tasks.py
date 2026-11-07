@@ -1,4 +1,5 @@
 """harness_env_tasks.py turns merged PRs into tasks and says why it skips the rest, on a throwaway history."""
+import json
 import os
 import subprocess
 import sys
@@ -87,7 +88,7 @@ class TasksTest(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.repo = cls.tmp.name
         make_history(cls.repo)
-        cls.doc = ht.build(cls.repo, [1, 2, 3, 4, 5, 6], fetch)
+        cls.doc = ht.build(cls.repo, [1, 2, 3, 4, 5, 6], fetch, validation_dir=os.devnull)
 
     @classmethod
     def tearDownClass(cls):
@@ -135,6 +136,47 @@ class TasksTest(unittest.TestCase):
         text = repr(ht.agent_view(t))
         for secret in ("'src.py'", "gold", "merge_sha", "fix_commits", t["merge_sha"], t["head_sha"]):
             self.assertNotIn(secret, text)
+
+    def test_the_agent_view_names_neither_the_pr_nor_a_sha_and_the_id_is_opaque(self):
+        t = self.task(1)
+        view = ht.agent_view(t)
+        text = json.dumps(view)
+        self.assertEqual(view["id"], t["view_id"])
+        self.assertNotIn(t["id"], text)
+        for sha in (t["merge_sha"], t["head_sha"], t["base_sha"], t["merge_sha"][:9], t["base_sha"][:9]):
+            self.assertNotIn(sha, text)
+        self.assertRegex(view["id"], r"^t[0-9a-f]{10}$")
+        self.assertIn(view["id"], view["grade_command"])
+
+    def test_the_real_manifests_agent_views_leak_no_pr_number_or_sha(self):
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "harness_env", "tasks-v0.json")
+        with open(path) as f:
+            tasks = json.load(f)["tasks"]
+        self.assertTrue(tasks)
+        for t in tasks:
+            text = json.dumps(ht.agent_view(t))
+            self.assertNotIn(t["id"], text, t["id"])
+            for sha in (t["merge_sha"], t["head_sha"], t["base_sha"]):
+                self.assertNotIn(sha[:9], text, t["id"])
+            self.assertNotIn("/pull/%d" % t["pr"], text, t["id"])
+
+    def test_only_markdown_is_a_doc_a_data_file_under_docs_is_source(self):
+        self.assertEqual(ht.classify("docs/harness/controller-ownership.tsv")[0], "source")
+        self.assertEqual(ht.classify("docs/harness/ARCHITECTURE.md")[0], "doc")
+        self.assertEqual(ht.classify("README.md")[0], "doc")
+
+    def test_red_kind_and_validated_are_null_until_a_validation_file_exists(self):
+        self.assertEqual((self.task(1)["red_kind"], self.task(1)["validated"]), (None, None))
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "pr1-validation.json"), "w") as f:
+                json.dump({"red_kind": "build", "well_posed": True}, f)
+            t = ht.build(self.repo, [1], fetch, validation_dir=d)["tasks"][0]
+            self.assertEqual(t["red_kind"], "build")
+            self.assertEqual(t["validated"]["well_posed"], True)
+
+    def test_recent_prs_lists_first_parent_merges_newest_first(self):
+        self.assertEqual(ht.recent_prs(self.repo, 3), [5, 4, 3])
+        self.assertEqual(ht.recent_prs(self.repo, 2, "HEAD~2"), [3, 2])
 
     def test_issue_links_prefer_closing_keywords_then_the_why_section(self):
         body = "## What\n\nstuff\n\n## Why\n\n#269, item 1: bad\nsee org/repo#5\n\n## Evidence\n#999\n"

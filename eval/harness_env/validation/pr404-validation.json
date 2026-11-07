@@ -1,0 +1,30 @@
+{
+ "gold_lines": 9,
+ "green": {
+  "compile_ok": true,
+  "failed_targets": [],
+  "notes": [],
+  "partial": 1.0,
+  "regressions": [],
+  "score": 1,
+  "targets_passed": 1,
+  "targets_total": 1
+ },
+ "red": {
+  "compile_ok": false,
+  "failed_targets": [
+   "forge.spike.LlmSpikeTest.aSharedBridgeReportsOneAverage"
+  ],
+  "notes": [
+   "javac failed: forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2506: error: cannot find symbol | forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2507: error: cannot find symbol | forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2508: error: cannot find symbol"
+  ],
+  "partial": 0.0,
+  "regressions": [],
+  "score": 0,
+  "targets_passed": 0,
+  "targets_total": 1
+ },
+ "red_kind": "build",
+ "task": "pr404",
+ "well_posed": true
+}
