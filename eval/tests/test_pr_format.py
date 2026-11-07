@@ -168,6 +168,24 @@ class PrFormatTest(unittest.TestCase):
         for launcher in sorted(p.name for p in evalpath.REPO.glob("*.sh")):
             self.assertTrue(any("has no line" in p for p in gate("- tried it", [launcher])), launcher)
 
+    def test_a_changed_script_still_on_the_untested_list_fails_the_gate(self):
+        # #247: the list only shrinks, so a PR that changes a listed script gives it a test and takes it off.
+        t, head = "feat(tools): native calls", "abc123456789"
+        listed = {"line_report.py", "model_sweep.py"}
+        p = pf.pr_problems(t, BODY, head, ["eval/line_report.py"], gate=True, untested=listed)
+        self.assertTrue(any("eval/line_report.py" in x and "UNTESTED.txt" in x for x in p), p)
+        # Off the list at the head (the PR removed it), a test file, a script not listed: nothing.
+        for files, names in ((["eval/line_report.py"], {"model_sweep.py"}), (["eval/tests/test_line_report.py"], listed),
+                             (["eval/aggregate.py"], listed), (["eval/UNTESTED.txt"], listed)):
+            self.assertEqual(pf.pr_problems(t, BODY, head, files, gate=True, untested=names), [], files)
+        # The check is the gate's: a plain check-pr does not read the list.
+        self.assertEqual(pf.pr_problems(t, BODY, head, ["eval/line_report.py"], untested=listed), [])
+
+    def test_the_gate_reads_the_untested_list_at_the_pr_head(self):
+        with mock.patch.object(pf, "run", return_value="# a comment\nline_report.py\n\nmodel_sweep.py\n") as run:
+            self.assertEqual(pf.untested_at_head({"headRefOid": "abc123456789"}), {"line_report.py", "model_sweep.py"})
+        self.assertIn("eval/UNTESTED.txt?ref=abc123456789", " ".join(run.call_args[0]))
+
     def test_the_gate_refuses_a_what_that_misses_a_commit(self):
         # #343 (standards, round 3): `## What` was written at the first commit and missed the three review-driven ones.
         t = "feat(tools): native calls"

@@ -14,7 +14,8 @@
 Every GitHub call is a REST `gh api` call (GraphQL is refused in Claude cloud sessions).
 
 `check-pr --gate` also requires what a merge needs: all three review verdicts for the PR's current
-head commit, none BLOCKER or HIGH, and an acceptance run named in Evidence when code changed.
+head commit, none BLOCKER or HIGH, an acceptance run named in Evidence when code changed, and no
+changed eval script still on eval/UNTESTED.txt at the PR head.
 Exit 0 clean, 1 with one line per problem.
 """
 import functools
@@ -201,7 +202,7 @@ def same_commit(a, b):
     return bool(a and b) and (a.startswith(b) or b.startswith(a))
 
 
-def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
+def pr_problems(title, body, head=None, files=(), gate=False, commits=(), untested=()):
     out = ["title: " + p for p in subject_problems(title)]
     out += identifier_problems([title], "the title") + identifier_problems((body or "").splitlines(), "the body")
     secs = sections(body)
@@ -240,6 +241,13 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
             out.append("%s verdict %s is not one of %s" % (agent, verdict, "/".join(SKILL_VERDICTS[agent])))
         if verdict in BLOCKING:
             out.append("%s verdict is %s; fix it and review again" % (agent, verdict))
+    # eval/UNTESTED.txt only shrinks (docs/STANDARDS.md section 3, #247): a listed script the PR changes gets its test
+    # and leaves the list in the same PR. `untested` is the list at the PR head, so the PR that removes a name passes.
+    for f in files:
+        name = f.rsplit("/", 1)[-1]
+        if re.fullmatch(r"eval/(?!tests/)(?:[^/]+/)*[^/]+\.py", f) and name in untested:
+            out.append("%s is changed but still on eval/UNTESTED.txt; give it eval/tests/test_%s and take it off the list"
+                       % (f, name))
     if any(f.startswith(CODE_PATHS) for f in files):
         runs = ACCEPTANCE.findall(secs.get("Evidence", ""))
         if not runs:
@@ -296,6 +304,14 @@ def gh_pr(number):
     return {"title": pull["title"], "body": pull.get("body") or "", "headRefOid": pull["head"]["sha"],
             "state": pull["state"].upper(), "isDraft": bool(pull.get("draft")),
             "files": [{"path": f["filename"]} for f in gh_pages(path + "/files")], "commits": commits}
+
+
+def untested_at_head(pr):
+    """The script names on eval/UNTESTED.txt as the PR head has it (not as this checkout has it). A script the PR
+    deletes is off it there too: eval/tests/test_untested_list.py fails a name that is listed but gone."""
+    text = run("gh", "api", "-H", "Accept: application/vnd.github.raw",
+               "repos/{owner}/{repo}/contents/eval/UNTESTED.txt?ref=%s" % pr["headRefOid"])
+    return {ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#")}
 
 
 def pr_commits(pr):
@@ -387,7 +403,8 @@ def main(argv):
         gate = "--gate" in args
         pr = gh_pr([a for a in args if a != "--gate"][0])
         problems = pr_problems(pr["title"], pr["body"], pr["headRefOid"], [f["path"] for f in pr.get("files") or []],
-                               gate, pr_commits(pr) if gate else ()) + (merge_problems(pr) if gate else [])
+                               gate, pr_commits(pr) if gate else (), untested_at_head(pr) if gate else ()) + (
+                                   merge_problems(pr) if gate else [])
     elif cmd == "new-pr":
         title, body = skeleton(base_ref(args[0] if args else None))
         print(title + "\n\n" + body)
