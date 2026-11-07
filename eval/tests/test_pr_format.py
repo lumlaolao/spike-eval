@@ -1,10 +1,13 @@
 """scripts/pr_format.py: the accepted examples are real subjects from this repository's history.
 Lives in eval/tests/ so the acceptance suite (`unittest discover -s eval/tests`) runs it."""
+import importlib.util
+import io
 import json
 import os
 import re
 import sys
 import unittest
+from contextlib import redirect_stdout
 from unittest import mock
 from pathlib import Path
 import tempfile
@@ -174,9 +177,12 @@ class PrFormatTest(unittest.TestCase):
         listed = {"line_report.py", "model_sweep.py"}
         p = pf.pr_problems(t, BODY, head, ["eval/line_report.py"], gate=True, untested=listed)
         self.assertTrue(any("eval/line_report.py" in x and "UNTESTED.txt" in x for x in p), p)
-        # Off the list at the head (the PR removed it), a test file, a script not listed: nothing.
-        for files, names in ((["eval/line_report.py"], {"model_sweep.py"}), (["eval/tests/test_line_report.py"], listed),
-                             (["eval/aggregate.py"], listed), (["eval/UNTESTED.txt"], listed)):
+        # A script in a folder under eval/ is held to the list the same way.
+        p = pf.pr_problems(t, BODY, head, ["eval/demo/demo_cards.py"], gate=True, untested={"demo_cards.py"})
+        self.assertTrue(any("eval/demo/demo_cards.py" in x for x in p), p)
+        # Off the list at the head (the PR removed it), a script not listed, a file that is not a script: nothing.
+        for files, names in ((["eval/line_report.py"], {"model_sweep.py"}), (["eval/aggregate.py"], listed),
+                             (["eval/UNTESTED.txt"], listed)):
             self.assertEqual(pf.pr_problems(t, BODY, head, files, gate=True, untested=names), [], files)
         # The check is the gate's: a plain check-pr does not read the list.
         self.assertEqual(pf.pr_problems(t, BODY, head, ["eval/line_report.py"], untested=listed), [])
@@ -185,6 +191,26 @@ class PrFormatTest(unittest.TestCase):
         with mock.patch.object(pf, "run", return_value="# a comment\nline_report.py\n\nmodel_sweep.py\n") as run:
             self.assertEqual(pf.untested_at_head({"headRefOid": "abc123456789"}), {"line_report.py", "model_sweep.py"})
         self.assertIn("eval/UNTESTED.txt?ref=abc123456789", " ".join(run.call_args[0]))
+        # Without the raw media type gh returns the JSON wrapper, which would match no name: the gate stops instead.
+        self.assertIn("Accept: application/vnd.github.raw", run.call_args[0])
+        with mock.patch.object(pf, "run", return_value='{"name": "UNTESTED.txt", "content": "bGluZV9yZXBvcnQucHk="}'):
+            with self.assertRaises(SystemExit):
+                pf.untested_at_head({"headRefOid": "abc123456789"})
+        # The gate reads the list as eval/tests/test_untested_list.py does.
+        spec = importlib.util.spec_from_file_location("untested_list", evalpath.EVAL / "tests" / "test_untested_list.py")
+        listing = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(listing)
+        self.assertEqual(pf.untested_names((evalpath.EVAL / "UNTESTED.txt").read_text()), listing.UNTESTED)
+
+    def test_check_pr_gate_hands_the_heads_list_to_the_gate(self):
+        pr = {"title": "feat(tools): native calls", "body": BODY, "headRefOid": "abc123456789",
+              "files": [{"path": "eval/line_report.py"}], "commits": []}
+        out = io.StringIO()
+        with mock.patch.object(pf, "gh_pr", return_value=pr), \
+                mock.patch.object(pf, "untested_at_head", return_value={"line_report.py"}), redirect_stdout(out):
+            rc = pf.main(["check-pr", "410", "--gate"])
+        self.assertEqual(rc, 1, out.getvalue())
+        self.assertIn("eval/line_report.py is changed but still on eval/UNTESTED.txt", out.getvalue())
 
     def test_the_gate_refuses_a_what_that_misses_a_commit(self):
         # #343 (standards, round 3): `## What` was written at the first commit and missed the three review-driven ones.

@@ -245,7 +245,7 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=(), untest
     # and leaves the list in the same PR. `untested` is the list at the PR head, so the PR that removes a name passes.
     for f in files:
         name = f.rsplit("/", 1)[-1]
-        if re.fullmatch(r"eval/(?!tests/)(?:[^/]+/)*[^/]+\.py", f) and name in untested:
+        if f.startswith("eval/") and f.endswith(".py") and name in untested:
             out.append("%s is changed but still on eval/UNTESTED.txt; give it eval/tests/test_%s and take it off the list"
                        % (f, name))
     if any(f.startswith(CODE_PATHS) for f in files):
@@ -311,6 +311,13 @@ def untested_at_head(pr):
     deletes is off it there too: eval/tests/test_untested_list.py fails a name that is listed but gone."""
     text = run("gh", "api", "-H", "Accept: application/vnd.github.raw",
                "repos/{owner}/{repo}/contents/eval/UNTESTED.txt?ref=%s" % pr["headRefOid"])
+    if text.lstrip().startswith("{"):   # the JSON wrapper, not the file: no name would match and the check would pass
+        sys.exit("check-pr: eval/UNTESTED.txt came back as JSON, not its text; the gate cannot read the list")
+    return untested_names(text)
+
+
+def untested_names(text):
+    """The names eval/UNTESTED.txt lists: every line but blanks and # comments."""
     return {ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#")}
 
 
