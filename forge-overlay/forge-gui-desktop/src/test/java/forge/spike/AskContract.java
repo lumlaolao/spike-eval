@@ -134,7 +134,10 @@ final class AskContract {
             Matcher r = RANGE.matcher(decision);
             Assert.assertTrue(r.find(), test + ": a subset ask that does not say how many to pick: " + decision);
             int lo = Integer.parseInt(r.group(1)), hi = Integer.parseInt(r.group(2));
-            Assert.assertTrue(0 <= lo && lo <= hi && hi <= labels.size(),
+            // A repeatable-mode ask ("you may choose the same mode more than once") may pick more than it lists: the
+            // Seasons choose up to five of three modes (#415).
+            boolean repeats = decision.contains("the same mode more than once");
+            Assert.assertTrue(0 <= lo && lo <= hi && (hi <= labels.size() || repeats),
                     test + ": the subset range " + lo + ".." + hi + " does not fit " + labels.size() + " options: " + decision);
         }
         if (tail.contains("NUMBER: <integer>")) {

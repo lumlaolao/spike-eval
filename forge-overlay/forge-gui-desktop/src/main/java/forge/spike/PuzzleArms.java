@@ -58,8 +58,34 @@ final class PuzzleArms {
      *  do) to that cap, then a multiset in non-decreasing order: "up to N" is tried with fewer modes, and orders of the
      *  same modes are one branch, not several (#269). */
     static List<Integer> repeatModes(Random r, int options, int min, int num) {
+        return repeatModes(r, options, min, num, null, -1);
+    }
+
+    /** As above, for a pawprint charm when {@code cost} is given: each mode costs {@code cost[i]} {P} and the picks
+     *  total at most {@code budget} (#415). Each pick is drawn from the modes that still fit, with "stop" as the last
+     *  option once {@code min} are picked; on the search arm from the last pick's mode on, so a multiset is one branch.
+     *  No canary deck holds a pawprint card, so no pinned stream moves. */
+    static List<Integer> repeatModes(Random r, int options, int min, int num, int[] cost, int budget) {
         int hi = Math.max(1, Math.min(num, 8));
         List<Integer> picks = new ArrayList<>();
+        if (cost != null && budget >= 0) {
+            boolean search = r instanceof Search;
+            int left = budget, from = 0;
+            while (picks.size() < hi) {
+                List<Integer> fit = new ArrayList<>();
+                for (int j = search ? from : 0; j < options; j++) if (cost[j] <= left) fit.add(j);
+                if (fit.isEmpty()) break;
+                boolean canStop = picks.size() >= min;
+                int n = fit.size() + (canStop ? 1 : 0);
+                int v = r.nextInt(n);
+                if (v == fit.size()) break;                  // stop
+                int pick = fit.get(v);
+                picks.add(pick);
+                left -= cost[pick];
+                from = pick;
+            }
+            return picks;
+        }
         if (r instanceof Search) {
             Search s = (Search) r;
             int k = s.size(Math.max(0, Math.min(min, hi)), hi);

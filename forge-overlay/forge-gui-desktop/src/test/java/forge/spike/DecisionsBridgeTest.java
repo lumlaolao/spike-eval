@@ -347,6 +347,13 @@ public class DecisionsBridgeTest {
         };
         NativeTools.Call c = onlyAnswer(bridge().chat(messages(USER), "[]", true, spec));
         Assert.assertEquals(AnswerTool.validate(spec, c.arguments).answer.options, List.of(1, 1, 2));
+        // A limit the site checks (a pawprint charm's {P} budget, #415) is stated in each count question; none is
+        // stated when there is none.
+        AnswerTool.Spec paw = AnswerTool.Spec.repeat(3, 0, 5).labels(List.of("{P} — A", "{P}{P} — B", "{P}{P}{P} — C"))
+                .limit("the picked options' {P} total at most 5");
+        Assert.assertTrue(DecisionsBridge.compose(paw).questions.toString()
+                .contains("more than once; the picked options' {P} total at most 5. How many"));
+        Assert.assertFalse(DecisionsBridge.compose(spec).questions.toString().contains("total at most"));
         // Too many: the surer counts are kept. Too few: the likeliest mode is repeated up to the minimum.
         Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3), List.of(1, 1, 1));
         Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3), List.of(2, 2, 2));
@@ -558,7 +565,7 @@ public class DecisionsBridgeTest {
     /** A jev: seat answers through `answer` (the stamp and the preamble say so); it gets no native lookups. */
     @Test
     public void aJevSeatAnswersThroughTheAnswerToolWithoutLookups() {
-        Assert.assertEquals(DecisionsBridge.VERSION, "decisions-bridge-v1", "move this pin WITH DecisionsBridge.VERSION");
+        Assert.assertEquals(DecisionsBridge.VERSION, "decisions-bridge-v2", "move this pin WITH DecisionsBridge.VERSION");
         String spec = DecisionsBridge.PREFIX + "typesafe/jev-1.14";
         Assert.assertTrue(AnswerTool.usedBy(spec));
         Assert.assertFalse(NativeTools.usedBy(spec));

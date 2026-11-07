@@ -1134,6 +1134,49 @@ public class GoldenChecksTest {
         Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).count(), 4L, "it fetched a land");
     }
 
+    /** A pawprint charm's modes may total at most its {P} budget (#415): Forge's engine does not check it, only its own
+     *  controllers do, which the seat replaces. Season of Loss with its {P}{P}{P} mode chosen five times (15 of 5) is
+     *  refused and asked again; the seat's second, legal answer is the one cast. The question shows each mode's cost. */
+    @Test
+    public void aPawprintCharmsModesStayWithinItsBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        card("Hill Giant", me, ZoneType.Graveyard);
+        card("Season of Loss", me, ZoneType.Hand);
+        List<String> asked = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Season of Loss"))
+                .on("MODAL SPELL", p -> { asked.add(p); return asked.size() == 1 ? "PICKS: 3,3,3,3,3" : "PICKS: 3"; });
+        playAndResolve(seat(g, model, model), g, "Season of Loss");
+        Assert.assertEquals(rival.getLife(), 18, "one {P}{P}{P} mode (2 creature cards), not five");
+        Assert.assertTrue(asked.size() >= 2, "the over-budget answer was asked again");
+        // The card's own description has "{P}{P}{P} — " too: the option line of the decision is what this pins.
+        String decision = asked.get(0).substring(asked.get(0).lastIndexOf("MODAL SPELL"));
+        Assert.assertTrue(java.util.regex.Pattern.compile("(?m)^\\s*3\\) \\{P\\}\\{P\\}\\{P\\} — Each opponent")
+                .matcher(decision).find(), "the option shows its {P}: " + decision);
+        Assert.assertTrue(decision.contains("may total at most 5"), "the question states the budget: " + decision);
+    }
+
+    /** Two over-budget answers: the modes the seat is given are the do-nothing option, none (docs/STANDARDS.md section 8),
+     *  never the most modes that fit. */
+    @Test
+    public void twoOverBudgetAnswersTakeNoMode() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Season of Loss", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Season of Loss"))
+                .on("MODAL SPELL", p -> "PICKS: 3,3,3,3,3");
+        playAndResolve(seat(g, model, model), g, "Season of Loss");
+        Assert.assertEquals(rival.getLife(), 20, "no life lost: no mode was chosen");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).contains(bears), "no creature was sacrificed");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).anyMatch(c -> c.getName().equals("Season of Loss")),
+                "the spell was cast and resolved");
+    }
+
     /** Escalate adds its cost for each mode beyond the first: the seat may choose as many modes as it can pay for, and no
      *  more (the random gauntlet's Borrowed Grace chose both modes with mana for one, and the cast failed to pay). */
     @Test
