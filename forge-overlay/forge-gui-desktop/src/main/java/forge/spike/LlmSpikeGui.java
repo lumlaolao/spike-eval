@@ -420,7 +420,7 @@ public final class LlmSpikeGui {
      *  Epoch 91 (2026-11-07, #368): a keyword granted to a player is said on its line ("| has hexproof"), and the
      *  engine's "Keyword Effects" object is left out of the command zone (observation-faithful-v45).
      *  Epoch 92 (2026-11-07, #408): the state guide says the player line shows the keywords the engine names; an
-     *  unnamed one is read from its card's text (observation-faithful-v46).
+     *  unnamed one is not shown, the card or effect that gives it is (observation-faithful-v46).
      */
     static final String HARNESS_EPOCH = "harness-epoch-92";
 

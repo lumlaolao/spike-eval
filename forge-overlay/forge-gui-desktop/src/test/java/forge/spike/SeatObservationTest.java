@@ -1261,11 +1261,15 @@ public class SeatObservationTest {
         g.getAction().checkStaticAbilities();
         Assert.assertTrue(me.getKeywords().getValues().stream().anyMatch(k -> k.getOriginal().startsWith("UntapAdjust")),
                 "Winter Orb gives the seat its untitled keyword");
-        String you = render(observerFor(g, 0), "").lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("");
+        String all = render(observerFor(g, 0), "");
+        String you = all.lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("");
         Assert.assertTrue(you.contains("| has hexproof"), you);
         Assert.assertTrue(you.contains("| has protection from each of your opponents"), you);
         Assert.assertFalse(you.toLowerCase(java.util.Locale.ROOT).contains("untapadjust"), you);
         Assert.assertFalse(you.matches(".*\\| has ( \\||$).*"), you);
+        // The guide's other half (#408): the card that gives the unnamed keyword has its printed text in the prompt.
+        int seen = all.indexOf("OPPONENT CARDS YOU HAVE SEEN");
+        Assert.assertTrue(seen >= 0 && all.indexOf("  Winter Orb: ", seen) > seen, all);
     }
 
     /** The guide says the player line shows only the keywords the engine names (#408). */
