@@ -52,6 +52,28 @@ final class PuzzleArms {
      *  so the engine's own stream (and with it the opponent's AI) is the same across arms. */
     static Random forMode(String mode, long seed) { return forMode(mode, seed, ""); }
 
+    /** The picks of a repeatable-mode choice ("you may choose the same mode more than once"), as option indices. The
+     *  random and other arms draw the most modes allowed (at most 8), each uniform, in order: the stream the canaries
+     *  are pinned on. The search arm draws how many, from min (zero when the card allows it, as Forge's own controllers
+     *  do) to that cap, then a multiset in non-decreasing order: "up to N" is tried with fewer modes, and orders of the
+     *  same modes are one branch, not several (#269). */
+    static List<Integer> repeatModes(Random r, int options, int min, int num) {
+        int hi = Math.max(1, Math.min(num, 8));
+        List<Integer> picks = new ArrayList<>();
+        if (r instanceof Search) {
+            Search s = (Search) r;
+            int k = s.size(Math.max(0, Math.min(min, hi)), hi);
+            int from = 0;
+            for (int i = 0; i < k; i++) {
+                from += s.nextInt(options - from);
+                picks.add(from);
+            }
+            return picks;
+        }
+        for (int i = 0; i < hi; i++) picks.add(r.nextInt(options));
+        return picks;
+    }
+
     /** As {@link #forMode(String, long)}; {@code seat} names who draws, which only the search arm records. */
     static Random forMode(String mode, long seed, String seat) {
         ArmRandom r;
