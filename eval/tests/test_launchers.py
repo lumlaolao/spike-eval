@@ -21,6 +21,9 @@ LAUNCHERS = {
     # Strips run_batch.CONDITION_ENV_KEYS and SHADOW_AI, then sets its own (test_puzzle_baselines).
     "eval/puzzles/puzzle_baselines.py": "strips",
     "eval/tournament.py": "strips",   # _match_env (test_tournament; pr-review of #347)
+    # The RL env: scrubbed_environ drops every OPENROUTER*/PZL_/FORK_/CLAUDE_ name and run_batch.PINNED_ENV_KEYS and
+    # RUN_DEFINING_KEYS, then DECISION_ONLY sets its conditions (test_mtg_env ScrubTest); never scored.
+    "eval/rl/mtg_env.py": "strips",
     # Diagnostics that launch with the shell's environment: never scored; their games carry the game-line stamps.
     "eval/harness_acceptance.sh": "diagnostic",
     "eval/keyword_gauntlet.sh": "diagnostic",

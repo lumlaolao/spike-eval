@@ -29,10 +29,11 @@ experiment in progress), **negative** (measured; does not help as proposed), **o
 | 2026-11-06 | [forecast-floors](2026-11-06-forecast-floors.md) | What a model's P(win) forecast must beat | life difference alone is the floor: Brier about 0.21 on Luna turns (base 0.245); no signal on Luna turns 1-3 |
 | 2026-11-06 | [ai-profile-spread](2026-11-06-ai-profile-spread.md) | Does STR-AI change with the Forge AI profile | not measured: no way to select a profile; the harness AI is the compiled `AiProps` defaults, not `Default.ai` (25 keys differ) |
 | 2026-11-06 | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) | Can the harness be an RL env with engine rewards | terminal rewards yes, no JVM change (loopback endpoint as `step`; legal set is prompt text, parsed; tens of ms per call on a stub, epoch-76 build); process rewards are offline labels, from unmerged work (41 of 70 verdicts `not_found`) |
+| 2026-11-07 | [rl-play-env](2026-11-07-rl-play-env.md) | A first working RL env over the harness (`eval/rl/`), measured on the real engine | works: 62 episodes with engine rewards, all valid before the refusal rules below; about 7 s of an 8 s episode is the JVM start; the random floor is 4/40 on MTGP_08 and 0/12 on the drain puzzles |
 
 ## Ideas
 
-From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-11-06.
+From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-11-07.
 
 | # | Idea | Status | Where |
 |---|---|---|---|
@@ -45,7 +46,7 @@ From [novel-ideas](2026-11-05-novel-ideas.md) unless noted. Statuses as of 2026-
 | 7 | Budget-visible lookahead and its compute curve | open | |
 | 8 | Robustness across Forge AI profiles, best of three | open; blocked on an overlay switch (design in the note) | [ai-profile-spread](2026-11-06-ai-profile-spread.md) |
 | 9 | MCTS with an LLM prior as a measured arm | open | |
-| 10 | Exportable RLVR environment with engine process rewards | open; terminal-reward env feasible with a Python adapter (stub policy, epoch-76 build); process rewards offline, unmerged inputs | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md) |
+| 10 | Exportable RLVR environment with engine process rewards | terminal-reward env **built** (`eval/rl/`, 2026-11-07: reset/step with engine rewards, GRPO and SFT readers); process rewards still offline, unmerged inputs; no model trained | [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md), [rl-play-env](2026-11-07-rl-play-env.md) |
 | E1-E8 | Survey ideas (error notebook, compute-matched lookahead, world-model fidelity, contrast sets, ...) | E5 **adopted** (#359); rest open | [survey](2026-11-05-agent-compute-and-feedback-survey.md) |
 
 ## Techniques
