@@ -410,8 +410,9 @@ and in drain the positions were already lost). A goal with no turn count ("win b
 next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLastTurn` -1) is unchanged.
 
 **A player's keywords are on its line** (#368, observation-faithful-v45). A keyword granted to a player (Leyline of
-Sanctity's hexproof) is said on the player's line (`| has hexproof`, `SeatObservation.playerLine` from
-`Player.getKeywords()`). The engine keeps those keywords on a "Keyword Effects" object in the command zone, which is
+Sanctity's hexproof) is said on the player's line by its title (`| has hexproof`, `SeatObservation.playerLine`
+from `Player.getKeywords()`); a keyword the engine gives no title (Winter Orb's `UntapAdjust:Land:1`) is left to
+its card's rules text. The engine keeps those keywords on a "Keyword Effects" object in the command zone, which is
 not a card the seat could inspect, cast or target, so `commandCards` leaves it out of the `command:` line, where it had
 been listed with a handle.
 

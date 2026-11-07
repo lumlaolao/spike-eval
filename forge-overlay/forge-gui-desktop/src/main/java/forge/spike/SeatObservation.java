@@ -1224,11 +1224,14 @@ final class SeatObservation {
         try { if (p.hasInitiative()) b.append(" | has the initiative"); } catch (Exception ignore) { }
         try { if (p.hasBlessing()) b.append(" | has the city's blessing"); } catch (Exception ignore) { }
         try { if (p.hasLost()) b.append(" | HAS LOST"); } catch (Exception ignore) { }
-        // A keyword granted to the player (Leyline of Sanctity's hexproof), by its title as the engine prints it: the
-        // original is a script string for many ("UntapAdjust:Land:1", "Protection:Player.Opponent:...") (#368).
+        // A keyword granted to the player (Leyline of Sanctity's hexproof), by its title (#368). Its original is a script
+        // string ("Protection:Player.Opponent:..."); one the engine gives no title (Winter Orb's "UntapAdjust:Land:1") is
+        // left out, as its card's rules text on the board says what it does.
         try {
-            for (forge.game.keyword.KeywordInterface k : p.getKeywords())
-                b.append(" | has ").append(k.getTitle().toLowerCase(Locale.ROOT));
+            for (forge.game.keyword.KeywordInterface k : p.getKeywords()) {
+                String title = k.getTitle();
+                if (title != null && !title.isBlank()) b.append(" | has ").append(title.toLowerCase(Locale.ROOT));
+            }
         } catch (Exception ignore) { }
         return b.toString();
     }

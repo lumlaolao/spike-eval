@@ -1254,8 +1254,18 @@ public class SeatObservationTest {
                 "the seat has no keyword yet");
         card("Leyline of Sanctity", me, ZoneType.Battlefield);   // the seat's own line says its keywords too
         g.getAction().checkStaticAbilities();
+        // A keyword is said by its title, not its script string ("Protection:Player.Opponent:each of your opponents"), and
+        // one with no title (Winter Orb's "UntapAdjust:Land:1") is left to its card's text, never a bare "| has ".
+        card("Absolute Virtue", me, ZoneType.Battlefield);
+        card("Winter Orb", rival, ZoneType.Battlefield);
+        g.getAction().checkStaticAbilities();
+        Assert.assertTrue(me.getKeywords().getValues().stream().anyMatch(k -> k.getOriginal().startsWith("UntapAdjust")),
+                "Winter Orb gives the seat its untitled keyword");
         String you = render(observerFor(g, 0), "").lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("");
         Assert.assertTrue(you.contains("| has hexproof"), you);
+        Assert.assertTrue(you.contains("| has protection from each of your opponents"), you);
+        Assert.assertFalse(you.toLowerCase(java.util.Locale.ROOT).contains("untapadjust"), you);
+        Assert.assertFalse(you.matches(".*\\| has ( \\||$).*"), you);
     }
 
 }
