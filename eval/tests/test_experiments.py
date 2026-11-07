@@ -44,7 +44,10 @@ def game_line_keys():
     writer changes."""
     java = GUI.read_text(encoding="utf-8")
     start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
-    return re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
+    keys = re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
+    # The writer appends aiProfileStamp(): the two profile keys, built from the seats' own env() read.
+    stamp = java.index("static String aiProfileStamp()")
+    return re.findall(r'\\"([a-z_0-9]+)\\":', java[stamp:java.index("}", stamp)]) + keys
 
 
 def modern_line(seed, swap, winner, **kw):

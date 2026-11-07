@@ -11627,10 +11627,10 @@ public final class LlmSpikeGui {
             if (HUMAN.equals(ctlA) && HUMAN.equals(ctlB))
                 throw new IllegalStateException("only one human seat per match: the GUI asks one person");
         }
-        for (String[] s : new String[][] {{ctlA, "A"}, {ctlB, "B"}}) {
-            String profile = aiProfile(env.get("AI_PROFILE_" + s[1]));
-            if (HUMAN.equals(s[0]) && !profile.isEmpty()) throw new IllegalStateException("AI_PROFILE_" + s[1]
-                    + " names '" + profile + "' for the human seat: a person plays no Forge AI, drop the profile");
+        String profileA = aiProfile(env.get("AI_PROFILE_A")), profileB = aiProfile(env.get("AI_PROFILE_B"));
+        for (String[] s : new String[][] {{ctlA, "A", profileA}, {ctlB, "B", profileB}}) {
+            if (HUMAN.equals(s[0]) && !s[2].isEmpty()) throw new IllegalStateException("AI_PROFILE_" + s[1]
+                    + " names '" + s[2] + "' for the human seat: a person plays no Forge AI, drop the profile");
             String missing = missingModel(s[0], s[1], env);
             if (missing != null) throw new IllegalStateException(missing);
         }
@@ -11669,9 +11669,9 @@ public final class LlmSpikeGui {
         }
 
         RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(HUMAN.equals(ctlA) ? new LobbyPlayerHuman(nameA)
-                : seatFor(ctlA, nameA, planA, smartA, fastA, aiProfile(env.get("AI_PROFILE_A"))));
+                : seatFor(ctlA, nameA, planA, smartA, fastA, profileA));
         RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(HUMAN.equals(ctlB) ? new LobbyPlayerHuman(nameB)
-                : seatFor(ctlB, nameB, planB, smartB, fastB, aiProfile(env.get("AI_PROFILE_B"))));
+                : seatFor(ctlB, nameB, planB, smartB, fastB, profileB));
         boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
         System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
