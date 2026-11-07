@@ -247,8 +247,12 @@ def run_java(task, worktree, out, forge, deps_file, repo, timeout=3000):
         if os.path.isfile(src):
             with open(src, encoding="utf-8") as f:
                 declared += ["%s.%s" % (fq, m) for m in het.java_tests(f.read())]
-    cwd = os.path.join(out, "cwd")
-    os.makedirs(cwd, exist_ok=True)
+    # Forge finds its resources (../forge-gui/res) from the working directory: a scratch directory laid out
+    # like the module tree, whose sibling forge-gui is a link to the checkout's, keeps the JVM out of the checkout.
+    cwd = os.path.join(out, "cwdroot", "forge-gui-desktop")
+    shutil.rmtree(os.path.join(out, "cwdroot"), ignore_errors=True)
+    os.makedirs(cwd)
+    os.symlink(os.path.join(forge, "forge-gui"), os.path.join(out, "cwdroot", "forge-gui"))
     tsv = os.path.join(worktree, "docs/harness/controller-ownership.tsv")
     cmd = [java, "-XX:ActiveProcessorCount=1", "-Dapple.awt.UIElement=true", "-Xmx2048m"]
     for o in ADDOPENS:
