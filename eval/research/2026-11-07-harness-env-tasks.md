@@ -53,8 +53,11 @@ plus the tests must score 1; the engine checkout must be unchanged. Each ran und
 | pr404 (issue 251, gold 9 lines) | Java `LlmSpikeTest` | 0, **build failure** (the test names a symbol the fix adds; javac `cannot find symbol`) | 1 (1 of 1, 0 regressions) | build | yes, but a weak red |
 
 The validation outputs are committed: `eval/harness_env/validation/pr390-validation.json`, `pr409-validation.json` and
-`pr404-validation.json` (pr404's is from the first run, before the restore-tests change below; pr390 and pr409 were
-re-run after the second hardening and are red-then-green still). `tasks-v0.json` carries `red_kind` and `validated` for these three and
+`pr404-validation.json`. All three were re-run together on 2026-11-07 under the third-review grader (the
+last two JSON lines of each record it): each file now carries `grader_sha256` (of `harness_env_task_grade.py`),
+`engine_head` (`/root/forge` HEAD, 34a8662), `repo_head` and `validated_at`, so a validation is evidence only for the
+grader and engine that produced it. Results are unchanged: pr390 red 0 / green 1, pr409 red 0 (1 of 2) / green 1 (2 of 2),
+pr404 red 0 (build) / green 1. `tasks-v0.json` carries `red_kind` and `validated` for these three and
 null for the other 19.
 
 All three are red-then-green. pr404's red is a compile error, not a failing assertion: it is correct (the target
@@ -115,7 +118,7 @@ could not have forged it. What is closed and what is not, exactly:
 ## Reward hacks closed (three reviews of PR 422)
 
 Each closed hole has a test that attempts it, in `eval/tests/test_harness_env_task_grade.py` (`RewardHackTest`,
-`PrebuiltClassTest`, `JavaGradeTest`, `ResultChannelTest`). 59 grader tests and 12 task tests today, counted by the unittest
+`PrebuiltClassTest`, `JavaGradeTest`, `ResultChannelTest`). 60 grader tests and 12 task tests today, counted by the unittest
 loader (`NoteTest` fails if these two figures drift). "Red first" means the test fails on the grader before the fix.
 
 | Hole | Closed by | Test |

@@ -1,5 +1,7 @@
 {
+ "engine_head": "34a8662b7966a6ee757411feae2ae8ff38cce436",
  "gold_lines": 9,
+ "grader_sha256": "227a7f03b01d57cea2457f88472323d6202d5b655023eae211d1c69a178c83fc",
  "green": {
   "compile_ok": true,
   "failed_targets": [],
@@ -16,7 +18,7 @@
    "forge.spike.LlmSpikeTest.aSharedBridgeReportsOneAverage"
   ],
   "notes": [
-   "javac failed: forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2506: error: cannot find symbol | forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2507: error: cannot find symbol | forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2508: error: cannot find symbol"
+   "javac failed: /tmp/claude-0/-home-user/22e726ee-e849-5da1-9e84-ae6ffd3be8fb/scratchpad/val/pr404-wt/forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2506: error: cannot find symbol | /tmp/claude-0/-home-user/22e726ee-e849-5da1-9e84-ae6ffd3be8fb/scratchpad/val/pr404-wt/forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2507: error: cannot find symbol | /tmp/claude-0/-home-user/22e726ee-e849-5da1-9e84-ae6ffd3be8fb/scratchpad/val/pr404-wt/forge-overlay/forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java:2508: error: cannot find symbol"
   ],
   "partial": 0.0,
   "regressions": [],
@@ -25,6 +27,8 @@
   "targets_total": 1
  },
  "red_kind": "build",
+ "repo_head": "519560ebc2fa3577bbaea14c8b35b3014d11588c",
  "task": "pr404",
+ "validated_at": "2026-11-07T18:10:44Z",
  "well_posed": true
 }

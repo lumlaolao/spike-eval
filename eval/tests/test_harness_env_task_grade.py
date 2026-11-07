@@ -730,6 +730,18 @@ class JavaGradeTest(unittest.TestCase):
         self.assertEqual(res["score"], 0)
         self.assertTrue(any("forge/util/Dup.class" in n for n in res["notes"]), res["notes"])
 
+    def test_a_class_of_an_older_engine_build_in_a_forge_jar_may_be_replaced(self):
+        jar = os.path.join(self.tmp.name, "forge-ai-1.0.jar")
+        with zipfile.ZipFile(jar, "w") as z:
+            z.writestr("forge/util/Dup.class", b"x")
+        self.candidate_file("forge-overlay/x/src/main/java/forge/util/Dup.java", "package forge.util;\n\npublic class Dup { }\n")
+        self.fixed()
+        try:
+            notes = self.grade(self.deps(jar))["notes"]
+        except g.SetupError:  # accepted; the run stops at the reporter (no TestNG in the deps)
+            notes = []
+        self.assertEqual([n for n in notes if "may not" in n], [])
+
     @unittest.skipUnless(TESTNG_JAR, "no TestNG jar under ~/.m2")
     def test_a_candidate_testng_main_cannot_write_an_all_pass_result(self):
         """The one test here that starts a JVM (run it under the shared lock): the exploit, end to end."""

@@ -1,5 +1,7 @@
 {
+ "engine_head": "34a8662b7966a6ee757411feae2ae8ff38cce436",
  "gold_lines": 20,
+ "grader_sha256": "227a7f03b01d57cea2457f88472323d6202d5b655023eae211d1c69a178c83fc",
  "green": {
   "compile_ok": true,
   "failed_targets": [],
@@ -23,6 +25,8 @@
   "targets_total": 2
  },
  "red_kind": "tests",
+ "repo_head": "519560ebc2fa3577bbaea14c8b35b3014d11588c",
  "task": "pr409",
+ "validated_at": "2026-11-07T18:09:15Z",
  "well_posed": true
 }

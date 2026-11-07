@@ -432,13 +432,15 @@ def runtime_classpath(reporter, deps, classes, engine_mods):
 def foreign_classes(classes_dir, deps):
     """The classes the candidate's sources compiled to that they may not define: any outside the forge.* packages
     (the overlay is Forge's `forge` package tree; `org/testng/TestNG` is not theirs) and any with the name of a class
-    in a dependency jar or directory. A source can declare a package its path does not show, so this reads the
+    in a dependency jar or directory other than a forge* one (the .m2 holds older builds of the engine's modules). A source can declare a package its path does not show, so this reads the
     output, not the paths. -> sorted class paths."""
     made = set()
     for root, _, files in os.walk(classes_dir):
         made.update(os.path.relpath(os.path.join(root, f), classes_dir) for f in files if f.endswith(".class"))
     bad = {c for c in made if not c.startswith("forge" + os.sep)}
     for entry in deps.split(":"):
+        if os.path.basename(entry).startswith("forge"):
+            continue  # an older build of the engine's own module: replacing its classes is what an overlay fix does
         if entry.endswith(".jar") and os.path.isfile(entry):
             with zipfile.ZipFile(entry) as z:
                 bad |= made & set(z.namelist())
