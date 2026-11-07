@@ -1255,17 +1255,29 @@ public class SeatObservationTest {
         card("Leyline of Sanctity", me, ZoneType.Battlefield);   // the seat's own line says its keywords too
         g.getAction().checkStaticAbilities();
         // A keyword is said by its title, not its script string ("Protection:Player.Opponent:each of your opponents"), and
-        // one with no title (Winter Orb's "UntapAdjust:Land:1") is left to its card's text, never a bare "| has ".
+        // one with no title (Winter Orb's "UntapAdjust:Land:1") is not shown, never as a bare "| has ".
         card("Absolute Virtue", me, ZoneType.Battlefield);
         card("Winter Orb", rival, ZoneType.Battlefield);
         g.getAction().checkStaticAbilities();
         Assert.assertTrue(me.getKeywords().getValues().stream().anyMatch(k -> k.getOriginal().startsWith("UntapAdjust")),
                 "Winter Orb gives the seat its untitled keyword");
-        String you = render(observerFor(g, 0), "").lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("");
+        String all = render(observerFor(g, 0), "");
+        String you = all.lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("");
         Assert.assertTrue(you.contains("| has hexproof"), you);
         Assert.assertTrue(you.contains("| has protection from each of your opponents"), you);
         Assert.assertFalse(you.toLowerCase(java.util.Locale.ROOT).contains("untapadjust"), you);
         Assert.assertFalse(you.matches(".*\\| has ( \\||$).*"), you);
+        // The guide's other half (#408): the card that gives the unnamed keyword has its printed text in the prompt.
+        int seen = all.indexOf("OPPONENT CARDS YOU HAVE SEEN");
+        Assert.assertTrue(seen >= 0 && all.indexOf("  Winter Orb: ", seen) > seen, all);
+    }
+
+    /** The guide says the player line shows only the keywords the engine names (#408). */
+    @Test
+    public void theGuideSaysWhichKeywordsAPlayerLineShows() {
+        Assert.assertFalse(SeatObservation.GUIDE.contains("any keyword the player has"), SeatObservation.GUIDE);
+        Assert.assertTrue(SeatObservation.GUIDE.contains("a keyword the engine leaves unnamed is not shown here"),
+                SeatObservation.GUIDE);
     }
 
 }

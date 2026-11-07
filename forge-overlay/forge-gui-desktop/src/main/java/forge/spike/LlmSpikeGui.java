@@ -419,8 +419,10 @@ public final class LlmSpikeGui {
      *  the menu, its "enchant creature" counted against the creature front face in the graveyard.
      *  Epoch 91 (2026-11-07, #368): a keyword granted to a player is said on its line ("| has hexproof"), and the
      *  engine's "Keyword Effects" object is left out of the command zone (observation-faithful-v45).
+     *  Epoch 92 (2026-11-07, #408): the state guide says the player line shows the keywords the engine names; an
+     *  unnamed one is not shown, the card or effect that gives it is (observation-faithful-v46).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-91";
+    static final String HARNESS_EPOCH = "harness-epoch-92";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
