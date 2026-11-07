@@ -1,6 +1,7 @@
 #!/bin/bash
 # The only way a PR is merged (docs/STANDARDS.md section 1): format, three review verdicts for the
-# current head, an acceptance run when code changed; then a MERGE COMMIT, never a squash.
+# current head, an acceptance run when code changed, no changed eval script still on eval/UNTESTED.txt;
+# then a MERGE COMMIT, never a squash.
 # REST only (`gh api`): `gh pr view/merge` use GraphQL, which Claude cloud sessions are refused (#118).
 #   bash scripts/pr_merge.sh <number>
 set -u
