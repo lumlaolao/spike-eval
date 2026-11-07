@@ -1239,6 +1239,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   submission with an unmarked engine patch or a class in `forge.harnessenv`.
   It reads the harness and never changes it. *Why outside:* a grader the
   candidate can see or run is a target, not a measure.
+  Per-PR tasks: `harness_env_tasks.py` mines merged red-then-green PRs into `tasks-v0.json` (opaque agent view,
+  hidden gold patch); `harness_env_task_grade.py` restores the PR's tests, runs them and scores 1 or 0 (not a security
+  sandbox; `eval/research/2026-11-07-harness-env-tasks.md`).
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
   via `puzzle_score.score`, a hard-suite check as a labelled pilot (`--hard-results`, never pooled), and the STR
   scores as not yet run with their cost.
