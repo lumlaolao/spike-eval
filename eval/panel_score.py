@@ -148,6 +148,9 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
                        for i in ("a", "b") for t in ("smart", "fast"))):
             problems.append("a development lane (%s) played here; it is never part of a benchmark score"
                             % (g.get("dev_lane") or "claude-cli"))
+        if g.get("ai_profile_a", "") or g.get("ai_profile_b", ""):
+            problems.append("a Forge AI profile (ai_profile_a=%r, ai_profile_b=%r) played here; the benchmark's "
+                            "opponent is the compiled defaults" % (g.get("ai_profile_a", ""), g.get("ai_profile_b", "")))
         if expected_b and g.get("controller_b") != expected_b:
             problems.append("identity B is %r, not %r" % (g.get("controller_b"), expected_b))
         if expected_a and g.get("controller_a") != expected_a:

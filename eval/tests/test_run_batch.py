@@ -397,6 +397,45 @@ class TestProposeActions(unittest.TestCase):
         self.assertIn("--propose-actions", run_batch.propose_refusal(make_args(propose_terse=True)))
         self.assertIsNone(run_batch.propose_refusal(make_args(propose_actions=True, propose_terse=True)))
 
+    def test_the_forge_ai_profile_is_its_own_condition_and_empty_is_today_s_opponent(self):
+        # Issue #381: AI_PROFILE_A/B pick Forge's shipped profile for an ai seat; unset is the compiled AiProps defaults,
+        # the opponent every recorded STR-AI score met. Set only by --ai-profile-a/-b, never from the shell.
+        self.assertIn("AI_PROFILE_A", run_batch.CONDITION_ENV_KEYS)
+        self.assertIn("AI_PROFILE_B", run_batch.CONDITION_ENV_KEYS)
+        with mock.patch.dict(os.environ, {"AI_PROFILE_A": "Reckless", "AI_PROFILE_B": "Cautious"}, clear=False), \
+                tempfile.TemporaryDirectory() as d:
+            env = run_batch.build_env(make_args(controller_a="ai", controller_b="ai"), 7100, False, Path(d))
+            self.assertEqual((env["AI_PROFILE_A"], env["AI_PROFILE_B"]), ("", ""), "the shell's value is scrubbed")
+            env = run_batch.build_env(make_args(controller_a="ai", controller_b="ai", ai_profile_b=" Default "),
+                                      7100, False, Path(d))
+            self.assertEqual((env["AI_PROFILE_A"], env["AI_PROFILE_B"]), ("", "Default"))
+        # The flags exist and parse; they default to nothing.
+        ns = run_batch.build_parser().parse_args(["--seeds", "1", "--ai-profile-b", "Default"])
+        self.assertEqual((ns.ai_profile_a, ns.ai_profile_b), (None, "Default"))
+        # A game line from before the stamp, and one that stamps it empty, are the default arm; a profile is another.
+        default = run_batch.resume_expectation(make_args())
+        named = run_batch.resume_expectation(make_args(ai_profile_b="Default"))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), default))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, ai_profile_a="", ai_profile_b=""), default))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, ai_profile_b="Default"), default))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, ai_profile_b="Default"), named))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), named))
+        # A directory played under one never resumes under the other; a manifest from before the switch equals empty.
+        base = run_batch.batch_condition(make_args(controller_a="ai"), cited=False)
+        arm = run_batch.batch_condition(make_args(controller_a="ai", ai_profile_a="Reckless"), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, arm), [("ai_profile_a", "", "Reckless")])
+        old = {k: v for k, v in base.items() if not k.startswith("ai_profile_")}
+        self.assertEqual(run_batch.condition_diff(old, base), [])
+        # A profile on a seat that is no Forge AI is refused before a game starts (the JVM refuses it too).
+        self.assertIn("Forge AI seat", run_batch.ai_profile_refusal(make_args(controller_a="llm", ai_profile_a="Default")))
+        self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_a="llm", controller_b="ai", ai_profile_b="Default")))
+        self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_a="llm")))
+        # The benchmark's opponent is the compiled defaults: a profile is never a panel or a cited run.
+        for kw in ({"panel": "mirror"}, {"exploratory": False}):
+            msg = run_batch.ai_profile_refusal(make_args(controller_b="ai", ai_profile_b="Default", **kw))
+            self.assertIn("exploratory", msg or "", kw)
+        self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_b="ai", exploratory=False)))
+
     def test_the_refusal_notebook_is_its_own_condition_and_needs_the_arm(self):
         # PROPOSE_NOTEBOOK lists a game's earlier refused proposals in each proposal decision: set only by
         # --propose-notebook, never from the shell; a notebook game never resumes into a batch without it, or the reverse.

@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import forge.LobbyPlayer;
-import forge.ai.LobbyPlayerAi;
 import forge.deck.Deck;
 import forge.game.Game;
 import forge.game.GameEndReason;
@@ -233,6 +232,12 @@ public final class LlmSpikePuzzle {
     /** The solver's seat, as playOnce seats it: its plan is {@link #solverPlan}. */
     static LobbyPlayer solverSeat(Map<String, List<String>> sections, String ctlA, String smartA, String fastA) {
         return LlmSpikeGui.seatFor(ctlA, "Solver", solverPlan(sections), smartA, fastA);
+    }
+
+    /** The opponent's seat, as playOnce seats it: AI_PROFILE_B names a Forge AI opponent's profile (empty: the compiled
+     *  defaults, the opponent PUZ always met; puzzle_solve.py strips the names). */
+    static LobbyPlayer opponentSeat(String ctlB, String smartA, String fastA) {
+        return LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA, LlmSpikeGui.env("AI_PROFILE_B"));
     }
 
     /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
@@ -658,8 +663,7 @@ public final class LlmSpikePuzzle {
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
         LobbyPlayer solverSeat = solverSeat(sections, ctlA, smartA, fastA);
-        LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
-                : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
+        LobbyPlayer oppSeat = opponentSeat(ctlB, smartA, fastA);
         RegisteredPlayer solver = new RegisteredPlayer(new Deck()).setPlayer(solverSeat);
         solver.setStartingHand(0);
         RegisteredPlayer opp = new RegisteredPlayer(new Deck()).setPlayer(oppSeat);
