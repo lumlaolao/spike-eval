@@ -101,7 +101,9 @@ final class SeatObservation {
     // after setup (drawn, tutored, returned); the setup cards are in its system prompt. Not on a game seat.
     // v44 (2026-11-06, #398): in a puzzle, a side with no combat left before the puzzle's last turn reads "your/their
     // next combat: none before the puzzle's turn limit" in FACTS, not a clock for a combat the game never reaches.
-    static final String VERSION = "observation-faithful-v44";
+    // v45 (2026-11-07, #368): a keyword granted to a player is on its line ("| has hexproof"), and the engine's
+    // "Keyword Effects" object is left out of the command zone, where it was listed with a handle like a card.
+    static final String VERSION = "observation-faithful-v45";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
@@ -136,7 +138,8 @@ final class SeatObservation {
             + "active player is not you, you are acting on their turn, at instant speed. Before the first turn (the opening "
             + "hands) there is no phase and no active player yet.\n"
             + "- YOU and OPP each start with a line of counts: life, poison (10 loses), any other counters, hand, library, "
-            + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn.\n"
+            + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn, "
+            + "then any keyword the player has (\"has hexproof\").\n"
             + HAND_TAGS_GUIDE
             + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
@@ -1142,7 +1145,7 @@ final class SeatObservation {
              .append(zoneList(viewer.getCardsIn(ZoneType.Graveyard), ctx.yardCap)).append('\n');
             s.append("  exile(").append(viewer.getCardsIn(ZoneType.Exile).size()).append("): ")
              .append(zoneList(viewer.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
-            String myCmd = zoneList(viewer.getCardsIn(ZoneType.Command), ctx.exileCap);
+            String myCmd = zoneList(commandCards(viewer), ctx.exileCap);
             if (!"(none)".equals(myCmd)) s.append("  command: ").append(myCmd).append('\n');
 
             for (Player opp : game.getPlayers()) {
@@ -1157,7 +1160,7 @@ final class SeatObservation {
                  .append(zoneList(opp.getCardsIn(ZoneType.Graveyard), ctx.yardCap)).append('\n');
                 s.append("  exile(").append(opp.getCardsIn(ZoneType.Exile).size()).append("): ")
                  .append(zoneList(opp.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
-                String cmd = zoneList(opp.getCardsIn(ZoneType.Command), ctx.exileCap);
+                String cmd = zoneList(commandCards(opp), ctx.exileCap);
                 if (!"(none)".equals(cmd)) s.append("  command: ").append(cmd).append('\n');
                 String casts = streamCastHistory(opp, false, ctx.castHistoryCap);
                 if (!casts.isEmpty()) s.append("  CAST THIS GAME: ").append(casts).append('\n');
@@ -1221,7 +1224,27 @@ final class SeatObservation {
         try { if (p.hasInitiative()) b.append(" | has the initiative"); } catch (Exception ignore) { }
         try { if (p.hasBlessing()) b.append(" | has the city's blessing"); } catch (Exception ignore) { }
         try { if (p.hasLost()) b.append(" | HAS LOST"); } catch (Exception ignore) { }
+        // A keyword granted to the player (Leyline of Sanctity's hexproof), by its title (#368). Its original is a script
+        // string ("Protection:Player.Opponent:..."); one the engine gives no title (Winter Orb's "UntapAdjust:Land:1") is
+        // left out, as its card's rules text on the board says what it does.
+        try {
+            for (forge.game.keyword.KeywordInterface k : p.getKeywords()) {
+                String title = k.getTitle();
+                if (title != null && !title.isBlank()) b.append(" | has ").append(title.toLowerCase(Locale.ROOT));
+            }
+        } catch (Exception ignore) { }
         return b.toString();
+    }
+
+    /** The command zone as the seat reads it: without the engine's "Keyword Effects" object, which only holds the
+     *  keywords granted to the player (said on the player's line) and is not a card the seat could inspect, cast or
+     *  target (#368). */
+    static List<Card> commandCards(Player p) {
+        List<Card> out = new ArrayList<>();
+        for (Card c : p.getCardsIn(ZoneType.Command))
+            if (!(c.getGamePieceType() == forge.card.GamePieceType.EFFECT && "Keyword Effects".equals(c.getName())))
+                out.add(c);
+        return out;
     }
 
     static String manaPool(Player p) {

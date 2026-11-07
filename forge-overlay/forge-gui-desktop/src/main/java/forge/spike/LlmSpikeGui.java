@@ -417,8 +417,10 @@ public final class LlmSpikeGui {
      *  Epoch 90 (2026-11-06, #366): a spell cast as another face counts its targets as that face (targetCandidates), as
      *  the engine casts it: a Disturb cast whose back face is an Aura (Lantern Bearer's Lanterns' Lift) was never on
      *  the menu, its "enchant creature" counted against the creature front face in the graveyard.
+     *  Epoch 91 (2026-11-07, #368): a keyword granted to a player is said on its line ("| has hexproof"), and the
+     *  engine's "Keyword Effects" object is left out of the command zone (observation-faithful-v45).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-90";
+    static final String HARNESS_EPOCH = "harness-epoch-91";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

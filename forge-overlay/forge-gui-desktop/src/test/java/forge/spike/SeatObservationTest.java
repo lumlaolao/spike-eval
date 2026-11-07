@@ -1234,4 +1234,38 @@ public class SeatObservationTest {
             PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
         }
     }
+
+    /** A keyword granted to a player (Leyline of Sanctity's hexproof) is the player's, said on its line, not a card in
+     *  its command zone (#368): the engine keeps it on a "Keyword Effects" object there, which the state listed with a
+     *  handle as if the seat could inspect, cast or target it. */
+    @Test
+    public void aPlayersGrantedKeywordIsOnItsLineNotACommandCard() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Leyline of Sanctity", rival, ZoneType.Battlefield);
+        g.getAction().checkStaticAbilities();
+        Assert.assertTrue(rival.getCardsIn(ZoneType.Command).stream().anyMatch(c -> "Keyword Effects".equals(c.getName())),
+                "the engine holds the hexproof on its Keyword Effects object");
+        String r = render(observerFor(g, 0), "");
+        Assert.assertFalse(r.contains("Keyword Effects"), r);
+        String opp = r.lines().filter(l -> l.startsWith("OPP [")).findFirst().orElse("");
+        Assert.assertTrue(opp.contains("| has hexproof"), opp);
+        Assert.assertFalse(r.lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("").contains("| has "),
+                "the seat has no keyword yet");
+        card("Leyline of Sanctity", me, ZoneType.Battlefield);   // the seat's own line says its keywords too
+        g.getAction().checkStaticAbilities();
+        // A keyword is said by its title, not its script string ("Protection:Player.Opponent:each of your opponents"), and
+        // one with no title (Winter Orb's "UntapAdjust:Land:1") is left to its card's text, never a bare "| has ".
+        card("Absolute Virtue", me, ZoneType.Battlefield);
+        card("Winter Orb", rival, ZoneType.Battlefield);
+        g.getAction().checkStaticAbilities();
+        Assert.assertTrue(me.getKeywords().getValues().stream().anyMatch(k -> k.getOriginal().startsWith("UntapAdjust")),
+                "Winter Orb gives the seat its untitled keyword");
+        String you = render(observerFor(g, 0), "").lines().filter(l -> l.startsWith("YOU [")).findFirst().orElse("");
+        Assert.assertTrue(you.contains("| has hexproof"), you);
+        Assert.assertTrue(you.contains("| has protection from each of your opponents"), you);
+        Assert.assertFalse(you.toLowerCase(java.util.Locale.ROOT).contains("untapadjust"), you);
+        Assert.assertFalse(you.matches(".*\\| has ( \\||$).*"), you);
+    }
+
 }
