@@ -1224,11 +1224,11 @@ final class SeatObservation {
         try { if (p.hasInitiative()) b.append(" | has the initiative"); } catch (Exception ignore) { }
         try { if (p.hasBlessing()) b.append(" | has the city's blessing"); } catch (Exception ignore) { }
         try { if (p.hasLost()) b.append(" | HAS LOST"); } catch (Exception ignore) { }
-        // A keyword granted to the player (Leyline of Sanctity's hexproof) is the player's; the engine keeps it on a
-        // "Keyword Effects" object in the command zone, which commandCards leaves out (#368).
+        // A keyword granted to the player (Leyline of Sanctity's hexproof), by its title as the engine prints it: the
+        // original is a script string for many ("UntapAdjust:Land:1", "Protection:Player.Opponent:...") (#368).
         try {
             for (forge.game.keyword.KeywordInterface k : p.getKeywords())
-                b.append(" | has ").append(k.getOriginal().toLowerCase(Locale.ROOT));
+                b.append(" | has ").append(k.getTitle().toLowerCase(Locale.ROOT));
         } catch (Exception ignore) { }
         return b.toString();
     }
