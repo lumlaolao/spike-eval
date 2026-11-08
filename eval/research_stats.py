@@ -325,7 +325,9 @@ def _verdict(tally):
     out = {"epochs": tally["epochs"], "asked": tally["asked"], "lost": lost, "lost_shape": tally["lost_shape"],
            "shape_share": share, "shape_share_ci": tally["lost_shape_ci"], "build_schema": share > 0.5}
     if tally["pooled"]:
-        out.update(build_schema=None, note="pooled over epochs %s; conditions do not pool" % tally["epochs"])
+        out.update(build_schema=None, note=("epoch unknown: sources not placed against one harness version"
+                                            if tally["epochs"] == ["unknown"] else
+                                            "pooled over epochs %s; conditions do not pool" % tally["epochs"]))
     elif lost < MIN_LOST_FOR_RULE:
         out.update(build_schema=None, note="no lost decisions; rule not applicable" if not lost
                    else "too few lost decisions (%d < %d); rule not applicable" % (lost, MIN_LOST_FOR_RULE))

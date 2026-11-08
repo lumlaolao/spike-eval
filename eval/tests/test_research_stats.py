@@ -363,7 +363,7 @@ class TestInvalidAnswers(unittest.TestCase):
         self.assertEqual(row["sources"], {"demo/luna-x": 1, "puzzles/bench-v1": 1})
         verdict = out["verdict"]["per_epoch"]["unknown"]
         self.assertIsNone(verdict["build_schema"])      # 10 of 10 shape, but the epoch is not one condition
-        self.assertIn("pooled", verdict["note"])
+        self.assertIn("epoch unknown", verdict["note"])
 
     def test_one_epoch_pooled_row_is_the_epoch_row(self):
         d = scratch(self)
@@ -485,6 +485,7 @@ class TestPuzzleBands(unittest.TestCase):
         row = rs.puzzle_bands([path])["suites"]["forge-builtin"]
         self.assertEqual(row["arms"], {"first": 1, "ai": 0})              # b is dropped: not an active solve
         self.assertEqual((row["trivial_any"], row["active_trivial_any"], row["active"]), (2, 1, 2))
+
 
 if __name__ == "__main__":
     unittest.main()

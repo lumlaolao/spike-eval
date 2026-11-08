@@ -2280,7 +2280,7 @@
     ],
     "lost": 2,
     "lost_shape": 2,
-    "note": "pooled over epochs ['unknown']; conditions do not pool",
+    "note": "epoch unknown: sources not placed against one harness version",
     "shape_share": 1.0,
     "shape_share_ci": [
      0.3424,

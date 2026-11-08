@@ -20,9 +20,10 @@ model call, no JVM, no `OPENROUTER_ALLOW_EGRESS`. Both are subcommands of `eval/
   sending only `lines`, twice. **The epoch 70 and 72 denominators are decisions on hard puzzle boards (`runs/puzzles/`
   folders), not games against Forge's AI.** An all-epoch total (2 of 18,019) is printed by the tool as a pooled row
   for reference only; it is not a rate of any one condition and is not quoted as a headline.
-- Where the failures were, as they stood at epochs 70 to 72: shape errors (a per-decision schema could have forbidden
-  them) are 77 of the 98 first-call failures (79%, 69% to 86%), and every one but the 2 lost was corrected in the same
-  conversation; 75 corrected, the cost is one extra round on 0.42% of decisions. The author's decision rule ("shape
+- Where the failures were, on the menu rows pooled over epochs 70, 71, 72 and unknown (not one condition): shape
+  errors (a per-decision schema could have forbidden them) are 77 of the 98 first-call failures (79%, 69% to 86%), and
+  every one but the 2 lost was corrected in the same conversation; 75 corrected, one extra round on 0.42% of
+  decisions. Epochs 70 to 72 alone: 73 of 88 shape (83%), 73 corrected, 0 lost. The author's decision rule ("shape
   errors above half of the lost decisions") is read per epoch and needs at least 10 lost decisions (the author's
   threshold, labelled); the tool returns no answer below that. It has no lost decision at epochs 70 to 72, and the
   epoch-unknown row has 2 (too few, and pooled), 1 of the 2 a since-fixed bug, so it is not evidence.
@@ -219,8 +220,8 @@ is a cost, not a loss of decisions.
 
 **The per-decision schema already exists.** `AnswerTool` keeps the v1 arm: `ANSWER_SCHEMA=per-decision` builds the
 `answer` schema from each decision's legal values, off by default and kept for a side-by-side measurement
-(`AnswerTool.java`, `perDecision()`; `docs/harness/PLAYER-HARNESS.md`, "Measure": a direct JVM launch only, every launcher
-pins the default). **Its cache cost is unmeasured.** The claim that it breaks the prompt cache rests on the design
+(`AnswerTool.java`, `perDecision()`; `docs/harness/PLAYER-HARNESS.md`, "Measure": a direct JVM launch only: `run_batch.py`
+pins the default, the bare launcher does not). **Its cache cost is unmeasured.** The claim that it breaks the prompt cache rests on the design
 argument in `docs/harness/PROMPT-CRAFT.md` rule 19 (tool definitions open the cache prefix, so a schema that changes
 every decision discards it), and rule 19's open question says the two have not been measured against each other. No
 cached-token comparison of the two arms is in the repository or in `runs/` on this machine.
