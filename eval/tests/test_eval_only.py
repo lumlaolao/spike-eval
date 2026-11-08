@@ -79,24 +79,39 @@ class PuzzleTest(unittest.TestCase):
         suite_with(d, {"id": "a", "split": "open", "pzl_sha256": h, "pzl": "p.pzl"})
         self.assertEqual(eval_only.reasons(puzzle=p, suites_dir=d), [])
 
-    def test_a_twin_of_a_heldout_puzzle_is_heldout_whatever_its_record_says(self):
-        orig = next(i for i in ("o%d" % k for k in range(200)) if puzzle_format.split_for(i) == "heldout")
+    def _twin_suite(self, *records):
         twin = self.tmp / "twin.pzl"
         twin.write_text("[metadata]\nName:renamed\n")
-        h = puzzle_format.sha256_file(twin)
         d = self.tmp / "suites"
-        d.mkdir()
-        # the twin's own hash differs from the original's, so only twin_of can say it is the heldout board
-        rec = {"id": orig + "-twin", "split": "open", "pzl_sha256": h, "twin_of": orig}
-        suite_with(d, rec)
+        d.mkdir(exist_ok=True)
+        h = puzzle_format.sha256_file(twin)
+        suite_with(d, *[dict(r, **{"pzl_sha256": h}) if r.get("id", "").endswith("-twin") else r for r in records])
+        return twin, d
+
+    def test_a_twin_is_judged_by_the_board_it_names_not_by_the_id_it_declares(self):
+        held = next(i for i in ("o%d" % k for k in range(200)) if puzzle_format.split_for(i) == "heldout")
+        open_ = next(i for i in ("p%d" % k for k in range(200)) if puzzle_format.split_for(i) == "open")
+        board = {"id": held, "split": "heldout", "pzl_sha256": "a" * 64}
+        # honest: the twin names the held-out board
+        twin, d = self._twin_suite(board, {"id": held + "-twin", "split": "heldout", "twin_of": held,
+                                            "original_pzl_sha256": "a" * 64})
         self.assertTrue(any("heldout puzzle" in w for w in eval_only.reasons(puzzle=twin, suites_dir=d)))
-        # an original in the suites (any file) that says heldout counts even where the id's hash would not
-        other = next(i for i in ("p%d" % k for k in range(200)) if puzzle_format.split_for(i) == "open")
-        suite_with(d, dict(rec, twin_of=other), {"id": other, "split": "heldout", "pzl_sha256": "x"})
+        # forged: the held-out board, but twin_of an open id and split open
+        twin, d = self._twin_suite(board, {"id": open_ + "-twin", "split": "open", "twin_of": open_,
+                                            "original_pzl_sha256": "a" * 64},
+                                   {"id": open_, "split": "open", "pzl_sha256": "b" * 64})
         self.assertTrue(any("heldout puzzle" in w for w in eval_only.reasons(puzzle=twin, suites_dir=d)))
-        # a twin of an open original with the open split trains nothing wrong: it may be used
-        suite_with(d, dict(rec, twin_of=other), {"id": other, "split": "open", "pzl_sha256": "x"})
+        # a twin of an open board with the open split may be used
+        twin, d = self._twin_suite({"id": open_, "split": "open", "pzl_sha256": "b" * 64},
+                                   {"id": open_ + "-twin", "split": "open", "twin_of": open_,
+                                    "original_pzl_sha256": "b" * 64})
         self.assertEqual(eval_only.reasons(puzzle=twin, suites_dir=d), [])
+
+    def test_a_twin_whose_original_is_unknown_fails_closed(self):
+        open_ = next(i for i in ("p%d" % k for k in range(200)) if puzzle_format.split_for(i) == "open")
+        for rec in ({"twin_of": open_, "original_pzl_sha256": "c" * 64}, {"twin_of": "nonexistent"}):
+            twin, d = self._twin_suite(dict(rec, id=open_ + "-twin", split="open"))
+            self.assertTrue(any("heldout puzzle" in w for w in eval_only.reasons(puzzle=twin, suites_dir=d)), rec)
 
     def test_an_unlisted_puzzle_is_refused(self):
         p = self.tmp / "mine.pzl"

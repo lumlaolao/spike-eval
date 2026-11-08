@@ -1234,12 +1234,15 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     `make` writes the twin boards and a manifest under `runs/`; `suite` turns the manifest into candidate suite
     records; `install` writes the generated card scripts into a checkout's cardsfolder (`zz_twins/`, a `Custom_Set`
     edition), regenerated from the checkout's own originals. A twin record carries `twin_of` (the original's puzzle
-    id) and `twin_cards` / `twin_set_sha256`. *Why each:*
-    - **The split follows the original** (`puzzle_format.record_split`): a twin's id hashes to a split of its own and its
-      `pzl_sha256` differs from the original's, so without `twin_of` a twin of a held-out board could sit in an open
-      suite. `validate_puzzle` demands the original's split, `suite_twin_problems` one twin per original and no
-      chains, and `eval/rl/eval_only.puzzle_splits` adds the original's split (by the hash of its id and by every suite
-      record of it) to a twin's, so a twin that says open of a held-out original still reads as held out.
+    id), `original_pzl_sha256` (the original's board) and `twin_cards` / `twin_set_sha256`. *Why each:*
+    - **The split follows the original's board** (`puzzle_format.record_split`): a twin's id hashes to a split of its
+      own and its `pzl_sha256` differs from the original's, so without the original a twin of a held-out board could sit
+      in an open suite. `validate_puzzle` demands the original's split and an `original_pzl_sha256`,
+      `suite_twin_problems` one twin per original, no chains and an `original_pzl_sha256` equal to the `pzl_sha256` of
+      the in-suite record `twin_of` names. `twin_of` is a label a hand edit can point anywhere, so
+      `eval/rl/eval_only.puzzle_splits` trusts only the board: it adds to a twin's splits those of every suite record
+      whose `pzl_sha256` is the twin's `original_pzl_sha256`, and a twin whose original is in no suite fails closed
+      (held out). A twin that says open of a held-out board still reads as held out.
     - **The scripts are versioned by the record, not by `overlay_sha`**, which hashes the overlay's Java and the engine
       patches, never a checkout's `res/`. `twin_set_sha256` is the hash of the sha256 of every generated script the twin
       needs; it is in `suite_sha256` (for twins only, so a suite without twins keeps its hash), in the puzzle manifest's

@@ -18,11 +18,12 @@ another label on its board (ScriptBridge matches "label starts with"), and two c
 What it cannot do: it renames, so it measures name recall, not recall of the rules text, which the seat still reads
 whole. Words of a name left in prose (`1 Alchemist(s)` in a generated `Rule:`) are not whole names and stay; the seat
 is not shown `Name:` or `Rule:`. It does not prove a twin board plays as its original (that needs the engine: the
-proof replay and a name-mapped log comparison). `suite` writes the twin records (`twin_of`, the original's split,
-`twin_cards` and `twin_set_sha256`, the stamp of the scripts the engine reads: the overlay_sha does not hash `res/`);
-`twin_line` gives a reference line the twin's own log hash; `puzzle_score.py --twin-results` pairs a twin's score
-with its original's. Known limitation: the seat cuts a long description at a word boundary, so a twin name longer or shorter than
-the original moves the cut, and a cut description shows a few more or fewer words (engine check, finding 2).
+proof replay and a name-mapped log comparison). `suite` writes the twin records (`twin_of`,
+`original_pzl_sha256`, the original's split, `twin_cards` and `twin_set_sha256`, the stamp of the scripts the
+engine reads: the overlay_sha does not hash `res/`); `puzzle_score.py --twin-results` pairs a twin's score
+with its original's. Known limitation: the seat cuts a long description at a word boundary, so a twin name
+longer or shorter than the original moves the cut, and a cut description shows a few more or fewer words (engine check,
+finding 2).
 
 The manifest holds, per card, the original's path and sha256, the twin name and the edited lines, never a whole
 Forge script: `install` regenerates each twin from the checkout's original, as `engine_patches.py` does for the
@@ -33,7 +34,8 @@ third-party works. Stdlib only.
       --seed 1 --out runs/twins/rules-v1 [--forge F]
   python3 eval/puzzles/puzzle_twin.py suite --manifest runs/twins/rules-v1/twin-manifest.json \
       --suite eval/suites/puzzles-rules-sample-v1.json --out runs/twins/rules-v1/twin-suite.json
-  python3 eval/puzzles/puzzle_twin.py install --manifest runs/twins/rules-v1/twin-manifest.json --forge F [--keep|--replace]
+  python3 eval/puzzles/puzzle_twin.py install --manifest runs/twins/rules-v1/twin-manifest.json --forge F \
+      [--keep|--replace]
 
 `install` refuses (exit 1) to delete twins another manifest installed, and to put one card under two twin names; a
 sidecar `zz_twins/twins-installed.json` records what each install wrote. `--keep` adds this manifest beside the
@@ -412,15 +414,6 @@ def make_twins(suite, ids, forge, out, seed, repo=REPO):
     return manifest
 
 
-def twin_line(line, row):
-    """The reference `line` of a twin record: the original's, plus `twin_log_sha256`, the hash of the log of the
-    twin's own solved replay `row`. The game log names its cards, so the original's hash can never match a twin's
-    replay; `puzzle_baselines.check_replay` compares a twin to its own hash and an original to its own."""
-    if not row or row.get("status") != "solved" or not row.get("log_sha256"):
-        raise TwinRefused("the twin replay is not a solved game with a log hash: %s" % (row or {}).get("status"))
-    return dict(line, twin_log_sha256=row["log_sha256"])
-
-
 INSTALLED = "twins-installed.json"  # beside the scripts; Forge reads only .txt there
 
 
@@ -477,8 +470,9 @@ def install(manifest, forge, others="refuse"):
         record[c["twin"]] = {"original": c["original"], "twin_sha256": c["twin_sha256"]}
     extra = sorted(t for t in have if t not in record)
     if extra and others == "refuse":
+        names = ", ".join(extra[:5]) + (" ..." if len(extra) > 5 else "")
         raise TwinRefused("%d twins installed from another manifest would be deleted: %s. --keep leaves them, "
-                          "--replace removes them" % (len(extra), ", ".join(extra[:5]) + (" ..." if len(extra) > 5 else "")))
+                          "--replace removes them" % (len(extra), names))
     folder.mkdir(parents=True, exist_ok=True)
     if others == "keep":
         record.update({t: have[t] for t in extra})
@@ -505,9 +499,9 @@ def twin_records(manifest, suite, manifest_path, repo=REPO):
     """Candidate suite records (status "candidate": baselines, reference line and tier come from puzzle_baselines.py
     run, on the twin) for each twin puzzle of `manifest`, beside the original `suite`. A record is the original's
     identity (goal, source) with the twin's id, its .pzl (relative to the repository, under runs/) and hash,
-    `twin_of`, the original's split (never the twin id's own hash) and `twin_cards` / `twin_set_sha256`: the sha256 of
-    each script the engine reads to play it. Refuses an original that is not in the suite, or whose .pzl is not the
-    one the twins were made from."""
+    `twin_of`, `original_pzl_sha256`, the original's split (never the twin id's own hash) and `twin_cards` /
+    `twin_set_sha256`: the sha256 of each script the engine reads to play it. Refuses an original that is not in
+    the suite, or whose .pzl is not the one the twins were made from."""
     recs = {r["id"]: r for r in suite.get("puzzles", []) if isinstance(r, dict)}
     base = Path(manifest_path).resolve().parent
     scripts = {c["original"]: c for c in manifest.get("cards", [])}
@@ -528,7 +522,8 @@ def twin_records(manifest, suite, manifest_path, repo=REPO):
         cards = {scripts[n]["twin"]: scripts[n]["twin_sha256"] for n in t["cards"] if n in scripts}
         rec = {k: orig[k] for k in ("schema", "goal", "source", "pilot", "category") if k in orig}
         rec.update({"id": t["twin_id"], "split": pf.split_for(orig["id"]), "status": "candidate",
-                    "pzl": rel, "pzl_sha256": t["twin_pzl_sha256"], "twin_of": orig["id"], "twin_cards": cards,
+                    "pzl": rel, "pzl_sha256": t["twin_pzl_sha256"], "twin_of": orig["id"],
+                    "original_pzl_sha256": t["original_pzl_sha256"], "twin_cards": cards,
                     "twin_set_sha256": pf.twin_set_sha(cards)})
         out.append(rec)
     return out
@@ -620,7 +615,8 @@ def main(argv=None):
                 ap.error("--out must be under %s: twins of third-party puzzles are never committed" % runs)
             suite = pf.load_suite(a.suite)
             recs = twin_records(json.loads(Path(a.manifest).read_text(encoding="utf-8")), suite, a.manifest)
-            cand = pf.candidate_suite("%s-twins" % suite.get("suite"), suite.get("version"), suite.get("engine_sha"), recs)
+            cand = pf.candidate_suite("%s-twins" % suite.get("suite"), suite.get("version"),
+                                      suite.get("engine_sha"), recs)
             out.write_text(json.dumps(cand, indent=2) + "\n", encoding="utf-8")
             print("%d twin records -> %s" % (len(recs), out))
         else:

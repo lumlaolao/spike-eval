@@ -22,10 +22,11 @@ _SPLITS = {}   # (file, mtime, size) of every suite file -> the result: a reader
 
 def puzzle_splits(suites_dir=None):
     """{pzl_sha256: {split, ...}} over every record of every suite file that has a `puzzles` list (a record with
-    no split contributes None). A twin record (`twin_of`) also contributes its original's split, from the hash of the
-    original's id and from every suite record of that id: a twin is the original's board under other names, its
-    pzl_sha256 differs from the original's, and a record that calls a twin of a held-out puzzle open must still read
-    as held out."""
+    no split contributes None). A twin record (`twin_of`) also contributes the splits of every suite record whose
+    pzl_sha256 is its `original_pzl_sha256`: a twin is the original's board under other names, its pzl_sha256
+    differs from the original's, and a record that calls a twin of a held-out board open must still read as held
+    out. The declared `twin_of` id is not trusted, only the board hash. A twin with no known original (no hash, or
+    no suite record with it) fails closed: it also reads as heldout, never open."""
     files = sorted(Path(suites_dir or SUITES).glob("*.json"))
     key = tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size) for f in files)
     if key not in _SPLITS:
@@ -33,16 +34,16 @@ def puzzle_splits(suites_dir=None):
         for f in files:
             data = json.loads(f.read_text(encoding="utf-8"))
             recs += [r for r in (data.get("puzzles") or []) if isinstance(r, dict)] if isinstance(data, dict) else []
-        by_id = {}
+        by_board = {}
         for rec in recs:
-            by_id.setdefault(rec.get("id"), set()).add(rec.get("split"))
+            if rec.get("pzl_sha256") and not puzzle_format.is_twin(rec):
+                by_board.setdefault(rec["pzl_sha256"], set()).add(rec.get("split"))
         for rec in recs:
             if rec.get("pzl_sha256"):
                 splits = out.setdefault(rec["pzl_sha256"], set())
                 splits.add(rec.get("split"))
-                if isinstance(rec.get("twin_of"), str):
-                    splits.add(puzzle_format.split_for(rec["twin_of"]))
-                    splits.update(by_id.get(rec["twin_of"], ()))
+                if puzzle_format.is_twin(rec):
+                    splits.update(by_board.get(rec.get("original_pzl_sha256")) or {"heldout"})
         _SPLITS.clear()
         _SPLITS[key] = out
     return _SPLITS[key]

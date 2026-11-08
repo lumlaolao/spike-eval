@@ -395,15 +395,6 @@ class MakeAndInstallTest(unittest.TestCase):
             self.assertEqual(tw.main(args), 1)
             self.assertEqual(tw.main(args + ["--replace"]), 0)
 
-    def test_a_twin_line_carries_the_hash_of_the_twins_own_log(self):
-        line = {"arm": "ai", "seed": 1, "log_sha256": "L"}
-        twin = tw.twin_line(line, {"status": "solved", "log_sha256": "T"})
-        self.assertEqual((twin["log_sha256"], twin["twin_log_sha256"]), ("L", "T"))
-        self.assertNotIn("twin_log_sha256", line, "the original's line is not changed")
-        for bad in (None, {"status": "failed", "log_sha256": "T"}, {"status": "solved"}):
-            with self.assertRaises(tw.TwinRefused):
-                tw.twin_line(line, bad)
-
     def test_the_cli_never_writes_into_the_repositorys_eval_folder(self):
         with self.assertRaises(SystemExit) as cm:
             tw.main(["make", "--suite", "eval/suites/puzzles-rules-sample-v1.json", "--ids", "rules-RP_017",
@@ -439,6 +430,8 @@ class TwinSuiteTest(unittest.TestCase):
                 self.assertEqual(rec["pzl"], "runs/twins/t/pzl/%s-twin.pzl" % orig)
                 self.assertEqual(rec["pzl_sha256"], pf.sha256_file(repo / rec["pzl"]))
                 self.assertNotEqual(rec["pzl_sha256"], suite["puzzles"][0]["pzl_sha256"])
+                self.assertEqual(rec["original_pzl_sha256"], suite["puzzles"][0]["pzl_sha256"])
+                self.assertEqual(pf.validate_puzzle(rec, repo=repo, check_files=False), [], "a real twin is valid")
                 self.assertEqual(sorted(rec["twin_cards"]), sorted(c["twin"] for c in manifest["cards"]))
                 self.assertEqual(rec["twin_set_sha256"], pf.twin_set_sha(rec["twin_cards"]))
                 self.assertNotIn("baselines", rec, "measured on the twin later, never copied from the original")

@@ -385,10 +385,11 @@ def difficulty_problems(pid, d, tier, skills=None):
 
 def twin_problems(rec):
     """Problems with a record's twin fields: `twin_of` (the original's puzzle id), `twin_cards` ({twin name: sha256 of
-    its generated script}) and `twin_set_sha256` (twin_set_sha of those). Empty for a record that is not a twin and
+    its generated script}), `twin_set_sha256` (twin_set_sha of those) and `original_pzl_sha256` (the original's board,
+    which the split guard follows, never the declared id alone). Empty for a record that is not a twin and
     carries none of them."""
     pid = rec.get("id")
-    keys = [k for k in ("twin_of", "twin_cards", "twin_set_sha256") if k in rec]
+    keys = [k for k in ("twin_of", "twin_cards", "twin_set_sha256", "original_pzl_sha256") if k in rec]
     if not keys:
         return []
     of = rec.get("twin_of")
@@ -403,6 +404,9 @@ def twin_problems(rec):
         return ["%s: a twin without twin_cards ({twin name: sha256 of its script})" % pid]
     if rec.get("twin_set_sha256") != twin_set_sha(cards):
         return ["%s: twin_set_sha256 does not match twin_cards" % pid]
+    orig = rec.get("original_pzl_sha256")
+    if not isinstance(orig, str) or not re.fullmatch(r"[0-9a-f]{64}", orig):
+        return ["%s: a twin without original_pzl_sha256 (the sha256 of its original's .pzl)" % pid]
     return []
 
 
@@ -504,7 +508,7 @@ def suite_hash(manifest):
         puzzles.append([r.get("id"), r.get("pzl_sha256"), (r.get("goal") or {}).get("engine_goal"),
                         (r.get("goal") or {}).get("turns"), r.get("split"), r.get("status"), r.get("tier"),
                         base.get("solved"), base.get("n")]
-                       + ([r["twin_of"], r.get("twin_set_sha256")] if is_twin(r) else []))
+                       + ([r["twin_of"], r.get("twin_set_sha256"), r.get("original_pzl_sha256")] if is_twin(r) else []))
     puzzles.sort(key=lambda x: str(x[0]))
     body = json.dumps({"suite": manifest.get("suite"), "version": manifest.get("version"),
                        "engine_sha": manifest.get("engine_sha"), "puzzles": puzzles},
@@ -526,6 +530,8 @@ def suite_twin_problems(manifest):
             p.append("%s and %s are both twins of %s: pairing needs one" % (seen[of], r.get("id"), of))
         seen[of] = r.get("id")
         orig = by_id.get(of)
+        if orig is not None and orig.get("pzl_sha256") != r.get("original_pzl_sha256"):
+            p.append("%s: original_pzl_sha256 is not the pzl_sha256 of %s" % (r.get("id"), of))
         if orig is not None and is_twin(orig):
             p.append("%s: twin_of %s, which is itself a twin" % (r.get("id"), of))
         elif orig is not None and orig.get("split") != r.get("split"):

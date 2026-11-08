@@ -552,7 +552,8 @@ class TwinPairingTest(unittest.TestCase):
         for r in self.orig:
             t = rec(r["id"] + "-twin", self.tmp.name)
             cards = {"Zorbin %s" % r["id"]: "a" * 64}
-            t.update(split=r["split"], twin_of=r["id"], twin_cards=cards, twin_set_sha256=pf.twin_set_sha(cards))
+            t.update(split=r["split"], twin_of=r["id"], original_pzl_sha256=r["pzl_sha256"], twin_cards=cards,
+                     twin_set_sha256=pf.twin_set_sha(cards))
             self.twins.append(t)
         self.mo, self.mt = suite(self.orig), suite(self.twins)
         self.twin_of = pf.twin_originals(self.mt)

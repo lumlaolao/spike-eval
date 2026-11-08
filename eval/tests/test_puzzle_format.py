@@ -139,8 +139,8 @@ class TwinRecordTest(unittest.TestCase):
         tid = tid or orig + "-twin"
         rec = {"schema": "puzzle.v1", "id": tid, "split": split or pf.split_for(orig), "status": "candidate",
                "goal": {"engine_goal": "Win", "turns": 1}, "source": {"kind": "rules"},
-               "pzl": "x.pzl", "pzl_sha256": "0" * 64, "twin_of": orig, "twin_cards": dict(self.CARDS),
-               "twin_set_sha256": pf.twin_set_sha(self.CARDS)}
+               "pzl": "x.pzl", "pzl_sha256": "0" * 64, "twin_of": orig, "original_pzl_sha256": "1" * 64,
+               "twin_cards": dict(self.CARDS), "twin_set_sha256": pf.twin_set_sha(self.CARDS)}
         rec.update(kw)
         return rec
 
@@ -156,7 +156,7 @@ class TwinRecordTest(unittest.TestCase):
         self.assertTrue(any("twin_of" in p and "heldout" in p for p in leak), leak)
         # and the same twin id without twin_of is judged by its own hash
         plain = self.twin(orig)
-        for k in ("twin_of", "twin_cards", "twin_set_sha256"):
+        for k in ("twin_of", "original_pzl_sha256", "twin_cards", "twin_set_sha256"):
             del plain[k]
         self.assertEqual(pf.record_split(plain), "open")
 
@@ -165,7 +165,9 @@ class TwinRecordTest(unittest.TestCase):
         self.assertEqual(self.problems(self.twin(o)), [])
         for bad, why in ((self.twin(o, twin_of="bad id!"), "not a puzzle id"), (self.twin(o, twin_of=o + "-twin"), "of itself"),
                          (self.twin(o, twin_cards={}), "twin_cards"), (self.twin(o, twin_cards={"A": "xyz"}), "twin_cards"),
-                         (self.twin(o, twin_set_sha256="0" * 64), "does not match twin_cards")):
+                         (self.twin(o, twin_set_sha256="0" * 64), "does not match twin_cards"),
+                         (self.twin(o, original_pzl_sha256="xyz"), "original_pzl_sha256"),
+                         (self.twin(o, original_pzl_sha256=None), "original_pzl_sha256")):
             self.assertTrue(any(why in p for p in self.problems(bad)), (why, self.problems(bad)))
 
     def test_the_set_stamp_moves_with_a_script_and_not_with_the_order(self):
@@ -183,11 +185,20 @@ class TwinRecordTest(unittest.TestCase):
         self.assertTrue(any("both twins of" in p for p in pf.suite_twin_problems(two)))
         chain = dict(base, puzzles=[t, self.twin(t["id"], tid="t3", split=t["split"])])
         self.assertTrue(any("itself a twin" in p for p in pf.suite_twin_problems(chain)))
-        orig = {"id": o, "split": "heldout"}
+        no_hash = {k: v for k, v in t.items() if k != "original_pzl_sha256"}
+        self.assertTrue(any("without original_pzl_sha256" in p for p in self.problems(no_hash)))
+        # the board is what counts: a twin whose original_pzl_sha256 is not its named original's is refused
+        orig = {"id": o, "split": t["split"], "pzl_sha256": "1" * 64}
+        self.assertEqual(pf.suite_twin_problems(dict(base, puzzles=[orig, t])), [])
+        forged = dict(t, original_pzl_sha256="2" * 64)
+        self.assertTrue(any("original_pzl_sha256 is not" in p for p in pf.suite_twin_problems(dict(base, puzzles=[orig, forged]))))
+        orig = {"id": o, "split": "heldout", "pzl_sha256": "1" * 64}
         self.assertTrue(any("its original" in p for p in pf.suite_twin_problems(dict(base, puzzles=[orig, t]))))
         frozen = pf.freeze(base)
         moved = dict(frozen, puzzles=[dict(t, twin_of=_ids("open", 2)[1])])
         self.assertNotEqual(pf.suite_hash(moved), frozen["suite_sha256"], "twin_of is part of what the suite means")
+        moved = dict(frozen, puzzles=[dict(t, original_pzl_sha256="2" * 64)])
+        self.assertNotEqual(pf.suite_hash(moved), frozen["suite_sha256"], "so is the original's board")
         cards = {"Zorbin Kel": "d" * 64}
         moved = dict(frozen, puzzles=[dict(t, twin_cards=cards, twin_set_sha256=pf.twin_set_sha(cards))])
         self.assertNotEqual(pf.suite_hash(moved), frozen["suite_sha256"], "a changed script moves the suite hash")

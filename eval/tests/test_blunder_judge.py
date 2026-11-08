@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
@@ -70,6 +71,18 @@ class BlunderJudgeTest(unittest.TestCase):
                   "  lands: Plains x2 [untapped @11 @23]\n  3) PLAY LAND Rishadan Port @2")
         self.assertEqual([t.split(":")[0] for t in bj.card_texts(prompt, index)], ["Rishadan Port", "Palace Jailer", "Plains"])
         self.assertIn("=== CARD TEXT ===\nRishadan Port: {T}: Add {C}.", bj.judge_prompt([dec("play")], dict(dec("play"), prompt=prompt), index))
+
+    def test_the_oracle_index_skips_the_installed_twin_cards(self):
+        with tempfile.TemporaryDirectory() as d:
+            for sub, name in (("r", "Real Card"), ("zz_twins", "Twin Card")):
+                f = Path(d) / "forge-gui/res/cardsfolder" / sub / (name.lower().replace(" ", "_") + ".txt")
+                f.parent.mkdir(parents=True)
+                f.write_text("Name:%s\nOracle:Draw a card.\n" % name)
+            saved, bj._ORACLE = bj._ORACLE, None
+            try:
+                self.assertEqual(set(bj.oracle_index(d)), {"Real Card"})
+            finally:
+                bj._ORACLE = saved
 
     def test_a_judge_without_a_price_is_refused(self):
         with tempfile.TemporaryDirectory() as d:

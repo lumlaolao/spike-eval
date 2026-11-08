@@ -28,7 +28,8 @@ stamped cannot be told apart by epoch.
 
 Twin pairing (--twin-results T, --twin-suite S): a twin puzzle is an original under invented card names
 (puzzle_twin.py; its record names the original in `twin_of` and carries its split). T are the results of the same
-solver on the twin suite S (default --suite: a suite holding originals and twins; score its originals with --ids), same k. Per pair the original's pass@1 minus the twin's is the recall
+solver on the twin suite S (default --suite: a suite holding originals and twins; score its originals with
+--ids), same k. Per pair the original's pass@1 minus the twin's is the recall
 gap (positive: knowing the cards helped); it prints the mean gap with a bootstrap interval over pairs, the pairs
 solved only on the original and only on the twin (c >= k/2) with the exact McNemar p-value over those discordant
 pairs, and the floors: a solver that does not read names has gap 0 (and as many discordant pairs each way), and each
@@ -443,7 +444,9 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         # The rows' one game cap (group_attempts refuses a mix); None when no row has one.
         "game_cap_ms": next((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), None),
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
-        "suite_sha256": manifest.get("suite_sha256"), "engine_sha": manifest.get("engine_sha"), "split": split, "solver": solvers[0] if solvers else None,
+        "suite_sha256": manifest.get("suite_sha256"),
+        "engine_sha": manifest.get("engine_sha"),
+        "split": split, "solver": solvers[0] if solvers else None,
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
         "pilot": bool(manifest.get("pilot")) or ids is not None,
         "aggregate": aggregate(puzzles, k, n_boot, seed),
@@ -570,7 +573,8 @@ def twin_pairing(rep_o, rep_t, twin_of, n_boot=10000, seed=7):
     A pair is solved when the puzzle is (c >= k/2); the discordant pairs are those solved on one side only. Pairs are
     ordered by original id, so the resample does not depend on the order results were read. Refuses runs under
     different conditions and no pair at all; unpaired puzzles on either side are listed, not scored."""
-    for key in ("solver", "harness_epoch", "game_cap_ms", "engine_sha", "split") + tuple(k for k, _ in BRIDGE_CONDITIONS):
+    conditions = ("solver", "harness_epoch", "game_cap_ms", "engine_sha", "split")
+    for key in conditions + tuple(k for k, _ in BRIDGE_CONDITIONS):
         if rep_o.get(key) != rep_t.get(key):
             raise Refused("the original and twin runs differ in %s (%s vs %s): a recall gap between two conditions is "
                           "not a recall gap" % (key, rep_o.get(key), rep_t.get(key)))
@@ -589,12 +593,13 @@ def twin_pairing(rep_o, rep_t, twin_of, n_boot=10000, seed=7):
         rows.append({"original": oid, "twin": tid, "original_solves": po["solves"], "twin_solves": pt["solves"],
                      "k": po["k"]})
     only_o, only_t = disc.count(1), disc.count(-1)
-    arms = {arm: _mean([o[oid][arm + "_rate"] - t[tid][arm + "_rate"] for oid, tid in pairs]) for arm in ("random", "pass", "first")}
+    arms = {arm: _mean([o[oid][arm + "_rate"] - t[tid][arm + "_rate"] for oid, tid in pairs])
+            for arm in ("random", "pass", "first")}
     return {
         "n_pairs": len(pairs), "k": rep_o["aggregate"]["k"], "solver": rep_o.get("solver"), "split": rep_o.get("split"),
         "gap": {"name": "mean(pass@1 original - pass@1 twin)", "value": _mean(gaps),
                 "ci95": bootstrap_ci(gaps, _mean, n_boot, seed), "ci95_clustered": clustered_ci(gaps)},
-        "solved": {"original": sum(1 for d, (a, b) in zip(disc, pairs) if o[a]["solved"]),
+        "solved": {"original": sum(1 for a, _ in pairs if o[a]["solved"]),
                    "twin": sum(1 for _, b in pairs if t[b]["solved"]),
                    "only_original": only_o, "only_twin": only_t,
                    "both": sum(1 for a, b in pairs if o[a]["solved"] and t[b]["solved"]),
@@ -604,7 +609,8 @@ def twin_pairing(rep_o, rep_t, twin_of, n_boot=10000, seed=7):
         # A solver that reads names and not cards has gap 0 and splits its discordant pairs evenly; each trivial arm
         # was measured on both boards and cannot recall a name.
         "floors": dict(no_recall=0.0, **arms),
-        "unpaired_originals": sorted(set(o) - {a for a, _ in pairs}), "unpaired_twins": sorted(set(t) - {b for _, b in pairs}),
+        "unpaired_originals": sorted(set(o) - {a for a, _ in pairs}),
+        "unpaired_twins": sorted(set(t) - {b for _, b in pairs}),
         "pairs": rows,
         "engine_sha": rep_o.get("engine_sha"), "harness_epoch": rep_o.get("harness_epoch"),
     }

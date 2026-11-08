@@ -182,7 +182,8 @@ def board_permanents(state):
 def card_index(forge_home):
     """name -> {types, keywords, oracle} read from Forge's card scripts on demand; None without a checkout. The
     script is found by a file name guessed from the card name (lower case, punctuation dropped, spaces to "_"); a card
-    whose script is named otherwise (a split or double-faced card) reads as unknown."""
+    whose script is named otherwise (a split or double-faced card) reads as unknown. It never looks in the twin
+    folder `zz_twins/` (puzzle_twin.py), which is not a first-letter folder."""
     forge_home = os.path.expanduser(os.path.expandvars(forge_home or ""))   # FORGE_HOME may hold "$HOME/forge"
     root = Path(forge_home) / "forge-gui" / "res" / "cardsfolder"
     if not forge_home or not root.is_dir():
