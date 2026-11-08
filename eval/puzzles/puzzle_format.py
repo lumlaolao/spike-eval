@@ -94,11 +94,20 @@ def split_for(puzzle_id, heldout_fraction=HELDOUT_FRACTION):
     return "heldout" if h < heldout_fraction * 0x100000000 else "open"
 
 
+def twin_id(rec):
+    """The original's puzzle id a record declares in `twin_of`, or None when it declares none (or a non-string)."""
+    of = rec.get("twin_of")
+    return of if isinstance(of, str) else None
+
+
 def record_split(rec):
-    """The split a record must carry: sha256 of its id, except a twin (`twin_of`), which carries its original's: a
-    twin is the original board under other names, so a twin of a held-out puzzle is held out whatever its own id
-    hashes to, and no twin can put a held-out board in an open set."""
-    return split_for(rec["twin_of"]) if isinstance(rec.get("twin_of"), str) else split_for(rec["id"])
+    """The split a record must carry: sha256 of its id, except a twin (`twin_of`), which carries the split of the id
+    it declares. That is a consistency check on the declaration only: `twin_of` is a label a hand edit can point
+    anywhere. What ties a twin to its original's board is `puzzle_twin.verify_record` (the twin's .pzl is the
+    original's, renamed by the manifest, byte for byte), run by `validate_puzzle` and `puzzle_twin.py suite` when the
+    twin manifest is found, and demanded by `eval/rl/eval_only.puzzle_splits`, where a twin it cannot verify reads
+    held out."""
+    return split_for(twin_id(rec)) if twin_id(rec) else split_for(rec["id"])
 
 
 def is_twin(rec):
@@ -423,9 +432,14 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
         p.append("%s: split %r not in %s" % (pid, rec.get("split"), SPLITS))
     elif rec["split"] != record_split(rec):
         p.append("%s: split %r but sha256(%s) puts it in %r" % (
-            pid, rec["split"], "twin_of " + rec["twin_of"] if isinstance(rec.get("twin_of"), str) else "id",
+            pid, rec["split"], "twin_of " + twin_id(rec) if twin_id(rec) else "id",
             record_split(rec)))
     p.extend(twin_problems(rec))
+    if check_files and twin_id(rec) and not twin_problems(rec):
+        import puzzle_twin   # imports this module: a call-time import
+        manifest = puzzle_twin.find_manifest(rec, repo)
+        if manifest is not None:   # runs/ is not committed: without the manifest eval_only reads the twin held out
+            p.extend(puzzle_twin.verify_record(rec, manifest, repo))
     status = rec.get("status")
     if status not in STATUSES:
         p.append("%s: status %r not in %s" % (pid, status, STATUSES))
@@ -523,9 +537,9 @@ def suite_twin_problems(manifest):
     by_id = {r.get("id"): r for r in recs}
     p, seen = [], {}
     for r in recs:
-        if not isinstance(r.get("twin_of"), str):
+        of = twin_id(r)
+        if of is None:
             continue
-        of = r["twin_of"]
         if of in seen:
             p.append("%s and %s are both twins of %s: pairing needs one" % (seen[of], r.get("id"), of))
         seen[of] = r.get("id")
@@ -541,7 +555,7 @@ def suite_twin_problems(manifest):
 
 def twin_originals(manifest):
     """{twin puzzle id: original puzzle id} over a suite's twin records."""
-    return {r["id"]: r["twin_of"] for r in manifest.get("puzzles", []) if isinstance(r.get("twin_of"), str)}
+    return {r["id"]: r["twin_of"] for r in manifest.get("puzzles", []) if twin_id(r)}
 
 
 def validate_suite(manifest, repo=REPO, check_files=True):

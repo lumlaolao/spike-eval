@@ -1235,18 +1235,25 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     records; `install` writes the generated card scripts into a checkout's cardsfolder (`zz_twins/`, a `Custom_Set`
     edition), regenerated from the checkout's own originals. A twin record carries `twin_of` (the original's puzzle
     id), `original_pzl_sha256` (the original's board) and `twin_cards` / `twin_set_sha256`. *Why each:*
-    - **The split follows the original's board** (`puzzle_format.record_split`): a twin's id hashes to a split of its
-      own and its `pzl_sha256` differs from the original's, so without the original a twin of a held-out board could sit
-      in an open suite. `validate_puzzle` demands the original's split and an `original_pzl_sha256`,
-      `suite_twin_problems` one twin per original, no chains and an `original_pzl_sha256` equal to the `pzl_sha256` of
-      the in-suite record `twin_of` names. `twin_of` is a label a hand edit can point anywhere, so
-      `eval/rl/eval_only.puzzle_splits` trusts only the board: it adds to a twin's splits those of every suite record
-      whose `pzl_sha256` is the twin's `original_pzl_sha256`, and a twin whose original is in no suite fails closed
-      (held out). A twin that says open of a held-out board still reads as held out.
+    - **The split follows the original, and the twin is bound to it by content** (`puzzle_format.record_split`,
+      `puzzle_twin.verify_record`): a twin's id hashes to a split of its own and its `pzl_sha256` differs from the
+      original's, so a twin carries the split of the id `twin_of` declares. That is only a declaration a hand edit can
+      point anywhere, so the record is also checked against its manifest (`twin-manifest.json`, beside the twin's
+      `.pzl`): the manifest's original `.pzl` must hash to `original_pzl_sha256`, renaming it with the manifest's names
+      (the generator, `twin_pzl`) must give the twin's `.pzl` byte for byte (the generator drops `Set:`/`Art:`, so the
+      check runs forward from the hash-pinned original, not by renaming the twin back), and `twin_cards` must be the
+      manifest's scripts for the board. `puzzle_twin.py suite` refuses to write a record that fails it,
+      `validate_puzzle` runs it whenever the twin's `.pzl` and manifest are found (`runs/` is not committed, so a
+      committed record is validated on its declaration and hashes alone), and `puzzle_twin.py verify --suite F` runs it
+      over a suite. `suite_twin_problems` adds, inside one suite, one twin per original, no chains and an
+      `original_pzl_sha256` equal to the `pzl_sha256` of the record `twin_of` names.
+      `eval/rl/eval_only.puzzle_splits` trusts neither declared field: a twin adds the splits of the non-twin suite
+      records whose `pzl_sha256` is its `original_pzl_sha256` only when `verify_record` passes, and in every other case
+      (no manifest, an edited board, an original in no suite, a chain) it reads held out.
     - **The scripts are versioned by the record, not by `overlay_sha`**, which hashes the overlay's Java and the engine
       patches, never a checkout's `res/`. `twin_set_sha256` is the hash of the sha256 of every generated script the twin
-      needs; it is in `suite_sha256` (for twins only, so a suite without twins keeps its hash), in the puzzle manifest's
-      `record`, and a row joins its record by `pzl_sha256`. `puzzle_twin.refuse_uninstalled` stops `puzzle_solve.py` and
+      needs; it is in `suite_sha256` with `twin_of` and `original_pzl_sha256` (all three for twins only, so a suite
+      without twins keeps its hash), in the puzzle manifest's `record`, and a row joins its record by `pzl_sha256`. `puzzle_twin.refuse_uninstalled` stops `puzzle_solve.py` and
       `puzzle_baselines.py` (`prove`, `run`, `verify`) before a game when the installed scripts or the edition differ
       from the record's. A twin set is not an overlay file: `install.sh` installs one only when `TWIN_MANIFEST` is set
       (`TWIN_MODE=keep|replace` for another manifest's twins), because the scripts go into the checkout's cardsfolder

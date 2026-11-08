@@ -451,6 +451,53 @@ class TwinSuiteTest(unittest.TestCase):
             with self.assertRaisesRegex(tw.TwinRefused, "not in the suite"):
                 tw.twin_records(manifest, dict(suite, puzzles=[]), out / tw.MANIFEST, repo)
 
+    def test_a_real_twin_round_trips_and_validates_with_its_files_and_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            self.assertEqual(tw.verify_record(rec, manifest, repo), [])
+            self.assertEqual(tw.find_manifest(rec, repo), json.loads((out / tw.MANIFEST).read_text()))
+            self.assertEqual(pf.validate_puzzle(rec, repo=repo), [])
+            self.assertIn("Set:", PZL, "the fixture's original has a Set: the generator drops; it still round-trips")
+
+    def test_an_edited_twin_board_is_refused_everywhere_twin_records_are_checked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            board = repo / rec["pzl"]
+            text = board.read_text(encoding="utf-8")
+            twin_names = sorted(rec["twin_cards"])
+            board.write_text(text.replace("p1life=3", "p1life=4"), encoding="utf-8")   # one value changed
+            edited = dict(rec, pzl_sha256=pf.sha256_file(board))                      # hash kept consistent
+            for why in (tw.verify_record(edited, manifest, repo), pf.validate_puzzle(edited, repo=repo)):
+                self.assertTrue(any("not the original's board renamed" in w for w in why), why)
+            board.write_text(text.replace(twin_names[0], twin_names[-1], 1), encoding="utf-8")   # one card changed
+            edited = dict(rec, pzl_sha256=pf.sha256_file(board))
+            self.assertTrue(tw.verify_record(edited, manifest, repo))
+            self.assertTrue(pf.validate_puzzle(edited, repo=repo))
+            # the suite command refuses to write a record that does not round-trip
+            (out / "pzl/fix-1-twin.pzl").write_text(text.replace("p1life=3", "p1life=4"), encoding="utf-8")
+            forged = json.loads(json.dumps(manifest))
+            forged["puzzles"][0]["twin_pzl_sha256"] = pf.sha256_file(out / "pzl/fix-1-twin.pzl")
+            with self.assertRaisesRegex(tw.TwinRefused, "not the original's board renamed"):
+                tw.twin_records(forged, suite, out / tw.MANIFEST, repo)
+
+    def test_a_twin_record_pointed_at_another_original_is_refused(self):
+        """The reviewer's forgery: the twin of a held-out board H, split open, twin_of and original_pzl_sha256 those of
+        an open puzzle P."""
+        heldout = next(i for i in ("o%d" % k for k in range(99)) if pf.split_for(i) == "heldout")
+        open_ = next(i for i in ("p%d" % k for k in range(99)) if pf.split_for(i) == "open")
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp, heldout)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            (repo / "p/other.pzl").write_text(PZL.replace("p1life=3", "p1life=5"), encoding="utf-8")
+            forged = dict(rec, id=open_ + "-twin", split="open", twin_of=open_,
+                          original_pzl_sha256=pf.sha256_file(repo / "p/other.pzl"))
+            self.assertEqual(pf.validate_puzzle(forged, repo=repo, check_files=False), [],
+                             "the declaration alone is consistent: only the manifest can refuse it")
+            self.assertTrue(tw.verify_record(forged, manifest, repo))
+            self.assertTrue(pf.validate_puzzle(forged, repo=repo), "refused where the twin file and manifest are found")
+
     def test_the_installed_scripts_must_be_the_ones_the_record_stamps(self):
         with tempfile.TemporaryDirectory() as tmp:
             forge, repo, out, suite, manifest = self.build(tmp)

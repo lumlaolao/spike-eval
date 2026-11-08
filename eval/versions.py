@@ -82,7 +82,7 @@ def render(rows):
             "(`eval/benchmark_version.py`).", "",
             "`overlay_sha` does not hash a checkout's `res/`, so the card scripts of a twin puzzle (`eval/puzzles/puzzle_twin.py`) "
             "are stamped on the puzzle record instead: `twin_set_sha256`, the hash of the sha256 of every generated script the "
-            "twin needs (`twin_cards`). It is in `suite_sha256` and in the puzzle manifest's `record`, and a game or baseline "
+            "twin needs (`twin_cards`). It is in `suite_sha256` (with the twin-only `twin_of` and `original_pzl_sha256`) and in the puzzle manifest's `record`, and a game or baseline "
             "run on a twin refuses unless the installed scripts match it.", ""]
     return "\n".join(out)
 

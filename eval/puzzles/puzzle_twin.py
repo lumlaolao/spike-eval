@@ -495,6 +495,55 @@ def install(manifest, forge, others="refuse"):
 
 # ------------------------------------------------------------------ a suite record
 
+def find_manifest(rec, repo=REPO):
+    """The twin manifest `puzzle_twin.py make` wrote beside a twin record's .pzl (`<out>/pzl/<id>.pzl`, the manifest
+    at `<out>/twin-manifest.json`), or None when the record's file or the manifest is not there (runs/ is not
+    committed)."""
+    try:
+        path = pf.pzl_path(rec, repo).parent.parent / MANIFEST
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+    except (OSError, ValueError):
+        return None
+
+
+def verify_record(rec, manifest, repo=REPO):
+    """Problems that stop a twin record being the twin it says it is; [] when it is. A twin is bound to its original
+    by content: the manifest's original .pzl must hash to the record's `original_pzl_sha256`, and renaming that
+    original with the manifest's names (`twin_pzl`, the generator) must give the record's .pzl byte for byte. The
+    generator drops `Set:` and `Art:` and lower-cases labels, so the check runs forward from the hash-pinned original
+    rather than renaming the twin back. The record's `twin_cards` must be the manifest's twin scripts for this board.
+    A hand-edited twin (one card changed, another puzzle's board, a `twin_of` or hash pointed elsewhere) fails."""
+    pid = rec.get("id")
+    entry = next((t for t in manifest.get("puzzles", []) if t.get("twin_id") == pid), None)
+    if entry is None:
+        return ["%s: not a twin the manifest made" % pid]
+    if entry.get("original_pzl_sha256") != rec.get("original_pzl_sha256") or entry.get("id") != pf.twin_id(rec):
+        return ["%s: original_pzl_sha256 or twin_of is not the original the manifest made it from" % pid]
+    try:
+        original = pf.pzl_path({"pzl": entry.get("original_pzl")}, repo).read_bytes()
+        twin = pf.pzl_path(rec, repo).read_bytes()
+    except OSError as e:
+        return ["%s: cannot read the boards to verify the twin: %s" % (pid, e)]
+    if _sha(original) != rec["original_pzl_sha256"]:
+        return ["%s: the original .pzl does not hash to original_pzl_sha256" % pid]
+    if _sha(twin) != rec.get("pzl_sha256"):
+        return ["%s: the twin .pzl does not hash to pzl_sha256" % pid]
+    by_name = {c.get("original"): c for c in manifest.get("cards", [])}
+    names = entry.get("cards") or []
+    if not names or any(n not in by_name for n in names):
+        return ["%s: the manifest names no twin for every card of the board" % pid]
+    try:
+        renamed = twin_pzl(original.decode("utf-8"), {n: by_name[n]["twin"] for n in names})
+    except (TwinRefused, UnicodeDecodeError) as e:
+        return ["%s: the original cannot be twinned: %s" % (pid, e)]
+    if renamed.encode("utf-8") != twin:
+        return ["%s: the twin .pzl is not the original's board renamed (edited, or another board)" % pid]
+    scripts = {by_name[n]["twin"]: by_name[n]["twin_sha256"] for n in names}
+    if rec.get("twin_cards") != scripts:
+        return ["%s: twin_cards are not the manifest's scripts for this board" % pid]
+    return []
+
+
 def twin_records(manifest, suite, manifest_path, repo=REPO):
     """Candidate suite records (status "candidate": baselines, reference line and tier come from puzzle_baselines.py
     run, on the twin) for each twin puzzle of `manifest`, beside the original `suite`. A record is the original's
@@ -525,6 +574,9 @@ def twin_records(manifest, suite, manifest_path, repo=REPO):
                     "pzl": rel, "pzl_sha256": t["twin_pzl_sha256"], "twin_of": orig["id"],
                     "original_pzl_sha256": t["original_pzl_sha256"], "twin_cards": cards,
                     "twin_set_sha256": pf.twin_set_sha(cards)})
+        problems = verify_record(rec, manifest, repo)
+        if problems:
+            raise TwinRefused("; ".join(problems))
         out.append(rec)
     return out
 
@@ -586,6 +638,8 @@ def main(argv=None):
     st.add_argument("--manifest", required=True)
     st.add_argument("--suite", required=True, help="the suite the originals are in")
     st.add_argument("--out", required=True, help="the candidate suite file, under runs/")
+    vf = sub.add_parser("verify", help="check each twin record of a suite is its original's board renamed")
+    vf.add_argument("--suite", required=True, help="a suite file with twin records")
     ins = sub.add_parser("install", help="write the twin scripts and edition into a Forge checkout")
     ins.add_argument("--manifest", required=True)
     ins.add_argument("--forge", required=True, help="the checkout to write into (no default, on purpose)")
@@ -619,6 +673,16 @@ def main(argv=None):
                                       suite.get("engine_sha"), recs)
             out.write_text(json.dumps(cand, indent=2) + "\n", encoding="utf-8")
             print("%d twin records -> %s" % (len(recs), out))
+        elif a.cmd == "verify":
+            bad = 0
+            for rec in pf.load_suite(a.suite).get("puzzles", []):
+                if pf.twin_id(rec):
+                    manifest = find_manifest(rec)
+                    why = (verify_record(rec, manifest) if manifest
+                           else ["%s: no twin manifest beside its .pzl" % rec["id"]])
+                    bad += bool(why)
+                    print("%s %s" % ("REFUSED" if why else "ok", "; ".join(why) or rec["id"]))
+            return 1 if bad else 0
         else:
             written = install(json.loads(Path(a.manifest).read_text(encoding="utf-8")), a.forge,
                              "keep" if a.keep else "replace" if a.replace else "refuse")

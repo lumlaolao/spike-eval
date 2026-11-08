@@ -451,8 +451,8 @@ class TwinInstalledTest(unittest.TestCase):
         tmp = Path(tempfile.mkdtemp())
         base = rec("tw1", tmp)
         cards = {"Zorbin Kel": "a" * 64}
-        twin = dict(base, id="tw1-twin", split=pf.split_for("tw1"), twin_of="tw1", original_pzl_sha256="1" * 64, twin_cards=cards,
-                    twin_set_sha256=pf.twin_set_sha(cards), pzl=str(tmp / base["pzl"]))
+        twin = dict(base, id="tw1-twin", split=pf.split_for("tw1"), twin_of="tw1", original_pzl_sha256="1" * 64,
+                    twin_cards=cards, twin_set_sha256=pf.twin_set_sha(cards), pzl=str(tmp / base["pzl"]))
         suite_path = tmp / "suite.json"
         suite_path.write_text(json.dumps(make_suite([twin])))
         forge, ran = tmp / "forge", []

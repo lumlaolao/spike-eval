@@ -191,7 +191,8 @@ class TwinRecordTest(unittest.TestCase):
         orig = {"id": o, "split": t["split"], "pzl_sha256": "1" * 64}
         self.assertEqual(pf.suite_twin_problems(dict(base, puzzles=[orig, t])), [])
         forged = dict(t, original_pzl_sha256="2" * 64)
-        self.assertTrue(any("original_pzl_sha256 is not" in p for p in pf.suite_twin_problems(dict(base, puzzles=[orig, forged]))))
+        why = pf.suite_twin_problems(dict(base, puzzles=[orig, forged]))
+        self.assertTrue(any("original_pzl_sha256 is not" in p for p in why), why)
         orig = {"id": o, "split": "heldout", "pzl_sha256": "1" * 64}
         self.assertTrue(any("its original" in p for p in pf.suite_twin_problems(dict(base, puzzles=[orig, t]))))
         frozen = pf.freeze(base)
