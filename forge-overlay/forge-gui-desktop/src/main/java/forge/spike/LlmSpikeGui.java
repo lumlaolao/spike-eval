@@ -430,8 +430,11 @@ public final class LlmSpikeGui {
      *  sacrifice-cost ones included (ComputerUtilMana patch); it shared their list, unordered among non-creatures.
      *  Epoch 96 (2026-11-08, g33 T2): a harness seat may spend Black Lotus on any spell, an engine patch
      *  (ENGINE-PATCHES.md); a preview's copy pays as a harness seat (lookahead-preview-v17).
+     *  Epoch 97 (2026-11-08, #432): a harness seat pays by the rules in five more places, the same engine patch
+     *  (HARNESS_SEAT_PAYS_BY_RULES, once ..._MAY_TAKE_LETHAL_TAP_DAMAGE; ENGINE-PATCHES.md, audit table); each is a
+     *  play that was refused and is now on the menu or in the preview (lookahead-preview-v18).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-96";
+    static final String HARNESS_EPOCH = "harness-epoch-97";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -959,8 +962,8 @@ public final class LlmSpikeGui {
                     && ((PlayerControllerLLM) p.getController()).choosesOwnColours();
             // Every harness seat, and a preview's copy of the seat (PlayerLookahead.isCopySeat), is spared Forge AI's
             // tastes in payment (ENGINE-PATCHES.md): a lethal-tap-damage source (RP_017), the ability's own card
-            // as a source (RP_175), Black Lotus on a cheap spell.
-            forge.ai.ComputerUtilMana.HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> p.getController() instanceof PlayerControllerLLM
+            // as a source (RP_175), Black Lotus on a cheap spell, and the five of #432 (ENGINE-PATCHES.md, audit table).
+            forge.ai.ComputerUtilMana.HARNESS_SEAT_PAYS_BY_RULES = p -> p.getController() instanceof PlayerControllerLLM
                     || PlayerLookahead.isCopySeat(p);
         }
         boolean choosesOwnColours() { return "llm".equals(mode) && rnd == null; }

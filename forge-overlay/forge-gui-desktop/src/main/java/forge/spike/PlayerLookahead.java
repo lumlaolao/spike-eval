@@ -66,7 +66,9 @@ final class PlayerLookahead {
     // AI, and the seat's target on the AI's mode failed to target (Barbed Lightning).
     // v17 (2026-11-08, g33 T2): the copy's seat pays as a harness seat (isCopySeat), so it also takes the patch's other
     // harness-seat rules: the own-card source (RP_175), the animated-manland skip, a lethal-tap-damage source last.
-    static final String VERSION = "lookahead-preview-v17";
+    // v18 (2026-11-08, #432): the copy's seat takes the five more payment lifts of HARNESS_SEAT_PAYS_BY_RULES
+    // (ENGINE-PATCHES.md, audit table).
+    static final String VERSION = "lookahead-preview-v18";
 
     private PlayerLookahead() { }
 
