@@ -102,7 +102,7 @@ def loopback_env(port):
 def outcomes(run_dir):
     """{(seed, swap): 'A'|'B'|'draw'|'invalid'} for identity A's games in a directory, plus the count
     of crashed games (no game line) and of unscorable ones (a dead bridge, a cut log: read as "invalid", never a win, and
-    counted so check() can fail a fake arm that has one, #430). None when the directory does not exist."""
+    counted so check() can fail any arm that has one, #430). None when the directory does not exist."""
     import aggregate                      # lazy: aggregate imports this module for --sanity-arms
     p = Path(run_dir)
     if not p.is_dir():
@@ -138,6 +138,13 @@ def check(scored_dir, random_margin=DEFAULT_RANDOM_MARGIN, arms=None):
             continue
         report["arms"][a] = {"games": len(o["games"]), "wins": _wins(o), "win_rate": _rate(o),
                              "crashed": o["crashed"], "unscorable": o.get("unscorable", 0)}
+    for a in ARMS:
+        o = arms.get(a)
+        if o is not None and o.get("unscorable"):
+            # Reading the game as "invalid" keeps it from counting as a win, but would also hide what this check is
+            # for (a floor win, a fake arm beating the floor): an arm whose game was not fully played is a finding.
+            report["violations"].append("%s had %d unscorable game(s) (dead bridge or cut log): every sanity arm's "
+                                        "games must all be played" % (a, o["unscorable"]))
     floor = arms.get("floor")
     if floor is not None and _wins(floor):
         report["violations"].append("floor won %d game(s): a floor win means the harness or the opponent "
@@ -146,11 +153,6 @@ def check(scored_dir, random_margin=DEFAULT_RANDOM_MARGIN, arms=None):
         o = arms.get(a)
         if o is None or floor is None:
             continue
-        if o.get("unscorable"):
-            # Reading the game as "invalid" keeps it from counting as a win, but would also hide a cheat: a fake arm
-            # whose bridge died is itself a finding, and its raw winner may be the one the floor lost.
-            report["violations"].append("%s had %d unscorable game(s) (dead bridge or cut log): the fake arm's games "
-                                        "must all be played" % (a, o["unscorable"]))
         beat = sorted(k for k, w in o["games"].items() if w == "A" and floor["games"].get(k) not in (None, "A"))
         if beat:
             report["violations"].append("%s won %d (seed, swap) the floor lost: %s"

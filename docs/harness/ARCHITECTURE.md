@@ -1160,8 +1160,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     with a warning, so no training example comes from a dead bridge's fallbacks or a cut jsonl; the same loader feeds
     `replay_match.py`, `process_metrics.py` and `puzzles/mine_puzzles.py`, which therefore skip it too), `line_compare.py`
     (counted apart as `left out, unscorable`), `analyze_ab_stage0.py` (`unscorable=` beside `non-decisive=`, never a
-    pair), `sanity_arms.py` (`aggregate.scored_winner`: an unscorable game is `invalid`, not an arm win, and a fake arm with
-    one fails the check, so "empty or garbage won a game the floor lost" is never hidden by the `invalid` reading),
+    pair), `sanity_arms.py` (`aggregate.scored_winner`: an unscorable game is `invalid`, not an arm win, and any arm with
+    one fails the check, so neither "the floor won" nor "a fake arm beat the floor" is hidden by the `invalid` reading),
     `gauntlet_scan.py` (a defect line: a gauntlet game whose model bridge died under load now exits 1), `model_sweep.py` (not a completed game) and `latency_report.py` (its decisions
     stay, because latency is per decision and a dead bridge's retries are the point; the game is named `unscorable=`
     and its winner is not shown). `rating.bridge_down_problems` and `defect_analyzer.py` keep their own two checks:
