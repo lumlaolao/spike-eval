@@ -1327,7 +1327,122 @@ public class LlmSpikeTest {
         Assert.assertEquals(got, expect, "blockers prompt template drifted");
     }
 
-    @Test(timeOut = 220000)
+    /** Wait for a game thread to end; if it outlives {@code waitMs}, abort the game and wait {@code stopMs} more.
+     *  A thread that still lives then fails here with a clear message (it cannot be stopped, and may write on into
+     *  whatever log the next test opens). The caller's {@code @Test timeOut} must exceed both waits. */
+    static void stopGameThread(Thread worker, Runnable abort, long waitMs, long stopMs) throws InterruptedException {
+        worker.join(waitMs);
+        if (worker.isAlive()) { abort.run(); worker.join(stopMs); }
+        Assert.assertFalse(worker.isAlive(), "game thread " + worker.getName() + " did not stop within "
+                + (waitMs + stopMs) + " ms of an abort; refusing to read a log it may still be writing");
+    }
+
+    /** The log lines, each required to be one complete JSON object. A cut line (the disk filled, or a writer was
+     *  cut off) fails by file and line number; it is never skipped, so a short row cannot pass as a whole one. */
+    static List<String> wholeJsonRows(List<String> lines, String where) {
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            boolean whole;
+            try { whole = com.google.gson.JsonParser.parseString(line).isJsonObject(); }
+            catch (RuntimeException e) { whole = false; }
+            Assert.assertTrue(whole, where + " line " + (i + 1) + " is not a complete JSON row (cut off at "
+                    + line.length() + " chars): " + line);
+        }
+        return lines;
+    }
+
+    @Test(timeOut = 60000)
+    public void aGameThreadThatNeverStopsFailsBeforeTheLogIsRead() throws Exception {
+        final java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        Thread stuck = new Thread(() -> {
+            try { release.await(); } catch (InterruptedException ignore) { }
+        }, "stuck-game");
+        stuck.start();
+        try {
+            stopGameThread(stuck, () -> { }, 50, 50);
+            Assert.fail("a thread that never stopped must fail the wait");
+        } catch (AssertionError expected) {
+            Assert.assertTrue(expected.getMessage().contains("did not stop"), expected.getMessage());
+        } finally {
+            release.countDown();
+            stuck.join(5000);
+        }
+    }
+
+    @Test(timeOut = 60000)
+    public void aGameThreadTheAbortStopsPassesAndAFastOneIsNeverAborted() throws Exception {
+        final java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        final java.util.concurrent.atomic.AtomicInteger aborts = new java.util.concurrent.atomic.AtomicInteger();
+        Thread slow = new Thread(() -> {
+            try { release.await(); } catch (InterruptedException ignore) { }
+        }, "slow-game");
+        slow.start();
+        stopGameThread(slow, () -> { aborts.incrementAndGet(); release.countDown(); }, 50, 5000);
+        Assert.assertEquals(aborts.get(), 1, "a game that outlives the wait is aborted exactly once");
+        Assert.assertFalse(slow.isAlive());
+
+        Thread fast = new Thread(() -> { }, "fast-game");
+        fast.start();
+        stopGameThread(fast, aborts::incrementAndGet, 5000, 50);
+        Assert.assertEquals(aborts.get(), 1, "a game that ends inside the wait is never aborted");
+    }
+
+    @Test
+    public void aCutRowIsRejectedNotSkipped() {
+        String whole = "{\"t\":\"decision\",\"prompt\":\"board: A(1/2)@56, B\"}";
+        String braces = "{\"t\":\"decision\",\"prompt\":\"} { \\\" }\"}"; // braces and a quote inside a string
+        Assert.assertEquals(wholeJsonRows(List.of(whole, braces), "f").size(), 2);
+        // a cut line, a cut line that still ends in a brace, an empty line and a non-object: each is rejected
+        for (String bad : List.of(whole.substring(0, 40), "{\"a\":{\"b\":1}", "", "[]")) {
+            try {
+                wholeJsonRows(List.of(whole, bad), "f");
+                Assert.fail("not a whole JSON row, must be rejected: " + bad);
+            } catch (AssertionError expected) {
+                Assert.assertTrue(expected.getMessage().contains("f line 2 is not a complete JSON row"),
+                        expected.getMessage());
+            }
+        }
+    }
+
+    @Test(timeOut = 60000)
+    public void closingTheLogWhileWritersRunNeverLeavesACutRow() throws Exception {
+        java.io.File dir = java.nio.file.Files.createTempDirectory("evallog-close").toFile();
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToDir(dir.getAbsolutePath(), 7L);
+        java.io.File file = LlmSpikeGui.EvalLog.currentFile();
+        final String pad = "x".repeat(40000); // larger than any writer buffer, so a row spans several writes
+        final java.util.concurrent.atomic.AtomicBoolean stop = new java.util.concurrent.atomic.AtomicBoolean();
+        final java.util.concurrent.CountDownLatch started = new java.util.concurrent.CountDownLatch(1);
+        final java.util.concurrent.atomic.AtomicReference<Throwable> died = new java.util.concurrent.atomic.AtomicReference<>();
+        Thread w = new Thread(() -> {
+            for (int i = 0; !stop.get() && i < 200; i++) { // capped: an unfair lock must not grow the file unbounded
+                LlmSpikeGui.EvalLog.write("{\"t\":\"x\",\"i\":" + i + ",\"prompt\":\"" + pad + "\"}");
+                if (i == 0) started.countDown();
+            }
+        }, "evallog-writer");
+        // a writer that throws (an NPE from a close between the check and the write) must fail the test,
+        // not end quietly with the rows it managed to write
+        w.setUncaughtExceptionHandler((t, e) -> died.set(e));
+        w.start();
+        try {
+            Assert.assertTrue(started.await(10, java.util.concurrent.TimeUnit.SECONDS));
+            LlmSpikeGui.EvalLog.closeForTest(); // mid-stream: the writer is still calling write()
+            stop.set(true);
+            w.join(10000);
+            Assert.assertFalse(w.isAlive());
+            Assert.assertNull(died.get(), "the writer died across the close: " + died.get());
+            List<String> rows = wholeJsonRows(java.nio.file.Files.readAllLines(file.toPath()), file.getName());
+            Assert.assertFalse(rows.isEmpty(), "at least the first row was written before the close");
+        } finally {
+            stop.set(true);
+            w.join(10000);
+            LlmSpikeGui.EvalLog.closeForTest();
+            file.delete();
+            dir.delete();
+        }
+    }
+
+    @Test(timeOut = 280000) // above the 180 s + 60 s of stopGameThread, so its message is what a slow run shows
     public void aiLogging_fullGame_everyEnumerableAiTeacherRowIsValid() throws Exception {
         java.io.File dir = java.nio.file.Files.createTempDirectory("ai-log-test").toFile();
         long seed = 4242L;
@@ -1348,13 +1463,17 @@ public class LlmSpikeTest {
                 catch (Throwable t) { System.out.println("[AI-LOG-TEST] game thread threw: " + t); }
             }, "forge-game-ailog");
             worker.start();
-            worker.join(180000);
-            if (worker.isAlive()) { game.setGameOver(GameEndReason.Draw); worker.join(10000); }
+            stopGameThread(worker, () -> {
+                System.out.println("[AI-LOG-TEST] game still running after 180 s: aborted as a draw");
+                game.setGameOver(GameEndReason.Draw);
+            }, 180000, 60000);
         } finally {
             LlmSpikeGui.EvalLog.closeForTest();
         }
 
         java.io.File[] files = dir.listFiles((d, n) -> n.endsWith(".jsonl"));
+        dir.deleteOnExit(); // registered first, so it is deleted last, after the files inside it
+        if (files != null) for (java.io.File f : files) f.deleteOnExit();
         Assert.assertNotNull(files, "no jsonl produced");
         Assert.assertTrue(files.length >= 1, "expected a per-game jsonl file");
 
@@ -1363,7 +1482,7 @@ public class LlmSpikeTest {
         int aiTeacher = 0, enumerable = 0, promptChecked = 0, passRows = 0;
         java.util.Map<String, Integer> byType = new java.util.HashMap<>();
         for (java.io.File f : files) {
-            for (String line : java.nio.file.Files.readAllLines(f.toPath())) {
+            for (String line : wholeJsonRows(java.nio.file.Files.readAllLines(f.toPath()), f.getName())) {
                 if (!line.contains("\"tier\":\"ai-teacher\"")) continue;
                 aiTeacher++;
                 String type = jstr(line, "type");
