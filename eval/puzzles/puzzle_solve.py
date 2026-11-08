@@ -50,6 +50,7 @@ import cost_report  # noqa: E402
 import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
+import puzzle_twin as pt  # noqa: E402
 import versions  # noqa: E402
 
 # The attempt seeds: k distinct seeds per puzzle, the same for every solver, outside every reserved band.
@@ -269,7 +270,7 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
     out = Path(out_root) / rec["id"]
     out.mkdir(parents=True, exist_ok=True)
     record = {"transcript_version": transcript_version() if recorded else None, "pzl_file": keep_pzl(rec, out),
-              "pzl_sha256": rec.get("pzl_sha256"),
+              "pzl_sha256": rec.get("pzl_sha256"), "twin_set_sha256": rec.get("twin_set_sha256"),
               "openrouter_max_price": json.loads(max_price) if max_price else None,
               "openrouter_quantizations": quantizations, "game_cap_ms": cap_ms,
               "call_timeout_ms": call_ms, "max_tokens": max_tokens}
@@ -425,6 +426,7 @@ def main(argv=None):
     todo = [r for r in manifest["puzzles"] if r["split"] == a.split and r["status"] == "active"
             and (ids is None or r["id"] in ids)]
     build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)
+    pt.refuse_uninstalled(todo, getattr(build, "forge", None))
     prov = build.provenance()
     recorded = records(build)
     if not recorded and not a.allow_no_record:

@@ -1229,6 +1229,30 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     *Why:* frontier games of two models reached the win after 30 minutes, and the owner raised the cap
     (`docs/harness/FRONTIER5.md`, "How it ran", names the rows). Replaying only cut-off games would bias the score
     toward fast games.
+  - **Twin puzzles** (`eval/puzzles/puzzle_twin.py`): the same board with every card renamed to an invented name and
+    the same rules text, so a solve rate on the twin against the original separates recalling a card from reading it.
+    `make` writes the twin boards and a manifest under `runs/`; `suite` turns the manifest into candidate suite
+    records; `install` writes the generated card scripts into a checkout's cardsfolder (`zz_twins/`, a `Custom_Set`
+    edition), regenerated from the checkout's own originals. A twin record carries `twin_of` (the original's puzzle
+    id) and `twin_cards` / `twin_set_sha256`. *Why each:*
+    - **The split follows the original** (`puzzle_format.record_split`): a twin's id hashes to a split of its own and its
+      `pzl_sha256` differs from the original's, so without `twin_of` a twin of a held-out board could sit in an open
+      suite. `validate_puzzle` demands the original's split, `suite_twin_problems` one twin per original and no
+      chains, and `eval/rl/eval_only.puzzle_splits` adds the original's split (by the hash of its id and by every suite
+      record of it) to a twin's, so a twin that says open of a held-out original still reads as held out.
+    - **The scripts are versioned by the record, not by `overlay_sha`**, which hashes the overlay's Java and the engine
+      patches, never a checkout's `res/`. `twin_set_sha256` is the hash of the sha256 of every generated script the twin
+      needs; it is in `suite_sha256` (for twins only, so a suite without twins keeps its hash), in the puzzle manifest's
+      `record`, and a row joins its record by `pzl_sha256`. `puzzle_twin.refuse_uninstalled` stops `puzzle_solve.py` and
+      `puzzle_baselines.py` (`prove`, `run`, `verify`) before a game when the installed scripts or the edition differ
+      from the record's. A twin set is not an overlay file: `install.sh` installs one only when `TWIN_MANIFEST` is set
+      (`TWIN_MODE=keep|replace` for another manifest's twins), because the scripts go into the checkout's cardsfolder
+      beside the real cards and derive from third-party scripts.
+    - **The score is paired** (`puzzle_score.py --twin-results`, `twin_pairing`): per pair the original's pass@1 minus
+      the twin's, with a bootstrap interval over pairs, the pairs solved on one side only with the exact McNemar p-value,
+      and the floors (a solver that reads no names has gap 0; each trivial arm's own gap). It refuses runs under other
+      conditions (solver, epoch, k, engine, game cap, every `BRIDGE_CONDITIONS` key). The twin's name length moves where
+      the seat cuts a long description, which a paired score includes.
 - **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, from the run's `puzzle-run.json` and result
   rows, and writes nothing (`docs/eval/PUZZLES.md`, "Watching a run").
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a

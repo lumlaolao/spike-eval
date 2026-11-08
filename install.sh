@@ -42,4 +42,21 @@ fi
 # file as it is at the pin (git show, never the working tree). One that does not apply stops the install here.
 echo "Writing the engine patches into $FORGE_HOME ..."
 python3 "$HERE/eval/engine_patches.py" apply --forge "$FORGE_HOME" --out "$FORGE_HOME"
+
+# Twin cards (eval/puzzles/puzzle_twin.py), OPT-IN: the generated card scripts of a twin puzzle set go into this
+# checkout's cardsfolder (zz_twins/, a Custom_Set edition), regenerated from the checkout's own originals and checked
+# against the manifest's hashes. They are not in forge-overlay/ (the overlay holds no res/ and a twin is derived from
+# a third-party script) and the overlay_sha does not cover them: a twin record's twin_set_sha256 does. Without
+# TWIN_MANIFEST nothing is written. TWIN_MODE=keep leaves twins another manifest installed, =replace deletes them;
+# with neither, another manifest's twins stop the install.
+if [ -n "${TWIN_MANIFEST:-}" ]; then
+  case "${TWIN_MODE:-}" in
+    keep) TWIN_FLAG=--keep ;;
+    replace) TWIN_FLAG=--replace ;;
+    "") TWIN_FLAG= ;;
+    *) echo "ERROR: TWIN_MODE must be keep or replace, not '$TWIN_MODE'." >&2; exit 1 ;;
+  esac
+  echo "Installing the twin cards of $TWIN_MANIFEST into $FORGE_HOME ..."
+  python3 "$HERE/eval/puzzles/puzzle_twin.py" install --manifest "$TWIN_MANIFEST" --forge "$FORGE_HOME" $TWIN_FLAG
+fi
 echo "Done. See README.md for build & run steps."

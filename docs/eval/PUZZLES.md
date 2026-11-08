@@ -19,7 +19,7 @@ Forge enforces ("Win" or "Survive" by turn N).
 | `eval/puzzles/puzzle_solve.py` | runs one model on one split of a frozen suite, k attempts per puzzle, with `--budget-usd` |
 | `eval/puzzles/puzzle_score.py` | scores one solver on one split, every number beside its floors |
 | `eval/puzzles/puzzle_watch.py` | reads a `puzzle_solve.py` run while it plays or after: per-puzzle state, cost and flags |
-| `eval/puzzles/puzzle_twin.py` | twin cards: renames every card on a board (`make`, boards and a manifest under `runs/`) and writes the twin scripts, regenerated from the checkout's originals, into a checkout (`install`, which refuses to delete another manifest's twins unless `--keep`/`--replace`); not yet a suite or a score; a twin name of another length moves the seat's description cut |
+| `eval/puzzles/puzzle_twin.py` | twin cards: renames every card on a board (`make`, boards and a manifest under `runs/`) and writes the twin scripts, regenerated from the checkout's originals, into a checkout (`install`, which refuses to delete another manifest's twins unless `--keep`/`--replace`); `suite` writes the twin records (`twin_of` with the original's split, `twin_set_sha256`); `puzzle_score.py --twin-results` pairs a twin's score with its original's; `install.sh` installs the scripts when `TWIN_MANIFEST` is set; a twin name of another length moves the seat's description cut |
 | `eval/tests/test_puzzle_suite.py` | Python tests (no JVM) |
 | `LlmSpikePuzzle.java` | runs one puzzle headless, many seeds per JVM (`PZL_SEEDS`), one result row each |
 | `PuzzleArms.java` (+ `PuzzleArmsTest`) | the zero-model arms and the draw tape that makes a random rollout replayable |

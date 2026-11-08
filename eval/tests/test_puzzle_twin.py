@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402  (every eval script folder on sys.path)
+import puzzle_format as pf  # noqa: E402
 import puzzle_twin as tw  # noqa: E402
 
 REAL = {
@@ -409,6 +410,165 @@ class MakeAndInstallTest(unittest.TestCase):
                      "--out", str(evalpath.EVAL / "puzzles" / "twins")])
         self.assertNotEqual(cm.exception.code, 0)
         self.assertFalse((evalpath.EVAL / "puzzles" / "twins").exists())
+
+
+class TwinSuiteTest(unittest.TestCase):
+    """The twin records, their stamp, the check against the installed scripts, and the install.sh step."""
+
+    def build(self, tmp, orig_id="fix-1"):
+        tmp = Path(tmp)
+        forge = fake_forge(tmp / "forge", FAKE_SCRIPTS)
+        repo = tmp / "repo"
+        (repo / "p").mkdir(parents=True)
+        (repo / "p/fix.pzl").write_text(PZL, encoding="utf-8")
+        rec = {"schema": pf.PUZZLE_SCHEMA, "id": orig_id, "split": pf.split_for(orig_id), "status": "active",
+               "goal": {"engine_goal": "Win", "turns": 1}, "source": {"kind": "rules"}, "pzl": "p/fix.pzl",
+               "pzl_sha256": pf.sha256_file(repo / "p/fix.pzl"), "tier": 2, "baselines": {"random": {"n": 1}}}
+        suite = {"suite": "fixture", "version": "1", "engine_sha": "e", "suite_sha256": "abc", "puzzles": [rec]}
+        out = repo / "runs/twins/t"
+        manifest = tw.make_twins(suite, [orig_id], forge, out, seed=1, repo=repo)
+        return forge, repo, out, suite, manifest
+
+    def test_a_twin_record_names_its_original_inherits_its_split_and_stamps_its_scripts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for orig in (next(i for i in ("o%d" % k for k in range(99)) if pf.split_for(i) == "heldout"), "fix-1"):
+                forge, repo, out, suite, manifest = self.build(tmp + "/" + orig, orig)
+                (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+                self.assertEqual((rec["id"], rec["twin_of"], rec["status"]), (orig + "-twin", orig, "candidate"))
+                self.assertEqual(rec["split"], pf.split_for(orig), "the original's split, not the twin id's hash")
+                self.assertEqual(rec["pzl"], "runs/twins/t/pzl/%s-twin.pzl" % orig)
+                self.assertEqual(rec["pzl_sha256"], pf.sha256_file(repo / rec["pzl"]))
+                self.assertNotEqual(rec["pzl_sha256"], suite["puzzles"][0]["pzl_sha256"])
+                self.assertEqual(sorted(rec["twin_cards"]), sorted(c["twin"] for c in manifest["cards"]))
+                self.assertEqual(rec["twin_set_sha256"], pf.twin_set_sha(rec["twin_cards"]))
+                self.assertNotIn("baselines", rec, "measured on the twin later, never copied from the original")
+                self.assertNotIn("reference_line", rec)
+                self.assertEqual(pf.validate_puzzle(dict(rec, status="candidate"), repo=repo), [])
+
+    def test_a_twin_record_is_refused_for_a_changed_original_or_a_changed_twin_board(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            changed = json.loads(json.dumps(suite))
+            changed["puzzles"][0]["pzl_sha256"] = "0" * 64
+            with self.assertRaisesRegex(tw.TwinRefused, "not the one the twin was made from"):
+                tw.twin_records(manifest, changed, out / tw.MANIFEST, repo)
+            (out / manifest["puzzles"][0]["pzl"]).write_text("edited")
+            with self.assertRaisesRegex(tw.TwinRefused, "changed since the manifest"):
+                tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            with self.assertRaisesRegex(tw.TwinRefused, "not in the suite"):
+                tw.twin_records(manifest, dict(suite, puzzles=[]), out / tw.MANIFEST, repo)
+
+    def test_the_installed_scripts_must_be_the_ones_the_record_stamps(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            self.assertTrue(tw.installed_problems(rec, forge), "nothing installed yet")
+            with self.assertRaises(SystemExit) as cm:
+                tw.refuse_uninstalled([rec], forge)
+            self.assertIn(rec["id"], str(cm.exception))
+            self.assertEqual(tw.installed_problems(suite["puzzles"][0], forge), [], "an original needs no twin script")
+            tw.install(manifest, forge)
+            self.assertEqual(tw.installed_problems(rec, forge), [])
+            tw.refuse_uninstalled([rec, suite["puzzles"][0]], forge)
+            name = sorted(rec["twin_cards"])[0]
+            script = forge / tw.TWINS_DIR / tw.script_file(name)
+            script.write_text(script.read_text() + "SVar:Extra:Mana\n")
+            why = tw.installed_problems(rec, forge)
+            self.assertTrue(any(name in w and "differs" in w for w in why), why)
+            script.unlink()
+            self.assertTrue(any("no script" in w for w in tw.installed_problems(rec, forge)))
+            tw.install(manifest, forge, others="replace")
+            (forge / tw.EDITION_FILE).write_text("[cards]\n")
+            self.assertTrue(any("not in" in w for w in tw.installed_problems(rec, forge)))
+
+    def test_the_suite_command_writes_a_candidate_suite_under_runs_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            sfile = Path(tmp) / "suite.json"
+            sfile.write_text(json.dumps(suite))
+            with self.assertRaises(SystemExit):
+                tw.main(["suite", "--manifest", str(out / tw.MANIFEST), "--suite", str(sfile),
+                         "--out", str(Path(tmp) / "elsewhere.json")])
+            target = evalpath.REPO / "runs" / ("twin-suite-test-%d.json" % os.getpid())
+            self.addCleanup(lambda: target.unlink() if target.exists() else None)
+            real = tw.twin_records
+            tw.twin_records = lambda m, s, path: real(m, s, path, repo)
+            try:
+                self.assertEqual(tw.main(["suite", "--manifest", str(out / tw.MANIFEST), "--suite", str(sfile),
+                                          "--out", str(target)]), 0)
+            finally:
+                tw.twin_records = real
+            cand = json.loads(target.read_text())
+            self.assertEqual((cand["schema"], cand["suite"], cand["frozen"]), (pf.SUITE_SCHEMA, "fixture-twins", False))
+            self.assertEqual(cand["puzzles"][0]["twin_of"], "fix-1")
+
+    def test_a_run_on_a_twin_record_stops_before_any_game_when_its_scripts_are_not_installed(self):
+        import argparse
+        import puzzle_baselines as pb
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            rec["reference_line"] = {"arm": "ai", "seed": 1, "log_sha256": "L"}
+            sfile = Path(tmp) / "twins.json"
+            sfile.write_text(json.dumps(pf.candidate_suite("t", "1", "e", [rec])))
+            played = []
+            real_build, real_verify = pb.Build, pb.verify_puzzle
+            pb.Build = lambda *a, **k: argparse.Namespace(forge=forge)
+            pb.verify_puzzle = lambda *a, **k: played.append(a)
+            try:
+                with self.assertRaises(SystemExit) as cm:
+                    pb.cmd_verify(argparse.Namespace(suite=str(sfile), build=None, forge=None, allow_stale_build=False,
+                                                     out_dir=str(Path(tmp) / "o"), jobs=1))
+            finally:
+                pb.Build, pb.verify_puzzle = real_build, real_verify
+            self.assertIn("not installed", str(cm.exception))
+            self.assertEqual(played, [], "no game was started")
+
+    def install_sh(self, tmp, env):
+        """install.sh in a copy of its folder with a stub overlay and engine patcher, the real puzzle_twin.py."""
+        import shutil
+        import subprocess
+        here = Path(tmp) / "here"
+        (here / "forge-overlay").mkdir(parents=True)
+        (here / "forge-overlay/run-llm-spike.sh").write_text("")
+        (here / "forge-overlay/run-llm-headless.sh").write_text("")
+        (here / "eval/puzzles").mkdir(parents=True)
+        (here / "eval/engine_patches.py").write_text("")
+        for f in ("puzzle_twin.py", "puzzle_format.py"):
+            shutil.copy(str(evalpath.EVAL / "puzzles" / f), str(here / "eval/puzzles" / f))
+        shutil.copy(str(evalpath.EVAL / "evalpath.py"), str(here / "eval/evalpath.py"))
+        shutil.copy(str(evalpath.REPO / "install.sh"), str(here / "install.sh"))
+        forge = fake_forge(Path(tmp) / "forge", FAKE_SCRIPTS)
+        (forge / "forge-gui-desktop").mkdir()
+        full = {k: v for k, v in os.environ.items() if k not in ("TWIN_MANIFEST", "TWIN_MODE")}
+        full.update(FORGE_HOME=str(forge), **env)
+        return forge, subprocess.run(["bash", str(here / "install.sh")], capture_output=True, text=True, env=full)
+
+    def test_install_sh_installs_the_twin_scripts_only_when_asked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp + "/b")
+            forge2, done = self.install_sh(tmp + "/a", {})
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertFalse((forge2 / tw.TWINS_DIR).exists(), "no TWIN_MANIFEST, no twin")
+            forge3, done = self.install_sh(tmp + "/c", {"TWIN_MANIFEST": str(out / tw.MANIFEST)})
+            self.assertEqual(done.returncode, 0, done.stderr)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            self.assertEqual(tw.installed_problems(rec, forge3), [], "the scripts the record stamps are the ones installed")
+            self.assertFalse((forge / tw.TWINS_DIR).exists(), "the checkout the manifest was made from is not written")
+            forge4, done = self.install_sh(tmp + "/d", {"TWIN_MANIFEST": str(out / tw.MANIFEST), "TWIN_MODE": "sideways"})
+            self.assertNotEqual(done.returncode, 0)
+            self.assertIn("TWIN_MODE", done.stderr)
+
+    def test_install_sh_stops_when_the_checkout_cannot_take_the_twins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp + "/b")
+            bad = json.loads((out / tw.MANIFEST).read_text())
+            bad["cards"][0]["original_sha256"] = "0" * 64   # an original that is not the one the manifest saw
+            (out / tw.MANIFEST).write_text(json.dumps(bad))
+            _, done = self.install_sh(tmp + "/a", {"TWIN_MANIFEST": str(out / tw.MANIFEST)})
+            self.assertNotEqual(done.returncode, 0)
+            self.assertNotIn("Done.", done.stdout, "a refused install is not reported as done")
+            self.assertIn("REFUSED", done.stderr)
 
 
 if __name__ == "__main__":

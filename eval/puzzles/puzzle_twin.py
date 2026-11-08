@@ -18,9 +18,10 @@ another label on its board (ScriptBridge matches "label starts with"), and two c
 What it cannot do: it renames, so it measures name recall, not recall of the rules text, which the seat still reads
 whole. Words of a name left in prose (`1 Alchemist(s)` in a generated `Rule:`) are not whole names and stay; the seat
 is not shown `Name:` or `Rule:`. It does not prove a twin board plays as its original (that needs the engine: the
-proof replay and a name-mapped log comparison), and it does not yet make a suite record (`twin_of`, the inherited
-split; `twin_line` gives its reference line the twin's own log hash) or pair scores (`puzzle_score.py`); those come
-later. Known limitation: the seat cuts a long description at a word boundary, so a twin name longer or shorter than
+proof replay and a name-mapped log comparison). `suite` writes the twin records (`twin_of`, the original's split,
+`twin_cards` and `twin_set_sha256`, the stamp of the scripts the engine reads: the overlay_sha does not hash `res/`);
+`twin_line` gives a reference line the twin's own log hash; `puzzle_score.py --twin-results` pairs a twin's score
+with its original's. Known limitation: the seat cuts a long description at a word boundary, so a twin name longer or shorter than
 the original moves the cut, and a cut description shows a few more or fewer words (engine check, finding 2).
 
 The manifest holds, per card, the original's path and sha256, the twin name and the edited lines, never a whole
@@ -30,11 +31,15 @@ third-party works. Stdlib only.
 
   python3 eval/puzzles/puzzle_twin.py make --suite eval/suites/puzzles-rules-sample-v1.json --ids rules-RP_017 \
       --seed 1 --out runs/twins/rules-v1 [--forge F]
+  python3 eval/puzzles/puzzle_twin.py suite --manifest runs/twins/rules-v1/twin-manifest.json \
+      --suite eval/suites/puzzles-rules-sample-v1.json --out runs/twins/rules-v1/twin-suite.json
   python3 eval/puzzles/puzzle_twin.py install --manifest runs/twins/rules-v1/twin-manifest.json --forge F [--keep|--replace]
 
 `install` refuses (exit 1) to delete twins another manifest installed, and to put one card under two twin names; a
 sidecar `zz_twins/twins-installed.json` records what each install wrote. `--keep` adds this manifest beside the
-others, `--replace` deletes the others.
+others, `--replace` deletes the others. `install.sh` runs it when `TWIN_MANIFEST` is set (opt-in: the twin scripts go
+into the checkout's cardsfolder, under `zz_twins/`, beside the real cards). A game or baseline run on a twin record
+refuses unless the scripts installed match its `twin_cards` (`refuse_uninstalled`).
 """
 
 import argparse
@@ -494,6 +499,85 @@ def install(manifest, forge, others="refuse"):
     return written
 
 
+# ------------------------------------------------------------------ a suite record
+
+def twin_records(manifest, suite, manifest_path, repo=REPO):
+    """Candidate suite records (status "candidate": baselines, reference line and tier come from puzzle_baselines.py
+    run, on the twin) for each twin puzzle of `manifest`, beside the original `suite`. A record is the original's
+    identity (goal, source) with the twin's id, its .pzl (relative to the repository, under runs/) and hash,
+    `twin_of`, the original's split (never the twin id's own hash) and `twin_cards` / `twin_set_sha256`: the sha256 of
+    each script the engine reads to play it. Refuses an original that is not in the suite, or whose .pzl is not the
+    one the twins were made from."""
+    recs = {r["id"]: r for r in suite.get("puzzles", []) if isinstance(r, dict)}
+    base = Path(manifest_path).resolve().parent
+    scripts = {c["original"]: c for c in manifest.get("cards", [])}
+    out = []
+    for t in manifest.get("puzzles", []):
+        orig = recs.get(t["id"])
+        if orig is None:
+            raise TwinRefused("%s is not in the suite" % t["id"])
+        if orig.get("pzl_sha256") != t["original_pzl_sha256"]:
+            raise TwinRefused("%s: the suite's .pzl is not the one the twin was made from" % t["id"])
+        twin_file = base / t["pzl"]
+        try:
+            rel = twin_file.relative_to(Path(repo).resolve()).as_posix()
+        except ValueError:
+            raise TwinRefused("%s: the twin .pzl %s is outside the repository" % (t["id"], twin_file))
+        if _sha(twin_file.read_bytes()) != t["twin_pzl_sha256"]:
+            raise TwinRefused("%s: the twin .pzl changed since the manifest" % t["id"])
+        cards = {scripts[n]["twin"]: scripts[n]["twin_sha256"] for n in t["cards"] if n in scripts}
+        rec = {k: orig[k] for k in ("schema", "goal", "source", "pilot", "category") if k in orig}
+        rec.update({"id": t["twin_id"], "split": pf.split_for(orig["id"]), "status": "candidate",
+                    "pzl": rel, "pzl_sha256": t["twin_pzl_sha256"], "twin_of": orig["id"], "twin_cards": cards,
+                    "twin_set_sha256": pf.twin_set_sha(cards)})
+        out.append(rec)
+    return out
+
+
+def installed_problems(rec, forge):
+    """What differs between a twin record and the twin scripts in a checkout: a script missing or changed (its bytes'
+    sha256 against `twin_cards`) and a twin the edition file does not list. [] for a record that is not a twin. The
+    overlay_sha does not cover res/, so this is the check that the engine would play the twin the record names."""
+    cards = rec.get("twin_cards") if pf.is_twin(rec) else None
+    if not cards:
+        return []
+    forge = Path(forge)
+    try:
+        edition = (forge / EDITION_FILE).read_text(encoding="utf-8")
+    except OSError:
+        edition = ""
+    why = []
+    for name, want in sorted(cards.items()):
+        f = forge / TWINS_DIR / script_file(name)
+        try:
+            have = _sha(f.read_bytes())
+        except OSError:
+            why.append("%s: no script %s in %s" % (name, f.name, forge / TWINS_DIR))
+            continue
+        if have != want:
+            why.append("%s: the installed script differs from the record's (sha256 %s, want %s)"
+                       % (name, have[:12], want[:12]))
+        if not re.search(r"^\d+ C %s$" % re.escape(name), edition, re.M):
+            why.append("%s: not in %s" % (name, EDITION_FILE))
+    return why
+
+
+def refuse_uninstalled(recs, forge, what="played"):
+    """Stop before any game when a twin record's scripts are not the ones installed in `forge`: the engine would
+    play another board, or fail to find the cards, and the row would carry the record's pzl_sha256 all the same."""
+    twins = [r for r in recs if pf.is_twin(r)]
+    if not twins:
+        return
+    if forge is None:
+        raise SystemExit("%d twin puzzle(s) and no Forge checkout to look for their card scripts in" % len(twins))
+    bad = {r["id"]: installed_problems(r, forge) for r in twins}
+    bad = {k: v for k, v in bad.items() if v}
+    if bad:
+        raise SystemExit("%d twin puzzle(s) whose card scripts are not installed in %s, nothing %s (install them: "
+                         "TWIN_MANIFEST=<twin-manifest.json> bash install.sh): %s"
+                         % (len(bad), forge, what, "; ".join("%s: %s" % (k, v[0]) for k, v in sorted(bad.items())[:3])))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -503,6 +587,10 @@ def main(argv=None):
     mk.add_argument("--seed", type=int, default=1)
     mk.add_argument("--out", required=True, help="a directory under runs/")
     mk.add_argument("--forge", help="the Forge checkout to read (default: FORGE_HOME, ~/code/forge, /root/forge)")
+    st = sub.add_parser("suite", help="write a candidate suite of the twin records of a manifest")
+    st.add_argument("--manifest", required=True)
+    st.add_argument("--suite", required=True, help="the suite the originals are in")
+    st.add_argument("--out", required=True, help="the candidate suite file, under runs/")
     ins = sub.add_parser("install", help="write the twin scripts and edition into a Forge checkout")
     ins.add_argument("--manifest", required=True)
     ins.add_argument("--forge", required=True, help="the checkout to write into (no default, on purpose)")
@@ -525,6 +613,16 @@ def main(argv=None):
                                                                   len(m["refused"]), out / MANIFEST))
             for r in m["refused"]:
                 print("REFUSED %s: %s" % (r["id"], r["reason"]))
+        elif a.cmd == "suite":
+            out = Path(a.out).resolve()
+            runs = (REPO / "runs").resolve()
+            if runs not in out.parents:
+                ap.error("--out must be under %s: twins of third-party puzzles are never committed" % runs)
+            suite = pf.load_suite(a.suite)
+            recs = twin_records(json.loads(Path(a.manifest).read_text(encoding="utf-8")), suite, a.manifest)
+            cand = pf.candidate_suite("%s-twins" % suite.get("suite"), suite.get("version"), suite.get("engine_sha"), recs)
+            out.write_text(json.dumps(cand, indent=2) + "\n", encoding="utf-8")
+            print("%d twin records -> %s" % (len(recs), out))
         else:
             written = install(json.loads(Path(a.manifest).read_text(encoding="utf-8")), a.forge,
                              "keep" if a.keep else "replace" if a.replace else "refuse")
