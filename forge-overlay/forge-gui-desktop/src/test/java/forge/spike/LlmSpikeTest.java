@@ -1328,8 +1328,8 @@ public class LlmSpikeTest {
     }
 
     /** Wait for a game thread to end; if it outlives {@code waitMs}, abort the game and wait {@code stopMs} more.
-     *  A thread that will not stop fails here, with this message, before the caller closes the log, so no game
-     *  thread is left running into the next test. The caller's {@code @Test timeOut} must exceed both waits. */
+     *  A thread that still lives then fails here with a clear message (it cannot be stopped, and may write on into
+     *  whatever log the next test opens). The caller's {@code @Test timeOut} must exceed both waits. */
     static void stopGameThread(Thread worker, Runnable abort, long waitMs, long stopMs) throws InterruptedException {
         worker.join(waitMs);
         if (worker.isAlive()) { abort.run(); worker.join(stopMs); }
@@ -1415,7 +1415,7 @@ public class LlmSpikeTest {
         final java.util.concurrent.CountDownLatch started = new java.util.concurrent.CountDownLatch(1);
         final java.util.concurrent.atomic.AtomicReference<Throwable> died = new java.util.concurrent.atomic.AtomicReference<>();
         Thread w = new Thread(() -> {
-            for (int i = 0; !stop.get(); i++) {
+            for (int i = 0; !stop.get() && i < 200; i++) { // capped: an unfair lock must not grow the file unbounded
                 LlmSpikeGui.EvalLog.write("{\"t\":\"x\",\"i\":" + i + ",\"prompt\":\"" + pad + "\"}");
                 if (i == 0) started.countDown();
             }
@@ -1463,12 +1463,17 @@ public class LlmSpikeTest {
                 catch (Throwable t) { System.out.println("[AI-LOG-TEST] game thread threw: " + t); }
             }, "forge-game-ailog");
             worker.start();
-            stopGameThread(worker, () -> game.setGameOver(GameEndReason.Draw), 180000, 60000);
+            stopGameThread(worker, () -> {
+                System.out.println("[AI-LOG-TEST] game still running after 180 s: aborted as a draw");
+                game.setGameOver(GameEndReason.Draw);
+            }, 180000, 60000);
         } finally {
             LlmSpikeGui.EvalLog.closeForTest();
         }
 
         java.io.File[] files = dir.listFiles((d, n) -> n.endsWith(".jsonl"));
+        dir.deleteOnExit(); // registered first, so it is deleted last, after the files inside it
+        if (files != null) for (java.io.File f : files) f.deleteOnExit();
         Assert.assertNotNull(files, "no jsonl produced");
         Assert.assertTrue(files.length >= 1, "expected a per-game jsonl file");
 
