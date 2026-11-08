@@ -362,6 +362,31 @@ public class GoldenChecksTest {
         Assert.assertTrue(plains.isTapped(), "the Plains paid, for the {W} that keeps Court Hussar");
     }
 
+    /** pr-review of cfde3e5: the seat's test payment of the reshaped cost reached the pool chooser with {R}{G} floating
+     *  and asked the model (a model ask while pricing), and the real payment asked again. One choice, one ask. */
+    @Test
+    public void theReshapeTestNeverAsksThePoolChoiceTwiceForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card mountain = card("Mountain", me, ZoneType.Battlefield), forest = card("Forest", me, ZoneType.Battlefield);
+        me.getManaPool().addManaNoEvent(new forge.game.mana.Mana(forge.card.MagicColor.RED, mountain, null, me));
+        me.getManaPool().addManaNoEvent(new forge.game.mana.Mana(forge.card.MagicColor.GREEN, forest, null, me));
+        mountain.setTapped(true);
+        forest.setTapped(true);
+        card("Plains", me, ZoneType.Battlefield);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        card("Court Hussar", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Court Hussar"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the seat cast Court Hussar");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Court Hussar is on the stack");
+        long asks = model.prompts.stream().filter(q -> q.contains("MANA POOL")).count();
+        Assert.assertTrue(asks <= 1, "the pool choice was asked " + asks + " times for one payment");
+    }
+
     /** #432: the payment loop drops a "sacrifice this" mana source from the plan when the spell targets it ("not a
      *  good idea to sac a card that you're targeting"), a taste. Disenchant on a Lotus Petal, paid with the Petal and
      *  a Plains, is legal (the spell fizzles). */

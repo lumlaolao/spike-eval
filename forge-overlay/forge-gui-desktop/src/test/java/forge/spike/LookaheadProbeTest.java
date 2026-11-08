@@ -470,6 +470,22 @@ public class LookaheadProbeTest {
         Assert.assertTrue(report.startsWith("if you cast Court Hussar") && !report.contains("could NOT"), "three Islands pay: " + report);
     }
 
+    /** The steering side of the reshape on the copy: with a Plains and three Islands the {W} that keeps Court Hussar is
+     *  payable, so the copy's payment taps the Plains, as the live seat's does, and the drawback
+     *  (sacrifice unless {W} was spent) does not strike. */
+    @Test
+    public void aDrawbackColourSteersThePaymentOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        SeatObservationTest.card("Plains", me, forge.game.zone.ZoneType.Battlefield);
+        for (int i = 0; i < 3; i++) SeatObservationTest.card("Island", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility hussar = spellOn(SeatObservationTest.card("Court Hussar", me, forge.game.zone.ZoneType.Hand));
+        hussar.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, hussar, 5L);
+        Assert.assertTrue(report.contains("entered the battlefield: Court Hussar") && !report.contains("left the battlefield"),
+                "the Plains pays the {W}, so Court Hussar is not sacrificed: " + report);
+    }
+
     @Test
     public void aPhyrexianHintDoesNotStopThePhyrexianLifePaymentOnTheCopy() {
         Game g = SeatObservationTest.bareGame();

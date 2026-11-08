@@ -119,14 +119,17 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   declaration is legal, so a seat that kept its answer looped (epoch 66; authored puzzles x_0, x_15, x_18).
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
   tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
-  harness seats), but last, after every safe source (epoch 65) and after the sacrifice-cost sources too (epoch 95, #269). Black Lotus is spent on any spell too (Forge's AI keeps it for
-  mana value 4 or more; epoch 96, g33 T2). A preview's copy of the seat pays as a harness seat for all of these (the
-  own-card source, the animated-manland skip and the lethal-source order too; lookahead-preview-v17). Five more of Forge's
-  AI payment tastes are lifted the same way (epoch 97, #432; the audit is in `ENGINE-PATCHES.md`): a creature is tapped for
-  mana to pay for the pump spell that targets it, Basalt Monolith pays for its own untap, a spell is paid by sacrificing
-  the source it targets, a card whose drawback a colour avoids (Court Hussar) keeps that colour's steering and is cast without it when it cannot be paid, and a Phyrexian-payment
-  hint is no refusal on the copy (lookahead-preview-v18). The predicate is `ComputerUtilMana.HARNESS_SEAT_PAYS_BY_RULES`:
-  true for a `PlayerControllerLLM` seat and the copy's seat, false for Forge's AI. The first two were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
+  harness seats), but last, after every safe source (epoch 65) and after the sacrifice-cost sources too (epoch 95,
+  #269). Black Lotus is spent on any spell too (Forge's AI keeps it for mana value 4 or more; epoch 96, g33 T2). A
+  preview's copy of the seat pays as a harness seat for all of these (the own-card source, the animated-manland skip
+  and the lethal-source order too; lookahead-preview-v17). Five more of Forge's AI payment tastes are lifted the same
+  way (epoch 97, #432; the audit is in `ENGINE-PATCHES.md`): a creature is tapped for mana to pay for the pump spell
+  that targets it, Basalt Monolith pays for its own untap, a spell is paid by sacrificing the source it targets, a
+  card whose drawback a colour avoids (Court Hussar) keeps that colour's steering and is cast without it when it
+  cannot be paid (or while mana floats, where the test payment would ask the pool chooser), and a Phyrexian-payment
+  hint is no refusal on the copy (lookahead-preview-v18). The predicate is
+  `ComputerUtilMana.HARNESS_SEAT_PAYS_BY_RULES`: true for a `PlayerControllerLLM` seat and the copy's seat, false for
+  Forge's AI. The first two were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
   activated ability's alternative cost is offered (Forge Anew: equip for {0}; the menu expanded alternative costs for
   spells only), and an "up to one" target with a single candidate is asked with "No target" offered.
 - "X target creatures" with X announced as 0 takes no target (Rot-Curse Rakshasa's renew): one was set, and the

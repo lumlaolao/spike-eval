@@ -60,7 +60,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                          && ma.getPayCosts().hasTapCost()
                          && sa.getTargets().getTargetCards().contains(ma.getHostCard())) {
                      // do not activate pump instants/sorceries targeting creatures by tapping targeted
-@@ -621,11 +637,29 @@
+@@ -621,11 +637,32 @@
  
          // A filter's own cost is paid in the middle of another payment, which still needs what it has set aside.
          // The filter is among that; if it isn't, the ability is being activated on its own and starts afresh like any other.
@@ -73,14 +73,17 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
 -        adjustManaCostToAvoidNegEffects(cost, sa.getHostCard(), ai);
 +        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): the colour that avoids a card's drawback (Court Hussar: {W})
 +        // is steering, not a rule: a harness seat keeps it while the reshaped cost can be paid, and otherwise pays the
-+        // unadjusted cost and takes the drawback. A reshaped cost is not reshaped again, so the test below ends; it
-+        // runs only on a fresh start, as it clears what a payment in progress has set aside.
++        // unadjusted cost and takes the drawback. The test ends because adjustManaCostToAvoidNegEffects is idempotent
++        // (the reshaped copy is already reshaped). It runs only on a fresh start, as it clears what a payment in
++        // progress has set aside, and only with an empty mana pool: two kinds floating would reach the seat's pool
++        // chooser, a model ask while testing. Otherwise (a payment in progress, or mana floating) the seat pays the
++        // unadjusted cost: its steering is dropped there, where upstream still reshapes.
 +        if (!HARNESS_SEAT_PAYS_BY_RULES.test(ai)) {
 +            adjustManaCostToAvoidNegEffects(cost, sa.getHostCard(), ai);
-+        } else {
++        } else if (startsAfresh && ai.getManaPool().isEmpty()) {
 +            ManaCostBeingPaid reshaped = new ManaCostBeingPaid(cost);
 +            adjustManaCostToAvoidNegEffects(reshaped, sa.getHostCard(), ai);
-+            if (startsAfresh && reshaped.getGenericManaAmount() != cost.getGenericManaAmount()) {
++            if (reshaped.getGenericManaAmount() != cost.getGenericManaAmount()) {
 +                boolean payable = payManaCost(reshaped, sa, ai, true, checkPlayable, effect) != null;
 +                AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_TAP_COST);
 +                AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_SAC_COST);
@@ -92,7 +95,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
  
          List<Mana> manaSpentToPay = test ? new ArrayList<>() : sa.getPayingMana();
          List<SpellAbility> paymentList = Lists.newArrayList();
-@@ -723,13 +757,19 @@
+@@ -723,13 +760,19 @@
  
              SpellAbility saPayment = saList.isEmpty() ? null : chooseManaAbility(cost, sa, ai, toPay, saList, checkPlayable || !test);
  
@@ -114,7 +117,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                  // since we checked this already, do not loop indefinitely checking again
                  saExcludeList.add(saPayment);
                  continue;
-@@ -746,7 +786,9 @@
+@@ -746,7 +789,9 @@
                      phyLifeToPay += 2;
                  }
  
@@ -125,7 +128,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                      if ("Never".equals(sa.getParam("AIPhyrexianPayment"))) {
                          break; // unwise to pay
                      } else if (sa.getParam("AIPhyrexianPayment").startsWith("OnFatalDamage.")) {
-@@ -1180,6 +1222,12 @@
+@@ -1180,6 +1225,12 @@
          }
  
          if (m.isAnyMana()) {
@@ -138,7 +141,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
              byte colorChoice = 0;
              if (toPay.isOr2Generic()) {
                  colorChoice = toPay.getColorMask();
-@@ -1522,6 +1570,10 @@
+@@ -1522,6 +1573,10 @@
  
          final CardCollection otherManaSources = new CardCollection();
          final CardCollection useLastManaSources = new CardCollection();
@@ -149,7 +152,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
          final CardCollection colorlessManaSources = new CardCollection();
          final CardCollection oneManaSources = new CardCollection();
          final CardCollection twoManaSources = new CardCollection();
-@@ -1565,6 +1617,9 @@
+@@ -1565,6 +1620,9 @@
                      }
                  }
                  if (dealsLethalOnTap) {
@@ -159,7 +162,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                      continue;
                  }
              }
-@@ -1652,6 +1707,7 @@
+@@ -1652,6 +1710,7 @@
          ComputerUtilCard.sortByEvaluateCreature(useLastManaSources);
          Collections.reverse(useLastManaSources);
          sortedManaSources.addAll(sortedManaSources.size(), useLastManaSources);
