@@ -242,6 +242,128 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** #432 (sibling of #334): Forge's AI never taps the creature a pump instant targets for mana ("do not activate
+     *  pump instants/sorceries targeting creatures by tapping targeted creatures for mana", Servant of the Conduit),
+     *  a taste behind `getController().isAI()`, which is true for the seat. Tapping the target is legal: Giant Growth
+     *  on the only creature, which is also the only mana source, is cast and paid with it. */
+    @Test
+    public void aPumpSpellMayTapItsTargetForManaForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card elves = card("Llanowar Elves", me, ZoneType.Battlefield);
+        elves.setSickness(false);
+        card("Giant Growth", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Giant Growth"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Giant Growth"), "Giant Growth is on the menu:\n" + ask);
+        Assert.assertNotNull(r, "the seat cast Giant Growth");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Giant Growth is on the stack");
+        Assert.assertTrue(elves.isTapped(), "the targeted Elves paid for it");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** #432: Basalt Monolith's "{3}: Untap" carries `AIManaPref$ NotSameCard`, so Forge's mana chooser never pays it
+     *  with a card of the same name. With the Monolith the only source, tapping it for {C}{C}{C} to untap itself is
+     *  legal and is on the seat's menu. */
+    @Test
+    public void aMonolithMayPayToUntapItselfForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Basalt Monolith", me, ZoneType.Battlefield);
+        card("Forest", me, ZoneType.Hand);   // a land drop on the menu, so the seat is asked
+        Script model = new Script("CHOICE: 1");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("Untap this artifact"), "the untap ability is on the menu:\n" + ask);
+    }
+
+    /** #432: Forge's AI does not tap a manland to animate another once one was animated this turn (its memory,
+     *  ANIMATED_THIS_TURN, which only its own animate logic writes). For the seat the memory is not a rule: with the
+     *  first Factory marked, the second, tapped, is still animated with the first's mana, and so is the first itself. */
+    @Test
+    public void aManlandAnimatedThisTurnMayStillPayForAnAnimateForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card first = card("Mishra's Factory", me, ZoneType.Battlefield);
+        Card second = card("Mishra's Factory", me, ZoneType.Battlefield);
+        second.setTapped(true);
+        card("Forest", me, ZoneType.Hand);   // a land drop on the menu, so the seat is asked
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        forge.ai.AiCardMemory.rememberCard(me, first, forge.ai.AiCardMemory.MemorySet.ANIMATED_THIS_TURN);
+        ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        int animates = ask.split("Assembly-Worker", -1).length - 1;
+        Assert.assertTrue(animates >= 2, "both Factories can be animated (" + animates + " animate lines):\n" + ask);
+    }
+
+    /** #432: 19 cards carry `ManaNeededToAvoidNegativeEffect` (Court Hussar: "sacrifice it unless {W} was spent"), and
+     *  Forge's AI turns one generic of the cost into that colour, so without a white source the cast is "unpayable".
+     *  Casting Court Hussar with three Islands is legal; the seat just loses it again (and the look at three). */
+    @Test
+    public void aCostIsNotReshapedToAvoidAnEffectForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        card("Court Hussar", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Court Hussar"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Court Hussar"), "Court Hussar is on the menu:\n" + ask);
+        Assert.assertNotNull(r, "the seat cast Court Hussar");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Court Hussar is on the stack");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** #432: Gut Shot's {R/P} carries `AIPhyrexianPayment$ OnFatalDamage.1`, a hint for Forge's AI that the menu check
+     *  already hides; the cast itself must not meet it either: with no red source, 2 life pays. */
+    @Test
+    public void aPhyrexianHintDoesNotStopTheSeatPayingLifeForTheCast() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Gut Shot", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Gut Shot"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Gut Shot"), "Gut Shot is on the menu:\n" + ask);
+        Assert.assertNotNull(r, "the seat cast Gut Shot");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Gut Shot is on the stack");
+        Assert.assertEquals(me.getLife(), 18, "2 life paid the {R/P}");
+    }
+
+    /** #432: the payment loop drops a "sacrifice this" mana source from the plan when the spell targets it ("not a
+     *  good idea to sac a card that you're targeting"), a taste. Disenchant on a Lotus Petal, paid with the Petal and
+     *  a Plains, is legal (the spell fizzles). */
+    @Test
+    public void aSpellMayBePaidBySacrificingItsOwnTargetForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Plains", me, ZoneType.Battlefield);
+        Card petal = card("Lotus Petal", me, ZoneType.Battlefield);
+        card("Disenchant", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Disenchant"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Disenchant"), "Disenchant is on the menu:\n" + ask);
+        Assert.assertNotNull(r, "the seat cast Disenchant");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Disenchant is on the stack");
+        Assert.assertTrue(petal.isInZone(ZoneType.Graveyard), "the Petal was sacrificed for it");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** pr-review of PR #268 (2026-10-19): the patch above lifted Forge's exclusion outright, so at 1 life with City of
      *  Brass and Llanowar Elves the engine's payment plan tapped City (any-colour lands sort before creatures) and
      *  the seat died paying {1}. A lethal source pays last for a harness seat: still there, never first. */

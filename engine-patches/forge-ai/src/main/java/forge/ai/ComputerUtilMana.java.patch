@@ -4,24 +4,36 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
 
 --- a/forge-ai/src/main/java/forge/ai/ComputerUtilMana.java
 +++ b/forge-ai/src/main/java/forge/ai/ComputerUtilMana.java
-@@ -50,6 +50,16 @@
+@@ -50,6 +50,18 @@
  import java.util.stream.Collectors;
  
  public class ComputerUtilMana {
 +    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players choose the colour an any-colour source makes
 +     *  for a generic shard themselves. Nobody, unless the harness sets it (PlayerControllerLLM, model seats). */
 +    public static java.util.function.Predicate<Player> HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> false;
-+    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players may pay with a source whose tap damage would be
-+     *  lethal (City of Brass at 1 life). Forge's AI skips such a source; tapping it is legal, and with Angel's Grace or
-+     *  an answer above the trigger it is the line. Set by PlayerControllerLLM for its seats; false for Forge's AI.
-+     *  The same predicate marks a harness seat for the other payment tastes lifted below (its own card as a source, a
-+     *  manland animated this turn): it names a harness seat, whose payments follow the rules only. */
-+    public static java.util.function.Predicate<Player> HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> false;
++    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players pay by the rules only. Forge's AI payment holds
++     *  tastes that refuse a payment the rules allow (a source whose tap damage is lethal, a card paying for its own
++     *  ability, a manland animated this turn, Black Lotus on a cheap spell, a pump spell's target tapped for mana,
++     *  AIManaPref NotSameCard, a sacrifice-this source the spell targets, the colour a card's drawback
++     *  asks for, a Phyrexian-payment hint); a harness seat is spared each, because a
++     *  legal action is never hidden. Set by PlayerControllerLLM for its seats and a preview's copy of the seat; false
++     *  for Forge's AI, which keeps every one. */
++    public static java.util.function.Predicate<Player> HARNESS_SEAT_PAYS_BY_RULES = p -> false;
 +
      private final static boolean DEBUG_MANA_PAYMENT = false;
  
      public static boolean canPayManaCost(ManaCostBeingPaid cost, final SpellAbility sa, final Player ai, final boolean effect) {
-@@ -344,7 +354,12 @@
+@@ -332,6 +344,9 @@
+                     maList = filteredList;
+                     break;
+                 case "NotSameCard":
++                    // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; Basalt Monolith may pay
++                    // for its own "{3}: Untap" with its own mana.
++                    if (HARNESS_SEAT_PAYS_BY_RULES.test(ai)) break;
+                     String hostName = sa.getHostCard().getName();
+                     maList = filteredList.stream()
+                             .filter(saPay -> !saPay.getHostCard().getName().equals(hostName))
+@@ -344,7 +359,12 @@
  
          for (final SpellAbility ma : maList) {
              // this rarely seems like a good idea
@@ -29,22 +41,53 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
 +            // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; a harness seat may pay with the
 +            // ability's own card (Mishra's Factory tapping itself for its {1} animate, rules pilot RP_175), but not
 +            // when both the ability and the mana ability tap it (Rishadan Port, runs/loop/g27).
-+            if (ma.getHostCard() == saHost && (!HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)
++            if (ma.getHostCard() == saHost && (!HARNESS_SEAT_PAYS_BY_RULES.test(ai)
 +                    || (sa.getPayCosts() != null && sa.getPayCosts().hasTapCost()
 +                        && ma.getPayCosts().hasTapCost()))) {
                  continue;
              }
  
-@@ -368,7 +383,7 @@
+@@ -368,14 +388,14 @@
  
                  // If a manland was previously animated this turn, do not tap it to animate another manland
                  if (saHost.isLand() && ma.getHostCard().isLand()
 -                        && ai.getController().isAI()
-+                        && ai.getController().isAI() && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai) // HARNESS PATCH: AI taste
++                        && ai.getController().isAI() && !HARNESS_SEAT_PAYS_BY_RULES.test(ai) // HARNESS PATCH: AI taste
                          && AnimateAi.isAnimatedThisTurn(ai, ma.getHostCard())) {
                      continue;
                  }
-@@ -729,7 +744,10 @@
+             } else if (sa.getApi() == ApiType.Pump) {
+                 if ((saHost.isInstant() || saHost.isSorcery())
+                         && ma.getHostCard().isCreature()
+-                        && ai.getController().isAI()
++                        && ai.getController().isAI() && !HARNESS_SEAT_PAYS_BY_RULES.test(ai) // HARNESS PATCH: AI taste
+                         && ma.getPayCosts().hasTapCost()
+                         && sa.getTargets().getTargetCards().contains(ma.getHostCard())) {
+                     // do not activate pump instants/sorceries targeting creatures by tapping targeted
+@@ -625,7 +645,11 @@
+             AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_TAP_COST);
+             AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_SAC_COST);
+         }
+-        adjustManaCostToAvoidNegEffects(cost, sa.getHostCard(), ai);
++        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; Forge's AI demands the colour that
++        // avoids a card's drawback (Court Hussar: {W}), a harness seat may cast it without (and take the drawback).
++        if (!HARNESS_SEAT_PAYS_BY_RULES.test(ai)) {
++            adjustManaCostToAvoidNegEffects(cost, sa.getHostCard(), ai);
++        }
+ 
+         List<Mana> manaSpentToPay = test ? new ArrayList<>() : sa.getPayingMana();
+         List<SpellAbility> paymentList = Lists.newArrayList();
+@@ -723,13 +747,19 @@
+ 
+             SpellAbility saPayment = saList.isEmpty() ? null : chooseManaAbility(cost, sa, ai, toPay, saList, checkPlayable || !test);
+ 
+-            if (saPayment != null && ComputerUtilCost.isSacrificeSelfCost(saPayment.getPayCosts()) && sa.isTargeting(saPayment.getHostCard())) {
++            // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; a harness seat may sacrifice the
++            // source its spell targets (Lotus Petal under Disenchant).
++            if (saPayment != null && ComputerUtilCost.isSacrificeSelfCost(saPayment.getPayCosts()) && sa.isTargeting(saPayment.getHostCard())
++                    && !HARNESS_SEAT_PAYS_BY_RULES.test(ai)) {
+                 // not a good idea to sac a card that you're targeting with the SA you're paying for
+                 saExcludeList.add(saPayment);
                  continue;
              }
  
@@ -52,11 +95,22 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
 +            // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; Forge's AI keeps Black Lotus for a spell
 +            // of mana value 4 or more, but a harness seat may spend it on any spell (Time Walk, g33 turn 2).
 +            if (saPayment != null && "BlackLotus".equals(saPayment.getParam("AILogic"))
-+                    && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai) && !SpecialCardAi.BlackLotus.consider(ai, sa, cost)) {
++                    && !HARNESS_SEAT_PAYS_BY_RULES.test(ai) && !SpecialCardAi.BlackLotus.consider(ai, sa, cost)) {
                  // since we checked this already, do not loop indefinitely checking again
                  saExcludeList.add(saPayment);
                  continue;
-@@ -1180,6 +1198,12 @@
+@@ -746,7 +776,9 @@
+                     phyLifeToPay += 2;
+                 }
+ 
+-                if (sa.hasParam("AIPhyrexianPayment")) {
++                // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): the hint is Forge's AI advice (Gut Shot, Mental
++                // Misstep); a harness seat may pay the life.
++                if (sa.hasParam("AIPhyrexianPayment") && !HARNESS_SEAT_PAYS_BY_RULES.test(ai)) {
+                     if ("Never".equals(sa.getParam("AIPhyrexianPayment"))) {
+                         break; // unwise to pay
+                     } else if (sa.getParam("AIPhyrexianPayment").startsWith("OnFatalDamage.")) {
+@@ -1180,6 +1212,12 @@
          }
  
          if (m.isAnyMana()) {
@@ -69,7 +123,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
              byte colorChoice = 0;
              if (toPay.isOr2Generic()) {
                  colorChoice = toPay.getColorMask();
-@@ -1522,6 +1546,10 @@
+@@ -1522,6 +1560,10 @@
  
          final CardCollection otherManaSources = new CardCollection();
          final CardCollection useLastManaSources = new CardCollection();
@@ -80,17 +134,17 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
          final CardCollection colorlessManaSources = new CardCollection();
          final CardCollection oneManaSources = new CardCollection();
          final CardCollection twoManaSources = new CardCollection();
-@@ -1565,6 +1593,9 @@
+@@ -1565,6 +1607,9 @@
                      }
                  }
                  if (dealsLethalOnTap) {
 +                    // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a harness seat may tap a source whose damage
 +                    // is lethal (RP_017: Angel's Grace first), so it is kept, but it pays last, never before a safe one.
-+                    if (HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)) lethalManaSources.add(card); // HARNESS PATCH
++                    if (HARNESS_SEAT_PAYS_BY_RULES.test(ai)) lethalManaSources.add(card); // HARNESS PATCH
                      continue;
                  }
              }
-@@ -1652,6 +1683,7 @@
+@@ -1652,6 +1697,7 @@
          ComputerUtilCard.sortByEvaluateCreature(useLastManaSources);
          Collections.reverse(useLastManaSources);
          sortedManaSources.addAll(sortedManaSources.size(), useLastManaSources);
