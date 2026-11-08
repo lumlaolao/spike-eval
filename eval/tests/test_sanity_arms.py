@@ -127,6 +127,18 @@ class TestOnDisk(unittest.TestCase):
             self.assertEqual(r["arms"]["garbage"]["wins"], 1)
             self.assertFalse(r["ok"])
 
+    def test_an_unscorable_game_is_not_an_arm_win(self):
+        # #430: outcomes() reads the scored winner, so a cut log or a dead bridge is "invalid", never an A win.
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name, seed, extra in (("game-1-1000.jsonl", 1, {}), ("game-2-1000.jsonl", 2, {"eval_log_write_failed": True}),
+                                      ("game-3-1000.jsonl", 3, {"bridge_down_decisions_a": 1})):
+                (d / name).write_text(json.dumps(dict({"t": "game", "seed": seed, "swap": False, "winner": "A",
+                                                       "deck_a": "Identity-A", "deck_b": "Identity-B",
+                                                       "controller_a": "llm", "controller_b": "ai"}, **extra)) + "\n")
+            o = sanity_arms.outcomes(d)
+        self.assertEqual(o["games"], {(1, False): "A", (2, False): "invalid", (3, False): "invalid"})
+
     def test_aggregate_exits_5_when_an_arm_beats_the_floor(self):
         with tempfile.TemporaryDirectory() as tmp:
             scored = Path(tmp) / "burn"

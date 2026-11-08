@@ -111,7 +111,7 @@ def outcomes(run_dir):
     for e in parsed["experiments"]:
         for g in e["games"]:
             if g.get("seed") is not None:
-                out[(g["seed"], bool(g.get("swap", False)))] = g.get("winner")
+                out[(g["seed"], bool(g.get("swap", False)))] = aggregate.scored_winner(g)
     return {"games": out, "crashed": len(parsed["crashed"])}
 
 

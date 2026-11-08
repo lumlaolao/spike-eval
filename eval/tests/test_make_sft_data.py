@@ -162,6 +162,19 @@ def test_complete_game_filter():
         check("in-flight file left no game record", len(games) == 1)
 
 
+def test_an_unscorable_game_is_never_training_data():
+    # #430: a cut jsonl (a full disk) and a dead bridge's fixed fallbacks are not the model's play.
+    for flag, why in (({"eval_log_write_failed": True}, "cut log"), ({"bridge_down_decisions_a": 2}, "dead bridge")):
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-1-1000.jsonl", dict(game_line(1, False, "A"), **flag), [decision("UR Delver")])
+            write_game(d, "game-2-1000.jsonl", game_line(2, False, "A"), [decision("UR Delver")])
+            games, warnings = m.load_complete_games(d)
+            check("%s: only the scorable game is loaded" % why, [g["game"]["seed"] for g in games] == [2],
+                  "got %s" % [g["game"]["seed"] for g in games])
+            check("%s: the skip is named" % why, any("game-1-1000.jsonl" in w and "unscorable" in w for w in warnings),
+                  str(warnings))
+
+
 def test_rerun_dedup_keeps_newest():
     with tempfile.TemporaryDirectory() as d:
         write_game(d, "game-5-1000.jsonl", game_line(5, False, "A"),

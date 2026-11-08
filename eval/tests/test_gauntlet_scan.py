@@ -37,6 +37,19 @@ class GauntletScanTest(unittest.TestCase):
     def test_a_clean_run_passes(self):
         self.assertEqual(scan(run_dir({"kw00": (CLEAN, "0", "B")})), 0)
 
+    def test_a_winner_on_an_unscorable_game_fails(self):
+        # #430: a cut log or a dead bridge has a winner on its line, but the seat did not fully play it.
+        for extra in ({"eval_log_write_failed": True}, {"bridge_down_decisions_a": 3}):
+            root = run_dir({"kw00": (CLEAN, "0", "B")})
+            path = os.path.join(root, "g-kw00", "game-1.jsonl")
+            row = dict(json.loads(open(path).readline()), **extra)
+            with open(path, "w") as f:
+                f.write(json.dumps(row) + "\n")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(gs.scan(root), 1, extra)
+            self.assertIn("unscorable game", out.getvalue())
+
     def test_an_empty_run_fails(self):
         self.assertEqual(scan(tempfile.mkdtemp()), 1)
 
