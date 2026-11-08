@@ -199,6 +199,17 @@ class TestConditionGuard(unittest.TestCase):
         games[0]["bridge_down_decisions_a"] = 0
         rating.rate([], resamples=0, games=games)
 
+    def test_a_game_whose_log_failed_to_write_is_refused(self):
+        # Issue #427: its log may be cut, so no flag pools it.
+        games = simulate([("llm:" + LLM, "ai", -200, 3)])
+        games[0]["eval_log_write_failed"] = True
+        for allow in (False, True):
+            with self.subTest(allow=allow), self.assertRaises(rating.InvalidGameError) as cm:
+                rating.rate([], resamples=0, games=games, allow_mixed=allow)
+            self.assertIn("failed to write", str(cm.exception))
+        games[0]["eval_log_write_failed"] = False
+        rating.rate([], resamples=0, games=games)
+
     def test_a_fake_model_sanity_arm_is_rated_and_refused_only_when_its_transport_failed(self):
         # Its empty replies are the model answering (count 0); a 402 from its loopback server is not.
         games = simulate([("llm:openrouter:fake/harness-model", "ai", -800, 3)])

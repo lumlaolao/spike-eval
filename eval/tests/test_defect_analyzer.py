@@ -486,6 +486,24 @@ def test_a_puzzle_attempt_a_dead_bridge_played_fails_the_invariants():
         check("the text names the attempt", "PP20 seed 1" in da.render_text(r), da.render_text(r))
 
 
+def test_a_game_whose_log_failed_to_write_fails_the_invariants():
+    """Issue #427: the game line (or a puzzle row) says a row of its log failed to write; that run may be cut."""
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-1-1000.jsonl", [game_line(seed=1), ])
+        write_lines(Path(d) / "game-2-1000.jsonl", [dict(game_line(seed=2), eval_log_write_failed=True)])
+        write_lines(Path(d) / "puzzle-results.jsonl", [{"id": "PP20", "seed": 1, "status": "failed",
+                                                         "eval_log_write_failed": True}])
+        r = da.build_report([Path(d)])
+        hi = r["hard_invariants"]
+        check("the game and the puzzle row are counted", hi.get("eval_log_write_failed_total") == 2, str(hi))
+        check("and fail the run", hi["pass"] is False)
+        check("the text says so", "eval_log_write_failed_total=2" in da.render_text(r))
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-1-1000.jsonl", [dict(game_line(seed=1), eval_log_write_failed=False)])
+        hi = da.build_report([Path(d)])["hard_invariants"]
+        check("a whole log passes", hi.get("eval_log_write_failed_total") == 0 and hi["pass"] is True, str(hi))
+
+
 def test_the_standards_name_every_hard_invariant():
     """docs/STANDARDS.md section 4 lists the run oracle's hard invariants; a new one must be named there."""
     with tempfile.TemporaryDirectory() as d:
@@ -500,6 +518,7 @@ def main():
     test_the_standards_name_every_hard_invariant()
     test_decisions_lost_to_a_dead_bridge_fail_the_invariants()
     test_a_puzzle_attempt_a_dead_bridge_played_fails_the_invariants()
+    test_a_game_whose_log_failed_to_write_fails_the_invariants()
     test_one_candidate_in_a_subset_decision_is_not_a_forced_pick()
     test_parse_log_text()
     test_normalize_fallback_matches_analyze_corpus_convention()

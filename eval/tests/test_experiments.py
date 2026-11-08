@@ -339,6 +339,8 @@ class GroupingTest(unittest.TestCase):
                    # as invalid, not a condition.
                    "bridge_down_decisions_a", "bridge_down_decisions_b",
                    "circuit_breaker_trips_a", "circuit_breaker_trips_b",
+                   # A row of the game's log failed to write (#427): an outcome every scorer refuses, not a condition.
+                   "eval_log_write_failed",
                    # Whether the wall-clock cap stopped the game (#250): an outcome (winner "invalid"), not a condition.
                    "capped"}
         known = set(aggregate.CONDITION_FIELDS) | set(aggregate.NON_BEHAVIORAL_PROVENANCE) | outcome

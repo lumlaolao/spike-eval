@@ -109,9 +109,11 @@ def bridge_down_problems(games):
     out = []
     for g in games:
         n = aggregate.bridge_down_decisions(g)
+        where = "%s seed %s swap %s" % (g.get("_dir") or g.get("_file") or "?", g.get("seed"), bool(g.get("swap")))
         if n:
-            out.append("%s seed %s swap %s lost %d decision(s) to a dead model bridge; replay it"
-                       % (g.get("_dir") or g.get("_file") or "?", g.get("seed"), bool(g.get("swap")), n))
+            out.append("%s lost %d decision(s) to a dead model bridge; replay it" % (where, n))
+        if aggregate.log_write_failed(g):
+            out.append("%s: a row of its log failed to write (issue #427), so the log may be cut; replay it" % where)
     return out
 
 

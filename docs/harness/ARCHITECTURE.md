@@ -1144,6 +1144,14 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     row with any (`bridge_down`, summed with `routing_refusals` in `lost_decisions`), `puzzle_solve.py` and
     `puzzle_watch.py` flag it `BRIDGE-DOWN`, `--resume` sets the puzzle's rows aside and plays it again, and
     `defect_analyzer.py` reads the rows of a directory's `puzzle-results.jsonl` into `bridge_down_total`.
+  - A log that failed to write is not scored either (issue #427). `EvalLog` writes through a `PrintWriter`, which
+    swallows an `IOException` (a full disk); `EvalLog.write` asks `checkError()` after every row, prints one
+    `[EVAL] write failed: <file>` line to stdout on the first error, and remembers it until the next log opens. The game
+    line carries `eval_log_write_failed` (true or false, and the puzzle row's budget the same), the one reader is
+    `aggregate.log_write_failed`, and a game with it is leaving every count out like a dead-bridge one
+    (`aggregate.unscorable`), refused by `rating.py` / `panel_score.py` and a puzzle row refused by
+    `puzzle_score.py`; `defect_analyzer.py` fails on it (`eval_log_write_failed_total`). The game line is itself a
+    row: a failure on it alone leaves a log with no game line, which is already counted invalid.
   - A puzzle row from before the field is judged by its puzzle directory's `jvm.log` (`with_log_counts`, the same
     `aggregate.log_bridge_down` reader as an old game line). That log holds every attempt of the puzzle, so a dead
     bridge in any attempt refuses them all, and `already_done` plays the puzzle again; `set_aside_partial` renames

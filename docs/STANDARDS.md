@@ -124,7 +124,7 @@ most log questions).
   count, an engine line). It does not narrate the code or the history of the edit.
 - **No silent fallbacks.** A failure branch takes a deterministic legal option and logs it. Never
   the Forge AI for a strategic choice. `eval/defect_analyzer.py` holds the hard invariants
-  (`ai_tier_count=0`, `silent_drop_total=0`, `game_crash_count=0`, `bridge_down_total=0`; the list is
+  (`ai_tier_count=0`, `silent_drop_total=0`, `game_crash_count=0`, `bridge_down_total=0`, `eval_log_write_failed_total=0`; the list is
   `build_report`'s `hard_invariants`, and `eval/tests/test_defect_analyzer.py` checks this line names each of them);
   never weaken the analyzer to make a run pass.
 - **The seat's tools are native tool calls** (`CLAUDE.md`). No new text command a reply must

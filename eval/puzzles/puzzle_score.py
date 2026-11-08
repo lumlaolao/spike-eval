@@ -144,6 +144,9 @@ def attempt_success(row):
         raise Refused("row for %s (seed %s): %s decisions lost under the routing filter (no endpoint it allows answered "
                       "after every retry), so they were not the model's; replay it with --resume"
                       % (row.get("id"), row.get("seed"), row["routing_refusals"]))
+    if row.get("eval_log_write_failed") is True:
+        raise Refused("row for %s (seed %s): a row of its log failed to write (disk full?), so the log may be cut; "
+                      "replay it with --resume" % (row.get("id"), row.get("seed")))
     if bridge_down(row):
         raise Refused("row for %s (seed %s): %s decisions lost to a dead model bridge (a transport failure on every "
                       "retry: a 402, an outage)%s, so they were not the model's; replay it with --resume"

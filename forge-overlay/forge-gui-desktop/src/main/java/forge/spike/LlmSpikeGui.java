@@ -434,6 +434,23 @@ public final class LlmSpikeGui {
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
         private static volatile java.io.File file; // the exact file `out` is writing (LlmSpikeFork reads it back)
+        /** Whether a row of the open log failed to write (disk full): PrintWriter swallows the IOException, so
+         *  RowWriter asks checkError() after every row (issue #427). The game line records it
+         *  (eval_log_write_failed) and every scorer refuses the game, since its log may be cut. */
+        private static volatile boolean writeFailed;
+        private static volatile String logName = "";
+        /** The log's writer: each row is followed by checkError(), which PrintWriter otherwise never surfaces. (Not
+         *  write(): eval/demo/demo_compare.py ports write() whole into older overlays and its test pins the text.) */
+        private static final class RowWriter extends java.io.PrintWriter {
+            RowWriter(java.io.Writer w) { super(w, true); }
+            @Override public void println(String row) {
+                super.println(row);
+                if (!writeFailed && checkError()) {
+                    writeFailed = true;
+                    System.out.println("[EVAL] write failed: " + logName + " (rows may be lost or cut; the game is not scored)");
+                }
+            }
+        }
         static synchronized void init(long seed) {
             String dir = System.getenv("EVAL_OUT");
             if (dir == null || dir.isEmpty()) return;
@@ -443,11 +460,13 @@ public final class LlmSpikeGui {
          *  EVAL_OUT; LlmSpikeTest drives this directly since it cannot set an env var in-process. */
         static synchronized void initToDir(String dir, long seed) {
             if (out != null) return;
+            writeFailed = false;
             try {
                 java.io.File d = new java.io.File(dir);
                 d.mkdirs();
                 file = new java.io.File(d, "game-" + seed + "-" + System.currentTimeMillis() + ".jsonl");
-                out = new java.io.PrintWriter(new java.io.FileWriter(file, true), true);
+                logName = file.getName();
+                out = new RowWriter(new java.io.FileWriter(file, true));
                 // run_batch.py reads this from the game's log to set a crashed attempt's file aside: the
                 // name carries the seed but not the seat swap, and both swaps of a seed can run at once.
                 System.out.println("[EVAL] jsonl " + file.getName());
@@ -457,13 +476,22 @@ public final class LlmSpikeGui {
          *  through the fork hook, which only a written row reaches, over hundreds of rollouts nobody reads. */
         static synchronized void initDiscard() {
             if (out != null) return;
+            writeFailed = false;
             out = new java.io.PrintWriter(java.io.Writer.nullWriter());
+        }
+        /** Test hook: the log writes to {@code w} (one that throws, to stand in for a full disk). */
+        static synchronized void initToWriter(java.io.Writer w, String name) {
+            if (out != null) return;
+            writeFailed = false;
+            logName = name;
+            out = new RowWriter(w);
         }
         static synchronized void write(String json) {
             if (out == null) return;
             if (json.startsWith("{\"t\":\"decision\"")) DemoFeed.beforeDecisionRow();  // display only (DEMO_FEED)
             out.println(json);
         }
+        static boolean writeFailed() { return writeFailed; }
         static boolean on() { return out != null; }
         /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
          *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */
@@ -1460,6 +1488,7 @@ public final class LlmSpikeGui {
             // Issue #378: the decisions a dead bridge lost (a 402 when the credits ran out, an outage; the game line's
             // bridge_down_decisions rule). puzzle_score.py refuses a row with any; puzzle_solve.py --resume replays it.
             m.put("bridge_down_decisions", lostToTransport);
+            m.put("eval_log_write_failed", EvalLog.writeFailed());  // issue #427: puzzle_score.py refuses a row with it
             // Under a routing filter (price ceiling, precision list): the decisions lost to it after every retry
             // (puzzle_score.py refuses a row with any), and the HTTP refusals behind them, recovered ones included (a
             // diagnostic; a recovered one lost nothing).
@@ -13179,6 +13208,8 @@ public final class LlmSpikeGui {
                 + ",\"bridge_down_decisions_b\":" + bridgeDownDecisions(nameB)
                 + ",\"circuit_breaker_trips_a\":" + circuitBreakerTrips(nameA)
                 + ",\"circuit_breaker_trips_b\":" + circuitBreakerTrips(nameB)
+                // A row of this log failed to write (issue #427): the log may be cut, so every scorer refuses the game.
+                + ",\"eval_log_write_failed\":" + EvalLog.writeFailed()
                 // The Forge AI profile of each seat, "" for the compiled AiProps defaults (issue #381): a condition.
                 + aiProfileStamp()
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
