@@ -3,7 +3,7 @@
 
 Two scores are comparable only when they were measured under the same engine, harness, decks, seeds,
 tools, observation and anchors (eval/research/2026-10-15-scoring-design.md section 0.4,
-eval/BENCHMARK-RESEARCH.md point 9). This module names that whole condition with one id, `bv1-<12
+docs/eval/BENCHMARK-RESEARCH.md point 9). This module names that whole condition with one id, `bv1-<12
 hex>`, so a panel or rating report can carry it and two reports from different versions refuse to
 pool.
 

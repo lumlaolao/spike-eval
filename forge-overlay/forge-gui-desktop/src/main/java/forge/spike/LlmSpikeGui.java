@@ -41,6 +41,7 @@ import forge.ai.AiCardMemory;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCombat;
 import forge.ai.ComputerUtilMana;
+import forge.ai.AiProfileUtil;
 import forge.ai.LobbyPlayerAi;
 import forge.ai.PlayerControllerAi;
 import forge.deck.Deck;
@@ -100,6 +101,9 @@ interface LLMBridge {
     // to reap CLI subprocesses (see the System.exit comment in LlmSpikeHeadless.main).
     /** One-shot reset for stateful bridges (CLI); stateless backends (API) can no-op. */
     default void restart() { }
+    /** The tail of a bridge's no-answer log line: what askModel does with a null (its retry, then the caller's fixed
+     *  legal option). One place, so the bridges' lines cannot drift from the retry. */
+    String NO_ANSWER = "no answer; the seat re-asks while it has attempts left, then takes its fixed legal option";
     /** True when this backend can take native function definitions (see {@link NativeTools}). */
     default boolean supportsNativeTools() { return false; }
     /** One assistant turn over a whole message list (a JSON array, system preamble excluded), with
@@ -118,6 +122,11 @@ interface LLMBridge {
     /** HTTP refusals so far under a routing filter (OPENROUTER_MAX_PRICE, OPENROUTER_QUANTIZATIONS), or null when this
      *  bridge has neither. */
     default Integer getRoutingRefusals() { return null; }
+    /** Whether the most recent ask that returned no reply failed in TRANSPORT: an HTTP status other than a tool or
+     *  routing refusal (402 credits, 401, 429, 5xx), an IO error, or a connection that sent no reply. False when the
+     *  provider answered and the answer was empty or unreadable, the deadline ran out while the model reasoned, or a
+     *  routing filter refused it: those are the model's decisions lost, and stay scored (issue #369). */
+    default boolean lastFailureWasTransport() { return false; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -360,15 +369,91 @@ public final class LlmSpikeGui {
      *  Epoch 73 (2026-10-26, frontier5 GLM 5.3 on hard-elf2, answer-tool-v12): a reply's answer is its first `answer`
      *  call that validates. A reply that sent its analysis in one `answer` call and its option in a second was refused
      *  twice and its decision lost to PASS, skipping main phase 1. A play decision on a tool ask reads no text.
-     *  Epoch 74 (2026-10-28, g33 T2): a harness seat may spend Black Lotus on any spell (Forge's AI kept it for mana
+     *  Epoch 74 (2026-11-03, answer-tool-v13): the PROPOSE_ACTIONS measurement arm. Off (the default) every prompt and
+     *  schema is unchanged; on, the play menu is hidden and the seat proposes its play (docs/harness/ARCHITECTURE.md,
+     *  "The propose condition").
+     *  Epoch 75 (2026-11-03, answer-tool-v14): under PROPOSE_ACTIONS a play's one target is proposed with it, and suspend,
+     *  foretell and the other special actions are in YOUR ACTIVATED ABILITIES (the gauntlet audit found them unproposable).
+     *  Epoch 76 (2026-11-04, answer-tool-v15, pr-review #342): under PROPOSE_ACTIONS a cast naming an optional cost
+     *  (Kicker) or "normal" is the normal cast, not a cost error; a cost name matches only itself ("flash" is not
+     *  Flashback); a cast with no cost is the normal cast only, never the menu's one other way (Evoke); a proposed
+     *  target is consumed by its own play's target step only. Unchanged off the arm.
+     *  Epoch 77 (2026-11-04): a play whose sub-ability must target is offered only when that target exists (Govern the
+     *  Guildless's forecast was offered with no creature in play and failed every upkeep: gauntlet kw28); a sub-ability
+     *  after a part that targets (Searing Blaze, Goblin Welder) is left to the cast, as before.
+     *  Epoch 78 (2026-11-05, answer-tool-v16): under PROPOSE_ACTIONS the attack and the blocks are proposed by handle
+     *  and checked by the engine (CombatUtil, blocksError), refused with the rule they break, four tries, then no attack
+     *  or the fixed block fallback; the candidate lists are not shown. Off the arm one fix (pr-review of #349): the menu's
+     *  tool check judges each block with the set's other blocks in place, so a block beside a "must be blocked if able"
+     *  attacker's blocker is no longer refused (it was judged on a combat with no blocks yet).
+     *  Epoch 79 (2026-11-05, pr-review of #349): a text-grammar BLOCKS: line is judged as a set before any block is added
+     *  (the global cap, then each pair with the others in place, then blocksError), as a tool answer is; added one by one,
+     *  a legal block written before the block that obeys a "must be blocked if able" requirement was dropped. A pair the
+     *  blocker can never make (CombatUtil.canBlock without combat) is not used and leaves the name for the next pair.
+     *  Epoch 80 (2026-11-05, answer-tool-v17): the PROPOSE_TERSE arm, under PROPOSE_ACTIONS only: a rules refusal of a
+     *  play or a combat declaration says only that it is illegal, with no rule, to measure the message's share of
+     *  repair. Unchanged off it.
+     *  Epoch 81 (2026-11-05, answer-tool-v18): the PROPOSE_NOTEBOOK arm, under PROPOSE_ACTIONS only (REFUSED EARLIER;
+     *  docs/harness/ARCHITECTURE.md, "The notebook arm"). Unchanged off it.
+     *  Epoch 82 (2026-11-05, PR #359's engine labeller): the PROPOSE_ACTIONS checker's land copies and refusal order
+     *  (docs/harness/ARCHITECTURE.md, "The propose condition"). Unchanged off it.
+     *  Epoch 83 (2026-11-06, #367): the payment check also tries the "tap N untapped X you control" mana abilities the
+     *  engine's greedy test skipped (seatCanPay, tapTypeStep), so a spell Heritage Druid's mana pays (Craterhoof with
+     *  Priest of Titania, the Druid and a Forest) is on the menu and tagged castable, and the seat's payment makes it.
+     *  Epoch 84 (2026-11-06, #380): "X target creatures" with X announced as 0 takes no target; one was set, and the
+     *  stack refused the paid play (Rot-Curse Rakshasa's renew).
+     *  Epoch 85 (2026-11-06, #392): a splice set the cast cannot pay together is asked again with its cost, then cast
+     *  with no splice; a spliced cast that fails leaves the plain cast offered; a failed payment is told to the seat.
+     *  Epoch 86 (2026-11-06, #391): a puzzle's solver is shown its own cards' cost, type line and rules text: the setup
+     *  cards in <your_deck> (LlmSpikePuzzle.solverPlan), each later one as it is first seen (YOUR CARDS SINCE THE START,
+     *  observation-faithful-v43). PUZ results before and after never pool.
+     *  Epoch 87 (2026-11-06, #395): the target ask's preview of a modal spell plays the mode the seat chose
+     *  (lookahead-preview-v16); every target of a chosen mode was "preview unavailable" ("failed to target").
+     *  Epoch 88 (2026-11-06, #398): a puzzle's FACTS say a side has no combat left before the puzzle's last turn
+     *  (observation-faithful-v44); recorded attempts passed citing a lethal "next combat" the game never reached.
+     *  PUZ results before and after never pool.
+     *  Epoch 89 (2026-11-06, #399): the answer tool's yield says the seat's own main phase asks again only once the stack
+     *  is empty, and end-of-turn lasts through this turn's end step (answer-tool-v19). The text arm's YIELD_HINT is a
+     *  legacy profile's bytes and keeps its words.
+     *  Epoch 90 (2026-11-06, #366): a spell cast as another face counts its targets as that face (targetCandidates), as
+     *  the engine casts it: a Disturb cast whose back face is an Aura (Lantern Bearer's Lanterns' Lift) was never on
+     *  the menu, its "enchant creature" counted against the creature front face in the graveyard.
+     *  Epoch 91 (2026-11-07, #368): a keyword granted to a player is said on its line ("| has hexproof"), and the
+     *  engine's "Keyword Effects" object is left out of the command zone (observation-faithful-v45).
+     *  Epoch 92 (2026-11-07, #408): the state guide says the player line shows the keywords the engine names; an
+     *  unnamed one is not shown, the card or effect that gives it is (observation-faithful-v46).
+     *  Epoch 93 (2026-11-07, #269): the puzzle prover (search arm) draws how many repeatable modes to choose, then a
+     *  multiset, so "choose up to N" is tried with fewer modes (PuzzleArms.repeatModes); the random arm is unchanged.
+     *  Epoch 94 (2026-11-07, #415): a pawprint charm's modes stay within its {P} budget: each mode's label shows its
+     *  {P}, the question the budget, an answer over it is refused and asked again, and the arms draw within it.
+     *  Epoch 95 (2026-11-07, #269): a source whose tap damage would be lethal pays after every other source, the
+     *  sacrifice-cost ones included (ComputerUtilMana patch); it shared their list, unordered among non-creatures.
+     *  Epoch 96 (2026-10-28, g33 T2): a harness seat may spend Black Lotus on any spell (Forge's AI kept it for mana
      *  value 4 or more, so Time Walk was off the menu with Lotus the only source), an engine patch; a preview's copy
-     *  pays as a harness seat (lookahead-preview-v16).
+     *  pays as a harness seat (lookahead-preview-v17).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-74";
+    static final String HARNESS_EPOCH = "harness-epoch-96";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
         private static volatile java.io.File file; // the exact file `out` is writing (LlmSpikeFork reads it back)
+        /** Whether a row of the open log failed to write (disk full): PrintWriter swallows the IOException, so
+         *  RowWriter asks checkError() after every row (issue #427). The game line records it
+         *  (eval_log_write_failed) and every scorer refuses the game, since its log may be cut. */
+        private static volatile boolean writeFailed;
+        private static volatile String logName = "";
+        /** The log's writer: each row is followed by checkError(), which PrintWriter otherwise never surfaces. (Not
+         *  write(): eval/demo/demo_compare.py ports write() whole into older overlays and its test pins the text.) */
+        private static final class RowWriter extends java.io.PrintWriter {
+            RowWriter(java.io.Writer w) { super(w, true); }
+            @Override public void println(String row) {
+                super.println(row);
+                if (!writeFailed && checkError()) {
+                    writeFailed = true;
+                    System.out.println("[EVAL] write failed: " + logName + " (rows may be lost or cut; the game is not scored)");
+                }
+            }
+        }
         static synchronized void init(long seed) {
             String dir = System.getenv("EVAL_OUT");
             if (dir == null || dir.isEmpty()) return;
@@ -378,21 +463,38 @@ public final class LlmSpikeGui {
          *  EVAL_OUT; LlmSpikeTest drives this directly since it cannot set an env var in-process. */
         static synchronized void initToDir(String dir, long seed) {
             if (out != null) return;
+            writeFailed = false;
             try {
                 java.io.File d = new java.io.File(dir);
                 d.mkdirs();
                 file = new java.io.File(d, "game-" + seed + "-" + System.currentTimeMillis() + ".jsonl");
-                out = new java.io.PrintWriter(new java.io.FileWriter(file, true), true);
+                logName = file.getName();
+                out = new RowWriter(new java.io.FileWriter(file, true));
                 // run_batch.py reads this from the game's log to set a crashed attempt's file aside: the
                 // name carries the seed but not the seat swap, and both swaps of a seed can run at once.
                 System.out.println("[EVAL] jsonl " + file.getName());
             } catch (Exception e) { System.out.println("[EVAL] log init failed: " + e); }
+        }
+        /** The game log on, its rows written nowhere: a step search (LlmSpikePuzzle.stepSearch) checks each replayed row
+         *  through the fork hook, which only a written row reaches, over hundreds of rollouts nobody reads. */
+        static synchronized void initDiscard() {
+            if (out != null) return;
+            writeFailed = false;
+            out = new java.io.PrintWriter(java.io.Writer.nullWriter());
+        }
+        /** Test hook: the log writes to {@code w} (one that throws, to stand in for a full disk). */
+        static synchronized void initToWriter(java.io.Writer w, String name) {
+            if (out != null) return;
+            writeFailed = false;
+            logName = name;
+            out = new RowWriter(w);
         }
         static synchronized void write(String json) {
             if (out == null) return;
             if (json.startsWith("{\"t\":\"decision\"")) DemoFeed.beforeDecisionRow();  // display only (DEMO_FEED)
             out.println(json);
         }
+        static boolean writeFailed() { return writeFailed; }
         static boolean on() { return out != null; }
         /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
          *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */
@@ -424,7 +526,8 @@ public final class LlmSpikeGui {
 
     // ==================== FORK ROLLOUT FORCER (Milestone D rollout — additive, inert) ====================
     // Everything in this fenced block is a no-op in every normal run: FORK_FORCER is null unless
-    // LlmSpikeFork's rollout mode installs one, and forkForce() returns null immediately in that case.
+    // LlmSpikeFork's rollout mode, or the keyword sweep (KeywordSurfaceSweepTest.chooseFromMenu), installs
+    // one, and forkForce() returns null immediately in that case.
     // The seed-42 floor/floor canary is the regression gate proving inertness.
 
     /** Fork-mode decision forcer (LlmSpikeFork rollout, EVAL-DESIGN.md §3.1(b)). Consulted by exactly
@@ -467,6 +570,7 @@ public final class LlmSpikeGui {
                 if (!sa.usesTargeting()) continue;
                 if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(activator);
+                if (PlayerControllerLLM.noTargetAtX(root, sa)) continue;
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) continue;
                 List<forge.game.GameObject> cands = PlayerControllerLLM.targetCandidates(sa, tr);
@@ -536,6 +640,15 @@ public final class LlmSpikeGui {
     // in the response's own `model` field — so that is what we record, alongside the spec we asked for.
     static final Map<String, String> servedModels = new ConcurrentHashMap<>();
 
+    // Issue #369: per deck identity (the seat's name, as above), the decisions whose model ask failed in transport after
+    // every retry (LLMBridge.lastFailureWasTransport: a 402 when the credits ran out, a 401, an outage), and the trips of
+    // the circuit breaker. Each took a fixed legal fallback, so the game is not the model's: aggregate.py counts it
+    // invalid, panel_score.py and rating.py refuse it, defect_analyzer.py fails on it.
+    static final Map<String, Integer> bridgeDown = new ConcurrentHashMap<>();
+    static final Map<String, Integer> breakerTrips = new ConcurrentHashMap<>();
+    static int bridgeDownDecisions(String seat) { return bridgeDown.getOrDefault(seat, 0); }
+    static int circuitBreakerTrips(String seat) { return breakerTrips.getOrDefault(seat, 0); }
+
     /** PZL axis: which seat is the puzzle SOLVER, or null outside puzzle mode.
      *
      *  Forge decides who receives the "Puzzle Goal" enforcement card by asking each controller
@@ -555,11 +668,25 @@ public final class LlmSpikeGui {
      *  outside puzzle mode. */
     static volatile String puzzleBrief = null;
 
+    /** PZL axis: the last turn the puzzle's game can be played in ({@link LlmSpikePuzzle#lastTurn}), so the seat's
+     *  FACTS never promise a combat after it (#398). -1 outside puzzle mode. */
+    static volatile int puzzleLastTurn = -1;
+
     /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name
      *  equality: two seats may share a display name. */
     static boolean isPuzzleSolver(LobbyPlayer lp) {
         LobbyPlayer solver = puzzleSolverSeat;
         return solver != null && lp == solver;
+    }
+
+    /** Whether a seat's state records the text of its own cards first seen after setup (SeatObservation, YOUR CARDS
+     *  SINCE THE START): only a puzzle's solver, whose deck text lists just its setup cards, and not under DECKLIST=0,
+     *  the opt-out from own-card text. An empty setup block is no reason to stop (a solver with only a token at setup
+     *  still draws cards it must read); a [state] that could not be read is logged and tracks, so its visible cards
+     *  are shown once, as new. A game seat's deck text lists every card it can hold; a puzzle opponent's seat is not
+     *  the solver. */
+    static boolean tracksOwnCards(boolean puzzleSolver) {
+        return puzzleSolver && !"0".equals(env("DECKLIST"));
     }
 
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
@@ -806,7 +933,7 @@ public final class LlmSpikeGui {
                     + "|digest_per_turn=" + digestPerTurn
                     + "|compact_turns_per_line=" + compactTurnsPerLine;
             return faithfulObservation
-                    ? "context.v3|" + body + "|observation=" + SeatObservation.VERSION
+                    ? "context.v3|" + body + "|observation=" + SeatObservation.version()
                     : "context.v2|" + body;
         }
 
@@ -882,7 +1009,14 @@ public final class LlmSpikeGui {
         LLMBridge smartBridge() { return smart; }
         private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
+        /** The [TALLY] line's mean latency per tier that answered. One tier is one bridge for both (#251): its mean is
+         *  printed once, as avgSmart, not again as an avgFast for a tier that made no call. */
+        static String latencyAverages(LLMBridge smart, LLMBridge fast) {
+            return (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
+                    + (fast != smart && fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : "");
+        }
         private int lostToRouting = 0;   // decisions lost after a routing-filter refusal among their retries (budget())
+        private int lostToTransport = 0; // decisions lost to a dead bridge (the bridgeDown rule, issue #369; budget())
         /** What this seat's model calls spent in the game: tokens as the provider reported them (an unreported count
          *  adds nothing) and wall time, the retries included. A puzzle result row carries them (budget()). */
         private long spentPromptTokens = 0, spentCompletionTokens = 0, spentModelMs = 0;
@@ -972,6 +1106,14 @@ public final class LlmSpikeGui {
         static String failedPlayKey(SpellAbility sa) {
             return sa.getHostCard().getId() + "|" + sa.getAlternativeCost() + "|" + sa.getCardStateName() + "|" + sa.getDescription();
         }
+        static boolean hasSplices(SpellAbility sa) { return sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty(); }
+        /** The key of {@code play} cast with {@code splices} spliced onto it: its failure is that set's, not the card's. */
+        static String spliceKey(String play, Iterable<Card> splices) {
+            List<Integer> ids = new ArrayList<>();
+            for (Card c : splices) ids.add(c.getId());
+            java.util.Collections.sort(ids);
+            return play + "|splice " + ids;
+        }
         private String cancelNote = null;
         /** Set by {@link LlmCostDecision} for the one cost ask it is making when that ask may be answered
          *  "cancel" (a play not committed yet: CostPayment decides every part before paying any); the ask
@@ -991,7 +1133,8 @@ public final class LlmSpikeGui {
         /** {@link #YIELD_HINT} for the answer tool: a field of the answer, not a line. */
         static final String YIELD_TOOL_HINT = "If you PASS, you may also give `yield` in your `answer` (end-of-turn or my-next-turn): "
                 + "until then you are not asked in windows where nothing of your opponent's is on the stack "
-                + "(anything they cast or activate always asks you; your own main phases always ask too). ";
+                + "(anything they cast or activate always asks you; your own main phase asks again once the stack is empty; "
+                + "end-of-turn lasts through this turn's end step). ";
 
         /** The play ask's notes under the answer tool: the plan through `set_plan`, the cast list, the
          *  card-interactions note and the opponent read as fields of `answer`. No line is asked for. */
@@ -1256,7 +1399,9 @@ public final class LlmSpikeGui {
         // same legal menus — anchors the floor of the scale), "floor" (every decision takes the
         // deterministic fallback path — quantifies how much play strength the HARNESS contributes).
         private final String mode;
-        private final java.util.Random rnd; // non-null only in random mode
+        // Non-null for the zero-model arms. Set once when the seat is built, except on a replay seat with a handover
+        // (step regret): there it becomes the search arm after the K-th replayed decision row (handOverToSearch).
+        private java.util.Random rnd;
 
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel, String mode) {
@@ -1274,6 +1419,7 @@ public final class LlmSpikeGui {
             boolean optedIn = "1".equals(env(ClaudeCliBridge.OPT_IN));
             LLMBridgeFactory.requireCliOptIn(smartModel, mode, optedIn, seat + "/smart");
             LLMBridgeFactory.requireCliOptIn(fastModel, mode, optedIn, seat + "/fast");
+            if ("llm".equals(mode)) ReplayBridge.requireBothTiers(smartModel, fastModel);
             // A seat that never asks a model (floor, random, the puzzle arms) gets placeholders on both tiers, whatever
             // they name (a default "haiku", an openrouter: or claude-cli: spec): no bridge to a model is ever made for it.
             if (!"llm".equals(mode))
@@ -1282,8 +1428,8 @@ public final class LlmSpikeGui {
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
                 smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
-            // A script is one line: both tiers must read it from one position.
-            if (ONE_TIER || smartB instanceof ScriptBridge) return new LLMBridge[] {smartB, smartB};
+            // A script is one line, and a replay one recording: both tiers must read it from one position.
+            if (ONE_TIER || smartB instanceof ScriptBridge || smartB instanceof ReplayBridge) return new LLMBridge[] {smartB, smartB};
             return new LLMBridge[] {smartB,
                     LLMBridgeFactory.create(seat + "/fast", fastModel, framingFor(seat, deckPlan, true, fastModel))};
         }
@@ -1304,6 +1450,8 @@ public final class LlmSpikeGui {
             this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong(), seat) : null;
             this.smart = smartBridge;
             this.fast  = fastBridge;
+            ReplayBridge rb = replayBridge();
+            if (rb != null) rb.armHandover(this::handOverToSearch);
             this.ctx = profile();
             // The observer subscribes to the game's event bus (zone changes only, read-only) so
             // handle continuity is tracked as it happens. Legacy profiles never construct one, so
@@ -1326,7 +1474,7 @@ public final class LlmSpikeGui {
                 }
             }
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
-            if (observer != null) p("[OBSERVATION] " + SeatObservation.VERSION + " (profile " + ctx + ")");
+            if (observer != null) p("[OBSERVATION] " + SeatObservation.version() + " (profile " + ctx + ")");
         }
 
         /** Non-null under a faithful profile; tests use it to drive the live observer directly. */
@@ -1343,6 +1491,10 @@ public final class LlmSpikeGui {
             m.put("completion_tokens", spentCompletionTokens);
             m.put("model_ms", spentModelMs);
             m.put("lookups", contextMemory.lookupsUsed());
+            // Issue #378: the decisions a dead bridge lost (a 402 when the credits ran out, an outage; the game line's
+            // bridge_down_decisions rule). puzzle_score.py refuses a row with any; puzzle_solve.py --resume replays it.
+            m.put("bridge_down_decisions", lostToTransport);
+            m.put("eval_log_write_failed", EvalLog.writeFailed());  // issue #427: puzzle_score.py refuses a row with it
             // Under a routing filter (price ceiling, precision list): the decisions lost to it after every retry
             // (puzzle_score.py refuses a row with any), and the HTTP refusals behind them, recovered ones included (a
             // diagnostic; a recovered one lost nothing).
@@ -1358,8 +1510,20 @@ public final class LlmSpikeGui {
             }
             return m;
         }
+        /** Step regret: the replayed seat becomes the search arm, on the game thread, right after its K-th decision row.
+         *  Built with no draw from the engine RNG (the search arm's own constructor draws one long, which would shift the
+         *  rest of the game against the recorded one; Search never reads its seed). A yield the recording asked for is
+         *  dropped: every later window is the search's to choose. Every hook from here takes the arm's branches. */
+        private void handOverToSearch() {
+            rnd = new PuzzleArms.Search(0L, seat);
+            yieldUntil = null;
+            p("[REPLAY] handed over to the search arm");
+        }
+
         /** The written line this seat plays (ScriptBridge), or null for any other seat. */
         ScriptBridge scriptBridge() { return smart instanceof ScriptBridge ? (ScriptBridge) smart : null; }
+        /** The recording this seat replays (ReplayBridge), or null for any other seat. */
+        ReplayBridge replayBridge() { return smart instanceof ReplayBridge ? (ReplayBridge) smart : null; }
 
         // ---------------- candidate labels: one seam, two renderers ----------------
         // Faithful profile: every menu option is rendered by the observer, so what the model can pick
@@ -1386,7 +1550,18 @@ public final class LlmSpikeGui {
                     if (sa.canTargetSpellAbility(si.getSpellAbility())) out.add(si.getSpellAbility());
                 return out;
             }
-            return new ArrayList<>(tr.getAllCandidates(sa, false));
+            // A spell cast as another face (Disturb's back face, an adventure) targets as that face, as the engine casts it
+            // (PlaySpellAbility: setSplitStateToPlayAbility before targeting): counted as Lantern Bearer's front face,
+            // Lanterns' Lift's "enchant creature" had no target and the Disturb cast was never offered (#366).
+            Card host = sa.getHostCard();
+            forge.card.CardStateName cast = sa.isSpell() && host != null && !host.isInPlay() ? sa.getCardStateName() : null;
+            forge.card.CardStateName was = host == null ? null : host.getCurrentStateName();
+            boolean switched = cast != null && cast != was && host.hasState(cast) && host.setState(cast, false);
+            try {
+                return new ArrayList<>(tr.getAllCandidates(sa, false));
+            } finally {
+                if (switched) host.setState(was, false);
+            }
         }
 
         /** A target as the seat reads it: a spell on the stack as its card (the text it had before), an ability on the
@@ -1832,7 +2007,7 @@ public final class LlmSpikeGui {
                     + "newest message is current; earlier messages describe the past.\n"
                     + tools + answers
                     + "</how_this_works>\n\n"
-                    + "<reading_the_state>\n" + SeatObservation.GUIDE + "</reading_the_state>\n"
+                    + "<reading_the_state>\n" + SeatObservation.guide() + "</reading_the_state>\n"
                     // Terms and keywords, the same for every format and for a puzzle (2026-10-16 review: the Legacy-only
                     // reference also named the eval pool's archetypes, which no other format's seat was told).
                     + (coaching ? "\n<reference>\n" + TERMS_REFERENCE + "</reference>\n" : "");
@@ -2191,17 +2366,35 @@ public final class LlmSpikeGui {
             return null; // still short after retry -> caller's legal default
         }
 
+        /** The last attempt of a repeatable-mode ask saw an answer over a pawprint charm's budget, on either lane: on the
+         *  tool lane, any refusal over it in that attempt's conversation. The fallback's log reason; reset per attempt,
+         *  and cleared by a dead bridge. */
+        private boolean modesOverBudget;
+
+        /** The answer spec of a repeatable-mode ask. A pawprint charm's budget is on it three ways (#415, #417): the
+         *  tool answer is checked ({@code check}, which calls {@code onRefuse}), the Decisions bridge is told it
+         *  ({@code limit}) and trims its composed answer to it ({@code budget}). */
+        static AnswerTool.Spec modesSpec(List<String> options, int min, int num, int[] pawCost, int paw, Runnable onRefuse) {
+            AnswerTool.Spec spec = AnswerTool.Spec.repeat(options.size(), min, num).labels(options);
+            if (pawCost == null) return spec;
+            return spec.limit("the picked options' {P} total at most " + paw).budget(pawCost, paw).check(a -> {
+                int spent = pawprintsOf(a.zeroBased(), pawCost);
+                if (spent <= paw) return null;
+                onRefuse.run();
+                return "those modes total " + spent + " {P}; at most " + paw + " are allowed.";
+            });
+        }
+
         /** The repeatable-mode ask (a Charm that "may choose the same mode more than once"): the model
          *  picks up to `num` indices and the SAME index may appear again. decideMany dedupes via a
          *  LinkedHashSet, so this keeps duplicates instead. Null on bridge-down, or a reply with fewer
          *  than `min` parseable picks, so the caller can take its deterministic legal default. */
-        private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num) {
+        private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num,
+                                                int[] pawCost, int paw) {
             clearLast();
             long t0 = System.currentTimeMillis();
-            if (rnd != null) {                       // RANDOM arm: `num` uniform picks WITH replacement
-                List<Integer> res = new ArrayList<>();
-                int n = Math.max(1, Math.min(num, 8));
-                for (int i = 0; i < n; i++) res.add(rnd.nextInt(options.size()));
+            if (rnd != null) {                       // an arm: picks WITH replacement (PuzzleArms.repeatModes)
+                List<Integer> res = PuzzleArms.repeatModes(rnd, options.size(), min, num, pawCost, paw);
                 lastPicks = res;
                 List<String> picked = new ArrayList<>();
                 for (int i : res) picked.add(options.get(i));
@@ -2211,14 +2404,20 @@ public final class LlmSpikeGui {
                 return res;
             }
             String base = buildDecideManyPrompt(snapshot(), question, options, min, num, observer != null, null);
+            String overBudget = null;
             for (int attempt = 0; attempt < 2; attempt++) {
+                modesOverBudget = false;
                 String prompt = attempt == 0 ? base
+                        : overBudget != null ? base + "\n\n(" + overBudget + ")"
                         : base + "\n\n(Answer with ONE line only: PICKS: <" + min + " to " + num
                           + " numbers from the list; the same number may repeat>.)";
-                offerAnswer(b, AnswerTool.Spec.repeat(options.size(), min, num).labels(options));
+                offerAnswer(b, modesSpec(options, min, num, pawCost, paw, () -> modesOverBudget = true));
                 String reply = ask(b, prompt);
                 noteAnswerVia(attempt);
-                if (reply == null) return null;
+                if (reply == null) {
+                    if (!answerLost()) modesOverBudget = false;   // a dead bridge, not a refusal
+                    return null;
+                }
                 List<Integer> out = new ArrayList<>();
                 AnswerTool.Answer ta = toolAnswer();
                 if (ta != null) out.addAll(ta.zeroBased());
@@ -2230,6 +2429,14 @@ public final class LlmSpikeGui {
                         int idx = Integer.parseInt(m.group());
                         if (idx >= 1 && idx <= options.size()) out.add(idx - 1);
                     }
+                }
+                // A text answer past a pawprint charm's budget is not a legal choice: refused and asked again (#415).
+                int spent = pawCost == null ? 0 : pawprintsOf(out, pawCost);
+                if (out.size() >= min && pawCost != null && spent > paw) {   // paw is -1 for any other charm
+                    overBudget = "Refused: those modes total " + spent + " {P}; at most " + paw + " are allowed. Choose again.";
+                    modesOverBudget = true;
+                    p("[ROUTER] modes(repeat): over the {P} budget, " + spent + " of " + paw);
+                    continue;
                 }
                 if (out.size() >= min) {
                     lastPicks = out;
@@ -2309,6 +2516,47 @@ public final class LlmSpikeGui {
             return null;
         }
 
+        /** A pawprint charm's {P} budget ("choose up to five {P} worth of modes"), or -1 for any other modal ability.
+         *  Forge's engine does not check it, only its own controllers do (PlayerControllerHuman, CharmAi), so the seat
+         *  and the arms must (#415). */
+        static int pawprintBudget(SpellAbility sa) {
+            if (sa == null || !sa.hasParam("Pawprint")) return -1;
+            return forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("Pawprint"), sa);
+        }
+
+        /** Each mode's {P}, in the order of `possible` (0 for a mode with none). */
+        static int[] pawprints(List<AbilitySub> possible) {
+            int[] out = new int[possible.size()];
+            for (int i = 0; i < out.length; i++) {
+                AbilitySub ab = possible.get(i);
+                out[i] = ab.hasParam("Pawprint")
+                        ? forge.game.ability.AbilityUtils.calculateAmount(ab.getHostCard(), ab.getParam("Pawprint"), ab) : 0;
+            }
+            return out;
+        }
+
+        /** The fixed legal modes when the hook fails: within a pawprint charm's budget too (#415). */
+        static List<AbilitySub> budgetSafeDefault(SpellAbility sa, List<AbilitySub> possible, int min, int num,
+                                                  boolean allowRepeat) {
+            int paw;
+            int[] cost;
+            try {
+                paw = allowRepeat ? pawprintBudget(sa) : -1;
+                cost = paw >= 0 ? pawprints(possible) : null;
+            } catch (Exception ignore) {
+                if (allowRepeat && sa != null && sa.hasParam("Pawprint")) return new ArrayList<>();   // unreadable: none
+                return defaultModes(possible, min, num, allowRepeat);
+            }
+            return defaultModes(possible, min, num, allowRepeat, cost, paw);
+        }
+
+        /** The {P} the picked modes total. */
+        static int pawprintsOf(List<Integer> picks, int[] cost) {
+            int total = 0;
+            for (int i : picks) total += cost[i];
+            return total;
+        }
+
         /** `n` copies of one mode: a forced single mode under allowRepeat ("choose three, you may
          *  choose the same mode more than once") is that mode three times. */
         private static List<AbilitySub> repeated(AbilitySub sub, int n) {
@@ -2321,7 +2569,25 @@ public final class LlmSpikeGui {
          *  `min` distinct modes; with it, distinct first and then repeats of the first mode when the
          *  count exceeds the menu (legal only because allowRepeat permits it). */
         private static List<AbilitySub> defaultModes(List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
+            return defaultModes(possible, min, num, allowRepeat, null, -1);
+        }
+
+        /** As above; with a {P} budget (a pawprint charm, #415): the fewest modes allowed (none for every pawprint card,
+         *  the do-nothing option, docs/STANDARDS.md section 8), taken in order while they fit: legal. */
+        private static List<AbilitySub> defaultModes(List<AbilitySub> possible, int min, int num, boolean allowRepeat,
+                                                     int[] cost, int budget) {
             List<AbilitySub> out = new ArrayList<>();
+            if (allowRepeat && cost != null && budget >= 0) {
+                int left = budget, want = Math.max(0, min);
+                for (int i = 0; i < possible.size() && out.size() < want; i++) {
+                    while (cost[i] <= left && out.size() < want) {
+                        out.add(possible.get(i));
+                        left -= cost[i];
+                        if (cost[i] == 0) break;
+                    }
+                }
+                return out;
+            }
             if (!allowRepeat) {
                 for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) out.add(possible.get(i));
                 return out;
@@ -2369,7 +2635,7 @@ public final class LlmSpikeGui {
          *  clears and refills the AI memory the real payment is using (PAYS_TAP_COST): the second Lotus Petal was
          *  then skipped and Ad Nauseam's last {1} went unpaid (runs/c3/ant-storm-default T7). The memory is put
          *  back as it was. */
-        private String snapshot() {
+        String snapshot() {
             if (!payingForReal) return renderSnapshot();
             java.util.Map<AiCardMemory.MemorySet, java.util.List<Card>> mem = snapshotAiMemory();
             try { return renderSnapshot(); } finally { restoreAiMemory(mem); }
@@ -2392,6 +2658,7 @@ public final class LlmSpikeGui {
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
+                observer.setTrackOwnCards(tracksOwnCards(isPuzzleSolver(getLobbyPlayer())));
                 observer.setDeckLines(deckLines);
                 observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
@@ -3057,7 +3324,7 @@ public final class LlmSpikeGui {
                 // opp life/board/untapped mana when deciding attacks, not just its own creature list.
                 List<String> labels = new ArrayList<>();
                 for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
-                p("[ROUTER] attackers: " + legal.size() + " can attack -> " + routeLabel(smart.getModel(), rnd != null));
+                if (!proposesCombat()) p("[ROUTER] attackers: " + legal.size() + " can attack -> " + routeLabel(smart.getModel(), rnd != null));
                 // Poison-aware lethal: a life-total-only hint actively misleads an infect/poison deck
                 // (SF-1: deepseek's Infect matchup vs an opponent that never dropped below 20 life the
                 // whole game — the real win condition was poison, invisible to the old hint). Compute
@@ -3067,6 +3334,11 @@ public final class LlmSpikeGui {
                 try { oppPoison = defender.getCounters(CounterEnumType.POISON); } catch (Exception ignore) { }
                 boolean anyInfect = false;
                 for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
+                if (proposesCombat()) {   // no outlook: it names which attackers could be blocked by what
+                    proposeAttackers(attacker, combat, legal, labels, shadowAtk,
+                            buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect, ""));
+                    return;
+                }
                 // Shared question template (single source; the ai-teacher seat rebuilds byte-identically).
                 String question = buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect,
                         attackersCeiling(legal, defender, combat));
@@ -3111,6 +3383,102 @@ public final class LlmSpikeGui {
                 // resolves combat from an empty set.
                 auto("attackers(err)->none");
             }
+        }
+
+        /** PROPOSE_NOTEBOOK: this seat's rules refusals in this game, oldest first, as {@link AnswerTool#notebookEntries}
+         *  wrote them; one controller plays one game. */
+        private final List<String> refusalNotebook = new ArrayList<>();
+
+        /** Notes the rules refusals the seat was told in the ask just made ({@code lastAnswer}) for the later decisions'
+         *  REFUSED EARLIER. */
+        private void noteRefusals(AnswerTool.Kind k, String where) {
+            if (AnswerTool.proposeNotebook() && lastAnswer != null)
+                refusalNotebook.addAll(AnswerTool.notebookEntries(lastAnswer.toldRefusals(), k, "turn " + safeTurn() + ", " + where));
+        }
+
+        /** REFUSED EARLIER for the next proposal decision: empty off PROPOSE_NOTEBOOK and before any refusal. */
+        private String refusedEarlier() { return AnswerTool.notebookSection(refusalNotebook); }
+
+        /** PROPOSE_ACTIONS on a seat that answers by call: the attack and the blocks are proposed, not picked. The windows
+         *  asked are the menu's (a seat with no creature that can attack, or none that can block, is not asked). */
+        private boolean proposesCombat() { return AnswerTool.proposeActions() && observer != null && answerToolFor(smart); }
+
+        /** The declare-attackers decision's text in place of the numbered creatures (PROPOSE_ACTIONS). */
+        static final String PROPOSE_ATTACK_PROMPT = "You are not shown which creatures can attack. Propose your attack: each "
+                + "creature that attacks, by handle, and what it attacks (the opponent, or a planeswalker or battle). The rules "
+                + "engine checks the whole attack before anything happens.\n";
+        /** The declare-blockers decision's text in place of the blocker list (PROPOSE_ACTIONS). */
+        static final String PROPOSE_BLOCK_PROMPT = "You are not shown which creatures can block. Propose your blocks: each "
+                + "blocker, by handle, and the attacker it blocks. Weigh your life total vs losing blockers. The rules engine "
+                + "checks the blocks before anything happens.\n";
+
+        /** PROPOSE_ACTIONS: the attack is proposed by handle and checked by the engine ({@link #attackProposalError}) in one
+         *  ask of {@link AnswerTool#MAX_INVALID_PROPOSALS} tries. Lost, no creature attacks (or the engine's legal declaration
+         *  when attacking with none breaks a requirement, as on the menu), never Forge's AI. */
+        private void proposeAttackers(Player attacker, Combat combat, CardCollection legal, List<String> labels,
+                                      Integer shadow, String question) {
+            String prompt = snapshot() + refusedEarlier() + "\nPRIORITY: you\nDECISION: " + question + "\n" + PROPOSE_ATTACK_PROMPT;
+            Map<Card, GameEntity> declared = new java.util.LinkedHashMap<>();
+            AnswerTool.Spec spec = AnswerTool.Spec.attackProposal(labels).check(a -> {
+                String err = attackProposalError(a.declared, attacker, combat, declared);
+                if (err == null) {
+                    a.options = new ArrayList<>();
+                    for (Card c : declared.keySet()) { int i = legal.indexOf(c); if (i >= 0) a.options.add(i + 1); }
+                }
+                return err;
+            });
+            p("[ROUTER] attackers: proposed (" + legal.size() + " could attack) -> " + routeLabel(smart.getModel(), false));
+            offerAnswer(smart, spec);
+            String reply = ask(smart, prompt);
+            noteAnswerVia(0);
+            if (lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, AnswerTool.DECLARE_ATTACKERS));
+            noteRefusals(AnswerTool.Kind.ATTACK_PROPOSAL, "declare attackers");
+            AnswerTool.Answer ta = toolAnswer();
+            if (ta == null) {
+                String why = answerLost() || reply != null ? "unparsed" : "bridge-down";
+                if (!makeAttackLegal(combat, why)) auto("attackers(" + why + ")->none");
+                return;
+            }
+            for (Map.Entry<Card, GameEntity> e : declared.entrySet()) combat.addAttacker(e.getKey(), e.getValue());
+            lastShadowChoice = shadow;
+            lastPicks = ta.zeroBased();
+            evalDec("attackers", legal.size(), declared.size(), tierOf(true), 0, null, labels);
+            p("[ROUTER] attackers: " + AnswerTool.renderDeclared(ta.declared, true));
+            formBands(combat);
+        }
+
+        /** PROPOSE_ACTIONS: the blocks are proposed by handle and checked by the engine ({@link #blockProposalError}) in one
+         *  ask of {@link AnswerTool#MAX_INVALID_PROPOSALS} tries. Lost, the fixed fallback ({@link #fallbackBlocks}: none, or
+         *  the smallest legal set when a requirement forbids none), never Forge's AI. */
+        private void proposeBlockers(Player defender, Combat combat, String incoming, List<String> blkLabels, List<String> atkLabels,
+                                     List<Card> blkList, List<Card> atkList, Integer shadow) {
+            String prompt = snapshot() + refusedEarlier() + "\nDECISION: COMBAT — declare blockers. Incoming: " + incoming + ". " + PROPOSE_BLOCK_PROMPT;
+            List<Card[]> declared = new ArrayList<>();
+            AnswerTool.Spec spec = AnswerTool.Spec.blockProposal(blkLabels, atkLabels).check(a -> {
+                String err = blockProposalError(a.declared, defender, combat, declared);
+                if (err == null) {
+                    a.blocks = new ArrayList<>();
+                    for (Card[] pr : declared)
+                        if (blkList.indexOf(pr[0]) >= 0 && atkList.indexOf(pr[1]) >= 0)
+                            a.blocks.add(new int[] {blkList.indexOf(pr[0]) + 1, atkList.indexOf(pr[1]) + 1});
+                }
+                return err;
+            });
+            p("[ROUTER] blockers: proposed (" + atkList.size() + " atk / " + blkList.size() + " could block) -> " + routeLabel(smart.getModel(), false));
+            offerAnswer(smart, spec);
+            String reply = ask(smart, prompt);
+            noteAnswerVia(0);
+            if (lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, AnswerTool.DECLARE_BLOCKERS));
+            noteRefusals(AnswerTool.Kind.BLOCK_PROPOSAL, "declare blockers");
+            AnswerTool.Answer ta = toolAnswer();
+            if (ta == null) {
+                auto("blockers(" + (answerLost() || reply != null ? "unparsed" : "bridge-down") + ")->" + fallbackBlocks(defender, combat));
+                return;
+            }
+            for (Card[] pr : declared) combat.addBlocker(pr[1], pr[0]);
+            lastShadowChoice = shadow;
+            evalDec("blockers", blkLabels.size(), declared.size(), tierOf(true), 0, null, blkLabels);
+            p("[ROUTER] blockers: " + (declared.isEmpty() ? "NONE" : AnswerTool.renderDeclared(ta.declared, false)));
         }
 
         /** The names of {@code cards} at {@code picks}, comma-separated, for the router log. */
@@ -3215,21 +3583,50 @@ public final class LlmSpikeGui {
         }
 
         /** Splice onto Arcane (CR 702.47): which cards in hand are spliced onto the spell. Only splices the whole cast can
-         *  still pay are offered: an unpayable one fails the cast. */
+         *  still pay are offered: an unpayable one fails the cast. Each is checked alone for the menu, and the set the
+         *  seat picks is checked together: two payable splices can cost more than the pool holds (#392: Glacial Ray and
+         *  Desperate Ritual onto Lava Spike, {2}{R}{R}{R} from {R:3}). Such a set, or one whose cast already failed in this
+         *  window, is asked once more, then the spell is cast with no splice (splicing is optional, CR 702.47a). A legality
+         *  fix, so under every profile. */
         @Override
         public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) {
             List<Card> payable = new ArrayList<>();
-            for (Card c : cards) {
-                try {
-                    SpellAbility with = sa.copy();
-                    forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
-                    with.setActivatingPlayer(getPlayer());
-                    if (legallyPayable(with, getPlayer(), false)) payable.add(c);
-                } catch (Exception ignore) { /* not offered */ }
-            }
+            for (Card c : cards) if (payableSpliced(spliced(sa, List.of(c)))) payable.add(c);
             if (payable.isEmpty()) { clearLast(); auto("splice(none payable)->none"); return payable; }
-            return pickCards("splice", "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
-                    + " effect, you pay its splice cost too, and it stays in your hand.", payable);
+            String q = "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
+                    + " effect, you pay its splice cost too, and it stays in your hand.";
+            String again = "";
+            for (int attempt = 0; attempt < 2; attempt++) {
+                List<Card> picked = pickCards("splice", q + again, payable);
+                if (picked.isEmpty()) return picked;
+                // A set whose cast already failed to pay in this window is not taken again: the plain cast stays offered
+                // (#392), so a set the check passes and the payment fails must not be retried without end.
+                boolean failed = failedInWindow.contains(spliceKey(failedPlayKey(sa), picked));
+                SpellAbility with = spliced(sa, picked);
+                if (!failed && (picked.size() < 2 || payableSpliced(with))) return picked;
+                String set = names(picked, false, 10), total = with == null ? "?" : String.valueOf(with.getPayCosts().getTotalMana());
+                // No cost in the seat's text: the printed total is before reductions, the check is after them.
+                again = " You chose " + set + ": " + (failed ? "the spell with them failed when you cast it in this window."
+                        : "the spell with all of them costs more than you can pay, so it would not be cast.")
+                        + " Choose a set you can pay for together, or none. Another set you cannot pay for casts it with no splice.";
+                p("[ROUTER] splice: " + set + (failed ? " failed to pay in this window" : " cannot be paid together (" + total + ")"));
+            }
+            auto("splice(unpayable set)->none");
+            return new ArrayList<>();
+        }
+
+        /** A copy of {@code sa} with {@code splices} spliced onto it, or null when the engine cannot build one. */
+        private SpellAbility spliced(SpellAbility sa, List<Card> splices) {
+            try {
+                SpellAbility with = sa.copy();
+                for (Card c : splices) forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
+                with.setActivatingPlayer(getPlayer());
+                return with;
+            } catch (Exception e) { return null; }
+        }
+
+        private boolean payableSpliced(SpellAbility with) {
+            try { return with != null && legallyPayable(with, getPlayer(), false); } catch (Exception e) { return false; }
         }
 
         /** A coin flip the seat calls (heads or tails), or, with Krark's Thumb, the result it keeps. */
@@ -3582,7 +3979,7 @@ public final class LlmSpikeGui {
             try {
                 CardCollection blocking = CardLists.filterControlledBy(combat.getAllBlockers(), defender);
                 int cap = forge.game.staticability.StaticAbilityBlockRestrict.blockRestrictNum(defender);
-                if (blocking.size() > cap) return "no more than " + cap + " creature" + (cap == 1 ? "" : "s") + " can block each combat.";
+                if (blocking.size() > cap) return blockCapWords(cap);
                 String err = CombatUtil.validateBlocks(combat, defender);
                 if (err == null || blocking.size() < cap || !namesANonBlocker(err, defender, blocking)) return err;
                 for (Card b : blocking) {
@@ -3839,13 +4236,17 @@ public final class LlmSpikeGui {
                 List<String> atkLabels = new ArrayList<>();
                 for (Card a : attackers) atkLabels.add(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")");
                 final List<Card> blkList = new ArrayList<>(blockers), atkList = new ArrayList<>(attackers);
+                if (proposesCombat()) { proposeBlockers(defender, combat, atk.toString(), blkLabels, atkLabels, blkList, atkList, shadowBlk); return; }
                 AnswerTool.Spec blockSpec = AnswerTool.Spec.blocks(blkLabels, atkLabels, blkLimits).check(ans -> {
                     List<Card[]> pairs = new ArrayList<>();
-                    for (int[] pr : ans.blocks) {
-                        if (!CombatUtil.canBlock(atkList.get(pr[1] - 1), blkList.get(pr[0] - 1), combat))
-                            return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
-                                    + pr[1] + " (" + atkLabels.get(pr[1] - 1) + ").";
-                        pairs.add(new Card[] {blkList.get(pr[0] - 1), atkList.get(pr[1] - 1)});
+                    for (int[] pr : ans.blocks) pairs.add(new Card[] {blkList.get(pr[0] - 1), atkList.get(pr[1] - 1)});
+                    String cap = blockCapError(defender, pairs);
+                    if (cap != null) return "these blocks are not legal together: " + cap;
+                    int bad = firstBlockNotAllowed(combat, pairs);   // each pair with the others in place (pr-review of #349)
+                    if (bad >= 0) {
+                        int[] pr = ans.blocks.get(bad);
+                        return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
+                                + pr[1] + " (" + atkLabels.get(pr[1] - 1) + ").";
                     }
                     String err = blocksError(combat, defender, pairs);
                     return err == null ? null : "these blocks are not legal together: " + err;
@@ -3890,22 +4291,39 @@ public final class LlmSpikeGui {
                     if (none != null) illegalBlocks(defender, combat, none);
                     return;
                 }
-                int assigned = 0;
-                List<String> dropped = new ArrayList<>();
+                // The pairs are gathered and judged as a set before any is added, as the tool's are: added one by one,
+                // the verdict depended on the order they were written in (a block beside a "must be blocked if able"
+                // attacker's blocker, written first, was refused; pr-review of #349).
+                List<Card[]> pairs = new ArrayList<>();
+                List<String> written = new ArrayList<>(), dropped = new ArrayList<>();
+                Map<Card, Integer> uses = new java.util.HashMap<>();
+                int able = blockers.size();
                 for (String[] pair : blockPairs(line, blockers, attackers)) {
                     Card b = matchCard(blockers, pair[0]);
                     Card a = matchCard(attackers, pair[1]);
-                    if (a != null && b != null && CombatUtil.canBlock(a, b, combat)) {
-                        combat.addBlocker(a, b); assigned++;
-                        if (!CombatUtil.canBlockMoreCreatures(b, combat.getAttackersBlockedBy(b))) blockers.remove(b);
-                    } else dropped.add(flat(pair[0]) + "->" + flat(pair[1]));
+                    String label = flat(pair[0]) + "->" + flat(pair[1]);
+                    // A block the blocker can never make (a flyer, "can't block") is not used and leaves its name for the
+                    // next pair (pr-review of #351): with one Bears, "Bears->Serra Angel, Bears->Goblin Raider" blocks the Raider.
+                    if (a == null || b == null || !CombatUtil.canBlock(a, b)) { dropped.add(label); continue; }
+                    pairs.add(new Card[] {b, a});
+                    written.add(label);
+                    // A blocker at its limit leaves the names matched, so a second "Grizzly Bears" names the other one.
+                    if (uses.merge(b, 1, Integer::sum) >= blockLimit(b)) blockers.remove(b);
                 }
+                String cap = blockCapError(defender, pairs);
+                if (cap == null) {
+                    for (int bad; (bad = firstBlockNotAllowed(combat, pairs)) >= 0; ) { pairs.remove(bad); dropped.add(written.remove(bad)); }
+                    for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
+                } else {
+                    dropped.addAll(written);   // over the cap nothing is declared: every pair is not used, and the re-ask says why
+                }
+                int assigned = cap == null ? pairs.size() : 0;
                 lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
                 // A pair that named no legal block used to vanish; the row says how many were not used.
-                evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0,
+                evalDec("blockers", able, assigned, "smart", 0,
                         dropped.isEmpty() ? null : "blockers(unparsed-pairs:" + dropped.size() + ")", blkLabels); // choice = # blocks
                 p("[ROUTER] blockers: assigned " + assigned + (dropped.isEmpty() ? "" : ", not used: " + String.join("; ", dropped)));
-                String err = blocksError(combat, defender, new ArrayList<>());
+                String err = cap != null ? cap : blocksError(combat, defender, new ArrayList<>());
                 if (err != null) illegalBlocks(defender, combat, err);
             } catch (Exception e) {
                 // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
@@ -3972,6 +4390,7 @@ public final class LlmSpikeGui {
                 List<SpellAbility> landPlays = po.landPlays;
                 List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
+                if (PROPOSE_AUDIT && observer != null) auditProposals(options, landPlays, landCards, me, ownMain);
                 // Nothing to do -> pass (deterministic; never Forge's AI).
                 // A window whose only plays float mana that changes nothing is passed as an empty one (asking it would
                 // make every window a model call). Floating that does change the game (a creature tapped, a trigger, a
@@ -4083,8 +4502,7 @@ public final class LlmSpikeGui {
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
                         + " textParses=" + textParsesOnToolAsks
                         + (textFormatLeaks > 0 ? " text_format_leaks=" + textFormatLeaks : "")
-                        + (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
-                        + (fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : ""));
+                        + latencyAverages(smart, fast));
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
                         + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> " + routeLabel(b.getModel(), rnd != null));
                 playDecisionsThisTurn++;
@@ -4198,11 +4616,22 @@ public final class LlmSpikeGui {
                     return "LOOKAHEAD (option " + which + "): " + preview;
                 };
                 AnswerTool.Answer playAnswer = null;  // the tool answer, when the play was answered by a call
+                // PROPOSE_ACTIONS: the menu is built as always but not shown; the seat proposes a play and the menu checks
+                // it (matchProposal). The windows asked are the same as with the menu, so the two arms see the same spots.
+                final boolean propose = AnswerTool.proposeActions() && observer != null && playTool;
+                final String shownMenu = propose ? PROPOSE_PROMPT : menuStr;
+                // REFUSED EARLIER as it stood before this decision: a retry ask is a new conversation, and this decision's
+                // own refusals are noted after it (the header says "earlier decisions").
+                final String notebook = refusedEarlier();
                 if (rnd != null) choice = 1 + PuzzleArms.pick(rnd, passIdx, true); // random arm: uniform incl. PASS (last)
+                // A note is said once, on the next menu: it stayed until the window changed, and a land drop keeps the
+                // window, so it was repeated on every menu after it (#392 review).
+                final String note = cancelNote;
+                cancelNote = null;
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
-                            ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
-                              + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
+                            ? (propose ? proposePromptPrefix(snapshot() + notebook, phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
+                              + (note != null && attempt == 0 ? "NOTE: " + note + "\n" : "")
                               + (!SKIP_HEUR && observer != null && attempt == 0 ? (playTool ? YIELD_TOOL_HINT : YIELD_HINT) : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             // The retry carries the WHOLE decision again. It used to be this one sentence
@@ -4210,15 +4639,22 @@ public final class LlmSpikeGui {
                             // above: in runs/lines/blocks the model spent both tools searching its archive
                             // for the question and the decision was lost (3 of 9 games, one a PASS on its
                             // own main phase). decideOne and decideMany already re-send the state.
-                            : playRetryPrompt(playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr), passIdx))
+                            : playRetryPrompt(playPromptPrefix(snapshot() + notebook, phh.getPhase(), ownMain, shownMenu), passIdx))
                             + lookCtx
                             + (lookaheadOn && attempt == 0 && !nativeSim
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()
                                  + ") resolves to; you will then be asked again with the result." : "");
-                    AnswerTool.Spec playSpec = AnswerTool.Spec.one(passIdx).labels(playLabels);
+                    AnswerTool.Spec playSpec = propose
+                            ? AnswerTool.Spec.action(passIdx).labels(playLabels).check(a -> {
+                                  int[] hit = {-1};
+                                  String err = matchProposal(a.action, options, landPlays, landCards, passIdx, me, ownMain, hit);
+                                  if (err == null) a.option = hit[0];
+                                  return err;
+                              })
+                            : AnswerTool.Spec.one(passIdx).labels(playLabels);
                     if (attempt == 0) {
                         playSpec.plan = askPlan;
-                        if (askPlan && PLAN_EXECUTE && !options.isEmpty()) {
+                        if (askPlan && PLAN_EXECUTE && !options.isEmpty() && !propose) {
                             playSpec.stepOptions = new ArrayList<>();
                             for (int i = 1; i <= options.size(); i++) playSpec.stepOptions.add(i);
                         }
@@ -4228,8 +4664,13 @@ public final class LlmSpikeGui {
                     }
                     playSpec.keep = observer != null && !options.isEmpty();
                     offerAnswer(b, playSpec);
-                    String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
+                    // The preview takes menu numbers, which this arm does not show: no preview under it (run_batch refuses
+                    // --lookahead with --propose-actions).
+                    String reply = ask(b, prompt, nativeSim && attempt == 0 && !propose ? simulateTool : null);
                     noteAnswerVia(attempt);
+                    if (propose && lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, "action"));
+                    if (propose) noteRefusals(AnswerTool.Kind.ACTION, "priority (" + phh.getPhase()
+                            + (ownMain ? ", your main phase" : ", instant-speed window") + ")");
                     if (answerLost()) break;     // two invalid replies: PASS below, recorded as play(unparsed)
                     AnswerTool.Answer ta = toolAnswer();
                     if (ta != null) {            // the notes are fields of the answer; nothing is read from prose
@@ -4731,6 +5172,13 @@ public final class LlmSpikeGui {
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
         private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false, false); }
 
+        /** Whether {@code sa}, part of {@code root}, takes no target at the X announced: "X target creatures" at X=0
+         *  (Rot-Curse Rakshasa's renew; a target set anyway made the stack refuse the paid play, issue #380). An
+         *  unannounced X is not read, and a fixed count of targets (Banefire's one) is kept at any X. */
+        static boolean noTargetAtX(SpellAbility root, SpellAbility sa) {
+            return root.getXManaCostPaid() != null && sa.getMaxTargets() < 1;
+        }
+
         /** The `simulate` call of a target choice: the play ({@code root}) previewed with {@code sa} aimed at the
          *  numbered candidate (runs/loop/g03 asked for it twice while aiming Wasteland). Null where the seat has no
          *  native preview. */
@@ -4762,6 +5210,11 @@ public final class LlmSpikeGui {
         /** {@code play}: a play from the seat's priority menu, which a target preview can replay on a copy (a
          *  trigger cannot: runs/loop/g04 T5 previewed a cycling trigger's target and got "unavailable"). */
         private boolean ensureTargetsSet(SpellAbility root, boolean cancellable, boolean play) {
+            // A proposed target is for the play it was checked with, consumed here whatever path the loop takes: left
+            // pending, a later trigger's or copy's target would be set from it unasked (pr-review #342). Off the play
+            // path it is dropped, and a target ask with its list follows instead.
+            Object proposed = play ? proposedTarget : null;
+            proposedTarget = null;
             for (SpellAbility sa = root; sa != null; sa = sa.getSubAbility()) {
                 clearLast(); // per-ability: a single-candidate auto-target must not inherit a prior ability's prompt
                 try {
@@ -4778,10 +5231,24 @@ public final class LlmSpikeGui {
                         if (dt <= 0) continue;
                     }
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
+                    if (noTargetAtX(root, sa)) continue;
                     TargetRestrictions tr = sa.getTargetRestrictions();
                     if (tr == null) continue;
                     List<forge.game.GameObject> cands = targetCandidates(sa, tr);
                     if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
+                    // PROPOSE_ACTIONS: the target the accepted proposal named, checked with it (proposalTarget); still
+                    // legal after X and costs, it is set without a list being shown.
+                    if (proposed != null) {
+                        Object want = proposed;
+                        proposed = null;
+                        if (sa.getMaxTargets() <= 1 && !sa.isDividedAsYouChoose() && cands.contains(want)) {
+                            sa.resetTargets();
+                            sa.getTargets().add((forge.game.GameObject) want);
+                            p("[ROUTER] target (proposed): " + targetLabel((forge.game.GameObject) want));
+                            continue;
+                        }
+                        p("[ROUTER] target (proposed) no longer legal after X and costs -> asked");
+                    }
                     if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) {
                         List<String> many = new ArrayList<>();
                         for (forge.game.GameObject ge : cands) many.add(targetLabel(ge));
@@ -5147,6 +5614,10 @@ public final class LlmSpikeGui {
          *  other cost part to the engine's own decision. The cost is read AFTER optional keyword costs
          *  are added, so a sacrifice that arrives that way (Casualty) is covered too. Only an ability
          *  that defers targeting to another player stays on the inherited path.
+         *  It returns true on every branch, also when nothing was played, as Forge's AI controller does. The
+         *  engine's priority loop asks the seat again either way; true restarts the round of passes from the seat
+         *  (PhaseHandler), so false would be an engine-facing change. Whether the play was made is read from
+         *  {@link #playsNotMade()} and the game, never from this value (issue #380; docs/STANDARDS.md section 5).
          *  RE-DIFF against {@code handlePlayingSpellAbility} on every engine re-pin (ENGINE-PIN.md). */
         @Override
         public boolean playChosenSpellAbility(SpellAbility sa) {
@@ -5169,7 +5640,7 @@ public final class LlmSpikeGui {
                 return played;
             }
 
-            final String chosenKey = failedPlayKey(sa);
+            String chosenKey = failedPlayKey(sa);
             final Player ai = getPlayer();
             final Card source = sa.getHostCard();
             final Game game = source.getGame();
@@ -5183,9 +5654,11 @@ public final class LlmSpikeGui {
                 sa = forge.game.ability.AbilityUtils.addSpliceEffects(sa);
                 // A spliced spell is a new copy with the spliced effects at its end: its targets are the seat's again,
                 // all of them (the copied routine asked Forge's AI whether to go on, and dropped the play when it said no).
-                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
+                if (hasSplices(sa)) {
                     sa.resetTargets();
                     ensureTargetsSet(sa);
+                    // A failure of the spliced spell is that set's, not the card's: the plain cast stays offered (#392).
+                    chosenKey = spliceKey(chosenKey, sa.getSplicedCards());
                 }
                 sa.setHostCard(game.getAction().moveToStack(source, sa));
             }
@@ -5229,7 +5702,7 @@ public final class LlmSpikeGui {
                     return true;
                 }
                 playSeen(sa, hz);
-                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
+                if (hasSplices(sa))
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
                 return true;
             }
@@ -5245,6 +5718,16 @@ public final class LlmSpikeGui {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
                 playsNotMade++;
+                // The seat is told, as after a cancel: a play that silently did not happen read as made (#392). New seat
+                // text, so not on a legacy profile (docs/STANDARDS.md section 4: legacy stays byte-identical).
+                if (observer != null) {
+                    boolean spliced = hasSplices(sa);
+                    cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa)
+                            + (spliced ? " with " + names(sa.getSplicedCards(), false, 10) + " spliced onto it" : "")
+                            + " and its cost could not be paid, so nothing was played." + (spliced
+                            ? " The spell with no splice, or with a set you can pay for, is still on the menu."
+                            : " It is not offered again in this priority window.");
+                }
             }
             costCancelled = false;
             sa.setSkip(true);
@@ -5291,10 +5774,11 @@ public final class LlmSpikeGui {
         /** #105: a MANA ability's tap-type cost (Heritage Druid: "Tap three untapped Elves you control")
          *  is paid inside {@code ComputerUtilMana} with a hard-coded {@code AiCostDecision}, so Forge's AI
          *  chose which Elves to tap. When the engine's own test payment of this cost plans to use such an
-         *  ability, the seat activates it first through {@link LlmCostDecision}, keeping out the other
-         *  sources that plan taps; the engine then pays from the floating mana, which it always spends
-         *  first. A source that also chooses a color stays the engine's, said as a fallback, as is any
-         *  such source the engine's real payment uses without the seat having activated it. A mana
+         *  ability, or, when that plan is null, the first activation {@code tapTypeStep} finds (#367), the
+         *  seat activates it first through {@link LlmCostDecision}, keeping out the other sources that
+         *  plan taps; the engine then pays from the floating mana, which it always spends first. A source
+         *  that also chooses a color stays the engine's, said as a fallback, as is any such source the
+         *  engine's real payment uses without the seat having activated it. A mana
          *  ability's own mana cost (a filter paid mid-payment) is left alone: a test payment there
          *  would clear what the outer payment has set aside. */
         @Override
@@ -5575,8 +6059,9 @@ public final class LlmSpikeGui {
             return String.join(", ", n);
         }
 
-        /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses; adds to
-         *  {@code said} each source whose engine activation it has already reported. */
+        /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses, or, when that plan is
+         *  null, the first activation {@code tapTypeStep} finds (#367); adds to {@code said} each source whose
+         *  engine activation it has already reported. */
         private void prepayTapTypeManaAbilities(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect, Set<Card> said) {
             final Player me = getPlayer();
             // Without such a source on the battlefield nothing runs, so every other payment is unchanged.
@@ -5587,43 +6072,60 @@ public final class LlmSpikeGui {
             // (said) is not tried again; a round that activates nothing ends it.
             for (int round = 0; round < 8; round++) {
                 CardCollection plan = ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect);
-                if (plan == null) return;
                 boolean activated = false;
-                for (Card host : plan) {
+                if (plan == null) {
+                    // The engine's greedy test found no payment; the one the menu's check found (#367) starts here.
+                    TapTypeStep step = tapTypeStep(neededMana(toPay, sa, effect), sa, me, effect);
+                    if (step == null || said.contains(step.ability.getHostCard())) return;
+                    // What the paid ability's own tap part named stays out of the Druid's pick too.
+                    List<Card> ownTapPart = tapPartHolds.get(sa);
+                    if (ownTapPart != null) step.reserved.addAll(ownTapPart);
+                    activated = prepayOne(step.ability, step.reserved, toPay, sa, effect, said);
+                }
+                else for (Card host : plan) {
                     if (said.contains(host)) continue;
                     for (SpellAbility ma : host.getManaAbilities()) {
                         if (!hasTapTypeCost(ma)) continue;
-                        ma.setActivatingPlayer(me);
-                        if (!playable(ma, me) || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
-                            said.add(host);
-                            costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
-                            break;
-                        }
                         CardCollection others = new CardCollection(plan);
                         others.remove(host);
-                        LlmCostDecision decision = new LlmCostDecision(me, ma, effect).forPayment(sa, others);
-                        forge.game.spellability.AbilityManaPart part = ma.getManaPart();
-                        if (part == null || part.isAnyMana() || part.isComboMana() || ma.getApi() == ApiType.ManaReflected) {
-                            // Said here, or not at all when its tap leaves no choice, so the check after
-                            // the payment does not report it.
-                            said.add(host);
-                            if (decision.hasTapChoice(ma.getPayCosts().getCostPartByType(forge.game.cost.CostTapType.class)))
-                                costDecisionFellBack("mana-tap-cost", host.getName() + " also chooses a color");
-                            break;
-                        }
-                        if (new CostPayment(ma.getPayCosts(), ma).payComputerCosts(decision)) {
-                            getGame().getStack().addAndUnfreeze(ma);
-                            activated = true;
-                            p("[ROUTER] mana-tap-cost: activated " + host.getName() + " before paying " + toPay);
-                        } else {
-                            said.add(host);
-                            costDecisionFellBack("mana-tap-cost", host.getName() + " payment refused");
-                        }
+                        activated |= prepayOne(ma, others, toPay, sa, effect, said);
                         break;
                     }
                 }
                 if (!activated) return;
             }
+        }
+
+        /** Activates tap-type mana ability {@code ma} for {@code sa}'s payment, its tap part keeping {@code others}
+         *  out; whether it was. A source that cannot be activated so is added to {@code said}, with its reason. */
+        private boolean prepayOne(SpellAbility ma, CardCollection others, forge.card.mana.ManaCost toPay, SpellAbility sa,
+                boolean effect, Set<Card> said) {
+            final Player me = getPlayer();
+            Card host = ma.getHostCard();
+            ma.setActivatingPlayer(me);
+            if (!playable(ma, me) || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
+                said.add(host);
+                costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
+                return false;
+            }
+            LlmCostDecision decision = new LlmCostDecision(me, ma, effect).forPayment(sa, others);
+            forge.game.spellability.AbilityManaPart part = ma.getManaPart();
+            if (part == null || part.isAnyMana() || part.isComboMana() || ma.getApi() == ApiType.ManaReflected) {
+                // Said here, or not at all when its tap leaves no choice, so the check after
+                // the payment does not report it.
+                said.add(host);
+                if (decision.hasTapChoice(ma.getPayCosts().getCostPartByType(forge.game.cost.CostTapType.class)))
+                    costDecisionFellBack("mana-tap-cost", host.getName() + " also chooses a color");
+                return false;
+            }
+            if (new CostPayment(ma.getPayCosts(), ma).payComputerCosts(decision)) {
+                getGame().getStack().addAndUnfreeze(ma);
+                p("[ROUTER] mana-tap-cost: activated " + host.getName() + " before paying " + toPay);
+                return true;
+            }
+            said.add(host);
+            costDecisionFellBack("mana-tap-cost", host.getName() + " payment refused");
+            return false;
         }
 
         /** {@code toPay} as the real payment counts it (ComputerUtilMana.calculateManaCost with
@@ -6758,23 +7260,30 @@ public final class LlmSpikeGui {
                     num = most;
                 }
                 if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return repeated(possible.get(0), Math.max(min, Math.min(num, 1))); } // forced
+                final int paw = allowRepeat ? pawprintBudget(sa) : -1;
+                final int[] pawCost = paw >= 0 ? pawprints(possible) : null;
                 // No budget: deterministic legal modes (distinct first, then repeats), never Forge AI.
                 if (!smartOk()) {
-                    List<AbilitySub> defPick = defaultModes(possible, min, num, allowRepeat);
+                    List<AbilitySub> defPick = defaultModes(possible, min, num, allowRepeat, pawCost, paw);
                     auto("modes(no-budget)->first" + defPick.size());
                     return defPick;
                 }
                 List<String> labels = new ArrayList<>();
                 String host = sa.getHostCard() == null ? "" : safeName(sa.getHostCard());
-                for (AbilitySub ab : possible)
+                for (int mi = 0; mi < possible.size(); mi++) {
+                    AbilitySub ab = possible.get(mi);
                     labels.add((ab.hasParam("ModeCost") ? "+ " + costText(new Cost(ab.getParam("ModeCost"), false).toSimpleString()) + " — " : "")
+                            + (pawCost != null ? "{P}".repeat(pawCost[mi]) + " — " : "")
                             + (observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription())));
+                }
                 if (allowRepeat) {
                     List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
-                            + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
+                            + " (you may choose the same mode more than once"
+                            + (paw >= 0 ? "; the modes' {P} may total at most " + paw : "") + ").", labels, Math.max(0, min), num,
+                            pawCost, paw);
                     if (rp == null || rp.size() < min) {
-                        List<AbilitySub> defPick = defaultModes(possible, min, num, true);
-                        auto("modes(repeat,unparsed)->first" + defPick.size());
+                        List<AbilitySub> defPick = defaultModes(possible, min, num, true, pawCost, paw);
+                        auto((modesOverBudget ? "modes(repeat,over-budget)->" : "modes(repeat,unparsed)->first") + defPick.size());
                         return defPick;
                     }
                     List<AbilitySub> out = new ArrayList<>();
@@ -6805,7 +7314,7 @@ public final class LlmSpikeGui {
                 p("[ROUTER] modes: " + log);
                 return out;
             } catch (Exception e) {
-                List<AbilitySub> defPick = possible == null ? new ArrayList<>() : defaultModes(possible, min, num, allowRepeat);
+                List<AbilitySub> defPick = possible == null ? new ArrayList<>() : budgetSafeDefault(sa, possible, min, num, allowRepeat);
                 auto("modes(err)->first" + defPick.size());
                 return defPick;
             }
@@ -8209,8 +8718,10 @@ public final class LlmSpikeGui {
                 Integer routing1 = b.getRoutingRefusals();
                 if (routing0 != null && routing1 != null && routing1 > routing0) lostToRouting++;
                 consecutiveBridgeFailures++;
+                if (b.lastFailureWasTransport()) { bridgeDown.merge(seat, 1, Integer::sum); lostToTransport++; }
                 if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
+                    breakerTrips.merge(seat, 1, Integer::sum);
                     p("[CIRCUIT-BREAKER] " + consecutiveBridgeFailures + " consecutive bridge failures on "
                             + b.getLabel() + " -> deterministic fallback in effect until it recovers");
                 }
@@ -9077,13 +9588,162 @@ public final class LlmSpikeGui {
             try { return check.getAsBoolean(); } finally { sa.putParam(AI_PHYREXIAN_HINT, hint); }
         }
         static boolean seatCanPay(SpellAbility sa, Player p, int extra, boolean effect) {
-            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(sa, p, extra, effect));
+            return seatCanPay(sa.getPayCosts(), sa, p, extra, effect);
         }
         static boolean seatCanPay(Cost cost, SpellAbility sa, Player p, int extra, boolean effect) {
-            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, extra, effect));
+            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, extra, effect)
+                    || (hasTapTypeManaSource(p)
+                        && tapTypeStep(ComputerUtilMana.calculateManaCost(cost, sa, p, true, extra, effect), sa, p, effect) != null));
         }
         static boolean seatCanPay(forge.game.mana.ManaCostBeingPaid cost, SpellAbility sa, Player p, boolean effect) {
-            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, effect));
+            return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, effect)
+                    || (hasTapTypeManaSource(p) && tapTypeStep(cost, sa, p, effect) != null));
+        }
+
+        /** The first activation of a payment that starts with a "tap N untapped X you control" mana ability, which
+         *  Forge's greedy test payment skipped; null if none (#367; the board is in ProposeActionsTest). Each such
+         *  ability the seat's payment activates itself ({@code simulableTapPart}) is tried with each set of cards its
+         *  tap part may take, its mana spent on {@code need} and those cards tapped while the engine's test pays the
+         *  rest, up to {@link #TAP_TYPE_DEPTH} activations and {@link #TAP_TYPE_BUDGET} tests; every card is untapped
+         *  again before it returns. */
+        static TapTypeStep tapTypeStep(forge.game.mana.ManaCostBeingPaid need, SpellAbility sa, Player me, boolean effect) {
+            return tapTypeSearch(need, sa, me, effect, new int[] {TAP_TYPE_BUDGET}, TAP_TYPE_DEPTH);
+        }
+        static final int TAP_TYPE_DEPTH = 3, TAP_TYPE_BUDGET = 48;
+
+        /** A tap-type mana ability to activate first, and the cards the rest of the payment still taps (its tap part
+         *  must leave them alone). */
+        static final class TapTypeStep {
+            final SpellAbility ability;
+            final CardCollection taps = new CardCollection(), reserved = new CardCollection();
+            TapTypeStep(SpellAbility ability) { this.ability = ability; }
+        }
+
+        static boolean hasTapTypeManaSource(Player me) {
+            return me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getManaAbilities().anyMatch(ma ->
+                    ma.getPayCosts() != null && ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class)));
+        }
+
+        private static TapTypeStep tapTypeSearch(forge.game.mana.ManaCostBeingPaid need, SpellAbility sa, Player me,
+                boolean effect, int[] budget, int depth) {
+            if (depth <= 0) return null;
+            // A card the paid ability taps for its own {T} is never one of them, as in the engine's
+            // checkTapTypeCost (Elvish Lyrist's {G}, {T}: pr-review of #375).
+            Card ownTap = sa.getPayCosts() != null && sa.getPayCosts().hasTapCost() ? sa.getHostCard() : null;
+            for (Card host : new CardCollection(me.getCardsIn(ZoneType.Battlefield))) {
+                for (SpellAbility ma : host.getManaAbilities()) {
+                    forge.game.cost.CostTapType part = simulableTapPart(ma, sa, me, effect);
+                    if (part == null) continue;
+                    int n = part.getAbilityAmount(ma);
+                    CardCollection cands = CardLists.filter(CardLists.getValidCards(me.getCardsIn(ZoneType.Battlefield),
+                            part.getType().split(";"), me, host, ma), CardPredicates.CAN_TAP);
+                    if (!part.canTapSource) cands.remove(host);
+                    if (ownTap != null) cands.remove(ownTap);
+                    if (n <= 0 || cands.size() < n) continue;
+                    // Cards that make no mana of their own by tapping go first: tapping them costs the payment nothing.
+                    cands.sort(java.util.Comparator.comparingInt(c -> c.getManaAbilities().anyMatch(m ->
+                            m.getPayCosts() != null && m.getPayCosts().hasTapCost()) ? 1 : 0));
+                    forge.game.mana.ManaCostBeingPaid rest = new forge.game.mana.ManaCostBeingPaid(need);
+                    if (!spendPredicted(rest, ComputerUtilMana.predictMana(ma, me, nextShard(rest)), me)) continue;
+                    int[] idx = new int[n];
+                    for (int i = 0; i < n; i++) idx[i] = i;
+                    do {
+                        if (budget[0]-- <= 0) return null;
+                        TapTypeStep step = new TapTypeStep(ma);
+                        for (int i : idx) step.taps.add(cands.get(i));
+                        if (ma.getPayCosts().hasTapCost()) step.taps.add(host);
+                        for (Card c : step.taps) c.setTapped(true);
+                        try {
+                            if (rest.isPaid()) {
+                                // No test pays the rest, so PAYS_TAP_COST still names an earlier try's cards, which the
+                                // tap part's engine pick would avoid.
+                                AiCardMemory.clearMemorySet(me, AiCardMemory.MemorySet.PAYS_TAP_COST);
+                                if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
+                                continue;
+                            }
+                            if (ComputerUtilMana.canPayManaCost(rest, sa, me, effect)) {
+                                Set<Card> plan = AiCardMemory.getMemorySet(me, AiCardMemory.MemorySet.PAYS_TAP_COST);
+                                if (plan != null) step.reserved.addAll(plan);
+                                if (ownTapPartsPayable(sa, step.reserved, effect)) return step;
+                                step.reserved.clear();   // that plan leaves sa's own tap unpaid: look deeper
+                            }
+                            TapTypeStep next = tapTypeSearch(rest, sa, me, effect, budget, depth - 1);
+                            if (next != null) {
+                                step.reserved.addAll(next.reserved);
+                                step.reserved.addAll(next.taps);
+                                return step;
+                            }
+                        } finally {
+                            for (Card c : step.taps) c.setTapped(false);
+                        }
+                    } while (nextCombination(idx, cands.size()));
+                }
+            }
+            return null;
+        }
+
+        /** Whether {@code sa}'s own tap parts can still be paid beside a payment the search found: its taps are tapped
+         *  already, and {@code restTaps} (what the rest of the payment taps) is tapped for the check. Its {T} is not
+         *  asked: the real payment pays it before the mana (Cost.sort), so the host is tapped by then (Elvish Hunter,
+         *  pr-review of #375), and the search never takes it ({@code ownTap}). */
+        private static boolean ownTapPartsPayable(SpellAbility sa, java.util.Collection<Card> restTaps, boolean effect) {
+            Cost c = sa.getPayCosts();
+            if (c == null || !c.hasSpecificCostType(forge.game.cost.CostTapType.class)) return true;
+            List<Card> tapped = new ArrayList<>();
+            for (Card card : restTaps) if (!card.isTapped()) { card.setTapped(true); tapped.add(card); }
+            try {
+                for (forge.game.cost.CostPart part : c.getCostParts())
+                    if (part instanceof forge.game.cost.CostTapType && !part.canPay(sa, sa.getActivatingPlayer(), effect)) return false;
+                return true;
+            } finally { for (Card card : tapped) card.setTapped(false); }
+        }
+
+        /** {@code ma}'s tap part, when the search may try it: activatable now, a cost of that tap part and at most
+         *  {T}, mana of fixed colors {@code sa} may spend. */
+        private static forge.game.cost.CostTapType simulableTapPart(SpellAbility ma, SpellAbility sa, Player me, boolean effect) {
+            Cost c = ma.getPayCosts();
+            if (c == null || ma.getApi() == ApiType.ManaReflected) return null;
+            forge.game.cost.CostTapType tapPart = null;
+            for (forge.game.cost.CostPart part : c.getCostParts()) {
+                if (part instanceof forge.game.cost.CostTapType && tapPart == null) tapPart = (forge.game.cost.CostTapType) part;
+                else if (!(part instanceof forge.game.cost.CostTap)) return null;
+            }
+            if (tapPart == null || tapPart.getType().contains("+withTotalPowerGE") || tapPart.getType().contains("sharesCreatureTypeWith"))
+                return null;
+            forge.game.spellability.AbilityManaPart mana = ma.getManaPart();
+            if (mana == null || mana.isAnyMana() || mana.isComboMana() || !mana.meetsManaRestrictions(sa)) return null;
+            ma.setActivatingPlayer(me);
+            return playable(ma, me) && CostPayment.canPayAdditionalCosts(c, ma, effect) ? tapPart : null;
+        }
+
+        private static forge.card.mana.ManaCostShard nextShard(forge.game.mana.ManaCostBeingPaid cost) {
+            List<forge.card.mana.ManaCostShard> unpaid = cost.getUnpaidShards();
+            return unpaid.isEmpty() ? forge.card.mana.ManaCostShard.GENERIC : unpaid.get(0);
+        }
+
+        /** Spends {@code produced} ("G G G", as ComputerUtilMana.predictMana says it) on {@code cost}, as the engine's
+         *  test payment does; whether any of it was needed. */
+        private static boolean spendPredicted(forge.game.mana.ManaCostBeingPaid cost, String produced, Player me) {
+            boolean used = false;
+            for (String unit : produced.trim().split("\\s+")) {
+                if (unit.isEmpty()) continue;
+                if (unit.chars().allMatch(Character::isDigit)) {
+                    for (int i = Integer.parseInt(unit); i > 0; i--) used |= cost.ai_payMana("1", me.getManaPool());
+                } else {
+                    used |= cost.ai_payMana(forge.card.MagicColor.toShortString(unit), me.getManaPool());
+                }
+            }
+            return used;
+        }
+
+        /** The next {@code idx.length}-of-{@code n} combination, in lexicographic order; false after the last. */
+        private static boolean nextCombination(int[] idx, int n) {
+            int k = idx.length, i = k - 1;
+            while (i >= 0 && idx[i] == n - k + i) i--;
+            if (i < 0) return false;
+            idx[i]++;
+            for (int j = i + 1; j < k; j++) idx[j] = idx[j - 1] + 1;
+            return true;
         }
 
         /** Whether the engine allows paying {@code cost} now: its mana and every other part, by the engine's own tests
@@ -9128,6 +9788,832 @@ public final class LlmSpikeGui {
             catch (Exception e) { return false; }
         }
 
+        // ---------------- PROPOSE_ACTIONS: a proposed play, checked against the menu the seat is not shown ----------------
+
+        /** PROPOSE_AUDIT=1: at every play decision, each menu play is turned into the proposal the guide describes and
+         *  checked to land on that play ({@link #auditProposals}); a miss is logged "[PROPOSE-AUDIT] MISS". A checker
+         *  that refuses a legal play would score a seat down for the harness's fault (Jericho's valid-action oracle
+         *  has such false negatives). Diagnostic only, and a condition: it registers handles early, so what a seat reads may differ; the game line
+         *  stamps it (`propose_audit`), so an audited game never pools with a plain one. */
+        static final boolean PROPOSE_AUDIT = "1".equals(System.getenv("PROPOSE_AUDIT"));
+        int auditChecked, auditMissed;
+
+        /** The proposal for menu play {@code sa}, built from what the seat is shown (its handle, its ability's number in
+         *  YOUR ACTIVATED ABILITIES, the way it is cast), or null when the abilities list does not show it. */
+        AnswerTool.Proposal proposalFor(SpellAbility sa) {
+            Card c = sa.getHostCard();
+            observer.describe(c, false);
+            AnswerTool.Proposal p = new AnswerTool.Proposal();
+            p.card = observer.handleOf(c);
+            if (sa.isLandAbility()) { p.verb = "play_land"; return p; }
+            p.targets = firstTarget(sa);
+            if (sa.isSpell()) {
+                p.verb = "cast";
+                p.cost = castWay(sa);
+                if (!faceOf(sa).equals(c.getName())) p.face = faceOf(sa);
+                return p;
+            }
+            p.verb = "activate";
+            List<SpellAbility> abs = proposalAbilities(c);
+            int i = abs.indexOf(sa);
+            if (i < 0 && sa.getOriginalAbility() != null) i = abs.indexOf(sa.getOriginalAbility());
+            for (int j = 0; i < 0 && j < abs.size(); j++)
+                if (java.util.Objects.equals(abs.get(j).getDescription(), sa.getDescription())) i = j;
+            if (i < 0) return null;
+            p.ability = i + 1;
+            return p;
+        }
+
+        /** The first legal target of a play whose one target a proposal names ({@link #proposalTarget}), as the seat
+         *  would write it; null for any other play. */
+        List<String> firstTarget(SpellAbility play) {
+            SpellAbility part = singleTargetPart(play, getPlayer());
+            if (part == null) return null;
+            List<forge.game.GameObject> cands = targetCandidates(part, part.getTargetRestrictions());
+            if (cands.isEmpty()) return null;
+            forge.game.GameObject t = cands.get(0);
+            if (t instanceof Card) { observer.describe((Card) t, false); return List.of("@" + observer.handleOf((Card) t)); }
+            if (t instanceof Player) return List.of(t == getPlayer() ? "you" : "opponent");
+            return null;
+        }
+
+        /** {@link #PROPOSE_AUDIT}: every play on this menu, proposed as the seat would, must land on itself (or on a play
+         *  with the same label: a mana ability stands for every copy). */
+        void auditProposals(List<SpellAbility> options, List<SpellAbility> landPlays, List<Card> landCards, Player me, boolean ownMain) {
+            // matchProposal leaves the target of the last play it accepts pending for ensureTargetsSet: restored, or the
+            // seat's next targeted cast in a menu game takes the audit's target unasked (ProposeActionsTest).
+            Object pending = proposedTarget;
+            try { auditEach(options, landPlays, landCards, me, ownMain); }
+            finally { proposedTarget = pending; }
+        }
+
+        private void auditEach(List<SpellAbility> options, List<SpellAbility> landPlays, List<Card> landCards, Player me, boolean ownMain) {
+            List<SpellAbility> all = new ArrayList<>(options);
+            all.addAll(landPlays);
+            List<String> labels = playLabels(options, landCards);
+            int passIdx = 1 + all.size();
+            for (int i = 0; i < all.size(); i++) {
+                SpellAbility sa = all.get(i);
+                String why;
+                try {
+                    AnswerTool.Proposal p = proposalFor(sa);
+                    if (p == null) why = "not in YOUR ACTIVATED ABILITIES";
+                    else {
+                        int[] hit = {-1};
+                        // A copy: an accepted proposal of another land's copy takes that menu entry's place.
+                        String err = matchProposal(p, new ArrayList<>(options), landPlays, landCards, passIdx, me, ownMain, hit);
+                        SpellAbility got = hit[0] >= 1 && hit[0] <= all.size() ? all.get(hit[0] - 1) : null;
+                        // The same play: the same label, or a cast of the same card the same way (a may-play permission
+                        // listed twice: Armor of Thorns at sorcery speed, where its sacrifice does not apply, kw27).
+                        boolean same = hit[0] == i + 1 || got != null && (labels.get(hit[0] - 1).equals(labels.get(i))
+                                || got.isSpell() && sa.isSpell() && got.getHostCard() == sa.getHostCard()
+                                   && java.util.Objects.equals(castWay(got), castWay(sa)) && faceOf(got).equals(faceOf(sa)));
+                        why = err != null ? p.render() + " -> " + err
+                                : same ? null
+                                : p.render() + " -> option " + hit[0] + " (" + (hit[0] >= 1 && hit[0] <= labels.size() ? labels.get(hit[0] - 1) : "?") + ")";
+                    }
+                } catch (Exception e) { why = "error " + e; }
+                auditChecked++;
+                if (why != null) { auditMissed++; p("[PROPOSE-AUDIT] MISS " + labels.get(i) + " :: " + why); }
+            }
+            p("[PROPOSE-AUDIT] checked=" + auditChecked + " missed=" + auditMissed);
+        }
+
+        /** The play decision's text in place of the numbered menu (PROPOSE_ACTIONS). */
+        static final String PROPOSE_PROMPT = "You are not shown the legal plays. Propose ONE: play a land, cast a spell, activate "
+                + "an ability, or pass. The rules engine checks it before anything happens.\n";
+
+        /** The play prompt up to the reasoning tail, under PROPOSE_ACTIONS: the state and the decision, no menu. */
+        static String proposePromptPrefix(String snapshot, PhaseType phase, boolean ownMain) {
+            return snapshot + "\nDECISION: You have priority (" + phase
+                    + (ownMain ? ", your main phase" : ", instant-speed window") + "). " + PROPOSE_PROMPT;
+        }
+
+        /** The activated abilities a proposal numbers for {@code c}, in a fixed order: its non-mana abilities as its
+         *  current face lists them, then its mana abilities. SeatObservation's YOUR ACTIVATED ABILITIES shows this list,
+         *  and a proposed `ability` N is its Nth entry. */
+        static List<SpellAbility> proposalAbilities(Card c) {
+            List<SpellAbility> out = new ArrayList<>();
+            try {
+                // Activated abilities and the special actions a card offers from its zone (suspend, foretell, plot): the
+                // menu offers both as ACTIVATE, and the gauntlet audit found the special actions unproposable.
+                for (SpellAbility sa : c.getSpellAbilities())
+                    if (!sa.isSpell() && !sa.isLandAbility() && !sa.isManaAbility() && !sa.isTrigger()) out.add(sa);
+                for (SpellAbility sa : c.getManaAbilities()) out.add(sa);
+            } catch (Exception ignore) { /* a card the engine cannot list: none */ }
+            return out;
+        }
+
+        /** A land whose abilities only tap it for mana: its mana is spent through payment, so the abilities list leaves
+         *  it out (twenty lands would be twenty lines). Its abilities are still numbered and can still be proposed. */
+        static boolean onlyTapsForMana(Card c, List<SpellAbility> abs) {
+            if (!c.isLand()) return false;
+            for (SpellAbility sa : abs) {
+                if (!sa.isManaAbility() || sa.getPayCosts() == null) return false;
+                for (forge.game.cost.CostPart part : sa.getPayCosts().getCostParts())
+                    if (!(part instanceof forge.game.cost.CostTap)) return false;
+            }
+            return true;
+        }
+
+        /** An ability as the card states it: its cost and effect, the engine's placeholders and notes removed. */
+        static String abilityText(SpellAbility sa) {
+            String d = sa.getDescription();
+            if (d == null || d.isEmpty()) d = String.valueOf(sa);
+            d = SeatObservation.engineNotesOut(d, sa);
+            return named(d, sa.getHostCard()).replaceAll("\\s*\\[[A-Za-z ]+: [^\\]]*\\(\\d+\\)\\]", "").replaceAll("\\s+", " ").trim();
+        }
+
+        /** The way a menu cast pays, by the name a proposal's `cost` gives it: an alternative cost's name, an optional
+         *  cost's name, "alternative" for a "rather than pay this spell's mana cost" cast; null for the normal cast. */
+        static String castWay(SpellAbility sa) {
+            try {
+                if (sa.getAlternativeCost() != null) return altCostName(sa.getAlternativeCost());
+                // A prototype cast is a keyword's spell, basic to the engine (Arcane Proxy: PROPOSE_AUDIT, kw18).
+                if (sa.isKeyword(forge.game.keyword.Keyword.PROTOTYPE)) return "Prototype";
+                // A cast a card allows at instant speed (Armor of Thorns: "sacrifice it at the next cleanup step"),
+                // a may-play option with its own text (PROPOSE_AUDIT, kw27). A proposal names it "flash".
+                if (sa.getMayPlayOption() != null && sa.getMayPlay() != null && sa.getMayPlay().hasParam("MayPlayWithFlash"))
+                    return "flash";
+                List<String> names = new ArrayList<>();
+                for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts()) names.add(optionalCostName(o));
+                if (!names.isEmpty()) return String.join(", ", names);
+                return sa.isBasicSpell() ? null : "alternative";
+            } catch (Exception e) { return null; }
+        }
+
+        /** True when {@code cost} names no way to cast that the menu tells apart: a word for the normal cast ("normal",
+         *  "none") or an optional additional cost the card has (kicker, buyback, entwine), which the menu's normal cast
+         *  carries and the cast then asks about, as it does under the menu. Refusing it would call a legal cast a rules
+         *  error (pr-review #342). A cast the menu lists only with that cost still matches by its name. */
+        static boolean namesTheNormalCast(String cost, Card c, List<SpellAbility> options) {
+            String want = cost.toLowerCase(java.util.Locale.ROOT).trim();
+            if (want.isEmpty() || "normal".equals(want) || "none".equals(want)) return true;
+            for (SpellAbility o : options) if (o.isSpell() && o.getHostCard() == c && costMatches(o, cost)) return false;
+            try {
+                for (SpellAbility sa : c.getAllSpellAbilities())
+                    if (sa.isSpell())
+                        for (OptionalCostValue v : GameActionUtil.getOptionalCostValues(sa))
+                            if (optionalCostName(v.getType()).toLowerCase(java.util.Locale.ROOT).equals(want)) return true;
+            } catch (Exception ignore) { }
+            return false;
+        }
+
+        /** An optional cost's name as the card prints it ("Kicker", "Buyback"), without the engine's brackets. */
+        static String optionalCostName(forge.game.spellability.OptionalCost o) {
+            return o.getName().replaceAll("^\\((.*)\\)$", "$1");
+        }
+
+        static boolean costMatches(SpellAbility sa, String cost) {
+            if (cost == null) return true;
+            String way = castWay(sa);
+            if (way == null) return false;
+            String w = way.toLowerCase(java.util.Locale.ROOT), c = cost.toLowerCase(java.util.Locale.ROOT).trim();
+            // "alternative" is a "rather than pay this spell's mana cost" cast: a pitch spell or a named alternative cost,
+            // never a flash or prototype cast or an optional cost.
+            if ("alternative".equals(c)) return "alternative".equals(w) || sa.getAlternativeCost() != null;
+            // A cast with several optional costs is named by any one of them; a name never matches a longer one ("flash"
+            // is not "Flashback").
+            return w.equals(c) || java.util.Arrays.asList(w.split(", ")).contains(c);
+        }
+
+        /** The face or half a cast is of, by name (the card's own name for a one-faced card). */
+        static String faceOf(SpellAbility sa) {
+            try { if (sa.getCardState() != null && sa.getCardState().getName() != null) return sa.getCardState().getName(); } catch (Exception ignore) { }
+            return sa.getHostCard() == null ? "" : sa.getHostCard().getName();
+        }
+
+        static boolean sameAbility(SpellAbility o, SpellAbility want, Card c) {
+            if (o.isSpell() || o.getHostCard() != c) return false;
+            return o == want || o.getOriginalAbility() == want
+                    || java.util.Objects.equals(o.getDescription(), want.getDescription()) && o.isManaAbility() == want.isManaAbility();
+        }
+
+        private String refOf(Card c) { return observer == null ? safeName(c) : observer.shortRef(c); }
+
+        /** The target an accepted proposal named (a Card or Player), set by {@link #withTarget} and used by
+         *  ensureTargetsSet for the play's one targeting step. Null when none is pending. */
+        Object proposedTarget;
+
+        /** The proposal matched {@code play} (hit[0] set): its target is checked with it. A play with one targeting
+         *  step and one target, whose candidates are cards and players, must name it in `targets`; a wrong one is refused
+         *  for the rule it breaks ({@link #targetRejection}) and no list is shown. Any other play (modes, several targets,
+         *  divided amounts, a spell on the stack as the target) keeps its target ask with the candidates. Null when legal. */
+        private String withTarget(AnswerTool.Proposal pr, SpellAbility play, Player me, int[] hit) {
+            String err;
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            try { err = proposalTarget(pr, play, me); }
+            catch (Exception e) { err = null; proposedTarget = null; }   // cannot be checked: the target ask stays
+            finally { PRICING_FOR_SNAPSHOT = was; }
+            if (err != null) hit[0] = -1;
+            return err;
+        }
+
+        /** The one targeting step a proposal names its target for: a play with exactly one part that targets, one target
+         *  and no division, never a modal spell (its modes come first; their targets are asked after). Null for any
+         *  other play, which keeps its target ask. One rule for the checker and for the audit's proposals. */
+        private static SpellAbility singleTargetPart(SpellAbility play, Player me) {
+            if (play.getApi() == ApiType.Charm) return null;
+            SpellAbility part = null;
+            for (SpellAbility s = play; s != null; s = s.getSubAbility()) if (s.usesTargeting()) { if (part != null) return null; part = s; }
+            if (part == null || part.getMaxTargets() > 1 || part.isDividedAsYouChoose()) return null;
+            if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
+            return part.getTargetRestrictions() == null ? null : part;
+        }
+
+        private String proposalTarget(AnswerTool.Proposal pr, SpellAbility play, Player me) {
+            proposedTarget = null;
+            SpellAbility part = singleTargetPart(play, me);
+            if (part == null) return null;
+            TargetRestrictions tr = part.getTargetRestrictions();
+            List<forge.game.GameObject> cands = targetCandidates(part, tr);
+            for (forge.game.GameObject o : cands) if (!(o instanceof Card) && !(o instanceof Player)) return null;
+            String what = refOf(play.getHostCard());
+            if (pr.targets == null || pr.targets.isEmpty()) {
+                if (part.getMinTargets() == 0) return null;   // "up to one": no target is a legal choice
+                return "FORMAT: this play targets: give its target in `targets`, a handle such as \"@7\", or \"you\" or \"opponent\".";
+            }
+            if (pr.targets.size() > 1) return "FORMAT: this play has one target; give one in `targets`.";
+            String name = pr.targets.get(0);
+            Object t = targetNamed(name, me);
+            if (t == null) return "FORMAT: no object or player \"" + name + "\" is in view; give a handle such as \"@7\", or \"you\" or \"opponent\".";
+            if (!cands.contains(t)) return targetRejection(part, t, me, what);
+            proposedTarget = t;
+            return null;
+        }
+
+        /** A proposal's target by what it says: "@N" (a visible object), "you", "opponent" or a player's name. */
+        private Object targetNamed(String name, Player me) {
+            String n = name.trim();
+            java.util.regex.Matcher m = Pattern.compile("@\\s*(\\d+)").matcher(n);
+            if (m.find()) return observer == null ? null : observer.currentCard(Integer.parseInt(m.group(1)));
+            String low = n.toLowerCase(java.util.Locale.ROOT);
+            if (low.equals("you") || low.equals("me") || low.equals("myself") || n.equals(me.getName())) return me;
+            for (Player o : me.getGame().getPlayers())
+                if (o != me && (low.equals("opponent") || low.equals("the opponent") || n.equalsIgnoreCase(o.getName()))) return o;
+            return null;
+        }
+
+        /** Why {@code t} is not a legal target of {@code part}: the static ability that forbids it (hexproof, shroud,
+         *  protection, a Leyline), the zone, or the kind of object the card's text targets, which restates the
+         *  card, not the legal set. Always "ILLEGAL (target)". */
+        private String targetRejection(SpellAbility part, Object t, Player me, String what) {
+            String ref = t instanceof Card ? refOf((Card) t) : t == me ? "you" : "your opponent";
+            try {
+                forge.game.staticability.StaticAbility sta =
+                        forge.game.staticability.StaticAbilityCantTarget.cantTarget((forge.game.GameEntity) t, part);
+                if (sta != null) {
+                    String d = sta.toString();
+                    if (d == null || d.isEmpty()) d = sta.getParam("Description");
+                    d = d == null ? "" : SeatObservation.engineNotesOut(d, part).replaceAll("\\s*\\(.*$", "").trim();
+                    return "ILLEGAL (target): " + ref + " cannot be the target of " + what
+                            + (d.isEmpty() ? "." : " (" + named(d, sta.getHostCard()) + ").");
+                }
+            } catch (Exception ignore) { }
+            if (t instanceof Card) {
+                Card c = (Card) t;
+                List<ZoneType> zones = part.getTargetRestrictions().getZone();
+                if (c.getZone() != null && zones != null && !zones.contains(c.getZone().getZoneType()))
+                    return "ILLEGAL (target): " + ref + " is in " + c.getZone().getZoneType().name().toLowerCase(java.util.Locale.ROOT)
+                            + ", not a zone " + what + " targets in.";
+                if (c.hasKeyword(forge.game.keyword.Keyword.SHROUD))
+                    return "ILLEGAL (target): " + ref + " has shroud.";
+                if (c.hasKeyword(forge.game.keyword.Keyword.HEXPROOF) && c.getController() != me)
+                    return "ILLEGAL (target): " + ref + " has hexproof.";
+            }
+            return "ILLEGAL (target): " + ref + " is not something " + what + " can target (its text says what it targets).";
+        }
+
+        /** PROPOSE_ACTIONS: the 1-based menu number {@code pr} names on this decision's hidden menu, in {@code hit[0]}, and
+         *  null; or the rejection sent back. The menu is the oracle: a proposal is accepted exactly when it names a play
+         *  the menu would have offered, so the golden checks that cover the menu cover this arm. A miss is explained by the
+         *  first engine check the play fails ({@link #proposalRejection}): its rule category, never the legal plays.
+         *  A land's mana proposed from a copy the menu does not list replaces that name's entry in {@code options}. */
+        String matchProposal(AnswerTool.Proposal pr, List<SpellAbility> options, List<SpellAbility> landPlays,
+                             List<Card> landCards, int passIdx, Player me, boolean ownMain, int[] hit) {
+            proposedTarget = null;
+            if ("pass".equals(pr.verb)) { hit[0] = passIdx; return null; }
+            Card c = observer == null ? null : observer.currentCard(pr.card);
+            if (c == null) return notInView(pr.card);
+            if ("play_land".equals(pr.verb)) {
+                // One land per name is on the menu: a copy in the same zone stands for this one.
+                for (int i = 0; i < landCards.size(); i++) {
+                    Card lc = landCards.get(i);
+                    if (lc == c || lc.getName().equals(c.getName()) && lc.getZone() == c.getZone()) { hit[0] = 1 + options.size() + i; return null; }
+                }
+                return proposalRejection(pr, c, null, me, ownMain);
+            }
+            if ("activate".equals(pr.verb)) {
+                List<SpellAbility> abs = proposalAbilities(c);
+                if (abs.isEmpty()) return "ILLEGAL (type): " + refOf(c) + " has no activated ability.";
+                int n = pr.ability == null ? 1 : pr.ability;
+                if (pr.ability == null && abs.size() > 1)
+                    return "FORMAT: " + refOf(c) + " has " + abs.size() + " activated abilities; say which with `ability`, its number in YOUR ACTIVATED ABILITIES.";
+                if (n > abs.size())
+                    return "FORMAT: " + refOf(c) + " has " + abs.size() + (abs.size() == 1 ? " activated ability" : " activated abilities") + "; there is no ability " + n + ".";
+                SpellAbility want = abs.get(n - 1);
+                for (int i = 0; i < options.size(); i++) if (sameAbility(options.get(i), want, c)) { hit[0] = 1 + i; return withTarget(pr, options.get(i), me, hit); }
+                // A mana ability is on the menu once per card name and ability. Another copy's entry shows the play is
+                // allowed, when this copy could be activated itself (a tapped copy, or one in the hand, is refused for its
+                // own rule), and this copy's ability takes the entry's place: copies differ (an aura such as Utopia
+                // Sprawl, an awakened land), and the copy proposed is the one tapped (pr-review of #360).
+                if (want.isManaAbility() && c.getController() == me && playable(want, me))
+                    for (int i = 0; i < options.size(); i++) {
+                        SpellAbility o = options.get(i);
+                        if (o.isManaAbility() && o.getHostCard() != null && o.getHostCard().getName().equals(c.getName())
+                                && java.util.Objects.equals(o.getDescription(), want.getDescription())) {
+                            want.setActivatingPlayer(me);
+                            options.set(i, want);
+                            hit[0] = 1 + i;
+                            return withTarget(pr, want, me, hit);
+                        }
+                    }
+                return proposalRejection(pr, c, want, me, ownMain);
+            }
+            // cast
+            if (pr.cost != null && namesTheNormalCast(pr.cost, c, options)) { pr = pr.copy(); pr.cost = null; }
+            List<Integer> hits = new ArrayList<>();
+            for (int i = 0; i < options.size(); i++) {
+                SpellAbility o = options.get(i);
+                if (o.isSpell() && o.getHostCard() == c && (pr.face == null || faceOf(o).equalsIgnoreCase(pr.face.trim()))
+                        && costMatches(o, pr.cost)) hits.add(i);
+            }
+            if (hits.size() > 1 && pr.face == null) {
+                // No face named: the card's own (front) face.
+                List<Integer> front = new ArrayList<>();
+                for (int i : hits) if (faceOf(options.get(i)).equals(c.getName())) front.add(i);
+                if (!front.isEmpty()) hits = front;
+            }
+            if (!hits.isEmpty() && pr.cost == null) {
+                // No cost named: the normal cast, when it is legal; otherwise the seat names the way it means, even when
+                // that way is the only cast on the menu (Evoke, a pitch spell): the harness never picks it (#342).
+                List<Integer> normal = new ArrayList<>();
+                for (int i : hits) if (castWay(options.get(i)) == null) normal.add(i);
+                if (normal.isEmpty())
+                    return "FORMAT: say which way you cast " + refOf(c) + " with `cost` (the name the card prints, or \"alternative\").";
+                hits = normal;
+            }
+            if (!hits.isEmpty()) { hit[0] = 1 + hits.get(0); return withTarget(pr, options.get(hits.get(0)), me, hit); }
+            return proposalRejection(pr, c, null, me, ownMain);
+        }
+
+        /** Why the engine does not allow {@code pr} now: the first of its checks the play fails, as
+         *  "ILLEGAL (category): one sentence". The categories are fixed words (timing, cost, zone, target, land drop,
+         *  control, type, restriction) so a run can count them. The sentence says which rule, never what is legal
+         *  instead (a detailed error becomes a hidden menu; Kaggle Game Arena returns only "illegal"). Pricing runs with
+         *  PRICING_FOR_SNAPSHOT set, so no check can reach a model ask. */
+        String proposalRejection(AnswerTool.Proposal pr, Card c, SpellAbility want, Player me, boolean ownMain) {
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            // rejection sets the seat as the activator to ask the engine; the ability keeps the one it had (an
+            // opponent's ability is never left with the seat as its activator).
+            Player activator = want == null ? null : want.getActivatingPlayer();
+            try { return rejection(pr, c, want, me, ownMain); }
+            catch (Exception e) { return "ILLEGAL (restriction): the rules do not allow this play now."; }
+            finally {
+                PRICING_FOR_SNAPSHOT = was;
+                if (want != null) want.setActivatingPlayer(activator);
+            }
+        }
+
+        private String rejection(AnswerTool.Proposal pr, Card c, SpellAbility want, Player me, boolean ownMain) {
+            String r = refOf(c);
+            Game game = me.getGame();
+            ZoneType zone = c.getZone() == null ? null : c.getZone().getZoneType();
+            String zoneWord = zone == null ? "that zone" : "your " + zone.name().toLowerCase(java.util.Locale.ROOT);
+            boolean emptyStack = game.getStack().isEmpty();
+            if ("play_land".equals(pr.verb)) {
+                if (!c.isLand()) return "ILLEGAL (type): " + r + " is not a land; only a land is played, and a spell is cast.";
+                if (zone == ZoneType.Battlefield) return "ILLEGAL (zone): " + r + " is already on the battlefield.";
+                if (c.getOwner() != me) return "ILLEGAL (control): " + r + " is not yours to play.";
+                if (!ownMain || !emptyStack) return "ILLEGAL (timing): a land is played only in your own main phase, with an empty stack.";
+                if (me.getLandsPlayedThisTurn() >= me.getMaxLandPlays())
+                    return "ILLEGAL (land drop): you have played " + me.getLandsPlayedThisTurn() + (me.getLandsPlayedThisTurn() == 1 ? " land" : " lands")
+                            + " this turn, as many as you may.";
+                if (zone != ZoneType.Hand) return "ILLEGAL (zone): a land is played from your hand; " + r + " is in " + zoneWord + ".";
+                return "ILLEGAL (restriction): a rule or an effect does not allow playing " + r + " now.";
+            }
+            if ("activate".equals(pr.verb)) {
+                SpellAbility sa = want;
+                sa.setActivatingPlayer(me);
+                forge.game.spellability.SpellAbilityRestriction restr = sa.getRestrictions();
+                // Who may activate it (its controller, or its owner outside the battlefield; a few say any player).
+                if (c.getController() != me && (restr == null || !restr.checkActivatorRestrictions(c, sa)))
+                    return zone == ZoneType.Battlefield ? "ILLEGAL (control): you do not control " + r + "."
+                            : "ILLEGAL (control): " + r + " is not yours; only its owner can activate its abilities there.";
+                forge.game.cost.Cost cost = sa.getPayCosts();
+                if (zone == ZoneType.Battlefield && cost != null && cost.hasTapCost()) {
+                    if (c.isTapped()) return "ILLEGAL (cost): " + r + " is tapped, and this ability's cost taps it.";
+                    if (c.isCreature() && c.isSick())
+                        return "ILLEGAL (cost): " + r + " came under your control this turn, so it cannot pay a {T} cost (summoning sickness).";
+                }
+                if (!sa.isManaAbility() && game.getStack().isSplitSecondOnStack())
+                    return "ILLEGAL (timing): a spell with split second is on the stack; only mana abilities can be activated until it resolves.";
+                // canPlay answers the zone, timing, own limits and non-mana cost as one; asked apart, the category is the
+                // rule broken. canCastTiming is asked without Forge's StaticAbilityCastWithFlash.anyWithFlashNeedsInfo
+                // exemption (a flash grant that depends on a choice): such a play reads as timing, a label only.
+                boolean inZone = restr == null || restr.checkZoneRestrictions(c, sa);
+                if (inZone && !sa.canCastTiming(c, me))
+                    return "ILLEGAL (timing): " + (sa.isPwAbility() ? "a loyalty ability" : "this ability")
+                            + " is activated only as a sorcery: in your own main phase, with an empty stack.";
+                if (inZone && restr != null && !restr.checkTimingRestrictions(c, sa))
+                    return "ILLEGAL (timing): this ability's own timing (a phase or step, or whose turn it is) does not allow it now.";
+                if (!playable(sa, me)) {
+                    if (!inZone) return "ILLEGAL (zone): this ability cannot be activated while " + r + " is in " + zoneWord + ".";
+                    if (restrictionsAllow(restr, c, sa) && !canPayRest(sa)) return REST_OF_COST;
+                    return "ILLEGAL (restriction): this ability cannot be activated now: its own limits (such as once each turn) or an effect stop it.";
+                }
+                return costOrTarget(sa, r, me, false);
+            }
+            // cast
+            if (c.isLand() && !c.isModal()) return "ILLEGAL (type): " + r + " is a land: it is played with play_land, not cast.";
+            if (zone == ZoneType.Battlefield) return "ILLEGAL (zone): " + r + " is on the battlefield; a spell is cast from your hand, or from another zone only when a card allows it.";
+            if (zone == ZoneType.Stack) return "ILLEGAL (zone): " + r + " is already on the stack.";
+            // Before the ways to cast it are looked through: an opponent's card is refused for whose it is, not for a
+            // cost or face it lacks. A card an effect lets the seat play (an opponent's card it exiled) is its to cast.
+            // Shaman's Trance makes every graveyard the seat's to cast from (CR 109.5; SpellAbilityRestriction).
+            if (c.getOwner() != me && c.getController() != me && zone != ZoneType.Hand && c.mayPlay(me).isEmpty()
+                    && !(zone == ZoneType.Graveyard && me.hasKeyword("Shaman's Trance")))
+                return "ILLEGAL (control): " + r + " is not yours to cast.";
+            SpellAbility sa = null;
+            // Every face's spells and their alternative costs. getAllPossibleAbilities is empty outside a window the card
+            // could be cast in (Grizzly Bears at combat: ProposeActionsTest), which is exactly when a reason is needed.
+            List<SpellAbility> spells = new ArrayList<>();
+            for (SpellAbility o : c.getAllSpellAbilities()) {
+                if (!o.isSpell()) continue;
+                spells.add(o);
+                try { spells.addAll(GameActionUtil.getAlternativeCosts(o, me, false)); } catch (Exception ignore) { }
+            }
+            for (SpellAbility o : spells) {
+                if (pr.face != null && !faceOf(o).equalsIgnoreCase(pr.face.trim())) continue;
+                if (pr.cost == null && castWay(o) == null || pr.cost != null && costMatches(o, pr.cost)) { sa = o; break; }
+                if (sa == null) sa = o;
+            }
+            if (sa == null && pr.face != null) return "FORMAT: " + r + " has no face named \"" + pr.face + "\".";
+            if (sa == null) return "ILLEGAL (type): " + r + " is not a spell that can be cast.";
+            // The loop above already looked through every spell and its alternative costs for this name.
+            if (pr.cost != null && !costMatches(sa, pr.cost)) return "ILLEGAL (cost): " + r + " cannot be cast for a cost named \"" + pr.cost + "\".";
+            sa.setActivatingPlayer(me);
+            if (game.getStack().isSplitSecondOnStack())
+                return "ILLEGAL (timing): a spell with split second is on the stack; no spell can be cast until it resolves.";
+            if (!sa.canCastTiming(c, me))
+                return "ILLEGAL (timing): " + r + " can be cast only when you could cast a sorcery: in your own main phase, with an empty stack.";
+            if (!playable(sa, me)) {
+                // Spell.canPlay asks the non-mana cost too: Fling with no creature, Dread Return's flashback short of
+                // three, an escape short of cards to exile break the cost rule, not the zone or a restriction.
+                Card host = sa instanceof forge.game.spellability.Spell
+                        ? java.util.Objects.requireNonNullElse(((forge.game.spellability.Spell) sa).getAlternateHost(c), c) : c;
+                if (restrictionsAllow(sa.getRestrictions(), host, sa) && !canPayRest(sa)) return REST_OF_COST;
+                if (zone != ZoneType.Hand) return "ILLEGAL (zone): " + r + " cannot be cast from " + zoneWord + (pr.cost == null ? " its normal way" : " that way") + ".";
+                return "ILLEGAL (restriction): a rule or an effect does not allow casting " + r + " now.";
+            }
+            return costOrTarget(sa, r, me, pr.cost != null || castWay(sa) != null);
+        }
+
+        static final String REST_OF_COST =
+                "ILLEGAL (cost): you cannot pay the rest of its cost now (what it taps, sacrifices, discards, exiles or removes).";
+
+        /** The non-mana part of the cost can be paid now (Forge's own check, which canPlay makes too). */
+        private static boolean canPayRest(SpellAbility sa) {
+            return sa.getPayCosts() == null || forge.game.cost.CostPayment.canPayAdditionalCosts(sa.getPayCosts(), sa, false);
+        }
+
+        /** Every rule but the cost allows the play: the zone, the timing and the play's own limits (Forge's
+         *  SpellAbilityRestriction.canPlay, the half of canPlay before the cost). */
+        private static boolean restrictionsAllow(forge.game.spellability.SpellAbilityRestriction restr, Card host, SpellAbility sa) {
+            try { return restr == null || restr.canPlay(host, sa); } catch (Exception e) { return false; }
+        }
+
+        /** The cost and target checks the play menu makes (offerable), as a rejection. */
+        private String costOrTarget(SpellAbility sa, String r, Player me, boolean alt) {
+            if (!(alt ? legallyPayable(sa, me, false) : seatCanPay(sa, me, 0, false))) {
+                String delta = "";
+                try {
+                    if (sa.isSpell()) {
+                        String a = affordability(me, sa.getHostCard(), untappedManaTally(me));
+                        if (a != null && a.startsWith("(need")) delta = " " + a;
+                    }
+                } catch (Exception ignore) { }
+                return "ILLEGAL (cost): you cannot pay its mana cost now" + delta + ".";
+            }
+            if (!canPayRest(sa)) return REST_OF_COST;
+            if (sa.usesTargeting()) {
+                TargetRestrictions tr = sa.getTargetRestrictions();
+                if (tr != null && targetCandidates(sa, tr).size() < sa.getMinTargets())
+                    return "ILLEGAL (target): it has no legal target now.";
+            }
+            return "ILLEGAL (restriction): the engine does not allow " + r + " to be played this way now.";
+        }
+
+        // ---- PROPOSE_ACTIONS combat: the attack and the blocks, proposed by handle and checked by the engine. The verdict
+        // is the engine's own (CombatUtil.canAttack / validateAttackers, CombatUtil.canBlock / blocksError: the menu's checks);
+        // the sentence only names which rule failed, never what is legal instead.
+
+        /** The attack {@code decl} proposes ({attacker handle, defender as given}): null when the engine allows it, with
+         *  {@code out} holding each attacker and what it attacks; else "FORMAT: ..." or "ILLEGAL (category): ...". The
+         *  combat is left as it was. */
+        String attackProposalError(List<String[]> decl, Player me, Combat combat, Map<Card, GameEntity> out) {
+            out.clear();
+            Map<Card, GameEntity> want = new java.util.LinkedHashMap<>();
+            for (String[] p : decl) {
+                Card c = observer == null ? null : observer.currentCard(Integer.parseInt(p[0]));
+                if (c == null) return notInView(p[0]);
+                GameEntity d = defenderNamed(p[1], me, combat);
+                if (d == null) return "FORMAT: no player, planeswalker or battle \"" + p[1] + "\" is in view; give \"opponent\" or a handle such as \"@7\".";
+                if (!combat.getDefenders().contains(d))
+                    return "ILLEGAL (combat): " + entityRef(d, me) + " cannot be attacked: a creature attacks an opponent, or a "
+                            + "planeswalker or battle it may attack.";
+                if (!CombatUtil.canAttack(c, d)) return combatWhy(() -> attackerRejection(c, d, me), refOf(c) + " to attack");
+                want.put(c, d);
+            }
+            // The whole attack is tried on a scratch combat: removeFromCombat leaves an empty band behind in the real one.
+            Combat trial = new Combat(me);
+            for (Card c : combat.getAttackers()) trial.addAttacker(c, combat.getDefenderByAttacker(c));
+            for (Map.Entry<Card, GameEntity> e : want.entrySet()) trial.addAttacker(e.getKey(), e.getValue());
+            if (!CombatUtil.validateAttackers(trial)) return combatWhy(() -> attackSetRejection(me, trial, want), "this attack");
+            out.putAll(want);
+            return null;
+        }
+
+        private static String notInView(Object handle) {
+            return "FORMAT: no object @" + handle + " is in view now; use a handle from the state above.";
+        }
+
+        /** The blocks {@code decl} proposes ({blocker handle, attacker handle}): null when the engine allows them, with
+         *  {@code out} holding the pairs {blocker, attacker}; else "FORMAT: ..." or "ILLEGAL (category): ...". Each pair is
+         *  checked as the menu checks it ({@link #firstBlockNotAllowed}: CombatUtil.canBlock with the set's other blocks in
+         *  place), then the set ({@link #blocksError}). */
+        String blockProposalError(List<String[]> decl, Player me, Combat combat, List<Card[]> out) {
+            out.clear();
+            List<Card[]> pairs = new ArrayList<>();
+            Map<Card, Integer> uses = new java.util.HashMap<>();
+            for (String[] p : decl) {
+                Card b = observer == null ? null : observer.currentCard(Integer.parseInt(p[0]));
+                if (b == null) return notInView(p[0]);
+                Card a = observer.currentCard(Integer.parseInt(p[1]));
+                if (a == null) return notInView(p[1]);
+                if (!combat.isAttacking(a)) return "ILLEGAL (combat): " + refOf(a) + " is not attacking.";
+                int limit = blockLimit(b);
+                if (uses.merge(b, 1, Integer::sum) > limit)
+                    return "ILLEGAL (number): " + refOf(b) + " can block only " + (limit == 1 ? "one attacker." : limit + " attackers.");
+                pairs.add(new Card[] {b, a});
+            }
+            String cap = blockCapError(me, pairs);
+            if (cap != null) return "ILLEGAL (number): " + cap;
+            int bad = firstBlockNotAllowed(combat, pairs);
+            if (bad >= 0) {
+                Card b = pairs.get(bad)[0], a = pairs.get(bad)[1];
+                return combatWhy(() -> withBlocks(combat, pairs, bad, () -> blockerRejection(a, b, me, combat)), refOf(b) + " to block " + refOf(a));
+            }
+            String err = blocksError(combat, me, pairs);
+            if (err != null) return combatWhy(() -> blockSetRejection(err, me, combat, pairs), "these blocks");
+            out.addAll(pairs);
+            return null;
+        }
+
+        /** The first pair the engine does not allow, judged as the declaration stands: CombatUtil.canBlock with every other
+         *  pair of the set in place, so a requirement another blocker obeys (CR 509.1c: "must be blocked if able", a lure)
+         *  does not refuse this one; -1 when every pair is allowed. Judged alone, on a combat with no blocks yet, a creature
+         *  beside a must-be-blocked attacker's blocker was refused (pr-review of #349). The combat is left as it was. */
+        static int firstBlockNotAllowed(Combat combat, List<Card[]> pairs) {
+            for (int i = 0; i < pairs.size(); i++) {
+                Card b = pairs.get(i)[0], a = pairs.get(i)[1];
+                if (!withBlocks(combat, pairs, i, () -> CombatUtil.canBlock(a, b, combat))) return i;
+            }
+            return -1;
+        }
+
+        /** {@code f} with the blocks of {@code pairs} but the one at {@code except} added to the combat, then removed. */
+        private static <T> T withBlocks(Combat combat, List<Card[]> pairs, int except, java.util.function.Supplier<T> f) {
+            List<Card[]> on = new ArrayList<>();
+            try {
+                for (int i = 0; i < pairs.size(); i++) if (i != except) { combat.addBlocker(pairs.get(i)[1], pairs.get(i)[0]); on.add(pairs.get(i)); }
+                return f.get();
+            } finally {
+                for (Card[] pr : on) combat.removeBlockAssignment(pr[1], pr[0]);
+            }
+        }
+
+        /** A global block cap (Silent Arbiter) the set exceeds, as {@link #blocksError} words it, or null. Checked before
+         *  the pairs, which the cap would otherwise refuse one by one without saying why. */
+        static String blockCapError(Player defender, List<Card[]> pairs) {
+            java.util.Set<Card> blocking = new java.util.HashSet<>();
+            for (Card[] pr : pairs) blocking.add(pr[0]);
+            int cap = forge.game.staticability.StaticAbilityBlockRestrict.blockRestrictNum(defender);
+            return blocking.size() > cap ? blockCapWords(cap) : null;
+        }
+
+        /** How many attackers {@code b} may block (CR 509.1a): one, more when a card says so, or any number. */
+        static int blockLimit(Card b) { return b.canBlockAny() ? Integer.MAX_VALUE : 1 + b.canBlockAdditional(); }
+
+        /** The words of a global block cap's objection; {@link #blockSetRejection} reads its "no more than" start. */
+        static String blockCapWords(int cap) {
+            return "no more than " + cap + " creature" + (cap == 1 ? "" : "s") + " can block each combat.";
+        }
+
+        /** A combat rejection's sentence, worked out with no model ask possible; the verdict is already the engine's, so a
+         *  failure here changes only the words. */
+        private String combatWhy(java.util.function.Supplier<String> why, String what) {
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            try { String r = why.get(); if (r != null) return r; }
+            catch (Exception ignore) { }
+            finally { PRICING_FOR_SNAPSHOT = was; }
+            return "ILLEGAL (restriction): the rules do not allow " + what + " now.";
+        }
+
+        /** What a proposed attack names: nothing or "opponent" (the defending player), a player's name, or a handle. */
+        private GameEntity defenderNamed(String name, Player me, Combat combat) {
+            String n = name == null ? "" : name.trim();
+            if (n.isEmpty()) { for (Player p : combat.getDefendingPlayers()) return p; return null; }
+            Object t = targetNamed(n.matches("\\d+") ? "@" + n : n, me);
+            return t instanceof GameEntity ? (GameEntity) t : null;
+        }
+
+        private String entityRef(GameEntity e, Player me) {
+            return e == me ? "you" : e instanceof Card ? refOf((Card) e) : e instanceof Player ? "your opponent" : String.valueOf(e);
+        }
+
+        /** " (Ensnaring Bridge @6: its text)": the static ability that forbids it and where it comes from ("its text" when
+         *  that is {@code subject} itself). */
+        private String staticNote(forge.game.staticability.StaticAbility st, Card subject) {
+            Card host = st.getHostCard();
+            String d = st.toString();
+            if (d == null || d.isEmpty()) d = st.getParam("Description");
+            d = d == null ? "" : named(d, host).replaceAll("\\s*\\(.*$", "").replaceAll("\\.+$", "").trim();
+            String src = host == null ? "" : host == subject ? "its text" : refOf(host);
+            return src.isEmpty() && d.isEmpty() ? "" : " (" + src + (d.isEmpty() || src.isEmpty() ? "" : ": ") + d + ")";
+        }
+
+        /** Why {@code c} cannot attack {@code d} alone (CombatUtil.canAttack is false), in the engine's order. */
+        private String attackerRejection(Card c, GameEntity d, Player me) {
+            String r = refOf(c);
+            if (c.getZone() == null || c.getZone().getZoneType() != ZoneType.Battlefield || c.isPhasedOut())
+                return "ILLEGAL (zone): " + r + " is not on the battlefield; only a creature on the battlefield attacks.";
+            if (c.getController() != me) return "ILLEGAL (control): you do not control " + r + ".";
+            if (!c.isCreature() || c.isBattle()) return "ILLEGAL (type): " + r + " is not a creature; only creatures attack.";
+            if (c.isTapped()) return "ILLEGAL (tapped): " + r + " is tapped, and a tapped creature cannot attack.";
+            if (CombatUtil.isAttackerSick(c, d))
+                return "ILLEGAL (summoning sickness): " + r + " has not been under your control continuously since your most "
+                        + "recent turn began, and it has no haste.";
+            if (c.isGoaded())
+                return "ILLEGAL (requirement): " + r + " is goaded: it attacks a player other than the one who goaded it, if able.";
+            if (c.hasKeyword("CARDNAME can't attack.") || c.hasKeyword("CARDNAME can't attack or block."))
+                return "ILLEGAL (restriction): " + r + " can't attack.";
+            if (c.isDetained()) return "ILLEGAL (restriction): " + r + " is detained, so it can't attack or block.";
+            for (Card ca : c.getGame().getCardsIn(ZoneType.STATIC_ABILITIES_SOURCE_ZONES))
+                for (forge.game.staticability.StaticAbility st : ca.getStaticAbilities()) {
+                    if (!st.checkConditions(forge.game.staticability.StaticAbilityMode.CantAttack)
+                            || !forge.game.staticability.StaticAbilityCantAttackBlock.applyCantAttackAbility(st, c, d)) continue;
+                    if (st.isKeyword(Keyword.DEFENDER)) return "ILLEGAL (defender): " + r + " has defender, so it cannot attack.";
+                    return "ILLEGAL (restriction): " + r + " can't attack " + entityRef(d, me) + staticNote(st, c) + ".";
+                }
+            return null;
+        }
+
+        /** Why an attack of creatures that can each attack is not legal as a whole (CombatUtil.validateAttackers): a limit
+         *  on how many attack, a creature's own restriction (alone, with others), or a requirement it leaves unmet. */
+        private String attackSetRejection(Player me, Combat combat, Map<Card, GameEntity> want) {
+            forge.game.combat.GlobalAttackRestrictions gr =
+                    forge.game.combat.GlobalAttackRestrictions.getGlobalRestrictions(me, combat.getDefenders());
+            if (gr.getMax() != null && want.size() > gr.getMax())
+                return "ILLEGAL (number): no more than " + gr.getMax() + " creature" + (gr.getMax() == 1 ? "" : "s") + " can attack this combat.";
+            for (Map.Entry<GameEntity, Integer> e : gr.getDefenderMax().entrySet()) {
+                int n = 0;
+                for (GameEntity d : want.values()) if (d == e.getKey()) n++;
+                if (n > e.getValue())
+                    return "ILLEGAL (number): no more than " + e.getValue() + " creature" + (e.getValue() == 1 ? "" : "s")
+                            + " can attack " + entityRef(e.getKey(), me) + " this combat.";
+            }
+            forge.game.combat.AttackConstraints ac = combat.getAttackConstraints();
+            for (Card c : want.keySet()) {
+                forge.game.combat.AttackRestriction res = ac.getRestrictions().get(c);
+                java.util.Set<forge.game.combat.AttackRestrictionType> v = res == null ? null : res.getViolation(want);
+                if (v != null && !v.isEmpty()) return "ILLEGAL (restriction): " + refOf(c) + attackRestrictionWords(v.iterator().next()) + ".";
+            }
+            Map<Card, GameEntity> best = ac.getLegalAttackers().getLeft();
+            for (Map.Entry<Card, forge.game.combat.AttackRequirement> e : ac.getRequirements().entrySet()) {
+                Card c = e.getKey();
+                forge.game.combat.AttackRequirement req = e.getValue();
+                if (req == null || req.countViolations(want.get(c), want) <= req.countViolations(best.get(c), best)) continue;
+                return want.containsKey(c)
+                        ? "ILLEGAL (requirement): " + refOf(c) + " must attack a particular player, planeswalker or battle if able."
+                        : "ILLEGAL (requirement): " + refOf(c) + " attacks this combat if able, and this attack leaves it out.";
+            }
+            return "ILLEGAL (requirement): this attack breaks an attack requirement (a creature or player that must be attacked if able).";
+        }
+
+        private static String attackRestrictionWords(forge.game.combat.AttackRestrictionType t) {
+            switch (t) {
+                case ONLY_ALONE: return " can attack only alone";
+                case NOT_ALONE: return " can't attack alone";
+                case NEED_TWO_OTHERS: return " can't attack unless at least two other creatures attack";
+                case NEED_GREATER_POWER: return " can't attack unless a creature with greater power also attacks";
+                case NEED_BLACK_OR_GREEN: return " can't attack unless a black or green creature also attacks";
+                default: return " can't attack";
+            }
+        }
+
+        /** Why {@code b} cannot block {@code a} (CombatUtil.canBlock is false), in the engine's order. */
+        private String blockerRejection(Card a, Card b, Player me, Combat combat) {
+            String r = refOf(b), ra = refOf(a);
+            if (b.getZone() == null || b.getZone().getZoneType() != ZoneType.Battlefield || b.isPhasedOut())
+                return "ILLEGAL (zone): " + r + " is not on the battlefield; only a creature on the battlefield blocks.";
+            if (b.getController() != me) return "ILLEGAL (control): you do not control " + r + ".";
+            if (!b.isCreature() || b.isBattle()) return "ILLEGAL (type): " + r + " is not a creature; only creatures block.";
+            if (combat.getDefendingPlayerRelatedTo(a) != me)
+                return "ILLEGAL (combat): " + ra + " is not attacking you or a planeswalker or battle you protect.";
+            if (b.isTapped() && !forge.game.staticability.StaticAbilityCantAttackBlock.canBlockTapped(b))
+                return "ILLEGAL (tapped): " + r + " is tapped, and a tapped creature cannot block.";
+            if (b.hasKeyword("CARDNAME can't block.") || b.hasKeyword("CARDNAME can't attack or block."))
+                return "ILLEGAL (restriction): " + r + " can't block.";
+            if (b.isDetained()) return "ILLEGAL (restriction): " + r + " is detained, so it can't attack or block.";
+            CardCollection sources = new CardCollection(b);
+            sources.addAll(b.getGame().getCardsIn(ZoneType.STATIC_ABILITIES_SOURCE_ZONES));
+            for (Card ca : sources)
+                for (forge.game.staticability.StaticAbility st : ca.getStaticAbilities())
+                    if (st.checkConditions(forge.game.staticability.StaticAbilityMode.CantBlock)
+                            && forge.game.staticability.StaticAbilityCantAttackBlock.applyCantBlockAbility(st, b))
+                        return "ILLEGAL (restriction): " + r + " can't block" + staticNote(st, b) + ".";
+            if ((b.hasKeyword("CARDNAME can't attack or block alone.") || b.hasKeyword("CARDNAME can't block alone."))
+                    && me.getCreaturesInPlay().size() < 2)
+                return "ILLEGAL (restriction): " + r + " can't block alone.";
+            CardCollection byOrder = new CardCollection(a);
+            byOrder.add(b);
+            byOrder.addAll(a.getGame().getCardsIn(ZoneType.STATIC_ABILITIES_SOURCE_ZONES));
+            for (boolean anyBlocker : new boolean[] {true, false})
+                for (Card ca : byOrder)
+                    for (forge.game.staticability.StaticAbility st : ca.getStaticAbilities()) {
+                        if (!st.checkConditions(forge.game.staticability.StaticAbilityMode.CantBlockBy)
+                                || !forge.game.staticability.StaticAbilityCantAttackBlock.applyCantBlockByAbility(st, a, anyBlocker ? null : b)) continue;
+                        if (anyBlocker) return "ILLEGAL (evasion): " + ra + " can't be blocked" + staticNote(st, a) + ".";
+                        if (st.isKeyword(Keyword.FLYING))
+                            return "ILLEGAL (evasion): " + ra + " has flying; only a creature with flying or reach can block it, and " + r + " has neither.";
+                        if (st.getKeyword() != null)
+                            return "ILLEGAL (evasion): " + ra + " has " + st.getKeyword().getTitle() + ", so " + r + " cannot block it.";
+                        return "ILLEGAL (restriction): " + r + " cannot block " + ra + staticNote(st, b) + ".";
+                    }
+            if (CombatUtil.mustBlockAnAttacker(b, combat, null))
+                return "ILLEGAL (requirement): " + r + " is required to block another attacker (a lure or a must-block effect), so it "
+                        + "cannot block " + ra + ".";
+            return null;
+        }
+
+        /** {@link #blocksError}'s objection to a set of blocks that are each legal, in the record's categories: a block cap
+         *  or an attacker blocked by the wrong number of creatures (menace) is "number", a block requirement left unmet
+         *  "requirement", a creature that can't block alone or without others "restriction". */
+        private String blockSetRejection(String err, Player me, Combat combat, List<Card[]> pairs) {
+            if (err.startsWith("no more than")) return "ILLEGAL (number): " + err;
+            if (err.contains("cannot be blocked with")) {
+                for (Card a : combat.getAttackers()) {
+                    int n = 0;
+                    for (Card[] pr : pairs) if (pr[1] == a) n++;
+                    if (n == 0 || CombatUtil.canAttackerBeBlockedWithAmount(a, n, me)) continue;
+                    org.apache.commons.lang3.tuple.Pair<Integer, Integer> mm =
+                            forge.game.staticability.StaticAbilityCantAttackBlock.getMinMaxBlocker(a, me);
+                    return n < mm.getLeft()
+                            ? "ILLEGAL (number): " + refOf(a) + " can't be blocked except by " + mm.getLeft() + " or more creatures"
+                              + (a.hasKeyword(Keyword.MENACE) ? " (menace)" : "") + "; you assigned " + n + "."
+                            : "ILLEGAL (number): " + refOf(a) + " can't be blocked by more than " + mm.getRight() + " creature"
+                              + (mm.getRight() == 1 ? "" : "s") + "; you assigned " + n + ".";
+                }
+            }
+            String text = err;
+            List<Card> named = new ArrayList<>(me.getCreaturesInPlay());
+            named.addAll(combat.getAttackers());
+            for (Card c : named) text = text.replace(c.toString(), refOf(c));
+            return (text.contains(" must ") ? "ILLEGAL (requirement): " : "ILLEGAL (restriction): ") + text;
+        }
+
+        /** The decision row's proposal fields: every `answer` call of the ask in order, its proposal under {@code field}
+         *  (`action`, `declare_attackers` or `declare_blockers`), its verdict and category, and `first_try_legal`: whether
+         *  the first well-formed proposal was legal (null when none was). A FORMAT error is not a rules error (an unknown
+         *  handle or field), so `first_try_legal` measures the rules only. */
+        static String proposalRecord(List<String[]> calls, String field) {
+            StringBuilder b = new StringBuilder(",\"proposals\":[");
+            Boolean firstLegal = null;
+            for (int i = 0; i < calls.size(); i++) {
+                String[] c = calls.get(i);
+                com.google.gson.JsonObject a = NativeTools.arguments(c[0]);
+                com.google.gson.JsonElement act = a == null ? null : a.get(field);
+                String err = c[1];
+                String verdict = err == null ? "accepted" : err.startsWith("ILLEGAL (") ? "illegal" : "format";
+                String category = err != null && err.startsWith("ILLEGAL (") ? err.substring(9, Math.max(9, err.indexOf(')'))) : null;
+                if (firstLegal == null && !"format".equals(verdict)) firstLegal = err == null;
+                b.append(i == 0 ? "" : ",").append("{\"").append(field).append("\":").append(act == null ? "null" : act.toString())
+                 .append(",\"verdict\":\"").append(verdict).append('"');
+                if (category != null) b.append(",\"category\":\"").append(jsonEscape(category)).append('"');
+                if (err != null) b.append(",\"error\":\"").append(jsonEscape(err)).append('"');
+                // PROPOSE_TERSE: `error` is the engine's diagnosis; the seat was told only this.
+                String shown = AnswerTool.shownRefusal(err, "action".equals(field) ? AnswerTool.Kind.ACTION
+                        : AnswerTool.DECLARE_ATTACKERS.equals(field) ? AnswerTool.Kind.ATTACK_PROPOSAL : AnswerTool.Kind.BLOCK_PROPOSAL);
+                if (shown != null && !shown.equals(err)) b.append(",\"error_shown\":\"").append(jsonEscape(shown)).append('"');
+                b.append('}');
+            }
+            return b.append("],\"first_try_legal\":").append(firstLegal).toString();
+        }
+
         /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
          *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
          *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
@@ -9167,15 +10653,20 @@ public final class LlmSpikeGui {
             // at full, Channeled Dragonfire's harmonize was never offered with four Mountains and a 3-power creature.
             if (!payable && sa.isHarmonize()) payable = harmonizePowers(sa, me).stream().anyMatch(n -> n > 0);
             if (!payable) return false;
-            // Skip a targeted spell that currently has NO legal target — casting it just fizzles
-            // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
-            if (sa.usesTargeting()) {
+            // Skip a play a part of which has no legal target: casting it fails ("Couldn't add to stack, failed to
+            // target"): Animate Dead with an empty graveyard, Govern the Guildless's forecast with no creature in play
+            // (its target is in a sub-ability: gauntlet kw28). Only the first part that targets is counted: counted
+            // with no first target, Searing Blaze's "creature that player controls" has none and a legal cast would be
+            // hidden (pr-review of #343).
+            for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
+                if (!part.usesTargeting()) continue;
                 try {
-                    if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
-                    TargetRestrictions tr = sa.getTargetRestrictions();
+                    if (part.getActivatingPlayer() == null) part.setActivatingPlayer(me);
+                    TargetRestrictions tr = part.getTargetRestrictions();
                     // Only the targets it must have: "up to one target" casts with none (Finale of Promise, RP_006).
-                    if (tr != null && targetCandidates(sa, tr).size() < sa.getMinTargets()) return false;
+                    if (tr != null && targetCandidates(part, tr).size() < part.getMinTargets()) return false;
                 } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
+                break; // only the first part that targets: a later one's targets may depend on it (Searing Blaze)
             }
             return true;
         }
@@ -9491,6 +10982,8 @@ public final class LlmSpikeGui {
         LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel, String mode) {
             super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel; this.mode = mode;
         }
+        /** The plan the seat's system prompt carries in {@code <your_deck>}. */
+        String plan() { return plan; }
         @Override
         public Player createIngamePlayer(Game game, int id) {
             // A player of a preview COPY is the engine AI's, never the model's (PlayerLookahead.inPreview).
@@ -10032,12 +11525,70 @@ public final class LlmSpikeGui {
 
     /** Map a CONTROLLER_A/B value to its LobbyPlayer ("human" refused: see {@link #HUMAN}): "ai" = plain Forge AI
      *  (untouched), "ai-log" = the Forge AI that logs every decision as an ai-teacher SFT row, anything else = the LLM
-     *  seat / one of its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode. */
+     *  seat / one of its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode.
+     *  No AI profile: the compiled AiProps defaults, as every seat was built before the switch. */
     static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel) {
+        return seatFor(ctl, name, plan, smartModel, fastModel, "");
+    }
+
+    /** As the five-argument {@code seatFor}, with the Forge AI profile of an "ai" / "ai-log" seat (AI_PROFILE_A /
+     *  AI_PROFILE_B). Empty (the default) leaves the seat exactly as it was built before the switch existed:
+     *  {@code new LobbyPlayerAi(name, null)}, whose empty profile name makes {@code AiProfileUtil.getAIProp} return the
+     *  compiled default of every AiProps key, which is none of Forge's four shipped profiles (issue #381; every
+     *  recorded STR-AI score met that opponent). A name is applied the way {@code GamePlayerUtil.createAiPlayer}
+     *  applies it ({@code setAiProfile}), after it is checked against the profiles Forge loaded
+     *  ({@link #aiProfileRefusal}); a profile on a seat that is no Forge AI is refused. */
+    static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel,
+                               String aiProfile) {
         if (HUMAN.equals(ctl)) throw new IllegalStateException(NO_WINDOW);
-        if ("ai".equals(ctl)) return new LobbyPlayerAi(name, null);
-        if ("ai-log".equals(ctl)) return new LobbyPlayerAiLogging(name);
+        boolean forgeAi = "ai".equals(ctl) || "ai-log".equals(ctl);
+        String profile = aiProfile(aiProfile);
+        if (!profile.isEmpty()) {
+            if (!forgeAi) throw new IllegalStateException("AI_PROFILE names '" + profile + "' for the seat " + name
+                    + ", which is controller '" + ctl + "', not a Forge AI (ai, ai-log): drop the profile");
+            String refusal = aiProfileRefusal(profile, shippedAiProfiles());
+            if (refusal != null) throw new IllegalStateException(refusal);
+        }
+        if (forgeAi) {
+            LobbyPlayerAi seat = "ai".equals(ctl) ? new LobbyPlayerAi(name, null) : new LobbyPlayerAiLogging(name);
+            if (!profile.isEmpty()) seat.setAiProfile(profile);
+            return seat;
+        }
         return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
+    }
+
+    /** The profiles Forge loaded ({@code FModel.initialize} runs {@code AiProfileUtil.loadAllProfiles}); empty when
+     *  none were loaded, which {@link #aiProfileRefusal} then reports. */
+    static List<String> shippedAiProfiles() {
+        try {
+            return AiProfileUtil.getAvailableProfiles();
+        } catch (RuntimeException e) {
+            return new ArrayList<>();
+        }
+    }
+
+    /** Why {@code profile} cannot seat a Forge AI, or null when it can (or is empty: the compiled defaults). An unknown
+     *  name would not fail inside Forge: {@code getAIProp} falls back silently to the compiled defaults, so a typo
+     *  would play the default arm under another name. Forge's "Random" entries are refused too: they change the
+     *  profile between games, which no condition can name. */
+    static String aiProfileRefusal(String profile, List<String> shipped) {
+        if (profile == null || profile.trim().isEmpty()) return null;
+        if (shipped.contains(profile)) return null;
+        return "AI profile '" + profile + "' is not one Forge loaded (" + (shipped.isEmpty() ? "none were loaded"
+                : String.join(", ", new java.util.TreeSet<>(shipped))) + "); leave AI_PROFILE_A/B empty for the "
+                + "compiled-default opponent";
+    }
+
+    /** An AI_PROFILE_A / AI_PROFILE_B value as every site reads it: trimmed, "" when unset. */
+    static String aiProfile(String raw) {
+        return raw == null ? "" : raw.trim();
+    }
+
+    /** The game line's two profile keys, from the same {@link #env} read the seats use (issue #381): a condition, ""
+     *  for the compiled AiProps defaults. */
+    static String aiProfileStamp() {
+        return ",\"ai_profile_a\":\"" + jsonEscape(aiProfile(env("AI_PROFILE_A"))) + "\""
+                + ",\"ai_profile_b\":\"" + jsonEscape(aiProfile(env("AI_PROFILE_B"))) + "\"";
     }
 
     /** Why a model seat ({@code ctl} llm) of identity {@code ident} cannot be built: a tier with no model named
@@ -10131,7 +11682,10 @@ public final class LlmSpikeGui {
             if (HUMAN.equals(ctlA) && HUMAN.equals(ctlB))
                 throw new IllegalStateException("only one human seat per match: the GUI asks one person");
         }
-        for (String[] s : new String[][] {{ctlA, "A"}, {ctlB, "B"}}) {
+        String profileA = aiProfile(env.get("AI_PROFILE_A")), profileB = aiProfile(env.get("AI_PROFILE_B"));
+        for (String[] s : new String[][] {{ctlA, "A", profileA}, {ctlB, "B", profileB}}) {
+            if (HUMAN.equals(s[0]) && !s[2].isEmpty()) throw new IllegalStateException("AI_PROFILE_" + s[1]
+                    + " names '" + s[2] + "' for the human seat: a person plays no Forge AI, drop the profile");
             String missing = missingModel(s[0], s[1], env);
             if (missing != null) throw new IllegalStateException(missing);
         }
@@ -10170,9 +11724,9 @@ public final class LlmSpikeGui {
         }
 
         RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(HUMAN.equals(ctlA) ? new LobbyPlayerHuman(nameA)
-                : seatFor(ctlA, nameA, planA, smartA, fastA));
+                : seatFor(ctlA, nameA, planA, smartA, fastA, profileA));
         RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(HUMAN.equals(ctlB) ? new LobbyPlayerHuman(nameB)
-                : seatFor(ctlB, nameB, planB, smartB, fastB));
+                : seatFor(ctlB, nameB, planB, smartB, fastB, profileB));
         boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
         System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
@@ -10469,6 +12023,9 @@ public final class LlmSpikeGui {
         emitDecisionRow(pl, seat, type, nOptions, choice, tier, ms, fallback, options, prompt, rawReply, retryMs,
                 attempts, finishReason, firstFailedReply, promptTokens, completionTokens, shadowChoice, picks, null, 0, -1, -1);
     }
+    /** The proposal fields of the next decision row (PROPOSE_ACTIONS), set by the play decision on its own thread. */
+    static final ThreadLocal<String> PROPOSAL_ROW = new ThreadLocal<>();
+
     /** `cachedTokens` / `cacheWriteTokens`: additive, written only when the provider reported them.
      *  `answerVia`: additive, present only when the ask offered the answer tool (AnswerTool): "tool",
      *  "text", "reask" or "lost"; `answer_invalid` counts the invalid calls corrected on the way. */
@@ -10511,6 +12068,9 @@ public final class LlmSpikeGui {
                     .append(",\"shadow_choice\":").append(shadowChoice == null ? "null" : shadowChoice);
             if (picks != null) sb.append(",\"picks\":").append(picks.toString().replace(" ", ""));
             if (answerVia != null) sb.append(",\"answer_via\":\"").append(answerVia).append("\",\"answer_invalid\":").append(answerInvalid);
+            // PROPOSE_ACTIONS: the play's proposals, set by the play decision just before its row (additive fields).
+            String proposals = PROPOSAL_ROW.get();
+            if (proposals != null) { sb.append(proposals); PROPOSAL_ROW.remove(); }
             sb.append(cacheFields(cachedTokens, cacheWriteTokens));
             sb.append('}');
             // The write, the index increment, and the hook dispatch must be one atomic unit
@@ -10884,6 +12444,9 @@ public final class LlmSpikeGui {
         /** False once the provider has refused a request BECAUSE it carried tools (see send()). */
         @Override public boolean supportsNativeTools() { return !nativeRefused; }
         private volatile boolean nativeRefused = false;
+        /** The last complete() failed in transport (LLMBridge.lastFailureWasTransport); set by send() and the IO catch. */
+        private volatile boolean transportFailure = false;
+        @Override public boolean lastFailureWasTransport() { return transportFailure; }
 
         /** A 4xx whose body talks about tools / functions is the provider saying this model or route
          *  has no function calling -- not a transient failure. Package-private for NativeToolsTest. */
@@ -10898,7 +12461,7 @@ public final class LlmSpikeGui {
         }
 
         @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
-            if (nativeRefused) return null; // refused once: do not send the same request again
+            if (nativeRefused) { transportFailure = false; return null; } // refused once: do not send it again
             String m = messagesJson.trim();
             // The caller hands a JSON array; send() splices its elements after the system preamble.
             OrResult r = complete(m.substring(1, m.length() - 1), toolsJson, allowCalls);
@@ -10918,6 +12481,7 @@ public final class LlmSpikeGui {
             // two lanes now mean the same thing by the same word.
             final long deadline = t0 + timeoutMs;
             lastSendCount = 0;
+            transportFailure = false;
             try {
                 int maxTokens = fastTier ? cfg.fastMaxTokens : cfg.maxTokens;
                 // reasoning_effort/temperature are smart-tier-only hints — the fast tier's contract is
@@ -10966,13 +12530,21 @@ public final class LlmSpikeGui {
                             + (reasoner ? (floored ? "-LOW-REASONING" : "-NO-REASONING") : "")
                             + "] finish_reason=length @ max_tokens=" + maxTokens + " -> retrying at " + retryTokens
                             + (reasoner ? (floored ? " with its lowest reasoning effort" : " with reasoning disabled") : ""));
-                    OrResult retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
+                    OrResult retry;
+                    try {
+                        retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
+                    } catch (Exception e) {
+                        // The retry's own failure, even a reset connection, leaves the first answer as the one kept.
+                        System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY] the retry failed: " + e);
+                        retry = null;
+                    }
                     if (retry != null) bill(retry);
                     // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
                     // original reply is a better final result than a garbled/empty retry, and either way
                     // the isNonAnswer() check right below still gets the final say.
                     if (retry != null && (retry.hasCalls() || !isNonAnswer(retry.content)))
                         r = retry.withContent(collapseDegenerateRepetition(retry.content));
+                    else transportFailure = false; // the answer kept is the first, which the provider sent
                 }
                 // A turn that is only tool calls has no text and is not a non-answer.
                 if (!r.hasCalls() && isNonAnswer(r.content)) {
@@ -10992,6 +12564,7 @@ public final class LlmSpikeGui {
                 return r;
             } catch (Exception e) {
                 System.out.println("[OPENROUTER " + label + "] error: " + e);
+                transportFailure = HttpDeadline.transportError(e);
                 return null;
             }
         }
@@ -11068,7 +12641,7 @@ public final class LlmSpikeGui {
 
             String sentBody = body.toString();
             HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(sentBody, StandardCharsets.UTF_8))
-                    .timeout(Duration.ofMillis(remaining))
+                    .timeout(HttpDeadline.requestTimeout(remaining))
                     .build();
             // HttpRequest.timeout() above bounds only the wait for the response HEADERS; the body
             // read is unbounded, and OpenRouter dribbles keepalives for the whole generation. See
@@ -11077,7 +12650,10 @@ public final class LlmSpikeGui {
             HttpResponse<String> resp = Transcript.send("openrouter", label, client, req, sentBody, remaining);
             if (resp == null) {
                 String why = HttpDeadline.LAST_STOP.get();
-                if ("no-headers".equals(why) || "silent".equals(why))
+                // A connection that sent no headers, or went silent, gave no reply; the wall-clock deadline is the
+                // model's time spent (a reasoner that never answered).
+                transportFailure = HttpDeadline.gaveNoReply(why);
+                if (transportFailure)
                     System.out.println("[OPENROUTER " + label + "] stalled connection (" + why + " for " + HttpDeadline.IDLE_MS
                             + " ms) -> retrying instead of waiting out the " + timeoutMs + " ms deadline");
                 else
@@ -11108,7 +12684,11 @@ public final class LlmSpikeGui {
                             + ": no endpoint the filter allows took the request; native tools kept");
                     return null;
                 }
-                if (toolsJson != null && refusesTools(resp.statusCode(), resp.body())) {
+                // A refusal of function calling is an answer (native tools end, native_tools_downgraded says so);
+                // any other status is the transport failing: 402 credits, 401, 429, 5xx.
+                boolean toolRefusal = toolsJson != null && refusesTools(resp.statusCode(), resp.body());
+                transportFailure = !toolRefusal;
+                if (toolRefusal) {
                     // Retrying the same request cannot work. Stop offering tools on this bridge so the
                     // seat keeps its lookups through the text grammar, and say so on the game line.
                     nativeRefused = true;
@@ -11231,6 +12811,8 @@ public final class LlmSpikeGui {
                 b.relaxed = relaxed;
                 return b;
             }
+            // A recorded attempt's model turns served again (ReplayBridge): no model, nothing leaves.
+            if (spec.startsWith(ReplayBridge.PREFIX)) return ReplayBridge.fromSpec(label, spec.substring(ReplayBridge.PREFIX.length()));
             // The greedy-preview floor: zero-model, the seat's own one-ply previews (GreedyBridge).
             if (spec.startsWith(GreedyBridge.PREFIX)) return new GreedyBridge(label);
             if (spec.startsWith("openrouter:")) {
@@ -11266,7 +12848,7 @@ public final class LlmSpikeGui {
         /** The prefixes the factory routes; any other spec was the retired bare-name lane. Mirrors
          *  eval/cost_report.py KNOWN_PREFIXES (eval/test_cost_report.py checks the two lists agree). */
         static final String[] ROUTED_PREFIXES = {"openrouter:", DecisionsBridge.PREFIX, ClaudeCliBridge.PREFIX,
-                ScriptBridge.PREFIX, GreedyBridge.PREFIX};
+                ScriptBridge.PREFIX, GreedyBridge.PREFIX, ReplayBridge.PREFIX};
 
         /** True for a spec no lane takes: a bare Claude name such as `opus`, once the CLI text lane. */
         static boolean isBare(String spec) {
@@ -11434,7 +13016,12 @@ public final class LlmSpikeGui {
     /** Per-card rules text for a seat's deck, "  Name {cost} — oracle text", one per distinct card,
      *  from Forge's OWN card database (no external file, no network). Lets the model read what its
      *  cards do instead of recalling them. Empty on any failure. */
-    static String cardText(Deck d) {
+    static String cardText(Deck d) { return cardText(d, false); }
+
+    /** {@link #cardText(Deck)}, with each card's type line after its cost when {@code typeLine} ("  Lava Spike {R} |
+     *  Sorcery - Arcane — ..."): a puzzle's solver reads Arcane, Equipment or Aura nowhere else (#391). That form also
+     *  drops a land's "no cost" and the card script's literal line breaks ("\n"), which the deck form still prints. */
+    static String cardText(Deck d, boolean typeLine) {
         if (d == null) return "";
         try {
             java.util.TreeMap<String, String> lines = new java.util.TreeMap<>();
@@ -11447,11 +13034,13 @@ public final class LlmSpikeGui {
                     forge.card.CardRules r = pc.getRules();
                     if (r != null) {
                         String mc = r.getManaCost() == null ? "" : r.getManaCost().toString();
-                        if (!mc.isEmpty()) b.append(' ').append(mc);
+                        if (!mc.isEmpty() && !(typeLine && r.getManaCost().isNoCost())) b.append(' ').append(mc);
+                        if (typeLine && r.getType() != null) b.append(" | ").append(r.getType());
                         String t = r.getOracleText();
                         if (t != null && !t.isEmpty()) {
                             // Whole: a 400-character cut ended 7 cards of the deck pool mid-sentence
                             // (Animate Dead, Tamiyo, Ajani, Minsc & Boo, ...).
+                            if (typeLine) t = t.replace("\\n", " ");   // the card script's line breaks, as cardTextLine
                             t = t.replaceAll("\\s+", " ").trim();
                             b.append(" — ").append(t);
                         }
@@ -11606,7 +13195,12 @@ public final class LlmSpikeGui {
                 + ",\"smart_budget\":" + PlayerControllerLLM.smartBudget()
                 + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
                 + ",\"claude_deadline_ms\":" + ClaudeCliBridge.deadlineMs()
+                + ",\"openrouter_timeout_ms\":\"" + (OpenRouterBridge.TIMEOUT_MS_ENV == null ? ""
+                        : String.valueOf(OpenRouterBridge.TIMEOUT_MS_ENV)) + "\""
                 + ",\"game_cap_ms\":" + capMs
+                // Whether the wall-clock cap stopped it (#250): its winner is then "invalid" and win_condition is whatever
+                // the engine held, which no reader can tell from a finished draw.
+                + ",\"capped\":" + capped
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
                 // The routing filters are conditions (aggregate.PROVENANCE_FIELDS): at list an open-weight model may
@@ -11615,6 +13209,15 @@ public final class LlmSpikeGui {
                 + ",\"openrouter_max_price\":\"" + jsonEscape(OpenRouterBridge.maxPriceEnv == null ? "" : OpenRouterBridge.maxPriceEnv) + "\""
                 + ",\"openrouter_quantizations\":\"" + jsonEscape(OpenRouterBridge.quantizationsEnv == null ? "" : OpenRouterBridge.quantizationsEnv) + "\""
                 + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
+                // Decisions lost to a dead model bridge and circuit-breaker trips, per identity, 0 when none (issue #369)
+                + ",\"bridge_down_decisions_a\":" + bridgeDownDecisions(nameA)
+                + ",\"bridge_down_decisions_b\":" + bridgeDownDecisions(nameB)
+                + ",\"circuit_breaker_trips_a\":" + circuitBreakerTrips(nameA)
+                + ",\"circuit_breaker_trips_b\":" + circuitBreakerTrips(nameB)
+                // A row of this log failed to write (issue #427): the log may be cut, so every scorer refuses the game.
+                + ",\"eval_log_write_failed\":" + EvalLog.writeFailed()
+                // The Forge AI profile of each seat, "" for the compiled AiProps defaults (issue #381): a condition.
+                + aiProfileStamp()
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
                 + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
@@ -11646,7 +13249,7 @@ public final class LlmSpikeGui {
                 + ",\"one_tier\":" + PlayerControllerLLM.ONE_TIER
                 + ",\"no_coaching\":" + PlayerControllerLLM.NO_COACHING
                 + ",\"one_chat\":" + ChatSessionBridge.ON
-                + ",\"one_chat_version\":\"" + ChatSessionBridge.VERSION + "\""
+                + ",\"one_chat_version\":\"" + ChatSessionBridge.stamp() + "\""
                 + ",\"turn_chat\":" + (ChatSessionBridge.TURN && !ChatSessionBridge.ON)
                 + ",\"turn_chat_version\":\"" + ChatSessionBridge.TURN_VERSION + "\""
                 // The questions a jev: seat is asked, by DecisionsBridge: per identity, and only for a jev: one, so
@@ -11670,6 +13273,11 @@ public final class LlmSpikeGui {
                 // types off the reasoning tier. Both stamp what is on, so a batch cannot pool an
                 // on-game with an off-game, and a legacy line that carries neither reads MISSING.
                 + ",\"plan_execute\":" + PlayerControllerLLM.PLAN_EXECUTE
+                + ",\"propose_actions\":" + AnswerTool.proposeActions()
+                + ",\"propose_terse\":" + AnswerTool.proposeTerse()
+                + ",\"propose_notebook\":" + AnswerTool.proposeNotebook()
+                + ",\"propose_audit\":" + PlayerControllerLLM.PROPOSE_AUDIT
+                + ",\"shadow_ai\":" + PlayerControllerLLM.SHADOW
                 + ",\"tier_fast_types\":\"" + jsonEscape(PlayerControllerLLM.tierFastTypesLabel()) + "\""
                 // Wired, not asked for: RULES_TOOL=1 without MEMORY_TOOLS=1 offers nothing (pr-review of PR #272).
                 + ",\"rules_tool\":" + PlayerControllerLLM.rulesToolWired(PlayerControllerLLM.MEMORY_TOOLS, PlayerControllerLLM.RULES_TOOL)
@@ -11681,7 +13289,7 @@ public final class LlmSpikeGui {
                 + ",\"context_profile\":\"" + jsonEscape(PlayerControllerLLM.CTX.name) + "\""
                 + ",\"context_sha\":\"" + jsonEscape(PlayerControllerLLM.CTX.sha()) + "\""
                 // The faithful state's own version (eval/versions.py lists every stamp; this one was only in the log).
-                + ",\"observation_version\":\"" + jsonEscape(SeatObservation.VERSION) + "\""
+                + ",\"observation_version\":\"" + jsonEscape(SeatObservation.version()) + "\""
                 // Reasoning effort is part of the player's identity, like temperature: the same
                 // model at low and at max is two different players and must never pool.
                 + ",\"claude_effort_smart\":\"" + jsonEscape(ClaudeCliBridge.effortLabel(false)) + "\""

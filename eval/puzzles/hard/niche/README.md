@@ -2,9 +2,9 @@
 
 Hand-authored boards whose solution turns on one rarely-met rule, five per theme. Each file is a `.pzl` with a neutral
 `Description:` (the seat's brief), a `Rule:` line naming the rule and its CR numbers (the seat never reads it), a
-`[solution]` written line and an `[acceptance]` state (`eval/PUZZLES.md`).
+`[solution]` written line and an `[acceptance]` state (`docs/eval/PUZZLES.md`).
 
-Every puzzle was checked with the free tools, no model involved (`eval/PUZZLES.md`, "Proving a written line"), against
+Every puzzle was checked with the free tools, no model involved (`docs/eval/PUZZLES.md`, "Proving a written line"), against
 the bar in `docs/harness/HARD-PUZZLES.md` section 1:
 
 - `puzzle_baselines.py --build B line --pzl <file>`: the written line plays every line and solves against Forge's AI;
@@ -46,7 +46,7 @@ the bar in `docs/harness/HARD-PUZZLES.md` section 1:
 
 The `runs/` outputs are not committed; each command above reproduces them (not the hand-written variant lines), with `B`
 an isolated acceptance build compiled from this checkout's overlay (another is refused without `--allow-stale-build`;
-`eval/PUZZLES.md`, "Building a suite") and `FORGE_HOME` the pinned checkout.
+`docs/eval/PUZZLES.md`, "Building a suite") and `FORGE_HOME` the pinned checkout.
 
 A held-out split and a frozen suite are not made yet: these files are open answers.
 

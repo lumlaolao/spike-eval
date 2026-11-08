@@ -2,7 +2,7 @@
 
 ## License
 
-Copyright (C) 2026 mtg-forge-llm-agent contributors.
+Copyright (C) 2026 spike-eval contributors.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
@@ -27,7 +27,7 @@ v3.0 or later. Forge is the engine every game here runs on; the harness only dec
 
 ## Magic: The Gathering
 
-mtg-forge-llm-agent is unofficial Fan Content permitted under the
+spike-eval is unofficial Fan Content permitted under the
 [Fan Content Policy](https://company.wizards.com/en/legal/fancontentpolicy). Not approved/endorsed by Wizards.
 Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
 
@@ -44,8 +44,8 @@ Hasbro.
 ## Other sources
 
 - **Scryfall** ([scryfall.com](https://scryfall.com)): card data and images fetched at run time by the demo viewer
-  (`eval/demo_cards.py`), under Scryfall's API terms. Not affiliated with this project.
-- **Rules questions** in `puzzles/modern/` are transcribed or lightly paraphrased from public rulings and judge
+  (`eval/demo/demo_cards.py`), under Scryfall's API terms. Not affiliated with this project.
+- **Rules questions** in `eval/puzzles/modern/` are transcribed or lightly paraphrased from public rulings and judge
   answers: RulesGuru, Cranial Insertion, Ask a Magic Judge, Gatherer rulings (via Scryfall), Wizards release notes,
   Judge Foundry and EDHREC. Every item records its `source_name` and `source_url`; the credit and the copyright in
   each answer belong to those sources and their authors.

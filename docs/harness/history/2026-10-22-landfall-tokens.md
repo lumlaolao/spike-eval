@@ -6,7 +6,7 @@ the damage) and **tokens** (Goblins entering and dying: Impact Tremors, Witty Ro
 Skirk Prospector, Siege-Gang Commander, Mogg War Marshal). Both hold the gen2 bar. The kept boards are in
 `eval/puzzles/hard/gen3/`. Nothing paid was run; no model was called.
 
-## The bar (`eval/puzzle_gen.py`, families `landfall` and `tokens`)
+## The bar (`eval/puzzles/puzzle_gen.py`, families `landfall` and `tokens`)
 
 Every kept board has:
 - 13 to 15 steps (land drops, fetch cracks, casts, Prodigal Pyromancer's pings, Krenko's and Siege-Gang's
@@ -16,7 +16,7 @@ Every kept board has:
   Prospector's last {R}, made by a Goblin given to the Devil, is not counted, as drain2's Altar);
 - a trap: each plain plan that applies to the board is searched to its own best, and the best of them falls 1 to 3
   short. The plans are written in the Rule line and, with the search inputs, as `# search:` and `# trap:` comments in
-  the [solution]; `eval/test_puzzle_gen.py` recomputes every committed board from them (life, steps, nothing unused, the
+  the [solution]; `eval/tests/test_puzzle_gen.py` recomputes every committed board from them (life, steps, nothing unused, the
   plain plans, and the written line itself);
 - no life total repeated within a family in one draw, and no structure twice (`shape`).
 
@@ -105,7 +105,7 @@ The kept set:
 ## Not done
 
 - No model has tried these boards. Not frozen when this note was written; frozen since as
-  `eval/suites/puzzles-hard-gen3-v1.json` (`eval/PUZZLES.md`, "The third hard suite").
+  `eval/suites/puzzles-hard-gen3-v1.json` (`docs/eval/PUZZLES.md`, "The third hard suite").
 - Variety is narrow: nearly every landfall board is a Coralhelm board with Cobra in hand, and every tokens board a
   Krenko/Siege-Gang/Skirk/Marshal board. Without Coralhelm the landfall lines rarely reach 13 steps, and without
   Siege-Gang the tokens lines rarely do; a wider draw needs more step-making cards.

@@ -29,6 +29,7 @@ import re
 import sys
 from collections import Counter
 
+from aggregate import unscorable
 from line_report import name_of as label_name
 
 HAND = re.compile(r"\n  hand\(\d+\): ([^\n]*)")
@@ -59,7 +60,8 @@ def sign_test(a, b):
 
 def arm(run_dir):
     out = {"games": 0, "wins": 0, "capped": 0, "turns": 0, "smart": 0, "fast": 0, "plan": 0,
-           "nonhand": Counter(), "flash": [], "walker_games": 0, "walker_acts": 0, "versions": set(), "result": {}}
+           "nonhand": Counter(), "flash": [], "walker_games": 0, "walker_acts": 0, "versions": set(), "result": {},
+           "unscorable": 0}
     for path in sorted(glob.glob(os.path.join(run_dir, "*.jsonl"))):
         rows = []
         with open(path, errors="replace") as f:
@@ -71,10 +73,15 @@ def arm(run_dir):
         game = next((r for r in rows if r.get("t") == "game"), None)
         if not game:
             continue
+        # A dead-bridge or cut-log game is not the model's play (aggregate.unscorable, #430): counted apart, not read.
+        if unscorable(dict(game, _file=os.path.basename(path)), run_dir):
+            out["unscorable"] += 1
+            continue
         out["games"] += 1
         out["turns"] += int(game.get("turns") or 0)
         out["wins"] += 1 if game.get("winner") == "A" else 0
-        out["capped"] += 1 if "cap" in str(game.get("win_condition", "")).lower() else 0
+        # The game line's `capped` (#250); a line written before it has none, and its win_condition never named the cap.
+        out["capped"] += 1 if game.get("capped") else 0
         out["versions"].add(str(game.get("context_sha")))
         out["result"][(game.get("seed"), bool(game.get("swap")))] = game.get("winner") == "A"
         out["plan"] += sum(1 for r in rows if r.get("t") == "decision" and r.get("tier") == "plan")
@@ -126,6 +133,8 @@ def main(argv):
         lo, hi = wilson(a["wins"], a["games"])
         calls = a["smart"] + a["fast"]
         print("\n== %s ==  context_sha=%s" % (name, ",".join(sorted(a["versions"]))))
+        if a["unscorable"]:
+            print("  left out, unscorable (dead bridge or cut log): %d games" % a["unscorable"])
         print("  games=%d capped=%d  won by the model=%d (%.0f%%, Wilson 95%% %.0f-%.0f%%)" % (
             a["games"], a["capped"], a["wins"], 100.0 * a["wins"] / max(1, a["games"]), 100 * lo, 100 * hi))
         print("  model calls=%d over %d turns (%.1f/turn); smart=%d fast=%d harness-executed plan steps=%d" % (

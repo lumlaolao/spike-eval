@@ -35,15 +35,15 @@ machine replays everything offline. Its README lists what each one is.
 
 ```bash
 git fetch origin demo-recordings:demo-recordings && git worktree add ../demo-recordings demo-recordings
-python3 eval/demo_server.py --game ../demo-recordings/pair-4201/now --game ../demo-recordings/pair-4201/then \
+python3 eval/demo/demo_server.py --game ../demo-recordings/pair-4201/now --game ../demo-recordings/pair-4201/then \
     --image-cache ../demo-recordings/cards
 ```
 
 ## Replay a recorded game (free, offline)
 
 ```bash
-python3 eval/demo_cards.py prefetch runs/loop/g33       # once, with network: cache the card images it shows
-python3 eval/demo_server.py --game runs/loop/g33        # a run directory or a game-*.jsonl
+python3 eval/demo/demo_cards.py prefetch runs/loop/g33       # once, with network: cache the card images it shows
+python3 eval/demo/demo_server.py --game runs/loop/g33        # a run directory or a game-*.jsonl
 # open http://127.0.0.1:8765/   (#d=37 opens decision 37; the URL follows the cursor, so a moment can be bookmarked)
 ```
 
@@ -56,7 +56,7 @@ faithful observation draws with fewer fields, and a block the parser does not kn
 
 ```bash
 mkdir -p runs/demo/live
-python3 eval/demo_server.py --live runs/demo/live &
+python3 eval/demo/demo_server.py --live runs/demo/live &
 # then start any game with EVAL_OUT="$PWD/runs/demo/live" (run-llm-headless.sh, run-llm-spike.sh, or run_batch.py --out);
 # the launchers change directory, so EVAL_OUT and DECK_A/DECK_B are absolute paths (run_batch.py makes them so)
 ```
@@ -83,7 +83,7 @@ on and off (`DemoFeedTest`). A game recorded without the feed shows the opponent
 highlights (what the model is thinking about) are drawn in the browser only; Forge's window is the plain board.
 
 ```bash
-python3 eval/demo_server.py --live runs/demo/live &
+python3 eval/demo/demo_server.py --live runs/demo/live &
 CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=4201 \
   SMART_MODEL=openrouter:openai/gpt-6-luna FAST_MODEL=openrouter:openai/gpt-6-luna \
   DECK_A="$PWD/eval/decks/vintage-esper-control.txt" DECK_B="$PWD/eval/decks/pioneer-red-deck-wins.txt" \
@@ -114,7 +114,7 @@ fine.
 
 ## Side by side: the current harness against a real older one
 
-`eval/demo_compare.py` plays the same model, seed and decks against Forge's AI twice: on this checkout and on an
+`eval/demo/demo_compare.py` plays the same model, seed and decks against Forge's AI twice: on this checkout and on an
 older commit of the harness on the same engine pin (refused otherwise). Each arm runs its own engine patches: build-then and build-now
 compile, into each arm's isolated classes, that tree's version of every engine Java source either tree patches (a
 whole-file overlay copy in an older tree, its `engine-patches/` diff applied to the pinned original in a newer one), or
@@ -125,11 +125,11 @@ last put in the checkout. Resource patches (`forge-overlay/forge-gui/res`) are n
 Forge's AI.
 
 ```bash
-python3 eval/demo_compare.py build-now                       # isolated build of this checkout
-python3 eval/demo_compare.py build-then --commit e1324cfd    # the 2026-10-14 harness, with the feed ported in
-python3 eval/demo_compare.py run --seed 4201 --deck-a vintage-esper-control --deck-b pioneer-red-deck-wins \
+python3 eval/demo/demo_compare.py build-now                       # isolated build of this checkout
+python3 eval/demo/demo_compare.py build-then --commit e1324cfd    # the 2026-10-14 harness, with the feed ported in
+python3 eval/demo/demo_compare.py run --seed 4201 --deck-a vintage-esper-control --deck-b pioneer-red-deck-wins \
     --fake --budget-usd 0.01 --out runs/demo/pair-rehearsal                  # free loopback rehearsal
-python3 eval/demo_server.py --game runs/demo/pair-rehearsal/now --game runs/demo/pair-rehearsal/then   # replay it
+python3 eval/demo/demo_server.py --game runs/demo/pair-rehearsal/now --game runs/demo/pair-rehearsal/then   # replay it
 ```
 
 build-then also copies the current price list into the older worktree (its own lacks newer models, and its
@@ -168,11 +168,11 @@ answered it and the reveal marks that step; otherwise the reveal shows the line 
 
 ```bash
 P=eval/puzzles/hard/gen/drain_3c09484e5e54.pzl       # an open-split generated hard puzzle (Luna missed it)
-DEMO_FEED=1 python3 eval/puzzle_baselines.py line --pzl $P --out-dir runs/demo/puzzle-line          # free: no model
-DEMO_FEED=1 python3 eval/puzzle_solve.py --suite eval/suites/puzzles-hard-gen-v1.json --split open \
+DEMO_FEED=1 python3 eval/puzzles/puzzle_baselines.py line --pzl $P --out-dir runs/demo/puzzle-line          # free: no model
+DEMO_FEED=1 python3 eval/puzzles/puzzle_solve.py --suite eval/suites/puzzles-hard-gen-v1.json --split open \
     --ids hard-drain-3c09484e5e54 --k 1 --model openrouter:openai/gpt-6-luna --budget-usd 0.05 \
     --out runs/demo/puzzle-luna                                                                    # paid: cents
-python3 eval/demo_server.py --game runs/demo/puzzle-line --game runs/demo/puzzle-luna/hard-drain-3c09484e5e54
+python3 eval/demo/demo_server.py --game runs/demo/puzzle-line --game runs/demo/puzzle-luna/hard-drain-3c09484e5e54
 ```
 
 Both commands use the newest acceptance build under `runs/harness-acceptance` compiled from this checkout's overlay
@@ -183,7 +183,7 @@ for free. Side by side, **first divergence** jumps to the first decision where t
 Copy a recording with its file times kept (a clone, `cp -p`, `rsync -t`): where a directory holds several games of one
 seed, each is matched to its result row by the files' times (`demo_puzzle.result_row`).
 A puzzle pair opens in full detail, not watch mode, since the puzzle panel (brief, result, reveal) lives there.
-Demo puzzles come from the open split: a held-out puzzle's line is not copied into a recording (eval/PUZZLES.md).
+Demo puzzles come from the open split: a held-out puzzle's line is not copied into a recording (docs/eval/PUZZLES.md).
 
 Recorded already, on the `demo-recordings` branch: this puzzle's written line (`puzzles/drain-3c09-written-line`)
 and Luna's attempt that missed it, the opponent left at 2 life (`puzzles/hard-gen-luna-check/runs/hard-drain-3c09484e5e54`),
@@ -194,7 +194,7 @@ scored by `puzzle_score.py` and labelled a pilot, never pooled with PUZ.
 ## The benchmark and the gate (`/eval.html`)
 
 ```bash
-python3 eval/demo_server.py --game runs/loop/g33 --acceptance /tmp/acc-<sha>    # an acceptance OUT dir
+python3 eval/demo/demo_server.py --game runs/loop/g33 --acceptance /tmp/acc-<sha>    # an acceptance OUT dir
 # open http://127.0.0.1:8765/eval.html  (also linked from the viewer's top bar)
 ```
 

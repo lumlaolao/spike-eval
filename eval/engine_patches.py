@@ -42,8 +42,11 @@ def forge_home():
     """The Forge checkout: the first of $FORGE_HOME, ~/code/forge and /root/forge that is a git checkout, or None."""
     env = os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "")))
     for c in ([env] if env else []) + [str(Path.home() / "code/forge"), "/root/forge"]:
-        if (Path(c) / ".git").exists():
-            return Path(c)
+        try:
+            if (Path(c) / ".git").exists():
+                return Path(c)
+        except OSError:  # a candidate this user cannot read (/root/forge for a non-root user) is not a checkout
+            continue
     return None
 
 

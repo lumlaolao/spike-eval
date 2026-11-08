@@ -52,8 +52,25 @@ final class AnswerTool {
      *  v11: a tool ask carries no "Reason briefly" and one answer line, the appended ANSWER line (review M1).
      *  v12: a reply's answer is its first `answer` call that validates, not its first `answer` call; a reply whose
      *  every `answer` call is illegal is one invalid reply; an illegal call before the answer is "Not used", never
-     *  merged into it (frontier5, GLM 5.3 on hard-elf2, 2026-10-26). */
-    static final String VERSION = "answer-tool-v12";
+     *  merged into it (frontier5, GLM 5.3 on hard-elf2, 2026-10-26).
+     *  v13 (2026-11-03): the PROPOSE_ACTIONS condition. A play decision is answered with `action`, a proposed play
+     *  (verb, card handle, ability, face, cost) that the engine checks against the legal plays it does not show; a
+     *  rejected proposal is told its rule category and may be repaired, up to {@link #MAX_INVALID_PROPOSALS} tries.
+     *  Off, the schema and every ask are unchanged.
+     *  v14 (2026-11-03): a proposal names its target (`action.targets`), checked with the play; Prototype and "flash"
+     *  are named costs; a proposal answered with a menu field is shown an example. Still unchanged off the arm.
+     *  v15 (2026-11-04): `action.cost` says an optional cost such as Kicker is asked when the spell is cast.
+     *  v16 (2026-11-05): under PROPOSE_ACTIONS the attack and the blocks are proposed too (`declare_attackers`,
+     *  `declare_blockers`, by handle), checked by the engine like a play, with the same four tries. Unchanged off the arm.
+     *  v17 (2026-11-05): the PROPOSE_TERSE arm ({@link #proposeTerse}): a rules refusal of a play or a combat
+     *  declaration says only that it is illegal ({@link #terseRejection}), and the preamble and the schema say so.
+     *  Unchanged off the arm.
+     *  v18 (2026-11-05): the PROPOSE_NOTEBOOK arm ({@link #proposeNotebook}): a proposal decision lists this game's
+     *  earlier rules refusals that the seat was told, every one, and the preamble says so.
+     *  Unchanged off the arm.
+     *  v19 (2026-11-06, #399): the yield says when the seat is still asked, as the play loop does it: its own main phase
+     *  once the stack is empty, and end-of-turn through this turn's end step. */
+    static final String VERSION = "answer-tool-v19";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -72,6 +89,85 @@ final class AnswerTool {
      *  default; it is kept so the two can be measured against each other. */
     static boolean perDecision() { return "per-decision".equals(System.getenv("ANSWER_SCHEMA")); }
 
+    /** PROPOSE_ACTIONS=1: the measurement arm that hides the play menu. The seat proposes its play as an `action` and
+     *  the engine checks it like a type checker (docs/harness/ARCHITECTURE.md, "The propose condition"). It ablates
+     *  the owner rule "a legal action is never hidden" on purpose, with the owner's go-ahead (2026-11-03); off by
+     *  default, pinned and stamped by eval/run_batch.py, never pooled with menu runs. */
+    static boolean proposeActions() { return PROPOSE_FOR_TEST != null ? PROPOSE_FOR_TEST : "1".equals(System.getenv("PROPOSE_ACTIONS")); }
+    /** Tests only: the condition on or off without the environment variable (null: read the environment). */
+    static volatile Boolean PROPOSE_FOR_TEST = null;
+
+    /** PROPOSE_TERSE=1, under PROPOSE_ACTIONS only: a rules refusal is told {@link #terseRejection}, not the rule; a
+     *  FORMAT error keeps its text and the row keeps the diagnosis. docs/harness/ARCHITECTURE.md, "The terse arm".
+     *  Stamped `propose_terse`. */
+    static boolean proposeTerse() {
+        return proposeActions() && (TERSE_FOR_TEST != null ? TERSE_FOR_TEST : "1".equals(System.getenv("PROPOSE_TERSE")));
+    }
+    /** Tests only: as {@link #PROPOSE_FOR_TEST}, for {@link #proposeTerse}. */
+    static volatile Boolean TERSE_FOR_TEST = null;
+    /** What a rules refusal says under {@link #proposeTerse}: no category, no sentence; a combat declaration is called one. */
+    static final String TERSE_REJECTION = "ILLEGAL: that play is not legal now.";
+    static final String TERSE_COMBAT_REJECTION = "ILLEGAL: that declaration is not legal now.";
+    static String terseRejection(Kind k) {
+        return k == Kind.ATTACK_PROPOSAL || k == Kind.BLOCK_PROPOSAL ? TERSE_COMBAT_REJECTION : TERSE_REJECTION;
+    }
+
+    /** The refusal the seat is shown for {@code err}, the check's own diagnosis of a {@code k} proposal: the same text,
+     *  except a rules refusal under {@link #proposeTerse}. */
+    static String shownRefusal(String err, Kind k) {
+        return err != null && err.startsWith("ILLEGAL (") && proposeTerse() ? terseRejection(k) : err;
+    }
+
+    /** PROPOSE_NOTEBOOK=1, under PROPOSE_ACTIONS only: each play, attack and blocks decision carries REFUSED EARLIER
+     *  ({@link #notebookSection}), this game's earlier rules refusals of the seat's proposals that it was told
+     *  ({@link Ask#toldRefusals}), each as it was told ({@link #shownRefusal}: the rule in the detailed arm, only
+     *  "ILLEGAL" in the terse one). An in-context record of past errors (Reflexion; Mistake Notebook Learning, arXiv
+     *  2512.11485) against the repeat across decisions (eval/research/2026-11-03-propose-condition-prior-work.md,
+     *  "Repeated refusals in every propose log on disk"). Engine facts only. docs/harness/ARCHITECTURE.md, "The
+     *  notebook arm". Stamped `propose_notebook`. */
+    static boolean proposeNotebook() {
+        return proposeActions() && (NOTEBOOK_FOR_TEST != null ? NOTEBOOK_FOR_TEST : "1".equals(System.getenv("PROPOSE_NOTEBOOK")));
+    }
+    /** Tests only: as {@link #PROPOSE_FOR_TEST}, for {@link #proposeNotebook}. */
+    static volatile Boolean NOTEBOOK_FOR_TEST = null;
+
+    /** The notebook lines for one ask's {@code calls} of a {@code k} proposal, made {@code when} ("turn 3, declare
+     *  attackers"): one per rules refusal, "when: you proposed X; you were told: Y", Y exactly the refusal the seat was
+     *  sent. A FORMAT error says what is malformed, not a rule, and is not noted. */
+    static List<String> notebookEntries(List<String[]> calls, Kind k, String when) {
+        List<String> out = new ArrayList<>();
+        for (String[] c : calls)
+            if (c[1] != null && c[1].startsWith("ILLEGAL ("))
+                out.add(when + ": you proposed " + renderProposal(c[0], k) + "; you were told: " + shownRefusal(c[1], k));
+        return out;
+    }
+
+    /** A proposal's arguments in one line ("cast @12 targeting opponent", "the attack @3 -> opponent"); read by the
+     *  form check alone, so nothing is checked or set again. */
+    private static String renderProposal(String args, Kind k) {
+        JsonObject a = NativeTools.arguments(args);
+        Answer x = new Answer();
+        boolean attack = k == Kind.ATTACK_PROPOSAL;
+        String err = a == null ? "" : k == Kind.ACTION ? proposalOf(a, x) : declaredOf(a, attack, x);
+        if (err != null) return args;   // not reached: a rules refusal passed the form check
+        return k == Kind.ACTION ? x.action.render() : (attack ? "the attack " : "the blocks ") + renderDeclared(x.declared, attack);
+    }
+
+    /** REFUSED EARLIER, the section a proposal decision carries under {@link #proposeNotebook}: every one of
+     *  {@code entries}, oldest first (nothing the seat was told is cut; a game bounds the list). Empty off the arm or
+     *  with no entry, so the prompt is byte for byte the arm's without it. */
+    static String notebookSection(List<String> entries) {
+        if (!proposeNotebook() || entries.isEmpty()) return "";
+        StringBuilder b = new StringBuilder("\nREFUSED EARLIER (harness record: your proposals the rules engine refused in "
+                + "earlier decisions of this game, each with what you were told; every one, oldest first):\n");
+        for (String e : entries) b.append("- ").append(e).append('\n');
+        return b.toString();
+    }
+
+    /** Invalid `answer` calls a proposal may make before its decision is lost (two elsewhere). Repair gains level off
+     *  after two to five rounds of checker feedback (COPRA; Goedel-Prover-V2); Kaggle Game Arena allows four tries. */
+    static final int MAX_INVALID_PROPOSALS = 4;
+
     /** True when a seat on this model spec answers through the tool. A decision model (`jev:`, DecisionsBridge) and a
      *  Claude CLI seat (`claude-cli:`, ClaudeCliBridge) have no lookups but answer through `answer` too: the typed
      *  answer, or the CLI's structured output, is turned into the call. */
@@ -83,8 +179,8 @@ final class AnswerTool {
     /** The version stamped on the game line: what a tool-answer game was played under. */
     static String protocolVersion() {
         String env = System.getenv("ANSWER_TOOL_CHOICE");
-        return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : "")
-                + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
+        return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : "") + (proposeActions() ? "+propose" : "")
+                + (proposeTerse() ? "+terse" : "") + (proposeNotebook() ? "+notebook" : "") + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
     }
 
     /**
@@ -123,10 +219,49 @@ final class AnswerTool {
                 + "`keep`, `number` or `card`. Each decision ends by saying which field it takes and what is legal. Think "
                 + "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
                 + "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
-                + "decision, alongside the answer.\n";
+                + "decision, alongside the answer.\n"
+                + (proposeActions() ? proposeInstructions() : "");
     }
 
-    enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD }
+    /** What the preamble says a rules refusal tells, in each arm ({@link #proposeTerse}). */
+    static final String RULE_PROMISE = "which rule it breaks (timing, cost, zone, target, land drop, control, restriction)";
+    static final String COMBAT_RULE_PROMISE =
+            "which rule it breaks (such as summoning sickness, tapped, defender, flying, menace, a requirement)";
+    static final String TERSE_PROMISE = "only that it is illegal, not why,";
+    /** The preamble's paragraphs on proposing a play and combat, under PROPOSE_ACTIONS only. */
+    static String proposeInstructions() {
+        boolean terse = proposeTerse();
+        return "PLAYS: when you have priority you are not shown a list of legal plays. "
+            + "Propose one with `action`: `verb` (play_land, cast, activate or pass), `card` (the handle of the card or "
+            + "permanent, such as \"@12\"), and for an ability `ability` (its number in YOUR ACTIVATED ABILITIES). Give `face` "
+            + "to cast one face or half of a card, and `cost` to cast it another way the card allows (its name as the card "
+            + "prints it, such as \"Flashback\" or \"Prototype\", \"alternative\" for a \"rather than pay this spell's mana cost\" "
+            + "cost, or \"flash\" for a cast the card allows at a time you could not otherwise cast it). "
+            + "The rules engine checks the proposal. If the rules do not allow it now you are told " + (terse ? TERSE_PROMISE : RULE_PROMISE)
+            + " and may propose again, up to "
+            + MAX_INVALID_PROPOSALS + " tries in all; after that you pass. A malformed proposal (an unknown handle or "
+            + "ability number) is told what is wrong. Give a play's target in `targets` (a handle, or \"you\" or \"opponent\"); "
+            + "the engine checks it with the play. Modes, X and costs, and the targets of a play with several targets or "
+            + "modes, are asked after the play is accepted.\n"
+            + "COMBAT: you are not shown which creatures can attack or block. Propose your attack with `declare_attackers` "
+            + "(each attacker's handle, and its `defender`: \"opponent\", or the handle of a planeswalker or battle) and your "
+            + "blocks with `declare_blockers` (each blocker's handle and the handle of the attacker it blocks); an empty list "
+            + "attacks or blocks with none. The engine checks the whole declaration; if the rules forbid it you are told "
+            + (terse ? TERSE_PROMISE : COMBAT_RULE_PROMISE) + " and may "
+            + "declare again, up to " + MAX_INVALID_PROPOSALS + " tries in all; after that you attack or block with none, or "
+            + "with the smallest legal declaration when none is not allowed.\n"
+            + (proposeNotebook() ? NOTEBOOK_INSTRUCTIONS : "");
+    }
+
+    /** The preamble's sentence on REFUSED EARLIER, under {@link #proposeNotebook} only. */
+    static final String NOTEBOOK_INSTRUCTIONS = "REFUSED EARLIER, when a decision shows it, lists every proposal of yours "
+            + "that the rules engine refused in an earlier decision of this game, each with what you were told then.\n";
+
+
+    enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD, ACTION, ATTACK_PROPOSAL, BLOCK_PROPOSAL }
+
+    /** The kinds a PROPOSE_ACTIONS seat answers by proposing: the play, the attack and the blocks. */
+    static boolean proposes(Kind k) { return k == Kind.ACTION || k == Kind.ATTACK_PROPOSAL || k == Kind.BLOCK_PROPOSAL; }
 
     /** The legal values of one decision. Built by the decision site; numbers are 1-based, as shown. */
     static final class Spec {
@@ -166,8 +301,35 @@ final class AnswerTool {
         int blockSlots() { int t = 0; for (int b = 1; b <= n; b++) t += Math.min(blockLimit(b), Math.max(1, m)); return t; }
         static Spec number(int min, int max) { return new Spec(Kind.NUMBER, 0, min, max, 0); }
         static Spec card() { return new Spec(Kind.CARD, 0, 0, 0, 0); }
+        /** A play decision under PROPOSE_ACTIONS: answered with `action`. {@code n} is the hidden menu's size; the
+         *  site's {@link #check} names the option a proposal matches (sets {@link Answer#option}) or rejects it. */
+        static Spec action(int n) { return new Spec(Kind.ACTION, n, 1, 1, 0); }
+        /** A declare-attackers decision under PROPOSE_ACTIONS: answered with `declare_attackers`. {@code labels} are the
+         *  creatures the hidden list would have offered (for the row); the site's {@link #check} checks the rules and
+         *  sets {@link Answer#options} to the declared creatures' numbers in it. */
+        static Spec attackProposal(List<String> labels) {
+            Spec s = new Spec(Kind.ATTACK_PROPOSAL, labels.size(), 0, labels.size(), 0);
+            s.labels = new ArrayList<>(labels);
+            return s;
+        }
+        /** A declare-blockers decision under PROPOSE_ACTIONS: answered with `declare_blockers`. The labels are the hidden
+         *  blocker list and the attackers (for the row); the site's {@link #check} sets {@link Answer#blocks}. */
+        static Spec blockProposal(List<String> blockers, List<String> attackers) {
+            Spec s = new Spec(Kind.BLOCK_PROPOSAL, blockers.size(), 0, blockers.size(), attackers.size());
+            s.labels = new ArrayList<>(blockers); s.labels2 = new ArrayList<>(attackers);
+            return s;
+        }
         Spec cancel(int oneBased) { this.cancel = oneBased; return this; }
         Spec check(Function<Answer, String> c) { this.check = c; return this; }
+        /** A limit the site checks that the schema cannot state (a pawprint charm's {P} budget), for a bridge that
+         *  builds its questions from the Spec alone (DecisionsBridge); null when there is none. */
+        String limit;
+        Spec limit(String l) { this.limit = l; return this; }
+        /** MANY_REPEAT under a weighted cap (a pawprint charm: each option's {P}, and the total allowed): a bridge
+         *  that composes its answer (DecisionsBridge) trims it to fit. Null and -1 when there is none. */
+        int[] weights;
+        int budget = -1;
+        Spec budget(int[] w, int b) { this.weights = w == null ? null : w.clone(); this.budget = b; return this; }
         Spec labels(List<String> l) { this.labels = new ArrayList<>(l); return this; }
     }
 
@@ -188,12 +350,107 @@ final class AnswerTool {
         /** `keep_untapped`: handles of mana sources to leave untapped when the chosen play is paid; null
          *  when not given or empty (the seat is asked when there is a choice). */
         List<Integer> keepUntapped;
+        /** ACTION: the proposed play, as given (before the site's check matches it to an option). */
+        Proposal action;
+        /** ATTACK_PROPOSAL: {attacker handle, defender as given or null}; BLOCK_PROPOSAL: {blocker handle, attacker
+         *  handle}. Handles are digits without "@"; the site resolves and checks them. */
+        List<String[]> declared;
         /** 0-based picks, for the sites that index their own lists. */
         List<Integer> zeroBased() {
             List<Integer> out = new ArrayList<>();
             for (int i : options) out.add(i - 1);
             return out;
         }
+    }
+
+    /** A proposed play (PROPOSE_ACTIONS): what the seat says it does, checked by the engine before anything happens. */
+    static final class Proposal {
+        String verb;          // play_land | cast | activate | pass
+        Integer card;         // the handle, without "@"
+        Integer ability;      // activate: 1-based, in YOUR ACTIVATED ABILITIES
+        String face, cost;    // cast: a face or half by name; another way to cast it, by name
+        List<String> targets; // the play's target: a handle, "you" or "opponent"
+        Proposal copy() {
+            Proposal p = new Proposal();
+            p.verb = verb; p.card = card; p.ability = ability; p.face = face; p.cost = cost; p.targets = targets;
+            return p;
+        }
+        /** One line for the row and the history: "cast @12 (Flashback)". */
+        String render() {
+            if ("pass".equals(verb)) return "pass";
+            StringBuilder b = new StringBuilder(verb).append(" @").append(card);
+            if (ability != null) b.append(" ability ").append(ability);
+            if (face != null) b.append(" face \"").append(face).append('"');
+            if (cost != null) b.append(" (").append(cost).append(')');
+            if (targets != null && !targets.isEmpty()) b.append(" targeting ").append(String.join(", ", targets));
+            return b.toString();
+        }
+    }
+
+    static final List<String> PROPOSE_VERBS = List.of("play_land", "cast", "activate", "pass");
+
+    /** The fields of `action`, read from its schema so proposalOf and the schema cannot disagree. */
+    static final java.util.Set<String> ACTION_FIELDS = actionProperty().getAsJsonObject("properties").keySet();
+
+    /** The `action` property of the fixed schema (PROPOSE_ACTIONS only). */
+    static JsonObject actionProperty() {
+        JsonObject act = obj("type", "object", "description", "Only on a play decision that asks you to propose an action: the "
+                + "play you propose. The rules engine checks it and tells you "
+                + (proposeTerse() ? "only that it is illegal" : "which rule it breaks") + " if it is not legal now.");
+        JsonObject ap = new JsonObject();
+        JsonObject verb = obj("type", "string", "description", "play_land, cast, activate or pass.");
+        JsonArray ve = new JsonArray();
+        for (String v : PROPOSE_VERBS) ve.add(v);
+        verb.add("enum", ve);
+        ap.add("verb", verb);
+        ap.add("card", obj("type", "string", "description", "The handle of the card or permanent, such as \"@12\". Not used with pass."));
+        ap.add("ability", obj("type", "integer", "description", "With activate: the ability's number in YOUR ACTIVATED ABILITIES "
+                + "(1 when the card has one)."));
+        ap.add("face", obj("type", "string", "description", "Optional, with cast: the face or half to cast, by name, when the card has more than one."));
+        ap.add("cost", obj("type", "string", "description", "Optional, with cast: another way to cast it that the card allows, "
+                + "by the name the card prints (\"Flashback\", \"Evoke\", \"Overload\", \"Prototype\"...), \"alternative\" for a "
+                + "\"rather than pay this spell's mana cost\" cost, or \"flash\" for a cast the card allows when you could not "
+                + "otherwise cast it. Omit it to cast it normally; an optional additional cost such as Kicker is asked when you cast it."));
+        JsonObject tg = obj("type", "array", "description", "With cast or activate, when the play targets: its target, by handle "
+                + "(\"@7\"), or \"you\" or \"opponent\" for a player. The engine checks it with the play.");
+        tg.add("items", obj("type", "string"));
+        ap.add("targets", tg);
+        act.add("properties", ap);
+        JsonArray req = new JsonArray();
+        req.add("verb");
+        act.add("required", req);
+        act.addProperty("additionalProperties", false);
+        return act;
+    }
+
+    static final String DECLARE_ATTACKERS = "declare_attackers", DECLARE_BLOCKERS = "declare_blockers";
+
+    /** The `declare_attackers` / `declare_blockers` property of the fixed schema (PROPOSE_ACTIONS only): a list of pairs
+     *  by handle. {@link #declaredOf} reads the pair's fields from here, so the two cannot disagree. */
+    static JsonObject declareProperty(boolean attack) {
+        JsonObject pair = obj("type", "object");
+        JsonObject pp = new JsonObject();
+        if (attack) {
+            pp.add("attacker", obj("type", "string", "description", "The handle of your creature that attacks, such as \"@12\"."));
+            pp.add("defender", obj("type", "string", "description", "What it attacks: \"opponent\" (the default), or the handle "
+                    + "of a planeswalker or battle."));
+        } else {
+            pp.add("blocker", obj("type", "string", "description", "The handle of your creature that blocks, such as \"@3\"."));
+            pp.add("attacker", obj("type", "string", "description", "The handle of the attacking creature it blocks."));
+        }
+        pair.add("properties", pp);
+        JsonArray req = new JsonArray();
+        req.add(attack ? "attacker" : "blocker");
+        if (!attack) req.add("attacker");
+        pair.add("required", req);
+        pair.addProperty("additionalProperties", false);
+        JsonObject arr = obj("type", "array", "description", attack
+                ? "Only on a declare-attackers decision that asks you to propose your attack: each creature that attacks and "
+                  + "what it attacks. An empty list attacks with none. The rules engine checks the whole attack."
+                : "Only on a declare-blockers decision that asks you to propose your blocks: each block as your blocker and "
+                  + "the attacker it blocks. An empty list declares no blocks. The rules engine checks the whole set.");
+        arr.add("items", pair);
+        return arr;
     }
 
     // ------------------------------------------------------------------ schema
@@ -259,6 +516,12 @@ final class AnswerTool {
         props.add("number", obj("type", "integer", "description", "For a decision that asks for a number (X, a count): an integer in "
                 + "the range the decision states."));
         props.add("card", obj("type", "string", "description", "For a decision that asks you to name a card: its exact English name."));
+        // Under PROPOSE_ACTIONS only, so the default schema's bytes (and every prompt-cache prefix) do not move.
+        if (proposeActions()) {
+            props.add("action", actionProperty());
+            props.add(DECLARE_ATTACKERS, declareProperty(true));
+            props.add(DECLARE_BLOCKERS, declareProperty(false));
+        }
         JsonObject steps = obj("type", "array", "description", "Optional, only on a play decision that says it takes `steps`: "
                 + "the CAST/ACTIVATE option numbers of your plan, in order, for the harness to cast without asking again this "
                 + "turn. Omit anything you are holding. Elsewhere it is ignored.");
@@ -267,7 +530,7 @@ final class AnswerTool {
         JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision. \"none\" (the default): "
                 + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in "
                 + "windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; "
-                + "your own main phases always ask too).");
+                + "your own main phase asks again once the stack is empty; end-of-turn lasts through this turn's end step).");
         JsonArray e = new JsonArray();
         // "none" first: a model that fills every field takes the first value (Luna did, 175 of 189 answers).
         e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
@@ -316,6 +579,9 @@ final class AnswerTool {
             case BLOCKS: return "blocks";
             case NUMBER: return "number";
             case CARD: return "card";
+            case ACTION: return "action";
+            case ATTACK_PROPOSAL: return DECLARE_ATTACKERS;
+            case BLOCK_PROPOSAL: return DECLARE_BLOCKERS;
             default: return null;
         }
     }
@@ -399,6 +665,11 @@ final class AnswerTool {
                 required.add("card");
                 what = "the card you name";
                 break;
+            case ACTION:
+                props.add("action", actionProperty());
+                required.add("action");
+                what = "the play you propose";
+                break;
             default:
                 throw new IllegalStateException(String.valueOf(s.kind));
         }
@@ -418,7 +689,8 @@ final class AnswerTool {
         if (s.yield) {
             JsonObject y = obj("type", "string", "description", "Optional, with PASS only. \"none\" (the default): you are asked "
                     + "as usual. Otherwise, until then you are not asked in windows where nothing of your opponent's is on the stack "
-                    + "(anything they cast or activate always asks you; your own main phases always ask too).");
+                    + "(anything they cast or activate always asks you; your own main phase asks again once the stack is empty; "
+                    + "end-of-turn lasts through this turn's end step).");
             JsonArray e = new JsonArray();
             e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
             y.add("enum", e);
@@ -560,6 +832,18 @@ final class AnswerTool {
         JsonObject a = NativeTools.arguments(argumentsJson);
         if (a == null) return Result.bad("the arguments are not a JSON object.");
         String field = fieldOf(s.kind);
+        // A proposal answered with a menu field (`option`, `keep`): 9 of 48 Haiku plays did it (runs/propose,
+        // 2026-11-03), so the error shows the shape and says there is no list.
+        if (s.kind == Kind.ACTION && absent(a, field))
+            return Result.bad("FORMAT: this decision is answered with `action`, the play you propose, such as {\"verb\": "
+                    + "\"cast\", \"card\": \"@12\"} or {\"verb\": \"pass\"}; there is no numbered list to pick from"
+                    + (a.keySet().isEmpty() ? "" : " (you gave " + String.join(", ", a.keySet()) + ")") + ".");
+        if ((s.kind == Kind.ATTACK_PROPOSAL || s.kind == Kind.BLOCK_PROPOSAL) && absent(a, field))
+            return Result.bad("FORMAT: this decision is answered with `" + field + "`, the "
+                    + (s.kind == Kind.ATTACK_PROPOSAL ? "attack" : "blocks") + " you propose, such as ["
+                    + declareExample(s.kind == Kind.ATTACK_PROPOSAL) + "]"
+                    + ", or [] for none; there is no numbered list to pick from"
+                    + (a.keySet().isEmpty() ? "" : " (you gave " + String.join(", ", a.keySet()) + ")") + ".");
         if (field != null && absent(a, field))
             return Result.bad("this decision is answered with `" + field + "`" + (a.keySet().isEmpty() ? "" : "; you gave "
                     + String.join(", ", a.keySet())) + ".");
@@ -635,6 +919,17 @@ final class AnswerTool {
                 out.card = c.replace("\"", "").replace("`", "").trim();
                 break;
             }
+            case ACTION: {
+                String err = proposalOf(a, out);
+                if (err != null) return Result.bad(err);
+                break;
+            }
+            case ATTACK_PROPOSAL:
+            case BLOCK_PROPOSAL: {
+                String err = declaredOf(a, s.kind == Kind.ATTACK_PROPOSAL, out);
+                if (err != null) return Result.bad(err);
+                break;
+            }
             default:
                 return Result.bad("unsupported decision.");
         }
@@ -679,6 +974,92 @@ final class AnswerTool {
         return Result.ok(out);
     }
 
+    /** Reads `action` into {@code out.action}: the form only (the site checks the rules). An error, or null. Every
+     *  form error starts "FORMAT:", which the proposal record keeps apart from rule errors. */
+    static String proposalOf(JsonObject a, Answer out) {
+        if (!a.get("action").isJsonObject()) return "FORMAT: `action` is an object with `verb` and, unless you pass, `card`.";
+        JsonObject o = a.getAsJsonObject("action");
+        for (String k : o.keySet())
+            if (!ACTION_FIELDS.contains(k)) return "FORMAT: `action` has no field `" + k + "`.";
+        Proposal p = new Proposal();
+        p.verb = str(o, "verb");
+        if (p.verb != null) p.verb = p.verb.toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replace('-', '_');
+        if (p.verb == null || !PROPOSE_VERBS.contains(p.verb)) return "FORMAT: `verb` is play_land, cast, activate or pass.";
+        if (!"pass".equals(p.verb)) {
+            String c = str(o, "card");
+            java.util.regex.Matcher m = c == null ? null : Pattern.compile("@?\\s*(\\d+)").matcher(c);
+            if (m == null || !m.find()) return "FORMAT: `card` is a handle such as \"@12\".";
+            p.card = Integer.parseInt(m.group(1));
+            if (!absent(o, "ability")) {
+                Integer ab = intOf(o.get("ability"));
+                if (ab == null || ab < 1) return "FORMAT: `ability` is a number from YOUR ACTIVATED ABILITIES, 1 or more.";
+                p.ability = ab;
+            }
+            p.face = str(o, "face");
+            p.cost = str(o, "cost");
+            if (!absent(o, "targets")) {
+                if (!o.get("targets").isJsonArray()) return "FORMAT: `targets` is a list such as [\"@7\"] or [\"opponent\"].";
+                p.targets = new ArrayList<>();
+                for (JsonElement e : o.getAsJsonArray("targets")) {
+                    if (!e.isJsonPrimitive()) return "FORMAT: each target is a handle such as \"@7\", or \"you\" or \"opponent\".";
+                    String t = e.getAsString().trim();
+                    if (!t.isEmpty()) p.targets.add(t);
+                }
+            }
+        }
+        out.action = p;
+        return null;
+    }
+
+    private static final Pattern HANDLE = Pattern.compile("@?\\s*(\\d+)");
+
+    /** One entry of `declare_attackers` or `declare_blockers`, for the form errors. */
+    static String declareExample(boolean attack) {
+        return attack ? "{\"attacker\": \"@12\", \"defender\": \"opponent\"}" : "{\"blocker\": \"@3\", \"attacker\": \"@12\"}";
+    }
+
+    /** Reads `declare_attackers` or `declare_blockers` into {@code out.declared}: the form only (handles, each creature
+     *  once); the site checks the rules. An error starting "FORMAT:", or null. */
+    static String declaredOf(JsonObject a, boolean attack, Answer out) {
+        String field = attack ? DECLARE_ATTACKERS : DECLARE_BLOCKERS;
+        String first = attack ? "attacker" : "blocker", second = attack ? "defender" : "attacker";
+        String example = declareExample(attack);
+        if (!a.get(field).isJsonArray()) return "FORMAT: `" + field + "` is a list such as [" + example + "], or [] for none.";
+        java.util.Set<String> fields = declareProperty(attack).getAsJsonObject("items").getAsJsonObject("properties").keySet();
+        List<String[]> pairs = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (JsonElement e : a.getAsJsonArray(field)) {
+            if (!e.isJsonObject()) return "FORMAT: each entry of `" + field + "` is an object such as " + example + ".";
+            JsonObject o = e.getAsJsonObject();
+            for (String k : o.keySet()) if (!fields.contains(k)) return "FORMAT: an entry of `" + field + "` has no field `" + k + "`.";
+            String x = str(o, first), y = str(o, second);
+            java.util.regex.Matcher mx = x == null ? null : HANDLE.matcher(x);
+            if (mx == null || !mx.matches()) return "FORMAT: `" + first + "` is a handle such as \"@12\".";
+            String h2 = y;
+            if (!attack) {
+                java.util.regex.Matcher my = y == null ? null : HANDLE.matcher(y);
+                if (my == null || !my.matches()) return "FORMAT: `attacker` is the handle of an attacking creature, such as \"@12\".";
+                h2 = my.group(1);
+                if (!seen.add(mx.group(1) + ">" + h2)) return "FORMAT: @" + mx.group(1) + " blocks @" + h2 + " twice.";
+            } else if (!seen.add(mx.group(1))) {
+                return "FORMAT: @" + mx.group(1) + " is declared as an attacker twice.";
+            }
+            pairs.add(new String[] {mx.group(1), h2});
+        }
+        out.declared = pairs;
+        return null;
+    }
+
+    /** The declaration in one line, for the row: "@12 -> opponent, @13 -> @5" or "@3 blocks @12"; "none" when empty. */
+    static String renderDeclared(List<String[]> d, boolean attack) {
+        if (d == null || d.isEmpty()) return "none";
+        StringBuilder b = new StringBuilder();
+        for (String[] p : d)
+            b.append(b.length() == 0 ? "" : ", ").append('@').append(p[0])
+             .append(attack ? " -> " + (p[1] == null ? "opponent" : p[1]) : " blocks @" + p[1]);
+        return b.toString();
+    }
+
     /** The answer in the text grammar's words, for the decision row's raw_reply and the one-chat history:
      *  the same line the text protocol would have scraped, so every reader of the row stays valid. */
     static String render(Spec s, Answer a) {
@@ -699,6 +1080,22 @@ final class AnswerTool {
             }
             case NUMBER: b.append("NUMBER: ").append(a.number); break;
             case CARD: b.append("CARD: ").append(a.card); break;
+            // The matched option last, as a CHOICE line: every reader of a play row keeps working.
+            case ACTION: b.append("PROPOSED: ").append(a.action.render()).append("\nCHOICE: ").append(a.option); break;
+            // The declared set last in the menu's words (PICKS / BLOCKS over the hidden lists), as for a play.
+            case ATTACK_PROPOSAL:
+                b.append("PROPOSED: attack ").append(renderDeclared(a.declared, true)).append("\nPICKS: ")
+                 .append(a.options == null || a.options.isEmpty() ? "NONE" : join(a.options));
+                break;
+            case BLOCK_PROPOSAL: {
+                b.append("PROPOSED: ").append(renderDeclared(a.declared, false)).append("\nBLOCKS: ");
+                if (a.blocks == null || a.blocks.isEmpty()) b.append("NONE");
+                else for (int i = 0; i < a.blocks.size(); i++) {
+                    int[] p = a.blocks.get(i);
+                    b.append(i == 0 ? "" : ", ").append(label(s.labels, p[0])).append("->").append(label(s.labels2, p[1]));
+                }
+                break;
+            }
             default: break;
         }
         if (a.steps != null && !a.steps.isEmpty()) b.append("\nSTEPS: options ").append(join(a.steps));
@@ -738,6 +1135,11 @@ final class AnswerTool {
             case BLOCKS: how = "`blocks`: pairs of a blocker number and an attacker number (an empty list for no blocks)"; break;
             case NUMBER: how = "`number`: an integer from " + s.min + " through " + s.max; break;
             case CARD: how = "`card`: the exact card name"; break;
+            case ACTION: how = "`action`: the play you propose (`verb`, and `card` unless you pass)"; break;
+            case ATTACK_PROPOSAL: how = "`declare_attackers`: the attack you propose, each attacker by handle and its `defender` "
+                    + "(an empty list attacks with none)"; break;
+            case BLOCK_PROPOSAL: how = "`declare_blockers`: the blocks you propose, each blocker by handle and the attacker it "
+                    + "blocks (an empty list for no blocks)"; break;
             default: how = "the decision's values"; break;
         }
         return "ANSWER: call `answer` with " + how + "." + (plan ? " Call `set_plan` too if your plan is new or has changed." : "")
@@ -808,6 +1210,19 @@ final class AnswerTool {
         int nudges;
         int invalid;
         boolean lost;
+        /** A proposal (play, attack or blocks): every `answer` call in order, {arguments, error or null when accepted}. */
+        final List<String[]> proposals = new ArrayList<>();
+        /** Indices into {@link #proposals} of the refusals the model was told: the ERROR result was in its messages and
+         *  it took another turn. A refusal that ended the decision, one beside the answer in its reply ("Not used"), or
+         *  one sent in the last round was never read (pr-review of #357). */
+        final List<Integer> told = new ArrayList<>();
+
+        /** The refused proposals the model was told, in order: what PROPOSE_NOTEBOOK notes. */
+        List<String[]> toldRefusals() {
+            List<String[]> out = new ArrayList<>();
+            for (int i : told) out.add(proposals.get(i));
+            return out;
+        }
         /** Text the model wrote alongside its answer call: its reasoning, kept for the row and the
          *  carried play intent. */
         String content;
@@ -910,11 +1325,18 @@ final class AnswerTool {
         JsonArray messages = new JsonArray();
         messages.add(NativeTools.message("user", first));
         boolean pressed = false;
-        for (int round = 0; round < MAX_ROUNDS; round++) {
+        boolean proposal = proposes(ask.spec.kind);
+        int maxInvalid = proposal ? MAX_INVALID_PROPOSALS : 2;
+        // A proposal's extra tries get their own rounds, so the lookups it may make are not taken away.
+        int rounds = MAX_ROUNDS + maxInvalid - 2;
+        List<Integer> sent = new ArrayList<>();   // refusals whose result is in `messages`, not yet read by a turn
+        for (int round = 0; round < rounds; round++) {
             boolean open = lookups != null && lookups.open(round);
             // tool_choice "auto" every round: the answer must stay callable, and forcing is not an option.
             NativeTools.Turn turn = model.turn(first, messages.toString(), toolsJson, true, round);
             if (turn == null) return null;
+            ask.told.addAll(sent);
+            sent.clear();
             if (turn.calls.isEmpty()) {
                 if (ContextMemory.toolLine(turn.content) != null || NativeTools.looksLikeCallMarkup(turn.content)) {
                     audit.accept(turn.content, "ERROR: a tool request must be a function call; no tool executed.");
@@ -948,13 +1370,19 @@ final class AnswerTool {
             // An illegal `answer` call before a legal one is not the answer (v12); a reply whose every `answer`
             // call is illegal is one invalid reply.
             boolean calledAnswer = false;
+            int[] proposalAt = new int[results.length];   // each call's index in ask.proposals, or -1
+            java.util.Arrays.fill(proposalAt, -1);
             for (int i = 0; i < results.length; i++) {
                 NativeTools.Call c = turn.calls.get(i);
                 if (!NAME.equals(c.name)) continue;
                 calledAnswer = true;
                 Result r = validate(ask.spec, c.arguments);
+                if (proposal) {
+                    proposalAt[i] = ask.proposals.size();
+                    ask.proposals.add(new String[] {c.arguments, r.answer == null ? r.error : null});
+                }
                 if (r.answer == null) {
-                    results[i] = "ERROR: " + r.error + " Nothing was done. Call `answer` again with a legal value.";
+                    results[i] = "ERROR: " + (proposal ? shownRefusal(r.error, ask.spec.kind) : r.error) + " Nothing was done. Call `answer` again with a legal value.";
                     audit.accept(c.render(), results[i]);
                     continue;
                 }
@@ -978,7 +1406,7 @@ final class AnswerTool {
             }
             if (calledAnswer) {
                 ask.invalid++;
-                if (ask.invalid >= 2) { ask.lost = true; ask.via = "lost"; return null; }
+                if (ask.invalid >= maxInvalid) { ask.lost = true; ask.via = "lost"; return null; }
             }
             boolean refused = false;
             for (int i = 0; i < results.length; i++) {
@@ -988,7 +1416,10 @@ final class AnswerTool {
                 else { results[i] = lookups.serve(c, open); if (!open) refused = true; }
                 audit.accept(c.render(), results[i]);
             }
-            for (int i = 0; i < results.length; i++) messages.add(NativeTools.toolResult(turn.calls.get(i).id, results[i]));
+            for (int i = 0; i < results.length; i++) {
+                messages.add(NativeTools.toolResult(turn.calls.get(i).id, results[i]));
+                if (proposalAt[i] >= 0) sent.add(proposalAt[i]);
+            }
             if (refused && !calledAnswer) {
                 if (pressed) return null;
                 pressed = true;

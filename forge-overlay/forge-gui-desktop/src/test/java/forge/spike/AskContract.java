@@ -28,7 +28,7 @@ final class AskContract {
      *  last word is capitalised ("Aether Vial (4)", "Show and Tell (104)"). */
     static final Pattern STATE_ENGINE_ID = Pattern.compile("\\b[A-Z][A-Za-z']* \\(\\d+\\)");
     /** Forge's filter syntax ("Card.nonLand", "Creature.cmcEQX", "Eldrazi.Spawn"): runs/loop/g05 showed it raw. The same
-     *  regex as LlmSpikeGui.ENGINE_FILTER_REGEX and match_review.ENGINE_FILTER (eval/test_match_review.py). */
+     *  regex as LlmSpikeGui.ENGINE_FILTER_REGEX and match_review.ENGINE_FILTER (eval/tests/test_match_review.py). */
     static final Pattern ENGINE_FILTER = Pattern.compile("\\b[A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z]");
     static final Pattern RANGE = Pattern.compile("Choose between (\\d+) and (\\d+) of these");
     static final Pattern NUMBER_RANGE = Pattern.compile("Every integer from (-?\\d+) through (-?\\d+) inclusive is legal");
@@ -134,7 +134,10 @@ final class AskContract {
             Matcher r = RANGE.matcher(decision);
             Assert.assertTrue(r.find(), test + ": a subset ask that does not say how many to pick: " + decision);
             int lo = Integer.parseInt(r.group(1)), hi = Integer.parseInt(r.group(2));
-            Assert.assertTrue(0 <= lo && lo <= hi && hi <= labels.size(),
+            // A repeatable-mode ask ("you may choose the same mode more than once") may pick more than it lists: the
+            // Seasons choose up to five of three modes (#415).
+            boolean repeats = decision.contains("the same mode more than once");
+            Assert.assertTrue(0 <= lo && lo <= hi && (hi <= labels.size() || repeats),
                     test + ": the subset range " + lo + ".." + hi + " does not fit " + labels.size() + " options: " + decision);
         }
         if (tail.contains("NUMBER: <integer>")) {

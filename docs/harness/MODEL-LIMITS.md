@@ -71,17 +71,18 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 
 | Limit | Where | Bound | Decision | New value |
 |---|---|---|---|---|
-| Smart-tier `max_tokens` (the thinking budget) | `ModelCfg.buildTable` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: providers reject a `max_tokens` above their own output limit, which would turn every call into an error. A puzzle run may set it per run (`puzzle_solve.py --max-tokens`, recorded as a condition, `eval/PUZZLES.md`); a value above a provider's limit errors every call | 32000 |
+| Smart-tier `max_tokens` (the thinking budget) | `ModelCfg.buildTable` | at 16000: 7 of 865 smart calls truncated, all deepseek hard main phases | raised to 32000 by `fix/thinking-cap` (`acf6f2e`); **kept** at 32000 here: providers reject a `max_tokens` above their own output limit, which would turn every call into an error. A puzzle run may set it per run (`puzzle_solve.py --max-tokens`, recorded as a condition, `docs/eval/PUZZLES.md`); a value above a provider's limit errors every call | 32000 |
 | Per-call timeout | `ModelCfg.buildTable` | at 150s: 2 calls timed out | 300s by `acf6f2e`; kept (it couples to the post-cap grace and run_batch.py's `GRACE_S = 1000`). A puzzle run may set it per run (`puzzle_solve.py --call-timeout-minutes`, recorded as a condition; the `--k 1` rule is in the grace row) | 300s |
 | Truncation retry: a reasoning row retries at 4096 tokens with reasoning off | the OpenRouter bridge's truncation retry (`LSG`) | fired 7 times (smart) | **kept for the smart tier**: it fires only after the model spent the whole 32000-token budget, and the alternative is the deterministic fallback, not more thought. **Fixed for the fast tier**: its reasoning is already off, so the retry asked again at the same 1024 tokens; it now doubles the budget | smart unchanged; fast 2x |
 | Fast tier: 1024 tokens, 45s, reasoning `none` | `LSG:6601, 6616` | 2 of 170 fast calls truncated | tokens and time raised; reasoning **kept** `none`: that is what the two-tier arm is (a condition, `one_tier` on the game line). `ONE_TIER=1` uses the smart row everywhere and is the no-limit arm the game-loop skill already plays | 8192 tokens, 120s |
 | `SMART_BUDGET` / `FAST_BUDGET` calls a game (`play(no-budget)` once spent) | `LSG:607-608` | 0 llm seats (most: 137 smart calls in a 17-turn game; every `no-budget` line in `runs/` is a floor seat) | raised to loop guards; a 40-turn one-tier game reaches 320 | 10000 / 10000 |
 | Play decisions per turn, faithful: 80 (`play(turn-cap)`) | `LSG:606` | 0 (most in one turn: 15) | raised: a storm turn counts both players' windows | 500 (loop guard) |
 | Play decisions per turn, legacy profiles: 25 | `LSG:603` | not in use (every game is faithful) | **kept**: the legacy profiles are frozen measurement definitions | 25 |
-| `ONE_CHAT_TURNS`: the last 20 decisions kept in the conversation | `ChatSessionBridge.java:30` | one-chat was off in every game; Opus's 74 asks would have dropped 54 | raised | 10000 (whole game). A model whose context window cannot hold a long game can be given `ONE_CHAT_TURNS=N` |
+| `ONE_CHAT_TURNS`: the last 20 decisions kept in the conversation | `ChatSessionBridge.java:30` | one-chat was off in every game; Opus's 74 asks would have dropped 54 | raised | 10000 (whole game). A model whose context window cannot hold a long game can be given `ONE_CHAT_TURNS=N`, stamped as `one_chat_version` `+turns=N` (also under TURN_CHAT; launchers pin the default) |
 | Claude CLI call deadline: 90s | `ClaudeCliBridge.deadlineFor` | the lane was not used | raised to the API lane's timeout | 300s |
 | PROFILE line read only on the ask that requests it (every 5 turns); LINES only on its first 2 asks | `LSG:816, 809`, parse at `LSG:2720-2735` | not countable (a volunteered line left no trace) | the asks keep their cadence; **a PROFILE or LINES line in any reply now replaces that note** (`adoptNotes`), as the legend always claimed | any decision |
 | Playable lands offered: first 4 distinct names | `LSG:5629` | 0 of 560 play asks | removed for the faithful seat (a five-land-type hand had no way to play its fifth); legacy and teacher menus keep it so the zero-model canaries do not move | every land |
+| The payment check's search over "tap N untapped X you control" mana activations (#367): `TAP_TYPE_DEPTH` 3 activations deep, `TAP_TYPE_BUDGET` 48 engine test payments a check | `LSG` `tapTypeStep` | 0: it bound in no recorded game (added after them, harness-epoch-83) | **kept**: a loop guard. It can hide a legal cast whose only payment needs more than 3 such activations, or more than 48 tries to find; a menu that runs the search on every unpayable spell needs a bound | 3 / 48 |
 | Parse re-ask: a reply with no answer line is asked once more, then `LOST` | `LSG:2660` and the decideOne/decideMany loops | 0 LOST (match_review) | **kept**: a loop guard; the re-ask carries the whole decision | 2 attempts |
 | Bridge retries: 3 attempts with 0.5s / 2s backoff | `LSG:4733` | 4 second attempts, 0 third | **kept**: transport, and the post-cap grace is three timeouts | 3 |
 | Degenerate-repetition collapse | `collapseDegenerateRepetition` | n/a | **kept**: a guard against a reply that repeats itself thousands of times | unchanged |
@@ -92,9 +93,10 @@ game logs (`[TRUNCATED->RETRY...]`, `play(no-budget)`, `play(turn-cap)`, `[BRIDG
 
 A decision model answers only typed questions over a closed list of keys (`docs/harness/ARCHITECTURE.md` section 9,
 "The Decisions bridge"). Where a decision cannot be put that way it is not sent: the bridge gives no answer, logs
-`[JEV-NO-ANSWER]` with the reason, and the seat takes its fixed legal option. "Bound" counts the asks of the three
-puzzles of the first Jev run, read from Luna's rows (`runs/puzzles/hard-gen2-luna/<id>/game-*.jsonl`, 116 asks);
-the first Jev game (`runs/puzzles/jev-test-1`, 2026-10-24) is not counted here. `DB` is `DecisionsBridge.java`.
+`[JEV-NO-ANSWER]` with the reason, and the seat's bridge retry runs, then it takes its fixed legal option. "Bound"
+counts the asks of the three puzzles of the first Jev run, read from Luna's rows
+(`runs/puzzles/hard-gen2-luna/<id>/game-*.jsonl`, 116 asks); the first Jev game (`runs/puzzles/jev-test-1`,
+2026-10-24) is not counted here. `DB` is `DecisionsBridge.java`.
 
 | Limit | Where | Bound | Decision | Value |
 |---|---|---|---|---|
@@ -144,7 +146,7 @@ still stops a batch at its budget.
 - `PlanAnytimeTest.aProfileOrLinesLineAtAnyDecisionReplacesThatNote`
 - `NativeToolsTest.simulateIsOfferedOnlyWithAHandlerAndRunsForEveryCall` and the budget tests, now
   written against `ContextMemory.TOOLS_PER_ASK`; `LookaheadProbeTest` (no line-length cap)
-- `eval/test_tool_use_suite.py` keeps the suite's mirror of the executor in step (16 calls, 20000-character
+- `eval/tests/test_tool_use_suite.py` keeps the suite's mirror of the executor in step (16 calls, 20000-character
   pages, 50 results, 2100-character command lines)
 
 Not determined here: this audit has not been repeated since harness-epoch-7, so late-game prompt size, tool calls

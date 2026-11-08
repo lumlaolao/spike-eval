@@ -3,8 +3,8 @@
 **Status: proposed, for the owner's review.** Phase 2 (the Forge puzzles' neutral brief, the budget fields, the
 score's intervals, budget and integrity lines) is built at harness-epoch-69 (#282), and phase 1's difficulty fields
 are in the code (#280, #281). Of phase 3, the `h_*` written lines are proven and three generated hard suites are
-frozen (`HARD-PUZZLES.md` section 3; `eval/PUZZLES.md`); nothing else below is built. It amends
-[eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md) (approved 2026-10-18); what v1 decided stays decided unless a row below
+frozen (`HARD-PUZZLES.md` section 3; `docs/eval/PUZZLES.md`); nothing else below is built. It amends
+[docs/eval/BENCHMARK-V1.md](../eval/BENCHMARK-V1.md) (approved 2026-10-18); what v1 decided stays decided unless a row below
 says otherwise. The evidence is in
 [history/2026-10-20-benchmark-v2-research.md](history/2026-10-20-benchmark-v2-research.md) (today's reading:
 Anthropic's eval guides and skills, Hillclimb's DeepRSI, Prime Intellect's `verifiers`, the Hugging Face
@@ -59,7 +59,7 @@ Audited today; each line is either already true (with where it is enforced) or p
 | The budget is recorded per attempt (prompt and completion tokens, tool calls, model ms) in the result row | yes, from harness-epoch-69 (#282): `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms` and `lookups` on a model seat's `pzl-result-v1` row (`PlayerControllerLLM.budget()`; billing: ARCHITECTURE.md section 10) | `puzzle_score.py` prints the budget line |
 | The grader is the engine: Forge's Puzzle Goal card plus `[acceptance]` on the final state; no judge, no text | true | `PuzzleAcceptance`, `Puzzle.addGoalEnforcement` |
 | A solve must beat every opponent reply: the proof is a strategy tree, and the opponent arm in a scored run is the Forge AI on a fixed seed | true for proven puzzles; **extend** by preferring puzzles with `opponent_choice_points >= 1` | `PuzzleSearch.prove`, `opponent_branches_beaten` |
-| Exploits are logged apart from correctness: `report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers each counted per attempt and shown next to the score | partly: `puzzle_score.py` counts capped games and deck-out solves at weight 0 (#282), `eval/puzzle_tool_use.py` counts lookups per condition | **add** the rest (`report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers) to the result row, then to the integrity line (Reward Hacking Benchmark: integrity beside correctness) |
+| Exploits are logged apart from correctness: `report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers each counted per attempt and shown next to the score | partly: `puzzle_score.py` counts capped games and deck-out solves at weight 0 (#282), `eval/puzzles/puzzle_tool_use.py` counts lookups per condition | **add** the rest (`report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers) to the result row, then to the integrity line (Reward Hacking Benchmark: integrity beside correctness) |
 | Reproducibility stamp on every number: engine commit, suite sha, harness epoch and prompt versions, condition, model id and provider, date, k, seeds, temperature (provider default unless set) | mostly | **add** the model's served id and the request's generation parameters to the manifest |
 
 ## 4. Difficulty, measured

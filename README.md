@@ -1,4 +1,4 @@
-# mtg-forge-llm-agent
+# spike-eval
 
 Language models play full games of Magic: The Gathering inside [Forge](https://github.com/Card-Forge/forge), the
 open-source rules engine, and the games are scored as a benchmark. This repository is the harness that drops into a
@@ -12,15 +12,15 @@ it. GPL-3.0-or-later, like Forge: see [License](#license).
 - **What the model sees.** The state from the engine, Forge's game log, the opponent's cards it has seen, and its own
   notes, each block labelled by its source (`SeatObservation.java`).
 - **The benchmark.** STR-AI (win rate against Forge's AI on frozen panels), STR-HELDOUT (the same on held-out seeds)
-  and PUZ (frozen puzzle suites, judged by Forge's puzzle mode). Design: `eval/EVAL-DESIGN.md`, `eval/SCORING.md`,
-  `eval/PUZZLES.md`.
+  and PUZ (frozen puzzle suites, judged by Forge's puzzle mode). Design: `docs/eval/EVAL-DESIGN.md`, `docs/eval/SCORING.md`,
+  `docs/eval/PUZZLES.md`.
 
 ![One decision in the replay viewer: the seat's board, its plan, two simulate previews and its answer](docs/images/seat-decision.webp)
 
 ## Play against the model
 
 ```bash
-git clone https://github.com/SeanCThomas0/mtg-forge-llm-agent.git && cd mtg-forge-llm-agent
+git clone https://github.com/SeanCThomas0/spike-eval.git && cd spike-eval
 bash setup.sh                                         # Forge at the pinned commit, the harness on top, the build, your key
 bash play-vs-llm.sh                                   # your Burn against GPT-6 Luna on Mardu Energy, in Forge's window
 bash play-vs-llm.sh --deck elves --vs ur-delver       # any eval/decks/<name>.txt, or a path to a decklist
@@ -64,7 +64,7 @@ bash install.sh                                       # copy the overlay in, app
 (cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am install -DskipTests)    # checkstyle runs here; -o once built
 (cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=${FORGE_CP_FILE:-/tmp/forge_cp.txt})
 bash eval/harness_acceptance.sh                       # compile, every test, canaries, fake-model games
-bash eval/keyword_gauntlet.sh                         # 28 free games over 552 cards
+bash eval/keyword_gauntlet.sh                         # 29 free games over 564 cards
 ```
 
 Acceptance builds into `runs/harness-acceptance/<ts>/` and never touches the checkout. Its zero-model canaries are
@@ -73,7 +73,7 @@ bit-reproducible and pinned in `eval/harness_acceptance.expected` (`docs/harness
 To hand someone a copy without your `secrets.env`, zip only what git tracks:
 
 ```bash
-git archive --format=zip --prefix=mtg-forge-llm-agent/ -o ../mtg-forge-llm-agent.zip HEAD -- . ":(exclude)runs" ":(exclude)datasets"
+git archive --format=zip --prefix=spike-eval/ -o ../spike-eval.zip HEAD -- . ":(exclude)runs" ":(exclude)datasets"
 ```
 
 ## Documents

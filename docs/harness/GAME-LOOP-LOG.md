@@ -966,3 +966,20 @@ ai_tier_count=0, 183 calls, 23 min. The most expensive loop game so far (control
   PromptFidelityTest.anEffectOfAnEffectCarriesNoEngineId, watched failing first.
 - checked  TOOL empty x2: `simulate` outside a priority menu, refused with the reason, as in g32.
 - not read  the one plan hold and the play-by-play; the sheet was all this session read before it stopped.
+
+### gauntlet kw28  2026-11-04  Forecast (zero-model, `first` policy)  29 games  build bdb6818
+Runs (container-local): `bash eval/keyword_gauntlet.sh runs/gauntlet-forecast-first 4` on 53edd93 (before the fix) and
+`runs/gauntlet-forecast-fix` on bdb6818 (after); counts from `python3 eval/gauntlet_scan.py <run>` and
+`grep -c "failed to target" <run>/g-kw2*/game.log`.
+Forecast is an ability parameter, not one of Forge's keywords, so the sweep and the 28 gauntlet decks never held one;
+`eval/gauntlet/kw28.txt` now plays Forge's twelve Forecast cards (owner, 2026-11-04: "use forecast ability").
+- FIXED  Govern the Guildless's forecast offered every upkeep with no creature in play and failing each time ("Couldn't
+  add to stack, failed to target", 3 failures, 6 lines with STACK_ADD): its target is in a sub-ability, which
+  `offerable` never checked (harness-epoch-77). Test: aPlayWhoseSubAbilityTargetsIsOfferedOnlyWithATarget, red first.
+  Rerun: 6 Govern, 7 Plumes of Peace and 1 Karlov's Crossbow forecasts activated from the hand, all in the seat's
+  upkeep; ai=0 in every game.
+- not ours  g-kw27: Karlov's Crossbow (82) "failed to target", 2 lines (4 with STACK_ADD). The card is the Forge AI
+  opponent's (kw27's seat plays kw28's deck against it): its own play, not a seat decision. gauntlet_scan cannot tell
+  a side, so the run reads 4 defect lines; the scan now lists such lines apart (PR #344).
+- clean  every other game; the seat's forecast timing (upkeep only) and the abilities list from the hand
+  (aForecastAbilityIsOfferedAndProposableOnlyInTheUpkeep).

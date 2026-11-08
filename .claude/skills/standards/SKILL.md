@@ -21,18 +21,19 @@ diff. Run the mechanical checks first and quote their output:
 ```bash
 python3 scripts/pr_format.py check-branch          # commit subjects and bodies on this branch
 python3 scripts/pr_format.py check-pr <n>          # title and body sections (when there is a PR)
-python3 -m unittest discover -s eval -p 'test_*.py' 2>&1 | tail -3
+python3 -m unittest discover -s eval/tests -p 'test_*.py' 2>&1 | tail -3
 git diff --cached --name-only | grep -E '^(runs|datasets)/' && echo "generated data is staged"
-# every eval/*.py the change adds or edits has a test, or is still on the shrinking list:
-for f in $(git diff --name-only origin/main...HEAD -- 'eval/*.py' | xargs -n1 basename | grep -v '^test_'); do
-  [ -f "eval/test_$f" ] || grep -qx "$f" eval/UNTESTED.txt || echo "no test: eval/$f"; done
+# every eval script has a test or is on the shrinking list (the merge gate also fails a changed script still
+# listed, docs/STANDARDS.md section 1 item 4); every path the agent-facing docs name exists
+# (both also run in the suite above; run alone they say which file):
+python3 eval/tests/test_untested_list.py && python3 eval/tests/test_doc_paths.py
 ```
 
 Then go through the standards section by section and, for each rule the change touches, say
 whether it holds. The ones a script cannot see:
 
 - a new Java file or edit outside `forge-overlay/`; a Python file in `eval/` with a third-party
-  import or without `eval/test_<name>.py`;
+  import or without `eval/tests/test_<name>.py`;
 - a change to what the model sees without the version that covers it moving, or a moved version
   without the grep in `eval/harness_acceptance.sh` and the docs following;
 - a new opt-in flag that `run_batch.py` does not pin, record and refuse to mix;

@@ -49,7 +49,7 @@ resolve() { # a deck name under eval/decks, or a path to a decklist
 deck_a="$(resolve "$deck")"; deck_b="$(resolve "$vs")"
 case "$games" in ''|*[!0-9]*|0) echo "play-vs-llm: --games takes a positive number" >&2; exit 2 ;; esac
 
-# The owner's own consent and key file, read as eval/puzzle_solve.py reads it (KEY=VALUE, whitespace and a CR
+# The owner's own consent and key file, read as eval/puzzles/puzzle_solve.py reads it (KEY=VALUE, whitespace and a CR
 # trimmed, # comments skipped, the first occurrence kept); the environment wins.
 if [ -f "$REPO/secrets.env" ]; then
   while IFS= read -r ln || [ -n "$ln" ]; do
@@ -80,7 +80,7 @@ import run_batch
 fields = json.load(open(sys.argv[1] + "/eval/suites/panels-v1.json"))["pilot_condition"]["fields"]
 cond = {k.upper(): ("1" if v else "0") if isinstance(v, bool) else str(v) for k, v in fields.items()}
 scrub = list(run_batch.RUN_DEFINING_KEYS + run_batch.CITED_FORCED_KEYS) + [
-    "SHADOW_AI", "AUTO_EXIT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE", "OPENROUTER_MODEL_CFG", "PROMPT_CACHE", "DECKLIST",
+    "SHADOW_AI", "AUTO_EXIT", "OPENROUTER_MODEL_CFG", "PROMPT_CACHE",
     "PUZZLE", "PUZZLE_DIRS", "SMART_BUDGET", "FAST_BUDGET"]
 scrub += [k for k in os.environ if k.startswith((run_batch.CTX_OVERRIDE_PREFIX, "PZL_", "FORK_"))]
 for k in dict.fromkeys(scrub):

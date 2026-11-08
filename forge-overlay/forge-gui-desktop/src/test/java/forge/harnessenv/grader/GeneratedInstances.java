@@ -42,7 +42,7 @@ import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
 
 /**
- * The instances eval/harness_env_generate.py draws from the card scripts, built from their templates: each template
+ * The instances eval/harness_env/harness_env_generate.py draws from the card scripts, built from their templates: each template
  * is one board shape with the drawn card in its place, and the legal outcomes come from the engine for that card
  * (CombatUtil and AttackConstraints for combat, SpellAbility.canTarget for a target). An instance whose board cannot
  * be built (a card the database does not load) is discarded and named, never graded.

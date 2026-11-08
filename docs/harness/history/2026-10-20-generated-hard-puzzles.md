@@ -17,7 +17,7 @@ gate's own output (`scripts/puzzle-gate/gen_gate.py`, `OUT/gate.json`).
 - Our own suite: 452 of 525 proven rules-puzzle lines are one or two actions (difficulty `L <= 2` in
   `eval/puzzles/retier/retier-v2-measures.json`, branch `data/retier-v2` at 9f7bc75, the 2026-10-20 re-tier).
 
-## How a board is made (`eval/puzzle_gen.py`)
+## How a board is made (`eval/puzzles/puzzle_gen.py`)
 
 A family draws a board's numbers, computes its line exactly and writes it as the puzzle's `[solution]` in the
 words the seat is shown. The opponent's life is set to exactly what the best line deals, so there is no slack.
@@ -81,14 +81,14 @@ necessary, 16 inconclusive, the other 36 `pass` lines).
 
 **The model check (paid).** GPT-6 Luna (`openrouter:openai/gpt-6-luna`, the faithful profile, tools off) took one
 attempt at 68 of the 84 open boards, every family included (one board of each family in turn until 68, so the 16
-left out are 14 drain and 2 splice) (`eval/puzzle_solve.py --k 1 --budget-usd 0.98`, run directory
+left out are 14 drain and 2 splice) (`eval/puzzles/puzzle_solve.py --k 1 --budget-usd 0.98`, run directory
 `runs/puzzles/hard-gen-luna-check`, against a provisional suite with the same boards and files, `check-suite.json`
 there; $0.912, plus $0.014 for a one-board pilot). It solved 20 of 68 (29%, Wilson 95% interval 20% to 41%), against
 0 for every floor (random 0 of 20 a board). Without ping it solved 5 of 51 (10%, 4% to 21%); ping alone 15 of 17
 (66% to 97%). The other families' counts are too small to tell apart. On its 48 misses it left the opponent at 2 to
 39 life (median 4). The harness was clean in every game: `ai=0`, `textParses=0`; the 151 decisions taken for the
 seat had no choice (no options, or one forced target). One attempt a board is a check, not a score: a PUZ score
-takes k=4 (`eval/PUZZLES.md`). Ping is kept as its own family (owner, 2026-10-21): the floors fail it, Luna mostly
+takes k=4 (`docs/eval/PUZZLES.md`). Ping is kept as its own family (owner, 2026-10-21): the floors fail it, Luna mostly
 solves it, and its life total is not a searched maximum.
 
 The active set is not filtered on the model's result: keeping only the boards one model fails would make the suite
@@ -140,11 +140,11 @@ traps catch a model is not measured yet.
   spell damage and added Kiln Fiend's attack afterwards, so a free cast that only pumps the Fiend could be missed.
   Both fixed on 2026-10-21 (`2026-10-21-harder-splice.md`).
 - The held-out boards carry their `[solution]` and `Rule:` lines in the repository while it is private (owner,
-  2026-10-21; `eval/PUZZLES.md`); they must be stripped before it is made public.
+  2026-10-21; `docs/eval/PUZZLES.md`); they must be stripped before it is made public.
 - Run faster next time (owner, 2026-10-21): a model check waits on the provider, not the CPU (about 15 s a call),
   so run it 8 to 12 attempts at a time, not 3; split the engine gates into batches run side by side rather than in
   one queue. This check took about two hours at 3 at a time.
-- The second set is frozen as `eval/suites/puzzles-hard-gen2-v1.json` (`eval/PUZZLES.md`); no model has played it. The gate kept every
+- The second set is frozen as `eval/suites/puzzles-hard-gen2-v1.json` (`docs/eval/PUZZLES.md`); no model has played it. The gate kept every
   board, so the floors do not separate these boards; only a model check can say whether the traps bite. Where the
   line leaves mana unspent is checked for copy only (grave spends it all on Consume Spirit; an atog line can float
   one {C} from the Ironworks). Every atog trap is exactly 2 short, and Firebrand Archer is the payoff on most copy

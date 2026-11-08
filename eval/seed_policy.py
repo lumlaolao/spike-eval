@@ -2,7 +2,7 @@
 """Seed governance: reserved eval seed blocks that must never feed SFT/training data.
 
 Single source of truth for the reserved seed ranges defined in
-`eval/EVAL-DESIGN.md` §6.5 ("Seed governance"). Three blocks are reserved:
+`docs/eval/EVAL-DESIGN.md` §6.5 ("Seed governance"). Three blocks are reserved:
 
   frozen-legacy           501-525      frozen baseline anchor block (v0 /
                                         teacher / ceiling comparisons); burned
@@ -44,7 +44,7 @@ RESERVED_BLOCKS = (
     ("certification-holdout", 30000, 30099),
 )
 
-DOC_POINTER = "eval/EVAL-DESIGN.md §6.5"
+DOC_POINTER = "docs/eval/EVAL-DESIGN.md §6.5"
 
 
 def reserved_block(seed):

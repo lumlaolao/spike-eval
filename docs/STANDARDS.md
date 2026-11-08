@@ -12,8 +12,10 @@ kind of finding shows up in two reviews.
 
 A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unless:
 
-1. `python3 scripts/pr_format.py check-pr <number> --gate` passes: title, body sections, and the
-   message of every commit on the PR as GitHub holds it;
+1. `python3 scripts/pr_format.py check-pr <number> --gate` passes: title, body sections, the
+   message of every commit on the PR as GitHub holds it, and `## What` listing every commit's subject
+   (merges aside: a commit with two parents, whatever its subject, as `check-branch` leaves it out; PR #353), so a
+   commit pushed after review is in the record too (PR #343);
 2. the body's `## Review` section holds one line per skill for the PR's current head commit,
    written by `pr_format.py record-review`. `pr-review` records CLEAN/LOW/MEDIUM/HIGH/BLOCKER,
    `simplify` CLEAN or SUGGESTIONS, `standards` CLEAN or VIOLATIONS. The gate refuses BLOCKER, HIGH
@@ -21,14 +23,21 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
 3. the body's `## Evidence` section has a line
    `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS` (written by
    `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `engine-patches/`, `eval/`,
-   `scripts/` or a root launcher (any `*.sh` at the root; `eval/test_pr_format.py` fails when one is missing from
-   `pr_format.CODE_PATHS`). The sha must be the PR's current head.
+   `scripts/` or a root launcher (any `*.sh` at the root; `eval/tests/test_pr_format.py` fails when one is missing from
+   `pr_format.CODE_PATHS`). The sha must be the PR's current head, and N covers every stage: one PASS line per stage
+   in `ALL_STAGES` (`eval/harness_acceptance.sh`), two for canary, 19 today. `record-acceptance` checks the counts
+   against the run's own `<OUT>/summary.txt` and refuses a `STAGES` subset, which is prose in Evidence, never this line
+   (PR #357);
+4. no `eval/` script the PR changes is still on `eval/UNTESTED.txt` as the PR head has it (#247): changing a listed
+   script gives it its test and takes it off the list in the same PR (section 3).
 
 It merges exactly the commit it checked, with a merge commit. Never squash: the commit list is the
 record of what was reviewed. Merging your own PR is fine once the gate passes.
 
 The gate is a record, not a proof. Verdict and acceptance lines are written by the author's
-session, and GitHub does not enforce the script (no branch protection, no CI). Writing a verdict
+session, and GitHub does not enforce the script (no branch protection); CI (`.github/workflows/tests.yml`)
+runs only the Python suite, as a check that is not required. It is paused (owner, 2026-11-06: the month's Actions
+minutes are spent) and runs only when started by hand; the local acceptance run is the evidence. Writing a verdict
 no skill produced, or merging any other way, is a violation the next `standards` review reports.
 Because a verdict is for one head, finish the fixes first, then run acceptance and the three
 skills on the final commit; a re-review after fixes checks the fixes and the delta.
@@ -66,7 +75,7 @@ be used as it is; the PR title then carries the type.
 PR title: the same form as a commit subject. PR body, in this order:
 
 ```
-## What        the change, in terms of behaviour
+## What        one bullet per commit subject (merges aside; `check-pr --gate` checks it), then the behaviour
 ## Why         the evidence that it was needed (file:line, a run directory, a count)
 ## Evidence    acceptance run (OUT dir, stages, test counts), measurements with their trivial baseline
 ## Provenance  which stamps moved (observation version, tool versions, canary pins) or "none"
@@ -81,12 +90,16 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 
 | Path | Holds | Rule |
 |---|---|---|
-| `forge-overlay/` | all harness Java | the only place harness Java is edited; never the Forge checkout |
-| `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/test_engine_patches.py`) |
-| `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
+| `forge-overlay/` | all harness Java, and the game launchers `run-llm-headless.sh` / `run-llm-spike.sh` that `install.sh` copies into `$FORGE_HOME` | the only place harness Java is edited; never the Forge checkout; the launchers are bash 3.2 and parsed by `eval/tests/test_gate_parses.py` |
+| `engine-patches/` | our changes to Forge's own files, one unified diff each against the file at `FORGE_COMMIT` | never a whole Forge file in `forge-overlay/` (Forge is GPL); each opens with its notice and is a row of `docs/harness/ENGINE-PATCHES.md` (`eval/tests/test_engine_patches.py`) |
+| `eval/*.py`, `eval/demo/`, `eval/harness_env/`, `eval/puzzles/`, `eval/rl/` | drivers, analyzers, statistics (the demo, harness-env, puzzle and RL-environment scripts in their folders) | stdlib only; a script imports a script in another folder by module name after `import evalpath` (`eval/evalpath.py` puts every script folder on `sys.path`); a script in its own folder is imported directly, without it (`import aggregate` in `eval/panel_score.py`; `eval/tests/test_scripts_start.py` resolves both); `eval/harness_env/HarnessGraderReporter.java` is the one Java file here, the exception to "all harness Java is in `forge-overlay/`": the task grader's own TestNG reporter, compiled by `harness_env_task_grade.py` outside the worktree and never part of the overlay or the engine, with its compile checked by `eval/tests/test_harness_env_task_grade.py`; each file added or changed after 2026-10-13 has `eval/tests/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks (`eval/tests/test_untested_list.py`; its pinned `MAX_UNTESTED` is lowered in the PR that removes a name), and a PR that changes a listed file fails the merge gate (section 1, item 4) |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
-| `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/test_pr_format.py`; the shell scripts are thin wrappers |
-| `*.sh` (root) | launchers (`install.sh`, `setup.sh`, `run-llm-*.sh`, `play-vs-llm.sh`, ...) | bash 3.2; parsed by `eval/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/test_pr_format.py`), so a change needs an acceptance run (section 1) |
+| `eval/research/` | dated literature and pilot notes behind a design decision (`YYYY-MM-DD-<topic>.md`), plus one `README.md` that catalogues them | as `docs/eval/`: each claim cites its source or a run directory; a note is history, and the current rule lives in `docs/harness/ARCHITECTURE.md` or `docs/eval/`; `README.md`, the only undated file, lists every note and dates its idea statuses (`eval/tests/test_research_index.py`) |
+| `.github/workflows/` | CI: the Python suite (`tests.yml`) on the Python floor and a current one; on every PR and push to main, paused to a manual run since 2026-11-06 (the file says how to restore it) | no secrets, `permissions: contents: read`, `pull_request` (never `pull_request_target`), each action pinned to a commit SHA with its tag in a comment (`.github/dependabot.yml` proposes updates weekly); not the merge gate (section 1) |
+| `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder, or for what is not a script there: a launcher (`test_setup.py`), a data set (`test_modern_puzzles.py`) or a repository rule (`test_doc_paths.py`, `test_untested_list.py`, `test_gate_parses.py`, `test_launchers.py`, `test_research_index.py`) | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
+| `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
+| `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/tests/test_pr_format.py`; the shell scripts are thin wrappers |
+| `*.sh` (root) | entry points run from the clone (`install.sh`, `setup.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) |
 | `docs/harness/` | what the harness does and what was measured | a claim cites a file, a test or a run |
 | `.claude/skills/` | the skills every agent must use; Claude Code and OpenCode both discover them here, so they are not copied elsewhere | tracked; local settings and worktrees are not |
 | `runs/`, `datasets/` | generated data | never committed; never `git add -A` at the root |
@@ -98,30 +111,67 @@ most log questions).
 ## 4. Code
 
 - **Match the file you are in**: its naming, comment density and idiom.
+- **A copy of a constant has one source and a test.** When a Python script needs a list the Java harness
+  (or another script) owns, it imports it; where it cannot (Java to Python), a test reads the source and
+  asserts the copy equal (`eval/tooluse/tools.json` against `NativeTools`, `rules_probe.KEEP_ENV` against
+  `ClaudeCliBridge.KEEP_ENV`, `run_batch.PINNED_ENV_KEYS` imported by `tournament.py` and
+  `puzzle_baselines.py`; `eval/tests/test_launchers.py` names the diagnostic launchers that need not).
+- **A class that parses another class's prompt wording holds a copy.** A Java pattern that reads text another
+  class writes has a test that builds that text through the writer, for every kind that writes it, and asserts the
+  pattern reads it (`ReplayBridgeTest.everyAnswerRangeAnswerToolWritesIsReadWithBothEnds` pins `ReplayBridge.RANGES`
+  to `AnswerTool.instruction`; #365, #373). `ScriptBridge`'s range patterns are a further copy, not yet pinned.
 - **A comment says why**, or what would break, and cites the evidence when there is some (a run, a
   count, an engine line). It does not narrate the code or the history of the edit.
 - **No silent fallbacks.** A failure branch takes a deterministic legal option and logs it. Never
   the Forge AI for a strategic choice. `eval/defect_analyzer.py` holds the hard invariants
-  (`ai_tier_count=0`, `silent_drop_total=0`); never weaken the analyzer to make a run pass.
+  (`ai_tier_count=0`, `silent_drop_total=0`, `game_crash_count=0`, `bridge_down_total=0`,
+  `eval_log_write_failed_total=0`; the list is `build_report`'s `hard_invariants`, and
+  `eval/tests/test_defect_analyzer.py` checks this line names each of them);
+  never weaken the analyzer to make a run pass.
 - **The seat's tools are native tool calls** (`CLAUDE.md`). No new text command a reply must
   consist of.
 - **What the model sees is versioned.** A change to prompt bytes bumps the version that covers it
   (every stamp is listed in `docs/harness/VERSIONS.md`, generated by `python3 eval/versions.py --write`;
-  `eval/test_versions.py` fails when it is stale) and is stamped on the game line. Legacy profiles stay byte-identical. Each stamp is asserted by literal value in a
+  `eval/tests/test_versions.py` fails when it is stale, and when a `*VERSION*` or `*EPOCH*` constant in the spike is
+  neither in `versions.STAMPS` nor in its `NOT_STAMPED` table with the reason it is not a result stamp:
+  `test_every_version_constant_is_a_stamp_or_says_why`, #365, #370) and is stamped on the game line. Legacy profiles stay byte-identical. Each stamp is asserted by literal value in a
   stage of `eval/harness_acceptance.sh`, so a version that moves without the gate moving turns it
-  red. Runs across a version, or across an opt-in flag, are never pooled for a comparison; a
+  red (`eval/tests/test_versions.py` `test_every_stamp_is_pinned_by_value_in_acceptance` checks each one, with the
+  stamps pinned another way named and why). Runs across a version, or across an opt-in flag, are never pooled for a comparison; a
   pooled count may be shown for description only when it is labelled, names the arms, and the
   per-arm counts are beside it.
 - **JSONL is additive-only.** New fields; never a renamed or re-typed one. Readers use `.get()`.
 - **An opt-in flag is a condition.** It is pinned by `run_batch.py`, recorded in the manifest,
   stamped on the game line and keyed by `aggregate.PROVENANCE_FIELDS`, and refused on resume into a
-  directory made under a different value. A condition the JVM reads from the environment but never
-  stamps pools its on- and off-games (issue #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every
-  `System.getenv` in the game-line writer is either stamped or on a named allowlist of settings that
-  do not change the seat's decisions (the check is `eval/test_experiments.py`'s
-  `GameLineStampCoverageTest`).
+  directory made under a different value. The puzzle runner, `puzzle_baselines.Build.run` (so
+  `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
+  every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
+  (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` builds the same names from `CONDITION_ENV_KEYS`
+  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), as does the tournament
+  (`tournament._match_env`) and the RL environment (`eval/rl/mtg_env.py`, `scrubbed_environ`, which also strips the
+  `OPENROUTER`, `PZL_`, `FORK_` and `CLAUDE_` prefixes and sets its own conditions in `DECISION_ONLY`; its episodes
+  are training data, never a score). The puzzle runner also strips every `OPENROUTER*` name by prefix, and
+  `CLAUDE_DEADLINE_MS`, which `puzzle_solve.py` sets from `--call-timeout-minutes`
+  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363). A launcher that goes
+  through `run_batch.py` (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
+  (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
+  acceptance canaries in `harness_acceptance.sh`) are never scored and rely on the game-line stamps.
+  `eval/tests/test_launchers.py` classifies every file that launches a game, so a new one is named here.
+  A condition the JVM reads from the environment but never stamps pools its on- and off-games (issue
+  #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every `System.getenv` in the spike files the game reads through
+  (`GameLineStampCoverageTest.SCANNED`; every other reader is named with its reason in `NOT_GAME_LINE`) is either
+  stamped or on a named allowlist of settings that do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s
+  `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
+  (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
+  entry; each allowlist entry carries the reason it changes nothing the seat sees (`NON_CONDITION_ENV` maps
+  each name to its reason; `test_every_allowlist_entry_says_why`). Every condition the scan finds stamped or
+  recorded elsewhere is also pinned by `run_batch.py`, or named in `NOT_PINNED` with why a shell value may reach a
+  game, and every `NOT_PINNED` name is still a condition the scan finds (an entry that stops being one is removed;
+  `test_every_stamped_condition_is_pinned_or_says_why`; PRs #342, #344, #354, #355).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
-  per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329) may
+  per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329; `call_timeout_ms`
+  is set through the variable the seat's bridge reads, `OPENROUTER_TIMEOUT_MS` for `openrouter:` and `jev:`,
+  `CLAUDE_DEADLINE_MS` for `claude-cli:`, PR #363) may
   instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
   `puzzle_score.load_rows` attaches it to every row it reads and the scorer refuses a mix. A resume
   under a lower value is refused. A resume under a higher one replays every puzzle it reaches that
@@ -130,15 +180,15 @@ most log questions).
   old rows, and the scorer refuses the run until it is replayed. The deadline and the token cap refuse
   a resume under any other value; the scorer refuses to pool either, refuses to pair two deadlines,
   and labels a pair under two token caps `cross_max_tokens`. The checks are
-  `eval/test_puzzle_score.py`'s `test_a_row_takes_its_game_cap_from_its_puzzles_manifest`,
+  `eval/tests/test_puzzle_score.py`'s `test_a_row_takes_its_game_cap_from_its_puzzles_manifest`,
   `test_games_under_two_caps_are_never_pooled`, `test_games_under_two_call_deadlines_are_never_pooled_or_paired`
   and `test_games_under_two_token_caps_are_never_pooled_and_a_pair_says_so`, and
-  `eval/test_puzzle_solve.py`'s `GameCapTest`.
+  `eval/tests/test_puzzle_solve.py`'s `GameCapTest`.
 - **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
   what it cannot. **Shell**: bash 3.2 (macOS); inside a heredoc in `$( )`, apostrophes and
   backticks must pair up as bash reads them (prefer none) — bash 3.2 scans for the closing paren
   before parsing the heredoc, so an unpaired one swallows the rest of the script (issue #219).
-  Check: `eval/test_gate_parses.py` runs `bash -n` over the `eval` and `scripts` shell
+  Check: `eval/tests/test_gate_parses.py` runs `bash -n` over the `eval` and `scripts` shell
   scripts and the root launchers (`*.sh`) under the bash that runs it, and reads each script for
   a heredoc inside `$( )` that bash 3.2 would end early, reading its quotes in order as bash 3.2
   does, so the bash 3.2 case fails on Linux too. It cannot see run-time behaviour.
@@ -161,7 +211,7 @@ most log questions).
   number on that OS at the commit where the plain pin was set, or at the base of the change that
   adds the OS pin). A change that moves a canary re-pins it on
   every OS that has a pin, or names the OS left stale in the expectations file and the PR.
-  The naming is script-checked (`eval/test_os_pin_staleness.py`, stdlib only): it fails when a
+  The naming is script-checked (`eval/tests/test_os_pin_staleness.py`, stdlib only): it fails when a
   re-pinned plain key's `<os>.<key>` siblings are neither re-pinned with a date at or after
   the plain re-pin, nor named STALE with the movers (an issue ref, an epoch, or a dated line), nor
   named CONFIRMED with a date at or after the re-pin (measured on that OS and unchanged: a current
@@ -169,7 +219,14 @@ most log questions).
   The check reads this file's shape only; the PR-side half of the naming is off its sight.
 - A test never needs `runs/` or a downloaded file to pass: `runs/` is git-ignored and the Comprehensive Rules text
   is fetched (`eval/fetch_comp_rules.py`). A test that reads one skips, saying why, when it is absent, so
-  `python3 -m unittest discover -s eval` passes on a fresh clone; acceptance fetches the text first, so there it runs.
+  `python3 -m unittest discover -s eval/tests` passes on a fresh clone, as a user without root and without a Forge
+  checkout (the CI runner: a lookup of a default checkout such as `/root/forge` treats a folder it cannot read as
+  absent); acceptance fetches the text first, so there it runs.
+- A test of the seat's play path reads `ctrl.playsNotMade()` or the game state (the card moved, the mana tapped), never the
+  return value of `PlayerControllerLLM.playChosenSpellAbility`: it never returns false, so a play that was not made
+  still passes (issue #380; `grep -rn 'assert.*playChosenSpellAbility\|= *ctrl.playChosenSpellAbility'
+  forge-overlay` finds a site that reads it, and finds none). `playsNotMade()` does not count a cancel; a cancel is
+  read from the game or the log (`KeywordSurfaceSweepTest.playVerdict`). Checked by review.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the
@@ -199,11 +256,19 @@ most log questions).
 ## 7. Docs
 
 - State what is true now; the history belongs in the commit.
+- Every repository path named in `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, this file,
+  `.claude/rules/` and `.claude/skills/`, in a backtick span (alone or as a word of a command) or a fenced
+  block, is a tracked file or folder: those are what every agent reads first and copies. Checked by
+  `eval/tests/test_doc_paths.py`, for paths under the repository's folders (root files aside: a bare launcher
+  name can mean the copy in `$FORGE_HOME`; placeholders with `<`, `*`, `?`, `{`, `$` or `...` aside). A path a
+  command will create, or a fetched file that is not tracked, is written with a placeholder (`<out>.jsonl`).
 - Every number is reproducible from a named command and run directory. Run directories are not in the repository
   (`runs/` is git-ignored): the doc names the one its author kept.
 - Say what was not determined.
-- A doc does not record the acceptance run of the PR that edits it: that belongs in the PR's
-  `## Evidence`, or recording it would need a commit that invalidates it.
+- A doc does not record the acceptance run of its PR's final head: that belongs in the PR's `## Evidence`, or
+  recording it would need a commit that invalidates it. A run on an earlier head of the same PR that changed
+  something (a failure found, a canary moved, a new stage count) is recorded in `docs/harness/ACCEPTANCE.md`
+  with its sha.
 - `docs/harness/ARCHITECTURE.md` stays true: a change that alters how the harness works (a decision path,
   a tool, the prompt, a bridge, a default, an eval rule) updates it in the same PR.
 
@@ -231,9 +296,10 @@ strategic choice, the engine owns every mechanism. Each rule has its check.
 | **A reply is read the way it was meant.** A tag counts only when its number follows it closely; a block pair is split where an attacker and a blocker match; a reply with no answer line is asked again, then recorded as `LOST`, never read as a PASS or "no blocks". | `parseTagNumber_aLaterTagFollowedByWordsIsNotAnAnswer`, `aBlockNamingACardWithACommaIsUsed`, `aBlockReplyWithNoBlocksLineIsAskedAgain`; `match_review.py` `LOST` |
 | **The plan is the model's and changes when it wants.** Under the faithful profile a `PLAN:` line in any reply, at any decision, replaces the plan (a goal and the steps toward it); the plan line says when it was stated. The harness never writes, drops or judges the plan. | `PlanAnytimeTest` (`aPlanChangedAtATargetQuestionIsTheNextPromptsPlan`) |
 | **The seat can say a question is broken.** `report_unclear_decision` records the complaint and the decision is still answered; every report is read: a true one is a harness defect, a false one a model mistake. | `aReportIsRecordedAndTheDecisionIsStillAnswered`; `match_review.py` `REPORT` |
-| **A seat that never answers scores no better than one that passes.** With no answer the harness takes the do-nothing option where one exists (pass, no attack, decline) and the first legal option only where a choice is mandatory; never a land drop, an attack or Forge's AI. | acceptance `gaming` (empty-reply and garbage-reply seats vs the floor seat); `aSeatThatNeverAnswersNeitherPlaysALandNorAttacks` |
+| **A seat that never answers scores no better than one that passes.** With no answer the harness takes the do-nothing option where one exists (pass, no attack, decline) and the first legal option only where a choice is mandatory; never a land drop, an attack or Forge's AI. | acceptance `gaming` (empty-reply, garbage-reply and out-of-credits 402 seats vs the floor seat; the 402 game is counted as lost to a dead bridge, invalid in `aggregate.py` and a `defect_analyzer.py` failure, issue #369); `aSeatThatNeverAnswersNeitherPlaysALandNorAttacks` |
+| **An arm that suspends a contract rule is a named exception, never a default.** It is off by default, refused outside `--exploratory` and in any panel, and the rule it suspends names it where that rule is stated (`CLAUDE.md`, `.claude/rules/`, this table): `PROPOSE_ACTIONS` hides the menu, so "a legal action is never hidden" names it (owner, 2026-11-04). | `run_batch.py` refusals (`propose_refusal`, `TestProposeActions`); review |
 | **The harness decides at most 2% of the choices the model could make.** match_review's TAKEN and LOST plus any Forge-AI row, forced picks excluded, over the llm identities' decisions. | `aggregate.py` harness-decided gate (exit 4); `test_harness_decided_gate` |
-| **The harness does not limit the model.** Nothing the seat reads is cut, and what it may look up, preview, write or think is capped only by a loop guard far above any recorded game, a condition that defines an arm, or a transport retry; each kept limit is listed with its reason in `docs/harness/MODEL-LIMITS.md`. Cost is not a reason for a cap. | `SeatObservationTest.nothingTheObservationShowsIsCut`, `ContextProfileTest.theFaithfulHistoryIsWhole`, `ContextMemoryTest.theToolBudgetsAreLoopGuardsNotDecisionLimits`, `ContextProfileTest.theCallBudgetsAndTheTurnCapAreLoopGuards` |
+| **The harness does not limit the model.** Nothing the seat reads is cut, and what it may look up, preview, write or think, and what the play menu offers, is capped only by a loop guard far above any recorded game, a condition that defines an arm, or a transport retry; each kept limit is listed with its reason in `docs/harness/MODEL-LIMITS.md`. Cost is not a reason for a cap. | `SeatObservationTest.nothingTheObservationShowsIsCut`, `ContextProfileTest.theFaithfulHistoryIsWhole`, `ContextMemoryTest.theToolBudgetsAreLoopGuardsNotDecisionLimits`, `ContextProfileTest.theCallBudgetsAndTheTurnCapAreLoopGuards`; menu limits: review against `docs/harness/MODEL-LIMITS.md` (no test pins them) |
 | **The interface has one version.** `HARNESS_EPOCH` moves with any change to what the seat is asked, when, or what its answer does, beside the per-layer versions; games across an epoch are never pooled or compared in a count or rate (a labelled illustration that computes none, `demo_compare.py`, is allowed). | game line `harness_epoch`, asserted in acceptance `faithful`; `aggregate.py` experiment key |
 
 A game read by `game-loop` that finds a defect outside these checks adds the check here with its fix.

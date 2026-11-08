@@ -44,8 +44,8 @@ API_PREFIXES = ("openrouter:", DECISIONS_PREFIX)
 # subscription, used only with its explicit opt-in (ClaudeCliBridge.OPT_IN) and never in a benchmark score.
 CLI_PREFIX = "claude-cli:"
 CLI_OPT_IN = "CLAUDE_CLI_SEAT"
-# Specs that ask no model at all (LlmSpikeGui's ScriptBridge and GreedyBridge).
-ZERO_MODEL_PREFIXES = ("script:", "greedy:")
+# Specs that ask no model at all (LlmSpikeGui's ScriptBridge, GreedyBridge and ReplayBridge).
+ZERO_MODEL_PREFIXES = ("script:", "greedy:", "replay:")
 # Every prefix the JVM factory routes (LLMBridgeFactory.ROUTED_PREFIXES; test_cost_report checks the two agree). A spec
 # with none of them was the bare Claude CLI text lane, retired on 2026-10-25.
 KNOWN_PREFIXES = API_PREFIXES + (CLI_PREFIX,) + ZERO_MODEL_PREFIXES

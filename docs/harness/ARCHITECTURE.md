@@ -47,7 +47,7 @@ them and refuses to pool what is not comparable.
   not Forge's files), every change marked `HARNESS PATCH`, the upstream original's sha256 recorded in
   `docs/harness/ENGINE-PATCHES.md`. `eval/engine_patches.py` applies each to the original read from git at the
   pin wherever a build needs it (ENGINE-PATCHES.md, "How a patch reaches the game"); a patch that does not apply
-  stops that build, and `eval/test_engine_patches.py` also fails on a moved original, so a re-pin forces a
+  stops that build, and `eval/tests/test_engine_patches.py` also fails on a moved original, so a re-pin forces a
   re-diff. `overlay_sha` hashes each patch as the file it
   makes. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Four files are
   patched (the table in `ENGINE-PATCHES.md`): `ComputerUtilMana` (the colour an any-colour source makes for a generic
@@ -75,13 +75,42 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - What can be paid is decided by `legallyPayable`: the engine's mana and non-mana tests. Forge AI's
   `ComputerUtilCost.canPayCost` adds its own taste on top. It refused, half the time at random, a planeswalker
   ability that spends all its loyalty, and refused ward costs and casualty creatures it would not pay.
+- The engine's mana test is greedy: each source once, in its own order, and a "tap N untapped X you control" part
+  (Heritage Druid) takes the lowest-power cards. It tapped Fyndhorn Elves for its own {G} before the Druid, left the
+  Druid two Elves, and hid Craterhoof Behemoth on a board that pays 8 (#367). When it fails, `seatCanPay` searches the
+  tap-type mana abilities it skipped (`tapTypeStep`: each set of cards the tap part may take, those that tap for no mana
+  of their own first, the rest paid by the engine's test with them tapped; three activations deep, 48 tests at most;
+  every card untapped again). Like the engine's test, it never lets the tap part take the card the paid ability taps for
+  its own {T}, and a payment it finds must leave that ability's own tap parts payable. It tries only the
+  abilities the seat's payment activates itself (a tap part and at most {T}, fixed colors), and that payment starts from
+  the activation it found (`prepayTapTypeManaAbilities`), the seat choosing the cards among those the rest of the
+  payment does not need. Druid-twice payments the engine could not plan are the seat's too, no longer Forge AI's choice
+  of Elves (harness-epoch-83).
 - A cost may be paid with the ability's own target, as a human may (Goblin Bombardment sacrificing the creature it
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
+- A play is not offered when a part of it that must target has no legal target: casting it only fails ("Couldn't add
+  to stack, failed to target"). That is legality, not judgment: the engine refuses the play. A spell cast as another
+  face counts the targets of that face, as the engine casts it (`targetCandidates`; harness-epoch-90, #366): Lantern
+  Bearer's Disturb cast targets as Lanterns' Lift, an Aura, not as the creature in the graveyard. A sub-ability counts too
+  (Govern the Guildless's forecast targets in its sub-ability and was offered with no creature in play;
+  harness-epoch-77), but only when no earlier part targets: its targets may depend on that one (Searing Blaze's
+  "creature that player controls", Goblin Welder), unknown before the cast, so it is left to the cast
+  (`aSubAbilityTargetThatDependsOnTheFirstTargetDoesNotHideThePlay`).
+- **The one exception is a measurement arm:** under `PROPOSE_ACTIONS=1` the play menu is built as always but not
+  shown; the seat proposes its play, its attack and its blocks, and the engine checks them (section 6, "The propose
+  condition"). Nothing legal is refused there either: a proposal is accepted exactly when the menu's own checks allow it.
 - Mana abilities are on the menu, one per card name and ability, so mana can be floated.
 - What a choice offers is also only what can be paid: a keyword cost's count (conspire, multikicker, squad,
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
   the seat may give fails the cast (harness-epoch-43).
+- A pawprint charm's modes (the Seasons, Hela's Arcanum: "choose up to five {P} worth of modes") total at most its {P}
+  budget. Forge's engine does not check it; only its own controllers do, which the seat replaces. Each mode's label
+  shows its {P} and the question the budget. A tool answer over it is refused in the call's own result
+  (`AnswerTool.Spec.check`; the Decisions bridge states the budget from `Spec.limit` and keeps its composed counts within
+  it, `Spec.budget`, decisions-bridge-v3), a text answer is asked again
+  ("those modes total 15 {P}; at most 5 are allowed"), and a second answer over it takes no mode, the do-nothing
+  option. The arms draw within it (`PuzzleArms.repeatModes`; harness-epoch-94, #415).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
 - An attack the engine refuses (Silent Arbiter's one attacker, a creature that must attack) is recorded (an
   `attackers-refused` row and a `refused by the engine` log line), asked once more with the reason ("at most 1
@@ -90,9 +119,13 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   declaration is legal, so a seat that kept its answer looped (epoch 66; authored puzzles x_0, x_15, x_18).
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
   tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
-  harness seats), but last, after every safe source (epoch 65). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
+  harness seats), but last, after every safe source (epoch 65) and after the sacrifice-cost sources too (epoch 95, #269). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
   activated ability's alternative cost is offered (Forge Anew: equip for {0}; the menu expanded alternative costs for
   spells only), and an "up to one" target with a single candidate is asked with "No target" offered.
+- "X target creatures" with X announced as 0 takes no target (Rot-Curse Rakshasa's renew): one was set, and the
+  stack refused the paid play. A fixed count of targets is kept at X=0 (Banefire), and the fork rollout's
+  first-legal targeting follows the same rule (harness-epoch-84, issue #380; `anXTargetAbilityAtXZeroTakesNoTarget`,
+  `aFixedTargetXSpellAtXZeroKeepsItsTarget`, `forkTargetingAtXZeroSetsNoTarget`).
 - Forge's static `AiCache` is cleared where Forge's AI clears it, at the seat's priority ask (epoch 54). It holds
   answers keyed by the game (`isPreventCombatDamageThisTurn`) that the seat's pricing and combat helpers read; uncleared
   they lasted the whole game, and in the puzzle prover every finished game stayed in memory until the heap ran out.
@@ -135,6 +168,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
   attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
   among the legal sets (epoch 59, rules pilot RP_185).
+- Each block of a set is judged with the set's other blocks in place, the cap first (`firstBlockNotAllowed`; see "A
+  block is judged beside the others" in section 6, "The propose condition").
 - A block set is checked as a whole (`blocksError`), by the engine's `CombatUtil.validateBlocks`: requirements ("all
   creatures able to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before
   epoch 52 any block set the seat or an arm declared stood. `validateBlocks` never counts blockers against a global
@@ -168,7 +203,16 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   phase, stack, board, menu) was already passed;
 - a play that failed to pay, was forbidden by a static or was refused by the stack for want of a target is not
   offered again in the same window (turn, phase, top of the stack), as Forge's AI skips a failed ability: the
-  seat was offered the same unpayable play 999 times.
+  seat was offered the same unpayable play 999 times. A spliced cast's failure is keyed on its splice set, so the
+  plain cast stays offered (harness-epoch-85, #392: a failed Lava Spike with two splices hid every Lava Spike for
+  the window, silently). The SPLICE ask offers each card the cast can pay alone and checks the picked set
+  together: a set the pool cannot pay as a whole is asked once more with the reason, and a second such pick casts
+  the spell with no splice (a fixed legal option, logged, as an invalid band is). This is a legality fix and applies
+  under every profile. A splice set the check passes can still fail at payment; that set is refused for the rest
+  of the window. Under the faithful profile a failed payment is also told to the seat, once, on its next play
+  menu (naming the splice set), as a cancel is; every such note is printed once and then dropped (a land drop
+  keeps the window, and the note was repeated on every menu after it). A legacy profile gets no new note, so its
+  prompts stay byte-identical.
   A play that fails to pay, is cancelled at its cost or is refused by the stack for want of a target is undone by
   the engine's own rollback (`GameActionUtil.rollbackAbility`, the human path's): the card goes back to the zone it
   was cast from and the mana paid is refunded; a non-mana cost already paid (a tap, life) is not, as the copied
@@ -305,7 +349,7 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
   - engine state: YOU, OPP, `STACK (engine, ...)`, COMBAT, `FACTS (engine estimates ...)`;
   - Forge's game log: `GAME HISTORY (Forge game log, ...)`, `SINCE YOUR LAST DECISION (Forge game log, ...)`,
     REVEALS TO YOU;
-  - the card database: OPPONENT CARDS YOU HAVE SEEN;
+  - the card database: OPPONENT CARDS YOU HAVE SEEN, and, on a puzzle's solver seat, YOUR CARDS SINCE THE START;
   - the harness's record of what the seat saw: `KNOWN IN HIDDEN ZONES (harness record: ...)`;
   - the seat's own words: YOUR PLAN, YOUR OPPONENT PROFILE, YOUR CARD INTERACTIONS.
 - The guide repeats it in one paragraph, and says that no other model's words appear anywhere.
@@ -345,6 +389,40 @@ turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its F
 in their `[acceptance]` section, 2026-10-20) and its name states the rule it tests. The
 Puzzle Goal card, which `inspect` reads, carries the same brief (`tellGoalCard`), and Forge's HumanControl warning
 stays in front of it. A result row's `goal_oracle` is that card's text as the seat sees it.
+Since harness-epoch-86 (#391) a puzzle's `<your_deck>` holds a YOUR CARDS block, as a game seat's does: each
+distinct card the `[state]` section puts on the solver's side (cards on your side: its zones, the battlefield read by
+control) in a zone it can see (hand,
+battlefield, graveyard, exile, command; never its library, its hidden draw; a face-down card only on the
+battlefield or foretold, CR 406.3), from Forge's card database by the game seat's `cardText`, with its type line
+added (`LlmSpikePuzzle.solverPlan`, seated by `LlmSpikePuzzle.solverSeat`). An own card first seen after setup
+(drawn, tutored, returned) gets its text in the per-decision state as it is identified, as an opponent's card does:
+YOUR CARDS SINCE THE START (`SeatObservation`), so the cached system prompt is unchanged. Only the solver's seat
+records it (`LlmSpikeGui.tracksOwnCards`): a puzzle opponent's model seat does not, nor does a game seat, whose deck
+text lists every card it can hold. `DECKLIST=0`, the game seat's opt-out from own-card text, gives the solver
+neither block. A solver whose setup lists no card (only a token on the battlefield, say) has no setup block and
+still reads each card it draws. A `[state]` the runner cannot read gives no setup block, with a `[PUZZLE]` log line;
+its visible cards are then shown once in the per-decision block. A card printed in the
+setup block is not repeated in either per-decision block (`SeatObservation.cardTextLine`), and a name one
+per-decision block prints is not printed by the other. A game seat's state bytes at observation-faithful-v43 equal
+v42's: the new block is off there.
+
+**A puzzle's FACTS stop at its last turn** (#398, observation-faithful-v44). `LlmSpikePuzzle.applyBoard` reads the
+last turn off the Puzzle Goal card's turn trigger (`lastTurn`: the turn whose cleanup the solver loses at, or the
+turn before the upkeep a Survive goal wins at) into `LlmSpikeGui.puzzleLastTurn`. A side with no combat left before
+it (`SeatObservation.combatBeforeLimit`: its own turn past combat, or no turn of its own left; an extra turn is not
+counted; the end-of-combat step is past combat) reads `your next combat: none before the puzzle's turn limit` (or
+`their`) in place of its clock. Why: the seat reads FACTS as engine fact, and in recorded 1-turn puzzles seats passed
+after combat citing that lethal "next combat" (#398 has the counts, their pattern and their limits: an association,
+and in drain the positions were already lost). A goal with no turn count ("win before opponent's
+next turn"; no committed puzzle has one) keeps the clock. A game seat (`puzzleLastTurn` -1) is unchanged.
+
+**A player's keywords are on its line** (#368, observation-faithful-v45). A keyword granted to a player (Leyline of
+Sanctity's hexproof) is said on the player's line by its title (`| has hexproof`, `SeatObservation.playerLine`
+from `Player.getKeywords()`); a keyword the engine gives no title (Winter Orb's `UntapAdjust:Land:1`) is not
+shown, the card or effect that gives it is, and the state guide says so (observation-faithful-v46, #408). The engine
+keeps those keywords on a "Keyword Effects" object in the command zone, which is not a card the seat could
+inspect, cast or target, so `commandCards` leaves it out of the `command:` line, where it had been listed with a
+handle.
 
 **User message per decision:**
 - the `<archive>` brief (what older evidence exists and how to search it);
@@ -387,7 +465,8 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   and validation makes a wrong one explainable.
 - *Why one fixed schema instead of one per decision:* tool definitions open the cache prefix. A schema
   that changed every decision discarded the whole cache on every call. A per-decision enum is kept as a
-  measurement arm (`ANSWER_SCHEMA=per-decision`).
+  measurement arm (`ANSWER_SCHEMA=per-decision`), reachable only from a direct JVM launch: a batch pins the default
+  (`run_batch.CONDITION_ENV_KEYS`).
 - *Why `tool_choice` is per model* (`AnswerTool.toolChoiceFor`, `PROMPT-CRAFT.md` rule 2):
   - **OpenAI models get "required":** measured on Luna, it keeps the reasoning, and a text-only reply
     becomes impossible.
@@ -401,6 +480,10 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   opponent's on the stack until the turn it names. Given at the seat's own upkeep ("keep mana open"), it
   also passed that turn's main phases, so the seat lost its land drop and every sorcery-speed play
   (`runs/luna-v8/g3`, two turns). The main phases with an empty stack always ask (answer-tool-v9).
+  The yield's own text says so (answer-tool-v19, #399): the seat's own main phase asks again once the stack is
+  empty, so a window there with its own trigger or spell pending is passed, and `end-of-turn` lasts through this
+  turn's end step (#399 has the recorded windows behind it). The text arm's `YIELD_HINT` keeps its words (a legacy
+  profile's bytes).
 
 **No text alternative (answer-tool-v7).**
 - A reply that calls nothing is reminded up to twice in the same conversation, then the decision is lost.
@@ -420,6 +503,179 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   structured-output call, whose schema is the ask's own `answer` and `set_plan`, becomes those calls before validation
   (section 9, "The Claude CLI answer bridge").
 
+### The propose condition (`PROPOSE_ACTIONS=1`, harness-epoch-74, targets epoch 75, costs epoch 76, combat epoch 78, checker epoch 82, owner 2026-11-03)
+
+The menu makes illegal plays impossible, so the benchmark cannot see whether a model knows the rules. This arm
+removes the menu from the play decision and treats the rules engine as a type checker: the seat proposes a play,
+the engine checks it, and a rejected proposal comes back with the rule it breaks so the seat can repair it.
+- **What the seat answers:** `answer.action`, a fixed-schema object: `verb` (play_land, cast, activate, pass), `card`
+  (a handle), `ability` (its number in YOUR ACTIVATED ABILITIES, which lists special actions such as suspend and
+  foretell too), `face`, `cost` (another way to cast it, by the card's name for it, "Prototype", "alternative", or
+  "flash" for a cast a card allows when it could not otherwise be cast), `targets` (a handle, "you" or "opponent").
+  Zero text parsing still holds: it is a tool call.
+- **The menu is the oracle** (`matchProposal`): the menu is enumerated exactly as for a menu seat; a proposal is
+  accepted when it names one of its plays, and that play is carried out the usual way (targets, modes, X and costs
+  are the usual follow-up asks). Soundness is the menu's: `ProposeActionsTest.everyMenuPlayIsReachableByAProposal`
+  builds every menu play's proposal and checks it lands on that play.
+  A land's mana ability is on the menu once per name. A proposed copy that could be activated itself (`playable`)
+  is accepted on that entry, and its own ability takes the entry's place, so the copy proposed is the one tapped:
+  copies differ (Utopia Sprawl on one Forest, an awakened land; `theProposedCopyOfALandIsTheOneTapped`). A tapped
+  copy's ability, or one in the hand, is refused for its rule (cost, zone). Before epoch 82 the other copy's entry
+  was played: an illegal proposal counted legal and tapped another land (PR #359's engine labeller;
+  `aLandsManaAbilityIsRefusedWhenThatLandCannotPayIt`), and a legal one could tap the copy without the aura
+  (pr-review of #360).
+- **A rejection names the rule, never the alternatives** (`proposalRejection`): "ILLEGAL (category): one sentence",
+  the first engine check the play fails, in the categories timing, cost, zone, target, land drop, control, type and
+  restriction. Kaggle Game Arena says only "illegal"; a list of what would be legal is a hidden menu. A malformed
+  proposal (an unknown handle, ability 3 of a card with two, `option` instead of `action`) is a `FORMAT:` error,
+  recorded apart.
+  - *The order (epoch 82):* Forge's `canPlay` answers the zone, the timing, the play's own limits and the non-mana
+    cost (`CostPayment.canPayAdditionalCosts`) as one, so the checker asks them apart. An ability: control (its
+    activator rule), a tapped or summoning-sick creature's {T} (cost), split second, the timing when the card is in
+    the ability's zone (sorcery speed, which a loyalty ability always is, CR 606.3; then its own phase or turn), the
+    zone, a sacrifice, exile or discard it cannot pay when every restriction allows it (cost), restriction, then its
+    mana and target. A spell: land (type), on the battlefield or the stack (zone), control (before the face or the
+    cost named; a card an effect lets the seat play, and a graveyard under Shaman's Trance, are exempt), the cost
+    named, split second, timing, the rest of the cost, zone, restriction, then mana and target. Timing comes before
+    zone for a spell, so a sorcery proposed from a graveyard it cannot be cast from, at instant speed, reads as
+    timing. The cost cases pinned: Fling and Eldritch Evolution with no creature, Dread Return's flashback and an
+    Underworld Breach escape short of what they need, Peregrin Took with no Foods. Before, those read as
+    restriction or zone, and a loyalty ability in combat as restriction.
+- **The terse arm** (`PROPOSE_TERSE=1`, with the propose arm only; harness-epoch-80, answer-tool-v17): a rules
+  refusal says only "ILLEGAL: that play is not legal now." (an attack or blocks: "that declaration";
+  `AnswerTool.shownRefusal`), Game Arena's form, and the preamble and the `action` schema say the seat is told only
+  that it is illegal. It measures the message's share of repair
+  (Gumaan 2026: a failure message can make a repeat more likely). The substitution is made where the refusal is sent
+  (`AnswerTool.converse`), so the check, the categories and the four tries are the detailed arm's. A `FORMAT:` error
+  keeps its text: it says what is malformed, not which rule applies. The row keeps the engine's diagnosis in
+  `error` and `category`, and what the seat was told in `error_shown`, so both arms count the same rules
+  (`proposal_audit.py`'s `repair` and `refusal_text`). Stamped `propose_terse` on the game line and puzzle row and
+  `answer-tool-v19+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
+  pinned by `run_batch.py --propose-terse` and `puzzle_solve.py --propose-terse`, each refused without
+  `--propose-actions`. The preamble's general ANSWERS sentence ("you are told why") is the same in both arms: it is
+  about answers to listed decisions, and the b2 block was played with it. Results: the research note's section "Does
+  the refusal's reason matter? The terse arm".
+- **The notebook arm** (`PROPOSE_NOTEBOOK=1`, with the propose arm only, terse or detailed; harness-epoch-81,
+  answer-tool-v18): each play, attack and blocks decision carries REFUSED EARLIER (`AnswerTool.notebookSection`), the
+  seat's proposals the rules engine refused in earlier decisions of this game, each as "turn N, the decision: you
+  proposed X; you were told: Y", where Y is the refusal exactly as it was sent (`AnswerTool.shownRefusal`: the rule in
+  the detailed arm, only "ILLEGAL" in the terse one), so the notebook never says more than the refusals did. Every
+  entry is shown, oldest first, and the section says so: nothing the seat was told is cut (STANDARDS section 8), and
+  a game bounds the list.
+  - **Only what the seat was told** (`AnswerTool.Ask.told`, pr-review of #357): a refusal is noted when its result
+    was in the conversation and the model took another turn after it. Three refusals are recorded on the row but
+    never read, and are not noted: the one that ends a decision (its result is not sent), an illegal call beside the
+    answer in the same reply (told "Not used"), and one sent in the ask's last round. A `FORMAT:` error is not noted
+    (it is not a rule).
+  - **Where:** between the state and the DECISION line; absent before the first refusal; the preamble says what it is.
+    A decision's own refusals are noted after it ends, so its prompts, the play's text retry included (built from the
+    notebook as it stood before the decision), list only earlier decisions'. A tool ask that runs out of rounds
+    returns no reply and the play passes, so that retry is not reached under this arm. Off the arm every prompt byte
+    is unchanged (`ProposeActionsTest.offTheNotebookEveryPromptIsUnchanged`).
+  - *Why:* within a decision the refused play was not resent, but across decisions of one game it came back: the
+    research note's section "Repeated refusals in every propose log on disk" gives the per-run counts. An in-context
+    record of past errors is Reflexion's and Mistake Notebook Learning's (arXiv 2512.11485) form. It is the engine's
+    verdicts only: no advice, nothing chosen for the seat.
+  - Stamped `propose_notebook` on the game line and puzzle row and `+notebook` on the answer-tool stamp; keyed by
+    `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`; pinned by `run_batch.py --propose-notebook`
+    and `puzzle_solve.py --propose-notebook`, each refused without `--propose-actions`. Its outcome is
+    `proposal_audit.py`'s `refused_again` against the arm without it.
+- **Four tries** (`AnswerTool.MAX_INVALID_PROPOSALS`), then the fixed legal option, PASS. A decision lost to four
+  refusals is the model's error, not a lost answer: `match_review` lists it as PROPOSAL and the harness-decided gate
+  does not count it (`proposal_audit.lost_to_refusals`, one rule for both: `answer_via` lost after four invalid
+  replies); lost any other way it is LOST. Two
+  elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
+- **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
+  YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v46+propose`, `answer-tool-v19+propose`.
+- **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
+  the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
+  something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls
+  several times and make the arms incomparable.
+- **No preview:** `simulate` takes menu numbers, so it is not offered; `run_batch.py` refuses `--propose-actions` with
+  `--lookahead`, with `--plan-execute` (its steps are menu numbers), with `--text-answers` and outside `--exploratory`.
+- **Costs (epoch 76):** `cost` names another way to cast a card, matched by its exact name ("flash" is not
+  Flashback). An optional additional cost (Kicker, buyback, entwine) or "normal" names the normal cast, whose cost
+  ask follows as under the menu: refusing it would count a legal cast as a rules error (pr-review of #342). A cast
+  with no `cost` is the normal cast only: when the menu holds just another way (Evoke, a pitch spell, Flashback from
+  the graveyard), the seat is told to name it; the harness never picks the way to cast for it.
+- **Forecast** (rule 702.57) is an ability parameter, not one of Forge's keywords, so the keyword sweep never drew it:
+  activated from the hand in its owner's upkeep only, it is on the upkeep menu, in YOUR ACTIVATED ABILITIES from the
+  hand, and refused by rule outside the upkeep (`aForecastAbilityIsOfferedAndProposableOnlyInTheUpkeep`).
+- **The record:** each play row carries `proposals` (every call, its verdict and category) and `first_try_legal` (the
+  first well-formed proposal was legal); the game line `propose_actions`, a puzzle row `propose_actions: true`.
+  `eval/proposal_audit.py` reads them. Its headline is first-try legality **of non-pass proposals**: a pass is
+  always legal, so the all-proposals rate scores 1.0 for a seat that only passes (the 88% lesson). It prints a strict
+  variant beside it (a malformed first try that names a play counted as not legal) and a Wilson interval on each.
+- **Targets (epoch 75):** a play with one targeting step and one target, among cards and players, names it in
+  `targets`; it is checked with the play (`proposalTarget`) and set at the target step without a list. A wrong one is
+  "ILLEGAL (target)" with the static ability that forbids it (hexproof, shroud, protection: Forge's
+  `StaticAbilityCantTarget.cantTarget`), its zone, or "not something it can target". The proposed target is consumed
+  by that play's target step only (`ensureTargetsSet`); a later trigger's target is always asked.
+- **The checker audit** (`PROPOSE_AUDIT=1`, diagnostic): at every play decision each menu play is proposed as the
+  guide describes and must land on itself. Over the keyword gauntlet (552 cards, both answer policies) it checked
+  21,493 plays; the misses it found (suspend and foretell unlisted, prototype and flash casts unnamed) are fixed, and
+  the rest were one may-play cast listed twice, the same play.
+  It restores the pending proposed target it touches (before, a targeted play audited last could pre-set the seat's
+  next target unasked), but it registers handles early, so an audited game's prompts can differ: it is a condition,
+  stamped `propose_audit` on the game line and puzzle row and never pooled with a plain run. `run_batch.py` pins it
+  off and the puzzle runner strips it: it runs only in the keyword gauntlet.
+- **The static rules probe's engine labeller** (`RulesProbeLabelExport`, diagnostic, never a score): the same checker
+  labels every proposal the solver could make on a built `.pzl` board and on one-line near-miss variants of it, with
+  no game and no model; the label is the checker's (null legal, "ILLEGAL (category)" its category and sentence), so
+  it inherits that checker's defects. What it proposes, what it drops (FORMAT), how to run it and why
+  in shards: its class comment. Always-on tests: `RulesProbeLabelTest`. Items, floors, contrast pairs and audit
+  samples: `eval/rules_probe.py` (`engine`, `engine-report`, `audit-sample`). Results:
+  `eval/research/2026-11-05-rules-probe.md`, section 9.
+- **Side-effect settings are conditions too.** The shadow labeller (`SHADOW_AI`, `run_batch.py --shadow-ai`) asks
+  Forge's AI on the side for a DAgger label; its targets are reset before the seat's cast, but an AI timeout weakens
+  the game's isolation (`[SHADOW] ... WEAKENED`), so it is stamped `shadow_ai` on the game line, keyed by
+  `aggregate.PROVENANCE_FIELDS`, expected on resume, and stripped from puzzle games (PR #345; STANDARDS section 4).
+  The puzzle runner strips every condition `run_batch.py` pins (`CONDITION_ENV_KEYS`) and `SHADOW_AI` from the
+  shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it; the tournament (`tournament.py`)
+  strips the same list, so a bracket game runs at the JVM's defaults (`eval/tests/test_launchers.py` lists every
+  launcher and how its games get their conditions).
+- **Combat (epoch 78, answer-tool-v16):** the attack and the blocks are proposed too, so the candidate lists (which
+  creatures can attack, which can block, and what) are not shown. `answer.declare_attackers` is a list of
+  `{attacker, defender}` by handle (`defender` "opponent" by default, or a planeswalker's or battle's handle; the
+  attack-target ask is not made); `answer.declare_blockers` a list of `{blocker, attacker}` by handle; an empty list
+  attacks or blocks with none. Both properties are in the schema under the arm only, beside `action`.
+  - *The verdict is the menu's own:* an attacker is checked with `CombatUtil.canAttack(creature, defender)`, the
+    attack as a whole with `CombatUtil.validateAttackers` (global limits, alone/with-others restrictions, requirements)
+    on a scratch combat; each block with `CombatUtil.canBlock(attacker, blocker, combat)` with the set's other blocks
+    in place (`firstBlockNotAllowed`), and the set with `blocksError` (the requirement and restriction halves of
+    `validateBlocks` and the global block cap) (`attackProposalError`, `blockProposalError`). The sentence only says
+    which rule failed; a failure to word it is a generic restriction, never a changed verdict.
+  - *A block is judged beside the others:* `canBlock` refuses a block while some requirement the blocker could obey
+    looks unmet, so judged on a combat with no blocks yet, Hill Giant blocking Grizzly Bears beside Wall of Stone
+    blocking Gaea's Protector ("must be blocked if able") was refused, though the Wall obeys the requirement (CR
+    509.1c; pr-review of #349). The menu's tool check had the same flaw and uses the same rule now
+    (`theMenuAcceptsABlockBesideAMustBeBlockedAttacker`), and so does the text grammar's `BLOCKS:` line, which added
+    its pairs one by one, so the order they were written in decided (epoch 79,
+    `theTextBlocksAreJudgedAsASetInEitherOrder`).
+  - *Categories the checker names:* summoning sickness, tapped, defender, evasion (flying without flying or reach,
+    any keyword static such as shadow or landwalk, "can't be blocked"), number (menace and other minimum or maximum
+    blockers, Silent Arbiter's caps, a creature blocking more attackers than it may), requirement (a creature that
+    attacks or blocks each combat if able, lure, goad, must-block), restriction (Ensnaring Bridge and every other
+    "can't attack" or "can't block" static, named with its source; can't attack or block alone), and zone, control,
+    type and combat (an attacker that is not attacking, a defender that cannot be attacked). Read from Forge's own
+    statics (`StaticAbilityCantAttackBlock`: Defender and Flying are keyword statics there) and its
+    `AttackConstraints`.
+  - *Four tries, then the menu's fallback:* no attack (or, when attacking with none breaks a requirement, the
+    engine's legal declaration, `makeAttackLegal`, as on the menu), and the fixed block fallback (`fallbackBlocks`:
+    none, or the smallest legal set under a requirement). Never Forge's AI.
+  - *The record:* the attackers and blockers rows carry `proposals` (each entry under `declare_attackers` or
+    `declare_blockers`) and `first_try_legal`, by the play's rule; their `raw_reply` ends in the menu's PICKS / BLOCKS
+    line over the hidden lists. `proposal_audit.py` gives each its own sheet (`attack`, `block`), never pooled with
+    the play headline; an empty declaration is the combat pass there, so the combat headline is first-try legality
+    of non-empty declarations.
+  - *The same windows are asked:* as for plays, the seat is asked to attack only when some creature can attack and to
+    block only when some creature can block (the menu's skips), which says that much.
+- **Not yet hidden:** the targets of a play with modes, several targets or divided amounts, a spell on the stack as a
+  target, the cost choices, the members of a band (asked as a list after a banding creature attacks) and the order of
+  damage assignment keep their candidate lists (each can be checked with `sa.canTarget` and
+  `AttackingBand.isValidBand`).
+
 **The tool list never changes within a game:** `answer`, `set_plan`, the lookups, and `simulate` on a
 lookahead seat, declared on every ask. A call that does not apply gets an error saying why.
 - *Why:* the same cache reason. A tool that comes and goes resets the prefix.
@@ -434,7 +690,7 @@ lookahead seat, declared on every ask. A call that does not apply gets an error 
 | `memory_search`, `memory_read` | the evidence archive of this game, which the brief summarises |
 | `memory_note` | the seat's own notebook |
 | `rules_lookup` | the comprehensive rules, effective date stated (`docs/harness/RULES-TOOL.md`). Offered only with `MEMORY_TOOLS=1` and `RULES_TOOL=1` together, so `run_batch.py` and `puzzle_solve.py` refuse `--rules-tool` without `--memory-tools` (alone it recorded `RULES_TOOL=1` for a benchmark pilot that never had the tool, 2026-10-20) |
-| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`). While the seat aims a play it is making, `option` is a target's number and the play is previewed at it (lookahead-preview-v10, seat-tools-v11; g03 asked there and was refused). A preview restores the targets of every ability of the chain it aimed (`aPreviewLeavesNoTargetOnAnyAbilityOfTheChain`: Arc Trail's second target stayed set, and the real cast skipped asking for it). A mana ability is a step like any other and the report shows the mana pool (lookahead-preview-v12; g10's line "cast Heritage Druid twice, then tap Gaea's Cradle" was refused whole). A counterspell's preview is aimed at the spell on the copy's stack (the copier maps only cards and players, and a counter aimed at the card fizzled), and the report counts exile as well as graveyards (lookahead-preview-v15, g28: Force of Negation against Seam Rip was unavailable, then showed Seam Rip resolving; `aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed`). The copy's seat is the engine AI's but pays as a harness seat, by the rules only, as the live seat does (lookahead-preview-v16, `PlayerLookahead.isCopySeat`; g33 T2: Forge's AI would not spend Black Lotus on Time Walk, so Bilbo then Time Walk on Tundra, Lotus and Mox Ruby read "could NOT pay"; `blackLotusPaysForACheapSpellOnTheCopy`) |
+| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`). While the seat aims a play it is making, `option` is a target's number and the play is previewed at it (lookahead-preview-v10, seat-tools-v11; g03 asked there and was refused). A preview restores the targets of every ability of the chain it aimed (`aPreviewLeavesNoTargetOnAnyAbilityOfTheChain`: Arc Trail's second target stayed set, and the real cast skipped asking for it). A mana ability is a step like any other and the report shows the mana pool (lookahead-preview-v12; g10's line "cast Heritage Druid twice, then tap Gaea's Cradle" was refused whole). A counterspell's preview is aimed at the spell on the copy's stack (the copier maps only cards and players, and a counter aimed at the card fizzled), and the report counts exile as well as graveyards (lookahead-preview-v15, g28: Force of Negation against Seam Rip was unavailable, then showed Seam Rip resolving; `aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed`). A modal spell's target is previewed in the modes the seat chose: the copy takes the chained modes as its chosen list, read by one walk (`modeWalk`): the engine chains a copy of each chosen mode with the abilities that mode chains itself, so a mode starts where the one before it, as long as its own chain, ends, whatever mode text its own abilities carry (Bushwhack's fight, Erebos's Intervention's life gain). A modal spell the simulator plays as the copy's own version (an alternative cost, Wreck and Rebuild's flashback; a mode that counters a spell) is given those modes, targeted along each mode's whole chain (`carryModes`). Before, the copy had Forge's AI choose the modes again and put the seat's target on the AI's mode (lookahead-preview-v16, issue #395: every target of Barbed Lightning's player mode and Betrayal of Flesh's destroy mode was unavailable, "failed to target"; `aChosenModesTargetIsPreviewedInThatMode` and six more in `LookaheadProbeTest`). The walk reads all 538 `SP$ Charm` cards of the pinned card pool (no two modes of one share a text). Left: a mode chosen twice (repeatable modes) on such an alternative cast keeps one set of targets. The copy's seat is the engine AI's but pays as a harness seat, by the rules only, as the live seat does (lookahead-preview-v17, `PlayerLookahead.isCopySeat`; g33 T2: Forge's AI would not spend Black Lotus on Time Walk, so Bilbo then Time Walk on Tundra, Lotus and Mox Ruby read "could NOT pay"; `blackLotusPaysForACheapSpellOnTheCopy`) |
 | `report_unclear_decision` | the model reports a confusing ask, which feeds the defect backlog |
 
 Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
@@ -467,7 +723,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   39% worse in multi-turn conversations than single-turn (Laban et al., ICLR 2026) and less reliable as the
   input grows (Chroma, context rot). The research is in `docs/harness/REVIEW-2026-10-16.md`, phase 1b.
 - **Conversations as conditions:** `TURN_CHAT=1` keeps this turn's earlier decisions in the conversation
-  (a multi-step line in one train of thought) and starts over each turn; `ONE_CHAT=1` keeps the whole game.
+  (a multi-step line in one train of thought) and starts over each turn; `ONE_CHAT=1` keeps the whole game
+  (`ONE_CHAT_TURNS=N` keeps the last N pairs under either, stamped `one_chat_version` `+turns=N` when a chat is on;
+  every launcher pins it to its default).
   Both replay a decision as it happened: its DECISION part, the model's assistant messages unchanged with
   their tool calls and `reasoning_details`, and a result for every call (OpenRouter's reasoning guide: pass
   reasoning back unchanged and in order). Acceptance stage `turnchat` checks every request is a valid
@@ -555,7 +813,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - **What:** with `TRANSCRIPTS=1` and `EVAL_OUT`, every HTTP round-trip `OpenRouterBridge` and `DecisionsBridge` make
   goes through `Transcript.send`, which writes the exact request body before the call and the exact response body
   (or why none came) after it; a puzzle game's whole Forge game log is kept too. The files, their rows and how a run
-  is archived: `eval/PUZZLES.md`, "Keeping a run". `puzzle_solve.py` always turns it on, refuses a build without it,
+  is archived: `docs/eval/PUZZLES.md`, "Keeping a run". `puzzle_solve.py` always turns it on, refuses a build without it,
   and copies the `.pzl` and the suite into the run; `play-vs-llm.sh` turns it on too; `eval/archive_run.py` checks, packs and verifies a finished run.
 - *Why:* the owner wants the frontier puzzle run kept whole, "from the models' chats to the engine logs"
   (2026-10-25). The rows held only what the seat rendered: a `context_call` row's `prompt` is the new user turn
@@ -572,11 +830,14 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   a reply; a row holding the API key's value is refused. Not covered: the Claude CLI lane, the body of a response
   cut off by its deadline (its status and headers are kept, `HttpDeadline.LAST_INFO`), and a response body that was
   not valid UTF-8 (the bridges read bodies as text).
+  A call that runs out its time in the headers phase is always the `stop="deadline"` row: the request's own timeout is
+  set `HttpDeadline.REQUEST_MARGIN_MS` past the deadline loop's, so the client's `HttpTimeoutException` (an `error`
+  row) never beats it (#388). The client's connect timeout still equals the deadline.
 
 ### The Decisions bridge (`jev:` seats)
 
 **Owner decision, 2026-10-24:** TypeSafe's Jev 1.14 joins the frontier comparison on the hardest puzzles
-(`eval/puzzle_solve.py`). Jev is not a chat model: it is served only on OpenRouter's Decisions API
+(`eval/puzzles/puzzle_solve.py`). Jev is not a chat model: it is served only on OpenRouter's Decisions API
 (`POST /api/alpha/decisions`), writes no text and calls no tool. It answers typed questions about a `state`: a
 `choice` among keyed options (with a probability for each) or a `noul` (the probability of yes). The owner approved
 an exception to "every decision is answered by a tool call" (`CLAUDE.md`) for it: **Jev's typed answer is turned into
@@ -597,7 +858,7 @@ and the correction round and the fixed legal option apply exactly as for any mod
   (priced by `eval/cost_report.py`: `typesafe/jev-1.14` is $0.042 per million input tokens, output free), and the
   provider's `usage.cost` is the `context_call` row's `cost_usd` (an additive key, written only by a bridge that
   reports a cost). A call that fails reports no usage of its own. `model_id` resolves the `jev:` prefix.
-- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v1`) is stamped per identity on the game line,
+- **Version:** `DecisionsBridge.VERSION` (`decisions-bridge-v3`) is stamped per identity on the game line,
   `decisions_bridge_version_a` / `_b`, only for a `jev:` seat (keyed in `aggregate.PROVENANCE_FIELDS` with default
   "none", and a per-identity player field in `rating.py`, so the opponent's condition is unchanged), and on the puzzle
   row of a solver with a `jev:` tier (smart or fast, as on the game line), where `puzzle_score.py` refuses to pool two
@@ -612,7 +873,7 @@ How each decision kind (`AnswerTool.Kind`) is asked:
 | `ONE` | play menu, target, optional trigger, mode | one `choice`, criteria `"1".."n"` = the option labels | `option` = the chosen key |
 | `MANY`, at most one pick | splice, sacrifice one, scry 1, attack with one creature, a cost of one | one `choice` over the options, plus `"0"` = none when none is legal | `options` = `[k]`, or `[]` for `"0"` |
 | `MANY`, more than one pick | tap three creatures, trigger order, attackers, discard two | one `noul` per option ("should option i be one of the picks?") | every option at p >= 0.5, likeliest first, clamped to the decision's min and max; a CANCEL option is taken alone only when it is at p >= 0.5 and the likeliest, else never (`DecisionsBridge.topPicks`). An ordering decision reads the picks in that order |
-| `MANY_REPEAT` | modes that may repeat | one `choice` per mode: how many times, `"0".."max"` (up to 39) | the modes, each its count of times; above the maximum the surest counts are kept, below the minimum the surest picked mode is repeated (`DecisionsBridge.repeatPicks`) |
+| `MANY_REPEAT` | modes that may repeat | one `choice` per mode: how many times, `"0".."max"` (up to 39); the question states a site limit (`Spec.limit`: a pawprint charm's {P} budget, v2) | the modes, each its count of times; above the maximum the surest counts are kept, below the minimum the surest picked mode is repeated; under a weighted cap (`Spec.budget`) the surest counts are kept while they fit (v3, #417) (`DecisionsBridge.repeatPicks`) |
 | `KEEP` | mulligan | one `noul` ("keep this hand?") | `keep` = p >= 0.5 |
 | `NUMBER` | X, a number of counters, a wide keyword cost | one `choice` over every value, when the range has at most 40 | `number` = the chosen key; a wider range is not asked |
 | `BLOCKS` | declare blockers | one `choice` per blocker: `"0"` = no block, `"j"` = attacker j; a blocker that may block several attackers gets one `noul` per attacker instead | the pairs; a multi-blocker blocks every attacker at p >= 0.5, up to its limit |
@@ -714,8 +975,9 @@ and returns it as `structured_output`. No text is parsed.
     It is stamped `claude_cli_thinking_tokens_a` / `_b` on the game line, and `claude_cli_thinking_tokens` on the puzzle
     row.
 - **Deadline:** `CLAUDE_DEADLINE_MS`, else the model's `ModelCfg` timeout (`timeoutMs`, the same for both tiers on this
-  lane). After it the process and its children are killed. The prompt is written to stdin on its own thread, so a
-  process that never reads it cannot hold the call past its deadline.
+  lane). A puzzle run sets it from `--call-timeout-minutes` and records it, never from the shell
+  (`docs/eval/PUZZLES.md`). After it the process and its children are killed. The prompt is written to stdin on its
+  own thread, so a process that never reads it cannot hold the call past its deadline.
 - **Failure:** any of these gives no answer (`[CLAUDE-CLI-NO-ANSWER]` in the log, with the tail of the process's
   stderr): a non-zero exit, an `is_error` result, output that is no result, or the deadline. The seat's bridge retry
   runs, then the caller takes its fixed legal option, never Forge's AI.
@@ -754,7 +1016,8 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
   - prompt, completion, cached and cache-write tokens;
   - its price, from `eval/cost_report.py` with `eval/pricing/prices.json`.
 - A puzzle attempt's result row carries what a model seat spent (`PlayerControllerLLM.budget()`, harness-epoch-69):
-  `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms`, `lookups`. Tokens come from the bridge's bill
+  `model_calls`, `prompt_tokens`, `completion_tokens`, `model_ms`, `lookups`, and `bridge_down_decisions` (issue
+  #378, below). Tokens come from the bridge's bill
   (`LLMBridge.getBilledPromptTokens()`/`getBilledCompletionTokens()`), read as a difference around each ask:
   `OpenRouterBridge` bills every send that came back, a truncation retry's first send included. A bridge that keeps no
   bill returns -1 and the seat adds its last usage only when the ask answered. A bridge that wraps another
@@ -771,15 +1034,17 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
 |---|---|
 | `floor` | always passes |
 | `random` | uniform over the same legal menus |
-| `ai` | Forge's AI, the opponent and a baseline |
+| `ai` | Forge's AI, the opponent and a baseline: `new LobbyPlayerAi(name, null)` (`LlmSpikeGui.seatFor`; the puzzle runner's opponent goes through `LlmSpikePuzzle.opponentSeat`), whose empty profile name makes `AiProfileUtil.getAIProp` return the compiled default of every `AiProps` key, which is none of Forge's four shipped profiles. That is the opponent of every recorded STR-AI score and stays the default: a named profile (`AI_PROFILE_A` / `AI_PROFILE_B`) is exploratory only, refused for a panel or a cited run (`run_batch.ai_profile_refusal`) and failed by `panel_score.py`, and the puzzle runner strips it, so PUZ meets the default. It moves no version stamp or `HARNESS_EPOCH`. Settings, refusals and stamp: [SETTINGS.md](SETTINGS.md). Unmeasured: how far the profiles move a win rate (`eval/research/2026-11-06-ai-profile-spread.md`) |
 | `human` | a person, on Forge's own human controller and match screen (`play-vs-llm.sh`). Only the GUI match seats one (`LlmSpikeGui.buildPlayers(true)`); `buildPlayers()` (the headless and fork runners) and `seatFor` (the puzzle runner's seats) refuse it, and `run_batch.py`'s `--controller-a/b` does not offer it, so no person's game reaches a score. One seat at most. With a person seated, Forge's "AI can't play these cards well" list is not shown (`guiRules`): no Forge AI plays the model's seat. The model's seat is unchanged |
 | `pass`, `first`, `script` | puzzle arms |
 | `greedy:` (a model spec, `CONTROLLER_A=llm`, `LOOKAHEAD=1`) | the one-move-deep floor (`GreedyBridge`): on an empty stack, previews each cast and non-mana activation with the seat's `simulate` and takes the largest drop in the opponent's life, else passes (a preview also resolves what is already on the stack, so with something there, or without the faithful STACK line, it passes); attacks with everything; a target ask takes what the chosen play's preview assumed (the opponent's copy of a name first, each used once across a chain's asks), else ranks the opponent's side first and the seat's own last, below declining an "up to" ask, never CANCEL; any other ask the do-nothing answer; plays no land. Its stored rate carries its env and harness epoch |
 | `script:<file>` (a model spec, `CONTROLLER_A=llm`) | a written solution line played by the model seat (`ScriptBridge`): each line names the option the seat is shown, the bridge answers `answer` with it, and a line no option fits is a drift, never a guess |
-| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is |
+| `replay:<game.jsonl or attempt dir>` (a model spec, `CONTROLLER_A=llm`) | a recorded attempt played again by the model seat (`ReplayBridge`, step regret step 1): each `context_call` row of the seat is one model turn, served back with its calls exactly as recorded (`answer` with every side field, `set_plan`), so skips, side effects and RNG draws are the recorded game's. Each ask must be the recorded one (answer field, option labels in order, the `N = ...` lists such as blockers and attackers, the answer range with both ends ("exactly N" or "between N and M" picks, "an integer from N through M", "N numbers ... summing to S"), the DECISION line, turn and step, message count, no new refusal), each decision row must equal the recorded row (type, n_options, choice, options; checked through the fork hook by the puzzle runner, which refuses a replay with the game log off since no row is written then), and, when the attempt's `puzzle-results.jsonl` row is beside its game log, the game must end with its status and `log_sha256`. The first difference is a drift: the runner ends the game at once, on the game thread, and the row's `status` is `drift`. A replay row (`replay_version`) is never scored: `puzzle_score.py` refuses it as no attempt. Prompt wording that differs on the same question is counted (`replay_prompt_diffs`), not a drift. A dir is read for the seed played (`game-<seed>-*.jsonl`). Only the puzzle runner checks rows and outcomes and ends the game at a drift; elsewhere (`LlmSpikeHeadless` matches) a replay seat only logs `[REPLAY] DRIFT` and answers the do-nothing option from then on. Run: `PUZZLE=<attempt dir>/<id>.pzl CONTROLLER_A=llm CONTROLLER_B=ai SMART_MODEL_A=replay:<attempt dir> FAST_MODEL_A=replay:<attempt dir> PZL_SEEDS=<the recorded seeds> EVAL_OUT=<out> TRANSCRIPTS=1`, with the recording manifest's `condition.env`. Measured (PR #365): the 14 finished claude-cli attempts of the thinking-vs-sampling study (`runs/tvs/{A-low-k1,B-max-k1,C-low-k3}`, epoch 80, storm and splice boards) replay on epoch 82 to the recorded status, `log_sha256` and engine log; those recordings hold only `play` and `target` model decisions (plus harness-auto rows), so lookups, `yield`, `keep_untapped`, blocks and multi-picks are carried by the same path but not yet shown to replay |
+| `replay:` + `REPLAY_HANDOVER=K` (step regret step 2) | the replay seat for its first K decision rows, then the same seat handed to the search arm (`LlmSpikePuzzle.stepSearch`): after the K-th row matches, `ReplayBridge` runs the seat's `handOverToSearch`, which puts `PuzzleArms.Search` in `rnd` (no longer final) with no draw from the engine RNG (the search arm's own constructor draws one long, which would shift the rest of the game against the recording) and drops a yield the recording asked for; every later hook takes the arm's branches, so the search line's first draw is the first decision after K. The switch happens inside row K's write, so the rest of that hook already takes the arm's branches (its yield is dropped, no CANCEL is offered, its action intent is skipped); every rollout therefore checks that the first decision after the handover is the recording's row K+1 (same type, menu size and options, one search draw unless a multi-pick) or ends as a drift. After that first row no row is checked, no outcome is compared, and any ask is a drift. Each rollout replays the prefix (game log on, into a discarded sink, so the fork hook checks every row) and searches the rest against Forge AI on the recorded seed: `proven` (a line found and replayed once more), `unwinnable` (every line played, none capped by `PZL_SEARCH_MAX_DRAWS` or the wall clock), `not_found`, `drift`. `REPLAY_FORCE=o` forces the first decision after K (a probe rollout must find it to be the recording's row K+1, same type and options, one draw, bound n or n+1, the row's choice the draw's value; a multi-pick is refused in v1); `all` does each option. Rows go to `step-search.jsonl` (`step-search-v1`), never `puzzle-results.jsonl`. `eval/puzzles/step_regret.py` scans the positions before each model decision from the end until one is proven (W never comes back against a deterministic opponent), names the regret decision when the next position is `unwinnable` (a bracket when `not_found` lies between) and its floor (options kept / n, exact only when every option is decided) |
+| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is. A repeatable-mode choice is drawn as a count from its minimum (zero when the card allows it) to its cap, then a multiset in non-decreasing order (`PuzzleArms.repeatModes`, epoch 93, #269): "choose up to N" (the Seasons, Hela's Arcanum, Moment of Reckoning) is tried with fewer modes, and orders of the same modes are one branch; the random arm keeps its stream |
 
 - *Why the prover:* Forge's puzzle mode tests one opponent line, its AI's, so a solve can come from the AI
-  blocking badly. A proof (`eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and
+  blocking badly. A proof (`docs/eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and
   every leaf of it is a solve Forge scored. A decideMany subset is drawn through `PuzzleArms.subset`, which
   makes the old draws for every other arm (no canary moves) and one include-or-not per option for search.
 
@@ -788,7 +1053,7 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
   model seat, the line sees the menus a model sees (floating mana, costly mana abilities, splice and alternative
   costs) and the engine checks every step. Unmatched priority menus pass and unmatched mana-untap asks are left to
   the engine, both counted; a result row's `script_played` is true only when every line was taken with no drift.
-  `puzzle_baselines.py line` reads the row (`eval/PUZZLES.md`, "Proving a written line"), including the seat's
+  `puzzle_baselines.py line` reads the row (`docs/eval/PUZZLES.md`, "Proving a written line"), including the seat's
   `plays_not_made`: a play the line chose that did not happen voids it, and a row without the count is refused.
   The seat's two tiers share one bridge, so a script has one position. Against `CONTROLLER_B=search` the prover
   plays the line as the solver, so every branch it enumerates is an opponent reply the fixed line must beat.
@@ -839,18 +1104,104 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - *Why pinned:* a baseline arm that silently inherited a setting would be pooled with a different
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
-  **`defect_analyzer.py`** is the run oracle: `ai_tier_count=0` and no silent drops, or the run fails.
+  **`defect_analyzer.py`** is the run oracle: its four hard invariants (`docs/STANDARDS.md` section 4) hold, or the
+  run fails. Its crash check gives every log of the
+  directory exactly one owner: the game file its `[EVAL] jsonl` line names when that file is in the directory, else
+  the file `pair_dir` paired it with (seat order, one claim per log), else none; a file's crash is the crash its owned
+  logs show (or its `game_error`), so a crash is listed once, under the file it happened in, with or without a game line.
+- **A game the model's bridge did not play is not scored** (issue #369). The rule is TRANSPORT: when every retry of a
+  model ask fails in transport, the decision takes its fixed fallback and the seat counts it for its identity.
+  - A transport failure (`LLMBridge.lastFailureWasTransport`, set by `OpenRouterBridge` and `DecisionsBridge`): an HTTP
+    status other than a refusal of function calling or of a routing filter (402 when the credits run out, 401, 429,
+    5xx), an IO error (`HttpDeadline.transportError`: an `IOException`, a connect timeout included, but not the
+    request's own `HttpTimeoutException`), or a connection that sent no headers or went silent
+    (`HttpDeadline.gaveNoReply`).
+  - Not counted, the model's own decisions lost and scored as they are ("a reply that calls nothing ... the decision is
+    lost to a fixed legal option", `CLAUDE.md`): an empty or unreadable answer (also when the truncation retry then
+    fails in transport: the answer kept is the first), the deadline running out while the model reasoned, a
+    routing-filter refusal (`routing_refusals` on a puzzle row), and a refusal of function calling
+    (`native_tools_downgraded`). A `claude-cli:` seat (never scored) counts nothing.
+  - The game line carries `bridge_down_decisions_a` / `_b` and `circuit_breaker_trips_a` / `_b` (five dead decisions
+    in a row), 0 when nothing was lost.
+  - `aggregate.bridge_down_decisions` is the one reader (`aggregate.py`, `defect_analyzer.py`, `run_batch.py`): the
+    game line's count, or on a line from before the fields the transport failures in its log (`aggregate.paired_log`:
+    the log whose `[EVAL] jsonl` names the game file, else `game-<seed>-<0|1>.log` unless that names another game
+    file; every caller passes the game's own file, so they all pair alike). `aggregate.log_bridge_down` counts an ask
+    whose last attempt, the outcome line after `[BRIDGE <label>] no reply (attempt N/N)` and before that seat's next
+    line, is an HTTP error not followed by `[ROUTING-FILTER]` or `[NATIVE-TOOLS->TEXT]`, a `java`/`javax` net or io
+    error other than `HttpTimeoutException` and `UncheckedIOException` (a connect timeout counts), a stalled
+    connection, or a Decisions call with no headers. Never the `(bridge-down)` fallback rows: a model's non-answer
+    writes those too.
+  - `aggregate.py` leaves such a game out of every count a score is taken over (the strict score's `started`, and the
+    fallback and harness-decided gates, included; the recorded winner is kept); `panel_score.py` and `rating.py` refuse
+    it whatever the flags; `defect_analyzer.py` fails on it (`bridge_down_total`). In `run_batch.py` a game just
+    played on a dead bridge is status `bridge-down` (a problem in the batch summary, not retried in the run, where an
+    outage would repeat); a later resume under its condition sets it aside under `crashed/`
+    (`bridgedown-swap<n>-<game file>`, still priced) and plays the seed again.
+  - A puzzle attempt (issue #378) has no game line: its result row carries the solver seat's own count
+    (`bridge_down_decisions`, from `PlayerControllerLLM.budget()`, 0 when nothing was lost; only the solver is
+    counted, since `puzzle_solve.py` pins the opponent to Forge's AI, `CONTROLLER_B=ai`). `puzzle_score.py` refuses a
+    row with any (`bridge_down`, summed with `routing_refusals` in `aggregate.lost_decisions`), `puzzle_solve.py` and
+    `puzzle_watch.py` flag it `BRIDGE-DOWN`, `--resume` sets the puzzle's rows aside and plays it again, and
+    `defect_analyzer.py` reads the rows of a directory's `puzzle-results.jsonl` into `bridge_down_total`.
+  - A log that failed to write is not scored either (issue #427). `EvalLog` writes through a `PrintWriter`, which
+    swallows an `IOException` (a full disk); `RowWriter.println` asks `checkError()` after every row, prints one
+    `[EVAL] write failed: <file>` line to stdout on the first error, and remembers it until the next log opens. The game
+    line carries `eval_log_write_failed` (true or false, and the puzzle row's budget the same). One predicate says a
+    game line or puzzle row was not fully played, `aggregate.lost_decisions` (routing refusals, dead-bridge decisions,
+    and 1 for `aggregate.log_write_failed`; `aggregate.unscorable` is its truth), and every consumer calls it:
+    `aggregate.py` / `rating.py` / `panel_score.py` leave the game out of every count and both gates,
+    `puzzle_score.lost_decisions` is the same function (`attempt_success` refuses the row), `puzzle_solve.py`'s
+    `already_done` replays it on `--resume` and its summary flags `LOG-CUT`, `puzzle_watch.py` flags `LOG-CUT`,
+    `run_batch.py`'s `combo_status` / `set_aside_dead_bridge` set the game aside and play it again, `mtg_env.py`
+    marks the episode invalid, and `defect_analyzer.py` fails on it (`eval_log_write_failed_total`). The game line is
+    itself a row: a failure on it alone leaves a log with no game line, which is already counted invalid.
+  - The readers that take no score read it too (issue #430): `make_sft_data.py` (`load_complete_games` skips the game,
+    with a warning, so no training example comes from a dead bridge's fallbacks or a cut jsonl; the same loader feeds
+    `replay_match.py`, `process_metrics.py` and `puzzles/mine_puzzles.py`, which therefore skip it too), `line_compare.py`
+    (counted apart as `left out, unscorable`), `analyze_ab_stage0.py` (`unscorable=` beside `non-decisive=`, never a
+    pair), `sanity_arms.py` (`aggregate.scored_winner`: an unscorable game is `invalid`, not an arm win, and any arm with
+    one fails the check, so neither "the floor won" nor "a fake arm beat the floor" is hidden by the `invalid` reading),
+    `gauntlet_scan.py` (a defect line: a gauntlet game whose model bridge died under load now exits 1), `model_sweep.py` (not a completed game) and `latency_report.py` (its decisions
+    stay, because latency is per decision and a dead bridge's retries are the point; the game is named `unscorable=`
+    and its winner is not shown). `rating.bridge_down_problems` and `defect_analyzer.py` keep their own two checks:
+    each reports the dead bridge and the cut log as separate refusals and separate JSON totals
+    (`bridge_down_total`, `eval_log_write_failed_total`), which one summed `lost_decisions` could not.
+  - The puzzle result and step-search rows have the same exposure (issue #430): `LlmSpikePuzzle.appendTo` opens,
+    appends and closes one row, and any failure (open, write, `checkError()` after the row, close) prints one
+    `[PUZZLE] write failed: ...` line to stdout. `puzzle_format.write_failures` reads it from `jvm.log`
+    (`puzzle_baselines.write_failures` is the same function). A missing row is never taken for an attempt that did not
+    run: `puzzle_baselines.run_arm` raises, `puzzle_solve.py` prints the line with the puzzle's id and `already_done`
+    is false for that directory (a resume plays it again), `puzzle_score.load_rows` refuses the directory so a run that
+    lost an attempt is not scored on the rest, and `step_regret.Runner` returns an `error` verdict for the search
+    (`read_results` skips a cut line so this is reported, not a JSON error).
+  - A puzzle row from before the field is judged by its puzzle directory's `jvm.log` (`with_log_counts`, the same
+    `aggregate.log_bridge_down` reader as an old game line). That log holds every attempt of the puzzle, so a dead
+    bridge in any attempt refuses them all, and `already_done` plays the puzzle again; `set_aside_partial` renames
+    the log with the rows, so the two stay paired.
+  - *Why any, not a share:* the 2026-11-05 block that ran out of credits (`runs/cv/luna-vs-ai`, kept by the issue's
+    hunter) scored 20 decisive games; on it `python3 eval/aggregate.py runs/cv/luna-vs-ai` now reads 2 decisive and 18
+    invalid, and `python3 eval/defect_analyzer.py runs/cv/luna-vs-ai` `bridge_down_total=355` (its game lines predate
+    the fields: the log reader counts every lost ask, plan and lookup asks included; the decision rows' 280
+    `(bridge-down)` fallbacks are a subset). The other recorded games: every `runs/**/game-*.jsonl` in the author's
+    five worktrees (`mtg-forge-llm-agent`, `cv-wt`, `fc-wt`, `retier`, `tvs-wt`) whose game line has a `harness_epoch`
+    and an `openrouter:` seat that is not the loopback fake, 79 lines outside that block; `bridge_down_decisions(line,
+    <its dir>)` reads 0 for every one, though 18 of their logs hold an `HTTP <n>`, `error:` or `stalled connection`
+    line a retry recovered (a count of those lines would have called them dead). No threshold has data behind it.
+  - Acceptance `gaming` plays a seat whose provider answers 402 to every call (`fake_model_server.py --http-error
+    402`) and checks the count, the invalid game and the analyzer failing on that invariant alone; the empty and
+    garbage seats, whose model answered, must count none.
 - **Seed governance (`eval/seed_policy.py`):** some seed blocks are reserved for evaluation, and no
   training data may come from them.
 - **The three headline scores:**
-  - **STR-AI:** win rate against Forge's AI over fixed panels (`eval/SCORING.md`). The panels file pins
+  - **STR-AI:** win rate against Forge's AI over fixed panels (`docs/eval/SCORING.md`). The panels file pins
     the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
     --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
     settings under one name would be two benchmarks.
   - **STR-HELDOUT:** the same on a held-out seed band; to become the private mined puzzle split
-    (`eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
-  - **PUZ:** the puzzle suite (`eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
-    by the engine. Its hard suite (`eval/suites/puzzles-hard-gen-v1.json`) is generated (`eval/puzzle_gen.py`): each
+    (`docs/eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
+  - **PUZ:** the puzzle suite (`docs/eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
+    by the engine. Its hard suite (`eval/suites/puzzles-hard-gen-v1.json`) is generated (`eval/puzzles/puzzle_gen.py`): each
     board's own written line is its reference line (`arm: written`), replayed against Forge's AI, and a board is
     active only when every floor failed it. *Why:* the proven rules puzzles are mostly one or two actions; a
     generated board is 10 to 15 steps with the opponent at exactly what its line deals, and is fresh, so it
@@ -864,12 +1215,12 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     then replays every puzzle played under the lower one in full, and `puzzle_score.py` refuses rows from two caps.
     Each model call's deadline (`--call-timeout-minutes`) and the smart tier's token cap (`--max-tokens`, which is also
     its thinking budget) are recorded the same way. A resume under another value is refused, and the scorer refuses to
-    pool them (`eval/PUZZLES.md`).
+    pool them (`docs/eval/PUZZLES.md`).
     *Why:* frontier games of two models reached the win after 30 minutes, and the owner raised the cap
     (`docs/harness/FRONTIER5.md`, "How it ran", names the rows). Replaying only cut-off games would bias the score
     toward fast games.
 - **`puzzle_watch.py`** watches a `puzzle_solve.py` run, live or after, from the run's `puzzle-run.json` and result
-  rows, and writes nothing (`eval/PUZZLES.md`, "Watching a run").
+  rows, and writes nothing (`docs/eval/PUZZLES.md`, "Watching a run").
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a
   deck-matchup term and cluster-bootstrap CIs.
 - **Benchmark version:** reports pool only when they share engine, overlay, decks, seeds, panels,
@@ -921,6 +1272,15 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   submission with an unmarked engine patch or a class in `forge.harnessenv`.
   It reads the harness and never changes it. *Why outside:* a grader the
   candidate can see or run is a target, not a measure.
+  Per-PR tasks: `harness_env_tasks.py` mines merged red-then-green PRs into `tasks-v0.json` (opaque agent view,
+  hidden gold patch); `harness_env_task_grade.py` restores the PR's tests and the read-only inputs, runs them (Python in
+  an isolated runner of the grader's, Java with the grader's own TestNG reporter over a classpath without the installed
+  overlay classes) and scores 1 or 0. Status: dev-grade, not yet isolation-grade: a same-user grader cannot resist
+  code it runs (`eval/research/2026-11-07-harness-env-tasks.md`).
+- **The RL play environment (`eval/rl/`, `eval/rl/README.md`)** exposes a Forge puzzle or game as `reset` / `step` for
+  fine-tuning (`MtgEnv`), with the engine's own verdict as the reward; `rollout.py` writes trajectories, and
+  `eval_only.py` keeps panel seeds, held-out decks and heldout puzzles out of the training data (tests:
+  `eval/tests/test_eval_only.py`). Stdlib only, loopback only, no model call. It changes nothing in `forge-overlay/`.
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
   via `puzzle_score.score`, a hard-suite check as a labelled pilot (`--hard-results`, never pooled), and the STR
   scores as not yet run with their cost.
@@ -930,7 +1290,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 1. **`eval/harness_acceptance.sh`:**
    - an isolated compile, which records the overlay hash it compiled in `overlay-sha.txt`; the puzzle launchers
      (`puzzle_baselines.Build`) run only a build whose hash is the checkout's, unless `--allow-stale-build`, which
-     the run's provenance records (`eval/PUZZLES.md`);
+     the run's provenance records (`docs/eval/PUZZLES.md`);
    - every Java and Python test, with a declared-vs-run count;
    - the pinned canaries, with a class-load proof that the new build ran;
    - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules and the turn chat,
@@ -957,15 +1317,21 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      (`Card.getAllPossibleAbilities`, the list the GUI offers on a click, kept when payable with a legal target)
      must be on the seat's menu, and the menu must offer nothing else. Playthrough: each such play is made by the
      seat with a fake model that answers every ask in its own format, resolves, hands nothing to Forge's AI,
-     reads no answer it cannot parse and keeps `AskContract` on every ask. Any gap fails the test. The five
+     reads no answer it cannot parse and keeps `AskContract` on every ask. Each play is chosen from the seat's own
+     menu (the fork forcer picks it), so its X, modes and targets are set as in a game. Whether it was made is read
+     from `playsNotMade()` and the log (an unpaid, refused or cancelled play; issue #380). Any gap fails the test. The five
      keywords with no card to sweep are pinned (no card uses Absorb, Frenzy or Poisonous; the agendas are
      Conspiracy draft only).
    - **The keyword gauntlet (`eval/keyword_gauntlet.sh`, on demand, no model cost):** the sweep's cards (552 of its
-     553; 1996 World Champion is left out, as the script says) in 28 decks (`eval/gauntlet/`), each deck's
+     553; 1996 World Champion is left out, as the script says) and Forge's twelve Forecast cards (`kw28`: Forecast is
+     an ability parameter, not a keyword, so the sweep never drew one) in 29 decks (`eval/gauntlet/`), each deck's
      LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
      the next deck's Forge AI, in full games. Triggers, combat, upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
-     AI made, an unreadable answer, a play that failed to pay, a crash or an unfinished game. *Why both:* the
+     AI made, an unreadable answer, a play that failed to pay or to target, a crash or an unfinished game. The engine's
+     "failed to target" line names a card, not a player, so it is set apart (listed, not counted) only when the card is
+     in the Forge AI opponent's deck and not the seat's, by the decks the game log names; anything it cannot attribute
+     counts, since the seat can fail a target on paths that log no line of its own (PR #344). *Why both:* the
      sweep proves each play is reachable and plays once; only games bring the states in between. The first run
      found a craft the seat could never pay (with one candidate, the exile was left to Forge's AI, which declined
      to exile Altar of the Wretched) and chose 999 times in one window, and a StackOverflowError (floating mana
@@ -990,7 +1356,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      prompt build reaches can ask (`renderSnapshot`; `pricingInsidePricingKeepsTheGuardOn`).
    - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
      which test did. A per-type list let a hook that only ever took forced picks look covered.
-3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**
+3. **Optional live-model checks (`eval/tests/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**
    - short real chats with the game model on fixed decisions, using the real `answer` function and the
      per-model `tool_choice`;
    - every reply must be a call with a legal option, a cast must not fill in a yield, forcing must keep the
@@ -1007,7 +1373,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   session, so keep it under 200 lines and move the rest where it loads on demand): `CLAUDE.md` holds what applies
   everywhere; `.claude/rules/` holds path-scoped rules that load when matching files are touched (the overlay, the
   eval, the seat's prompts and tools); `.claude/skills/` holds the workflows; `docs/harness/INDEX.md` marks each
-  document current or historical. `eval/test_docs_index.py` keeps CLAUDE.md under 200 lines and the index complete.
+  document current or historical. `eval/tests/test_docs_index.py` keeps CLAUDE.md under 200 lines and the index complete.
 
 ## 14. Deliberately not done
 

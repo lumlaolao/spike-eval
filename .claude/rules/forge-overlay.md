@@ -3,7 +3,6 @@ paths:
   - "forge-overlay/**"
   - "engine-patches/**"
   - "install.sh"
-  - "run-llm-*.sh"
 ---
 
 # Working on the overlay (the harness's Java)
@@ -34,7 +33,8 @@ never a whole copy in `forge-overlay/`; every change marked `HARNESS PATCH` and 
   (`ensureTargetsSet`), or the cast fizzles.
 - Never fall back to Forge's AI for a choice. A failure takes a fixed legal option; `[TALLY] ... ai=0` is the invariant
   and every `[FALLBACK->AI]` is a bug.
-- A legal action is never hidden (owner): what is offered is what the engine allows (`legallyPayable`), and every count,
+- A legal action is never hidden (owner), except under the `PROPOSE_ACTIONS` measurement arm (exploratory only, never a
+  score; owner, 2026-11-04): what is offered is what the engine allows (`legallyPayable`), and every count,
   mode or target offered must be payable, so no answer fails the cast.
 - No model ask while pricing. A hook reached from a snapshot build or an affordability test returns a fixed answer
   (`PRICING_FOR_SNAPSHOT`); set it by saving and restoring, never by clearing.

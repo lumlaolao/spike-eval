@@ -33,6 +33,7 @@ import forge.game.event.GameEventSpellAbilityCast;
 import forge.game.keyword.Keyword;
 import forge.game.keyword.KeywordInterface;
 import forge.game.phase.PhaseHandler;
+import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.PlayerView;
 import forge.game.spellability.SpellAbility;
@@ -96,7 +97,39 @@ final class SeatObservation {
     // subjectless second sentence ("... battlefield. gains haste") reads "It gains".
     // v42 (2026-10-19): an effect whose source is an effect carries no engine id ("Kumano Faces Kakkazan (111)'s
     // Effect's Effect", runs/loop/g33 T13).
-    static final String VERSION = "observation-faithful-v42";
+    // v43 (2026-11-06, #391): a puzzle's solver gets YOUR CARDS SINCE THE START, the text of each own card first seen
+    // after setup (drawn, tutored, returned); the setup cards are in its system prompt. Not on a game seat.
+    // v44 (2026-11-06, #398): in a puzzle, a side with no combat left before the puzzle's last turn reads "your/their
+    // next combat: none before the puzzle's turn limit" in FACTS, not a clock for a combat the game never reaches.
+    // v45 (2026-11-07, #368): a keyword granted to a player is on its line ("| has hexproof"), and the engine's
+    // "Keyword Effects" object is left out of the command zone, where it was listed with a handle like a card.
+    // v46 (2026-11-07, #408): the guide says the player line shows only the keywords the engine names.
+    static final String VERSION = "observation-faithful-v46";
+
+    /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
+     *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
+    static String version() { return VERSION + (AnswerTool.proposeActions() ? "+propose" : ""); }
+
+    /** The state guide the system prompt carries: {@link #GUIDE}, or under PROPOSE_ACTIONS the same guide without the
+     *  hand's castable tags and the ACTIVATE options, which are part of the legal list that condition hides. */
+    static String guide() {
+        if (!AnswerTool.proposeActions()) return GUIDE;
+        return GUIDE.replace(HAND_TAGS_GUIDE, HAND_NO_TAGS_GUIDE).replace(ACTIVATE_GUIDE, ABILITIES_GUIDE);
+    }
+    static final String HAND_TAGS_GUIDE = "- Your hand lists each card with its mana cost and, for a spell, whether you can cast it now: \"(castable)\", "
+            + "\"(castable by an alternative cost)\", \"(castable only with <optional cost>)\", \"(payable, not castable now)\" "
+            + "(the mana is there but not the timing, such as a sorcery on the opponent's turn), what is missing, such as "
+            + "\"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n";
+    static final String HAND_NO_TAGS_GUIDE = "- Your hand lists each card with its mana cost. Whether a card can be cast now is "
+            + "not said: you propose a play and the rules engine checks it. The opponent's hand is only a count.\n";
+    static final String ACTIVATE_GUIDE = "- ACTIVATE options include your mana abilities: activating one only adds mana to your pool, where it stays until "
+            + "the step or phase ends.\n";
+    static final String ABILITIES_GUIDE = "- YOUR ACTIVATED ABILITIES lists, for each of your cards that has activated abilities or special "
+            + "actions such as suspend and foretell (on the battlefield, in your hand or in your graveyard), each one's cost and "
+            + "effect as the card states it, numbered: "
+            + "the number is the `ability` of a proposed activate. It says what the card can do, not whether it can do it now. A "
+            + "land whose only abilities tap it for mana is not listed; its mana is used when you pay. Activating a mana ability "
+            + "only adds mana to your pool, where it stays until the step or phase ends.\n";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -106,11 +139,10 @@ final class SeatObservation {
             + "active player is not you, you are acting on their turn, at instant speed. Before the first turn (the opening "
             + "hands) there is no phase and no active player yet.\n"
             + "- YOU and OPP each start with a line of counts: life, poison (10 loses), any other counters, hand, library, "
-            + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn.\n"
-            + "- Your hand lists each card with its mana cost and, for a spell, whether you can cast it now: \"(castable)\", "
-            + "\"(castable by an alternative cost)\", \"(castable only with <optional cost>)\", \"(payable, not castable now)\" "
-            + "(the mana is there but not the timing, such as a sorcery on the opponent's turn), what is missing, such as "
-            + "\"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n"
+            + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn, "
+            + "then each keyword the engine names that the player has (\"has hexproof\"); a keyword the engine leaves unnamed is "
+            + "not shown here; the card or effect that gives it is, and its printed rules text says what it does.\n"
+            + HAND_TAGS_GUIDE
             + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
             + "- mana available is the mana your untapped sources can make right now, as the engine counts it (Ancient Tomb "
@@ -124,8 +156,7 @@ final class SeatObservation {
             + "\"(+N more not shown)\" note says otherwise.\n"
             + "- CAST THIS GAME and LANDS PLAYED record what the opponent has cast and played, even cards that have since left "
             + "play. OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n"
-            + "- ACTIVATE options include your mana abilities: activating one only adds mana to your pool, where it stays until "
-            + "the step or phase ends.\n"
+            + ACTIVATE_GUIDE
             + "- STACK lists what is waiting to resolve, top first (the top resolves first); COMBAT describes attackers and "
             + "blockers; NOT VISIBLE names what is hidden from you.\n"
             + "- SINCE YOUR LAST DECISION is the engine's log of what happened since you last chose, oldest first; [E<n>] ids "
@@ -241,28 +272,63 @@ final class SeatObservation {
 
     void setOwnDeckText(String t) { this.ownDeckText = t == null ? "" : t; }
 
+    /** A puzzle's solver: its system prompt lists only the cards it held at setup (LlmSpikePuzzle.solverPlan), so an
+     *  own card it sees later (drawn, tutored, returned) has its text recorded here as it is first identified, the way
+     *  an opponent card is. Off for a game seat, whose deck text lists every card it can hold. */
+    private boolean trackOwnCards = false;
+    private final java.util.LinkedHashMap<String, String> ownNewCardText = new java.util.LinkedHashMap<>();
+
+    void setTrackOwnCards(boolean on) { this.trackOwnCards = on; }
+
+    private String ownNewCardText() {
+        if (!trackOwnCards) return "";
+        try {
+            for (ZoneType z : OWN_SEEN_ZONES)
+                for (Card c : viewer.getCardsIn(z)) noteText(ownNewCardText, oppCardText, c);
+        } catch (Exception ignore) { }
+        return textBlock("YOUR CARDS SINCE THE START (printed rules text from the card database of your cards first seen after"
+                + " the puzzle began; ", ownNewCardText);
+    }
+
+    /** Record {@code c}'s printed text in {@code into} the first time the viewer can identify it, unless {@code other}
+     *  (the other side's block) or the seat's own deck text already has that name: one name is printed once. */
+    private void noteText(java.util.Map<String, String> into, java.util.Map<String, String> other, Card c) {
+        if (c.isToken() || !identityKnown(c)) return;
+        noteText(into, other, safeName(c));
+    }
+
+    private void noteText(java.util.Map<String, String> into, java.util.Map<String, String> other, String name) {
+        if (name == null || name.isEmpty() || into.containsKey(name) || other.containsKey(name)) return;
+        String line = cardTextLine(name);   // null when the deck text has it, or a basic land
+        if (line != null) into.put(name, line);
+    }
+
+    /** "{head}N cards):" and one "  Name: text" line per card, or "" when there is none. */
+    private static String textBlock(String head, java.util.Map<String, String> cards) {
+        if (cards.isEmpty()) return "";
+        int n = cards.size();
+        StringBuilder b = new StringBuilder(head).append(n).append(n == 1 ? " card" : " cards").append("):\n");
+        for (java.util.Map.Entry<String, String> e : cards.entrySet())
+            b.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+        return b.toString();
+    }
+
     private static final ZoneType[] PUBLIC_ZONES = { ZoneType.Battlefield, ZoneType.Stack, ZoneType.Graveyard, ZoneType.Exile, ZoneType.Command };
+    /** The zones of the viewer's own cards it can see (its hand, and the public zones it controls, so by control); never
+     *  its library. LlmSpikePuzzle.SEEN_ZONES lists the same at setup, without the stack: a setup card cast later is
+     *  already in the system prompt, and one first seen on the stack (cast from the library top) is recorded here. */
+    private static final ZoneType[] OWN_SEEN_ZONES = { ZoneType.Hand, ZoneType.Battlefield, ZoneType.Stack, ZoneType.Graveyard, ZoneType.Exile, ZoneType.Command };
 
     /** Record the text of every opponent card the viewer can identify right now. */
     private void noteOpponentCards() {
         try {
             for (Player opp : game.getPlayers()) {
                 if (opp == viewer) continue;
-                for (ZoneType z : PUBLIC_ZONES) {
-                    for (Card c : opp.getCardsIn(z)) {
-                        if (c.isToken() || !identityKnown(c)) continue;
-                        String name = safeName(c);
-                        if (name == null || name.isEmpty() || oppCardText.containsKey(name)) continue;
-                        String line = cardTextLine(name);
-                        if (line != null) oppCardText.put(name, line);
-                    }
-                }
+                for (ZoneType z : PUBLIC_ZONES)
+                    for (Card c : opp.getCardsIn(z)) noteText(oppCardText, ownNewCardText, c);
             }
-            for (KnownLoc k : knownHidden.values()) {
-                if (k.owner == viewer || oppCardText.containsKey(k.name)) continue;
-                String line = cardTextLine(k.name);
-                if (line != null) oppCardText.put(k.name, line);
-            }
+            for (KnownLoc k : knownHidden.values())
+                if (k.owner != viewer) noteText(oppCardText, ownNewCardText, k.name);
         } catch (Exception ignore) { }
     }
 
@@ -288,13 +354,7 @@ final class SeatObservation {
 
     private String opponentCardText() {
         noteOpponentCards();
-        if (oppCardText.isEmpty()) return "";
-        int n = oppCardText.size();
-        StringBuilder b = new StringBuilder("OPPONENT CARDS YOU HAVE SEEN (printed rules text from the card database; ")
-                .append(n).append(n == 1 ? " card" : " cards").append("):\n");
-        for (java.util.Map.Entry<String, String> e : oppCardText.entrySet())
-            b.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
-        return b.toString();
+        return textBlock("OPPONENT CARDS YOU HAVE SEEN (printed rules text from the card database; ", oppCardText);
     }
 
     void setDeckLines(String t) { this.deckLines = t == null ? "" : t; }
@@ -560,6 +620,11 @@ final class SeatObservation {
     /** Unblocked damage a side could deal in its NEXT combat, and the life left after it. */
     private void clock(Player from, Player to, String label, StringBuilder b) {
         try {
+            if (!combatBeforeLimit(from)) {
+                if (b.length() > 0) b.append(" | ");
+                b.append(label).append(": none before the puzzle's turn limit");
+                return;
+            }
             List<Card> legal = new ArrayList<>();
             for (Card c : from.getCreaturesInPlay())
                 if (forge.game.combat.CombatUtil.canAttackNextTurn(c, to)) legal.add(c);
@@ -571,6 +636,21 @@ final class SeatObservation {
              .append(to.getLife()).append(" -> ").append(Math.max(0, to.getLife() - dmg));
             if (dmg > 0 && dmg >= to.getLife()) b.append(" = LETHAL");
         } catch (Exception ignore) { }
+    }
+
+    /** Whether `from` still has a combat before a puzzle's last turn ends the game (#398: on the limit turn after
+     *  combat, a lethal "next combat" was a combat the game never reaches). From the end-of-combat step on, this
+     *  turn's combat is over. True outside puzzles. Turns alternate between the two players; an extra turn is not
+     *  counted. */
+    private boolean combatBeforeLimit(Player from) {
+        int last = LlmSpikeGui.puzzleLastTurn;
+        if (last < 0) return true;
+        PhaseHandler ph = game.getPhaseHandler();
+        int turn = ph.getTurn();
+        boolean active = ph.getPlayerTurn() == from;
+        if (active && turn <= last && (ph.getPhase() == null || ph.getPhase().isBefore(PhaseType.COMBAT_END)))
+            return true;
+        return turn + (active ? 2 : 1) <= last;
     }
 
     private Player playerFromView(PlayerView v) {
@@ -1062,11 +1142,12 @@ final class SeatObservation {
             s.append("  board: ").append(perms(viewer)).append('\n');
             s.append("  lands: ").append(lands(viewer)).append('\n');
             s.append("  mana available: ").append(manaLine(viewer)).append('\n');
+            if (AnswerTool.proposeActions()) s.append(abilitiesBlock());
             s.append("  graveyard(").append(viewer.getCardsIn(ZoneType.Graveyard).size()).append("): ")
              .append(zoneList(viewer.getCardsIn(ZoneType.Graveyard), ctx.yardCap)).append('\n');
             s.append("  exile(").append(viewer.getCardsIn(ZoneType.Exile).size()).append("): ")
              .append(zoneList(viewer.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
-            String myCmd = zoneList(viewer.getCardsIn(ZoneType.Command), ctx.exileCap);
+            String myCmd = zoneList(commandCards(viewer), ctx.exileCap);
             if (!"(none)".equals(myCmd)) s.append("  command: ").append(myCmd).append('\n');
 
             for (Player opp : game.getPlayers()) {
@@ -1081,7 +1162,7 @@ final class SeatObservation {
                  .append(zoneList(opp.getCardsIn(ZoneType.Graveyard), ctx.yardCap)).append('\n');
                 s.append("  exile(").append(opp.getCardsIn(ZoneType.Exile).size()).append("): ")
                  .append(zoneList(opp.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
-                String cmd = zoneList(opp.getCardsIn(ZoneType.Command), ctx.exileCap);
+                String cmd = zoneList(commandCards(opp), ctx.exileCap);
                 if (!"(none)".equals(cmd)) s.append("  command: ").append(cmd).append('\n');
                 String casts = streamCastHistory(opp, false, ctx.castHistoryCap);
                 if (!casts.isEmpty()) s.append("  CAST THIS GAME: ").append(casts).append('\n');
@@ -1090,6 +1171,7 @@ final class SeatObservation {
                 String landsPlayed = streamCastHistory(opp, true, ctx.castHistoryCap);
                 if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
             }
+            s.append(ownNewCardText());
             s.append(opponentCardText());
 
             s.append(STACK_LINE).append(stack()).append('\n');
@@ -1144,7 +1226,27 @@ final class SeatObservation {
         try { if (p.hasInitiative()) b.append(" | has the initiative"); } catch (Exception ignore) { }
         try { if (p.hasBlessing()) b.append(" | has the city's blessing"); } catch (Exception ignore) { }
         try { if (p.hasLost()) b.append(" | HAS LOST"); } catch (Exception ignore) { }
+        // A keyword granted to the player (Leyline of Sanctity's hexproof), by its title (#368). Its original is a script
+        // string ("Protection:Player.Opponent:..."); one the engine gives no title (Winter Orb's "UntapAdjust:Land:1") is
+        // left out; the card or effect that gives it is shown.
+        try {
+            for (forge.game.keyword.KeywordInterface k : p.getKeywords()) {
+                String title = k.getTitle();
+                if (title != null && !title.isBlank()) b.append(" | has ").append(title.toLowerCase(Locale.ROOT));
+            }
+        } catch (Exception ignore) { }
         return b.toString();
+    }
+
+    /** The command zone as the seat reads it: without the engine's "Keyword Effects" object, which only holds the
+     *  keywords granted to the player (said on the player's line) and is not a card the seat could inspect, cast or
+     *  target (#368). */
+    static List<Card> commandCards(Player p) {
+        List<Card> out = new ArrayList<>();
+        for (Card c : p.getCardsIn(ZoneType.Command))
+            if (!(c.getGamePieceType() == forge.card.GamePieceType.EFFECT && "Keyword Effects".equals(c.getName())))
+                out.add(c);
+        return out;
     }
 
     static String manaPool(Player p) {
@@ -1170,7 +1272,9 @@ final class SeatObservation {
         for (Card c : viewer.getCardsIn(ZoneType.Hand)) {
             if (b.length() > 0) b.append(", ");
             b.append(describe(c, false));
-            if (!c.isLand()) {
+            // PROPOSE_ACTIONS: no tag. castTag runs the play menu's own legality check, so it would show the hand half
+            // of the list that condition hides.
+            if (!c.isLand() && !AnswerTool.proposeActions()) {
                 try {
                     String afford = LlmSpikeGui.PlayerControllerLLM.castTag(viewer, c, tally);
                     if (afford != null) b.append(' ').append(afford);
@@ -1178,6 +1282,24 @@ final class SeatObservation {
             }
         }
         return b.length() == 0 ? "(empty)" : b.toString();
+    }
+
+    /** YOUR ACTIVATED ABILITIES (PROPOSE_ACTIONS): what each of the seat's cards can activate, numbered as a proposal
+     *  names them ({@link LlmSpikeGui.PlayerControllerLLM#proposalAbilities}). State, not legality: every ability is
+     *  listed whether or not it can be activated now. Empty when no card has one. */
+    String abilitiesBlock() {
+        StringBuilder b = new StringBuilder();
+        for (ZoneType z : new ZoneType[] {ZoneType.Battlefield, ZoneType.Hand, ZoneType.Graveyard}) {
+            for (Card c : viewer.getCardsIn(z)) {
+                List<forge.game.spellability.SpellAbility> abs = LlmSpikeGui.PlayerControllerLLM.proposalAbilities(c);
+                if (abs.isEmpty() || LlmSpikeGui.PlayerControllerLLM.onlyTapsForMana(c, abs)) continue;
+                b.append("    ").append(shortRef(c)).append(z == ZoneType.Battlefield ? "" : " (in your " + z.name().toLowerCase() + ")").append(':');
+                for (int i = 0; i < abs.size(); i++)
+                    b.append(i == 0 ? " " : "; ").append(i + 1).append(") ").append(LlmSpikeGui.PlayerControllerLLM.abilityText(abs.get(i)));
+                b.append('\n');
+            }
+        }
+        return b.length() == 0 ? "" : "  YOUR ACTIVATED ABILITIES (from the cards' rules text, numbered for a proposed activate):\n" + b;
     }
 
     private String perms(Player p) {

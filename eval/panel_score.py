@@ -35,7 +35,9 @@ game lines carry the cell's pinned deck_sha; an llm pilot must have played under
 `pilot_condition` (refused otherwise, whatever the flags); the pilot must be the same player with the same
 settings in every cell (rating.check_conditions); aggregate.py's fallback and harness-decided gates
 must pass per cell; the sanity arms (sanity_arms.py) must not beat the floor in any cell; and every
-game read must belong to one benchmark version (benchmark_version.py), which the report carries.
+game read must belong to one benchmark version (benchmark_version.py), which the report carries. A cell with a
+game whose pilot lost a decision to a dead model bridge is refused (rating.bridge_down_problems): a panel seed is
+replayed, never dropped.
 
 What it cannot do: it does not re-run crashed seeds (a crash is an invalid game in the strict score
 and absent from the decisive one), and it does not decide how a wall-clock cap is charged.
@@ -146,12 +148,16 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
                        for i in ("a", "b") for t in ("smart", "fast"))):
             problems.append("a development lane (%s) played here; it is never part of a benchmark score"
                             % (g.get("dev_lane") or "claude-cli"))
+        if g.get("ai_profile_a", "") or g.get("ai_profile_b", ""):
+            problems.append("a Forge AI profile (ai_profile_a=%r, ai_profile_b=%r) played here; the benchmark's "
+                            "opponent is the compiled defaults" % (g.get("ai_profile_a", ""), g.get("ai_profile_b", "")))
         if expected_b and g.get("controller_b") != expected_b:
             problems.append("identity B is %r, not %r" % (g.get("controller_b"), expected_b))
         if expected_a and g.get("controller_a") != expected_a:
             problems.append("identity A is %r, not %r" % (g.get("controller_a"), expected_a))
         if expected_deck_sha and g.get("deck_sha") != expected_deck_sha:
             problems.append("deck_sha %r, the cell pins %r" % (g.get("deck_sha"), expected_deck_sha))
+    problems += rating.bridge_down_problems(games)
     if problems:
         raise PanelError("%s: %s" % (p, "; ".join(sorted(set(problems)))))
     decisions = aggregate._experiment_decisions(exp, parsed["decisions"])

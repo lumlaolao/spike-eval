@@ -80,7 +80,7 @@ Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the ne
    move and stops naming the first that does not. For that one, write the new upstream file
    (`git -C $FORGE_HOME show <new>:<path>`) to `/tmp/port/<path>`, carry over each `HARNESS PATCH` change
    from `/tmp/patched-old/<path>`, run `python3 eval/engine_patches.py diff --from /tmp/port`, and apply
-   again. Record each file's new upstream sha256 in the table: `eval/test_engine_patches.py` fails until
+   again. Record each file's new upstream sha256 in the table: `eval/tests/test_engine_patches.py` fails until
    every patch applies and every sha matches; `install.sh` and the acceptance `compile` stage fail while a
    patch does not apply.
 4c. **Re-check the copier workaround.** `PlayerLookahead.UncopiedEffects` reaches the private

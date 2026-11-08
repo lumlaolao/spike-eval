@@ -27,6 +27,8 @@ import pathlib
 import subprocess
 import sys
 
+from aggregate import unscorable
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 DEFAULT_MODELS = [
@@ -67,6 +69,33 @@ def analyze(out_dir):
     return metrics, r.returncode == 0
 
 
+def plumbing_checks(out_dir):
+    """Per-model plumbing counts over the game jsonl in out_dir. A game the model did not fully play (a dead bridge,
+    a cut log: aggregate.unscorable, #430) is not a completed game."""
+    checks = {"game_completed": False, "unparsed_fallbacks": 0, "bridge_down_fallbacks": 0,
+              "max_attempts": 0, "truncation_retries": 0, "decisions": 0}
+    for j in out_dir.glob("*.jsonl"):
+        for line in j.read_text().splitlines():
+            try:
+                d = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if d.get("t") == "game" and d.get("winner") and not unscorable(dict(d, _file=j.name), out_dir):
+                checks["game_completed"] = True
+            if d.get("t") != "decision":
+                continue
+            checks["decisions"] += 1
+            fb = d.get("fallback") or ""
+            if "unparsed" in fb:
+                checks["unparsed_fallbacks"] += 1
+            if "bridge-down" in fb:
+                checks["bridge_down_fallbacks"] += 1
+            checks["max_attempts"] = max(checks["max_attempts"], d.get("attempts") or 0)
+            if d.get("finish_reason") == "length":
+                checks["truncation_retries"] += 1
+    return checks
+
+
 def sweep_one(spec, args, seed):
     name = short_name(spec)
     out_dir = pathlib.Path(args.out) / name
@@ -92,28 +121,7 @@ def sweep_one(spec, args, seed):
     verdict["analyzer_hard_pass"] = hard_pass
     if metrics:
         verdict["metrics"] = metrics
-    # per-model plumbing checks on the jsonl
-    checks = {"game_completed": False, "unparsed_fallbacks": 0, "bridge_down_fallbacks": 0,
-              "max_attempts": 0, "truncation_retries": 0, "decisions": 0}
-    for j in out_dir.glob("*.jsonl"):
-        for line in j.read_text().splitlines():
-            try:
-                d = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if d.get("t") == "game" and d.get("winner"):
-                checks["game_completed"] = True
-            if d.get("t") != "decision":
-                continue
-            checks["decisions"] += 1
-            fb = d.get("fallback") or ""
-            if "unparsed" in fb:
-                checks["unparsed_fallbacks"] += 1
-            if "bridge-down" in fb:
-                checks["bridge_down_fallbacks"] += 1
-            checks["max_attempts"] = max(checks["max_attempts"], d.get("attempts") or 0)
-            if d.get("finish_reason") == "length":
-                checks["truncation_retries"] += 1
+    checks = plumbing_checks(out_dir)
     verdict["checks"] = checks
     verdict["pass"] = (game.returncode == 0 and hard_pass and checks["game_completed"]
                        and checks["unparsed_fallbacks"] == 0)

@@ -29,8 +29,9 @@ Conditions: games pool only when everything outside the players is the same. The
 aggregate.py's experiment key minus the fields that name who played (arm fields, served identity,
 per-seat model settings) and the deck matchup; those must agree across every game, and each llm
 player's own settings (tools, tiers, budgets, served model) must agree across its games. Anything
-else is refused unless --allow-mixed-conditions is passed. Games of different benchmark versions
-(eval/benchmark_version.py) never pool.
+else is refused unless --allow-mixed-conditions is passed. A game whose llm seat lost a decision to a dead model
+bridge (aggregate.bridge_down_decisions) is refused whatever the flags. Games of
+different benchmark versions (eval/benchmark_version.py) never pool.
 
 Decks: a game's decks are its run directory's batch-manifest deck_a/deck_b files (identity-keyed, like
 the winner). Each pair of different decks that appears gets one matchup term with the weak prior
@@ -71,7 +72,7 @@ SERVED_BY_IDENT = {ident: tuple(f for f in aggregate.SERVED_FIELDS if f.endswith
                    for ident in ("a", "b")}
 # A setting of the llm seat (its model, tools, tiers, time); part of that player's identity.
 PLAYER_FIELDS = (
-    "smart_budget", "fast_budget", "claude_deadline_ms", "game_cap_ms", "openrouter_base_url",
+    "smart_budget", "fast_budget", "claude_deadline_ms", "openrouter_timeout_ms", "game_cap_ms", "openrouter_base_url",
     "checkpoint_sha", "model_cfg_sha", "claude_effort_smart", "claude_effort_fast",
     "memory_tools", "memory_tools_version", "native_tools", "native_tools_seats",
     "native_tools_version", "native_tools_downgraded", "rules_tool", "rules_tool_version",
@@ -95,6 +96,25 @@ ENV_FIELDS = tuple(f for f in aggregate.CONDITION_FIELDS
 
 class MixedConditionError(Exception):
     """The games do not share one condition."""
+
+
+class InvalidGameError(Exception):
+    """A game whose llm seat lost decisions to a dead model bridge: no flag pools it (issue #369)."""
+
+
+def bridge_down_problems(games):
+    """One refusal per game that lost a decision to a dead model bridge (aggregate.bridge_down_decisions): those
+    decisions were the bridge's fixed fallbacks, not the model's. A sanity arm on the fake model counts none: its
+    empty and garbage replies are the model answering."""
+    out = []
+    for g in games:
+        n = aggregate.bridge_down_decisions(g)
+        where = "%s seed %s swap %s" % (g.get("_dir") or g.get("_file") or "?", g.get("seed"), bool(g.get("swap")))
+        if n:
+            out.append("%s lost %d decision(s) to a dead model bridge; replay it" % (where, n))
+        if aggregate.log_write_failed(g):
+            out.append("%s: a row of its log failed to write (issue #427), so the log may be cut; replay it" % where)
+    return out
 
 
 def player(game, ident):
@@ -529,8 +549,12 @@ def anchors_from_panels(path=None):
 def rate(dirs, resamples=DEFAULT_RESAMPLES, bootstrap_seed=DEFAULT_BOOTSTRAP_SEED,
          allow_mixed=False, panels_path=None, games=None):
     """The full rating report as a dict. Raises MixedConditionError (or benchmark_version.VersionError)
-    when the games are not one measurement and allow_mixed is false."""
+    when the games are not one measurement and allow_mixed is false, and InvalidGameError, whatever allow_mixed, when
+    a game lost a decision to a dead model bridge."""
     games = load_games(dirs) if games is None else games
+    lost = bridge_down_problems(games)
+    if lost:
+        raise InvalidGameError("; ".join(lost))
     problems = check_conditions(games)
     version, version_problem = None, None
     try:
@@ -669,6 +693,9 @@ def main(argv=None):
     except (MixedConditionError, benchmark_version.VersionError) as e:
         print("rating: REFUSING: %s" % e, file=sys.stderr)
         print("        (pass --allow-mixed-conditions to pool anyway; the report says so)", file=sys.stderr)
+        return 2
+    except InvalidGameError as e:
+        print("rating: REFUSING: %s" % e, file=sys.stderr)
         return 2
     if a.json:
         print(json.dumps(rep, indent=2))

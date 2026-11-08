@@ -50,6 +50,12 @@ public class DecisionsBridgeTest {
     public void startServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.setExecutor(Executors.newCachedThreadPool());
+        // Answers nothing for 1.5 s: past a 100 ms bridge deadline.
+        server.createContext("/slow/", ex -> {
+            read(ex);
+            try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            respond(ex, 200, "{}");
+        });
         server.createContext("/", ex -> {
             String body = read(ex);
             bodies.add(body);
@@ -75,6 +81,19 @@ public class DecisionsBridgeTest {
         bodies.clear(); auths.clear(); paths.clear();
         status = 200;
         reply = q -> "{}";
+    }
+
+    /** The request's own timeout must never beat the deadline loop (issue #388): every call that runs out its time
+     *  stops at the deadline, none ends in the client's HttpTimeoutException. */
+    @Test(timeOut = 20000)
+    public void everyTimedOutCallStopsAtTheDeadlineNeverTheRequestsOwnTimeout() {
+        DecisionsBridge b = new DecisionsBridge("Seat/smart", "typesafe/jev-1.14", "p",
+                base.replace("/api/v1", "/slow/api/v1"), 100, null, null);
+        for (int i = 0; i < 40; i++) {
+            Assert.assertNull(b.chat(messages(USER), "[]", true,
+                    AnswerTool.Spec.one(2).labels(List.of("CAST Lava Spike", "PASS"))));
+            Assert.assertEquals(HttpDeadline.LAST_STOP.get(), "deadline", "call " + i);
+        }
     }
 
     private DecisionsBridge bridge() { return bridge(null); }
@@ -245,6 +264,42 @@ public class DecisionsBridgeTest {
         Assert.assertTrue(bodies.isEmpty());
     }
 
+    /** Issue #369: a 402 (credits gone) is the transport failing; a 200 whose answers cannot be read is the model's
+     *  reply, and a refused question is never sent. Only the first counts against the game. */
+    @Test
+    public void onlyATransportFailureIsADeadBridge() {
+        AnswerTool.Spec spec = AnswerTool.Spec.one(2).labels(List.of("CAST Lava Spike @4", "PASS (do nothing)"));
+        DecisionsBridge b = bridge();
+        status = 402;
+        reply = q -> "{\"error\":{\"message\":\"This request would exceed your available credits\"}}";
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertTrue(b.lastFailureWasTransport(), "a 402 is the transport failing");
+        status = 200;
+        reply = q -> "{\"answers\":{\"unknown\":{\"type\":\"noul\"}}}";
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertFalse(b.lastFailureWasTransport(), "malformed answers on a 200 are the model's");
+        reply = q -> "not json at all";
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertFalse(b.lastFailureWasTransport(), "an unreadable 200 body is the model's, not an IO error");
+        Assert.assertNull(b.chat(messages(USER), "[]", true, AnswerTool.Spec.card()));
+        Assert.assertFalse(b.lastFailureWasTransport(), "a question it cannot put is not sent");
+        status = 402;
+        Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+        Assert.assertNull(b.ask(USER));
+        Assert.assertFalse(b.lastFailureWasTransport(), "a text ask is never sent, whatever came before");
+        status = 200;
+        // A Decisions endpoint that sends no headers within the idle window gave no reply.
+        reply = q -> { try { Thread.sleep(3000); } catch (InterruptedException ignore) { } return "{}"; };
+        long idle = HttpDeadline.IDLE_MS;
+        HttpDeadline.IDLE_MS = 500;
+        try {
+            Assert.assertNull(b.chat(messages(USER), "[]", true, spec));
+            Assert.assertTrue(b.lastFailureWasTransport(), "no headers is no reply");
+        } finally {
+            HttpDeadline.IDLE_MS = idle;
+        }
+    }
+
     /** Naming a card has no closed list of options: no answer, nothing sent, the harness's fixed option follows. */
     @Test
     public void namingACardGetsNoAnswerAndSendsNothing() {
@@ -292,9 +347,23 @@ public class DecisionsBridgeTest {
         };
         NativeTools.Call c = onlyAnswer(bridge().chat(messages(USER), "[]", true, spec));
         Assert.assertEquals(AnswerTool.validate(spec, c.arguments).answer.options, List.of(1, 1, 2));
+        // A limit the site checks (a pawprint charm's {P} budget, #415) is stated in each count question; none is
+        // stated when there is none.
+        AnswerTool.Spec paw = AnswerTool.Spec.repeat(3, 0, 5).labels(List.of("{P} — A", "{P}{P} — B", "{P}{P}{P} — C"))
+                .limit("the picked options' {P} total at most 5");
+        Assert.assertTrue(DecisionsBridge.compose(paw).questions.toString()
+                .contains("more than once; the picked options' {P} total at most 5. How many"));
+        Assert.assertFalse(DecisionsBridge.compose(spec).questions.toString().contains("total at most"));
+        // Under a weighted cap (a pawprint charm, #417) the surer counts are kept while they fit: Season of Loss's
+        // {P}{P}{P} mode twice and {P}{P} and {P} once each (10 {P}) keeps one {P}{P}{P} and the {P}{P} (5 of 5).
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {1, 1, 2}, new double[] {0.5, 0.6, 0.9}, 0, 5,
+                new int[] {1, 2, 3}, 5), List.of(2, 3));
+        // Padding to a minimum under a cap takes the cheapest mode that fits when the surest does not.
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 0, 2}, new double[] {0.1, 0.1, 0.9}, 1, 5,
+                new int[] {1, 2, 3}, 2), List.of(1));
         // Too many: the surer counts are kept. Too few: the likeliest mode is repeated up to the minimum.
-        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3), List.of(1, 1, 1));
-        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3), List.of(2, 2, 2));
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {3, 2}, new double[] {0.9, 0.4}, 1, 3, null, -1), List.of(1, 1, 1));
+        Assert.assertEquals(DecisionsBridge.repeatPicks(new int[] {0, 1}, new double[] {0.9, 0.8}, 3, 3, null, -1), List.of(2, 2, 2));
     }
 
     /** A blocker that may block several attackers gets a yes/no per attacker, so it can block two. */
@@ -503,7 +572,7 @@ public class DecisionsBridgeTest {
     /** A jev: seat answers through `answer` (the stamp and the preamble say so); it gets no native lookups. */
     @Test
     public void aJevSeatAnswersThroughTheAnswerToolWithoutLookups() {
-        Assert.assertEquals(DecisionsBridge.VERSION, "decisions-bridge-v1", "move this pin WITH DecisionsBridge.VERSION");
+        Assert.assertEquals(DecisionsBridge.VERSION, "decisions-bridge-v3", "move this pin WITH DecisionsBridge.VERSION");
         String spec = DecisionsBridge.PREFIX + "typesafe/jev-1.14";
         Assert.assertTrue(AnswerTool.usedBy(spec));
         Assert.assertFalse(NativeTools.usedBy(spec));

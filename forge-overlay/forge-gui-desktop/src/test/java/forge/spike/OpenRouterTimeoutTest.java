@@ -65,11 +65,12 @@ public class OpenRouterTimeoutTest {
 
     private static final AtomicInteger completionCalls = new AtomicInteger();
     private static final AtomicInteger billedCalls = new AtomicInteger();
+    private static final AtomicInteger truncatedCalls = new AtomicInteger();
     private static final AtomicInteger handlersOpened = new AtomicInteger();
     private static final AtomicInteger handlersReleased = new AtomicInteger();
 
     private HttpServer server;
-    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase;
+    private String dribbleUrl, promptUrl, loopbackBase, slowBase, billedBase, creditsBase, emptyBase, truncatedBase, truncatedResetBase, noHeadersBase;
 
     @BeforeClass
     public void startServer() throws IOException {
@@ -135,11 +136,43 @@ public class OpenRouterTimeoutTest {
                 try { ex.sendResponseHeaders(500, -1); ex.close(); } catch (Exception ignore) { }
             }
         });
+        // Issue #369: a provider out of credits answers 402 to every call; an empty answer is the model's.
+        server.createContext("/credits/chat/completions", ex -> {
+            drain(ex);
+            byte[] b = "{\"error\":{\"message\":\"This request would exceed your available credits\",\"code\":402}}"
+                    .getBytes(StandardCharsets.UTF_8);
+            try { ex.sendResponseHeaders(402, b.length); try (OutputStream os = ex.getResponseBody()) { os.write(b); } }
+            catch (Exception ignore) { }
+        });
+        // The model spends its budget and answers nothing (finish_reason=length); the truncation retry then meets a 503.
+        server.createContext("/truncated503/chat/completions", ex -> {
+            drain(ex);
+            if (truncatedCalls.incrementAndGet() % 2 == 1)
+                respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"length\"}]}");
+            else { try { ex.sendResponseHeaders(503, -1); ex.close(); } catch (Exception ignore) { } }
+        });
+        // The same, but the retry's connection is closed before any reply: the send throws an IOException.
+        server.createContext("/truncatedreset/chat/completions", ex -> {
+            drain(ex);
+            if (truncatedCalls.incrementAndGet() % 2 == 1)
+                respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"length\"}]}");
+            else ex.close();
+        });
+        server.createContext("/nohead/chat/completions", ex -> { drain(ex); sleep(5000); respond(ex, "{\"late\":true}"); });
+        server.createContext("/empty/chat/completions", ex -> {
+            drain(ex);
+            respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"stop\"}]}");
+        });
         server.start();
         String base = "http://127.0.0.1:" + server.getAddress().getPort();
         dribbleUrl = base + "/dribble";
         promptUrl = base + "/prompt";
         loopbackBase = base + "/v1";
+        creditsBase = base + "/credits";
+        emptyBase = base + "/empty";
+        noHeadersBase = base + "/nohead";
+        truncatedBase = base + "/truncated503";
+        truncatedResetBase = base + "/truncatedreset";
         slowBase = base + "/slow";
         billedBase = base + "/billed";
     }
@@ -335,6 +368,13 @@ public class OpenRouterTimeoutTest {
         for (int i = 0; i < n; i++) {
             CompletableFuture<HttpResponse<String>> f =
                     shared.sendAsync(get(dribbleUrl, NO_REQUEST_BOUND_MS), HttpResponse.BodyHandlers.ofString());
+            // Cancel only once the server holds this exchange: under load (16 on 4 cores, PR #373's
+            // acceptance) a fixed 200 ms cancelled one request before it arrived (count 11 of 12).
+            long arrival = System.currentTimeMillis() + 10_000;
+            while (handlersOpened.get() - openedBefore <= i && System.currentTimeMillis() < arrival)
+                Thread.sleep(10);
+            Assert.assertTrue(handlersOpened.get() - openedBefore > i,
+                    "request " + i + " never reached the server within 10 s");
             try { f.get(200, TimeUnit.MILLISECONDS); Assert.fail("dribble should not complete in 200ms"); }
             catch (TimeoutException expected) { f.cancel(true); }
         }
@@ -412,6 +452,84 @@ public class OpenRouterTimeoutTest {
         Assert.assertNull(bridge.ask("again?"));
         Assert.assertEquals(bridge.getBilledPromptTokens(), 80L, "an HTTP 500 is not billed");
         Assert.assertEquals(bridge.getBilledCompletionTokens(), 25L);
+    }
+
+    /** Issue #369: only a transport failure is a dead bridge. A 402 (credits gone) and a 500 are; an empty answer and a
+     *  deadline that ran out while the model reasoned are the model's, and the game stays scored. */
+    @Test
+    public void onlyATransportFailureIsADeadBridge() {
+        LlmSpikeGui.OpenRouterBridge credits = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, creditsBase, BUDGET_MS);
+        Assert.assertNull(credits.ask("what is the play?"));
+        Assert.assertTrue(credits.lastFailureWasTransport(), "a 402 is the transport failing");
+        LlmSpikeGui.OpenRouterBridge empty = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, emptyBase, BUDGET_MS);
+        Assert.assertNull(empty.ask("what is the play?"));
+        Assert.assertFalse(empty.lastFailureWasTransport(), "an empty answer is the model's");
+        LlmSpikeGui.OpenRouterBridge slow = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, slowBase, BUDGET_MS);
+        Assert.assertNull(slow.ask("what is the play?"));
+        Assert.assertFalse(slow.lastFailureWasTransport(), "the deadline running out is the model's time");
+        billedCalls.set(2);
+        LlmSpikeGui.OpenRouterBridge failing = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, billedBase, BUDGET_MS);
+        Assert.assertNull(failing.ask("again?"));
+        Assert.assertTrue(failing.lastFailureWasTransport(), "a 500 is the transport failing");
+        Assert.assertNull(credits.ask("and now?"));
+        Assert.assertTrue(credits.lastFailureWasTransport());
+    }
+
+    /** The model's own empty, length-truncated answer is kept when the truncation retry fails in transport: the ask
+     *  is lost to the model, not to the bridge (round-3 review of #374). */
+    @Test
+    public void aTruncationRetryThatFailsInTransportLeavesTheModelsOwnLoss() {
+        truncatedCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge bridge = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, truncatedBase, BUDGET_MS);
+        Assert.assertNull(bridge.ask("what is the play?"));
+        Assert.assertEquals(bridge.lastSendCount(), 2, "the truncated reply was retried");
+        Assert.assertFalse(bridge.lastFailureWasTransport(), "the answer that was kept is the model's");
+        truncatedCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge reset = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, truncatedResetBase, BUDGET_MS);
+        Assert.assertNull(reset.ask("what is the play?"));
+        Assert.assertEquals(truncatedCalls.get(), 2, "the truncated reply was retried");
+        Assert.assertFalse(reset.lastFailureWasTransport(), "a retry whose connection was closed keeps the model's loss");
+    }
+
+    /** A connection that sends no headers is no reply, as is a port nobody listens on (an IO error): transport
+     *  failures. The deadline running out is the model's time. The bridges read the stop through gaveNoReply. */
+    @Test
+    public void aSilentConnectionAndARefusedConnectionAreDeadBridges() throws Exception {
+        String[] stop = new String[1]; boolean[] ok = new boolean[1];
+        timed("/noheaders", stop, ok);
+        Assert.assertEquals(stop[0], "no-headers");
+        Assert.assertTrue(HttpDeadline.gaveNoReply(stop[0]), "no headers is no reply");
+        Assert.assertTrue(HttpDeadline.gaveNoReply("silent"));
+        Assert.assertFalse(HttpDeadline.gaveNoReply("deadline"), "the deadline is the model's time");
+        Assert.assertFalse(HttpDeadline.transportError(new java.net.http.HttpTimeoutException("headers")),
+                "the request deadline is the model's time");
+        Assert.assertTrue(HttpDeadline.transportError(new java.net.http.HttpConnectTimeoutException("connect")),
+                "a connect timeout made no connection");
+        long idle = HttpDeadline.IDLE_MS;
+        HttpDeadline.IDLE_MS = IDLE;
+        try {
+            LlmSpikeGui.OpenRouterBridge silent = new LlmSpikeGui.OpenRouterBridge(
+                    "test/smart", "deepseek/deepseek-v4-flash", null, noHeadersBase, LONG_DEADLINE);
+            Assert.assertNull(silent.ask("what is the play?"));
+            Assert.assertTrue(silent.lastFailureWasTransport(), "the bridge took no headers as no reply");
+        } finally {
+            HttpDeadline.IDLE_MS = idle;
+        }
+        Assert.assertFalse(HttpDeadline.transportError(new IllegalStateException("not JSON")), "an unreadable reply");
+        int closed;
+        try (java.net.ServerSocket ss = new java.net.ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())) {
+            closed = ss.getLocalPort();
+        }
+        LlmSpikeGui.OpenRouterBridge refused = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, "http://127.0.0.1:" + closed + "/v1", BUDGET_MS);
+        Assert.assertNull(refused.ask("what is the play?"));
+        Assert.assertTrue(refused.lastFailureWasTransport(), "connection refused is an IO error");
     }
 
     /** A bridge pointed at a loopback endpoint needs no API key, and the deadline still applies. */

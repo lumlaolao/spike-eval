@@ -4,7 +4,7 @@ The first generated suite's drain and elf boards passed the gate trivially (52 o
 hardest of them for structure (it never found the Druid and Sentinel loop), not by a near miss. This note records the
 stricter bar, what it does to each family, and the boards kept (`eval/puzzles/hard/gen2/`).
 
-## The bar (`eval/puzzle_gen.py`, families `drain2`, `elf2`, `hoofdrain`)
+## The bar (`eval/puzzles/puzzle_gen.py`, families `drain2`, `elf2`, `hoofdrain`)
 
 Every kept board has:
 - 13 to 15 steps (casts, land plays, non-mana activations, the attack);
@@ -14,7 +14,7 @@ Every kept board has:
 - a **trap**: a plain plan is one natural habit imposed on the otherwise exhaustive search, and the best of the plans
   that apply to the board falls 1 to 3 short. A board where a plan wins, or where the best is 4 or more short, is
   dropped. The plans and the trap are written in the Rule line and, with the search inputs, as `# search:` and
-  `# trap:` comments in the [solution] (the line reader skips `#` lines); `eval/test_puzzle_gen.py` recomputes every
+  `# trap:` comments in the [solution] (the line reader skips `#` lines); `eval/tests/test_puzzle_gen.py` recomputes every
   committed board from them;
 - no life total repeated within a family in one gate batch, and no structure (the cards reduced to their roles:
   which drainer does not matter, which elf names do not) committed twice.

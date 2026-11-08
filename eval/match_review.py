@@ -34,6 +34,7 @@ import re
 import sys
 from collections import Counter
 
+import proposal_audit
 import tool_audit
 from defect_analyzer import SUBSET_TYPES
 
@@ -143,7 +144,14 @@ def review(path):
                         add("LINE", r, "passed with mana floating %s" % pool.group(1))
                 # A model row with a failure fallback: asked, and the answer (or part of it) not used
                 # (an unparsed play read as PASS, a block pair that named no legal block).
-                if LOST.search(str(r.get("fallback") or "")):
+                # PROPOSE_ACTIONS: all four tries refused by the rules engine is the model's error, not a lost answer; its
+                # PASS is the arm's fixed fallback (docs/harness/ARCHITECTURE.md, "The propose condition").
+                props = r.get("proposals")
+                if proposal_audit.lost_to_refusals(r):
+                    add("PROPOSAL", r, "%s: %d proposals refused (%s), %s" % (
+                        r.get("type"), len(props), ", ".join(str(p.get("category") or p.get("verdict")) for p in props),
+                        proposal_audit.LOST_AS[proposal_audit.kind_of(r)]))
+                elif LOST.search(str(r.get("fallback") or "")):
                     add("LOST", r, "%s: %s" % (r.get("type"), r.get("fallback")))
                 # `attempts` and `retry_ms` count every round of the conversation, lookups included: a decision is
                 # slow when it needed more rounds than its lookups explain (runs/loop/g08 T8: 5 attempts, 3 of them
@@ -262,7 +270,7 @@ def render(r):
         key = (kind, re.sub(r"@?\d+", "#", text))
         grouped[key] += 1
         first.setdefault(key, (line, turn, text))
-    order = {"LOST": 0, "TAKEN": 1, "SKIP": 2, "LEAK": 3, "REPORT": 4, "TOOL": 5, "LOG": 6, "SLOW": 7}
+    order = {"LOST": 0, "TAKEN": 1, "SKIP": 2, "LEAK": 3, "REPORT": 4, "TOOL": 5, "LOG": 6, "SLOW": 7, "PROPOSAL": 8}
     for (kind, _), n in sorted(grouped.items(), key=lambda kv: (order.get(kv[0][0], 9), -kv[1])):
         line, turn, text = first[(kind, _)]
         where = (" line %d" % line if line else "") + (" T%s" % turn if turn is not None else "")

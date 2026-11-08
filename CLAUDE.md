@@ -1,4 +1,4 @@
-# mtg-forge-llm-agent: LLM agents playing Magic: The Gathering on the Forge engine
+# spike-eval: LLM agents playing Magic: The Gathering on the Forge engine
 
 A model plays full Magic games inside the real Forge rules engine. `PlayerControllerLLM` routes every decision the
 engine asks a player (89 decision hooks, 44 ways to play a card) to the model; the engine validates every option, so an
@@ -16,7 +16,7 @@ Three headline scores, each with its confidence interval and the trivial baselin
 is not a score; `.claude/rules/eval.md`, "the 88% lesson"):
 1. **STR-AI**: win rate against Forge's AI on the frozen panels (`eval/suites/panels-v1.json`, `eval/panel_score.py`).
 2. **STR-HELDOUT**: the same on seeds blocked from every training corpus (`eval/seed_policy.py`).
-3. **PUZ**: the puzzle suite (`eval/PUZZLES.md`, `eval/puzzle_score.py`).
+3. **PUZ**: the puzzle suite (`docs/eval/PUZZLES.md`, `eval/puzzles/puzzle_score.py`).
 
 ## The one rule that matters
 
@@ -42,7 +42,8 @@ whole Forge file in the repository; `install.sh` applies them), marked `HARNESS 
 - **The seat's lookups are native function calls** (`NativeTools.java`, mirrored in `eval/tooluse/tools.json`); the
   text grammar survives only for a backend without function calling. A `REFUSED` request in `eval/tool_audit.py` is a
   harness defect.
-- **Never fall back to Forge's AI** for a choice the seat owns: `[TALLY] ... ai=0`. A legal action is never hidden.
+- **Never fall back to Forge's AI** for a choice the seat owns: `[TALLY] ... ai=0`. A legal action is never hidden,
+  except under the `PROPOSE_ACTIONS` measurement arm (exploratory only, never a score; owner, 2026-11-04).
 - **No heuristics decide for the model.** The only skips: the menu is PASS only, or the identical spot was passed.
 
 ## Cost of paid runs
@@ -57,8 +58,8 @@ per arm), read it, then decide; say the expected cost before any paid run. Play 
 ```bash
 FORGE_HOME=/root/forge bash eval/harness_acceptance.sh        # everything: compile, all tests, canaries, fake-model games
 STAGES="preflight classpath compile javatests" FORGE_HOME=/root/forge bash eval/harness_acceptance.sh   # a subset
-bash eval/keyword_gauntlet.sh                                  # 28 free fake-model games over 552 cards
-python3 eval/test_<name>.py                                    # one Python test file
+bash eval/keyword_gauntlet.sh                                  # 29 free fake-model games over 564 cards
+python3 eval/tests/test_<name>.py                                    # one Python test file
 python3 eval/run_batch.py --seeds N --exploratory --budget-usd 0.40 --deck eval/decks/<d>.txt \
   --controller-a llm --controller-b ai --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
   --memory-tools --lookahead --out runs/loop/gNN               # one paid game (the game-loop skill's form)
@@ -78,8 +79,8 @@ would have made it fail.
 - `docs/harness/`: architecture, game-loop log, acceptance records, golden checks, prompt craft, versions.
 - `docs/harness/SETTINGS.md`: the env-var table; `docs/harness/LESSONS.md`: the lessons the code is built on.
 - Root launchers: `setup.sh` (fresh clone to a built Forge at the pin and `secrets.env`), `play-vs-llm.sh` (a person
-  against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), `run-llm-headless.sh` /
-  `run-llm-spike.sh`.
+  against the seat, `CONTROLLER_A=human`, never scored; `eval/play_commentary.py`), and the game launchers
+  `run-llm-headless.sh` / `run-llm-spike.sh` (in `forge-overlay/`; run from `$FORGE_HOME` after `install.sh`).
 
 ## Skills (required, user decision 2026-10-13)
 
@@ -97,7 +98,8 @@ Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per c
 
 A change to how the harness works (a decision path, a tool, the prompt, a bridge, a default, an eval rule) updates
 `docs/harness/ARCHITECTURE.md` in the same PR, bumps the version stamp that covers it (`python3 eval/versions.py
---write`), and records an acceptance run that changed in `docs/harness/ACCEPTANCE.md`. Commit subjects and body
+--write`), and records in `docs/harness/ACCEPTANCE.md` an acceptance run on an earlier head that changed something (the
+final head's run goes in the PR's `## Evidence`; `docs/STANDARDS.md` section 7). Commit subjects and body
 lines stay at 100 characters or fewer (`scripts/pr_format.py`). Model specs and priced slugs never go in commits or
 PRs; a model's name in prose is fine (owner, 2026-10-21).
 

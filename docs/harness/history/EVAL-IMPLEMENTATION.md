@@ -174,7 +174,7 @@ order-based attribution there may cross games.
 
 ```
 cd eval && python3 -m unittest discover -s . -p 'test_*.py'   # 95 tests, OK
-python3 eval/test_aggregate.py                                # All checks passed.
+python3 eval/tests/test_aggregate.py                                # All checks passed.
 python3 -m unittest eval.test_experiments -v                  # 16 tests
 python3 -m unittest eval.test_tool_accounting -v              # 10 tests
 python3 -m unittest eval.test_run_batch -v                    # 23 tests

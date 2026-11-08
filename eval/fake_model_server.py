@@ -26,7 +26,7 @@ Policies (--policy):
   garbage
          answers every request with text that holds no answer line in any format the harness asks
          for. With `empty`, the harness-gaming check: a seat that never answers must not score
-         above the floor seat (eval/BENCHMARK-RESEARCH.md, point 10).
+         above the floor seat (docs/eval/BENCHMARK-RESEARCH.md, point 10).
 
 Fault injection:
   --stall-call N --stall-ms M   request number N (1-based, across all calls) is answered only
@@ -57,6 +57,11 @@ Fault injection:
                                 answered 404 "No endpoints found that support tool use." and logged
                                 with refused_tools=true. Requests without tools are answered as usual.
 
+  --http-error STATUS           every request is answered with that HTTP status and an OpenRouter-shaped error body
+                                (402: "This request would exceed your available credits", what OpenRouter sends when
+                                the credits run out; issue #369), logged with http_error=STATUS. The seat's bridge
+                                never answers, so a zero-cost game shows what a dead bridge leaves on the game line.
+
 Every request is appended to --log as one JSON line: call number, wall time, whether an
 Authorization header was present (never its value), the model requested, prompt length,
 the reply, and whether it was stalled. Prints `LISTENING <port>` on stdout once bound.
@@ -71,6 +76,8 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 SERVED_MODEL = "fake/harness-model"
+# --http-error bodies, in OpenRouter's words.
+HTTP_ERRORS = {402: "This request would exceed your available credits. Add more credits to continue."}
 OPTION_LINE = re.compile(r"^\s*(\d+)[.)]\s", re.M)
 
 
@@ -419,6 +426,14 @@ class Handler(BaseHTTPRequestHandler):
             p.record(entry)
             self._send(400, {"error": {"message": str(e)}})
             return
+        status = getattr(p.args, "http_error", 0)
+        if status:
+            entry["http_error"] = status
+            entry["reply"] = None
+            p.record(entry)
+            self._send(status, {"error": {"message": HTTP_ERRORS.get(status, "loopback stub error %d" % status),
+                                          "code": status}})
+            return
         if getattr(p.args, "refuse_tools", False) and body.get("tools"):
             entry["refused_tools"] = True
             entry["reply"] = None
@@ -485,6 +500,8 @@ def main():
                          "same-conversation correction runs")
     ap.add_argument("--refuse-tools", action="store_true",
                     help="answer 404 to any request that carries `tools` (a provider without function calling)")
+    ap.add_argument("--http-error", type=int, default=0, metavar="STATUS",
+                    help="answer every request with this HTTP status (402: out of credits), so the bridge never answers")
     ap.add_argument("--rules-call", type=int, default=0,
                     help="when nonzero, the first tool prompt advertising the RULES grammar is answered "
                          "with `RULES SEARCH 0 declare blockers`, so a real rules lookup is exercised")

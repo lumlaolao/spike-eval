@@ -1,6 +1,6 @@
 ---
 name: defect-fix
-description: Stage two of the defect backlog for mtg-forge-llm-agent. Claim ONE open harness-defect issue, prove it still happens on main with a failing test, fix it in forge-overlay, show the test turn green, and take it through acceptance, the three review skills and a PR that closes the issue.
+description: Stage two of the defect backlog for spike-eval. Claim ONE open harness-defect issue, prove it still happens on main with a failing test, fix it in forge-overlay, show the test turn green, and take it through acceptance, the three review skills and a PR that closes the issue.
 ---
 
 # Defect fix: one issue, proven, fixed, one PR
@@ -72,7 +72,7 @@ The issue was filed against an older `main`. Before writing any fix:
    - **a. A unit test (always try this first).** Build the position from the issue's Evidence in
      the test class that covers the path (`LlmSpikeTest`, `SeatObservationTest`,
      `NativeToolsTest`, `LineFindingProbeTest`, `LookaheadProbeTest`, `ControllerOwnershipTest`;
-     `eval/test_<name>.py` for a Python detector). Name it for the behaviour it protects
+     `eval/tests/test_<name>.py` for a Python detector). Name it for the behaviour it protects
      (`aReturnToHandCostIsTheSeatsChoice`). Run it on main and **watch it fail for the reason the
      issue gives**. A test that fails for another reason, or passes, is not a reproduction.
    - **b. A zero-model game** when the defect needs a real game to reach: the random arm
@@ -100,7 +100,7 @@ deterministic legal option and logs it. Also:
   issue in the hunter's format, not part of this PR.
 - A version bump (`game-loop` 4.2) also updates its literal assertion in `eval/harness_acceptance.sh`.
 - Close the **Detector gap**: if the issue names a script that should have flagged it, teach that
-  script in the same PR with its own test (`eval/test_<name>.py`), and break it once to see it go red.
+  script in the same PR with its own test (`eval/tests/test_<name>.py`), and break it once to see it go red.
 
 ## 6. Prove it is gone
 

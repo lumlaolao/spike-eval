@@ -1,10 +1,6 @@
-# eval/*.py files that had no eval/test_<name>.py on 2026-10-13 (docs/STANDARDS.md section 3).
+# eval/*.py files that had no eval/tests/test_<name>.py on 2026-10-13 (docs/STANDARDS.md section 3).
 # This list only shrinks: a file changed in a PR gets its test and leaves the list.
 # New files never enter it.
-analyze_ab_stage0.py
 build_report.py
 check_holdouts.py
-improve_loop.py
-latency_report.py
 line_report.py
-model_sweep.py

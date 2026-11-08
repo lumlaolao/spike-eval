@@ -60,6 +60,23 @@ public class AnswerToolTest {
                 "AnswerTool's fixed functions differ from eval/tooluse/answer_tools.json");
     }
 
+    /** A yield says when the seat is still asked as the play loop does it (#399): its own main phase asks only once the
+     *  stack is empty (its own triggers pending are passed), and end-of-turn covers this turn's end step. */
+    @Test
+    public void theYieldSaysWhenTheSeatIsStillAsked() {
+        String fixed = new AnswerTool.Ask(AnswerTool.Spec.one(2), false).definitions().toString();
+        AnswerTool.Spec play = AnswerTool.Spec.one(3);
+        play.yield = true;  // the play ask's own schema (playSpec.yield): the copy a per-decision seat is sent
+        String perDecision = AnswerTool.definition(play).toString();
+        for (String text : new String[] {fixed, perDecision, LlmSpikeGui.PlayerControllerLLM.YIELD_TOOL_HINT}) {
+            Assert.assertFalse(text.contains("your own main phases always ask too"), text);
+            Assert.assertTrue(text.contains("your own main phase asks again once the stack is empty"), text);
+            Assert.assertTrue(text.contains("end-of-turn lasts through this turn's end step"), text);
+        }
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.YIELD_HINT.contains("your own main phases always ask too"),
+                "the text arm's hint is a legacy profile's bytes: it keeps its words (#399)");
+    }
+
     @Test
     public void aCallIsCheckedAgainstItsDecisionAndAMistakeIsExplained() {
         AnswerTool.Spec s = AnswerTool.Spec.one(3);

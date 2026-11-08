@@ -1,6 +1,6 @@
 # Demo viewer fixtures
 
-Rows copied verbatim from recorded games, for `eval/test_demo_state.py` and `eval/test_demo_events.py`.
+Rows copied verbatim from recorded games, for `eval/tests/test_demo_state.py` and `eval/tests/test_demo_events.py`.
 Each slice starts on the row after a decision row of the same seat, so the rows of each ask are whole.
 
 | File | Source | Epoch | What it holds |

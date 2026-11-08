@@ -14,12 +14,14 @@
 Every GitHub call is a REST `gh api` call (GraphQL is refused in Claude cloud sessions).
 
 `check-pr --gate` also requires what a merge needs: all three review verdicts for the PR's current
-head commit, none BLOCKER or HIGH, and an acceptance run named in Evidence when code changed.
+head commit, none BLOCKER or HIGH, an acceptance run named in Evidence when code changed, and no
+changed eval script still on eval/UNTESTED.txt at the PR head.
 Exit 0 clean, 1 with one line per problem.
 """
 import functools
 import json
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
@@ -37,10 +39,52 @@ SKILL_VERDICTS = {"pr-review": ("CLEAN", "LOW", "MEDIUM", "HIGH", "BLOCKER"),
 VERDICTS = tuple(sorted(set(v for vs in SKILL_VERDICTS.values() for v in vs)))
 BLOCKING = ("HIGH", "BLOCKER", "VIOLATIONS")
 REVIEW_LINE = re.compile(r"^- (%s) @ ([0-9a-f]{7,40}): (%s)\b(.*)$" % ("|".join(SKILLS), "|".join(VERDICTS)), re.M)
-CODE_PATHS = ("forge-overlay/", "engine-patches/", "eval/", "scripts/", "install.sh", "run-llm-", "play-vs-llm.sh",
+CODE_PATHS = ("forge-overlay/", "engine-patches/", "eval/", "scripts/", "install.sh", "play-vs-llm.sh",
               "setup.sh")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
+
+
+@functools.lru_cache(maxsize=None)
+def all_stages():
+    """The stage names a full run executes: ALL_STAGES in eval/harness_acceptance.sh, its one source."""
+    script = Path(__file__).resolve().parents[1] / "eval" / "harness_acceptance.sh"
+    m = re.search(r'^ALL_STAGES="([^"]+)"', script.read_text(encoding="utf-8"), re.M)
+    if not m:
+        sys.exit("pr_format: no ALL_STAGES=\"...\" line in %s" % script)
+    return tuple(m.group(1).split())
+
+
+def full_stage_count():
+    """PASS lines a full run writes: one per stage, and canary writes two (canary-floor, canary-random)."""
+    return len(all_stages()) + ("canary" in all_stages())
+
+
+def full_pass(passed, total):
+    """A run is the gate's evidence only when every line passed and it ran every stage: a STAGES subset is never
+    (PR #357 recorded "4/4 stages PASS"; pr-review of #358: 18 would let a run without preflight through)."""
+    return passed == total and int(total) >= full_stage_count()
+
+
+def summary_problems(outdir, passed, total):
+    """What keeps `<out>/summary.txt` from being a full pass matching the typed counts (standards of #357)."""
+    path = Path(outdir)
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parents[1] / path      # a run's OUT is often repo-relative (runs/...)
+    path = path / "summary.txt"
+    if not path.is_file():
+        return ["%s not found: record-acceptance reads the run's own summary" % path]
+    lines = [l for l in path.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+    problems = ["%s holds a FAIL line: %s" % (path, l[:80]) for l in lines if l.startswith("FAIL")]
+    for st in all_stages():
+        if not any(re.match(r"PASS %s[-:]" % re.escape(st), l) for l in lines):
+            problems.append("%s has no PASS line for stage %s" % (path, st))
+    n = sum(l.startswith("PASS") for l in lines)
+    if (passed, total) != (str(n), str(len(lines))):
+        problems.append("%s/%s typed, but %s records %d/%d" % (passed, total, path, n, len(lines)))
+    return problems
+
+
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
 # A generated signature footer is not a why: alone it satisfies nothing (pr-review finding). The
 # observed shapes: the plain sentence, the markdown-italic one, the emoji link one.
@@ -158,7 +202,7 @@ def same_commit(a, b):
     return bool(a and b) and (a.startswith(b) or b.startswith(a))
 
 
-def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
+def pr_problems(title, body, head=None, files=(), gate=False, commits=(), untested=()):
     out = ["title: " + p for p in subject_problems(title)]
     out += identifier_problems([title], "the title") + identifier_problems((body or "").splitlines(), "the body")
     secs = sections(body)
@@ -174,8 +218,17 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
         out.append("sections are out of order; expected %s" % ", ".join(SECTIONS))
     if not gate:
         return out
+    # `## What`'s bullets, each with its wrapped lines joined: a subject is listed when a bullet is it, or starts with it.
+    bullets = [" ".join(b.split()) for b in re.split(r"(?m)^\s*-\s+", secs.get("What", ""))[1:]]
     for sha, message in commits:
         out += ["commit %s: %s" % (sha[:9], p) for p in commit_problems(message)]
+        # The body is the record the gate merges on: a commit pushed after review (#343) is listed like the first. A
+        # merge commit is not a change of its own (pr_commits drops two-parent ones; a "Merge " subject from a caller
+        # without parents is skipped here); a revert is, so it is listed.
+        subject = " ".join(message.strip().split("\n", 1)[0].split())
+        if subject and not subject.startswith("Merge ") and not any(
+                b == subject or b.startswith(subject + " ") for b in bullets):
+            out.append("`## What` does not list commit %s (%s); list every commit subject" % (sha[:9], subject))
     got = reviews(body)
     for agent in SKILLS:
         if agent not in got:
@@ -188,14 +241,22 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
             out.append("%s verdict %s is not one of %s" % (agent, verdict, "/".join(SKILL_VERDICTS[agent])))
         if verdict in BLOCKING:
             out.append("%s verdict is %s; fix it and review again" % (agent, verdict))
+    # eval/UNTESTED.txt only shrinks (docs/STANDARDS.md section 3, #247): a listed script the PR changes gets its test
+    # and leaves the list in the same PR. `untested` is the list at the PR head, so the PR that removes a name passes.
+    for f in files:
+        name = f.rsplit("/", 1)[-1]
+        if f.startswith("eval/") and f.endswith(".py") and name in untested:
+            out.append("%s is changed but still on eval/UNTESTED.txt; give it eval/tests/test_%s and take it off the list"
+                       % (f, name))
     if any(f.startswith(CODE_PATHS) for f in files):
         runs = ACCEPTANCE.findall(secs.get("Evidence", ""))
         if not runs:
             out.append("code changed but `## Evidence` has no line "
                        "`- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS`")
-        elif not any(passed == total and int(total) > 0 and (not head or same_commit(head, sha))
+        elif not any(full_pass(passed, total) and (not head or same_commit(head, sha))
                      for sha, _, passed, total in runs):
-            out.append("no acceptance run in `## Evidence` is a full pass for the PR head %s" % (head or "")[:9])
+            out.append("no acceptance run in `## Evidence` is a full pass (every stage, at least %d) for the PR head %s"
+                       % (full_stage_count(), (head or "")[:9]))
     return out
 
 
@@ -238,16 +299,41 @@ def gh_pr(number):
     commits = []
     for c in gh_pages(path + "/commits"):
         headline, _, rest = c["commit"]["message"].partition("\n")
-        commits.append({"oid": c["sha"], "messageHeadline": headline, "messageBody": rest.strip("\n")})
+        commits.append({"oid": c["sha"], "messageHeadline": headline, "messageBody": rest.strip("\n"),
+                        "parents": len(c.get("parents") or [])})
     return {"title": pull["title"], "body": pull.get("body") or "", "headRefOid": pull["head"]["sha"],
             "state": pull["state"].upper(), "isDraft": bool(pull.get("draft")),
             "files": [{"path": f["filename"]} for f in gh_pages(path + "/files")], "commits": commits}
 
 
+def untested_at_head(pr):
+    """The script names on eval/UNTESTED.txt as the PR head has it (not as this checkout has it). A script the PR
+    deletes is off it there too: eval/tests/test_untested_list.py fails a name that is listed but gone."""
+    text = run("gh", "api", "-H", "Accept: application/vnd.github.raw",
+               "repos/{owner}/{repo}/contents/eval/UNTESTED.txt?ref=%s" % pr["headRefOid"])
+    if text.lstrip().startswith("{"):   # the JSON wrapper, not the file: no name would match and the check would pass
+        sys.exit("check-pr: eval/UNTESTED.txt came back as JSON, not its text; the gate cannot read the list")
+    return untested_names(text)
+
+
+def untested_names(text):
+    """The names eval/UNTESTED.txt lists: every line but blanks and # comments."""
+    return {ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#")}
+
+
 def pr_commits(pr):
-    """(sha, full message) of the PR's commits as GitHub holds them, merges excluded by their subject."""
+    """(sha, full message) of the PR's commits as GitHub holds them, merges left out as check-branch leaves them out
+    (`git log --no-merges`): a merge is known by its parents, whatever its subject (#353)."""
     return [(c["oid"], c["messageHeadline"] + ("\n\n" + c["messageBody"] if c.get("messageBody") else ""))
-            for c in pr.get("commits") or []]
+            for c in pr.get("commits") or [] if c.get("parents", 1) < 2]
+
+
+def merge_problems(pr):
+    """A merge is not listed in `## What`, but its message is still published: it may not name a model spec or priced
+    slug (pr-review of #354: a typed merge made on GitHub never meets the commit-msg hook)."""
+    return ["commit %s: %s" % (c["oid"][:9], p) for c in pr.get("commits") or [] if c.get("parents", 1) >= 2
+            for p in identifier_problems((c["messageHeadline"] + "\n" + (c.get("messageBody") or "")).splitlines(),
+                                         "the message")]
 
 
 def skeleton(base):
@@ -324,7 +410,8 @@ def main(argv):
         gate = "--gate" in args
         pr = gh_pr([a for a in args if a != "--gate"][0])
         problems = pr_problems(pr["title"], pr["body"], pr["headRefOid"], [f["path"] for f in pr.get("files") or []],
-                               gate, pr_commits(pr) if gate else ())
+                               gate, pr_commits(pr) if gate else (), untested_at_head(pr) if gate else ()) + (
+                                   merge_problems(pr) if gate else [])
     elif cmd == "new-pr":
         title, body = skeleton(base_ref(args[0] if args else None))
         print(title + "\n\n" + body)
@@ -337,6 +424,12 @@ def main(argv):
         print("%s %s" % (pr["state"], str(pr["isDraft"]).lower()))
         return 0
     elif cmd == "record-acceptance" and len(args) >= 5:
+        if not (args[3].isdigit() and args[4].isdigit()) or not full_pass(args[3], args[4]):
+            sys.exit("record-acceptance: %s/%s is not a full pass of all %d stage lines; a STAGES subset is reported "
+                     "as prose in Evidence, never as the gate's line" % (args[3], args[4], full_stage_count()))
+        problems = summary_problems(args[2], args[3], args[4])
+        if problems:
+            sys.exit("record-acceptance: " + "; ".join(problems))
         record_line(args[0], args[1], "Evidence", "- acceptance @",
                     "- acceptance @ {sha}: OUT=%s %s/%s stages PASS%s" % (
                         args[2], args[3], args[4], (", " + " ".join(args[5:])) if args[5:] else ""))

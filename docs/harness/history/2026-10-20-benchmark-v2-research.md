@@ -38,7 +38,7 @@ Forge AI at most 4%; the floors call them hard, the label did not predict Luna's
 The epoch-67 rerun (the seat no longer told `Goal:Survive` for a kill puzzle, PR #273), 13 puzzles done when
 this was written: 61 solves on epoch 66 became 58 (RP_017 2 to 0, RP_098 4 to 5, RP_151 5 to 3): noise-sized.
 
-What the harness shows a puzzle seat today (`eval/puzzle_solve.py`, `LlmSpikeGui.seatFraming`): `LOOKAHEAD=0`
+What the harness shows a puzzle seat today (`eval/puzzles/puzzle_solve.py`, `LlmSpikeGui.seatFraming`): `LOOKAHEAD=0`
 always, so `simulate` is never offered in PUZ; `inspect` and the memory tools are viewer-aware and cannot read
 hidden zones (`ContextMemory`: "Tools search only this seat's archived observations and reveals; they cannot
 query hidden state"); each of the k attempts is its own JVM with its own seed and no memory carries across;

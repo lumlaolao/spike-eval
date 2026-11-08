@@ -25,8 +25,8 @@ only when the agent says it is finished, and then the hidden grader runs.
 
 ## 2. The starting state
 
-**Built by `eval/harness_env_sandbox.py build` from the episode spec `eval/harness_env/episode-v0.json`
-(format `harness-env-episode/0`, checked by `eval/harness_env_spec.py`).** An allowlist, never a denylist: only
+**Built by `eval/harness_env/harness_env_sandbox.py build` from the episode spec `eval/harness_env/episode-v0.json`
+(format `harness-env-episode/0`, checked by `eval/harness_env/harness_env_spec.py`).** An allowlist, never a denylist: only
 what a `copy` entry names enters the sandbox, each with its reason.
 
 | Path in the sandbox | From | Why |
@@ -47,7 +47,7 @@ golden-check inventory, the acceptance stages and pins), the history (716 commit
 2026-10-15, `HARNESS-ENV.md` section 6, which narrate every fix), and every document that describes the design.
 
 **How "withheld" is proven** (`leak_problems`, five nets, each caught by a planted leak in
-`eval/test_harness_env_sandbox.py`):
+`eval/tests/test_harness_env_sandbox.py`):
 1. every file is in the manifest with the same bytes, and the agent's directories start empty;
 2. no file has the bytes of any withheld repository file (a withheld file under another name);
 3. no file holds a forbidden token: our class names (`PlayerControllerLLM`, `SeatObservation`, `AnswerTool`, ...),
@@ -93,7 +93,7 @@ generic loopback model is open question 3.
   `abi_check` (to build) answers "compiles over the engine, the factory loads, `create` returns a controller, one
   request reached the endpoint", or the first error; never a score, never an instance.
 
-**Built** (section 4.11, `eval/harness_env_episode.py`): the sandbox, the fresh repository, the leak check run
+**Built** (section 4.11, `eval/harness_env/harness_env_episode.py`): the sandbox, the fresh repository, the leak check run
 again on the sandbox as handed over (after the repository and any dev slice are added), the agent command, the
 `DONE` file, the cap, timed checkpoints copied outside and graded after the end, export and grading outside, the
 report. Not built: the idle reminder, `abi_check` and `finish` as tools (the agent writes `DONE` itself), and the
@@ -239,7 +239,7 @@ to score a submission.
 
 ### 4.8 What is built: `surface-v0`, a validation grader
 
-`eval/harness_env_grade.py` takes a submitted overlay in, assembles a grading workspace outside it (the grader's own
+`eval/harness_env/harness_env_grade.py` takes a submitted overlay in, assembles a grading workspace outside it (the grader's own
 acceptance machinery, ledger, empty gap files, the submission's `src/main` only, and the hidden tests: the sweep, the
 golden checks, the ten `Surface*Test` classes, `ControllerOwnershipTest`, `PromptFidelityTest`, `PlanAnytimeTest` and
 the helpers they reference, 22 files), runs the acceptance stages `preflight classpath compile javatests surfaces`
@@ -271,7 +271,7 @@ compiles a submission's `src/main` beside it and the generated AI-counter patch;
   fixed grid reaches a seat whose labels the grader never reads. Modes CALL, PROSE (prose carrying `CHOICE: 2`),
   EMPTY and GARBAGE. After 60 requests a replay's requests are parked and its thread abandoned at 30 s: the HTTP
   boundary means a seat's `catch (Exception)` can no longer swallow the ceiling and loop.
-- **Forge's AI, counted in the engine** (`grader/AiCounter.java`, `eval/harness_env_aicount.py`): the grader patches
+- **Forge's AI, counted in the engine** (`grader/AiCounter.java`, `eval/harness_env/harness_env_aicount.py`): the grader patches
   `PlayerControllerAi.java`, the pinned engine's (`git show HEAD:`, never the working copy) or the submission's own
   marked copy (section 4.4), with
   `AiCounter.enter("<hook>", this)` at the top of the 88 ledger decision hooks it overrides (93 counters with the
@@ -348,7 +348,7 @@ answered 2, empty answered 1). By the owner's surface grouping ours reads 0.982,
    Filed as issue #312 and fixed in harness-epoch-72 (the NO is heard once, a second decline ends the search;
    `GoldenChecksTest.aSearchDeclinedAgainAfterKeepSearchingEnds`); the grade above is from before the fix.
 
-### 4.10 What is built: the instance generator (`eval/harness_env_generate.py`)
+### 4.10 What is built: the instance generator (`eval/harness_env/harness_env_generate.py`)
 
 Instances from the card scripts, not a hand list. Six templates read features from every script in
 `res/cardsfolder` (34,086): `attacker-keyword` and `blocker-keyword` (a keyword creature in a block; 5,193 and 4,358
@@ -366,7 +366,7 @@ engine offers fewer than two answers, the card does not load) is discarded and l
 - **Determinism.** The same seed gives the same set byte for byte (tested); the same set graded twice gives the same
   report (measured below, section 6).
 
-### 4.11 What is built: the episode runner (`eval/harness_env_episode.py`)
+### 4.11 What is built: the episode runner (`eval/harness_env/harness_env_episode.py`)
 
 One command runs an episode end to end: build the sandbox from the spec and leak-check it; give it a fresh one-commit
 git repository (no history to read the answer from; hooks pointed at an empty directory); run the agent command in
@@ -384,12 +384,12 @@ after the agent stops; without either, without `--classpath`, with a `--set` tha
 agent starts), and only with `--trust-candidate` (section 4.7). A refused sandbox still leaves `manifest.json`
 beside `report.json`, so the record says what was checked.
 
-Two dry-run agents (`eval/harness_env_agents.py`) calibrate it: `nothing` writes `DONE` and scores 0 (ended by the
+Two dry-run agents (`eval/harness_env/harness_env_agents.py`) calibrate it: `nothing` writes `DONE` and scores 0 (ended by the
 agent in 1 s, "no Java"); `copy-ours` copies our overlay's `src/main`, our engine patches as the files they make
 and the adapter, and should score about ours (section 6). They test the runner's plumbing on a submission we know;
 they say nothing about whether an agent can build a seat from the sandbox, or about a seat written to fool the grader.
 
-### 4.12 What is built: the calibration report (`eval/harness_env_calibrate.py`)
+### 4.12 What is built: the calibration report (`eval/harness_env/harness_env_calibrate.py`)
 
 Seven ways to turn the family profile into one number, scored on the same report, and six criteria written from the
 owner's sentences: ours at least 0.9, the default at most 0.05, a seat missing a family at most half of ours, a
@@ -398,7 +398,7 @@ quarter, the AI delegator at 0. Corpus weights come from 207,907 recorded decisi
 under `/home/user/mtg-forge-llm-agent/runs` on 2026-10-24, committed as counts by decision type in
 `docs/harness/evidence/2026-10-24-corpus-decision-counts.json` (play 0.674, choices 0.097, targets 0.076, triggers
 0.044, costs 0.027, combat 0.025, game start, library and variants floored at 0.019). The table is
-`python3 eval/harness_env_calibrate.py docs/harness/evidence/2026-10-22-env-grade-abi.tsv --counts
+`python3 eval/harness_env/harness_env_calibrate.py docs/harness/evidence/2026-10-22-env-grade-abi.tsv --counts
 docs/harness/evidence/2026-10-24-corpus-decision-counts.json`, which needs no runs directory (the counts were
 written by the same command with `--runs /home/user/mtg-forge-llm-agent/runs` added).
 
@@ -420,7 +420,7 @@ is a cliff by construction (one instance more lost in a one-instance family zero
 
 ## 5. Secondary graders, and how the three combine
 
-- **Lines** (the puzzle-gate's written solutions, `eval/puzzle_gen.py`, `scripts/puzzle-gate/`): each step of a
+- **Lines** (the puzzle-gate's written solutions, `eval/puzzles/puzzle_gen.py`, `scripts/puzzle-gate/`): each step of a
   written line is an engine-identity pick; the grader finds the candidate's answer index for it by the same
   enumerate-and-replay on a copy of the game, plays the line through the seat, and requires the `[acceptance]` state
   with every step played. Checks that the surfaces compose; seconds a line.
@@ -520,13 +520,13 @@ All free: no model call, no egress. Each step says what makes it fail.
 |---|---|
 | `eval/harness_env/episode-v0.json` | the episode spec (grader version `instances-v1`, `dev_slice` false) |
 | `eval/harness_env/TASK.md`, `eval/harness_env/SPEC.md` | what the agent reads; SPEC section 3 is `harness-env-abi/1` |
-| `eval/harness_env_spec.py`, `eval/harness_env_sandbox.py` | spec check; sandbox build, leak check, engine check |
-| `eval/harness_env_grade.py` | intake, `surface-v0`, `build` (submission + grader + AI patch), `instances`, `table`, the gates and scores |
-| `eval/harness_env_aicount.py` | the Forge-AI counter patch of `PlayerControllerAi` (the engine's, or the submission's own marked copy) |
-| `eval/harness_env_generate.py` | instance sets from the card scripts: secret seed, dev pool, versions |
-| `eval/harness_env_episode.py`, `eval/harness_env_agents.py` | the episode runner; the copy-ours and do-nothing agents |
-| `eval/harness_env_calibrate.py` | the seven settings, six criteria and the recommendation |
-| `eval/test_harness_env_*.py` | the tests of each |
+| `eval/harness_env/harness_env_spec.py`, `eval/harness_env/harness_env_sandbox.py` | spec check; sandbox build, leak check, engine check |
+| `eval/harness_env/harness_env_grade.py` | intake, `surface-v0`, `build` (submission + grader + AI patch), `instances`, `table`, the gates and scores |
+| `eval/harness_env/harness_env_aicount.py` | the Forge-AI counter patch of `PlayerControllerAi` (the engine's, or the submission's own marked copy) |
+| `eval/harness_env/harness_env_generate.py` | instance sets from the card scripts: secret seed, dev pool, versions |
+| `eval/harness_env/harness_env_episode.py`, `eval/harness_env/harness_env_agents.py` | the episode runner; the copy-ours and do-nothing agents |
+| `eval/harness_env/harness_env_calibrate.py` | the seven settings, six criteria and the recommendation |
+| `eval/tests/test_harness_env_*.py` | the tests of each |
 | `forge-overlay/forge-gui-desktop/src/test/java/forge/harnessenv/` | `SeatFactory`, `ModelEndpoint`; `grader/` (scripted model, counter, boards, checks, 69 instances, generated instances, suite); `toys/` (priority-only, text parser, AI delegate) |
 | `forge-overlay/forge-gui-desktop/src/test/java/forge/spike/HarnessEnvOurs.java` | our seat on the ABI, and the two ablations |
 | `docs/harness/evidence/2026-10-22-env-grade-abi.tsv` | the measured report of section 4.9 (414 rows: 69 instances x 6 seats) |

@@ -1,13 +1,16 @@
 # eval/: the batch driver, scoring and review tools
 
-Every Python script here is stdlib-only and has its tests in `eval/test_<name>.py` (or is listed in
-`eval/UNTESTED.txt`). Where the rest is described:
+Every Python script here is stdlib-only and has its tests in `eval/tests/test_<name>.py` (or is listed in
+`eval/UNTESTED.txt`). The core (running, scoring, review) sits at the top; three families have folders:
+`demo/` (the live demo), `harness_env/` (the harness-building environment) and `puzzles/` (the puzzle tools,
+beside the puzzle boards). `evalpath.py` puts every folder on `sys.path`, so a script imports any other by
+its module name. Where the rest is described:
 
-- the benchmark and its three scores: `eval/SCORING.md`, `eval/BENCHMARK-V1.md`;
-- the puzzle suite (`puzzle_*.py`): `eval/PUZZLES.md`;
+- the benchmark and its three scores: `docs/eval/SCORING.md`, `docs/eval/BENCHMARK-V1.md`;
+- the puzzle suite (`puzzle_*.py`): `docs/eval/PUZZLES.md`;
 - the review sheet after a game (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`,
   `cost_report.py`): `.claude/skills/game-loop/SKILL.md`;
-- how many games run at once: `eval/CONCURRENCY.md`;
+- how many games run at once: `docs/eval/CONCURRENCY.md`;
 - the harness-building eval (`harness_env_*.py`): `docs/harness/HARNESS-ENV-FRAMEWORK.md`.
 
 This file covers the game batch driver and its statistics:
@@ -96,7 +99,7 @@ enforces:
    these via `--env`, or passing `--plan-a/--plan-b`, is refused.
 3. **No Claude CLI seat**: a `claude-cli:` seat is a development lane, never in a cited number, so cited mode
    refuses it (`cited_pre_guards`); a bare Claude name (`opus`, `haiku`) is refused in every mode. All-`openrouter:`
-   runs may run in parallel (RAM-bound, `eval/CONCURRENCY.md` §7).
+   runs may run in parallel (RAM-bound, `docs/eval/CONCURRENCY.md` §7).
 4. **Held-out seeds** — every seed must sit in an eval-only band of
    `eval/seed_registry.json` and in no training corpus (see below).
 5. **Per-tier cap** — if `--cap-minutes` is omitted it is derived: no llm seat
@@ -287,7 +290,7 @@ and "harness is fixed, verify it stayed fixed":
   `MULLIGAN_HEURISTIC` auto-keeps that never call `evalDec()`). Exits 1 if
   `tier=ai` count > 0 or any silent-drop gap > 0 anywhere in the corpus.
 - `test_defect_analyzer.py` — synthetic-fixture self-test
-  (`python3 eval/test_defect_analyzer.py`).
+  (`python3 eval/tests/test_defect_analyzer.py`).
 
 ### The iterate cycle
 
