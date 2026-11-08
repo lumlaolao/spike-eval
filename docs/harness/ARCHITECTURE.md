@@ -1246,6 +1246,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   an isolated runner of the grader's, Java with the grader's own TestNG reporter over a classpath without the installed
   overlay classes) and scores 1 or 0. Status: dev-grade, not yet isolation-grade: a same-user grader cannot resist
   code it runs (`eval/research/2026-11-07-harness-env-tasks.md`).
+- **The RL play environment (`eval/rl/`, `eval/rl/README.md`)** exposes a Forge puzzle or game as `reset` / `step` for
+  fine-tuning (`MtgEnv`), with the engine's own verdict as the reward; `rollout.py` writes trajectories, and
+  `eval_only.py` keeps panel seeds, held-out decks and heldout puzzles out of the training data (tests:
+  `eval/tests/test_eval_only.py`). Stdlib only, loopback only, no model call. It changes nothing in `forge-overlay/`.
 - **The eval page (`demo_eval.py`, `/eval.html`)** shows an acceptance run's stages, PUZ from the recorded results
   via `puzzle_score.score`, a hard-suite check as a labelled pilot (`--hard-results`, never pooled), and the STR
   scores as not yet run with their cost.

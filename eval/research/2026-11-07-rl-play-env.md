@@ -1,9 +1,8 @@
 # The harness as an RL environment: a first working version, measured (2026-11-07)
 
 Implements the "adapter" section of [rlvr-env-feasibility](2026-11-06-rlvr-env-feasibility.md): `eval/rl/mtg_env.py`
-(`MtgEnv`), `eval/rl/rollout.py`, `eval/rl/README.md`, tests `eval/tests/test_mtg_env.py` and
-`eval/tests/test_rollout.py`. Free: no model call, no `OPENROUTER_ALLOW_EGRESS`, only a loopback port, one JVM at a
-time under the shared lock. Nothing in `forge-overlay/` or the Forge checkout was changed. Engine: the build at
+(`MtgEnv`) with its rollout, guard and tests (the files and tests are listed in `eval/rl/README.md`). Free: no model call, no
+`OPENROUTER_ALLOW_EGRESS`, only a loopback port, one JVM at a time under the shared lock. Nothing in `forge-overlay/` or the Forge checkout was changed. Engine: the build at
 `/root/forge` (commit 34a8662b79), harness-epoch-82 (the epoch the puzzle rows record); no new build was made.
 
 Runs: each is one `rollout.py` command. The trajectories were kept in a session scratchpad and were **not kept**:
