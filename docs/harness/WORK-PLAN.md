@@ -1,6 +1,7 @@
 # Work plan: what is left (updated 2026-11-08)
 
-The living to-do list. Only open work is listed here; what is done is in git history,
+The living to-do list. Only open work is listed here (plus one short paragraph of what landed since the last
+refresh, dropped at the next); what is done is in git history,
 [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md), [ACCEPTANCE.md](ACCEPTANCE.md) and the run reports. The plan as it stood
 through 2026-10-19, with every finished item and its evidence, is
 [history/WORK-PLAN-2026-10-19.md](history/WORK-PLAN-2026-10-19.md). Update this file when an item is finished or
@@ -15,8 +16,9 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 119/145 off and 127/145 on at epoch 67
 ([eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md)).
 
-Done since 2026-10-26 (PR numbers; the record is in git and [ACCEPTANCE.md](ACCEPTANCE.md)): the repository is
-public-ready, with the license, no tracked `runs/`, the front-page README and `spike-eval` as its name (#332, #333,
+## Done since 2026-10-26 (dropped at the next refresh)
+
+The record is in git and [ACCEPTANCE.md](ACCEPTANCE.md). The repository is public-ready, with the license, no tracked `runs/`, the front-page README and `spike-eval` as its name (#332, #333,
 #335, #336); the `claude-cli:` lane's deadline is a recorded flag (#363); a game that lost decisions to a dead
 bridge or whose log failed to write is invalid and not scored (#374, #429, #431); the propose, terse-refusal and
 notebook measurement arms (#342, #349, #353, #357); the per-seat Forge AI profile switch, default unchanged (#421);
@@ -117,7 +119,8 @@ harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEW
   `eval/gauntlet_scan.py`) were last run in full on epoch 46; only the Forecast gauntlet (kw28, `first` policy,
   2026-11-04) is more recent. Run them once on the current epoch (97) when the owner asks; they are free.
 - **The game loop** continues at g34 (seeds 4101-4133 are used; the last logged game is g33, 2026-10-19): one Luna
-  game at a time, the `game-loop` skill, which now waits on the no-paid-runs fact or runs on the `claude-cli:` lane.
+  game at a time, the `game-loop` skill, which now waits on the no-paid-runs fact or runs on the `claude-cli:` lane
+(`CLAUDE_CLI_SEAT=1`, never a score). Each game played is logged as a comment on issue #114, the defect-hunt log.
 - **Forge built-in puzzles:** `eval/suites/puzzles-forge-builtin-v1.json` (26 active) waits on a small Luna run
   on its open split (cost first). The prover's pass over the 368 candidates stopped at 25; not found at budget 200
   means nothing yet (HANDOFF-PUZZLES.md, track 2).
@@ -141,10 +144,9 @@ harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEW
 - **The misreading probe from stale PR #267** (`PZL_PROBE`): it plays one fixed prefix to game end and records what
   the final state did against the puzzle's acceptance section, so the play a solver makes if it misread the rule
   must not reach it. Acceptance states, the uniqueness hunt and the rules-pilot driver have landed in other PRs;
-  `PZL_PROBE` is on no branch of main (`grep -r PZL_PROBE` finds nothing). Salvage it from the PR's diff with its
+  `PZL_PROBE` is in no file on main outside this plan. Salvage it from the PR's diff with its
   tests, then close #267.
-- **Measurement and score integrity, left by #429, #431 and #374:** `panel_score` passes its sanity arms raw winners
-  and no `unscorable` count, so a cut-log arm game is not flagged there; the dead-bridge and cut-log checks in
+- **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);
   a failed puzzle-row write has no non-zero exit or marker; the batch does not stop on a non-retryable HTTP error
   (402, 401), so a run out of credits keeps launching games; `puzzle_baselines.reusable` does not read the
