@@ -61,6 +61,18 @@ Branch feat/twin-cards (bb524e3). Zero-model only; nothing paid, no egress. Evid
 - The comparator ignores keys matching timing/sha/path/model/date/log; a difference only in such a key is unseen.
 - Only 12 of 84 open gen boards; held-out boards and the RP_035/124/243 refusals untested.
 
+## Java check (TwinCardsTest, added after this note)
+`forge-overlay/.../TwinCardsTest.java` makes the twins as the runner does (`puzzle_twin.py make`, then `install`
+into a scratch checkout holding only the originals' scripts under `runs/twin-cards-test`, deleted after; the
+checkout is not touched), reads the scripts with Forge's `CardStorageReader`, enters them in the card database as
+cards no edition lists, and checks all 141 twinned boards (26 of rules-sample-v1, 115 of hard-gen-v1, every active
+puzzle): every twin name is in the database, every name on every board resolves and none is an original's, each
+board built by the runner's own start path holds exactly its listed cards in hand, battlefield, graveyard, library
+and exile, and that placement equals the original board's with names mapped. 6 tests green, 0 findings. Red on a
+broken twin: a deleted twin script (RP_190) turned three checks red, naming Basoth Siden; a misspelled name and an
+unknown name are caught in-test. Not covered: stack lines (`precast`, `putonstack`) are checked for resolution only;
+the proof replay stays the Python run above (it needs a launched game, not a unit test).
+
 ## Cleanup
 - <twin copy> deleted (rm -rf). Before that: nothing under $FORGE_HOME newer than the start, and no
   multi-link file in the copy modified. Evidence kept: runs/twin-exp (88 MB) and the build
