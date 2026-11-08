@@ -19,6 +19,7 @@ solved, decisions by tier, text parses, cost so far, the last decision and its a
   SHORT            a done puzzle with fewer than k result rows: puzzle_score refuses it, so its score is lost
   UNSCOREABLE      a result row puzzle_score refuses (the goal was not enforced)
   ROUTING-FILTER   a result row with decisions lost under a routing filter (price ceiling, precision list): replayed
+  BRIDGE-DOWN      a result row with decisions lost to a dead model bridge (a 402, an outage; issue #378): replayed
   STALLED          a running puzzle whose files have not grown for --stall minutes (possibly stuck)
 
 Cost: the provider's own cost of each call (`cost_usd` on the context_call rows, written for a jev: seat), or
@@ -184,8 +185,15 @@ def puzzle(d, k, finished, now, stall_s, prices):
     if refused:
         flags["ROUTING-FILTER"] = (len(refused), "%d decisions lost under the routing filter"
                                   % sum(r["routing_refusals"] for r in refused))
+    dead = [r for r in res if r.get("bridge_down_decisions")]   # decisions lost to a dead bridge: replayed on --resume
+    if dead:
+        flags["BRIDGE-DOWN"] = (len(dead), "%d decisions lost to a dead model bridge"
+                               % sum(r["bridge_down_decisions"] for r in dead))
+    cut = [r for r in res if puzzle_score.log_write_failed(r)]   # the eval log failed to write (#427): replayed on --resume
+    if cut:
+        flags["LOG-CUT"] = (len(cut), "%d attempts whose eval log failed to write" % len(cut))
     for r in res:
-        if r.get("routing_refusals"):
+        if puzzle_score.lost_decisions(r):
             continue
         try:
             solved += 1 if puzzle_score.attempt_success(r)[0] else 0

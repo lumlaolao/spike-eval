@@ -202,10 +202,21 @@ def ran_on(out_dir, build):
 
 
 def read_results(out_dir):
+    """The rows of out_dir/puzzle-results.jsonl. A cut line (a full disk, #430) is skipped, not raised on: the JVM said
+    so in jvm.log (write_failures), which the caller reads, and puzzle_score refuses a line that is not JSON."""
     f = Path(out_dir) / "puzzle-results.jsonl"
     if not f.is_file():
         return []
-    return [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = []
+    for l in f.read_text(encoding="utf-8").splitlines():
+        try:
+            rows.append(json.loads(l))
+        except ValueError:
+            pass    # blank, or cut
+    return rows
+
+
+write_failures = pf.write_failures   # the one reader (puzzle_score and step_regret read it without this module)
 
 
 RESUME = False
@@ -240,6 +251,10 @@ def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
     (Path(out_dir) / "puzzle-results.jsonl").unlink(missing_ok=True)
     rc = build.run(env, out_dir)
     rows = read_results(out_dir)
+    lost = write_failures(out_dir)
+    if lost:
+        raise RuntimeError("%s arm on %s: %d result row(s) did not reach the disk (full disk?); see %s/jvm.log"
+                           % (arm, pzl_path, len(lost), out_dir))
     if rc != 0 and not rows:
         raise RuntimeError("%s arm on %s: JVM exit %s and no rows (see %s/jvm.log)" % (arm, pzl_path, rc, out_dir))
     return rows
@@ -483,12 +498,18 @@ def verify_puzzle(build, rec, out_root):
         tape = Path(tempfile.mkdtemp(prefix="pzl-tape-")) / "tape.txt"
         tape.write_text(line["tape"])
         rows = run_arm(build, pf.pzl_path(rec), "script", str(line["seed"]), out, {"PZL_TAPE": str(tape)})
-    problems = check(line, rows[0] if rows else None)
+    row = rows[0] if rows else None
+    problems = check(line, row)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
     ver = {"status": "verified" if not problems else "failed", "engine_sha": engine, "date": stamp,
-           "replay_log_sha256": rows[0].get("log_sha256") if rows else None}
+           "replay_log_sha256": row.get("log_sha256") if row else None}
     if problems:
         ver["problems"] = problems
+    # A search re-proof may prove the puzzle on another line (check_search_replay); say which one (#269). Only when it
+    # verifies: a drift row keeps the line the search found but did not replay to the same solve, so it proved nothing.
+    if not problems and check is check_search_replay and row.get("line") and row["line"] != line.get("line"):
+        ver["replay_line"] = row["line"]
+        ver["replay_solver_actions"] = row.get("solver_actions")
     return dict(rec, verification=ver)
 
 

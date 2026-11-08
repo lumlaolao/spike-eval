@@ -24,8 +24,12 @@ silent-drop reconciliation requires a paired log.
 Usage:
   python3 eval/defect_analyzer.py <dir> [<dir> ...] [--json PATH] [--summary PATH]
 
-Exit codes: 0 clean; 1 a hard invariant failed (tier=ai count > 0, or a
-silent-drop gap > 0 anywhere); 2 usage/input error (not a directory, or no
+Exit codes: 0 clean; 1 a hard invariant failed (build_report's
+hard_invariants, named in docs/STANDARDS.md section 4: tier=ai count > 0, a
+silent-drop gap > 0 anywhere, a crashed game, or a decision lost to a dead
+model bridge, aggregate.bridge_down_decisions, issue #369, or a puzzle result row's
+bridge_down_decisions, issue #378, or a game line or puzzle row whose log failed to
+write, eval_log_write_failed, issue #427); 2 usage/input error (not a directory, or no
 game-*.jsonl file found in any given directory).
 """
 
@@ -36,6 +40,8 @@ import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
+
+from aggregate import bridge_down_decisions, log_game_file, log_write_failed
 
 # ------------------------------------------------------------- log parsing
 #
@@ -146,7 +152,9 @@ def pair_dir(dir_path):
     seed + best-effort unclaimed-log matching for crashed/no-game-line
     files). Returns a list of dicts:
       {jsonl, log, seed, swap, decisions, games, n_skipped, log_text,
-       log_events (or None if unpaired)}
+       log_events (or None if unpaired), crash_text}
+    crash_text is the text of the logs this file OWNS. Every log of the directory has exactly one owner: the file its
+    "[EVAL] jsonl" line names when that file is in the directory, else the file it was paired with above, else none.
     """
     dir_path = Path(dir_path)
     jsonls = sorted(dir_path.glob("game-*.jsonl"))
@@ -158,6 +166,7 @@ def pair_dir(dir_path):
             log_by_key[(int(m.group(1)), int(m.group(2)))] = lp
 
     used_logs = set()
+    log_texts = {}
     pairs = []
     for jp in jsonls:
         decisions, games, n_skipped = parse_jsonl_file(jp)
@@ -193,12 +202,27 @@ def pair_dir(dir_path):
                 log_text = None
             if log_text is not None:
                 log_events = parse_log_text(log_text)
+                log_texts[log_path] = log_text
 
         pairs.append({
             "jsonl": str(jp), "log": str(log_path) if log_path else None,
-            "seed": seed, "swap": swap, "decisions": decisions,
-            "games": games, "n_skipped": n_skipped, "log_events": log_events,
+            "seed": seed, "swap": swap, "decisions": decisions, "log_text": log_text,
+            "games": games, "n_skipped": n_skipped, "log_events": log_events, "crash_text": "",
         })
+
+    by_file = {Path(p["jsonl"]).name: p for p in pairs}
+    paired_with = {p["log"]: p for p in pairs if p["log"]}
+    for lp in logs:
+        named = log_game_file(lp)
+        owner = by_file.get(named) or paired_with.get(str(lp))
+        if owner is None:
+            continue
+        if lp not in log_texts:
+            try:
+                log_texts[lp] = lp.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+        owner["crash_text"] += log_texts[lp] + "\n"
     return pairs
 
 
@@ -272,9 +296,25 @@ def model_consulted(d):
 
 # ------------------------------------------------------------- summarizing
 
-def summarize(pairs, label):
+def puzzle_rows(dir_path):
+    """The puzzle result rows (LlmSpikePuzzle, puzzle-results.jsonl) in dir_path, each tagged with its file; a puzzle
+    attempt has no game line, so its row carries what the game line would (bridge_down_decisions, issue #378)."""
+    path = Path(dir_path) / "puzzle-results.jsonl"
+    rows = []
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                rows.append(dict(row, _file=str(path)))
+    return rows
+
+
+def summarize(pairs, label, puzzles=()):
     """Build the full metrics dict for one directory's (already-paired) list
-    of game dicts, as returned by pair_dir()."""
+    of game dicts, as returned by pair_dir(), and its puzzle result rows (puzzle_rows())."""
     decisions = [d for p in pairs for d in p["decisions"]]
     n_games = len(pairs)
     n_skipped = sum(p["n_skipped"] for p in pairs)
@@ -388,11 +428,38 @@ def summarize(pairs, label):
     # --- games whose thread crashed (runs/luna-v8/g2: a StackOverflowError scored as a draw)
     crashed = [str(p["jsonl"]) for p in pairs
                if any(g.get("game_error") for g in p.get("games") or [])
-               or "game thread threw" in (p.get("log_text") or "")]
+               or "game thread threw" in (p.get("crash_text") or "")]
+
+    # --- decisions lost to a dead model bridge (issue #369: a 402 game read overall=PASS while this report's own
+    # fallback table listed play(bridge-down) 260): the game line's count, or on a line from before it the transport
+    # failures in its paired log (aggregate.bridge_down_decisions, the one reader)
+    bridge_down = {}
+    for p in pairs:
+        if p.get("games"):
+            # The game's own file, so paired_log judges it by the log that names it, as aggregate.py does.
+            n = bridge_down_decisions(dict(p["games"][-1], _file=Path(p["jsonl"]).name), Path(p["jsonl"]).parent)
+            if n:
+                bridge_down[str(p["jsonl"])] = n
+    for r in puzzles:   # a puzzle attempt's own count (issue #378)
+        if r.get("bridge_down_decisions"):
+            bridge_down["%s %s seed %s" % (r["_file"], r.get("id"), r.get("seed"))] = r["bridge_down_decisions"]
+
+    # --- a game or puzzle attempt whose log failed to write (issue #427): the jsonl may be cut
+    log_cut = {}
+    for p in pairs:
+        if p.get("games") and log_write_failed(p["games"][-1]):
+            log_cut[str(p["jsonl"])] = 1
+    for r in puzzles:
+        if log_write_failed(r):
+            log_cut["%s %s seed %s" % (r["_file"], r.get("id"), r.get("seed"))] = 1
 
     return {
         "label": label,
         "n_games": n_games,
+        "eval_log_write_failed_total": len(log_cut),
+        "eval_log_write_failed_files": log_cut,
+        "bridge_down_total": sum(bridge_down.values()),
+        "bridge_down_files": bridge_down,
         "game_crash_count": len(crashed),
         "game_crash_files": crashed,
         "n_decisions": len(decisions),
@@ -427,20 +494,24 @@ def build_report(dirs):
         uniq.append(d)
 
     per_dir = {}
-    all_pairs = []
+    all_pairs, all_puzzles = [], []
     for d in uniq:
         pairs = pair_dir(d)
+        puzzles = puzzle_rows(d)
+        all_puzzles.extend(puzzles)
         # tag each decision with its source jsonl for forced-pick examples
         for p in pairs:
             for dec in p["decisions"]:
                 dec["_srcfile"] = p["jsonl"]
-        per_dir[str(d)] = summarize(pairs, str(d))
+        per_dir[str(d)] = summarize(pairs, str(d), puzzles)
         all_pairs.extend(pairs)
 
-    combined = summarize(all_pairs, "combined")
+    combined = summarize(all_pairs, "combined", all_puzzles)
     ai_ok = combined["ai_tier_count"] == 0
     drop_ok = combined["silent_drop_total"] == 0
     crash_ok = combined["game_crash_count"] == 0
+    bridge_ok = combined["bridge_down_total"] == 0
+    log_ok = combined["eval_log_write_failed_total"] == 0
     report = {
         "dirs": per_dir,
         "combined": combined,
@@ -451,7 +522,11 @@ def build_report(dirs):
             "silent_drop_ok": drop_ok,
             "game_crash_count": combined["game_crash_count"],
             "game_crash_ok": crash_ok,
-            "pass": ai_ok and drop_ok and crash_ok,
+            "bridge_down_total": combined["bridge_down_total"],
+            "bridge_down_ok": bridge_ok,
+            "eval_log_write_failed_total": combined["eval_log_write_failed_total"],
+            "eval_log_write_failed_ok": log_ok,
+            "pass": ai_ok and drop_ok and crash_ok and bridge_ok and log_ok,
         },
     }
     return report
@@ -480,6 +555,18 @@ def _render_scope(name, s):
         L.append("  %-30s %6d   e.g. seat=%s turn=%s type=%s raw=%r"
                  % (k, v["count"], ex.get("seat"), ex.get("turn"),
                     ex.get("type"), ex.get("raw")))
+
+    L.append("")
+    L.append("--- decisions lost to a dead model bridge (MUST be 0) ---")
+    L.append("count=%d" % s["bridge_down_total"])
+    for f, n in sorted(s["bridge_down_files"].items()):
+        L.append("  VIOLATION %s lost %d" % (f, n))
+
+    L.append("")
+    L.append("--- games whose log failed to write (MUST be 0) ---")
+    L.append("count=%d" % s["eval_log_write_failed_total"])
+    for f in sorted(s["eval_log_write_failed_files"]):
+        L.append("  VIOLATION %s" % f)
 
     L.append("")
     L.append("--- tier=ai hard invariant (MUST be 0) ---")
@@ -559,10 +646,12 @@ def render_text(report):
         lines.append("")
     hi = report["hard_invariants"]
     lines.append("=== hard invariants ===")
-    lines.append("ai_tier_count=%d (ok=%s)  silent_drop_total=%d (ok=%s)  game_crash_count=%d (ok=%s)  overall=%s"
+    lines.append("ai_tier_count=%d (ok=%s)  silent_drop_total=%d (ok=%s)  game_crash_count=%d (ok=%s)  "
+                 "bridge_down_total=%d (ok=%s)  eval_log_write_failed_total=%d (ok=%s)  overall=%s"
                  % (hi["ai_tier_count"], hi["ai_tier_ok"], hi["silent_drop_total"],
                     hi["silent_drop_ok"], hi["game_crash_count"], hi["game_crash_ok"],
-                    "PASS" if hi["pass"] else "FAIL"))
+                    hi["bridge_down_total"], hi["bridge_down_ok"], hi["eval_log_write_failed_total"],
+                    hi["eval_log_write_failed_ok"], "PASS" if hi["pass"] else "FAIL"))
     return "\n".join(lines)
 
 
@@ -605,8 +694,11 @@ def main():
 
     hi = report["hard_invariants"]
     if not hi["pass"]:
-        print("\nHARD INVARIANT FAILURE: ai_tier_count=%d silent_drop_total=%d game_crash_count=%d"
-             % (hi["ai_tier_count"], hi["silent_drop_total"], hi["game_crash_count"]), file=sys.stderr)
+        print("\nHARD INVARIANT FAILURE: ai_tier_count=%d silent_drop_total=%d game_crash_count=%d bridge_down_total=%d "
+             "eval_log_write_failed_total=%d"
+             % (hi["ai_tier_count"], hi["silent_drop_total"], hi["game_crash_count"], hi["bridge_down_total"],
+                hi["eval_log_write_failed_total"]),
+              file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
 

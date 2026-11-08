@@ -52,7 +52,8 @@ Forge enforces ("Win" or "Survive" by turn N).
   - a rules puzzle's search proof (`arm: search`, below);
   - a generated board's own `[solution]` (`arm: written`, with the step count it was gated at), replayed as
     written against Forge's AI, which must play every line and solve (the hard suite, below).
-- `verification`: the result of that replay, with the engine commit.
+- `verification`: the result of that replay, with the engine commit. A search re-proof may prove the puzzle on another
+  line; then `replay_line` and `replay_solver_actions` name it (#269).
 - `tier`:
   - 1: Forge's AI solves at least half its attempts;
   - 2: it does not, and the line takes three or fewer solver actions;
@@ -138,6 +139,44 @@ python3 eval/puzzles/puzzle_baselines.py prove --suite S.json [--ids a,b] --budg
   damage and of a divided spell ("distribute 5 damage"); the other arms split evenly.
 - Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
 
+## Step regret: which decision lost a winnable attempt
+
+```bash
+python3 eval/puzzles/step_regret.py <attempt dir> --out runs/step-regret/<name> --budget 600 --jobs 2 \
+  [--refine-budget 2400 --refine-most 2] [--resume]
+```
+
+- Position K is the game after the seat's first K decision rows. The runner (`REPLAY_HANDOVER=K`) replays them
+  exactly (`ReplayBridge`), hands the seat to the search arm with no draw from the engine RNG, and searches the
+  rest against the recorded opponent (Forge AI) on the recorded seed: `proven`, `unwinnable` (every line played,
+  none capped), `not_found` (no verdict) or `drift`. The seat switches inside row K's write, so the rest of that
+  hook runs the arm's branches (no yield, no CANCEL); each rollout is a `drift` unless its first decision after K is
+  the recording's row K+1, asked the same way. Rows: `step-search.jsonl` per search, `step-regret.jsonl`
+  (`t: "step_regret"`, `t: "step_regret_summary"`) per attempt; `--summary <out dirs>` prints the verdict totals.
+- Against a deterministic opponent a lost win never comes back, so the scan runs from the end and stops at the
+  first proven position. The regret decision is exact only when the next position is `unwinnable`; else the
+  summary gives `last_proven_k`, `first_unwinnable_k` and a bracket. The floor at an exact step forces each
+  option (`REPLAY_FORCE`): options kept / n, exact only when every option is decided. v1 forces play and
+  single-choice decisions only.
+- **Limit, measured.** The 4 failed claude-cli attempts of `hard-splice-06dad20af5b3` (epoch 80, replayed on
+  epoch 82, budget 600, the boundary refined at 2400): 72 searches, no drift. The last 7 to 8 positions of each
+  attempt are `unwinnable` (seconds to 20 minutes); 38 searches at 600 and 3 at 2400 came back `not_found`; one
+  position is proven (C seed 1, K=4). So no attempt got an exact regret step and no floor was taken: C seed 1 is a bracket (K 4 to 10), the
+  other three only a bound (lost by K=10 to 12). About 6 CPU-hours at 2 JVMs. The board's own model (`puzzle_gen.splice_best`, a check, never the verdict) puts
+  the regret at casting the second Desperate Ritual before a Lava Spike could carry it (the damage reachable before and
+  after it: `eval/research/2026-11-06-step-regret-board-model.md`)
+  in all four. The prover's unwinnable side needs every line played, which a 4-spell position with pings does not
+  allow at 2400 rollouts: step regret is exact near the end of a long board and a bracket elsewhere
+  (`docs/harness/HARD-PUZZLES.md`).
+- **On a splice board, the model labels every position** (`python3 eval/puzzles/step_regret_board.py <attempt dir>
+  --search <step-regret.jsonl>`): it reads the state from each recorded prompt and values it with
+  `puzzle_gen.splice_best`, refusing anything outside the model. Model-derived, never an engine proof: on the 4
+  attempts above it agrees with all 31 decided search positions (the "all lost" baseline: 30) and puts the regret
+  step at the second bare Desperate Ritual in each (floor 1/4, or 2/6 in C seed 1); its assumptions are in
+  `eval/research/2026-11-06-step-regret-board-model.md`. `--scripts DIR` writes an engine witness per position it
+  calls winnable (the recorded prefix, then its line) for `puzzle_baselines.py line`; `--witnesses DIR` checks each
+  game reached the recorded position: all 18 were proven.
+
 ## Proving a written line
 
 ```bash
@@ -196,8 +235,11 @@ counters p0 Battlefield "Walking Ballista" P1P1 >= 3
 winner p0                                          p0, p1 or none
 ```
 
-A line it cannot read stops the run before any game. Result rows carry `acceptance` (accepted or rejected) and
-`acceptance_failed` (each failed condition with what was there).
+A line it cannot read stops the run before any game. A `counters` line names an enum counter (`P1P1`, in any case)
+or a one-word keyword counter (`Flying`; the two-word `First Strike` and `Double Strike` cannot be named). Any other
+name is refused: Forge makes a custom type for it, so a misspelt one read 0 on every card with no warning (#269). The
+few custom types real cards use (Replicating Ring's `NIGHT`, Promise of Loyalty's `VOW`) are refused with it. Result
+rows carry `acceptance` (accepted or rejected) and `acceptance_failed` (each failed condition with what was there).
 
 Two things the state does not say. When a player loses, Forge turns face up every face-down card that player owns
 (`Game.onPlayerLost`, CR 707.9), so a name condition on a face-down permanent reads its real name whenever the solver
@@ -361,8 +403,13 @@ python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v
 - The system prompt states the puzzle's brief (`LlmSpikePuzzle.seatBrief`: goal, turn limit and anything the
   solver is told, such as the top cards of the library; never the name or difficulty label), in place of "win the
   game". The eval pool's archetype reference is left out.
+- Since harness-epoch-86 (#391) the solver is shown its own cards' rules text (what and when:
+  `docs/harness/ARCHITECTURE.md` section 5). **PUZ results from before and after epoch 86 are different conditions
+  and never pool**: `puzzle_score.py` refuses a mix of epochs (below), and every model result on the frozen suites
+  is re-run at epoch 86 or later. The zero-model baselines read no prompt and are unaffected.
 - Each result row carries `harness_epoch` and, for a model seat, what the attempt spent: `model_calls`,
-  `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, and `lookups`.
+  `prompt_tokens` and `completion_tokens` as the provider reported them, `model_ms`, `lookups`, and
+  `bridge_down_decisions` (decisions lost to a dead model bridge).
 - An `openrouter:` model sends each position to openrouter.ai. That needs the owner's egress opt-in
   (`OPENROUTER_ALLOW_EGRESS=1` in `secrets.env`), which no tool here sets.
 - `--max-price-at-list` (an `openrouter:` model only) sends every request a price ceiling at the model's list
@@ -484,6 +531,7 @@ other puzzles, suites, splits, k, game caps or call deadlines are refused; a pai
 - mix solvers;
 - score a puzzle with fewer than k attempts, or with a seed repeated;
 - score an unscoreable row (one where the goal was not enforced);
+- score a row with a decision lost to a routing filter or a dead model bridge (`docs/harness/ARCHITECTURE.md`);
 - pool attempts from two harness epochs (rows carry `harness_epoch` since epoch 69; an unstamped row beside a
   stamped one is refused too);
 - pool or pair attempts under two per-call deadlines (`call_timeout_ms`, the same way; a run with no manifest is not

@@ -167,10 +167,58 @@ class TestConditionGuard(unittest.TestCase):
             rating.rate([FIX / "compare-one-tier", FIX / "compare-two-tier"], resamples=0)
         self.assertIn("one_tier", str(cm.exception))
 
+    def test_games_against_two_forge_ai_profiles_are_refused(self):
+        # Issue #381: the opponent's profile is the environment, so a rating never pools two. The empty stamp (the
+        # compiled defaults) and a line from before the stamp are one opponent.
+        self.assertIn("ai_profile_a", aggregate.CONDITION_FIELDS)
+        self.assertIn("ai_profile_b", rating.ENV_FIELDS)
+        games = simulate([("random", "ai", -800, 3)])
+        rating.rate([], resamples=0, games=games)
+        for g in games[:2]:
+            g["ai_profile_b"] = ""
+        rating.rate([], resamples=0, games=games)
+        games[0]["ai_profile_b"] = "Reckless"
+        with self.assertRaises(rating.MixedConditionError) as cm:
+            rating.rate([], resamples=0, games=games)
+        self.assertIn("ai_profile_b", str(cm.exception))
+        self.assertTrue(rating.rate([], resamples=0, games=games, allow_mixed=True)["mixed_allowed"])
+
     def test_different_decks_do_not_count_as_different_conditions(self):
         games = simulate([("random", "ai", -800, 3)])
         games[0]["deck_sha"] = "e" * 12
         rating.rate([], resamples=0, games=games)
+
+    def test_a_game_with_a_decision_lost_to_a_dead_bridge_is_refused(self):
+        # Issue #369: the seat's decisions were the harness's fallbacks, not the model's; no flag pools it.
+        games = simulate([("llm:" + LLM, "ai", -200, 3)])
+        games[0]["bridge_down_decisions_a"] = 5
+        for allow in (False, True):
+            with self.subTest(allow=allow), self.assertRaises(rating.InvalidGameError) as cm:
+                rating.rate([], resamples=0, games=games, allow_mixed=allow)
+            self.assertIn("dead model bridge", str(cm.exception))
+        games[0]["bridge_down_decisions_a"] = 0
+        rating.rate([], resamples=0, games=games)
+
+    def test_a_game_whose_log_failed_to_write_is_refused(self):
+        # Issue #427: its log may be cut, so no flag pools it.
+        games = simulate([("llm:" + LLM, "ai", -200, 3)])
+        games[0]["eval_log_write_failed"] = True
+        for allow in (False, True):
+            with self.subTest(allow=allow), self.assertRaises(rating.InvalidGameError) as cm:
+                rating.rate([], resamples=0, games=games, allow_mixed=allow)
+            self.assertIn("failed to write", str(cm.exception))
+        games[0]["eval_log_write_failed"] = False
+        rating.rate([], resamples=0, games=games)
+
+    def test_a_fake_model_sanity_arm_is_rated_and_refused_only_when_its_transport_failed(self):
+        # Its empty replies are the model answering (count 0); a 402 from its loopback server is not.
+        games = simulate([("llm:openrouter:fake/harness-model", "ai", -800, 3)])
+        for g in games:
+            g["bridge_down_decisions_a"], g["_fake_policy"] = 0, "empty"
+        rating.rate([], resamples=0, games=games)
+        games[0]["bridge_down_decisions_a"] = 2
+        with self.assertRaises(rating.InvalidGameError):
+            rating.rate([], resamples=0, games=games)
 
     def test_no_forge_ai_means_no_scale(self):
         with self.assertRaises(rating.MixedConditionError):

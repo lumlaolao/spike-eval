@@ -24,6 +24,8 @@ import os
 import sys
 from collections import Counter, defaultdict
 
+from aggregate import unscorable
+
 
 def load(run_dir):
     """([game_rows], [decision_rows]) across EVERY game in run_dir.
@@ -40,7 +42,7 @@ def load(run_dir):
                 continue
             t = r.get("t")
             if t == "game":
-                games.append(r)
+                games.append(dict(r, _file=os.path.basename(f)))
             elif t == "decision":
                 dec.append(r)
     return games, dec
@@ -66,12 +68,22 @@ def report(tag, run_dir, compact=False):
     n_games = len(games)
     turns = sum((g.get("turns") or 0) for g in games) or None
     capped = sum(1 for g in games if g.get("capped"))
-    winner = "%d games" % n_games if n_games > 1 else (games[0].get("winner") if games else None)
+    # Latency is per decision and a dead bridge's retries are the thing worth seeing, so its decisions stay in; the
+    # game is named unscorable and its winner is not shown (aggregate.unscorable, #430).
+    lost = sum(1 for g in games if unscorable(g, run_dir))
+    if n_games > 1:
+        winner = "%d games" % n_games
+    elif games:
+        winner = "invalid" if lost else games[0].get("winner")
+    else:
+        winner = None
     calls = tiers.get("smart", 0) + tiers.get("fast", 0) + tiers.get("plan", 0)
 
     line = ("%-10s games=%-2d capped=%-2d winner=%-8s turns=%-5s decisions=%-4d smart=%-3d fast=%-3d plan=%-3d auto=%-3d" % (
         tag, n_games, capped, winner, turns, len(dec), tiers.get("smart", 0), tiers.get("fast", 0),
         tiers.get("plan", 0), tiers.get("auto", 0)))
+    if lost:
+        line += "  unscorable=%d" % lost
     if ct:
         line += "  comp med=%s max=%s" % (pct(ct, 0.5), max(ct))
     if retried:

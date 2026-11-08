@@ -109,12 +109,51 @@ class ResumeTest(unittest.TestCase):
         self.assertFalse(puzzle_solve.already_done(out, 2, "OTHER"), "rows of another suite version")
         self.assertFalse(puzzle_solve.already_done(Path(tempfile.mkdtemp()) / "none", 1, "S"))
 
+    def test_a_puzzle_with_a_row_that_did_not_reach_the_disk_is_not_done(self):
+        # #430: k-1 rows and a "[PUZZLE] write failed" line: a resume plays it again, puzzle_score refuses it.
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        (out / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk and is missing from it\n")
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"), "even with every wanted seed present")
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "run")
+        self.assertTrue((out / "jvm.partial0.log").is_file(), "the log goes aside with the rows")
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
     def test_an_attempt_refused_under_the_price_ceiling_is_played_again(self):
         # pr-review of #327: such a row is not a result (puzzle_score refuses it), so a resume replays the puzzle.
         out = Path(tempfile.mkdtemp()) / "p"
         self.write(out, [{"seed": 1, "suite_sha256": "S", "routing_refusals": 2}])
         self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
         self.write(out, [{"seed": 1, "suite_sha256": "S", "routing_refusals": 0}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
+    def test_an_attempt_a_dead_bridge_played_is_played_again(self):
+        # Issue #378: puzzle_score refuses such a row, so a resume replays the puzzle (its rows set aside, still priced).
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "bridge_down_decisions": 11}])
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "run")
+        self.assertTrue((out / "puzzle-results.partial0.jsonl").is_file(), "the dead attempt's row is kept aside")
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "bridge_down_decisions": 0}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
+    def test_an_attempt_whose_log_failed_to_write_is_played_again(self):
+        # Issue #427: puzzle_score refuses the row and says "replay it with --resume", so already_done must not keep it.
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "eval_log_write_failed": True}])
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "eval_log_write_failed": False}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
+    def test_a_row_from_before_the_field_whose_log_shows_a_dead_bridge_is_played_again(self):
+        # pr-review of #389: the row has no count, so its puzzle's jvm.log is read (aggregate.log_bridge_down).
+        from test_puzzle_score import LOG_402
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "model_calls": 11}])
+        (out / "jvm.log").write_text(LOG_402)
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
+        (out / "jvm.log").write_text("[Solver] played\n")
         self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
 
     def test_a_puzzle_cut_off_part_way_keeps_its_paid_rows_aside_and_is_played_again(self):
@@ -299,6 +338,36 @@ class BuildProvenanceTest(unittest.TestCase):
         self.assertEqual(seen, [("/b", True)])
         self.assertEqual(json.loads((root / pid / "batch-manifest.json").read_text())["build"], prov)
         self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text())["build"], prov, "the run file too")
+
+
+class WriteFailureTest(unittest.TestCase):
+    """Issue #430: a result row the JVM could not write (a full disk) is named in the run's output."""
+
+    def test_a_row_that_did_not_reach_the_disk_is_named(self):
+        suite_path = evalpath.EVAL / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+
+        class FakeBuild:
+            classes = classes_with_transcript()
+
+            def __init__(self, build_dir, forge, allow_stale=False):
+                pass
+
+            def provenance(self):
+                return {"build_dir": "/b", "build_overlay_sha": "a", "checkout_overlay_sha": "a", "stale_build_allowed": False}
+
+            def run(self, env, out, **kw):
+                Path(out).mkdir(parents=True, exist_ok=True)
+                (Path(out) / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk\n")
+                return 0
+
+        out = io.StringIO()
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(out):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
+                               "--budget-usd", "1", "--ids", pid, "--out", str(Path(tempfile.mkdtemp())), "--build", "/b"])
+        self.assertIn("[puzzles] %s: [PUZZLE] write failed" % pid, out.getvalue())
 
 
 class RunFileTest(unittest.TestCase):
@@ -560,6 +629,15 @@ class MaxPriceAtListTest(unittest.TestCase):
 
     def test_a_refused_attempt_is_reported_and_the_run_goes_on(self):
         # pr-review of #327: the progress line scored each row, so one refused attempt raised and ended a paid run.
+        self.assertEqual(self.two_puzzles_with({"routing_refusals": 3}).count("[ROUTING-FILTER]"), 2)
+
+    def test_an_attempt_whose_log_failed_to_write_is_reported_and_the_run_goes_on(self):
+        # Issue #427: a solved row with a cut log is no result, so the summary never scores it (attempt_success refuses).
+        out = self.two_puzzles_with({"status": "solved", "eval_log_write_failed": True})
+        self.assertEqual(out.count("[LOG-CUT]"), 2, out)
+        self.assertEqual(out.count("solved=0"), 2, out)
+
+    def two_puzzles_with(self, extra):
         suite = json.loads(Path(self.SUITE).read_text())
         ids = [r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active"][:2]
         played = []
@@ -576,7 +654,7 @@ class MaxPriceAtListTest(unittest.TestCase):
             def run(self, env, out, **kw):
                 played.append(out.name)
                 row = {"schema": "pzl-result-v1", "id": out.name, "seed": 1, "status": "failed",
-                       "suite_sha256": suite["suite_sha256"], "routing_refusals": 3}
+                       "suite_sha256": suite["suite_sha256"], **extra}
                 (out / "puzzle-results.jsonl").write_text(json.dumps(row) + "\n")
                 return 0
 
@@ -589,8 +667,8 @@ class MaxPriceAtListTest(unittest.TestCase):
                                     "--build", "/b", "-j", "1", "--max-price-at-list"])
         self.assertEqual(rc, 0)
         self.assertEqual(sorted(played), sorted(ids), "the second puzzle still ran")
-        self.assertEqual(stdout.getvalue().count("[ROUTING-FILTER]"), 2, stdout.getvalue())
         self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
+        return stdout.getvalue()
 
     def test_it_is_refused_for_a_model_with_no_list_price_above_zero(self):
         # pr-review of #327: the JVM refuses a zero ceiling, so every puzzle would fail one by one; refuse it once here.

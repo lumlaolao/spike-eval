@@ -66,6 +66,7 @@ DEFAULT_JAVA = (REPO_ROOT / "forge-overlay" / "forge-gui-desktop" / "src"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5)
+import aggregate  # noqa: E402  unscorable: the one rule for a game the model did not fully play
 
 # (relative dir, build tag). Build tag selects the preamble shape (see below).
 DEFAULT_SOURCES = [
@@ -300,6 +301,11 @@ def load_complete_games(dir_path):
                             "attribute decisions)" % (fp.name, len(game_lines)))
             continue
         g = game_lines[0]
+        # A dead bridge's fallbacks were not the model's, and a cut jsonl (a full disk) is a game with rows missing:
+        # neither is training data (aggregate.unscorable, #430).
+        if aggregate.unscorable(dict(g, _file=fp.name), dir_path):
+            warnings.append("%s: unscorable game (dead bridge or cut log) -> not training data" % fp.name)
+            continue
         key = (g.get("seed"), bool(g.get("swap", False)))
         if key in by_key:
             warnings.append("dup (seed=%s swap=%s): keeping %s over %s"

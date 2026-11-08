@@ -27,6 +27,7 @@ import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
 import forge.game.player.PlayerController.BinaryChoiceType;
+import forge.game.spellability.AbilitySub;
 import forge.game.spellability.OptionalCostValue;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
@@ -125,6 +126,14 @@ public class GoldenChecksTest {
         Matcher m = Pattern.compile("(?m)^\\s*(\\d+)\\) " + Pattern.quote(label)).matcher(decision);
         Assert.assertTrue(m.find(), "no option " + label + ": " + decision);
         return Integer.parseInt(m.group(1));
+    }
+
+    /** Hands {@code sa} to the seat's play path and asserts it was made: read from playsNotMade(), never from the
+     *  path's return (docs/STANDARDS.md section 5). */
+    static void playMade(LlmSpikeGui.PlayerControllerLLM ctrl, SpellAbility sa, String what) {
+        int notMade = ctrl.playsNotMade();
+        ctrl.playChosenSpellAbility(sa);
+        Assert.assertEquals(ctrl.playsNotMade(), notMade, what + " was not made");
     }
 
     static Function<String, String> choice(String label) { return p -> "CHOICE: " + opt(p, label); }
@@ -227,6 +236,23 @@ public class GoldenChecksTest {
                 "the lethal source pays after the safe one: " + order);
     }
 
+    /** #269: a lethal source shared Forge's "use last" list with sources whose cost sacrifices another permanent, which
+     *  is sorted by creature value, so between two non-creatures the order was arbitrary: City of Brass at 1 life could
+     *  pay before Ashnod's Altar. A lethal source pays after every other source, unpreferred ones included. */
+    @Test
+    public void aLethalSourcePaysAfterAnUnpreferredOne() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        Card city = card("City of Brass", me, ZoneType.Battlefield);   // first, so insertion order cannot hide it
+        Card altar = card("Ashnod's Altar", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        forge.game.card.CardCollection order = forge.ai.ComputerUtilMana.getAvailableManaSources(me, true);
+        Assert.assertTrue(order.contains(city) && order.contains(altar), "both pay: " + order);
+        Assert.assertTrue(order.indexOf(altar) < order.indexOf(city), "the lethal source pays last: " + order);
+    }
+
     /** Rules pilot RP_006 (2026-10-18): Finale of Promise ("up to one target instant card and/or up to one target
      *  sorcery card") was never offered with nothing in the graveyard: the menu demanded at least one target. A spell
      *  whose targets are all "up to" is cast with none. */
@@ -310,6 +336,31 @@ public class GoldenChecksTest {
                 "both Petals paid for Ad Nauseam (3 floating + 2 Petals = 5)");
         Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("Choose a color") && q.contains("Ad Nauseam")),
                 "the colour was asked in the middle of the payment");
+    }
+
+    /** A Disturb cast of an Aura back face plays out (#366): the seat casts Lantern Bearer from its graveyard by Disturb,
+     *  picks Grizzly Bears as the creature Lanterns' Lift enchants, and the Aura resolves attached to it. */
+    @Test
+    public void aDisturbAuraIsCastOntoTheChosenCreature() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Lantern Bearer", me, ZoneType.Graveyard);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choiceWith("Disturb"))
+                .on("MANA:", p -> "PICKS: NONE")
+                .on("DECISION:", choiceWith("Grizzly Bears"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the Disturb cast is offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        Card lift = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Lanterns' Lift"))
+                .findFirst().orElse(null);
+        Assert.assertNotNull(lift, "Lanterns' Lift is on the battlefield: " + me.getCardsIn(ZoneType.Battlefield));
+        Assert.assertEquals(lift.getAttachedTo(), bears, "it enchants the creature the seat chose");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
     }
 
     /** Doomsday's own decisions (owner, 2026-10-16: combo lines must play out). The five cards and their order are the
@@ -460,7 +511,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Counterspell was offered");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        playMade(ctrl, r.get(0), "Counterspell");
         Assert.assertTrue(g.getStack().peekAbility().getTargets().getFirstTargetedSpell() != null, "it targets the spell itself");
         g.getStack().resolveStack();
         Assert.assertTrue(g.getStack().isEmpty(), "Ponder did not stay on the stack");
@@ -485,7 +536,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Stifle was offered");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        playMade(ctrl, r.get(0), "Stifle");
         SpellAbility aimed = g.getStack().peekAbility().getTargets().getFirstTargetedSpell();
         Assert.assertTrue(aimed != null && aimed.isActivatedAbility() && aimed.getHostCard().getName().equals("Polluted Delta"),
                 "Stifle targets the fetch ability: " + aimed);
@@ -496,6 +547,62 @@ public class GoldenChecksTest {
         Assert.assertTrue(g.getStack().isEmpty(), "the fetch ability was countered, not left on the stack");
         Assert.assertEquals(rival.getCardsIn(ZoneType.Battlefield).size(), lands, "no land was fetched");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** "X target creatures" at X=0 takes no target: Rot-Curse Rakshasa's renew with X=0 was given one target, so the
+     *  stack refused the paid activation ("paid but has no legal target"). The keyword sweep's play gate, which read
+     *  playChosenSpellAbility's return, never saw it (issue #380). */
+    @Test
+    public void anXTargetAbilityAtXZeroTakesNoTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 2; i++) card("Swamp", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card rakshasa = card("Rot-Curse Rakshasa", me, ZoneType.Graveyard);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("ACTIVATE Rot-Curse Rakshasa"))
+                .on("Every integer", p -> "NUMBER: 0");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the renew was offered");
+        playMade(ctrl, r.get(0), "the renew at X=0");
+        Assert.assertTrue(g.getCardState(rakshasa).isInZone(ZoneType.Exile), "the renew's exile cost was not paid");
+        Assert.assertEquals(g.getStack().size(), 1);
+        Assert.assertTrue(g.getStack().peekAbility().getTargets().isEmpty(), "a target was set at X=0");
+    }
+
+    /** A fixed count of targets is kept at X=0: Banefire ("X damage to any target") cast for {R} still takes its one
+     *  target. Pins the X=0 guard's shape: it reads the target count, not X alone. */
+    @Test
+    public void aFixedTargetXSpellAtXZeroKeepsItsTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Banefire", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Banefire"))
+                .on("Every integer", p -> "NUMBER: 0");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Banefire was offered");
+        playMade(ctrl, r.get(0), "Banefire at X=0");
+        Assert.assertEquals(g.getStack().size(), 1);
+        Assert.assertEquals(g.getStack().peekAbility().getTargets().size(), 1, "Banefire's target at X=0");
+    }
+
+    /** The fork rollout's first-legal targeting keeps the same rule: the renew at X=0 takes no target. */
+    @Test
+    public void forkTargetingAtXZeroSetsNoTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card rakshasa = card("Rot-Curse Rakshasa", me, ZoneType.Graveyard);
+        SpellAbility renew = rakshasa.getSpellAbilities().stream().filter(SpellAbility::usesTargeting).findFirst().orElseThrow();
+        renew.setActivatingPlayer(me);
+        renew.setXManaCostPaid(0);
+        LlmSpikeGui.forceTargetsFirstLegal(me, renew);
+        Assert.assertTrue(renew.getTargets().isEmpty(), "a target was set at X=0: " + renew.getTargets());
     }
 
     /** A number the cast announces (Announce$ X): Disrupting Shoal's pitch cost exiles a blue card with mana value X and
@@ -515,7 +622,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the pitch was offered");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "the Shoal was cast");
+        playMade(ctrl, r.get(0), "the Shoal");
         Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.substring(q.lastIndexOf("DECISION:")).startsWith("DECISION: Choose X for CAST Disrupting Shoal")),
                 "the seat was asked X");
         Assert.assertTrue(me.getCardsIn(ZoneType.Exile).stream().anyMatch(c -> c.getName().equals("Brainstorm")), "Brainstorm was pitched");
@@ -539,7 +646,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Toxic Deluge was offered");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        playMade(ctrl, r.get(0), "Toxic Deluge");
         Assert.assertEquals(me.getLife(), 18, "X = 2 life was paid");
         g.getStack().resolveStack();
         g.getAction().checkStateEffects(true);
@@ -565,7 +672,7 @@ public class GoldenChecksTest {
     static void playAndResolve(LlmSpikeGui.PlayerControllerLLM ctrl, Game g, String what) {
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, what + " was offered");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), what + " was played");
+        playMade(ctrl, r.get(0), what);
         resolveAll(g);
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
@@ -901,7 +1008,7 @@ public class GoldenChecksTest {
         card("Island", me, ZoneType.Library);
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Script("CHOICE: 1").on("You have priority", choiceWith("Altar")),
                 new Script("CHOICE: 1"));
-        Assert.assertTrue(ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0)), "Altar cast");
+        playMade(ctrl, ctrl.chooseSpellAbilityToPlay().get(0), "the Altar");
         g.getStack().resolveStack();
         g.getTriggerHandler().runWaitingTriggers();
         g.getStack().addAllTriggeredAbilitiesToStack();
@@ -930,7 +1037,7 @@ public class GoldenChecksTest {
             return choiceWith("+1: Add").apply(p);
         });
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
-        Assert.assertTrue(ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0)), "Lukka's +1 activated");
+        playMade(ctrl, ctrl.chooseSpellAbilityToPlay().get(0), "Lukka's +1");
         resolveAll(g);
         Assert.assertEquals(me.getManaPool().totalMana(), 2, "{R}{G} floats");
         ctrl.chooseSpellAbilityToPlay();
@@ -953,7 +1060,7 @@ public class GoldenChecksTest {
             return choiceWith("CAST Changeling Berserker").apply(p);
         }).on("MANA: you are paying", picks("Island"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
-        Assert.assertTrue(ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0)), "Forest tapped");
+        playMade(ctrl, ctrl.chooseSpellAbilityToPlay().get(0), "the Forest's mana");
         Assert.assertEquals(me.getManaPool().totalMana(), 1, "{G} floats");
         playAndResolve(ctrl, g, "Changeling Berserker with the floating {G}");
         Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getName().equals("Changeling Berserker")),
@@ -1043,6 +1150,125 @@ public class GoldenChecksTest {
         playAndResolve(seat(g, model, model), g, "Dance of the Tumbleweeds, the {1} mode");
         Assert.assertTrue(modes[0] == null || !modes[0].contains("Create an X/X"), "the unpayable {3} mode was offered: " + modes[0]);
         Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).count(), 4L, "it fetched a land");
+    }
+
+    /** A pawprint charm's modes may total at most its {P} budget (#415): Forge's engine does not check it, only its own
+     *  controllers do, which the seat replaces. Season of Loss with its {P}{P}{P} mode chosen five times (15 of 5) is
+     *  refused and asked again; the seat's second, legal answer is the one cast. The question shows each mode's cost. */
+    @Test
+    public void aPawprintCharmsModesStayWithinItsBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        card("Hill Giant", me, ZoneType.Graveyard);
+        card("Season of Loss", me, ZoneType.Hand);
+        List<String> asked = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Season of Loss"))
+                .on("MODAL SPELL", p -> { asked.add(p); return asked.size() == 1 ? "PICKS: 3,3,3,3,3" : "PICKS: 3"; });
+        playAndResolve(seat(g, model, model), g, "Season of Loss");
+        Assert.assertEquals(rival.getLife(), 18, "one {P}{P}{P} mode (2 creature cards), not five");
+        Assert.assertTrue(asked.size() >= 2, "the over-budget answer was asked again");
+        // The card's own description has "{P}{P}{P} — " too: the option line of the decision is what this pins.
+        String decision = asked.get(0).substring(asked.get(0).lastIndexOf("MODAL SPELL"));
+        Assert.assertTrue(java.util.regex.Pattern.compile("(?m)^\\s*3\\) \\{P\\}\\{P\\}\\{P\\} — Each opponent")
+                .matcher(decision).find(), "the option shows its {P}: " + decision);
+        Assert.assertTrue(decision.contains("may total at most 5"), "the question states the budget: " + decision);
+    }
+
+    /** #417: the repeatable-mode spec carries a pawprint charm's budget three ways: a tool answer over it is refused
+     *  where it is made (and the refusal is noted for the log), the Decisions bridge is told it, and it can trim to it.
+     *  Any other repeatable ask's spec is unchanged. */
+    @Test
+    public void theModesSpecCarriesAPawprintBudget() {
+        List<String> labels = List.of("{P} — sacrifice", "{P}{P} — draw", "{P}{P}{P} — lose life");
+        boolean[] refused = {false};
+        AnswerTool.Spec spec = LlmSpikeGui.PlayerControllerLLM.modesSpec(labels, 0, 5, new int[] {1, 2, 3}, 5,
+                () -> refused[0] = true);
+        Assert.assertEquals(spec.limit, "the picked options' {P} total at most 5");
+        Assert.assertEquals(spec.weights, new int[] {1, 2, 3});
+        Assert.assertEquals(spec.budget, 5);
+        Assert.assertNotNull(AnswerTool.validate(spec, "{\"options\":[3,3]}").error, "6 {P} of 5");
+        Assert.assertTrue(refused[0], "the refusal is noted for the log reason");
+        Assert.assertNull(AnswerTool.validate(spec, "{\"options\":[3,2]}").error, "5 {P} of 5");
+        AnswerTool.Spec plain = LlmSpikeGui.PlayerControllerLLM.modesSpec(labels, 3, 3, null, -1, () -> { });
+        Assert.assertNull(plain.limit);
+        Assert.assertNull(plain.weights);
+        Assert.assertNull(plain.check);
+    }
+
+    /** #417: the two other defaults of a pawprint charm's modes are within its budget, and are the do-nothing option:
+     *  the one taken when the seat's call budget is spent, and the one taken when the hook fails. */
+    @Test
+    public void aPawprintCharmsOtherDefaultsTakeNoMode() throws Exception {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        SpellAbility sa = card("Season of Loss", me, ZoneType.Hand).getFirstSpellAbility();
+        List<AbilitySub> possible = forge.game.ability.effects.CharmEffect.makePossibleOptions(sa);
+        Assert.assertEquals(possible.size(), 3);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.budgetSafeDefault(sa, possible, 0, 5, true),
+                Collections.emptyList(), "the hook-failure default, with readable {P} values");
+        Script model = new Script("PICKS: 3,3,3,3,3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        java.lang.reflect.Field calls = LlmSpikeGui.PlayerControllerLLM.class.getDeclaredField("smartCalls");
+        calls.setAccessible(true);
+        calls.setInt(ctrl, LlmSpikeGui.PlayerControllerLLM.SMART_BUDGET);   // the seat's call budget is spent
+        Assert.assertEquals(ctrl.chooseModeForAbility(sa, possible, 0, 5, true), Collections.emptyList(),
+                "the no-budget default");
+        Assert.assertTrue(model.prompts.isEmpty(), "no model call once the budget is spent");
+    }
+
+    /** A repeatable charm with no {P} budget (Fiery Confluence, "choose three, the same mode more than once") is the
+     *  model's: its answer is taken as given, with one ask and no refusal (the review of PR #418 caught a removed guard
+     *  that refused every such answer as over a budget of -1). */
+    @Test
+    public void aRepeatableCharmWithNoBudgetIsTheModels() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        SpellAbility sa = card("Fiery Confluence", me, ZoneType.Hand).getFirstSpellAbility();
+        sa.setActivatingPlayer(me);   // its modes have targets, which need a caster to count
+        List<AbilitySub> possible = forge.game.ability.effects.CharmEffect.makePossibleOptions(sa);
+        Script model = new Script("PICKS: 1,1,2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<AbilitySub>[] got = new List[1];
+        String log = LineFindingProbeTest.logOf(() -> got[0] = ctrl.chooseModeForAbility(sa, possible, 3, 3, true));
+        Assert.assertEquals(got[0], List.of(possible.get(0), possible.get(0), possible.get(1)), log);
+        Assert.assertFalse(log.contains("[AUTO-LEGAL] modes"), log);
+        Assert.assertEquals(model.prompts.stream().filter(p -> p.contains("MODAL SPELL")).count(), 1L, "asked once");
+        Assert.assertFalse(model.prompts.get(model.prompts.size() - 1).contains("Refused"), "no refusal shown");
+    }
+
+    /** Two over-budget answers are logged as over the budget, not as an unparsed reply (#417). */
+    @Test
+    public void twoOverBudgetAnswersAreLoggedAsOverBudget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        SpellAbility sa = card("Season of Loss", me, ZoneType.Hand).getFirstSpellAbility();
+        List<AbilitySub> possible = forge.game.ability.effects.CharmEffect.makePossibleOptions(sa);
+        Script model = new Script("PICKS: 3,3,3,3,3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String log = LineFindingProbeTest.logOf(() -> Assert.assertEquals(
+                ctrl.chooseModeForAbility(sa, possible, 0, 5, true), Collections.emptyList()));
+        Assert.assertTrue(log.contains("[AUTO-LEGAL] modes(repeat,over-budget)->0"), log);
+    }
+
+    /** Two over-budget answers: the modes the seat is given are the do-nothing option, none (docs/STANDARDS.md section 8),
+     *  never the most modes that fit. */
+    @Test
+    public void twoOverBudgetAnswersTakeNoMode() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Grizzly Bears", me, ZoneType.Graveyard);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Season of Loss", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Season of Loss"))
+                .on("MODAL SPELL", p -> "PICKS: 3,3,3,3,3");
+        playAndResolve(seat(g, model, model), g, "Season of Loss");
+        Assert.assertEquals(rival.getLife(), 20, "no life lost: no mode was chosen");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).contains(bears), "no creature was sacrificed");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).anyMatch(c -> c.getName().equals("Season of Loss")),
+                "the spell was cast and resolved");
     }
 
     /** Escalate adds its cost for each mode beyond the first: the seat may choose as many modes as it can pay for, and no
@@ -1354,7 +1580,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r);
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "the Mountain tapped for mana");
+        playMade(ctrl, r.get(0), "the Mountain's mana");
         Assert.assertEquals(me.getManaPool().totalMana(), 1, "{R} floats");
         Assert.assertEquals(menu[0].split("ACTIVATE Mountain", -1).length - 1, 1, "one option per kind of land: " + menu[0]);
         Assert.assertTrue(menu[0].contains("ACTIVATE Island"), "the Island too");
@@ -1639,7 +1865,7 @@ public class GoldenChecksTest {
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "Fact or Fiction was offered at the reduced cost");
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("reduce the cost by")), "a reduction was asked while pricing");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "it was cast");
+        playMade(ctrl, r.get(0), "the cast");
         Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("reduce the cost by")), "the reduction was the seat's when paying");
         Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).allMatch(Card::isTapped), "paid with the two Islands");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
@@ -2005,7 +2231,7 @@ public class GoldenChecksTest {
         Assert.assertNotNull(r, "the Probe was not on the menu: " + PromptFidelityTest.promptWith(model, "DECISION:"));
         Assert.assertEquals(r.get(0).getHostCard().getName(), "Gitaxian Probe");
         int autos = ctrl.autoPicksCount();
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "the Probe was not paid for");
+        playMade(ctrl, r.get(0), "the Probe");
         Assert.assertEquals(me.getLife(), 18);
         // Paying with life was the only way: the harness paid it, so it says so with a tier=auto row (standards, #277).
         Assert.assertEquals(ctrl.autoPicksCount(), autos + 1, "the forced life payment left no auto row");
@@ -2094,6 +2320,38 @@ public class GoldenChecksTest {
         card("Lava Spike", me, ZoneType.Hand);
         ctrl.chooseSpellAbilityToPlay();
         Assert.assertTrue((Integer) ctrl.budget().get("routing_refusals") >= 1, String.valueOf(ctrl.budget()));
+    }
+
+    /** Issue #378: a puzzle attempt whose bridge was dead (a 402 when the credits ran out) was a plain failed row, and
+     *  PUZ pooled it. The row counts the decisions lost to a transport failure (bridge_down_decisions, the game line's
+     *  rule, issue #369), which puzzle_score.py refuses; a model that answered nothing is the model's and counts 0. */
+    @Test
+    public void aPuzzleRowCountsTheDecisionsADeadBridgeLost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        java.util.concurrent.atomic.AtomicBoolean transport = new java.util.concurrent.atomic.AtomicBoolean();
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) { return null; }   // no reply on every retry
+            @Override public boolean lastFailureWasTransport() { return transport.get(); }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.budget().get("bridge_down_decisions"), 0, "the row always carries the count");
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToWriter(new java.io.StringWriter(), "budget.jsonl");   // a clean flag, whatever ran before
+        try {
+            Assert.assertEquals(ctrl.budget().get("eval_log_write_failed"), false, "the row always says whether its log was whole (#427)");
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
+        }
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(ctrl.budget().get("bridge_down_decisions"), 0,
+                "a model that answered nothing lost its own decision: " + ctrl.budget());
+        transport.set(true);
+        card("Shock", me, ZoneType.Hand);
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertTrue((Integer) ctrl.budget().get("bridge_down_decisions") >= 1, String.valueOf(ctrl.budget()));
     }
 
     /** A bridge that reports no billing and fails its next ask still shows the last call's usage; the budget must not
@@ -2215,7 +2473,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        playMade(ctrl, r.get(0), "Green Sun's Zenith");
         while (!g.getStack().isEmpty()) g.getStack().resolveStack();
         List<String> picks = new ArrayList<>();
         for (String p : model.prompts) {
@@ -2284,7 +2542,7 @@ public class GoldenChecksTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the seat cast Green Sun's Zenith");
-        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        playMade(ctrl, r.get(0), "Green Sun's Zenith");
         while (!g.getStack().isEmpty()) g.getStack().resolveStack();
         Assert.assertEquals(picks[0], 2, "declined, kept searching, then picked");
         Assert.assertEquals(cancels[0], 1);
@@ -2549,6 +2807,27 @@ public class GoldenChecksTest {
                 .on("SPLICE", p -> "PICKS: 1").on("Choose the TARGET", choiceWith("Rival"));
         playAndResolve(seat(g, model, model), g, "Glacial Ray, splice unaffordable");
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("SPLICE")), "an unpayable splice was offered");
+    }
+
+    /** A splice SET is checked as a whole (#392): Glacial Ray and Desperate Ritual are each payable onto Lava Spike from
+     *  three Mountains, but not both ({2}{R}{R}{R}). The set was accepted, the cast failed and was undone, and Lava Spike
+     *  left the menu. Now the seat is asked again with the cost, and its payable set is cast. */
+    @Test
+    public void aSpliceSetThePoolCannotPayTogetherIsAskedAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain");
+        card("Lava Spike", me, ZoneType.Hand);
+        card("Glacial Ray", me, ZoneType.Hand);
+        card("Desperate Ritual", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("CAST Lava Spike"))
+                .on("SPLICE", p -> p.contains("more than you can pay") ? picks("Glacial Ray").apply(p) : "PICKS: 1,2")
+                .on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Lava Spike with a payable splice");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("costs more than you can pay, so it would not be cast")),
+                "the unpayable set was not asked again with its cost");
+        Assert.assertEquals(rival.getLife(), 15, "3 + 2 damage");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Lava Spike"), "Lava Spike was cast");
     }
 
     /** A coin flip's call, and the result kept; shield counters divided. */
@@ -3473,6 +3752,30 @@ public class GoldenChecksTest {
         Assert.assertEquals(LlmSpikeGui.finalWinner("A", false, null), "A");
         Assert.assertEquals(LlmSpikeGui.finalWinner("draw", false, "java.lang.StackOverflowError"), "invalid");
         Assert.assertEquals(LlmSpikeGui.finalWinner("B", true, null), "invalid");
+    }
+
+    /** A game the wall-clock cap stopped says so on its game line (#250): its winner is "invalid" and its win_condition
+     *  is whatever the engine held (a raw Draw, or nothing), so readers that count capped games had nothing to read
+     *  (latency_report.py's `capped`, line_compare.py's "cap" in win_condition). A finished game says false. */
+    @Test
+    public void aCappedGameLineSaysItWasCapped() throws Exception {
+        for (boolean capped : new boolean[] {true, false}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("capped-line");
+            LlmSpikeGui.EvalLog.closeForTest();
+            LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+            java.io.File file = LlmSpikeGui.EvalLog.currentFile();
+            try {
+                LlmSpikeGui.writeGameSummary(g, 7, 1000, 60000, capped);
+            } finally {
+                LlmSpikeGui.EvalLog.closeForTest();
+            }
+            String line = java.nio.file.Files.readAllLines(file.toPath()).stream()
+                    .filter(l -> l.startsWith("{\"t\":\"game\"")).findFirst().orElse("");
+            Assert.assertTrue(line.contains("\"capped\":" + capped), line);
+            Assert.assertTrue(line.contains("\"eval_log_write_failed\":false"), "the line says its log was whole (#427): " + line);
+            if (capped) Assert.assertTrue(line.contains("\"winner\":\"invalid\""), line);
+        }
     }
 
     /** runs/luna-v8/g2: every delve exiled the whole graveyard unasked ("delve(all)"), and a larger graveyard

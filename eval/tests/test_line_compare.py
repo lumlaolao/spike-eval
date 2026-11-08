@@ -41,6 +41,28 @@ class LineCompareTest(unittest.TestCase):
         self.assertAlmostEqual(lc.sign_test(8, 0), 2 / 256.0)       # 0.0078: eight discordant pairs, all one way
         self.assertAlmostEqual(lc.sign_test(6, 1), 16 / 128.0)
 
+    def test_a_capped_game_is_counted_from_its_capped_field(self):
+        # #250: a capped game line carries "capped": true; its win_condition is the engine's (a raw Draw).
+        with tempfile.TemporaryDirectory() as d:
+            for name, capped in (("game-1-1.jsonl", True), ("game-2-1.jsonl", False)):
+                with open(os.path.join(d, name), "w") as f:
+                    f.write(json.dumps({"t": "game", "seed": int(name[5]), "swap": False, "winner": "invalid" if capped else "A",
+                                        "turns": 9, "win_condition": "Draw", "capped": capped, "context_sha": "x"}) + "\n")
+            a = lc.arm(d)
+        self.assertEqual((a["games"], a["capped"]), (2, 1))
+
+    def test_an_unscorable_game_is_left_out_and_counted_apart(self):
+        # #430: a cut log or a dead bridge is not the model's play, so its winner is not a win.
+        with tempfile.TemporaryDirectory() as d:
+            for name, seed, extra in (("game-1-1.jsonl", 1, {}), ("game-2-1.jsonl", 2, {"eval_log_write_failed": True}),
+                                      ("game-3-1.jsonl", 3, {"bridge_down_decisions_a": 4})):
+                with open(os.path.join(d, name), "w") as f:
+                    f.write(json.dumps(dict({"t": "game", "seed": seed, "swap": False, "winner": "A", "turns": 9,
+                                             "context_sha": "x"}, **extra)) + "\n")
+            a = lc.arm(d)
+        self.assertEqual((a["games"], a["wins"], a["unscorable"]), (1, 1, 2))
+        self.assertEqual(sorted(a["result"]), [(1, False)])
+
     def test_option_labels_are_reduced_to_the_card(self):
         self.assertEqual(lc.name_of(FLASHBACK), "Cabal Therapy")
         self.assertEqual(lc.name_of("CAST Ajani, Nacatl Pariah 1/2 @3 1{W} [Ajani - Creature 1 / 2]"), "Ajani, Nacatl Pariah")

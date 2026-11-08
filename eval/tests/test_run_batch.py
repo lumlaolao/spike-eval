@@ -397,6 +397,45 @@ class TestProposeActions(unittest.TestCase):
         self.assertIn("--propose-actions", run_batch.propose_refusal(make_args(propose_terse=True)))
         self.assertIsNone(run_batch.propose_refusal(make_args(propose_actions=True, propose_terse=True)))
 
+    def test_the_forge_ai_profile_is_its_own_condition_and_empty_is_today_s_opponent(self):
+        # Issue #381: AI_PROFILE_A/B pick Forge's shipped profile for an ai seat; unset is the compiled AiProps defaults,
+        # the opponent every recorded STR-AI score met. Set only by --ai-profile-a/-b, never from the shell.
+        self.assertIn("AI_PROFILE_A", run_batch.CONDITION_ENV_KEYS)
+        self.assertIn("AI_PROFILE_B", run_batch.CONDITION_ENV_KEYS)
+        with mock.patch.dict(os.environ, {"AI_PROFILE_A": "Reckless", "AI_PROFILE_B": "Cautious"}, clear=False), \
+                tempfile.TemporaryDirectory() as d:
+            env = run_batch.build_env(make_args(controller_a="ai", controller_b="ai"), 7100, False, Path(d))
+            self.assertEqual((env["AI_PROFILE_A"], env["AI_PROFILE_B"]), ("", ""), "the shell's value is scrubbed")
+            env = run_batch.build_env(make_args(controller_a="ai", controller_b="ai", ai_profile_b=" Default "),
+                                      7100, False, Path(d))
+            self.assertEqual((env["AI_PROFILE_A"], env["AI_PROFILE_B"]), ("", "Default"))
+        # The flags exist and parse; they default to nothing.
+        ns = run_batch.build_parser().parse_args(["--seeds", "1", "--ai-profile-b", "Default"])
+        self.assertEqual((ns.ai_profile_a, ns.ai_profile_b), (None, "Default"))
+        # A game line from before the stamp, and one that stamps it empty, are the default arm; a profile is another.
+        default = run_batch.resume_expectation(make_args())
+        named = run_batch.resume_expectation(make_args(ai_profile_b="Default"))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), default))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, ai_profile_a="", ai_profile_b=""), default))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, ai_profile_b="Default"), default))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, ai_profile_b="Default"), named))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), named))
+        # A directory played under one never resumes under the other; a manifest from before the switch equals empty.
+        base = run_batch.batch_condition(make_args(controller_a="ai"), cited=False)
+        arm = run_batch.batch_condition(make_args(controller_a="ai", ai_profile_a="Reckless"), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, arm), [("ai_profile_a", "", "Reckless")])
+        old = {k: v for k, v in base.items() if not k.startswith("ai_profile_")}
+        self.assertEqual(run_batch.condition_diff(old, base), [])
+        # A profile on a seat that is no Forge AI is refused before a game starts (the JVM refuses it too).
+        self.assertIn("Forge AI seat", run_batch.ai_profile_refusal(make_args(controller_a="llm", ai_profile_a="Default")))
+        self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_a="llm", controller_b="ai", ai_profile_b="Default")))
+        self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_a="llm")))
+        # The benchmark's opponent is the compiled defaults: a profile is never a panel or a cited run.
+        for kw in ({"panel": "mirror"}, {"exploratory": False}):
+            msg = run_batch.ai_profile_refusal(make_args(controller_b="ai", ai_profile_b="Default", **kw))
+            self.assertIn("exploratory", msg or "", kw)
+        self.assertIsNone(run_batch.ai_profile_refusal(make_args(controller_b="ai", exploratory=False)))
+
     def test_the_refusal_notebook_is_its_own_condition_and_needs_the_arm(self):
         # PROPOSE_NOTEBOOK lists a game's earlier refused proposals in each proposal decision: set only by
         # --propose-notebook, never from the shell; a notebook game never resumes into a batch without it, or the reverse.
@@ -926,6 +965,100 @@ class TestResumeIdentity(unittest.TestCase):
             self.assertFalse(run_batch.has_game_line(d, 7101, False))
 
 
+    def test_a_game_that_lost_decisions_to_a_dead_bridge_is_set_aside_and_replayed(self):
+        # Issue #369: panel_score.py and rating.py refuse such a game and say "replay it"; a resume must do so,
+        # for a line that carries the count and for one from before it whose log shows the 402s.
+        log_402 = "".join("[OPENROUTER Seat/smart] HTTP 402: credits\n"
+                          "[Seat] [BRIDGE Seat/smart] no reply (attempt %d/3) -> restarting session\n" % n
+                          for n in (2, 3)) + "[OPENROUTER Seat/smart] HTTP 402: credits\n"
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7100-1000.jsonl", game_line(7100, False, bridge_down_decisions_a=3,
+                                                            bridge_down_decisions_b=0))
+            write_game(d, "game-7100-1001.jsonl", game_line(7100, True, bridge_down_decisions_a=0,
+                                                            bridge_down_decisions_b=0))
+            Path(d, "game-7100-0.log").write_text("the dead game's log\n")
+            Path(d, "game-7100-1.log").write_text("[EVAL] jsonl game-7100-1001.jsonl\nthe healthy game's log\n")
+            write_game(d, "game-7101-1000.jsonl", game_line(7101, False))         # before the field: the 402 run
+            Path(d, "game-7101-0.log").write_text(log_402)
+            write_game(d, "game-7101-1001.jsonl", game_line(7101, True))          # before it, model answered nothing
+            Path(d, "game-7101-1.log").write_text(log_402.replace("HTTP 402: credits", "non-answer -> bridge-down"))
+            combos = [(7100, False), (7100, True), (7101, False), (7101, True)]
+            todo, skipped, foreign = run_batch.plan_combos(d, combos, run_batch.resume_expectation(make_args()))
+            self.assertEqual((todo, skipped, foreign), ([(7100, False), (7101, False)], [(7100, True), (7101, True)], []))
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7100, True), [], "a healthy game stays")
+            moved = run_batch.set_aside_dead_bridge(d, 7100, False)
+            self.assertEqual(sorted(moved), ["bridgedown-swap0-game-7100-1000.jsonl", "bridgedown-swap0-game-7100-1000.log"])
+            self.assertTrue(Path(d, run_batch.CRASHED_DIR, "bridgedown-swap0-game-7100-1000.jsonl").is_file(),
+                            "kept, never deleted")
+            self.assertTrue(Path(d, "game-7100-1001.jsonl").is_file())
+            self.assertEqual(sorted(run_batch.set_aside_dead_bridge(d, 7101, False)),
+                             ["bridgedown-swap0-game-7101-1000.jsonl", "bridgedown-swap0-game-7101-1000.log"])
+            # The replay died the same way: its set-aside names do not collide with the first.
+            write_game(d, "game-7100-2000.jsonl", game_line(7100, False, bridge_down_decisions_a=1,
+                                                            bridge_down_decisions_b=0))
+            Path(d, "game-7100-0.log").write_text("the replay's log\n")
+            self.assertEqual(sorted(run_batch.set_aside_dead_bridge(d, 7100, False)),
+                             ["bridgedown-swap0-game-7100-2000.jsonl", "bridgedown-swap0-game-7100-2000.log"])
+            self.assertEqual(Path(d, run_batch.CRASHED_DIR, "bridgedown-swap0-game-7100-1000.log").read_text(),
+                             "the dead game's log\n")
+
+    def test_a_game_whose_log_failed_to_write_is_set_aside_and_replayed(self):
+        # Issue #427: aggregate.unscorable refuses a cut-log game, so a resume plays it again like a dead-bridge one.
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7300-1000.jsonl", game_line(7300, False, eval_log_write_failed=True))
+            write_game(d, "game-7300-1001.jsonl", game_line(7300, True, eval_log_write_failed=False))
+            Path(d, "game-7300-0.log").write_text("the cut game's log\n")
+            expect = run_batch.resume_expectation(make_args())
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "dead")
+            self.assertEqual(run_batch.combo_status(d, 7300, True, expect), "ok")
+            todo, skipped, foreign = run_batch.plan_combos(d, [(7300, False), (7300, True)], expect)
+            self.assertEqual((todo, skipped, foreign), ([(7300, False)], [(7300, True)], []))
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7300, True), [], "a whole log stays")
+            self.assertEqual(sorted(run_batch.set_aside_dead_bridge(d, 7300, False)),
+                             ["bridgedown-swap0-game-7300-1000.jsonl", "bridgedown-swap0-game-7300-1000.log"])
+
+    def test_the_file_judged_dead_is_the_one_set_aside_and_its_status_is_under_the_runs_condition(self):
+        # Round-4 review of #374: two old game files of one combo and one log naming the second; only the second is
+        # dead and moved. A dead game under the run's condition beside a healthy one of another is bridge-down, not
+        # a condition mismatch.
+        log_402 = "[EVAL] jsonl game-7200-2000.jsonl\n" + "".join(
+            "[OPENROUTER Seat/smart] HTTP 402: credits\n"
+            "[Seat] [BRIDGE Seat/smart] no reply (attempt %d/3) -> restarting session\n" % n for n in (2, 3)) \
+            + "[OPENROUTER Seat/smart] HTTP 402: credits\n"
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7200-1000.jsonl", game_line(7200, False))
+            write_game(d, "game-7200-2000.jsonl", game_line(7200, False))
+            Path(d, "game-7200-0.log").write_text(log_402)
+            moved = run_batch.set_aside_dead_bridge(d, 7200, False)
+            self.assertEqual(sorted(moved), ["bridgedown-swap0-game-7200-2000.jsonl", "bridgedown-swap0-game-7200-2000.log"])
+            self.assertTrue(Path(d, "game-7200-1000.jsonl").is_file(), "the healthy file stays")
+        with tempfile.TemporaryDirectory() as d:
+            # A dead game with no log of its own: only its file moves, never the other seat order's log.
+            write_game(d, "game-7201-1000.jsonl", game_line(7201, False, bridge_down_decisions_a=1,
+                                                            bridge_down_decisions_b=0))
+            Path(d, "game-7201-0.log").write_text("[EVAL] jsonl game-7201-5000.jsonl\nanother game's log\n")
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7201, False), ["bridgedown-swap0-game-7201-1000.jsonl"])
+            self.assertTrue(Path(d, "game-7201-0.log").is_file(), "another game's log stays")
+        with tempfile.TemporaryDirectory() as d:
+            # A resume under one condition never moves another condition's dead game.
+            write_game(d, "game-7202-1000.jsonl", game_line(7202, False, context_profile="v2-memory", memory_tools=True,
+                                                            bridge_down_decisions_a=1, bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7202, False, run_batch.resume_expectation(make_args())),
+                             [])
+            self.assertTrue(Path(d, "game-7202-1000.jsonl").is_file())
+        expect = run_batch.resume_expectation(make_args())
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "missing")
+            write_game(d, "game-7300-1000.jsonl", game_line(7300, False, context_profile="v2-memory", memory_tools=True,
+                                                            bridge_down_decisions_a=0, bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "foreign")
+            write_game(d, "game-7300-2000.jsonl", game_line(7300, False, bridge_down_decisions_a=2,
+                                                            bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "dead")
+            write_game(d, "game-7300-3000.jsonl", game_line(7300, False, bridge_down_decisions_a=0,
+                                                            bridge_down_decisions_b=0))
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "ok")
+
 class TestManifest(unittest.TestCase):
 
     def test_manifest_written_once_and_invocations_appended(self):
@@ -1229,6 +1362,30 @@ class TestCrashRerun(unittest.TestCase):
             self.assertEqual((r[2], len(calls)), ("nonzero-exit", 1))  # the budget stops the retry
             self.assertEqual(run_batch.play_with_retries(play(["ok"]), 5, False, self.out, 1, lambda: True)[2], "budget")
 
+    def test_a_game_played_on_a_dead_bridge_is_reported_as_such_and_not_played_again_at_once(self):
+        # Round-3 review of #374: a dead-bridge game read as "exited 0 but wrote no game line", which is retryable,
+        # so in a credit outage every game was set aside and played twice. It is its own status, not retried in the
+        # run (an outage would only repeat); a later --resume replays it (set_aside_dead_bridge).
+        line = game_line(5, False, bridge_down_decisions_a=4, bridge_down_decisions_b=0)
+
+        def fake_run(*a, **kw):
+            (self.out / "game-5-900.jsonl").write_text(json.dumps(line) + "\n")
+            return mock.Mock(returncode=0)
+
+        args = make_args()
+        args.forge_home, args.cap_minutes = self.out, 0
+        with mock.patch.object(run_batch, "log") as logged, mock.patch.object(run_batch, "build_env", return_value={}), \
+                mock.patch.object(run_batch.subprocess, "run", side_effect=fake_run):
+            r = run_batch.run_one(args, 5, False, self.out)
+            self.assertEqual(r[2], "bridge-down")
+            self.assertTrue(any("dead model bridge" in str(c) for c in logged.call_args_list), logged.call_args_list)
+            self.assertNotIn("bridge-down", run_batch.RETRYABLE)
+            calls = []
+            r = run_batch.play_with_retries(lambda: calls.append(1) or (5, False, "bridge-down", 0), 5, False,
+                                            self.out, 1, lambda: False)
+            self.assertEqual((r[2], len(calls)), ("bridge-down", 1))
+        self.assertTrue((self.out / "game-5-900.jsonl").is_file(), "kept for the resume to set aside")
+
     def test_a_set_aside_attempt_still_counts_against_the_budget_once(self):
         self.crash(3, 0, "game-3-1.jsonl")
         prices = {"x/y": {"prompt": 1.0, "completion": 1.0}}
@@ -1238,4 +1395,4 @@ class TestCrashRerun(unittest.TestCase):
             self.assertAlmostEqual(run_batch.spent_usd(self.out), before)
             self.assertGreater(before, 0)
             self.assertAlmostEqual(run_batch.spent_usd_tree(self.out), before)
-            self.assertEqual(run_batch.attempt_jsonl(self.out / "crashed" / "attempt1-swap0-game-3-0.log"), "game-3-1.jsonl")
+            self.assertEqual(run_batch.log_game_file(self.out / "crashed" / "attempt1-swap0-game-3-0.log"), "game-3-1.jsonl")

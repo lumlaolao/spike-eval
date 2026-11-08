@@ -3,13 +3,13 @@ package forge.spike;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import forge.LobbyPlayer;
-import forge.ai.LobbyPlayerAi;
 import forge.deck.Deck;
 import forge.game.Game;
 import forge.game.GameEndReason;
@@ -20,8 +20,10 @@ import forge.game.GameRules;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
+import forge.game.player.Player;
 import forge.game.player.PlayerOutcome;
 import forge.game.player.RegisteredPlayer;
+import forge.game.trigger.Trigger;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.puzzle.Puzzle;
 import forge.localinstance.properties.ForgeConstants;
@@ -182,6 +184,63 @@ public final class LlmSpikePuzzle {
         LlmSpikeGui.puzzleBrief = seatBrief(sections, puzzle.getGoalDescription());
     }
 
+    /** The zones of the solver's own cards its YOUR CARDS block lists: the ones it can see. Its library is not one (an
+     *  author's library is the solver's hidden draw, and Forge keeps its order), nor is the opponent's side. The
+     *  per-decision block reads the same zones in play (SeatObservation.OWN_SEEN_ZONES), with the stack added. */
+    private static final java.util.Set<String> SEEN_ZONES =
+            java.util.Set.of("hand", "battlefield", "play", "graveyard", "exile", "command");
+
+    /** What the solver's seat is told about its own cards (#391): the YOUR CARDS block a game seat gets from its deck
+     *  (LlmSpikeGui.cardText, Forge's card database), here from the cards the [state] section puts on the solver's side
+     *  (p0, or "human": the zones it controls) in the zones it can see, with each card's type line. A face-down card is
+     *  listed only on the battlefield or foretold (CR 406.3: a face-down exiled card is hidden unless an effect lets its
+     *  owner look). Cards it sees later are SeatObservation's (YOUR CARDS SINCE THE START). DECKLIST=0, the game seat's
+     *  gate, gives none; so does a [state] it cannot read (logged). */
+    static String solverPlan(Map<String, List<String>> sections) {
+        if ("0".equals(LlmSpikeGui.env("DECKLIST"))) return "";
+        try {
+            Deck own = new Deck();
+            List<String> state = sections.get("state");
+            if (state != null) for (String line : state) {
+                String[] kv = line.split("=", 2);
+                if (kv.length != 2) continue;
+                String key = kv[0].trim().toLowerCase();
+                String zone = key.startsWith("p0") ? key.substring(2) : key.startsWith("human") ? key.substring(5) : null;
+                if (zone == null || !SEEN_ZONES.contains(zone)) continue;
+                boolean onBattlefield = zone.equals("battlefield") || zone.equals("play");
+                for (String element : kv[1].split(";")) {
+                    String[] parts = element.split("\\|");
+                    String name = parts[0].trim();
+                    if (name.isEmpty() || name.toLowerCase().startsWith("t:")) continue;   // a token: no database card
+                    boolean faceDown = false, foretold = false;
+                    for (int i = 1; i < parts.length; i++) {
+                        faceDown |= parts[i].trim().startsWith("FaceDown");
+                        foretold |= parts[i].trim().startsWith("Foretold");
+                    }
+                    if (faceDown && !onBattlefield && !foretold) continue;
+                    forge.item.PaperCard pc = forge.StaticData.instance().getCommonCards().getCard(name);
+                    if (pc != null) own.getMain().add(pc);
+                }
+            }
+            String text = LlmSpikeGui.cardText(own, true);
+            return text.isEmpty() ? "" : "YOUR CARDS (what each of your cards in this puzzle does; your library is not listed):\n" + text;
+        } catch (Exception e) {
+            System.out.println("[PUZZLE] the solver's YOUR CARDS could not be built (" + e + "): none");
+            return "";
+        }
+    }
+
+    /** The solver's seat, as playOnce seats it: its plan is {@link #solverPlan}. */
+    static LobbyPlayer solverSeat(Map<String, List<String>> sections, String ctlA, String smartA, String fastA) {
+        return LlmSpikeGui.seatFor(ctlA, "Solver", solverPlan(sections), smartA, fastA);
+    }
+
+    /** The opponent's seat, as playOnce seats it: AI_PROFILE_B names a Forge AI opponent's profile (empty: the compiled
+     *  defaults, the opponent PUZ always met; puzzle_solve.py strips the names). */
+    static LobbyPlayer opponentSeat(String ctlB, String smartA, String fastA) {
+        return LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA, LlmSpikeGui.env("AI_PROFILE_B"));
+    }
+
     /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
      *  .pzl's), the named cards Forge's setup drops, and on the Puzzle Goal card the brief the solver's prompt
      *  reads (LlmSpikeGui.puzzleBrief, set by {@link #briefSolver}), so the two cannot differ. */
@@ -190,12 +249,28 @@ public final class LlmSpikePuzzle {
         try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
         restoreNamedCards(puzzle);
         tellGoalCard(game, LlmSpikeGui.puzzleBrief);
+        LlmSpikeGui.puzzleLastTurn = lastTurn(game);
+    }
+
+    /** The last turn the game can be played in, from the Puzzle Goal card's turn trigger (Puzzle.addGoalEnforcement):
+     *  the turn whose cleanup the solver loses at, or the turn before the upkeep it wins at (Survive). -1 when no
+     *  trigger counts turns ("win before opponent's next turn", a permanent goal with no limit). */
+    static int lastTurn(Game game) {
+        for (Player p : game.getPlayers())
+            for (Card c : p.getZone(ZoneType.Command))
+                if ("Puzzle Goal".equals(c.getName()))
+                    for (Trigger t : c.getTriggers())
+                        if (t.hasParam("TurnCount")) {
+                            int n = Integer.parseInt(t.getParam("TurnCount"));
+                            return "Upkeep".equalsIgnoreCase(t.getParam("Phase")) ? n - 1 : n;
+                        }
+        return -1;
     }
 
     /** Forge writes its whole goal description on the Puzzle Goal card, which `inspect` reads: the card gets the
      *  solver's brief, so a rules puzzle's name and "Goal: Survive" stay hidden there too. */
     static void tellGoalCard(Game game, String brief) {
-        for (forge.game.player.Player p : game.getPlayers())
+        for (Player p : game.getPlayers())
             for (Card c : p.getZone(ZoneType.Command))
                 if ("Puzzle Goal".equals(c.getName())) c.setOracleText(brief);
     }
@@ -385,6 +460,12 @@ public final class LlmSpikePuzzle {
         // The prover: both seats on the search arm, or a written line (ScriptBridge) against the search opponent, which
         // then proves that one fixed line beats every reply the engine offers (HARD-PUZZLES.md section 4, item 2).
         boolean writtenSolver = "llm".equals(ctlA) && smartA.startsWith(ScriptBridge.PREFIX);
+        // Step regret: a recorded attempt replayed for its first REPLAY_HANDOVER decision rows, then searched.
+        if ("llm".equals(ctlA) && smartA.startsWith(ReplayBridge.PREFIX) && System.getenv("REPLAY_HANDOVER") != null) {
+            stepSearchMain(file, id, sections, bounded, pzlSha, ctlB, smartA, capMs);
+            LlmSpikeGui.EvalLog.closeForTest();
+            System.exit(0);
+        }
         if ("search".equals(ctlA) || (writtenSolver && "search".equals(ctlB))) {
             search(file, id, sections, goal, bounded, pzlSha, ctlA, ctlB, smartA, fastA, capMs);
             LlmSpikeGui.EvalLog.closeForTest();
@@ -582,9 +663,8 @@ public final class LlmSpikePuzzle {
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
-        LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", "", smartA, fastA);
-        LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
-                : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
+        LobbyPlayer solverSeat = solverSeat(sections, ctlA, smartA, fastA);
+        LobbyPlayer oppSeat = opponentSeat(ctlB, smartA, fastA);
         RegisteredPlayer solver = new RegisteredPlayer(new Deck()).setPlayer(solverSeat);
         solver.setStartingHand(0);
         RegisteredPlayer opp = new RegisteredPlayer(new Deck()).setPlayer(oppSeat);
@@ -611,7 +691,11 @@ public final class LlmSpikePuzzle {
         // would not be the recorded game (the poll below is the backstop).
         if (replay != null) replay.onDrift = () -> game.setGameOver(GameEndReason.Draw);
         LlmSpikeGui.ForkHook hookBefore = LlmSpikeGui.FORK_HOOK;
-        if (replay != null) LlmSpikeGui.FORK_HOOK = (i, p, seat, type, n, choice, opts) -> replay.onDecisionRow(seat, type, n, choice, opts);
+        // The draws made so far go with each row: a step search's first row after the handover must follow one draw.
+        if (replay != null) LlmSpikeGui.FORK_HOOK = (i, p, seat, type, n, choice, opts) -> {
+            PuzzleArms.Line l = PuzzleArms.searchLine;
+            replay.onDecisionRow(seat, type, n, choice, opts, l == null ? -1 : l.taken.size());
+        };
         try {
             if (rollout == 0 && !quiet) System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
             if (!quiet) System.out.println("[PZL] solver=" + ctlA + " opponent=" + ctlB + " seed=" + seed
@@ -740,6 +824,11 @@ public final class LlmSpikePuzzle {
             pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
             pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.entries = entries; pl.healthy = !worker.isAlive();
             pl.acceptanceFailed = acceptanceFailed;
+            if (replay != null && !replay.reproduced())
+                pl.replayDrift = replay.drift != null ? replay.drift
+                        : replay.handover >= 0 ? "the game ended after " + replay.report().get("replay_rows_matched")
+                                + " of the " + replay.handover + " decision rows before the handover"
+                        : "the recording was not played to its end";
             return pl;
         } finally {
             if (replay != null) LlmSpikeGui.FORK_HOOK = hookBefore;
@@ -761,6 +850,8 @@ public final class LlmSpikePuzzle {
         boolean solved, tainted, goalInstalled, healthy;
         /** Null without an [acceptance] section; else the conditions that did not hold (empty: accepted). */
         List<String> acceptanceFailed;
+        /** A replay seat's game that was not the recorded one (ReplayBridge), or null. */
+        String replayDrift;
         String goalOracle = "";
         int turns = -1;
         long durMs;
@@ -947,6 +1038,283 @@ public final class LlmSpikePuzzle {
         return po == null || po.loseConditionSpell == null ? "" : po.loseConditionSpell;
     }
 
+    // ==================== STEP REGRET (step 2): a recorded attempt, handed to the search arm at K ====================
+
+    /** One position of a recorded attempt: the seat's first {@code k} decision rows replayed (ReplayBridge), the rest of
+     *  the game searched (PuzzleSearch) against the recorded opponent arm, Forge AI, on the recorded seed. */
+    static final class StepResult {
+        int k;
+        /** proven | unwinnable (every line played, none capped) | not_found | drift; null for a probe. */
+        String verdict;
+        int replays, capped, budget;
+        boolean exhausted;
+        String line = "", drift, refused;
+        /** The forced option of the first decision after the handover (REPLAY_FORCE), or null. */
+        Integer forced;
+        /** The probe: the first decision after the handover, its draw's bound and the recording's value in it. */
+        int bound = -1, modelValue = -1;
+        String firstType;
+        List<String> firstOptions;
+        List<String> actions = new ArrayList<>();
+        long ms;
+
+        Map<String, Object> toMap() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("k", k);
+            if (verdict != null) m.put("verdict", verdict);
+            if (forced != null) m.put("forced", forced);
+            m.put("replays", replays);
+            m.put("budget", budget);
+            m.put("capped_rollouts", capped);
+            m.put("exhausted", exhausted);
+            m.put("line", line);
+            m.put("actions", actions);
+            if (drift != null) m.put("drift", drift);
+            if (refused != null) m.put("refused", refused);
+            if (bound >= 0) { m.put("bound", bound); m.put("model_value", modelValue); }
+            if (firstType != null) { m.put("first_type", firstType); m.put("first_options", firstOptions); }
+            m.put("duration_ms", ms);
+            return m;
+        }
+
+        @Override public String toString() { return toMap().toString(); }
+    }
+
+    /** The search arm's value for a recorded index-encoded row's {@code choice} under a draw of {@code bound}: PASS or a
+     *  decline (-1) is the last value (PlayerControllerLLM: play draws over passIdx, PASS last; decideOne over the
+     *  options plus the decline). */
+    static int stepValue(int choice, int bound) { return choice >= 0 ? choice : bound - 1; }
+
+    /** Runs {@code body} with the handover set and the game log on (a discarded sink when it was off): the replay checks
+     *  every row through the fork hook, which only a written row reaches. */
+    private static <T> T withHandover(int k, java.util.concurrent.Callable<T> body) throws Exception {
+        boolean logWasOn = LlmSpikeGui.EvalLog.on();
+        if (!logWasOn) LlmSpikeGui.EvalLog.initDiscard();
+        ReplayBridge.HANDOVER = k;
+        try { return body.call(); }
+        finally {
+            ReplayBridge.HANDOVER = -1;
+            if (!logWasOn) LlmSpikeGui.EvalLog.closeForTest();
+        }
+    }
+
+    /** Null when the first decision after the handover is the recording's row K+1 asked the same way: its type, menu
+     *  size and options, answered by one search draw (a multi-pick may take more). The seat switches inside row K's
+     *  write, so the rest of that hook already runs the arm's branches (no yield, no CANCEL, no action intent): a
+     *  different first decision means the position searched is not the recorded one. A handover at or past the
+     *  recording's last row has no row K+1 to check. */
+    static String firstAfterMismatch(ReplayBridge rb) {
+        if (rb == null) return "no replay seat in the rollout";
+        int k = rb.handover;
+        if (k < 0 || k >= rb.rows.size()) return null;
+        ReplayBridge.Row rec = rb.rows.get(k), live = rb.firstAfter;
+        if (live == null) return "the game ended before the first decision after the handover (the recording's row " + (k + 1) + ")";
+        if (!rec.type.equals(live.type) || rec.n != live.n || !rec.options.equals(live.options))
+            return "the first decision after the handover is " + live + ", the recording's row " + (k + 1) + " was " + rec;
+        // A multi-pick may take several draws (at most its menu size); a draw beyond that was made in the rest of row K's hook.
+        if (rec.multi ? rb.drawsAtFirstAfter > rec.n : rb.drawsAtFirstAfter != 1)
+            return "the first decision after the handover took " + rb.drawsAtFirstAfter + " search draws, not "
+                    + (rec.multi ? "at most " + rec.n : "one");
+        return null;
+    }
+
+    /** One step-search rollout: the replay seat to row k, then the search arm drawing from {@code line}. With
+     *  {@code checkFirst} a rollout whose first decision after the handover is not the recording's is a drift
+     *  ({@link #firstAfterMismatch}); the probe reports that itself, as a refusal. */
+    private static PuzzleSearch.Rollout stepRollout(File file, String id, Map<String, List<String>> sections, boolean bounded,
+                                                    String spec, long seed, long capMs, int rollout, PuzzleArms.Line line,
+                                                    int[] capped, ReplayBridge[] bridge, boolean checkFirst) {
+        Played p;
+        try {
+            p = replay(file, id, sections, "llm", "ai", spec, spec, seed, capMs, rollout, bounded, line);
+        } catch (Exception e) {
+            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout threw: " + e);
+        }
+        ReplayBridge rb = replayLine(p.game);
+        if (bridge != null) bridge[0] = rb;
+        if (p.replayDrift != null) return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "replay: " + p.replayDrift);
+        if (!p.healthy) return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout hit the wall-clock cap");
+        String first = checkFirst ? firstAfterMismatch(rb) : null;
+        if (first != null) return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "replay: " + first);
+        // A capped line is counted lost, as the search arm counts it; a position is then never called unwinnable.
+        if ("invalid".equals(p.status) || line.stopped()) capped[0]++;
+        boolean solved = !line.stopped() && p.cleanSolve();
+        return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift,
+                String.join("\n", solverActions(p.logLines, "Solver")));
+    }
+
+    /** The first decision after the handover at {@code k}, as one rollout with no prefix finds it: its draw's bound and
+     *  the recorded value in it, or why it cannot be forced (v1: a play or single-choice decision, one draw, the
+     *  recorded row's type and options). */
+    static StepResult stepProbe(File file, String id, Map<String, List<String>> sections, boolean bounded, String spec,
+                                long seed, int k, long capMs) throws Exception {
+        return withHandover(k, () -> probe(file, id, sections, bounded, spec, seed, k, capMs));
+    }
+
+    private static StepResult probe(File file, String id, Map<String, List<String>> sections, boolean bounded, String spec,
+                                    long seed, int k, long capMs) {
+        StepResult r = new StepResult();
+        r.k = k;
+        long t0 = System.currentTimeMillis();
+        ReplayBridge[] b = {null};
+        PuzzleSearch.Rollout ro = stepRollout(file, id, sections, bounded, spec, seed, capMs, 0,
+                new PuzzleArms.Line(new ArrayList<>(), 0L), new int[1], b, false);
+        r.replays = 1;
+        r.ms = System.currentTimeMillis() - t0;
+        if (ro.drift != null) { r.drift = ro.drift; return r; }
+        ReplayBridge rb = b[0];
+        ReplayBridge.Row live = rb == null ? null : rb.firstAfter;
+        ReplayBridge.Row rec = rb == null || k >= rb.rows.size() ? null : rb.rows.get(k);
+        if (live == null || rec == null || ro.steps.isEmpty()) {
+            r.refused = "no decision after the handover to force (" + (rec == null ? "the recording has none" : "the arm drew none") + ")";
+            return r;
+        }
+        r.firstType = live.type;
+        r.firstOptions = live.options;
+        PuzzleArms.Step first = ro.steps.get(0);
+        r.bound = first.bound;
+        if (rec.multi) r.refused = "the recorded decision " + (k + 1) + " is a multi-pick (" + rec.type + "): v1 forces one choice";
+        else if (!rec.type.equals(live.type) || rec.n != live.n || !rec.options.equals(live.options))
+            r.refused = "the first decision after the handover is " + live + ", the recording's was " + rec;
+        else if (rb.drawsAtFirstAfter != 1 || !"Solver".equals(first.seat))
+            r.refused = "the first decision after the handover took " + rb.drawsAtFirstAfter + " draws (one is forced)";
+        else if (first.bound != rec.n && first.bound != rec.n + 1)
+            r.refused = "the draw's bound " + first.bound + " is not the recorded menu's " + rec.n + " (or with its decline)";
+        else if (stepValue(live.choice, first.bound) != first.value)
+            r.refused = "the draw " + first + " is not the row's choice " + live.choice;
+        else r.modelValue = stepValue(rec.choice, first.bound);
+        return r;
+    }
+
+    /** Test seam: run once between the search and the replay of its witness line (null in play). */
+    static Runnable BEFORE_WITNESS;
+
+    /** The position after the seat's first {@code k} decision rows of the recording {@code spec}, searched with
+     *  {@code budget} rollouts; with {@code force}, the first decision after it is forced to that value (its bound from
+     *  {@link #stepProbe}). Unwinnable only when every line was played and none was capped. */
+    static StepResult stepSearch(File file, String id, Map<String, List<String>> sections, boolean bounded, String spec,
+                                 long seed, int k, Integer force, int budget, int lines, long capMs) throws Exception {
+        return stepSearch(file, id, sections, bounded, spec, seed, k, force, null, budget, lines, capMs);
+    }
+
+    /** As above with the forced decision's {@code given} probe already made (null: made here), so forcing every option
+     *  (REPLAY_FORCE=all) probes once. */
+    static StepResult stepSearch(File file, String id, Map<String, List<String>> sections, boolean bounded, String spec,
+                                 long seed, int k, Integer force, StepResult given, int budget, int lines, long capMs)
+            throws Exception {
+        return withHandover(k, () -> {
+            long t0 = System.currentTimeMillis();
+            StepResult r = new StepResult();
+            r.k = k;
+            r.forced = force;
+            r.budget = budget;
+            PuzzleArms.Step forced = null;
+            int extra = 0;
+            if (force != null) {
+                StepResult pr = given != null ? given : probe(file, id, sections, bounded, spec, seed, k, capMs);
+                extra = given != null ? 0 : pr.replays;
+                r.bound = pr.bound; r.modelValue = pr.modelValue; r.firstType = pr.firstType; r.firstOptions = pr.firstOptions;
+                if (pr.drift != null || pr.refused != null || force < 0 || force >= pr.bound) {
+                    r.verdict = pr.drift != null ? "drift" : "refused";
+                    r.drift = pr.drift;
+                    r.refused = pr.refused != null ? pr.refused : pr.drift != null ? null : "force " + force + " is outside 0.." + (pr.bound - 1);
+                    r.replays = extra;
+                    r.ms = System.currentTimeMillis() - t0;
+                    return r;
+                }
+                forced = new PuzzleArms.Step("Solver", pr.bound, force);
+            }
+            final PuzzleArms.Step f = forced;
+            final int[] n = {0};
+            final int[] capped = {0};
+            PuzzleSearch.Game g = (prefix, completionSeed) -> {
+                List<PuzzleArms.Step> full = new ArrayList<>(prefix);
+                if (f != null) full.add(0, f);
+                PuzzleSearch.Rollout ro = stepRollout(file, id, sections, bounded, spec, seed, capMs, n[0]++,
+                        new PuzzleArms.Line(full, completionSeed), capped, null, true);
+                if (f == null) return ro;
+                // The forced draw is the search's root, not one of its choices.
+                if (ro.drift == null && (ro.steps.isEmpty() || !ro.steps.get(0).equals(f)))
+                    return new PuzzleSearch.Rollout(ro.steps, false, "the forced draw " + f + " was not the first one");
+                return new PuzzleSearch.Rollout(new ArrayList<>(ro.steps.subList(Math.min(1, ro.steps.size()), ro.steps.size())),
+                        ro.solved, ro.drift, ro.actions);
+            };
+            PuzzleSearch.Result res = new PuzzleSearch(g, "Solver", budget, lines, seed).prove();
+            r.replays = res.replays + extra;
+            r.capped = capped[0];
+            r.exhausted = res.exhausted;
+            r.drift = res.drift;
+            r.verdict = res.verdict == PuzzleSearch.Verdict.DRIFT ? "drift" : res.verdict == PuzzleSearch.Verdict.PROVEN ? "proven"
+                    : res.exhausted && capped[0] == 0 ? "unwinnable" : "not_found";
+            if (res.line != null) {
+                List<PuzzleArms.Step> main = new ArrayList<>(res.line);
+                if (f != null) main.add(0, f);
+                r.line = PuzzleSearch.lineText(main);
+                // The witness, replayed: it must solve again (the search arm's own check on its main line).
+                Runnable hook = BEFORE_WITNESS;
+                if (hook != null) hook.run();
+                PuzzleSearch.Rollout again = stepRollout(file, id, sections, bounded, spec, seed, capMs, n[0]++,
+                        new PuzzleArms.Line(main, 0L), new int[1], null, true);
+                r.replays++;
+                if (!again.solved || again.drift != null) {
+                    r.verdict = "drift";
+                    r.drift = "the witness line did not solve again" + (again.drift == null ? "" : ": " + again.drift);
+                }
+                if (again.actions != null && !again.actions.isEmpty())
+                    r.actions = new ArrayList<>(java.util.Arrays.asList(again.actions.split("\n")));
+            }
+            r.ms = System.currentTimeMillis() - t0;
+            return r;
+        });
+    }
+
+    /** CONTROLLER_A=llm with a replay: spec and REPLAY_HANDOVER=K: one step-search row per search, in
+     *  {@code step-search.jsonl} under EVAL_OUT (never puzzle-results.jsonl: this is no attempt). REPLAY_FORCE=o forces
+     *  the first decision after K to o, REPLAY_FORCE=all to each of its options in turn, REPLAY_FORCE=probe only finds
+     *  that decision. PZL_SEARCH_BUDGET / PZL_SEARCH_LINES as for the search arm; the seed is PZL_SEEDS' first. */
+    static void stepSearchMain(File file, String id, Map<String, List<String>> sections, boolean bounded, String pzlSha,
+                               String ctlB, String spec, long capMs) throws Exception {
+        if (!"ai".equals(ctlB))
+            throw new IllegalArgumentException("a step search plays the recorded opponent arm, Forge AI (CONTROLLER_B=ai), not " + ctlB);
+        List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
+        final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
+        int k = Integer.parseInt(System.getenv("REPLAY_HANDOVER").trim());
+        int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
+        int lines = intOr(System.getenv().getOrDefault("PZL_SEARCH_LINES", "32"), 32);
+        String force = System.getenv().getOrDefault("REPLAY_FORCE", "").trim();
+        List<StepResult> out = new ArrayList<>();
+        if (force.isEmpty()) out.add(stepSearch(file, id, sections, bounded, spec, seed, k, null, budget, lines, capMs));
+        else {
+            StepResult pr = stepProbe(file, id, sections, bounded, spec, seed, k, capMs);
+            if ("probe".equals(force) || pr.drift != null || pr.refused != null) out.add(pr);
+            else {
+                List<Integer> forces = new ArrayList<>();
+                if ("all".equals(force)) for (int o = 0; o < pr.bound; o++) forces.add(o);
+                else forces.add(Integer.parseInt(force));
+                for (Integer o : forces) out.add(stepSearch(file, id, sections, bounded, spec, seed, k, o, pr, budget, lines, capMs));
+                // The probe's replay is in no row of its own: the first forced row carries it.
+                out.get(0).replays += pr.replays;
+            }
+        }
+        String dir = System.getenv("EVAL_OUT");
+        for (StepResult r : out) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("schema", "step-search-v1");
+            row.put("id", id);
+            row.put("pzl_sha256", pzlSha);
+            row.put("seed", seed);
+            row.put("source", spec.substring(ReplayBridge.PREFIX.length()));
+            row.put("replay_version", ReplayBridge.VERSION);
+            row.put("harness_epoch", LlmSpikeGui.HARNESS_EPOCH);
+            row.put("search_lines_per_point", lines);
+            row.putAll(r.toMap());
+            String json = toJson(row);
+            System.out.println("STEP_RESULT " + json);
+            if (dir == null || dir.isEmpty()) continue;
+            appendTo(new File(dir), "step-search.jsonl", json);
+        }
+    }
+
     /** One JSONL row per puzzle into $EVAL_OUT/puzzle-results.jsonl. Additive-only schema, same
      *  contract as the match summaries: consumers read via .get(). */
     static void writeRow(String id, File file, String status, boolean solved, int turns,
@@ -992,15 +1360,34 @@ public final class LlmSpikePuzzle {
         String line = toJson(row);
         System.out.println("PZL_RESULT " + line);
         if (out == null || out.isEmpty()) return;
+        appendTo(new File(out), "puzzle-results.jsonl", line);
+    }
+
+    /** One row appended to dir/file, the directory made if need be. A failure to open, write or close it is one
+     *  `[PUZZLE] write failed` line on stdout (issue #430), not a `[PZL] could not write` line nothing reads. */
+    static boolean appendTo(File dir, String file, String line) {
+        boolean[] said = new boolean[1];
         try {
-            File dir = new File(out);
-            if (!dir.exists()) dir.mkdirs();
-            try (PrintWriter pw = new PrintWriter(new FileWriter(new File(dir, "puzzle-results.jsonl"), true))) {
-                pw.println(line);
+            dir.mkdirs();
+            try (Writer w = new FileWriter(new File(dir, file), true)) {
+                said[0] = !appendRow(w, line, file);
+                return !said[0];
             }
-        } catch (Exception e) {
-            System.out.println("[PZL] could not write EVAL_OUT row: " + e);
+        } catch (Exception e) {      // open or close: appendRow has already said a write that failed
+            if (!said[0]) System.out.println("[PUZZLE] write failed: a row of " + file + " did not reach the disk and is missing from it: " + e);
+            return false;
         }
+    }
+
+    /** One row to `w`, and false (after one `[PUZZLE] write failed` line on stdout) when it did not reach it. A bare
+     *  PrintWriter swallows the IOException of a full disk, so the row would be missing with nothing said (issue #430);
+     *  checkError flushes, so a failure in the buffered tail is seen too. puzzle_baselines.write_failures reads the line. */
+    static boolean appendRow(Writer w, String line, String file) {
+        PrintWriter pw = new PrintWriter(w);
+        pw.println(line);
+        if (!pw.checkError()) return true;
+        System.out.println("[PUZZLE] write failed: a row of " + file + " did not reach the disk and is missing from it");
+        return false;
     }
 
     static String toJson(Map<String, Object> m) {

@@ -173,12 +173,144 @@ PROVENANCE_FIELDS = (
     ("propose_audit", False),
     # PROPOSE_TERSE (harness-epoch-80): a rules refusal said only "ILLEGAL", not the rule; every line before it did.
     ("propose_terse", False),
+    # The Forge AI profile each identity's ai / ai-log seat played (AI_PROFILE_A / _B, issue #381). "" is the compiled
+    # AiProps defaults, the opponent of every game before the stamp, so an old line and an empty stamp pool.
+    ("ai_profile_a", ""),
+    ("ai_profile_b", ""),
     # PROPOSE_NOTEBOOK (harness-epoch-81): a proposal decision listed the game's earlier refusals; no line before it did.
     ("propose_notebook", False),
     # SHADOW_AI asks Forge's AI on the side for a label (a DAgger corpus). Its targets are reset before the seat's cast
     # and the RNG restored, but an AI timeout weakens that isolation ([SHADOW] ... WEAKENED): a condition (#345).
     ("shadow_ai", False),
 )
+
+# Decisions lost to a dead model bridge, per identity (issue #369; the rule and its reasons:
+# docs/harness/ARCHITECTURE.md, "A game the model's bridge did not play is not scored").
+# (a puzzle row carries one count, `bridge_down_decisions`: lost_decisions reads it the same way)
+BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b", "bridge_down_decisions")
+# A line from before the fields is judged by its log (log_bridge_down): an ask's last attempt is the outcome line after
+# "[BRIDGE <label>] no reply (attempt N/N)" and before that seat's next line; _TRANSPORT is HttpDeadline.transportError
+# and gaveNoReply in the bridges' log words, and an outcome followed by an _ANSWERED_STATUS line was the provider's
+# answer.
+_LAST_ATTEMPT = re.compile(r"\[BRIDGE ([^\]]+)\] no reply \(attempt (\d+)/(\d+)\)")
+_OUTCOME = re.compile(r"^\[(?:OPENROUTER|JEV) ([^\]]+)\] (.*)$")
+_SEAT_LINE = re.compile(r"^\[([^\]]+)\] ")
+_TRANSPORT = re.compile(r"^(?:\[JEV-NO-ANSWER\] )?(?:HTTP \d+|stalled connection|"
+                        r"error: java\.net\.http\.HttpConnectTimeoutException|"
+                        r"error: javax?\.(?:net|io|nio)\.(?!http\.HttpTimeoutException|UncheckedIOException)|"
+                        r"no response within .*\((?:no-headers|silent)\))")
+_ANSWERED_STATUS = ("[ROUTING-FILTER]", "[NATIVE-TOOLS->TEXT]")
+_EVAL_JSONL = re.compile(r"\[EVAL\] jsonl (game-[0-9-]+\.jsonl)\s*$")
+
+
+def log_bridge_down(text):
+    """Decisions a game log shows lost to the transport (the rule above)."""
+    lines = text.splitlines()
+    pending, lost = {}, 0                       # bridge label -> its seat, awaiting the last attempt's outcome
+    for i, line in enumerate(lines):
+        m = _LAST_ATTEMPT.search(line)
+        if m:
+            pending.pop(m.group(1), None)
+            if m.group(2) == m.group(3):
+                pending[m.group(1)] = m.group(1).rsplit("/", 1)[0]
+            continue
+        m = _OUTCOME.match(line)
+        if not m:
+            seat = _SEAT_LINE.match(line)
+            if seat:                            # the seat moved on: its last attempt printed no outcome
+                for label in [k for k, v in pending.items() if v == seat.group(1)]:
+                    del pending[label]
+            continue
+        label, rest = m.group(1), m.group(2)
+        if pending.pop(label, None) is None:
+            continue
+        if _TRANSPORT.match(rest):
+            nxt = _OUTCOME.match(lines[i + 1]) if i + 1 < len(lines) else None
+            if not (nxt and nxt.group(1) == label and nxt.group(2).startswith(_ANSWERED_STATUS)):
+                lost += 1
+    return lost
+
+
+def game_log(log_dir, seed, swap):
+    """Where run_batch.py writes a game's log: game-<seed>-<0|1>.log."""
+    return Path(log_dir) / ("game-%s-%d.log" % (seed, 1 if swap else 0))
+
+
+def log_game_file(log_path):
+    """The game file a game's JVM named in its log ("[EVAL] jsonl <name>"), or None (no such line, no log)."""
+    try:
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = _EVAL_JSONL.match(line)
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return None
+
+
+def paired_log(game, log_dir):
+    """The game's own log in `log_dir`, or None. When the game knows its file (`_file`), the log whose "[EVAL] jsonl"
+    line names it; else, or when no log names a file, the one named for its seat order. A log that names another
+    game file is that game's, never this one's."""
+    seed = game.get("seed")
+    if seed is None or log_dir is None:
+        return None
+    swap = bool(game.get("swap"))
+    own = game_log(log_dir, seed, swap)
+    names = {p: log_game_file(p) for p in (own, game_log(log_dir, seed, not swap))}
+    mine = game.get("_file")
+    if mine:
+        for p, name in names.items():
+            if name == mine:
+                return p
+    if not own.is_file() or (mine and names[own] and names[own] != mine):
+        return None
+    return own
+
+
+def bridge_down_decisions(game, log_dir=None):
+    """Decisions this game lost to a dead model bridge: the game line's count when it carries one, else the transport
+    failures its paired log in `log_dir` shows (paired_log, log_bridge_down; parse_dir_full keeps the result as
+    `_bridge_down_log`). The one reader aggregate.py, defect_analyzer.py and run_batch.py share."""
+    if any(f in game for f in BRIDGE_DOWN_FIELDS):
+        return sum(v for v in (game.get(f) for f in BRIDGE_DOWN_FIELDS)
+                   if isinstance(v, int) and not isinstance(v, bool) and v > 0)
+    if "_bridge_down_log" in game:
+        return game["_bridge_down_log"]
+    p = paired_log(game, log_dir)
+    if p is None:
+        return 0
+    try:
+        return log_bridge_down(p.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return 0
+
+
+def log_write_failed(game):
+    """Whether a row of this game's log failed to write (EvalLog's checkError, issue #427): its jsonl may be cut, so no
+    score reads it. A line from before the key is not refused."""
+    return game.get("eval_log_write_failed") is True
+
+
+def lost_decisions(rec, log_dir=None):
+    """Decisions a game line or puzzle row lost that were not the model's, 0 when it fully played: to a routing filter
+    (a puzzle row's routing_refusals), to a dead model bridge (bridge_down_decisions), or 1 for a log that may be cut
+    (log_write_failed). The one predicate every consumer reads: unscorable, puzzle_score, puzzle_solve, mtg_env."""
+    return ((rec.get("routing_refusals") or 0) + bridge_down_decisions(rec, log_dir)
+            + (1 if log_write_failed(rec) else 0))
+
+
+def unscorable(rec, log_dir=None):
+    """A game or puzzle attempt no score is taken over: the model did not fully play it (lost_decisions). Its recorded
+    winner is kept on the line."""
+    return lost_decisions(rec, log_dir) > 0
+
+
+def scored_winner(game):
+    """The winner a score reads: "invalid" for an unscorable game, else the line's."""
+    return "invalid" if unscorable(game) else game.get("winner")
+
 
 # Identity fields a cited run must resolve. A value in this set means the field
 # is present but names nothing — an alias the endpoint never disambiguated.
@@ -423,6 +555,7 @@ def parse_dir_full(path):
         warnings.append("no game-*.jsonl files found in %s" % path)
     for fp in files:
         found_game = False
+        file_games = []
         n_bad = 0
         rows = []
         try:
@@ -447,6 +580,7 @@ def parse_dir_full(path):
                     elif t == "game":
                         rec["_file"] = fp.name
                         games.append(rec)
+                        file_games.append(rec)
                         found_game = True
                     elif t == "context_call":
                         rec["_file"] = fp.name
@@ -460,6 +594,15 @@ def parse_dir_full(path):
             warnings.append("unreadable file %s: %s" % (fp.name, e))
             continue
         rows_by_file[fp.name] = rows
+        for g in file_games:
+            lost = bridge_down_decisions(g, path)
+            if not any(f in g for f in BRIDGE_DOWN_FIELDS):
+                g["_bridge_down_log"] = lost
+            if lost:
+                warnings.append("%s: %d decision(s) lost to a dead model bridge -> counted as invalid"
+                                % (fp.name, lost))
+            if log_write_failed(g):
+                warnings.append("%s: a row of its log failed to write (disk full?) -> counted as invalid" % fp.name)
         if n_bad:
             warnings.append("%s: skipped %d malformed line(s)" % (fp.name, n_bad))
         if not found_game:
@@ -596,7 +739,11 @@ def p90(values):
 def summarize_games(games):
     counts = Counter()
     for g in games:
-        w = g.get("winner")
+        w = scored_winner(g)
+        if bridge_down_decisions(g):
+            counts["bridge_down"] += 1  # invalid: a decision was the bridge's fallback, not the model's
+        if log_write_failed(g):
+            counts["log_write_failed"] += 1  # invalid: its log may be cut (issue #427)
         if w in ("A", "B"):
             counts["decisive"] += 1
             # Seat-bias diagnostic. winner is identity-keyed, so seat 1
@@ -622,6 +769,8 @@ def summarize_arms(games):
     are identity A's config, so attribution never flips on swap."""
     arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0})
     for g in games:
+        if unscorable(g):
+            continue                        # not fully played by the model: in no count, the strict score's too
         w = g.get("winner")
         la, lb = arm_label(g, "a"), arm_label(g, "b")
         # Every started game, for the strict score: a game that ended in a draw or never finished (the
@@ -687,12 +836,13 @@ def summarize_paired(games, resamples, bootstrap_seed):
         if arm_label(g1, "a") != focal or arm_label(g2, "a") != focal:
             n_excluded_mismatch += 1
             continue
-        if g1.get("winner") not in ("A", "B") or g2.get("winner") not in ("A", "B"):
+        w1, w2 = scored_winner(g1), scored_winner(g2)
+        if w1 not in ("A", "B") or w2 not in ("A", "B"):
             n_excluded_nondecisive += 1
             continue
         # winner is identity-keyed: "A" = focal won, in either swap variant.
-        x1 = 1 if g1["winner"] == "A" else 0
-        x2 = 1 if g2["winner"] == "A" else 0
+        x1 = 1 if w1 == "A" else 0
+        x2 = 1 if w2 == "A" else 0
         outcomes.append((x1, x2))
         tallies["WW" if x1 + x2 == 2 else "LL" if x1 + x2 == 0 else "split"] += 1
 
@@ -904,6 +1054,10 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
     llm arm the gate is vacuous (never fails)."""
     # A name that is llm in any game is treated as llm (identity-keyed config
     # is stable within a batch; mixed config is surfaced by provenance).
+    # Over the scored games only: a dead-bridge game's fallbacks are the bridge's, and it is in no score (#369).
+    dead = {g.get("_file") for g in games if unscorable(g)} - {None}
+    games = [g for g in games if not unscorable(g)]
+    decisions = [d for d in decisions if d.get("_file") not in dead]
     llm_names = set()
     any_llm_arm = False
     for g in games:
@@ -1455,9 +1609,10 @@ def print_fallback_gate(s):
 
 
 def print_games_block(g, indent=""):
-    print("%stotal: %d   decisive: %d   draws: %d   invalid: %d (of which %d crashed with no game line)"
+    print("%stotal: %d   decisive: %d   draws: %d   invalid: %d (of which %d crashed with no game line, %d lost "
+          "decisions to a dead model bridge, %d with a log that failed to write)"
           % (indent, g.get("total", 0), g.get("decisive", 0), g.get("draw", 0),
-             g.get("invalid", 0), g.get("no_game_line", 0)))
+             g.get("invalid", 0), g.get("no_game_line", 0), g.get("bridge_down", 0), g.get("log_write_failed", 0)))
     if g.get("decisive") and g.get("seat1_wins") is not None:
         # Seat 1 = first player. Computed identity-aware: wins-by-A among
         # swap=false games plus wins-by-B among swap=true games. In a

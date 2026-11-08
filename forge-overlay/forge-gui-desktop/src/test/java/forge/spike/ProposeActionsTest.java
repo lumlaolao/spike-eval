@@ -190,6 +190,27 @@ public class ProposeActionsTest {
         Assert.assertEquals(hit[0], passIdx);
     }
 
+    /** A Disturb cast whose back face is an Aura is on the menu, with the creature it can enchant as a target (#366):
+     *  the menu counted the targets while the card was still its front face (a creature) in the graveyard, found
+     *  none, and hid the cast. Counting them leaves the card as it was. */
+    @Test
+    public void aDisturbCastOfAnAuraIsOfferedWithItsTargets() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card bearer = card("Lantern Bearer", me, ZoneType.Graveyard);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        SpellAbility disturb = po.spells.stream().filter(sa -> sa.getHostCard() == bearer
+                && "Disturb".equals(LlmSpikeGui.PlayerControllerLLM.castWay(sa))).findFirst().orElse(null);
+        Assert.assertNotNull(disturb, "the Disturb cast is not on the menu: " + po.spells);
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.targetCandidates(disturb, disturb.getTargetRestrictions())
+                .contains(bears), "the Aura's target ask must list Grizzly Bears");
+        Assert.assertEquals(bearer.getCurrentStateName(), forge.card.CardStateName.Original,
+                "counting the targets must leave the card its front face in the graveyard");
+    }
+
     /** PROPOSE_AUDIT is a diagnostic: auditing a menu of targeted plays must leave no target pending, or the seat's
      *  next targeted cast in a menu game is given the audit's last target without being asked (acceptance 196de57). */
     @Test
@@ -287,6 +308,104 @@ public class ProposeActionsTest {
         String err = reject(ctrl, me, true, prop("cast", handle(ctrl, bears), null, null, null));
         Assert.assertTrue(err.startsWith("ILLEGAL (cost)"), err);
         Assert.assertFalse(err.contains("Forest"), "a rejection names the rule, not what to do instead: " + err);
+    }
+
+    /** Heritage Druid's "Tap three untapped Elves you control: Add {G}{G}{G}" has no {T}, so it may tap itself and Elves
+     *  that tap for mana of their own. Priest of Titania (4), the Druid tapping itself, Nettle Sentinel and Fyndhorn
+     *  Elves (3) and a Forest pay Craterhoof Behemoth's 8; the payment check tapped Fyndhorn Elves for its own {G}
+     *  first, left the Druid two Elves, and the menu hid the cast (#367). */
+    @Test
+    public void aTapUntappedElvesManaAbilityCountsTowardTheMenu() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Forest", me, ZoneType.Battlefield);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves", "Priest of Titania"))
+            card(elf, me, ZoneType.Battlefield);
+        Card hoof = card("Craterhoof Behemoth", me, ZoneType.Hand);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertTrue(po.spells.stream().anyMatch(sa -> sa.getHostCard() == hoof), "the board pays 8: " + po.spells);
+        Assert.assertNull(verdict(ctrl, me, true, prop("cast", handle(ctrl, hoof), null, null, null), new int[] {-1}));
+        // The cast the menu offers is one the seat's payment makes: the Druid taps itself, Nettle and Fyndhorn.
+        SpellAbility spell = hoof.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+        Assert.assertTrue(ctrl.payManaCost(spell.getPayCosts().getCostMana(), spell, null, null, false), "the {5}{G}{G}{G} was not paid");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).allMatch(Card::isTapped), "every permanent paid: " + me.getCardsIn(ZoneType.Battlefield));
+        Assert.assertEquals(me.getManaPool().totalMana(), 0, "nothing left floating");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "the engine chose nothing the seat owns");
+    }
+
+    /** One mana short (no Forest: Priest 4 and the Druid's 3 are 7), the search finds no payment and Craterhoof stays
+     *  off the menu (pr-review of #375). */
+    @Test
+    public void aTapUntappedElvesBoardOneManaShortDoesNotOfferTheSpell() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves", "Priest of Titania"))
+            card(elf, me, ZoneType.Battlefield);
+        Card hoof = card("Craterhoof Behemoth", me, ZoneType.Hand);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertFalse(po.spells.stream().anyMatch(sa -> sa.getHostCard() == hoof), "the board pays 7 of 8: " + po.spells);
+    }
+
+    /** Elvish Lyrist's "{G}, {T}, Sacrifice" taps the Lyrist itself, so the Druid cannot take it as one of its three
+     *  Elves: with only the Druid, Nettle Sentinel and the Lyrist there is no {G}, and the ability is not offered. The
+     *  search let the Druid tap the Lyrist, which the engine's own test never does (pr-review of #375). */
+    @Test
+    public void aTapUntappedElvesPartNeverTakesTheCardTheAbilityTaps() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Heritage Druid", me, ZoneType.Battlefield);
+        card("Nettle Sentinel", me, ZoneType.Battlefield);
+        Card lyrist = card("Elvish Lyrist", me, ZoneType.Battlefield);
+        card("Glorious Anthem", g.getPlayers().get(1), ZoneType.Battlefield);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertFalse(po.spells.stream().anyMatch(sa -> sa.getHostCard() == lyrist && !sa.isManaAbility()),
+                "the Lyrist's ability needs a {G} no other Elf can make: " + po.spells);
+    }
+
+    /** Elvish Hunter's "{1}{G}, {T}: Target creature doesn't untap" with the Druid, Nettle Sentinel and Fyndhorn Elves:
+     *  only the Druid tapping itself, Nettle and Fyndhorn pays (the engine's test spends Fyndhorn on the {G} first; the
+     *  Hunter taps for its own {T}). The real payment taps the Hunter before its mana (Cost.sort puts {T} first), so a
+     *  search that re-checked the ability's own {T} then found nothing and the offered play failed to pay (pr-review
+     *  of #375). It is offered and the seat's play path pays it. */
+    @Test
+    public void aTapAbilityWhoseManaNeedsTheSearchIsPaidByTheRealPayment() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card hunter = card("Elvish Hunter", me, ZoneType.Battlefield);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves")) card(elf, me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        SpellAbility hold = po.spells.stream().filter(sa -> sa.getHostCard() == hunter).findFirst().orElse(null);
+        Assert.assertNotNull(hold, "the Druid's GGG pays the Hunter's {1}{G}: " + po.spells);
+        hold.setActivatingPlayer(me);
+        Assert.assertFalse(forge.ai.ComputerUtilMana.canPayManaCost(hold, me, 0, false), "fixture: the engine's own test fails");
+        hold.getTargets().add(bears);
+        GoldenChecksTest.playMade(ctrl, hold, "the offered play");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).allMatch(Card::isTapped), "the Hunter and the three Elves paid: "
+                + me.getCardsIn(ZoneType.Battlefield));
+        Assert.assertFalse(g.getStack().isEmpty(), "the ability is on the stack");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Fear of Exposure costs {2}{G} and "tap two untapped creatures and/or lands". The Druid's {G}{G}{G} needs all three
+     *  Elves (the engine's own test taps Fyndhorn for its {G} first and finds nothing), and then nothing is left for
+     *  Fear's own tap part: the search's payment must leave the spell's own costs payable, so it is not offered
+     *  (pr-review of #375). */
+    @Test
+    public void aTapUntappedElvesPaymentLeavesTheSpellsOwnTapPartPayable() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (String elf : List.of("Heritage Druid", "Nettle Sentinel", "Fyndhorn Elves")) card(elf, me, ZoneType.Battlefield);
+        Card fear = card("Fear of Exposure", me, ZoneType.Hand);
+        seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true, true);
+        Assert.assertFalse(po.spells.stream().anyMatch(sa -> sa.getHostCard() == fear),
+                "the Druid's three Elves leave no two to tap for Fear of Exposure: " + po.spells);
     }
 
     @Test

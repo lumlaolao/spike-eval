@@ -44,7 +44,10 @@ def game_line_keys():
     writer changes."""
     java = GUI.read_text(encoding="utf-8")
     start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
-    return re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
+    keys = re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
+    # The writer appends aiProfileStamp(): the two profile keys, built from the seats' own env() read.
+    stamp = java.index("static String aiProfileStamp()")
+    return re.findall(r'\\"([a-z_0-9]+)\\":', java[stamp:java.index("}", stamp)]) + keys
 
 
 def modern_line(seed, swap, winner, **kw):
@@ -331,7 +334,15 @@ class GroupingTest(unittest.TestCase):
         keys = game_line_keys()
         self.assertIn("native_tools", keys)          # the extraction found the statement
         self.assertEqual(keys[-1], "claude_effort_fast")  # ... and read it to its end
-        outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms", "game_error"}
+        outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms", "game_error",
+                   # What happened to the seat's bridge in this game (issue #369): an outcome aggregate.py scores
+                   # as invalid, not a condition.
+                   "bridge_down_decisions_a", "bridge_down_decisions_b",
+                   "circuit_breaker_trips_a", "circuit_breaker_trips_b",
+                   # A row of the game's log failed to write (#427): an outcome every scorer refuses, not a condition.
+                   "eval_log_write_failed",
+                   # Whether the wall-clock cap stopped the game (#250): an outcome (winner "invalid"), not a condition.
+                   "capped"}
         known = set(aggregate.CONDITION_FIELDS) | set(aggregate.NON_BEHAVIORAL_PROVENANCE) | outcome
         self.assertEqual([k for k in keys if k not in known], [],
                          "add the new game-line key to aggregate.PROVENANCE_FIELDS (or, if it is an "
@@ -348,6 +359,20 @@ class GroupingTest(unittest.TestCase):
         capped = {"smart_a": "m", "openrouter_max_price": '{"m":{"prompt":1,"completion":2}}'}
         self.assertEqual(aggregate.game_condition(old), aggregate.game_condition(dict(old, openrouter_max_price="")))
         self.assertNotEqual(aggregate.game_condition(old), aggregate.game_condition(capped))
+
+    def test_the_forge_ai_profile_splits_experiments_and_its_absence_does_not(self):
+        # Issue #381: the opponent's profile is a condition. A game from before the stamp and one that stamps it empty
+        # met the compiled AiProps defaults and pool; a named profile is another opponent, per identity.
+        old, empty = {"smart_a": "m"}, {"smart_a": "m", "ai_profile_a": "", "ai_profile_b": ""}
+        self.assertEqual(aggregate.game_condition(old), aggregate.game_condition(empty))
+        for side in ("a", "b"):
+            named = dict(old, **{"ai_profile_" + side: "Default"})
+            self.assertNotEqual(aggregate.game_condition(old), aggregate.game_condition(named), side)
+        self.assertNotEqual(aggregate.game_condition(dict(old, ai_profile_b="Default")),
+                            aggregate.game_condition(dict(old, ai_profile_b="Reckless")))
+        # Stamped on the game line (this test's scan reads LlmSpikeGui).
+        self.assertIn("ai_profile_a", set(game_line_keys()))
+        self.assertIn("ai_profile_b", set(game_line_keys()))
 
     def test_provenance_fields_include_effort(self):
         names = [n for n, _ in aggregate.PROVENANCE_FIELDS]

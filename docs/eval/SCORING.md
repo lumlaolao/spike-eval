@@ -97,7 +97,9 @@ A report is `valid` only when every cell (and control) exists and holds one expe
 is the Forge AI, every game line carries the cell's pinned `deck_sha`, only published seeds were
 played, one pilot with one set of settings played every cell, `aggregate.py`'s fallback and
 harness-decided gates pass in every cell, no sanity arm beats the floor, and every game belongs to
-one benchmark version. Exit 0 valid, 1 not valid (still printed), 2 refused.
+one benchmark version. Exit 0 valid, 1 not valid (still printed), 2 refused. A cell holding a game whose pilot lost a
+decision to a dead model bridge is refused, and a resume plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game
+the model's bridge did not play is not scored").
 
 **The pilot condition** (review E2, E9): the panels file's `pilot_condition` pins how an llm pilot plays:
 the faithful profile, one tier, answers by the `answer` call, the native lookup tools and the lookahead

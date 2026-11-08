@@ -6,18 +6,18 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 
 | stamp | value | game line | a change means |
 |---|---|---|---|
-| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-82` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
-| `SeatObservation.VERSION` | `observation-faithful-v42` | `observation_version` | the faithful state the seat reads: the blocks, their labels and their order. |
-| `AnswerTool.VERSION` | `answer-tool-v18` | `answer_tool_version` | the `answer` and `set_plan` functions and their validation. |
+| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-95` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
+| `SeatObservation.VERSION` | `observation-faithful-v46` | `observation_version` | the faithful state the seat reads: the blocks, their labels and their order. |
+| `AnswerTool.VERSION` | `answer-tool-v19` | `answer_tool_version` | the `answer` and `set_plan` functions and their validation. |
 | `NativeTools.VERSION` | `seat-tools-v11` | `native_tools_version` | the lookup tools' definitions (inspect, search, read, simulate). |
 | `ContextMemory.VERSION` | `evidence-tools-v4` | `memory_tools_version` | what the evidence lookups return. |
-| `PlayerLookahead.VERSION` | `lookahead-preview-v15` | `lookahead_version` | the `simulate` preview and the attack outlook. |
+| `PlayerLookahead.VERSION` | `lookahead-preview-v16` | `lookahead_version` | the `simulate` preview and the attack outlook. |
 | `RulesTool.VERSION` | `rules-tool-v1` | `rules_tool_version` | the comprehensive-rules lookup. |
 | `ChatSessionBridge.VERSION` | `one-chat-v3` | `one_chat_version` | the one-conversation-per-seat arm (ONE_CHAT). |
 | `ChatSessionBridge.TURN_VERSION` | `turn-chat-v1` | `turn_chat_version` | the conversation bounded by the turn (TURN_CHAT). |
-| `DecisionsBridge.VERSION` | `decisions-bridge-v1` | (`decisions_bridge_version_a` / `_b`; puzzle row `decisions_bridge_version`) | the typed questions a `jev:` decision-model seat is asked and how its answers become `answer` calls (on a game line or puzzle row only where a `jev:` seat plays). |
+| `DecisionsBridge.VERSION` | `decisions-bridge-v3` | (`decisions_bridge_version_a` / `_b`; puzzle row `decisions_bridge_version`) | the typed questions a `jev:` decision-model seat is asked and how its answers become `answer` calls (on a game line or puzzle row only where a `jev:` seat plays). |
 | `ClaudeCliBridge.VERSION` | `claude-cli-bridge-v2` | (`claude_cli_bridge_version_a` / `_b`; puzzle row `claude_cli_bridge_version`) | how a `claude-cli:` seat runs the Claude Code CLI (argv, isolation, the answer schema, one process per turn) and how its structured output becomes `answer` and `set_plan` calls (only where such a seat plays). |
-| `ReplayBridge.VERSION` | `replay-bridge-v1` | (puzzle row `replay_version`) | how a `replay:` seat serves a recorded attempt's model turns back and what it calls a drift (tooling only: the seat is sent nothing new, so it is not a condition and does not move HARNESS_EPOCH; a replay row is never scored). |
+| `ReplayBridge.VERSION` | `replay-bridge-v3` | (puzzle row `replay_version`) | how a `replay:` seat serves a recorded attempt's model turns back and what it calls a drift (tooling only: the seat is sent nothing new, so it is not a condition and does not move HARNESS_EPOCH; a replay row is never scored), and its handover to the search arm after K rows (REPLAY_HANDOVER, step regret; `step-search.jsonl` rows). |
 | `Transcript.VERSION` | `transcript-v1` | (puzzle row `transcript_version`, puzzle manifest `record.transcript_version`) | the run's full record kept beside the rows (TRANSCRIPTS=1, on for every puzzle_solve.py run): the exact HTTP body of every model request and response, and each game's whole Forge log. Recording only: what the model is sent does not change with it, so it is not a condition and does not move HARNESS_EPOCH. |
 | `FORGE_COMMIT` | `34a8662b7966` | `engine_sha` | the pinned Forge engine; results compare only within one engine version. |
 

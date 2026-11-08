@@ -16,6 +16,7 @@ import json
 import re
 import sys
 
+import aggregate
 import deck_legality
 import tool_audit
 
@@ -89,6 +90,8 @@ def scan(root):
             findings["%s: exit %s" % (tag, exit_code)] += 1
         if game is None or game.get("winner") in (None, "invalid"):
             findings["%s: no finished game" % tag] += 1
+        elif aggregate.unscorable(game, d):    # a winner on a game the seat did not fully play (#430)
+            findings["%s: unscorable game, %d decisions lost" % (tag, aggregate.lost_decisions(game, d))] += 1
         if tally and not re.search(r"\bai=0\b", tally[-1]):
             findings["%s: Forge AI decided for the seat (%s)" % (tag, tally[-1])] += 1
         theirs = opponent_only(log)

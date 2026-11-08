@@ -38,8 +38,12 @@ final class DecisionsBridge implements LLMBridge {
     static final String PREFIX = "jev:";
     /** v1 (2026-10-24): one request per ask; choice / noul composition per decision kind. Stamped on the game line of a
      *  game with a jev: seat and on a jev: solver's puzzle row (eval/versions.py); pinned in DecisionsBridgeTest and in
-     *  eval/harness_acceptance.sh. */
-    static final String VERSION = "decisions-bridge-v1";
+     *  eval/harness_acceptance.sh.
+     *  v2 (2026-11-07, #415): a repeatable-mode question states the site's limit (a pawprint charm's {P} budget,
+     *  {@code Spec.limit}).
+     *  v3 (2026-11-07, #417): a repeatable-mode answer under a weighted cap (that budget, {@code Spec.budget}) keeps the
+     *  surer counts while they fit, so it is not composed over the budget and refused. */
+    static final String VERSION = "decisions-bridge-v3";
     /** The most values a number, a division or a mode's count is listed as. A wider one is not asked (no answer,
      *  logged). docs/harness/MODEL-LIMITS.md. */
     static final int MAX_LISTED = 40;
@@ -90,16 +94,23 @@ final class DecisionsBridge implements LLMBridge {
 
     /** A text ask has no typed options to put to the model. */
     @Override public String ask(String prompt) {
+        transportFailure = false;
         noAnswer("a text ask (no `answer` offered)");
         return null;
     }
 
     @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+        transportFailure = false;
         noAnswer("an ask without the decision's typed options");
         return null;
     }
 
+    /** The last send failed in transport (LLMBridge.lastFailureWasTransport). */
+    private volatile boolean transportFailure = false;
+    @Override public boolean lastFailureWasTransport() { return transportFailure; }
+
     @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls, AnswerTool.Spec spec) {
+        transportFailure = false;
         if (spec == null) return chat(messagesJson, toolsJson, allowCalls);
         Composed q = compose(spec);
         if (q.refusal != null) { noAnswer(spec.kind + " (" + q.refusal + ")"); return null; }
@@ -219,7 +230,8 @@ final class DecisionsBridge implements LLMBridge {
                     for (int k = 0; k <= s.max; k++)
                         crit.addProperty(Integer.toString(k), k == 0 ? "Do not pick it." : "Pick it " + k + (k == 1 ? " time." : " times."));
                     c.questions.add("count" + i, question("choice", SITUATION + " The player picks between " + s.min + " and "
-                            + s.max + " in all, and the same option may be picked more than once. How many times should "
+                            + s.max + " in all, and the same option may be picked more than once"
+                            + (s.limit == null ? "" : "; " + s.limit) + ". How many times should "
                             + "option " + i + " (" + s.labels.get(i - 1) + ") be picked?", crit));
                 }
                 c.read = a -> {
@@ -229,7 +241,7 @@ final class DecisionsBridge implements LLMBridge {
                         counts[i - 1] = choiceOf(a, "count" + i, 0, s.max);
                         sure[i - 1] = probabilityOf(a, "count" + i, counts[i - 1]);
                     }
-                    return args("options", ints(repeatPicks(counts, sure, s.min, s.max)));
+                    return args("options", ints(repeatPicks(counts, sure, s.min, s.max, s.weights, s.budget)));
                 };
                 return c;
             }
@@ -418,9 +430,14 @@ final class DecisionsBridge implements LLMBridge {
     /**
      * The picks of a repeatable choice from each option's count ({@code counts[0]} is option 1) and the probability the
      * model gave that count, in option order. Above {@code max}, the surest counts are kept first; below {@code min},
-     * the surest option picked at least once (else option 1) is picked again until the minimum.
+     * the surest option picked at least once (else option 1) is picked again until the minimum. Under a weighted cap
+     * ({@code weights}, {@code budget}: a pawprint charm's {P}, #417; null and -1 for none) the surer counts are kept
+     * while they fit, so the composed answer is within the budget instead of refused, and the padding adds that option
+     * while it fits, else the cheapest option that does.
      */
-    static List<Integer> repeatPicks(int[] counts, double[] sure, int min, int max) {
+    static List<Integer> repeatPicks(int[] counts, double[] sure, int min, int max, int[] weights, int budget) {
+        boolean capped = weights != null && budget >= 0;
+        int left = budget;
         List<Integer> order = new ArrayList<>();
         for (int i = 1; i <= counts.length; i++) order.add(i);
         order.sort(Comparator.comparingDouble((Integer i) -> -sure[i - 1]).thenComparingInt(i -> i));
@@ -428,12 +445,20 @@ final class DecisionsBridge implements LLMBridge {
         int total = 0;
         for (int i : order) {
             int take = Math.min(counts[i - 1], max - total);
+            if (capped && weights[i - 1] > 0) take = Math.min(take, left / weights[i - 1]);
             kept[i - 1] = take;
             total += take;
+            if (capped) left -= take * weights[i - 1];
         }
         int pad = 1;
         for (int i : order) if (counts[i - 1] > 0) { pad = i; break; }
-        while (total < min) { kept[pad - 1]++; total++; }
+        if (capped && weights[pad - 1] > left)
+            for (int i = 1; i <= weights.length; i++) if (weights[i - 1] < weights[pad - 1]) pad = i;
+        while (total < min && (!capped || weights[pad - 1] <= left)) {
+            kept[pad - 1]++;
+            total++;
+            if (capped) left -= weights[pad - 1];
+        }
         List<Integer> out = new ArrayList<>();
         for (int i = 1; i <= kept.length; i++) for (int k = 0; k < kept[i - 1]; k++) out.add(i);
         return out;
@@ -454,14 +479,16 @@ final class DecisionsBridge implements LLMBridge {
             String auth = LlmSpikeGui.OpenRouterBridge.authorizationHeader(apiKey, endpoint);
             if (auth != null) rb.header("Authorization", auth);
             HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                    .timeout(Duration.ofMillis(timeoutMs)).build();
+                    .timeout(HttpDeadline.requestTimeout(timeoutMs)).build();
             HttpResponse<String> resp = Transcript.send("decisions", label, client, req, body, timeoutMs);
             if (resp == null) {
-                System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] no response within " + timeoutMs + " ms ("
-                        + HttpDeadline.LAST_STOP.get() + ")");
+                String why = HttpDeadline.LAST_STOP.get();
+                transportFailure = HttpDeadline.gaveNoReply(why);
+                System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] no response within " + timeoutMs + " ms (" + why + ")");
                 return null;
             }
             if (resp.statusCode() != 200) {
+                transportFailure = true;
                 System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] HTTP " + resp.statusCode() + ": " + LlmSpikeGui.oneLine(resp.body()));
                 return null;
             }
@@ -469,6 +496,7 @@ final class DecisionsBridge implements LLMBridge {
             bill(o);
             return o;
         } catch (Exception e) {
+            transportFailure = HttpDeadline.transportError(e);
             System.out.println("[JEV " + label + "] [JEV-NO-ANSWER] error: " + e);
             return null;
         }

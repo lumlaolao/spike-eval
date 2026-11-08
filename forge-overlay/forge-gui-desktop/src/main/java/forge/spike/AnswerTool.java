@@ -67,8 +67,10 @@ final class AnswerTool {
      *  Unchanged off the arm.
      *  v18 (2026-11-05): the PROPOSE_NOTEBOOK arm ({@link #proposeNotebook}): a proposal decision lists this game's
      *  earlier rules refusals that the seat was told, every one, and the preamble says so.
-     *  Unchanged off the arm. */
-    static final String VERSION = "answer-tool-v18";
+     *  Unchanged off the arm.
+     *  v19 (2026-11-06, #399): the yield says when the seat is still asked, as the play loop does it: its own main phase
+     *  once the stack is empty, and end-of-turn through this turn's end step. */
+    static final String VERSION = "answer-tool-v19";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -319,6 +321,15 @@ final class AnswerTool {
         }
         Spec cancel(int oneBased) { this.cancel = oneBased; return this; }
         Spec check(Function<Answer, String> c) { this.check = c; return this; }
+        /** A limit the site checks that the schema cannot state (a pawprint charm's {P} budget), for a bridge that
+         *  builds its questions from the Spec alone (DecisionsBridge); null when there is none. */
+        String limit;
+        Spec limit(String l) { this.limit = l; return this; }
+        /** MANY_REPEAT under a weighted cap (a pawprint charm: each option's {P}, and the total allowed): a bridge
+         *  that composes its answer (DecisionsBridge) trims it to fit. Null and -1 when there is none. */
+        int[] weights;
+        int budget = -1;
+        Spec budget(int[] w, int b) { this.weights = w == null ? null : w.clone(); this.budget = b; return this; }
         Spec labels(List<String> l) { this.labels = new ArrayList<>(l); return this; }
     }
 
@@ -519,7 +530,7 @@ final class AnswerTool {
         JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision. \"none\" (the default): "
                 + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in "
                 + "windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; "
-                + "your own main phases always ask too).");
+                + "your own main phase asks again once the stack is empty; end-of-turn lasts through this turn's end step).");
         JsonArray e = new JsonArray();
         // "none" first: a model that fills every field takes the first value (Luna did, 175 of 189 answers).
         e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
@@ -678,7 +689,8 @@ final class AnswerTool {
         if (s.yield) {
             JsonObject y = obj("type", "string", "description", "Optional, with PASS only. \"none\" (the default): you are asked "
                     + "as usual. Otherwise, until then you are not asked in windows where nothing of your opponent's is on the stack "
-                    + "(anything they cast or activate always asks you; your own main phases always ask too).");
+                    + "(anything they cast or activate always asks you; your own main phase asks again once the stack is empty; "
+                    + "end-of-turn lasts through this turn's end step).");
             JsonArray e = new JsonArray();
             e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
             y.add("enum", e);

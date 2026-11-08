@@ -58,6 +58,20 @@ public class HumanSeatTest {
     }
 
     @Test
+    public void aProfileOnTheHumanSeatIsRefusedNotIgnored() {
+        Map<String, String> env = env("human", "ai");
+        env.put("AI_PROFILE_B", "Default");
+        build(env, true);  // the profile belongs to B's Forge AI seat: fine
+        env.put("AI_PROFILE_A", "Default");
+        try {
+            build(env, true);
+            Assert.fail("a profile was silently ignored on the human seat");
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().contains("AI_PROFILE_A") && e.getMessage().contains("human"), e.getMessage());
+        }
+    }
+
+    @Test
     public void aRunWithNoWindowRefusesAHumanSeat() {
         try {
             build(env("human", "floor"), false);

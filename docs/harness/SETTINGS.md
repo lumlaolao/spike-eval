@@ -12,6 +12,7 @@ stamps the condition on the game line; `run-llm-headless.sh` and `run-llm-spike.
 |---|---|---|
 | `SMART_MODEL` / `FAST_MODEL`, `_A` / `_B` | none: a model seat that names no model is refused (the JVM, `run_batch.py`) | model per tier and seat: `openrouter:<model>`, `jev:<model>` (a decision model), or `claude-cli:<model>` (Claude Code in print mode, answering by structured output: a development lane, only with `CLAUDE_CLI_SEAT=1`). A bare Claude name (`haiku`, `opus`), the retired text lane, is refused |
 | `CONTROLLER_A/B` | `llm` | `random` (uniform over the same menus), `floor` (fixed legal fallbacks), `ai` (Forge's AI), `human` (a person on Forge's match screen; GUI only, one seat, `play-vs-llm.sh`) |
+| `AI_PROFILE_A` / `AI_PROFILE_B` | empty: Forge's compiled `AiProps` defaults, the opponent of every recorded STR-AI score | the shipped Forge AI profile (`Cautious`, `Default`, `Experimental`, `Reckless`; `forge-gui/res/ai/*.ai`) for that identity's `ai` / `ai-log` seat. An unknown name, a "Random" entry, or a profile on any other seat (a `human` seat included) is refused at start; a panel or a cited run is refused (`run_batch.py`) and `panel_score.py` fails a cell that carries one. Stamped `ai_profile_a` / `ai_profile_b` and never pooled (`run_batch.py --ai-profile-a/-b`; ARCHITECTURE.md, "Zero-model arms and canaries") |
 | `CONTEXT_PROFILE` | `v4-faithful` (`run_batch.py`); `v1-compat` if unset in a raw launch | the observation shape; `v1-compat` (coaching, a turn cap) runs only as a named arm |
 | `MEMORY_TOOLS` / `LOOKAHEAD` / `RULES_TOOL` | 0 | the lookups, the `simulate` preview and attack outlook, the rules lookup (needs `MEMORY_TOOLS=1` too) |
 | `NATIVE_TOOLS` / `ANSWER_TOOL` | 1 | tool calls for lookups and answers; 0 is the text protocol, for measurement only |
@@ -26,7 +27,7 @@ stamps the condition on the game line; `run-llm-headless.sh` and `run-llm-spike.
 | `EVAL_OUT` | off | directory for the per-decision and game JSONL |
 | `TRANSCRIPTS` | 0 (1 in `puzzle_solve.py` and `play-vs-llm.sh`) | with `EVAL_OUT`, keeps every HTTP request and response byte for byte (`docs/eval/PUZZLES.md`, "Keeping a run") |
 | `FORGE_CP_FILE` | `/tmp/forge_cp.txt` | Forge's classpath list: written by `setup.sh`, read by `run-llm-spike.sh`, `run-llm-headless.sh` and `play-vs-llm.sh` |
-| `GAME_CAP_MS` | 3 h headless | wall-clock cap; a capped game is invalid, never a draw |
+| `GAME_CAP_MS` | 3 h headless | wall-clock cap; a capped game is invalid, never a draw, and its game line says `"capped": true` |
 | `SMART_BUDGET` / `FAST_BUDGET` | 10000 | per-game call caps: loop guards, not decision limits (`docs/harness/MODEL-LIMITS.md`) |
 | `OPENROUTER_BASE_URL`, `OPENROUTER_TIMEOUT_MS`, `OPENROUTER_IDLE_MS` | openrouter.ai, per model, 90000 | endpoint (recorded on the game line), call deadline (stamped `openrouter_timeout_ms`, a condition: a shell value is its own experiment), how long a silent connection may stall (a launcher pins it to the default: `run_batch.CONDITION_ENV_KEYS`). A `jev:` decision-model seat posts to the same base's `/alpha/decisions` (its `/v1` replaced) with a 120000 ms deadline unless `OPENROUTER_TIMEOUT_MS` is set |
 | `OPENROUTER_MODEL_CFG` | none | JSON override of the per-model config (`ModelCfg`: max tokens, timeouts, reasoning effort) |

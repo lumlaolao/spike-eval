@@ -208,6 +208,16 @@ class TestMirrorPanel(unittest.TestCase):
             self.score()
         self.assertIn("identity B", str(cm.exception))
 
+    def test_a_cell_played_against_a_named_forge_ai_profile_is_refused(self):
+        # The benchmark's opponent is Forge's compiled defaults; an empty stamp (or none) is that opponent.
+        panel_run(self.root, "mirror", skip=("lands",))
+        for kw in ({"ai_profile_b": "Reckless"}, {"ai_profile_a": "Default", "ai_profile_b": ""}):
+            with self.subTest(kw=kw):
+                write_block(self.root / "lands", DOC["deck_pool"][10]["sha12"], results(4), **kw)
+                with self.assertRaises(ps.PanelError) as cm:
+                    self.score()
+                self.assertIn("Forge AI profile", str(cm.exception))
+
     def test_a_development_lane_cell_is_refused(self):
         # Owner, 2026-10-24: a claude-cli: seat is local development, never part of a benchmark score.
         panel_run(self.root, "mirror", skip=("lands",))
@@ -223,6 +233,35 @@ class TestMirrorPanel(unittest.TestCase):
         with self.assertRaises(ps.PanelError) as cm:
             self.score()
         self.assertIn("development lane", str(cm.exception))
+
+    def test_a_cell_with_a_decision_lost_to_a_dead_bridge_is_refused(self):
+        # Issue #369: a 402 from the provider left the pilot passing and the game scored as decisive.
+        panel_run(self.root, "mirror", skip=("lands",))
+        write_block(self.root / "lands", DOC["deck_pool"][10]["sha12"], results(4), bridge_down_decisions_a=3,
+                    bridge_down_decisions_b=0)
+        with self.assertRaises(ps.PanelError) as cm:
+            self.score()
+        self.assertIn("dead model bridge", str(cm.exception))
+
+    def test_an_empty_sanity_arm_counts_no_dead_bridge_and_one_whose_transport_failed_is_refused(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        panel, pool, _ = ps.load_panel(PANELS, "mirror")
+        for c in panel["cells"]:
+            d = sanity_arms.arm_dir(self.root / c["id"], "empty")
+            ov = sanity_arms.arm_overrides("empty")
+            write_block(d, ps.cell_deck_sha(c, pool), results(0), controller_a=ov["controller_a"],
+                        smart_a=ov["smart_a"], bridge_down_decisions_a=0, bridge_down_decisions_b=0)
+            (d / "batch-manifest.json").write_text(json.dumps({"condition": {"fake_policy": "empty"}}))
+        r = self.score()
+        self.assertTrue(r["valid"], r["problems"] + r["gate_failures"] + r["sanity"]["violations"])
+        c = panel["cells"][0]
+        ov = sanity_arms.arm_overrides("empty")
+        write_block(sanity_arms.arm_dir(self.root / c["id"], "empty"), ps.cell_deck_sha(c, pool), results(0),
+                    controller_a=ov["controller_a"], smart_a=ov["smart_a"], bridge_down_decisions_a=3,
+                    bridge_down_decisions_b=0)
+        with self.assertRaises(ps.PanelError) as cm:
+            self.score()
+        self.assertIn("dead model bridge", str(cm.exception))
 
     def test_a_sanity_arm_that_beats_the_floor_invalidates_the_panel(self):
         arms = dict(ZERO_ARMS, garbage=lambda cid: results(1) if cid == "goblins" else results(0))

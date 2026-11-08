@@ -149,11 +149,14 @@ def max_price_env(prices, spec):
 def already_done(out, k, suite_sha, cap_ms=None):
     """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it. A
     puzzle played under a game cap below `cap_ms` is not done: the cap is a condition, so all its attempts are played
-    again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones)."""
+    again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones). A JVM that
+    could not write a row (pf.write_failures, #430) leaves the puzzle not done, whatever rows it did write."""
+    if pf.write_failures(out):
+        return False
     if cap_ms is not None and ((ps.record_of(Path(out)) or {}).get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) < cap_ms:
         return False
-    seeds = {r.get("seed") for r in pb.read_results(out)
-             if r.get("suite_sha256") == suite_sha and not r.get("routing_refusals")}
+    seeds = {r.get("seed") for r in ps.with_log_counts(pb.read_results(out), out)
+             if r.get("suite_sha256") == suite_sha and not ps.lost_decisions(r)}
     return all(s in seeds for s in range(ATTEMPT_BASE, ATTEMPT_BASE + k))
 
 
@@ -290,6 +293,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
     # Past every attempt's game cap and the grace after it, so the JVM is never killed while a game may still end.
     rc = build.run(env, out, timeout_s=max(4 * 3600, k * (cap_ms // 1000 + GRACE_S) + 3600), keep_model_env=True)
     rows = pb.read_results(out)
+    for line in pb.write_failures(out):    # puzzle_score refuses this puzzle's directory; --resume plays it again
+        print("[puzzles] %s: %s (the attempt's row is missing; rerun it with --resume)" % (rec["id"], line), flush=True)
     return rec["id"], rc, rows
 
 
@@ -465,13 +470,20 @@ def main(argv=None):
                     print("[budget] not started: %s ($%.2f at the dearest endpoint)"
                           % (pid, spent(out_root, bound=True)), flush=True)
                     continue
-                # A row with a decision lost to a routing filter is no result (puzzle_score refuses it): say so, go on.
+                # A row with a decision lost to a routing filter or a dead bridge, or a cut log, is no result (puzzle_score refuses
+                # it): say so, go on.
                 refused = [r for r in rows if r.get("routing_refusals")]
-                solved = sum(1 for r in rows if not r.get("routing_refusals") and ps.attempt_success(r)[0])
-                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s"
+                dead = [r for r in rows if r.get("bridge_down_decisions")]
+                cut = [r for r in rows if ps.log_write_failed(r)]
+                solved = sum(1 for r in rows if not ps.lost_decisions(r) and ps.attempt_success(r)[0])
+                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s%s%s"
                       % (pid, rc, len(rows), solved, spent(out_root),
                          "  [ROUTING-FILTER] %d attempt(s) lost decisions to the routing filter: replay with --resume"
-                         % len(refused) if refused else ""), flush=True)
+                         % len(refused) if refused else "",
+                         "  [BRIDGE-DOWN] %d attempt(s) lost decisions to a dead model bridge: replay with --resume"
+                         % len(dead) if dead else "",
+                         "  [LOG-CUT] %d attempt(s) whose eval log failed to write: replay with --resume"
+                         % len(cut) if cut else ""), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
         run_file(finished=False, stopped=repr(e))
         raise
