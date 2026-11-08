@@ -186,7 +186,8 @@ PROVENANCE_FIELDS = (
 
 # Decisions lost to a dead model bridge, per identity (issue #369; the rule and its reasons:
 # docs/harness/ARCHITECTURE.md, "A game the model's bridge did not play is not scored").
-BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b")
+# (a puzzle row carries one count, `bridge_down_decisions`: lost_decisions reads it the same way)
+BRIDGE_DOWN_FIELDS = ("bridge_down_decisions_a", "bridge_down_decisions_b", "bridge_down_decisions")
 # A line from before the fields is judged by its log (log_bridge_down): an ask's last attempt is the outcome line after
 # "[BRIDGE <label>] no reply (attempt N/N)" and before that seat's next line; _TRANSPORT is HttpDeadline.transportError
 # and gaveNoReply in the bridges' log words, and an outcome followed by an _ANSWERED_STATUS line was the provider's
@@ -292,10 +293,18 @@ def log_write_failed(game):
     return game.get("eval_log_write_failed") is True
 
 
-def unscorable(game):
-    """A game no score is taken over: the model's bridge was dead for a decision of it (bridge_down_decisions) or its
-    log may be cut (log_write_failed). Its recorded winner is kept on the line."""
-    return bool(bridge_down_decisions(game)) or log_write_failed(game)
+def lost_decisions(rec, log_dir=None):
+    """Decisions a game line or puzzle row lost that were not the model's, 0 when it fully played: to a routing filter
+    (a puzzle row's routing_refusals), to a dead model bridge (bridge_down_decisions), or 1 for a log that may be cut
+    (log_write_failed). The one predicate every consumer reads: unscorable, puzzle_score, puzzle_solve, mtg_env."""
+    return ((rec.get("routing_refusals") or 0) + bridge_down_decisions(rec, log_dir)
+            + (1 if log_write_failed(rec) else 0))
+
+
+def unscorable(rec, log_dir=None):
+    """A game or puzzle attempt no score is taken over: the model did not fully play it (lost_decisions). Its recorded
+    winner is kept on the line."""
+    return lost_decisions(rec, log_dir) > 0
 
 
 def scored_winner(game):
@@ -761,7 +770,7 @@ def summarize_arms(games):
     arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0})
     for g in games:
         if unscorable(g):
-            continue                        # not played by the model, or its log is cut: in no count, the strict score's included
+            continue                        # not fully played by the model: in no count, the strict score's too
         w = g.get("winner")
         la, lb = arm_label(g, "a"), arm_label(g, "b")
         # Every started game, for the strict score: a game that ended in a draw or never finished (the

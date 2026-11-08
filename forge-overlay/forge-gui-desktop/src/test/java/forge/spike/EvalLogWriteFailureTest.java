@@ -63,4 +63,31 @@ public class EvalLogWriteFailureTest {
             LlmSpikeGui.EvalLog.closeForTest();
         }
     }
+
+    @Test
+    public void aNewLogOnDiskOrDiscardedStartsCleanAfterAFailedOne() throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("evallog-reset");
+        LlmSpikeGui.EvalLog.closeForTest();
+        try {
+            LlmSpikeGui.EvalLog.initToWriter(new FullDisk(), "bad.jsonl");
+            captureStdout(() -> LlmSpikeGui.EvalLog.write("{\"t\":\"x\"}"));
+            Assert.assertTrue(LlmSpikeGui.EvalLog.writeFailed());
+            LlmSpikeGui.EvalLog.closeForTest();
+            LlmSpikeGui.EvalLog.initToDir(dir.toString(), 9);
+            Assert.assertFalse(LlmSpikeGui.EvalLog.writeFailed(), "initToDir resets the flag");
+            LlmSpikeGui.EvalLog.closeForTest();
+
+            LlmSpikeGui.EvalLog.initToWriter(new FullDisk(), "bad.jsonl");
+            captureStdout(() -> LlmSpikeGui.EvalLog.write("{\"t\":\"x\"}"));
+            Assert.assertTrue(LlmSpikeGui.EvalLog.writeFailed());
+            LlmSpikeGui.EvalLog.closeForTest();
+            LlmSpikeGui.EvalLog.initDiscard();
+            Assert.assertFalse(LlmSpikeGui.EvalLog.writeFailed(), "initDiscard resets the flag");
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
+            try (java.util.stream.Stream<java.nio.file.Path> s = java.nio.file.Files.walk(dir)) {
+                s.sorted(java.util.Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+            }
+        }
+    }
 }

@@ -127,6 +127,14 @@ class ResumeTest(unittest.TestCase):
         self.write(out, [{"seed": 1, "suite_sha256": "S", "bridge_down_decisions": 0}])
         self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
 
+    def test_an_attempt_whose_log_failed_to_write_is_played_again(self):
+        # Issue #427: puzzle_score refuses the row and says "replay it with --resume", so already_done must not keep it.
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "eval_log_write_failed": True}])
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"))
+        self.write(out, [{"seed": 1, "suite_sha256": "S", "eval_log_write_failed": False}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
     def test_a_row_from_before_the_field_whose_log_shows_a_dead_bridge_is_played_again(self):
         # pr-review of #389: the row has no count, so its puzzle's jvm.log is read (aggregate.log_bridge_down).
         from test_puzzle_score import LOG_402
@@ -580,6 +588,15 @@ class MaxPriceAtListTest(unittest.TestCase):
 
     def test_a_refused_attempt_is_reported_and_the_run_goes_on(self):
         # pr-review of #327: the progress line scored each row, so one refused attempt raised and ended a paid run.
+        self.assertEqual(self.two_puzzles_with({"routing_refusals": 3}).count("[ROUTING-FILTER]"), 2)
+
+    def test_an_attempt_whose_log_failed_to_write_is_reported_and_the_run_goes_on(self):
+        # Issue #427: a solved row with a cut log is no result, so the summary never scores it (attempt_success refuses).
+        out = self.two_puzzles_with({"status": "solved", "eval_log_write_failed": True})
+        self.assertEqual(out.count("[LOG-CUT]"), 2, out)
+        self.assertEqual(out.count("solved=0"), 2, out)
+
+    def two_puzzles_with(self, extra):
         suite = json.loads(Path(self.SUITE).read_text())
         ids = [r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active"][:2]
         played = []
@@ -596,7 +613,7 @@ class MaxPriceAtListTest(unittest.TestCase):
             def run(self, env, out, **kw):
                 played.append(out.name)
                 row = {"schema": "pzl-result-v1", "id": out.name, "seed": 1, "status": "failed",
-                       "suite_sha256": suite["suite_sha256"], "routing_refusals": 3}
+                       "suite_sha256": suite["suite_sha256"], **extra}
                 (out / "puzzle-results.jsonl").write_text(json.dumps(row) + "\n")
                 return 0
 
@@ -609,8 +626,8 @@ class MaxPriceAtListTest(unittest.TestCase):
                                     "--build", "/b", "-j", "1", "--max-price-at-list"])
         self.assertEqual(rc, 0)
         self.assertEqual(sorted(played), sorted(ids), "the second puzzle still ran")
-        self.assertEqual(stdout.getvalue().count("[ROUTING-FILTER]"), 2, stdout.getvalue())
         self.assertTrue(json.loads((root / puzzle_solve.RUN_FILE).read_text())["finished"])
+        return stdout.getvalue()
 
     def test_it_is_refused_for_a_model_with_no_list_price_above_zero(self):
         # pr-review of #327: the JVM refuses a zero ceiling, so every puzzle would fail one by one; refuse it once here.

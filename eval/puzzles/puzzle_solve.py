@@ -465,17 +465,20 @@ def main(argv=None):
                     print("[budget] not started: %s ($%.2f at the dearest endpoint)"
                           % (pid, spent(out_root, bound=True)), flush=True)
                     continue
-                # A row with a decision lost to a routing filter or a dead bridge is no result (puzzle_score refuses
+                # A row with a decision lost to a routing filter or a dead bridge, or a cut log, is no result (puzzle_score refuses
                 # it): say so, go on.
                 refused = [r for r in rows if r.get("routing_refusals")]
                 dead = [r for r in rows if r.get("bridge_down_decisions")]
+                cut = [r for r in rows if ps.log_write_failed(r)]
                 solved = sum(1 for r in rows if not ps.lost_decisions(r) and ps.attempt_success(r)[0])
-                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s%s"
+                print("%-28s rc=%s attempts=%d solved=%d  [cost] $%.3f%s%s%s"
                       % (pid, rc, len(rows), solved, spent(out_root),
                          "  [ROUTING-FILTER] %d attempt(s) lost decisions to the routing filter: replay with --resume"
                          % len(refused) if refused else "",
                          "  [BRIDGE-DOWN] %d attempt(s) lost decisions to a dead model bridge: replay with --resume"
-                         % len(dead) if dead else ""), flush=True)
+                         % len(dead) if dead else "",
+                         "  [LOG-CUT] %d attempt(s) whose eval log failed to write: replay with --resume"
+                         % len(cut) if cut else ""), flush=True)
     except BaseException as e:  # an interrupt too: a watcher must not wait --stall minutes to learn the run ended
         run_file(finished=False, stopped=repr(e))
         raise

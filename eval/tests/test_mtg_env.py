@@ -372,6 +372,11 @@ class VerdictTest(Base):
         _, reward, info = self.play(self.env(STUB_N=1, STUB_EXTRA='{"routing_refusals": 2}'), 2, puzzle="x.pzl")
         self.assertEqual((info["status"], reward, info["valid"]), ("solved", 0.0, False))
 
+    def test_a_row_whose_log_failed_to_write_is_not_valid(self):
+        # Issue #427: the jsonl may be cut, so the episode is no trajectory.
+        _, reward, info = self.play(self.env(STUB_N=1, STUB_EXTRA='{"eval_log_write_failed": true}'), 2, puzzle="x.pzl")
+        self.assertEqual((info["status"], reward, info["valid"]), ("solved", 0.0, False))
+
     def test_a_decision_taken_by_the_fixed_option_after_two_refusals_is_lost_and_not_valid(self):
         _, reward, info = self.play(self.env(STUB_N=1, STUB_LOSTROW=1), 2, puzzle="x.pzl")
         self.assertEqual((info["status"], info["lost_decisions"], info["valid"], reward), ("solved", 1, False, 0.0))
@@ -397,6 +402,11 @@ class VerdictTest(Base):
         _, reward, info = self.play(self.env(STUB_N=2, STUB_MODE="game", STUB_EXTRA='{"bridge_down_decisions_a": 1}'),
                                     2, seed=5)
         self.assertEqual((info["winner"], reward, info["valid"], info["bridge_down_decisions_a"]), ("A", 0.0, False, 1))
+
+    def test_a_game_whose_log_failed_to_write_is_not_valid(self):
+        _, reward, info = self.play(self.env(STUB_N=2, STUB_MODE="game", STUB_EXTRA='{"eval_log_write_failed": true}'),
+                                    2, seed=5)
+        self.assertEqual((info["winner"], reward, info["valid"]), ("A", 0.0, False))
 
     def test_a_game_with_a_lost_decision_or_a_bad_exit_is_not_valid(self):
         _, reward, info = self.play(self.env(STUB_N=2, STUB_MODE="game", STUB_LOSTROW=1), 2, seed=5)

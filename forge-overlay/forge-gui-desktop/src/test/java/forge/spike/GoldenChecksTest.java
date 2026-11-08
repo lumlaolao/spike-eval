@@ -2338,6 +2338,13 @@ public class GoldenChecksTest {
         };
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         Assert.assertEquals(ctrl.budget().get("bridge_down_decisions"), 0, "the row always carries the count");
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToWriter(new java.io.StringWriter(), "budget.jsonl");   // a clean flag, whatever ran before
+        try {
+            Assert.assertEquals(ctrl.budget().get("eval_log_write_failed"), false, "the row always says whether its log was whole (#427)");
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
+        }
         ctrl.chooseSpellAbilityToPlay();
         Assert.assertEquals(ctrl.budget().get("bridge_down_decisions"), 0,
                 "a model that answered nothing lost its own decision: " + ctrl.budget());
@@ -3766,6 +3773,7 @@ public class GoldenChecksTest {
             String line = java.nio.file.Files.readAllLines(file.toPath()).stream()
                     .filter(l -> l.startsWith("{\"t\":\"game\"")).findFirst().orElse("");
             Assert.assertTrue(line.contains("\"capped\":" + capped), line);
+            Assert.assertTrue(line.contains("\"eval_log_write_failed\":false"), "the line says its log was whole (#427): " + line);
             if (capped) Assert.assertTrue(line.contains("\"winner\":\"invalid\""), line);
         }
     }

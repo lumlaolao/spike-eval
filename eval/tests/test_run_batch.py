@@ -1002,6 +1002,21 @@ class TestResumeIdentity(unittest.TestCase):
             self.assertEqual(Path(d, run_batch.CRASHED_DIR, "bridgedown-swap0-game-7100-1000.log").read_text(),
                              "the dead game's log\n")
 
+    def test_a_game_whose_log_failed_to_write_is_set_aside_and_replayed(self):
+        # Issue #427: aggregate.unscorable refuses a cut-log game, so a resume plays it again like a dead-bridge one.
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7300-1000.jsonl", game_line(7300, False, eval_log_write_failed=True))
+            write_game(d, "game-7300-1001.jsonl", game_line(7300, True, eval_log_write_failed=False))
+            Path(d, "game-7300-0.log").write_text("the cut game's log\n")
+            expect = run_batch.resume_expectation(make_args())
+            self.assertEqual(run_batch.combo_status(d, 7300, False, expect), "dead")
+            self.assertEqual(run_batch.combo_status(d, 7300, True, expect), "ok")
+            todo, skipped, foreign = run_batch.plan_combos(d, [(7300, False), (7300, True)], expect)
+            self.assertEqual((todo, skipped, foreign), ([(7300, False)], [(7300, True)], []))
+            self.assertEqual(run_batch.set_aside_dead_bridge(d, 7300, True), [], "a whole log stays")
+            self.assertEqual(sorted(run_batch.set_aside_dead_bridge(d, 7300, False)),
+                             ["bridgedown-swap0-game-7300-1000.jsonl", "bridgedown-swap0-game-7300-1000.log"])
+
     def test_the_file_judged_dead_is_the_one_set_aside_and_its_status_is_under_the_runs_condition(self):
         # Round-4 review of #374: two old game files of one combo and one log naming the second; only the second is
         # dead and moved. A dead game under the run's condition beside a healthy one of another is bridge-down, not
