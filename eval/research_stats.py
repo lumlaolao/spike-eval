@@ -14,10 +14,13 @@ JVM): a count over recorded attempts, pooled over whatever models are in the row
 take on the first call (lost, nudged, or corrected after an invalid call) by the harness's own message
 (`AnswerTool.validate`, `AnswerTool.converse`) into index / type / count / schema / engine / no_call / other; the
 text of a refusal is read from the `context_tool` rows, which exist only for native-tool games, so a failure with no
-such row is `unrecorded`, never guessed. Decisions are tallied per population, never pooled: `menu` (the benchmark's
-condition), `propose` (the PROPOSE_ACTIONS arm), `dev-lane` (Claude CLI, never a score) and `fixtures` (loopback or
-scripted stand-ins, including the acceptance garbage canary that loses decisions on purpose); the by-model, by-epoch
-and by-type tables are the `menu` population. It cannot say what a stricter schema would have done to the model's choices,
+such row is `unrecorded`, never guessed. Decisions are tallied per population, never pooled: `menu` (the play menu shown, API models), `propose` (the
+PROPOSE_ACTIONS arm), `dev-lane` (Claude CLI, never a score), `fixtures` (loopback or scripted stand-ins, including
+the acceptance garbage canary that loses decisions on purpose) and `unattributed` (a log whose model is `mixed` or
+`unknown`); the by-model, by-epoch and by-type tables are the `menu` population. Harness epochs never pool either:
+every tally names the epochs it holds (`epochs`, `pooled` when more than one), and the verdict is one row per epoch;
+the pooled row is printed for reference and refuses a build/do-not-build answer. A decision that was nudged and then
+sent an invalid call counts as corrected, so `no_call` is a floor. It cannot say what a stricter schema would have done to the model's choices,
 only how many failures were of a shape one could have forbidden. `puzzle-bands` reads the zero-model arms stored in
 frozen suites and bands each puzzle by its random solve rate; a rate over 20 or 50 rollouts is itself an estimate.
 """
@@ -151,6 +154,7 @@ FAILURE_PATTERNS = (
               "each block needs", "value is none")),
 )
 NO_MODEL = ("", "unknown", "mixed", "random")
+UNATTRIBUTED = ("", "unknown", "mixed")      # a log that does not name one model: neither a fixture nor a score
 
 
 def classify_failure(text):
@@ -223,9 +227,6 @@ def _json_lines(path):
         return
 
 
-_CONTEXT = {}
-
-
 def _manifest(folder):
     """The condition of the batch-manifest.json in this folder or the one above, else {}."""
     for d in (folder, os.path.dirname(folder)):
@@ -237,20 +238,21 @@ def _manifest(folder):
     return {}
 
 
-def _folder_context(folder):
-    """(models, epochs) a folder names beside its game files: puzzle-results.jsonl, else the manifest."""
-    if folder not in _CONTEXT:
+def _folder_context(folder, cache):
+    """(models, epochs) a folder names beside its game files: puzzle-results.jsonl, else the manifest. `cache` maps
+    folder to the answer, so a folder of many games is read once."""
+    if folder not in cache:
         models, epochs = set(), set()
         for r in _json_lines(os.path.join(folder, "puzzle-results.jsonl")):
             models.add(model_name(r.get("solver_model")))
             epochs.add(r.get("harness_epoch"))
         if not models:
             models.add(model_name(_manifest(folder).get("smart_a")))
-        _CONTEXT[folder] = (models - {""}, epochs - {None, ""})
-    return _CONTEXT[folder]
+        cache[folder] = (models - {""}, epochs - {None, ""})
+    return cache[folder]
 
 
-def run_context(path):
+def run_context(path, cache=None):
     """(model, harness epoch) of a game log: its game line, else its folder's results or manifest. `mixed` when the
     source names several, `unknown` / `unstamped` when it names none."""
     models, epochs = set(), set()
@@ -260,7 +262,7 @@ def run_context(path):
             models.add(model_name(r.get("smart_" + seat)))
             epochs.add(r.get("harness_epoch"))
     if not models:
-        models, epochs = _folder_context(os.path.dirname(path))
+        models, epochs = _folder_context(os.path.dirname(path), {} if cache is None else cache)
     models, epochs = models - {""}, epochs - {None, ""}
     return (models.pop() if len(models) == 1 else "mixed" if models else "unknown",
             epochs.pop() if len(epochs) == 1 else "mixed" if epochs else "unstamped")
@@ -277,19 +279,23 @@ def run_arm(path):
 
 
 def population(model, arm):
-    """The pool a game's decisions are counted in: stand-ins, the propose arm and the Claude CLI development lane
-    (owner, 2026-10-24: never a score) are each their own; `menu` is the benchmark's own condition."""
+    """The pool a game's decisions are counted in: unnamed models, stand-ins, the propose arm and the Claude CLI
+    development lane (owner, 2026-10-24: never a score) are each their own; `menu` is the play menu shown to a named
+    API model."""
+    if model in UNATTRIBUTED:
+        return "unattributed"
     if not is_model(model):
         return "fixtures"
     return "propose" if arm == "propose" else "dev-lane" if model.startswith("claude-cli:") else "menu"
 
 
 def _tally():
-    return {"asked": 0, "failed": 0, "lost": 0, "corrected": 0, "nudged": 0, "unrecorded": 0, "lost_shape": 0,
+    return {"epochs": set(), "asked": 0, "failed": 0, "lost": 0, "corrected": 0, "nudged": 0, "unrecorded": 0, "lost_shape": 0,
             "lost_causes": {}, "failed_causes": {}}
 
 
-def _add(tally, asked, failures):
+def _add(tally, asked, failures, epoch):
+    tally["epochs"].add(str(epoch))
     tally["asked"] += asked
     for f in failures:
         tally["failed"] += 1
@@ -303,10 +309,23 @@ def _add(tally, asked, failures):
 
 def _finish(tally):
     lost = tally["lost"]
+    tally["epochs"] = sorted(tally["epochs"])
+    tally["pooled"] = len(tally["epochs"]) > 1
     tally["lost_rate_ci"] = [round(x, 4) for x in wilson_ci(lost, tally["asked"])]
     tally["failed_rate_ci"] = [round(x, 4) for x in wilson_ci(tally["failed"], tally["asked"])]
-    tally["lost_shape_ci"] = list(wilson_ci(tally["lost_shape"], lost))
+    tally["lost_shape_ci"] = [round(x, 4) for x in wilson_ci(tally["lost_shape"], lost)]
     return tally
+
+
+# The author's choice for this note (2026-11-08), not repository or owner policy.
+SHAPE_RULE = "shape errors above half of the lost decisions"
+
+
+def _verdict(tally):
+    lost = tally["lost"]
+    share = tally["lost_shape"] / lost if lost else 0.0
+    return {"epochs": tally["epochs"], "asked": tally["asked"], "lost": lost, "lost_shape": tally["lost_shape"],
+            "shape_share": share, "shape_share_ci": tally["lost_shape_ci"], "build_schema": share > 0.5}
 
 
 def invalid_answers(roots):
@@ -316,10 +335,11 @@ def invalid_answers(roots):
     for root in roots:
         for dirpath, _, names in os.walk(root):
             files += [os.path.join(dirpath, n) for n in names if n.startswith("game-") and n.endswith(".jsonl")]
-    pops = {name: _tally() for name in ("menu", "propose", "dev-lane", "fixtures")}
+    pops = {name: _tally() for name in ("menu", "propose", "dev-lane", "fixtures", "unattributed")}
     by = {"by_model": {}, "by_epoch": {}, "by_type": {}}
+    cache = {}
     for path in sorted(files):
-        model, epoch = run_context(path)
+        model, epoch = run_context(path, cache)
         pop = population(model, run_arm(path))
         rows = list(_json_lines(path))
         failures = failed_decisions(rows)
@@ -327,22 +347,26 @@ def invalid_answers(roots):
         for r in rows:
             if r.get("t") == "decision" and r.get("answer_via") is not None:
                 asked[r.get("type")] = asked.get(r.get("type"), 0) + 1
-        _add(pops[pop], sum(asked.values()), failures)
+        if not asked and not failures:
+            continue        # a game with no tool-asked decision belongs to no epoch's tally
+        _add(pops[pop], sum(asked.values()), failures, epoch)
         if pop != "menu":
             continue
-        _add(by["by_model"].setdefault(model, _tally()), sum(asked.values()), failures)
-        _add(by["by_epoch"].setdefault(epoch, _tally()), sum(asked.values()), failures)
+        _add(by["by_model"].setdefault(model, _tally()), sum(asked.values()), failures, epoch)
+        _add(by["by_epoch"].setdefault(epoch, _tally()), sum(asked.values()), failures, epoch)
         for kind in set(asked) | {f["type"] for f in failures}:
-            _add(by["by_type"].setdefault(kind, _tally()), asked.get(kind, 0), [f for f in failures if f["type"] == kind])
+            _add(by["by_type"].setdefault(kind, _tally()), asked.get(kind, 0),
+                 [f for f in failures if f["type"] == kind], epoch)
     out = {"files": len(files), "populations": {name: _finish(t) for name, t in pops.items()}}
     for name, tallies in by.items():
         out[name] = {key: _finish(t) for key, t in sorted(tallies.items(), key=str)}
-    menu_pop = out["populations"]["menu"]
-    lost = menu_pop["lost"]
-    share = menu_pop["lost_shape"] / lost if lost else 0.0
-    out["verdict"] = {"lost": lost, "lost_shape": menu_pop["lost_shape"], "shape_share": share,
-                      "shape_share_ci": menu_pop["lost_shape_ci"],
-                      "build_schema": share > 0.5, "rule": "shape errors above half of the lost decisions"}
+    out["verdict"] = {"rule": SHAPE_RULE, "per_epoch": {e: _verdict(t) for e, t in out["by_epoch"].items()},
+                      "pooled": dict(_verdict(out["populations"]["menu"]), build_schema=None)}
+    menu_epochs = out["populations"]["menu"]["epochs"]
+    out["verdict"]["pooled"]["note"] = ("pooled over epochs %s; conditions do not pool, read per_epoch" % menu_epochs
+                                        if len(menu_epochs) > 1 else "one epoch: same as its per_epoch row")
+    if len(menu_epochs) <= 1:
+        out["verdict"]["pooled"]["build_schema"] = out["verdict"]["pooled"]["shape_share"] > 0.5
     return out
 
 
@@ -350,8 +374,9 @@ def invalid_answers(roots):
 
 LIVE_MAX = 0.20          # docs/eval/PUZZLES.md: random must solve a puzzle at most 20% of the time
 ZERO_MODEL_ARMS = ("first", "greedy", "ai")
-INFORMATIVE_MAX_TRIVIAL = 0.10    # a family is PUZ-informative if at most this share is solved by a zero-model arm
-GRADIENT_MIN_LIVE = 0.25          # and gives an RL start a reward if at least this share is in the live band
+# Both thresholds are the author's choice for the 2026-11-08 note, not repository or owner policy.
+INFORMATIVE_MAX_TRIVIAL = 0.10    # "not saturated" if at most this share of active puzzles a zero-model arm solves
+GRADIENT_MIN_LIVE = 0.25          # an RL start from random sees reward if at least this share is in the live band
 
 
 def band(random_rate):
@@ -364,7 +389,7 @@ def _suite_label(path):
 
 
 def _bands_row(puzzles):
-    row = {"n": 0, "unreachable": 0, "live": 0, "easy": 0, "unscoreable": 0, "trivial_any": 0, "trivial_majority": 0,
+    row = {"n": 0, "unreachable": 0, "live": 0, "easy": 0, "unscoreable": 0, "trivial_any": 0,
            "active": 0, "active_trivial_any": 0, "arms": {}}
     rollouts = []
     for p in puzzles:
@@ -375,15 +400,15 @@ def _bands_row(puzzles):
         row["n"] += 1
         row[band(base["random"]["rate"])] += 1
         solved = {a: base[a]["solved"] > 0 for a in ZERO_MODEL_ARMS if a in base}
-        for a, hit in solved.items():
-            row["arms"][a] = row["arms"].get(a, 0) + hit
+        if p.get("status") == "active":     # `arms` counts the active puzzles, like `active_trivial_any`
+            for a, hit in solved.items():
+                row["arms"][a] = row["arms"].get(a, 0) + hit
         row["trivial_any"] += any(solved.values())
         row["active"] += p.get("status") == "active"
         row["active_trivial_any"] += p.get("status") == "active" and any(solved.values())
         rollouts.append(base["random"]["n"])
-        row["trivial_majority"] += any(base[a]["rate"] >= 0.5 for a in ZERO_MODEL_ARMS if a in base)
     row["random_rollouts"] = [min(rollouts), max(rollouts)] if rollouts else []
-    for key in ("unreachable", "live", "easy", "trivial_any", "trivial_majority"):
+    for key in ("unreachable", "live", "easy", "trivial_any"):
         row[key + "_ci"] = [round(x, 4) for x in wilson_ci(row[key], row["n"])]
     row["active_trivial_any_ci"] = [round(x, 4) for x in wilson_ci(row["active_trivial_any"], row["active"])]
     row["label"], row["rl_gradient"] = informative(row)
@@ -391,11 +416,12 @@ def _bands_row(puzzles):
 
 
 def informative(row):
-    """(label, whether an RL start from random sees reward): PUZ-informative when at most 10% of the active puzzles are
-    solved by a zero-model arm (a dropped puzzle is not scored); an RL gradient when at least 25% of the measured
-    puzzles are in the live band."""
+    """(label, whether an RL start from random sees reward): `not saturated by zero-model arms` when at most 10% of
+    the active puzzles are solved by a zero-model arm (a dropped puzzle is not scored); an RL gradient when at least
+    25% of the measured puzzles are in the live band. The label rests on the floors only: no model was run."""
     ok = row["active_trivial_any"] / (row["active"] or 1) <= INFORMATIVE_MAX_TRIVIAL
-    return ("PUZ-informative" if ok else "saturated by floors", row["live"] / (row["n"] or 1) >= GRADIENT_MIN_LIVE)
+    label = "not saturated by zero-model arms" if ok else "saturated by zero-model arms"
+    return label, row["live"] / (row["n"] or 1) >= GRADIENT_MIN_LIVE
 
 
 def puzzle_bands(suite_paths):

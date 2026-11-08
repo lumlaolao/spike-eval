@@ -6,19 +6,31 @@ model call, no JVM, no `OPENROUTER_ALLOW_EGRESS`. Both are subcommands of `eval/
 
 ## Bottom line
 
-- **Invalid answers.** On the benchmark's own condition (menu arm, API models) the seat lost **2 of 18,019**
-  tool-asked decisions (Wilson 0.00% to 0.04%), both in one GLM 5.3 game, both a shape error. Read literally, the
-  decision rule ("shape errors above half of the lost decisions") fires on 2 of 2, but 2 decisions in one game is not
-  evidence: the interval on the share is 34% to 100%. Shape errors are 77 of the 98 first-call failures (79%, 69% to
-  86%), and every one but those 2 was corrected in the same conversation. **Recommendation: do not build a
-  per-decision JSON Schema as its own harness version on this evidence.** The cost it would remove is one extra round
-  on 0.42% of decisions (75 corrected, 0.33% to 0.52%), and the harness's fixed schema was chosen to keep the prompt
-  cache (`docs/harness/PROMPT-CRAFT.md`, rule 19). Reopen if a new block of menu games loses 20 or more decisions.
+- **Invalid answers: the data predates `answer-tool-v12` (harness-epoch 73), so it does not measure the harness as
+  it is.** The current `HARNESS_EPOCH` is 97 and there is no tool-asked menu row at an epoch of 73 or later on this
+  machine; the current harness is **unmeasured here**. Per epoch (menu arm, API models; conditions do not pool):
+  epoch 72, the newest with rows: **79 failed of 6,297 tool-asked decisions (1.26%, Wilson 1.01% to 1.56%), 0 lost
+  (0.00% to 0.06%)**; epoch 70: 9 of 8,776, 0 lost; epoch 71: 15 asked, none failed (too few to say anything); unstamped
+  (the frontier5 puzzle runs): 10 of 2,931, **2 lost** (0.02% to 0.25%). The 2 lost decisions are in one GLM 5.3 game, and
+  **one of them is a harness defect fixed in PR #330** (the seat read only the first `answer` call;
+  `docs/harness/FRONTIER5.md`, `docs/harness/ACCEPTANCE.md`, 2026-10-26); the other was the model sending only
+  `lines`, twice. An all-epoch total (2 of 18,019) is printed by the tool as a pooled row for reference only; it is not
+  a rate of any one condition and is not quoted as a headline.
+- Where the failures were, as they stood at epochs 70 to 72: shape errors (a per-decision schema could have forbidden
+  them) are 77 of the 98 first-call failures (79%, 69% to 86%), and every one but the 2 lost was corrected in the same
+  conversation; 75 corrected, the cost is one extra round on 0.42% of decisions. The author's decision rule ("shape
+  errors above half of the lost decisions") is read per epoch: it has no lost decision to apply to at epochs 70 to 72,
+  and at the unstamped row it is 2 of 2 with 1 of the 2 a since-fixed bug, so it is not evidence.
+- **Recommendation: do not build a per-decision schema on this evidence, and the choice that is open is whether to run
+  the existing per-decision arm (`ANSWER_SCHEMA=per-decision`) once as an A/B on the dev lane, never a score** (see
+  Decision). Its cache cost has not been measured.
 - **Puzzle bands.** The three hard suites (gen, gen2, gen3: 420 boards) are 100% unreachable by random (99.1% to
-  100%) and 0% solved by the first, greedy or Forge-AI arms (0% to 0.9%), but that is the gate's admission rule, not a
-  measurement of the generators. They are **PUZ-informative and give an RL start from random no reward**. Forge's
-  built-in puzzles and the rules sample are **training-only**: 14 of 26 and 13 of 29 active puzzles are solved by a
-  zero-model arm (54% and 45%), and 57% and 69% sit in the live band.
+  100%) and 0% solved by the first, greedy or Forge-AI arms (0% to 0.9%) in the stored baselines. That is the gate's
+  admission rule, not a measurement of the generators, and the Forge AI 0 of 420 is observed, not enforced (the gate
+  admits an AI solve of up to 1 in 4). They are **not saturated by zero-model arms, which rests only on those floors
+  (no model was run), and give an RL start from random no reward**. Forge's built-in puzzles and the rules sample are
+  saturated by zero-model arms: 14 of 26 and 13 of 29 active puzzles are solved by one (54% and 45%), and 57% and 69%
+  sit in the live band.
 
 ## Sources
 
@@ -42,7 +54,9 @@ per-decision enum), `docs/eval/PUZZLES.md` and `docs/harness/HARD-PUZZLES.md` (t
 ### Method
 
 Population: all 13,687 `game-*.jsonl` under `/home/user/mtg-forge-llm-agent/runs/` (git-ignored; the 23 top-level
-entries, mostly `puzzles/`, `propose/`, `harness-acceptance/`, `demo/`). Of 289,884 decision rows, 58,666 carry
+entries, mostly `puzzles/`, `propose/`, `harness-acceptance/`, `demo/`). The outputs are saved in
+[the data folder](2026-11-08-invalid-answers-and-puzzle-bands-data/README.md) with the file count and a hash of the
+file list. Of 289,884 decision rows, 58,666 carry
 `answer_via` (the ask offered the answer tool); the rest are auto-answered, older, or text-lane rows and are not in any
 denominator. `answer_via` takes the values `tool`, `nudged` and `lost` on disk (`text` and `reask` never occur);
 `answer_invalid` counts invalid calls. A failed decision is one that is `lost`, has `answer_invalid > 0`
@@ -64,30 +78,52 @@ since the previous decision row (`ERROR: ...` on an `answer` call, `NUDGE:`, `LO
 
 `shape` = index + type + count + schema. A decision's **cause** is `no_call` if it was nudged or its loss message was
 `LOST`, else the class of the last refused call (lost) or the first (corrected). A failure with no message on disk is
-`unrecorded` and never guessed: there were none. Model and epoch come from the game line, else from the folder's
+`unrecorded` and never guessed: there were none. A decision that was nudged and then sent an invalid call counts as corrected, with the invalid call's class, so
+`no_call` is a floor. Model and epoch come from the game line, else from the folder's
 `puzzle-results.jsonl`, else its `batch-manifest.json` (epoch `unstamped` when none names it: the frontier5 puzzle
-runs). Decisions are tallied per **population** and never pooled (`.claude/rules/eval.md`, "Conditions never pool"):
+runs). Decisions are tallied per **population** and per **harness epoch**, never pooled across either
+(`.claude/rules/eval.md`, "Conditions never pool"); the tool prints one row per epoch and marks any row that holds
+more than one as `pooled`:
 
 | Population | Games with answer-tool rows | What it is |
 |---|---|---|
-| menu | 1,027 | API models, the play menu shown: the benchmark's condition, and the only one the rule is applied to |
+| menu | 1,027 | API models, the play menu shown, as the condition stood at epochs 70 to 72 and unstamped; the only population the rule is applied to |
 | propose | 99 | the PROPOSE_ACTIONS arm (menu hidden; owner: exploratory, never a score) |
 | dev-lane | 72 | the Claude CLI lane (owner, 2026-10-24: never a score) |
-| fixtures | 1,139 | loopback or scripted stand-ins, among them the acceptance canary that answers garbage on purpose |
+| fixtures | 1,136 | loopback or scripted stand-ins, among them the acceptance canary that answers garbage on purpose |
+| unattributed | 3 | a log whose model is `mixed` or `unknown` (21 asks, no failure): neither a fixture nor a model score |
 
-Baseline: the trivial reading of the rule is "no failure is a shape error" (a schema removes nothing); the threshold is
-50% of lost decisions.
+Baseline: the trivial reading of the rule is "no failure is a shape error" (a schema removes nothing). The 50% threshold
+and the rule itself are the author's choice for this note, not a repository or owner policy.
 
 ### Results
 
-| Population | Tool-asked | Failed | Corrected | Nudged | Lost | Failed rate (Wilson) | Lost rate (Wilson) |
-|---|---|---|---|---|---|---|---|
-| menu | 18,019 | 98 | 75 | 21 | 2 | 0.45% to 0.66% | 0.00% to 0.04% |
-| propose | 641 | 53 | 53 | 0 | 0 | 6.38% to 10.66% | 0.00% to 0.60% |
-| dev-lane | 645 | 6 | 6 | 0 | 0 | 0.43% to 2.01% | 0.00% to 0.59% |
-| fixtures | 39,361 | 283 | 25 | 0 | 258 | 0.64% to 0.81% | 0.58% to 0.74% |
+By population, each pooled over the epochs it holds (so these rows are context, not a rate of one condition):
 
-Causes of the failed decisions, by population:
+| Population | Epochs held | Tool-asked | Failed | Corrected | Nudged | Lost | Failed rate (Wilson) | Lost rate (Wilson) |
+|---|---|---|---|---|---|---|---|---|
+| menu (pooled) | 70, 71, 72, unstamped | 18,019 | 98 | 75 | 21 | 2 | 0.45% to 0.66% | 0.00% to 0.04% |
+| propose | 74, 75 | 641 | 53 | 53 | 0 | 0 | 6.38% to 10.66% | 0.00% to 0.60% |
+| dev-lane | 71, 74, 75 | 645 | 6 | 6 | 0 | 0 | 0.43% to 2.01% | 0.00% to 0.59% |
+| fixtures | 65, 70, 73 to 76, unstamped | 39,340 | 283 | 25 | 0 | 258 | 0.64% to 0.81% | 0.58% to 0.74% |
+| unattributed | unstamped | 21 | 0 | 0 | 0 | 0 | 0.00% to 15.5% | 0.00% to 15.5% |
+
+**The menu population by harness epoch** (the headline rows; the menu games of epoch 73 and later have no tool-asked
+decision on this machine):
+
+| Epoch | Tool-asked | Failed | Corrected | Nudged | Lost | Failed rate (Wilson) | Lost rate (Wilson) | Causes |
+|---|---|---|---|---|---|---|---|---|
+| 70 | 8,776 | 9 | 9 | 0 | 0 | 0.05% to 0.19% | 0.00% to 0.04% | count 9 |
+| 71 | 15 | 0 | 0 | 0 | 0 | 0.00% to 20.4% | 0.00% to 20.4% | |
+| **72** | **6,297** | **79** | 64 | 15 | **0** | **1.01% to 1.56%** | **0.00% to 0.06%** | schema 59, no_call 15, count 4, type 1 |
+| unstamped | 2,931 | 10 | 2 | 6 | 2 | 0.19% to 0.63% | 0.02% to 0.25% | no_call 6, schema 3, index 1 |
+
+The epochs run different models, so this is descriptive, not a trend. Epoch 72 is the newest row and the only large one
+that is not a puzzle-run stamp; the rows at epoch 73 and later (65, 73 to 76) hold only fixtures, propose or dev-lane
+games or games with no tool-asked decision. **The harness since `answer-tool-v12` (73) to the current epoch 97 has no
+menu row here: this note says nothing about its rate of failed or lost decisions.**
+
+Causes of the failed decisions, by population (menu pooled over the four epochs above):
 
 | Population | index | type | count | schema | engine | no_call | other |
 |---|---|---|---|---|---|---|---|
@@ -95,11 +131,16 @@ Causes of the failed decisions, by population:
 | propose | 0 | 0 | 0 | 45 | 7 | 0 | 1 |
 | dev-lane | 0 | 0 | 0 | 6 | 0 | 0 | 0 |
 | fixtures | 16 | 0 | 2 | 0 | 9 | 256 | 0 |
+| unattributed | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
 - **The two lost menu decisions** are both `z-ai/glm-5.3` on `hard-elf2-2753b3ca0d06`
   (`runs/puzzles/frontier5-fill/z-ai_glm-5.3__hard-elf2-2753b3ca0d06/.../game-1-1793005709709.jsonl`), play
-  decisions answered twice with only the note fields `lines` and `why` where `option` was required. Both lost
-  decisions are one game of one model: shape share 2 of 2, Wilson 34% to 100%.
+  decisions answered twice with only the note fields `lines` and `why` where `option` was required, in the unstamped
+  row. **The first is a harness defect, fixed in PR #330** (`answer-tool-v12`, epoch 73): the reply held two `answer`
+  calls, the analysis and then `option` 14, and the seat read only the first (`docs/harness/FRONTIER5.md`, "Decisions the
+  harness lost"; `docs/harness/ACCEPTANCE.md`, 2026-10-26). The second is the model's own miss (`lines` twice). So at
+  most 1 of the 2 is a loss the current harness could still produce, and both are one game of one model: shape share
+  2 of 2, Wilson 34% to 100%. This tool cannot tell the two apart; the attribution is from FRONTIER5.md.
 - **Menu first-call failures are 79% shape** (77 of 98; 69% to 86%): 62 schema (mostly `option` where `options` is
   asked, on the multi-pick `sacrifice` decision), 13 count, 1 index, 1 type. The other 21 (21%; 14% to 31%) are
   replies that called nothing, all recovered by the reminder. No engine-refused answer occurred outside the propose arm.
@@ -107,7 +148,7 @@ Causes of the failed decisions, by population:
   and 2 count errors. They are excluded from every model table by design.
 - The 231,218 decision rows without `answer_via` are outside this analysis (no tool ask, or a run before the field).
 
-By model (menu population; models with no failure on 100 or more asks are one row at the end; rates are failed /
+By model (menu population, pooled over epochs 70, 71, 72 and unstamped, so descriptive only; models with no failure on 100 or more asks are one row at the end; rates are failed /
 tool-asked, Wilson):
 
 | Model | Asked | Corrected | Nudged | Lost | Failed rate | Cause |
@@ -131,10 +172,7 @@ The nine: muse-spark-1.3, gpt-6.1-sol, muse-wonder, kimi-k3, gemini-4-argon, gpt
 mistral-medium-3-5, jev-1.14 (jev-router, 20 asks, also none). Luna's rate is the lowest of the models with a
 failure and its causes are different (count errors on a pick-N decision, not wrong field names).
 
-By epoch (menu): epoch 70, 8,776 asked, 9 failed (0.05% to 0.19%, all count); epoch 71, 15 asked, 0; epoch 72, 6,297
-asked, 79 failed (1.01% to 1.56%: schema 59, no_call 15, count 4, type 1); unstamped (the frontier5 puzzle runs), 2,931
-asked, 10 failed (0.19% to 0.63%) and **both lost decisions**. Epochs 73 to 76 and 65 have game lines but no tool-asked
-rows. The models differ by epoch, so this is descriptive, not a trend.
+By epoch: see the per-epoch table above.
 
 By decision type (menu; types with a failure; 3,330 asks over 30 other types had none):
 
@@ -152,16 +190,36 @@ By decision type (menu; types with a failure; 3,330 asks over 30 other types had
 
 ### Decision
 
-The rule as written ("if shape errors are more than about half of lost decisions, build a per-decision schema") is
-met on 2 of 2 and is not worth acting on: the 2 are one game, and the loss it is meant to cut is 0.011% of asks.
-What a schema would remove is the corrected share, 75 decisions (0.42%) each costing one extra round trip, 60 of them
-on one decision type (`sacrifice`, 4% of its asks) and most from three Anthropic and xAI models and the Luna count
-errors. That is a cost, not a loss of decisions. Against it, a schema built per decision discards the cache prefix
-every call (`AnswerTool` v2, `PROMPT-CRAFT.md` rule 19) and is a legality hint the owner rule must be checked against.
-**Not built.** What would reopen it: a new block of menu games whose lost decisions reach 20 or more (an interval on
-the shape share narrower than about 25 points), or a lost rate above 0.1% for a model we want to score. A cheaper
-change that targets the 48 `option`/`options` mix-ups on `sacrifice` is a prompt wording change, not a schema, and is
-not made here.
+Nothing in the harness changes. The rule as written (the author's: "if shape errors are more than about half of lost
+decisions, build a per-decision schema") has no lost decision to apply to at epochs 70 to 72, and its only input (2
+lost, one game) includes a harness bug that is fixed. What a schema would remove is the corrected share at epoch 72,
+64 of 6,297 (1.0%), and 75 of 18,019 over all rows (0.42%), each costing one extra round trip; 60 of the 75 are on one
+decision type (`sacrifice`, 4% of its asks) and most come from Anthropic and xAI models, plus Luna's count errors. That
+is a cost, not a loss of decisions.
+
+**The per-decision schema already exists.** `AnswerTool` keeps the v1 arm: `ANSWER_SCHEMA=per-decision` builds the
+`answer` schema from each decision's legal values, off by default and kept for a side-by-side measurement
+(`AnswerTool.java`, `perDecision()`; `docs/harness/PLAYER-HARNESS.md`, "Measure": a direct JVM launch only, every launcher
+pins the default). **Its cache cost is unmeasured.** The claim that it breaks the prompt cache rests on the design
+argument in `docs/harness/PROMPT-CRAFT.md` rule 19 (tool definitions open the cache prefix, so a schema that changes
+every decision discards it), and rule 19's open question says the two have not been measured against each other. No
+cached-token comparison of the two arms is in the repository or in `runs/` on this machine.
+
+So the choice is not "build a schema" but **run the existing arm as an A/B, on the dev lane and never as a score, or
+not.** Running it would need the owner's `OPENROUTER_ALLOW_EGRESS` consent and a direct JVM launch, a small block (the
+`game-loop` form, about six games per arm; a one-tier Luna game costs $0.02 to $0.05, so about $0.25 to $0.60 for a
+pair of arms at that size, priced with `eval/cost_report.py --plan`), reading the corrected and lost rate and the cached
+tokens per call on the game line (PROMPT-CRAFT rule 20). At the rates above that block is too small to resolve a 1%
+corrected rate (six games hold on the order of a hundred asks: the 18,019 asks are over 1,027 games); it would show the cache cost, not the failure rate.
+This note recommends neither: not running it costs nothing and leaves the failure cost at about 1% extra rounds
+on the data we have; running it answers the cache question rule 19 leaves open.
+
+**Thresholds in this section are the author's choice for this note, not repository or owner policy.** A "reopen"
+trigger the author would use, to be replaced by the owner's: a new block of menu games at the current epoch with 20 or
+more lost decisions (if all 20 were shape errors, the Wilson interval on the share is 84% to 100%, about 16 points wide
+at this size), or a lost rate for a model we want to score above 0.1% measured over at least 4,000 tool-asked decisions
+(at zero losses 4,000 asks bound the rate at 0.10%; with fewer asks the bound cannot resolve it). A cheaper change that
+targets the 48 `option`/`options` mix-ups on `sacrifice` is a prompt wording change, not a schema, and is not made here.
 
 ## B. Puzzle informativeness bands
 
@@ -177,28 +235,32 @@ random (20 to 69 rollouts), pass, first, floor, greedy (hard suites only) and ai
   counted apart.
 - **trivially solved** = at least one of first, greedy, ai solved it in at least 1 of its seeds.
 
-Intervals are Wilson over puzzles. Two rules fixed before reading the table: a family is **PUZ-informative** if at
-most 10% of its *active* puzzles are trivially solved (a dropped puzzle is not scored); it gives **an RL start from
-random a reward** if at least 25% of its measured puzzles are in the live band. `niche` (25 hand-authored boards,
-`eval/puzzles/hard/niche/`) is in no frozen suite and its run records are not on this machine, so it is not recomputed:
-its README states every floor (random 50 rollouts, 20 for the stack theme; PASS, first, ai, greedy 4 each) solved 0,
-except `reequip` by Forge's AI in 1 of 4.
+Intervals are Wilson over puzzles. Two thresholds, **both the author's choice for this note and fixed before reading the
+table, not repository or owner policy**: a family is **not saturated by zero-model arms** if at most 10% of its *active*
+puzzles are solved by one (a dropped puzzle is not scored); it gives **an RL start from random a reward** if at least 25%
+of its measured puzzles are in the live band. The label rests on the stored floors only: no model was run, so it does
+not say a family is informative about a model. The `niche` set (25 hand-authored boards, `eval/puzzles/hard/niche/`) is
+in no frozen suite and its run records are not on this machine; its README states floors, but with no run records
+behind them this note gives it no label and does not recompute it (README: every floor, random 50 rollouts (20 for the
+stack theme) and PASS, first, ai, greedy 4 each, solved 0, except `reequip` by Forge's AI in 1 of 4).
 
 Baseline: the gate that built the hard suites admits a board only if random (0 of 20), PASS, first and greedy (0 of 4)
 fail it and Forge's AI solves it at most once in 4 (`docs/eval/PUZZLES.md`, "The generated hard suite"). The hard suites'
-100% and 0% are therefore the floor of the construction, not a property found.
+100% and 0% for random, first and greedy are therefore the floor of the construction, not a property found. The AI's 0
+of 420 is different: the gate would admit up to 1 in 4, so 0 is **observed in the stored baselines, not enforced by the
+gate**, and a regenerated suite could contain boards the AI solves once.
 
 ### Results
 
 | Family | Measured | Unreachable (random 0) | Live (0 to 20%) | Easy (dropped) | Active trivially solved | Reading |
 |---|---|---|---|---|---|---|
-| gen | 116 | 116 (97% to 100%) | 0 (0% to 3%) | 0 | 0 of 116 (0% to 3%) | PUZ-informative, no RL reward |
-| gen2 | 236 | 236 (98% to 100%) | 0 (0% to 2%) | 0 | 0 of 236 (0% to 2%) | PUZ-informative, no RL reward |
-| gen3 | 68 | 68 (95% to 100%) | 0 (0% to 5%) | 0 | 0 of 68 (0% to 5%) | PUZ-informative, no RL reward |
-| hard-* (gen+gen2+gen3) | 420 | 420 (99% to 100%) | 0 (0% to 1%) | 0 | 0 of 420 (0% to 1%) | PUZ-informative, no RL reward |
-| forge-builtin | 30 | 9 (17% to 48%) | 17 (39% to 73%) | 4 (5% to 30%) | 14 of 26 (35% to 71%) | training-only |
-| rules | 36 | 4 (4% to 25%) | 25 (53% to 82%) | 7 (10% to 35%) | 13 of 29 (28% to 62%) | training-only |
-| niche (25, README) | 25 | 25 documented | 0 | 0 | 0 of 25 documented (reequip 1 of 4 by the AI) | PUZ-informative, no RL reward; not recomputed |
+| gen | 116 | 116 (97% to 100%) | 0 (0% to 3%) | 0 | 0 of 116 (0% to 3%) | not saturated, no RL reward |
+| gen2 | 236 | 236 (98% to 100%) | 0 (0% to 2%) | 0 | 0 of 236 (0% to 2%) | not saturated, no RL reward |
+| gen3 | 68 | 68 (95% to 100%) | 0 (0% to 5%) | 0 | 0 of 68 (0% to 5%) | not saturated, no RL reward |
+| hard-* (gen+gen2+gen3) | 420 | 420 (99% to 100%) | 0 (0% to 1%) | 0 | 0 of 420 (0% to 1%) | not saturated, no RL reward |
+| forge-builtin | 30 | 9 (17% to 48%) | 17 (39% to 73%) | 4 (5% to 30%) | 14 of 26 (35% to 71%) | saturated by zero-model arms |
+| rules | 36 | 4 (4% to 25%) | 25 (53% to 82%) | 7 (10% to 35%) | 13 of 29 (28% to 62%) | saturated by zero-model arms |
+| niche (25, README) | 25 | 25 documented | 0 | 0 | 0 of 25 documented (reequip 1 of 4 by the AI) | no label (README only, no run records) |
 
 Every one of the 19 sub-families inside the hard suites reads the same (all boards unreachable, none trivially
 solved): gen drain 46, elf 6, fling 5, ping 24, splice 29, storm 6; gen2 atog 15, copy 35, drain2 21, elf2 2, grave 35,
@@ -219,28 +281,32 @@ hoofdrain 51, splice2 77; gen3 equip 15, infect 12, landfall 17, tokens 24. The 
 
 ### Decision
 
-- **PUZ-informative:** the three hard suites (gen, gen2, gen3) and, from its README, the niche set. A policy that plays
-  nothing, plays the first option, previews greedily or is Forge's AI scores 0 on them, so a solve is evidence of play.
-  Every informative family has an empty live band: an RL run that starts from a near-random policy sees reward 0 on
-  420 of 420 hard boards (upper limit 0.9% of boards with any reward) and needs a curriculum (shorter or hinted
-  siblings) or a better starting policy before it can use them.
-- **Training-only:** forge-builtin and rules. Over half (54%) and nearly half (45%) of their active puzzles are solved by
-  a zero-model arm, so a margin over the random floor there measures much less than a solve on the hard suites, and
-  `docs/eval/PUZZLES.md` should not call them hard. Their live bands (57% and 69%) are where an RL start from random
-  finds a reward.
+- **Not saturated by zero-model arms** (on the stored floors only): the three hard suites (gen, gen2, gen3). A policy that
+  plays nothing, plays the first option, previews greedily or is Forge's AI scored 0 on them in the stored baselines
+  (the AI figure is observed, not gate-enforced), so a solve there is more likely evidence of play than a solve on the
+  other suites; no model was run to confirm it. Their live band is empty: an RL run that starts from a near-random
+  policy sees reward 0 on 420 of 420 hard boards (upper limit 0.9% of boards with any reward) and needs a curriculum
+  (shorter or hinted siblings) or a better starting policy before it can use them. `niche` has no label.
+- **Saturated by zero-model arms:** forge-builtin and rules. Over half (54%) and nearly half (45%) of their active
+  puzzles are solved by a zero-model arm, so a margin over the random floor there measures much less than a solve on
+  the hard suites, and `docs/eval/PUZZLES.md` should not call them hard. Their live bands (57% and 69%) are where an RL
+  start from random finds a reward. (Earlier wording called these "training-only"; that was not a rule found here.)
 - Not changed in any suite or doc by this note. The unfiltered gate folders and the niche run records are the inputs to
   settle whether the generators are 100% selective or only look it.
 
 ## Reproduce
 
 ```bash
-python3 eval/research_stats.py invalid-answers /path/to/runs        # part A, JSON
+python3 eval/research_stats.py invalid-answers /path/to/runs        # part A, JSON: per-epoch rows, pooled rows marked
 python3 eval/research_stats.py puzzle-bands eval/suites/puzzles-hard-gen-v1.json eval/suites/puzzles-hard-gen2-v1.json \
   eval/suites/puzzles-hard-gen3-v1.json eval/suites/puzzles-forge-builtin-v1.json eval/suites/puzzles-rules-sample-v1.json
 python3 eval/tests/test_research_stats.py
 ```
 
-Part A reads `runs/`, which is git-ignored; the counts above are from the author's clone on 2026-11-08 and change
-with the folder. Part B reads committed files and reproduces exactly. Caveat on A: a lost or corrected decision is
-visible only as far as `answer_via` and the `context_tool` rows were logged; games without native tools carry no
-refusal text, none of which hit a failed decision here.
+Both outputs as run on 2026-11-08 are saved in `eval/research/2026-11-08-invalid-answers-and-puzzle-bands-data/`
+(`invalid-answers.json`, `puzzle-bands.json`, and its README with the file count, 13,687, and the sha256 of the sorted
+file list). Part A reads `runs/`, which is git-ignored and not saved; the counts are from the author's clone on
+2026-11-08 and change with the folder. Part B reads committed files and reproduces exactly. Caveat on A: a lost or
+corrected decision is visible only as far as `answer_via` and the `context_tool` rows were logged; games without native
+tools carry no refusal text, none of which hit a failed decision here. **Not determined:** the failed and lost rates
+of the harness at epoch 73 to 97 (no tool-asked menu rows here), and the cache cost of the per-decision arm.

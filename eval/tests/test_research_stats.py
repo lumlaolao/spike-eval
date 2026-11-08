@@ -135,6 +135,20 @@ class TestFailureClasses(unittest.TestCase):
         self.assertEqual(set(rs.SHAPE), {"index", "type", "count", "schema"})
 
 
+class TestPatternsAreTheSource(unittest.TestCase):
+    def test_every_fragment_is_a_string_in_the_spike_package_sources(self):
+        """The messages come from AnswerTool.validate and the engine-side checks in LlmSpikeGui.java."""
+        folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "forge-overlay",
+                              "forge-gui-desktop", "src", "main", "java", "forge", "spike")
+        source = ""
+        for name in ("AnswerTool.java", "LlmSpikeGui.java"):
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                source += f.read()
+        for name, fragments in rs.FAILURE_PATTERNS:
+            for fragment in fragments:
+                self.assertIn(fragment, source, "%s: %r is no longer in the sources" % (name, fragment))
+
+
 class TestFailedDecisions(unittest.TestCase):
     def failed(self, *rows):
         return rs.failed_decisions(list(rows))
@@ -284,8 +298,44 @@ class TestInvalidAnswers(unittest.TestCase):
         self.assertEqual(self.report["by_type"]["block"]["failed"], 2)
 
     def test_the_rule_follows_the_point_share(self):
-        self.assertEqual(self.report["verdict"]["shape_share"], 0.5)
-        self.assertFalse(self.report["verdict"]["build_schema"])   # "more than half" is strict
+        verdict = self.report["verdict"]["per_epoch"]["e1"]
+        self.assertEqual(verdict["shape_share"], 0.5)
+        self.assertFalse(verdict["build_schema"])   # "more than half" is strict
+
+    def test_one_epoch_pooled_row_is_the_epoch_row(self):
+        pooled = self.report["verdict"]["pooled"]
+        self.assertEqual((self.report["populations"]["menu"]["pooled"], pooled["build_schema"]), (False, False))
+        self.assertEqual(self.report["populations"]["menu"]["epochs"], ["e1"])
+
+    def test_two_epochs_print_per_epoch_rows_and_the_pooled_row_refuses_a_verdict(self):
+        d = tempfile.mkdtemp()
+        for name, epoch, lost in (("x", "e1", 2), ("y", "e2", 0)):
+            rows = [{"t": "game", "smart_a": "openrouter:v/m1", "harness_epoch": epoch}, ask_row("tool", 0)]
+            for _ in range(lost):
+                rows += [tool_row(ANSWER, WRONG_FIELD), tool_row(ANSWER, WRONG_FIELD), ask_row("lost", 2)]
+            write_rows(os.path.join(d, name, "game-1.jsonl"), rows)
+        out = rs.invalid_answers([d])
+        menu = out["populations"]["menu"]
+        self.assertEqual((menu["pooled"], menu["epochs"], menu["lost"]), (True, ["e1", "e2"], 2))
+        self.assertEqual(out["by_epoch"]["e1"]["pooled"], False)
+        self.assertEqual((out["by_epoch"]["e1"]["lost"], out["by_epoch"]["e2"]["lost"]), (2, 0))
+        self.assertTrue(out["verdict"]["per_epoch"]["e1"]["build_schema"])
+        self.assertFalse(out["verdict"]["per_epoch"]["e2"]["build_schema"])
+        self.assertIsNone(out["verdict"]["pooled"]["build_schema"])
+        self.assertIn("pooled over epochs", out["verdict"]["pooled"]["note"])
+
+    def test_a_log_naming_no_one_model_is_unattributed_not_a_fixture(self):
+        d = tempfile.mkdtemp()
+        write_rows(os.path.join(d, "u", "game-1.jsonl"), [ask_row("lost", 0)])
+        out = rs.invalid_answers([d])
+        self.assertEqual((out["populations"]["unattributed"]["lost"], out["populations"]["fixtures"]["lost"]), (1, 0))
+        self.assertEqual(rs.population("mixed", "menu"), "unattributed")
+
+    def test_a_nudged_decision_then_invalid_call_counts_as_corrected(self):
+        rows = [tool_row("p", NUDGE), tool_row(ANSWER, NOT_ON_LIST), tool_row(ANSWER, "ANSWER ACCEPTED"),
+                ask_row("nudged", 1)]
+        out = rs.failed_decisions(rows)
+        self.assertEqual((out[0]["outcome"], out[0]["cause"]), ("corrected", "index"))   # no_call is a floor
 
     def test_a_missing_folder_is_counted_not_fatal(self):
         out = rs.invalid_answers([os.path.join(self.dir, "none")])
@@ -351,13 +401,14 @@ class TestPuzzleBands(unittest.TestCase):
             puzzle("a", 0.0, None, ai=0), puzzle("b", 0.9, None, status="dropped", ai=4)])
         row = rs.puzzle_bands([path])["suites"]["forge-builtin"]
         self.assertEqual((row["trivial_any"], row["active_trivial_any"], row["active"]), (1, 0, 1))
-        self.assertEqual(row["label"], "PUZ-informative")
+        self.assertEqual(row["label"], "not saturated by zero-model arms")
 
     def test_the_label_rule_uses_the_stated_thresholds(self):
         row = {"n": 20, "active": 20, "active_trivial_any": 2, "live": 6}
-        self.assertEqual(rs.informative(row), ("PUZ-informative", True))                 # 10% is the edge, kept
-        self.assertEqual(rs.informative(dict(row, active_trivial_any=3)), ("saturated by floors", True))
-        self.assertEqual(rs.informative(dict(row, active_trivial_any=0, live=4)), ("PUZ-informative", False))
+        ok, bad = "not saturated by zero-model arms", "saturated by zero-model arms"
+        self.assertEqual(rs.informative(row), (ok, True))                  # 10% is the edge, kept
+        self.assertEqual(rs.informative(dict(row, active_trivial_any=3)), (bad, True))
+        self.assertEqual(rs.informative(dict(row, active_trivial_any=0, live=4)), (ok, False))
 
 
 if __name__ == "__main__":
