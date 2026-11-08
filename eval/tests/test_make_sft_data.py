@@ -162,6 +162,20 @@ def test_complete_game_filter():
         check("in-flight file left no game record", len(games) == 1)
 
 
+def test_a_game_from_before_the_bridge_down_fields_is_judged_by_its_paired_log():
+    # #430: no bridge_down_decisions_* on the line, so the transport failures in game-<seed>-<swap>.log decide.
+    from test_aggregate import LOG_402
+    with tempfile.TemporaryDirectory() as d:
+        write_game(d, "game-1-1000.jsonl", game_line(1, False, "A"), [decision("UR Delver")])
+        Path(d, "game-1-0.log").write_text(LOG_402)
+        write_game(d, "game-2-1000.jsonl", game_line(2, False, "A"), [decision("UR Delver")])
+        Path(d, "game-2-0.log").write_text("[Seat] [ROUTER] play: PASS\n")
+        games, warnings = m.load_complete_games(d)
+        check("old line, dead-bridge log: skipped, the other kept", [g["game"]["seed"] for g in games] == [2],
+              "got %s" % [g["game"]["seed"] for g in games])
+        check("the skip is named", any("game-1-1000.jsonl" in w and "unscorable" in w for w in warnings), str(warnings))
+
+
 def test_an_unscorable_game_is_never_training_data():
     # #430: a cut jsonl (a full disk) and a dead bridge's fixed fallbacks are not the model's play.
     for flag, why in (({"eval_log_write_failed": True}, "cut log"), ({"bridge_down_decisions_a": 2}, "dead bridge")):

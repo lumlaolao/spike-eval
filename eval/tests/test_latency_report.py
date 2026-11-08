@@ -42,6 +42,23 @@ class LatencyReportTest(unittest.TestCase):
             self.assertIn("winner=invalid", out, extra)
             self.assertIn("decisions=1", out, extra)
 
+    def test_a_game_line_from_before_the_fields_is_judged_by_its_paired_log(self):
+        # No bridge_down_decisions_* on the line: game-<seed>-<swap>.log decides, and the "[EVAL] jsonl" line it names
+        # pairs it with its own game file (load tags each game with _file).
+        from test_aggregate import LOG_402
+        d = run_dir({})
+        with open(os.path.join(d, "game-1-0.log"), "w") as f:
+            f.write("[EVAL] jsonl game-1-1000.jsonl\n" + LOG_402)
+        out = report(d)
+        self.assertIn("unscorable=1", out)
+        self.assertIn("winner=invalid", out)
+        with open(os.path.join(d, "game-1-0.log"), "w") as f:      # the same log, but of another game's file
+            f.write("[EVAL] jsonl game-1-2000.jsonl\n" + LOG_402)
+        self.assertNotIn("unscorable", report(d))
+        with open(os.path.join(d, "game-1-0.log"), "w") as f:
+            f.write("[EVAL] jsonl game-1-1000.jsonl\n[Seat] [ROUTER] play: PASS\n")
+        self.assertIn("winner=A", report(d))
+
 
 if __name__ == "__main__":
     unittest.main()

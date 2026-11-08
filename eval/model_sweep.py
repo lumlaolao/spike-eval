@@ -27,10 +27,9 @@ import pathlib
 import subprocess
 import sys
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+from aggregate import unscorable
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from aggregate import unscorable  # noqa: E402
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 DEFAULT_MODELS = [
     "openrouter:google/gemini-3.5-flash",

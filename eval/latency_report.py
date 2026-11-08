@@ -71,8 +71,12 @@ def report(tag, run_dir, compact=False):
     # Latency is per decision and a dead bridge's retries are the thing worth seeing, so its decisions stay in; the
     # game is named unscorable and its winner is not shown (aggregate.unscorable, #430).
     lost = sum(1 for g in games if unscorable(g, run_dir))
-    winner = ("%d games" % n_games if n_games > 1
-              else ("invalid" if lost else games[0].get("winner")) if games else None)
+    if n_games > 1:
+        winner = "%d games" % n_games
+    elif games:
+        winner = "invalid" if lost else games[0].get("winner")
+    else:
+        winner = None
     calls = tiers.get("smart", 0) + tiers.get("fast", 0) + tiers.get("plan", 0)
 
     line = ("%-10s games=%-2d capped=%-2d winner=%-8s turns=%-5s decisions=%-4d smart=%-3d fast=%-3d plan=%-3d auto=%-3d" % (
