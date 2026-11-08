@@ -93,7 +93,7 @@ def load_games_by_key(path):
     reporter. Non-decisive / crashed games are dropped from the map but counted.
     """
     games, _dec, warnings = aggregate.parse_dir(path)
-    by_key, nondecisive, total = {}, 0, 0
+    by_key, nondecisive, total, lost = {}, 0, 0, 0
     # parse_dir dedupes per experiment condition, so one (seed, swap) may come
     # back twice when a dir mixes conditions. That is not one arm: refuse to
     # pick silently.
@@ -107,6 +107,10 @@ def load_games_by_key(path):
         if seed is None:
             continue
         total += 1
+        # Not the model's play (a dead bridge or a cut log, aggregate.unscorable, #430): counted apart, never a pair.
+        if aggregate.unscorable(g, path):
+            lost += 1
+            continue
         if not _decisive(g):
             nondecisive += 1
             continue
@@ -116,7 +120,7 @@ def load_games_by_key(path):
                              "conditions; split the directory before comparing"
                              % (path, seed, key[1]))
         by_key[key] = g
-    return by_key, {"total": total, "nondecisive": nondecisive,
+    return by_key, {"total": total, "nondecisive": nondecisive, "unscorable": lost,
                     "warnings": warnings}
 
 
@@ -197,13 +201,13 @@ def print_ab(r):
             label, a = arm
             lo, hi = a["wilson95"]
             print("%s  %-18s %2d/%2d = %s%%  Wilson95 [%.1f%%, %.1f%%]   "
-                  "(games total=%d, non-decisive=%d)"
+                  "(games total=%d, non-decisive=%d, unscorable=%d)"
                   % (tag, label, a["wins"], a["games"],
                      fmt(100 * a["win_rate"] if a["win_rate"] is not None else None),
-                     100 * lo, 100 * hi, meta["total"], meta["nondecisive"]))
+                     100 * lo, 100 * hi, meta["total"], meta["nondecisive"], meta["unscorable"]))
         else:
-            print("%s  (no decisive llm games yet; total=%d non-decisive=%d)"
-                  % (tag, meta["total"], meta["nondecisive"]))
+            print("%s  (no decisive llm games yet; total=%d non-decisive=%d unscorable=%d)"
+                  % (tag, meta["total"], meta["nondecisive"], meta["unscorable"]))
 
     print("\n--- paired A/B (same seed x swap decisive in BOTH arms) ---")
     print("shared decisive games: %d" % r["n_shared_decisive"])

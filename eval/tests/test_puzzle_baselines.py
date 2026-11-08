@@ -243,6 +243,41 @@ class GreedyArmTest(unittest.TestCase):
         self.assertTrue(str(cond["harness_epoch"]).startswith("harness-epoch-"), cond)
 
 
+class WriteFailureTest(unittest.TestCase):
+    """Issue #430: a puzzle row that did not reach the disk is said in the JVM's log, and neither a baseline arm nor the
+    solve run reads the shorter jsonl as a clean one."""
+
+    def test_the_jvm_logs_failed_row_writes_are_read(self):
+        d = Path(tempfile.mkdtemp())
+        self.assertEqual(pb.write_failures(d), [], "no log, nothing failed")
+        (d / "jvm.log").write_text("PZL_RESULT {}\n[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach "
+                                   "the disk and is missing from it\n[PZL] fine\n")
+        self.assertEqual(len(pb.write_failures(d)), 1)
+
+    def test_a_baseline_arm_with_a_lost_row_is_an_error_not_a_short_result(self):
+        class FakeBuild:
+            def run(self, env, out_dir, timeout_s=None):
+                Path(out_dir).mkdir(parents=True, exist_ok=True)
+                (Path(out_dir) / "puzzle-results.jsonl").write_text(json.dumps({"status": "failed", "seed": 1}) + "\n")
+                (Path(out_dir) / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl\n")
+                return 0
+        with self.assertRaisesRegex(RuntimeError, "did not reach the disk"):
+            pb.run_arm(FakeBuild(), Path("/x/h.pzl"), "greedy", "1..4", Path(tempfile.mkdtemp()))
+
+    def test_a_cut_last_line_is_skipped_so_the_write_failure_is_reported_first(self):
+        class FakeBuild:
+            def run(self, env, out_dir, timeout_s=None):
+                Path(out_dir).mkdir(parents=True, exist_ok=True)
+                (Path(out_dir) / "puzzle-results.jsonl").write_text(json.dumps({"status": "failed", "seed": 1}) + '\n{"status": "fai')
+                (Path(out_dir) / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl\n")
+                return 0
+        out = Path(tempfile.mkdtemp())
+        self.assertEqual(len(pb.read_results(out)), 0)
+        with self.assertRaisesRegex(RuntimeError, "did not reach the disk"):    # not a JSONDecodeError
+            pb.run_arm(FakeBuild(), Path("/x/h.pzl"), "greedy", "1..4", out)
+        self.assertEqual(len(pb.read_results(out)), 1)
+
+
 PZL = ("[metadata]\nName:x\nGoal:Win\nTurns:1\n[state]\nturn=1\np0hand=Lava Spike;Fling\n"
        "p0battlefield=Mountain;Thermo-Alchemist\np0library=Island;Island\np1battlefield=Wall of Omens\n"
        "p1graveyard=Shock\n[acceptance]\nlife p1 <= 0\n")

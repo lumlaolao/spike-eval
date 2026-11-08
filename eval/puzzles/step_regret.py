@@ -31,6 +31,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import puzzle_format as pf  # noqa: E402
 
 VERSION = "step-regret-v1"
 MODEL_TIERS = ("smart", "fast")
@@ -188,7 +189,11 @@ class Runner:
         t0 = time.time()
         rc = self.build.run(env, d, timeout_s=6 * 3600)
         rows = read_jsonl(d / "step-search.jsonl")
+        unwritten = pf.write_failures(d)   # before trim, which keeps only the log's tail
         trim(d / "jvm.log")
+        if unwritten:    # a missing row is not "no win found": a verdict of error, never an unwinnable (#430)
+            return [{"k": k, "verdict": "error", "error": "%s (see %s/jvm.log)" % (unwritten[0], d),
+                     "wall_s": round(time.time() - t0, 1)}]
         if not rows:
             return [{"k": k, "verdict": "error", "error": "JVM exit %s and no row (see %s/jvm.log)" % (rc, d),
                      "wall_s": round(time.time() - t0, 1)}]

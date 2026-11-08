@@ -101,18 +101,21 @@ def loopback_env(port):
 
 def outcomes(run_dir):
     """{(seed, swap): 'A'|'B'|'draw'|'invalid'} for identity A's games in a directory, plus the count
-    of crashed games (no game line). None when the directory does not exist."""
+    of crashed games (no game line) and of unscorable ones (a dead bridge, a cut log: read as "invalid", never a win, and
+    counted so check() can fail any arm that has one, #430). None when the directory does not exist."""
     import aggregate                      # lazy: aggregate imports this module for --sanity-arms
     p = Path(run_dir)
     if not p.is_dir():
         return None
     parsed = aggregate.parse_dir_full(p)
     out = {}
+    lost = 0
     for e in parsed["experiments"]:
         for g in e["games"]:
             if g.get("seed") is not None:
-                out[(g["seed"], bool(g.get("swap", False)))] = g.get("winner")
-    return {"games": out, "crashed": len(parsed["crashed"])}
+                out[(g["seed"], bool(g.get("swap", False)))] = aggregate.scored_winner(g)
+                lost += bool(aggregate.unscorable(g))
+    return {"games": out, "crashed": len(parsed["crashed"]), "unscorable": lost}
 
 
 def _wins(o):
@@ -134,7 +137,14 @@ def check(scored_dir, random_margin=DEFAULT_RANDOM_MARGIN, arms=None):
             report["missing"].append(a)
             continue
         report["arms"][a] = {"games": len(o["games"]), "wins": _wins(o), "win_rate": _rate(o),
-                             "crashed": o["crashed"]}
+                             "crashed": o["crashed"], "unscorable": o.get("unscorable", 0)}
+    for a in ARMS:
+        o = arms.get(a)
+        if o is not None and o.get("unscorable"):
+            # Reading the game as "invalid" keeps it from counting as a win, but would also hide what this check is
+            # for (a floor win, a fake arm beating the floor): an arm whose game was not fully played is a finding.
+            report["violations"].append("%s had %d unscorable game(s) (dead bridge or cut log): every sanity arm's "
+                                        "games must all be played" % (a, o["unscorable"]))
     floor = arms.get("floor")
     if floor is not None and _wins(floor):
         report["violations"].append("floor won %d game(s): a floor win means the harness or the opponent "

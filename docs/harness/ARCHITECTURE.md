@@ -1156,6 +1156,25 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     `run_batch.py`'s `combo_status` / `set_aside_dead_bridge` set the game aside and play it again, `mtg_env.py`
     marks the episode invalid, and `defect_analyzer.py` fails on it (`eval_log_write_failed_total`). The game line is
     itself a row: a failure on it alone leaves a log with no game line, which is already counted invalid.
+  - The readers that take no score read it too (issue #430): `make_sft_data.py` (`load_complete_games` skips the game,
+    with a warning, so no training example comes from a dead bridge's fallbacks or a cut jsonl; the same loader feeds
+    `replay_match.py`, `process_metrics.py` and `puzzles/mine_puzzles.py`, which therefore skip it too), `line_compare.py`
+    (counted apart as `left out, unscorable`), `analyze_ab_stage0.py` (`unscorable=` beside `non-decisive=`, never a
+    pair), `sanity_arms.py` (`aggregate.scored_winner`: an unscorable game is `invalid`, not an arm win, and any arm with
+    one fails the check, so neither "the floor won" nor "a fake arm beat the floor" is hidden by the `invalid` reading),
+    `gauntlet_scan.py` (a defect line: a gauntlet game whose model bridge died under load now exits 1), `model_sweep.py` (not a completed game) and `latency_report.py` (its decisions
+    stay, because latency is per decision and a dead bridge's retries are the point; the game is named `unscorable=`
+    and its winner is not shown). `rating.bridge_down_problems` and `defect_analyzer.py` keep their own two checks:
+    each reports the dead bridge and the cut log as separate refusals and separate JSON totals
+    (`bridge_down_total`, `eval_log_write_failed_total`), which one summed `lost_decisions` could not.
+  - The puzzle result and step-search rows have the same exposure (issue #430): `LlmSpikePuzzle.appendTo` opens,
+    appends and closes one row, and any failure (open, write, `checkError()` after the row, close) prints one
+    `[PUZZLE] write failed: ...` line to stdout. `puzzle_format.write_failures` reads it from `jvm.log`
+    (`puzzle_baselines.write_failures` is the same function). A missing row is never taken for an attempt that did not
+    run: `puzzle_baselines.run_arm` raises, `puzzle_solve.py` prints the line with the puzzle's id and `already_done`
+    is false for that directory (a resume plays it again), `puzzle_score.load_rows` refuses the directory so a run that
+    lost an attempt is not scored on the rest, and `step_regret.Runner` returns an `error` verdict for the search
+    (`read_results` skips a cut line so this is reported, not a JSON error).
   - A puzzle row from before the field is judged by its puzzle directory's `jvm.log` (`with_log_counts`, the same
     `aggregate.log_bridge_down` reader as an old game line). That log holds every attempt of the puzzle, so a dead
     bridge in any attempt refuses them all, and `already_done` plays the puzzle again; `set_aside_partial` renames

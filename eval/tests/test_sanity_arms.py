@@ -127,6 +127,54 @@ class TestOnDisk(unittest.TestCase):
             self.assertEqual(r["arms"]["garbage"]["wins"], 1)
             self.assertFalse(r["ok"])
 
+    def test_an_unscorable_game_is_not_an_arm_win(self):
+        # #430: outcomes() reads the scored winner, so a cut log or a dead bridge is "invalid", never an A win.
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name, seed, extra in (("game-1-1000.jsonl", 1, {}), ("game-2-1000.jsonl", 2, {"eval_log_write_failed": True}),
+                                      ("game-3-1000.jsonl", 3, {"bridge_down_decisions_a": 1})):
+                (d / name).write_text(json.dumps(dict({"t": "game", "seed": seed, "swap": False, "winner": "A",
+                                                       "deck_a": "Identity-A", "deck_b": "Identity-B",
+                                                       "controller_a": "llm", "controller_b": "ai"}, **extra)) + "\n")
+            o = sanity_arms.outcomes(d)
+        self.assertEqual(o["games"], {(1, False): "A", (2, False): "invalid", (3, False): "invalid"})
+
+    def test_a_fake_arm_game_that_is_unscorable_fails_the_check(self):
+        # #430: reading it as "invalid" must not hide "garbage won a game the floor lost"; the count fails the arm.
+        with tempfile.TemporaryDirectory() as tmp:
+            scored = Path(tmp) / "burn"
+            scored.mkdir()
+            losing = {1: ("B", "B"), 2: ("B", "B")}
+            for arm in ("floor", "random", "empty"):
+                write_arm(scored, arm, losing)
+            write_arm(scored, "garbage", losing)
+            clean = sanity_arms.check(scored)
+            self.assertTrue(clean["ok"], clean["violations"])
+            self.assertEqual(clean["arms"]["garbage"]["unscorable"], 0)
+            g = sanity_arms.arm_dir(scored, "garbage") / "game-1-1000.jsonl"
+            row = json.loads(g.read_text())
+            g.write_text(json.dumps(dict(row, winner="A", bridge_down_decisions_a=3)) + "\n")
+            r = sanity_arms.check(scored)
+        self.assertEqual(r["arms"]["garbage"]["unscorable"], 1)
+        self.assertEqual(r["arms"]["garbage"]["wins"], 0)               # not counted as a win
+        self.assertFalse(r["ok"])
+        self.assertTrue(any("unscorable" in v for v in r["violations"]), r["violations"])
+
+    def test_a_floor_game_that_is_unscorable_fails_the_check(self):
+        # #431 review: a floor win read as "invalid" (cut log) must not hide "the floor won a game".
+        with tempfile.TemporaryDirectory() as tmp:
+            scored = Path(tmp) / "burn"
+            scored.mkdir()
+            for arm in ("floor", "random", "empty", "garbage"):
+                write_arm(scored, arm, {1: ("B", "B"), 2: ("B", "B")})
+            g = sanity_arms.arm_dir(scored, "floor") / "game-1-1000.jsonl"
+            row = json.loads(g.read_text())
+            g.write_text(json.dumps(dict(row, winner="A", eval_log_write_failed=True)) + "\n")
+            r = sanity_arms.check(scored)
+        self.assertEqual(r["arms"]["floor"]["unscorable"], 1)
+        self.assertFalse(r["ok"])
+        self.assertTrue(any(v.startswith("floor had 1 unscorable") for v in r["violations"]), r["violations"])
+
     def test_aggregate_exits_5_when_an_arm_beats_the_floor(self):
         with tempfile.TemporaryDirectory() as tmp:
             scored = Path(tmp) / "burn"

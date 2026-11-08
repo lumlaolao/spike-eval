@@ -109,6 +109,17 @@ class ResumeTest(unittest.TestCase):
         self.assertFalse(puzzle_solve.already_done(out, 2, "OTHER"), "rows of another suite version")
         self.assertFalse(puzzle_solve.already_done(Path(tempfile.mkdtemp()) / "none", 1, "S"))
 
+    def test_a_puzzle_with_a_row_that_did_not_reach_the_disk_is_not_done(self):
+        # #430: k-1 rows and a "[PUZZLE] write failed" line: a resume plays it again, puzzle_score refuses it.
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        (out / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk and is missing from it\n")
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"), "even with every wanted seed present")
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "run")
+        self.assertTrue((out / "jvm.partial0.log").is_file(), "the log goes aside with the rows")
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
     def test_an_attempt_refused_under_the_price_ceiling_is_played_again(self):
         # pr-review of #327: such a row is not a result (puzzle_score refuses it), so a resume replays the puzzle.
         out = Path(tempfile.mkdtemp()) / "p"
@@ -327,6 +338,36 @@ class BuildProvenanceTest(unittest.TestCase):
         self.assertEqual(seen, [("/b", True)])
         self.assertEqual(json.loads((root / pid / "batch-manifest.json").read_text())["build"], prov)
         self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text())["build"], prov, "the run file too")
+
+
+class WriteFailureTest(unittest.TestCase):
+    """Issue #430: a result row the JVM could not write (a full disk) is named in the run's output."""
+
+    def test_a_row_that_did_not_reach_the_disk_is_named(self):
+        suite_path = evalpath.EVAL / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+
+        class FakeBuild:
+            classes = classes_with_transcript()
+
+            def __init__(self, build_dir, forge, allow_stale=False):
+                pass
+
+            def provenance(self):
+                return {"build_dir": "/b", "build_overlay_sha": "a", "checkout_overlay_sha": "a", "stale_build_allowed": False}
+
+            def run(self, env, out, **kw):
+                Path(out).mkdir(parents=True, exist_ok=True)
+                (Path(out) / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk\n")
+                return 0
+
+        out = io.StringIO()
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(out):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
+                               "--budget-usd", "1", "--ids", pid, "--out", str(Path(tempfile.mkdtemp())), "--build", "/b"])
+        self.assertIn("[puzzles] %s: [PUZZLE] write failed" % pid, out.getvalue())
 
 
 class RunFileTest(unittest.TestCase):

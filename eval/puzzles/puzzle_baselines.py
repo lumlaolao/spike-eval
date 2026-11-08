@@ -202,10 +202,21 @@ def ran_on(out_dir, build):
 
 
 def read_results(out_dir):
+    """The rows of out_dir/puzzle-results.jsonl. A cut line (a full disk, #430) is skipped, not raised on: the JVM said
+    so in jvm.log (write_failures), which the caller reads, and puzzle_score refuses a line that is not JSON."""
     f = Path(out_dir) / "puzzle-results.jsonl"
     if not f.is_file():
         return []
-    return [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = []
+    for l in f.read_text(encoding="utf-8").splitlines():
+        try:
+            rows.append(json.loads(l))
+        except ValueError:
+            pass    # blank, or cut
+    return rows
+
+
+write_failures = pf.write_failures   # the one reader (puzzle_score and step_regret read it without this module)
 
 
 RESUME = False
@@ -240,6 +251,10 @@ def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
     (Path(out_dir) / "puzzle-results.jsonl").unlink(missing_ok=True)
     rc = build.run(env, out_dir)
     rows = read_results(out_dir)
+    lost = write_failures(out_dir)
+    if lost:
+        raise RuntimeError("%s arm on %s: %d result row(s) did not reach the disk (full disk?); see %s/jvm.log"
+                           % (arm, pzl_path, len(lost), out_dir))
     if rc != 0 and not rows:
         raise RuntimeError("%s arm on %s: JVM exit %s and no rows (see %s/jvm.log)" % (arm, pzl_path, rc, out_dir))
     return rows
