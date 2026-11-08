@@ -380,12 +380,27 @@ public class LookaheadProbeTest {
             walk.setActivatingPlayer(me);
             String report = PlayerLookahead.previewLine(g, me,
                     bilboFirst ? java.util.Arrays.asList(bilbo, walk) : java.util.Arrays.asList(walk, bilbo), 5L, null);
-            System.out.println("[LOOKAHEAD] bilboFirst=" + bilboFirst + ": " + report);
             Assert.assertFalse(report.contains("could NOT"), "the board pays for both: " + report);
             Assert.assertTrue(report.contains("then cast " + (bilboFirst ? "Time Walk" : "Bilbo, Thief in the Night")), report);
             Assert.assertTrue(lotus.isInZone(forge.game.zone.ZoneType.Battlefield) && !lotus.isTapped(),
                     "the live Lotus is untouched by a preview");
         }
+    }
+
+    /** The copy's seat is a harness seat for every use of the engine patch's predicate, not only Black Lotus: here the
+     *  lethal-tap-damage source (RP_017). At 1 life City of Brass is the only source for Lightning Bolt; Forge's AI
+     *  skips it, so the copy read "preview unavailable" where the live seat pays. */
+    @Test
+    public void aSourceWhoseTapDamageIsLethalPaysOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        SeatObservationTest.card("City of Brass", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility bolt = spellOn(SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand));
+        bolt.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, bolt, 5L);
+        Assert.assertTrue(report.startsWith("if you cast Lightning Bolt") && !report.contains("could NOT"),
+                "City of Brass pays for the Bolt: " + report);
     }
 
     /**

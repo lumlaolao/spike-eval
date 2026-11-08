@@ -428,9 +428,8 @@ public final class LlmSpikeGui {
      *  {P}, the question the budget, an answer over it is refused and asked again, and the arms draw within it.
      *  Epoch 95 (2026-11-07, #269): a source whose tap damage would be lethal pays after every other source, the
      *  sacrifice-cost ones included (ComputerUtilMana patch); it shared their list, unordered among non-creatures.
-     *  Epoch 96 (2026-10-28, g33 T2): a harness seat may spend Black Lotus on any spell (Forge's AI kept it for mana
-     *  value 4 or more, so Time Walk was off the menu with Lotus the only source), an engine patch; a preview's copy
-     *  pays as a harness seat (lookahead-preview-v17).
+     *  Epoch 96 (2026-11-08, g33 T2): a harness seat may spend Black Lotus on any spell, an engine patch
+     *  (ENGINE-PATCHES.md); a preview's copy pays as a harness seat (lookahead-preview-v17).
      */
     static final String HARNESS_EPOCH = "harness-epoch-96";
 
@@ -958,10 +957,9 @@ public final class LlmSpikeGui {
         static {
             forge.ai.ComputerUtilMana.HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> p.getController() instanceof PlayerControllerLLM
                     && ((PlayerControllerLLM) p.getController()).choosesOwnColours();
-            // Every harness seat may pay with a source whose tap damage is lethal (a legal action is never hidden):
-            // Forge's AI skipped City of Brass at 1 life, so Angel's Grace was never offered (rules pilot RP_017).
-            // The seat's player on a preview's copy is a harness seat too: there it is the engine AI's, and Forge's AI
-            // would not spend Black Lotus on a spell under mana value 4, so g33's preview of a paid line said unpayable.
+            // Every harness seat, and a preview's copy of the seat (PlayerLookahead.isCopySeat), is spared Forge AI's
+            // tastes in payment (ENGINE-PATCHES.md): a lethal-tap-damage source (RP_017), the ability's own card
+            // as a source (RP_175), Black Lotus on a cheap spell.
             forge.ai.ComputerUtilMana.HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> p.getController() instanceof PlayerControllerLLM
                     || PlayerLookahead.isCopySeat(p);
         }

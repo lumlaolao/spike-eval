@@ -64,8 +64,8 @@ final class PlayerLookahead {
     // v16 (2026-11-06, issue #395): a modal spell's target is previewed in the modes the seat chose, also for a mode
     // with its own chained ability and a cast for an alternative cost; the copy chose the modes again with Forge's
     // AI, and the seat's target on the AI's mode failed to target (Barbed Lightning).
-    // v17 (2026-10-28, g33 T2): the copy's seat pays as a harness seat, by the rules only (isCopySeat): Forge's AI would
-    // not spend Black Lotus on Time Walk, so "Bilbo, then Time Walk" on Tundra, Lotus and Mox Ruby read "could NOT pay".
+    // v17 (2026-11-08, g33 T2): the copy's seat pays as a harness seat (isCopySeat), so it also takes the patch's other
+    // harness-seat rules: the own-card source (RP_175), the animated-manland skip, a lethal-tap-damage source last.
     static final String VERSION = "lookahead-preview-v17";
 
     private PlayerLookahead() { }
@@ -89,10 +89,8 @@ final class PlayerLookahead {
 
     static boolean inPreview() { return DEPTH.get() > 0; }
 
-    /** The seat's player on the copy a preview is playing, or null. That player is the engine AI's (the copy has no
-     *  model to ask), but it stands for the harness seat, so its payments follow the rules only, as the live seat's
-     *  do: g33 turn 2 (2026-10-28), Forge's AI would not spend Black Lotus on Time Walk (mana value 2), and a line the
-     *  board paid for came back "could NOT pay". Read by the engine patch's harness-seat predicate. */
+    /** The seat's player on the copy a preview is playing, or null: the engine AI's, but it pays as a harness seat
+     *  (ENGINE-PATCHES.md), read by the patch's predicate. */
     private static final ThreadLocal<Player> COPY_SEAT = new ThreadLocal<>();
 
     static boolean isCopySeat(Player p) { return p != null && COPY_SEAT.get() == p; }
@@ -479,6 +477,7 @@ final class PlayerLookahead {
             }
         }
         java.util.List<forge.game.spellability.SpellAbility> modesListed = new java.util.ArrayList<>();
+        Player copySeatBefore = COPY_SEAT.get();   // a preview inside a preview puts the outer copy's seat back
         enter();
         try {
             // The seat's modes, which its mode choice only chains: else the copy's AI chose its own (issue #395).
@@ -594,7 +593,7 @@ final class PlayerLookahead {
             }
             for (forge.game.spellability.SpellAbility o : modesListed) o.setChosenList(null);
             MyRandom.setRandom(liveRandom);
-            COPY_SEAT.remove();
+            if (copySeatBefore == null) COPY_SEAT.remove(); else COPY_SEAT.set(copySeatBefore);
             exit();
         }
     }
