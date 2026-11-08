@@ -64,7 +64,11 @@ final class PlayerLookahead {
     // v16 (2026-11-06, issue #395): a modal spell's target is previewed in the modes the seat chose, also for a mode
     // with its own chained ability and a cast for an alternative cost; the copy chose the modes again with Forge's
     // AI, and the seat's target on the AI's mode failed to target (Barbed Lightning).
-    static final String VERSION = "lookahead-preview-v16";
+    // v17 (2026-11-08, g33 T2): the copy's seat pays as a harness seat (isCopySeat), so it also takes the patch's other
+    // harness-seat rules: the own-card source (RP_175), the animated-manland skip, a lethal-tap-damage source last.
+    // v18 (2026-11-08, #432): the copy's seat takes the five more payment lifts of HARNESS_SEAT_PAYS_BY_RULES
+    // (ENGINE-PATCHES.md, audit table).
+    static final String VERSION = "lookahead-preview-v18";
 
     private PlayerLookahead() { }
 
@@ -86,6 +90,12 @@ final class PlayerLookahead {
     private static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 
     static boolean inPreview() { return DEPTH.get() > 0; }
+
+    /** The seat's player on the copy a preview is playing, or null: the engine AI's, but it pays as a harness seat
+     *  (ENGINE-PATCHES.md), read by the patch's predicate. */
+    private static final ThreadLocal<Player> COPY_SEAT = new ThreadLocal<>();
+
+    static boolean isCopySeat(Player p) { return p != null && COPY_SEAT.get() == p; }
     private static void enter() { DEPTH.set(DEPTH.get() + 1); }
     private static void exit() { DEPTH.set(Math.max(0, DEPTH.get() - 1)); }
 
@@ -469,6 +479,7 @@ final class PlayerLookahead {
             }
         }
         java.util.List<forge.game.spellability.SpellAbility> modesListed = new java.util.ArrayList<>();
+        Player copySeatBefore = COPY_SEAT.get();   // a preview inside a preview puts the outer copy's seat back
         enter();
         try {
             // The seat's modes, which its mode choice only chains: else the copy's AI chose its own (issue #395).
@@ -491,6 +502,7 @@ final class PlayerLookahead {
             boolean stackBelow = copyStack(live, simGame, sim.getGameCopier());
             // Determinize BEFORE anything resolves so the preview cannot depend on what the seat cannot see.
             determinize(simGame, (Player) sim.getGameCopier().find(seat));
+            COPY_SEAT.set((Player) sim.getGameCopier().find(seat));
             StringBuilder b = new StringBuilder("if you ");
             String stopped = null, delta = "";
             boolean sacrifice = false;
@@ -583,6 +595,7 @@ final class PlayerLookahead {
             }
             for (forge.game.spellability.SpellAbility o : modesListed) o.setChosenList(null);
             MyRandom.setRandom(liveRandom);
+            if (copySeatBefore == null) COPY_SEAT.remove(); else COPY_SEAT.set(copySeatBefore);
             exit();
         }
     }

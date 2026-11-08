@@ -428,8 +428,13 @@ public final class LlmSpikeGui {
      *  {P}, the question the budget, an answer over it is refused and asked again, and the arms draw within it.
      *  Epoch 95 (2026-11-07, #269): a source whose tap damage would be lethal pays after every other source, the
      *  sacrifice-cost ones included (ComputerUtilMana patch); it shared their list, unordered among non-creatures.
+     *  Epoch 96 (2026-11-08, g33 T2): a harness seat may spend Black Lotus on any spell, an engine patch
+     *  (ENGINE-PATCHES.md); a preview's copy pays as a harness seat (lookahead-preview-v17).
+     *  Epoch 97 (2026-11-08, #432): a harness seat pays by the rules in five more places, the same engine patch
+     *  (HARNESS_SEAT_PAYS_BY_RULES, once ..._MAY_TAKE_LETHAL_TAP_DAMAGE; ENGINE-PATCHES.md, audit table); each is a
+     *  play that was refused and is now on the menu or in the preview (lookahead-preview-v18).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-95";
+    static final String HARNESS_EPOCH = "harness-epoch-97";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -955,9 +960,11 @@ public final class LlmSpikeGui {
         static {
             forge.ai.ComputerUtilMana.HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> p.getController() instanceof PlayerControllerLLM
                     && ((PlayerControllerLLM) p.getController()).choosesOwnColours();
-            // Every harness seat may pay with a source whose tap damage is lethal (a legal action is never hidden):
-            // Forge's AI skipped City of Brass at 1 life, so Angel's Grace was never offered (rules pilot RP_017).
-            forge.ai.ComputerUtilMana.HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> p.getController() instanceof PlayerControllerLLM;
+            // Every harness seat, and a preview's copy of the seat (PlayerLookahead.isCopySeat), is spared Forge AI's
+            // tastes in payment (ENGINE-PATCHES.md): a lethal-tap-damage source (RP_017), the ability's own card
+            // as a source (RP_175), Black Lotus on a cheap spell, and the five of #432 (ENGINE-PATCHES.md, audit table).
+            forge.ai.ComputerUtilMana.HARNESS_SEAT_PAYS_BY_RULES = p -> p.getController() instanceof PlayerControllerLLM
+                    || PlayerLookahead.isCopySeat(p);
         }
         boolean choosesOwnColours() { return "llm".equals(mode) && rnd == null; }
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;

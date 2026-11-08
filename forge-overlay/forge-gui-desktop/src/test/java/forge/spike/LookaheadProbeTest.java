@@ -28,6 +28,9 @@ public class LookaheadProbeTest {
                 return null;
             });
         }
+        // The engine patch's predicates are installed by the seat's static initializer; a copy test that runs before any
+        // seat is built (alphabetical order) would see Forge's defaults, which no game does.
+        try { Class.forName("forge.spike.LlmSpikeGui$PlayerControllerLLM"); } catch (ClassNotFoundException e) { throw new AssertionError(e); }
     }
 
     @AfterClass
@@ -359,6 +362,153 @@ public class LookaheadProbeTest {
         Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s, s, s), 5L, null).startsWith("(a line names each option once"));
         // Seen on loopback: the same option twice was reported as two casts with one card's worth of change.
         Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s), 5L, null).startsWith("(a line names each option once"));
+    }
+
+    /** g33 turn 2 (2026-10-28, eval/testdata/demo/g33-simulate.jsonl): with Tundra, Black Lotus and Mox Ruby untapped,
+     *  "Bilbo, then Time Walk" (1U each) came back "could NOT pay for or play Time Walk", and the other order the same,
+     *  though the board makes 5 mana, 4 of it blue. The copy's seat pays as Forge's AI, whose BlackLotus logic spends
+     *  Lotus only on a spell of mana value 4 or more. The copy's seat is the harness seat, so it pays by the rules
+     *  only: both orders are paid. */
+    @Test
+    public void blackLotusPaysForACheapSpellOnTheCopy() {
+        for (boolean bilboFirst : new boolean[] {true, false}) {
+            Game g = SeatObservationTest.bareGame();
+            Player me = g.getPlayers().get(0);
+            SeatObservationTest.card("Tundra", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.card.Card lotus = SeatObservationTest.card("Black Lotus", me, forge.game.zone.ZoneType.Battlefield);
+            SeatObservationTest.card("Mox Ruby", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.spellability.SpellAbility bilbo = spellOn(SeatObservationTest.card("Bilbo, Thief in the Night", me, forge.game.zone.ZoneType.Hand));
+            forge.game.spellability.SpellAbility walk = spellOn(SeatObservationTest.card("Time Walk", me, forge.game.zone.ZoneType.Hand));
+            bilbo.setActivatingPlayer(me);   // as a real menu option carries it
+            walk.setActivatingPlayer(me);
+            String report = PlayerLookahead.previewLine(g, me,
+                    bilboFirst ? java.util.Arrays.asList(bilbo, walk) : java.util.Arrays.asList(walk, bilbo), 5L, null);
+            Assert.assertFalse(report.contains("could NOT"), "the board pays for both: " + report);
+            Assert.assertTrue(report.contains("then cast " + (bilboFirst ? "Time Walk" : "Bilbo, Thief in the Night")), report);
+            Assert.assertTrue(lotus.isInZone(forge.game.zone.ZoneType.Battlefield) && !lotus.isTapped(),
+                    "the live Lotus is untouched by a preview");
+        }
+    }
+
+    /** The copy's seat is a harness seat for every use of the engine patch's predicate, not only Black Lotus: here the
+     *  lethal-tap-damage source (RP_017). At 1 life City of Brass is the only source for Lightning Bolt; Forge's AI
+     *  skips it, so the copy read "preview unavailable" where the live seat pays. */
+    @Test
+    public void aSourceWhoseTapDamageIsLethalPaysOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        SeatObservationTest.card("City of Brass", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility bolt = spellOn(SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand));
+        bolt.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, bolt, 5L);
+        Assert.assertTrue(report.startsWith("if you cast Lightning Bolt") && !report.contains("could NOT"),
+                "City of Brass pays for the Bolt: " + report);
+    }
+
+    private static forge.game.spellability.SpellAbility activatedOn(forge.game.card.Card c, String text) {
+        for (forge.game.spellability.SpellAbility s : c.getSpellAbilities())
+            if (s.isActivatedAbility() && !s.isManaAbility() && s.getDescription().contains(text)) return s;
+        return null;
+    }
+
+    /** #432: the copy's seat takes every use of the predicate, as the live seat does. A pump instant on the only
+     *  creature, which is also the only mana source (Forge's AI never taps the target for mana), is paid on the copy. */
+    @Test
+    public void aPumpSpellMayTapItsTargetForManaOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        forge.game.card.Card elves = SeatObservationTest.card("Llanowar Elves", me, forge.game.zone.ZoneType.Battlefield);
+        elves.setSickness(false);
+        forge.game.spellability.SpellAbility growth = spellOn(SeatObservationTest.card("Giant Growth", me, forge.game.zone.ZoneType.Hand));
+        growth.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, growth, 5L);
+        Assert.assertTrue(report.startsWith("if you cast Giant Growth") && !report.contains("could NOT"),
+                "the Elves pay for the pump aimed at them: " + report);
+        Assert.assertFalse(elves.isTapped(), "the live Elves is untouched by a preview");
+    }
+
+    /** #432: Disenchant on a Lotus Petal paid by sacrificing that Petal (a "not a good idea" skip of Forge's AI) is
+     *  paid on the copy. */
+    @Test
+    public void aSpellMayBePaidBySacrificingItsOwnTargetOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        SeatObservationTest.card("Plains", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card petal = SeatObservationTest.card("Lotus Petal", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility disenchant = spellOn(SeatObservationTest.card("Disenchant", me, forge.game.zone.ZoneType.Hand));
+        disenchant.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, disenchant, 5L);
+        Assert.assertTrue(report.startsWith("if you cast Disenchant") && !report.contains("could NOT"),
+                "the Plains and the Petal pay for Disenchant aimed at the Petal: " + report);
+        Assert.assertTrue(petal.isInZone(forge.game.zone.ZoneType.Battlefield), "the live Petal is untouched by a preview");
+    }
+
+    /** #432: Basalt Monolith's "{3}: Untap" (AIManaPref NotSameCard) is paid with the Monolith on the copy. */
+    @Test
+    public void aMonolithMayPayToUntapItselfOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        forge.game.card.Card monolith = SeatObservationTest.card("Basalt Monolith", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility untap = activatedOn(monolith, "Untap this artifact");
+        Assert.assertNotNull(untap, "the Monolith has its untap ability");
+        untap.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, untap, 5L);
+        Assert.assertFalse(report.contains("could NOT") || report.contains("unavailable"), "the Monolith pays to untap itself: " + report);
+    }
+
+    /** #432: a cost Forge's AI reshapes to avoid an effect (Court Hussar wants {W}), and a Phyrexian hint (Gut Shot's
+     *  AIPhyrexianPayment), are payable on the copy as on the live seat. */
+    @Test
+    public void aCostIsNotReshapedToAvoidAnEffectOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) SeatObservationTest.card("Island", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility hussar = spellOn(SeatObservationTest.card("Court Hussar", me, forge.game.zone.ZoneType.Hand));
+        hussar.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, hussar, 5L);
+        Assert.assertTrue(report.startsWith("if you cast Court Hussar") && !report.contains("could NOT"), "three Islands pay: " + report);
+    }
+
+    /** The steering side of the reshape on the copy: with a Plains and three Islands the {W} that keeps Court Hussar is
+     *  payable, so the copy's payment taps the Plains, as the live seat's does, and the drawback
+     *  (sacrifice unless {W} was spent) does not strike. */
+    @Test
+    public void aDrawbackColourSteersThePaymentOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        SeatObservationTest.card("Plains", me, forge.game.zone.ZoneType.Battlefield);
+        for (int i = 0; i < 3; i++) SeatObservationTest.card("Island", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility hussar = spellOn(SeatObservationTest.card("Court Hussar", me, forge.game.zone.ZoneType.Hand));
+        hussar.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, hussar, 5L);
+        Assert.assertTrue(report.contains("entered the battlefield: Court Hussar") && !report.contains("left the battlefield"),
+                "the Plains pays the {W}, so Court Hussar is not sacrificed: " + report);
+    }
+
+    @Test
+    public void aPhyrexianHintDoesNotStopThePhyrexianLifePaymentOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        forge.game.spellability.SpellAbility shot = spellOn(SeatObservationTest.card("Gut Shot", me, forge.game.zone.ZoneType.Hand));
+        shot.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, shot, 5L);
+        Assert.assertTrue(report.startsWith("if you cast Gut Shot") && !report.contains("could NOT") && !report.contains("unavailable"),
+                "2 life pays the {R/P}: " + report);
+    }
+
+    /** #334's sibling, own card (RP_175) on the copy: Mishra's Factory, the only source, pays for its own animate. The
+     *  copy had no test for this use of the predicate. */
+    @Test
+    public void aCardMayPayForItsOwnAbilityOnTheCopy() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        forge.game.card.Card factory = SeatObservationTest.card("Mishra's Factory", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility animate = activatedOn(factory, "Assembly-Worker");
+        Assert.assertNotNull(animate, "the Factory has its animate ability");
+        animate.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, animate, 5L);
+        Assert.assertFalse(report.contains("could NOT") || report.contains("unavailable"), "the Factory pays for its own animate: " + report);
     }
 
     /**
