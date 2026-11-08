@@ -3,7 +3,8 @@
 `MtgEnv` (`mtg_env.py`) exposes a Forge puzzle or game as `reset` / `step` with the engine's own verdict as the
 reward. `rollout.py` plays episodes with a policy and writes trajectories for GRPO-style training and for
 rejection-sampling SFT. `eval_only.py` keeps eval data out of the training data. Stdlib only, no model call, no
-egress. Design and limits:
+egress. Tests (stub JVM, no engine): `eval/tests/test_mtg_env.py`, `test_rollout.py`, `test_eval_only.py`.
+Design and limits:
 `eval/research/2026-11-06-rlvr-env-feasibility.md`; measurements: `eval/research/2026-11-07-rl-play-env.md`.
 
 ## How it works
@@ -96,6 +97,8 @@ trains nothing. The recorded hashes are cross-checked where possible: `puzzle_sh
 both judged (and a reason is added when they differ), and when the recorded puzzle or deck path can be read, its hash is
 computed again and a disagreement is a reason (a missing file falls back to the recorded hash). This stops accidents,
 not a deliberate forgery of a whole line: someone who rewrites the seed, the hashes and the file can pass.
+`extra_env` is checked once, at construction; a later edit of `env.extra_env` skips that check (the same class as a
+forged episode line: it stops accidents, not a deliberate edit).
 `MtgEnv` has no constructor argument that turns the guard off and no attribute to replace (a test patches
 `eval_only.reasons`); `extra_env` cannot set `PUZZLE`, `PZL_SEEDS`, `GAME_SEED`, `DECK_A`, `DECK_B`, `DECK_A_NAME` or
 `DECK_B_NAME` (`ValueError`), so it cannot change the start the guard judged.

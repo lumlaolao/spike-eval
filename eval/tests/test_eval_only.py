@@ -161,6 +161,61 @@ class DeckTest(unittest.TestCase):
         self.assertEqual(sum(1 for c in rt.call_args_list if c.args[0].name == "holdouts.json"), 1)
 
 
+class FailClosedRegistryTest(unittest.TestCase):
+    """Each way the deck registry or a puzzle file can fail to be judged yields exactly one reason."""
+
+    def setUp(self):
+        self.d = Path(tempfile.mkdtemp(prefix="test-rl-registry-"))
+        self.addCleanup(shutil.rmtree, self.d, True)
+        patch = mock.patch.object(evalpath, "EVAL", self.d)
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def one(self, fragment):
+        why = eval_only.reasons(deck=BURN)
+        self.assertEqual(len(why), 1, why)
+        self.assertIn(fragment, why[0])
+
+    def test_no_holdouts_file_refuses(self):
+        self.one("cannot be checked")
+
+    def test_a_registry_with_no_held_out_decks_refuses_as_vacuous(self):
+        (self.d / "holdouts.json").write_text(json.dumps({"decks": {"burn": {"status": "open", "file": "eval/decks/burn.txt"}}}))
+        self.one("vacuous")
+
+    def test_invalid_json_refuses(self):
+        (self.d / "holdouts.json").write_text("{not json")
+        self.one("cannot be checked")
+
+    def test_an_unreadable_puzzle_file_refuses(self):
+        why = eval_only.reasons(puzzle=self.d / "missing.pzl")
+        self.assertEqual(len(why), 1, why)
+        self.assertIn("unreadable", why[0])
+
+
+class HeldDeckCacheTest(unittest.TestCase):
+    """The held-out deck hashes are cached on each held-out file's (path, mtime, size)."""
+
+    def test_the_key_is_path_mtime_and_size_and_an_edit_shows_through(self):
+        d = Path(tempfile.mkdtemp(prefix="test-rl-held-"))
+        self.addCleanup(shutil.rmtree, d, True)
+        f = d / "held.txt"
+        f.write_text("4 Island\n")
+        os.utime(f, ns=(10**18, 10**18))
+        held = {"h": {"status": "held-out", "file": str(f)}}
+        with mock.patch.object(evalpath, "REPO", Path("/")):
+            first = eval_only._held_shas(held)
+            self.assertEqual(list(eval_only._HELD_SHAS), [((str(f), 10**18, 9),)])
+            f.write_text("4 Swamp\n")   # same size, other mtime
+            os.utime(f, ns=(2 * 10**18, 2 * 10**18))
+            self.assertNotEqual(eval_only._held_shas(held), first)
+            f.write_text("40 Swamp\n")   # other size, same mtime
+            os.utime(f, ns=(2 * 10**18, 2 * 10**18))
+            self.assertEqual(eval_only._held_shas(held), {eval_only.deck_sha(f)})
+            f.unlink()   # a missing file is a None hash, not an exception
+            self.assertEqual(eval_only._held_shas(held), {None})
+
+
 class DuplicateTest(unittest.TestCase):
     def test_duplicate_groups_are_named(self):
         self.assertEqual(eval_only.duplicate_groups(["a.pzl", "b.pzl"], [1, 20], 4), [])
