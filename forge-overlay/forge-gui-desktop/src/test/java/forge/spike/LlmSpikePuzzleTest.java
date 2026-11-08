@@ -243,4 +243,40 @@ public class LlmSpikePuzzleTest {
         }
         return buf.toString();
     }
+
+    /** A disk that is full: every write throws, as FileWriter does when the volume has no room. */
+    private static final class FullDisk extends java.io.Writer {
+        @Override public void write(char[] c, int off, int len) throws java.io.IOException { throw new java.io.IOException("No space left on device"); }
+        @Override public void flush() throws java.io.IOException { throw new java.io.IOException("No space left on device"); }
+        @Override public void close() { }
+    }
+
+    private static String stdoutOf(Runnable r) {
+        java.io.PrintStream old = System.out;
+        java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+        System.setOut(new java.io.PrintStream(buf, true));
+        try { r.run(); } finally { System.setOut(old); }
+        return buf.toString();
+    }
+
+    /** Issue #430: a bare PrintWriter swallowed the full disk, so a puzzle-results.jsonl or step-search.jsonl row went
+     *  missing with nothing said. */
+    @Test
+    public void aRowThatCannotBeWrittenIsSaidOnStdout() {
+        boolean[] ok = new boolean[1];
+        String out = stdoutOf(() -> ok[0] = LlmSpikePuzzle.appendRow(new FullDisk(), "{\"schema\":\"pzl-result-v1\"}", "puzzle-results.jsonl"));
+        Assert.assertFalse(ok[0], "the failure is returned");
+        Assert.assertTrue(out.startsWith("[PUZZLE] write failed"), out);
+        Assert.assertTrue(out.contains("puzzle-results.jsonl"), out);
+    }
+
+    @Test
+    public void aRowThatIsWrittenSaysNothing() {
+        java.io.StringWriter sw = new java.io.StringWriter();
+        boolean[] ok = new boolean[1];
+        String out = stdoutOf(() -> ok[0] = LlmSpikePuzzle.appendRow(sw, "{\"a\":1}", "step-search.jsonl"));
+        Assert.assertTrue(ok[0]);
+        Assert.assertEquals(out, "");
+        Assert.assertEquals(sw.toString().trim(), "{\"a\":1}");
+    }
 }

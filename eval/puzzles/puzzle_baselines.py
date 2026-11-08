@@ -208,6 +208,17 @@ def read_results(out_dir):
     return [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
+def write_failures(out_dir):
+    """The `[PUZZLE] write failed` lines a JVM printed in out_dir/jvm.log (LlmSpikePuzzle.appendRow, issue #430): a
+    result or step-search row that did not reach the disk. Such a row is only missing from the jsonl, so a count of
+    rows alone cannot tell it from a game that never ran."""
+    try:
+        with open(Path(out_dir) / "jvm.log", errors="replace") as f:
+            return [l.strip() for l in f if l.startswith("[PUZZLE] write failed")]
+    except OSError:
+        return []
+
+
 RESUME = False
 
 
@@ -240,6 +251,9 @@ def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
     (Path(out_dir) / "puzzle-results.jsonl").unlink(missing_ok=True)
     rc = build.run(env, out_dir)
     rows = read_results(out_dir)
+    if write_failures(out_dir):
+        raise RuntimeError("%s arm on %s: %d result row(s) did not reach the disk (full disk?); see %s/jvm.log"
+                           % (arm, pzl_path, len(write_failures(out_dir)), out_dir))
     if rc != 0 and not rows:
         raise RuntimeError("%s arm on %s: JVM exit %s and no rows (see %s/jvm.log)" % (arm, pzl_path, rc, out_dir))
     return rows

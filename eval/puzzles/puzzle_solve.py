@@ -290,6 +290,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
     # Past every attempt's game cap and the grace after it, so the JVM is never killed while a game may still end.
     rc = build.run(env, out, timeout_s=max(4 * 3600, k * (cap_ms // 1000 + GRACE_S) + 3600), keep_model_env=True)
     rows = pb.read_results(out)
+    for line in pb.write_failures(out):
+        print("[puzzles] %s: %s (the attempt's row is missing; rerun it)" % (rec["id"], line), flush=True)
     return rec["id"], rc, rows
 
 

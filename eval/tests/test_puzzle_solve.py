@@ -329,6 +329,36 @@ class BuildProvenanceTest(unittest.TestCase):
         self.assertEqual(json.loads((root / puzzle_solve.RUN_FILE).read_text())["build"], prov, "the run file too")
 
 
+class WriteFailureTest(unittest.TestCase):
+    """Issue #430: a result row the JVM could not write (a full disk) is named in the run's output."""
+
+    def test_a_row_that_did_not_reach_the_disk_is_named(self):
+        suite_path = evalpath.EVAL / "suites" / "puzzles-hard-gen2-v1.json"
+        suite = json.loads(suite_path.read_text())
+        pid = next(r["id"] for r in suite["puzzles"] if r["split"] == "open" and r["status"] == "active")
+
+        class FakeBuild:
+            classes = classes_with_transcript()
+
+            def __init__(self, build_dir, forge, allow_stale=False):
+                pass
+
+            def provenance(self):
+                return {"build_dir": "/b", "build_overlay_sha": "a", "checkout_overlay_sha": "a", "stale_build_allowed": False}
+
+            def run(self, env, out, **kw):
+                Path(out).mkdir(parents=True, exist_ok=True)
+                (Path(out) / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk\n")
+                return 0
+
+        out = io.StringIO()
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(out):
+            puzzle_solve.main(["--suite", str(suite_path), "--split", "open", "--model", "greedy:", "--k", "1",
+                               "--budget-usd", "1", "--ids", pid, "--out", str(Path(tempfile.mkdtemp())), "--build", "/b"])
+        self.assertIn("[puzzles] %s: [PUZZLE] write failed" % pid, out.getvalue())
+
+
 class RunFileTest(unittest.TestCase):
     """eval/puzzles/puzzle_watch.py reads puzzle-run.json to show the puzzles not started, when each is done (k rows) and
     when the run is over; without it a watcher cannot tell a finished run from a dead one."""

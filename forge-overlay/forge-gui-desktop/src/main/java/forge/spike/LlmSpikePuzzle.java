@@ -1311,7 +1311,7 @@ public final class LlmSpikePuzzle {
             System.out.println("STEP_RESULT " + json);
             if (dir == null || dir.isEmpty()) continue;
             new File(dir).mkdirs();
-            try (PrintWriter pw = new PrintWriter(new FileWriter(new File(dir, "step-search.jsonl"), true))) { pw.println(json); }
+            try (java.io.Writer w = new FileWriter(new File(dir, "step-search.jsonl"), true)) { appendRow(w, json, "step-search.jsonl"); }
         }
     }
 
@@ -1363,12 +1363,23 @@ public final class LlmSpikePuzzle {
         try {
             File dir = new File(out);
             if (!dir.exists()) dir.mkdirs();
-            try (PrintWriter pw = new PrintWriter(new FileWriter(new File(dir, "puzzle-results.jsonl"), true))) {
-                pw.println(line);
+            try (java.io.Writer w = new FileWriter(new File(dir, "puzzle-results.jsonl"), true)) {
+                appendRow(w, line, "puzzle-results.jsonl");
             }
         } catch (Exception e) {
             System.out.println("[PZL] could not write EVAL_OUT row: " + e);
         }
+    }
+
+    /** One row to `w`, and false (after one `[PUZZLE] write failed` line on stdout) when it did not reach it. A bare
+     *  PrintWriter swallows the IOException of a full disk, so the row would be missing with nothing said (issue #430);
+     *  checkError flushes, so a failure in the buffered tail is seen too. puzzle_baselines.write_failures reads the line. */
+    static boolean appendRow(java.io.Writer w, String line, String file) {
+        PrintWriter pw = new PrintWriter(w);
+        pw.println(line);
+        if (!pw.checkError()) return true;
+        System.out.println("[PUZZLE] write failed: a row of " + file + " did not reach the disk and is missing from it");
+        return false;
     }
 
     static String toJson(Map<String, Object> m) {
