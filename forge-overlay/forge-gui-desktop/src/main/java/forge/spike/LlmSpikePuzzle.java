@@ -3,6 +3,7 @@ package forge.spike;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -1310,8 +1311,7 @@ public final class LlmSpikePuzzle {
             String json = toJson(row);
             System.out.println("STEP_RESULT " + json);
             if (dir == null || dir.isEmpty()) continue;
-            new File(dir).mkdirs();
-            try (java.io.Writer w = new FileWriter(new File(dir, "step-search.jsonl"), true)) { appendRow(w, json, "step-search.jsonl"); }
+            appendTo(new File(dir), "step-search.jsonl", json);
         }
     }
 
@@ -1360,21 +1360,29 @@ public final class LlmSpikePuzzle {
         String line = toJson(row);
         System.out.println("PZL_RESULT " + line);
         if (out == null || out.isEmpty()) return;
+        appendTo(new File(out), "puzzle-results.jsonl", line);
+    }
+
+    /** One row appended to dir/file, the directory made if need be. A failure to open, write or close it is one
+     *  `[PUZZLE] write failed` line on stdout (issue #430), not a `[PZL] could not write` line nothing reads. */
+    static boolean appendTo(File dir, String file, String line) {
+        boolean[] said = new boolean[1];
         try {
-            File dir = new File(out);
-            if (!dir.exists()) dir.mkdirs();
-            try (java.io.Writer w = new FileWriter(new File(dir, "puzzle-results.jsonl"), true)) {
-                appendRow(w, line, "puzzle-results.jsonl");
+            dir.mkdirs();
+            try (Writer w = new FileWriter(new File(dir, file), true)) {
+                said[0] = !appendRow(w, line, file);
+                return !said[0];
             }
-        } catch (Exception e) {
-            System.out.println("[PZL] could not write EVAL_OUT row: " + e);
+        } catch (Exception e) {      // open or close: appendRow has already said a write that failed
+            if (!said[0]) System.out.println("[PUZZLE] write failed: a row of " + file + " did not reach the disk and is missing from it: " + e);
+            return false;
         }
     }
 
     /** One row to `w`, and false (after one `[PUZZLE] write failed` line on stdout) when it did not reach it. A bare
      *  PrintWriter swallows the IOException of a full disk, so the row would be missing with nothing said (issue #430);
      *  checkError flushes, so a failure in the buffered tail is seen too. puzzle_baselines.write_failures reads the line. */
-    static boolean appendRow(java.io.Writer w, String line, String file) {
+    static boolean appendRow(Writer w, String line, String file) {
         PrintWriter pw = new PrintWriter(w);
         pw.println(line);
         if (!pw.checkError()) return true;
