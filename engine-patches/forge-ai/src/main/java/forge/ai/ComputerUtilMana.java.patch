@@ -4,26 +4,22 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
 
 --- a/forge-ai/src/main/java/forge/ai/ComputerUtilMana.java
 +++ b/forge-ai/src/main/java/forge/ai/ComputerUtilMana.java
-@@ -50,6 +50,18 @@
+@@ -50,6 +50,14 @@
  import java.util.stream.Collectors;
  
  public class ComputerUtilMana {
 +    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players choose the colour an any-colour source makes
 +     *  for a generic shard themselves. Nobody, unless the harness sets it (PlayerControllerLLM, model seats). */
 +    public static java.util.function.Predicate<Player> HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> false;
-+    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players pay by the rules only. Forge's AI payment holds
-+     *  tastes that refuse a payment the rules allow (a source whose tap damage is lethal, a card paying for its own
-+     *  ability, a manland animated this turn, Black Lotus on a cheap spell, a pump spell's target tapped for mana,
-+     *  AIManaPref NotSameCard, a sacrifice-this source the spell targets, the colour a card's drawback
-+     *  asks for, a Phyrexian-payment hint); a harness seat is spared each, because a
-+     *  legal action is never hidden. Set by PlayerControllerLLM for its seats and a preview's copy of the seat; false
-+     *  for Forge's AI, which keeps every one. */
++    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md, audit table): which players pay by the rules only, spared the
++     *  tastes of Forge's AI payment that refuse a payment the rules allow. Set by PlayerControllerLLM for its seats and
++     *  a preview's copy of the seat; false for Forge's AI, which keeps every one. */
 +    public static java.util.function.Predicate<Player> HARNESS_SEAT_PAYS_BY_RULES = p -> false;
 +
      private final static boolean DEBUG_MANA_PAYMENT = false;
  
      public static boolean canPayManaCost(ManaCostBeingPaid cost, final SpellAbility sa, final Player ai, final boolean effect) {
-@@ -332,6 +344,9 @@
+@@ -332,6 +340,9 @@
                      maList = filteredList;
                      break;
                  case "NotSameCard":
@@ -33,7 +29,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                      String hostName = sa.getHostCard().getName();
                      maList = filteredList.stream()
                              .filter(saPay -> !saPay.getHostCard().getName().equals(hostName))
-@@ -344,7 +359,12 @@
+@@ -344,7 +355,12 @@
  
          for (final SpellAbility ma : maList) {
              // this rarely seems like a good idea
@@ -47,7 +43,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                  continue;
              }
  
-@@ -368,14 +388,14 @@
+@@ -368,14 +384,14 @@
  
                  // If a manland was previously animated this turn, do not tap it to animate another manland
                  if (saHost.isLand() && ma.getHostCard().isLand()
@@ -64,20 +60,39 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                          && ma.getPayCosts().hasTapCost()
                          && sa.getTargets().getTargetCards().contains(ma.getHostCard())) {
                      // do not activate pump instants/sorceries targeting creatures by tapping targeted
-@@ -625,7 +645,11 @@
+@@ -621,11 +637,29 @@
+ 
+         // A filter's own cost is paid in the middle of another payment, which still needs what it has set aside.
+         // The filter is among that; if it isn't, the ability is being activated on its own and starts afresh like any other.
+-        if (test || !sa.isManaAbility() || !AiCardMemory.isRememberedCard(ai, sa.getHostCard(), MemorySet.PAYS_TAP_COST)) {
++        final boolean startsAfresh = test || !sa.isManaAbility() || !AiCardMemory.isRememberedCard(ai, sa.getHostCard(), MemorySet.PAYS_TAP_COST);
++        if (startsAfresh) {
              AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_TAP_COST);
              AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_SAC_COST);
          }
 -        adjustManaCostToAvoidNegEffects(cost, sa.getHostCard(), ai);
-+        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; Forge's AI demands the colour that
-+        // avoids a card's drawback (Court Hussar: {W}), a harness seat may cast it without (and take the drawback).
++        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): the colour that avoids a card's drawback (Court Hussar: {W})
++        // is steering, not a rule: a harness seat keeps it while the reshaped cost can be paid, and otherwise pays the
++        // unadjusted cost and takes the drawback. A reshaped cost is not reshaped again, so the test below ends; it
++        // runs only on a fresh start, as it clears what a payment in progress has set aside.
 +        if (!HARNESS_SEAT_PAYS_BY_RULES.test(ai)) {
 +            adjustManaCostToAvoidNegEffects(cost, sa.getHostCard(), ai);
++        } else {
++            ManaCostBeingPaid reshaped = new ManaCostBeingPaid(cost);
++            adjustManaCostToAvoidNegEffects(reshaped, sa.getHostCard(), ai);
++            if (startsAfresh && reshaped.getGenericManaAmount() != cost.getGenericManaAmount()) {
++                boolean payable = payManaCost(reshaped, sa, ai, true, checkPlayable, effect) != null;
++                AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_TAP_COST);
++                AiCardMemory.clearMemorySet(ai, MemorySet.PAYS_SAC_COST);
++                if (payable) {
++                    adjustManaCostToAvoidNegEffects(cost, sa.getHostCard(), ai);
++                }
++            }
 +        }
  
          List<Mana> manaSpentToPay = test ? new ArrayList<>() : sa.getPayingMana();
          List<SpellAbility> paymentList = Lists.newArrayList();
-@@ -723,13 +747,19 @@
+@@ -723,13 +757,19 @@
  
              SpellAbility saPayment = saList.isEmpty() ? null : chooseManaAbility(cost, sa, ai, toPay, saList, checkPlayable || !test);
  
@@ -99,7 +114,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                  // since we checked this already, do not loop indefinitely checking again
                  saExcludeList.add(saPayment);
                  continue;
-@@ -746,7 +776,9 @@
+@@ -746,7 +786,9 @@
                      phyLifeToPay += 2;
                  }
  
@@ -110,7 +125,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                      if ("Never".equals(sa.getParam("AIPhyrexianPayment"))) {
                          break; // unwise to pay
                      } else if (sa.getParam("AIPhyrexianPayment").startsWith("OnFatalDamage.")) {
-@@ -1180,6 +1212,12 @@
+@@ -1180,6 +1222,12 @@
          }
  
          if (m.isAnyMana()) {
@@ -123,7 +138,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
              byte colorChoice = 0;
              if (toPay.isOr2Generic()) {
                  colorChoice = toPay.getColorMask();
-@@ -1522,6 +1560,10 @@
+@@ -1522,6 +1570,10 @@
  
          final CardCollection otherManaSources = new CardCollection();
          final CardCollection useLastManaSources = new CardCollection();
@@ -134,7 +149,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
          final CardCollection colorlessManaSources = new CardCollection();
          final CardCollection oneManaSources = new CardCollection();
          final CardCollection twoManaSources = new CardCollection();
-@@ -1565,6 +1607,9 @@
+@@ -1565,6 +1617,9 @@
                      }
                  }
                  if (dealsLethalOnTap) {
@@ -144,7 +159,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                      continue;
                  }
              }
-@@ -1652,6 +1697,7 @@
+@@ -1652,6 +1707,7 @@
          ComputerUtilCard.sortByEvaluateCreature(useLastManaSources);
          Collections.reverse(useLastManaSources);
          sortedManaSources.addAll(sortedManaSources.size(), useLastManaSources);

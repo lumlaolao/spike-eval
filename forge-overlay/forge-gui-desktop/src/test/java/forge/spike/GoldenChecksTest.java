@@ -323,7 +323,8 @@ public class GoldenChecksTest {
     }
 
     /** #432: Gut Shot's {R/P} carries `AIPhyrexianPayment$ OnFatalDamage.1`, a hint for Forge's AI that the menu check
-     *  already hides; the cast itself must not meet it either: with no red source, 2 life pays. */
+     *  already hides; the cast itself must not meet it either: with no red source, 2 life pays. A guard, not a lift test:
+     *  the seat's own `phyrexianByLife` pays the life first, so it is green without the lift (the copy test is red). */
     @Test
     public void aPhyrexianHintDoesNotStopTheSeatPayingLifeForTheCast() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -339,6 +340,26 @@ public class GoldenChecksTest {
         ctrl.playChosenSpellAbility(r.get(0));
         Assert.assertEquals(g.getStack().size(), 1, "Gut Shot is on the stack");
         Assert.assertEquals(me.getLife(), 18, "2 life paid the {R/P}");
+    }
+
+    /** #432: the reshape toward a drawback-avoiding colour is steering, kept while payable: Court Hussar ({2}{U}) with
+     *  a Plains and three Islands is paid with the Plains (Forge's AI turns one generic into {W}); a seat that skips the
+     *  reshape taps any three of the four, and the sort leaves the Plains out. */
+    @Test
+    public void aCostIsReshapedToAvoidAnEffectWhenItCanBePaidForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card plains = card("Plains", me, ZoneType.Battlefield);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        card("Court Hussar", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Court Hussar"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the seat cast Court Hussar");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(g.getStack().size(), 1, "Court Hussar is on the stack");
+        Assert.assertTrue(plains.isTapped(), "the Plains paid, for the {W} that keeps Court Hussar");
     }
 
     /** #432: the payment loop drops a "sacrifice this" mana source from the plan when the spell targets it ("not a

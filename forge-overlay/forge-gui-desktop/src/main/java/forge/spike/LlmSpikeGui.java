@@ -431,11 +431,8 @@ public final class LlmSpikeGui {
      *  Epoch 96 (2026-11-08, g33 T2): a harness seat may spend Black Lotus on any spell, an engine patch
      *  (ENGINE-PATCHES.md); a preview's copy pays as a harness seat (lookahead-preview-v17).
      *  Epoch 97 (2026-11-08, #432): a harness seat pays by the rules in five more places, the same engine patch
-     *  (HARNESS_SEAT_PAYS_BY_RULES, once ..._MAY_TAKE_LETHAL_TAP_DAMAGE): a creature may be tapped for mana to pay
-     *  for the pump spell that targets it, Basalt Monolith may pay for its own "{3}: Untap", a spell may be paid by
-     *  sacrificing the source it targets, a card whose drawback a colour avoids (Court Hussar) is cast without that
-     *  colour, and a Phyrexian-payment hint is not a refusal on the preview's copy; each is a play that was refused
-     *  and is now on the menu or in the preview (lookahead-preview-v18).
+     *  (HARNESS_SEAT_PAYS_BY_RULES, once ..._MAY_TAKE_LETHAL_TAP_DAMAGE; ENGINE-PATCHES.md, audit table); each is a
+     *  play that was refused and is now on the menu or in the preview (lookahead-preview-v18).
      */
     static final String HARNESS_EPOCH = "harness-epoch-97";
 
