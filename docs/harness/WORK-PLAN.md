@@ -1,7 +1,7 @@
 # Work plan: what is left (updated 2026-11-08)
 
-The living to-do list. Only open work is listed here (plus one short paragraph of what landed since the last
-refresh, dropped at the next); what is done is in git history,
+The living to-do list. Only open work is listed here (plus a three-line "Done since" pointer, dropped at the next
+refresh); what is done is in git history,
 [GAME-LOOP-LOG.md](GAME-LOOP-LOG.md), [ACCEPTANCE.md](ACCEPTANCE.md) and the run reports. The plan as it stood
 through 2026-10-19, with every finished item and its evidence, is
 [history/WORK-PLAN-2026-10-19.md](history/WORK-PLAN-2026-10-19.md). Update this file when an item is finished or
@@ -18,16 +18,9 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 
 ## Done since 2026-10-26 (dropped at the next refresh)
 
-The record is in git and [ACCEPTANCE.md](ACCEPTANCE.md). The repository is public-ready, with the license, no
-tracked `runs/`, the front-page README and `spike-eval` as its name (#332, #333, #335, #336); the `claude-cli:`
-lane's deadline is a recorded flag (#363); a game that lost decisions to a dead bridge or whose log failed to write
-is invalid and not scored (#374, #429, #431); the propose, terse-refusal and notebook measurement arms (#342, #349,
-#353, #357); the per-seat Forge AI profile switch, default unchanged (#421); a recorded puzzle attempt replays
-through the seat (#365); the pawprint budget (#414, #416, #418) and a harness seat paying by the rules (#419, #433);
-step regret (#420); the harness-building tasks (#422); `MtgEnv`, an RL environment over the harness (#423); every
-stamp pinned by value in acceptance (#370, #406); issue #269 items 1 to 3 and 5 to 8 (#411 to #414, #419). The hard
-suites are in [docs/eval/PUZZLES.md](../eval/PUZZLES.md); the harness-building environment is in
-[HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
+The record is `git log --merges --since=2026-10-26` and [ACCEPTANCE.md](ACCEPTANCE.md). For a reader the ones that
+change what to do: unscorable games (dead bridge, cut log) are refused everywhere (#374, #429, #431); the seat pays
+by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; harness-building tasks, #422).
 
 ## Facts the owner set (2026-11)
 
@@ -121,7 +114,7 @@ suites are in [docs/eval/PUZZLES.md](../eval/PUZZLES.md); the harness-building e
   2026-11-04) is more recent. Run them once on the current epoch (97) when the owner asks; they are free.
 - **The game loop** continues at g34 (seeds 4101-4133 are used; the last logged game is g33, 2026-10-19): one Luna
   game at a time, the `game-loop` skill, which now waits on the no-paid-runs fact or runs on the `claude-cli:` lane
-(`CLAUDE_CLI_SEAT=1`, never a score). Each game played is logged as a comment on issue #114, the defect-hunt log.
+  (`CLAUDE_CLI_SEAT=1`, never a score). Each game played is logged as a comment on issue #114, the defect-hunt log.
 - **Forge built-in puzzles:** `eval/suites/puzzles-forge-builtin-v1.json` (26 active) waits on a small Luna run
   on its open split (cost first). The prover's pass over the 368 candidates stopped at 25; not found at budget 200
   means nothing yet (HANDOFF-PUZZLES.md, track 2).
