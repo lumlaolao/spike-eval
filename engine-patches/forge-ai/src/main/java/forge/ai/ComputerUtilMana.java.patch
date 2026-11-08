@@ -1,5 +1,5 @@
 Modified from Forge (https://github.com/Card-Forge/forge), GPL-3.0-or-later; changes marked HARNESS PATCH;
-see docs/harness/ENGINE-PATCHES.md. Changes dated 2026-10-15 to 2026-11-07.
+see docs/harness/ENGINE-PATCHES.md. Changes dated 2026-10-15 to 2026-11-08.
 Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_COMMIT. Made by: python3 eval/engine_patches.py diff
 
 --- a/forge-ai/src/main/java/forge/ai/ComputerUtilMana.java
@@ -44,7 +44,19 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                          && AnimateAi.isAnimatedThisTurn(ai, ma.getHostCard())) {
                      continue;
                  }
-@@ -1180,6 +1195,12 @@
+@@ -729,7 +744,10 @@
+                 continue;
+             }
+ 
+-            if (saPayment != null && "BlackLotus".equals(saPayment.getParam("AILogic")) && !SpecialCardAi.BlackLotus.consider(ai, sa, cost)) {
++            // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; Forge's AI keeps Black Lotus for a spell
++            // of mana value 4 or more, but a harness seat may spend it on any spell (Time Walk, g33 turn 2).
++            if (saPayment != null && "BlackLotus".equals(saPayment.getParam("AILogic"))
++                    && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai) && !SpecialCardAi.BlackLotus.consider(ai, sa, cost)) {
+                 // since we checked this already, do not loop indefinitely checking again
+                 saExcludeList.add(saPayment);
+                 continue;
+@@ -1180,6 +1198,12 @@
          }
  
          if (m.isAnyMana()) {
@@ -57,7 +69,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
              byte colorChoice = 0;
              if (toPay.isOr2Generic()) {
                  colorChoice = toPay.getColorMask();
-@@ -1522,6 +1543,10 @@
+@@ -1522,6 +1546,10 @@
  
          final CardCollection otherManaSources = new CardCollection();
          final CardCollection useLastManaSources = new CardCollection();
@@ -68,7 +80,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
          final CardCollection colorlessManaSources = new CardCollection();
          final CardCollection oneManaSources = new CardCollection();
          final CardCollection twoManaSources = new CardCollection();
-@@ -1565,6 +1590,9 @@
+@@ -1565,6 +1593,9 @@
                      }
                  }
                  if (dealsLethalOnTap) {
@@ -78,7 +90,7 @@ Upstream file: forge-ai/src/main/java/forge/ai/ComputerUtilMana.java at FORGE_CO
                      continue;
                  }
              }
-@@ -1652,6 +1680,7 @@
+@@ -1652,6 +1683,7 @@
          ComputerUtilCard.sortByEvaluateCreature(useLastManaSources);
          Collections.reverse(useLastManaSources);
          sortedManaSources.addAll(sortedManaSources.size(), useLastManaSources);
