@@ -59,6 +59,17 @@ CANARY = ("PUZ BENCHMARK DATA. Must never appear in training corpora. "
 _ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 
 
+def write_failures(out_dir):
+    """The `[PUZZLE] write failed` lines a JVM printed in out_dir/jvm.log (LlmSpikePuzzle.appendRow, issue #430): a
+    result or step-search row that did not reach the disk. Such a row is only missing from the jsonl, so a count of
+    rows alone cannot tell it from a game that never ran."""
+    try:
+        with open(Path(out_dir) / "jvm.log", errors="replace") as f:
+            return [l.strip() for l in f if l.startswith("[PUZZLE] write failed")]
+    except OSError:
+        return []
+
+
 def sha256_bytes(data):
     return hashlib.sha256(data).hexdigest()
 

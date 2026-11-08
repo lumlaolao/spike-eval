@@ -149,7 +149,10 @@ def max_price_env(prices, spec):
 def already_done(out, k, suite_sha, cap_ms=None):
     """True when `out` holds a result row on this suite for each of the k attempt seeds: a resumed run skips it. A
     puzzle played under a game cap below `cap_ms` is not done: the cap is a condition, so all its attempts are played
-    again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones)."""
+    again (replaying only the games it cut off would redraw only slow games, a bias toward fast ones). A JVM that
+    could not write a row (pf.write_failures, #430) leaves the puzzle not done, whatever rows it did write."""
+    if pf.write_failures(out):
+        return False
     if cap_ms is not None and ((ps.record_of(Path(out)) or {}).get("game_cap_ms") or ps.LEGACY_GAME_CAP_MS) < cap_ms:
         return False
     seeds = {r.get("seed") for r in ps.with_log_counts(pb.read_results(out), out)
@@ -290,8 +293,8 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond, recorded=True,
     # Past every attempt's game cap and the grace after it, so the JVM is never killed while a game may still end.
     rc = build.run(env, out, timeout_s=max(4 * 3600, k * (cap_ms // 1000 + GRACE_S) + 3600), keep_model_env=True)
     rows = pb.read_results(out)
-    for line in pb.write_failures(out):
-        print("[puzzles] %s: %s (the attempt's row is missing; rerun it)" % (rec["id"], line), flush=True)
+    for line in pb.write_failures(out):    # puzzle_score refuses this puzzle's directory; --resume plays it again
+        print("[puzzles] %s: %s (the attempt's row is missing; rerun it with --resume)" % (rec["id"], line), flush=True)
     return rec["id"], rc, rows
 
 

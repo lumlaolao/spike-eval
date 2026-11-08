@@ -168,6 +168,22 @@ class StepRegretTest(unittest.TestCase):
             self.assertEqual(sr.summary_line(t), "searches 8: proven 2, unwinnable 3, not_found 3 (2 at 600, 1 at "
                                                  "2400), drift 0, error 0, refused 0")
 
+    def test_a_search_row_that_did_not_reach_the_disk_is_an_error_verdict(self):
+        # #430: the JVM printed "[PUZZLE] write failed" and the row is missing: error, not "no win found".
+        class Build:
+            def run(self, env, d, timeout_s=None):
+                Path(d).mkdir(parents=True, exist_ok=True)
+                (Path(d) / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk and is missing from it\n")
+                return 0
+
+        with tempfile.TemporaryDirectory() as d:
+            log = Path(d) / "game-1-1.jsonl"
+            log.write_text("")
+            run = sr.Runner(Build(), log, log, {}, Path(d) / "out", 600, 1, 1000)
+            rows = run(3)
+        self.assertEqual([r["verdict"] for r in rows], ["error"])
+        self.assertIn("write failed", rows[0]["error"])
+
     def test_the_summary_reads_a_probe_rows_drift_and_refusal(self):
         with tempfile.TemporaryDirectory() as d:
             def put(rel, *rows):

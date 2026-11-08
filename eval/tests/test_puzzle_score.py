@@ -262,6 +262,14 @@ class DeadBridgeRefusalTest(unittest.TestCase):
         (d / "jvm.log").write_text(log)
         return d
 
+    def test_a_puzzle_whose_row_did_not_reach_the_disk_is_refused(self):
+        # #430: the attempt's row is missing, so the k-1 that were written must not be scored as the puzzle's attempts.
+        d = self.old_dir("[Solver] played\n[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk and is missing from it\n", bridge_down_decisions=0)
+        with self.assertRaisesRegex(ps.Refused, "could not write a row"):
+            ps.load_rows([d])
+        (d / "jvm.log").write_text("[Solver] played\n")
+        self.assertEqual(len(ps.load_rows([d])), 1)
+
     def test_a_row_from_before_the_field_is_judged_by_its_puzzles_jvm_log(self):
         # pr-review of #389: a row written before bridge_down_decisions, played during an outage, still scored.
         rows = ps.load_rows([self.old_dir(LOG_402)])

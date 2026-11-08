@@ -109,6 +109,17 @@ class ResumeTest(unittest.TestCase):
         self.assertFalse(puzzle_solve.already_done(out, 2, "OTHER"), "rows of another suite version")
         self.assertFalse(puzzle_solve.already_done(Path(tempfile.mkdtemp()) / "none", 1, "S"))
 
+    def test_a_puzzle_with_a_row_that_did_not_reach_the_disk_is_not_done(self):
+        # #430: k-1 rows and a "[PUZZLE] write failed" line: a resume plays it again, puzzle_score refuses it.
+        out = Path(tempfile.mkdtemp()) / "p"
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        (out / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl did not reach the disk and is missing from it\n")
+        self.assertFalse(puzzle_solve.already_done(out, 1, "S"), "even with every wanted seed present")
+        self.assertEqual(puzzle_solve.prepare(out, 1, "S", resume=True), "run")
+        self.assertTrue((out / "jvm.partial0.log").is_file(), "the log goes aside with the rows")
+        self.write(out, [{"seed": 1, "suite_sha256": "S"}])
+        self.assertTrue(puzzle_solve.already_done(out, 1, "S"))
+
     def test_an_attempt_refused_under_the_price_ceiling_is_played_again(self):
         # pr-review of #327: such a row is not a result (puzzle_score refuses it), so a resume replays the puzzle.
         out = Path(tempfile.mkdtemp()) / "p"

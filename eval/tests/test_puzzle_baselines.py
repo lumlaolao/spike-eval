@@ -264,6 +264,19 @@ class WriteFailureTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "did not reach the disk"):
             pb.run_arm(FakeBuild(), Path("/x/h.pzl"), "greedy", "1..4", Path(tempfile.mkdtemp()))
 
+    def test_a_cut_last_line_is_skipped_so_the_write_failure_is_reported_first(self):
+        class FakeBuild:
+            def run(self, env, out_dir, timeout_s=None):
+                Path(out_dir).mkdir(parents=True, exist_ok=True)
+                (Path(out_dir) / "puzzle-results.jsonl").write_text(json.dumps({"status": "failed", "seed": 1}) + '\n{"status": "fai')
+                (Path(out_dir) / "jvm.log").write_text("[PUZZLE] write failed: a row of puzzle-results.jsonl\n")
+                return 0
+        out = Path(tempfile.mkdtemp())
+        self.assertEqual(len(pb.read_results(out)), 0)
+        with self.assertRaisesRegex(RuntimeError, "did not reach the disk"):    # not a JSONDecodeError
+            pb.run_arm(FakeBuild(), Path("/x/h.pzl"), "greedy", "1..4", out)
+        self.assertEqual(len(pb.read_results(out)), 1)
+
 
 PZL = ("[metadata]\nName:x\nGoal:Win\nTurns:1\n[state]\nturn=1\np0hand=Lava Spike;Fling\n"
        "p0battlefield=Mountain;Thermo-Alchemist\np0library=Island;Island\np1battlefield=Wall of Omens\n"

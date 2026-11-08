@@ -167,6 +167,9 @@ def load_rows(paths):
         p = Path(p)
         files = sorted(p.rglob("puzzle-results.jsonl")) if p.is_dir() else [p]
         for f in files:
+            if pf.write_failures(f.parent):
+                raise Refused("%s: the JVM could not write a row of this puzzle (%s): its attempts are not all here; "
+                              "play it again (issue #430)" % (f.parent, pf.write_failures(f.parent)[0]))
             record = record_of(f.parent)
             cap = None if record is None else record.get("game_cap_ms") or LEGACY_GAME_CAP_MS
             call, tokens = ((NO_MANIFEST, NO_MANIFEST) if record is None
