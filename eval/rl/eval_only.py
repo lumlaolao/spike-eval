@@ -22,16 +22,27 @@ _SPLITS = {}   # (file, mtime, size) of every suite file -> the result: a reader
 
 def puzzle_splits(suites_dir=None):
     """{pzl_sha256: {split, ...}} over every record of every suite file that has a `puzzles` list (a record with
-    no split contributes None)."""
+    no split contributes None). A twin record (`twin_of`) also contributes its original's split, from the hash of the
+    original's id and from every suite record of that id: a twin is the original's board under other names, its
+    pzl_sha256 differs from the original's, and a record that calls a twin of a held-out puzzle open must still read
+    as held out."""
     files = sorted(Path(suites_dir or SUITES).glob("*.json"))
     key = tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size) for f in files)
     if key not in _SPLITS:
-        out = {}
+        out, recs = {}, []
         for f in files:
             data = json.loads(f.read_text(encoding="utf-8"))
-            for rec in (data.get("puzzles") or []) if isinstance(data, dict) else []:
-                if rec.get("pzl_sha256"):
-                    out.setdefault(rec["pzl_sha256"], set()).add(rec.get("split"))
+            recs += [r for r in (data.get("puzzles") or []) if isinstance(r, dict)] if isinstance(data, dict) else []
+        by_id = {}
+        for rec in recs:
+            by_id.setdefault(rec.get("id"), set()).add(rec.get("split"))
+        for rec in recs:
+            if rec.get("pzl_sha256"):
+                splits = out.setdefault(rec["pzl_sha256"], set())
+                splits.add(rec.get("split"))
+                if isinstance(rec.get("twin_of"), str):
+                    splits.add(puzzle_format.split_for(rec["twin_of"]))
+                    splits.update(by_id.get(rec["twin_of"], ()))
         _SPLITS.clear()
         _SPLITS[key] = out
     return _SPLITS[key]

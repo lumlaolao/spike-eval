@@ -126,5 +126,81 @@ class BaselineArmsTest(unittest.TestCase):
         self.assertEqual(self.problems({"pass": self.RATE}), [], "the other arms read no prompt: no condition needed")
 
 
+def _ids(split, n=2):
+    return [i for i in ("q%d" % k for k in range(400)) if pf.split_for(i) == split][:n]
+
+
+class TwinRecordTest(unittest.TestCase):
+    """A twin record names its original and carries the original's split, whatever its own id hashes to."""
+
+    CARDS = {"Zorbin Kel": "a" * 64, "Dravi Ton": "b" * 64}
+
+    def twin(self, orig, tid=None, split=None, **kw):
+        tid = tid or orig + "-twin"
+        rec = {"schema": "puzzle.v1", "id": tid, "split": split or pf.split_for(orig), "status": "candidate",
+               "goal": {"engine_goal": "Win", "turns": 1}, "source": {"kind": "rules"},
+               "pzl": "x.pzl", "pzl_sha256": "0" * 64, "twin_of": orig, "twin_cards": dict(self.CARDS),
+               "twin_set_sha256": pf.twin_set_sha(self.CARDS)}
+        rec.update(kw)
+        return rec
+
+    def problems(self, rec):
+        return pf.validate_puzzle(rec, check_files=False)
+
+    def test_a_twin_carries_its_originals_split_not_its_own_ids(self):
+        # the first (original, twin id) pair whose own hashes put them in different splits
+        orig = next(o for o in _ids("heldout", 40) if pf.split_for(o + "-twin") == "open")
+        self.assertEqual(pf.record_split(self.twin(orig)), "heldout")
+        self.assertEqual(self.problems(self.twin(orig)), [])
+        leak = self.problems(self.twin(orig, split="open"))
+        self.assertTrue(any("twin_of" in p and "heldout" in p for p in leak), leak)
+        # and the same twin id without twin_of is judged by its own hash
+        plain = self.twin(orig)
+        for k in ("twin_of", "twin_cards", "twin_set_sha256"):
+            del plain[k]
+        self.assertEqual(pf.record_split(plain), "open")
+
+    def test_the_twin_fields_are_checked(self):
+        o = _ids("open", 1)[0]
+        self.assertEqual(self.problems(self.twin(o)), [])
+        for bad, why in ((self.twin(o, twin_of="bad id!"), "not a puzzle id"), (self.twin(o, twin_of=o + "-twin"), "of itself"),
+                         (self.twin(o, twin_cards={}), "twin_cards"), (self.twin(o, twin_cards={"A": "xyz"}), "twin_cards"),
+                         (self.twin(o, twin_set_sha256="0" * 64), "does not match twin_cards")):
+            self.assertTrue(any(why in p for p in self.problems(bad)), (why, self.problems(bad)))
+
+    def test_the_set_stamp_moves_with_a_script_and_not_with_the_order(self):
+        a = pf.twin_set_sha(self.CARDS)
+        self.assertEqual(a, pf.twin_set_sha(dict(reversed(list(self.CARDS.items())))))
+        self.assertNotEqual(a, pf.twin_set_sha(dict(self.CARDS, **{"Dravi Ton": "c" * 64})))
+        self.assertNotEqual(a, pf.twin_set_sha({"Zorbin Kel": "a" * 64}))
+
+    def test_a_suite_pairs_each_original_once_and_a_frozen_twin_cannot_be_edited(self):
+        o = _ids("open", 1)[0]
+        t = self.twin(o)
+        base = {"schema": pf.SUITE_SCHEMA, "suite": "s", "version": "1", "engine_sha": "e", "puzzles": [t]}
+        self.assertEqual(pf.suite_twin_problems(base), [])
+        two = dict(base, puzzles=[t, self.twin(o, tid=o + "-twin2")])
+        self.assertTrue(any("both twins of" in p for p in pf.suite_twin_problems(two)))
+        chain = dict(base, puzzles=[t, self.twin(t["id"], tid="t3", split=t["split"])])
+        self.assertTrue(any("itself a twin" in p for p in pf.suite_twin_problems(chain)))
+        orig = {"id": o, "split": "heldout"}
+        self.assertTrue(any("its original" in p for p in pf.suite_twin_problems(dict(base, puzzles=[orig, t]))))
+        frozen = pf.freeze(base)
+        moved = dict(frozen, puzzles=[dict(t, twin_of=_ids("open", 2)[1])])
+        self.assertNotEqual(pf.suite_hash(moved), frozen["suite_sha256"], "twin_of is part of what the suite means")
+        cards = {"Zorbin Kel": "d" * 64}
+        moved = dict(frozen, puzzles=[dict(t, twin_cards=cards, twin_set_sha256=pf.twin_set_sha(cards))])
+        self.assertNotEqual(pf.suite_hash(moved), frozen["suite_sha256"], "a changed script moves the suite hash")
+
+    def test_a_suite_without_twins_keeps_its_hash(self):
+        # the committed frozen suites were hashed before twin fields: they must still verify
+        files = sorted((evalpath.EVAL / "suites").glob("puzzles-*.json"))[:3]
+        frozen = [pf.load_suite(f) for f in files]
+        self.assertTrue(any(m.get("frozen") for m in frozen))
+        for f, m in zip(files, frozen):
+            if m.get("frozen"):
+                self.assertEqual(pf.suite_hash(m), m["suite_sha256"], f.name)
+
+
 if __name__ == "__main__":
     unittest.main()
