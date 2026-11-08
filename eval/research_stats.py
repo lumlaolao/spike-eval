@@ -1,28 +1,16 @@
 #!/usr/bin/env python3
-"""The two descriptive statistics of the 2026-11-06 research notes that read board-model rows.
+"""Descriptive statistics over recorded runs and frozen suites (no model, no JVM; docs/STANDARDS.md section 6).
 
     python3 eval/research_stats.py menu <board.jsonl> [...]            # menu-position-at-regret-steps
     python3 eval/research_stats.py loss-awareness <board.jsonl> [...]  # loss-awareness-regex-fails
-    python3 eval/research_stats.py invalid-answers <runs dir> [...]    # 2026-11-08-invalid-answers-and-puzzle-bands
-    python3 eval/research_stats.py puzzle-bands <suite.json> [...]     # 2026-11-08-invalid-answers-and-puzzle-bands
+    python3 eval/research_stats.py invalid-answers <runs dir> [...]    # JSON on stdout
+    python3 eval/research_stats.py puzzle-bands <suite.json> [...]     # JSON on stdout
 
-Input: the rows `eval/puzzles/step_regret_board.py` / `board_drain.py` write (git-ignored under `runs/`), each naming
-its `source_game`. A row whose game file is not on this machine is skipped and counted. Descriptive only (no model, no
-JVM): a count over recorded attempts, pooled over whatever models are in the rows (docs/STANDARDS.md section 6).
-
-`invalid-answers` walks every `game-*.jsonl` under the given folders and sorts each decision the answer tool did not
-take on the first call (lost, nudged, or corrected after an invalid call) by the harness's own message
-(`AnswerTool.validate`, `AnswerTool.converse`) into index / type / count / schema / engine / no_call / other; the
-text of a refusal is read from the `context_tool` rows, which exist only for native-tool games, so a failure with no
-such row is `unrecorded`, never guessed. Decisions are tallied per population, never pooled: `menu` (the play menu shown, API models), `propose` (the
-PROPOSE_ACTIONS arm), `dev-lane` (Claude CLI, never a score), `fixtures` (loopback or scripted stand-ins, including
-the acceptance garbage canary that loses decisions on purpose) and `unattributed` (a log whose model is `mixed` or
-`unknown`); the by-model, by-epoch and by-type tables are the `menu` population. Harness epochs never pool either:
-every tally names the epochs it holds (`epochs`, `pooled` when more than one), and the verdict is one row per epoch;
-the pooled row is printed for reference and refuses a build/do-not-build answer. A decision that was nudged and then
-sent an invalid call counts as corrected, so `no_call` is a floor. It cannot say what a stricter schema would have done to the model's choices,
-only how many failures were of a shape one could have forbidden. `puzzle-bands` reads the zero-model arms stored in
-frozen suites and bands each puzzle by its random solve rate; a rate over 20 or 50 rollouts is itself an estimate.
+`menu` and `loss-awareness` read the rows `eval/puzzles/step_regret_board.py` / `board_drain.py` write (git-ignored under
+`runs/`); a row whose `source_game` is not on this machine is skipped and counted. `invalid-answers` reads every
+`game-*.jsonl` under the folders; a tally never pools populations, and a row that holds more than one harness epoch, or
+an epoch that is unknown, is marked `pooled` and refuses a verdict. `puzzle-bands` reads the zero-model arms stored in
+frozen suites. Method, results and caveats: eval/research/2026-11-08-invalid-answers-and-puzzle-bands.md.
 """
 import json
 import os
@@ -148,13 +136,16 @@ FAILURE_PATTERNS = (
     ("engine", ("ILLEGAL (", "are not legal together", "cannot block attacker")),
     ("index", ("is not on the list", "is out of range", "is not a CAST/ACTIVATE option")),
     ("count", ("options; you picked", "give exactly", "must sum to", "must be the only number", "must get at least",
-               "may be picked once", "amounts cannot be negative", "times; it can block", "twice.")),
+               "may be picked once", "amounts cannot be negative", "times; it can block", "blocks attacker ")),
     ("schema", ("this decision is answered with", "unknown field", "FORMAT: this play targets")),
-    ("type", ("not a JSON object", " must be ", "is a list of handles", "each block is an object",
+    ("type", ("not a JSON object", " value must be ", "is a list of handles", "each block is an object",
               "each block needs", "value is none")),
 )
-NO_MODEL = ("", "unknown", "mixed", "random")
 UNATTRIBUTED = ("", "unknown", "mixed")      # a log that does not name one model: neither a fixture nor a score
+NO_MODEL = UNATTRIBUTED + ("random",)
+# The retired bare-name text lane of the Claude CLI (owner, 2026-10-25): a development lane, never a menu score.
+RETIRED_CLI_LANE = ("opus", "sonnet", "haiku")
+EPOCH_UNKNOWN = "unknown"      # no game line, results file or manifest stamps the harness epoch
 
 
 def classify_failure(text):
@@ -252,11 +243,11 @@ def _folder_context(folder, cache):
     return cache[folder]
 
 
-def run_context(path, cache=None):
+def run_context(path, rows=None, cache=None):
     """(model, harness epoch) of a game log: its game line, else its folder's results or manifest. `mixed` when the
-    source names several, `unknown` / `unstamped` when it names none."""
+    source names several, `unknown` when it names none."""
     models, epochs = set(), set()
-    for r in _json_lines(path):
+    for r in list(_json_lines(path)) if rows is None else rows:
         if r.get("t") == "game":
             seat = "b" if r.get("controller_a") not in (None, "llm") else "a"
             models.add(model_name(r.get("smart_" + seat)))
@@ -265,13 +256,13 @@ def run_context(path, cache=None):
         models, epochs = _folder_context(os.path.dirname(path), {} if cache is None else cache)
     models, epochs = models - {""}, epochs - {None, ""}
     return (models.pop() if len(models) == 1 else "mixed" if models else "unknown",
-            epochs.pop() if len(epochs) == 1 else "mixed" if epochs else "unstamped")
+            epochs.pop() if len(epochs) == 1 else "mixed" if epochs else EPOCH_UNKNOWN)
 
 
-def run_arm(path):
+def run_arm(path, rows=None):
     """`propose` for a game played under PROPOSE_ACTIONS (the game line's stamp, else the manifest's pinned env), else
     `menu`: the arm that hides the play menu is a condition that never pools with the others."""
-    for r in _json_lines(path):
+    for r in list(_json_lines(path)) if rows is None else rows:
         if r.get("t") == "game" and "propose_actions" in r:
             return "propose" if str(r["propose_actions"]).lower() in ("true", "1") else "menu"
     env = _manifest(os.path.dirname(path)).get("env") or {}
@@ -280,22 +271,25 @@ def run_arm(path):
 
 def population(model, arm):
     """The pool a game's decisions are counted in: unnamed models, stand-ins, the propose arm and the Claude CLI
-    development lane (owner, 2026-10-24: never a score) are each their own; `menu` is the play menu shown to a named
+    development lane (owner, 2026-10-24: never a score; its retired bare names too) are each their own; `menu` is the play menu shown to a named
     API model."""
     if model in UNATTRIBUTED:
         return "unattributed"
     if not is_model(model):
         return "fixtures"
-    return "propose" if arm == "propose" else "dev-lane" if model.startswith("claude-cli:") else "menu"
+    return "propose" if arm == "propose" else "dev-lane" if model.startswith("claude-cli:") or model in RETIRED_CLI_LANE \
+        else "menu"
 
 
 def _tally():
-    return {"epochs": set(), "asked": 0, "failed": 0, "lost": 0, "corrected": 0, "nudged": 0, "unrecorded": 0, "lost_shape": 0,
+    return {"epochs": set(), "sources": {}, "asked": 0, "failed": 0, "lost": 0, "corrected": 0, "nudged": 0, "unrecorded": 0, "lost_shape": 0,
             "lost_causes": {}, "failed_causes": {}}
 
 
-def _add(tally, asked, failures, epoch):
+def _add(tally, asked, failures, epoch, source=None):
     tally["epochs"].add(str(epoch))
+    if source is not None:
+        tally["sources"][source] = tally["sources"].get(source, 0) + 1
     tally["asked"] += asked
     for f in failures:
         tally["failed"] += 1
@@ -310,7 +304,8 @@ def _add(tally, asked, failures, epoch):
 def _finish(tally):
     lost = tally["lost"]
     tally["epochs"] = sorted(tally["epochs"])
-    tally["pooled"] = len(tally["epochs"]) > 1
+    tally["sources"] = dict(sorted(tally["sources"].items()))
+    tally["pooled"] = len(tally["epochs"]) > 1 or EPOCH_UNKNOWN in tally["epochs"]
     tally["lost_rate_ci"] = [round(x, 4) for x in wilson_ci(lost, tally["asked"])]
     tally["failed_rate_ci"] = [round(x, 4) for x in wilson_ci(tally["failed"], tally["asked"])]
     tally["lost_shape_ci"] = [round(x, 4) for x in wilson_ci(tally["lost_shape"], lost)]
@@ -319,13 +314,22 @@ def _finish(tally):
 
 # The author's choice for this note (2026-11-08), not repository or owner policy.
 SHAPE_RULE = "shape errors above half of the lost decisions"
+MIN_LOST_FOR_RULE = 10     # the author's choice: fewer lost decisions than this is too few for a share to decide
 
 
 def _verdict(tally):
+    """The decision rule on one tally's lost decisions: `build_schema` is None (with a note) when the rule has too few
+    lost decisions to apply to, or when the row is pooled (several epochs, or an epoch that is unknown)."""
     lost = tally["lost"]
     share = tally["lost_shape"] / lost if lost else 0.0
-    return {"epochs": tally["epochs"], "asked": tally["asked"], "lost": lost, "lost_shape": tally["lost_shape"],
-            "shape_share": share, "shape_share_ci": tally["lost_shape_ci"], "build_schema": share > 0.5}
+    out = {"epochs": tally["epochs"], "asked": tally["asked"], "lost": lost, "lost_shape": tally["lost_shape"],
+           "shape_share": share, "shape_share_ci": tally["lost_shape_ci"], "build_schema": share > 0.5}
+    if tally["pooled"]:
+        out.update(build_schema=None, note="pooled over epochs %s; conditions do not pool" % tally["epochs"])
+    elif lost < MIN_LOST_FOR_RULE:
+        out.update(build_schema=None, note="no lost decisions; rule not applicable" if not lost
+                   else "too few lost decisions (%d < %d); rule not applicable" % (lost, MIN_LOST_FOR_RULE))
+    return out
 
 
 def invalid_answers(roots):
@@ -334,14 +338,14 @@ def invalid_answers(roots):
     files = []
     for root in roots:
         for dirpath, _, names in os.walk(root):
-            files += [os.path.join(dirpath, n) for n in names if n.startswith("game-") and n.endswith(".jsonl")]
+            files += [(os.path.join(dirpath, n), root) for n in names if n.startswith("game-") and n.endswith(".jsonl")]
     pops = {name: _tally() for name in ("menu", "propose", "dev-lane", "fixtures", "unattributed")}
     by = {"by_model": {}, "by_epoch": {}, "by_type": {}}
     cache = {}
-    for path in sorted(files):
-        model, epoch = run_context(path, cache)
-        pop = population(model, run_arm(path))
+    for path, root in sorted(files):
         rows = list(_json_lines(path))
+        model, epoch = run_context(path, rows, cache)
+        pop = population(model, run_arm(path, rows))
         failures = failed_decisions(rows)
         asked = {}
         for r in rows:
@@ -349,24 +353,22 @@ def invalid_answers(roots):
                 asked[r.get("type")] = asked.get(r.get("type"), 0) + 1
         if not asked and not failures:
             continue        # a game with no tool-asked decision belongs to no epoch's tally
-        _add(pops[pop], sum(asked.values()), failures, epoch)
+        n_asked = sum(asked.values())
+        source = "/".join(os.path.relpath(os.path.dirname(path), root).split(os.sep)[:2])
+        _add(pops[pop], n_asked, failures, epoch, source)
         if pop != "menu":
             continue
-        _add(by["by_model"].setdefault(model, _tally()), sum(asked.values()), failures, epoch)
-        _add(by["by_epoch"].setdefault(epoch, _tally()), sum(asked.values()), failures, epoch)
+        _add(by["by_model"].setdefault(model, _tally()), n_asked, failures, epoch)
+        _add(by["by_epoch"].setdefault(epoch, _tally()), n_asked, failures, epoch, source)
         for kind in set(asked) | {f["type"] for f in failures}:
             _add(by["by_type"].setdefault(kind, _tally()), asked.get(kind, 0),
                  [f for f in failures if f["type"] == kind], epoch)
     out = {"files": len(files), "populations": {name: _finish(t) for name, t in pops.items()}}
     for name, tallies in by.items():
         out[name] = {key: _finish(t) for key, t in sorted(tallies.items(), key=str)}
-    out["verdict"] = {"rule": SHAPE_RULE, "per_epoch": {e: _verdict(t) for e, t in out["by_epoch"].items()},
-                      "pooled": dict(_verdict(out["populations"]["menu"]), build_schema=None)}
-    menu_epochs = out["populations"]["menu"]["epochs"]
-    out["verdict"]["pooled"]["note"] = ("pooled over epochs %s; conditions do not pool, read per_epoch" % menu_epochs
-                                        if len(menu_epochs) > 1 else "one epoch: same as its per_epoch row")
-    if len(menu_epochs) <= 1:
-        out["verdict"]["pooled"]["build_schema"] = out["verdict"]["pooled"]["shape_share"] > 0.5
+    out["verdict"] = {"rule": SHAPE_RULE, "min_lost": MIN_LOST_FOR_RULE,
+                      "per_epoch": {e: _verdict(t) for e, t in out["by_epoch"].items()},
+                      "pooled": _verdict(out["populations"]["menu"])}
     return out
 
 

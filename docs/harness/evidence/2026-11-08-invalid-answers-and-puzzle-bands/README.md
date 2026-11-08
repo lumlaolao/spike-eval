@@ -1,6 +1,9 @@
 # Inputs and outputs of the 2026-11-08 invalid-answer and puzzle-band note
 
-Run on 2026-11-08 at harness-epoch 97 (the checkout's `HARNESS_EPOCH`), from the worktree root.
+The note: [eval/research/2026-11-08-invalid-answers-and-puzzle-bands.md](../../../../eval/research/2026-11-08-invalid-answers-and-puzzle-bands.md).
+
+Regenerated on 2026-11-08 at harness-epoch 97 (the checkout's `HARNESS_EPOCH`), from the worktree root, after the
+review fixes (epoch `unknown` in place of `unstamped`, `sources` per tally, no verdict below 10 lost decisions).
 
 - `invalid-answers.json`: `python3 eval/research_stats.py invalid-answers /home/user/mtg-forge-llm-agent/runs`
 - `puzzle-bands.json`: `python3 eval/research_stats.py puzzle-bands eval/suites/puzzles-hard-gen-v1.json

@@ -2,6 +2,7 @@
 """eval/research_stats.py on board and game rows built here."""
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -10,6 +11,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import research_stats as rs  # noqa: E402
 
 OPTS = ["A", "B", "C", "PASS"]
+
+
+def scratch(test):
+    """A temporary folder removed when `test` finishes."""
+    path = tempfile.mkdtemp()
+    test.addCleanup(shutil.rmtree, path, True)
+    return path
 
 
 def decision(choice, reply="", options=OPTS, fallback=None):
@@ -26,7 +34,7 @@ def board(path, **extra):
 
 class TestResearchStats(unittest.TestCase):
     def setUp(self):
-        self.dir = tempfile.mkdtemp()
+        self.dir = scratch(self)
         self.game = os.path.join(self.dir, "game.jsonl")
         rows = [decision(3, "WHY: set up the win\nCHOICE: 4"), decision(1, "WHY: B\nCHOICE: 2"),
                 decision(0, "WHY: this is lethal, so cast A"), decision(0, "WHY: x", fallback="forced")]
@@ -108,13 +116,15 @@ class TestFailureClasses(unittest.TestCase):
         "type": ["ERROR: the arguments are not a JSON object. Nothing was done.",
                  "ERROR: the `option` value must be one integer from the list. Nothing was done.",
                  "ERROR: the `keep` value must be true or false. Nothing was done.",
+                 "ERROR: the `blocks` value must be a list (empty for no blocks). Nothing was done.",
                  "ERROR: the `yield` value is none, end-of-turn or my-next-turn. Nothing was done."],
         "count": ["ERROR: pick exactly 1 options; you picked 0. Nothing was done.",
                   "ERROR: give exactly 3 amounts, one per target in order; you gave 2. Nothing was done.",
                   "ERROR: the amounts must sum to 4; yours sum to 5. Nothing was done.",
                   "ERROR: option 6 cancels the play and must be the only number. Nothing was done.",
                   "ERROR: each chosen target must get at least 1 (CR 601.2d). Nothing was done.",
-                  "ERROR: each option may be picked once. Nothing was done."],
+                  "ERROR: each option may be picked once. Nothing was done.",
+                  "ERROR: blocker 1 blocks attacker 3 twice. Nothing was done."],
         "schema": [WRONG_FIELD, "ERROR: unknown field `notes`. Nothing was done.",
                    "ERROR: FORMAT: this play targets: give its target in `targets`, a handle. Nothing was done.",
                    "ERROR: FORMAT: this decision is answered with `action`, the play you propose (you gave option)."],
@@ -193,7 +203,7 @@ class TestFailedDecisions(unittest.TestCase):
 
 class TestRunContext(unittest.TestCase):
     def setUp(self):
-        self.dir = tempfile.mkdtemp()
+        self.dir = scratch(self)
 
     def test_a_game_line_names_the_seat_model_and_epoch(self):
         path = os.path.join(self.dir, "g", "game-1.jsonl")
@@ -212,7 +222,16 @@ class TestRunContext(unittest.TestCase):
         write_rows(path, [ask_row("tool", 0)])
         with open(os.path.join(self.dir, "p", "run", "batch-manifest.json"), "w") as f:
             json.dump({"condition": {"smart_a": "openrouter:vendor/m"}}, f)
-        self.assertEqual(rs.run_context(path), ("vendor/m", "unstamped"))
+        self.assertEqual(rs.run_context(path), ("vendor/m", "unknown"))
+
+    def test_a_manifest_in_the_parent_folder_names_the_model(self):
+        path = os.path.join(self.dir, "p", "run", "game-1.jsonl")
+        write_rows(path, [ask_row("tool", 0)])
+        with open(os.path.join(self.dir, "p", "batch-manifest.json"), "w") as f:
+            json.dump({"condition": {"smart_a": "openrouter:vendor/m"}}, f)
+        self.assertEqual(rs.run_context(path), ("vendor/m", "unknown"))
+        self.assertEqual(rs.run_context(os.path.join(self.dir, "p", "elsewhere", "run", "game-1.jsonl")),
+                         ("unknown", "unknown"))      # a grandparent's manifest is not read
 
     def test_two_models_in_one_folder_are_not_guessed(self):
         path = os.path.join(self.dir, "p", "game-1.jsonl")
@@ -224,7 +243,7 @@ class TestRunContext(unittest.TestCase):
     def test_a_folder_that_says_nothing_is_unknown(self):
         path = os.path.join(self.dir, "x", "game-1.jsonl")
         write_rows(path, [ask_row("tool", 0)])
-        self.assertEqual(rs.run_context(path), ("unknown", "unstamped"))
+        self.assertEqual(rs.run_context(path), ("unknown", "unknown"))
 
     def test_the_propose_arm_is_read_from_the_manifest_or_the_game_line(self):
         a = os.path.join(self.dir, "a", "run", "game-1.jsonl")
@@ -242,6 +261,8 @@ class TestRunContext(unittest.TestCase):
         self.assertEqual(rs.population("vendor/m", "propose"), "propose")
         self.assertEqual(rs.population("claude-cli:opus", "menu"), "dev-lane")
         self.assertEqual(rs.population("openrouter:fake/harness-model", "propose"), "fixtures")
+        for retired in ("opus", "haiku", "sonnet"):      # the retired bare-name Claude CLI text lane
+            self.assertEqual(rs.population(retired, "menu"), "dev-lane")
 
     def test_fixtures_are_not_models(self):
         for spec in ("openrouter:fake/harness-model", "script:/tmp/x", "greedy:", "random", "unknown", "mixed", ""):
@@ -252,7 +273,7 @@ class TestRunContext(unittest.TestCase):
 
 class TestInvalidAnswers(unittest.TestCase):
     def setUp(self):
-        self.dir = tempfile.mkdtemp()
+        self.dir = scratch(self)
         # model m1, epoch e1: 3 tool answers, one corrected (index), one lost to schema errors, one lost to no call
         write_rows(os.path.join(self.dir, "a", "game-1.jsonl"), [
             {"t": "game", "smart_a": "openrouter:v/m1", "harness_epoch": "e1"},
@@ -296,36 +317,79 @@ class TestInvalidAnswers(unittest.TestCase):
         self.assertAlmostEqual(by["failed_rate_ci"][1], 0.9544, places=3)
         self.assertEqual(self.report["by_epoch"]["e1"]["lost"], 2)
         self.assertEqual(self.report["by_type"]["block"]["failed"], 2)
+        self.assertEqual((self.report["by_type"]["block"]["asked"], self.report["by_type"]["play"]["asked"]), (2, 2))
+        self.assertEqual(sum(t["asked"] for t in self.report["by_type"].values()), by["asked"])
 
-    def test_the_rule_follows_the_point_share(self):
-        verdict = self.report["verdict"]["per_epoch"]["e1"]
-        self.assertEqual(verdict["shape_share"], 0.5)
-        self.assertFalse(verdict["build_schema"])   # "more than half" is strict
+    def lost_game(self, root, name, epoch, shape, no_call):
+        """A one-model game with `shape` decisions lost to schema errors and `no_call` lost to no call."""
+        game = {"t": "game", "smart_a": "openrouter:v/m1"}
+        if epoch:
+            game["harness_epoch"] = epoch
+        rows = [game, ask_row("tool", 0)]
+        for _ in range(shape):
+            rows += [tool_row(ANSWER, WRONG_FIELD), tool_row(ANSWER, WRONG_FIELD), ask_row("lost", 2)]
+        for _ in range(no_call):
+            rows += [tool_row("p", LOST), ask_row("lost", 0)]
+        write_rows(os.path.join(root, name, "game-1.jsonl"), rows)
+
+    def verdict(self, shape, no_call, epoch="e1"):
+        d = scratch(self)
+        self.lost_game(d, "x", epoch, shape, no_call)
+        return rs.invalid_answers([d])["verdict"]["per_epoch"][epoch or "unknown"]
+
+    def test_the_rule_follows_the_point_share_and_more_than_half_is_strict(self):
+        at_ten = self.verdict(6, 4)
+        self.assertEqual((at_ten["lost"], at_ten["shape_share"], at_ten["build_schema"]), (10, 0.6, True))
+        self.assertFalse(self.verdict(5, 5)["build_schema"])      # exactly half
+        self.assertTrue(self.verdict(10, 0)["build_schema"])
+
+    def test_too_few_lost_decisions_give_no_answer_not_a_false(self):
+        for shape, no_call, note in ((9, 0, "too few lost decisions (9 < 10)"), (0, 0, "no lost decisions"),
+                                     (2, 0, "too few lost decisions (2 < 10)")):
+            v = self.verdict(shape, no_call)
+            self.assertIsNone(v["build_schema"], (shape, no_call))
+            self.assertIn(note, v["note"])
+            self.assertIn("rule not applicable", v["note"])
+        self.assertEqual(self.report["verdict"]["per_epoch"]["e1"]["lost"], 2)
+        self.assertIsNone(self.report["verdict"]["per_epoch"]["e1"]["build_schema"])   # setUp: 2 lost
+
+    def test_an_epoch_that_is_unknown_is_pooled_and_refuses_a_verdict(self):
+        d = scratch(self)
+        self.lost_game(d, "puzzles/bench-v1/r1", None, 10, 0)
+        self.lost_game(d, "demo/luna-x", None, 0, 0)
+        out = rs.invalid_answers([d])
+        row = out["by_epoch"]["unknown"]
+        self.assertEqual((row["pooled"], row["epochs"], row["lost"]), (True, ["unknown"], 10))
+        self.assertEqual(row["sources"], {"demo/luna-x": 1, "puzzles/bench-v1": 1})
+        verdict = out["verdict"]["per_epoch"]["unknown"]
+        self.assertIsNone(verdict["build_schema"])      # 10 of 10 shape, but the epoch is not one condition
+        self.assertIn("pooled", verdict["note"])
 
     def test_one_epoch_pooled_row_is_the_epoch_row(self):
-        pooled = self.report["verdict"]["pooled"]
-        self.assertEqual((self.report["populations"]["menu"]["pooled"], pooled["build_schema"]), (False, False))
-        self.assertEqual(self.report["populations"]["menu"]["epochs"], ["e1"])
+        d = scratch(self)
+        self.lost_game(d, "x", "e1", 10, 0)
+        out = rs.invalid_answers([d])
+        pooled = out["verdict"]["pooled"]
+        self.assertEqual((out["populations"]["menu"]["pooled"], pooled["build_schema"]), (False, True))
+        self.assertEqual(pooled, out["verdict"]["per_epoch"]["e1"])
+        self.assertEqual(out["populations"]["menu"]["epochs"], ["e1"])
 
     def test_two_epochs_print_per_epoch_rows_and_the_pooled_row_refuses_a_verdict(self):
-        d = tempfile.mkdtemp()
-        for name, epoch, lost in (("x", "e1", 2), ("y", "e2", 0)):
-            rows = [{"t": "game", "smart_a": "openrouter:v/m1", "harness_epoch": epoch}, ask_row("tool", 0)]
-            for _ in range(lost):
-                rows += [tool_row(ANSWER, WRONG_FIELD), tool_row(ANSWER, WRONG_FIELD), ask_row("lost", 2)]
-            write_rows(os.path.join(d, name, "game-1.jsonl"), rows)
+        d = scratch(self)
+        self.lost_game(d, "x", "e1", 10, 0)
+        self.lost_game(d, "y", "e2", 0, 0)
         out = rs.invalid_answers([d])
         menu = out["populations"]["menu"]
-        self.assertEqual((menu["pooled"], menu["epochs"], menu["lost"]), (True, ["e1", "e2"], 2))
+        self.assertEqual((menu["pooled"], menu["epochs"], menu["lost"]), (True, ["e1", "e2"], 10))
         self.assertEqual(out["by_epoch"]["e1"]["pooled"], False)
-        self.assertEqual((out["by_epoch"]["e1"]["lost"], out["by_epoch"]["e2"]["lost"]), (2, 0))
+        self.assertEqual((out["by_epoch"]["e1"]["lost"], out["by_epoch"]["e2"]["lost"]), (10, 0))
         self.assertTrue(out["verdict"]["per_epoch"]["e1"]["build_schema"])
-        self.assertFalse(out["verdict"]["per_epoch"]["e2"]["build_schema"])
+        self.assertIsNone(out["verdict"]["per_epoch"]["e2"]["build_schema"])
         self.assertIsNone(out["verdict"]["pooled"]["build_schema"])
         self.assertIn("pooled over epochs", out["verdict"]["pooled"]["note"])
 
     def test_a_log_naming_no_one_model_is_unattributed_not_a_fixture(self):
-        d = tempfile.mkdtemp()
+        d = scratch(self)
         write_rows(os.path.join(d, "u", "game-1.jsonl"), [ask_row("lost", 0)])
         out = rs.invalid_answers([d])
         self.assertEqual((out["populations"]["unattributed"]["lost"], out["populations"]["fixtures"]["lost"]), (1, 0))
@@ -351,7 +415,7 @@ def puzzle(pid, random_rate, family="f", n=20, status="active", flags=(), **arms
 
 class TestPuzzleBands(unittest.TestCase):
     def setUp(self):
-        self.dir = tempfile.mkdtemp()
+        self.dir = scratch(self)
 
     def suite(self, name, puzzles):
         path = os.path.join(self.dir, name)
@@ -404,12 +468,23 @@ class TestPuzzleBands(unittest.TestCase):
         self.assertEqual(row["label"], "not saturated by zero-model arms")
 
     def test_the_label_rule_uses_the_stated_thresholds(self):
-        row = {"n": 20, "active": 20, "active_trivial_any": 2, "live": 6}
         ok, bad = "not saturated by zero-model arms", "saturated by zero-model arms"
-        self.assertEqual(rs.informative(row), (ok, True))                  # 10% is the edge, kept
-        self.assertEqual(rs.informative(dict(row, active_trivial_any=3)), (bad, True))
-        self.assertEqual(rs.informative(dict(row, active_trivial_any=0, live=4)), (ok, False))
+        row = {"n": 20, "active": 20, "active_trivial_any": 2, "live": 5}
+        self.assertEqual(rs.informative(row), (ok, True))                  # both thresholds exactly at their edge
+        self.assertEqual(rs.informative(dict(row, active_trivial_any=3)), (bad, True))     # 15% > 10%
+        self.assertEqual(rs.informative(dict(row, live=4)), (ok, False))                   # 20% < 25%
+        big = {"n": 100, "active": 100, "active_trivial_any": 10, "live": 25}
+        self.assertEqual(rs.informative(big), (ok, True))
+        self.assertEqual(rs.informative(dict(big, active_trivial_any=11, live=24)), (bad, False))   # one over, one under
+        self.assertEqual(rs.informative(dict(row, active_trivial_any=3, live=4)), (bad, False))
 
+    def test_a_dropped_puzzle_counts_in_trivial_any_but_not_in_arms(self):
+        path = self.suite("puzzles-forge-builtin-v1.json", [
+            puzzle("a", 0.0, None, first=4, ai=0), puzzle("b", 0.9, None, status="dropped", first=4, ai=4),
+            puzzle("c", 0.0, None, first=0, ai=0)])
+        row = rs.puzzle_bands([path])["suites"]["forge-builtin"]
+        self.assertEqual(row["arms"], {"first": 1, "ai": 0})              # b is dropped: not an active solve
+        self.assertEqual((row["trivial_any"], row["active_trivial_any"], row["active"]), (2, 1, 2))
 
 if __name__ == "__main__":
     unittest.main()
