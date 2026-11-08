@@ -95,6 +95,26 @@ class ValidationStampTest(unittest.TestCase):
                 self.assertEqual(json.load(f)["grader_sha256"], digest,
                                  os.path.basename(path) + " was validated under another grader: re-run validate")
 
+    def test_each_stamped_repo_head_holds_a_grader_with_the_stamped_hash(self):
+        """The stamp is checked against the committed history too, not only against the file in the working tree."""
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        repo = os.path.dirname(here)
+        files = sorted(glob.glob(os.path.join(here, "harness_env", "validation", "pr*-validation.json")))
+        self.assertTrue(files)
+        for path in files:
+            with open(path, encoding="utf-8") as f:
+                stamp = json.load(f)
+            try:
+                shown = subprocess.run(
+                    ["git", "-C", repo, "show", stamp["repo_head"] + ":eval/harness_env/harness_env_task_grade.py"],
+                    capture_output=True)
+            except OSError:
+                self.skipTest("git is not available")
+            if shown.returncode != 0:
+                self.skipTest("commit %s is not in this clone" % stamp["repo_head"][:12])
+            self.assertEqual(hashlib.sha256(shown.stdout).hexdigest(), stamp["grader_sha256"],
+                             os.path.basename(path) + ": its repo_head holds another grader than the stamped hash")
+
 
 class ForgeGuardTest(unittest.TestCase):
     def test_the_grader_refuses_to_write_inside_the_engine_checkout(self):
