@@ -18,15 +18,16 @@ puzzles (`eval/suites/puzzles-rules-sample-v1.json`, PR #272) saturated, 130/145
 
 ## Done since 2026-10-26 (dropped at the next refresh)
 
-The record is in git and [ACCEPTANCE.md](ACCEPTANCE.md). The repository is public-ready, with the license, no tracked `runs/`, the front-page README and `spike-eval` as its name (#332, #333,
-#335, #336); the `claude-cli:` lane's deadline is a recorded flag (#363); a game that lost decisions to a dead
-bridge or whose log failed to write is invalid and not scored (#374, #429, #431); the propose, terse-refusal and
-notebook measurement arms (#342, #349, #353, #357); the per-seat Forge AI profile switch, default unchanged (#421);
-a recorded puzzle attempt replays through the seat (#365); the pawprint budget (#414, #416, #418) and a harness
-seat paying by the rules (#419, #433); step regret (#420); the harness-building tasks (#422); `MtgEnv`, an RL
-environment over the harness (#423); every stamp pinned by value in acceptance (#370, #406); issue #269 items 1 to 3
-and 5 to 8 (#411 to #414, #419). The hard suites are in [docs/eval/PUZZLES.md](../eval/PUZZLES.md); the
-harness-building environment is in [HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
+The record is in git and [ACCEPTANCE.md](ACCEPTANCE.md). The repository is public-ready, with the license, no
+tracked `runs/`, the front-page README and `spike-eval` as its name (#332, #333, #335, #336); the `claude-cli:`
+lane's deadline is a recorded flag (#363); a game that lost decisions to a dead bridge or whose log failed to write
+is invalid and not scored (#374, #429, #431); the propose, terse-refusal and notebook measurement arms (#342, #349,
+#353, #357); the per-seat Forge AI profile switch, default unchanged (#421); a recorded puzzle attempt replays
+through the seat (#365); the pawprint budget (#414, #416, #418) and a harness seat paying by the rules (#419, #433);
+step regret (#420); the harness-building tasks (#422); `MtgEnv`, an RL environment over the harness (#423); every
+stamp pinned by value in acceptance (#370, #406); issue #269 items 1 to 3 and 5 to 8 (#411 to #414, #419). The hard
+suites are in [docs/eval/PUZZLES.md](../eval/PUZZLES.md); the harness-building environment is in
+[HARNESS-ENV-FRAMEWORK.md](HARNESS-ENV-FRAMEWORK.md).
 
 ## Facts the owner set (2026-11)
 
