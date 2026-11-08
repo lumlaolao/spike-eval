@@ -54,6 +54,27 @@ def deck_sha(path):
     return hashlib.sha256("\n".join(sorted(l for l in lines if l and not l.startswith("#"))).encode()).hexdigest()
 
 
+_HELD_SHAS = {}   # (path, mtime_ns, size) of every held-out deck file -> {content sha}: reasons() runs per episode
+
+
+def _stat_key(path):
+    try:
+        st = path.stat()
+        return (str(path), st.st_mtime_ns, st.st_size)
+    except OSError:
+        return (str(path), None, None)   # a missing file is part of the key, so its return shows through
+
+
+def _held_shas(held):
+    """The content hashes of the held-out deck files, cached per file stat (path, mtime, size) like puzzle_splits."""
+    paths = [evalpath.REPO / d["file"] for d in held.values() if d.get("file")]
+    key = tuple(_stat_key(p) for p in paths)
+    if key not in _HELD_SHAS:
+        _HELD_SHAS.clear()
+        _HELD_SHAS[key] = {deck_sha(p) for p in paths}
+    return _HELD_SHAS[key]
+
+
 def _puzzle_reasons(name, digest, suites_dir):
     if digest is None:
         return ["puzzle %s unreadable: its split cannot be judged" % name]
@@ -74,7 +95,7 @@ def _deck_reasons(name, digest):
     held = {slug: d for slug, d in registry.items() if d.get("status") == "held-out"}
     if not held:
         return ["held-out deck registry declares no held-out decks: the deck check would be vacuous"]
-    shas = {deck_sha(evalpath.REPO / d["file"]) for d in held.values() if d.get("file")}
+    shas = _held_shas(held)
     if Path(name).stem in held or (digest is not None and digest in shas):
         return ["held-out deck %s (eval/holdouts.json, matched by name or content)" % name]
     return ["deck %s unreadable: whether it is held out cannot be judged" % name] if digest is None else []
