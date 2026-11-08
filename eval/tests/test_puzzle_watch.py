@@ -185,6 +185,15 @@ class EachPuzzleTest(unittest.TestCase):
         self.assertNotIn("UNSCOREABLE", by_id["flags"])
         self.assertEqual(by_id["solved"], 0)
 
+    def test_a_row_whose_log_failed_to_write_is_flagged_as_that(self):
+        # Issue #427: refused by puzzle_score and replayed on --resume; not unscoreable, never counted solved.
+        with open(self.run.root / "running" / "puzzle-results.jsonl", "a") as f:
+            f.write(json.dumps(dict(result(1, "solved"), eval_log_write_failed=True)) + "\n")
+        by_id = self.run.by_id()["running"]
+        self.assertEqual(by_id["flags"]["LOG-CUT"][0], 1)
+        self.assertNotIn("UNSCOREABLE", by_id["flags"])
+        self.assertEqual(by_id["solved"], 0)
+
     def test_an_openrouter_seat_is_priced_at_the_dearest_endpoint_as_the_budget_is(self):
         # OpenRouterBridge logs "replied in N ms" and no cost; puzzle_solve checks the budget at budget_prices.
         root = Path(tempfile.mkdtemp())

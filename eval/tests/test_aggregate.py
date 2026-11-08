@@ -612,6 +612,27 @@ def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
         check("the strict score leaves the dead games out of started", arm["started"] == 2, str(arm))
 
 
+def test_a_game_whose_log_failed_to_write_is_invalid():
+    """Issue #427: a row that failed to write (a full disk) may have cut the log, so the game line says
+    eval_log_write_failed and the game is in no score, as a dead-bridge game is."""
+    with tempfile.TemporaryDirectory() as d:
+        cut = dict(game_line(1, False, "B", ctrl_b="ai"), eval_log_write_failed=True)
+        clean = dict(game_line(1, True, "A", ctrl_b="ai"), eval_log_write_failed=False)
+        write_jsonl(d, "game-1-1000.jsonl", [decision_line("smart", 900), cut])
+        write_jsonl(d, "game-1-1001.jsonl", [decision_line("smart", 900), clean])
+        s = aggregate.build_summary(Path(d), 200, 1)
+        g = s["games"]
+        check("a game with a failed log write is not decisive", g["decisive"] == 1, str(g))
+        check("it is invalid and counted as such", (g["invalid"], g.get("log_write_failed")) == (1, 1), str(g))
+        arm = s["arms"][aggregate.arm_label(clean, "a")]
+        check("the win rate is over the games with a whole log", (arm["wins"], arm["games"], arm["started"]) == (1, 1, 1),
+              str(arm))
+        check("the warning names the game", any("failed to write" in w for w in s["warnings"]), str(s["warnings"]))
+        check("the reader says so", aggregate.log_write_failed(cut) and not aggregate.log_write_failed(clean))
+        check("a line from before the key is not refused", not aggregate.log_write_failed(game_line(2, False, "A")))
+        check("the scored winner is invalid", aggregate.scored_winner(cut) == "invalid")
+
+
 def test_an_old_line_is_judged_by_the_transport_failures_in_its_log():
     """A lost decision is an ask whose LAST attempt failed in transport: an HTTP error that is not a routing or
     function-calling refusal, an IO error, a connection that sent nothing. Recovered failures and the model's own
@@ -682,6 +703,24 @@ def test_the_gates_are_over_the_scored_games():
         check("the gate read the scored game's rows", fg.get("n_llm_decisions") == 30, str(fg))
 
 
+def test_the_gates_leave_out_a_cut_log_games_fallbacks():
+    """Issue #427: a game whose log failed to write is in no score, so its fallbacks are in no gate either."""
+    with tempfile.TemporaryDirectory() as d:
+        cut = dict(game_line(1, False, "B", ctrl_b="ai"), eval_log_write_failed=True)
+        ok = dict(game_line(1, True, "A", ctrl_b="ai"), eval_log_write_failed=False)
+        seat = dict(seat="mono-red")
+        write_jsonl(d, "game-1-1000.jsonl", [dict(decision_line("auto", 0, fallback="play(bridge-down)->PASS"),
+                                                  **seat)] * 30 + [cut])
+        write_jsonl(d, "game-1-1001.jsonl", [dict(decision_line("smart", 900), **seat)] * 30 + [ok])
+        fg = aggregate.build_summary(Path(d), 200, 1)["fallback_gate"]
+        check("the cut game's fallbacks do not fail the gate", fg["failed"] is False, str(fg))
+        check("the gate read the whole-log game's rows", fg.get("n_llm_decisions") == 30, str(fg))
+    check("one predicate: a routing refusal, a dead bridge or a cut log is not fully played",
+          [bool(aggregate.lost_decisions(r)) for r in ({"routing_refusals": 2}, {"bridge_down_decisions": 1},
+                                                        {"eval_log_write_failed": True}, {"eval_log_write_failed": False}, {})]
+          == [True, True, True, False, False])
+
+
 def main():
     test_wilson()
     test_p90()
@@ -694,9 +733,11 @@ def main():
     test_harness_decided_gate()
     test_strict_score_counts_every_started_game()
     test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
+    test_a_game_whose_log_failed_to_write_is_invalid()
     test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out()
     test_an_old_line_is_judged_by_the_transport_failures_in_its_log()
     test_the_gates_are_over_the_scored_games()
+    test_the_gates_leave_out_a_cut_log_games_fallbacks()
     test_mixed_provenance()
     test_provenance_legacy_unknown()
     test_model_identity_attributable()

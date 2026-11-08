@@ -67,7 +67,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
 # Games a dead model bridge played (issue #369) and the log each game names.
-from aggregate import bridge_down_decisions, game_log, log_game_file, paired_log  # noqa: E402
+from aggregate import game_log, log_game_file, paired_log, unscorable  # noqa: E402
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
@@ -566,15 +566,15 @@ def has_game_line(out_dir, seed, swap, expect=None):
 
 def combo_status(out_dir, seed, swap, expect=None):
     """What out_dir holds for (seed, swap): "ok" (a game under `expect` the model played), "dead" (one under `expect`
-    that lost a decision to a dead model bridge, and none ok), "foreign" (lines only under another condition), or
-    "missing"."""
+    the model did not fully play, aggregate.unscorable: a dead bridge or a cut log; and none ok), "foreign" (lines
+    only under another condition), or "missing"."""
     status = "missing"
     for rec in iter_game_lines(out_dir, seed):
         if rec.get("seed") != seed or bool(rec.get("swap", False)) != swap:
             continue
         if not game_line_matches(rec, expect):
             status = "foreign" if status == "missing" else status
-        elif bridge_down_decisions(rec, out_dir):
+        elif unscorable(rec, out_dir):
             status = "dead"
         else:
             return "ok"
@@ -582,10 +582,10 @@ def combo_status(out_dir, seed, swap, expect=None):
 
 
 def set_aside_dead_bridge(out_dir, seed, swap, expect=None):
-    """Move every game file of (seed, swap) whose game lost a decision to a dead model bridge
-    (aggregate.bridge_down_decisions: its count, or its log's transport failures on an older line), and the log it was
-    judged by, under crashed/ (bridgedown-, named after the game file, so a second dead replay does not overwrite the
-    first), so the replay is the game scored while the old one is kept and still priced. Only a game under `expect`
+    """Move every game file of (seed, swap) the model did not fully play
+    (aggregate.unscorable: a dead bridge's lost decisions, counted or read off an older line's log, or a cut log),
+    and the log it was judged by, under crashed/ (bridgedown-, named after the game file, so a second dead replay
+    does not overwrite the first), so the replay is the game scored while the old one is kept and still priced. Only a game under `expect`
     (the resume's condition) is moved: another condition's dead game is that batch's. Returns the moved names."""
     out_dir = Path(out_dir)
     tag = "bridgedown-swap%d-" % (1 if swap else 0)
@@ -593,7 +593,7 @@ def set_aside_dead_bridge(out_dir, seed, swap, expect=None):
     for path in sorted(out_dir.glob("game-%d-*.jsonl" % seed)):
         dead = next((rec for rec in iter_game_lines_of(path)
                      if bool(rec.get("swap", False)) == swap and game_line_matches(rec, expect)
-                     and bridge_down_decisions(rec, out_dir)), None)
+                     and unscorable(rec, out_dir)), None)
         if dead is not None:
             log_path = paired_log(dead, out_dir)          # none of its own: no other game's log is moved
             moved += _move_to_crashed(out_dir, [(path, tag + path.name)]

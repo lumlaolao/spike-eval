@@ -189,6 +189,9 @@ def puzzle(d, k, finished, now, stall_s, prices):
     if dead:
         flags["BRIDGE-DOWN"] = (len(dead), "%d decisions lost to a dead model bridge"
                                % sum(r["bridge_down_decisions"] for r in dead))
+    cut = [r for r in res if puzzle_score.log_write_failed(r)]   # the eval log failed to write (#427): replayed on --resume
+    if cut:
+        flags["LOG-CUT"] = (len(cut), "%d attempts whose eval log failed to write" % len(cut))
     for r in res:
         if puzzle_score.lost_decisions(r):
             continue

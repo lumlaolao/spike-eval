@@ -247,6 +247,14 @@ class DeadBridgeRefusalTest(unittest.TestCase):
         self.assertEqual(ps.lost_decisions(dict(row, routing_refusals=2)), 13)
         self.assertEqual(ps.lost_decisions({"id": "p"}), 0, "a row from before the field counts nothing")
 
+    def test_an_attempt_whose_log_failed_to_write_is_refused(self):
+        """Issue #427: the row's eval_log_write_failed says its jsonl may be cut."""
+        row = {"id": "p", "seed": 1, "status": "failed", "eval_log_write_failed": True}
+        with self.assertRaisesRegex(ps.Refused, "failed to write"):
+            ps.attempt_success(row)
+        self.assertEqual(ps.attempt_success(dict(row, eval_log_write_failed=False)), (False, None))
+        self.assertEqual(ps.attempt_success({"id": "p", "seed": 1, "status": "failed"}), (False, None))
+
     def old_dir(self, log, **row):
         d = Path(tempfile.mkdtemp())
         (d / "puzzle-results.jsonl").write_text(json.dumps(dict({"schema": "pzl-result-v1", "id": "p", "seed": 1,

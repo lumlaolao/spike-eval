@@ -1141,9 +1141,21 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - A puzzle attempt (issue #378) has no game line: its result row carries the solver seat's own count
     (`bridge_down_decisions`, from `PlayerControllerLLM.budget()`, 0 when nothing was lost; only the solver is
     counted, since `puzzle_solve.py` pins the opponent to Forge's AI, `CONTROLLER_B=ai`). `puzzle_score.py` refuses a
-    row with any (`bridge_down`, summed with `routing_refusals` in `lost_decisions`), `puzzle_solve.py` and
+    row with any (`bridge_down`, summed with `routing_refusals` in `aggregate.lost_decisions`), `puzzle_solve.py` and
     `puzzle_watch.py` flag it `BRIDGE-DOWN`, `--resume` sets the puzzle's rows aside and plays it again, and
     `defect_analyzer.py` reads the rows of a directory's `puzzle-results.jsonl` into `bridge_down_total`.
+  - A log that failed to write is not scored either (issue #427). `EvalLog` writes through a `PrintWriter`, which
+    swallows an `IOException` (a full disk); `RowWriter.println` asks `checkError()` after every row, prints one
+    `[EVAL] write failed: <file>` line to stdout on the first error, and remembers it until the next log opens. The game
+    line carries `eval_log_write_failed` (true or false, and the puzzle row's budget the same). One predicate says a
+    game line or puzzle row was not fully played, `aggregate.lost_decisions` (routing refusals, dead-bridge decisions,
+    and 1 for `aggregate.log_write_failed`; `aggregate.unscorable` is its truth), and every consumer calls it:
+    `aggregate.py` / `rating.py` / `panel_score.py` leave the game out of every count and both gates,
+    `puzzle_score.lost_decisions` is the same function (`attempt_success` refuses the row), `puzzle_solve.py`'s
+    `already_done` replays it on `--resume` and its summary flags `LOG-CUT`, `puzzle_watch.py` flags `LOG-CUT`,
+    `run_batch.py`'s `combo_status` / `set_aside_dead_bridge` set the game aside and play it again, `mtg_env.py`
+    marks the episode invalid, and `defect_analyzer.py` fails on it (`eval_log_write_failed_total`). The game line is
+    itself a row: a failure on it alone leaves a log with no game line, which is already counted invalid.
   - A puzzle row from before the field is judged by its puzzle directory's `jvm.log` (`with_log_counts`, the same
     `aggregate.log_bridge_down` reader as an old game line). That log holds every attempt of the puzzle, so a dead
     bridge in any attempt refuses them all, and `already_done` plays the puzzle again; `set_aside_partial` renames

@@ -37,6 +37,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))  # eval/
 import evalpath  # noqa: E402,F401
 import eval_only  # noqa: E402  (the guard MtgEnv.reset calls)
+from aggregate import unscorable  # noqa: E402  (the one rule for a row the model did not fully play)
 import fake_model_server  # noqa: E402  (its parser of the legal options is the one the env uses)
 from puzzle_baselines import ADD_OPENS  # noqa: E402  (the one list of the JVM's --add-opens)
 
@@ -397,9 +398,10 @@ class MtgEnv:
                     info[k] = row[k]
             info["stamps"] = _stamps(row)
             # puzzle_score.py counts only solved/failed, not a solve tainted by a deck-out, and refuses a row that
-            # lost decisions to a dead bridge (a reply that came too late is the env's fault, not the policy's)
+            # lost decisions to a dead bridge (a reply that came too late is the env's fault, not the policy's), to
+            # a routing filter, or to a cut log (aggregate.unscorable)
             ok = (row.get("status") in ("solved", "failed") and not row.get("tainted_by_deckout")
-                  and not row.get("bridge_down_decisions") and not row.get("routing_refusals"))
+                  and not unscorable(row))
             won = row.get("status") == "solved"
         else:
             games = [g for f in sorted(self.out_dir.glob("game-*.jsonl")) for g in _jsonl(f) if g.get("t") == "game"]
@@ -412,7 +414,7 @@ class MtgEnv:
             # a capped game is invalid, never a draw; `bridge_down_decisions_a` is the game line's lost-decision
             # counter (the line has no routing_refusals: that is the puzzle row's)
             info["bridge_down_decisions_a"] = g.get("bridge_down_decisions_a") or 0
-            ok = g.get("winner") in ("A", "B") and not info["bridge_down_decisions_a"]
+            ok = g.get("winner") in ("A", "B") and not unscorable(g)
             won = g.get("winner") == "A"
         info["lost_decisions"] = sum(1 for f in sorted(self.out_dir.glob("game-*.jsonl")) for r in _jsonl(f)
                                      if r.get("answer_via") == "lost")

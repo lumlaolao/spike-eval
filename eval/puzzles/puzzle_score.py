@@ -43,7 +43,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_format as pf  # noqa: E402
-from aggregate import log_bridge_down, wilson_ci  # noqa: E402
+from aggregate import bridge_down_decisions, log_bridge_down, log_write_failed, lost_decisions, wilson_ci  # noqa: E402,F401
 
 
 # Puzzle-row fields only some solvers carry, each a condition two attempts must share (key, what it is called).
@@ -106,13 +106,11 @@ def p_solved_by_policy(rate, k):
 def bridge_down(row):
     """Decisions the attempt lost to a dead model bridge (issue #378): the row's own count, or on a row from before
     the field the transport failures in its puzzle's jvm.log (with_log_counts), which holds every attempt of it."""
-    return row.get("bridge_down_decisions", row.get("_bridge_down_log")) or 0
+    return bridge_down_decisions(row)
 
 
-def lost_decisions(row):
-    """Decisions the attempt lost that were not the model's: to a routing filter (routing_refusals) or to a dead model
-    bridge (bridge_down). attempt_success refuses a row with any; a resume plays it again."""
-    return (row.get("routing_refusals") or 0) + bridge_down(row)
+# lost_decisions(row), imported from aggregate: routing refusals, dead-bridge decisions, a cut log. attempt_success
+# refuses a row with any; a resume plays it again.
 
 
 def with_log_counts(rows, puzzle_dir):
@@ -144,6 +142,9 @@ def attempt_success(row):
         raise Refused("row for %s (seed %s): %s decisions lost under the routing filter (no endpoint it allows answered "
                       "after every retry), so they were not the model's; replay it with --resume"
                       % (row.get("id"), row.get("seed"), row["routing_refusals"]))
+    if log_write_failed(row):
+        raise Refused("row for %s (seed %s): a row of its log failed to write (disk full?), so the log may be cut; "
+                      "replay it with --resume" % (row.get("id"), row.get("seed")))
     if bridge_down(row):
         raise Refused("row for %s (seed %s): %s decisions lost to a dead model bridge (a transport failure on every "
                       "retry: a 402, an outage)%s, so they were not the model's; replay it with --resume"
