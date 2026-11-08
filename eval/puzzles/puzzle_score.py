@@ -26,6 +26,15 @@ is described in docs/eval/PUZZLES.md. What it cannot say: it resamples puzzles o
 per-puzzle rate), it does not correct for several comparisons, and result rows written before harness_epoch was
 stamped cannot be told apart by epoch.
 
+Twin pairing (--twin-results T, --twin-suite S): a twin puzzle is an original under invented card names
+(puzzle_twin.py; its record names the original in `twin_of` and carries its split). T are the results of the same
+solver on the twin suite S (default --suite: a suite holding originals and twins; score its originals with --ids), same k. Per pair the original's pass@1 minus the twin's is the recall
+gap (positive: knowing the cards helped); it prints the mean gap with a bootstrap interval over pairs, the pairs
+solved only on the original and only on the twin (c >= k/2) with the exact McNemar p-value over those discordant
+pairs, and the floors: a solver that does not read names has gap 0 (and as many discordant pairs each way), and each
+trivial arm's own measured gap is printed beside it. Refuses a pair of runs under different conditions (solver,
+epoch, k, engine, game cap, every BRIDGE_CONDITIONS key).
+
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
 call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row or one that lost
 decisions to a routing filter or a dead model bridge. Stdlib only.
@@ -434,7 +443,7 @@ def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None
         # The rows' one game cap (group_attempts refuses a mix); None when no row has one.
         "game_cap_ms": next((r["game_cap_ms"] for r in flat if r.get("game_cap_ms")), None),
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
-        "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
+        "suite_sha256": manifest.get("suite_sha256"), "engine_sha": manifest.get("engine_sha"), "split": split, "solver": solvers[0] if solvers else None,
         # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
         "pilot": bool(manifest.get("pilot")) or ids is not None,
         "aggregate": aggregate(puzzles, k, n_boot, seed),
@@ -545,6 +554,79 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7, metric="pass@1"):
             "max_tokens": tokens, "cross_max_tokens": len(set(tokens) - {NO_MANIFEST}) > 1}
 
 
+def mcnemar_exact(b, c):
+    """Two-sided exact McNemar p-value from the discordant counts: twice the lower binomial tail of min(b, c) in
+    b + c fair draws, capped at 1. None with no discordant pair: the test says nothing then."""
+    n = b + c
+    if n == 0:
+        return None
+    return min(1.0, 2 * sum(math.comb(n, i) for i in range(min(b, c) + 1)) / 2 ** n)
+
+
+def twin_pairing(rep_o, rep_t, twin_of, n_boot=10000, seed=7):
+    """The recall gap over (original, twin) pairs. `rep_o` and `rep_t` are score reports of the same solver under the
+    same conditions (the original puzzles, the twin puzzles; one report when a suite holds both), `twin_of` is
+    {twin id: original id}. Gap = original minus twin per pair (pass@1; positive means the original's names helped).
+    A pair is solved when the puzzle is (c >= k/2); the discordant pairs are those solved on one side only. Pairs are
+    ordered by original id, so the resample does not depend on the order results were read. Refuses runs under
+    different conditions and no pair at all; unpaired puzzles on either side are listed, not scored."""
+    for key in ("solver", "harness_epoch", "game_cap_ms", "engine_sha", "split") + tuple(k for k, _ in BRIDGE_CONDITIONS):
+        if rep_o.get(key) != rep_t.get(key):
+            raise Refused("the original and twin runs differ in %s (%s vs %s): a recall gap between two conditions is "
+                          "not a recall gap" % (key, rep_o.get(key), rep_t.get(key)))
+    if rep_o["aggregate"]["k"] != rep_t["aggregate"]["k"]:
+        raise Refused("the original and twin runs differ in k")
+    o = {p["id"]: p for p in rep_o["puzzles"]}
+    t = {p["id"]: p for p in rep_t["puzzles"]}
+    pairs = sorted((oid, tid) for tid, oid in twin_of.items() if oid in o and tid in t)
+    if not pairs:
+        raise Refused("no original has its twin scored: nothing to pair")
+    gaps, disc, rows = [], [], []
+    for oid, tid in pairs:
+        po, pt = o[oid], t[tid]
+        gaps.append(po["pass@1"] - pt["pass@1"])
+        disc.append(int(po["solved"]) - int(pt["solved"]))
+        rows.append({"original": oid, "twin": tid, "original_solves": po["solves"], "twin_solves": pt["solves"],
+                     "k": po["k"]})
+    only_o, only_t = disc.count(1), disc.count(-1)
+    arms = {arm: _mean([o[oid][arm + "_rate"] - t[tid][arm + "_rate"] for oid, tid in pairs]) for arm in ("random", "pass", "first")}
+    return {
+        "n_pairs": len(pairs), "k": rep_o["aggregate"]["k"], "solver": rep_o.get("solver"), "split": rep_o.get("split"),
+        "gap": {"name": "mean(pass@1 original - pass@1 twin)", "value": _mean(gaps),
+                "ci95": bootstrap_ci(gaps, _mean, n_boot, seed), "ci95_clustered": clustered_ci(gaps)},
+        "solved": {"original": sum(1 for d, (a, b) in zip(disc, pairs) if o[a]["solved"]),
+                   "twin": sum(1 for _, b in pairs if t[b]["solved"]),
+                   "only_original": only_o, "only_twin": only_t,
+                   "both": sum(1 for a, b in pairs if o[a]["solved"] and t[b]["solved"]),
+                   "neither": sum(1 for a, b in pairs if not o[a]["solved"] and not t[b]["solved"]),
+                   "difference": _mean(disc), "ci95": bootstrap_ci(disc, _mean, n_boot, seed),
+                   "mcnemar_p": mcnemar_exact(only_o, only_t)},
+        # A solver that reads names and not cards has gap 0 and splits its discordant pairs evenly; each trivial arm
+        # was measured on both boards and cannot recall a name.
+        "floors": dict(no_recall=0.0, **arms),
+        "unpaired_originals": sorted(set(o) - {a for a, _ in pairs}), "unpaired_twins": sorted(set(t) - {b for _, b in pairs}),
+        "pairs": rows,
+        "engine_sha": rep_o.get("engine_sha"), "harness_epoch": rep_o.get("harness_epoch"),
+    }
+
+
+def render_twins(c):
+    g, s = c["gap"], c["solved"]
+    lines = ["TWINS  solver=%s  split=%s  pairs=%d  k=%d" % (c["solver"], c["split"], c["n_pairs"], c["k"]),
+             "  recall gap %-34s %s  95%% CI %s (clustered %s)   floors: no recall 0.000, random %s, PASS %s, first %s"
+             % (g["name"], signed(g["value"]), _ci(g["ci95"]), _ci(g["ci95_clustered"]), signed(c["floors"]["random"]),
+                signed(c["floors"]["pass"]), signed(c["floors"]["first"])),
+             "  solved: original %d/%d, twin %d/%d; only the original %d, only the twin %d (both %d, neither %d); "
+             "difference %s  95%% CI %s; McNemar exact p %s over %d discordant pairs%s"
+             % (s["original"], c["n_pairs"], s["twin"], c["n_pairs"], s["only_original"], s["only_twin"], s["both"],
+                s["neither"], signed(s["difference"]), _ci(s["ci95"]),
+                "-" if s["mcnemar_p"] is None else "%.3f" % s["mcnemar_p"], s["only_original"] + s["only_twin"],
+                "" if s["only_original"] + s["only_twin"] else " (none: the test says nothing)")]
+    if c["unpaired_originals"] or c["unpaired_twins"]:
+        lines.append("  unpaired, not scored: originals %s, twins %s" % (c["unpaired_originals"], c["unpaired_twins"]))
+    return "\n".join(lines)
+
+
 def render_paired(c, n_boot, seed):
     """The paired line, with what makes it a comparison across conditions."""
     metric, ks = c.get("metric", "pass@1"), c.get("k") or []
@@ -649,6 +731,11 @@ def main(argv=None):
                          "on --paired-metric pass@k")
     ap.add_argument("--paired-metric", choices=PAIR_METRICS, default="pass@1",
                     help="with --paired-with: compare per-puzzle pass@1 (default) or each run's own pass@k (any of k)")
+    ap.add_argument("--twin-results", nargs="+", default=None, metavar="RESULTS",
+                    help="the same solver's results on the twin suite: print the recall gap, original minus twin, "
+                         "pair by pair (twin pairing, above)")
+    ap.add_argument("--twin-suite", default=None, help="with --twin-results: the suite holding the twin records "
+                    "(default --suite)")
     ap.add_argument("--paired-bootstrap", type=int, default=10000, help="resamples for the paired interval")
     ap.add_argument("--paired-seed", type=int, default=7, help="RNG seed for the paired interval")
     ap.add_argument("results", nargs="+")
@@ -657,6 +744,8 @@ def main(argv=None):
         ap.error("--k must be >= 1")
     if a.against and not a.paired_with:
         ap.error("--against needs --paired-with")
+    if a.twin_suite and not a.twin_results:
+        ap.error("--twin-suite needs --twin-results")
     if a.paired_bootstrap < 1:
         ap.error("--paired-bootstrap must be >= 1")
     if a.paired_k is not None and not a.paired_with:
@@ -687,6 +776,23 @@ def main(argv=None):
             print("REFUSED: %s" % e, file=sys.stderr)
             return 2
         print(render_paired(rep["paired"], a.paired_bootstrap, a.paired_seed))
+    if a.twin_results:
+        try:
+            tman = pf.load_suite(a.twin_suite) if a.twin_suite else manifest
+            problems = pf.validate_suite(tman)
+            if problems:
+                raise Refused("twin suite does not validate: " + "; ".join(problems[:5]))
+            twin_of = pf.twin_originals(tman)
+            tids = {r["id"] for r in tman["puzzles"] if r["id"] in twin_of and r["split"] == a.split
+                    and r["status"] == "active"}
+            if not tids:
+                raise Refused("suite %s has no active %s twin puzzles" % (tman.get("suite"), a.split))
+            rep_t = score(tman, load_rows(a.twin_results), a.split, a.k, a.solver, a.bootstrap, a.seed, tids)
+            rep["twins"] = twin_pairing(rep, rep_t, twin_of, n_boot=a.paired_bootstrap, seed=a.paired_seed)
+        except Refused as e:
+            print("REFUSED: %s" % e, file=sys.stderr)
+            return 2
+        print(render_twins(rep["twins"]))
     if a.json:
         Path(a.json).write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
