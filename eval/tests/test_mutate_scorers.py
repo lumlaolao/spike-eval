@@ -165,6 +165,36 @@ class CopyTest(unittest.TestCase):
                 ms.shutil.rmtree(root)
 
 
+class SecretNameTest(unittest.TestCase):
+    def test_a_secret_is_matched_in_any_case(self):
+        # mutant: fnmatchcase(name, g) without .lower() -> an uppercase SECRETS.ENV is copied
+        for name in ("SECRETS.ENV", "Secrets.env", ".ENV", ".Env.Local", ".FORGE-HOME", "MY_SECRET.txt"):
+            self.assertTrue(ms.is_secret(name), name)
+        for name in ("FORGE_COMMIT", "env.py", "notes.py"):
+            self.assertFalse(ms.is_secret(name), name)
+
+
+class AliveHelperTest(unittest.TestCase):
+    def test_a_running_child_is_alive_and_an_unreaped_exited_child_is_not(self):
+        """The helper the timeout tests trust: a child that has exited but was not reaped is in state Z."""
+        child = ms.subprocess.Popen([sys.executable, "-c", "pass"])
+        try:
+            deadline = time.time() + 10
+            while time.time() < deadline and alive(child.pid):
+                time.sleep(0.05)
+            self.assertFalse(alive(child.pid), "an exited child still reads as alive")
+            self.assertTrue(os.path.exists("/proc/%d" % child.pid), "the child was reaped: no zombie was tested")
+        finally:
+            child.wait()
+        self.assertFalse(alive(child.pid))
+        sleeper = ms.subprocess.Popen(["sleep", "30"])
+        try:
+            self.assertTrue(alive(sleeper.pid))
+        finally:
+            sleeper.kill()
+            sleeper.wait()
+
+
 class MainRefusalTest(unittest.TestCase):
     """main() reports nothing and exits 2 when the tool or the baseline cannot be trusted."""
 
@@ -248,6 +278,18 @@ class WeightedTest(unittest.TestCase):
         self.assertAlmostEqual(got[2], est + 1.96 * se)
         self.assertAlmostEqual(got[1], 0.32808, places=4)
         self.assertAlmostEqual(got[2], 0.85287, places=4)
+
+    def test_the_interval_is_clamped_to_0_and_1(self):
+        # mutants: drop max(0.0, ...) or min(1.0, ...) -> a rate interval below 0 or above 1
+        low = ms.weighted([{"file": "a.py", "sampled": 2, "sites": 10, "rows": self.rows(0, 2)}])
+        self.assertEqual(low[:2], (0.0, 0.0))
+        one_in_ten = ms.weighted([{"file": "a.py", "sampled": 10, "sites": 10, "rows": self.rows(1, 9)}])
+        self.assertAlmostEqual(one_in_ten[0], 0.1)
+        self.assertLess(0.1 - 1.96 * (0.1 * 0.9 / 10) ** 0.5, 0)      # the unclamped bound would be negative
+        self.assertEqual(one_in_ten[1], 0.0)
+        nine_in_ten = ms.weighted([{"file": "a.py", "sampled": 10, "sites": 10, "rows": self.rows(9, 1)}])
+        self.assertGreater(0.9 + 1.96 * (0.1 * 0.9 / 10) ** 0.5, 1)
+        self.assertEqual(nine_in_ten[2], 1.0)
 
 
 if __name__ == "__main__":

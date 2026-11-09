@@ -121,6 +121,12 @@ class FirstNewTest(unittest.TestCase):
         self.assertEqual(pw.first_new(runs), ["target: Moon <- Ray | play: casts Ray",
                                               "target: Sun <- Ray | play: casts Ray"])
 
+    def test_a_target_takes_the_play_after_it_not_a_prefix_play_before_it(self):
+        # mutant: scan r[0:] for the play -> the prefix's own "play: land Forest" is shown with the target
+        runs = [["play: land Forest", HEAD, "target: Moon <- Ray", "play: casts Ray"],
+                ["play: land Forest", HEAD, "play: PASS"]]
+        self.assertEqual(pw.first_new(runs), ["target: Moon <- Ray | play: casts Ray", "play: PASS"])
+
     def test_a_target_with_no_play_after_it_is_shown_alone(self):
         self.assertEqual(pw.first_new([["h", "target: A"], ["h", "play: x"]]), ["target: A", "play: x"])
 
@@ -248,6 +254,9 @@ class MainTest(unittest.TestCase):
                                     "--completion-seed", "9", "--options"], return_value=None)
         args = walk.call_args.args
         self.assertEqual(args[2:], ("Solver:4:0", "search", 3, 9, None, True, pw.MAX_OPTIONS))
+        # mutant: --out-dir or --max-options not passed -> walk writes to the default dir or keeps the default cap
+        _, _, walk = self.run_main(["--out-dir", "/tmp/w", "--max-options", "5"], return_value=None)
+        self.assertEqual(walk.call_args.args[6:], ("/tmp/w", False, 5))
 
     def test_a_puzzle_without_acceptance_is_refused_before_the_build(self):
         with tempfile.TemporaryDirectory() as d:
