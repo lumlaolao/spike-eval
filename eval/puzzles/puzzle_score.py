@@ -145,6 +145,8 @@ def attempt_success(row):
     if row.get("replay_version"):
         raise Refused("row for %s (seed %s) is a replay (%s): a replay is not an attempt"
                       % (row.get("id"), row.get("seed"), row.get("replay_source") or "replay:"))
+    if row.get("kind") == "probe":
+        raise Refused("row for %s is a misreading probe (PZL_PROBE): a probe is no attempt" % row.get("id"))
     if status == "unscoreable":
         raise Refused("unscoreable row for %s (seed %s): the goal was not enforced, so this is a harness "
                       "defect, not a result" % (row.get("id"), row.get("seed")))

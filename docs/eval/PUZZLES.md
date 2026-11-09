@@ -16,6 +16,7 @@ Forge enforces ("Win" or "Survive" by turn N).
 |---|---|
 | `eval/puzzles/puzzle_format.py` | the record and suite format, validation, the split, `forge-candidates`, `freeze`, `check` |
 | `eval/puzzles/puzzle_baselines.py` | the free arms (random, pass, first, floor, Forge AI), reference lines, tiers, `verify` |
+| `eval/puzzles/probe_walk.py` | prints the menu at the end of a misreading-probe prefix: the next decision's seat and bound, and with `--options` each value's play and probe verdict |
 | `eval/puzzles/puzzle_solve.py` | runs one model on one split of a frozen suite, k attempts per puzzle, with `--budget-usd` |
 | `eval/puzzles/puzzle_score.py` | scores one solver on one split, every number beside its floors |
 | `eval/puzzles/puzzle_watch.py` | reads a `puzzle_solve.py` run while it plays or after: per-puzzle state, cost and flags |
@@ -262,6 +263,36 @@ show it); `uniqueness_exhausted` of `uniqueness_deviations` deviations were play
 were, "unique" is exhaustive rather than "not found within the budget". `uniqueness_unproven_alternatives`
 counts other solving lines an opponent reply beat (not solutions). Smoke checks: `eval/puzzles/rules-pilot/
 RP_SMOKE.pzl` (unique) and `RP_SMOKE2.pzl` (multiple).
+
+**The misreading probe.** A rules puzzle is only a test of the rule if the play a solver makes who got the rule
+wrong does not reach the acceptance state. `python3 eval/puzzles/puzzle_baselines.py probe --pzl <puzzle>
+--line "Solver:2:1 Solver:3:0"` (the same `Seat:bound:value` form as a proof row's `line`; an `Opponent:` step
+needs `--opponent search`, the only opponent that draws from the line) plays that one line to game end in the search
+runner (`PZL_PROBE`), a seeded random play (`--completion-seed`) past it, and reads the final state against
+`[acceptance]`. It exits 0 only when the row says `rejected`, and that means one thing: this line plus ONE seeded
+random completion failed the acceptance state. It does not mean no completion of the misreading is accepted, so a
+probe line must contain the whole misreading (every play the misreading makes, to the end of the decisions that
+matter); a line that stops short only shows what one random finish of the first steps did. An `accepted` probe means
+the line plus one seeded completion reached the state: for a whole misreading, the puzzle does not test the rule. A
+game the draw cap ended, a line that drifted or was not fully drawn, a game the wall clock ended and a game run
+without the puzzle's goal enforced are named as no evidence, never as rejected; a puzzle with no `[acceptance]`
+section is refused before the JVM starts. The row is `kind: probe`; `puzzle_score` refuses it as no attempt. A probe
+plays no model and costs nothing.
+
+`python3 eval/puzzles/probe_walk.py --build DIR --pzl <puzzle> --prefix "Solver:4:0" [--options] [--opponent search]`
+writes the line for you: the bound of a step is the decision's option count, which only a run shows. It probes the
+prefix plus a sentinel step (`Solver:99:0`, or `98` if the game really asks 99) and reads the next decision's seat and
+bound from the drift (`draw K: line has Solver:99:0, game asked Solver:B`; K must equal the prefix's length, else the
+prefix itself drifted). With `--options` it runs one probe per value `0..B-1` (one JVM each; more than
+`--max-options`, 64, is refused) and prints, for each value, the first `[ROUTER]` line of its `jvm.log` that differs
+from the other values' (the lines every value prints alike, the prefix's own plays and the menu's header, are skipped).
+When that line is a `target:` line the next `play:` line is appended (`target: ... | play: ...`), so values that differ
+only in the target stay apart; any other line (a scry, a mana choice) is shown as is, not the random finish's later
+play. `(no difference)` means the values' logs are identical. Each line ends with `probe_verdict`. RP_001 with prefix
+`""` prints `0 Ray of Revelation, 1 Plains, 2 Dark Depths, 3 PASS`, and after `Solver:4:0` the two-option menu `land
+Dark Depths`, `PASS`. A verdict is the prefix plus that one step plus one seeded random finish (above): a menu, not a
+proof. The build is the caller's. One invocation can start dozens of JVMs: hold the machine lock
+(`$HOME/.forge-agent-lock`, see the defect-hunt skill) around the whole command.
 
 ### The rules suite
 

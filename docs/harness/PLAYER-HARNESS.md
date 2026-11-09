@@ -570,8 +570,8 @@ Now every decision is answered by calling `answer` (`AnswerTool.java`), and the 
 - **Rows.** `answer_via` is `tool`, `nudged`, `reask` or `lost` (`text` only on rows recorded before v7). `answer_invalid` counts the corrected
   calls. `raw_reply` holds the answer rendered in the old line format, so existing readers still work.
 - **Measure** with `python3 eval/tool_use_suite.py --arms native,native-answer` before games. A
-  per-decision arm (`ANSWER_SCHEMA=per-decision`; a direct JVM launch only, every launcher pins the
-  default) is kept for a side-by-side measurement of illegal-call rate and cost.
+  per-decision arm (`ANSWER_SCHEMA=per-decision`) is kept for a side-by-side measurement of
+  illegal-call rate and cost; which launchers scrub it is in `SETTINGS.md` (the `ANSWER_SCHEMA` row).
 
 ## Implementation gates
 

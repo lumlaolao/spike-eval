@@ -66,6 +66,8 @@ import forge.util.MyRandom;
  *                        CONTROLLER_B=search every opponent choice must be beaten; with ai, the Forge AI's.
  *   PZL_SEARCH_BUDGET=N  rollouts the search may play (default 2000); PZL_SEARCH_LINES=N winning lines
  *                        tried per choice point before giving up on it (default 32)
+ *   PZL_PROBE="Solver:2:1 Opponent:3:0"   with CONTROLLER_A=search: the misreading probe ({@link #probeRun}); a seeded
+ *                        random play past the line (PZL_PROBE_COMPLETION_SEED, default 0).
  *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual. SMART_MODEL_A=FAST_MODEL_A=
  *                        replay:<game.jsonl|attempt dir> with CONTROLLER_A=llm replays a recorded attempt
  *                        ({@link ReplayBridge}) on the same seeds (PZL_SEEDS / GAME_SEED) and the recorded env.
@@ -509,6 +511,12 @@ public final class LlmSpikePuzzle {
         final boolean written = !"search".equals(ctlA);
         List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
         final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
+        String probe = System.getenv("PZL_PROBE");
+        if (probe != null && !probe.trim().isEmpty()) {
+            if (written) throw new IllegalArgumentException("PZL_PROBE needs CONTROLLER_A=search");
+            probeRun(file, id, sections, probe.trim(), bounded, pzlSha, ctlA, ctlB, smartA, fastA, seed, capMs);
+            return;
+        }
         int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
         // Lines tried per choice point before it is given up: 4 gave up on RP_034 (four Fiery Confluence lines, each
         // beaten by Welding Jar) where 40 proved it; the budget bounds the total either way.
@@ -638,6 +646,40 @@ public final class LlmSpikePuzzle {
         writeRow(id, file, status, "proven".equals(status), main == null ? -1 : main.turns,
                 main == null ? "?" : main.winCond, durMs, seed, written ? ctlA : "search", ctlB, written ? smartA : "",
                 written ? fastA : "", main != null && main.goalInstalled, main == null ? "" : main.goalOracle, goal, extra);
+    }
+
+    /** PZL_PROBE: one scripted line played to game end, reported against the acceptance state. A line that drifted
+     *  or was not fully drawn, and a game the draw cap or the wall clock ended, are each named in the row, never
+     *  "rejected": only a state that was read and failed the acceptance state counts, and then only for this line plus
+     *  ONE seeded random completion, not for every completion of the misreading. */
+    static void probeRun(File file, String id, Map<String, List<String>> sections, String probeLine, boolean bounded,
+                         String pzlSha, String ctlA, String ctlB, String smartA, String fastA, long seed, long capMs)
+            throws Exception {
+        if (sections.get("acceptance") == null)
+            throw new IllegalArgumentException("PZL_PROBE needs a puzzle with an [acceptance] section: " + id);
+        int completionSeed = intOr(System.getenv().getOrDefault("PZL_PROBE_COMPLETION_SEED", "0"), 0);
+        List<PuzzleArms.Step> prefix = PuzzleSearch.parseLine(probeLine);
+        long t0 = System.currentTimeMillis();
+        PuzzleArms.Line line = new PuzzleArms.Line(prefix, completionSeed);
+        Played p = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, 0, bounded, line);
+        Map<String, Object> extra = new LinkedHashMap<>();
+        extra.put("kind", "probe");
+        extra.put("probe_line", probeLine);
+        extra.put("probe_completion_seed", completionSeed);
+        extra.put("pzl_sha256", pzlSha);
+        extra.put("goal_bounded", bounded);
+        // A game that ended before the whole line was drawn did not play the misreading it names.
+        String drift = line.drift;
+        if (drift == null && line.taken.size() < prefix.size())
+            drift = "line not consumed: " + line.taken.size() + " of " + prefix.size() + " steps";
+        if (drift != null) extra.put("search_drift", drift);
+        // The draw cap ended the game as a Draw: the final state is the cap's, not the line's.
+        if (line.stopped()) extra.put("probe_stopped", true);
+        putAcceptance(extra, p);
+        extra.put("actions", solverActions(p.logLines, "Solver"));
+        System.out.println("[PZL] probe " + id + ": " + probeLine + " -> " + extra.getOrDefault("acceptance", "unread"));
+        writeRow(id, file, "invalid".equals(p.status) || line.stopped() ? "invalid" : "probe", false, p.turns, p.winCond,
+                System.currentTimeMillis() - t0, seed, "search", ctlB, "", "", p.goalInstalled, p.goalOracle, "", extra);
     }
 
     /** One search rollout: the engine re-seeded as for a fresh launch, both search seats drawing from {@code line}. */

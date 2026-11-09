@@ -1,0 +1,947 @@
+{
+ "families": {
+  "gen/drain": {
+   "active": 46,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.0771
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.0771
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.0771
+   ],
+   "n": 46,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.0771
+   ],
+   "unreachable": 46,
+   "unreachable_ci": [
+    0.9229,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen/elf": {
+   "active": 6,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.3903
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.3903
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.3903
+   ],
+   "n": 6,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.3903
+   ],
+   "unreachable": 6,
+   "unreachable_ci": [
+    0.6097,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen/fling": {
+   "active": 5,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.4345
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.4345
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.4345
+   ],
+   "n": 5,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.4345
+   ],
+   "unreachable": 5,
+   "unreachable_ci": [
+    0.5655,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen/ping": {
+   "active": 24,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.138
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.138
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.138
+   ],
+   "n": 24,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.138
+   ],
+   "unreachable": 24,
+   "unreachable_ci": [
+    0.862,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen/splice": {
+   "active": 29,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.117
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.117
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.117
+   ],
+   "n": 29,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.117
+   ],
+   "unreachable": 29,
+   "unreachable_ci": [
+    0.883,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen/storm": {
+   "active": 6,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.3903
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.3903
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.3903
+   ],
+   "n": 6,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.3903
+   ],
+   "unreachable": 6,
+   "unreachable_ci": [
+    0.6097,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2/atog": {
+   "active": 15,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.2039
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.2039
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.2039
+   ],
+   "n": 15,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.2039
+   ],
+   "unreachable": 15,
+   "unreachable_ci": [
+    0.7961,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2/copy": {
+   "active": 35,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.0989
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.0989
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.0989
+   ],
+   "n": 35,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.0989
+   ],
+   "unreachable": 35,
+   "unreachable_ci": [
+    0.9011,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2/drain2": {
+   "active": 21,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.1546
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.1546
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.1546
+   ],
+   "n": 21,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.1546
+   ],
+   "unreachable": 21,
+   "unreachable_ci": [
+    0.8454,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2/elf2": {
+   "active": 2,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.6576
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.6576
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.6576
+   ],
+   "n": 2,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.6576
+   ],
+   "unreachable": 2,
+   "unreachable_ci": [
+    0.3424,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2/grave": {
+   "active": 35,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.0989
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.0989
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.0989
+   ],
+   "n": 35,
+   "random_rollouts": [
+    20,
+    40
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.0989
+   ],
+   "unreachable": 35,
+   "unreachable_ci": [
+    0.9011,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2/hoofdrain": {
+   "active": 51,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.07
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.07
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.07
+   ],
+   "n": 51,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.07
+   ],
+   "unreachable": 51,
+   "unreachable_ci": [
+    0.93,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2/splice2": {
+   "active": 77,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.0475
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.0475
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.0475
+   ],
+   "n": 77,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.0475
+   ],
+   "unreachable": 77,
+   "unreachable_ci": [
+    0.9525,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen3/equip": {
+   "active": 15,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.2039
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.2039
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.2039
+   ],
+   "n": 15,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.2039
+   ],
+   "unreachable": 15,
+   "unreachable_ci": [
+    0.7961,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen3/infect": {
+   "active": 12,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.2425
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.2425
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.2425
+   ],
+   "n": 12,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.2425
+   ],
+   "unreachable": 12,
+   "unreachable_ci": [
+    0.7575,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen3/landfall": {
+   "active": 17,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.1843
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.1843
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.1843
+   ],
+   "n": 17,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.1843
+   ],
+   "unreachable": 17,
+   "unreachable_ci": [
+    0.8157,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen3/tokens": {
+   "active": 24,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.138
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.138
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.138
+   ],
+   "n": 24,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.138
+   ],
+   "unreachable": 24,
+   "unreachable_ci": [
+    0.862,
+    1.0
+   ],
+   "unscoreable": 0
+  }
+ },
+ "suites": {
+  "forge-builtin": {
+   "active": 26,
+   "active_trivial_any": 14,
+   "active_trivial_any_ci": [
+    0.3546,
+    0.7124
+   ],
+   "arms": {
+    "ai": 14,
+    "first": 1
+   },
+   "easy": 4,
+   "easy_ci": [
+    0.0531,
+    0.2968
+   ],
+   "label": "saturated by zero-model arms",
+   "live": 17,
+   "live_ci": [
+    0.392,
+    0.7262
+   ],
+   "n": 30,
+   "random_rollouts": [
+    40,
+    69
+   ],
+   "rl_gradient": true,
+   "trivial_any": 16,
+   "trivial_any_ci": [
+    0.3614,
+    0.6977
+   ],
+   "unreachable": 9,
+   "unreachable_ci": [
+    0.1666,
+    0.4788
+   ],
+   "unscoreable": 4
+  },
+  "gen": {
+   "active": 116,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.0321
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.0321
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.0321
+   ],
+   "n": 116,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.0321
+   ],
+   "unreachable": 116,
+   "unreachable_ci": [
+    0.9679,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen2": {
+   "active": 236,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.016
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.016
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.016
+   ],
+   "n": 236,
+   "random_rollouts": [
+    20,
+    40
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.016
+   ],
+   "unreachable": 236,
+   "unreachable_ci": [
+    0.984,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "gen3": {
+   "active": 68,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.0535
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.0535
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.0535
+   ],
+   "n": 68,
+   "random_rollouts": [
+    20,
+    20
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.0535
+   ],
+   "unreachable": 68,
+   "unreachable_ci": [
+    0.9465,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "hard-*": {
+   "active": 420,
+   "active_trivial_any": 0,
+   "active_trivial_any_ci": [
+    0.0,
+    0.0091
+   ],
+   "arms": {
+    "ai": 0,
+    "first": 0,
+    "greedy": 0
+   },
+   "easy": 0,
+   "easy_ci": [
+    0.0,
+    0.0091
+   ],
+   "label": "not saturated by zero-model arms",
+   "live": 0,
+   "live_ci": [
+    0.0,
+    0.0091
+   ],
+   "n": 420,
+   "random_rollouts": [
+    20,
+    40
+   ],
+   "rl_gradient": false,
+   "trivial_any": 0,
+   "trivial_any_ci": [
+    0.0,
+    0.0091
+   ],
+   "unreachable": 420,
+   "unreachable_ci": [
+    0.9909,
+    1.0
+   ],
+   "unscoreable": 0
+  },
+  "rules": {
+   "active": 29,
+   "active_trivial_any": 13,
+   "active_trivial_any_ci": [
+    0.2841,
+    0.6245
+   ],
+   "arms": {
+    "ai": 9,
+    "first": 6
+   },
+   "easy": 7,
+   "easy_ci": [
+    0.0975,
+    0.3503
+   ],
+   "label": "saturated by zero-model arms",
+   "live": 25,
+   "live_ci": [
+    0.5314,
+    0.82
+   ],
+   "n": 36,
+   "random_rollouts": [
+    50,
+    50
+   ],
+   "rl_gradient": true,
+   "trivial_any": 19,
+   "trivial_any_ci": [
+    0.3701,
+    0.6801
+   ],
+   "unreachable": 4,
+   "unreachable_ci": [
+    0.0441,
+    0.2532
+   ],
+   "unscoreable": 0
+  }
+ }
+}

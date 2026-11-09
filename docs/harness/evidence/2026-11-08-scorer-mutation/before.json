@@ -1,0 +1,3172 @@
+{
+ "seed": 0,
+ "max": 40,
+ "results": [
+  {
+   "file": "eval/aggregate.py",
+   "sites": 829,
+   "sampled": 40,
+   "rows": [
+    {
+     "file": "eval/aggregate.py",
+     "site": 41,
+     "line": 726,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "[ok] p90 single\n[ok] p90 empty\n[ok] bootstrap deterministic with fixed seed"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 75,
+     "line": 1526,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 97,
+     "line": 1836,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 101,
+     "line": 1857,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 103,
+     "line": 1861,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 142,
+     "line": 510,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.5,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 143,
+     "line": 554,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 150,
+     "line": 680,
+     "kind": "constant",
+     "desc": "1.96 -> 2.96",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 4 check(s): wilson 8/10 lower, wilson 8/10 upper, wilson 0/20 upper sane, wilson 20/20 upper is 1"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 223,
+     "line": 1225,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] different rng seed still same point estimate\n[ok] all-wins bootstrap collapses to +1\n[ok] empty outcomes safe"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 256,
+     "line": 1821,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 265,
+     "line": 214,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 10 check(s): a bridge-down game is not decisive, both bridge-down games are invalid, and counted as lost to the bridge, the win rate is over the games the model played, the strict score leaves the dead games out of started, 402 on every attempt is one lost decision, twice that is two, refusals, a request deadline and unreadable replies are answers; an IO error, a silent connection and a connect timeout are not, its paired log is read, the second counts its 402s"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 288,
+     "line": 505,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 310,
+     "line": 755,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] empty outcomes safe\n[ok] total games\n[ok] decisive count"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 317,
+     "line": 788,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 9 check(s): focal wins, random wins complement, arm CI matches wilson, identity A credited with every win (no swap flip), dedupe kept the newer rerun, decisive-only win rate is 1/2, strict score is (1 + 0.5) / 4, the win rate is over the games the model played, the win rate is over the games with a whole log"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 323,
+     "line": 832,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] focal games\n[ok] random wins complement\n[ok] arm CI matches wilson"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 338,
+     "line": 1002,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] focal games\n[ok] random wins complement\n[ok] arm CI matches wilson"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 362,
+     "line": 1195,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.3,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 366,
+     "line": 1225,
+     "kind": "compare",
+     "desc": "NotIn -> In",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] different rng seed still same point estimate\n[ok] all-wins bootstrap collapses to +1\n[ok] empty outcomes safe"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 394,
+     "line": 1821,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "[ok] different rng seed still same point estimate\n[ok] all-wins bootstrap collapses to +1\n[ok] empty outcomes safe"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 414,
+     "line": 476,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 430,
+     "line": 721,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 3 check(s): bootstrap CI ordered around point, all-wins bootstrap collapses to +1, paired CI contains delta"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 444,
+     "line": 782,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 3 check(s): bootstrap CI ordered around point, all-wins bootstrap collapses to +1, paired CI contains delta"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 483,
+     "line": 1069,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] round-trip: field latency_ms\n[ok] round-trip: field fallback\n[FAIL] gate fires above ceiling \u2014 {'max_fallback_rate': 0.1, 'any_llm_arm': True, 'vacuous': False, 'llm_identities': [], 'n_llm_decisions': 0, 'n_fallback': 0, 'fallback_rate': None, 'failed': False, 'max_harness_decided_rate': 0.02, 'n_harness_decided': 0, 'harness_decided_rate': None, 'harness_failed': False}"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 488,
+     "line": 1086,
+     "kind": "compare",
+     "desc": "Gt -> GtE",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 497,
+     "line": 1195,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 516,
+     "line": 1490,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 523,
+     "line": 1757,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 545,
+     "line": 366,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 5 check(s): cited+unresolved fails the gate, unresolved fields named, exploratory unresolved still reported, legacy dir flagged legacy, legacy dir not attributable"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 573,
+     "line": 770,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 3 check(s): strict score is (1 + 0.5) / 4, the strict score leaves the dead games out of started, the win rate is over the games with a whole log"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 597,
+     "line": 1082,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 3 check(s): strict score is (1 + 0.5) / 4, the strict score leaves the dead games out of started, the win rate is over the games with a whole log"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 616,
+     "line": 1235,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 0.3,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 625,
+     "line": 1237,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 0.3,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 633,
+     "line": 1272,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "survived",
+     "seconds": 0.3,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 700,
+     "line": 1273,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 722,
+     "line": 1615,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 747,
+     "line": 599,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nFAILED: 5 check(s): a bridge-down game is not decisive, both bridge-down games are invalid, and counted as lost to the bridge, the win rate is over the games the model played, the strict score leaves the dead games out of started"
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 773,
+     "line": 1654,
+     "kind": "constant",
+     "desc": "2 -> 3",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 776,
+     "line": 1658,
+     "kind": "constant",
+     "desc": "100 -> 101",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 802,
+     "line": 1309,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "survived",
+     "seconds": 0.4,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    },
+    {
+     "file": "eval/aggregate.py",
+     "site": 818,
+     "line": 1200,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 0.3,
+     "tail": "[ok] checkpoint_sha named as the differing field\n\nAll checks passed."
+    }
+   ]
+  },
+  {
+   "file": "eval/panel_score.py",
+   "sites": 320,
+   "sampled": 40,
+   "rows": [
+    {
+     "file": "eval/panel_score.py",
+     "site": 7,
+     "line": 101,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "Ran 27 tests in 0.021s\n\nFAILED (errors=22)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 20,
+     "line": 221,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 6.9,
+     "tail": "Ran 27 tests in 3.446s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 31,
+     "line": 359,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 8.7,
+     "tail": "Ran 27 tests in 4.077s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 37,
+     "line": 459,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 9.6,
+     "tail": "Ran 27 tests in 4.774s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 48,
+     "line": 82,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 5.6,
+     "tail": "Ran 27 tests in 2.709s\n\nFAILED (failures=1, errors=25)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 50,
+     "line": 93,
+     "kind": "compare",
+     "desc": "NotIn -> In",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "Ran 27 tests in 0.021s\n\nFAILED (errors=22)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 51,
+     "line": 97,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "survived",
+     "seconds": 10.2,
+     "tail": "Ran 27 tests in 4.939s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 71,
+     "line": 225,
+     "kind": "constant",
+     "desc": "0.0 -> 1",
+     "status": "killed",
+     "seconds": 9.3,
+     "tail": "Ran 27 tests in 4.536s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 75,
+     "line": 261,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "killed",
+     "seconds": 9.1,
+     "tail": "Ran 27 tests in 4.315s\n\nFAILED (errors=7)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 104,
+     "line": 156,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 5.9,
+     "tail": "Ran 27 tests in 2.926s\n\nFAILED (failures=7, errors=15)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 111,
+     "line": 256,
+     "kind": "arith",
+     "desc": "Div -> Mult",
+     "status": "killed",
+     "seconds": 9.5,
+     "tail": "Ran 27 tests in 4.678s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 128,
+     "line": 392,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "survived",
+     "seconds": 8.9,
+     "tail": "Ran 27 tests in 4.642s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 132,
+     "line": 465,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "survived",
+     "seconds": 9.4,
+     "tail": "Ran 27 tests in 4.716s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 133,
+     "line": 498,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "survived",
+     "seconds": 9.8,
+     "tail": "Ran 27 tests in 4.712s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 144,
+     "line": 167,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 9.8,
+     "tail": "Ran 27 tests in 4.749s\n\nFAILED (failures=6)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 155,
+     "line": 227,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 10.3,
+     "tail": "Ran 27 tests in 5.039s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 158,
+     "line": 251,
+     "kind": "constant",
+     "desc": "0.025 -> 1.025",
+     "status": "killed",
+     "seconds": 9.8,
+     "tail": "Ran 27 tests in 4.842s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 161,
+     "line": 261,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "survived",
+     "seconds": 9.8,
+     "tail": "Ran 27 tests in 5.487s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 169,
+     "line": 357,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 9.5,
+     "tail": "Ran 27 tests in 4.655s\n\nFAILED (errors=7)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 181,
+     "line": 441,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 9.8,
+     "tail": "Ran 27 tests in 4.672s\n\nFAILED (failures=3)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 183,
+     "line": 465,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "survived",
+     "seconds": 9.9,
+     "tail": "Ran 27 tests in 5.001s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 197,
+     "line": 220,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 10.2,
+     "tail": "Ran 27 tests in 4.795s\n\nFAILED (failures=1, errors=5)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 207,
+     "line": 235,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 11.7,
+     "tail": "Ran 27 tests in 5.480s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 215,
+     "line": 371,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 9.9,
+     "tail": "Ran 27 tests in 5.361s\n\nFAILED (errors=2)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 222,
+     "line": 452,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "survived",
+     "seconds": 9.4,
+     "tail": "Ran 27 tests in 4.495s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 226,
+     "line": 114,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 9.2,
+     "tail": "Ran 27 tests in 4.462s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 241,
+     "line": 291,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 5.9,
+     "tail": "Ran 27 tests in 2.838s\n\nFAILED (errors=24)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 244,
+     "line": 301,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 8.0,
+     "tail": "Ran 27 tests in 4.268s\n\nFAILED (errors=2)"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 248,
+     "line": 383,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "survived",
+     "seconds": 9.3,
+     "tail": "Ran 27 tests in 4.405s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 258,
+     "line": 483,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "survived",
+     "seconds": 9.6,
+     "tail": "Ran 27 tests in 4.684s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 261,
+     "line": 523,
+     "kind": "constant",
+     "desc": "2 -> 3",
+     "status": "survived",
+     "seconds": 9.0,
+     "tail": "Ran 27 tests in 4.675s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 266,
+     "line": 202,
+     "kind": "constant",
+     "desc": "0.0 -> 1",
+     "status": "survived",
+     "seconds": 8.0,
+     "tail": "Ran 27 tests in 3.884s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 272,
+     "line": 377,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "survived",
+     "seconds": 9.2,
+     "tail": "Ran 27 tests in 4.461s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 280,
+     "line": 471,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "survived",
+     "seconds": 9.5,
+     "tail": "Ran 27 tests in 4.487s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 282,
+     "line": 478,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 9.6,
+     "tail": "Ran 27 tests in 4.261s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 286,
+     "line": 484,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 10.0,
+     "tail": "Ran 27 tests in 4.927s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 298,
+     "line": 478,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "survived",
+     "seconds": 10.1,
+     "tail": "Ran 27 tests in 4.940s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 308,
+     "line": 387,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "survived",
+     "seconds": 6.5,
+     "tail": "Ran 27 tests in 3.739s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 312,
+     "line": 293,
+     "kind": "constant",
+     "desc": "8 -> 9",
+     "status": "survived",
+     "seconds": 6.7,
+     "tail": "Ran 27 tests in 3.119s\n\nOK"
+    },
+    {
+     "file": "eval/panel_score.py",
+     "site": 316,
+     "line": 316,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 9.6,
+     "tail": "Ran 27 tests in 4.506s\n\nFAILED (failures=1)"
+    }
+   ]
+  },
+  {
+   "file": "eval/puzzles/puzzle_score.py",
+   "sites": 404,
+   "sampled": 40,
+   "rows": [
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 20,
+     "line": 216,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.423s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 37,
+     "line": 385,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.514s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 48,
+     "line": 484,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.425s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 50,
+     "line": 505,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 1.3,
+     "tail": "Ran 40 tests in 0.529s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 51,
+     "line": 522,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 1.3,
+     "tail": "Ran 40 tests in 0.511s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 71,
+     "line": 690,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 1.3,
+     "tail": "Ran 40 tests in 0.608s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 75,
+     "line": 89,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "survived",
+     "seconds": 1.3,
+     "tail": "Ran 40 tests in 0.556s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 104,
+     "line": 277,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 40 tests in 0.191s\n\nFAILED (failures=7, errors=24)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 111,
+     "line": 342,
+     "kind": "constant",
+     "desc": "2000 -> 2001",
+     "status": "survived",
+     "seconds": 1.3,
+     "tail": "Ran 40 tests in 0.552s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 128,
+     "line": 505,
+     "kind": "compare",
+     "desc": "NotIn -> In",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "Ran 40 tests in 0.330s\n\nFAILED (failures=9, errors=6)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 132,
+     "line": 531,
+     "kind": "compare",
+     "desc": "Gt -> GtE",
+     "status": "survived",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.422s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 144,
+     "line": 666,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 40 tests in 0.238s\n\nFAILED (errors=2)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 155,
+     "line": 213,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "Ran 40 tests in 0.071s\n\nFAILED (failures=7, errors=24)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 158,
+     "line": 228,
+     "kind": "compare",
+     "desc": "NotEq -> Eq",
+     "status": "survived",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.427s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 161,
+     "line": 244,
+     "kind": "compare",
+     "desc": "Gt -> GtE",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "Ran 40 tests in 0.082s\n\nFAILED (failures=7, errors=24)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 169,
+     "line": 376,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.434s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 181,
+     "line": 537,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "survived",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.421s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 183,
+     "line": 545,
+     "kind": "compare",
+     "desc": "Gt -> GtE",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.421s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 197,
+     "line": 662,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.448s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 207,
+     "line": 103,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "survived",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.423s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 215,
+     "line": 259,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "survived",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.420s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 222,
+     "line": 319,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "survived",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.438s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 241,
+     "line": 518,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "Ran 40 tests in 0.422s\n\nFAILED (errors=14)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 244,
+     "line": 524,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 1.2,
+     "tail": "Ran 40 tests in 0.421s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 248,
+     "line": 545,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.441s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 258,
+     "line": 638,
+     "kind": "constant",
+     "desc": "2000 -> 2001",
+     "status": "survived",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.426s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 261,
+     "line": 652,
+     "kind": "constant",
+     "desc": "10000 -> 10001",
+     "status": "survived",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.439s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 272,
+     "line": 178,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "survived",
+     "seconds": 1.3,
+     "tail": "Ran 40 tests in 0.626s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 286,
+     "line": 337,
+     "kind": "constant",
+     "desc": "0.025 -> 1.025",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 40 tests in 0.139s\n\nFAILED (errors=18)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 298,
+     "line": 439,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "survived",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.414s\n\nOK"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 308,
+     "line": 491,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.440s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 312,
+     "line": 599,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 40 tests in 0.203s\n\nFAILED (errors=13)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 316,
+     "line": 688,
+     "kind": "constant",
+     "desc": "2 -> 3",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.432s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 327,
+     "line": 338,
+     "kind": "constant",
+     "desc": "0.975 -> 1.975",
+     "status": "killed",
+     "seconds": 0.5,
+     "tail": "Ran 40 tests in 0.124s\n\nFAILED (errors=31)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 350,
+     "line": 554,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 0.5,
+     "tail": "Ran 40 tests in 0.116s\n\nFAILED (errors=31)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 361,
+     "line": 433,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.435s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 373,
+     "line": 591,
+     "kind": "compare",
+     "desc": "NotIn -> In",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.431s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 386,
+     "line": 454,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.466s\n\nFAILED (failures=3)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 388,
+     "line": 483,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.408s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/puzzles/puzzle_score.py",
+     "site": 401,
+     "line": 483,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 40 tests in 0.396s\n\nFAILED (failures=1)"
+    }
+   ]
+  },
+  {
+   "file": "eval/sanity_arms.py",
+   "sites": 97,
+   "sampled": 40,
+   "rows": [
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 0,
+     "line": 47,
+     "kind": "arith",
+     "desc": "Div -> Mult",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "    FAKE_SERVER = Path(__file__).resolve().parent * 'fake_model_server.py'\n                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~\nTypeError: can't multiply sequence by non-int of type 'PosixPath'"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 3,
+     "line": 63,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "Ran 13 tests in 0.105s\n\nFAILED (errors=5)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 5,
+     "line": 99,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.5,
+     "tail": "Ran 13 tests in 0.149s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 9,
+     "line": 127,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.210s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 12,
+     "line": 170,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.170s\n\nFAILED (failures=1, errors=8)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 17,
+     "line": 204,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "usage: test_sanity_arms.py [-h] [--json] [--random-margin RANDOM_MARGIN]\n                           scored_dir\ntest_sanity_arms.py: error: the following arguments are required: scored_dir"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 18,
+     "line": 42,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "usage: test_sanity_arms.py [-h] [--json] [--random-margin RANDOM_MARGIN]\n                           scored_dir\ntest_sanity_arms.py: error: the following arguments are required: scored_dir"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 26,
+     "line": 84,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "error",
+     "seconds": 60.0,
+     "tail": "timeout after 60s"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 27,
+     "line": 86,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "survived",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.209s\n\nOK"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 32,
+     "line": 143,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.175s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 33,
+     "line": 149,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.180s\n\nFAILED (failures=4)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 35,
+     "line": 155,
+     "kind": "continue",
+     "desc": "continue -> pass",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.175s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 36,
+     "line": 157,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.192s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 38,
+     "line": 163,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "survived",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.170s\n\nOK"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 39,
+     "line": 165,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.178s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 40,
+     "line": 168,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.171s\n\nFAILED (failures=5)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 42,
+     "line": 57,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 0.5,
+     "tail": "Ran 13 tests in 0.096s\n\nFAILED (errors=5)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 45,
+     "line": 115,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.167s\n\nFAILED (failures=5)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 49,
+     "line": 143,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.172s\n\nFAILED (failures=1, errors=5)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 51,
+     "line": 154,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.193s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 53,
+     "line": 163,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.173s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 55,
+     "line": 165,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.178s\n\nFAILED (failures=4)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 56,
+     "line": 187,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.192s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 58,
+     "line": 73,
+     "kind": "constant",
+     "desc": "True -> False",
+     "status": "survived",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.198s\n\nOK"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 60,
+     "line": 76,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 0.4,
+     "tail": "Ran 13 tests in 0.085s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 61,
+     "line": 83,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "error",
+     "seconds": 60.0,
+     "tail": "timeout after 60s"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 62,
+     "line": 115,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.226s\n\nFAILED (failures=5)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 64,
+     "line": 126,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.238s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 65,
+     "line": 143,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.234s\n\nFAILED (failures=2, errors=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 68,
+     "line": 164,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "survived",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.190s\n\nOK"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 71,
+     "line": 182,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.194s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 74,
+     "line": 79,
+     "kind": "constant",
+     "desc": "True -> False",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "\nFAILED (errors=1)\n<sys>:0: ResourceWarning: unclosed file <_io.BufferedReader name=4>"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 79,
+     "line": 127,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.165s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 80,
+     "line": 156,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.165s\n\nFAILED (failures=5)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 83,
+     "line": 127,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.204s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 86,
+     "line": 167,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.193s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 87,
+     "line": 167,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.234s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 88,
+     "line": 167,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "survived",
+     "seconds": 0.6,
+     "tail": "Ran 13 tests in 0.181s\n\nOK"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 90,
+     "line": 167,
+     "kind": "constant",
+     "desc": "100 -> 101",
+     "status": "survived",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.197s\n\nOK"
+    },
+    {
+     "file": "eval/sanity_arms.py",
+     "site": 93,
+     "line": 177,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "Ran 13 tests in 0.200s\n\nFAILED (failures=1)"
+    }
+   ]
+  },
+  {
+   "file": "eval/rating.py",
+   "sites": 487,
+   "sampled": 40,
+   "rows": [
+    {
+     "file": "eval/rating.py",
+     "site": 20,
+     "line": 222,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 1.1,
+     "tail": "Ran 26 tests in 0.434s\n\nFAILED (failures=1, errors=18)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 37,
+     "line": 392,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 1.2,
+     "tail": "Ran 26 tests in 0.524s\n\nFAILED (errors=5)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 48,
+     "line": 564,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 1.5,
+     "tail": "Ran 26 tests in 0.585s\n\nFAILED (failures=4)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 50,
+     "line": 603,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 1.3,
+     "tail": "Ran 26 tests in 0.549s\n\nFAILED (errors=12)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 71,
+     "line": 249,
+     "kind": "compare",
+     "desc": "GtE -> Gt",
+     "status": "survived",
+     "seconds": 1.3,
+     "tail": "Ran 26 tests in 0.553s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 75,
+     "line": 269,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "Ran 26 tests in 0.395s\n\nFAILED (errors=16)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 111,
+     "line": 572,
+     "kind": "arith",
+     "desc": "Div -> Mult",
+     "status": "survived",
+     "seconds": 2.7,
+     "tail": "Ran 26 tests in 1.296s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 128,
+     "line": 235,
+     "kind": "compare",
+     "desc": "NotIn -> In",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "Ran 26 tests in 0.388s\n\nFAILED (failures=1, errors=17)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 132,
+     "line": 258,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "Ran 26 tests in 0.413s\n\nFAILED (errors=16)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 144,
+     "line": 312,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "Ran 26 tests in 0.414s\n\nFAILED (errors=15)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 155,
+     "line": 365,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "survived",
+     "seconds": 17.6,
+     "tail": "Ran 26 tests in 8.571s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 158,
+     "line": 386,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 1.2,
+     "tail": "Ran 26 tests in 0.516s\n\nFAILED (failures=1, errors=4)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 183,
+     "line": 446,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "killed",
+     "seconds": 1.3,
+     "tail": "Ran 26 tests in 0.573s\n\nFAILED (errors=3)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 197,
+     "line": 468,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.609s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 207,
+     "line": 582,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "survived",
+     "seconds": 1.3,
+     "tail": "Ran 26 tests in 0.577s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 215,
+     "line": 84,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "    PLAYER_FIELDS_BY_IDENT = {ident: SERVED_BY_IDENT[ident] + ('temperature_' + ident, 'decisions_bridge_version_' - ident, 'claude_cli_bridge_version_' + ident, 'claude_cli_thinking_tokens_' + ident) for ident in ('a', 'b')}\n                                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~\nTypeError: unsupported operand type(s) for -: 'str' and 'str'"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 244,
+     "line": 305,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "Ran 26 tests in 0.386s\n\nFAILED (errors=16)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 248,
+     "line": 337,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 36.8,
+     "tail": "Ran 26 tests in 18.363s\n\nFAILED (failures=4)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 258,
+     "line": 401,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.568s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 261,
+     "line": 412,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "survived",
+     "seconds": 1.5,
+     "tail": "Ran 26 tests in 0.607s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 272,
+     "line": 439,
+     "kind": "arith",
+     "desc": "Div -> Mult",
+     "status": "killed",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.599s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 298,
+     "line": 583,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.580s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 308,
+     "line": 649,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.635s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 316,
+     "line": 112,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.571s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 361,
+     "line": 455,
+     "kind": "constant",
+     "desc": "1e-300 -> 1.0",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.568s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 373,
+     "line": 546,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.568s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 386,
+     "line": 94,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "    ENV_FIELDS = tuple((f for f in aggregate.CONDITION_FIELDS if f not in aggregate.CONDITION_ARM_FIELDS and f not in PLAYER_FIELDS and (f not in MATCHUP_FIELDS) and (f not in PLAYER_FIELDS_BY_IDENT['a'] - PLAYER_FIELDS_BY_IDENT['b'])))\n                                                                                                                                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nTypeError: unsupported operand type(s) for -: 'tuple' and 'tuple'"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 388,
+     "line": 176,
+     "kind": "compare",
+     "desc": "Gt -> GtE",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.588s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 401,
+     "line": 311,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "killed",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.584s\n\nFAILED (failures=5)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 409,
+     "line": 346,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 17.1,
+     "tail": "Ran 26 tests in 8.496s\n\nFAILED (failures=3, errors=9)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 414,
+     "line": 401,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.574s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 424,
+     "line": 513,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.598s\n\nFAILED (failures=3)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 432,
+     "line": 593,
+     "kind": "constant",
+     "desc": "0.025 -> 1.025",
+     "status": "killed",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.631s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 455,
+     "line": 352,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.578s\n\nFAILED (errors=11)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 456,
+     "line": 376,
+     "kind": "compare",
+     "desc": "Gt -> GtE",
+     "status": "survived",
+     "seconds": 1.4,
+     "tail": "Ran 26 tests in 0.584s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 460,
+     "line": 501,
+     "kind": "constant",
+     "desc": "4 -> 5",
+     "status": "survived",
+     "seconds": 1.3,
+     "tail": "Ran 26 tests in 0.532s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 461,
+     "line": 512,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 1.9,
+     "tail": "Ran 26 tests in 0.777s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 464,
+     "line": 660,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "survived",
+     "seconds": 1.7,
+     "tail": "Ran 26 tests in 0.772s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 465,
+     "line": 670,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 1.5,
+     "tail": "Ran 26 tests in 0.663s\n\nOK"
+    },
+    {
+     "file": "eval/rating.py",
+     "site": 470,
+     "line": 316,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 1.3,
+     "tail": "Ran 26 tests in 0.592s\n\nFAILED (errors=1)"
+    }
+   ]
+  },
+  {
+   "file": "eval/sprt.py",
+   "sites": 200,
+   "sampled": 40,
+   "rows": [
+    {
+     "file": "eval/sprt.py",
+     "site": 10,
+     "line": 109,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "    e_h0, e_h1 = sprt.binom_expected_n(0.10, 0.20, 0.05, 0.05)\n    ^^^^^^^^^^\nTypeError: cannot unpack non-iterable NoneType object"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 18,
+     "line": 149,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): pent_gsprt rejects {'n0': 1, 'n_half': 1, 'n1': 1, 's0': 0.5, 's1': 0.5}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 24,
+     "line": 190,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.3,
+     "tail": "[ok] cli binom exits 0\n[ok] cli binom prints verdict\n[ok] cli binom --json exits 0"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 25,
+     "line": 214,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "survived",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 35,
+     "line": 83,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 2 check(s): per-loss LLR increment = ln(8/9) ~= -0.1178, 0-26 record crosses lower bound -> H0"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 37,
+     "line": 104,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "survived",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 52,
+     "line": 156,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "\n[FAIL] cli pent prints verdict\n[FAIL] cli pent --json exits 0 \u2014 usage error: pair-score variance is zero (all pairs identical) - GSPRT is undefined; need more varied outcomes"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 55,
+     "line": 182,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "[ok] pent_gsprt raises on zero variance (all-0.5 pairs)\n[ok] LOS(W==L) == 0.5\n[FAIL] LOS(10, 0) > 0.999 \u2014 0.5"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 64,
+     "line": 63,
+     "kind": "compare",
+     "desc": "Lt -> LtE",
+     "status": "survived",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 66,
+     "line": 66,
+     "kind": "arith",
+     "desc": "Div -> Mult",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 6 check(s): E[n|H0] ~= 72 (+-5), E[n|H1] ~= 60 (+-5), 0-0 record -> continue, upper bound = +ln(19), bounds ~= +-2.9444, midpoint verdict -> continue"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 72,
+     "line": 107,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): E[n|H0] ~= 72 (+-5)"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 77,
+     "line": 116,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.2, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.0, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 1.0, 'p1': 0.2}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 79,
+     "line": 142,
+     "kind": "compare",
+     "desc": "Lt -> LtE",
+     "status": "survived",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 80,
+     "line": 142,
+     "kind": "compare",
+     "desc": "Lt -> LtE",
+     "status": "survived",
+     "seconds": 0.8,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 84,
+     "line": 147,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 0.8,
+     "tail": "\n[FAIL] cli pent prints verdict\n[FAIL] cli pent --json exits 0 \u2014 usage error: s0 and s1 must be in [0, 1]"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 90,
+     "line": 180,
+     "kind": "compare",
+     "desc": "Lt -> LtE",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] pent_gsprt raises on zero variance (all-0.5 pairs)\n[ok] LOS(W==L) == 0.5\n[ok] LOS(10, 0) > 0.999"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 91,
+     "line": 180,
+     "kind": "compare",
+     "desc": "Lt -> LtE",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] pent_gsprt raises on zero variance (all-1 pairs)\n[ok] pent_gsprt raises on zero variance (all-0.5 pairs)\n[ok] LOS(W==L) == 0.5"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 98,
+     "line": 223,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.8,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): cli pent rejects zero variance with exit 1"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 103,
+     "line": 63,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "  File \"/tmp/claude-0/-home-user/22e726ee-e849-5da1-9e84-ae6ffd3be8fb/scratchpad/mu_tmp/mutate-w5xezxw8/eval/sprt.py\", line 58, in sprt_bounds\n    raise ValueError('beta must be in (0, 1), got %r' % (beta,))\nValueError: beta must be in (0, 1), got 0.05"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 107,
+     "line": 101,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] cli pent --json exits 0\n[ok] cli pent --json verdict is H1\n[ok] cli pent rejects zero variance with exit 1"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 111,
+     "line": 107,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "survived",
+     "seconds": 0.8,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 113,
+     "line": 108,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): E[n|H1] ~= 60 (+-5)"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 120,
+     "line": 142,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] pent_gsprt rejects {'n0': 1, 'n_half': 1, 'n1': 1, 's0': 0.5, 's1': 0.5}\n[ok] pent_gsprt rejects {'n0': 1, 'n_half': 1, 'n1': 1, 's0': -0.1, 's1': 0.55}\n[ok] pent_gsprt rejects {'n0': 1, 'n_half': 1, 'n1': 1, 's0': 0.5, 's1': 1.5}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 122,
+     "line": 142,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "survived",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 124,
+     "line": 147,
+     "kind": "compare",
+     "desc": "LtE -> Lt",
+     "status": "survived",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 129,
+     "line": 155,
+     "kind": "arith",
+     "desc": "Mult -> Div",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] midpoint verdict -> continue\n[ok] strong-win var is nonzero\n[FAIL] strong-win LLR crosses upper -> H1 \u2014 {'n0': 2, 'n_half': 20, 'n1': 78, 'n_total': 100, 's0': 0.5, 's1': 0.55, 'alpha': 0.05, 'beta': 0.05, 'xbar': 0.88, 'var': 54.21103466666668, 'llr': 0.03274241140967219, 'lower': -2.9444389791664403, 'upper': 2.9444389791664403, 'verdict': 'continue'}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 130,
+     "line": 161,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): midpoint LLR ~= 0"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 133,
+     "line": 180,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "[ok] pent_gsprt raises on zero variance (all-1 pairs)\n[ok] pent_gsprt raises on zero variance (all-0.5 pairs)\n[ok] LOS(W==L) == 0.5"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 136,
+     "line": 223,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): cli pent rejects zero variance with exit 1"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 141,
+     "line": 258,
+     "kind": "constant",
+     "desc": "True -> False",
+     "status": "survived",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 143,
+     "line": 266,
+     "kind": "constant",
+     "desc": "True -> False",
+     "status": "survived",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 149,
+     "line": 278,
+     "kind": "constant",
+     "desc": "True -> False",
+     "status": "survived",
+     "seconds": 1.1,
+     "tail": "[ok] los rejects negative counts\n\nall checks passed"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 154,
+     "line": 101,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 2 check(s): E[n|H0] ~= 72 (+-5), E[n|H1] ~= 60 (+-5)"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 156,
+     "line": 108,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): E[n|H1] ~= 60 (+-5)"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 158,
+     "line": 116,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.2, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.0, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 1.0, 'p1': 0.2}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 163,
+     "line": 147,
+     "kind": "constant",
+     "desc": "0.0 -> 1",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.2, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.0, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 1.0, 'p1': 0.2}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 175,
+     "line": 107,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.2, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.0, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 1.0, 'p1': 0.2}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 185,
+     "line": 84,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.2, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 0.0, 'p1': 0.2}\n[ok] binom_sprt rejects {'wins': 0, 'losses': 0, 'p0': 1.0, 'p1': 0.2}"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 190,
+     "line": 154,
+     "kind": "arith",
+     "desc": "Sub -> Add",
+     "status": "killed",
+     "seconds": 1.0,
+     "tail": "[ok] los rejects negative counts\n\nFAILED 1 check(s): pent_gsprt raises on zero variance (all-0.5 pairs)"
+    },
+    {
+     "file": "eval/sprt.py",
+     "site": 194,
+     "line": 101,
+     "kind": "constant",
+     "desc": "1.0 -> 0",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "    return p * math.log(p1 / p0) + (1.0 - p) * math.log((0 - p1) / (1.0 - p0))\n                                               ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nValueError: math domain error"
+    }
+   ]
+  },
+  {
+   "file": "eval/seed_policy.py",
+   "sites": 31,
+   "sampled": 31,
+   "rows": [
+    {
+     "file": "eval/seed_policy.py",
+     "site": 0,
+     "line": 70,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "[ok] reserved_block(30100) == None\n[ok] reserved_block(-5) == None\n[ok] reserved_block(0) == None"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 1,
+     "line": 74,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: no args -> exit 2 (usage error)"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 2,
+     "line": 91,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: mixed clean+reserved -> exit 1, stderr points at the policy doc"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 3,
+     "line": 96,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "survived",
+     "seconds": 0.6,
+     "tail": "[ok] no output directory written on refusal\n\nall tests passed"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 4,
+     "line": 99,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "usage: python3 eval/seed_policy.py SEED [SEED ...]"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 5,
+     "line": 53,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "[ok] reserved_block(-5) == None\n[ok] reserved_block(0) == None\n[FAIL] three blocks flagged \u2014 got []"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 6,
+     "line": 67,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "[ok] reserved_block(30100) == None\n[ok] reserved_block(-5) == None\n[ok] reserved_block(0) == None"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 7,
+     "line": 68,
+     "kind": "continue",
+     "desc": "continue -> pass",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "[ok] reserved_block(30100) == None\n[ok] reserved_block(-5) == None\n[ok] reserved_block(0) == None"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 8,
+     "line": 74,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: clean seeds -> exit 0, clean seeds print 'clean', mixed clean+reserved -> exit 1, reserved seed labeled RESERVED, reserved seed names its block, clean seed still labeled clean, stderr points at the policy doc, no args -> exit 2 (usage error)"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 9,
+     "line": 77,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: no args -> exit 2 (usage error)"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 10,
+     "line": 83,
+     "kind": "constant",
+     "desc": "False -> True",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: clean seeds -> exit 0"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 11,
+     "line": 86,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: clean seeds print 'clean', clean seed still labeled clean"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 12,
+     "line": 95,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: mixed clean+reserved -> exit 1"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 13,
+     "line": 96,
+     "kind": "constant",
+     "desc": "0 -> 1",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: clean seeds -> exit 0"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 14,
+     "line": 42,
+     "kind": "constant",
+     "desc": "501 -> 502",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved seed names its block"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 15,
+     "line": 42,
+     "kind": "constant",
+     "desc": "525 -> 526",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved_block(526) == None, all-clean input -> empty dict"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 16,
+     "line": 43,
+     "kind": "constant",
+     "desc": "20000 -> 20001",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved_block(20000) == 'puzzle-mining', puzzle-mining offenders"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 17,
+     "line": 43,
+     "kind": "constant",
+     "desc": "29999 -> 30000",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved_block(20000) == 'puzzle-mining', puzzle-mining offenders"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 18,
+     "line": 44,
+     "kind": "constant",
+     "desc": "30000 -> 30001",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved_block(30000) == 'certification-holdout', certification-holdout offenders"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 19,
+     "line": 44,
+     "kind": "constant",
+     "desc": "30099 -> 30100",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved_block(30100) == None, all-clean input -> empty dict"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 20,
+     "line": 53,
+     "kind": "compare",
+     "desc": "LtE -> Lt",
+     "status": "killed",
+     "seconds": 0.8,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved_block(501) == 'frozen-legacy', reserved_block(20000) == 'puzzle-mining', reserved_block(30000) == 'certification-holdout', frozen-legacy offenders deduped + sorted, puzzle-mining offenders, certification-holdout offenders, single offender -> single block, single seed, reserved seed names its block"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 21,
+     "line": 53,
+     "kind": "compare",
+     "desc": "LtE -> Lt",
+     "status": "killed",
+     "seconds": 0.8,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: reserved_block(501) == 'frozen-legacy', reserved_block(20000) == 'puzzle-mining', reserved_block(30000) == 'certification-holdout', frozen-legacy offenders deduped + sorted, puzzle-mining offenders, certification-holdout offenders, single offender -> single block, single seed"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 22,
+     "line": 54,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "[ok] reserved_block(-5) == None\n[ok] reserved_block(0) == None\n[FAIL] three blocks flagged \u2014 got []"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 23,
+     "line": 67,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "killed",
+     "seconds": 0.1,
+     "tail": "[ok] reserved_block(-5) == None\n[ok] reserved_block(0) == None\n[FAIL] three blocks flagged \u2014 got [None]"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 24,
+     "line": 77,
+     "kind": "constant",
+     "desc": "2 -> 3",
+     "status": "killed",
+     "seconds": 0.8,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: no args -> exit 2 (usage error)"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 25,
+     "line": 82,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 0.9,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: non-integer arg -> exit 2"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 26,
+     "line": 86,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "killed",
+     "seconds": 0.8,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: clean seeds -> exit 0, clean seeds print 'clean', reserved seed names its block, clean seed still labeled clean"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 27,
+     "line": 95,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: mixed clean+reserved -> exit 1"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 28,
+     "line": 82,
+     "kind": "constant",
+     "desc": "2 -> 3",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: non-integer arg -> exit 2"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 29,
+     "line": 89,
+     "kind": "constant",
+     "desc": "True -> False",
+     "status": "killed",
+     "seconds": 0.7,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: mixed clean+reserved -> exit 1, stderr points at the policy doc"
+    },
+    {
+     "file": "eval/seed_policy.py",
+     "site": 30,
+     "line": 100,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 0.6,
+     "tail": "[ok] no output directory written on refusal\n\nFAILED: clean seeds -> exit 0, clean seeds print 'clean', mixed clean+reserved -> exit 1, reserved seed labeled RESERVED, reserved seed names its block, clean seed still labeled clean, stderr points at the policy doc"
+    }
+   ]
+  },
+  {
+   "file": "eval/rl/eval_only.py",
+   "sites": 95,
+   "sampled": 40,
+   "rows": [
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 0,
+     "line": 15,
+     "kind": "arith",
+     "desc": "Div -> Mult",
+     "status": "killed",
+     "seconds": 0.2,
+     "tail": "    SUITES = evalpath.EVAL * 'suites'\n             ~~~~~~~~~~~~~~^~~~~~~~~~\nTypeError: can't multiply sequence by non-int of type 'PosixPath'"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 3,
+     "line": 37,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 1.7,
+     "tail": "Ran 44 tests in 0.679s\n\nFAILED (failures=2, errors=19)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 5,
+     "line": 72,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 6.5,
+     "tail": "Ran 44 tests in 3.050s\n\nFAILED (errors=11)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 9,
+     "line": 84,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.602s\n\nFAILED (failures=7)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 12,
+     "line": 99,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 8.7,
+     "tail": "Ran 44 tests in 4.172s\n\nFAILED (failures=4)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 16,
+     "line": 125,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 8.7,
+     "tail": "Ran 44 tests in 4.179s\n\nFAILED (failures=8)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 17,
+     "line": 129,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 9.9,
+     "tail": "Ran 44 tests in 4.758s\n\nFAILED (failures=9, errors=14)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 18,
+     "line": 136,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.555s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 26,
+     "line": 179,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.576s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 27,
+     "line": 182,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.559s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 32,
+     "line": 79,
+     "kind": "compare",
+     "desc": "Is -> IsNot",
+     "status": "killed",
+     "seconds": 5.1,
+     "tail": "Ran 44 tests in 2.381s\n\nFAILED (failures=14, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 33,
+     "line": 80,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.579s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 35,
+     "line": 83,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.612s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 36,
+     "line": 84,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "killed",
+     "seconds": 5.2,
+     "tail": "Ran 44 tests in 2.380s\n\nFAILED (failures=11, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 38,
+     "line": 96,
+     "kind": "not",
+     "desc": "not x -> bool(x)",
+     "status": "killed",
+     "seconds": 6.5,
+     "tail": "Ran 44 tests in 3.058s\n\nFAILED (failures=4, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 39,
+     "line": 97,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.4,
+     "tail": "Ran 44 tests in 3.517s\n\nFAILED (errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 40,
+     "line": 99,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "killed",
+     "seconds": 7.4,
+     "tail": "Ran 44 tests in 3.534s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 42,
+     "line": 112,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.580s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 45,
+     "line": 127,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 7.4,
+     "tail": "Ran 44 tests in 3.564s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 49,
+     "line": 149,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.555s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 51,
+     "line": 153,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.522s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 53,
+     "line": 159,
+     "kind": "guard",
+     "desc": "if-body -> pass",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.534s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 55,
+     "line": 179,
+     "kind": "compare",
+     "desc": "NotEq -> Eq",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.584s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 56,
+     "line": 65,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "survived",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.596s\n\nOK"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 60,
+     "line": 94,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.679s\n\nFAILED (errors=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 61,
+     "line": 99,
+     "kind": "compare",
+     "desc": "In -> NotIn",
+     "status": "killed",
+     "seconds": 6.4,
+     "tail": "Ran 44 tests in 2.995s\n\nFAILED (failures=3, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 62,
+     "line": 99,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 6.3,
+     "tail": "Ran 44 tests in 2.999s\n\nFAILED (failures=3, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 64,
+     "line": 112,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 5.2,
+     "tail": "Ran 44 tests in 2.421s\n\nFAILED (failures=7, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 65,
+     "line": 136,
+     "kind": "constant",
+     "desc": "1 -> 0",
+     "status": "killed",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.598s\n\nFAILED (failures=3)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 67,
+     "line": 160,
+     "kind": "return",
+     "desc": "return v -> return None",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.551s\n\nFAILED (failures=1, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 68,
+     "line": 166,
+     "kind": "boolop",
+     "desc": "Or -> And",
+     "status": "killed",
+     "seconds": 7.7,
+     "tail": "Ran 44 tests in 3.661s\n\nFAILED (failures=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 73,
+     "line": 95,
+     "kind": "compare",
+     "desc": "Eq -> NotEq",
+     "status": "killed",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.632s\n\nFAILED (failures=6, errors=1)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 74,
+     "line": 99,
+     "kind": "compare",
+     "desc": "IsNot -> Is",
+     "status": "killed",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.623s\n\nFAILED (failures=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 78,
+     "line": 160,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.549s\n\nFAILED (errors=2)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 81,
+     "line": 141,
+     "kind": "arith",
+     "desc": "Add -> Sub",
+     "status": "killed",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.547s\n\nFAILED (errors=10)"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 85,
+     "line": 108,
+     "kind": "constant",
+     "desc": "5 -> 6",
+     "status": "survived",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.610s\n\nOK"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 86,
+     "line": 115,
+     "kind": "constant",
+     "desc": "5 -> 6",
+     "status": "survived",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.561s\n\nOK"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 88,
+     "line": 181,
+     "kind": "constant",
+     "desc": "5 -> 6",
+     "status": "survived",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.602s\n\nOK"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 91,
+     "line": 181,
+     "kind": "compare",
+     "desc": "Gt -> GtE",
+     "status": "survived",
+     "seconds": 7.6,
+     "tail": "Ran 44 tests in 3.554s\n\nOK"
+    },
+    {
+     "file": "eval/rl/eval_only.py",
+     "site": 92,
+     "line": 54,
+     "kind": "boolop",
+     "desc": "And -> Or",
+     "status": "killed",
+     "seconds": 7.5,
+     "tail": "Ran 44 tests in 3.570s\n\nFAILED (failures=1)"
+    }
+   ]
+  }
+ ]
+}

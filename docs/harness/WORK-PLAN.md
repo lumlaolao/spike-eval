@@ -83,8 +83,8 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
 - **Repository housekeeping:** the 163 remote branches already merged into main were not deleted (it needs the
   owner's permission; `git branch -r --merged origin/main | grep -v 'HEAD\|origin/main$' | wc -l`, 2026-11-08). Stale
   and open, for the owner to close or revive: issue #248 and PR #249 (the canary-random re-pin of 2026-10-17, long
-  since overtaken), draft PR #11 (eval v1.0, the five axes of the first design), and PR #267 (see the misreading
-  probe below).
+  since overtaken), draft PR #11 (eval v1.0, the five axes of the first design), and PR #267 (its misreading
+  probe is ported; see below).
 - **Owner decisions from a hygiene audit (2026-10-25)** (tracked `runs/` is gone since #332):
   - four eval scripts nothing current calls: `latency_report.py`, `line_compare.py`, `coverage_audit.py` and
     `model_sweep.py`, whose default list includes an Opus model and which takes no budget;
@@ -135,11 +135,30 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   another length moves where the seat cuts a long description (a documented limit). The model comparison (Luna on
   originals against twins, about $0.40 on the rules sample) is owner-gated and paid; the dev lane may stand in for a
   smoke, never a score.
-- **The misreading probe from stale PR #267** (`PZL_PROBE`): it plays one fixed prefix to game end and records what
-  the final state did against the puzzle's acceptance section, so the play a solver makes if it misread the rule
-  must not reach it. Acceptance states, the uniqueness hunt and the rules-pilot driver have landed in other PRs;
-  `PZL_PROBE` is in no file on main outside this plan. Salvage it from the PR's diff with its
-  tests, then close #267.
+- **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
+  PR #267): 38 of 221 done, 183 remain unprobed. RP_001 (`docs/harness/evidence/2026-11-09-pzl-probe/`) and a
+  ten-puzzle pilot picked for being expressible (`docs/harness/evidence/2026-11-09-misreading-probes-pilot/`) each
+  reject every whole misreading line with the proof accepted as a control (one seeded completion each). Two disjoint
+  random samples of 20 (`docs/harness/evidence/2026-11-09-misreading-probes-sample/`, seed 20261109, and
+  `docs/harness/evidence/2026-11-10-misreading-probes-sample2/`, seed 20261110) measured the share a probe can
+  express: 14 of 20 and 13 of 20 puzzles (pooled 27 of 40, 67.5%, Wilson 95% 52 to 80%; unclear counted as not
+  expressible). Of the 27 probed, 26 reject every whole misreading against Forge's AI (96.3%, 81.7 to 99.3%; RP_096 and RP_066 only
+  by their acceptance wording); **RP_034 alone accepts a misreading** against the AI (1 of 27, 3.7%, 0.7 to 18.3%), so
+  it does not test its rule as scored (the first README, "Finding"). RP_183's first accepted line was the proof's order
+  (Bolt cast in response to Cloudshift); its true misreading is rejected. A probe line that casts a spell and then
+  another must pass first if the misreading needs the first spell resolved, since the caster keeps priority. Not tried: the 13 non-expressible or unclear sampled puzzles (and, by
+  the samples, a similar share of the rest), plus trigger-order ones whose proof does not branch the order (RP_002
+  and RP_020 per their `note`s; RP_044's proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at
+  the end of a prefix. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
+  misreading is accepted (a probe asks about one); a decision on RP_034's acceptance. #267 can be closed
+  once these are done.
+  **AI-blind sweep** (`docs/harness/evidence/2026-11-09-ai-blind-sweep/`, issue #447 generalised): the prover and its
+  uniqueness search run with `CONTROLLER_B=ai` on the 56 converted rules-pilot puzzles whose proof beats opponent
+  replies (budget 600, seed 1, overlay `edaca55afdf6`) flagged 2 of 56 as `multiple` (3.6%, Wilson 95% 1.0 to 12.1%; 2 of the 43 with an opponent choice point)
+  where the search-opponent verdict is `unique` for all 56: RP_034 (validated, the known case) and RP_295, whose second
+  line only taps a second Raging Goblin for convoke and was never tested against the replies, so 1 of 56 is confirmed
+  AI-blind. Eight of the 56 were not searched
+  exhaustively, so 2 is a floor for the tool's flags; RP_034's decision (options 1 to 3 of #447) stays the owner's.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);
   a failed puzzle-row write has no non-zero exit or marker; the batch does not stop on a non-retryable HTTP error
