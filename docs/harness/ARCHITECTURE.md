@@ -475,8 +475,8 @@ A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptan
   and validation makes a wrong one explainable.
 - *Why one fixed schema instead of one per decision:* tool definitions open the cache prefix. A schema
   that changed every decision discarded the whole cache on every call. A per-decision enum is kept as a
-  measurement arm (`ANSWER_SCHEMA=per-decision`), reachable only from a direct JVM launch: a batch pins the default
-  (`run_batch.CONDITION_ENV_KEYS`).
+  measurement arm (`ANSWER_SCHEMA=per-decision`), reachable only from a launcher that does not scrub it
+  (`SETTINGS.md`, the `ANSWER_SCHEMA` row).
 - *Why `tool_choice` is per model* (`AnswerTool.toolChoiceFor`, `PROMPT-CRAFT.md` rule 2):
   - **OpenAI models get "required":** measured on Luna, it keeps the reasoning, and a text-only reply
     becomes impossible.
@@ -735,7 +735,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - **Conversations as conditions:** `TURN_CHAT=1` keeps this turn's earlier decisions in the conversation
   (a multi-step line in one train of thought) and starts over each turn; `ONE_CHAT=1` keeps the whole game
   (`ONE_CHAT_TURNS=N` keeps the last N pairs under either, stamped `one_chat_version` `+turns=N` when a chat is on;
-  every launcher pins it to its default).
+  the scored launchers scrub it: `SETTINGS.md`, the `ANSWER_SCHEMA` row).
   Both replay a decision as it happened: its DECISION part, the model's assistant messages unchanged with
   their tool calls and `reasoning_details`, and a result for every call (OpenRouter's reasoning guide: pass
   reasoning back unchanged and in order). Acceptance stage `turnchat` checks every request is a valid
