@@ -8,9 +8,10 @@ Zero-model, no network, no `OPENROUTER_ALLOW_EGRESS`.
 **Result in one paragraph.** Expressible: **14 of 20 (70%, Wilson 95% interval 48 to 86%)**; not expressible 5; unclear 1
 (counted as not expressible; if it were expressible the rate is 15 of 20). Of the 14 probed, **13 reject every whole
 misreading** against Forge's AI, the opponent the suite is scored against (13 of 14, 93%, interval 69 to 99%).
-**One puzzle accepts its misreading: RP_034** (see "Finding" below): both of its whole misreadings reach the
-acceptance state against Forge's AI on 3 completion seeds and 4 game seeds, and are rejected only when the opponent
-is made to answer with the Welding Jar.
+One of the 13, RP_096, is rejected by its acceptance wording (any cast of Hurkyl's Recall fails it), not by its rule;
+without it, 12 of 13. **One puzzle accepts its misreading: RP_034** (see "Finding" below): both of its whole
+misreadings reach the acceptance state against Forge's AI (line (a) on game seeds 1 to 4), and are rejected only
+when the opponent is made to answer with the Welding Jar.
 
 ## Sample
 
@@ -78,8 +79,8 @@ values, about 70 runs) are not kept.
 
 ## Probe table
 
-Control = the proof line probed with a seeded random completion: `accepted` for all 14 (the proofs were `proven`,
-`accepted` in the search arm). A misreading below is the WHOLE line, and every one was re-run until the game
+Control = the proof line probed with a seeded random completion: `accepted` for all 14 (the manifest records each proof
+as `proven` by the search arm). A misreading below is the WHOLE line, and every one was re-run until the game
 consumed it whole (`drift` empty; no `line not consumed` row is cited). Verdict is one seeded completion (seed 0)
 unless stated.
 
@@ -96,11 +97,11 @@ unless stated.
 | RP_196 | (a) `Solver:3:0 Solver:5:0` (Song on Craw Wurm); (b) `Solver:3:0 Solver:5:1 Solver:2:1` (Song on a Forest, attack) | rejected (both): opponent at 6 / 3 | good: the other two Forest targets are the same play as (b), not run |
 | RP_005 | (a) `Solver:5:0 Solver:2:1 Solver:2:0 Solver:2:0 Solver:2:0 Solver:2:1 Solver:2:1 Solver:2:1` (both triggers tap Hill Giant); (b) the same with both on the Bears; (c) `Solver:5:0 Solver:2:1 Solver:2:0 Solver:2:1 Solver:2:0 Solver:2:0 Solver:2:1 Solver:2:1` (split counters Sharktocrab + Hill Giant) | rejected (all): opponent at 10 / 10 / 4 | good for (a), (b): the untapped blocker takes the 10. (c) puts counters on the opponent's creature, a silly play that the `misread_line` does name |
 | RP_152 | `Solver:5:2 Solver:5:4 Solver:5:0 Solver:2:1 Solver:2:1 Solver:2:1` (animate Conclave, let it resolve, then Dress Down, attack) | rejected, with `ai` and with `search` opponent: opponent at 2 | good: `damage-assign: all 2 -> Giant Spider`; Dress Down strips the flying and the reach. Caution: `Solver:5:2 Solver:5:0` is `accepted`, but it casts Dress Down on top of the animation on the stack, so Dress Down resolves first. That is the proof's order, not the misreading (kept as `variant_not_the_misreading`) |
-| RP_096 | `Solver:6:0 Solver:2:0 Solver:2:1 Solver:4:3 x8` (Recall on yourself, then pass) | rejected: Ring not on battlefield, Recall not in hand | trivial: the acceptance requires the Ring and the Recall, so any cast of Recall fails it; the manifest note says so. The life clause held in this run (no life loss is listed as failed), which is not what the rule says; not investigated |
+| RP_096 | `Solver:6:0 Solver:2:0 Solver:2:1 Solver:4:3 x8` (Recall on yourself, then pass) | rejected: Ring not on battlefield, Recall not in hand | trivial: the acceptance requires the Ring and the Recall, so any cast of Recall fails it; the manifest note says so. The life clause held in this run (no life loss is listed as failed); not investigated |
 | RP_235 | (a) `Solver:4:1 Solver:4:3 Solver:3:2` (Pillar on Merfolk, Mage still there, pass); (b) the same ending `Solver:3:0` (then Flame Slash the Mage) | rejected (both): Merfolk not in exile | good: the Mage turns the damage into counters |
-| RP_034 | (a) `Solver:3:0 Solver:3:1 Solver:2:0 Solver:2:1 Solver:2:0` (2 damage, 2 damage, destroy the Golem); (b) `Solver:3:0 Solver:3:1 Solver:2:1 Solver:2:0 Solver:2:1` (2 damage, destroy Golem, destroy Jar) | **accepted** (default `ai` opponent, completion seeds 0, 1, 2; game seeds 1 to 4 for (a)) | **finding, below** |
+| RP_034 | (a) `Solver:3:0 Solver:3:1 Solver:2:0 Solver:2:1 Solver:2:0` (2 damage, 2 damage, destroy the Golem); (b) `Solver:3:0 Solver:3:1 Solver:2:1 Solver:2:0 Solver:2:1` (2 damage, destroy Golem, destroy Jar) | **accepted** (default `ai` opponent; game seeds 1 to 4 for (a); the line is complete, so the completion seed varies nothing) | **finding, below** |
 
-Proof lines (search arm, budget 600, all `proven`, `accepted`):
+Proof lines (found by the search arm, budget 600; each probed above as the control):
 
 | Puzzle | Proof line |
 |---|---|
@@ -121,9 +122,8 @@ Proof lines (search arm, budget 600, all `proven`, `accepted`):
 
 ## Rates
 
-* Expressible share: 14 of 20 = 70%, Wilson 95% 48.1 to 85.5% (n = 20 from 210).
-* Rejected share of the 14 probed puzzles (every whole misreading rejected, against Forge's AI): 13 of 14 = 92.9%,
-  Wilson 95% 68.5 to 98.7%. If RP_034 is judged by the adversarial-opponent rows (both rejected), 14 of 14 (78.5 to 100%).
+* Puzzle-level rates and intervals are in the opening paragraph. If RP_034 is judged by the adversarial-opponent rows
+  (both rejected), 14 of 14 (78.5 to 100%).
 * Per misreading line: 17 of the 19 distinct whole lines probed against the `ai` opponent were rejected; the 2 accepted
   are RP_034's. The intervals above are per puzzle; lines within a puzzle are not independent.
 
@@ -134,27 +134,24 @@ A solver who picks the modes wrongly, destroying the Golem only once, still reac
 opponent is Forge's AI, because the AI does not respond with the Welding Jar. Both lines (a) and (b) end `accepted`:
 the opponent is dead from the two damage modes, and the single destruction puts the Golem in the graveyard.
 
-* Re-run with 2 more completion seeds (1 and 2): `accepted` for both lines, as for seed 0. The line is complete (the game
-  asks nothing after it), so the completion seed has nothing to vary; line (a) was also run on game seeds 2, 3 and 4:
-  `accepted`.
+* Both lines are complete (the game asks nothing after them), so the completion seeds 1 and 2 that were also run vary
+  nothing; line (a) was also run on game seeds 2, 3 and 4: `accepted`.
 * The proof is "against every opponent reply": with the opponent's Jar steps written into the line
   (`... Opponent:2:0 Opponent:2:0`, `--opponent search`) both misreadings are `rejected` (Stone Golem not in the
-  graveyard). With the opponent passing or answering at random the same lines are `accepted`. So the puzzle tests the
+  graveyard). So the puzzle tests the
   rule only against an opponent that regenerates, and the suite's scoring opponent (Forge's AI, `docs/eval/PUZZLES.md`) does not.
 * Not determined: whether this is a Forge AI choice of this state or general (the AI passes the Jar in these runs);
-  whether the model seat would rather meet the same acceptance by this line (not run: no model). A fix would need the
-  acceptance to survive the AI's pass (for example require the opponent to be at `<= 0` and the Golem in the graveyard
-  AND the Jar in the graveyard), which is outside this folder; `manifest.jsonl` was not edited.
+  whether the model seat would rather meet the same acceptance by this line (not run: no model). `manifest.jsonl` was
+  not edited.
 
 ## What was not determined
 
 * Each rejected verdict is the line plus ONE seeded random completion (seed 0), as in the pilot. Most lines end where
   the misreading has nothing left to play, but this does not prove no completion is accepted. The search-arm follow-up
   (prefix fixed, ask whether ANY completion is accepted) is still open.
-* The 6 non-expressible or unclear puzzles were not probed (RP_067 might be expressible; its manifest line does not say).
 * The RP_117 and RP_005 menu values are read off outcomes and target lists, not from a log line that names the choice.
 * The classification is one author's reading of the manifest text; a different reader could move RP_067, RP_005 or RP_235.
-* RP_096's life clause (see the table) and RP_034's AI behaviour were not investigated further.
+* RP_096's life clause (see the table) was not investigated.
 
 ## Input sha256 of each `eval/puzzles/rules-pilot/<id>.pzl`
 

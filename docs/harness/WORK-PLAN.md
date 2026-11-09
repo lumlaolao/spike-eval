@@ -140,13 +140,12 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   being expressible (`docs/harness/evidence/2026-11-09-misreading-probes-pilot/`) each reject every whole misreading
   line with the proof accepted as a control (one seeded completion each). A random sample of 20 of the other 210
   (`docs/harness/evidence/2026-11-09-misreading-probes-sample/`, seed 20261109) measured the share a probe can express:
-  14 of 20 expressible (70%, Wilson 95% 48 to 86%), 5 not (a belief with no different play, a PASS-only line), 1 unclear.
-  Of the 14 probed, 13 reject every whole misreading against Forge's AI; **RP_034 accepts both of its misreadings**
-  against the AI (the AI never answers with the Welding Jar; with the Jar steps in the line both are rejected), so
-  that puzzle does not test its rule as scored. Not tried: the 6 non-expressible or unclear sampled puzzles (and,
+  14 of 20 puzzles expressible (70%, Wilson 95% 48 to 86%). Of the 14 probed, 13 reject every whole misreading
+  against Forge's AI (RP_096 only by its acceptance wording); **RP_034 accepts both of its misreadings** against the
+  AI, so it does not test its rule as scored (the sample README, "Finding"). Not tried: the 6 non-expressible or unclear sampled puzzles (and,
   by the sample, a similar share of the rest), plus trigger-order ones whose proof does not branch the order (RP_002 and RP_020
   per their `note`s; RP_044's proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at the end of a
-  prefix, which was most of the effort. About 196 remain unprobed. Follow-up: a search-arm mode with the prefix fixed,
+  prefix. About 196 remain unprobed. Follow-up: a search-arm mode with the prefix fixed,
   which asks whether ANY completion of the misreading is accepted (a probe asks about one); a decision on RP_034's
   acceptance. #267 can be closed once these are done.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
