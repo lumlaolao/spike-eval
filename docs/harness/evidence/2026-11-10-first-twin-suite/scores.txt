@@ -1,0 +1,95 @@
+### random
+PUZ  suite=rules v1 (b652e12c4452)  split=open  solver=random  epoch=harness-epoch-97  puzzles=25  k=200  PILOT
+  headline mean(pass@1 - random_rate)   -0.007  95% CI [-0.019, 0.006] (clustered [-0.020, 0.006])   floors: random 0.000, PASS -0.089, first 0.071
+  pass@1                                0.082  95% CI [0.061, 0.102]   floors: random 0.089, PASS 0.000, first 0.160
+  pass^2                                0.009  95% CI [0.006, 0.013]   floors: random 0.012, PASS 0.000, first 0.160  (if independent 0.009)
+  pass^k                                0.000  95% CI [0.000, 0.000]   floors: random 0.000, PASS 0.000, first 0.160  (if independent 0.000)
+  pass@k (any of k solves)              0.920  95% CI [0.800, 1.000]   floors: random 0.839, PASS 0.000, first 0.160  (Wilson [0.750, 0.978])
+  pass@1 clustered 95% CI [0.060, 0.103]; smallest difference two runs of this size detect: 0.043
+  normalized (random=0, Forge AI=1)      -0.040   (Forge AI rate 0.270)
+  solved all                            0/25  95% CI [0, 0] Wilson [0.000, 3.330]   expected floors: random 0.00, PASS 0.00, first 4.00
+  solved tier 1                         0/7  95% CI [0, 0] Wilson [0.000, 2.480]   expected floors: random 0.00, PASS 0.00, first 1.00
+  solved tier 2                         0/17  95% CI [0, 0] Wilson [0.000, 3.134]   expected floors: random 0.00, PASS 0.00, first 2.00
+  solved tier 3                         0/1  95% CI [0, 0] Wilson [0.000, 0.793]   expected floors: random 0.00, PASS 0.00, first 1.00
+  budget: not recorded (rows from before harness-epoch-69)
+  integrity (weight 0): 0 of 5000 attempts capped, 0 decided by a deck-out
+TWINS  solver=random  split=open  pairs=25  k=200
+  recall gap mean(pass@1 original - pass@1 twin) +0.000  95% CI [0.000, 0.000] (clustered [0.000, 0.000])   floors: no recall 0.000, random +0.007, PASS +0.000, first +0.000
+  solved: original 0/25, twin 0/25; only the original 0, only the twin 0 (both 0, neither 25); difference +0.000  95% CI [0.000, 0.000]; McNemar exact p - over 0 discordant pairs (none: the test says nothing)
+
+### pass
+PUZ  suite=rules v1 (b652e12c4452)  split=open  solver=pass  epoch=harness-epoch-97  puzzles=25  k=4  PILOT
+  headline mean(pass@1 - random_rate)   -0.089  95% CI [-0.116, -0.063] (clustered [-0.115, -0.062])   floors: random 0.000, PASS -0.089, first 0.071
+  pass@1                                0.000  95% CI [0.000, 0.000]   floors: random 0.089, PASS 0.000, first 0.160
+  pass^2                                0.000  95% CI [0.000, 0.000]   floors: random 0.012, PASS 0.000, first 0.160  (if independent 0.000)
+  pass^k                                0.000  95% CI [0.000, 0.000]   floors: random 0.000, PASS 0.000, first 0.160  (if independent 0.000)
+  pass@k (any of k solves)              0.000  95% CI [0.000, 0.000]   floors: random 0.289, PASS 0.000, first 0.160  (Wilson [0.000, 0.133])
+  pass@1 clustered 95% CI [0.000, 0.000]; smallest difference two runs of this size detect: not estimable (no spread)
+  normalized (random=0, Forge AI=1)      -0.490   (Forge AI rate 0.270)
+  solved all                            0/25  95% CI [0, 0] Wilson [0.000, 3.330]   expected floors: random 1.48, PASS 0.00, first 4.00
+  solved tier 1                         0/7  95% CI [0, 0] Wilson [0.000, 2.480]   expected floors: random 0.55, PASS 0.00, first 1.00
+  solved tier 2                         0/17  95% CI [0, 0] Wilson [0.000, 3.134]   expected floors: random 0.83, PASS 0.00, first 2.00
+  solved tier 3                         0/1  95% CI [0, 0] Wilson [0.000, 0.793]   expected floors: random 0.10, PASS 0.00, first 1.00
+  budget: not recorded (rows from before harness-epoch-69)
+  integrity (weight 0): 0 of 100 attempts capped, 0 decided by a deck-out
+TWINS  solver=pass  split=open  pairs=25  k=4
+  recall gap mean(pass@1 original - pass@1 twin) +0.000  95% CI [0.000, 0.000] (clustered [0.000, 0.000])   floors: no recall 0.000, random +0.007, PASS +0.000, first +0.000
+  solved: original 0/25, twin 0/25; only the original 0, only the twin 0 (both 0, neither 25); difference +0.000  95% CI [0.000, 0.000]; McNemar exact p - over 0 discordant pairs (none: the test says nothing)
+
+### first
+PUZ  suite=rules v1 (b652e12c4452)  split=open  solver=first  epoch=harness-epoch-97  puzzles=25  k=4  PILOT
+  headline mean(pass@1 - random_rate)   0.071  95% CI [-0.059, 0.229] (clustered [-0.077, 0.219])   floors: random 0.000, PASS -0.089, first 0.071
+  pass@1                                0.160  95% CI [0.040, 0.320]   floors: random 0.089, PASS 0.000, first 0.160
+  pass^2                                0.160  95% CI [0.040, 0.320]   floors: random 0.012, PASS 0.000, first 0.160  (if independent 0.160)
+  pass^k                                0.160  95% CI [0.040, 0.320]   floors: random 0.000, PASS 0.000, first 0.160  (if independent 0.160)
+  pass@k (any of k solves)              0.160  95% CI [0.040, 0.320]   floors: random 0.289, PASS 0.000, first 0.160  (Wilson [0.064, 0.347])
+  pass@1 clustered 95% CI [0.013, 0.307]; smallest difference two runs of this size detect: 0.296
+  normalized (random=0, Forge AI=1)      0.393   (Forge AI rate 0.270)
+  solved all                            4/25  95% CI [1, 8] Wilson [1.601, 8.664]   expected floors: random 1.48, PASS 0.00, first 4.00
+  solved tier 1                         1/7  95% CI [0, 3] Wilson [0.180, 3.592]   expected floors: random 0.55, PASS 0.00, first 1.00
+  solved tier 2                         2/17  95% CI [0, 5] Wilson [0.559, 5.837]   expected floors: random 0.83, PASS 0.00, first 2.00
+  solved tier 3                         1/1  95% CI [1, 1] Wilson [0.207, 1.000]   expected floors: random 0.10, PASS 0.00, first 1.00
+  budget: not recorded (rows from before harness-epoch-69)
+  integrity (weight 0): 0 of 100 attempts capped, 0 decided by a deck-out
+TWINS  solver=first  split=open  pairs=25  k=4
+  recall gap mean(pass@1 original - pass@1 twin) +0.000  95% CI [0.000, 0.000] (clustered [0.000, 0.000])   floors: no recall 0.000, random +0.007, PASS +0.000, first +0.000
+  solved: original 4/25, twin 4/25; only the original 0, only the twin 0 (both 4, neither 21); difference +0.000  95% CI [0.000, 0.000]; McNemar exact p - over 0 discordant pairs (none: the test says nothing)
+
+### floor
+PUZ  suite=rules v1 (b652e12c4452)  split=open  solver=floor  epoch=harness-epoch-97  puzzles=25  k=4  PILOT
+  headline mean(pass@1 - random_rate)   -0.089  95% CI [-0.116, -0.063] (clustered [-0.115, -0.062])   floors: random 0.000, PASS -0.089, first 0.071
+  pass@1                                0.000  95% CI [0.000, 0.000]   floors: random 0.089, PASS 0.000, first 0.160
+  pass^2                                0.000  95% CI [0.000, 0.000]   floors: random 0.012, PASS 0.000, first 0.160  (if independent 0.000)
+  pass^k                                0.000  95% CI [0.000, 0.000]   floors: random 0.000, PASS 0.000, first 0.160  (if independent 0.000)
+  pass@k (any of k solves)              0.000  95% CI [0.000, 0.000]   floors: random 0.289, PASS 0.000, first 0.160  (Wilson [0.000, 0.133])
+  pass@1 clustered 95% CI [0.000, 0.000]; smallest difference two runs of this size detect: not estimable (no spread)
+  normalized (random=0, Forge AI=1)      -0.490   (Forge AI rate 0.270)
+  solved all                            0/25  95% CI [0, 0] Wilson [0.000, 3.330]   expected floors: random 1.48, PASS 0.00, first 4.00
+  solved tier 1                         0/7  95% CI [0, 0] Wilson [0.000, 2.480]   expected floors: random 0.55, PASS 0.00, first 1.00
+  solved tier 2                         0/17  95% CI [0, 0] Wilson [0.000, 3.134]   expected floors: random 0.83, PASS 0.00, first 2.00
+  solved tier 3                         0/1  95% CI [0, 0] Wilson [0.000, 0.793]   expected floors: random 0.10, PASS 0.00, first 1.00
+  budget: not recorded (rows from before harness-epoch-69)
+  integrity (weight 0): 0 of 100 attempts capped, 0 decided by a deck-out
+TWINS  solver=floor  split=open  pairs=25  k=4
+  recall gap mean(pass@1 original - pass@1 twin) +0.000  95% CI [0.000, 0.000] (clustered [0.000, 0.000])   floors: no recall 0.000, random +0.007, PASS +0.000, first +0.000
+  solved: original 0/25, twin 0/25; only the original 0, only the twin 0 (both 0, neither 25); difference +0.000  95% CI [0.000, 0.000]; McNemar exact p - over 0 discordant pairs (none: the test says nothing)
+
+### ai
+PUZ  suite=rules v1 (b652e12c4452)  split=open  solver=ai-log  epoch=harness-epoch-97  puzzles=25  k=4  PILOT
+  headline mean(pass@1 - random_rate)   0.181  95% CI [0.025, 0.360] (clustered [0.012, 0.351])   floors: random 0.000, PASS -0.089, first 0.071
+  pass@1                                0.270  95% CI [0.110, 0.450]   floors: random 0.089, PASS 0.000, first 0.160
+  pass^2                                0.260  95% CI [0.100, 0.440]   floors: random 0.012, PASS 0.000, first 0.160  (if independent 0.263)
+  pass^k                                0.240  95% CI [0.080, 0.400]   floors: random 0.000, PASS 0.000, first 0.160  (if independent 0.253)
+  pass@k (any of k solves)              0.280  95% CI [0.120, 0.480]   floors: random 0.289, PASS 0.000, first 0.160  (Wilson [0.143, 0.476])
+  pass@1 clustered 95% CI [0.096, 0.444]; smallest difference two runs of this size detect: 0.352
+  normalized (random=0, Forge AI=1)      1.000   (Forge AI rate 0.270)
+  solved all                            7/25  95% CI [3, 12] Wilson [3.571, 11.894]   expected floors: random 1.48, PASS 0.00, first 4.00
+  solved tier 1                         7/7  95% CI [7, 7] Wilson [4.520, 7.000]   expected floors: random 0.55, PASS 0.00, first 1.00
+  solved tier 2                         0/17  95% CI [0, 0] Wilson [0.000, 3.134]   expected floors: random 0.83, PASS 0.00, first 2.00
+  solved tier 3                         0/1  95% CI [0, 0] Wilson [0.000, 0.793]   expected floors: random 0.10, PASS 0.00, first 1.00
+  budget: not recorded (rows from before harness-epoch-69)
+  integrity (weight 0): 0 of 100 attempts capped, 0 decided by a deck-out
+TWINS  solver=ai-log  split=open  pairs=25  k=4
+  recall gap mean(pass@1 original - pass@1 twin) +0.000  95% CI [0.000, 0.000] (clustered [0.000, 0.000])   floors: no recall 0.000, random +0.007, PASS +0.000, first +0.000
+  solved: original 7/25, twin 7/25; only the original 0, only the twin 0 (both 7, neither 18); difference +0.000  95% CI [0.000, 0.000]; McNemar exact p - over 0 discordant pairs (none: the test says nothing)
+
