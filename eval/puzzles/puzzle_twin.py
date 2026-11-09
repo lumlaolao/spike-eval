@@ -552,49 +552,82 @@ def _our_edition(text):
     return text.startswith(EDITION) and all(_EDITION_LINE.fullmatch(l) for l in text[len(EDITION):].splitlines())
 
 
+def _outside(path, root):
+    """True when `path` is a symlink or resolves outside `root`: uninstall never follows either."""
+    try:
+        return path.is_symlink() or not path.resolve().is_relative_to(root.resolve())
+    except OSError:
+        return True
+
+
 def uninstall(forge):
     """Remove what `install` wrote into <forge>: each twin script the sidecar records (only while its bytes are the
     recorded sha256), the sidecar, and the edition file (only while it has the shape install writes), then the twins
-    folder if that leaves it empty. Returns (removed paths, [(path, why)] left): a file install did not write (a
-    script with no record, a recorded script since changed, a sidecar that is not ours, another edition file) is left
-    where it is and named. Nothing installed returns ([], []), so it can run twice."""
+    folder if this call emptied it. Returns (removed paths, [(path, why)] left): a file install did not write (a
+    script with no record, a recorded script since changed or unreadable, a sidecar that is not ours, another
+    edition file) is left where it is and named; so is a twins folder or edition file that is a symlink or resolves
+    outside <forge>, which is never followed. While a recorded script is left, so are the sidecar and the edition.
+    Nothing installed returns ([], []), so it can run twice."""
     forge = Path(forge)
     folder = forge / TWINS_DIR
     removed, kept = [], []
-    sidecar = folder / INSTALLED
-    record = {}
-    if sidecar.is_file():
+
+    def drop(path, why_not=None):
         try:
-            record = json.loads(sidecar.read_text(encoding="utf-8"))
-            if not isinstance(record, dict) or not all(isinstance(h, dict) for h in record.values()):
-                raise ValueError("not {twin: {...}}")
-        except (OSError, ValueError):
-            record = {}
-            kept.append((sidecar, "not a record install wrote"))
-    ours = {script_file(t): h.get("twin_sha256") for t, h in record.items()}
-    for f in sorted(folder.glob("*.txt")) if folder.is_dir() else ():
-        if f.name not in ours:
-            kept.append((f, "install did not write it"))
-        elif _sha(f.read_bytes()) != ours[f.name]:
-            kept.append((f, "install wrote it but it has changed since"))
-        else:
-            f.unlink()
-            removed.append(f)
-    if sidecar.is_file() and not any(p == sidecar for p, _ in kept):
-        if any(p.name in ours for p, _ in kept):
-            kept.append((sidecar, "it still records the scripts left above"))
-        else:
-            sidecar.unlink()
-            removed.append(sidecar)
-    edition = forge / EDITION_FILE
-    if edition.is_file():
-        if _our_edition(edition.read_text(encoding="utf-8", errors="replace")):
-            edition.unlink()
-            removed.append(edition)
-        else:
-            kept.append((edition, "install did not write it"))
-    if folder.is_dir() and not any(folder.iterdir()):
-        folder.rmdir()
+            path.unlink()
+            removed.append(path)
+        except OSError as e:
+            kept.append((path, why_not or "cannot remove it: %s" % e))
+
+    sidecar = folder / INSTALLED
+    ours = {}
+    if _outside(folder, forge):
+        if folder.exists() or folder.is_symlink():
+            kept.append((folder, "a symlink or outside the checkout: not followed"))
+    else:
+        if sidecar.is_file():
+            try:
+                record = json.loads(sidecar.read_text(encoding="utf-8"))
+                if not isinstance(record, dict) or not all(isinstance(h, dict) for h in record.values()):
+                    raise ValueError("not {twin: {...}}")
+                ours = {script_file(t): h.get("twin_sha256") for t, h in record.items()}
+            except (OSError, ValueError):
+                kept.append((sidecar, "not a record install wrote"))
+        for f in sorted(folder.glob("*.txt")) if folder.is_dir() else ():
+            try:
+                if f.name not in ours:
+                    kept.append((f, "install did not write it"))
+                elif _sha(f.read_bytes()) != ours[f.name]:
+                    kept.append((f, "install wrote it but it has changed since"))
+                else:
+                    drop(f)
+            except OSError as e:
+                kept.append((f, "cannot read it: %s" % e))
+        left = any(p.name in ours for p, _ in kept)
+        if sidecar.is_file() and not any(p == sidecar for p, _ in kept):
+            if left:
+                kept.append((sidecar, "it still records the scripts left above"))
+            else:
+                drop(sidecar)
+        edition = forge / EDITION_FILE
+        if left or any(p == sidecar for p, _ in kept):
+            pass   # the record of what is installed stays, so does the edition that lists it
+        elif _outside(edition, forge):
+            if edition.exists() or edition.is_symlink():
+                kept.append((edition, "a symlink or outside the checkout: not followed"))
+        elif edition.is_file():
+            try:
+                if _our_edition(edition.read_text(encoding="utf-8", errors="replace")):
+                    drop(edition)
+                else:
+                    kept.append((edition, "install did not write it"))
+            except OSError as e:
+                kept.append((edition, "cannot read it: %s" % e))
+        if any(p.parent == folder for p in removed):
+            try:
+                folder.rmdir()   # only a folder this call emptied; a non-empty one raises and stays
+            except OSError:
+                pass
     return removed, kept
 
 
@@ -607,27 +640,21 @@ def manifest_file(rec, repo=REPO):
 
 def manifest_state(rec, repo=REPO):
     """(manifest, None) when the twin manifest beside a twin record's .pzl is there and usable; (None, why) when it
-    is not, and `why` says which: "no twin manifest at <path>" (absent, or the record names no folder to look in: runs/
-    is not committed) or "malformed twin manifest <path>: ..." (unreadable, not JSON, or the wrong shape). A person
-    who edited a manifest must not read as a person who never had one."""
+    is not, and `why` says which: "no twin manifest at <path>" (absent, or the record names no folder to look in:
+    runs/ is not committed) or "malformed twin manifest <path>: ..." (there but unreadable, not JSON, or the wrong
+    shape). A person who edited a manifest must not read as a person who never had one."""
     try:
         path = manifest_file(rec, repo)
-        if not path.is_file():
-            return None, "no twin manifest at %s" % path
-        manifest = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, TypeError, AttributeError):
         return None, "no twin manifest beside %r" % (rec.get("pzl"),)
-    except ValueError as e:
+    if not path.exists():
+        return None, "no twin manifest at %s" % path
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:   # there but unreadable (a directory, no permission) or not JSON
         return None, "malformed twin manifest %s: %s" % (path, e)
     why = manifest_problems(manifest)
     return (None, "malformed twin manifest %s: %s" % (path, "; ".join(why))) if why else (manifest, None)
-
-
-def find_manifest(rec, repo=REPO):
-    """The twin manifest `puzzle_twin.py make` wrote beside a twin record's .pzl (`<out>/pzl/<id>.pzl`, the manifest
-    at `<out>/twin-manifest.json`), or None when it is missing or malformed (`manifest_state` says which): every
-    caller that cannot say why treats None as unverified."""
-    return manifest_state(rec, repo)[0]
 
 
 def verify_record(rec, manifest, repo=REPO):

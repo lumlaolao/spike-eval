@@ -18,8 +18,8 @@ GUARD_VERSION = 2   # 2: content-hashed decks, every suite file, readers re-judg
 NO_DECK = "game episode has no deck: the launcher's default decks cannot be judged"
 
 
-_SPLITS = {}   # (file, mtime, size) of every suite file -> (result, twin stamp, twin records, why unverifiable): a reader
-#                judges thousands of episodes
+_SPLITS = {}   # (file, mtime, size) of every suite file -> (result, twin stamp, twin records, why unverifiable):
+#                a reader judges thousands of episodes
 
 
 def _twin_stamp(twins, repo):
@@ -50,6 +50,7 @@ def puzzle_splits(suites_dir=None, repo=None):
     key = (str(repo),) + tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size) for f in files)
     if key not in _SPLITS or _SPLITS[key][1] != _twin_stamp(_SPLITS[key][2], repo):
         out, recs, why = {}, [], {}
+        root = repo or evalpath.REPO
         for f in files:
             data = json.loads(f.read_text(encoding="utf-8"))
             recs += [r for r in (data.get("puzzles") or []) if isinstance(r, dict)] if isinstance(data, dict) else []
@@ -62,12 +63,12 @@ def puzzle_splits(suites_dir=None, repo=None):
                 splits = out.setdefault(rec["pzl_sha256"], set())
                 splits.add(rec.get("split"))
                 if puzzle_format.is_twin(rec):
-                    manifest, why_not = puzzle_twin.manifest_state(rec, repo or evalpath.REPO)
+                    manifest, why_not = puzzle_twin.manifest_state(rec, root)
                     if manifest is not None:
-                        why_not = "; ".join(puzzle_twin.verify_record(rec, manifest, repo or evalpath.REPO))
-                    originals = by_board.get(rec.get("original_pzl_sha256")) if not why_not else None
-                    if not originals and not why_not:
-                        why_not = "its original is no non-twin suite record"
+                        why_not = "; ".join(puzzle_twin.verify_record(rec, manifest, root))
+                    originals = None if why_not else by_board.get(rec.get("original_pzl_sha256"))
+                    if not originals:
+                        why_not = why_not or "its original is no non-twin suite record"
                     if why_not:
                         why[rec["pzl_sha256"]] = why_not
                     splits.update(originals or {"heldout"})
@@ -82,8 +83,6 @@ def unverifiable(digest, suites_dir=None, repo=None):
     for a board that is no twin or that verified."""
     puzzle_splits(suites_dir, repo)
     return next(iter(_SPLITS.values()))[3].get(digest)
-
-
 
 
 def puzzle_sha(path):
