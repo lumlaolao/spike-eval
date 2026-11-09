@@ -24,6 +24,15 @@ def mutants(src):
     return [ms.mutant_source(src, i) for i in range(len(ms.sites(ast.parse(src))))]
 
 
+def alive(pid):
+    """Running, not a zombie: where PID 1 does not reap, a killed child stays in the table in state Z."""
+    try:
+        with open("/proc/%d/stat" % pid) as f:
+            return f.read().rsplit(")", 1)[1].split()[0] != "Z"
+    except (FileNotFoundError, ProcessLookupError):
+        return False
+
+
 class MutantGenerationTest(unittest.TestCase):
     def test_each_operator_yields_its_mutant(self):
         got = {(s.kind, s.desc) for _, s in mutants(SRC)}
@@ -116,9 +125,7 @@ class PlantedMutantsTest(unittest.TestCase):
             self.assertLess(time.time() - t0, 20)
             pid = int(open(pidfile).read())
             for _ in range(50):   # SIGKILL is delivered at once; the poll only waits for init to reap the zombie
-                try:
-                    os.kill(pid, 0)
-                except ProcessLookupError:
+                if not alive(pid):
                     break
                 time.sleep(0.1)
             else:
@@ -146,7 +153,8 @@ class CopyTest(unittest.TestCase):
             repo = ms.Path(repo)
             for d in ms.COPY_DIRS:
                 (repo / d).mkdir()
-            (repo / "eval" / "secrets.env").write_text("OPENROUTER_API_KEY=planted")
+            for name in ("secrets.env", ".env.local", ".forge-home"):
+                (repo / "eval" / name).write_text("planted")
             for name in ("secrets.env", ".env", ".env.local", ".forge-home", "my_secret_token.txt", "FORGE_COMMIT"):
                 (repo / name).write_text("planted")
             root = ms.make_copy(parent, repo)
@@ -160,11 +168,12 @@ class CopyTest(unittest.TestCase):
 class MainRefusalTest(unittest.TestCase):
     """main() reports nothing and exits 2 when the tool or the baseline cannot be trusted."""
 
-    def run_main(self, *, self_check, run_confirmed):
+    def run_main(self, *, self_check, run_confirmed, with_test=True):
         saved = ms.self_check, ms.run_confirmed, ms.make_copy
         tiny = tempfile.mkdtemp()
         os.makedirs(os.path.join(tiny, "eval", "tests"))
-        open(os.path.join(tiny, "eval", "tests", "test_sprt.py"), "w").close()
+        if with_test:
+            open(os.path.join(tiny, "eval", "tests", "test_sprt.py"), "w").close()
         ms.self_check, ms.run_confirmed, ms.make_copy = (
             lambda parent: self_check, run_confirmed, lambda parent, repo=None: ms.Path(tiny))
         err = io.StringIO()
@@ -191,6 +200,13 @@ class MainRefusalTest(unittest.TestCase):
         self.assertIn("fails unmutated", err)
         self.assertEqual(out, "")
 
+    def test_a_module_with_no_test_file_exits_2_before_any_mutant(self):
+        calls = []
+        rc, err, out = self.run_main(self_check=[], run_confirmed=lambda *a: calls.append(a), with_test=False)
+        self.assertEqual(rc, 2)
+        self.assertIn("no test file", err)
+        self.assertEqual((calls, out), ([], ""))
+
 
 class WilsonTest(unittest.TestCase):
     def test_interval(self):
@@ -201,15 +217,37 @@ class WilsonTest(unittest.TestCase):
 
 
 class WeightedTest(unittest.TestCase):
+    @staticmethod
+    def rows(k, s, e=0):
+        return [{"status": ms.KILLED}] * k + [{"status": ms.SURVIVED}] * s + [{"status": ms.ERROR}] * e
+
     def test_a_file_counts_in_proportion_to_its_sites_not_its_sample(self):
-        rows = lambda k, s: [{"status": ms.KILLED}] * k + [{"status": ms.SURVIVED}] * s
-        results = [{"file": "a.py", "sampled": 10, "sites": 900, "rows": rows(2, 8)},
-                   {"file": "b.py", "sampled": 10, "sites": 100, "rows": rows(10, 0)}]
+        results = [{"file": "a.py", "sampled": 10, "sites": 900, "rows": self.rows(2, 8)},
+                   {"file": "b.py", "sampled": 10, "sites": 100, "rows": self.rows(10, 0)}]
         est, lo, hi = ms.weighted(results)
         self.assertAlmostEqual(est, (900 * 0.2 + 100 * 1.0) / 1000)   # the pooled sample says 12/20 = 60%
         self.assertLess(lo, est)
         self.assertGreater(hi, est)
         self.assertIn("| all (weighted by each file's sites) | 1000 |", ms.markdown(results))
+
+    def test_the_interval_is_the_stratified_normal_one_with_a_file_of_only_errors_in_the_total(self):
+        """est = sum(N_i p_i) / sum(N_i); se = sqrt(sum(N_i^2 p_i (1 - p_i) / n_i)) / sum(N_i); a file with no
+        killed or survived mutant adds its sites to the total and nothing to the sums."""
+        results = [{"file": "a.py", "sampled": 10, "sites": 900, "rows": self.rows(6, 4)},    # p = 0.6, n = 10
+                   {"file": "b.py", "sampled": 5, "sites": 100, "rows": self.rows(4, 1)},     # p = 0.8, n = 5
+                   {"file": "c.py", "sampled": 3, "sites": 50, "rows": self.rows(0, 0, 3)}]   # only errors
+        total = 900 + 100 + 50
+        est = (900 * 0.6 + 100 * 0.8) / total                                   # 620 / 1050
+        var = 900 ** 2 * 0.6 * 0.4 / 10 + 100 ** 2 * 0.8 * 0.2 / 5              # 19440 + 320
+        se = var ** 0.5 / total
+        got = ms.weighted(results)
+        self.assertAlmostEqual(got[0], est)
+        self.assertAlmostEqual(got[0], 0.590476, places=6)
+        self.assertAlmostEqual(se, 0.133876, places=6)
+        self.assertAlmostEqual(got[1], est - 1.96 * se)
+        self.assertAlmostEqual(got[2], est + 1.96 * se)
+        self.assertAlmostEqual(got[1], 0.32808, places=4)
+        self.assertAlmostEqual(got[2], 0.85287, places=4)
 
 
 if __name__ == "__main__":
