@@ -4,7 +4,7 @@ Ten converted puzzles from `eval/puzzles/rules-pilot/manifest.jsonl` (RP_002 onw
 each with its proof line, a control run of that proof, and the whole misreading written as a probe line.
 Zero-model, no network. `probes.jsonl` holds 53 rows in the shape of `../2026-11-09-pzl-probe/rp001-probes.jsonl`
 (`line`, `cli_last_line`, `build_overlay_sha`, the result row's probe fields, the first `[ROUTER]` lines) plus
-`puzzle`, `role` (`control`, `misreading`, `onestep`) and `pzl_sha256`. The other probes run while finding
+`puzzle`, `role` (`control`, `misreading`, `onestep`), `pzl_sha256` and, on misreading rows, `misreading_index`. The other probes run while finding
 the menu indices (about 140 runs, sentinel and prefix probes) are not kept: they only read a bound or a next decision.
 
 **Build:** overlay sha `edaca55afdf6`, engine `34a8662b7966`, built once with
@@ -46,18 +46,23 @@ consumed whole (no `not consumed` row is cited).
 
 No whole misreading was accepted: 10 of 10 puzzles reject their misreading, and 10 of 10 proofs are accepted
 as controls. **Every rejection comes from the misreading's own plays** (the failed acceptance lines name exactly what
-the misread play leaves undone); none is a line that stopped short or a random finish.
+the misread play leaves undone); none is a line that stopped short or a random finish. Each verdict is one line plus one seeded completion.
+
+**Selection.** The ten were chosen by reading the manifest for misreadings expressible as a different order or
+choice of the solver's own plays; none was tried and dropped. So 10 of 10 says nothing about the share of the 221
+`misread_line`s a probe can express. For RP_022 and RP_031 the proof (control) ran with `--opponent search` and
+the misreading with the default `ai` opponent; the rows do not record the opponent arm.
 
 | Puzzle | Rule (short) | Misreading line (as played) | Verdict | Judgement |
 |---|---|---|---|---|
 | RP_004 | Marked damage stays; lethal damage kills a creature that loses indestructible | `Solver:5:1 Solver:3:2 Solver:2:0 Solver:2:0` (Shock the Gargoyle, no Turn to Frog) | rejected: Gargoyle not in graveyard | good: Shock is the misreading's play; only the Gargoyle line fails |
 | RP_006 | Storm counts spells cast before it; Finale casts one at a time in your order | `Solver:3:0 Solver:5:4 Solver:2:0 Solver:2:0 Solver:3:0 Solver:2:0 Solver:2:0 Solver:2:0` (Finale, Empty the Warrens before Evermind) | rejected: 4 Goblins, not 6 | good: the four Goblins are the misreading's own count, as the manifest predicts |
 | RP_022 | Twinstrike's hellbent "destroy instead" beats the Swans' replacements | `Solver:6:0 Solver:2:0 x5 Solver:2:1 Solver:2:1 Solver:3:0` (Twinstrike first with Bears in hand, then Bears); variant `...3:2` passes instead | rejected (both): Swans not dead, hand 4 or 5 | good: the Swans prevent and draw; both the cast-Bears-after and the pass-after variants fail |
-| RP_026 | Players get priority between first-strike and regular damage | (a) `Solver:2:0 Solver:2:1 Solver:2:1 Solver:2:1` (equip Jadar in main phase, attack with both); (b) `Solver:2:1 x4 Solver:2:0 Solver:2:1` (equip after attackers, before first-strike damage) | rejected (both): opponent alive | good: both orders are the misreading's, each ends at the same state |
+| RP_026 | Players get priority between first-strike and regular damage | (a) `Solver:2:0 Solver:2:1 Solver:2:1 Solver:2:1` (equip Jadar in main phase, attack with both); (b) `Solver:2:1 x4 Solver:2:0 Solver:2:1` (equip after attackers, before first-strike damage) | rejected (both): `winner p0 (was p1)` | good: both orders are the misreading's, each ends at the same state |
 | RP_031 | A resolved spell is in the graveyard before SBA, so Pyroclasm kills the Blob | `Solver:4:1 Solver:5:3` (Shock one Bear) | rejected: one Bear left | good: the second Mountain cannot cast Pyroclasm, so the line is complete as played |
 | RP_036 | Umbra armor replaces destruction, not a sacrifice | `Solver:4:0` (Murder; three Swamps, no mana left) | rejected: Treefolk survives | good: the whole misreading is the one cast; nothing else is castable |
 | RP_048 | Fiend Hunter leaving before its trigger resolves exiles the Bears for good | `Solver:5:3 Solver:5:0 Solver:2:0 x4 Solver:4:1 Solver:3:2 Solver:3:2 Solver:2:0 Solver:3:0` (let the trigger resolve, then Compelling Deterrence on Fiend Hunter) | rejected: Bears not exiled (Fiend Hunter in hand holds) | good: the failing line is exactly the Bears returning |
-| RP_052 | A "creatures you control get +1/+0" effect misses a creature stolen later | `Solver:5:1 Solver:2:1 x3 Solver:2:0 Solver:2:0 Solver:3:0 Solver:2:1 Solver:2:1 Solver:2:1` (Preordain, then Act of Treason, attack with both) | rejected: opponent not dead | good: order is the misreading's; both creatures attack |
+| RP_052 | A "creatures you control get +1/+0" effect misses a creature stolen later | `Solver:5:1 Solver:2:1 x3 Solver:2:0 Solver:2:0 Solver:3:0 Solver:2:1 Solver:2:1 Solver:2:1` (Preordain, then Act of Treason, attack with both) | rejected: `winner p0 (was p1)` | good: order is the misreading's; both creatures attack |
 | RP_068 | Instructions run in order: the Hydra is smaller after the sacrifice | `Solver:4:0 Solver:2:0 x3 Solver:6:5 Solver:2:1 Solver:6:0 Solver:5:0` (Entish Restoration only, no Rancor, fetch 2) | rejected: 5 Forests, not 6 | good: the misreading is the omission, the fetch is played out (`2:1` does not cancel the search) |
 | RP_069 | Lethal damage keeps a creature on the battlefield until SBA after the spell | `Solver:5:0 Solver:2:1 Solver:2:1 Solver:2:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:2:1` (Flame of Anor, draw two + destroy artifact, no Flame Slash) | rejected: life 0, not 2 | good: only the life line fails; the Crawler triggers kill the solver, as the manifest says |
 
@@ -112,7 +117,8 @@ Two cautions from running them:
 
 Wall-clock per JVM: about 40 s for a search proof, about 10 to 15 s for a probe. JVM runs per puzzle (search
 proof + control + misreading + the menu-finding probes): RP_036 8, RP_006 7, RP_026 8, RP_048 11, RP_031 15,
-RP_004 20, RP_068 20, RP_022 26, RP_069 32, RP_052 44 (about 190 in all, 40 minutes of JVM time). A single
+RP_004 20, RP_068 20, RP_022 26, RP_069 32, RP_052 44 (about 190 in all, 40 minutes of JVM time). These counts
+and times are the author's tally: only the 53 rows above are kept, so they cannot be recomputed from this folder. A single
 decision menu (one spell, one target) costs 6 to 8 runs; a spell with a mana payment, scry or modes costs 4 to 6
 more draws, found one at a time. RP_052 was the worst because the payment, scry and attackers each took a binary
 draw whose meaning had to be read off the log.
