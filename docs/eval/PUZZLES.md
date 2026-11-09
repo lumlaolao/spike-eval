@@ -283,12 +283,15 @@ writes the line for you: the bound of a step is the decision's option count, whi
 prefix plus a sentinel step (`Solver:99:0`, or `98` if the game really asks 99) and reads the next decision's seat and
 bound from the drift (`draw K: line has Solver:99:0, game asked Solver:B`; K must equal the prefix's length, else the
 prefix itself drifted). With `--options` it runs one probe per value `0..B-1` (one JVM each; more than
-`--max-options`, 64, is refused) and prints, for each, the play it takes (the first `play:` line of its `jvm.log`
-`[ROUTER]` lines past the lines every value shares) and `probe_verdict`. RP_001 with prefix `""` prints
-`0 Ray of Revelation, 1 Plains, 2 Dark Depths, 3 PASS`, and after `Solver:4:0` the two-option menu `land Dark Depths`,
-`PASS`. A verdict is the prefix plus that one step plus one seeded random finish (above): a menu, not a proof. A decision
-that is not a play menu (a scry, a keep-untapped choice) shows the first `[ROUTER]` line that differs, or none. The
-build and the lock around each JVM are the caller's.
+`--max-options`, 64, is refused) and prints, for each value, the first `[ROUTER]` line of its `jvm.log` that differs
+from the other values' (the lines every value prints alike, the prefix's own plays and the menu's header, are skipped).
+When that line is a `target:` line the next `play:` line is appended (`target: ... | play: ...`), so values that differ
+only in the target stay apart; any other line (a scry, a mana choice) is shown as is, not the random finish's later
+play. `(no difference)` means the values' logs are identical. Each line ends with `probe_verdict`. RP_001 with prefix
+`""` prints `0 Ray of Revelation, 1 Plains, 2 Dark Depths, 3 PASS`, and after `Solver:4:0` the two-option menu `land
+Dark Depths`, `PASS`. A verdict is the prefix plus that one step plus one seeded random finish (above): a menu, not a
+proof. The build is the caller's. One invocation can start dozens of JVMs: hold the machine lock
+(`$HOME/.forge-agent-lock`, see the defect-hunt skill) around the whole command.
 
 ### The rules suite
 

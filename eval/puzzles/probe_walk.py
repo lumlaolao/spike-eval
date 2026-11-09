@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
-"""The menu at the end of a misreading-probe prefix (docs/eval/PUZZLES.md, "The misreading probe"). Free: no model.
+"""The menu at the end of a misreading-probe prefix. Free: no model. Reading the output: docs/eval/PUZZLES.md, "The
+misreading probe".
 
   python3 eval/puzzles/probe_walk.py --build DIR --pzl P.pzl --prefix "Solver:4:0" [--options] [--opponent search]
 
-A probe line is "Seat:bound:value ..." and the bound of a step is the number of options at that decision, which is
-not written anywhere until the game is run. This runs the prefix followed by a sentinel step the game cannot match
-(`Solver:99:0`), and reads the next decision's seat and bound from the drift the probe reports ("draw K: line has
-Solver:99:0, game asked Solver:B"). With --options it then runs the prefix plus each value 0..B-1 as its own probe
-and prints, for each, the play it takes (the first [ROUTER] line of its jvm.log that differs from the other values')
-and the probe verdict (puzzle_baselines.probe_verdict). One JVM per probe, run through puzzle_baselines.run_arm
-and probe_env; the build and the lock around a JVM are the caller's (this never compiles).
-
-The verdict of a value is for the prefix plus that one step plus ONE seeded random completion: a menu, not a proof.
+One invocation can start dozens of JVMs: hold the machine lock ($HOME/.forge-agent-lock, see the defect-hunt skill)
+around the whole command. The build is the caller's; this never compiles.
 """
 
 import argparse
@@ -39,13 +33,15 @@ def join(prefix, *steps):
     return " ".join(prefix.split() + list(steps))
 
 
-def next_decision(row, n_prefix, sentinel):
+def next_decision(row, n_prefix):
     """(seat, bound) of the first decision after the prefix, from the sentinel probe's row; None when the sentinel
-    was matched (the game really asked for that many options)."""
+    was matched (the game really asked for that many options). The drift is read first: probeRun records it before
+    the random completion, which can still hit the draw cap or the wall clock, so a stopped row with a drift has
+    a menu; one without a usable drift is refused."""
     if not row:
         raise WalkError("the sentinel probe wrote no result row")
-    if row.get("probe_stopped") or row.get("status") == "invalid":
-        raise WalkError("the sentinel probe was ended by the draw cap or the wall clock: " + pb.probe_verdict(row))
+    if row.get("kind") != "probe":
+        raise WalkError("the sentinel run wrote a %r row, not a probe row" % row.get("kind"))
     drift = row.get("search_drift") or ""
     m = DRIFT.match(drift)
     if m:
@@ -53,6 +49,9 @@ def next_decision(row, n_prefix, sentinel):
         if at != n_prefix:
             raise WalkError("the prefix itself drifted at step %d of %d: %s" % (at, n_prefix, drift))
         return m.group(2), int(m.group(3))
+    if row.get("probe_stopped") or row.get("status") == "invalid":
+        raise WalkError("the sentinel probe was ended by the draw cap or the wall clock before the sentinel "
+                        "step: " + pb.probe_verdict(row))
     m = NOT_CONSUMED.match(drift)
     if m:
         got = int(m.group(1))
@@ -73,15 +72,28 @@ def router_lines(out_dir):
 
 
 def first_new(runs):
-    """For each run's router lines, the play it takes: the first "play: ..." line past the lines every run shares (the
-    prefix's own plays and the menu's header, which all values print alike), else the first line past them (a cast
-    prints its "target:" line before its "play: casts"). None for a run with no line past them, and for every run
-    when the values are all the same play or only one ran."""
+    """For each run's router lines, the first line that differs from the other runs' (r[shared]): the prefix's own
+    plays and the menu's header are skipped because every run prints them alike. When that line is a "target:" line
+    the next "play:" line after it is appended ("target: ... | play: ..."), so two values that differ only in the
+    target still differ on screen. Any other line is shown as is, so a draw that is not a play (mana, scry) shows
+    its own line and not the random completion's later play. None for a run with no line past the shared ones;
+    "(no difference)" for every run when the logs are identical (or only one ran)."""
     shared = 0
     while all(len(r) > shared for r in runs) and len({r[shared] for r in runs}) == 1:
         shared += 1
-    return [next((l for l in r[shared:] if l.startswith("play: ")), r[shared]) if len(r) > shared else None
-            for r in runs]
+    if all(len(r) == shared for r in runs):
+        return ["(no difference)"] * len(runs)
+    out = []
+    for r in runs:
+        if len(r) <= shared:
+            out.append(None)
+            continue
+        line = r[shared]
+        if line.startswith("target:"):
+            play = next((l for l in r[shared + 1:] if l.startswith("play: ")), None)
+            line = "%s | %s" % (line, play) if play else line
+        out.append(line)
+    return out
 
 
 def walk(build, pzl, prefix, opponent="ai", seed=1, completion_seed=0, out_dir=None, options=False,
@@ -101,13 +113,14 @@ def walk(build, pzl, prefix, opponent="ai", seed=1, completion_seed=0, out_dir=N
 
     for sentinel in SENTINEL_BOUNDS:
         row, _ = probe(join(prefix, "Solver:%d:0" % sentinel), "sentinel")
-        found = next_decision(row, n_prefix, sentinel)
+        found = next_decision(row, n_prefix)
         if found:
             break
     else:
         raise WalkError("the game asks for both %s options at once: not a menu this can read" % (SENTINEL_BOUNDS,))
     seat, bound = found
-    say("%s prefix %r: next decision %s:%d (%d options)" % (Path(pzl).stem, prefix, seat, bound, bound))
+    say("%s prefix %r (seed %s, completion seed %s, opponent %s): next decision %s:%d (%d options)"
+        % (Path(pzl).stem, prefix, seed, completion_seed, opponent, seat, bound, bound))
     if not options:
         return seat, bound, []
     if bound > max_options:
@@ -139,14 +152,11 @@ def main(argv=None):
     ap.add_argument("--out-dir", default=None, help="one subdirectory per probe (default runs/puzzles/walk/<puzzle>)")
     a = ap.parse_args(argv)
     pzl = Path(a.pzl).resolve()
-    if not re.search(r"^\s*\[acceptance\]\s*$", pzl.read_text(encoding="utf-8"), re.I | re.M):
-        raise SystemExit("%s has no [acceptance] section: a probe has nothing to read its final state against" % pzl)
-    if a.prefix.strip():
-        pb.check_probe_line(a.prefix)
+    pb.require_acceptance_section(pzl)
     build = pb.Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     try:
         walk(build, pzl, a.prefix, a.opponent, a.seed, a.completion_seed, a.out_dir, a.options, a.max_options)
-    except WalkError as e:
+    except (WalkError, RuntimeError) as e:
         print("probe_walk: %s" % e, file=sys.stderr)
         return 1
     return 0
