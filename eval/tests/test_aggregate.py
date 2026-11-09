@@ -721,6 +721,108 @@ def test_the_gates_leave_out_a_cut_log_games_fallbacks():
           == [True, True, True, False, False])
 
 
+# -------------------------------------------- pins found by mutation testing
+# (eval/research/2026-11-08-scorer-mutation.md): each fails on the mutant named in its comment.
+
+def _cli(args):
+    import subprocess
+    return subprocess.run([sys.executable, str(evalpath.EVAL / "aggregate.py")] + args, capture_output=True, text=True)
+
+
+def _fallback_block(d, n_fallback, n_clean=10 - 5):
+    g = game_line(1, False, "A")
+    g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
+    lines = [g]
+    lines += [{"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "play", "fallback": None}
+              for _ in range(n_clean)]
+    lines += [{"t": "decision", "seat": "Identity-A", "tier": "auto", "type": "play", "fallback": "cli-timeout"}
+              for _ in range(n_fallback)]
+    write_jsonl(d, "game-1-1000.jsonl", lines)
+
+
+def test_a_fallback_rate_exactly_at_the_ceiling_passes():
+    # `rate > max_rate` -> `>=` failed a block sitting on the ceiling
+    with tempfile.TemporaryDirectory() as d:
+        _fallback_block(d, 5)
+        fg = aggregate.build_summary(Path(d), 50, 1, max_fallback_rate=0.5)["fallback_gate"]
+        check("5 of 10 against a 0.5 ceiling passes", fg["failed"] is False and approx(fg["fallback_rate"], 0.5), str(fg))
+        fg = aggregate.build_summary(Path(d), 50, 1, max_fallback_rate=0.49)["fallback_gate"]
+        check("5 of 10 against a 0.49 ceiling fails", fg["failed"] is True, str(fg))
+
+
+def test_the_command_exits_2_on_the_fallback_gate_and_0_below_it():
+    # the `if fg["failed"]` guards and their exit codes had no test
+    with tempfile.TemporaryDirectory() as d:
+        _fallback_block(d, 5)
+        bad = _cli([d, "--resamples", "20", "--max-fallback-rate", "0.1"])
+        check("fallback gate exits 2 and says so", bad.returncode == 2 and "FAILED FALLBACK GATE" in bad.stderr,
+              "%s %s" % (bad.returncode, bad.stderr[-200:]))
+        ok = _cli([d, "--resamples", "20", "--max-fallback-rate", "0.9"])
+        check("under the ceiling exits 0", ok.returncode == 0 and "FAILED" not in ok.stderr, str(ok.returncode))
+
+
+def test_the_command_exits_4_on_the_harness_decided_gate():
+    with tempfile.TemporaryDirectory() as d:
+        g = game_line(3, False, "A")
+        g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
+        lines = [g] + [{"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "play", "fallback": None}
+                       for _ in range(96)]
+        lines += [{"t": "decision", "seat": "Identity-A", "tier": "auto", "type": "play",
+                   "fallback": "play(turn-cap)->PASS"} for _ in range(4)]    # 4 of 100 over the 2% ceiling
+        write_jsonl(d, "game-3-1000.jsonl", lines)
+        r = _cli([d, "--resamples", "20", "--max-fallback-rate", "0.9"])
+        check("harness-decided gate exits 4", r.returncode == 4 and "FAILED HARNESS-DECIDED GATE" in r.stderr,
+              "%s %s" % (r.returncode, r.stderr[-200:]))
+
+
+def test_the_command_exits_6_when_a_sanity_arm_is_missing():
+    # `if sanity is not None and sanity["missing"]` and the sanity guard: a block with no arms is not a clean one
+    with tempfile.TemporaryDirectory() as d:
+        _fallback_block(d, 0)
+        r = _cli([d, "--resamples", "20", "--sanity-arms"])
+        check("a missing sanity arm exits 6", r.returncode == 6, "%s %s" % (r.returncode, r.stderr[-200:]))
+        check("without --sanity-arms the same block exits 0", _cli([d, "--resamples", "20"]).returncode == 0)
+
+
+def test_a_fallback_on_a_smart_or_fast_tier_counts_toward_the_gate():
+    # `elif tier in ("smart", "fast") and fallback is not None: numer += 1` -> `+= 0`: only the auto tier was pinned
+    for tier in ("smart", "fast"):
+        with tempfile.TemporaryDirectory() as d:
+            g = game_line(1, False, "A")
+            g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
+            lines = [g] + [{"t": "decision", "seat": "Identity-A", "tier": tier, "type": "play", "fallback": fb}
+                           for fb in [None] * 6 + ["parse-error"] * 4]
+            write_jsonl(d, "game-1-1000.jsonl", lines)
+            fg = aggregate.build_summary(Path(d), 50, 1, max_fallback_rate=0.1)["fallback_gate"]
+            check("%s-tier fallbacks are counted: 4 of 10" % tier, approx(fg["fallback_rate"], 0.4) and fg["failed"], str(fg))
+
+
+def test_a_rerun_is_the_same_outcome_only_when_winner_and_turns_both_match():
+    # `and` -> `or` called a different game length the same outcome (the report hides a conflict from it)
+    cond = {f: "x" for f in aggregate.CONDITION_FIELDS}
+
+    def dup(first, second):
+        a = dict(game_line(2, False, first[0]), turns=first[1], _file="old")
+        b = dict(game_line(2, False, second[0]), turns=second[1], _file="new")
+        return aggregate._make_experiment([a, b], cond)["duplicates"][0]
+
+    check("same winner, same turns is the same outcome", dup(("A", 9), ("A", 9))["same_outcome"] is True)
+    check("same winner, other turns is not", dup(("A", 9), ("A", 12))["same_outcome"] is False)
+    check("other winner, same turns is not, and conflicts", dup(("A", 9), ("B", 9))["same_outcome"] is False
+          and dup(("A", 9), ("B", 9))["conflicting"] is True)
+
+
+def test_one_experiment_is_labelled_single_condition():
+    # `len(experiments) <= 1` -> `<= 0` labelled it with an empty string
+    e = {"id": "e1", "condition": {f: "x" for f in aggregate.CONDITION_FIELDS}}
+    check("a lone experiment reads (single condition)",
+          aggregate.experiment_labels([e]) == {"e1": "(single condition)"})
+    e2 = {"id": "e2", "condition": dict(e["condition"], **{aggregate.CONDITION_FIELDS[0]: "y"})}
+    labels = aggregate.experiment_labels([e, e2])
+    check("two experiments are named by the field that differs",
+          aggregate.CONDITION_FIELDS[0] + "=y" in labels["e2"] and labels["e1"] != labels["e2"], str(labels))
+
+
 def main():
     test_wilson()
     test_p90()
@@ -746,6 +848,13 @@ def main():
     test_model_identity_legacy_not_gated()
     test_model_identity_vacuous_without_llm_arm()
     test_mixed_checkpoint_is_mixed_provenance()
+    test_a_fallback_rate_exactly_at_the_ceiling_passes()
+    test_the_command_exits_2_on_the_fallback_gate_and_0_below_it()
+    test_the_command_exits_4_on_the_harness_decided_gate()
+    test_the_command_exits_6_when_a_sanity_arm_is_missing()
+    test_a_fallback_on_a_smart_or_fast_tier_counts_toward_the_gate()
+    test_a_rerun_is_the_same_outcome_only_when_winner_and_turns_both_match()
+    test_one_experiment_is_labelled_single_condition()
     print()
     if FAILURES:
         print("FAILED: %d check(s): %s" % (len(FAILURES), ", ".join(FAILURES)))

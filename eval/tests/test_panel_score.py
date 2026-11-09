@@ -360,5 +360,63 @@ class TestCrossPanel(unittest.TestCase):
             self.assertFalse(r["valid"])
 
 
+class TestScorerArithmetic(unittest.TestCase):
+    """Pins found by mutation testing (eval/research/2026-11-08-scorer-mutation.md): each fails on the mutant named."""
+
+    def test_the_strict_cluster_score_weighs_a_win_one_a_draw_half_and_a_loss_zero(self):
+        # 0.0 -> 1 (a loss worth a point) survived: only the decisive score was pinned
+        self.assertAlmostEqual(ps._cluster_score([["A", "draw", "B", "B"]], "strict"), 1.5 / 4)
+        self.assertAlmostEqual(ps._cluster_score([["A", "draw", "B", "B"]], "decisive"), 1 / 3)
+        self.assertIsNone(ps._cluster_score([["draw"]], "decisive"))
+
+    def test_a_pool_of_cells_with_no_score_or_no_games_has_no_score(self):
+        # `if not pts: return ...` -> pass: a divide by zero instead of an empty pool
+        for pts in ([], [(None, 8)], [(0.5, 0)]):
+            self.assertEqual(ps.stratified(pts), {"score": None, "ci95": None, "se": None, "n_cells": 0})
+
+    def test_a_cell_that_played_other_seeds_names_at_most_eight_of_them(self):
+        # `stray[:8]` -> `[:9]`
+        with tempfile.TemporaryDirectory() as tmp:
+            panel_run(tmp, "mirror", sanity=ZERO_ARMS)
+            write_block(Path(tmp) / "burn", DOC["deck_pool"][1]["sha12"], {7900 + i: ("A", "A") for i in range(12)})
+            r = ps.score_panel(tmp, "mirror", PANELS, resamples=20)
+            msg = [p for p in r["problems"] if "outside the panel's list" in p]
+            self.assertEqual(len(msg), 1)
+            self.assertIn("7907]", msg[0])
+            self.assertNotIn("7908", msg[0])
+
+    def test_str_norm_is_undefined_unless_the_ai_anchor_beats_the_random_anchor(self):
+        # wr_ai - wr_random <= 0 as a sum survived: an AI mirror below the random arm must not give a number
+        self.assertIsNone(ps.str_norm(0.5, 0.6, 0.5))
+        self.assertIsNone(ps.str_norm(0.5, 0.5, 0.5))
+        self.assertAlmostEqual(ps.str_norm(0.5, 0.2, 0.6), 0.75)
+
+    def test_str_norm_needs_a_random_arm_in_every_cell_not_in_one(self):
+        # `all(...) and randoms` -> `or` survived: one random arm used to stand for the panel
+        with tempfile.TemporaryDirectory() as tmp:
+            panel_run(tmp, "mirror", sanity=ZERO_ARMS)
+            arm = sanity_arms.arm_dir(Path(tmp) / "burn", "random")
+            for f in arm.iterdir():
+                f.unlink()
+            arm.rmdir()
+            r = ps.score_panel(tmp, "mirror", PANELS, resamples=20)
+            self.assertIsNone(r["anchors"]["wr_random"])
+            self.assertIsNone(r["anchors"]["str_norm"])
+
+    def test_the_margin_interval_is_the_laplace_smoothed_variance_of_both_arms(self):
+        # (p*n + .5)/(n + 1), mean -/+ Z*se, and the bootstrap's model - control each survived as a mutant
+        with tempfile.TemporaryDirectory() as tmp:
+            panel_run(tmp, "cross", default_wins=6, control_wins=2, sanity=ZERO_ARMS)
+            r = ps.score_panel(tmp, "cross", PANELS, resamples=60)
+            m, cells = r["margin"], r["margin"]["n_cells"]
+            pm, pc = (6 + 0.5) / 9, (2 + 0.5) / 9
+            se = math.sqrt(cells * (pm * (1 - pm) / 8 + pc * (1 - pc) / 8)) / cells
+            self.assertAlmostEqual(m["se"], se)
+            self.assertAlmostEqual(m["ci95"][0], 0.5 - ps.Z * se)
+            self.assertAlmostEqual(m["ci95"][1], 0.5 + ps.Z * se)
+            lo, hi = m["ci95_bootstrap"]   # a model - control margin of 0.5, not the sum (1.0)
+            self.assertTrue(0.3 < lo <= 0.5 <= hi < 0.7, m["ci95_bootstrap"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

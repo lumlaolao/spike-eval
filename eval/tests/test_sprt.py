@@ -220,6 +220,46 @@ def test_cli_los():
     check("cli los rejects negative counts with exit 1", r.returncode == 1, r.stderr)
 
 
+# ------------------------------------------------- pins found by mutation testing
+# (eval/research/2026-11-08-scorer-mutation.md): each fails on the mutant named in its comment.
+
+def test_zero_counts_and_edge_scores_are_valid_input():
+    # `n0 < 0` -> `n0 <= 0` (and `< 1`) rejected a pair count of zero, which is data, not an error
+    for counts in [(0, 3, 2), (2, 0, 3), (2, 3, 0)]:
+        try:
+            sprt.pent_gsprt(*counts)
+            check("pent_gsprt accepts counts %r" % (counts,), True)
+        except ValueError as e:
+            check("pent_gsprt accepts counts %r" % (counts,), False, str(e))
+    # `0.0 <= s0 <= 1.0` -> `0.0 < s0`: the end points of the score range are valid
+    try:
+        sprt.pent_gsprt(n0=1, n_half=2, n1=1, s0=0.0, s1=1.0)
+        sprt.pent_gsprt(n0=1, n_half=2, n1=1, s0=1.0, s1=0.0)
+        check("pent_gsprt accepts s0=0, s1=1 and the reverse", True)
+    except ValueError as e:
+        check("pent_gsprt accepts s0=0, s1=1", False, str(e))
+
+
+def test_error_names_the_bad_input_not_a_math_domain_error():
+    # `0 < beta` -> `0 <= beta` (and `< 1` -> `<= 1`) still raised, from math, with the wrong type or message
+    for kw, word in [(dict(alpha=0.05, beta=0.0), "beta"), (dict(alpha=0.0, beta=0.05), "alpha"),
+                     (dict(alpha=0.05, beta=1.0), "beta"), (dict(alpha=1.0, beta=0.05), "alpha")]:
+        try:
+            sprt.sprt_bounds(**kw)
+            check("sprt_bounds rejects %r" % (kw,), False)
+        except ValueError as e:
+            check("sprt_bounds rejects %r naming %s" % (kw, word), ("%s must be in (0, 1)" % word) in str(e), str(e))
+
+
+def test_cli_required_arguments_exit_2():
+    # required=True -> False turned a usage error (exit 2) into a TypeError traceback (exit 1)
+    for args in [("binom", "--wins", "1", "--losses", "1", "--p1", "0.5"),
+                 ("pent", "--nhalf", "1", "--n1", "1"),
+                 ("los", "--wins", "1")]:
+        r = run_cli(*args)
+        check("cli %s without a required argument exits 2" % args[0], r.returncode == 2, str(r.returncode))
+
+
 # --------------------------------------------------------------------- run
 
 def main():

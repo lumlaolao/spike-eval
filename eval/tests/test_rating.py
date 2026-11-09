@@ -85,6 +85,37 @@ class TestPartition(unittest.TestCase):
         self.assertIn("dev_lane", rating.ENV_FIELDS)
 
 
+class TestMutationPins(unittest.TestCase):
+    """Pins found by mutation testing (eval/research/2026-11-08-scorer-mutation.md); each names the mutant it kills."""
+
+    def test_log1pexp_is_the_stable_softplus_on_both_sides(self):
+        for x in (-3.0, -0.5, 0.5, 2.0, 30.0):
+            self.assertAlmostEqual(rating._log1pexp(x), math.log(1 + math.exp(x)), places=9)   # Add -> Sub broke x > 0
+        self.assertAlmostEqual(rating._log1pexp(800.0), 800.0)      # no overflow
+        self.assertAlmostEqual(rating._log1pexp(-800.0), 0.0)
+
+    def test_goodness_of_fit_predicts_from_the_rating_gap_and_the_first_player_term(self):
+        # ratings[pa] - ratings[pb] + h*s: the three signs each survived as a mutant
+        ratings, h = {"A": 1.0, "B": 0.0}, 0.3
+        recs = ([("A", "B", 1, 1, "x", None)] * 5 + [("A", "B", 1, 0, "x", None)] * 2
+                + [("B", "A", 1, 1, "x", None)] * 1 + [("B", "A", 1, 0, "x", None)] * 2)
+        p_ab, p_ba = rating._sigmoid(1.3), rating._sigmoid(-1.0 + 0.3)
+        exp = 7 * p_ab + 3 * (1 - p_ba)           # expected wins of A (the sorted-first player)
+        var = 7 * p_ab * (1 - p_ab) + 3 * p_ba * (1 - p_ba)
+        obs = 5 + 2                               # A wins as seat A (5), A wins as seat B when B loses (2)
+        row = rating.goodness_of_fit(recs, ratings, h)["pairs"][0]
+        self.assertEqual(row["pair"], ["A", "B"])
+        self.assertEqual(row["observed_wins"], obs)
+        self.assertAlmostEqual(row["predicted_wins"], exp, places=3)
+        self.assertAlmostEqual(row["z"], (obs - exp) / math.sqrt(var), places=3)    # var += p*(1-p), not p*(1+p)
+
+    def test_goodness_of_fit_adds_the_fitted_matchup_term(self):
+        # the last `+ matchup_value(...)` -> `-`: invisible while every record is a mirror
+        rec = [("A", "B", 0, 1, "x", (("d1", "d2"), 1))]
+        row = rating.goodness_of_fit(rec, {"A": 1.0, "B": 0.0}, 0.0, matchups={("d1", "d2"): 0.4})["pairs"][0]
+        self.assertAlmostEqual(row["predicted_wins"], rating._sigmoid(1.4), places=3)
+
+
 class TestFit(unittest.TestCase):
     def test_a_known_gap_to_the_anchor_is_recovered(self):
         games = simulate([("llm:" + LLM, "ai", 200, 1500)])
