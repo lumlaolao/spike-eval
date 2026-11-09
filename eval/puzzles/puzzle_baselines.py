@@ -817,11 +817,16 @@ def probe_verdict(row):
     return "no acceptance state read (%s)" % (row.get("acceptance") or "none")
 
 
+def require_acceptance_section(pzl):
+    """Exits unless the .pzl has an [acceptance] section: a probe has nothing to read its final state against."""
+    if not re.search(r"^\s*\[acceptance\]\s*$", Path(pzl).read_text(encoding="utf-8"), re.I | re.M):
+        raise SystemExit("%s has no [acceptance] section: a probe has nothing to read its final state against" % pzl)
+
+
 def cmd_probe(a):
     line = check_probe_line(a.line)
     pzl = Path(a.pzl).resolve()
-    if not re.search(r"^\s*\[acceptance\]\s*$", pzl.read_text(encoding="utf-8"), re.I | re.M):
-        raise SystemExit("%s has no [acceptance] section: a probe has nothing to read its final state against" % pzl)
+    require_acceptance_section(pzl)
     out = Path(a.out_dir or REPO / "runs/puzzles/probes" / pzl.stem)
     build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
     rows = run_arm(build, pzl, "search", str(a.seed), out, probe_env(line, a.completion_seed, a.opponent))
