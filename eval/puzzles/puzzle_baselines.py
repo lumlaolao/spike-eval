@@ -835,6 +835,7 @@ def cmd_probe(a):
     require_acceptance_section(pzl)
     out = Path(a.out_dir or REPO / "runs/puzzles/probes" / pzl.stem)
     build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
+    puzzle_twin.refuse_uninstalled(puzzle_twin.board_records(pzl), getattr(build, "forge", None))
     rows = run_arm(build, pzl, "search", str(a.seed), out, probe_env(line, a.completion_seed, a.opponent))
     verdict = probe_verdict(rows[-1] if rows else None)
     print("%-24s seed %-4s probe %s: %s" % (pzl.stem, a.seed, line, verdict), flush=True)

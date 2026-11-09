@@ -564,6 +564,152 @@ class TwinSuiteTest(unittest.TestCase):
             self.assertIn("not installed", str(cm.exception))
             self.assertEqual(played, [], "no game was started")
 
+    def absolute_suite(self, tmp, repo, rec, name="twins.json"):
+        """A suite file whose twin record names its board by absolute path, so the CLI (which reads the repository's
+        default root) finds the board and the manifest beside it."""
+        rec = dict(rec, pzl=str(repo / rec["pzl"]))
+        path = repo / "runs/twins/t" / tw.MANIFEST
+        m = json.loads(path.read_text())
+        for t in m["puzzles"]:
+            t["original_pzl"] = str(repo / t["original_pzl"])
+        path.write_text(json.dumps(m))
+        sfile = Path(tmp) / name
+        sfile.write_text(json.dumps(pf.candidate_suite("t", "1", "e", [rec])))
+        return sfile, rec
+
+    def test_twin_cards_that_are_not_the_manifests_scripts_for_the_board_are_refused(self):
+        # Kills: delete the `rec.get("twin_cards") != scripts` check in verify_record -> a record that stamps another
+        # script (or one more or fewer) than the manifest made verifies, and so reads open in eval_only.
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            self.assertEqual(tw.verify_record(rec, manifest, repo), [])
+            name = sorted(rec["twin_cards"])[0]
+            other = dict(rec["twin_cards"])
+            variants = {"another script": dict(other, **{name: "0" * 64}),
+                        "a card dropped": {k: v for k, v in other.items() if k != name},
+                        "a card added": dict(other, **{"Invented Extra": "1" * 64})}
+            for label, cards in variants.items():
+                forged = dict(rec, twin_cards=cards, twin_set_sha256=pf.twin_set_sha(cards))   # internally consistent
+                self.assertEqual(pf.twin_problems(forged), [], label + ": the declaration alone is consistent")
+                why = tw.verify_record(forged, manifest, repo)
+                self.assertTrue(any("twin_cards are not the manifest's scripts" in w for w in why), (label, why))
+                self.assertTrue(pf.validate_puzzle(forged, repo=repo), label + ": validate_puzzle refuses it too")
+
+    def test_the_verify_command_exits_nonzero_on_a_twin_it_cannot_verify(self):
+        # Kills: `return 1 if bad else 0` -> `return 0` (an edited board or a missing manifest exits 0); and
+        # dropping the missing-manifest branch (a twin with no manifest prints ok or crashes).
+        import contextlib
+        import io
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            sfile, rec = self.absolute_suite(tmp, repo, rec)
+
+            def verify():
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    return tw.main(["verify", "--suite", str(sfile)]), buf.getvalue()
+            code, text = verify()
+            self.assertEqual((code, text), (0, "ok %s\n" % rec["id"]))
+            board = Path(rec["pzl"])
+            good = board.read_text(encoding="utf-8")
+            board.write_text(good.replace("p1life=3", "p1life=4"), encoding="utf-8")
+            sfile.write_text(json.dumps(pf.candidate_suite("t", "1", "e", [dict(rec, pzl_sha256=pf.sha256_file(board))])))
+            code, text = verify()
+            self.assertEqual(code, 1)
+            self.assertIn("REFUSED", text)
+            board.write_text(good, encoding="utf-8")
+            sfile.write_text(json.dumps(pf.candidate_suite("t", "1", "e", [rec])))
+            (out / tw.MANIFEST).unlink()
+            code, text = verify()
+            self.assertEqual(code, 1)
+            self.assertIn("no usable twin manifest beside its .pzl", text)
+            sfile.write_text(json.dumps(pf.candidate_suite("t", "1", "e", [])))
+            self.assertEqual(verify(), (0, ""), "a suite with no twin has nothing to refuse")
+
+    def test_a_malformed_manifest_is_refused_with_a_message_not_a_traceback(self):
+        # Kills: drop manifest_problems/load_manifest -> a manifest that is a list, has a card without its keys, or
+        # is not JSON raises KeyError/AttributeError/JSONDecodeError out of install, suite and verify_record.
+        import contextlib
+        import io
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            sfile, arec = self.absolute_suite(tmp, repo, rec)
+            good = json.loads((out / tw.MANIFEST).read_text())
+            target = evalpath.REPO / "runs" / ("twin-malformed-test-%d.json" % os.getpid())
+            self.addCleanup(lambda: target.unlink() if target.exists() else None)
+
+            def with_(**kw):
+                return dict(good, **kw)
+            bad = {"a list": [],
+                   "cards not a list": with_(cards={"x": 1}),
+                   "a card that is a string": with_(cards=["x"]),
+                   "a card without a twin": with_(cards=[{k: v for k, v in good["cards"][0].items() if k != "twin"}]),
+                   "a puzzle without twin_id": with_(puzzles=[{k: v for k, v in good["puzzles"][0].items()
+                                                              if k != "twin_id"}]),
+                   "puzzle cards not a list": with_(puzzles=[dict(good["puzzles"][0], cards="Glimmer Rite")]),
+                   # pr-review of #454: an object in a puzzle's cards hashed into a dict -> TypeError, not a refusal
+                   "a puzzle card that is an object": with_(puzzles=[dict(good["puzzles"][0], cards=[{"a": 1}])]),
+                   "a hash that is a number": with_(puzzles=[dict(good["puzzles"][0], original_pzl_sha256=7)])}
+            for label, m in bad.items():
+                self.assertTrue(tw.verify_record(rec, m, repo), label)   # a refusal, not an exception
+                with self.assertRaises(tw.TwinRefused, msg=label):
+                    tw.install(m, forge)
+                with self.assertRaises(tw.TwinRefused, msg=label):
+                    tw.twin_records(m, suite, out / tw.MANIFEST, repo)
+                (out / tw.MANIFEST).write_text(json.dumps(m))
+                self.assertIsNone(tw.find_manifest(rec, repo), label)
+                err = io.StringIO()
+                with contextlib.redirect_stderr(err):
+                    self.assertEqual(tw.main(["install", "--manifest", str(out / tw.MANIFEST), "--forge", str(forge)]),
+                                     1, label)
+                    self.assertEqual(tw.main(["suite", "--manifest", str(out / tw.MANIFEST), "--suite", str(sfile),
+                                              "--out", str(target)]), 1, label)
+                self.assertIn("malformed twin manifest", err.getvalue())
+            (out / tw.MANIFEST).write_text("{not json")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                self.assertEqual(tw.main(["install", "--manifest", str(out / tw.MANIFEST), "--forge", str(forge)]), 1)
+            self.assertIn("cannot read the twin manifest", err.getvalue())
+            self.assertIsNone(tw.find_manifest(rec, repo))
+
+    def test_a_probe_of_a_twin_board_stops_before_any_game_when_its_scripts_are_not_installed(self):
+        # Kills: delete the refuse_uninstalled call in cmd_probe -> run_arm (the JVM) is reached for a twin board whose
+        # scripts are missing, and the probe reads "rejected" about a board the engine cannot load.
+        import argparse
+        import puzzle_baselines as pb
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            board = out / manifest["puzzles"][0]["pzl"]
+            board.write_text(board.read_text(encoding="utf-8") + "\n[acceptance]\nzone p0 Exile Ember == 1\n")
+            argv = ["probe", "--pzl", str(board), "--line", "Solver:2:1", "--out-dir", str(Path(tmp) / "o")]
+            row = {"status": "ok", "acceptance": "rejected"}
+            with mock.patch.object(pb, "Build", return_value=argparse.Namespace(forge=forge)), \
+                    mock.patch.object(pb, "run_arm", return_value=[row]) as run:
+                with self.assertRaises(SystemExit) as cm:
+                    pb.main(argv)
+                self.assertIn("not installed", str(cm.exception))
+                run.assert_not_called()
+                tw.install(manifest, forge)
+                pb.main(argv)
+                run.assert_called_once()
+                # a bare board that no manifest names is not a twin: nothing to check, the probe runs
+                run.reset_mock()
+                bare = Path(tmp) / "bare.pzl"
+                bare.write_text(board.read_text(encoding="utf-8"), encoding="utf-8")
+                pb.main(["probe", "--pzl", str(bare), "--line", "Solver:2:1", "--out-dir", str(Path(tmp) / "o")])
+                run.assert_called_once()
+                # a manifest beside the board that cannot be read refuses rather than guess
+                run.reset_mock()
+                (out / tw.MANIFEST).write_text("[]")
+                with self.assertRaises(SystemExit) as cm:
+                    pb.main(argv)
+                self.assertIn("twin manifest", str(cm.exception))
+                run.assert_not_called()
+
     def install_sh(self, tmp, env):
         """install.sh in a copy of its folder with a stub overlay and engine patcher, the real puzzle_twin.py."""
         import shutil

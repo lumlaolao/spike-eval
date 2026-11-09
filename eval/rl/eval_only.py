@@ -18,7 +18,22 @@ GUARD_VERSION = 2   # 2: content-hashed decks, every suite file, readers re-judg
 NO_DECK = "game episode has no deck: the launcher's default decks cannot be judged"
 
 
-_SPLITS = {}   # (file, mtime, size) of every suite file -> the result: a reader judges thousands of episodes
+_SPLITS = {}   # (file, mtime, size) of every suite file -> (result, manifest stamp, twin records): a reader judges
+#                thousands of episodes
+
+
+def _manifest_stamp(twins, repo):
+    """(path, mtime, size) of the twin manifest of each twin record, None for one that is not there: the verdict on a
+    twin rests on its manifest, so the cache key moves when a manifest does, as it does when a suite file does."""
+    stamp = []
+    for rec in twins:
+        try:
+            path = puzzle_twin.manifest_file(rec, repo or evalpath.REPO)
+            st = path.stat()
+            stamp.append((str(path), st.st_mtime_ns, st.st_size))
+        except (OSError, TypeError):   # no manifest (or a .pzl path with no folder to look in): stamped as absent
+            stamp.append((str(rec.get("pzl")), None, None))
+    return tuple(stamp)
 
 
 def puzzle_splits(suites_dir=None, repo=None):
@@ -27,10 +42,12 @@ def puzzle_splits(suites_dir=None, repo=None):
     pzl_sha256 is its `original_pzl_sha256`, but only once `puzzle_twin.verify_record` has shown that the twin's
     .pzl is that original renamed by its manifest. Neither `twin_of` nor `original_pzl_sha256` is trusted as
     declared. A twin it cannot verify (no manifest beside its .pzl, or an edited board) reads as heldout, and so
-    does a verified twin whose original is no non-twin suite record (an unknown original, or a chain)."""
+    does a verified twin whose original is no non-twin suite record (an unknown original, or a chain). The cache
+    is keyed on the suite files and stamped with each twin's manifest (`_manifest_stamp`), so a manifest edited,
+    added or removed since the last call is judged again."""
     files = sorted(Path(suites_dir or SUITES).glob("*.json"))
     key = (str(repo),) + tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size) for f in files)
-    if key not in _SPLITS:
+    if key not in _SPLITS or _SPLITS[key][1] != _manifest_stamp(_SPLITS[key][2], repo):
         out, recs = {}, []
         for f in files:
             data = json.loads(f.read_text(encoding="utf-8"))
@@ -47,9 +64,10 @@ def puzzle_splits(suites_dir=None, repo=None):
                     manifest = puzzle_twin.find_manifest(rec, repo or evalpath.REPO)
                     ok = manifest is not None and not puzzle_twin.verify_record(rec, manifest, repo or evalpath.REPO)
                     splits.update((by_board.get(rec.get("original_pzl_sha256")) if ok else None) or {"heldout"})
+        twins = [r for r in recs if r.get("pzl_sha256") and puzzle_format.is_twin(r)]
         _SPLITS.clear()
-        _SPLITS[key] = out
-    return _SPLITS[key]
+        _SPLITS[key] = (out, _manifest_stamp(twins, repo), twins)
+    return _SPLITS[key][0]
 
 
 def puzzle_sha(path):
