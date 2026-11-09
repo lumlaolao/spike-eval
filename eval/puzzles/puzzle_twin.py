@@ -746,6 +746,7 @@ def main(argv=None):
             recs = twin_records(load_manifest(a.manifest, "records"), suite, a.manifest)
             cand = pf.candidate_suite("%s-twins" % suite.get("suite"), suite.get("version"),
                                       suite.get("engine_sha"), recs)
+            out.parent.mkdir(parents=True, exist_ok=True)  # runs/ is git-ignored: absent on a fresh clone
             out.write_text(json.dumps(cand, indent=2) + "\n", encoding="utf-8")
             print("%d twin records -> %s" % (len(recs), out))
         elif a.cmd == "verify":
