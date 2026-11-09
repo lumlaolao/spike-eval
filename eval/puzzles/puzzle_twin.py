@@ -544,6 +544,60 @@ def install(manifest, forge, others="refuse"):
     return written
 
 
+_EDITION_LINE = re.compile(r"\d+ C .+")
+
+
+def _our_edition(text):
+    """True when `text` is exactly the shape install writes: the EDITION header, then `N C <twin>` lines."""
+    return text.startswith(EDITION) and all(_EDITION_LINE.fullmatch(l) for l in text[len(EDITION):].splitlines())
+
+
+def uninstall(forge):
+    """Remove what `install` wrote into <forge>: each twin script the sidecar records (only while its bytes are the
+    recorded sha256), the sidecar, and the edition file (only while it has the shape install writes), then the twins
+    folder if that leaves it empty. Returns (removed paths, [(path, why)] left): a file install did not write (a
+    script with no record, a recorded script since changed, a sidecar that is not ours, another edition file) is left
+    where it is and named. Nothing installed returns ([], []), so it can run twice."""
+    forge = Path(forge)
+    folder = forge / TWINS_DIR
+    removed, kept = [], []
+    sidecar = folder / INSTALLED
+    record = {}
+    if sidecar.is_file():
+        try:
+            record = json.loads(sidecar.read_text(encoding="utf-8"))
+            if not isinstance(record, dict) or not all(isinstance(h, dict) for h in record.values()):
+                raise ValueError("not {twin: {...}}")
+        except (OSError, ValueError):
+            record = {}
+            kept.append((sidecar, "not a record install wrote"))
+    ours = {script_file(t): h.get("twin_sha256") for t, h in record.items()}
+    for f in sorted(folder.glob("*.txt")) if folder.is_dir() else ():
+        if f.name not in ours:
+            kept.append((f, "install did not write it"))
+        elif _sha(f.read_bytes()) != ours[f.name]:
+            kept.append((f, "install wrote it but it has changed since"))
+        else:
+            f.unlink()
+            removed.append(f)
+    if sidecar.is_file() and not any(p == sidecar for p, _ in kept):
+        if any(p.name in ours for p, _ in kept):
+            kept.append((sidecar, "it still records the scripts left above"))
+        else:
+            sidecar.unlink()
+            removed.append(sidecar)
+    edition = forge / EDITION_FILE
+    if edition.is_file():
+        if _our_edition(edition.read_text(encoding="utf-8", errors="replace")):
+            edition.unlink()
+            removed.append(edition)
+        else:
+            kept.append((edition, "install did not write it"))
+    if folder.is_dir() and not any(folder.iterdir()):
+        folder.rmdir()
+    return removed, kept
+
+
 # ------------------------------------------------------------------ a suite record
 
 def manifest_file(rec, repo=REPO):
@@ -551,16 +605,29 @@ def manifest_file(rec, repo=REPO):
     return pf.pzl_path(rec, repo).parent.parent / MANIFEST
 
 
-def find_manifest(rec, repo=REPO):
-    """The twin manifest `puzzle_twin.py make` wrote beside a twin record's .pzl (`<out>/pzl/<id>.pzl`, the manifest
-    at `<out>/twin-manifest.json`), or None when the record's file or the manifest is not there (runs/ is not
-    committed), cannot be read or is malformed: every caller treats None as unverified."""
+def manifest_state(rec, repo=REPO):
+    """(manifest, None) when the twin manifest beside a twin record's .pzl is there and usable; (None, why) when it
+    is not, and `why` says which: "no twin manifest at <path>" (absent, or the record names no folder to look in: runs/
+    is not committed) or "malformed twin manifest <path>: ..." (unreadable, not JSON, or the wrong shape). A person
+    who edited a manifest must not read as a person who never had one."""
     try:
         path = manifest_file(rec, repo)
-        manifest = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
-    except (OSError, ValueError):
-        return None
-    return manifest if manifest is not None and not manifest_problems(manifest) else None
+        if not path.is_file():
+            return None, "no twin manifest at %s" % path
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, AttributeError):
+        return None, "no twin manifest beside %r" % (rec.get("pzl"),)
+    except ValueError as e:
+        return None, "malformed twin manifest %s: %s" % (path, e)
+    why = manifest_problems(manifest)
+    return (None, "malformed twin manifest %s: %s" % (path, "; ".join(why))) if why else (manifest, None)
+
+
+def find_manifest(rec, repo=REPO):
+    """The twin manifest `puzzle_twin.py make` wrote beside a twin record's .pzl (`<out>/pzl/<id>.pzl`, the manifest
+    at `<out>/twin-manifest.json`), or None when it is missing or malformed (`manifest_state` says which): every
+    caller that cannot say why treats None as unverified."""
+    return manifest_state(rec, repo)[0]
 
 
 def verify_record(rec, manifest, repo=REPO):
@@ -728,6 +795,8 @@ def main(argv=None):
     grp = ins.add_mutually_exclusive_group()
     grp.add_argument("--keep", action="store_true", help="leave twins installed from another manifest")
     grp.add_argument("--replace", action="store_true", help="delete twins installed from another manifest")
+    un = sub.add_parser("uninstall", help="remove the twin scripts, sidecar and edition install wrote into a checkout")
+    un.add_argument("--forge", required=True, help="the checkout to clean (no default, on purpose)")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "make":
@@ -760,12 +829,17 @@ def main(argv=None):
             bad = 0
             for rec in pf.load_suite(a.suite).get("puzzles", []):
                 if pf.twin_id(rec):
-                    manifest = find_manifest(rec)
-                    why = (verify_record(rec, manifest) if manifest
-                           else ["%s: no usable twin manifest beside its .pzl" % rec["id"]])
+                    manifest, missing = manifest_state(rec)
+                    why = verify_record(rec, manifest) if manifest else ["%s: %s" % (rec["id"], missing)]
                     bad += bool(why)
                     print("%s %s" % ("REFUSED" if why else "ok", "; ".join(why) or rec["id"]))
             return 1 if bad else 0
+        elif a.cmd == "uninstall":
+            removed, kept = uninstall(a.forge)
+            print("removed %d files under %s" % (len(removed), a.forge))
+            for path, why in kept:
+                print("LEFT %s: %s" % (path, why), file=sys.stderr)
+            return 1 if kept else 0
         else:
             written = install(load_manifest(a.manifest, "install"), a.forge,
                              "keep" if a.keep else "replace" if a.replace else "refuse")

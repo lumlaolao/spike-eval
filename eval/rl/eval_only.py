@@ -18,22 +18,22 @@ GUARD_VERSION = 2   # 2: content-hashed decks, every suite file, readers re-judg
 NO_DECK = "game episode has no deck: the launcher's default decks cannot be judged"
 
 
-_SPLITS = {}   # (file, mtime, size) of every suite file -> (result, manifest stamp, twin records): a reader judges
-#                thousands of episodes
+_SPLITS = {}   # (file, mtime, size) of every suite file -> (result, twin stamp, twin records, why unverifiable): a reader
+#                judges thousands of episodes
 
 
-def _manifest_stamp(twins, repo):
-    """(path, mtime, size) of the twin manifest of each twin record, None for one that is not there: the verdict on a
-    twin rests on its manifest, so the cache key moves when a manifest does, as it does when a suite file does."""
-    stamp = []
+def _twin_stamp(twins, repo):
+    """(path, mtime, size) of each distinct file the verdict on a set of twin records reads: the twin manifest (once,
+    however many twins share it) and each twin's .pzl, None for one that is not there. The cache key moves when a
+    manifest or a twin board is edited in place, as it does when a suite file does."""
+    paths = set()
     for rec in twins:
-        try:
-            path = puzzle_twin.manifest_file(rec, repo or evalpath.REPO)
-            st = path.stat()
-            stamp.append((str(path), st.st_mtime_ns, st.st_size))
-        except (OSError, TypeError):   # no manifest (or a .pzl path with no folder to look in): stamped as absent
-            stamp.append((str(rec.get("pzl")), None, None))
-    return tuple(stamp)
+        for find in (puzzle_twin.manifest_file, puzzle_format.pzl_path):
+            try:
+                paths.add(find(rec, repo or evalpath.REPO))
+            except (OSError, TypeError, AttributeError):   # a record with no usable .pzl path: stamped as absent
+                paths.add(Path(str(rec.get("pzl"))))
+    return tuple(sorted(_stat_key(p) for p in paths))
 
 
 def puzzle_splits(suites_dir=None, repo=None):
@@ -41,14 +41,15 @@ def puzzle_splits(suites_dir=None, repo=None):
     no split contributes None). A twin record (`twin_of`) also contributes the splits of every suite record whose
     pzl_sha256 is its `original_pzl_sha256`, but only once `puzzle_twin.verify_record` has shown that the twin's
     .pzl is that original renamed by its manifest. Neither `twin_of` nor `original_pzl_sha256` is trusted as
-    declared. A twin it cannot verify (no manifest beside its .pzl, or an edited board) reads as heldout, and so
-    does a verified twin whose original is no non-twin suite record (an unknown original, or a chain). The cache
-    is keyed on the suite files and stamped with each twin's manifest (`_manifest_stamp`), so a manifest edited,
-    added or removed since the last call is judged again."""
+    declared. A twin it cannot verify (no manifest beside its .pzl, a malformed one, or an edited board) reads as
+    heldout, and so does a verified twin whose original is no non-twin suite record (an unknown original, or a
+    chain); `unverifiable` says why, per twin board hash. The cache is keyed on the suite files and stamped with
+    the distinct manifests and twin boards (`_twin_stamp`), so one edited, added or removed since the last call is
+    judged again."""
     files = sorted(Path(suites_dir or SUITES).glob("*.json"))
     key = (str(repo),) + tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size) for f in files)
-    if key not in _SPLITS or _SPLITS[key][1] != _manifest_stamp(_SPLITS[key][2], repo):
-        out, recs = {}, []
+    if key not in _SPLITS or _SPLITS[key][1] != _twin_stamp(_SPLITS[key][2], repo):
+        out, recs, why = {}, [], {}
         for f in files:
             data = json.loads(f.read_text(encoding="utf-8"))
             recs += [r for r in (data.get("puzzles") or []) if isinstance(r, dict)] if isinstance(data, dict) else []
@@ -61,13 +62,28 @@ def puzzle_splits(suites_dir=None, repo=None):
                 splits = out.setdefault(rec["pzl_sha256"], set())
                 splits.add(rec.get("split"))
                 if puzzle_format.is_twin(rec):
-                    manifest = puzzle_twin.find_manifest(rec, repo or evalpath.REPO)
-                    ok = manifest is not None and not puzzle_twin.verify_record(rec, manifest, repo or evalpath.REPO)
-                    splits.update((by_board.get(rec.get("original_pzl_sha256")) if ok else None) or {"heldout"})
+                    manifest, why_not = puzzle_twin.manifest_state(rec, repo or evalpath.REPO)
+                    if manifest is not None:
+                        why_not = "; ".join(puzzle_twin.verify_record(rec, manifest, repo or evalpath.REPO))
+                    originals = by_board.get(rec.get("original_pzl_sha256")) if not why_not else None
+                    if not originals and not why_not:
+                        why_not = "its original is no non-twin suite record"
+                    if why_not:
+                        why[rec["pzl_sha256"]] = why_not
+                    splits.update(originals or {"heldout"})
         twins = [r for r in recs if r.get("pzl_sha256") and puzzle_format.is_twin(r)]
         _SPLITS.clear()
-        _SPLITS[key] = (out, _manifest_stamp(twins, repo), twins)
+        _SPLITS[key] = (out, _twin_stamp(twins, repo), twins, why)
     return _SPLITS[key][0]
+
+
+def unverifiable(digest, suites_dir=None, repo=None):
+    """Why the twin board with this sha256 could not be verified against its original (it reads held out), or None
+    for a board that is no twin or that verified."""
+    puzzle_splits(suites_dir, repo)
+    return next(iter(_SPLITS.values()))[3].get(digest)
+
+
 
 
 def puzzle_sha(path):
@@ -115,7 +131,9 @@ def _puzzle_reasons(name, digest, suites_dir):
     if not splits:
         return ["puzzle %s is not listed in any suite (matched by content): its split is unknown" % name]
     if "heldout" in splits:
-        return ["heldout puzzle %s (a suite record with these bytes says heldout)" % name]
+        why = unverifiable(digest, suites_dir)
+        return ["heldout puzzle %s (%s)" % (name, "unverifiable twin, read as held out: " + why if why
+                                            else "a suite record with these bytes says heldout")]
     return [] if splits == {"open"} else ["puzzle %s is not open in every suite record (splits %s)" % (
         name, sorted(map(str, splits)))]
 
