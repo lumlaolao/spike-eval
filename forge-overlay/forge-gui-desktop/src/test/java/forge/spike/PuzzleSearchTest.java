@@ -330,7 +330,7 @@ public class PuzzleSearchTest {
     // must refuse and accept the same strings, so the two grammars cannot drift. One string literal per entry.
     static final String[] LINE_GOOD = {"Solver:3:1  Opponent:2:0", "Solver:1:0", " Opponent:10:9 ", "Solver:2:0 Solver:2:1"};
     static final String[] LINE_BAD = {"", "  ", "Solver:2", "Solver:2:2", "Solver:0:0", "Judge:2:1", "Solver:a:1",
-        "Solver:2:1:0", "Solver:2:1:", "Solver:+2:+1", "Solver:02:01", "Solver:2:-1"};
+        "Solver:2:1:0", "Solver:2:1:", "Solver:+2:+1", "Solver:02:01", "Solver:2:-1", "Solver:99999999999:1"};
 
     @Test
     public void parseLineIsTheInverseOfLineText() {

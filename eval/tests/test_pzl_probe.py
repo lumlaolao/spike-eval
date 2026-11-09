@@ -108,6 +108,9 @@ class ProbeVerdict(unittest.TestCase):
         self.assertIn("not a probe row", pb.probe_verdict({"status": "proven"}))
         self.assertIn("drift", pb.probe_verdict(row(search_drift="step 2 asked a different seat")))
         self.assertIn("line not consumed", pb.probe_verdict(row(search_drift="line not consumed: 1 of 3 steps")))
+        # Tweak: drop the goal check -> a game run without the turn limit reads as rejected.
+        for r in (row(goal_enforcement_installed=False), row(goal_bounded=False)):
+            self.assertIn("goal not enforced", pb.probe_verdict(r))
 
     def test_a_game_stopped_at_the_draw_cap_is_no_evidence(self):
         # Tweak: read the cap's Draw as a state -> a stopped row that says "rejected" passes. Checked before the

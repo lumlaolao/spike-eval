@@ -271,8 +271,8 @@ search runner (`PZL_PROBE`), a seeded random play (`--completion-seed`) past it,
 random completion failed the acceptance state. It does not mean no completion of the misreading is accepted, so a
 probe line must contain the whole misreading (every play the misreading makes, to the end of the decisions that
 matter); a line that stops short only shows what one random finish of the first steps did. An `accepted` probe means
-the misreading also passes, so the puzzle does not test the rule. A game the draw cap ended, a line that drifted or
-was not fully drawn, and a game the wall clock ended are named as no evidence, never as rejected; a puzzle with no
+the line plus one seeded completion reached the state: for a whole misreading, the puzzle does not test the rule. A game the draw cap ended, a line that drifted or
+was not fully drawn, a game the wall clock ended and a game run without the puzzle's goal enforced are named as no evidence, never as rejected; a puzzle with no
 `[acceptance]` section is refused before the JVM starts. The row is `kind: probe`; `puzzle_score` refuses it as no
 attempt. A probe plays no model and costs nothing.
 

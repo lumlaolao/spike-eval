@@ -15,6 +15,7 @@ Every arm here is free: no model is called and nothing leaves the machine.
   python3 eval/puzzles/puzzle_baselines.py verify --suite S.json [-j 4]
   python3 eval/puzzles/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
   python3 eval/puzzles/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3] [--opponent search]
+  python3 eval/puzzles/puzzle_baselines.py probe  --pzl P.pzl --line "Solver:4:0 Solver:2:0" [--completion-seed 0]
                                           [--minimality]
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
@@ -769,8 +770,8 @@ def cmd_line(a):
 
 
 def check_probe_line(line):
-    """A misreading probe's line (PZL_PROBE), "Seat:bound:value ..." with 0 <= value < bound, digits only and no
-    leading zero: the grammar PuzzleSearch.parseLine reads (PuzzleSearchTest.LINE_GOOD / LINE_BAD pin both),
+    """A misreading probe's line (PZL_PROBE), "Seat:bound:value ..." with 0 <= value < bound, at most nine digits
+    (a Java int) and no leading zero: the grammar PuzzleSearch.parseLine reads (PuzzleSearchTest.LINE_GOOD / LINE_BAD pin both),
     refused here before a JVM starts."""
     steps = (line or "").split()
     if not steps:
@@ -778,7 +779,7 @@ def check_probe_line(line):
     for s in steps:
         parts = s.split(":")
         ok = (len(parts) == 3 and parts[0] in ("Solver", "Opponent")
-              and all(re.fullmatch("[0-9]+", p) and str(int(p)) == p for p in parts[1:]))
+              and all(re.fullmatch("[0-9]{1,9}", p) and str(int(p)) == p for p in parts[1:]))
         if not ok or int(parts[2]) >= int(parts[1]):
             raise SystemExit("--line step %r is not Seat:bound:value (Solver|Opponent, 0 <= value < bound, "
                              "plain digits)" % s)
@@ -805,6 +806,8 @@ def probe_verdict(row):
         return "stopped at the draw cap: no evidence"
     if row.get("status") == "invalid":
         return "capped: the game was torn down, its state is no evidence"
+    if row.get("goal_enforcement_installed") is False or row.get("goal_bounded") is False:
+        return "goal not enforced: the game ran without the puzzle's turn limit, no evidence"
     if row.get("search_drift"):
         return "drift: " + str(row["search_drift"])
     if row.get("acceptance") == "rejected":
@@ -954,13 +957,13 @@ def main(argv=None):
     ln.add_argument("--minimality", action="store_true",
                     help="replay the line with each action removed in turn: exit 0 only when every removal fails")
     ln.add_argument("--out-dir", default=None)
-    pb_ = sub.add_parser("probe", help="play one misreading line to game end: exit 0 only if it fails the acceptance state")
-    pb_.add_argument("--pzl", required=True, help="a puzzle with an [acceptance] section")
-    pb_.add_argument("--line", required=True, help='the misreading, "Seat:bound:value ..." (a proof row\'s line shows the form)')
-    pb_.add_argument("--seed", type=int, default=1)
-    pb_.add_argument("--completion-seed", type=int, default=0, help="the random play past the line")
-    pb_.add_argument("--opponent", choices=("ai", "search"), default="ai")
-    pb_.add_argument("--out-dir", default=None)
+    probe = sub.add_parser("probe", help="play one misreading line to game end: exit 0 only if it fails the acceptance state")
+    probe.add_argument("--pzl", required=True, help="a puzzle with an [acceptance] section")
+    probe.add_argument("--line", required=True, help='the misreading, "Seat:bound:value ..." (a proof row\'s line shows the form)')
+    probe.add_argument("--seed", type=int, default=1)
+    probe.add_argument("--completion-seed", type=int, default=0, help="the random play past the line")
+    probe.add_argument("--opponent", choices=("ai", "search"), default="ai")
+    probe.add_argument("--out-dir", default=None)
     rt = sub.add_parser("retier", help="recompute difficulty, tier_v2 and skills from stored proofs and baselines")
     rt.add_argument("--suite", required=True)
     rt.add_argument("--write", default=None)
