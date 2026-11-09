@@ -394,7 +394,11 @@ def decide_status(rec):
         flags.append("capped_rollouts")
     if (rec.get("verification") or {}).get("status") != "verified":
         flags.append("no_verified_line")
-    if "unscoreable" in flags or "random_above_threshold" in flags:
+    # A puzzle whose misreading also reaches the acceptance state against Forge's AI, the suite's scoring opponent,
+    # does not test its rule as scored (#447, RP_034): measured, kept visible, never scored.
+    if (rec.get("source") or {}).get("ai_blind"):
+        flags.append("ai_blind")
+    if {"unscoreable", "random_above_threshold", "ai_blind"} & set(flags):
         return "dropped", flags
     if "no_verified_line" in flags or any(a not in base for a in pf.REQUIRED_BASELINES):
         return "candidate", flags

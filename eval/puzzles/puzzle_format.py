@@ -547,7 +547,8 @@ def rules_candidates(manifest, suite, version, engine_sha, repo=REPO):
         recs.append({
             "schema": PUZZLE_SCHEMA, "id": pid, "split": split_for(pid), "status": "candidate",
             "goal": {"engine_goal": goal, "turns": turns},
-            "source": {"kind": "rules", "question_id": row.get("question_id"), "rule": row.get("rule")},
+            "source": dict({"kind": "rules", "question_id": row.get("question_id"), "rule": row.get("rule")},
+                           **({"ai_blind": row["ai_blind"]} if row.get("ai_blind") else {})),
             "pzl": f.resolve().relative_to(repo.resolve()).as_posix(), "pzl_sha256": sha256_file(f),
         })
     return candidate_suite(suite, version, engine_sha, recs), skipped
