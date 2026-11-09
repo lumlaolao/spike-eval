@@ -428,7 +428,7 @@ def manifest_problems(manifest, use="verify"):
     """Why a parsed twin manifest cannot be used for `use` ("verify", "records" or "install"); [] when it can. A
     manifest is read from a file a person may have edited, so each reader checks the shape it indexes into and
     refuses (never a KeyError or AttributeError) a manifest that is not an object, or whose `cards` / `puzzles` are
-    not lists of objects holding the keys that reader needs as strings (a puzzle's `cards`: a list)."""
+    not lists of objects holding the keys that reader needs as strings (a puzzle's `cards`: a list of strings)."""
     if not isinstance(manifest, dict):
         return ["the twin manifest is %s, not an object" % type(manifest).__name__]
     why = []
@@ -444,7 +444,11 @@ def manifest_problems(manifest, use="verify"):
                 why.append("%s[%d] is not an object" % (field, i))
                 continue
             for k in keys:
-                if not isinstance(row.get(k), list if (field, k) == ("puzzles", "cards") else str):
+                v = row.get(k)
+                if (field, k) == ("puzzles", "cards"):
+                    if not isinstance(v, list) or not all(isinstance(n, str) for n in v):
+                        why.append("%s[%d] has no usable %r (a list of card names)" % (field, i, k))
+                elif not isinstance(v, str):
                     why.append("%s[%d] has no usable %r" % (field, i, k))
     return why[:5]
 
@@ -485,8 +489,9 @@ def install(manifest, forge, others="refuse"):
     card stops it with TwinRefused naming the card."""
     if others not in ("refuse", "keep", "replace"):
         raise ValueError("others: %r" % others)
-    if manifest_problems(manifest, "install"):
-        raise TwinRefused("malformed twin manifest: %s" % "; ".join(manifest_problems(manifest, "install")))
+    why = manifest_problems(manifest, "install")
+    if why:
+        raise TwinRefused("malformed twin manifest: %s" % "; ".join(why))
     forge = Path(forge)
     index = real_card_index(forge)
     real = {n.lower() for n in index}
@@ -566,8 +571,9 @@ def verify_record(rec, manifest, repo=REPO):
     rather than renaming the twin back. The record's `twin_cards` must be the manifest's twin scripts for this board.
     A hand-edited twin (one card changed, another puzzle's board, a `twin_of` or hash pointed elsewhere) fails."""
     pid = rec.get("id")
-    if manifest_problems(manifest):
-        return ["%s: malformed twin manifest: %s" % (pid, "; ".join(manifest_problems(manifest)))]
+    why = manifest_problems(manifest)
+    if why:
+        return ["%s: malformed twin manifest: %s" % (pid, "; ".join(why))]
     entry = next((t for t in manifest.get("puzzles", []) if t.get("twin_id") == pid), None)
     if entry is None:
         return ["%s: not a twin the manifest made" % pid]
@@ -605,8 +611,9 @@ def twin_records(manifest, suite, manifest_path, repo=REPO):
     `twin_of`, `original_pzl_sha256`, the original's split (never the twin id's own hash) and `twin_cards` /
     `twin_set_sha256`: the sha256 of each script the engine reads to play it. Refuses an original that is not in
     the suite, or whose .pzl is not the one the twins were made from."""
-    if manifest_problems(manifest, "records"):
-        raise TwinRefused("malformed twin manifest: %s" % "; ".join(manifest_problems(manifest, "records")))
+    why = manifest_problems(manifest, "records")
+    if why:
+        raise TwinRefused("malformed twin manifest: %s" % "; ".join(why))
     recs = {r["id"]: r for r in suite.get("puzzles", []) if isinstance(r, dict)}
     base = Path(manifest_path).resolve().parent
     scripts = {c["original"]: c for c in manifest.get("cards", [])}

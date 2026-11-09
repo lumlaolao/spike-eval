@@ -650,6 +650,8 @@ class TwinSuiteTest(unittest.TestCase):
                    "a puzzle without twin_id": with_(puzzles=[{k: v for k, v in good["puzzles"][0].items()
                                                               if k != "twin_id"}]),
                    "puzzle cards not a list": with_(puzzles=[dict(good["puzzles"][0], cards="Glimmer Rite")]),
+                   # pr-review of #454: an object in a puzzle's cards hashed into a dict -> TypeError, not a refusal
+                   "a puzzle card that is an object": with_(puzzles=[dict(good["puzzles"][0], cards=[{"a": 1}])]),
                    "a hash that is a number": with_(puzzles=[dict(good["puzzles"][0], original_pzl_sha256=7)])}
             for label, m in bad.items():
                 self.assertTrue(tw.verify_record(rec, m, repo), label)   # a refusal, not an exception
