@@ -1,7 +1,8 @@
 """The sweep's cross-check: `probe.py <id>` probes the proof's `Solver:` steps alone against Forge's AI.
 
 Reads res-search-<id>.json and res-ai-<id>.json from the current folder (drive.py's stdout, redirected as in the
-README, not committed) and probes with completion seeds 0, 1 and 2. It says nothing about a second solution; the README does not count it.
+README, not committed) and probes with completion seeds 0, 1 and 2. It says nothing about a second solution;
+the README does not count it.
 Paths: as drive.py (BUILD from the environment, raw runs under RUNS, default ./raw). Run from this folder.
 """
 import sys, json, os, shutil

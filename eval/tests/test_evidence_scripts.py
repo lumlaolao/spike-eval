@@ -12,12 +12,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import evalpath  # noqa: E402  (every eval script folder on sys.path)
 
 EVIDENCE = evalpath.REPO / "docs" / "harness" / "evidence"
-# An absolute path into one machine's home, temp or mount folders (Linux, macOS, Windows). A placeholder such as
-# <forge>, a $VAR, a URL's path and a repository-relative path are not one.
-# C:\Users\ is matched as written or escaped in a literal.
-MACHINE_PATH = re.compile(r"(?<![\w.<$~:/])/(home|root|Users|tmp|var|mnt|opt|private|Volumes)/"
-                          r"|\b[A-Za-z]:(\\){1,2}Users(\\){1,2}")
-# Python 3.10+ lists its own modules; on the 3.9 floor the import check is skipped (the rest still runs).
+# An absolute path into a machine's own folders: /home, /root, /Users, /tmp, /var, /mnt, /opt, /private, /Volumes
+# (alone or with more after it) and C:\Users\ in any case, as written or escaped in a literal. What follows a
+# placeholder (<forge>/tmp, {dir}/tmp, $VAR/tmp, $(pwd)/tmp), a URL's path and a relative path is not one.
+MACHINE_PATH = re.compile(r"(?<![\w.<>{}()$~:/])/(home|root|Users|tmp|var|mnt|opt|private|Volumes)(?=/|[\s\"')]|$)"
+                          r"|(?i:\b[a-z]:(\\){1,2}users(\\){1,2})")
+# Python 3.10+ lists its own modules; on the 3.9 floor the stdlib-only check is skipped (the rest still runs).
 STDLIB = getattr(sys, "stdlib_module_names", None)
 REPO_MODULES = ({p.stem for p in evalpath.REPO.glob("eval/**/*.py")}
                 | {p.stem for p in evalpath.REPO.glob("scripts/*.py")})
@@ -30,7 +30,12 @@ def problems(name, text):
     except SyntaxError as e:
         return ["%s does not parse: %s" % (name, e)]
     out = []
-    for node in (ast.walk(tree) if STDLIB else ()):
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.level:
+            out.append("%s:%d has a relative import, which fails when the script is run by its path"
+                       % (name, node.lineno))
+        if not STDLIB:
+            continue
         names = ([a.name for a in node.names] if isinstance(node, ast.Import)
                  else [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level else [])
         for top in (n.split(".")[0] for n in names):
@@ -56,15 +61,18 @@ class EvidenceScriptsTest(unittest.TestCase):
     def test_each_problem_is_caught(self):
         good = ('"""Does x; cannot y."""\nimport os, json\nimport puzzle_baselines as pb\nfrom pathlib import Path\n'
                 'BUILD = os.environ["BUILD"]  # e.g. <forge>/build or $FORGE_HOME/tmp/x\n'
-                'URL = "https://example.com/home/x/"\nREL = "eval/puzzles/home/x"\nHOME = "~/tmp/x"\n')
+                'URL = "https://example.com/home/x/"\nREL = "eval/puzzles/home/x"\nHOME = "~/tmp/x"\n'
+                'P = ["<forge>/tmp/x", "{dir}/tmp/x", "$(pwd)/tmp/x", "${HOME}/tmp", "s3://b/tmp/x", "D:\\\\data"]\n')
         self.assertEqual(problems("ok.py", good), [])
         self.assertIn("does not parse", problems("bad.py", "def (:\n")[0])
         self.assertIn("no module docstring", problems("bare.py", "# a comment is not a docstring\nx = 1\n")[0])
         if STDLIB:
             self.assertIn("imports numpy", problems("np.py", '"""d."""\nimport numpy\n')[0])
             self.assertIn("imports requests", problems("rq.py", '"""d."""\nfrom requests.auth import x\n')[0])
+        self.assertIn("relative import", problems("rel.py", '"""d."""\nfrom . import x\n')[0])
         for path in ("/home/user/wt", "/root/forge", "/Users/me/x", "/tmp/claude-0/s", "/var/folders/a/T/x",
-                     "/mnt/data/x", "/opt/forge/x", "/private/var/x", "/Volumes/ext/x", "C:\\\\Users\\\\me\\\\x"):
+                     "/mnt/data/x", "/opt/forge/x", "/private/var/x", "/Volumes/ext/x", "C:\\\\Users\\\\me\\\\x",
+                     "/tmp", "/home", "c:\\\\users\\\\me"):
             got = problems("p.py", '"""d."""\nB = "%s"\n' % path)
             self.assertEqual(len(got), 1, path)
             self.assertIn("p.py:2 names a machine path", got[0])
