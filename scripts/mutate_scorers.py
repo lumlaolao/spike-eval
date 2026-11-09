@@ -181,12 +181,19 @@ def run_confirmed(root, test, timeout):
     return first[0], first[1] + again[1], first[2]
 
 
+def is_secret(name):
+    """A root file that holds credentials or machine state: never copied (the copy is a scratch dir others may read)."""
+    low = name.lower()
+    return low == "secrets.env" or low.startswith(".env") or low == ".forge-home" or "secret" in low
+
+
 def make_copy(parent, repo=REPO):
     root = Path(tempfile.mkdtemp(prefix="mutate-", dir=parent))
     for d in COPY_DIRS:
-        shutil.copytree(repo / d, root / d, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        shutil.copytree(repo / d, root / d, ignore=shutil.ignore_patterns(
+            "__pycache__", "*.pyc", "secrets.env", ".env*", ".forge-home", "*secret*"))
     for f in repo.iterdir():   # root files (FORGE_COMMIT, CLAUDE.md, ...) that a test reads
-        if f.is_file():
+        if f.is_file() and not is_secret(f.name):
             shutil.copy2(f, root / f.name)
     return root
 
@@ -237,7 +244,7 @@ def score(rows):
 
 
 def wilson(k, n, z=1.96):
-    """95% Wilson interval for k of n."""
+    """95% Wilson interval for k of n. Local on purpose: `aggregate.wilson_ci` is one of the files being mutated."""
     if n == 0:
         return 0.0, 1.0
     p = k / n
@@ -245,6 +252,25 @@ def wilson(k, n, z=1.96):
     c = (p + z * z / (2 * n)) / d
     h = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / d
     return max(0.0, c - h), min(1.0, c + h)
+
+
+def weighted(results):
+    """Site-weighted kill rate: sum(sites_i * p_i) / sum(sites_i), p_i = killed/(killed + survived) of file i.
+
+    The interval is the stratified normal one, se = sqrt(sum(sites_i^2 * p_i(1-p_i)/n_i)) / sum(sites_i): rough
+    where a file has p_i near 0 or 1 (its variance is then underestimated), so read it as a floor on the spread.
+    """
+    total = sum(r["sites"] for r in results)
+    est = var = 0.0
+    for r in results:
+        k, s, _ = score(r["rows"])
+        if k + s:
+            p = k / (k + s)
+            est += r["sites"] * p
+            var += r["sites"] ** 2 * p * (1 - p) / (k + s)
+    est /= max(1, total)
+    se = var ** 0.5 / max(1, total)
+    return est, max(0.0, est - 1.96 * se), min(1.0, est + 1.96 * se)
 
 
 # ---------------------------------------------------------------- the tool's own check
@@ -293,7 +319,11 @@ def markdown(results):
         lines.append("| %s | %d | %d | %d | %d | %d | %.0f%% (%.0f to %.0f) |" % (
             r["file"], r["sites"], r["sampled"], k, s, e, 100 * k / max(1, k + s), 100 * lo, 100 * hi))
     lo, hi = wilson(tk, tk + ts)
-    lines.append("| all | | | %d | %d | | %.0f%% (%.0f to %.0f) |" % (tk, ts, 100 * tk / max(1, tk + ts), 100 * lo, 100 * hi))
+    lines.append("| all (unweighted: up to --max sampled per file) | | | %d | %d | | %.0f%% (%.0f to %.0f) |" % (
+        tk, ts, 100 * tk / max(1, tk + ts), 100 * lo, 100 * hi))
+    w, wlo, whi = weighted(results)
+    lines.append("| all (weighted by each file's sites) | %d | | | | | %.0f%% (%.0f to %.0f) |" % (
+        sum(r["sites"] for r in results), 100 * w, 100 * wlo, 100 * whi))
     return "\n".join(lines)
 
 

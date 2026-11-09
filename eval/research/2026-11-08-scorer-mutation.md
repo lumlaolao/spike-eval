@@ -34,14 +34,17 @@ Read for the design in the 2026-11-08 research pass (`research-2026-11-08.md`, e
   `pass`), `continue` to `pass`. Docstrings and strings are never touched.
 - **Sample.** Up to 40 per file, drawn with `random.Random(0)` over the file's sites (`eval/seed_policy.py` has 31 sites,
   all run). The same 311 mutants were run on both trees below.
-- **Run.** One temp copy of `eval/`, `docs/`, `scripts/`, `forge-overlay/` and the root files (about 35 MB), under a
-  `mktemp -d` in the session scratchpad, deleted at the end. For each mutant the module is overwritten with the mutated
+- **Run.** One temp copy of `eval/`, `docs/`, `scripts/`, `forge-overlay/` and the root files (about 35 MB), under
+  `TMPDIR`, deleted at the end; files that hold credentials (`secrets.env`, `.env*`, `.forge-home`, anything named
+  `*secret*`) are never copied. For each mutant the module is overwritten with the mutated
   source and only `eval/tests/test_<module>.py` runs, with `python3 -I`, a 60 s timeout, `PYTHONHASHSEED=0`,
   and its own `TMPDIR`. **Killed** = the test file exits non-zero; **survived** = exits 0; **error** = timeout or
   death by signal (not counted). Every verdict is run twice and must repeat, or it is an error (see "What the first
   runs taught").
-- **Trees.** *Before* = `origin/main` at `0ec3593` exported to a directory (its tests). *After* = this branch (its tests
-  plus the new ones). Scorer code is identical in both.
+- **Trees.** *Before* = `origin/main` at `0ec3593` exported to a directory (its tests). *After* = this branch at
+  `744409a` (its tests plus the new ones, exported the same way). The eight scorer files are byte-identical in both
+  (sha256 in the evidence README). The commands, both runs' per-mutant rows and the survivor recheck are in
+  [docs/harness/evidence/2026-11-08-scorer-mutation/](../../docs/harness/evidence/2026-11-08-scorer-mutation/README.md).
 - **Judging a survivor.** By hand, from the source line: equivalent (no behaviour change), covered by another test file
   (`--recheck` reruns each survivor against the other test files that name the module; only files that pass on the
   unmutated copy count), or a test gap.
@@ -63,9 +66,10 @@ look killed). In the toy, the generator's own mutants split as expected: all kil
 
 ## Result
 
-Mutation score = killed / (killed + survived). The interval is Wilson 95% over the sampled mutants, treated as
-independent draws from the file's sites (they are not quite: sites in one function share a test, so the true interval is
-a little wider).
+Mutation score = killed / (killed + survived). **The per-file rows are the result.** The interval is Wilson 95% over
+the sampled mutants, treated as independent draws from the file's sites (they are not quite: sites in one function share
+a test, so the true interval is a little wider). The run is the one at `744409a`; the `rating.py` test added after it
+(survivor 376 below) is not in these counts.
 
 | File | Sites | Sampled | Before: killed / survived | Before score (95%) | After: killed / survived | After score (95%) | Error |
 |---|---|---|---|---|---|---|---|
@@ -77,47 +81,63 @@ a little wider).
 | `eval/sprt.py` | 200 | 40 | 29 / 11 | 72% (57 to 84) | 37 / 3 | 92% (80 to 97) | 0 |
 | `eval/seed_policy.py` | 31 | 31 | 30 / 1 | 97% (84 to 99) | 30 / 1 | 97% (84 to 99) | 0 |
 | `eval/rl/eval_only.py` | 95 | 40 | 35 / 5 | 88% (74 to 95) | 40 / 0 | 100% (91 to 100) | 0 |
-| **all** | 2463 | 311 | **209 / 100** | **68% (62 to 73)** | **257 / 52** | **83% (79 to 87)** | 2 |
+| all, unweighted (up to 40 sampled per file) | 2463 | 311 | 209 / 100 | 68% (62 to 73) | 257 / 52 | 83% (79 to 87) | 2 |
+| all, weighted by each file's sites | 2463 | 311 | | 56% (49 to 63) | | 74% (68 to 80) | |
 
-All eight listed files exist. The two
-errors are `sanity_arms.py` mutants that make the fake-model server never report its port: the test waits for it and the
-60 s limit ends the run. Excluding the 8 survivors judged equivalent below, the score is 209/301 = 69% before and
-257/301 = 85% after.
+The unweighted row pools the samples, so each file counts by the 40 mutants drawn from it, not by its size:
+`seed_policy.py` (31 sites, all run) weighs as much as `aggregate.py` (829 sites, 40 run). The weighted row counts each
+file by its sites: sum over files of sites x killed / (killed + survived), divided by the 2463 sites (before
+(829 x 17/40 + 320 x 18/40 + 404 x 24/40 + 97 x 32/38 + 487 x 24/40 + 200 x 29/40 + 31 x 30/31 + 95 x 35/40) / 2463
+= 55.7%; after 74.0%). Its interval is a stratified normal one, se = sqrt(sum of sites^2 x p(1-p)/n) / 2463, rough
+for a file whose rate is near 0 or 1. Weighted, the scoring files that carry most sites are the weakest, which is the
+figure to quote. The two errors are `sanity_arms.py` mutants that make the fake-model server never report its port: the test waits for it and the
+60 s limit ends the run. Excluding the 5 survivors judged equivalent below, the unweighted score is 209/304 = 69% before and
+257/304 = 85% after.
 
 The floor is the planted pair above: a test file that checks nothing scores 0% (every mutant survives), one that fails on
 any change scores 100%, and the planted bug and the planted equivalent came out as required. Where the tests were already
 strong (`seed_policy`, `eval_only`, `sanity_arms`) the score began high; the scoring core (`aggregate`, `panel_score`)
 began under 50%.
 
+The one mutant that flipped between runs is `rating.py` line 84 (`+` to `-` in a field-name tuple, which crashes the
+module at import): survived in the earlier after run (256 killed in all), killed in the final one (257, the table's).
+A stale bytecode file is the likely cause, since the mutant has the same length as the original and
+`PYTHONDONTWRITEBYTECODE=1` was added after that run; this was not confirmed.
+
 ## Survivors after the new tests (52), judged
+
+Line numbers are the scorer's (the same in both trees). "Equivalent" means no behaviour change in the cases named; the
+condition is part of the judgment.
 
 | Judgment | Count | Which |
 |---|---|---|
-| Equivalent | 8 | `rating.py` 249 (`x >= 0` to `>`: both branches give 0.5 at 0), 376 (`>` to `>=` at an exact tie of a float plus tolerance), 455 (the `1e-300` pivot guard is unreachable on any fit the tests make); `sprt.py` 214 and `seed_policy.py` 96 (`return 0` to `return None`: `sys.exit(None)` exits 0), `sprt.py` 104 (`z0 == 0 or z1 == 0`: both are zero together, only when `p0 == p1`, which `binom_sprt` already refuses); `puzzle_score.py` 524 (`sorted(rates[0])` to `rates[1]`: the two runs were checked to cover the same puzzles); `panel_score.py` 523 (JSON indent 2 to 3) |
-| Covered by another test file (a gap in the module's own file only) | 7 | `aggregate.py` 1195 (`is` to `is not`), 1235, 1237, 1272, 1273, 1309 (all `test_tool_accounting.py`), 1821 (`test_sanity_arms.py`) |
+| Equivalent, with the condition | 5 | `rating.py` 249 (`x >= 0` to `>`: both branches give 0.5 at 0); `sprt.py` 104 (`z0 == 0 or z1 == 0` to `and`: equivalent only while both z values are exactly zero, which is only when `p0 == p1`, and `binom_sprt` already refuses that); `sprt.py` 214 and `seed_policy.py` 96 (`return 0` to `return None`: equivalent for the CLI exit code, since `sys.exit(None)` exits 0, not for a caller that reads the return value); `puzzle_score.py` 524 (`sorted(rates[0])` to `rates[1]`: the two runs were checked to cover the same puzzles) |
+| Not equivalent, killed by a test added after the run | 1 | `rating.py` 376 (`ranks`: `>` to `>=`): `ranks({'a': t, 'b': 0.0})` with `t = rating.SANITY_TIE_TOL` ranks `b` second under the mutant. `TestRanks` in `test_rating.py` pins it; red on a scratch copy with the mutant, green on the real file. |
+| Covered by another test file (a gap in the module's own file only) | 8 | `aggregate.py` 1195 (`is` to `is not`), 1235, 1237, 1272, 1273, 1309 (all `test_tool_accounting.py`), 1490 (`test_experiments.py`), 1821 (`test_sanity_arms.py`); the `--recheck` of each survivor is in the evidence `after.json` (`killed_by_other`) |
 | Test gap, score-relevant, left | 10 | below |
-| Test gap, report text or defaults, left | 27 | below |
+| Test gap, report text or defaults, left | 28 | below |
 
 **Gaps left, score-relevant (10).** None changes a win count or an interval by itself; each changes a value the score
 or its refusal rests on:
 
 1. `rating.py` 572: the Elo-to-logit conversion of the anchor prior (`prior_sd_elo / ELO_PER_LOGIT`, `/` to `*`).
-2. `rating.py` 373: the default first-player prior sd, 1.0 to 0.
+2. `rating.py` 546: the default first-player prior sd (`first_player_prior_sd_logit`), 1.0 to 0.
 3. `rating.py` 501: the bootstrap's stratum key (`rec[4]` to `rec[5]`).
 4. `rating.py` 582: the per-player game count (`+= 1` to `+= 0`).
 5. `panel_score.py` 97: the check that every cell names a deck in the pool (`or []` to `and []` skips it).
 6. `panel_score.py` 459: the "MIXED CONDITIONS ALLOWED BY FLAG" banner.
 7. `puzzle_score.py` 439: the report's `pilot` flag (`or` to `and`).
 8. `sprt.py` 107: the Wald expected-n formula (`alpha * upper` to `alpha / upper`); its test allows plus or minus 5.
-9. `aggregate.py` 1490: `n_pairs_used` of the refused pooled summary (`test_experiments.py` pins it at 0, but it
-   could not run in the minimal copy, so the recheck did not see it).
-10. `aggregate.py` 1200: the "mixed" merge of a deck's controller.
+9. `aggregate.py` 1200: the "mixed" merge of a deck's controller.
+10. `rating.py` 455: the `1e-300` pivot guard of the fit (to `1.0`); no fit the tests make reaches it, so the
+    guard is untested, not equivalent.
 
-**Gaps left, report text or defaults (27).** A changed message, a count shown, or a default: `aggregate.py` 554, 1195
+**Gaps left, report text or defaults (28).** A changed message, a count shown, or a default: `aggregate.py` 554, 1195
 (the guard's body), 1526, 1615, 1654, 1658; `panel_score.py` 114, 235 (the percentile index clamp, wrong only below
-40 resamples), 452, 465 (twice), 471, 478 (twice), 483, 484, 498; `puzzle_score.py` 178, 638 and 652 (the default
-bootstrap sizes 2000 and 10000); `sanity_arms.py` 73, 86; `rating.py` 112, 176, 649, 660, 670. Line numbers are the
-original file's; the per-mutant rows are in the run's JSON (not kept; rerun the tool).
+40 resamples), 452, 465 (twice), 471, 478 (twice), 483, 484, 498, 523 (the JSON indent, 2 to 3); `puzzle_score.py`
+178, 638 and 652 (the default bootstrap sizes 2000 and 10000); `sanity_arms.py` 73, 86; `rating.py` 112, 176, 649, 660,
+670. The per-mutant rows
+are in the evidence folder's `before.json` and `after.json`.
 
 ## Gaps found and fixed (48 mutants newly killed, 33 tests)
 
@@ -125,9 +145,11 @@ New tests, each named for the mutant it kills; every one was run against its mut
 run):
 
 - `test_aggregate.py`: the fallback gate passes exactly at its ceiling (1086 `>` to `>=`); the CLI exits 2 on the fallback
-  gate, 4 on the harness-decided gate and 6 on a missing sanity arm, and 0 below (1836, 1857, 1861); the smart and fast
-  tiers count toward the gate (1082); a rerun is the same outcome only when winner and turns both match (476); a lone
-  experiment reads "(single condition)" (505).
+  gate, 4 on the harness-decided gate and 6 on a missing sanity arm, and 0 below (1836, 1857, 1861), and its report
+  line for per-tier latency now runs (1757 `is` to `is not`); a rerun is the same outcome only when winner and turns
+  both match (476); a lone experiment reads "(single condition)" (505) and two are named by the field that differs
+  (510). A fourth test, that a fallback on the smart or fast tier counts toward the gate (1082), was not needed to kill
+  a sampled mutant: 1082 was already killed on main.
 - `test_panel_score.py` (class `TestScorerArithmetic`): the strict score weighs a loss 0 (202); `str_norm` is undefined
   when the AI anchor is not above the random anchor (261); it needs a random arm in every cell, not one (392); the
   margin's standard error, interval and bootstrap use the Laplace-smoothed variance of both arms and model minus control

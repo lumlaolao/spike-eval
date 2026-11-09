@@ -1,9 +1,13 @@
 """scripts/mutate_scorers.py: the mutant generator and runner, and the planted self-checks the tool refuses to
 report without (an equivalent mutant must survive, a bug must be killed, a hang is an error)."""
 import ast
+import contextlib
+import io
 import os
+import signal
 import sys
 import tempfile
+import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
@@ -102,13 +106,24 @@ class PlantedMutantsTest(unittest.TestCase):
 
     def test_a_server_the_test_leaves_behind_neither_hangs_the_run_nor_outlives_it(self):
         """The fake model server of a crashed test holds stdout open; the run still ends and the server is reaped."""
-        import time
         with tempfile.TemporaryDirectory() as d:
+            pidfile = os.path.join(d, "child.pid")
             open(os.path.join(d, "t.py"), "w").write(
-                "import subprocess, sys\nsubprocess.Popen(['sleep', '120'])\nsys.exit(0)\n")
+                "import subprocess, sys\nchild = subprocess.Popen(['sleep', '120'])\n"
+                "open(%r, 'w').write(str(child.pid))\nsys.exit(0)\n" % pidfile)
             t0 = time.time()
             self.assertEqual(ms.run_test(d, "t.py", 60)[0], ms.SURVIVED)
             self.assertLess(time.time() - t0, 20)
+            pid = int(open(pidfile).read())
+            for _ in range(50):   # SIGKILL is delivered at once; the poll only waits for init to reap the zombie
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    break
+                time.sleep(0.1)
+            else:
+                os.kill(pid, signal.SIGKILL)   # do not leave the sleeper behind when the assertion fails
+                self.fail("the child the test left behind (pid %d) is still running" % pid)
 
     def test_every_toy_mutant_the_checks_can_tell_apart_is_killed_or_equivalent(self):
         """On the toy: each generated mutant is killed except the ones that cannot change a result."""
@@ -124,12 +139,77 @@ class PlantedMutantsTest(unittest.TestCase):
             self.assertEqual(sorted(survived), ["Gt -> GtE", "Lt -> LtE"])
 
 
+class CopyTest(unittest.TestCase):
+    def test_a_copy_of_the_tree_never_holds_a_secret(self):
+        """The copy is a scratch directory; credentials in the clone's root (secrets.env, .env*, .forge-home) stay out."""
+        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as parent:
+            repo = ms.Path(repo)
+            for d in ms.COPY_DIRS:
+                (repo / d).mkdir()
+            (repo / "eval" / "secrets.env").write_text("OPENROUTER_API_KEY=planted")
+            for name in ("secrets.env", ".env", ".env.local", ".forge-home", "my_secret_token.txt", "FORGE_COMMIT"):
+                (repo / name).write_text("planted")
+            root = ms.make_copy(parent, repo)
+            try:
+                self.assertEqual(sorted(p.name for p in root.iterdir() if p.is_file()), ["FORGE_COMMIT"])
+                self.assertEqual(os.listdir(root / "eval"), [])
+            finally:
+                ms.shutil.rmtree(root)
+
+
+class MainRefusalTest(unittest.TestCase):
+    """main() reports nothing and exits 2 when the tool or the baseline cannot be trusted."""
+
+    def run_main(self, *, self_check, run_confirmed):
+        saved = ms.self_check, ms.run_confirmed, ms.make_copy
+        tiny = tempfile.mkdtemp()
+        os.makedirs(os.path.join(tiny, "eval", "tests"))
+        open(os.path.join(tiny, "eval", "tests", "test_sprt.py"), "w").close()
+        ms.self_check, ms.run_confirmed, ms.make_copy = (
+            lambda parent: self_check, run_confirmed, lambda parent, repo=None: ms.Path(tiny))
+        err = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()) as out:
+                rc = ms.main(["eval/sprt.py"])
+        finally:
+            ms.self_check, ms.run_confirmed, ms.make_copy = saved
+            ms.shutil.rmtree(tiny, ignore_errors=True)
+        return rc, err.getvalue(), out.getvalue()
+
+    def test_a_failed_self_check_exits_2_before_any_mutant(self):
+        calls = []
+        rc, err, out = self.run_main(self_check=[("planted bug is killed", ms.KILLED, ms.SURVIVED)],
+                                     run_confirmed=lambda *a: calls.append(a))
+        self.assertEqual(rc, 2)
+        self.assertIn("self-check FAILED", err)
+        self.assertEqual((calls, out), ([], ""), "nothing ran and nothing was reported")
+
+    def test_a_test_file_that_fails_unmutated_exits_2_before_any_mutant(self):
+        """Otherwise every mutant would look killed."""
+        rc, err, out = self.run_main(self_check=[], run_confirmed=lambda *a: (ms.KILLED, 0.1, "boom"))
+        self.assertEqual(rc, 2)
+        self.assertIn("fails unmutated", err)
+        self.assertEqual(out, "")
+
+
 class WilsonTest(unittest.TestCase):
     def test_interval(self):
         lo, hi = ms.wilson(8, 10)
         self.assertAlmostEqual(lo, 0.490, places=2)
         self.assertAlmostEqual(hi, 0.943, places=2)
         self.assertEqual(ms.wilson(0, 0), (0.0, 1.0))
+
+
+class WeightedTest(unittest.TestCase):
+    def test_a_file_counts_in_proportion_to_its_sites_not_its_sample(self):
+        rows = lambda k, s: [{"status": ms.KILLED}] * k + [{"status": ms.SURVIVED}] * s
+        results = [{"file": "a.py", "sampled": 10, "sites": 900, "rows": rows(2, 8)},
+                   {"file": "b.py", "sampled": 10, "sites": 100, "rows": rows(10, 0)}]
+        est, lo, hi = ms.weighted(results)
+        self.assertAlmostEqual(est, (900 * 0.2 + 100 * 1.0) / 1000)   # the pooled sample says 12/20 = 60%
+        self.assertLess(lo, est)
+        self.assertGreater(hi, est)
+        self.assertIn("| all (weighted by each file's sites) | 1000 |", ms.markdown(results))
 
 
 if __name__ == "__main__":

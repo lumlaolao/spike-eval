@@ -6,6 +6,7 @@ Run: python3 eval/tests/test_aggregate.py
 
 import json
 import random
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -725,11 +726,10 @@ def test_the_gates_leave_out_a_cut_log_games_fallbacks():
 # (eval/research/2026-11-08-scorer-mutation.md): each fails on the mutant named in its comment.
 
 def _cli(args):
-    import subprocess
     return subprocess.run([sys.executable, str(evalpath.EVAL / "aggregate.py")] + args, capture_output=True, text=True)
 
 
-def _fallback_block(d, n_fallback, n_clean=10 - 5):
+def _fallback_block(d, n_fallback, n_clean=5):
     g = game_line(1, False, "A")
     g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
     lines = [g]

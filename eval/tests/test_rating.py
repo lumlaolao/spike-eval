@@ -116,6 +116,14 @@ class TestMutationPins(unittest.TestCase):
         self.assertAlmostEqual(row["predicted_wins"], rating._sigmoid(1.4), places=3)
 
 
+class TestRanks(unittest.TestCase):
+    def test_a_gap_of_exactly_the_tie_tolerance_is_still_a_tie(self):
+        # `s > r + SANITY_TIE_TOL` -> `>=`: the player exactly one tolerance behind was ranked below
+        t = rating.SANITY_TIE_TOL
+        self.assertEqual(rating.ranks({"a": t, "b": 0.0}), {"a": 1, "b": 1})
+        self.assertEqual(rating.ranks({"a": 2 * t, "b": 0.0}), {"a": 1, "b": 2})
+
+
 class TestFit(unittest.TestCase):
     def test_a_known_gap_to_the_anchor_is_recovered(self):
         games = simulate([("llm:" + LLM, "ai", 200, 1500)])

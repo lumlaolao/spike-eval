@@ -94,12 +94,6 @@ class PairedTest(unittest.TestCase):
         self.assertIn("paired (B - A) - (D - C)", out)
         self.assertIn("+0.167", out, "(-1/6) - (-1/3)")
 
-    def test_a_mean_that_rounds_to_zero_prints_without_a_sign(self):
-        self.assertEqual(ps.signed(-1.9e-18), "+0.000")
-        self.assertEqual(ps.signed(-0.0004), "+0.000")
-        self.assertEqual(ps.signed(-0.076), "-0.076")
-
-
     def test_the_json_flag_writes_the_report_with_its_paired_block(self):
         # `if a.json:` body -> pass: the flag was accepted and nothing written
         out = Path(self.tmp.name) / "report.json"
@@ -108,6 +102,11 @@ class PairedTest(unittest.TestCase):
         rep = json.loads(out.read_text())
         self.assertIn("aggregate", rep)
         self.assertAlmostEqual(rep["paired"]["mean"], -1 / 6)
+
+    def test_a_mean_that_rounds_to_zero_prints_without_a_sign(self):
+        self.assertEqual(ps.signed(-1.9e-18), "+0.000")
+        self.assertEqual(ps.signed(-0.0004), "+0.000")
+        self.assertEqual(ps.signed(-0.076), "-0.076")
 
     def test_the_paired_flags_reach_the_interval(self):
         seen = {}
