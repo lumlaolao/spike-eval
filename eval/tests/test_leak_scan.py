@@ -192,7 +192,6 @@ class LeakScanTest(unittest.TestCase):
                      "I recall the Forge " + "so " * 10 + "puzzle.",           # 10 words between Forge and puzzle: the core
                      "This Forge puzzle" + " so" * 12 + " recall",          # 12 words between puzzle and the recall word
                      "The puzzle " + "so " * 10 + "Forge, which I recall."):
-
             self.assertTrue(rx.search(text), text)
         for text in ("The Forge puzzle goal is to win this turn.", "I recall Forge asks which cards to splice.",
                      "We forge ahead: the puzzle is known.",
@@ -415,7 +414,7 @@ class LeakScanTest(unittest.TestCase):
         self.assertEqual({r["model"] for r in leak_scan.compare(table)}, {"m", "x-ai/grok-4.7"})
         self.assertEqual({k[2] for k in table}, {"model"})
         for rel in ("puzzles/frontier5-long/hard-splice2-aaa/game-1.jsonl", "demo/x-ai_grok-4.7/game-1.jsonl",
-                    "puzzles/frontier5-long/x-ai_grok-4.7.jsonl"):
+                    "puzzles/frontier5-long/x-ai_grok-4.7.jsonl", "demo/a/x-ai_grok-4.7/g.jsonl"):
             self.assertEqual(leak_scan.folder_model(rel), "", rel)
 
     def test_an_http_transcript_is_counted_apart_from_the_game_rates(self):
@@ -434,6 +433,27 @@ class LeakScanTest(unittest.TestCase):
         with open(os.path.join(out, "summary.compact.json")) as fh:
             kept = json.load(fh)["keys"][0]["counters"]
         self.assertEqual((kept["http_hit_rows_reply_awareness"], kept["http_rows_response"], kept["rows_decision"]), (1, 1, 1))
+
+    def test_the_record_keeps_the_reasoning_hit_numerator(self):
+        runs = os.path.join(self.tmp.name, "reasoninghit")
+        aware = rows()
+        aware[1]["reasoning"] = "This looks like a test of planning."
+        write_run(runs, aware)
+        table, _hits = leak_scan.scan(runs, [self.pzl_dir], 1)
+        out = os.path.join(self.tmp.name, "reasoningev")
+        leak_scan.write_evidence(runs, table, [], out, "cmd")
+        with open(os.path.join(out, "summary.compact.json")) as fh:
+            kept = json.load(fh)["keys"][0]["counters"]
+        self.assertEqual(kept.get("reasoning_hit_rows"), 1)      # the numerator of the per-million column
+
+    def test_the_hand_reading_names_each_row_as_the_regenerated_hits_do(self):
+        ev = os.path.join(str(evalpath.REPO), "docs", "harness", "evidence", "2026-11-08-leak-and-awareness-scan")
+        with open(os.path.join(ev, "recognition-hits.jsonl")) as fh:
+            hits = {(r["file"], r["line"]): r["model"] for r in map(json.loads, fh)}
+        with open(os.path.join(ev, "recognition-read-by-hand.json")) as fh:
+            hand = json.load(fh)["rows"]
+        self.assertEqual(len(hand), len(hits))
+        self.assertEqual([r for r in hand if hits.get((r["file"], r["line"])) != r["model"]], [])
 
     def test_main_compare_scans_only_the_frontier5_corpora_and_writes_both_files(self):
         runs = os.path.join(self.tmp.name, "wiring")

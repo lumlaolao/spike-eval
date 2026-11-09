@@ -124,13 +124,13 @@
   {
    "file": "puzzles/frontier5-long/moonshotai_kimi-k2.6/hard-splice2-325cd33e0a57/game-1-1792994421918.jsonl",
    "line": 6,
-   "model": "",
+   "model": "moonshotai_kimi-k2.6",
    "names_the_puzzle_source": false
   },
   {
    "file": "puzzles/frontier5-long/x-ai_grok-4.7/hard-splice2-325cd33e0a57/game-1-1792994465315.jsonl",
    "line": 34,
-   "model": "",
+   "model": "x-ai_grok-4.7",
    "names_the_puzzle_source": true
   }
  ]

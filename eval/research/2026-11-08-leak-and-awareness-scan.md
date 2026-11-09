@@ -124,7 +124,7 @@ check, the reply-side skip list, the evidence filters, the recognition window, t
 | claude-cli lane (Haiku 5.5 4,626; Opus 5.5 179) | 342 | 5,199 | 4,805 |
 | fake loopback model | 308 | 145,108 | 39,435 |
 | stored line (`script:`) | 948 | 74,521 | 72,495 |
-| zero-model arms (random, first, floor, greedy, AI) | 13,104 | 155,595 | 24,412 |
+| zero-model arms (`leak_scan.ZERO_ARMS`: random, AI, search, script and the rest) | 13,104 | 155,595 | 24,412 |
 | unlabelled (demo, human, acceptance, one pilot folder) | 12 | 1,452 | 1,362 |
 
 Totals 16,383 files, 441,964 rows (decision 289,884; context_tool 71,028; context_call 67,351; puzzle result 13,358;
@@ -241,14 +241,14 @@ rows as repeats of the system prompt and sets them aside.
 (The 8 unlabelled games add 6 Forge, 2 harness and 2 puzzle-meta rows. Haiku 5.5 and Opus 5.5 via
 claude-cli: 0 in every column.) Read by hand, the Forge and harness lines are in-game reasoning about how the engine
 behaves ("in Forge, activating Atog's ability will prompt for ...", "the harness asks decision by decision"), and Luna's
-six are of the same kind or the verb ("to harness auto casts").
+six are of the same kind (a hand reading of a `--hits` run, not committed) or the verb ("to harness auto casts").
 
 **Forge class names do occur in replies.** 8 non-echo rows in 5 games name one (`forge-class-hits.jsonl`): Grok 4.7
 "checking Forge's CardFactory to confirm the engine uses the real Oracle text" (`frontier5-fill`, hoofdrain), GLM 5.3
 Prime "In Forge's `GameAction` / `HumanPlaySpellAbility`" (splice2), DeepSeek V4.1 Flash "it uses ComputerUtilCost or
 the ability's payCost" (elf2), GLM 5.3 `SpellAbility` and `GameAction` 4 times, Mistral Large 4 `SpellAbility`. The
 models reason about engine behaviour from what they know of Forge's source; none of these names is in a prompt or tool
-list the seat was sent (each is non-echo). No `.java` file name appears in any reply (0 hits of that pattern).
+list the seat was sent (each is non-echo). No `.java` file name appears in any reply (0 hits of that pattern in a `--hits` run; the count is not committed).
 
 **Seed, rule citations.** Seed: 8 model rows, none about the game's seed: 7 are card-play uses ("seed mana", "seed
 fodder"), one is DeepSeek calling the recorded play "the puzzle's seed" (the start). `Rule:`/`Difficulty:` lines in
@@ -265,7 +265,7 @@ contamination by recall, not by reading anything the harness sent. Examples (`re
 puzzles or the 'Forge puzzle' collection. In Forge puzzle files, this exact one exists ...", and later in that row "I
 recall this exact puzzle from the 'Magic puzzle' datasets"; Grok 4.7: "I then recalled this puzzle from my memory as a Forge puzzle deck" and "whether this
 puzzle comes from a known set of Forge puzzles"; Mistral Large 4: "I've seen this exact puzzle before ... a Forge
-puzzle"; unlabelled: "I then recalled this is a real Forge puzzle with live cards".
+puzzle"; Grok 4.7 again (`frontier5-long` splice2): "I then recalled this is a real Forge puzzle with live cards".
 
 The detector (`REPLY_PATTERNS["recognition"]`, tested) is the Forge name and "puzzle" within 10 words of each other and a
 word of recall or provenance (collection, dataset, series, recall, remember, recognise, memorise, pretrain, known, famous,
@@ -273,7 +273,7 @@ familiar) within 12 words. Requiring the puzzle matters: "Forge" near a recall w
 which cards to splice" (engine behaviour, no puzzle). Result: **22 non-echo reply rows in 12 games**, all in
 `reasoning`; read by hand (one reader, no second labeller, `recognition-read-by-hand.json`) **13 rows in 8 games** have
 the model wondering whether the puzzle comes from a known Forge or public collection or saying it recalls it (Kimi K2.6 1
-game, DeepSeek V4.1 Flash 1, Mistral Large 4 2, Kimi K3 1, Grok 4.7 2, one unlabelled); 9 are about Forge puzzles in
+game, DeepSeek V4.1 Flash 1, Mistral Large 4 2, Kimi K3 1, Grok 4.7 3); 9 are about Forge puzzles in
 general ("in these Forge puzzles the library might hold the win condition"). Of 136 `frontier5*` games, 8 show it. What it
 does not show: whether recall helped (none of the 8 games' outcomes were compared with games that did not), the games where
 a model recalled the puzzle and did not say so, or any recall by a model that exposes little reasoning (Luna: 0 recognition rows in 40,929 reply rows,
@@ -284,7 +284,7 @@ separate a model that reads the board from one that recalls the original.
 ### Judgement calls: 30 `claude -p` calls (made on the first, narrower regex)
 
 The phrase hits needed judgement ("being tested" was also "an assumption being tested", "evaluated at instant speed").
-These calls were a local classifier run through `claude -p` (Haiku 5.5, one-shot, no tools, in an empty directory),
+These calls were a local classifier run through `claude -p` (the CLI's `haiku` alias, one-shot, no tools, in an empty directory),
 under the owner's instruction of 2026-11-08 that model use in research goes through `claude -p`. It is not a seat in
 any game and never a score. They were made on the first scan's 35 awareness rows, before the regex was
 widened (the 3 rows added since, "trick question" and similar, were not sent). Of the 35, 2 are copies of row 1 (the same
