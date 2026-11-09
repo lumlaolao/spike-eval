@@ -150,10 +150,10 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   acceptance. #267 can be closed once these are done.
   **AI-blind sweep** (`docs/harness/evidence/2026-11-09-ai-blind-sweep/`, issue #447 generalised): the prover and its
   uniqueness search run with `CONTROLLER_B=ai` on the 56 converted rules-pilot puzzles whose proof beats opponent
-  replies (budget 600, seed 1, overlay `edaca55afdf6`) flagged 2 of 56 as `multiple` (3.6%, Wilson 95% 1.0 to 12.1%)
+  replies (budget 600, seed 1, overlay `edaca55afdf6`) flagged 2 of 56 as `multiple` (3.6%, Wilson 95% 1.0 to 12.1%; 2 of the 43 with an opponent choice point)
   where the search-opponent verdict is `unique` for all 56: RP_034 (validated, the known case) and RP_295, whose second
-  line only taps a second Raging Goblin for convoke and was not refuted by an opponent reply (search-opponent
-  uniqueness at 4000 rollouts: `unique`), so 1 of 56 is confirmed AI-blind. Eight of the 56 were not searched
+  line only taps a second Raging Goblin for convoke and was never tested against the replies, so 1 of 56 is confirmed
+  AI-blind. Eight of the 56 were not searched
   exhaustively, so 2 is a floor for the tool's flags; RP_034's decision (options 1 to 3 of #447) stays the owner's.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);

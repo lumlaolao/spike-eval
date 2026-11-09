@@ -11,13 +11,16 @@ For how many does a solver line that is not the proof also reach the acceptance 
 
 ## Result
 
-* **Flagged by the method: 2 of 56 (3.6%, Wilson 95% interval 1.0 to 12.1%)**: RP_034 and RP_295.
+* **Flagged by the method: 2 of 56 (3.6%, Wilson 95% interval 1.0 to 12.1%)**: RP_034 and RP_295. In 13 of the 56
+  the control run saw no opponent choice point (`opponent_choice_points` 0, though `opponent_branches_beaten` is above
+  0; why was not investigated), so the premise is tested only on 43: **2 of 43 flagged (Wilson 1.3 to 15.5%)**, 1 of 43
+  confirmed (0.4 to 12.1%).
 * **Confirmed as AI-blindness: 1 of 56 (1.8%, Wilson 0.3 to 9.4%)**: RP_034 (the known case). RP_295's second line is a
-  variant of the proof's own plan and the search-opponent run did not refute it (below), so it is not shown to be AI-blind.
+  variant of the proof's own plan and was never shown to lose to a reply (below), so it is not shown to be AI-blind.
 * **Baseline:** the same uniqueness search against the search opponent flags 0 of 56 (the manifest's verdict is `unique`
   for all 56; reproduced here, every `search_control` row is `proven` and `accepted`; Wilson 0 to 6.4%). A flag is
   therefore a difference between the two opponents, not noise in the search.
-* **Validation on RP_034:** flagged `multiple` against `--opponent ai` (11 s, 3 rollouts): the main line destroys the
+* **Validation on RP_034:** flagged `multiple` against `--opponent ai` (`wall_s` 36, 3 uniqueness rollouts): the main line destroys the
   Golem and the Jar; the second line `Solver:3:1 Solver:3:0 Solver:3:1 Solver:2:0 Solver:2:1 Solver:2:0` is the
   2 damage + 2 damage + destroy mode set (issue #447's line (a) family); the difference lists the modes. Against the search
   opponent the manifest says `unique`. The method flags the known case, so the sweep was run.
@@ -27,7 +30,7 @@ For how many does a solver line that is not the proof also reach the acceptance 
 | Puzzle | Main line (AI run) | Accepted second line against the AI | What differs | Search-opponent evidence |
 |---|---|---|---|---|
 | RP_034 | `Solver:3:0 Solver:3:1 Solver:2:1 Solver:2:0 Solver:2:0` (Fiery Confluence: 2 damage, destroy, destroy) | `Solver:3:1 Solver:3:0 Solver:3:1 Solver:2:0 Solver:2:1 Solver:2:0` (2 damage, 2 damage, destroy) | mode set; the main line's second destroy picks the Stone Golem | Beaten by the Welding Jar reply per #447 (both lines `rejected` with `Opponent:2:0 Opponent:2:0`, `Stone Golem in Graveyard`). Not re-run here. |
-| RP_295 | `Solver:2:1 Solver:16:15 Solver:2:0 Solver:7:6 Solver:2:0 ...` (block with the four creatures, convoke one Raging Goblin for Stoke the Flames) | same prefix with `Solver:2:1` in place of `Solver:2:0` at the convoke choice (two Raging Goblins tapped for convoke, `Solver:4:3 Solver:3:1` at the end) | `convoke: [Goblin]` vs `convoke: [Goblin, Goblin]` | **Not refuted.** Uniqueness against the search opponent at 4000 rollouts (`rp295-search-unique4000.json`): `unique`, 32 deviations, only 1 played out, 0 `unproven_alternatives`. The second line is not shown to lose to any reply. A probe of it against the search opponent drifted (the line's opponent steps do not fit it). |
+| RP_295 | `Solver:2:1 Solver:16:15 Solver:2:0 Solver:7:6 Solver:2:0 ...` (block with the four creatures, convoke one Raging Goblin for Stoke the Flames) | same prefix with `Solver:2:1` in place of `Solver:2:0` at the convoke choice (two Raging Goblins tapped for convoke, `Solver:4:3 Solver:3:1` at the end) | `convoke: [Goblin]` vs `convoke: [Goblin, Goblin]` | **Not tested.** Uniqueness against the search opponent at 4000 rollouts (`rp295-search-unique4000.json`): `unique`, 32 deviations, only 1 played out, 0 `unproven_alternatives`. Nothing shows the two-Goblin deviation was the one played out, so this run neither supports nor refutes it. No probe of the second line is recorded. |
 
 RP_295 is the 4-blocker convoke puzzle (CR 506.4b). Both lines are the rule's plan, differing by how many blockers are
 tapped for convoke, which the rule does not constrain. The tool calls them two solutions against the AI; whether the
@@ -60,7 +63,8 @@ cat ids.txt | xargs -P3 -I{} sh -c 'python3 probe.py {} > res-probe-{}.json'    
 python3 drive.py RP_295 search 4000                              # the RP_295 follow-up, 20 min
 ```
 
-`ids.txt` is the 56 ids: `converted` with `proof.opponent_branches_beaten > 0`, in manifest order.
+`ids.txt` (not committed) is the 56 ids: the manifest rows with `result: converted` and
+`proof.opponent_branches_beaten > 0`, in manifest order (the same ids and order as `rows.jsonl`).
 `drive.py` and `probe.py` are in this folder (they read the repository from their own location, the build from `BUILD` and write raw runs under `RUNS`, default `./raw`). The full 56 ran, no
 subset, so there is no sampling seed. Raw run directories (6 MB) were deleted; `rows.jsonl` keeps the compact rows.
 
@@ -150,13 +154,14 @@ judgment, not a field: RP_034 by issue #447's forced-Jar runs (not re-run here),
   `ai_run.line` and the `Solver:` steps of `search_control.line`); those are the puzzles where the AI let the search take another route.
   None of them was flagged `multiple` except RP_295. In 13 puzzles (RP_152, 204, 205, 372, 410, 437, 449, 457, 476, 477,
   510, 528, 529) the proof line has no `Opponent:` step at all: the opponent's replies did not change the line the
-  prover returned, so the AI cannot be blind to a reply there.
+  prover returned, and the control run saw no opponent choice point, so the proof run gives no reply for the AI to
+  miss there.
 * Cross-check: with the `Opponent:` steps removed, the proof's own plan still reaches acceptance against the AI under
   all three completion seeds in most puzzles. Mixed or rejected cells (RP_156, 158, 160, 192, 483) mean the
   one-completion random play past the line failed the acceptance state, which says nothing about a second solution;
   RP_295 drifted (its solver indices depend on the opponent steps). Not used to count.
 * What was not determined: whether RP_295's two-Goblin convoke line loses to some opponent reply (no free tool here plays
-  a fixed solver line against every reply: a probe with the search opponent needs the `Opponent:` steps and drifted);
+  a fixed solver line against every reply; no probe of that line is recorded);
   whether the AI's pass on the Jar is general or specific to RP_034's state; the eight non-exhaustive puzzles at a
   larger budget (RP_295 at 4000 on the search side only); puzzles outside the 56 (those with
   `opponent_branches_beaten == 0` have no opponent reply the proof depends on); the seed dependence of the AI's play
