@@ -6,8 +6,7 @@ twin-building defect (or the documented description-cut effect: a seat cut a lon
 zero-model arm reads). This measures it on the whole rules sample, before any paid model comparison.
 
 **Answer.** None found. On 26 twin puzzles, 130 puzzle-arms and 5,616 games per side (same seeds), every result
-row, every decision trace (turn, phase, type, option count, choice, each option's text with the card names mapped),
-and every `[ROUTER]` line matches; the 26 search proofs match; `puzzle_score.py --twin-results` scores the
+row, every decision trace and all 22,981 `[ROUTER]` lines (in 130 logs, 78 non-empty) match; the 26 search proofs match; `puzzle_score.py --twin-results` scores the
 zero-model arms and prints a recall gap of exactly 0.000 for each. Rows: `paired-rows.jsonl`.
 
 ## Inputs and build
@@ -109,16 +108,21 @@ of 104.
 | Check | Games | Differing |
 |---|---|---|
 | Result row (solved, turns, win condition, loss reason, solver actions, draws, status), per seed | 5,616 per side | 0 |
-| Decision trace per game (turn, phase, type, option count, choice, option text with names mapped) | 5,616 per side, 17,439 decisions per side | 0 |
-| `[ROUTER]` lines of the arm's `jvm.log`, names mapped | 130 logs | 0 |
+| Decision trace per game (turn, phase, type, option count, choice, option text with names mapped) | 5,616 per side, 17,439 decisions per side (random 16,346, first 424, floor 268, PASS 224, ai 177) | 0 |
+| `[ROUTER]` lines of the arm's `jvm.log`, names mapped | 22,981 lines per side in 130 logs (52 empty: the ai arm logs none, floor 16) | 0 |
 | Search proof (status, rollouts, opponent choice points, replies beaten, actions) | 26 puzzles | 0 |
 
-Because nothing differs, there is no first differing line to report.
+Option text is compared up to its description (`head()` cuts at ` [`), so a card's rules text as printed in an
+option is not itself compared; a changed rules text would show here only through a changed result, choice or proof.
 
 **Why the check can fail (negative control).** Comparing the same games without the name map differs in 5,129 of 5,304
 random and ai games, so the comparison reads the names and is not vacuous. Comparing option text uncut (not cut at
 the description) also finds 0 differing games: the zero-model arms never see the seat's length-dependent description
 cut, so that documented effect is invisible here and remains for the model arm only.
+
+Both controls were ad-hoc variants of `compare_twins.py`, and the raw game folders were deleted afterwards, so neither
+figure can be re-derived from what is committed: the no-map control builds the original's game traces without `mapped()`
+(`trace(..., False)` on both sides); the uncut control compares option text without `head()`.
 
 ## The pairing score (`puzzle_score.py --twin-results`)
 

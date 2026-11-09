@@ -129,17 +129,11 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   and the puzzle row does not stamp it; a raw JVM launch with an ambient `AI_PROFILE_B` is stamped on the game line
   but a hand-built cited aggregate has no separate check.
 - **Twin puzzles** (PR #371, guards #454): `puzzle_twin.py` renames every card on a board to an invented name with the
-  same rules text, so a solve rate on twins against originals separates recall from reading. First real suite
-  (`docs/harness/evidence/2026-11-10-first-twin-suite/`): 26 of the rules sample's 29 active puzzles twinned (3 refused:
-  a card that names another, an engine-named card, a two-faced card), and the free arms (random, PASS, first, floor,
-  Forge AI: 5,616 games per side, same seeds) and the search proofs play the twins exactly as the originals: no
-  difference in any result row, decision trace or `[ROUTER]` line, and `puzzle_score.py --twin-results` prints a recall
-  gap of 0.000 for each arm. The pairing scores zero-model rows, but only on a frozen suite with active twin records
-  (`prove`, the line gate, `freeze`). `puzzle_twin.py` has no uninstall: `install --replace` with an emptied manifest
-  removes the scripts and leaves an empty sidecar and edition file. A twin name of another length moves where the seat
-  cuts a long description (a documented limit the zero-model arms cannot see). The model comparison (Luna on originals
-  against twins, about $0.40 on the rules sample) is owner-gated and paid; the dev lane may stand in for a smoke,
-  never a score.
+  same rules text, so a solve rate on twins against originals separates recall from reading. First suite
+  (`docs/harness/evidence/2026-11-10-first-twin-suite/`): 26 of 29 twinned, and the free arms and search proofs play
+  twins exactly as originals (recall gap 0.000). The model comparison (Luna on originals against twins, about $0.40 on
+  the rules sample) is owner-gated and paid; the dev lane may stand in for a smoke, never a score. A twin name of
+  another length moves where the seat cuts a long description (a documented limit the zero-model arms cannot see).
 - **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
   PR #267): 38 of 221 done, 183 remain unprobed. RP_001 (`docs/harness/evidence/2026-11-09-pzl-probe/`) and a
   ten-puzzle pilot picked for being expressible (`docs/harness/evidence/2026-11-09-misreading-probes-pilot/`) each
