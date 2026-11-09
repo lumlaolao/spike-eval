@@ -109,11 +109,13 @@ of 104.
 |---|---|---|
 | Result row (solved, turns, win condition, loss reason, solver actions, draws, status), per seed | 5,616 per side | 0 |
 | Decision trace per game (turn, phase, type, option count, choice, option text with names mapped) | 5,616 per side, 17,439 decisions per side (random 16,346, first 424, floor 268, PASS 224, ai 177) | 0 |
-| `[ROUTER]` lines of the arm's `jvm.log`, names mapped | 22,981 lines per side in 130 logs (52 empty: the ai arm logs none, floor 16) | 0 |
+| `[ROUTER]` lines of the arm's `jvm.log`, names mapped, cut at ` [` | 22,981 lines per side in 130 logs (52 empty: ai 26 of 26, floor 22 of 26 with 16 lines in all, PASS 2, first 2) | 0 |
 | Search proof (status, rollouts, opponent choice points, replies beaten, actions) | 26 puzzles | 0 |
 
-Option text is compared up to its description (`head()` cuts at ` [`), so a card's rules text as printed in an
-option is not itself compared; a changed rules text would show here only through a changed result, choice or proof.
+Option text and each `[ROUTER]` line are compared up to their first ` [` (`head()`). So a card name inside a
+bracket of a `[ROUTER]` line (a trigger's source, a lookahead's assumed target) is not compared, and neither is a
+card's rules text as printed in an option; a changed rules text would show here only through a changed result,
+choice or proof.
 
 **Why the check can fail (negative control).** Comparing the same games without the name map differs in 5,129 of 5,304
 random and ai games, so the comparison reads the names and is not vacuous. Comparing option text uncut (not cut at
@@ -165,7 +167,7 @@ hand-off, not here (STANDARDS section 7: no final-head acceptance in a doc). Re-
 - Anything about a model: names are the only change, and only the zero-model arms were played. The paired model
   score (about $0.40 on Luna, owner-gated) is not run, and neither is the description-cut effect on a model's
   reading.
-- A single seeded Forge AI per seed: identical traces show the AI does not use names on these 26 boards, not that
+- A single seeded Forge AI per seed (177 decisions in all, no `[ROUTER]` lines): identical traces show the AI does not use names on these 26 boards, not that
   it never would (the 3 refusals are the cards the engine does name).
 - The source suite's 7 dropped records, and the 3 refused puzzles, were not twinned.
 - The search proof ran at budget 500, not the gate's `SEARCH_LINE_BUDGET`; identical on both sides, but the
