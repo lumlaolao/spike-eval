@@ -161,6 +161,31 @@ class PuzzleTest(unittest.TestCase):
             bare = dict(bare, id=open_ + "-twin", split="open", pzl_sha256=puzzle_format.sha256_file(twin))
             self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=self._suite(bare))), bare)
 
+    def test_a_changed_twin_manifest_is_seen_though_no_suite_file_moved(self):
+        # Kills: leave the manifest out of the cache key in puzzle_splits -> the split judged before the manifest
+        # changed is served again, and a twin that no longer verifies still reads open.
+        _, open_ = self._ids()
+        o_rec = {"id": open_, "split": "open", "pzl": str(OPEN), "pzl_sha256": puzzle_format.sha256_file(OPEN)}
+        rec, twin = self._twin("o", open_, OPEN)
+        suites = self._suite(o_rec, rec)
+        self.assertEqual(eval_only.reasons(puzzle=twin, suites_dir=suites), [], "verified: reads open")
+        manifest = twin.parent.parent / puzzle_twin.MANIFEST
+        m = json.loads(manifest.read_text())
+        name = m["cards"][0]["twin"]
+        # same size, other mtime: one script hash edited in place
+        m["cards"][0]["twin_sha256"] = "f" * 64
+        before = manifest.stat()
+        manifest.write_text(json.dumps(m))
+        os.utime(manifest, ns=(before.st_mtime_ns + 5 * 10**9,) * 2)
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=suites)), name)
+        # the manifest restored: open again; then removed: heldout (an appearing or vanishing file is seen)
+        m["cards"][0]["twin_sha256"] = rec["twin_cards"][name]
+        manifest.write_text(json.dumps(m))
+        os.utime(manifest, ns=(before.st_mtime_ns + 9 * 10**9,) * 2)
+        self.assertEqual(eval_only.reasons(puzzle=twin, suites_dir=suites), [])
+        manifest.unlink()
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=suites)))
+
     def test_a_twin_of_a_twin_reads_heldout(self):
         """A chain: T2 is a verified twin of T1's board, T1 a verified twin of the open P. T2's original is a twin, not
         a non-twin suite record, so it does not read open."""

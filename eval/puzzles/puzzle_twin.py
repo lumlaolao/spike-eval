@@ -417,6 +417,50 @@ def make_twins(suite, ids, forge, out, seed, repo=REPO):
 INSTALLED = "twins-installed.json"  # beside the scripts; Forge reads only .txt there
 
 
+_CARD_KEYS = {"verify": ("original", "twin", "twin_sha256"),
+              "install": ("original", "twin", "script", "original_sha256", "twin_sha256")}
+_PUZZLE_KEYS = {"verify": ("id", "twin_id", "original_pzl", "original_pzl_sha256", "cards"),
+                "records": ("id", "twin_id", "original_pzl", "original_pzl_sha256", "cards", "pzl",
+                            "twin_pzl_sha256")}
+
+
+def manifest_problems(manifest, use="verify"):
+    """Why a parsed twin manifest cannot be used for `use` ("verify", "records" or "install"); [] when it can. A
+    manifest is read from a file a person may have edited, so each reader checks the shape it indexes into and
+    refuses (never a KeyError or AttributeError) a manifest that is not an object, or whose `cards` / `puzzles` are
+    not lists of objects holding the keys that reader needs as strings (a puzzle's `cards`: a list)."""
+    if not isinstance(manifest, dict):
+        return ["the twin manifest is %s, not an object" % type(manifest).__name__]
+    why = []
+    want = {"cards": _CARD_KEYS["install" if use == "install" else "verify"],
+            "puzzles": _PUZZLE_KEYS["records" if use == "records" else "verify"]}
+    for field, keys in want.items():
+        rows = manifest.get(field, [])
+        if not isinstance(rows, list):
+            why.append("the twin manifest's %s is not a list" % field)
+            continue
+        for i, row in enumerate(rows):
+            if not isinstance(row, dict):
+                why.append("%s[%d] is not an object" % (field, i))
+                continue
+            for k in keys:
+                if not isinstance(row.get(k), list if (field, k) == ("puzzles", "cards") else str):
+                    why.append("%s[%d] has no usable %r" % (field, i, k))
+    return why[:5]
+
+
+def load_manifest(path, use="verify"):
+    """The parsed manifest at `path`; TwinRefused naming the file when it cannot be read or is malformed."""
+    try:
+        manifest = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise TwinRefused("cannot read the twin manifest %s: %s" % (path, e))
+    why = manifest_problems(manifest, use)
+    if why:
+        raise TwinRefused("malformed twin manifest %s: %s" % (path, "; ".join(why)))
+    return manifest
+
+
 def _installed(folder):
     """{twin name: {original, twin_sha256}} of what an earlier install wrote; {} when none. A twin script with no
     record (not written by install) is listed with original None."""
@@ -441,6 +485,8 @@ def install(manifest, forge, others="refuse"):
     card stops it with TwinRefused naming the card."""
     if others not in ("refuse", "keep", "replace"):
         raise ValueError("others: %r" % others)
+    if manifest_problems(manifest, "install"):
+        raise TwinRefused("malformed twin manifest: %s" % "; ".join(manifest_problems(manifest, "install")))
     forge = Path(forge)
     index = real_card_index(forge)
     real = {n.lower() for n in index}
@@ -495,15 +541,21 @@ def install(manifest, forge, others="refuse"):
 
 # ------------------------------------------------------------------ a suite record
 
+def manifest_file(rec, repo=REPO):
+    """Where `puzzle_twin.py make` wrote the manifest of a twin record: beside its .pzl's folder."""
+    return pf.pzl_path(rec, repo).parent.parent / MANIFEST
+
+
 def find_manifest(rec, repo=REPO):
     """The twin manifest `puzzle_twin.py make` wrote beside a twin record's .pzl (`<out>/pzl/<id>.pzl`, the manifest
     at `<out>/twin-manifest.json`), or None when the record's file or the manifest is not there (runs/ is not
-    committed)."""
+    committed), cannot be read or is malformed: every caller treats None as unverified."""
     try:
-        path = pf.pzl_path(rec, repo).parent.parent / MANIFEST
-        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+        path = manifest_file(rec, repo)
+        manifest = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
     except (OSError, ValueError):
         return None
+    return manifest if manifest is not None and not manifest_problems(manifest) else None
 
 
 def verify_record(rec, manifest, repo=REPO):
@@ -514,6 +566,8 @@ def verify_record(rec, manifest, repo=REPO):
     rather than renaming the twin back. The record's `twin_cards` must be the manifest's twin scripts for this board.
     A hand-edited twin (one card changed, another puzzle's board, a `twin_of` or hash pointed elsewhere) fails."""
     pid = rec.get("id")
+    if manifest_problems(manifest):
+        return ["%s: malformed twin manifest: %s" % (pid, "; ".join(manifest_problems(manifest)))]
     entry = next((t for t in manifest.get("puzzles", []) if t.get("twin_id") == pid), None)
     if entry is None:
         return ["%s: not a twin the manifest made" % pid]
@@ -551,6 +605,8 @@ def twin_records(manifest, suite, manifest_path, repo=REPO):
     `twin_of`, `original_pzl_sha256`, the original's split (never the twin id's own hash) and `twin_cards` /
     `twin_set_sha256`: the sha256 of each script the engine reads to play it. Refuses an original that is not in
     the suite, or whose .pzl is not the one the twins were made from."""
+    if manifest_problems(manifest, "records"):
+        raise TwinRefused("malformed twin manifest: %s" % "; ".join(manifest_problems(manifest, "records")))
     recs = {r["id"]: r for r in suite.get("puzzles", []) if isinstance(r, dict)}
     base = Path(manifest_path).resolve().parent
     scripts = {c["original"]: c for c in manifest.get("cards", [])}
@@ -625,6 +681,25 @@ def refuse_uninstalled(recs, forge, what="played"):
                          % (len(bad), forge, what, "; ".join("%s: %s" % (k, v[0]) for k, v in sorted(bad.items())[:3])))
 
 
+def board_records(pzl):
+    """The twin records (id, twin_of, twin_cards) a manifest beside a bare .pzl makes of it, for a command that is
+    given a board and no suite (`puzzle_baselines.py probe`): [] when no manifest sits at `<folder>/../twin-manifest
+    .json` or none names this file as a twin board; SystemExit when the manifest is there and unusable, since the
+    board may be a twin whose scripts cannot then be checked."""
+    pzl = Path(pzl).resolve()
+    path = pzl.parent.parent / MANIFEST
+    if not path.is_file():
+        return []
+    try:
+        manifest = load_manifest(path, "records")
+    except TwinRefused as e:
+        raise SystemExit("%s sits beside a twin manifest that cannot be used: %s" % (pzl, e))
+    scripts = {c["original"]: c for c in manifest.get("cards", [])}
+    return [{"id": t["twin_id"], "twin_of": t["id"],
+             "twin_cards": {scripts[n]["twin"]: scripts[n]["twin_sha256"] for n in t["cards"] if n in scripts}}
+            for t in manifest.get("puzzles", []) if (path.parent / t["pzl"]).resolve() == pzl]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -668,7 +743,7 @@ def main(argv=None):
             if runs not in out.parents:
                 ap.error("--out must be under %s: twins of third-party puzzles are never committed" % runs)
             suite = pf.load_suite(a.suite)
-            recs = twin_records(json.loads(Path(a.manifest).read_text(encoding="utf-8")), suite, a.manifest)
+            recs = twin_records(load_manifest(a.manifest, "records"), suite, a.manifest)
             cand = pf.candidate_suite("%s-twins" % suite.get("suite"), suite.get("version"),
                                       suite.get("engine_sha"), recs)
             out.write_text(json.dumps(cand, indent=2) + "\n", encoding="utf-8")
@@ -679,12 +754,12 @@ def main(argv=None):
                 if pf.twin_id(rec):
                     manifest = find_manifest(rec)
                     why = (verify_record(rec, manifest) if manifest
-                           else ["%s: no twin manifest beside its .pzl" % rec["id"]])
+                           else ["%s: no usable twin manifest beside its .pzl" % rec["id"]])
                     bad += bool(why)
                     print("%s %s" % ("REFUSED" if why else "ok", "; ".join(why) or rec["id"]))
             return 1 if bad else 0
         else:
-            written = install(json.loads(Path(a.manifest).read_text(encoding="utf-8")), a.forge,
+            written = install(load_manifest(a.manifest, "install"), a.forge,
                              "keep" if a.keep else "replace" if a.replace else "refuse")
             print("wrote %d files under %s" % (len(written), a.forge))
     except TwinRefused as e:

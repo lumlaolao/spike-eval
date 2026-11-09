@@ -1249,12 +1249,15 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
       `original_pzl_sha256` equal to the `pzl_sha256` of the record `twin_of` names.
       `eval/rl/eval_only.puzzle_splits` trusts neither declared field: a twin adds the splits of the non-twin suite
       records whose `pzl_sha256` is its `original_pzl_sha256` only when `verify_record` passes, and in every other case
-      (no manifest, an edited board, an original in no suite, a chain) it reads held out.
+      (no manifest, a malformed manifest, an edited board, an original in no suite, a chain) it reads held out; the split
+      cache is stamped with each twin's manifest (path, mtime, size), so a manifest changed since the last call is
+      judged again. `puzzle_twin.manifest_problems` refuses a manifest of the wrong shape (`install`, `suite`, `verify`
+      exit 1 with a message, not a traceback).
     - **The scripts are versioned by the record, not by `overlay_sha`**, which hashes the overlay's Java and the engine
       patches, never a checkout's `res/`. `twin_set_sha256` is the hash of the sha256 of every generated script the twin
       needs; it is in `suite_sha256` with `twin_of` and `original_pzl_sha256` (all three for twins only, so a suite
       without twins keeps its hash), in the puzzle manifest's `record`, and a row joins its record by `pzl_sha256`. `puzzle_twin.refuse_uninstalled` stops `puzzle_solve.py` and
-      `puzzle_baselines.py` (`prove`, `run`, `verify`) before a game when the installed scripts or the edition differ
+      `puzzle_baselines.py` (`prove`, `run`, `verify`, and `probe` for a board a manifest names) before a game when the installed scripts or the edition differ
       from the record's. A twin set is not an overlay file: `install.sh` installs one only when `TWIN_MANIFEST` is set
       (`TWIN_MODE=keep|replace` for another manifest's twins), because the scripts go into the checkout's cardsfolder
       beside the real cards and derive from third-party scripts.
