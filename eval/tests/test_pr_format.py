@@ -51,7 +51,7 @@ class PrFormatTest(unittest.TestCase):
         for s in ("feat(obs v12): the seat reads the opponent's cards; untargeted answers are offered",
                   "fix(play): the seat may respond to its own trigger on the stack",
                   "eval: plan_audit.py, a plan-vs-action audit over recorded games",
-                  "Merge pull request #79 from SeanCThomas0/obs/v12-opponent-card-text"):
+                  "Merge pull request #79 from lumlaolao/obs/v12-opponent-card-text"):
             self.assertEqual(pf.subject_problems(s), [], s)
 
     def test_bad_subjects_are_named(self):

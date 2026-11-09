@@ -226,7 +226,7 @@ def build_pzl(name, goal, turns, state_text, description, difficulty="Mined"):
     """A Forge .pzl. `state_text` is a GameState dump (the [state] body)."""
     if goal.strip().lower() not in ENFORCED_GOALS:
         raise ValueError("goal %r has no case in Puzzle.addGoalEnforcement" % goal)
-    lines = ["[metadata]", "Name:%s" % name, "URL:https://github.com/SeanCThomas0/mtg-forge-llm-agent",
+    lines = ["[metadata]", "Name:%s" % name, "URL:https://github.com/lumlaolao/spike-eval",
              "Goal:%s" % goal, "Turns:%d" % turns, "Difficulty:%s" % difficulty,
              "Description:%s" % description.replace("\n", "\\n"), "[state]"]
     lines.extend(l for l in state_text.strip().splitlines() if l.strip())

@@ -34,7 +34,7 @@ import sys
 
 SCHEMA = "harness-env-tasks/2"
 VALIDATION_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validation")
-DEFAULT_GH_REPO = "SeanCThomas0/spike-eval"
+DEFAULT_GH_REPO = "lumlaolao/spike-eval"
 
 JAVA_TEST_DIR = re.compile(r"(?:^|/)src/test/java/(.+)\.java$")
 PY_TEST = re.compile(r"^eval/tests/(test_[^/]+)\.py$")
