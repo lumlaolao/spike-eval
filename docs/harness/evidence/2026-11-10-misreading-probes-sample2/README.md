@@ -53,7 +53,7 @@ from the manifest `misread_line`, `rule`, `note` and the `.pzl` state.
 | RP_053 | N | "sees no line to exactly two": a belief, no different play |
 | RP_126 | E | Rise from the Grave on the Ox instead of escaping it |
 
-Counts: **E 13, N 3, U 4.** Wilson 95% for E/20: 43.3 to 81.9%; if U were E, 17/20 (62.1 to 96.8%).
+Counts: **E 13, N 3, U 4.** Wilson 95% for E/20: 43.3 to 81.9%; if U were E, 17/20 (64.0 to 94.8%).
 The four U are the ones whose `misread_line` is a belief ("expects ...") with no stated play; the classification is
 one author's reading of the manifest, and a different reader could move RP_232, RP_234, RP_236 or RP_072. None of the
 seven non-E puzzles was probed.
@@ -76,7 +76,9 @@ rows in the first sample's shape (`puzzle`, `role`, `line`, `cli_last_line`, `bu
 `completion_seed`, `opponent`, `row`, `router`, `game_seed`, `misreading_index`) plus `label`. Roles: `control` (13),
 `misreading` (18), `misreading_other_game_seed` (3, RP_183 line (d), game seeds 2 to 4),
 `variant_not_the_misreading` (4, RP_183 line (c), game seeds 1 to 4). The other probes run while finding menus (sentinels,
-prefixes, `--options` walks, a few scratch lines) are not kept.
+prefixes, `--options` walks, a few scratch lines) are not kept. The exact invocation behind each kept row is its
+`cli_last_line`. The four line-(d) rows carry no `router` (their compact rows were rebuilt from the result rows,
+and their CLI lines re-run and matched), and the sentinel run showing no second Bolt after (d) is not kept.
 
 ## Probe table
 
@@ -96,7 +98,7 @@ were read with `probe_walk`; a payment is one binary draw per land.
 | RP_114 | `Solver:2:0 Solver:2:0` (Wound on Grizzly Bears) | rejected: winner not p0, Scryer not in graveyard | good |
 | RP_191 | `Solver:8:1 Solver:2:0 Solver:2:0 Solver:2:0` (discard cast, then pay mana for the Oskar cast) | rejected: opponent at 4 | good: two Rifts, 8 damage, as the manifest says |
 | RP_084 | `Solver:5:1 Solver:5:1 Solver:4:0 Solver:5:0 Solver:4:0 Solver:3:0 Solver:2:0 Solver:2:0` (return Grizzly Bears) | rejected: Kozilek not on battlefield | good, with a caveat: the pick menu holds only Bears and Kozilek, since Darksteel Colossus never reaches the graveyard, so "picks Colossus" has no play; Bears stands for it. The same pick menu holds under another milled order (checked once, not kept) |
-| RP_183 | (a) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:3 Solver:4:3` (blink first, one Bolt, pass); (b) `Solver:8:5 Solver:8:3 Solver:3:1 Solver:4:3 Solver:4:3 Solver:4:3` (one Bolt, never blink, pass); (c) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:0 Solver:3:1`; (d) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:5 Solver:6:0 Solver:3:1` (Cloudshift resolves first, then one Bolt: the true misreading) | (a), (b) rejected: opponent at 3; (c) `accepted` on game seeds 1 to 4, but it is the proof's order (see "Caution"; kept as `variant_not_the_misreading`); **(d) rejected on game seeds 1, 2, 3, 4** (completion seed 0): `life p1 <= 0 (was 3)` | good for (a), (b), (d). (c): after Cloudshift is cast the caster has priority with it still on the stack, and the 6-option menu at step 5 is that priority; `Solver:6:0` casts the first Bolt in response, so it resolves before Cloudshift (old Kess's use), the blink then renews Kess and the second Bolt uses the new Kess. (d) passes first (`Solver:6:5`), so Cloudshift resolves, then casts one Bolt; the game offers no second Bolt (a sentinel `Solver:99:0` after it is not consumed), so Kess's once-per-turn limit is honoured and the puzzle tests its rule |
+| RP_183 | (a) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:3 Solver:4:3` (one Bolt cast in response to Cloudshift, so it resolves before the blink; then the blink resolves and the solver stops: "the permission is used up even after Cloudshift"); (b) `Solver:8:5 Solver:8:3 Solver:3:1 Solver:4:3 Solver:4:3 Solver:4:3` (one Bolt, never blink, pass); (c) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:0 Solver:3:1`; (d) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:5 Solver:6:0 Solver:3:1` (Cloudshift resolves first, then one Bolt: the true misreading) | (a), (b) rejected: opponent at 3; (c) `accepted` on game seeds 1 to 4, but it is the proof's order (see "Caution"; kept as `variant_not_the_misreading`); **(d) rejected on game seeds 1, 2, 3, 4** (completion seed 0): `life p1 <= 0 (was 3)` | good for (a), (b), (d); (a) has the same Bolt-in-response order as (c), so it tests the stop-after-one-Bolt half of the `misread_line`, and (d) is the only blink-first line. (c): after Cloudshift is cast the caster has priority with it still on the stack, and the 6-option menu at step 5 is that priority; `Solver:6:0` casts the first Bolt in response, so it resolves before Cloudshift (old Kess's use), the blink then renews Kess and the second Bolt uses the new Kess. (d) passes first (`Solver:6:5`), so Cloudshift resolves, then casts one Bolt; the game offers no second Bolt (a sentinel `Solver:99:0` after it is not consumed), so Kess's once-per-turn limit is honoured and the puzzle tests its rule |
 | RP_186 | `Solver:5:1 Solver:2:0 x4` (Counterspell on Abrupt Decay, all four lands tapped) | rejected: Bears not on battlefield | good: Counterspell targets the Decay, which resolves |
 | RP_142 | `Solver:2:1 Solver:3:0` (Lord of the Pit with Kaalia) | rejected: opponent at 11 | good: 2 + 7 = 9 damage, Master's trigger absent |
 | RP_126 | `Solver:5:0 Solver:9:0` (Rise from the Grave on the Ox) | rejected: no +1/+1 counter | good: the game asks nothing after the target |
@@ -166,7 +168,7 @@ resolved, since the caster keeps priority (as RP_152 in the first sample, `varia
   stands for it. RP_109's misreading (attack Liliana, then Downfall her) is rejected, but the same ordering aimed at
   the player is accepted: a second solution of the same plays, found by the menu walk, not a misreading.
 * RP_192 and RP_114 have `Opponent:` steps in the proof; their misreadings were rejected under `ai`, so the
-  search-opponent arm the task asks only for accepted misreadings was not run for them.
+  search-opponent arm, run only for an accepted misreading, was not run for them.
 * The seven non-E puzzles (RP_232, 234, 236, 072 unclear; RP_165, 118, 053 not expressible) were not probed.
 * The classification is one author's reading of the manifest text.
 
