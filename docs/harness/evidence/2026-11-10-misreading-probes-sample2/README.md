@@ -5,12 +5,12 @@ and how many of those the puzzle rejects. This folder repeats it on a second, di
 before any JVM ran. Zero-model, no network, no `OPENROUTER_ALLOW_EGRESS`.
 
 **Result in one paragraph.** Expressible: **13 of 20 (65%, Wilson 95% interval 43 to 82%)**; not expressible 3; unclear 4
-(counted as not expressible; if all four were expressible the rate is 17 of 20). Of the 13 probed, **12 reject every
-whole misreading** against Forge's AI (12 of 13, 92%, interval 67 to 99%). One of the 12, RP_066, is rejected by
-arithmetic of its acceptance (any X below 5 gives fewer than five Mites), not by its rule; without it, 11 of 12 (92%,
-65 to 99%). **One puzzle accepts a misreading: RP_183**, on the line "blink Kess first, then cast both Bolts": the line
-reaches the acceptance state against the `ai` opponent on game seeds 1 to 4 (see "Finding"). The proof has no
-`Opponent:` step, so there was no search-opponent arm to run.
+(counted as not expressible; if all four were expressible the rate is 17 of 20). Of the 13 probed, **all 13 reject every
+whole misreading** against Forge's AI (13 of 13, 100%, interval 77 to 100%). One of the 13, RP_066, is rejected by
+arithmetic of its acceptance (any X below 5 gives fewer than five Mites), not by its rule; without it, 12 of 12 (100%,
+76 to 100%). No puzzle in this sample accepts a misreading. RP_183 first looked like one, but its "accepted" line was
+the proof's order, not the misreading (see "Caution"). The proof has no `Opponent:` step, so there was no
+search-opponent arm to run.
 
 ## Sample
 
@@ -71,10 +71,11 @@ FORGE_HOME=/root/forge python3 eval/puzzles/probe_walk.py --build <build> --pzl 
 ```
 
 Every JVM ran under the shared machine lock. A control whose proof has an `Opponent:` step (RP_192, RP_114) ran with
-`--opponent search`; every other control and every misreading used the default `ai` opponent. `probes.jsonl` has 34
+`--opponent search`; every other control and every misreading used the default `ai` opponent. `probes.jsonl` has 38
 rows in the first sample's shape (`puzzle`, `role`, `line`, `cli_last_line`, `build_overlay_sha`, `pzl_sha256`,
 `completion_seed`, `opponent`, `row`, `router`, `game_seed`, `misreading_index`) plus `label`. Roles: `control` (13),
-`misreading` (18), `misreading_other_game_seed` (3, RP_183, game seeds 2 to 4). The other probes run while finding menus (sentinels,
+`misreading` (18), `misreading_other_game_seed` (3, RP_183 line (d), game seeds 2 to 4),
+`variant_not_the_misreading` (4, RP_183 line (c), game seeds 1 to 4). The other probes run while finding menus (sentinels,
 prefixes, `--options` walks, a few scratch lines) are not kept.
 
 ## Probe table
@@ -95,7 +96,7 @@ were read with `probe_walk`; a payment is one binary draw per land.
 | RP_114 | `Solver:2:0 Solver:2:0` (Wound on Grizzly Bears) | rejected: winner not p0, Scryer not in graveyard | good |
 | RP_191 | `Solver:8:1 Solver:2:0 Solver:2:0 Solver:2:0` (discard cast, then pay mana for the Oskar cast) | rejected: opponent at 4 | good: two Rifts, 8 damage, as the manifest says |
 | RP_084 | `Solver:5:1 Solver:5:1 Solver:4:0 Solver:5:0 Solver:4:0 Solver:3:0 Solver:2:0 Solver:2:0` (return Grizzly Bears) | rejected: Kozilek not on battlefield | good, with a caveat: the pick menu holds only Bears and Kozilek, since Darksteel Colossus never reaches the graveyard, so "picks Colossus" has no play; Bears stands for it. The same pick menu holds under another milled order (checked once, not kept) |
-| RP_183 | (a) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:3 Solver:4:3` (blink first, one Bolt, pass); (b) `Solver:8:5 Solver:8:3 Solver:3:1 Solver:4:3 Solver:4:3 Solver:4:3` (one Bolt, never blink, pass); (c) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:0 Solver:3:1` (blink first, then two Bolts) | (a), (b) rejected: opponent at 3; **(c) accepted**, game seeds 1, 2, 3, 4 | **finding, below** |
+| RP_183 | (a) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:3 Solver:4:3` (blink first, one Bolt, pass); (b) `Solver:8:5 Solver:8:3 Solver:3:1 Solver:4:3 Solver:4:3 Solver:4:3` (one Bolt, never blink, pass); (c) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:0 Solver:3:1 Solver:4:0 Solver:3:1`; (d) `Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0 Solver:6:5 Solver:6:0 Solver:3:1` (Cloudshift resolves first, then one Bolt: the true misreading) | (a), (b) rejected: opponent at 3; (c) `accepted` on game seeds 1 to 4, but it is the proof's order (see "Caution"; kept as `variant_not_the_misreading`); **(d) rejected on game seeds 1, 2, 3, 4** (completion seed 0): `life p1 <= 0 (was 3)` | good for (a), (b), (d). (c): after Cloudshift is cast the caster has priority with it still on the stack, and the 6-option menu at step 5 is that priority; `Solver:6:0` casts the first Bolt in response, so it resolves before Cloudshift (old Kess's use), the blink then renews Kess and the second Bolt uses the new Kess. (d) passes first (`Solver:6:5`), so Cloudshift resolves, then casts one Bolt; the game offers no second Bolt (a sentinel `Solver:99:0` after it is not consumed), so Kess's once-per-turn limit is honoured and the puzzle tests its rule |
 | RP_186 | `Solver:5:1 Solver:2:0 x4` (Counterspell on Abrupt Decay, all four lands tapped) | rejected: Bears not on battlefield | good: Counterspell targets the Decay, which resolves |
 | RP_142 | `Solver:2:1 Solver:3:0` (Lord of the Pit with Kaalia) | rejected: opponent at 11 | good: 2 + 7 = 9 damage, Master's trigger absent |
 | RP_126 | `Solver:5:0 Solver:9:0` (Rise from the Grave on the Ox) | rejected: no +1/+1 counter | good: the game asks nothing after the target |
@@ -121,46 +122,43 @@ Proof lines (found by the search arm, budget 600; each probed above as the contr
 ## Rates (each recomputable from the table and `probes.jsonl`)
 
 * Expressible: 13/20 = 65.0% (Wilson 95% 43.3 to 81.9%).
-* Reject (puzzle level, every whole misreading rejected against the `ai` opponent): 12/13 = 92.3% (66.7 to 98.6%).
-  Without RP_066 (rejected by the count): 11/12 = 91.7% (64.6 to 98.5%).
-* Accept: 1/13 = 7.7% (1.4 to 33.3%). The accepting line (c) is one of 18 distinct whole lines probed; the other 17
-  were rejected. Lines within a puzzle are not independent.
+* Reject (puzzle level, every whole misreading rejected against the `ai` opponent): 13/13 = 100% (77.2 to 100%).
+  Without RP_066 (rejected by the count): 12/12 (75.8 to 100%).
+* Accept: 0/13 = 0% (0 to 22.8%). All 18 distinct whole misreading lines probed against `ai` were rejected (21 rows
+  with the other game seeds). Lines within a puzzle are not independent.
 * Pooled over both samples: the first sample was a simple random draw of 20 from the 210 ids that remain after RP_001 and
   the pilot's ten, and this one a simple random draw of 20 from the 190 that remain after the first, so the two are
   disjoint draws from the same 210-id population and the 40 are one simple random sample of it (the 11 chosen
   or special ids are outside that population). Expressible 27/40 = 67.5% (52.0 to 79.9%; 5 of the 40 were unclear and
-  counted as not expressible). Probed puzzles that reject every misreading: 25/27 = 92.6% (76.6 to 97.9%);
-  without the two acceptance-wording ones (RP_096, RP_066) 23/25 = 92.0% (75.0 to 97.8%). Puzzles that accept a
-  misreading against Forge's AI: 2/27 = 7.4% (2.1 to 23.4%), RP_034 and RP_183. Wilson treats each puzzle as
+  counted as not expressible). Probed puzzles that reject every misreading: 26/27 = 96.3% (81.7 to 99.3%);
+  without the two acceptance-wording ones (RP_096, RP_066) 24/25 = 96.0% (80.5 to 99.3%). Puzzles that accept a
+  misreading against Forge's AI: 1/27 = 3.7% (0.7 to 18.3%), RP_034 only. Wilson treats each puzzle as
   independent; the sampling is without replacement, so these are slightly wide.
 
-## Finding: RP_183 accepts "blink Kess first, then two Bolts"
+## Caution: RP_183's first "accepted" line was the proof's order
 
-The rule (manifest) is that a blinked Kess is a new object with a new use, so Cloudshift after the first Bolt gives a
-second cast. Kess lets you cast up to one instant or sorcery from the graveyard each turn, so blinking BEFORE any Bolt
-gives one cast in all, not two. Forge offers a second Bolt anyway:
+The first draft of this folder reported that RP_183 accepts "blink Kess first, then two Bolts" and suspected a Forge
+deviation from Kess's once-per-turn limit. That was wrong. Line (c) reads as blink then two Bolts, but after Cloudshift
+is cast the caster keeps priority with Cloudshift still on the stack. The 6-option menu at step 5 is that priority
+(0 to 3 Bolt casts, 4 Mountain, 5 PASS), so `Solver:6:0` casts the first Bolt in response: it resolves BEFORE
+Cloudshift, using the old Kess's one cast; Cloudshift then blinks Kess and the second Bolt uses the new Kess. That is the
+proof's order, a variant, not the misreading.
 
-* Line (c) blinks first, casts Bolt at the opponent, and casts the second Bolt at the opponent (router log: both
-  `by Kess, Dissident Mage (7)`, `actions` lists Cloudshift and two Lightning Bolts). The opponent is dead, the
-  acceptance state holds. `accepted` on game seeds 1, 2, 3 and 4. The line is complete (the game asks nothing after
-  the last Bolt), so the completion seed varies nothing and the four runs are game-seed replications.
-* With no blink, the menu after the first Bolt (`probe_walk` on `Solver:8:5 Solver:8:3 Solver:3:1`, not kept as a
-  row) holds Cloudshift, Mountain, Plains and PASS: no second Bolt, as the rule says. With the blink first, the menu
-  after one Bolt (`probe_walk` on the (a) prefix) holds two Bolt entries, Mountain and PASS: the second Bolt is
-  offered. So Forge's once-per-turn limit (`MayPlayLimit$ 1` in the card script) did not count the first Bolt against
-  the blinked Kess.
-* Consequence: the puzzle's check (`life p1 <= 0`) is also met by a play the rule forbids, so as scored it does not
-  separate "knows Kess renews" from "blinks first and casts twice". The misread_line's other half, "thinks the permission
-  is used up after the first Bolt", is rejected by (b), and "blinks first, one Bolt" by (a).
-* This looks like an engine deviation, not only a puzzle weakness; it is not confirmed as such here (see below).
+How it was caught: `probe_walk.py --prefix "Solver:8:0 Solver:2:0 Solver:2:0 Solver:2:0" --options` and the same prefix
+with `Solver:6:5` (PASS) appended show the same 6-option menu, so passing resolved Cloudshift and gave a fresh main-phase
+menu. The true misreading, Cloudshift resolved first and then Bolt, is line (d), with the PASS: `rejected` on game seeds
+1 to 4. After the blink resolves and one Bolt is cast the game offers no second Bolt, so Forge honours the limit: there
+is no engine deviation, and RP_183 does test its rule. Line (c)'s four rows are kept, relabelled
+`variant_not_the_misreading`.
+
+Method: a probe line that casts a spell and then another must pass first if the misreading needs the first spell
+resolved, since the caster keeps priority (as RP_152 in the first sample, `variant_not_the_misreading`).
 
 ## What was not determined
 
 * Each rejected verdict is the line plus ONE seeded random completion (seed 0), as in the earlier folders. Most lines
   end where the game asks nothing more, but this does not prove no completion is accepted. The search-arm follow-up
   (prefix fixed, ask whether ANY completion is accepted) is still open.
-* Whether the RP_183 second Bolt is a Forge defect or my reading of the rule is wrong: the card script's
-  `MayPlayLimit$ 1` and the log labels were read, the engine source was not traced. No engine change was made.
 * RP_218: after the Bolt no suspend is offered (the game asks nothing more after `Solver:4:1 Solver:2:1`), though the
   rule makes suspending a special action allowed after the Bolt. Not investigated; the puzzle's proof order (suspend,
   then Bolt) is unaffected.
@@ -197,8 +195,8 @@ gives one cast in all, not two. Forge offers a second Bolt anyway:
 
 ## Effort (the author's tally, not recomputable from this folder)
 
-Roughly 13 proofs, 13 controls, 34 kept rows in all, and about 190 more JVM runs in `probe_walk` (sentinels,
+Roughly 13 proofs, 13 controls, 38 kept rows in all, and about 190 more JVM runs in `probe_walk` (sentinels,
 `--options` walks) and scratch lines; about 12 to 25 per puzzle, except **RP_183, about 75 JVM runs, over the stop of
-40 per puzzle**: the Kess menu has an eight-value main menu, a three-draw mana payment and two near-identical target
+40 per puzzle** (plus about 10 more JVM runs afterwards to re-check line (c), the menus and line (d) on four game seeds): the Kess menu has an eight-value main menu, a three-draw mana payment and two near-identical target
 menus, and I kept walking after the lines were already found, to learn why the second Bolt was offered. The other
 twelve stayed under 40 (largest RP_109 about 32 and RP_126 about 25).

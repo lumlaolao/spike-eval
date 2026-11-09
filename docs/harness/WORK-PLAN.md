@@ -142,14 +142,15 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   random samples of 20 (`docs/harness/evidence/2026-11-09-misreading-probes-sample/`, seed 20261109, and
   `docs/harness/evidence/2026-11-10-misreading-probes-sample2/`, seed 20261110) measured the share a probe can
   express: 14 of 20 and 13 of 20 puzzles (pooled 27 of 40, 67.5%, Wilson 95% 52 to 80%; unclear counted as not
-  expressible). Of the 27 probed, 25 reject every whole misreading against Forge's AI (RP_096 and RP_066 only by their
-  acceptance wording); **RP_034 and RP_183 each accept a misreading** against the AI (2 of 27, 7.4%, 2.1 to 23.4%),
-  so they do not test their rule as scored (the READMEs, "Finding"); RP_183 may be an engine deviation (Kess offers a
-  second Bolt after a blink-first), not traced. Not tried: the 13 non-expressible or unclear sampled puzzles (and, by
+  expressible). Of the 27 probed, 26 reject every whole misreading against Forge's AI (96.3%, 81.7 to 99.3%; RP_096 and RP_066 only
+  by their acceptance wording); **RP_034 alone accepts a misreading** against the AI (1 of 27, 3.7%, 0.7 to 18.3%), so
+  it does not test its rule as scored (the first README, "Finding"). RP_183's first accepted line was the proof's order
+  (Bolt cast in response to Cloudshift); its true misreading is rejected. A probe line that casts a spell and then
+  another must pass first if the misreading needs the first spell resolved, since the caster keeps priority. Not tried: the 13 non-expressible or unclear sampled puzzles (and, by
   the samples, a similar share of the rest), plus trigger-order ones whose proof does not branch the order (RP_002
   and RP_020 per their `note`s; RP_044's proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at
   the end of a prefix. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
-  misreading is accepted (a probe asks about one); a decision on RP_034's and RP_183's acceptance. #267 can be closed
+  misreading is accepted (a probe asks about one); a decision on RP_034's acceptance. #267 can be closed
   once these are done.
   **AI-blind sweep** (`docs/harness/evidence/2026-11-09-ai-blind-sweep/`, issue #447 generalised): the prover and its
   uniqueness search run with `CONTROLLER_B=ai` on the 56 converted rules-pilot puzzles whose proof beats opponent
