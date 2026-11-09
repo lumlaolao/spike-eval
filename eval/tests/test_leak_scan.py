@@ -1,8 +1,10 @@
 """eval/leak_scan.py: a clean fixture flags nothing, a leak planted in a prompt copy and a phrase planted in a
 reply copy are both flagged, the Description (shown on purpose) is not, a bare word of the system prompt does not
 excuse a reply, and the run directory maps to its .pzl. Each threshold has a test that fails when it moves."""
+import contextlib
 import copy
 import hashlib
+import io
 import json
 import os
 import sys
@@ -186,11 +188,18 @@ class LeakScanTest(unittest.TestCase):
         for text in ("This looks like it is from the Forge puzzle collection, I recall this exact puzzle.",
                      "It is part of a known set of Forge puzzles.", "I recalled this puzzle from my memory as a Forge puzzle deck.",
                      "Maybe a known puzzle from a Forge puzzle series.",
-                     "I recall " + "so " * 11 + "this Forge puzzle."):         # 12 words between: the window
+                     "I recall " + "so " * 11 + "this Forge puzzle.",         # 12 words between: the window
+                     "I recall the Forge " + "so " * 10 + "puzzle.",           # 10 words between Forge and puzzle: the core
+                     "This Forge puzzle" + " so" * 12 + " recall",          # 12 words between puzzle and the recall word
+                     "The puzzle " + "so " * 10 + "Forge, which I recall."):
+
             self.assertTrue(rx.search(text), text)
         for text in ("The Forge puzzle goal is to win this turn.", "I recall Forge asks which cards to splice.",
                      "We forge ahead: the puzzle is known.",
-                     "I recall " + "so " * 13 + "this Forge puzzle."):         # 13 words between: outside it
+                     "I recall " + "so " * 12 + "this Forge puzzle.",         # 13 words between: one outside the window
+                     "I recall the Forge " + "so " * 11 + "puzzle.",           # 11 words between Forge and puzzle: outside
+                     "This Forge puzzle" + " so" * 13 + " recall",          # 13 words: one outside the window
+                     "The puzzle " + "so " * 11 + "Forge, which I recall."):
             self.assertFalse(rx.search(text), text)
 
     def test_forge_class_names_are_their_own_category_and_not_hidden_by_the_word(self):
@@ -226,6 +235,13 @@ class LeakScanTest(unittest.TestCase):
         _t, hits = self.run_scan(r, pzl=PZL_SHORT_TITLE, pid="rules_cccccccccccc")
         self.assertNotIn("name_title", {h["category"] for h in hits})
 
+    def test_a_three_word_title_is_not_a_needle_and_a_four_word_one_is(self):
+        def cats(text):
+            return {c for c, _n in leak_scan.build_needles(text, "rules_bbbbbbbbbbbb")}
+        self.assertIn("name_title", cats(PZL_TITLED))
+        three = PZL_TITLED.replace("The Scales still count", "Scales still count")
+        self.assertNotIn("name_title", cats(three))
+
     def test_nine_words_of_the_rule_are_not_a_leak_and_ten_are(self):
         rule = "the exhaustive maximum is 27 drained in 14 steps: every death with every drainer still out".split()
         for n, expect in ((9, False), (10, True)):
@@ -248,6 +264,12 @@ class LeakScanTest(unittest.TestCase):
         self.assertEqual(leak_scan.model_kind("script:/x.pzl"), "script")
         self.assertEqual(leak_scan.model_kind("openrouter:fake/harness-model"), "fake")
         self.assertEqual(leak_scan.model_kind("", "random"), "zero-model")
+        for arm in ("ai-log", "search", "script"):      # solver arms that name no model: nothing a model wrote
+            self.assertEqual(leak_scan.model_kind("", arm), "zero-model", arm)
+        self.assertEqual(leak_scan.model_kind("", "llm"), "unlabelled")      # an llm seat that names no model is unknown
+        self.assertEqual(leak_scan.model_kind("", ""), "unlabelled")
+        self.assertEqual(leak_scan.model_kind("openrouter:a/b", "random"), "model")      # the spec wins over the arm
+        self.assertEqual(leak_scan.model_kind("random"), "zero-model")
         self.assertEqual(leak_scan.model_kind("openrouter:a/b", "llm"), "model")
         self.assertEqual(leak_scan.model_kind("claude-cli:opus-5.5", "llm"), "claude-cli")
 
@@ -348,7 +370,8 @@ class LeakScanTest(unittest.TestCase):
         n, before = leak_scan.file_list_sha256(runs)
         with open(os.path.join(d, "game-1-1.jsonl"), "a") as fh:
             fh.write("\n")
-        self.assertEqual(leak_scan.file_list_sha256(runs), (n, leak_scan.file_list_sha256(runs)[1]))
+        self.assertEqual(leak_scan.file_list_sha256(runs)[0], n)
+        self.assertEqual(leak_scan.file_list_sha256(runs), leak_scan.file_list_sha256(runs))      # deterministic
         self.assertNotEqual(before, leak_scan.file_list_sha256(runs)[1])
 
     def test_compare_gives_each_model_its_rows_reasoning_and_hits(self):
@@ -360,20 +383,73 @@ class LeakScanTest(unittest.TestCase):
         write_run(runs, loud, name="frontier5-fill", model="openrouter:b/loud")
         write_run(runs, loud, name="frontier5-fill/two", model="b_loud")      # the folder-name labelling of b/loud
         write_run(runs, loud, name="hard-gen", model="openrouter:c/elsewhere")
+        mixed = [{"t": "context_call", "prompt": PROMPT, "raw_reply": REPLY + " This looks like a test.", "reasoning": "z" * 100}]
+        write_run(runs, mixed, name="frontier5-mixed", model="openrouter:d/mixed")      # the hit is not in the reasoning
         table, _hits = leak_scan.scan(runs, [self.pzl_dir], 1, only=leak_scan.FRONTIER)
         by = {r["model"]: r for r in leak_scan.compare(table)}
-        self.assertEqual(sorted(by), ["a/quiet", "b/loud"])
+        self.assertEqual(sorted(by), ["a/quiet", "b/loud", "d/mixed"])
         self.assertEqual((by["a/quiet"]["reply_rows"], by["a/quiet"]["reasoning_rows"], by["a/quiet"]["reasoning_chars"],
                           by["a/quiet"]["hit_rows"]), (1, 1, 100, 0))
         loud_row = by["b/loud"]
         self.assertEqual((loud_row["games"], loud_row["reply_rows"], loud_row["reasoning_rows"],
                           loud_row["reasoning_chars"], loud_row["hit_rows"], loud_row["hit_games"]), (2, 4, 2, 3848, 2, 2))
-        self.assertAlmostEqual(loud_row["hits_per_million_reasoning_chars"], 2e6 / 3848)
+        self.assertAlmostEqual(loud_row["reasoning_hits_per_million_chars"], 2e6 / 3848)
+        mixed_row = by["d/mixed"]      # a hit row, but not in reasoning: the rate's numerator counts reasoning hits only
+        self.assertEqual((mixed_row["hit_rows"], mixed_row["reasoning_hit_rows"]), (1, 0))
+        self.assertEqual(mixed_row["reasoning_hits_per_million_chars"], 0)
         self.assertEqual(loud_row["labels"], ["b_loud", "openrouter:b/loud"])
         self.assertLess(loud_row["hit_game_rate"]["wilson95"][0], 1)
         self.assertIn("b/loud", leak_scan.compare_text(list(by.values())))
         self.assertEqual(leak_scan.canonical_model("z-ai_glm-5.3"), "z-ai/glm-5.3")
         self.assertEqual(leak_scan.canonical_model("jev:typesafe/jev-1.14"), "jev:typesafe/jev-1.14")
+
+    def test_a_game_with_no_results_file_takes_its_model_from_the_vendor_model_folder(self):
+        runs = os.path.join(self.tmp.name, "folders")
+        for rel in ("puzzles/frontier5-long/x-ai_grok-4.7/hard-splice2-aaa", "puzzles/frontier5-fill/m__hard-atog"):
+            d = os.path.join(runs, *rel.split("/"))
+            os.makedirs(d)
+            with open(os.path.join(d, "game-1-1.jsonl"), "w") as fh:
+                fh.write("".join(json.dumps(r) + "\n" for r in rows()))
+        table, _hits = leak_scan.scan(runs, [self.pzl_dir], 1, only=leak_scan.FRONTIER)
+        self.assertEqual(sorted(k[1] for k in table), ["m", "x-ai_grok-4.7"])
+        self.assertEqual({r["model"] for r in leak_scan.compare(table)}, {"m", "x-ai/grok-4.7"})
+        self.assertEqual({k[2] for k in table}, {"model"})
+        for rel in ("puzzles/frontier5-long/hard-splice2-aaa/game-1.jsonl", "demo/x-ai_grok-4.7/game-1.jsonl",
+                    "puzzles/frontier5-long/x-ai_grok-4.7.jsonl"):
+            self.assertEqual(leak_scan.folder_model(rel), "", rel)
+
+    def test_an_http_transcript_is_counted_apart_from_the_game_rates(self):
+        runs = os.path.join(self.tmp.name, "httprows")
+        d = write_run(runs, rows())
+        os.makedirs(os.path.join(d, "transcripts"))
+        reply = {"choices": [{"message": {"content": "This looks like a test of planning.", "reasoning": ""}}]}
+        with open(os.path.join(d, "transcripts", "http-1.jsonl"), "w") as fh:
+            fh.write(json.dumps({"phase": "response", "response_body": json.dumps(reply)}) + "\n")
+        table, _hits = leak_scan.scan(runs, [self.pzl_dir], 1)
+        (_k, c), = table.items()
+        self.assertEqual((c["rows_reply_side"], c["hit_rows_reply_awareness"]), (3, 0))      # the game file's rows only
+        self.assertEqual((c["http_rows_reply_side"], c["http_hit_rows_reply_awareness"]), (1, 1))
+        out = os.path.join(self.tmp.name, "httpev")
+        leak_scan.write_evidence(runs, table, [], out, "cmd")      # the record keeps the http and row-type counters
+        with open(os.path.join(out, "summary.compact.json")) as fh:
+            kept = json.load(fh)["keys"][0]["counters"]
+        self.assertEqual((kept["http_hit_rows_reply_awareness"], kept["http_rows_response"], kept["rows_decision"]), (1, 1, 1))
+
+    def test_main_compare_scans_only_the_frontier5_corpora_and_writes_both_files(self):
+        runs = os.path.join(self.tmp.name, "wiring")
+        write_run(runs, rows(), name="frontier5", model="openrouter:a/in")
+        write_run(runs, rows(), name="hard-gen", model="openrouter:c/out")
+        ev = os.path.join(self.tmp.name, "wiring-ev")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(leak_scan.main([runs, "--compare", "--evidence", ev, "--jobs", "1"]), 0)
+        self.assertEqual(sorted(os.listdir(ev)), ["compare-frontier5.json", "compare-frontier5.txt"])
+        with open(os.path.join(ev, "compare-frontier5.json")) as fh:
+            doc = json.load(fh)
+        self.assertEqual([m["model"] for m in doc["models"]], ["a/in"])
+        with open(os.path.join(ev, "compare-frontier5.txt")) as fh:
+            self.assertEqual(fh.read(), out.getvalue())
+        self.assertNotIn("c/out", out.getvalue())
 
 
 if __name__ == "__main__":

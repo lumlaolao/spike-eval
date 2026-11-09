@@ -52,7 +52,7 @@ HEADER_CATEGORIES = ("id", "meta_line", "name_title")      # what the pre-epoch-
 TEXT_CAP = 400_000          # characters of one field read; a prompt is a few thousand
 SNIP = 90                   # characters of context either side of a hit
 SEQ_LINES = 3               # consecutive [solution] steps that make a needle
-WINDOW = 10                 # words of a Rule line that make a needle (8 matched a model's own paraphrase of a card)
+WINDOW = 10                 # words of a Rule line that make a needle
 
 
 def norm(s):
@@ -378,12 +378,13 @@ def id_regex(needles):
 
 # ------------------------------------------------------------------ run directories
 
-ZERO_ARMS = {"random", "first", "floor", "ai", "greedy", "empty", "garbage", "pass", "none", ""}
+ZERO_ARMS = {"random", "first", "floor", "ai", "greedy", "empty", "garbage", "pass", "none", "ai-log", "search", "script"}
 
 
 def model_kind(spec, arm=""):
     """What wrote the replies: 'model' (a real model), 'claude-cli', 'fake' (loopback stub), 'script' (a stored
-    line), 'replay' (a recorded attempt served back) or 'zero-model' (a baseline arm) or 'unlabelled'."""
+    line), 'replay' (a recorded attempt served back), 'zero-model' (a baseline arm) or 'unlabelled' (no spec and
+    no baseline arm)."""
     s = (spec or "").lower()
     if s.startswith("script:"):
         return "script"
@@ -391,7 +392,9 @@ def model_kind(spec, arm=""):
         return "replay"
     if "fake" in s:
         return "fake"
-    if s.split(":")[0] in ZERO_ARMS or (arm or "").lower() in ZERO_ARMS and not s:
+    if not s:      # no spec: only a baseline arm says what wrote the replies; an llm arm with no model is unknown
+        return "zero-model" if (arm or "").lower() in ZERO_ARMS else "unlabelled"
+    if s.split(":")[0] in ZERO_ARMS:
         return "zero-model"
     if s.startswith("claude-cli"):
         return "claude-cli"
@@ -439,6 +442,20 @@ def _read_results(path):
     return {"id": first.get("id", ""), "sha": first.get("pzl_sha256", ""),
             "model": "|".join(models), "arm": "|".join(arms),
             "epoch": "|".join(sorted({str(r.get("harness_epoch") or "") for r in rows}))}
+
+
+FOLDER_MODEL = re.compile(r"^[a-z0-9][a-z0-9.-]*_[a-z0-9][a-z0-9._-]*$")      # `x-ai_grok-4.7`: vendor_model
+
+
+def folder_model(rel):
+    """The model a run-relative path names when no file does: a `<model>__<puzzle>` folder, else the `<vendor>_<model>`
+    folder directly under the corpus (`puzzles/frontier5-long/x-ai_grok-4.7/hard-splice2-.../game-*.jsonl`)."""
+    parts = rel.split(os.sep)
+    named = [c for c in parts if "__" in c]
+    if named:
+        return named[0].split("__")[0]
+    under = parts[2:-1] if parts[0] == "puzzles" else []
+    return under[0] if under and FOLDER_MODEL.match(under[0]) else ""
 
 
 def corpus_of(runs, path):
@@ -516,7 +533,8 @@ def scan_file(args):
             if not prompt and not reply:
                 continue
             pre = "http_" if is_http else ""      # an http transcript repeats the game file's rows: counted apart
-            counters[pre + "rows_" + str(row.get("t") or ("puzzle_result" if row.get("schema") else "http"))] += 1
+            kind_of_row = row.get("phase") if is_http else row.get("t") or ("puzzle_result" if row.get("schema") else "?")
+            counters[pre + "rows_" + str(kind_of_row)] += 1
             counters[pre + "rows"] += 1
             if row.get("t") == "context_call" and row.get("reasoning") and not is_http:
                 counters["reasoning_rows"] += 1
@@ -526,6 +544,8 @@ def scan_file(args):
             row_hits = scan_texts(prompt, reply, needles, id_rx, last_prompt, _TOLD)
             if prompt:
                 last_prompt = " ".join(norm(t) for _f, t in prompt)
+            counters["reasoning_hit_rows"] += any(h["side"] == "reply" and h["category"] == "awareness" and not h["echo"]
+                                                  and h["field"] == "reasoning" for h in row_hits)
             for cat in {(h["side"], h["category"], h["echo"]) for h in row_hits}:
                 counters["%shit_rows_%s_%s%s" % (pre, cat[0], cat[1], "_echo" if cat[2] else "")] += 1
                 if counters["games"]:
@@ -541,8 +561,7 @@ def scan_file(args):
                 h.update(file=os.path.relpath(path, runs), line=ln, puzzle=(ctx or {}).get("id", ""))
             hits += row_hits
     if not model and not arm:                  # no puzzle-results.jsonl or game line: the folder names it, or nothing does
-        named = [c for c in os.path.relpath(path, runs).split(os.sep) if "__" in c]
-        model = named[0].split("__")[0] if named else ""
+        model = folder_model(os.path.relpath(path, runs))
     counters.update(dict.fromkeys(file_hits, 1))      # a game (file) with at least one hit of the kind
     kind = model_kind(model.split("|")[0], arm.split("|")[0]) if model or arm else "unlabelled"
     for h in hits:
@@ -602,7 +621,7 @@ def rate(hits_n, n):
 # ------------------------------------------------------------------ the kilobyte record of a scan
 
 KEEP_COUNTERS = ("files", "games", "rows", "rows_prompt_side", "rows_reply_side", "result_rows_stamped",
-                 "header_rows_stamped", "reasoning_rows", "reasoning_chars")
+                 "header_rows_stamped", "reasoning_rows", "reasoning_chars", "reasoning_hit_rows")
 
 
 def file_list_sha256(runs):
@@ -624,9 +643,9 @@ def write_evidence(runs, table, hits, outdir, command):
     n_files, digest = file_list_sha256(runs)
     keys = []
     for (corpus, model, kind, epoch), c in sorted(table.items()):
-        keep = {k: v for k, v in c.items() if v and (k in KEEP_COUNTERS or k.startswith(("hit_rows_", "hit_games_",
-                                                                                         "result_rows_20", "header_rows_20",
-                                                                                         "puzzle_mapped_")))}
+        keep = {k: v for k, v in c.items() if v and (k in KEEP_COUNTERS or k.startswith((
+            "hit_rows_", "hit_games_", "http_hit_rows_", "http_rows", "rows_", "result_rows_20", "header_rows_20",
+            "puzzle_mapped_")))}
         keys.append({"corpus": corpus, "model": model, "kind": kind, "epoch": epoch, "counters": keep})
     with open(os.path.join(outdir, "summary.compact.json"), "w", encoding="utf-8") as fh:
         json.dump({"command": command, "files": n_files, "file_list_sha256": digest, "keys": keys}, fh, separators=(",", ":"))
@@ -660,7 +679,7 @@ def write_evidence(runs, table, hits, outdir, command):
 
 FRONTIER = "puzzles/frontier5"          # the frontier5, frontier5-fill, -long, -kimi... corpora
 COMPARE_COLUMNS = ("reply_rows", "games", "reasoning_rows", "reasoning_chars", "hit_rows", "hit_games",
-                   "recognition_rows")
+                   "recognition_rows", "reasoning_hit_rows")
 
 
 def canonical_model(label):
@@ -673,11 +692,17 @@ def canonical_model(label):
     return label or "unlabelled"
 
 
+def per_million(c):
+    """Awareness hit rows whose hit is in the `reasoning` field, per million reasoning characters: the same field
+    in numerator and denominator."""
+    return 1e6 * c["reasoning_hit_rows"] / c["reasoning_chars"] if c["reasoning_chars"] else None
+
+
 def compare(table):
     """Per model over the corpora in `table` (a scan of the frontier5* corpora): reply rows, games, rows that carry
     reasoning, reasoning characters, awareness phrase-hit rows and games, rows with a recognition phrase, the hit
-    rate per reply row and per game (Wilson 95%) and the hits per million reasoning characters (a point rate: the
-    hits cluster in a few games, so no interval is claimed). Also the labels that fold into each model."""
+    rate per reply row and per game (Wilson 95%) and the reasoning-field hit rows per million reasoning characters
+    (a point rate: the hits cluster in a few games, so no interval is claimed). Also the labels that fold into each model."""
     by = collections.defaultdict(collections.Counter)
     labels = collections.defaultdict(set)
     for (_corpus, model, _kind, _epoch), c in table.items():
@@ -686,14 +711,14 @@ def compare(table):
         by[m].update({"reply_rows": c.get("rows_reply_side", 0), "games": c.get("games", 0),
                       "reasoning_rows": c.get("reasoning_rows", 0), "reasoning_chars": c.get("reasoning_chars", 0),
                       "hit_rows": c.get("hit_rows_reply_awareness", 0), "hit_games": c.get("hit_games_reply_awareness", 0),
-                      "recognition_rows": c.get("hit_rows_reply_recognition", 0)})
+                      "recognition_rows": c.get("hit_rows_reply_recognition", 0),
+                      "reasoning_hit_rows": c.get("reasoning_hit_rows", 0)})
     out = []
     for m in sorted(by):
         c = by[m]
         out.append({"model": m, "labels": sorted(labels[m]), **{k: c[k] for k in COMPARE_COLUMNS},
                     "hit_row_rate": rate(c["hit_rows"], c["reply_rows"]), "hit_game_rate": rate(c["hit_games"], c["games"]),
-                    "hits_per_million_reasoning_chars": (1e6 * c["hit_rows"] / c["reasoning_chars"]
-                                                         if c["reasoning_chars"] else None)})
+                    "reasoning_hits_per_million_chars": per_million(c)})
     return out
 
 
@@ -701,11 +726,11 @@ def compare_text(rows):
     """The comparison as a fixed-width table, models in name order, then the sum of every row."""
     head = "%-34s %6s %5s %6s %12s %5s %5s %-20s %-18s %9s %5s" % (
         "model", "rows", "games", "r-rows", "r-chars", "hits", "h-gms", "hit rows [95%]", "hit games [95%]",
-        "hits/Mch", "recog")
+        "rh/Mch", "recog")
 
     def fmt(r):
         rr, gr = r["hit_row_rate"], r["hit_game_rate"]
-        per = r["hits_per_million_reasoning_chars"]
+        per = r["reasoning_hits_per_million_chars"]
         return "%-34s %6d %5d %6d %12d %5d %5d %-20s %-18s %9s %5d" % (
             r["model"], r["reply_rows"], r["games"], r["reasoning_rows"], r["reasoning_chars"], r["hit_rows"],
             r["hit_games"], "%.2f%% [%.2f, %.2f]" % (100 * (rr["rate"] or 0), 100 * rr["wilson95"][0], 100 * rr["wilson95"][1]),
@@ -715,8 +740,7 @@ def compare_text(rows):
     total = {k: sum(r[k] for r in rows) for k in COMPARE_COLUMNS}
     total_row = {"model": "ALL (sum of the rows above)", **total, "hit_row_rate": rate(total["hit_rows"], total["reply_rows"]),
                  "hit_game_rate": rate(total["hit_games"], total["games"]),
-                 "hits_per_million_reasoning_chars": (1e6 * total["hit_rows"] / total["reasoning_chars"]
-                                                      if total["reasoning_chars"] else None)}
+                 "reasoning_hits_per_million_chars": per_million(total)}
     return "\n".join([head] + [fmt(r) for r in rows] + [fmt(total_row)])
 
 
@@ -828,16 +852,17 @@ def main(argv=None):
         print(json.dumps(selfcheck(args.runs, roots, args.selfcheck, args.seed), indent=1))
         return 0
     if args.compare:
-        table, hits = scan(args.runs, roots, args.jobs, only=FRONTIER)
+        table, _hits = scan(args.runs, roots, args.jobs, only=FRONTIER)
         rows = compare(table)
-        print(compare_text(rows))
+        text = compare_text(rows)
+        print(text)
         if args.evidence:
             os.makedirs(args.evidence, exist_ok=True)
             with open(os.path.join(args.evidence, "compare-frontier5.json"), "w", encoding="utf-8") as fh:
                 json.dump({"command": "python3 eval/leak_scan.py " + " ".join(argv or sys.argv[1:]), "models": rows}, fh,
                           indent=1)
             with open(os.path.join(args.evidence, "compare-frontier5.txt"), "w", encoding="utf-8") as fh:
-                fh.write(compare_text(rows) + "\n")
+                fh.write(text + "\n")
         return 0
     table, hits = scan(args.runs, roots, args.jobs)
     summary = summarize(table)
