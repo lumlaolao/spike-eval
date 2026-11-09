@@ -78,6 +78,13 @@ def sha256_file(path):
     return sha256_bytes(Path(path).read_bytes())
 
 
+def twin_set_sha(cards):
+    """sha256 over a twin puzzle's cards, {twin name: sha256 of its generated card script}: what the engine reads
+    when it plays the twin. The overlay_sha does not hash a checkout's res/ (the card scripts), so this is the
+    stamp that moves when a twin script does (puzzle_twin.py, docs/harness/ARCHITECTURE.md)."""
+    return sha256_bytes(json.dumps(sorted(cards.items()), separators=(",", ":")).encode("utf-8"))
+
+
 def split_for(puzzle_id, heldout_fraction=HELDOUT_FRACTION):
     """'heldout' for the ~30% of ids whose sha256 falls in the bottom of the hash space.
 
@@ -85,6 +92,26 @@ def split_for(puzzle_id, heldout_fraction=HELDOUT_FRACTION):
     puzzles are held out) and anyone can recompute it."""
     h = int(hashlib.sha256(puzzle_id.encode("utf-8")).hexdigest()[:8], 16)
     return "heldout" if h < heldout_fraction * 0x100000000 else "open"
+
+
+def twin_id(rec):
+    """The original's puzzle id a record declares in `twin_of`, or None when it declares none (or a non-string)."""
+    of = rec.get("twin_of")
+    return of if isinstance(of, str) else None
+
+
+def record_split(rec):
+    """The split a record must carry: sha256 of its id, except a twin (`twin_of`), which carries the split of the id
+    it declares. That is a consistency check on the declaration only: `twin_of` is a label a hand edit can point
+    anywhere. What ties a twin to its original's board is `puzzle_twin.verify_record` (the twin's .pzl is the
+    original's, renamed by the manifest, byte for byte), run by `validate_puzzle` and `puzzle_twin.py suite` when the
+    twin manifest is found, and demanded by `eval/rl/eval_only.puzzle_splits`, where a twin it cannot verify reads
+    held out."""
+    return split_for(twin_id(rec)) if twin_id(rec) else split_for(rec["id"])
+
+
+def is_twin(rec):
+    return rec.get("twin_of") is not None
 
 
 # ------------------------------------------------------------------ .pzl text
@@ -365,6 +392,33 @@ def difficulty_problems(pid, d, tier, skills=None):
     return p
 
 
+def twin_problems(rec):
+    """Problems with a record's twin fields: `twin_of` (the original's puzzle id), `twin_cards` ({twin name: sha256 of
+    its generated script}), `twin_set_sha256` (twin_set_sha of those) and `original_pzl_sha256` (the original's board,
+    which the split guard follows, never the declared id alone). Empty for a record that is not a twin and
+    carries none of them."""
+    pid = rec.get("id")
+    keys = [k for k in ("twin_of", "twin_cards", "twin_set_sha256", "original_pzl_sha256") if k in rec]
+    if not keys:
+        return []
+    of = rec.get("twin_of")
+    if not isinstance(of, str) or not _ID_RE.match(of):
+        return ["%s: twin_of %r is not a puzzle id" % (pid, of)]
+    if of == pid:
+        return ["%s: a twin of itself" % pid]
+    cards = rec.get("twin_cards")
+    if (not isinstance(cards, dict) or not cards
+            or not all(isinstance(k, str) and isinstance(v, str) and re.fullmatch(r"[0-9a-f]{64}", v)
+                       for k, v in cards.items())):
+        return ["%s: a twin without twin_cards ({twin name: sha256 of its script})" % pid]
+    if rec.get("twin_set_sha256") != twin_set_sha(cards):
+        return ["%s: twin_set_sha256 does not match twin_cards" % pid]
+    orig = rec.get("original_pzl_sha256")
+    if not isinstance(orig, str) or not re.fullmatch(r"[0-9a-f]{64}", orig):
+        return ["%s: a twin without original_pzl_sha256 (the sha256 of its original's .pzl)" % pid]
+    return []
+
+
 def validate_puzzle(rec, repo=REPO, check_files=True):
     """List of problems with one puzzle record (empty list = valid)."""
     p = []
@@ -376,8 +430,16 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
         return p
     if rec.get("split") not in SPLITS:
         p.append("%s: split %r not in %s" % (pid, rec.get("split"), SPLITS))
-    elif rec["split"] != split_for(pid):
-        p.append("%s: split %r but sha256(id) puts it in %r" % (pid, rec["split"], split_for(pid)))
+    elif rec["split"] != record_split(rec):
+        p.append("%s: split %r but sha256(%s) puts it in %r" % (
+            pid, rec["split"], "twin_of " + twin_id(rec) if twin_id(rec) else "id",
+            record_split(rec)))
+    p.extend(twin_problems(rec))
+    if check_files and twin_id(rec) and not twin_problems(rec):
+        import puzzle_twin   # imports this module: a call-time import
+        manifest = puzzle_twin.find_manifest(rec, repo)
+        if manifest is not None:   # runs/ is not committed: without the manifest eval_only reads the twin held out
+            p.extend(puzzle_twin.verify_record(rec, manifest, repo))
     status = rec.get("status")
     if status not in STATUSES:
         p.append("%s: status %r not in %s" % (pid, status, STATUSES))
@@ -459,12 +521,41 @@ def suite_hash(manifest):
         base = (r.get("baselines") or {}).get("random") or {}
         puzzles.append([r.get("id"), r.get("pzl_sha256"), (r.get("goal") or {}).get("engine_goal"),
                         (r.get("goal") or {}).get("turns"), r.get("split"), r.get("status"), r.get("tier"),
-                        base.get("solved"), base.get("n")])
+                        base.get("solved"), base.get("n")]
+                       + ([r["twin_of"], r.get("twin_set_sha256"), r.get("original_pzl_sha256")] if is_twin(r) else []))
     puzzles.sort(key=lambda x: str(x[0]))
     body = json.dumps({"suite": manifest.get("suite"), "version": manifest.get("version"),
                        "engine_sha": manifest.get("engine_sha"), "puzzles": puzzles},
                       sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def suite_twin_problems(manifest):
+    """Twin records against the rest of their suite: one twin per original, an original that is itself not a twin
+    (no chains), and an original in this suite carries the split its twin carries."""
+    recs = [r for r in manifest.get("puzzles", []) if isinstance(r, dict)]
+    by_id = {r.get("id"): r for r in recs}
+    p, seen = [], {}
+    for r in recs:
+        of = twin_id(r)
+        if of is None:
+            continue
+        if of in seen:
+            p.append("%s and %s are both twins of %s: pairing needs one" % (seen[of], r.get("id"), of))
+        seen[of] = r.get("id")
+        orig = by_id.get(of)
+        if orig is not None and orig.get("pzl_sha256") != r.get("original_pzl_sha256"):
+            p.append("%s: original_pzl_sha256 is not the pzl_sha256 of %s" % (r.get("id"), of))
+        if orig is not None and is_twin(orig):
+            p.append("%s: twin_of %s, which is itself a twin" % (r.get("id"), of))
+        elif orig is not None and orig.get("split") != r.get("split"):
+            p.append("%s: split %r but its original %s is %r" % (r.get("id"), r.get("split"), of, orig.get("split")))
+    return p
+
+
+def twin_originals(manifest):
+    """{twin puzzle id: original puzzle id} over a suite's twin records."""
+    return {r["id"]: r["twin_of"] for r in manifest.get("puzzles", []) if twin_id(r)}
 
 
 def validate_suite(manifest, repo=REPO, check_files=True):
@@ -480,6 +571,7 @@ def validate_suite(manifest, repo=REPO, check_files=True):
         p.append("duplicate puzzle ids: %s" % dup)
     for r in manifest.get("puzzles", []):
         p.extend(validate_puzzle(r, repo=repo, check_files=check_files))
+    p.extend(suite_twin_problems(manifest))
     if manifest.get("frozen"):
         if manifest.get("suite_sha256") != suite_hash(manifest):
             p.append("frozen suite's suite_sha256 does not match its contents (edited after freezing?)")

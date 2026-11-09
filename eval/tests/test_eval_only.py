@@ -22,6 +22,7 @@ import evalpath  # noqa: E402,F401
 import eval_only  # noqa: E402
 import mtg_env  # noqa: E402
 import puzzle_format  # noqa: E402
+import puzzle_twin  # noqa: E402
 import rollout  # noqa: E402
 from test_mtg_env import stub_launcher  # noqa: E402
 
@@ -78,6 +79,98 @@ class PuzzleTest(unittest.TestCase):
         self.assertTrue(any("heldout puzzle" in w for w in eval_only.reasons(puzzle=p, suites_dir=d)))
         suite_with(d, {"id": "a", "split": "open", "pzl_sha256": h, "pzl": "p.pzl"})
         self.assertEqual(eval_only.reasons(puzzle=p, suites_dir=d), [])
+
+    def _twin(self, tag, orig_id, orig_pzl, twin_id=None):
+        """A real twin of the board `orig_pzl` (a path): its renamed .pzl and manifest under tmp/<tag>, and the record
+        that names them. The record's `pzl` is absolute, so no repository is needed to find the files."""
+        orig_pzl = Path(orig_pzl)
+        text = orig_pzl.read_text(encoding="utf-8")
+        names = puzzle_twin.board_names(text) - puzzle_twin.KEEP_NAMES
+        mapping = puzzle_twin.assign_twins(names, seed=1, real_names=set())
+        twin_id = twin_id or orig_id + "-twin"
+        d = self.tmp / tag
+        (d / "pzl").mkdir(parents=True)
+        board = d / "pzl" / (twin_id + ".pzl")
+        board.write_text(puzzle_twin.twin_pzl(text, mapping), encoding="utf-8")
+        scripts = {mapping[n]: puzzle_format.sha256_bytes(("script " + n).encode()) for n in sorted(names)}
+        (d / puzzle_twin.MANIFEST).write_text(json.dumps({
+            "cards": [{"original": n, "twin": mapping[n], "twin_sha256": scripts[mapping[n]]} for n in sorted(names)],
+            "puzzles": [{"id": orig_id, "twin_id": twin_id, "pzl": "pzl/%s.pzl" % twin_id,
+                         "original_pzl": str(orig_pzl), "cards": sorted(names),
+                         "original_pzl_sha256": puzzle_format.sha256_file(orig_pzl)}]}))
+        rec = {"id": twin_id, "split": puzzle_format.split_for(orig_id), "twin_of": orig_id, "pzl": str(board),
+               "pzl_sha256": puzzle_format.sha256_file(board),
+               "original_pzl_sha256": puzzle_format.sha256_file(orig_pzl),
+               "twin_cards": scripts, "twin_set_sha256": puzzle_format.twin_set_sha(scripts)}
+        return rec, board
+
+    def _suite(self, *records):
+        d = self.tmp / "suites"
+        d.mkdir(exist_ok=True)
+        suite_with(d, *records)
+        return d
+
+    @staticmethod
+    def _heldout(reasons):
+        return any("heldout puzzle" in w for w in reasons)
+
+    def _ids(self):
+        held = next(i for i in ("o%d" % k for k in range(200)) if puzzle_format.split_for(i) == "heldout")
+        open_ = next(i for i in ("p%d" % k for k in range(200)) if puzzle_format.split_for(i) == "open")
+        return held, open_
+
+    def test_a_verified_twin_is_judged_by_the_board_it_renames(self):
+        held, open_ = self._ids()
+        h_rec = {"id": held, "split": "heldout", "pzl_sha256": puzzle_format.sha256_file(HELDOUT)}
+        o_rec = {"id": open_, "split": "open", "pzl_sha256": puzzle_format.sha256_file(OPEN)}
+        rec, twin = self._twin("h", held, HELDOUT)
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=self._suite(h_rec, rec))))
+        rec, twin = self._twin("o", open_, OPEN)
+        self.assertEqual(eval_only.reasons(puzzle=twin, suites_dir=self._suite(o_rec, rec)), [])
+
+    def test_a_twin_of_a_heldout_board_that_claims_an_open_original_reads_heldout(self):
+        """The reviewer's cases: the twin of heldout H with split open, twin_of an open P and P's board hash, whether
+        P is in the suite (A) or only the twin is (B)."""
+        held, open_ = self._ids()
+        h_rec = {"id": held, "split": "heldout", "pzl_sha256": puzzle_format.sha256_file(HELDOUT)}
+        o_rec = {"id": open_, "split": "open", "pzl_sha256": puzzle_format.sha256_file(OPEN)}
+        rec, twin = self._twin("h", held, HELDOUT)
+        forged = dict(rec, id=open_ + "-twin", split="open", twin_of=open_,
+                      original_pzl_sha256=puzzle_format.sha256_file(OPEN))
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=self._suite(o_rec, forged))), "A")
+        self.assertEqual(eval_only.puzzle_splits(self.tmp / "suites")[rec["pzl_sha256"]], {"open", "heldout"})
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=self._suite(forged))), "B")
+        self.assertEqual(eval_only.puzzle_splits(self.tmp / "suites")[rec["pzl_sha256"]], {"open", "heldout"})
+        # one card of an honest open twin edited
+        rec, twin = self._twin("o", open_, OPEN)
+        twin.write_text(twin.read_text().replace("p1life=", "p1life=1", 1))
+        edited = dict(rec, pzl_sha256=puzzle_format.sha256_file(twin))
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=self._suite(o_rec, edited))))
+
+    def test_a_twin_without_its_manifest_or_original_fails_closed(self):
+        _, open_ = self._ids()
+        o_rec = {"id": open_, "split": "open", "pzl_sha256": puzzle_format.sha256_file(OPEN)}
+        rec, twin = self._twin("o", open_, OPEN)
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=self._suite(rec))), "no original")
+        (twin.parent.parent / puzzle_twin.MANIFEST).unlink()
+        suites = self._suite(o_rec, rec)
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=suites)), "no manifest")
+        for bare in ({"twin_of": open_, "original_pzl_sha256": "c" * 64}, {"twin_of": "nonexistent"}):
+            twin = self.tmp / "bare.pzl"
+            twin.write_text("[metadata]\nName:renamed\n")
+            bare = dict(bare, id=open_ + "-twin", split="open", pzl_sha256=puzzle_format.sha256_file(twin))
+            self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=self._suite(bare))), bare)
+
+    def test_a_twin_of_a_twin_reads_heldout(self):
+        """A chain: T2 is a verified twin of T1's board, T1 a verified twin of the open P. T2's original is a twin, not
+        a non-twin suite record, so it does not read open."""
+        _, open_ = self._ids()
+        o_rec = {"id": open_, "split": "open", "pzl_sha256": puzzle_format.sha256_file(OPEN)}
+        t1, t1_file = self._twin("t1", open_, OPEN)
+        t2, t2_file = self._twin("t2", t1["id"], t1_file)
+        self.assertEqual(t2["original_pzl_sha256"], t1["pzl_sha256"])
+        self.assertEqual(eval_only.reasons(puzzle=t1_file, suites_dir=self._suite(o_rec, t1, t2)), [])
+        self.assertTrue(self._heldout(eval_only.reasons(puzzle=t2_file, suites_dir=self._suite(o_rec, t1, t2))))
 
     def test_an_unlisted_puzzle_is_refused(self):
         p = self.tmp / "mine.pzl"

@@ -442,6 +442,42 @@ class FullRecordTest(unittest.TestCase):
                          puzzle_solve.pf.sha256_file(suite_path), "the suite, byte for byte")
 
 
+class TwinInstalledTest(unittest.TestCase):
+    """A run on a twin record stops before its first game when the checkout's twin scripts are not the record's."""
+
+    def test_a_twin_puzzle_is_not_played_on_a_checkout_without_its_scripts(self):
+        from test_puzzle_suite import rec, suite as make_suite
+        import puzzle_format as pf
+        tmp = Path(tempfile.mkdtemp())
+        base = rec("tw1", tmp)
+        cards = {"Zorbin Kel": "a" * 64}
+        twin = dict(base, id="tw1-twin", split=pf.split_for("tw1"), twin_of="tw1", original_pzl_sha256="1" * 64,
+                    twin_cards=cards, twin_set_sha256=pf.twin_set_sha(cards), pzl=str(tmp / base["pzl"]))
+        suite_path = tmp / "suite.json"
+        suite_path.write_text(json.dumps(make_suite([twin])))
+        forge, ran = tmp / "forge", []
+
+        class FakeBuild:
+            def __init__(self, build_dir, forge_dir, allow_stale=False):
+                self.forge = forge
+
+            def provenance(self):
+                return {}
+
+            def run(self, env, out, **kw):
+                ran.append(env)
+                return 0
+
+        argv = ["--suite", str(suite_path), "--split", twin["split"], "--model", "greedy:", "--k", "1",
+                "--budget-usd", "1", "--out", str(tmp / "out"), "--build", "/b"]
+        with mock.patch.object(puzzle_solve.pb, "Build", FakeBuild), mock.patch.object(puzzle_solve, "load_secrets"), \
+                contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit) as cm:
+                puzzle_solve.main(argv)
+        self.assertIn("not installed", str(cm.exception))
+        self.assertEqual(ran, [], "no JVM was started")
+
+
 TIMEOUTS = []   # the timeout_s each fake build.run was given, newest last
 
 
