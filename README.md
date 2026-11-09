@@ -84,8 +84,8 @@ bash eval/harness_acceptance.sh                       # compile, every test, can
 bash eval/keyword_gauntlet.sh                         # 29 free games over 564 cards
 ```
 
-Acceptance needs no API key and costs nothing: its games use fixed players or a fake model on your own machine. It builds into
-`runs/harness-acceptance/<ts>/` and never touches the checkout.
+Acceptance needs no API key and costs nothing: its games use fixed players or a fake model on your own machine.
+It builds into `runs/harness-acceptance/<ts>/` and never touches the checkout.
 
 ## Where things are
 
