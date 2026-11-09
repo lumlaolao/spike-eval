@@ -136,18 +136,21 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   originals against twins, about $0.40 on the rules sample) is owner-gated and paid; the dev lane may stand in for a
   smoke, never a score.
 - **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
-  PR #267): 25 of 221 done. RP_001 (`docs/harness/evidence/2026-11-09-pzl-probe/`) and a ten-puzzle pilot picked for
-  being expressible (`docs/harness/evidence/2026-11-09-misreading-probes-pilot/`) each reject every whole misreading
-  line with the proof accepted as a control (one seeded completion each). A random sample of 20 of the other 210
-  (`docs/harness/evidence/2026-11-09-misreading-probes-sample/`, seed 20261109) measured the share a probe can express:
-  14 of 20 puzzles expressible (70%, Wilson 95% 48 to 86%). Of the 14 probed, 13 reject every whole misreading
-  against Forge's AI (RP_096 only by its acceptance wording); **RP_034 accepts both of its misreadings** against the
-  AI, so it does not test its rule as scored (the sample README, "Finding"). Not tried: the 6 non-expressible or unclear sampled puzzles (and,
-  by the sample, a similar share of the rest), plus trigger-order ones whose proof does not branch the order (RP_002 and RP_020
-  per their `note`s; RP_044's proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at the end of a
-  prefix. About 196 remain unprobed. Follow-up: a search-arm mode with the prefix fixed,
-  which asks whether ANY completion of the misreading is accepted (a probe asks about one); a decision on RP_034's
-  acceptance. #267 can be closed once these are done.
+  PR #267): 38 of 221 done, 183 remain unprobed. RP_001 (`docs/harness/evidence/2026-11-09-pzl-probe/`) and a
+  ten-puzzle pilot picked for being expressible (`docs/harness/evidence/2026-11-09-misreading-probes-pilot/`) each
+  reject every whole misreading line with the proof accepted as a control (one seeded completion each). Two disjoint
+  random samples of 20 (`docs/harness/evidence/2026-11-09-misreading-probes-sample/`, seed 20261109, and
+  `docs/harness/evidence/2026-11-10-misreading-probes-sample2/`, seed 20261110) measured the share a probe can
+  express: 14 of 20 and 13 of 20 puzzles (pooled 27 of 40, 67.5%, Wilson 95% 52 to 80%; unclear counted as not
+  expressible). Of the 27 probed, 25 reject every whole misreading against Forge's AI (RP_096 and RP_066 only by their
+  acceptance wording); **RP_034 and RP_183 each accept a misreading** against the AI (2 of 27, 7.4%, 2.1 to 23.4%),
+  so they do not test their rule as scored (the READMEs, "Finding"); RP_183 may be an engine deviation (Kess offers a
+  second Bolt after a blink-first), not traced. Not tried: the 13 non-expressible or unclear sampled puzzles (and, by
+  the samples, a similar share of the rest), plus trigger-order ones whose proof does not branch the order (RP_002
+  and RP_020 per their `note`s; RP_044's proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at
+  the end of a prefix. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
+  misreading is accepted (a probe asks about one); a decision on RP_034's and RP_183's acceptance. #267 can be closed
+  once these are done.
   **AI-blind sweep** (`docs/harness/evidence/2026-11-09-ai-blind-sweep/`, issue #447 generalised): the prover and its
   uniqueness search run with `CONTROLLER_B=ai` on the 56 converted rules-pilot puzzles whose proof beats opponent
   replies (budget 600, seed 1, overlay `edaca55afdf6`) flagged 2 of 56 as `multiple` (3.6%, Wilson 95% 1.0 to 12.1%; 2 of the 43 with an opponent choice point)
