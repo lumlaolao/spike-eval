@@ -136,12 +136,12 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   originals against twins, about $0.40 on the rules sample) is owner-gated and paid; the dev lane may stand in for a
   smoke, never a score.
 - **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
-  PR #267): no rules-pilot misreading has yet been run as a complete probe line. The one smoke so far (RP_001,
-  `Solver:4:3`) only cast Ray of Revelation; the random completion then passed and Dark Depths was never played,
-  so its `rejected` says nothing about the rule (its control `Solver:4:2` was rejected for the same reason). Write
-  each puzzle's `misread_line` in `eval/puzzles/rules-pilot/manifest.jsonl` as a whole probe line and run it, then
-  record the verdict beside `pass_arm`. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY
-  completion of the misreading is accepted (a probe asks about one). #267 can be closed once these are done.
+  PR #267): only RP_001's misreading has been run as a complete probe line (`Solver:4:0 Solver:2:0`: Ray of
+  Revelation on Blood Moon, then Dark Depths; rejected, no Marit Lage; PR #441). The first menu's indices are read
+  from the probe's `jvm.log` (`[ROUTER] play`). Write the other eight `misread_line`s of
+  `eval/puzzles/rules-pilot/manifest.jsonl` as whole probe lines, run them, and record each verdict beside
+  `pass_arm`. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
+  misreading is accepted (a probe asks about one). #267 can be closed once these are done.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);
   a failed puzzle-row write has no non-zero exit or marker; the batch does not stop on a non-retryable HTTP error
