@@ -20,6 +20,7 @@ planted bug must be killed, and the unmutated copy of every target must pass its
 """
 import argparse
 import ast
+import fnmatch
 import json
 import os
 import random
@@ -181,17 +182,19 @@ def run_confirmed(root, test, timeout):
     return first[0], first[1] + again[1], first[2]
 
 
+SECRET_GLOBS = ("secrets.env", ".env*", ".forge-home", "*secret*")
+
+
 def is_secret(name):
     """A root file that holds credentials or machine state: never copied (the copy is a scratch dir others may read)."""
-    low = name.lower()
-    return low == "secrets.env" or low.startswith(".env") or low == ".forge-home" or "secret" in low
+    return any(fnmatch.fnmatchcase(name.lower(), g) for g in SECRET_GLOBS)
 
 
 def make_copy(parent, repo=REPO):
     root = Path(tempfile.mkdtemp(prefix="mutate-", dir=parent))
     for d in COPY_DIRS:
         shutil.copytree(repo / d, root / d, ignore=shutil.ignore_patterns(
-            "__pycache__", "*.pyc", "secrets.env", ".env*", ".forge-home", "*secret*"))
+            "__pycache__", "*.pyc", *SECRET_GLOBS))
     for f in repo.iterdir():   # root files (FORGE_COMMIT, CLAUDE.md, ...) that a test reads
         if f.is_file() and not is_secret(f.name):
             shutil.copy2(f, root / f.name)
