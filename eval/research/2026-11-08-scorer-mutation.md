@@ -129,8 +129,9 @@ or its refusal rests on:
 7. `puzzle_score.py` 439: the report's `pilot` flag (`or` to `and`).
 8. `sprt.py` 107: the Wald expected-n formula (`alpha * upper` to `alpha / upper`); its test allows plus or minus 5.
 9. `aggregate.py` 1200: the "mixed" merge of a deck's controller.
-10. `rating.py` 455: the `1e-300` pivot guard of the fit (to `1.0`); no fit the tests make reaches it, so the
-    guard is untested, not equivalent.
+10. `rating.py` 455: the `1e-300` tiny-value guard of the Lentz continued fraction in the upper incomplete
+    gamma (the goodness-of-fit p-value; to `1.0`). The fit's own pivot guard is line 262 in `_solve`. No fit the
+    tests make reaches 455, so the guard is untested, not equivalent.
 
 **Gaps left, report text or defaults (28).** A changed message, a count shown, or a default: `aggregate.py` 554, 1195
 (the guard's body), 1526, 1615, 1654, 1658; `panel_score.py` 114, 235 (the percentile index clamp, wrong only below
