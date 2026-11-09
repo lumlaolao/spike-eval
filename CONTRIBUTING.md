@@ -17,7 +17,8 @@ bash setup.sh                 # Forge at the pinned commit, the harness on top, 
 bash scripts/install_hooks.sh # once per clone: checks each commit message
 ```
 
-What you need installed, and the build by hand, are in the [README](README.md#build-and-test-by-hand).
+You need Java 17+, Maven 3.8.1+, git and Python 3. The build by hand is in the
+[README](README.md#build-and-test-by-hand).
 
 ## Where to make a change
 
