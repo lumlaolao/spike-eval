@@ -113,6 +113,21 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(r["missing"], ["empty"])
         self.assertEqual(sanity_arms.exit_code(r), 2)
 
+    def test_a_missing_floor_is_incomplete_and_one_that_drew_every_game_reads_as_zero(self):
+        """eval/research/2026-11-08-scorer-mutation.md: each assertion names the mutant it kills."""
+        # `rnd is not None and floor is not None` -> `or`: a block with a random arm and no floor crashed the check
+        r = sanity_arms.check("x", arms=self.arms(floor=None))
+        self.assertEqual(r["missing"], ["floor"])
+        self.assertEqual(sanity_arms.exit_code(r), 2)
+        # `_rate(floor) or 0.0` -> `and`: a floor that drew every game has no rate and must read as 0
+        draws = outcomes({s: ("draw", "draw") for s in range(1, 21)})
+        won = outcomes({s: ("A", "A") for s in range(1, 21)})
+        r = sanity_arms.check("x", arms=self.arms(floor=draws, random=won, empty=draws, garbage=draws))
+        # the message states the margin in points (100 * margin) and both rates in percent
+        want = "random won 100.0%% of decisive games, more than the floor's 0.0%% + %.0f points" % (
+            100 * sanity_arms.DEFAULT_RANDOM_MARGIN)
+        self.assertIn(want, r["violations"])
+
 
 class TestOnDisk(unittest.TestCase):
     def test_check_reads_the_arm_directories(self):
