@@ -308,15 +308,19 @@ class BaselineDecisionTest(unittest.TestCase):
         repo = Path(tempfile.mkdtemp())
         d = repo / "eval/puzzles/rules-pilot"
         d.mkdir(parents=True)
-        for pid in ("RP_001", "RP_002"):
+        for pid in ("RP_001", "RP_002", "RP_003"):
             (d / (pid + ".pzl")).write_text(pzl("Survive", 3, pid), encoding="utf-8")
         rows = [{"puzzle": "RP_001", "question_id": "q1", "rule": "CR 1", "result": "converted",
                  "proof": {"status": "proven"}, "uniqueness": {"verdict": "unique"}},
                 {"puzzle": "RP_002", "question_id": "q2", "rule": "CR 2", "result": "multiple_review"},
+                {"puzzle": "RP_003", "question_id": "q3", "rule": "CR 3", "result": "converted", "ai_blind": "#447"},
                 {"puzzle": None, "question_id": "q3", "result": "dropped"}]
         (d / "manifest.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
         m, skipped = pf.rules_candidates(d / "manifest.jsonl", "rules", "1", "abc", repo=repo)
-        self.assertEqual([r["id"] for r in m["puzzles"]], ["rules-RP_001"])
+        self.assertEqual([r["id"] for r in m["puzzles"]], ["rules-RP_001", "rules-RP_003"])
+        # mutant: ai_blind not carried -> decide_status cannot drop RP_034 (#447)
+        self.assertNotIn("ai_blind", m["puzzles"][0]["source"])
+        self.assertEqual(m["puzzles"][1]["source"]["ai_blind"], "#447")
         r = m["puzzles"][0]
         self.assertEqual((r["pzl"], r["status"], r["goal"]), ("eval/puzzles/rules-pilot/RP_001.pzl", "candidate",
                                                               {"engine_goal": "Survive", "turns": 3}))
@@ -336,6 +340,9 @@ class BaselineDecisionTest(unittest.TestCase):
         easy = dict(ok, baselines=dict(ok["baselines"], random={"rate": 0.5}))
         self.assertEqual(pb.decide_status(easy), ("dropped", ["random_above_threshold"]))
         self.assertEqual(pb.decide_status(dict(ok, verification={}))[0], "candidate")
+        # mutant: ai_blind ignored -> RP_034 (#447) is scored though its misreading wins against Forge's AI
+        blind = dict(ok, source={"kind": "rules", "ai_blind": "#447"})
+        self.assertEqual(pb.decide_status(blind), ("dropped", ["ai_blind"]))
 
     def test_seed_specs_count_ranges_and_singles(self):
         self.assertEqual(pb.seed_count("1..4"), 4)
