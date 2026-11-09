@@ -659,7 +659,7 @@ public final class LlmSpikePuzzle {
         if (sections.get("acceptance") == null)
             throw new IllegalArgumentException("PZL_PROBE needs a puzzle with an [acceptance] section: " + id);
         int completionSeed = intOr(System.getenv().getOrDefault("PZL_PROBE_COMPLETION_SEED", "0"), 0);
-        List<Step> prefix = PuzzleSearch.parseLine(probeLine);
+        List<PuzzleArms.Step> prefix = PuzzleSearch.parseLine(probeLine);
         long t0 = System.currentTimeMillis();
         PuzzleArms.Line line = new PuzzleArms.Line(prefix, completionSeed);
         Played p = replay(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, 0, bounded, line);

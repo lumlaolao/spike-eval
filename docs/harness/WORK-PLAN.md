@@ -83,8 +83,8 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
 - **Repository housekeeping:** the 163 remote branches already merged into main were not deleted (it needs the
   owner's permission; `git branch -r --merged origin/main | grep -v 'HEAD\|origin/main$' | wc -l`, 2026-11-08). Stale
   and open, for the owner to close or revive: issue #248 and PR #249 (the canary-random re-pin of 2026-10-17, long
-  since overtaken), draft PR #11 (eval v1.0, the five axes of the first design), and PR #267 (see the misreading
-  probe below).
+  since overtaken), draft PR #11 (eval v1.0, the five axes of the first design), and PR #267 (its misreading
+  probe is ported; see below).
 - **Owner decisions from a hygiene audit (2026-10-25)** (tracked `runs/` is gone since #332):
   - four eval scripts nothing current calls: `latency_report.py`, `line_compare.py`, `coverage_audit.py` and
     `model_sweep.py`, whose default list includes an Opus model and which takes no budget;
@@ -135,11 +135,10 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   another length moves where the seat cuts a long description (a documented limit). The model comparison (Luna on
   originals against twins, about $0.40 on the rules sample) is owner-gated and paid; the dev lane may stand in for a
   smoke, never a score.
-- **The misreading probe from stale PR #267** (`PZL_PROBE`): it plays one fixed prefix to game end and records what
-  the final state did against the puzzle's acceptance section, so the play a solver makes if it misread the rule
-  must not reach it. Acceptance states, the uniqueness hunt and the rules-pilot driver have landed in other PRs;
-  `PZL_PROBE` is in no file on main outside this plan. Salvage it from the PR's diff with its
-  tests, then close #267.
+- **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
+  PR #267): no puzzle's `misread_line` in `eval/puzzles/rules-pilot/manifest.jsonl` has been written as a probe line
+  and run, except RP_001's. Once each is, the manifest can record the probe's verdict beside `pass_arm`. #267 can
+  then be closed.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);
   a failed puzzle-row write has no non-zero exit or marker; the batch does not stop on a non-retryable HTTP error
