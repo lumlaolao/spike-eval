@@ -16,6 +16,7 @@ Forge enforces ("Win" or "Survive" by turn N).
 |---|---|
 | `eval/puzzles/puzzle_format.py` | the record and suite format, validation, the split, `forge-candidates`, `freeze`, `check` |
 | `eval/puzzles/puzzle_baselines.py` | the free arms (random, pass, first, floor, Forge AI), reference lines, tiers, `verify` |
+| `eval/puzzles/probe_walk.py` | prints the menu at the end of a misreading-probe prefix: the next decision's seat and bound, and with `--options` each value's play and probe verdict |
 | `eval/puzzles/puzzle_solve.py` | runs one model on one split of a frozen suite, k attempts per puzzle, with `--budget-usd` |
 | `eval/puzzles/puzzle_score.py` | scores one solver on one split, every number beside its floors |
 | `eval/puzzles/puzzle_watch.py` | reads a `puzzle_solve.py` run while it plays or after: per-puzzle state, cost and flags |
@@ -276,6 +277,18 @@ game the draw cap ended, a line that drifted or was not fully drawn, a game the 
 without the puzzle's goal enforced are named as no evidence, never as rejected; a puzzle with no `[acceptance]`
 section is refused before the JVM starts. The row is `kind: probe`; `puzzle_score` refuses it as no attempt. A probe
 plays no model and costs nothing.
+
+`python3 eval/puzzles/probe_walk.py --build DIR --pzl <puzzle> --prefix "Solver:4:0" [--options] [--opponent search]`
+writes the line for you: the bound of a step is the decision's option count, which only a run shows. It probes the
+prefix plus a sentinel step (`Solver:99:0`, or `98` if the game really asks 99) and reads the next decision's seat and
+bound from the drift (`draw K: line has Solver:99:0, game asked Solver:B`; K must equal the prefix's length, else the
+prefix itself drifted). With `--options` it runs one probe per value `0..B-1` (one JVM each; more than
+`--max-options`, 64, is refused) and prints, for each, the play it takes (the first `play:` line of its `jvm.log`
+`[ROUTER]` lines past the lines every value shares) and `probe_verdict`. RP_001 with prefix `""` prints
+`0 Ray of Revelation, 1 Plains, 2 Dark Depths, 3 PASS`, and after `Solver:4:0` the two-option menu `land Dark Depths`,
+`PASS`. A verdict is the prefix plus that one step plus one seeded random finish (above): a menu, not a proof. A decision
+that is not a play menu (a scry, a keep-untapped choice) shows the first `[ROUTER]` line that differs, or none. The
+build and the lock around each JVM are the caller's.
 
 ### The rules suite
 
