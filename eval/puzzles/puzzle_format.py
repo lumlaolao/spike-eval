@@ -636,10 +636,13 @@ def rules_candidates(manifest, suite, version, engine_sha, repo=REPO):
             skipped.append((f.name, "goal %r, Turns:%s not enforced" % (goal, turns)))
             continue
         pid = "rules-" + row["puzzle"]
+        src = {"kind": "rules", "question_id": row.get("question_id"), "rule": row.get("rule")}
+        if row.get("ai_blind"):
+            src["ai_blind"] = row["ai_blind"]
         recs.append({
             "schema": PUZZLE_SCHEMA, "id": pid, "split": split_for(pid), "status": "candidate",
             "goal": {"engine_goal": goal, "turns": turns},
-            "source": {"kind": "rules", "question_id": row.get("question_id"), "rule": row.get("rule")},
+            "source": src,
             "pzl": f.resolve().relative_to(repo.resolve()).as_posix(), "pzl_sha256": sha256_file(f),
         })
     return candidate_suite(suite, version, engine_sha, recs), skipped

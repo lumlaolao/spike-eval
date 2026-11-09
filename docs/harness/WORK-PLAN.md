@@ -150,7 +150,7 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   the samples, a similar share of the rest), plus trigger-order ones whose proof does not branch the order (RP_002
   and RP_020 per their `note`s; RP_044's proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at
   the end of a prefix. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
-  misreading is accepted (a probe asks about one); a decision on RP_034's acceptance. #267 can be closed
+  misreading is accepted (a probe asks about one). RP_034 is flagged `ai_blind` and dropped (#447). #267 can be closed
   once these are done.
   **AI-blind sweep** (`docs/harness/evidence/2026-11-09-ai-blind-sweep/`, issue #447 generalised): the prover and its
   uniqueness search run with `CONTROLLER_B=ai` on the 56 converted rules-pilot puzzles whose proof beats opponent
@@ -158,7 +158,7 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   where the search-opponent verdict is `unique` for all 56: RP_034 (validated, the known case) and RP_295, whose second
   line only taps a second Raging Goblin for convoke and was never tested against the replies, so 1 of 56 is confirmed
   AI-blind. Eight of the 56 were not searched
-  exhaustively, so 2 is a floor for the tool's flags; RP_034's decision (options 1 to 3 of #447) stays the owner's.
+  exhaustively, so 2 is a floor for the tool's flags; RP_034 is dropped from the rules suite as `ai_blind` (#447, option 2).
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);
   a failed puzzle-row write has no non-zero exit or marker; the batch does not stop on a non-retryable HTTP error

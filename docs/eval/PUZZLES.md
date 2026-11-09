@@ -314,6 +314,12 @@ proves it again at the gate's budget (`SEARCH_LINE_BUDGET`, opponent `search`, n
 verification proves it once more, which must come out proven and accepted (on any line: a rollout capped under load
 steers the search elsewhere).
 
+A converted row marked `ai_blind` in the manifest is carried into its record's `source` and dropped with the flag
+`ai_blind`: its misreading also reaches the acceptance state against Forge's AI, the suite's scoring opponent, so it
+does not test its rule as scored (#447). RP_034 is the one found so far: in two random samples of 20 misreading
+probes and in the uniqueness sweep against the AI (`docs/harness/evidence/2026-11-09-misreading-probes-sample/`,
+`2026-11-10-misreading-probes-sample2/`, `2026-11-09-ai-blind-sweep/`).
+
 ### The generated hard suite
 
 `eval/suites/puzzles-hard-gen-v1.json` holds boards drawn by `eval/puzzles/puzzle_gen.py` (families and research:
