@@ -70,7 +70,7 @@ puzzle): every twin name is in the database, every name on every board resolves 
 board built by the runner's own start path holds exactly its listed cards in hand, battlefield, graveyard, library
 and exile, and that placement equals the original board's with names mapped. 6 tests green, 0 findings. Red on a
 broken twin: a deleted twin script (RP_190) turned three checks red, naming Basoth Siden; a misspelled name and an
-unknown name are caught in-test. Not covered: stack lines (`precast`, `putonstack`) are checked for resolution only;
+unknown name are caught in-test. Stack lines were added later (#453): `putonstack` cards are placed and `precast` cards resolved;
 the proof replay stays the Python run above (it needs a launched game, not a unit test).
 
 ## Cleanup
