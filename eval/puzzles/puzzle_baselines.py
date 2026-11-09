@@ -16,6 +16,7 @@ Every arm here is free: no model is called and nothing leaves the machine.
   python3 eval/puzzles/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
   python3 eval/puzzles/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3] [--opponent search]
                                           [--minimality]
+  python3 eval/puzzles/puzzle_baselines.py probe  --pzl P.pzl --line "Solver:4:0 Solver:2:0" [--completion-seed 0]
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
@@ -47,6 +48,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -767,6 +769,67 @@ def cmd_line(a):
     return 0 if all(verdicts.get(s) == ok for s in want) else 1
 
 
+def check_probe_line(line):
+    """A misreading probe's line (PZL_PROBE), "Seat:bound:value ..." with 0 <= value < bound, no leading zero and
+    at most nine digits (always a Java int; stricter than Java's ten): the grammar PuzzleSearch.parseLine reads
+    (PuzzleSearchTest.LINE_GOOD / LINE_BAD pin both), refused here before a JVM starts."""
+    steps = (line or "").split()
+    if not steps:
+        raise SystemExit("--line is empty: a probe plays at least one 'Seat:bound:value' step")
+    for s in steps:
+        parts = s.split(":")
+        ok = (len(parts) == 3 and parts[0] in ("Solver", "Opponent")
+              and all(re.fullmatch("[0-9]{1,9}", p) and str(int(p)) == p for p in parts[1:]))
+        if not ok or int(parts[2]) >= int(parts[1]):
+            raise SystemExit("--line step %r is not Seat:bound:value (Solver|Opponent, 0 <= value < bound, "
+                             "plain digits)" % s)
+    return " ".join(steps)
+
+
+def probe_env(line, completion_seed=0, opponent="ai"):
+    """What a probe sets beyond run_arm's own PUZZLE, CONTROLLER_A, PZL_SEEDS and GAME_CAP_MS: the search runner
+    asked to play ONE fixed line to game end (LlmSpikePuzzle.probeRun) and read it against the puzzle's
+    [acceptance] section; past the line a seeded random completion plays."""
+    return {"CONTROLLER_B": opponent, "PZL_PROBE": line, "PZL_PROBE_COMPLETION_SEED": str(completion_seed)}
+
+
+def probe_verdict(row):
+    """"rejected" when the probe's final state failed the acceptance state, which is what a misreading must do;
+    else why not. A capped game, a drifted line or a puzzle with no acceptance state is no evidence either way.
+    "rejected" means this line plus ONE seeded random completion failed the acceptance state, not that no
+    completion of the misreading is accepted."""
+    if not row:
+        return "no result row"
+    if row.get("kind") != "probe":
+        return "not a probe row (status %s)" % row.get("status")
+    if row.get("probe_stopped"):
+        return "stopped at the draw cap: no evidence"
+    if row.get("status") == "invalid":
+        return "capped: the game was torn down, its state is no evidence"
+    if row.get("goal_enforcement_installed") is False or row.get("goal_bounded") is False:
+        return "goal not enforced: the game ran without the puzzle's turn limit, no evidence"
+    if row.get("search_drift"):
+        return "drift: " + str(row["search_drift"])
+    if row.get("acceptance") == "rejected":
+        return "rejected"
+    if row.get("acceptance") == "accepted":
+        return "the misreading reaches the acceptance state"
+    return "no acceptance state read (%s)" % (row.get("acceptance") or "none")
+
+
+def cmd_probe(a):
+    line = check_probe_line(a.line)
+    pzl = Path(a.pzl).resolve()
+    if not re.search(r"^\s*\[acceptance\]\s*$", pzl.read_text(encoding="utf-8"), re.I | re.M):
+        raise SystemExit("%s has no [acceptance] section: a probe has nothing to read its final state against" % pzl)
+    out = Path(a.out_dir or REPO / "runs/puzzles/probes" / pzl.stem)
+    build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
+    rows = run_arm(build, pzl, "search", str(a.seed), out, probe_env(line, a.completion_seed, a.opponent))
+    verdict = probe_verdict(rows[-1] if rows else None)
+    print("%-24s seed %-4s probe %s: %s" % (pzl.stem, a.seed, line, verdict), flush=True)
+    return 0 if verdict == "rejected" else 1
+
+
 def cmd_run(a):
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
@@ -894,11 +957,21 @@ def main(argv=None):
     ln.add_argument("--minimality", action="store_true",
                     help="replay the line with each action removed in turn: exit 0 only when every removal fails")
     ln.add_argument("--out-dir", default=None)
+    probe = sub.add_parser("probe", help="play one misreading line to game end: "
+                                         "exit 0 only if it fails the acceptance state")
+    probe.add_argument("--pzl", required=True, help="a puzzle with an [acceptance] section")
+    probe.add_argument("--line", required=True,
+                       help='the misreading, "Seat:bound:value ..." (a proof row\'s line shows the form)')
+    probe.add_argument("--seed", type=int, default=1)
+    probe.add_argument("--completion-seed", type=int, default=0, help="the random play past the line")
+    probe.add_argument("--opponent", choices=("ai", "search"), default="ai")
+    probe.add_argument("--out-dir", default=None)
     rt = sub.add_parser("retier", help="recompute difficulty, tier_v2 and skills from stored proofs and baselines")
     rt.add_argument("--suite", required=True)
     rt.add_argument("--write", default=None)
     a = ap.parse_args(argv)
-    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line, "retier": cmd_retier}[a.cmd](a)
+    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line, "probe": cmd_probe,
+            "retier": cmd_retier}[a.cmd](a)
 
 
 if __name__ == "__main__":

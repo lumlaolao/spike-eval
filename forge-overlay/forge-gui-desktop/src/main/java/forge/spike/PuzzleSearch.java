@@ -350,6 +350,29 @@ final class PuzzleSearch {
         return sb.toString();
     }
 
+    /** The inverse of {@link #lineText}: "Solver:3:1 Opponent:2:0" to steps. Fails loudly on a step that is not
+     *  exactly Seat:bound:value (digits only, 0 <= value < bound; PZL_PROBE: a typo must not become a different line). */
+    static List<Step> parseLine(String text) {
+        List<Step> out = new ArrayList<>();
+        for (String tok : text == null ? new String[0] : text.trim().split("\\s+")) {
+            if (tok.isEmpty()) continue;
+            String[] p = tok.split(":", -1);
+            try {
+                if (p.length != 3 || !(p[0].equals("Solver") || p[0].equals("Opponent"))
+                        || !p[1].matches("[0-9]+") || !p[2].matches("[0-9]+")) throw new IllegalArgumentException();
+                int bound = Integer.parseInt(p[1]), value = Integer.parseInt(p[2]);
+                if (value >= bound) throw new IllegalArgumentException();
+                Step step = new Step(p[0], bound, value);
+                if (!lineText(List.of(step)).equals(tok)) throw new IllegalArgumentException();
+                out.add(step);
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException("not a Seat:bound:value step: \"" + tok + "\"");
+            }
+        }
+        if (out.isEmpty()) throw new IllegalArgumentException("an empty line");
+        return out;
+    }
+
     /** A line as text: "Solver:3:1 Opponent:2:0 ...". */
     static String lineText(List<Step> steps) {
         return steps == null ? "" : key(steps, steps.size()).trim();
