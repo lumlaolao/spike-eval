@@ -544,6 +544,97 @@ def install(manifest, forge, others="refuse"):
     return written
 
 
+_EDITION_LINE = re.compile(r"\d+ C .+")
+
+
+def _our_edition(text):
+    """True when `text` is exactly the shape install writes: the EDITION header, then `N C <twin>` lines."""
+    return text.startswith(EDITION) and all(_EDITION_LINE.fullmatch(l) for l in text[len(EDITION):].splitlines())
+
+
+def _outside(path, root):
+    """True when `path` is a symlink or resolves outside `root`: uninstall never follows either."""
+    try:
+        return path.is_symlink() or not path.resolve().is_relative_to(root.resolve())
+    except OSError:
+        return True
+
+
+def uninstall(forge):
+    """Remove what `install` wrote into <forge>: each twin script the sidecar records (only while its bytes are the
+    recorded sha256), the sidecar, and the edition file (only while it has the shape install writes), then the twins
+    folder if this call emptied it. Returns (removed paths, [(path, why)] left): a file install did not write (a
+    script with no record, a recorded script since changed or unreadable, a sidecar that is not ours, another
+    edition file) is left where it is and named; so is a twins folder or edition file that is a symlink or resolves
+    outside <forge>, which is never followed. While a recorded script is left, so are the sidecar and the edition.
+    Nothing installed returns ([], []), so it can run twice."""
+    forge = Path(forge)
+    folder = forge / TWINS_DIR
+    removed, kept = [], []
+
+    def drop(path):
+        try:
+            path.unlink()
+            removed.append(path)
+        except OSError as e:
+            kept.append((path, "cannot remove it: %s" % e))
+
+    def refused(path):
+        """True (and named in kept) when `path` is a symlink or outside the checkout: never followed."""
+        if not _outside(path, forge):
+            return False
+        if path.exists() or path.is_symlink():
+            kept.append((path, "a symlink or outside the checkout: not followed"))
+        return True
+
+    sidecar = folder / INSTALLED
+    ours = {}
+    if not refused(folder):
+        if sidecar.is_file():
+            try:
+                record = json.loads(sidecar.read_text(encoding="utf-8"))
+                if not isinstance(record, dict) or not all(isinstance(h, dict) for h in record.values()):
+                    raise ValueError("not {twin: {...}}")
+                ours = {script_file(t): h.get("twin_sha256") for t, h in record.items()}
+            except (OSError, ValueError):
+                kept.append((sidecar, "not a record install wrote"))
+        for f in sorted(folder.glob("*.txt")) if folder.is_dir() else ():
+            try:
+                if f.name not in ours:
+                    kept.append((f, "install did not write it"))
+                elif _sha(f.read_bytes()) != ours[f.name]:
+                    kept.append((f, "install wrote it but it has changed since"))
+                else:
+                    drop(f)
+            except OSError as e:
+                kept.append((f, "cannot read it: %s" % e))
+        left = any(p.name in ours for p, _ in kept)
+        if sidecar.is_file() and not any(p == sidecar for p, _ in kept):
+            if left:
+                kept.append((sidecar, "it still records the scripts left above"))
+            else:
+                drop(sidecar)
+        edition = forge / EDITION_FILE
+        # The edition stays while a script or the sidecar is left: it lists them. refused() names a symlink.
+        if not left and not any(p == sidecar for p, _ in kept) and not refused(edition):
+            if edition.is_dir():
+                kept.append((edition, "not a file: left"))
+            elif edition.is_file():
+                try:
+                    if _our_edition(edition.read_text(encoding="utf-8", errors="replace")):
+                        drop(edition)
+                    else:
+                        kept.append((edition, "install did not write it"))
+                except OSError as e:
+                    kept.append((edition, "cannot read it: %s" % e))
+        if any(p.parent == folder for p in removed):
+            try:
+                folder.rmdir()   # only a folder this call emptied; a non-empty one raises and stays
+            except OSError:
+                pass
+    return removed, kept
+
+
 # ------------------------------------------------------------------ a suite record
 
 def manifest_file(rec, repo=REPO):
@@ -551,16 +642,35 @@ def manifest_file(rec, repo=REPO):
     return pf.pzl_path(rec, repo).parent.parent / MANIFEST
 
 
-def find_manifest(rec, repo=REPO):
-    """The twin manifest `puzzle_twin.py make` wrote beside a twin record's .pzl (`<out>/pzl/<id>.pzl`, the manifest
-    at `<out>/twin-manifest.json`), or None when the record's file or the manifest is not there (runs/ is not
-    committed), cannot be read or is malformed: every caller treats None as unverified."""
+def manifest_state(rec, repo=REPO):
+    """(manifest, None) when the twin manifest beside a twin record's .pzl is there and usable; (None, why) when it
+    is not, and `why` says which: "no twin manifest at <path>" (absent, or the record names no folder to look in:
+    runs/ is not committed) or "malformed twin manifest <path>: ..." (there but unreadable, not JSON, or the wrong
+    shape). A person who edited a manifest must not read as a person who never had one."""
     try:
         path = manifest_file(rec, repo)
-        manifest = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
-    except (OSError, ValueError):
-        return None
-    return manifest if manifest is not None and not manifest_problems(manifest) else None
+    except (OSError, TypeError, AttributeError):
+        return None, "no twin manifest beside %r" % (rec.get("pzl"),)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        # Checked only here, inside the handler: a pre-check could itself raise (a symlink loop on Python < 3.13,
+        # an unsearchable parent) and escape as a traceback.
+        try:
+            dangling = path.is_symlink()
+        except OSError:
+            dangling = False
+        if dangling:   # a link that leads nowhere is there but unreadable, not absent
+            return None, "malformed twin manifest %s: a symlink that leads nowhere" % path
+        return None, "no twin manifest at %s" % path
+    except (OSError, UnicodeDecodeError, ValueError) as e:   # there but unreadable (a directory, no permission)
+        return None, "malformed twin manifest %s: unreadable (%s)" % (path, e)
+    try:
+        manifest = json.loads(text)
+    except ValueError as e:
+        return None, "malformed twin manifest %s: %s" % (path, e)
+    why = manifest_problems(manifest)
+    return (None, "malformed twin manifest %s: %s" % (path, "; ".join(why))) if why else (manifest, None)
 
 
 def verify_record(rec, manifest, repo=REPO):
@@ -728,6 +838,8 @@ def main(argv=None):
     grp = ins.add_mutually_exclusive_group()
     grp.add_argument("--keep", action="store_true", help="leave twins installed from another manifest")
     grp.add_argument("--replace", action="store_true", help="delete twins installed from another manifest")
+    un = sub.add_parser("uninstall", help="remove the twin scripts, sidecar and edition install wrote into a checkout")
+    un.add_argument("--forge", required=True, help="the checkout to clean (no default, on purpose)")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "make":
@@ -760,12 +872,17 @@ def main(argv=None):
             bad = 0
             for rec in pf.load_suite(a.suite).get("puzzles", []):
                 if pf.twin_id(rec):
-                    manifest = find_manifest(rec)
-                    why = (verify_record(rec, manifest) if manifest
-                           else ["%s: no usable twin manifest beside its .pzl" % rec["id"]])
+                    manifest, missing = manifest_state(rec)
+                    why = verify_record(rec, manifest) if manifest else ["%s: %s" % (rec["id"], missing)]
                     bad += bool(why)
                     print("%s %s" % ("REFUSED" if why else "ok", "; ".join(why) or rec["id"]))
             return 1 if bad else 0
+        elif a.cmd == "uninstall":
+            removed, kept = uninstall(a.forge)
+            print("removed %d files under %s" % (len(removed), a.forge))
+            for path, why in kept:
+                print("LEFT %s: %s" % (path, why), file=sys.stderr)
+            return 1 if kept else 0
         else:
             written = install(load_manifest(a.manifest, "install"), a.forge,
                              "keep" if a.keep else "replace" if a.replace else "refuse")

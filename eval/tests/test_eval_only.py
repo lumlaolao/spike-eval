@@ -186,6 +186,62 @@ class PuzzleTest(unittest.TestCase):
         manifest.unlink()
         self.assertTrue(self._heldout(eval_only.reasons(puzzle=twin, suites_dir=suites)))
 
+    def test_an_edited_twin_board_is_seen_though_no_suite_file_or_manifest_moved(self):
+        # Kills: stamp only the manifests in puzzle_splits -> a twin .pzl edited in place is judged by the cached
+        # verdict from before the edit and still reads open.
+        _, open_ = self._ids()
+        o_rec = {"id": open_, "split": "open", "pzl_sha256": puzzle_format.sha256_file(OPEN)}
+        rec, twin = self._twin("o", open_, OPEN)
+        suites = self._suite(o_rec, rec)
+        self.assertEqual(eval_only.puzzle_splits(suites)[rec["pzl_sha256"]], {"open"}, "verified: reads open")
+        before = twin.stat()
+        twin.write_text(twin.read_text().replace("p1life=", "p1life=1", 1))
+        os.utime(twin, ns=(before.st_mtime_ns + 5 * 10**9,) * 2)
+        # the record's hash is for the board before the edit: the verdict on that hash must not be the cached one
+        self.assertEqual(eval_only.puzzle_splits(suites)[rec["pzl_sha256"]], {"open", "heldout"})
+        self.assertIn("does not hash to pzl_sha256", eval_only.unverifiable(rec["pzl_sha256"], suites))
+
+    def test_one_manifest_shared_by_many_twins_is_stamped_once(self):
+        # Kills: a stamp entry per twin record -> a manifest shared by N twins is stat-ed N times on every lookup.
+        _, open_ = self._ids()
+        recs = []
+        rec, twin = self._twin("o", open_, OPEN)
+        d = twin.parent.parent
+        m = json.loads((d / puzzle_twin.MANIFEST).read_text())
+        for i in range(3):
+            copy = d / "pzl" / ("c%d.pzl" % i)
+            copy.write_text(twin.read_text())
+            recs.append(dict(rec, id="c%d" % i, pzl=str(copy)))
+        stamp = eval_only._twin_stamp(recs, None)
+        manifests = [e for e in stamp if e[0].endswith(puzzle_twin.MANIFEST)]
+        self.assertEqual(len(manifests), 1, stamp)
+        self.assertEqual(len(stamp), 1 + 3, "the manifest once, each twin board once")
+        # the stamp moves when the shared manifest does
+        before = (d / puzzle_twin.MANIFEST).stat()
+        (d / puzzle_twin.MANIFEST).write_text(json.dumps(dict(m, extra=1)))
+        os.utime(d / puzzle_twin.MANIFEST, ns=(before.st_mtime_ns + 5 * 10**9,) * 2)
+        self.assertNotEqual(eval_only._twin_stamp(recs, None), stamp)
+
+    def test_a_twin_without_a_manifest_is_reported_unverifiable_and_still_refused(self):
+        # Kills: a twin it cannot verify reporting "heldout puzzle ... a suite record says heldout" -> the reason hid
+        # that nothing was checked, and a malformed manifest read the same as an absent one.
+        _, open_ = self._ids()
+        o_rec = {"id": open_, "split": "open", "pzl_sha256": puzzle_format.sha256_file(OPEN)}
+        rec, twin = self._twin("o", open_, OPEN)
+        suites = self._suite(o_rec, rec)
+        manifest = twin.parent.parent / puzzle_twin.MANIFEST
+        good = manifest.read_text()
+        manifest.unlink()
+        why = eval_only.reasons(puzzle=twin, suites_dir=suites)
+        self.assertTrue(why and any("unverifiable" in w and "no twin manifest" in w for w in why), why)
+        manifest.write_text("{not json")
+        os.utime(manifest, ns=(10**18,) * 2)
+        why = eval_only.reasons(puzzle=twin, suites_dir=suites)
+        self.assertTrue(any("unverifiable" in w and "malformed twin manifest" in w for w in why), why)
+        manifest.write_text(good)
+        os.utime(manifest, ns=(2 * 10**18,) * 2)
+        self.assertEqual(eval_only.reasons(puzzle=twin, suites_dir=suites), [])
+
     def test_a_twin_of_a_twin_reads_heldout(self):
         """A chain: T2 is a verified twin of T1's board, T1 a verified twin of the open P. T2's original is a twin, not
         a non-twin suite record, so it does not read open."""

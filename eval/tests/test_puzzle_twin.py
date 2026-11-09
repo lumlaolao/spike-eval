@@ -4,6 +4,8 @@ self-references renamed, the refusals fire, the names are deterministic, and ins
 The real-puzzle tests read three committed boards (a rules-pilot puzzle and two generated ones) read-only. The script
 fixtures are invented cards (docs/STANDARDS.md section 5), shaped like Forge scripts; the one test that reads Forge's
 own Rite of Flame skips when no checkout is readable."""
+import contextlib
+import io
 import json
 import os
 import re
@@ -336,6 +338,155 @@ class MakeAndInstallTest(unittest.TestCase):
             for c in manifest["cards"]:
                 self.assertRegex(edition, r"\n\d+ C %s\n" % re.escape(c["twin"]))
 
+    @staticmethod
+    def snapshot(root):
+        """Every file (bytes) and every folder under root: what 'the tree as it was' means."""
+        root = Path(root)
+        return {str(p.relative_to(root)): (p.read_bytes() if p.is_file() else None) for p in sorted(root.rglob("*"))}
+
+    def test_uninstall_leaves_the_checkout_byte_identical_to_before_the_install(self):
+        # Kills: no uninstall -> AttributeError; one that leaves the sidecar, the edition or the empty zz_twins folder
+        # leaves the snapshot different.
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            before = self.snapshot(forge)
+            tw.install(manifest, forge)
+            self.assertNotEqual(self.snapshot(forge), before)
+            removed, kept = tw.uninstall(forge)
+            self.assertEqual(kept, [])
+            self.assertEqual(len(removed), len(manifest["cards"]) + 2, "the scripts, the sidecar and the edition")
+            self.assertEqual(self.snapshot(forge), before)
+
+    def test_uninstall_with_nothing_installed_succeeds_and_changes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            before = self.snapshot(forge)
+            self.assertEqual(tw.uninstall(forge), ([], []))
+            self.assertEqual(tw.uninstall(forge), ([], []))
+            self.assertEqual(self.snapshot(forge), before)
+            tw.install(manifest, forge)
+            tw.uninstall(forge)
+            self.assertEqual(tw.uninstall(forge), ([], []), "a second uninstall after an install")
+            self.assertEqual(self.snapshot(forge), before)
+            self.assertEqual(tw.main(["uninstall", "--forge", str(forge)]), 0)
+
+    def test_uninstall_keeps_and_names_every_file_it_did_not_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            folder = forge / tw.TWINS_DIR
+            mine = folder / "mine.txt"
+            mine.write_text("Name:Mine\n")                      # a script install never wrote
+            glimmer = folder / tw.script_file(next(c["twin"] for c in manifest["cards"]
+                                                   if c["original"] == "Glimmer Rite"))
+            glimmer.write_text(glimmer.read_text() + "# hand edit\n")   # a script of ours, since changed
+            removed, kept = tw.uninstall(forge)
+            self.assertEqual(sorted(Path(p).name for p, _ in kept), sorted(["mine.txt", glimmer.name, tw.INSTALLED]))
+            self.assertTrue(mine.is_file() and glimmer.is_file() and (folder / tw.INSTALLED).is_file())
+            self.assertTrue((forge / tw.EDITION_FILE).is_file(), "a recorded script is left, so its edition stays")
+            phrases = ("did not write", "changed since", "still records")
+            self.assertTrue(all(any(k in why for k in phrases) for _, why in kept), kept)
+            self.assertEqual(tw.main(["uninstall", "--forge", str(forge)]), 1, "left files are not a clean uninstall")
+            # the left script gone: the edition goes with the rest; one that is not the generated one is never deleted
+            glimmer.unlink()
+            mine.unlink()
+            removed, kept = tw.uninstall(forge)
+            self.assertFalse((forge / tw.EDITION_FILE).exists())
+            self.assertFalse((forge / tw.TWINS_DIR).exists(), "the emptied folder goes")
+            (forge / tw.EDITION_FILE).write_text("[metadata]\nName=Somebody else's set\n")
+            _, kept = tw.uninstall(forge)
+            self.assertIn(tw.EDITION_FILE, " ".join(str(p) for p, _ in kept).replace("\\", "/"))
+            self.assertTrue((forge / tw.EDITION_FILE).is_file())
+
+    def test_uninstall_does_not_follow_a_symlinked_twins_folder_out_of_the_checkout(self):
+        # Kills: folder.glob/is_dir through the link -> files outside the tree unlinked, then rmdir NotADirectoryError.
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            folder = forge / tw.TWINS_DIR
+            outside = Path(tmp) / "outside"
+            folder.rename(outside)
+            folder.symlink_to(outside, target_is_directory=True)
+            before = self.snapshot(outside)
+            removed, kept = tw.uninstall(forge)
+            self.assertEqual(self.snapshot(outside), before, "nothing outside the checkout is touched")
+            self.assertIn(folder, [p for p, _ in kept])
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                self.assertEqual(tw.main(["uninstall", "--forge", str(forge)]), 1)
+            self.assertIn("LEFT", err.getvalue())
+
+    def test_uninstall_does_not_follow_a_symlinked_edition_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            edition = forge / tw.EDITION_FILE
+            target = Path(tmp) / "elsewhere.txt"
+            target.write_text(edition.read_text())
+            edition.unlink()
+            edition.symlink_to(target)
+            _, kept = tw.uninstall(forge)
+            self.assertIn(edition, [p for p, _ in kept])
+            self.assertTrue(target.is_file() and edition.is_symlink())
+
+    def test_uninstall_names_an_edition_path_that_is_a_directory(self):
+        # Kills: dropping the edition.is_dir() branch in uninstall -> a directory at EDITION_FILE is skipped silently.
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, _, _ = self.make(tmp)
+            (forge / tw.EDITION_FILE).mkdir()
+            _, kept = tw.uninstall(forge)
+            self.assertEqual([(forge / tw.EDITION_FILE, "not a file: left")], kept)
+            self.assertTrue((forge / tw.EDITION_FILE).is_dir())
+
+    def test_uninstall_leaves_an_empty_twins_folder_it_removed_nothing_from(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            (forge / tw.TWINS_DIR).mkdir(parents=True)
+            self.assertEqual(tw.uninstall(forge), ([], []))
+            self.assertTrue((forge / tw.TWINS_DIR).is_dir())
+
+    def test_uninstall_reports_a_file_it_cannot_read_and_goes_on(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            first = sorted((forge / tw.TWINS_DIR).glob("*.txt"))[0]
+            real = Path.read_bytes
+
+            def flaky(self):
+                if self.name == first.name:
+                    raise PermissionError("denied")
+                return real(self)
+            with mock.patch.object(Path, "read_bytes", flaky):
+                removed, kept = tw.uninstall(forge)
+            self.assertIn(first, [p for p, _ in kept])
+            self.assertEqual(len(removed), len(manifest["cards"]) - 1, "the others went")
+            self.assertTrue(first.is_file() and (forge / tw.EDITION_FILE).is_file())
+
+    def test_a_malformed_sidecar_leaves_itself_and_every_script(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            folder = forge / tw.TWINS_DIR
+            (folder / tw.INSTALLED).write_text("[1, 2")
+            before = self.snapshot(folder)
+            removed, kept = tw.uninstall(forge)
+            self.assertEqual(self.snapshot(folder), before)
+            self.assertEqual(len(kept), len(manifest["cards"]) + 1, kept)
+
+    def test_a_sidecar_key_cannot_point_outside_the_twins_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            tw.install(manifest, forge)
+            folder = forge / tw.TWINS_DIR
+            real_card = folder.parent / "x.txt"          # beside zz_twins, not in it
+            real_card.write_text("Name:X\n")
+            rec = json.loads((folder / tw.INSTALLED).read_text())
+            rec["../x"] = {"original": "X", "twin_sha256": tw._sha("Name:X\n")}
+            (folder / tw.INSTALLED).write_text(json.dumps(rec))
+            tw.uninstall(forge)
+            self.assertTrue(real_card.is_file(), "script_file maps '../x' to x.txt inside zz_twins, never to ../x")
+
     def test_install_refuses_an_original_that_changed_since_the_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
             forge, out, manifest = self.make(tmp)
@@ -456,7 +607,7 @@ class TwinSuiteTest(unittest.TestCase):
             forge, repo, out, suite, manifest = self.build(tmp)
             (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
             self.assertEqual(tw.verify_record(rec, manifest, repo), [])
-            self.assertEqual(tw.find_manifest(rec, repo), json.loads((out / tw.MANIFEST).read_text()))
+            self.assertEqual(tw.manifest_state(rec, repo)[0], json.loads((out / tw.MANIFEST).read_text()))
             self.assertEqual(pf.validate_puzzle(rec, repo=repo), [])
             self.assertIn("Set:", PZL, "the fixture's original has a Set: the generator drops; it still round-trips")
 
@@ -599,8 +750,6 @@ class TwinSuiteTest(unittest.TestCase):
     def test_the_verify_command_exits_nonzero_on_a_twin_it_cannot_verify(self):
         # Kills: `return 1 if bad else 0` -> `return 0` (an edited board or a missing manifest exits 0); and
         # dropping the missing-manifest branch (a twin with no manifest prints ok or crashes).
-        import contextlib
-        import io
         with tempfile.TemporaryDirectory() as tmp:
             forge, repo, out, suite, manifest = self.build(tmp)
             (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
@@ -624,15 +773,57 @@ class TwinSuiteTest(unittest.TestCase):
             (out / tw.MANIFEST).unlink()
             code, text = verify()
             self.assertEqual(code, 1)
-            self.assertIn("no usable twin manifest beside its .pzl", text)
+            self.assertIn("no twin manifest at", text)
             sfile.write_text(json.dumps(pf.candidate_suite("t", "1", "e", [])))
             self.assertEqual(verify(), (0, ""), "a suite with no twin has nothing to refuse")
+
+    def test_validate_puzzle_reports_a_malformed_manifest_apart_from_a_missing_one(self):
+        # Kills: manifest_state folding a malformed manifest into 'missing' -> validate_puzzle returned [] for both.
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            good = (out / tw.MANIFEST).read_text()
+            self.assertEqual(pf.validate_puzzle(rec, repo=repo), [])
+            (out / tw.MANIFEST).unlink()
+            self.assertEqual(pf.validate_puzzle(rec, repo=repo), [], "missing: runs/ is not committed, not a defect")
+            self.assertIn("no twin manifest", tw.manifest_state(rec, repo)[1])
+            for label, text in {"not json": "{not json", "a list": "[]",
+                                "a card without its keys": json.dumps({"cards": [{"original": "x"}]})}.items():
+                (out / tw.MANIFEST).write_text(text)
+                why = pf.validate_puzzle(rec, repo=repo)
+                self.assertTrue(any("malformed twin manifest" in w for w in why), (label, why))
+                self.assertIsNone(tw.manifest_state(rec, repo)[0], label)
+            (out / tw.MANIFEST).unlink()
+            (out / tw.MANIFEST).mkdir()          # there, but cannot be read: not 'missing'
+            self.assertTrue(any("malformed twin manifest" in w for w in pf.validate_puzzle(rec, repo=repo)))
+            (out / tw.MANIFEST).rmdir()
+            (out / tw.MANIFEST).symlink_to(out / "nowhere.json")   # a link that leads nowhere: not 'missing'
+            self.assertTrue(any("malformed twin manifest" in w for w in pf.validate_puzzle(rec, repo=repo)))
+            (out / tw.MANIFEST).unlink()
+            (out / tw.MANIFEST).symlink_to(out / tw.MANIFEST)   # a link to itself: unreadable, not 'missing'
+            self.assertTrue(any("malformed twin manifest" in w for w in pf.validate_puzzle(rec, repo=repo)))
+            (out / tw.MANIFEST).unlink()
+            (out / tw.MANIFEST).write_text(good)
+            self.assertEqual(pf.validate_puzzle(rec, repo=repo), [])
+
+    def test_a_manifest_behind_an_unsearchable_folder_is_malformed_not_a_traceback(self):
+        # Kills: a symlink pre-check (path.is_symlink()) before the guarded read -> PermissionError from an
+        # unsearchable parent escapes manifest_state, validate_puzzle and eval_only as a traceback. Mocked: as root
+        # a mode-000 folder is still searchable.
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            denied = PermissionError(13, "Permission denied")
+            with mock.patch.object(Path, "is_symlink", side_effect=denied), \
+                    mock.patch.object(Path, "read_text", side_effect=denied):
+                state, why = tw.manifest_state(rec, repo)
+            self.assertIsNone(state)
+            self.assertIn("malformed twin manifest", why)
 
     def test_a_malformed_manifest_is_refused_with_a_message_not_a_traceback(self):
         # Kills: drop manifest_problems/load_manifest -> a manifest that is a list, has a card without its keys, or
         # is not JSON raises KeyError/AttributeError/JSONDecodeError out of install, suite and verify_record.
-        import contextlib
-        import io
         with tempfile.TemporaryDirectory() as tmp:
             forge, repo, out, suite, manifest = self.build(tmp)
             (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
@@ -660,7 +851,7 @@ class TwinSuiteTest(unittest.TestCase):
                 with self.assertRaises(tw.TwinRefused, msg=label):
                     tw.twin_records(m, suite, out / tw.MANIFEST, repo)
                 (out / tw.MANIFEST).write_text(json.dumps(m))
-                self.assertIsNone(tw.find_manifest(rec, repo), label)
+                self.assertIsNone(tw.manifest_state(rec, repo)[0], label)
                 err = io.StringIO()
                 with contextlib.redirect_stderr(err):
                     self.assertEqual(tw.main(["install", "--manifest", str(out / tw.MANIFEST), "--forge", str(forge)]),
@@ -673,7 +864,7 @@ class TwinSuiteTest(unittest.TestCase):
             with contextlib.redirect_stderr(err):
                 self.assertEqual(tw.main(["install", "--manifest", str(out / tw.MANIFEST), "--forge", str(forge)]), 1)
             self.assertIn("cannot read the twin manifest", err.getvalue())
-            self.assertIsNone(tw.find_manifest(rec, repo))
+            self.assertIsNone(tw.manifest_state(rec, repo)[0])
 
     def test_a_probe_of_a_twin_board_stops_before_any_game_when_its_scripts_are_not_installed(self):
         # Kills: delete the refuse_uninstalled call in cmd_probe -> run_arm (the JVM) is reached for a twin board whose

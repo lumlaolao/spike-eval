@@ -1233,7 +1233,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the same rules text, so a solve rate on the twin against the original separates recalling a card from reading it.
     `make` writes the twin boards and a manifest under `runs/`; `suite` turns the manifest into candidate suite
     records; `install` writes the generated card scripts into a checkout's cardsfolder (`zz_twins/`, a `Custom_Set`
-    edition), regenerated from the checkout's own originals. A twin record carries `twin_of` (the original's puzzle
+    edition), regenerated from the checkout's own originals; `uninstall --forge F` removes exactly what `install`
+    wrote (the scripts the sidecar records while their bytes are the recorded ones, the sidecar, the edition file while
+    it has the shape install writes, then `zz_twins/` if the call emptied it), leaves and names anything else (exit 1;
+    a symlinked `zz_twins/` or edition is never followed, and while a recorded script is left so are the sidecar and
+    the edition), and does nothing when nothing is installed. A twin record carries `twin_of` (the original's puzzle
     id), `original_pzl_sha256` (the original's board) and `twin_cards` / `twin_set_sha256`. *Why each:*
     - **The split follows the original, and the twin is bound to it by content** (`puzzle_format.record_split`,
       `puzzle_twin.verify_record`): a twin's id hashes to a split of its own and its `pzl_sha256` differs from the
@@ -1243,16 +1247,22 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
       (the generator, `twin_pzl`) must give the twin's `.pzl` byte for byte (the generator drops `Set:`/`Art:`, so the
       check runs forward from the hash-pinned original, not by renaming the twin back), and `twin_cards` must be the
       manifest's scripts for the board. `puzzle_twin.py suite` refuses to write a record that fails it,
-      `validate_puzzle` runs it whenever the twin's `.pzl` and manifest are found (`runs/` is not committed, so a
-      committed record is validated on its declaration and hashes alone), and `puzzle_twin.py verify --suite F` runs it
-      over a suite. `suite_twin_problems` adds, inside one suite, one twin per original, no chains and an
+      `validate_puzzle` runs it whenever the twin's `.pzl` and manifest are found. `runs/` is not committed, so a
+      committed record with no manifest is validated on its declaration and hashes alone: that is no defect
+      (`validate_puzzle` stays quiet) but it is unverifiable, and `eval_only` says so (below). A manifest that is
+      there but unreadable or of the wrong shape is a different thing (`puzzle_twin.manifest_state` tells the two
+      apart; a symlink that leads nowhere is malformed) and `validate_puzzle` fails it as `malformed twin manifest`.
+      `puzzle_twin.py verify --suite F` runs it over a suite.
+      `suite_twin_problems` adds, inside one suite, one twin per original, no chains and an
       `original_pzl_sha256` equal to the `pzl_sha256` of the record `twin_of` names.
       `eval/rl/eval_only.puzzle_splits` trusts neither declared field: a twin adds the splits of the non-twin suite
       records whose `pzl_sha256` is its `original_pzl_sha256` only when `verify_record` passes, and in every other case
-      (no manifest, a malformed manifest, an edited board, an original in no suite, a chain) it reads held out; the split
-      cache is stamped with each twin's manifest (path, mtime, size), so a manifest changed since the last call is
-      judged again. `puzzle_twin.manifest_problems` refuses a manifest of the wrong shape (`install`, `suite`, `verify`
-      exit 1 with a message, not a traceback).
+      (no manifest, a malformed manifest, an edited board, an original in no suite, a chain) it reads held out, and the
+      reason names it as an unverifiable twin with the cause (`eval_only.unverifiable`), so a twin nobody could check is
+      not mistaken for one a suite marks held out; the split cache is stamped with each distinct file the verdict reads
+      (every manifest once, however many twins share it, and every twin `.pzl`: path, mtime, size), so one edited in
+      place since the last call is judged again. `puzzle_twin.manifest_problems` refuses a manifest of the wrong shape
+      (`install`, `suite`, `verify` exit 1 with a message, not a traceback).
     - **The scripts are versioned by the record, not by `overlay_sha`**, which hashes the overlay's Java and the engine
       patches, never a checkout's `res/`. `twin_set_sha256` is the hash of the sha256 of every generated script the twin
       needs; it is in `suite_sha256` with `twin_of` and `original_pzl_sha256` (all three for twins only, so a suite

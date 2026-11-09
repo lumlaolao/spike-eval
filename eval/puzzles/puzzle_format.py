@@ -437,9 +437,11 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
     p.extend(twin_problems(rec))
     if check_files and twin_id(rec) and not twin_problems(rec):
         import puzzle_twin   # imports this module: a call-time import
-        manifest = puzzle_twin.find_manifest(rec, repo)
-        if manifest is not None:   # runs/ is not committed: without the manifest eval_only reads the twin held out
+        manifest, why = puzzle_twin.manifest_state(rec, repo)
+        if manifest is not None:
             p.extend(puzzle_twin.verify_record(rec, manifest, repo))
+        elif why.startswith("malformed"):   # a missing manifest is no defect (runs/ is not committed): eval_only
+            p.append("%s: %s" % (pid, why))   # reads that twin held out. A manifest that is there and wrong fails.
     status = rec.get("status")
     if status not in STATUSES:
         p.append("%s: status %r not in %s" % (pid, status, STATUSES))
