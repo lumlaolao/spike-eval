@@ -150,7 +150,7 @@ the Sneak and Show game, Emrakul (flying) was "blockable" while the only untappe
 block a flyer. Haiku saw through it; a weaker model might not.
 - Fix: list, per attacker, which of the defender's untapped creatures could block it.
 - Otherwise say "can be blocked by a creature with flying or reach", not "can be blocked".
-- Filed as [SeanCThomas0/spike-eval#166](https://github.com/SeanCThomas0/spike-eval/issues/166).
+- Filed as [lumlaolao/spike-eval#166](https://github.com/lumlaolao/spike-eval/issues/166).
 
 ## Where the findings were closed
 

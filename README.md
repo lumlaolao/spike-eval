@@ -20,7 +20,7 @@ it. GPL-3.0-or-later, like Forge: see [License](#license).
 ## Play against the model
 
 ```bash
-git clone https://github.com/SeanCThomas0/spike-eval.git && cd spike-eval
+git clone https://github.com/lumlaolao/spike-eval.git && cd spike-eval
 bash setup.sh                                         # Forge at the pinned commit, the harness on top, the build, your key
 bash play-vs-llm.sh                                   # your Burn against GPT-6 Luna on Mardu Energy, in Forge's window
 bash play-vs-llm.sh --deck elves --vs ur-delver       # any eval/decks/<name>.txt, or a path to a decklist
