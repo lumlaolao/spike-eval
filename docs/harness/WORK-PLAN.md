@@ -136,14 +136,18 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   originals against twins, about $0.40 on the rules sample) is owner-gated and paid; the dev lane may stand in for a
   smoke, never a score.
 - **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
-  PR #267): 11 of 221 done, each whole misreading line rejected with its proof accepted as a control (one seeded
-  completion each): RP_001 (`docs/harness/evidence/2026-11-09-pzl-probe/`) and a ten-puzzle pilot picked for being
-  expressible (`docs/harness/evidence/2026-11-09-misreading-probes-pilot/`, which gives the selection and effort).
-  Not tried: misreadings about the opponent, a hidden choice, or "does nothing" (a PASS-only line is no evidence),
-  and trigger-order ones whose proof does not branch the order (RP_002 and RP_020 per their `note`s; RP_044's
-  proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at the end of a prefix, which was most
-  of the pilot's effort. About 210 remain. Follow-up: a search-arm mode with the prefix fixed, which asks whether
-  ANY completion of the misreading is accepted (a probe asks about one). #267 can be closed once these are done.
+  PR #267): 25 of 221 done. RP_001 (`docs/harness/evidence/2026-11-09-pzl-probe/`) and a ten-puzzle pilot picked for
+  being expressible (`docs/harness/evidence/2026-11-09-misreading-probes-pilot/`) each reject every whole misreading
+  line with the proof accepted as a control (one seeded completion each). A random sample of 20 of the other 210
+  (`docs/harness/evidence/2026-11-09-misreading-probes-sample/`, seed 20261109) measured the share a probe can express:
+  14 of 20 puzzles expressible (70%, Wilson 95% 48 to 86%). Of the 14 probed, 13 reject every whole misreading
+  against Forge's AI (RP_096 only by its acceptance wording); **RP_034 accepts both of its misreadings** against the
+  AI, so it does not test its rule as scored (the sample README, "Finding"). Not tried: the 6 non-expressible or unclear sampled puzzles (and,
+  by the sample, a similar share of the rest), plus trigger-order ones whose proof does not branch the order (RP_002 and RP_020
+  per their `note`s; RP_044's proof already branches it). `eval/puzzles/probe_walk.py` prints the menu at the end of a
+  prefix. About 196 remain unprobed. Follow-up: a search-arm mode with the prefix fixed,
+  which asks whether ANY completion of the misreading is accepted (a probe asks about one); a decision on RP_034's
+  acceptance. #267 can be closed once these are done.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);
   a failed puzzle-row write has no non-zero exit or marker; the batch does not stop on a non-retryable HTTP error
