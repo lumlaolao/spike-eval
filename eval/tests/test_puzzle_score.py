@@ -94,11 +94,19 @@ class PairedTest(unittest.TestCase):
         self.assertIn("paired (B - A) - (D - C)", out)
         self.assertIn("+0.167", out, "(-1/6) - (-1/3)")
 
+    def test_the_json_flag_writes_the_report_with_its_paired_block(self):
+        # `if a.json:` body -> pass: the flag was accepted and nothing written
+        out = Path(self.tmp.name) / "report.json"
+        rc, _ = self.run_cli("a", "--paired-with", "b", "--json", str(out))
+        self.assertEqual(rc, 0)
+        rep = json.loads(out.read_text())
+        self.assertIn("aggregate", rep)
+        self.assertAlmostEqual(rep["paired"]["mean"], -1 / 6)
+
     def test_a_mean_that_rounds_to_zero_prints_without_a_sign(self):
         self.assertEqual(ps.signed(-1.9e-18), "+0.000")
         self.assertEqual(ps.signed(-0.0004), "+0.000")
         self.assertEqual(ps.signed(-0.076), "-0.076")
-
 
     def test_the_paired_flags_reach_the_interval(self):
         seen = {}
@@ -125,6 +133,81 @@ class PairedTest(unittest.TestCase):
             rc, _ = self.run_cli("a", "--paired-with", short)
         self.assertEqual(rc, 2, "a paired run missing a puzzle is refused, not a traceback")
         self.assertIn("REFUSED", err.getvalue())
+
+
+class MutationPinsTest(unittest.TestCase):
+    """Pins found by mutation testing (eval/research/2026-11-08-scorer-mutation.md); each names the mutant it kills."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        ids = [i for i in ("p%d" % n for n in range(40)) if pf.split_for(i) == "open"][:3]
+        self.recs = [rec(i, self.tmp.name, random_solved=20) for i in ids]
+        self.m = suite(self.recs)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def rows(self, solves=3, recs=None, **kw):
+        out = []
+        for r in recs or self.recs:
+            out += [result(r, s, "solved" if s < solves else "failed", **kw) for s in range(4)]
+        return out
+
+    def test_pass_hat_accepts_all_attempts_and_refuses_a_negative_count_by_name(self):
+        self.assertEqual(ps.pass_hat(3, 3, 3), 1.0)    # j > n -> j >= n refused j == n
+        self.assertEqual(ps.pass_hat(2, 3, 3), 0.0)
+        with self.assertRaisesRegex(ValueError, r"pass\^-1 needs"):    # Or -> And: a math error, not this one
+            ps.pass_hat(2, 3, -1)
+
+    def test_the_policy_floor_is_the_binomial_tail_at_half_the_attempts(self):
+        self.assertAlmostEqual(ps.p_solved_by_policy(0.5, 3), 0.5)        # c >= 2 of 3
+        self.assertAlmostEqual(ps.p_solved_by_policy(0.3, 4), 6 * 0.3 ** 2 * 0.7 ** 2 + 4 * 0.3 ** 3 * 0.7 + 0.3 ** 4)
+
+    def test_a_puzzle_margin_is_its_solve_rate_minus_the_random_rate(self):
+        rep = ps.score(self.m, self.rows(3), "open", k=4, n_boot=20)
+        self.assertAlmostEqual(rep["puzzles"][0]["margin"], 0.75 - 0.2)    # Sub -> Add gave 0.95
+
+    def test_the_default_resamples_are_the_published_two_thousand(self):
+        import inspect
+        self.assertEqual(inspect.signature(ps.aggregate).parameters["n_boot"].default, 2000)
+
+    def test_a_suite_edited_after_freezing_is_refused(self):
+        edited = json.loads(json.dumps(self.m))
+        edited["puzzles"][0]["tier"] = 3
+        with self.assertRaisesRegex(ps.Refused, "edited after freezing"):    # the guard's body -> pass
+            ps.score(edited, self.rows(), "open", k=4, n_boot=20)
+
+    def test_rows_stamped_with_this_suite_score_and_rows_stamped_with_another_are_refused(self):
+        sha = self.m["suite_sha256"]
+        self.assertEqual(ps.score(self.m, self.rows(suite_sha256=sha), "open", k=4, n_boot=20)["suite_sha256"], sha)
+        with self.assertRaisesRegex(ps.Refused, "not " + sha[:8]):    # NotEq -> Eq refused the right one, took the wrong
+            ps.score(self.m, self.rows(suite_sha256="f" * 64), "open", k=4, n_boot=20)
+
+    def test_a_result_for_an_edited_puzzle_is_told_apart_from_one_for_an_unknown_puzzle(self):
+        edited = self.rows()
+        edited[0]["pzl_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ps.Refused, "different version of that puzzle"):    # In -> NotIn swapped the two
+            ps.score(self.m, edited, "open", k=4, n_boot=20)
+        unknown = self.rows()
+        unknown[0].update(id="nobody", pzl_sha256="0" * 64)
+        with self.assertRaisesRegex(ps.Refused, "matches no puzzle"):
+            ps.score(self.m, unknown, "open", k=4, n_boot=20)
+
+    def test_the_normalized_score_needs_a_forge_ai_rate_on_every_puzzle(self):
+        for r in self.recs:
+            r["baselines"]["ai"] = {"solved": 50, "n": 100, "rate": 0.5}
+        full = ps.score(suite(self.recs), self.rows(3), "open", k=4, n_boot=20)["aggregate"]
+        self.assertAlmostEqual(full["normalized"]["value"], (0.75 - 0.2) / (0.5 - 0.2))   # guard body -> pass: absent
+        del self.recs[0]["baselines"]["ai"]
+        part = ps.score(suite(self.recs), self.rows(3), "open", k=4, n_boot=20)["aggregate"]
+        self.assertNotIn("normalized", part)
+
+    def test_two_runs_of_the_same_k_pair_without_a_k_floor(self):
+        a = ps.score(self.m, self.rows(2), "open", k=4, n_boot=20)
+        b = ps.score(self.m, self.rows(3), "open", k=4, n_boot=20)
+        c = ps.paired(a, b, n_boot=50)
+        self.assertFalse(c["cross_k"])       # Gt -> GtE made every pair cross-k
+        self.assertIsNone(c["k_floors"])
 
 
 class PassAtKTest(unittest.TestCase):

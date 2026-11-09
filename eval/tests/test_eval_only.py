@@ -406,5 +406,28 @@ class CallSiteTest(unittest.TestCase):
             rollout.run_episode(env, rollout.first_policy, "g", "g#0", out, {"puzzle": str(HELDOUT), "seed": 1})
 
 
+class MutationPinsTest(unittest.TestCase):
+    """Pins found by mutation testing (eval/research/2026-11-08-scorer-mutation.md); each names the mutant it kills."""
+
+    def test_a_reason_lists_at_most_five_seeds_from_each_source(self):
+        # `hit[:5]` -> `[:6]` in both the reserved-block and the seed-bank reason
+        why = eval_only._seed_reasons(range(501, 511))
+        self.assertEqual(why, ["reserved seed block frozen-legacy: [501, 502, 503, 504, 505]",
+                               "seed bank frozen-legacy is eval-only in seed_registry: [501, 502, 503, 504, 505]"])
+
+    def test_only_the_seeds_a_run_would_play_twice_are_named(self):
+        # `seeds.count(s) > 1` -> `>= 1` named every seed; `[:5]` -> `[:6]` named six
+        self.assertEqual(eval_only.duplicate_groups(["a.pzl"], [100, 103], 4),
+                         ["game seeds [103] would be played twice (groups of 4 from [100, 103])"])
+        self.assertEqual(eval_only.duplicate_groups(["a.pzl"], [100, 100], 8),
+                         ["game seeds [100, 101, 102, 103, 104] would be played twice (groups of 8 from [100, 100])"])
+        self.assertEqual(eval_only.duplicate_groups(["a.pzl"], [100, 108], 8), [])
+
+    def test_a_missing_file_has_a_stat_key_of_its_path_alone(self):
+        # `return (path, None, None)` -> `None`: the cache key for an unreadable deck must still carry its path
+        gone = Path(tempfile.gettempdir()) / "eval-only-no-such-file.txt"
+        self.assertEqual(eval_only._stat_key(gone), (str(gone), None, None))
+
+
 if __name__ == "__main__":
     unittest.main()
