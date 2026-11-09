@@ -262,6 +262,15 @@ were, "unique" is exhaustive rather than "not found within the budget". `uniquen
 counts other solving lines an opponent reply beat (not solutions). Smoke checks: `eval/puzzles/rules-pilot/
 RP_SMOKE.pzl` (unique) and `RP_SMOKE2.pzl` (multiple).
 
+**The misreading probe.** A rules puzzle is only a test of the rule if the play a solver makes who got the rule
+wrong does not reach the acceptance state. `python3 eval/puzzles/puzzle_baselines.py probe --pzl <puzzle>
+--line "Solver:2:1 Opponent:3:0"` (the same `Seat:bound:value` form as a proof row's `line`) plays that one line to
+game end in the search runner (`PZL_PROBE`; a seeded random play, `--completion-seed`, past the line) and reads the
+final state against `[acceptance]`. It exits 0 only when the row says `rejected`: an `accepted` probe means the
+misreading also passes, so the puzzle does not test the rule, and a capped game, a drifted line or a puzzle with no
+acceptance section are named as no evidence, never as rejected. The row is `kind: probe`; `puzzle_score` refuses it as
+no attempt. A probe plays no model and costs nothing.
+
 ### The rules suite
 
 The converted rules puzzles (`eval/puzzles/rules-pilot/manifest.jsonl`, `result: converted`) are built the same way:

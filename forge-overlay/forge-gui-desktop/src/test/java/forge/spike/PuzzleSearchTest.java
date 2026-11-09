@@ -325,4 +325,23 @@ public class PuzzleSearchTest {
             Assert.assertEquals(PuzzleArms.subset(PuzzleArms.forMode("random", seed), 5, 1, 3), old, "seed " + seed);
         }
     }
+
+    @Test
+    public void parseLineIsTheInverseOfLineText() {
+        List<Step> steps = PuzzleSearch.parseLine("Solver:3:1  Opponent:2:0");
+        Assert.assertEquals(steps.size(), 2);
+        Assert.assertEquals(PuzzleSearch.lineText(steps), "Solver:3:1 Opponent:2:0");
+    }
+
+    @Test
+    public void parseLineRefusesWhatItCannotReadExactly() {
+        for (String bad : new String[] {"", "  ", "Solver:2", "Solver:2:2", "Solver:0:0", "Judge:2:1", "Solver:a:1", "Solver:2:1:0"}) {
+            try {
+                PuzzleSearch.parseLine(bad);
+                Assert.fail("accepted: " + bad);
+            } catch (IllegalArgumentException expected) {
+                // a typo must not become a different line
+            }
+        }
+    }
 }
