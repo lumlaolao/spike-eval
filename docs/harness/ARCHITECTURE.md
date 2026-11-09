@@ -1271,6 +1271,16 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
       from the record's. A twin set is not an overlay file: `install.sh` installs one only when `TWIN_MANIFEST` is set
       (`TWIN_MODE=keep|replace` for another manifest's twins), because the scripts go into the checkout's cardsfolder
       beside the real cards and derive from third-party scripts.
+    - **The engine check** (`TwinCardsTest`) builds the twins of both twinned suites and of the eight pilot boards that
+      have a stack line (`precast`, `putonstack`; no suite board has one) as the runner makes them, and holds each
+      board to what Forge does with a name it cannot read: it skips the card and prints a stderr line, so a twin with
+      one wrong name is a board missing a card. Every name in the five zones and on a stack line must resolve, and the
+      built game must hold exactly the listed cards in each zone and the `putonstack` cards on the stack, which is the
+      original board's placement with the names mapped (a `precast` card resolves while the board is built and leaves
+      nothing to place, so it is checked for resolution only; a stack line is read as `Name`, `Name->target` or `Name:SVar`; a card id is
+      no name). The three boards the first suite cannot twin (RP_035, RP_124, RP_243) and the one in the second
+      (the storm board) are each pinned with the reason, so a board that newly refuses, stops refusing or refuses for
+      another cause fails the test.
     - **The score is paired** (`puzzle_score.py --twin-results`, `twin_pairing`): per pair the original's pass@1 minus
       the twin's, with a bootstrap interval over pairs, the pairs solved on one side only with the exact McNemar p-value,
       and the floors (a solver that reads no names has gap 0; each trivial arm's own gap). It refuses runs under other

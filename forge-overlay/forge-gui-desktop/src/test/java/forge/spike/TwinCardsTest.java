@@ -33,6 +33,7 @@ import forge.card.CardRules;
 import forge.game.Game;
 import forge.game.card.Card;
 import forge.game.player.Player;
+import forge.game.spellability.SpellAbilityStackInstance;
 import forge.game.zone.ZoneType;
 import forge.gui.GuiBase;
 import forge.item.PaperCard;
@@ -57,10 +58,18 @@ public class TwinCardsTest {
     /** The checkout's root: tests run from its forge-gui-desktop. */
     private static final File FORGE = new File("..").getAbsoluteFile().toPath().normalize().toFile();
     private static final String[] SUITES = {"puzzles-rules-sample-v1", "puzzles-hard-gen-v1"};
-    /** The only boards puzzle_twin.py refuses (RP_035 names Worldgorger Dragon in code, RP_124 the engine names
-     *  Reanimate, RP_243 two faces; gen-v1's storm board names a card in code). A change here is a finding. */
-    private static final List<String> REFUSED = List.of("rules-RP_035", "rules-RP_124", "rules-RP_243",
-            "hard-storm-2ef0ca14337b");
+    /** The only boards puzzle_twin.py refuses, each with the part of the reason that says why (RP_035's Animate Dead
+     *  names Worldgorger Dragon in its script, RP_124 the engine names Reanimate, RP_243 has two faces; gen-v1's
+     *  storm board has the engine name Lotus Petal). A change here is a finding. */
+    private static final Map<String, String> REFUSED = Map.of(
+            "rules-RP_035", "Animate Dead: names another card: named Worldgorger Dragon",
+            "rules-RP_124", "the engine names Reanimate in its source",
+            "rules-RP_243", "Thing in the Ice: a card with more than one face is not twinned",
+            "hard-storm-2ef0ca14337b", "the engine names Lotus Petal in its source");
+    /** Boards with a stack line, which no suite twinned has: the pilot boards whose stack line names a card (RP_106's Bonecrusher Giant has two faces). Their
+     *  twins are made, installed and checked like a suite's (#453). */
+    private static final String[] STACK_BOARDS = {"094", "113", "114", "134", "136", "155", "180", "186"};
+    private static final String STACK_SUITE = "puzzles-stack-lines";
     private static final String[] ZONES = {"hand", "battlefield", "graveyard", "library", "exile"};
 
     /** One suite's twins: puzzle id, original and twin .pzl, original -> twin names. */
@@ -68,7 +77,7 @@ public class TwinCardsTest {
         String id; File original; File twin; Map<String, String> names = new TreeMap<>();
     }
     private static final List<Twin> TWINS = new ArrayList<>();
-    private static final List<String> REFUSED_NOW = new ArrayList<>();
+    private static final Map<String, String> REFUSED_NOW = new TreeMap<>();
     private static final List<String> INSTALLED = new ArrayList<>();
     private static Path scratch;
 
@@ -94,10 +103,13 @@ public class TwinCardsTest {
         // puzzle_twin.py refuses an --out outside the repository's runs/ (third-party twins are never committed)
         scratch = Files.createDirectories(new File(REPO, "runs/twin-cards-test").toPath());
         for (String suite : SUITES) makeSuite(suite);
+        makeSuite(STACK_SUITE, stackSuite());
         Assert.assertFalse(TWINS.isEmpty(), "no twin was made");
         // Both suites' twin scripts, read by Forge's reader and registered as cards no edition lists.
         List<CardRules> rules = new ArrayList<>();
-        for (String suite : SUITES) {
+        List<String> made = new ArrayList<>(List.of(SUITES));
+        made.add(STACK_SUITE);
+        for (String suite : made) {
             File dir = new File(scratch.toFile(), suite + "/forge/forge-gui/res/cardsfolder");
             for (CardRules cr : new CardStorageReader(dir.getPath(), null, false).loadCards()) rules.add(cr);
         }
@@ -111,7 +123,10 @@ public class TwinCardsTest {
 
     /** puzzle_twin.py make and install, as the runner would run them, into a scratch checkout of the originals. */
     private static void makeSuite(String suite) throws Exception {
-        File suiteFile = new File(REPO, "eval/suites/" + suite + ".json");
+        makeSuite(suite, new File(REPO, "eval/suites/" + suite + ".json"));
+    }
+
+    private static void makeSuite(String suite, File suiteFile) throws Exception {
         JsonObject s = JsonParser.parseString(Files.readString(suiteFile.toPath())).getAsJsonObject();
         List<String> ids = new ArrayList<>();
         for (JsonElement e : s.getAsJsonArray("puzzles")) {
@@ -147,7 +162,25 @@ public class TwinCardsTest {
             TWINS.add(t);
         }
         for (JsonElement e : m.getAsJsonArray("refused"))
-            REFUSED_NOW.add(e.getAsJsonObject().get("id").getAsString());
+            REFUSED_NOW.put(e.getAsJsonObject().get("id").getAsString(), e.getAsJsonObject().get("reason").getAsString());
+    }
+
+    /** A suite file of the STACK_BOARDS, so puzzle_twin.py makes them as it makes a committed suite's. */
+    private static File stackSuite() throws Exception {
+        JsonObject s = JsonParser.parseString(Files.readString(new File(REPO, "eval/suites/" + SUITES[0] + ".json")
+                .toPath())).getAsJsonObject();
+        JsonArray puzzles = new JsonArray();
+        for (String n : STACK_BOARDS) {
+            JsonObject rec = s.getAsJsonArray("puzzles").get(0).getAsJsonObject().deepCopy();
+            rec.addProperty("id", "stack-RP_" + n);
+            rec.addProperty("status", "active");
+            rec.addProperty("pzl", "eval/puzzles/rules-pilot/RP_" + n + ".pzl");
+            puzzles.add(rec);
+        }
+        s.add("puzzles", puzzles);
+        File f = new File(scratch.toFile(), STACK_SUITE + ".json");
+        Files.writeString(f.toPath(), s.toString());
+        return f;
     }
 
     private static void run(File cwd, String... cmd) throws Exception {
@@ -172,12 +205,33 @@ public class TwinCardsTest {
         return null;
     }
 
+    private static boolean isStackKey(String key) {
+        return key.trim().toLowerCase().matches("(p\\d|human|ai)(precast|putonstack)");
+    }
+
+    /** The card a stack line entry names: "Murder->1" is Murder, "The One Ring:TrigPump" the Ring (one of its
+     *  abilities); null for a card id ("7:TrigExile->1"), which no twin renames. */
+    static String stackCardName(String entry) {
+        String head = entry.split("\\|")[0].split("->")[0].trim();
+        int colon = head.lastIndexOf(':');
+        if (colon > 0 && head.substring(colon + 1).matches("\\w+")) head = head.substring(0, colon);
+        return head.isEmpty() || head.matches("\\d+") ? null : head;
+    }
+
     /** What the [state] lists per "player:zone": the card names, tokens and card ids left out. */
     static Map<String, List<String>> listed(Map<String, List<String>> sections) {
         Map<String, List<String>> out = new TreeMap<>();
         for (String line : sections.getOrDefault("state", List.of())) {
             int eq = line.indexOf('=');
             if (eq < 0) continue;
+            if (isStackKey(line.substring(0, eq))) {
+                String zone = line.substring(0, eq).trim().toLowerCase().endsWith("precast") ? "precast" : "stack";
+                for (String entry : line.substring(eq + 1).split(";")) {
+                    String name = stackCardName(entry);
+                    if (name != null) out.computeIfAbsent(zone, k -> new ArrayList<>()).add(name);
+                }
+                continue;
+            }
             String[] z = zoneOf(line.substring(0, eq));
             if (z == null) continue;
             List<String> names = out.computeIfAbsent(z[0] + ":" + z[1], k -> new ArrayList<>());
@@ -191,9 +245,14 @@ public class TwinCardsTest {
         return out;
     }
 
-    /** What the built game holds per "player:zone", tokens left out. */
+    /** What the built game holds per "player:zone", tokens left out, and on the stack ("stack": the source card of
+     *  each item). */
     static Map<String, List<String>> placed(Game game) {
         Map<String, List<String>> out = new TreeMap<>();
+        List<String> stack = new ArrayList<>();
+        for (SpellAbilityStackInstance item : game.getStack()) stack.add(item.getSourceCard().getName());
+        java.util.Collections.sort(stack);
+        if (!stack.isEmpty()) out.put("stack", stack);
         for (int i = 0; i < 2; i++) {
             Player p = game.getPlayers().get(i);
             for (String z : ZONES) {
@@ -220,6 +279,7 @@ public class TwinCardsTest {
     static List<String> misplaced(Map<String, List<String>> sections, Game game) {
         Map<String, List<String>> want = listed(sections), got = placed(game);
         want.values().removeIf(List::isEmpty);
+        want.remove("precast");  // a precast spell is cast and resolved while the board is built: no zone holds it
         List<String> bad = new ArrayList<>();
         TreeSet<String> keys = new TreeSet<>(want.keySet());
         keys.addAll(got.keySet());
@@ -237,8 +297,8 @@ public class TwinCardsTest {
 
     /** The refusals are the ones reviewed; a board that newly refuses (or stops refusing) is a finding. */
     @Test
-    public void onlyTheReviewedBoardsAreRefused() {
-        Assert.assertEquals(new TreeSet<>(REFUSED_NOW), new TreeSet<>(REFUSED), "refused: " + REFUSED_NOW);
+    public void onlyTheReviewedBoardsAreRefusedForTheReviewedReasons() {
+        Assert.assertEquals(REFUSED_NOW, new TreeMap<>(REFUSED), "refused: " + REFUSED_NOW);
     }
 
     /** Every twin script Forge reads is a card the database holds under the manifest's twin name. */
@@ -269,8 +329,9 @@ public class TwinCardsTest {
     }
 
     /** Each twin board, built as the runner builds it, holds exactly its listed cards in each of the five zones,
-     *  and that is the original board's placement with the names mapped (the stack lines precast/putonstack are
-     *  covered by the resolution check only). */
+     *  and that is the original board's placement with the names mapped (the stack lines precast/putonstack
+     *  put a card on the stack, "stack"; a precast
+     *  card resolves while the board is built and leaves nothing to place, so it is checked for resolution only). */
     @Test
     public void everyTwinBoardPlacesExactlyItsListedCards() throws Exception {
         List<String> bad = new ArrayList<>();
@@ -291,7 +352,8 @@ public class TwinCardsTest {
             checked++;
         }
         Assert.assertEquals(String.join("\n", bad), "");
-        Assert.assertEquals(checked, 26 + 115, "26 of rules-sample-v1's 29 and 115 of hard-gen-v1's 116 are twinned");
+        Assert.assertEquals(checked, 26 + 115 + STACK_BOARDS.length,
+                "26 of rules-sample-v1's 29, 115 of hard-gen-v1's 116 and every stack board are twinned");
     }
 
     private static String reverse(Map<String, String> names, String twin) {
@@ -333,5 +395,54 @@ public class TwinCardsTest {
         Map<String, List<String>> withGhost = new TreeMap<>(s);
         withGhost.put("state", lines);
         Assert.assertEquals(unresolved(withGhost), List.of("Zzz Not A Card"));
+    }
+
+    /** Red on a stack line: a twin whose stack card is misspelled fails both checks. Without the stack zone in
+     *  listed()/placed() the name is read by neither (#453: they were checked for resolution only, in fact not at all). */
+    @Test
+    public void aMisspelledNameOnAStackLineIsCaughtByBothChecks() throws Exception {
+        Twin t = TWINS.stream().filter(x -> x.id.equals("stack-RP_180")).findFirst().orElseThrow();
+        String twinName = t.names.get("Smallpox");
+        Assert.assertEquals(listed(sectionsOf(t.twin)).get("stack"), List.of(twinName), "the twin's stack line is read");
+        List<String> lines = new ArrayList<>(Files.readAllLines(t.twin.toPath()));
+        for (int i = 0; i < lines.size(); i++)
+            if (lines.get(i).endsWith("putonstack=" + twinName)) lines.set(i, lines.get(i) + "x");
+        File broken = new File(scratch.toFile(), "broken-stack.pzl");
+        Files.write(broken.toPath(), lines);
+        Map<String, List<String>> s = sectionsOf(broken);
+        Assert.assertEquals(unresolved(s), List.of(twinName + "x"), "resolution check");
+        List<String> bad;
+        try {
+            bad = misplaced(s, PuzzleSetupTest.gameOf(s, "broken-stack"));
+        } catch (AssertionError | Exception e) {
+            return;  // an unknown stack card that stops the board from building is caught as well
+        }
+        Assert.assertEquals(bad.size(), 1, "placement check: " + bad);
+        Assert.assertTrue(bad.get(0).contains(twinName + "x"), bad.toString());
+    }
+
+    /** Red on a precast line: its card is read (the twin's name, not the original's) and a misspelling is caught. */
+    @Test
+    public void aMisspelledNameOnAPrecastLineIsCaughtByTheResolutionCheck() throws Exception {
+        Twin t = TWINS.stream().filter(x -> x.id.equals("stack-RP_114")).findFirst().orElseThrow();
+        String twinName = t.names.get("Giant Growth");
+        Assert.assertEquals(listed(sectionsOf(t.twin)).get("precast"), List.of(twinName), "the twin's precast line is read");
+        Assert.assertEquals(unresolved(sectionsOf(t.twin)), List.of(), "the control: the twin's names resolve");
+        List<String> lines = new ArrayList<>(Files.readAllLines(t.twin.toPath()));
+        for (int i = 0; i < lines.size(); i++)
+            if (lines.get(i).contains("precast=" + twinName)) lines.set(i, lines.get(i).replace(twinName, twinName + "x"));
+        File broken = new File(scratch.toFile(), "broken-precast.pzl");
+        Files.write(broken.toPath(), lines);
+        Assert.assertEquals(unresolved(sectionsOf(broken)), List.of(twinName + "x"));
+    }
+
+    /** The stack line's entry forms: a target, an ability of the card, a card id (no name), a plain card. */
+    @Test
+    public void stackLineEntriesNameTheirCard() {
+        Assert.assertEquals(stackCardName("Murder->1"), "Murder");
+        Assert.assertEquals(stackCardName("The One Ring:TrigPump"), "The One Ring");
+        Assert.assertEquals(stackCardName("Epicenter->human"), "Epicenter");
+        Assert.assertNull(stackCardName("7:TrigExile->1"));
+        Assert.assertEquals(stackCardName("Smallpox"), "Smallpox");
     }
 }
