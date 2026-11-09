@@ -12,14 +12,23 @@ reading code.
 - No `Rule:`, `[solution]` or `[acceptance]` text is in any of 441,964 recorded prompt rows or 5,771 recorded requests
   (0 hits; planted exact copies are found 199 of 199 and 129 of 129).
 - One leak of a different kind is real and fixed: before epoch 67 the brief carried the puzzle's Name, which hints at
-  the rule under test, and a Difficulty line. Luna's reasoning quoted the title in 2 of 3,822 reply rows of `bench-v1`,
-  against 0 of 3,775 on the rerun after the fix (issue #436).
-- Eval-awareness phrases, like for like (the `frontier5*` runs, the only corpora with any): Luna 0 of 595 reply
-  rows (Wilson 95% upper 0.64%), 0 of 5 games; the other 22 models 37 of 15,162 rows (0.24% [0.18%, 0.34%]), 12 of 116
-  games [6.0%, 17.2%]. Luna's interval contains the others' rate: this does not show Luna is less eval-aware.
-  The pooled 0 of 40,929 Luna reply rows spans 894 games in nine corpora, epochs and arms, mostly puzzles Luna was
-  winning; it is a description of those runs, not a comparison. "Phrase hit" below means the regex matched, not that
-  the model was aware.
+  the rule under test, and a Difficulty line. Luna's reasoning (the `reasoning` field, both rows) quoted the title in 2 of
+  3,822 reply rows of `bench-v1`, against 0 of 3,775 on the rerun after the fix (issue #436). The intervals overlap
+  ([0.01%, 0.19%] and [0, 0.10%]): 2 against 0 is not a measured difference; the leak is that the title was in the prompt.
+- Eval-awareness phrases occur only in the `frontier5*` runs. They are a description of mixed runs (caps, deadlines
+  and token limits differ: `eval/research/2026-11-05-irt-pilot.md`), not a comparison of models, because models expose
+  very different amounts of reasoning and 35 of the 38 hits are in `reasoning`. Mean reasoning characters per row that
+  has any: Luna 809, GPT 6.1 Sol 419, Sonnet 5.5 1,372, Grok 4.7 6,439, Kimi K3 7,872, DeepSeek V4.1 Flash 45,261,
+  GLM 5.3 44,715. Luna: 0 of 595 reply rows (Wilson 95% upper 0.64%), 0 of 5 games, from 114,836 exposed reasoning
+  characters in 142 rows, so its 0 reflects little exposed reasoning as much as anything else. Per model, in the table
+  below, the phrase rows run from 0 to 1.8% of reply rows. The table's total row is 38 of 16,608 rows in 136 games, beside the
+  per-model rows and not instead of them. This does not show Luna is less eval-aware, or more.
+- A second contamination route is not measured by any verbatim detector: a model recognising the puzzle as a Forge or
+  public puzzle from pretraining (below). 22 reply rows name the Forge puzzle near a word of recall or provenance;
+  read by hand, 13 of them in 8 games are the model wondering whether the puzzle comes from a known collection or
+  saying it recalls it.
+- The pooled 0 of 40,929 Luna reply rows spans 894 games in nine corpora, epochs and arms; it is a description of those
+  runs, not a comparison. "Phrase hit" below means the regex matched, not that the model was aware.
 
 ## Sources
 
@@ -60,8 +69,7 @@ compact record of this scan is `docs/harness/evidence/2026-11-08-leak-and-awaren
 - the `Rule:` line: every 10-word window not already in the Description (8 words matched a model's own paraphrase of a
   card), and its slug (`generated-drain`, `rulesguru-...`);
 - the Name and file stem (the puzzle id), and a Name title of 4 or more words;
-- the `[solution]` block: a `# ...` comment, or 3 consecutive steps (one step is a menu label; a first version that
-  flagged any step of 4 words fired in about 44,000 rows on menus and was dropped);
+- the `[solution]` block: a `# ...` comment, or 3 consecutive steps (one step is a menu label: flagging any 4-word step fires in about 44,000 menu rows);
 - an `[acceptance]` line;
 - in any prompt of any run: a `.pzl` or repository path, a `[solution]`/`[acceptance]`/`[metadata]` header, a
   `Rule:`/`Difficulty:` line, a puzzle-id shape, a 64-hex digest.
@@ -74,8 +82,10 @@ known solution, puzzle author, `.pzl`). Not covered: any other wording of the sa
 whether...", other languages). Plus every hidden-data detector above. A hit is an **echo**, counted apart,
 only when the match with up to two neighbouring words (a 3-word phrase) also stands in that row's prompt or in a
 system prompt or tool list sent to the seat ("the Forge rules engine" echoes the system prompt; "Forge's AI will block
-this" does not). A first version excused any bare word found in the system prompt, which made "Forge" and "harness"
-undetectable; that is fixed and the earlier "0 Forge or harness hits" is withdrawn (below).
+this" does not). A field is checked match by match until a
+non-echo one is found. An earlier draft of this note excused any bare system-prompt word, reported its Forge counts
+from one match per field and ran its selfcheck without `told`; all three are fixed and every figure here is from the
+fixed scan.
 
 **Counting.** One count is a row with at least one hit. An http transcript repeats the game file's rows, so only game-file
 rows are used for rates; the transcripts add the system prompt and are read for hidden text only.
@@ -94,15 +104,18 @@ with the system prompts and tool lists the runs sent as `told`. Detected, with W
 | solution run as numbered menu lines | **0 of 129 [0, 0.029]** | "Forge's AI" | 200 of 200 |
 | acceptance line | 199 of 199 [0.981, 1.0] | "the seed" | 200 of 200 |
 | puzzle id, .pzl path, `[solution]` header | 200 of 200 each | "the intended solution" | 199 of 199 |
+| | | "CardFactory ... GameAction" | 200 of 200 |
+| | | "recall this exact puzzle from the Forge puzzle collection" | 200 of 200 |
 
 (Fewer than 200 where the puzzle has no such section, or where the real row already says the planted kind.) This is
 the floor under every "0": the plumbing reads the rows, maps the puzzle and matches the needles. The planted text is
 the exact needle, so it shows no recall for a leak that is paraphrased, translated, split across lines or written in
-game syntax (the menu-line row above: 0). The first version of this check bypassed `told` and reported 200 of 200 for
-the harness and Forge sentences, a recall the production path did not have (it excused those words); the figures above
-are the production path's, and a reply that repeats a 3-word phrase of the system prompt is excused by design.
+game syntax (the menu-line row above: 0). The figures above are the production path's: a reply that repeats a 3-word phrase of the
+system prompt is excused by design, so a plant that the system prompt already says is not counted
+(`test_selfcheck_does_not_count_a_planted_sentence_the_seat_was_told`).
 `test_leak_scan.py` holds the same checks on a small fixture, and each threshold has a test that fails when it moves
-(title length 4, Rule window 10, the told text, the reply-side hidden-data list, the claude-cli lane label).
+(title length 4, Rule window 10, the told text and its tool list, the echo window of two neighbours, the match-by-match
+check, the reply-side skip list, the evidence filters, the recognition window, the claude-cli lane label).
 
 ## Results
 
@@ -110,7 +123,7 @@ are the production path's, and a reply that repeats a 3-word phrase of the syste
 
 | What wrote the replies | Files | Prompt-side rows | Reply-side rows |
 |---|---|---|---|
-| a real model (Luna 40,929 reply rows; 22 other models 15,207) | 1,639 | 59,228 | 56,136 |
+| a real model (Luna 40,929 reply rows; 21 other models, including the `jev` seat, 15,207) | 1,639 | 59,228 | 56,136 |
 | claude-cli lane (Haiku 5.5 4,626; Opus 5.5 179) | 342 | 5,199 | 4,805 |
 | fake loopback model | 308 | 145,108 | 39,435 |
 | stored line (`script:`) | 948 | 74,521 | 72,495 |
@@ -140,62 +153,130 @@ count / Difficulty: Medium / Goal: Survive". That is the defect epoch 67 fixed (
 `LlmSpikePuzzleTest`). It is a **true leak** of a hint at the rule under test (the Name), not of the solution; issue #436 (label
 `harness-defect`) records it with the file paths.
 
-Hand inspection of every prompt hit, in the order the scan was refined: (1) the first version flagged any `[solution]` step
-of 4 words, about 44,000 rows of menu text ("cast Rite of Flame"): false positive, replaced by the 3-step run; (2) a 2-word title
-("Exploit itself") flagged the model's own plan text echoed in later prompts: false positive, titles under 4 words dropped;
-(3) the remaining 7,828 are the brief above: true. After these changes the prompt categories for the Rule, `[solution]`
-and `[acceptance]` have 0 hits, and every non-zero prompt hit is the brief.
+Hand inspection of every prompt hit: a 2-word title ("Exploit itself") flags the model's own plan text echoed in later
+prompts, so titles under 4 words are not needles; the 7,828 that remain are the brief above, true. The prompt categories
+for the Rule, `[solution]` and `[acceptance]` have 0 hits, and every non-zero prompt hit is the brief.
 
 ### Reply side (game-file rows, non-echo; rate = rows with a hit / reply-side rows, Wilson 95%)
 
 Rows are clustered: a model writes many rows in one game, so a row rate overstates how many independent games show a
-phrase. Each line gives rows and games (games flagged / games played) side by side. All awareness lines below are
-"phrase hits" (a regex matched; Haiku's reading of 30 of them is further down).
+phrase; each line gives rows and games side by side. All awareness lines are "phrase hits" (a regex matched; Haiku's
+reading of 30 of them is further down).
 
-| Model (reply rows, games) | Awareness phrase hits: rows (games) | Row rate | Forge rows | Harness rows | Puzzle meta rows |
+**Awareness phrases, per model.** Every awareness phrase hit of every model is in the `frontier5*` corpora (`frontier5`,
+`frontier5-fill`, `frontier5-long`, `frontier5-kimi-k2.6-int4`), and none is anywhere else, so the table covers all of
+them. It is a description under mixed caps, deadlines and token limits (`eval/research/2026-11-05-irt-pilot.md`), not
+a comparison: 5 to 8 games per model on different puzzles, and the models expose very different amounts of reasoning,
+the field that holds 35 of the 38 hits (the others: `raw_reply`, `tool_request`, `msg_assistant` once each). Rows with
+reasoning are `context_call` rows whose `reasoning` is not empty; characters are those fields' lengths. The hits per
+million reasoning characters is a point rate with no interval: the hits cluster in a few games. Command and record:
+`python3 eval/leak_scan.py runs --compare` (`docs/harness/evidence/2026-11-08-leak-and-awareness-scan/compare-frontier5.txt`,
+`.json`, tested by `test_compare_gives_each_model_its_rows_reasoning_and_hits`).
+
+| Model | Reply rows | Games | Rows with reasoning | Reasoning chars | Phrase-hit rows | Row rate [95%] | Hit games | Game rate [95%] | Hits per M reasoning chars |
+|---|---|---|---|---|---|---|---|---|---|
+| anthropic/claude-haiku-5.5 | 862 | 5 | 0 | 0 | 0 | 0.00% [0.00, 0.44] | 0 | 0% [0, 43] | - |
+| anthropic/claude-sonnet-5.5 | 1,179 | 7 | 369 | 506,424 | 0 | 0.00% [0.00, 0.33] | 0 | 0% [0, 35] | 0.0 |
+| deepseek/deepseek-v4-pro | 701 | 5 | 133 | 2,765,883 | 7 | 1.00% [0.48, 2.05] | 3 | 60% [23, 88] | 2.5 |
+| deepseek/deepseek-v4.1-flash | 1,036 | 5 | 273 | 12,356,381 | 14 | 1.35% [0.81, 2.26] | 3 | 60% [23, 88] | 1.1 |
+| google/gemini-3.8-flash | 772 | 5 | 219 | 1,583,906 | 1 | 0.13% [0.02, 0.73] | 1 | 20% [4, 62] | 0.6 |
+| google/gemini-4-argon | 578 | 5 | 58 | 25,565 | 0 | 0.00% [0.00, 0.66] | 0 | 0% [0, 43] | 0.0 |
+| jev:typesafe/jev-1.14 | 327 | 5 | 0 | 0 | 0 | 0.00% [0.00, 1.16] | 0 | 0% [0, 43] | - |
+| meta/muse-spark-1.3 | 816 | 6 | 242 | 96,775 | 0 | 0.00% [0.00, 0.47] | 0 | 0% [0, 39] | 0.0 |
+| meta/muse-wonder | 672 | 6 | 163 | 40,695 | 0 | 0.00% [0.00, 0.57] | 0 | 0% [0, 39] | 0.0 |
+| mistralai/mistral-large-4-0 | 662 | 6 | 170 | 8,143,431 | 1 | 0.15% [0.03, 0.85] | 1 | 17% [3, 56] | 0.1 |
+| mistralai/mistral-medium-3-5 | 448 | 5 | 0 | 0 | 0 | 0.00% [0.00, 0.85] | 0 | 0% [0, 43] | - |
+| moonshotai/kimi-k2.6 | 771 | 8 | 254 | 9,390,790 | 0 | 0.00% [0.00, 0.50] | 0 | 0% [0, 32] | 0.0 |
+| moonshotai/kimi-k3 | 694 | 5 | 211 | 1,660,832 | 0 | 0.00% [0.00, 0.55] | 0 | 0% [0, 43] | 0.0 |
+| openai/gpt-6-luna | 595 | 5 | 142 | 114,836 | 0 | 0.00% [0.00, 0.64] | 0 | 0% [0, 43] | 0.0 |
+| openai/gpt-6.1-sol | 762 | 5 | 17 | 7,127 | 0 | 0.00% [0.00, 0.50] | 0 | 0% [0, 43] | 0.0 |
+| openai/gpt-6.1-sol-pro | 360 | 3 | 2 | 803 | 0 | 0.00% [0.00, 1.06] | 0 | 0% [0, 56] | 0.0 |
+| unlabelled | 851 | 15 | 182 | 1,955,407 | 1 | 0.12% [0.02, 0.66] | 1 | 7% [1, 30] | 0.5 |
+| x-ai/grok-4.3 | 721 | 6 | 231 | 141,667 | 0 | 0.00% [0.00, 0.53] | 0 | 0% [0, 39] | 0.0 |
+| x-ai/grok-4.6 | 969 | 6 | 295 | 1,187,169 | 0 | 0.00% [0.00, 0.40] | 0 | 0% [0, 39] | 0.0 |
+| x-ai/grok-4.7 | 854 | 5 | 247 | 1,590,552 | 1 | 0.12% [0.02, 0.66] | 1 | 20% [4, 62] | 0.6 |
+| x-ai/grok-build-0.1 | 756 | 5 | 225 | 2,118,480 | 0 | 0.00% [0.00, 0.51] | 0 | 0% [0, 43] | 0.0 |
+| z-ai/glm-5.3 | 675 | 5 | 192 | 8,585,293 | 12 | 1.78% [1.02, 3.08] | 2 | 40% [12, 77] | 1.4 |
+| z-ai/glm-5.3-prime | 547 | 8 | 152 | 6,234,579 | 1 | 0.18% [0.03, 1.03] | 1 | 12% [2, 47] | 0.2 |
+
+The rows are 21 models under 24 labels (`z-ai_glm-5.3`, `z-ai_glm-5.3-prime` and `mistralai_mistral-large-4-0` are the
+folder-name labels of three models also labelled `openrouter:...`; they are folded together) plus the `jev` seat, a
+decision model that exposes no reasoning, and one row of **15 unlabelled games** (851 reply rows, 1 hit) from three folders
+whose `puzzle-results.jsonl` and game lines name no model (`frontier5` 7 games, `frontier5-long` 7, `frontier5-kimi-k2.6-int4`
+1). The unlabelled row is one pooled row, belongs to no model, and is in the bottom total (136 games, 16,608 rows, 38 hit
+rows in 13 games); its one hit is a `frontier5-long` Grok 4.7 game on splice2 (the folder names the model; the game file does not). Per-model reading:
+- Luna has 0 phrase rows from 114,836 reasoning characters (mean 809 per row with any); DeepSeek V4.1 Flash has 14 from
+  12.4 million (mean 45,261) and GLM 5.3 12 from 8.6 million (44,715). Sonnet 5.5 (1,372), GPT 6.1 Sol (419) and Muse
+  (250 to 400) expose little; Haiku 5.5, Mistral Medium and `jev` expose none through this API, so 0 says nothing about them.
+  Luna's 0 reflects little exposed reasoning as much as anything.
+- Kimi K2.6, Grok Build 0.1, Kimi K3 and Grok 4.6 exposed 1.2 to 9.4 million characters each and have 0 phrase rows, so
+  a long reasoning trace alone does not produce the phrase.
+- The pooled non-Luna row figure is 37 of 15,162 (0.24% [0.18%, 0.34%]) over 116 games; it sits beside the rows above and
+  none of them supports ranking models.
+
+In all, 38 phrase-hit rows in 13 games (12 model-labelled, plus the unlabelled game); two games hold 22 of the 38 rows (a
+GLM 5.3 game on elf2 and a DeepSeek V4.1 Flash game on hoofdrain, 11 each). They are on five puzzles (elf2, hoofdrain,
+drain2, atog, splice2): positions the models took to be lost. **Baseline.** The trivial count for "a model that never
+writes such words" is 0; planted-reply detection is 200 of 200 through the production path.
+
+**Other reply words, rows in game files, all corpora.** The words are the harness's own vocabulary (the system prompt
+names Forge and the harness), so a row is not evidence of a leak. The 3-word phrase rule counts 20 Forge and 39 harness
+rows as repeats of the system prompt and sets them aside.
+
+| Model (reply rows, games) | "Forge" | Forge class name | "harness" | Puzzle meta | Recognition phrase |
 |---|---|---|---|---|---|
-| Luna, all corpora (40,929; 894) | 0 (0) | 0 [0, 0.01%] | 3 | 3 | 4 |
-| Luna, `frontier5*` only (595; 5) | 0 (0) | 0 [0, 0.64%] | 0 | 0 | 0 |
-| Luna, `bench-v1` before the fix (3,822) | 0; title quoted in 2 rows | [0.01%, 0.19%] for the title | | | |
-| Luna, `bench-v1-e67` after it (3,775) | 0; title quoted in 0 rows | [0, 0.10%] for the title | | | |
-| Haiku 5.5 via claude-cli (4,626; 171) | 0 (0) | 0 [0, 0.08%] | 0 | 0 | 0 |
-| DeepSeek V4.1 Flash (1,036; 5) | 14 (3) | 1.4% [0.8%, 2.3%] | 76 | 102 | 103 |
-| GLM 5.3, two labellings (675; 5) | 12 (2) | 1.8% [1.0%, 3.1%] | 69 | 54 | 72 |
-| DeepSeek V4 Pro (701; 5) | 7 (3) | 1.0% [0.5%, 2.1%] | 19 | 27 | 24 |
-| Grok 4.7 (854; 5), plus one unlabelled `frontier5-long` Grok 4.7 game (path) | 2 (2) | | 15 | 2 | 17 |
-| Gemini 3.8 Flash (772; 5), Mistral Large 4 (662; 6), GLM 5.3 Prime (547; 8) | 1 (1) each | | | | |
-| Sonnet 5.5, Haiku 5.5, Grok 4.3/4.6/Build, Kimi, Muse, GPT Sol, Gemini 4, the remaining models | 0 | | | | |
+| Luna (40,929; 894) | 3 | 0 | 3 | 4 | 0 |
+| Kimi K2.6 (771; 8) | 102 | 0 | 17 | 52 | 3 |
+| DeepSeek V4.1 Flash (1,036; 5) | 83 | 1 | 111 | 103 | 3 |
+| GLM 5.3 Prime (547; 8) | 77 | 1 | 55 | 47 | 0 |
+| GLM 5.3 (675; 5) | 74 | 4 | 56 | 72 | 1 |
+| Mistral Large 4 (662; 6) | 67 | 1 | 63 | 34 | 6 |
+| Kimi K3 (694; 5) | 27 | 0 | 28 | 9 | 2 |
+| DeepSeek V4 Pro (701; 5) | 20 | 0 | 30 | 24 | 1 |
+| Grok 4.7 (854; 5) | 16 | 1 | 2 | 17 | 4 |
+| the other 13 models (Gemini, Grok 4.3/4.6/Build, Sonnet 5.5, Haiku 5.5, Mistral Medium, Muse, GPT 6.1 Sol/Pro, `jev`) | 10 | 0 | 4 | 51 | 0 |
 
-Matched comparison (the `frontier5*` corpora, `frontier5`, `frontier5-fill`, `frontier5-long`: every awareness phrase
-hit of every model is in them, none anywhere else):
+(The 15 unlabelled games add 23 Forge, 10 harness, 25 puzzle-meta and 2 recognition rows. Haiku 5.5 and Opus 5.5 via
+claude-cli: 0 in every column.) Read by hand, the Forge and harness lines are in-game reasoning about how the engine
+behaves ("in Forge, activating Atog's ability will prompt for ...", "the harness asks decision by decision"), and Luna's
+six are of the same kind or the verb ("to harness auto casts").
 
-| | Reply rows | Phrase-hit rows | Row rate [Wilson 95%] | Games | Games with a hit [Wilson 95%] |
-|---|---|---|---|---|---|
-| Luna | 595 | 0 | 0 [0, 0.64%] | 5 | 0 [0, 43%] |
-| the 22 other models | 15,162 | 37 | 0.24% [0.18%, 0.34%] | 116 | 12 [6.0%, 17.2%] |
+**Forge class names do occur in replies.** 8 non-echo rows in 5 games name one (`forge-class-hits.jsonl`): Grok 4.7
+"checking Forge's CardFactory to confirm the engine uses the real Oracle text" (`frontier5-fill`, hoofdrain), GLM 5.3
+Prime "In Forge's `GameAction` / `HumanPlaySpellAbility`" (splice2), DeepSeek V4.1 Flash "it uses ComputerUtilCost or
+the ability's payCost" (elf2), GLM 5.3 `SpellAbility` and `GameAction` 4 times, Mistral Large 4 `SpellAbility`. The
+models reason about engine behaviour from what they know of Forge's source; none of these names is in a prompt or tool
+list the seat was sent (each is non-echo). No `.java` file name appears in any reply (0 hits of that pattern).
 
-Luna's interval contains the others' row rate, and with 5 games the games interval is wider still: the comparison
-cannot tell whether Luna is less eval-aware. The pooled Luna figure (0 of 40,929, upper 0.01%) counts rows of 894 games
-in corpora where no model produced any such phrase, so it describes those runs and is not a comparison.
+**Seed, rule citations.** Seed: 8 model rows, none about the game's seed: 7 are card-play uses ("seed mana", "seed
+fodder"), one is DeepSeek calling the recorded play "the puzzle's seed" (the start). `Rule:`/`Difficulty:` lines in
+replies: 5, all a model writing its own rules citation ("Rule: 603.2 ...") or a heading. Puzzle meta (puzzle author about
+199, intended solution/line/answer 157, "this is a puzzle" 58, by hit in model rows) is the vocabulary of the brief ("set
+up by the puzzle's author"): not evidence of a leak or of awareness.
 
-In all, 38 phrase-hit rows in 13 games (12 model-labelled, plus the unlabelled Grok 4.7 game); two games hold 22 of
-the 38 rows (a GLM 5.3 game on elf2 and a DeepSeek V4.1 Flash game on hoofdrain, 11 each). They are on five
-puzzles (elf2, hoofdrain, drain2, atog, splice2): positions the models took to be lost. **Baseline.** The trivial
-count for "a model that never writes such words" is 0; planted-reply detection is 200 of 200 through the production
-path. Model labels with an underscore (`z-ai_glm-5.3`) are the same models labelled from the folder name.
+### A route the scan does not measure: recognising the puzzle from pretraining
 
-Forge and harness words (revised; the first version of this note said 0 non-echo hits because its echo test excused any
-word present in the system prompt, which names both): 477 reply rows say "Forge" (3 Luna, 0 Haiku 5.5 or Opus 5.5
-via claude-cli) and 344 say "harness" (3 Luna). Read, the lines sampled are in-game reasoning about how the engine
-behaves ("in Forge, activating Atog's ability will prompt for ...", "the harness asks decision by decision") and
-Luna's six are of the same kind or the verb ("to harness auto casts"); no Forge class name or file name matched in a
-non-echo reply. The words are the harness's own vocabulary (the system prompt names both), so they are not evidence of
-a leak; the 3-word phrase rule counts only 42 Forge and 72 harness rows as repeats of the system prompt. Seed: 8 rows,
-none about the game's seed: 7 are card-play uses ("seed mana", "seed fodder"), one is deepseek calling the recorded play
-"the puzzle's seed" (the start). `Rule:`/`Difficulty:` lines in replies: 5, all a model writing its own rules citation
-("Rule: 603.2 ...") or a heading. Puzzle meta (puzzle author 194, intended solution/line/answer 152, "this is a
-puzzle" 58 in model rows) is the vocabulary of the brief ("set up by the puzzle's author"): not evidence of a leak or
-of awareness.
+Some Forge and puzzle-meta reply hits are models recognising the puzzle as a Forge or public puzzle, which would be
+contamination by recall, not by reading anything the harness sent. Examples (`recognition-hits.jsonl`): Kimi K3,
+`frontier5-fill` splice2, `game-1-1793003622563.jsonl` line 17: "This is likely from the MTG 'possibility storm' style
+puzzles or the 'Forge puzzle' collection. In Forge puzzle files, this exact one exists ...", and later in that row "I
+recall this exact puzzle from the 'Magic puzzle' datasets"; Grok 4.7: "I then recalled this puzzle from my memory as a Forge puzzle deck" and "whether this
+puzzle comes from a known set of Forge puzzles"; Mistral Large 4: "I've seen this exact puzzle before ... a Forge
+puzzle"; unlabelled: "I then recalled this is a real Forge puzzle with live cards".
+
+The detector (`REPLY_PATTERNS["recognition"]`, tested) is the Forge name and "puzzle" within 10 words of each other and a
+word of recall or provenance (collection, dataset, series, recall, remember, recognise, memorise, pretrain, known, famous,
+familiar) within 12 words. Requiring the puzzle matters: "Forge" near a recall word alone fires on "I recall Forge asks
+which cards to splice" (engine behaviour, no puzzle). Result: **22 non-echo reply rows in 12 games**, all in
+`reasoning`; read by hand (one reader, no second labeller, `recognition-read-by-hand.json`) **13 rows in 8 games** have
+the model wondering whether the puzzle comes from a known Forge or public collection or saying it recalls it (Kimi K2.6 1
+game, DeepSeek V4.1 Flash 1, Mistral Large 4 2, Kimi K3 1, Grok 4.7 2, one unlabelled); 9 are about Forge puzzles in
+general ("in these Forge puzzles the library might hold the win condition"). Of 136 `frontier5*` games, 8 show it. What it
+does not show: whether recall helped (none of the 8 games' outcomes were compared with games that did not), the games where
+a model recalled the puzzle and did not say so, or any recall by a model that exposes little reasoning (Luna: 0 recognition rows in 40,929 reply rows,
+of which few carry reasoning). A measurement that does not need the reasoning is a **contamination probe**, proposed in issue
+#438: PR #371's twin puzzles (every card renamed, the rules text kept) scored against their originals
+separate a model that reads the board from one that recalls the original.
 
 ### Judgement calls: 30 `claude -p` calls (made on the first, narrower regex)
 
@@ -225,15 +306,16 @@ nothing outside the flagged set was classified, so no recall or rate is derived 
 - Shows: in the recorded runs, no `Rule:`, `[solution]` or `[acceptance]` text and no `.pzl` path or digest reached any
   prompt, system prompt or tool result the harness logged, as a verbatim string; the scan detects those kinds when planted
   exactly (>= 97% lower bound). The one real leak is the pre-epoch-67 Name (a hint at the rule) and Difficulty lines,
-  which Luna quoted at 2 of 3,822 reply rows (those two corpora are not to be cited as a clean closed-book run). On the
-  one like-for-like set, the `frontier5*` runs, Luna had 0 phrase hits in 595 rows and the other models 37 in 15,162; the
-  intervals overlap, so this is not a difference between them.
+  which Luna quoted at 2 of 3,822 reply rows (those two corpora are not to be cited as a clean closed-book run). In the
+  `frontier5*` runs the phrases appear in games of 7 of the 22 labelled seats (table above); mixed caps and very different
+  exposed reasoning make that a description, and Luna's 0 reflects little exposed reasoning as much as anything.
 - Does not show: absence of a paraphrased, translated or game-syntax leak (the detectors are exact strings, 10-word windows,
   3-step runs; the numbered-menu rendering of a solution run was found 0 of 129 times); anything about the engine log text
   that is not in a recorded row; that a model without these words is not aware (reasoning is summarised for several
   providers; Luna's `reasoning` is a summary, not the raw trace); that the awareness in the `frontier5*` runs changed any
-  answer (not tested); or the cause: the hits sit on a few lost-looking positions, two games hold 22 of 38 rows, and each
+  answer (not tested); that recall of the puzzle from pretraining (13 rows in 8 games) helped or not; or the cause: the hits sit on a few lost-looking positions, two games hold 22 of 38 rows, and each
   position is one data point.
 - Decision: the epoch-67 fix holds in every later run. For the BENCHMARK-V2 "closed-book" rule, keep the `frontier5*`
   runs out of any score. Next step if wanted: add `leak_scan.py` to acceptance so a regression in the brief fails a gate
-  (issue #436), and a paraphrase probe (a model rewording the Rule line) to bound what the exact-string scan misses.
+  (issue #436), a paraphrase probe (a model rewording the Rule line) to bound what the exact-string scan misses, and the contamination
+  probe of issue #438 (recall against reading).

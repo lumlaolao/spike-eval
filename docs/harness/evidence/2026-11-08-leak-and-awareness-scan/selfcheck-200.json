@@ -81,6 +81,15 @@
    1.0
   ]
  },
+ "reply:forge_class": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ },
  "reply:harness": {
   "hits": 200,
   "n": 200,
@@ -96,6 +105,15 @@
   "rate": 1.0,
   "wilson95": [
    0.98106,
+   1.0
+  ]
+ },
+ "reply:recognition": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
    1.0
   ]
  },

@@ -1,0 +1,137 @@
+{
+ "reader": "one reader (the note's author), no second labeller; yes = the reply wonders or says the puzzle itself comes from a Forge or public puzzle collection or that the model recalls it; no = recalling how the Forge engine behaves",
+ "rows": [
+  {
+   "file": "puzzles/frontier5-fill/deepseek_deepseek-v4-pro__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1792999993525.jsonl",
+   "line": 120,
+   "model": "openrouter:deepseek/deepseek-v4-pro",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-fill/deepseek_deepseek-v4.1-flash__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/game-1-1793000252942.jsonl",
+   "line": 91,
+   "model": "openrouter:deepseek/deepseek-v4.1-flash",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/deepseek_deepseek-v4.1-flash__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/game-1-1793000252942.jsonl",
+   "line": 134,
+   "model": "openrouter:deepseek/deepseek-v4.1-flash",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/deepseek_deepseek-v4.1-flash__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/game-1-1793000252942.jsonl",
+   "line": 175,
+   "model": "openrouter:deepseek/deepseek-v4.1-flash",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-fill/mistralai_mistral-large-4-0__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1793002841036.jsonl",
+   "line": 1,
+   "model": "mistralai_mistral-large-4-0",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-fill/mistralai_mistral-large-4-0__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1793002841036.jsonl",
+   "line": 13,
+   "model": "mistralai_mistral-large-4-0",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/mistralai_mistral-large-4-0__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1793002841036.jsonl",
+   "line": 25,
+   "model": "mistralai_mistral-large-4-0",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/mistralai_mistral-large-4-0__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1793002841036.jsonl",
+   "line": 67,
+   "model": "mistralai_mistral-large-4-0",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/mistralai_mistral-large-4-0__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/game-1-1793002740871.jsonl",
+   "line": 6,
+   "model": "mistralai_mistral-large-4-0",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/mistralai_mistral-large-4-0__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/game-1-1793002740871.jsonl",
+   "line": 18,
+   "model": "mistralai_mistral-large-4-0",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1792996520640.jsonl",
+   "line": 5,
+   "model": "openrouter:moonshotai/kimi-k2.6",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1792996520640.jsonl",
+   "line": 15,
+   "model": "openrouter:moonshotai/kimi-k2.6",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/moonshotai_kimi-k2.6__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1792996520640.jsonl",
+   "line": 27,
+   "model": "openrouter:moonshotai/kimi-k2.6",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-fill/moonshotai_kimi-k3__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/game-1-1793003602985.jsonl",
+   "line": 61,
+   "model": "openrouter:moonshotai/kimi-k3",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-fill/moonshotai_kimi-k3__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/game-1-1793003622563.jsonl",
+   "line": 17,
+   "model": "openrouter:moonshotai/kimi-k3",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/x-ai_grok-4.7__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1792997281468.jsonl",
+   "line": 5,
+   "model": "openrouter:x-ai/grok-4.7",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-fill/x-ai_grok-4.7__hard-elf2-2753b3ca0d06/hard-elf2-2753b3ca0d06/game-1-1792997281468.jsonl",
+   "line": 23,
+   "model": "openrouter:x-ai/grok-4.7",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/x-ai_grok-4.7__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/game-1-1792997261949.jsonl",
+   "line": 3,
+   "model": "openrouter:x-ai/grok-4.7",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/x-ai_grok-4.7__hard-hoofdrain-60c5afda2f25/hard-hoofdrain-60c5afda2f25/game-1-1792997261949.jsonl",
+   "line": 11,
+   "model": "openrouter:x-ai/grok-4.7",
+   "names_the_puzzle_source": true
+  },
+  {
+   "file": "puzzles/frontier5-fill/z-ai_glm-5.3__hard-splice2-325cd33e0a57/hard-splice2-325cd33e0a57/game-1-1793005608919.jsonl",
+   "line": 1,
+   "model": "openrouter:z-ai/glm-5.3",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-long/moonshotai_kimi-k2.6/hard-splice2-325cd33e0a57/game-1-1792994421918.jsonl",
+   "line": 6,
+   "model": "",
+   "names_the_puzzle_source": false
+  },
+  {
+   "file": "puzzles/frontier5-long/x-ai_grok-4.7/hard-splice2-325cd33e0a57/game-1-1792994465315.jsonl",
+   "line": 34,
+   "model": "",
+   "names_the_puzzle_source": true
+  }
+ ]
+}
