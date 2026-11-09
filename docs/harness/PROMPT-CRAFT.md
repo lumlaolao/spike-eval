@@ -68,7 +68,7 @@ them. What holds now, with its home in [ARCHITECTURE.md](ARCHITECTURE.md):
        reasoning, as on Anthropic.
    - **So the harness sends "required" to OpenAI models and "auto" elsewhere**
      (`AnswerTool.toolChoiceFor`; `ANSWER_TOOL_CHOICE` overrides it for measurement,
-     from a direct JVM launch only: every launcher pins the default).
+     only from a launcher that does not scrub it: `SETTINGS.md`, the `ANSWER_SCHEMA` row).
      - With "required", a text-only reply is impossible at the API.
      - With "auto", a reply that calls nothing gets `AnswerTool.MAX_NUDGES` reminders and is then lost.
      - It never names the function.

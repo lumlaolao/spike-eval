@@ -154,8 +154,10 @@ most log questions).
   `CLAUDE_DEADLINE_MS`, which `puzzle_solve.py` sets from `--call-timeout-minutes`
   (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363). A launcher that goes
   through `run_batch.py` (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
-  (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake`, `play-vs-llm.sh` and the
-  acceptance canaries in `harness_acceptance.sh`) are never scored and rely on the game-line stamps.
+  (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake` and the acceptance canaries in
+  `harness_acceptance.sh`) are never scored and rely on the game-line stamps; `play-vs-llm.sh`, never scored
+  either, scrubs `RUN_DEFINING_KEYS` and `CITED_FORCED_KEYS` except the seed and the operator's Claude CLI
+  effort and thinking settings (`test_play_vs_llm`).
   `eval/tests/test_launchers.py` classifies every file that launches a game, so a new one is named here.
   A condition the JVM reads from the environment but never stamps pools its on- and off-games (issue
   #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every `System.getenv` in the spike files the game reads through
