@@ -1276,11 +1276,13 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
       board to what Forge does with a name it cannot read: it skips the card and prints a stderr line, so a twin with
       one wrong name is a board missing a card. Every name in the five zones and on a stack line must resolve, and the
       built game must hold exactly the listed cards in each zone and the `putonstack` cards on the stack, which is the
-      original board's placement with the names mapped (a `precast` card resolves while the board is built and leaves
-      nothing to place, so it is checked for resolution only; a stack line is read as `Name`, `Name->target` or `Name:SVar`; a card id is
-      no name). The three boards the first suite cannot twin (RP_035, RP_124, RP_243) and the one in the second
-      (the storm board) are each pinned with the reason, so a board that newly refuses, stops refusing or refuses for
-      another cause fails the test.
+      original board's placement with the names mapped. A `precast` card resolves while the board is built and leaves
+      nothing to place, so it is checked for resolution only. The test reads only the stack forms `Name`,
+      `Name->target`, `Name:SVar` and a card id (no name); any other form Forge's loader accepts (`^`, `KW#`,
+      `CustomScript:`) reads as an unresolved name, which fails loudly. The three boards the first suite cannot twin
+      (RP_035, RP_124, RP_243) and the one in the second (the storm board) are each pinned with the reason, so a board
+      that newly refuses, stops refusing or refuses for another cause fails the test. The scratch checkout is deleted
+      after the class; the invented cards stay in the JVM's card database (CardDb cannot remove one).
     - **The score is paired** (`puzzle_score.py --twin-results`, `twin_pairing`): per pair the original's pass@1 minus
       the twin's, with a bootstrap interval over pairs, the pairs solved on one side only with the exact McNemar p-value,
       and the floors (a solver that reads no names has gap 0; each trivial arm's own gap). It refuses runs under other
