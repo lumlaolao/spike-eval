@@ -17,18 +17,13 @@ bash setup.sh                 # Forge at the pinned commit, the harness on top, 
 bash scripts/install_hooks.sh # once per clone: checks each commit message
 ```
 
-You need Java 17+, Maven 3.8.1+, git and Python 3. The Python code uses only the standard library.
+What you need installed, and the build by hand, are in the [README](README.md#build-and-test-by-hand).
 
 ## Where to make a change
 
 - **Java** lives in `forge-overlay/`. Never edit the Forge checkout itself (`~/code/forge` by default): `install.sh`
-  overwrites it. Edit the overlay, then install and build:
-
-  ```bash
-  FORGE_HOME=~/code/forge bash install.sh
-  (cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)
-  ```
-
+  overwrites it. Edit the overlay, then install and build again ([Source of truth](#source-of-truth) has the
+  commands).
 - **Changes to Forge's own files** are diffs in `engine-patches/`, each listed in `docs/harness/ENGINE-PATCHES.md`.
 - **Python** lives in `eval/`. Each script has its tests in `eval/tests/test_<name>.py`.
 
@@ -46,12 +41,12 @@ one to be verified, say so in the pull request and the maintainer will run it.
 
 1. Branch from `main` as `type/short-name`, for example `fix/own-trigger-window`.
 2. Write the commit subject as `type(scope): what is now true`, at most 100 characters.
-3. In the pull request, say what changed, why, and what you ran to check it.
+3. In the pull request, say what changed, why, and what you ran to check it. `python3 scripts/pr_format.py new-pr`
+   prints the body template the gate expects; if you skip it, the maintainer will fit your text to it.
 
 The maintainer runs the review gate and merges. Pull requests are merged with a merge commit, never squashed.
 
-Do not commit `secrets.env`, anything under `runs/`, `models/` or `.venv-mlx/`, or `*.mp4` recordings. Stage files by
-name; `git add -A` at the repository root is always wrong.
+Stage files by name, never `git add -A`: [What must never be committed](#what-must-never-be-committed) has the list.
 
 ## For the maintainer and coding agents
 

@@ -14,8 +14,6 @@ New to the project? Five documents cover most of it:
 4. [SETTINGS.md](SETTINGS.md): every variable that changes how a game runs.
 5. [LESSONS.md](LESSONS.md): the mistakes the current design exists to prevent.
 
-Everything else is reference, a dated record, or a plan.
-
 ## Current
 
 | Document | What |

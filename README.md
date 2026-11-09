@@ -67,8 +67,8 @@ Each score is reported with its confidence interval and the trivial baseline it 
 
 No headline score is published yet. The one cross-model run so far is an exploratory comparison, not a benchmark
 score: 20 models on the five hardest boards of a generated puzzle suite, one game each. Five models solved all five
-boards, three solved none, and 58 of the 100 games were solved. The table, its conditions and its caveats are in
-[docs/harness/FRONTIER5.md](docs/harness/FRONTIER5.md).
+boards and three solved none (GPT-6 Luna, the default model here, among them); 58 of the 100 games were solved. The
+table, its conditions and its caveats are in [docs/harness/FRONTIER5.md](docs/harness/FRONTIER5.md).
 
 ## How it works
 
