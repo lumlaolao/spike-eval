@@ -1,0 +1,111 @@
+{
+ "rows_planted": 200,
+ "prompt:acceptance_line": {
+  "hits": 199,
+  "n": 199,
+  "rate": 1.0,
+  "wilson95": [
+   0.98106,
+   1.0
+  ]
+ },
+ "prompt:id": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ },
+ "prompt:pzl_path": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ },
+ "prompt:rule_text": {
+  "hits": 199,
+  "n": 199,
+  "rate": 1.0,
+  "wilson95": [
+   0.98106,
+   1.0
+  ]
+ },
+ "prompt:section_header": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ },
+ "prompt:solution_seq": {
+  "hits": 129,
+  "n": 129,
+  "rate": 1.0,
+  "wilson95": [
+   0.97108,
+   1.0
+  ]
+ },
+ "prompt:solution_seq_menu_syntax": {
+  "hits": 0,
+  "n": 129,
+  "rate": 0.0,
+  "wilson95": [
+   0.0,
+   0.02892
+  ]
+ },
+ "reply:awareness": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ },
+ "reply:forge": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ },
+ "reply:harness": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ },
+ "reply:puzzle_meta": {
+  "hits": 199,
+  "n": 199,
+  "rate": 1.0,
+  "wilson95": [
+   0.98106,
+   1.0
+  ]
+ },
+ "reply:seed": {
+  "hits": 200,
+  "n": 200,
+  "rate": 1.0,
+  "wilson95": [
+   0.98115,
+   1.0
+  ]
+ }
+}
