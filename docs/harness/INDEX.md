@@ -4,6 +4,18 @@ Read the **current** documents for how things are; the **historical** ones are r
 orders already carried out, reviews already answered). A historical document is never the rule: where it disagrees
 with a current one, the current one is right. `eval/tests/test_docs_index.py` fails when a document here is not listed.
 
+## Start here
+
+New to the project? Five documents cover most of it:
+
+1. [EXPLAINER.md](EXPLAINER.md): the stack, and one decision followed from the engine to the model and back.
+2. [ARCHITECTURE.md](ARCHITECTURE.md): every part of the harness and why it is built that way. Long; use its contents.
+3. [../eval/SCORING.md](../eval/SCORING.md) and [../eval/PUZZLES.md](../eval/PUZZLES.md): how the scores are computed.
+4. [SETTINGS.md](SETTINGS.md): every variable that changes how a game runs.
+5. [LESSONS.md](LESSONS.md): the mistakes the current design exists to prevent.
+
+Everything else is reference, a dated record, or a plan.
+
 ## Current
 
 | Document | What |

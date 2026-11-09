@@ -1,6 +1,64 @@
 # Contributing
 
-## The git rule (non-negotiable)
+Bug reports, fixes and new puzzles are welcome. This page says how to build the project, check a change and open a
+pull request. The last section holds the stricter rules that the maintainer and the coding agents working here
+follow; you do not need them for a first contribution.
+
+## Reporting a problem
+
+Open an issue. The most useful reports say which deck and seed the game used, what the model was asked, and what
+happened instead of what should have. If the game wrote a run directory, the row in its `game-*.jsonl` is the best
+evidence. For anything involving keys or data leaving your machine, see [SECURITY.md](SECURITY.md) instead.
+
+## Setting up
+
+```bash
+bash setup.sh                 # Forge at the pinned commit, the harness on top, the build
+bash scripts/install_hooks.sh # once per clone: checks each commit message
+```
+
+You need Java 17+, Maven 3.8.1+, git and Python 3. The Python code uses only the standard library.
+
+## Where to make a change
+
+- **Java** lives in `forge-overlay/`. Never edit the Forge checkout itself (`~/code/forge` by default): `install.sh`
+  overwrites it. Edit the overlay, then install and build:
+
+  ```bash
+  FORGE_HOME=~/code/forge bash install.sh
+  (cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)
+  ```
+
+- **Changes to Forge's own files** are diffs in `engine-patches/`, each listed in `docs/harness/ENGINE-PATCHES.md`.
+- **Python** lives in `eval/`. Each script has its tests in `eval/tests/test_<name>.py`.
+
+## Checking a change
+
+```bash
+python3 eval/tests/test_<name>.py        # one Python test file
+bash eval/harness_acceptance.sh          # everything: compile, all tests, fixed-player games
+```
+
+Acceptance needs no API key and costs nothing. You never need a paid model game to contribute. If your change needs
+one to be verified, say so in the pull request and the maintainer will run it.
+
+## Opening a pull request
+
+1. Branch from `main` as `type/short-name`, for example `fix/own-trigger-window`.
+2. Write the commit subject as `type(scope): what is now true`, at most 100 characters.
+3. In the pull request, say what changed, why, and what you ran to check it.
+
+The maintainer runs the review gate and merges. Pull requests are merged with a merge commit, never squashed.
+
+Do not commit `secrets.env`, anything under `runs/`, `models/` or `.venv-mlx/`, or `*.mp4` recordings. Stage files by
+name; `git add -A` at the repository root is always wrong.
+
+## For the maintainer and coding agents
+
+The rest of this page is the full process. [docs/STANDARDS.md](docs/STANDARDS.md) is the complete rule book, and
+[CLAUDE.md](CLAUDE.md) is what a coding agent reads first.
+
+### The git rule (non-negotiable)
 
 **Every change lands through a pull request, and PRs are merged with a merge
 commit. Never squash. Never rebase-merge.**
@@ -36,7 +94,7 @@ bash scripts/pr_merge.sh <n>             # the merge gate; merges with a merge c
 
 The `pr-format` skill (`.claude/skills/pr-format/SKILL.md`) has the verdicts each skill may record.
 
-## Source of truth
+### Source of truth
 
 `forge-overlay/` is the source of truth. **Never edit files inside the Forge checkout (`$FORGE_HOME`, `~/code/forge` by default)** —
 they are overwritten by `install.sh`. Workflow for any harness change:
@@ -47,7 +105,7 @@ FORGE_HOME=~/code/forge bash install.sh                # 2. copy the overlay int
 (cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)   # 3. build (install, not compile)
 ```
 
-## What must never be committed
+### What must never be committed
 
 - `secrets.env` (git-ignored) — the real `OPENROUTER_API_KEY` never enters history.
 - generated training data under `datasets/` (only each corpus's `meta.jsonl` and README are kept, as the
@@ -56,7 +114,7 @@ FORGE_HOME=~/code/forge bash install.sh                # 2. copy the overlay int
 - `*.mp4` recordings — archive out-of-band.
 - Anything under `models/` or `.venv-mlx/`.
 
-## Validation ladder (cheapest first — always start at the bottom)
+### Validation ladder (cheapest first — always start at the bottom)
 
 0. `bash eval/harness_acceptance.sh` — isolated compile, every Java/Python test
    with a declared-vs-run count gate, pinned zero-model canaries with a class-load
@@ -77,7 +135,7 @@ FORGE_HOME=~/code/forge bash install.sh                # 2. copy the overlay int
 **Before trusting a green gate, say what would have made it fail.** If you can't,
 it isn't evidence.
 
-## Review
+### Review
 
 Every PR: the `pr-review`, `simplify` and `standards` skills on the diff, with their
 verdicts recorded for the head commit ([docs/STANDARDS.md](docs/STANDARDS.md) section 1).
