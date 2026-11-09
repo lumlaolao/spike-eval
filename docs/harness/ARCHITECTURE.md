@@ -1251,7 +1251,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
       committed record with no manifest is validated on its declaration and hashes alone: that is no defect
       (`validate_puzzle` stays quiet) but it is unverifiable, and `eval_only` says so (below). A manifest that is
       there but unreadable or of the wrong shape is a different thing (`puzzle_twin.manifest_state` tells the two
-      apart) and `validate_puzzle` fails it as `malformed twin manifest`. `puzzle_twin.py verify --suite F` runs it
+      apart; a symlink that leads nowhere is malformed) and `validate_puzzle` fails it as `malformed twin manifest`. `puzzle_twin.py verify --suite F` runs it
       over a suite. `suite_twin_problems` adds, inside one suite, one twin per original, no chains and an
       `original_pzl_sha256` equal to the `pzl_sha256` of the record `twin_of` names.
       `eval/rl/eval_only.puzzle_splits` trusts neither declared field: a twin adds the splits of the non-twin suite
@@ -1261,8 +1261,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
       not mistaken for one a suite marks held out; the split cache is stamped with each distinct file the verdict reads
       (every manifest once, however many twins share it, and every twin `.pzl`: path, mtime, size), so one edited in
       place since the last call is judged again. `puzzle_twin.manifest_problems` refuses a manifest of the wrong shape
-      (`install`, `suite`, `verify`
-      exit 1 with a message, not a traceback).
+      (`install`, `suite`, `verify` exit 1 with a message, not a traceback).
     - **The scripts are versioned by the record, not by `overlay_sha`**, which hashes the overlay's Java and the engine
       patches, never a checkout's `res/`. `twin_set_sha256` is the hash of the sha256 of every generated script the twin
       needs; it is in `suite_sha256` with `twin_of` and `original_pzl_sha256` (all three for twins only, so a suite

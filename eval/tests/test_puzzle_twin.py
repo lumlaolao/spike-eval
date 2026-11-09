@@ -4,6 +4,8 @@ self-references renamed, the refusals fire, the names are deterministic, and ins
 The real-puzzle tests read three committed boards (a rules-pilot puzzle and two generated ones) read-only. The script
 fixtures are invented cards (docs/STANDARDS.md section 5), shaped like Forge scripts; the one test that reads Forge's
 own Rite of Flame skips when no checkout is readable."""
+import contextlib
+import io
 import json
 import os
 import re
@@ -390,7 +392,7 @@ class MakeAndInstallTest(unittest.TestCase):
             mine.unlink()
             removed, kept = tw.uninstall(forge)
             self.assertFalse((forge / tw.EDITION_FILE).exists())
-            self.assertEqual(self.snapshot(forge).get(str(Path(tw.TWINS_DIR))), None, "the emptied folder goes")
+            self.assertFalse((forge / tw.TWINS_DIR).exists(), "the emptied folder goes")
             (forge / tw.EDITION_FILE).write_text("[metadata]\nName=Somebody else's set\n")
             _, kept = tw.uninstall(forge)
             self.assertIn(tw.EDITION_FILE, " ".join(str(p) for p, _ in kept).replace("\\", "/"))
@@ -398,8 +400,6 @@ class MakeAndInstallTest(unittest.TestCase):
 
     def test_uninstall_does_not_follow_a_symlinked_twins_folder_out_of_the_checkout(self):
         # Kills: folder.glob/is_dir through the link -> files outside the tree unlinked, then rmdir NotADirectoryError.
-        import contextlib
-        import io
         with tempfile.TemporaryDirectory() as tmp:
             forge, out, manifest = self.make(tmp)
             tw.install(manifest, forge)
@@ -428,6 +428,14 @@ class MakeAndInstallTest(unittest.TestCase):
             _, kept = tw.uninstall(forge)
             self.assertIn(edition, [p for p, _ in kept])
             self.assertTrue(target.is_file() and edition.is_symlink())
+
+    def test_uninstall_names_an_edition_path_that_is_a_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, out, manifest = self.make(tmp)
+            (forge / tw.EDITION_FILE).mkdir()
+            removed, kept = tw.uninstall(forge)
+            self.assertEqual([(p, "not a file: left") for p in [forge / tw.EDITION_FILE]], kept)
+            self.assertTrue((forge / tw.EDITION_FILE).is_dir())
 
     def test_uninstall_leaves_an_empty_twins_folder_it_removed_nothing_from(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -741,8 +749,6 @@ class TwinSuiteTest(unittest.TestCase):
     def test_the_verify_command_exits_nonzero_on_a_twin_it_cannot_verify(self):
         # Kills: `return 1 if bad else 0` -> `return 0` (an edited board or a missing manifest exits 0); and
         # dropping the missing-manifest branch (a twin with no manifest prints ok or crashes).
-        import contextlib
-        import io
         with tempfile.TemporaryDirectory() as tmp:
             forge, repo, out, suite, manifest = self.build(tmp)
             (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
@@ -790,14 +796,15 @@ class TwinSuiteTest(unittest.TestCase):
             (out / tw.MANIFEST).mkdir()          # there, but cannot be read: not 'missing'
             self.assertTrue(any("malformed twin manifest" in w for w in pf.validate_puzzle(rec, repo=repo)))
             (out / tw.MANIFEST).rmdir()
+            (out / tw.MANIFEST).symlink_to(out / "nowhere.json")   # a link that leads nowhere: not 'missing'
+            self.assertTrue(any("malformed twin manifest" in w for w in pf.validate_puzzle(rec, repo=repo)))
+            (out / tw.MANIFEST).unlink()
             (out / tw.MANIFEST).write_text(good)
             self.assertEqual(pf.validate_puzzle(rec, repo=repo), [])
 
     def test_a_malformed_manifest_is_refused_with_a_message_not_a_traceback(self):
         # Kills: drop manifest_problems/load_manifest -> a manifest that is a list, has a card without its keys, or
         # is not JSON raises KeyError/AttributeError/JSONDecodeError out of install, suite and verify_record.
-        import contextlib
-        import io
         with tempfile.TemporaryDirectory() as tmp:
             forge, repo, out, suite, manifest = self.build(tmp)
             (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)

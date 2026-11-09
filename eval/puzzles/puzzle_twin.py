@@ -572,19 +572,24 @@ def uninstall(forge):
     folder = forge / TWINS_DIR
     removed, kept = [], []
 
-    def drop(path, why_not=None):
+    def drop(path):
         try:
             path.unlink()
             removed.append(path)
         except OSError as e:
-            kept.append((path, why_not or "cannot remove it: %s" % e))
+            kept.append((path, "cannot remove it: %s" % e))
+
+    def refused(path):
+        """True (and named in kept) when `path` is a symlink or outside the checkout: never followed."""
+        if not _outside(path, forge):
+            return False
+        if path.exists() or path.is_symlink():
+            kept.append((path, "a symlink or outside the checkout: not followed"))
+        return True
 
     sidecar = folder / INSTALLED
     ours = {}
-    if _outside(folder, forge):
-        if folder.exists() or folder.is_symlink():
-            kept.append((folder, "a symlink or outside the checkout: not followed"))
-    else:
+    if not refused(folder):
         if sidecar.is_file():
             try:
                 record = json.loads(sidecar.read_text(encoding="utf-8"))
@@ -610,19 +615,17 @@ def uninstall(forge):
             else:
                 drop(sidecar)
         edition = forge / EDITION_FILE
-        if left or any(p == sidecar for p, _ in kept):
-            pass   # the record of what is installed stays, so does the edition that lists it
-        elif _outside(edition, forge):
-            if edition.exists() or edition.is_symlink():
-                kept.append((edition, "a symlink or outside the checkout: not followed"))
-        elif edition.is_file():
-            try:
-                if _our_edition(edition.read_text(encoding="utf-8", errors="replace")):
-                    drop(edition)
-                else:
-                    kept.append((edition, "install did not write it"))
-            except OSError as e:
-                kept.append((edition, "cannot read it: %s" % e))
+        if not left and not any(p == sidecar for p, _ in kept) and not refused(edition):
+            if edition.is_dir():
+                kept.append((edition, "not a file: left"))
+            elif edition.is_file():
+                try:
+                    if _our_edition(edition.read_text(encoding="utf-8", errors="replace")):
+                        drop(edition)
+                    else:
+                        kept.append((edition, "install did not write it"))
+                except OSError as e:
+                    kept.append((edition, "cannot read it: %s" % e))
         if any(p.parent == folder for p in removed):
             try:
                 folder.rmdir()   # only a folder this call emptied; a non-empty one raises and stays
@@ -647,11 +650,17 @@ def manifest_state(rec, repo=REPO):
         path = manifest_file(rec, repo)
     except (OSError, TypeError, AttributeError):
         return None, "no twin manifest beside %r" % (rec.get("pzl"),)
-    if not path.exists():
-        return None, "no twin manifest at %s" % path
+    if path.is_symlink() and not path.resolve().exists():
+        return None, "malformed twin manifest %s: a symlink that leads nowhere" % path
     try:
-        manifest = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as e:   # there but unreadable (a directory, no permission) or not JSON
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None, "no twin manifest at %s" % path
+    except (OSError, UnicodeDecodeError, ValueError) as e:   # there but unreadable (a directory, no permission)
+        return None, "malformed twin manifest %s: unreadable (%s)" % (path, e)
+    try:
+        manifest = json.loads(text)
+    except ValueError as e:
         return None, "malformed twin manifest %s: %s" % (path, e)
     why = manifest_problems(manifest)
     return (None, "malformed twin manifest %s: %s" % (path, "; ".join(why))) if why else (manifest, None)
