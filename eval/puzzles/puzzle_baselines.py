@@ -60,6 +60,7 @@ import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import benchmark_version  # noqa: E402
 import run_batch  # noqa: E402
 import puzzle_format as pf  # noqa: E402
+import puzzle_twin  # noqa: E402  (a twin record's scripts must be the ones installed)
 
 REPO = pf.REPO
 
@@ -551,6 +552,7 @@ def cmd_prove(a):
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
     refuse_unproven(todo, "played")
     build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
+    puzzle_twin.refuse_uninstalled(todo, getattr(build, "forge", None))
     manifest = dict(manifest, frozen=False, suite_sha256=None)
     target = Path(a.write or a.suite)
     done = {}
@@ -845,6 +847,7 @@ def cmd_run(a):
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
     refuse_unproven(todo, "played")
     build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
+    puzzle_twin.refuse_uninstalled(todo, getattr(build, "forge", None))
 
     def work(rec):
         try:
@@ -901,6 +904,7 @@ def cmd_verify(a):
     manifest = pf.load_suite(a.suite)
     out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-verify" % manifest["suite"]))
     todo = [r for r in manifest["puzzles"] if pf.has_line(r.get("reference_line"))]
+    puzzle_twin.refuse_uninstalled(todo, getattr(build, "forge", None))
     with ThreadPoolExecutor(max(1, a.jobs)) as ex:
         res = list(ex.map(lambda r: verify_puzzle(build, r, out_root), todo))
     bad = 0

@@ -623,5 +623,134 @@ class ScoreV2Test(unittest.TestCase):
         self.assertEqual({t: b["solved"] for t, b in s["by_tier_v2"].items()}, {"1": 1, "2": 1, "3": 0})
 
 
+class TwinPairingTest(unittest.TestCase):
+    """Original against twin, pair by pair: the recall gap with its interval, the discordant pairs, the floors."""
+
+    N = 6
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.ids = [i for i in ("p%d" % n for n in range(60)) if pf.split_for(i) == "open"][:self.N]
+        self.orig = [rec(i, self.tmp.name) for i in self.ids]
+        self.twins = []
+        for r in self.orig:
+            t = rec(r["id"] + "-twin", self.tmp.name)
+            cards = {"Zorbin %s" % r["id"]: "a" * 64}
+            t.update(split=r["split"], twin_of=r["id"], original_pzl_sha256=r["pzl_sha256"], twin_cards=cards,
+                     twin_set_sha256=pf.twin_set_sha(cards))
+            self.twins.append(t)
+        self.mo, self.mt = suite(self.orig), suite(self.twins)
+        self.twin_of = pf.twin_originals(self.mt)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def rep(self, manifest, recs, solves, **kw):
+        rows = []
+        for r, c in zip(recs, solves):
+            rows += [result(r, s, "solved" if s < c else "failed", **kw) for s in range(4)]
+        return ps.score(manifest, rows, "open", k=4, n_boot=50)
+
+    def pair(self, so, st, **kw):
+        return ps.twin_pairing(self.rep(self.mo, self.orig, so), self.rep(self.mt, self.twins, st, **kw), self.twin_of,
+                               n_boot=300)
+
+    def test_the_gap_is_original_minus_twin_per_pair(self):
+        c = self.pair([4, 4, 4, 4, 2, 0], [4, 2, 0, 4, 2, 0])
+        self.assertEqual(c["n_pairs"], 6)
+        self.assertAlmostEqual(c["gap"]["value"], (0 + 0.5 + 1 + 0 + 0 + 0) / 6)
+        self.assertLessEqual(c["gap"]["ci95"][0], c["gap"]["value"])
+        self.assertGreaterEqual(c["gap"]["ci95"][1], c["gap"]["value"])
+        self.assertIsNotNone(c["gap"]["ci95_clustered"])
+        self.assertEqual(c["floors"]["no_recall"], 0.0)
+        self.assertEqual(set(c["floors"]), {"no_recall", "random", "pass", "first"})
+        flipped = self.pair([4, 2, 0, 4, 2, 0], [4, 4, 4, 4, 2, 0])
+        self.assertAlmostEqual(flipped["gap"]["value"], -c["gap"]["value"], msg="a twin that is easier is a negative gap")
+
+    def test_discordant_pairs_are_counted_on_solved_and_the_test_is_exact(self):
+        c = self.pair([4, 4, 4, 4, 4, 0], [4, 0, 0, 0, 0, 0])   # solved c >= 2 of 4: 5 vs 1; only original: 4
+        s = c["solved"]
+        self.assertEqual((s["original"], s["twin"], s["only_original"], s["only_twin"], s["both"], s["neither"]),
+                         (5, 1, 4, 0, 1, 1))
+        self.assertAlmostEqual(s["mcnemar_p"], 2 * 1 / 16, msg="two-sided exact: 2 * P(X <= 0 of 4 fair draws)")
+        self.assertAlmostEqual(s["difference"], 4 / 6)
+        even = self.pair([4, 4, 0, 0, 4, 4], [4, 0, 4, 0, 0, 4])
+        self.assertEqual((even["solved"]["only_original"], even["solved"]["only_twin"]), (2, 1))
+        self.assertAlmostEqual(even["solved"]["mcnemar_p"], 1.0, msg="2 vs 1 discordant: p = 1")
+
+    def test_no_discordant_pair_says_nothing_and_a_symmetric_split_is_no_recall(self):
+        same = self.pair([4, 2, 0, 4, 2, 0], [4, 2, 0, 4, 2, 0])
+        self.assertIsNone(same["solved"]["mcnemar_p"])
+        self.assertAlmostEqual(same["gap"]["value"], 0.0)
+        self.assertIn("the test says nothing", ps.render_twins(same))
+        self.assertEqual(ps.mcnemar_exact(0, 0), None)
+        self.assertEqual(ps.mcnemar_exact(3, 3), 1.0)
+        self.assertAlmostEqual(ps.mcnemar_exact(0, 10), 2 / 1024)
+
+    def test_the_trivial_arms_are_measured_on_both_boards(self):
+        for r in self.twins[:2]:
+            r["baselines"]["random"] = {"solved": 10, "n": 100, "rate": 0.1}
+        c = ps.twin_pairing(self.rep(self.mo, self.orig, [4] * 6), self.rep(suite(self.twins), self.twins, [4] * 6),
+                            self.twin_of, n_boot=50)
+        self.assertAlmostEqual(c["floors"]["random"], -0.2 / 6, msg="original 0 minus twin 0.1 on two pairs, over six")
+        self.assertEqual(c["floors"]["pass"], 0.0)
+
+    def test_runs_under_other_conditions_or_without_a_pair_are_refused(self):
+        a = self.rep(self.mo, self.orig, [4] * 6)
+        b = self.rep(self.mt, self.twins, [4] * 6)
+        for key, val in (("solver", "llm/other"), ("harness_epoch", "e2"), ("engine_sha", "zzz"), ("max_tokens", 99),
+                         ("game_cap_ms", 1)):
+            with self.assertRaisesRegex(ps.Refused, key):
+                ps.twin_pairing(a, dict(b, **{key: val}), self.twin_of)
+        with self.assertRaisesRegex(ps.Refused, "differ in k"):
+            ps.twin_pairing(a, dict(b, aggregate=dict(b["aggregate"], k=5)), self.twin_of)
+        with self.assertRaisesRegex(ps.Refused, "nothing to pair"):
+            ps.twin_pairing(a, b, {"nope-twin": "nope"})
+
+    def test_unpaired_puzzles_are_listed_and_not_scored(self):
+        a = self.rep(self.mo, self.orig, [4] * 6)
+        rows = [result(r, k) for r in self.twins[:4] for k in range(4)]
+        b = ps.score(self.mt, rows, "open", k=4, n_boot=50, ids={r["id"] for r in self.twins[:4]})
+        c = ps.twin_pairing(a, b, self.twin_of)
+        self.assertEqual(c["n_pairs"], 4)
+        self.assertEqual(c["unpaired_originals"], sorted(self.ids[4:]))
+
+    def write_run(self, name, recs, solves):
+        out = Path(self.tmp.name) / name
+        out.mkdir()
+        rows = []
+        for r, c in zip(recs, solves):
+            rows += [result(r, s, "solved" if s < c else "failed") for s in range(4)]
+        (out / "puzzle-results.jsonl").write_text("".join(json.dumps(x) + "\n" for x in rows))
+        return str(out)
+
+    def test_the_command_pairs_the_twin_suite_with_the_original_one(self):
+        def suite_file(name, recs, frozen_suite):
+            recs = [dict(r, pzl=str(Path(self.tmp.name) / r["pzl"])) for r in recs]
+            f = Path(self.tmp.name) / name
+            f.write_text(json.dumps(suite(recs)))
+            return str(f)
+        so, st = suite_file("so.json", self.orig, self.mo), suite_file("st.json", self.twins, self.mt)
+        o = self.write_run("o", self.orig, [4, 4, 4, 4, 2, 0])
+        t = self.write_run("t", self.twins, [4, 2, 0, 4, 2, 0])
+        buf, jf = io.StringIO(), str(Path(self.tmp.name) / "out.json")
+        with contextlib.redirect_stdout(buf):
+            rc = ps.main([o, "--suite", so, "--split", "open", "--k", "4", "--twin-suite", st, "--twin-results", t,
+                          "--json", jf, "--paired-bootstrap", "200"])
+        self.assertEqual(rc, 0, buf.getvalue())
+        out = buf.getvalue()
+        self.assertIn("TWINS", out)
+        self.assertIn("+0.250", out)
+        self.assertIn("McNemar exact p", out)
+        self.assertIn("no recall 0.000", out)
+        self.assertEqual(json.loads(Path(jf).read_text())["twins"]["n_pairs"], 6)
+        # a twin suite with no twin record is refused, not scored as an original run
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            rc = ps.main(["--suite", so, "--split", "open", "--k", "4", o, "--twin-suite", so, "--twin-results", o])
+        self.assertEqual(rc, 2)
+        self.assertIn("no active open twin puzzles", err.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

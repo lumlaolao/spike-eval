@@ -9,6 +9,7 @@ from pathlib import Path
 
 import evalpath  # noqa: F401
 import puzzle_format
+import puzzle_twin
 import seed_policy
 import seed_registry
 
@@ -20,18 +21,32 @@ NO_DECK = "game episode has no deck: the launcher's default decks cannot be judg
 _SPLITS = {}   # (file, mtime, size) of every suite file -> the result: a reader judges thousands of episodes
 
 
-def puzzle_splits(suites_dir=None):
+def puzzle_splits(suites_dir=None, repo=None):
     """{pzl_sha256: {split, ...}} over every record of every suite file that has a `puzzles` list (a record with
-    no split contributes None)."""
+    no split contributes None). A twin record (`twin_of`) also contributes the splits of every suite record whose
+    pzl_sha256 is its `original_pzl_sha256`, but only once `puzzle_twin.verify_record` has shown that the twin's
+    .pzl is that original renamed by its manifest. Neither `twin_of` nor `original_pzl_sha256` is trusted as
+    declared. A twin it cannot verify (no manifest beside its .pzl, or an edited board) reads as heldout, and so
+    does a verified twin whose original is no non-twin suite record (an unknown original, or a chain)."""
     files = sorted(Path(suites_dir or SUITES).glob("*.json"))
-    key = tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size) for f in files)
+    key = (str(repo),) + tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size) for f in files)
     if key not in _SPLITS:
-        out = {}
+        out, recs = {}, []
         for f in files:
             data = json.loads(f.read_text(encoding="utf-8"))
-            for rec in (data.get("puzzles") or []) if isinstance(data, dict) else []:
-                if rec.get("pzl_sha256"):
-                    out.setdefault(rec["pzl_sha256"], set()).add(rec.get("split"))
+            recs += [r for r in (data.get("puzzles") or []) if isinstance(r, dict)] if isinstance(data, dict) else []
+        by_board = {}
+        for rec in recs:
+            if rec.get("pzl_sha256") and not puzzle_format.is_twin(rec):
+                by_board.setdefault(rec["pzl_sha256"], set()).add(rec.get("split"))
+        for rec in recs:
+            if rec.get("pzl_sha256"):
+                splits = out.setdefault(rec["pzl_sha256"], set())
+                splits.add(rec.get("split"))
+                if puzzle_format.is_twin(rec):
+                    manifest = puzzle_twin.find_manifest(rec, repo or evalpath.REPO)
+                    ok = manifest is not None and not puzzle_twin.verify_record(rec, manifest, repo or evalpath.REPO)
+                    splits.update((by_board.get(rec.get("original_pzl_sha256")) if ok else None) or {"heldout"})
         _SPLITS.clear()
         _SPLITS[key] = out
     return _SPLITS[key]
