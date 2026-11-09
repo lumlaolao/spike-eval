@@ -1,5 +1,11 @@
-# Paths: the repository is four levels up; BUILD is the acceptance OUT dir (`--build` of puzzle_baselines.py);
-# raw runs go under RUNS (default ./raw). Run from this folder.
+"""One puzzle's prover run for the AI-blind sweep: `drive.py <id> <ai|search> <unique budget>` prints one JSON row.
+
+Runs puzzle_baselines.run_arm with the prover's environment and the opponent named, keeps the row fields the README
+cites, and deletes the raw run's files except puzzle-results.jsonl and jvm.log. It cannot say why a second line is
+accepted; the README does that per puzzle.
+Paths: the repository is four levels up; BUILD is the acceptance OUT dir (`--build` of puzzle_baselines.py); raw
+runs go under RUNS (default ./raw). Run from this folder.
+"""
 import sys, json, time, os, shutil
 from pathlib import Path
 REPO = Path(__file__).resolve().parents[4]
