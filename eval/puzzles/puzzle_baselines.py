@@ -47,6 +47,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -768,34 +769,40 @@ def cmd_line(a):
 
 
 def check_probe_line(line):
-    """A misreading probe's line (PZL_PROBE), "Seat:bound:value ..." with value < bound: the grammar
-    PuzzleSearch.parseLine reads, refused here before a JVM starts."""
+    """A misreading probe's line (PZL_PROBE), "Seat:bound:value ..." with 0 <= value < bound, digits only and no
+    leading zero: the grammar PuzzleSearch.parseLine reads (PuzzleSearchTest.LINE_GOOD / LINE_BAD pin both),
+    refused here before a JVM starts."""
     steps = (line or "").split()
     if not steps:
         raise SystemExit("--line is empty: a probe plays at least one 'Seat:bound:value' step")
     for s in steps:
         parts = s.split(":")
-        ok = len(parts) == 3 and parts[0] in ("Solver", "Opponent") and all(p.isdigit() for p in parts[1:])
-        if not ok or not 0 <= int(parts[2]) < int(parts[1]):
-            raise SystemExit("--line step %r is not Seat:bound:value (Solver|Opponent, 0 <= value < bound)" % s)
+        ok = (len(parts) == 3 and parts[0] in ("Solver", "Opponent")
+              and all(re.fullmatch("[0-9]+", p) and str(int(p)) == p for p in parts[1:]))
+        if not ok or int(parts[2]) >= int(parts[1]):
+            raise SystemExit("--line step %r is not Seat:bound:value (Solver|Opponent, 0 <= value < bound, "
+                             "plain digits)" % s)
     return " ".join(steps)
 
 
-def probe_env(pzl, line, seed=1, completion_seed=0, opponent="ai"):
-    """The search runner asked to play ONE fixed line to game end (LlmSpikePuzzle.probeRun) and read it against
-    the puzzle's [acceptance] section; past the line a seeded random completion plays."""
-    return {"PUZZLE": str(Path(pzl).resolve()), "CONTROLLER_A": "search", "CONTROLLER_B": opponent,
-            "PZL_SEEDS": str(seed), "PZL_PROBE": line, "PZL_PROBE_COMPLETION_SEED": str(completion_seed),
-            "GAME_CAP_MS": "120000"}
+def probe_env(line, completion_seed=0, opponent="ai"):
+    """What a probe sets beyond run_arm's own PUZZLE, CONTROLLER_A, PZL_SEEDS and GAME_CAP_MS: the search runner
+    asked to play ONE fixed line to game end (LlmSpikePuzzle.probeRun) and read it against the puzzle's
+    [acceptance] section; past the line a seeded random completion plays."""
+    return {"CONTROLLER_B": opponent, "PZL_PROBE": line, "PZL_PROBE_COMPLETION_SEED": str(completion_seed)}
 
 
 def probe_verdict(row):
     """"rejected" when the probe's final state failed the acceptance state, which is what a misreading must do;
-    else why not. A capped game, a drifted line or a puzzle with no acceptance state is no evidence either way."""
+    else why not. A capped game, a drifted line or a puzzle with no acceptance state is no evidence either way.
+    "rejected" means this line plus ONE seeded random completion failed the acceptance state, not that no
+    completion of the misreading is accepted."""
     if not row:
         return "no result row"
     if row.get("kind") != "probe":
         return "not a probe row (status %s)" % row.get("status")
+    if row.get("probe_stopped"):
+        return "stopped at the draw cap: no evidence"
     if row.get("status") == "invalid":
         return "capped: the game was torn down, its state is no evidence"
     if row.get("search_drift"):
@@ -810,9 +817,11 @@ def probe_verdict(row):
 def cmd_probe(a):
     line = check_probe_line(a.line)
     pzl = Path(a.pzl).resolve()
+    if not re.search(r"^\s*\[acceptance\]\s*$", pzl.read_text(encoding="utf-8"), re.I | re.M):
+        raise SystemExit("%s has no [acceptance] section: a probe has nothing to read its final state against" % pzl)
     out = Path(a.out_dir or REPO / "runs/puzzles/probes" / pzl.stem)
     build = Build(a.build, a.forge, allow_stale=a.allow_stale_build)
-    rows = run_arm(build, pzl, "search", str(a.seed), out, probe_env(pzl, line, a.seed, a.completion_seed, a.opponent))
+    rows = run_arm(build, pzl, "search", str(a.seed), out, probe_env(line, a.completion_seed, a.opponent))
     verdict = probe_verdict(rows[-1] if rows else None)
     print("%-24s seed %-4s probe %s: %s" % (pzl.stem, a.seed, line, verdict), flush=True)
     return 0 if verdict == "rejected" else 1

@@ -66,10 +66,8 @@ import forge.util.MyRandom;
  *                        CONTROLLER_B=search every opponent choice must be beaten; with ai, the Forge AI's.
  *   PZL_SEARCH_BUDGET=N  rollouts the search may play (default 2000); PZL_SEARCH_LINES=N winning lines
  *                        tried per choice point before giving up on it (default 32)
- *   PZL_PROBE="Solver:2:1 Opponent:3:0"   with CONTROLLER_A=search: the misreading probe. Plays that ONE line to game
- *                        end (a seeded random play past it, PZL_PROBE_COMPLETION_SEED, default 0) and writes a
- *                        row (kind=probe, status=probe) whose acceptance says whether the final state met the
- *                        puzzle's [acceptance] section: the play a solver makes who misread the rule must not.
+ *   PZL_PROBE="Solver:2:1 Opponent:3:0"   with CONTROLLER_A=search: the misreading probe ({@link #probeRun}); a seeded
+ *                        random play past the line (PZL_PROBE_COMPLETION_SEED, default 0).
  *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual. SMART_MODEL_A=FAST_MODEL_A=
  *                        replay:<game.jsonl|attempt dir> with CONTROLLER_A=llm replays a recorded attempt
  *                        ({@link ReplayBridge}) on the same seeds (PZL_SEEDS / GAME_SEED) and the recorded env.
@@ -650,9 +648,10 @@ public final class LlmSpikePuzzle {
                 written ? fastA : "", main != null && main.goalInstalled, main == null ? "" : main.goalOracle, goal, extra);
     }
 
-    /** PZL_PROBE: one scripted line played to game end, reported against the acceptance state. A puzzle without an
-     *  [acceptance] section, a line that drifted, and a capped game are each named in the row, never "rejected":
-     *  only a state that was read and failed the acceptance state is evidence that the misreading fails. */
+    /** PZL_PROBE: one scripted line played to game end, reported against the acceptance state. A line that drifted
+     *  or was not fully drawn, and a game the draw cap or the wall clock ended, are each named in the row, never
+     *  "rejected": only a state that was read and failed the acceptance state counts, and then only for this line plus
+     *  ONE seeded random completion, not for every completion of the misreading. */
     static void probeRun(File file, String id, Map<String, List<String>> sections, String probeLine, boolean bounded,
                          String pzlSha, String ctlA, String ctlB, String smartA, String fastA, long seed, long capMs)
             throws Exception {
@@ -669,11 +668,17 @@ public final class LlmSpikePuzzle {
         extra.put("probe_completion_seed", completionSeed);
         extra.put("pzl_sha256", pzlSha);
         extra.put("goal_bounded", bounded);
-        if (line.drift != null) extra.put("search_drift", line.drift);
+        // A game that ended before the whole line was drawn did not play the misreading it names.
+        String drift = line.drift;
+        if (drift == null && line.taken.size() < prefix.size())
+            drift = "line not consumed: " + line.taken.size() + " of " + prefix.size() + " steps";
+        if (drift != null) extra.put("search_drift", drift);
+        // The draw cap ended the game as a Draw: the final state is the cap's, not the line's.
+        if (line.stopped()) extra.put("probe_stopped", true);
         putAcceptance(extra, p);
         extra.put("actions", solverActions(p.logLines, "Solver"));
         System.out.println("[PZL] probe " + id + ": " + probeLine + " -> " + extra.getOrDefault("acceptance", "unread"));
-        writeRow(id, file, "invalid".equals(p.status) ? "invalid" : "probe", false, p.turns, p.winCond,
+        writeRow(id, file, "invalid".equals(p.status) || line.stopped() ? "invalid" : "probe", false, p.turns, p.winCond,
                 System.currentTimeMillis() - t0, seed, "search", ctlB, "", "", p.goalInstalled, p.goalOracle, "", extra);
     }
 

@@ -326,16 +326,23 @@ public class PuzzleSearchTest {
         }
     }
 
+    // test_pzl_probe.py reads these two arrays from this source: eval/puzzles/puzzle_baselines.py check_probe_line
+    // must refuse and accept the same strings, so the two grammars cannot drift. One string literal per entry.
+    static final String[] LINE_GOOD = {"Solver:3:1  Opponent:2:0", "Solver:1:0", " Opponent:10:9 ", "Solver:2:0 Solver:2:1"};
+    static final String[] LINE_BAD = {"", "  ", "Solver:2", "Solver:2:2", "Solver:0:0", "Judge:2:1", "Solver:a:1",
+        "Solver:2:1:0", "Solver:2:1:", "Solver:+2:+1", "Solver:02:01", "Solver:2:-1"};
+
     @Test
     public void parseLineIsTheInverseOfLineText() {
-        List<Step> steps = PuzzleSearch.parseLine("Solver:3:1  Opponent:2:0");
-        Assert.assertEquals(steps.size(), 2);
-        Assert.assertEquals(PuzzleSearch.lineText(steps), "Solver:3:1 Opponent:2:0");
+        for (String good : LINE_GOOD) {
+            List<Step> steps = PuzzleSearch.parseLine(good);
+            Assert.assertEquals(PuzzleSearch.lineText(steps), good.trim().replaceAll("\\s+", " "));
+        }
     }
 
     @Test
     public void parseLineRefusesWhatItCannotReadExactly() {
-        for (String bad : new String[] {"", "  ", "Solver:2", "Solver:2:2", "Solver:0:0", "Judge:2:1", "Solver:a:1", "Solver:2:1:0"}) {
+        for (String bad : LINE_BAD) {
             try {
                 PuzzleSearch.parseLine(bad);
                 Assert.fail("accepted: " + bad);

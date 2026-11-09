@@ -264,12 +264,17 @@ RP_SMOKE.pzl` (unique) and `RP_SMOKE2.pzl` (multiple).
 
 **The misreading probe.** A rules puzzle is only a test of the rule if the play a solver makes who got the rule
 wrong does not reach the acceptance state. `python3 eval/puzzles/puzzle_baselines.py probe --pzl <puzzle>
---line "Solver:2:1 Opponent:3:0"` (the same `Seat:bound:value` form as a proof row's `line`) plays that one line to
-game end in the search runner (`PZL_PROBE`; a seeded random play, `--completion-seed`, past the line) and reads the
-final state against `[acceptance]`. It exits 0 only when the row says `rejected`: an `accepted` probe means the
-misreading also passes, so the puzzle does not test the rule, and a capped game, a drifted line or a puzzle with no
-acceptance section are named as no evidence, never as rejected. The row is `kind: probe`; `puzzle_score` refuses it as
-no attempt. A probe plays no model and costs nothing.
+--line "Solver:2:1 Solver:3:0"` (the same `Seat:bound:value` form as a proof row's `line`; an `Opponent:` step
+needs `--opponent search`, the only opponent that draws from the line) plays that one line to game end in the
+search runner (`PZL_PROBE`), a seeded random play (`--completion-seed`) past it, and reads the final state against
+`[acceptance]`. It exits 0 only when the row says `rejected`, and that means one thing: this line plus ONE seeded
+random completion failed the acceptance state. It does not mean no completion of the misreading is accepted, so a
+probe line must contain the whole misreading (every play the misreading makes, to the end of the decisions that
+matter); a line that stops short only shows what one random finish of the first steps did. An `accepted` probe means
+the misreading also passes, so the puzzle does not test the rule. A game the draw cap ended, a line that drifted or
+was not fully drawn, and a game the wall clock ended are named as no evidence, never as rejected; a puzzle with no
+`[acceptance]` section is refused before the JVM starts. The row is `kind: probe`; `puzzle_score` refuses it as no
+attempt. A probe plays no model and costs nothing.
 
 ### The rules suite
 
