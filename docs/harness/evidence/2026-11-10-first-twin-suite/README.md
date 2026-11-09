@@ -15,7 +15,7 @@ zero-model arms and prints a recall gap of exactly 0.000 for each. Rows: `paired
 | | |
 |---|---|
 | Checkout | `d85546e66ec52cd86f249c0acda59ae9bcd24869` (main, merge of #454) |
-| Build overlay sha | `edaca55afdf6` (`STAGES="preflight classpath compile" FORGE_HOME=/root/forge`, `eval/harness_acceptance.sh`) |
+| Build overlay sha | `edaca55afdf6` (`STAGES="preflight classpath compile" FORGE_HOME=$FORGE_HOME`, `eval/harness_acceptance.sh`) |
 | Engine | Forge `34a8662b7966a6ee757411feae2ae8ff38cce436` |
 | Source suite | `eval/suites/puzzles-rules-sample-v1.json`, sha256 `1115d67f6c901fe906e0f2a5d4aa88abe1331324c9d368d31ada2a3c969d29ff` (its `suite_sha256` field `b652e12c4452239d335e83a7edc890015ed74bd1220c88dd7ef029318775be2f`); 36 records, 29 active, all open split |
 | Twin manifest | `twin-manifest.json`, file sha256 `7f0b507d4ac2dfa7e78e7b466805c0382593e2d5b30e2daf37de0bb72914ac8e`, `--seed 1`; 67 cards, 68 scripts installed (the edition file included) |
@@ -26,11 +26,11 @@ Twin boards, scripts, the manifest and the suites are under `runs/twins/first-v1
 third-party works, and the manifest maps each original name to its twin name, which would let a later model
 read the invented names back to the cards. This folder holds ids, hashes and counts only.
 
-## Commands (all zero-model; `FORGE_HOME=/root/forge`; `T=runs/twins/first-v1`)
+## Commands (all zero-model; `FORGE_HOME=$FORGE_HOME`; `T=runs/twins/first-v1`)
 
 ```bash
 python3 eval/puzzles/puzzle_twin.py make --suite eval/suites/puzzles-rules-sample-v1.json --ids <the 29 active ids> --seed 1 --out $T
-python3 eval/puzzles/puzzle_twin.py install --manifest $T/twin-manifest.json --forge /root/forge
+python3 eval/puzzles/puzzle_twin.py install --manifest $T/twin-manifest.json --forge "$FORGE_HOME"
 python3 eval/puzzles/puzzle_twin.py suite --manifest $T/twin-manifest.json --suite eval/suites/puzzles-rules-sample-v1.json --out $T/twin-suite.json
 python3 eval/puzzles/puzzle_twin.py verify --suite $T/twin-suite.json           # 26 x ok, exit 0 (verify.log)
 # the free arms, originals and twins, same seeds (random 1..200, the others 1..4), 200 rollouts, -j 4
@@ -147,10 +147,10 @@ scorer's headline numbers on the originals are a side effect of scoring zero-mod
 the manifest emptied of cards (a copy under `runs/`), which deletes every twin script not in the new manifest:
 
 ```bash
-python3 eval/puzzles/puzzle_twin.py install --manifest $T/empty-manifest.json --forge /root/forge --replace   # wrote 1 file
+python3 eval/puzzles/puzzle_twin.py install --manifest $T/empty-manifest.json --forge "$FORGE_HOME" --replace   # wrote 1 file
 ```
 
-State left in `/root/forge`: no twin script; `forge-gui/res/cardsfolder/zz_twins/twins-installed.json` (an empty `{}`
+State left in `$FORGE_HOME`: no twin script; `forge-gui/res/cardsfolder/zz_twins/twins-installed.json` (an empty `{}`
 record) and `forge-gui/res/editions/Spike Twins.txt` (a header with no cards), both untracked in the Forge checkout,
 which the tool writes. The checkout's tracked files were not touched. `STAGES="preflight classpath compile javatests"`
 acceptance passed with the 68 twin files installed (8 PASS lines). The run after the cleanup is reported in the

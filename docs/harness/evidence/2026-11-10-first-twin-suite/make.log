@@ -1,4 +1,4 @@
-26 twin puzzles, 67 cards, 3 refused -> /home/user/twin-wt/runs/twins/first-v1/twin-manifest.json
+26 twin puzzles, 67 cards, 3 refused -> runs/twins/first-v1/twin-manifest.json
 REFUSED rules-RP_035: Animate Dead: names another card: named Worldgorger Dragon
 REFUSED rules-RP_124: the engine names Reanimate in its source
 REFUSED rules-RP_243: Thing in the Ice: a card with more than one face is not twinned
