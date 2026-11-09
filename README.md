@@ -1,13 +1,19 @@
 # spike-eval
 
-A benchmark for how well language models play Magic: The Gathering.
+An eval for how well language models play Magic: The Gathering, and a way to play against one yourself.
 
-The model plays full games inside [Forge](https://github.com/Card-Forge/forge), the open-source rules engine. Every
-decision the engine asks of a player goes to the model: mulligans, land drops, spells, targets, attacks, blocks,
-triggers. The engine checks every option before it is offered, so the model cannot make an illegal move, and Forge's
-own AI never decides for it.
+- **The eval.** A model plays full games against [Forge](https://github.com/Card-Forge/forge)'s built-in AI and
+  solves frozen puzzle suites. It is scored on win rate and puzzles solved: see [The benchmark](#the-benchmark).
+- **Play it.** One script opens Forge's window with the model as your opponent: see
+  [Quick start](#quick-start-play-against-the-model).
+- **The write-up.** [Making a Magic: The Gathering eval](https://folds.ink/posts/mtg-benchmark) tells how it was
+  built and what went wrong along the way.
 
 ![One decision in the replay viewer: the seat's board, its plan, two simulate previews and its answer](docs/images/seat-decision.webp)
+
+Every decision Forge asks of a player goes to the model: mulligans, land drops, spells, targets, attacks, blocks,
+triggers. Forge checks every option before it is offered, so the model cannot make an illegal move, and Forge's own
+AI never decides for it.
 
 This is a research project and still changing. Scores compare only within one engine version (`FORGE_COMMIT`) and one
 harness version (`docs/harness/VERSIONS.md`).
