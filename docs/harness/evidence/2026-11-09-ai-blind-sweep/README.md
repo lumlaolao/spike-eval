@@ -36,7 +36,7 @@ extra Goblin changes the outcome under some opponent reply was not determined.
 ## Method
 
 1. Build: worktree of `origin/main` at `db313769c324`, `STAGES="preflight classpath compile"` under the shared lock,
-   OUT `/home/user/aiblind-build`; overlay sha **`edaca55afdf6`** (the same as the #447 evidence), engine pin as in
+   OUT a scratch build dir (`BUILD` below); overlay sha **`edaca55afdf6`** (the same as the #447 evidence), engine pin as in
    `FORGE_COMMIT`. `.pzl` files and the manifest were not edited.
 2. Main arm, per puzzle (`drive.py <id> ai 600`): the search runner as `puzzle_baselines.prove_puzzle` runs it
    (`CONTROLLER_A=search`, seed 1, `PZL_SEARCH_BUDGET=600`, `GAME_CAP_MS=60000`) with `CONTROLLER_B=ai` instead of
@@ -53,7 +53,7 @@ extra Goblin changes the outcome under some opponent reply was not determined.
    proof line is the intended solution), so it is recorded in the rows but not counted.
 
 ```bash
-FORGE_HOME=/root/forge python3 drive.py RP_034 ai 600           # one puzzle, main arm (opponent ai, unique budget 600)
+BUILD=<acceptance OUT> FORGE_HOME=<forge> python3 drive.py RP_034 ai 600           # one puzzle, main arm (opponent ai, unique budget 600)
 cat ids.txt | xargs -P3 -I{} sh -c 'python3 drive.py {} ai 600 > res-ai-{}.json'      # the 56, 25 min wall
 cat ids.txt | xargs -P3 -I{} sh -c 'python3 drive.py {} search 0 > res-search-{}.json' # control, 12 min wall
 cat ids.txt | xargs -P3 -I{} sh -c 'python3 probe.py {} > res-probe-{}.json'           # cross-check
@@ -61,7 +61,7 @@ python3 drive.py RP_295 search 4000                              # the RP_295 fo
 ```
 
 `ids.txt` is the 56 ids: `converted` with `proof.opponent_branches_beaten > 0`, in manifest order.
-`drive.py` and `probe.py` are in this folder (paths inside are those of the session's machine). The full 56 ran, no
+`drive.py` and `probe.py` are in this folder (they read the repository from their own location, the build from `BUILD` and write raw runs under `RUNS`, default `./raw`). The full 56 ran, no
 subset, so there is no sampling seed. Raw run directories (6 MB) were deleted; `rows.jsonl` keeps the compact rows.
 
 ## Per-puzzle table
