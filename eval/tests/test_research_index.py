@@ -1,6 +1,7 @@
 """eval/research/README.md catalogues the research notes (docs/STANDARDS.md, the eval/research/ row): every dated
-note has a row in the Notes table, every note it links exists, and every other file in the folder is a dated note.
-It does not check the PR numbers or code names the catalogue cites; those are read in review."""
+note has a row in the Notes table, every note it links exists, and the folder holds nothing else: every other entry
+is a dated note (a note's data goes to docs/harness/evidence/, not to a folder here). It does not check the PR
+numbers or code names the catalogue cites; those are read in review."""
 import os
 import re
 import sys
@@ -28,8 +29,8 @@ class ResearchIndexTest(unittest.TestCase):
         dead = sorted(n for n in set(LINK.findall(self.index)) if not (FOLDER / n).is_file())
         self.assertEqual(dead, [])
 
-    def test_the_index_is_the_only_undated_file(self):
-        odd = sorted(p.name for p in FOLDER.iterdir() if p.is_file() and p.name != "README.md"
+    def test_the_index_is_the_only_undated_entry(self):
+        odd = sorted(p.name for p in FOLDER.iterdir() if p.name != "README.md"
                      and not DATED.match(p.name))
         self.assertEqual(odd, [])
 

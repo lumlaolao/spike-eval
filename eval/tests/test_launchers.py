@@ -24,12 +24,13 @@ LAUNCHERS = {
     # The RL env: scrubbed_environ drops every OPENROUTER*/PZL_/FORK_/CLAUDE_ name and run_batch.PINNED_ENV_KEYS and
     # RUN_DEFINING_KEYS, then DECISION_ONLY sets its conditions (test_mtg_env ScrubTest); never scored.
     "eval/rl/mtg_env.py": "strips",
+    # A person against the seat, never scored: scrubs the run-defining keys (STANDARDS section 4; test_play_vs_llm).
+    "play-vs-llm.sh": "strips",
     # Diagnostics that launch with the shell's environment: never scored; their games carry the game-line stamps.
     "eval/harness_acceptance.sh": "diagnostic",
     "eval/keyword_gauntlet.sh": "diagnostic",
     "eval/shadow_canary.sh": "diagnostic",
     "eval/demo/demo_compare.py": "diagnostic",
-    "play-vs-llm.sh": "diagnostic",   # a person against the seat, never scored
     # The launchers themselves, and the installer that copies them into $FORGE_HOME.
     "forge-overlay/run-llm-headless.sh": "launcher",
     "forge-overlay/run-llm-spike.sh": "launcher",
@@ -61,6 +62,14 @@ class LaunchersTest(unittest.TestCase):
 
     def test_no_classified_launcher_is_gone(self):
         self.assertEqual(sorted(set(LAUNCHERS) - set(self.files)), [], "drop a file that no longer launches")
+
+    def test_every_class_is_known_and_a_stripper_names_the_keys_it_strips(self):
+        kinds = {"pins", "through run_batch", "strips", "diagnostic", "launcher", "mention"}
+        self.assertEqual({f: k for f, k in LAUNCHERS.items() if k not in kinds}, {})
+        for f, kind in LAUNCHERS.items():
+            if kind == "strips":
+                text = (evalpath.REPO / f).read_text(encoding="utf-8")
+                self.assertRegex(text, r"PINNED_ENV_KEYS|RUN_DEFINING_KEYS", f)
 
     def test_the_standards_name_every_diagnostic(self):
         text = (evalpath.REPO / "docs" / "STANDARDS.md").read_text(encoding="utf-8")
