@@ -136,12 +136,18 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   originals against twins, about $0.40 on the rules sample) is owner-gated and paid; the dev lane may stand in for a
   smoke, never a score.
 - **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
-  PR #267): only RP_001's misreading has been run as a complete probe line (`Solver:4:0 Solver:2:0`: Ray of
-  Revelation on Blood Moon, then Dark Depths; rejected, no Marit Lage; PR #441). Its menu indices were inferred
-  from one-step probes' `[ROUTER] play` lines (`docs/harness/evidence/2026-11-09-pzl-probe/`). 220 more converted
-  puzzles carry a `misread_line` in `eval/puzzles/rules-pilot/manifest.jsonl` (221 rows with `result` "converted"
-  and a `misread_line`, of 526 converted): write each as a whole probe line, run it, and record the verdict beside
-  `pass_arm`. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
+  PR #267): 11 of 221 done. RP_001 (PR #441, `docs/harness/evidence/2026-11-09-pzl-probe/`) and a ten-puzzle pilot
+  (RP_004, 006, 022, 026, 031, 036, 048, 052, 068, 069; `docs/harness/evidence/2026-11-09-misreading-probes-pilot/`):
+  every proof was accepted as a control and every whole misreading was rejected by its own plays (none stopped
+  short), so no pilot puzzle fails to test its rule. All ten were expressible as a different order or choice of the
+  solver's own plays (the ten were picked for that, so the rate over the 221 is not measured); the misreadings that
+  are about the opponent, a hidden choice, or "does nothing" (a PASS-only line, no evidence) were not tried, and
+  trigger-order misreadings (RP_002; by their text also 015, 020, 044) need a proof that branches order, which the search arm does not
+  (RP_002's `note`). Effort: 8 to 44 zero-model JVM runs per puzzle (about 190 for ten, 40 minutes of JVM time),
+  most of it finding menu indices (one-step probes plus a sentinel step `Solver:99:0`, whose drift message names the
+  next decision's bound); payment, scry, modes and attackers are one binary draw each. About 210 puzzles remain; at
+  this effort that is a scripted job (a helper that walks a line's draws and prints each bound and play) rather than
+  one by hand. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
   misreading is accepted (a probe asks about one). #267 can be closed once these are done.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
   `rating` and `defect_analyzer` are not folded into `aggregate.lost_decisions` (separate messages and totals);
