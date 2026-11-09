@@ -15,8 +15,8 @@ Every arm here is free: no model is called and nothing leaves the machine.
   python3 eval/puzzles/puzzle_baselines.py verify --suite S.json [-j 4]
   python3 eval/puzzles/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
   python3 eval/puzzles/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3] [--opponent search]
-  python3 eval/puzzles/puzzle_baselines.py probe  --pzl P.pzl --line "Solver:4:0 Solver:2:0" [--completion-seed 0]
                                           [--minimality]
+  python3 eval/puzzles/puzzle_baselines.py probe  --pzl P.pzl --line "Solver:4:0 Solver:2:0" [--completion-seed 0]
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
@@ -770,9 +770,9 @@ def cmd_line(a):
 
 
 def check_probe_line(line):
-    """A misreading probe's line (PZL_PROBE), "Seat:bound:value ..." with 0 <= value < bound, at most nine digits
-    (a Java int) and no leading zero: the grammar PuzzleSearch.parseLine reads (PuzzleSearchTest.LINE_GOOD / LINE_BAD pin both),
-    refused here before a JVM starts."""
+    """A misreading probe's line (PZL_PROBE), "Seat:bound:value ..." with 0 <= value < bound, no leading zero and
+    at most nine digits (always a Java int; stricter than Java's ten): the grammar PuzzleSearch.parseLine reads
+    (PuzzleSearchTest.LINE_GOOD / LINE_BAD pin both), refused here before a JVM starts."""
     steps = (line or "").split()
     if not steps:
         raise SystemExit("--line is empty: a probe plays at least one 'Seat:bound:value' step")
@@ -957,9 +957,11 @@ def main(argv=None):
     ln.add_argument("--minimality", action="store_true",
                     help="replay the line with each action removed in turn: exit 0 only when every removal fails")
     ln.add_argument("--out-dir", default=None)
-    probe = sub.add_parser("probe", help="play one misreading line to game end: exit 0 only if it fails the acceptance state")
+    probe = sub.add_parser("probe", help="play one misreading line to game end: "
+                                         "exit 0 only if it fails the acceptance state")
     probe.add_argument("--pzl", required=True, help="a puzzle with an [acceptance] section")
-    probe.add_argument("--line", required=True, help='the misreading, "Seat:bound:value ..." (a proof row\'s line shows the form)')
+    probe.add_argument("--line", required=True,
+                       help='the misreading, "Seat:bound:value ..." (a proof row\'s line shows the form)')
     probe.add_argument("--seed", type=int, default=1)
     probe.add_argument("--completion-seed", type=int, default=0, help="the random play past the line")
     probe.add_argument("--opponent", choices=("ai", "search"), default="ai")
@@ -968,7 +970,8 @@ def main(argv=None):
     rt.add_argument("--suite", required=True)
     rt.add_argument("--write", default=None)
     a = ap.parse_args(argv)
-    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line, "probe": cmd_probe, "retier": cmd_retier}[a.cmd](a)
+    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove, "line": cmd_line, "probe": cmd_probe,
+            "retier": cmd_retier}[a.cmd](a)
 
 
 if __name__ == "__main__":

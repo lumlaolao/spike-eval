@@ -15,7 +15,7 @@ FORGE_HOME=/root/forge python3 eval/puzzles/puzzle_baselines.py --build <build> 
   --pzl eval/puzzles/rules-pilot/RP_001.pzl --line "<line>" --out-dir <dir>
 ```
 
-| Line | Verdict | Exit |
+| Line | Verdict | Exit (from the verdict: `cmd_probe` exits 0 only on rejected) |
 |---|---|---|
 | `Solver:4:1 Solver:4:1 Solver:3:1 Solver:3:1 Solver:2:0` (the search arm's proof) | accepted | 1 |
 | `Solver:4:0` | rejected | 0 |
@@ -33,8 +33,9 @@ and cast Ray in the proof's order.
 
 **The whole misreading** (`misread_line` of RP_001 in `eval/puzzles/rules-pilot/manifest.jsonl`: Ray of
 Revelation on Blood Moon before Dark Depths) is `Solver:4:0 Solver:2:0`. Its row is `rejected`, with only
-`tokens p0 Battlefield "Marit Lage" = 1 (was 0)` failing: Blood Moon is in the graveyard, and Dark Depths
-entered with its ice counters. Each verdict is one seeded completion; whether ANY completion of the
-misreading is accepted is not determined here (WORK-PLAN, the search-arm follow-up).
+`tokens p0 Battlefield "Marit Lage" = 1 (was 0)` failing: Blood Moon is in the graveyard, and Dark Depths,
+played after it was gone, made no Marit Lage in this completion (by the rule, it enters with its ice
+counters). Each verdict is one seeded completion; whether ANY completion of the misreading is accepted is not
+determined here (WORK-PLAN, the search-arm follow-up).
 
 The run directories were not kept; this file holds what the PR cites from them.

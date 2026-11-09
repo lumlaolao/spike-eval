@@ -137,9 +137,10 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   smoke, never a score.
 - **Misreading probes for the rules-pilot suite** (`PZL_PROBE`, `puzzle_baselines.py probe`, ported from stale
   PR #267): only RP_001's misreading has been run as a complete probe line (`Solver:4:0 Solver:2:0`: Ray of
-  Revelation on Blood Moon, then Dark Depths; rejected, no Marit Lage; PR #441). The first menu's indices are read
-  from the probe's `jvm.log` (`[ROUTER] play`). Write the other eight `misread_line`s of
-  `eval/puzzles/rules-pilot/manifest.jsonl` as whole probe lines, run them, and record each verdict beside
+  Revelation on Blood Moon, then Dark Depths; rejected, no Marit Lage; PR #441). Its menu indices were inferred
+  from one-step probes' `[ROUTER] play` lines (`docs/harness/evidence/2026-11-09-pzl-probe/`). 220 more converted
+  puzzles carry a `misread_line` in `eval/puzzles/rules-pilot/manifest.jsonl` (221 rows with `result` "converted"
+  and a `misread_line`, of 526 converted): write each as a whole probe line, run it, and record the verdict beside
   `pass_arm`. Follow-up: a search-arm mode with the prefix fixed, which asks whether ANY completion of the
   misreading is accepted (a probe asks about one). #267 can be closed once these are done.
 - **Measurement and score integrity, left by #429, #431 and #374:** the dead-bridge and cut-log checks in
