@@ -443,7 +443,7 @@ class GameLineStampCoverageTest(unittest.TestCase):
     # `rules_effective` (standards of #344: it touches what the seat reads, so it is no allowlist entry).
     # This set also holds a name that is only pinned, not recorded: OPENROUTER_IDLE_MS (HttpDeadline's stall cut)
     # changes decisions too (0 waits out a dead connection to the deadline, and the call is lost to the fixed
-    # option), and the scored launchers scrub it (run_batch.CONDITION_ENV_KEYS; SETTINGS.md, the ANSWER_SCHEMA row);
+    # option), and the scored launchers scrub it (SETTINGS.md, the ANSWER_SCHEMA row);
     # a bare-launcher or direct JVM launch with a value is not stamped.
     # DECKLIST=0 drops each seat's own decklist from its plan: the stamped plan_a / plan_b text shows it; deck_a, the
     # deck's name, does not, so the scored launchers scrub it.

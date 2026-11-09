@@ -24,12 +24,14 @@ LAUNCHERS = {
     # The RL env: scrubbed_environ drops every OPENROUTER*/PZL_/FORK_/CLAUDE_ name and run_batch.PINNED_ENV_KEYS and
     # RUN_DEFINING_KEYS, then DECISION_ONLY sets its conditions (test_mtg_env ScrubTest); never scored.
     "eval/rl/mtg_env.py": "strips",
+    # A person against the seat, never scored: scrubs RUN_DEFINING_KEYS except the operator's Claude CLI settings
+    # (test_play_vs_llm).
+    "play-vs-llm.sh": "strips",
     # Diagnostics that launch with the shell's environment: never scored; their games carry the game-line stamps.
     "eval/harness_acceptance.sh": "diagnostic",
     "eval/keyword_gauntlet.sh": "diagnostic",
     "eval/shadow_canary.sh": "diagnostic",
     "eval/demo/demo_compare.py": "diagnostic",
-    "play-vs-llm.sh": "diagnostic",   # a person against the seat, never scored
     # The launchers themselves, and the installer that copies them into $FORGE_HOME.
     "forge-overlay/run-llm-headless.sh": "launcher",
     "forge-overlay/run-llm-spike.sh": "launcher",

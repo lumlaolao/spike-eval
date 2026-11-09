@@ -220,8 +220,8 @@ is a cost, not a loss of decisions.
 
 **The per-decision schema already exists.** `AnswerTool` keeps the v1 arm: `ANSWER_SCHEMA=per-decision` builds the
 `answer` schema from each decision's legal values, off by default and kept for a side-by-side measurement
-(`AnswerTool.java`, `perDecision()`; `docs/harness/PLAYER-HARNESS.md`, "Measure": a direct JVM launch only: `run_batch.py`
-pins the default, the bare launcher does not). **Its cache cost is unmeasured.** The claim that it breaks the prompt cache rests on the design
+(`AnswerTool.java`, `perDecision()`; `docs/harness/SETTINGS.md`, the `ANSWER_SCHEMA` row: `run_batch.py` scrubs it,
+the bare launcher does not). **Its cache cost is unmeasured.** The claim that it breaks the prompt cache rests on the design
 argument in `docs/harness/PROMPT-CRAFT.md` rule 19 (tool definitions open the cache prefix, so a schema that changes
 every decision discards it), and rule 19's open question says the two have not been measured against each other. No
 cached-token comparison of the two arms is in the repository or in `runs/` on this machine.
