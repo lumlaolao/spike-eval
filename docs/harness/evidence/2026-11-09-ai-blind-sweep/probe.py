@@ -1,5 +1,9 @@
-# Paths: the repository is four levels up; BUILD is the acceptance OUT dir (`--build` of puzzle_baselines.py);
-# raw runs go under RUNS (default ./raw). Run from this folder.
+"""The sweep's cross-check: `probe.py <id>` probes the proof's `Solver:` steps alone against Forge's AI.
+
+Reads the puzzle's res-search-<id>.json and res-ai-<id>.json (drive.py's output, not committed) and probes with
+completion seeds 0, 1 and 2. It says nothing about a second solution; the README does not count it.
+Paths: as drive.py (BUILD from the environment, raw runs under RUNS, default ./raw). Run from this folder.
+"""
 import sys, json, os, shutil
 from pathlib import Path
 REPO = Path(__file__).resolve().parents[4]
