@@ -615,6 +615,7 @@ def uninstall(forge):
             else:
                 drop(sidecar)
         edition = forge / EDITION_FILE
+        # The edition stays while a script or the sidecar is left: it lists them. refused() names a symlink.
         if not left and not any(p == sidecar for p, _ in kept) and not refused(edition):
             if edition.is_dir():
                 kept.append((edition, "not a file: left"))
@@ -650,11 +651,17 @@ def manifest_state(rec, repo=REPO):
         path = manifest_file(rec, repo)
     except (OSError, TypeError, AttributeError):
         return None, "no twin manifest beside %r" % (rec.get("pzl"),)
-    if path.is_symlink() and not path.resolve().exists():
-        return None, "malformed twin manifest %s: a symlink that leads nowhere" % path
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:
+        # Checked only here, inside the handler: a pre-check could itself raise (a symlink loop on Python < 3.13,
+        # an unsearchable parent) and escape as a traceback.
+        try:
+            dangling = path.is_symlink()
+        except OSError:
+            dangling = False
+        if dangling:   # a link that leads nowhere is there but unreadable, not absent
+            return None, "malformed twin manifest %s: a symlink that leads nowhere" % path
         return None, "no twin manifest at %s" % path
     except (OSError, UnicodeDecodeError, ValueError) as e:   # there but unreadable (a directory, no permission)
         return None, "malformed twin manifest %s: unreadable (%s)" % (path, e)

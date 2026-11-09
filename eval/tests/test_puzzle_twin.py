@@ -430,11 +430,12 @@ class MakeAndInstallTest(unittest.TestCase):
             self.assertTrue(target.is_file() and edition.is_symlink())
 
     def test_uninstall_names_an_edition_path_that_is_a_directory(self):
+        # Kills: dropping the edition.is_dir() branch in uninstall -> a directory at EDITION_FILE is skipped silently.
         with tempfile.TemporaryDirectory() as tmp:
-            forge, out, manifest = self.make(tmp)
+            forge, _, _ = self.make(tmp)
             (forge / tw.EDITION_FILE).mkdir()
-            removed, kept = tw.uninstall(forge)
-            self.assertEqual([(p, "not a file: left") for p in [forge / tw.EDITION_FILE]], kept)
+            _, kept = tw.uninstall(forge)
+            self.assertEqual([(forge / tw.EDITION_FILE, "not a file: left")], kept)
             self.assertTrue((forge / tw.EDITION_FILE).is_dir())
 
     def test_uninstall_leaves_an_empty_twins_folder_it_removed_nothing_from(self):
@@ -799,8 +800,26 @@ class TwinSuiteTest(unittest.TestCase):
             (out / tw.MANIFEST).symlink_to(out / "nowhere.json")   # a link that leads nowhere: not 'missing'
             self.assertTrue(any("malformed twin manifest" in w for w in pf.validate_puzzle(rec, repo=repo)))
             (out / tw.MANIFEST).unlink()
+            (out / tw.MANIFEST).symlink_to(out / tw.MANIFEST)   # a link to itself: unreadable, not 'missing'
+            self.assertTrue(any("malformed twin manifest" in w for w in pf.validate_puzzle(rec, repo=repo)))
+            (out / tw.MANIFEST).unlink()
             (out / tw.MANIFEST).write_text(good)
             self.assertEqual(pf.validate_puzzle(rec, repo=repo), [])
+
+    def test_a_manifest_behind_an_unsearchable_folder_is_malformed_not_a_traceback(self):
+        # Kills: a symlink pre-check (path.is_symlink()) before the guarded read -> PermissionError from an
+        # unsearchable parent escapes manifest_state, validate_puzzle and eval_only as a traceback. Mocked: as root
+        # a mode-000 folder is still searchable.
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            forge, repo, out, suite, manifest = self.build(tmp)
+            (rec,) = tw.twin_records(manifest, suite, out / tw.MANIFEST, repo)
+            denied = PermissionError(13, "Permission denied")
+            with mock.patch.object(Path, "is_symlink", side_effect=denied), \
+                    mock.patch.object(Path, "read_text", side_effect=denied):
+                state, why = tw.manifest_state(rec, repo)
+            self.assertIsNone(state)
+            self.assertIn("malformed twin manifest", why)
 
     def test_a_malformed_manifest_is_refused_with_a_message_not_a_traceback(self):
         # Kills: drop manifest_problems/load_manifest -> a manifest that is a list, has a card without its keys, or
