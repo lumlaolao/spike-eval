@@ -1,24 +1,70 @@
 # spike-eval
 
-An eval for how well language models play Magic: The Gathering, and a way to play against one yourself.
+A harness that lets language models play Magic: The Gathering, and an eval built on top of it.
 
-- **The eval.** A model plays full games against [Forge](https://github.com/Card-Forge/forge)'s built-in AI and
-  solves frozen puzzle suites. It is scored on win rate and puzzles solved: see [The benchmark](#the-benchmark).
-- **Play it.** One script opens Forge's window with the model as your opponent: see
-  [Quick start](#quick-start-play-against-the-model).
-- **The write-up.** [Making a Magic: The Gathering eval](https://folds.ink/posts/mtg-benchmark) tells how it was
-  built and what went wrong along the way.
+Models take a player's seat in [Forge](https://github.com/Card-Forge/forge), an open source MTG rules engine, and
+play against a person, Forge's built-in AI or another model. The eval is a set of Magic puzzles: the model is handed
+a board and has to win that turn. The full story is in the write-up,
+[Making a Magic The Gathering Eval](https://folds.ink/posts/mtg-benchmark).
 
 ![One decision in the replay viewer: the seat's board, its plan, two simulate previews and its answer](docs/images/seat-decision.webp)
 
-Every decision Forge asks of a player goes to the model: mulligans, land drops, spells, targets, attacks, blocks,
-triggers. Forge checks every option before it is offered, so the model cannot make an illegal move, and Forge's own
-AI never decides for it.
+## The harness
 
-This is a research project and still changing. Scores compare only within one engine version (`FORGE_COMMIT`) and one
-harness version (`docs/harness/VERSIONS.md`).
+A weak harness can make a strong model look weak. The first version of this one parsed the model's replies for
+words, showed it part of the board and quietly let Forge's AI make some of its choices, and the models blundered.
+This version is built to show a model everything a human player sees and to stay out of its way:
 
-## Quick start: play against the model
+- **Answers are tool calls.** Each decision is answered by filling in a form with fixed fields. Nothing is read out
+  of the model's own thinking.
+- **Full game state.** Every decision shows what a player could see: both battlefields, the graveyards, how many
+  cards are in each hand and library, and the full text of every card. It also lists every legal action the engine
+  allows, so an illegal move is impossible.
+- **Ids for every object, and a game log.** Each object gets an id like `@67` that stays the same until it changes
+  zones. The recent events stay in context, and the model has tools to search and page through the whole log.
+- **No hidden fallback to Forge's AI.** If a model fails to make a choice, a default legal option is taken and it is
+  marked in the log.
+- **Simulation and rules lookup.** In a game the model can preview what an action would do before taking it, without
+  seeing the opponent's hand or its own library. Puzzle runs turn the preview off. A rules lookup, off by default,
+  lets it search the official rules.
+
+How each part is built, and why, is in [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md).
+
+## The eval: puzzles
+
+Counting wins makes a poor eval. Magic has a lot of luck in it, and decks beat each other like rock, paper,
+scissors, so a win rate says more about the draw and the decks than about the model.
+
+A puzzle takes the luck out. Like a chess puzzle, it gives a board and a goal, usually "win this turn", and the
+model either finds the line or it doesn't. The hard puzzles here are long, with many objects in play that may or may
+not matter, and a board is in the suite below only if random play and other fixed players all fail it. It is a room
+with one door: the goal is clear, and how to get there is not given.
+
+### Results
+
+Twenty models on five of the hardest puzzles, one game each:
+
+<img src="docs/images/puzzle-comparison.svg" alt="Twenty models on five hard puzzles: solved or failed, time and cost per game" width="720">
+
+Five models solved all five, three solved none, and 58 of the 100 games were solved. Read it as a first comparison
+and not a ranking: one game a puzzle cannot separate models that differ by a puzzle or two, the games ran under
+several time and token limits, and a few of the failures were games the harness lost or that were stopped early.
+[docs/harness/PUZZLE-COMPARISON.md](docs/harness/PUZZLE-COMPARISON.md) has the conditions and those cases. The times
+and costs in the chart are from the write-up; the repository records only solved or failed.
+
+The puzzles are in `eval/puzzles/`, grouped into frozen suites in `eval/suites/`. To run a model on one and score it,
+after `setup.sh` below (the run stops when the budget is spent, and it needs the same key and consent as a game):
+
+```bash
+python3 eval/puzzles/puzzle_solve.py --suite eval/suites/puzzles-hard-gen2-v1.json --split open \
+  --model openrouter:openai/gpt-6-luna --memory-tools --budget-usd 1.00 --out runs/puzzles/luna-open
+python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-hard-gen2-v1.json --split open runs/puzzles/luna-open
+```
+
+The puzzle format and the scoring are in [docs/eval/PUZZLES.md](docs/eval/PUZZLES.md). The repository can also score
+full games against Forge's AI ([docs/eval/SCORING.md](docs/eval/SCORING.md)).
+
+## Play against it
 
 You need Java 17+, Maven 3.8.1+, git and Python 3, on macOS or Linux (WSL2 on Windows), and an
 [OpenRouter](https://openrouter.ai) key.
@@ -27,7 +73,7 @@ You need Java 17+, Maven 3.8.1+, git and Python 3, on macOS or Linux (WSL2 on Wi
 git clone https://github.com/lumlaolao/spike-eval.git && cd spike-eval
 bash setup.sh                                         # fetches and builds Forge, asks for your key
 bash play-vs-llm.sh                                   # your Burn against the model on Mardu Energy
-bash play-vs-llm.sh --deck elves --vs ur-delver       # any eval/decks/<name>.txt, or a path to a decklist
+bash play-vs-llm.sh --deck elves --vs ur-delver       # pick both decks
 bash play-vs-llm.sh --commentary --why                # shows its decisions and reasons as it plays
 ```
 
@@ -35,10 +81,37 @@ bash play-vs-llm.sh --commentary --why                # shows its decisions and 
 harness and builds it. The first run takes about 10 minutes. It then asks for your key and whether games may be sent
 to openrouter.ai, and writes both to `secrets.env`, which git ignores. Run it again after a `git pull`.
 
-`play-vs-llm.sh` opens Forge's window, so it needs a display. A game costs about $0.02 to $0.05 with the default
-model, and the model may think for minutes on a hard decision. Games against a person are never scored.
+If you would rather have a coding agent such as Claude Code do the setup, give it this:
 
-## Record a game
+```
+Clone https://github.com/lumlaolao/spike-eval and run `bash setup.sh` in it. If it reports a missing tool
+(Java 17+, Maven 3.8.1+, git, Python 3), install it and run setup again. Setup cannot take my OpenRouter key
+through you: once Forge is built, tell me to run `bash setup.sh` again myself in a terminal to enter the key.
+Never ask me to paste the key into this chat.
+```
+
+`play-vs-llm.sh` opens Forge's window, so it needs a display. A game costs about $0.02 to $0.05 with the default
+model, GPT-6 Luna, and the model may think for minutes on a hard decision. Games against a person are never scored.
+
+### Decks
+
+Decks are plain text files in `eval/decks/`. `--deck burn` means `eval/decks/burn.txt`, and you can also give a path
+to a file of your own. The format is the one MTGO and most deck sites export: one card per line, the count and then
+the card's exact name, with an optional `Sideboard` line before the sideboard.
+
+```
+4 Goblin Guide
+4 Lightning Bolt
+20 Mountain
+Sideboard
+2 Smash to Smithereens
+```
+
+Besides the `hook-*` test decks, the folder has 52 lists: 36 tournament lists from Standard, Pioneer, Modern, Legacy,
+Vintage and Pauper ([eval/decks/SOURCES.md](eval/decks/SOURCES.md) says where each came from) and 16 archetype
+decks such as `burn`, `elves` and `ur-delver`. A name has to be spelled the way Forge spells it, accents included.
+
+## Model against Forge's AI
 
 ```bash
 python3 eval/run_batch.py --seeds 4101 --exploratory --budget-usd 0.40 --deck eval/decks/burn.txt \
@@ -50,38 +123,8 @@ python3 eval/match_review.py runs/loop/g01        # what the harness decided, lo
 
 An `openrouter:` model sends the game state to openrouter.ai. Nothing is sent unless `OPENROUTER_API_KEY` and your
 own consent, `OPENROUTER_ALLOW_EGRESS=1`, are set. A game takes 20 to 90 minutes. `run_batch.py` stops at
-`--budget-usd`, and `eval/cost_report.py` prices any run. Every setting is in `docs/harness/SETTINGS.md`.
-
-## The benchmark
-
-| Score | What it measures |
-|---|---|
-| STR-AI | win rate against Forge's AI on a frozen set of deck matchups |
-| STR-HELDOUT | the same, on seeds kept out of every training corpus |
-| PUZ | frozen puzzle suites, judged by Forge's puzzle mode |
-
-Each score is reported with its confidence interval and the trivial baseline it has to beat. The design is in
-`docs/eval/EVAL-DESIGN.md`, `docs/eval/SCORING.md` and `docs/eval/PUZZLES.md`.
-
-## Results so far
-
-No headline score is published yet. The one cross-model run so far is an exploratory comparison, not a benchmark
-score: 20 models on the five hardest boards of a generated puzzle suite, one game each. Five models solved all five
-boards and three solved none (GPT-6 Luna, the default model here, among them); 58 of the 100 games were solved. The
-table, its conditions and its caveats are in [docs/harness/FRONTIER5.md](docs/harness/FRONTIER5.md).
-
-## How it works
-
-- **The seat.** `PlayerControllerLLM` (`forge-overlay/.../spike/LlmSpikeGui.java`) implements Forge's player
-  interface: 89 decision hooks and 44 ways to play a card, each with a test.
-- **What the model sees.** The game state from the engine, Forge's game log, the opponent's cards it has seen, and
-  its own notes (`SeatObservation.java`).
-- **How it answers.** One `answer` function call per decision. It can also call tools to read a card, search its
-  archive of the game, or preview what an option would do.
-- **The engine.** Forge is not in this repository. `install.sh` copies `forge-overlay/` into a Forge checkout and
-  applies the small diffs in `engine-patches/`, each listed in `docs/harness/ENGINE-PATCHES.md`.
-
-`docs/harness/ARCHITECTURE.md` covers every part and why it is built that way.
+`--budget-usd`, and `eval/cost_report.py` prices any run. Every setting is in `docs/harness/SETTINGS.md`. Your runs land
+in `runs/`; the run directories the documents cite for their numbers are not part of this repository.
 
 ## Build and test by hand
 
@@ -100,24 +143,10 @@ bash eval/keyword_gauntlet.sh                         # 29 free games over 564 c
 Acceptance needs no API key and costs nothing: its games use fixed players or a fake model on your own machine.
 It builds into `runs/harness-acceptance/<ts>/` and never touches the checkout.
 
-## Where things are
-
-| Path | What |
-|---|---|
-| `forge-overlay/` | the harness: Java compiled into Forge, with its tests |
-| `engine-patches/` | diffs to a few Forge files |
-| `eval/` | launchers, scoring, decks, puzzles and the Python tests |
-| `docs/harness/` | architecture, settings, lessons, version stamps ([index](docs/harness/INDEX.md)) |
-| `docs/eval/` | the benchmark's design, scoring and puzzle format |
-| `CLAUDE.md`, `.claude/` | instructions for coding agents working in this repository |
-
-The documents cite run directories (`runs/loop/g26`, `runs/c3/...`) for their numbers. Those recorded games are not
-part of this repository; `runs/` is where your own runs land.
-
 ## Contributing
 
 Changes land through pull requests; [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/STANDARDS.md](docs/STANDARDS.md)
-say how. To report a security problem, see [SECURITY.md](SECURITY.md).
+say how. To report a security problem, see [SECURITY.md](.github/SECURITY.md).
 
 ## License
 

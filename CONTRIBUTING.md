@@ -8,7 +8,7 @@ follow; you do not need them for a first contribution.
 
 Open an issue. The most useful reports say which deck and seed the game used, what the model was asked, and what
 happened instead of what should have. If the game wrote a run directory, the row in its `game-*.jsonl` is the best
-evidence. For anything involving keys or data leaving your machine, see [SECURITY.md](SECURITY.md) instead.
+evidence. For anything involving keys or data leaving your machine, see [SECURITY.md](.github/SECURITY.md) instead.
 
 ## Setting up
 

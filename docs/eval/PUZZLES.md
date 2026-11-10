@@ -414,7 +414,7 @@ python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v
   `CLAUDE_DEADLINE_MS` for a `claude-cli:` seat, recorded as `record.call_timeout_ms`; a resume under another value
   is refused; an `openrouter:`, `jev:` or `claude-cli:` seat only, since no other bridge reads one; a shell
   `CLAUDE_DEADLINE_MS` never reaches a puzzle game). A call past it is retried, then its decision goes to a fixed
-  legal option (the frontier5 run's deadlines: `docs/harness/FRONTIER5.md`, "How it ran").
+  legal option (the frontier5 run's deadlines: `docs/harness/PUZZLE-COMPARISON.md`, "How it ran").
   A deadline above 5 minutes needs `--k 1`, and is refused otherwise. The JVM's grace after a game cap is sized from
   `ModelCfg` (about 15 minutes), not from this flag. A game capped while a longer call is in flight can outlive that
   grace and leave its puzzle's later seeds unplayed. A resume that replayed them would redraw only the slow puzzles,
@@ -424,7 +424,7 @@ python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v
   2^31-1; a resume under another value is refused; an `openrouter:` seat only, since no other bridge reads it). The
   fast tier keeps 8192 with reasoning off. The cap is sent as is, and a provider counts it against the context window
   with the prompt: with a model's listed maximum output, calls can be refused for context length (frontier5, Kimi
-  K2.6: `docs/harness/FRONTIER5.md`, "Decisions the harness lost").
+  K2.6: `docs/harness/PUZZLE-COMPARISON.md`, "Decisions the harness lost").
 - Each game has a wall-clock cap, 30 minutes unless `--game-cap-minutes` says otherwise; a capped game is
   status `invalid` and counts as unsolved. Each puzzle's `batch-manifest.json` records it (`record.game_cap_ms`;
   absent: 30 minutes). The cap is a condition. A resume may raise it, never lower it, and under a higher cap every

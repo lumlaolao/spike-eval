@@ -32,9 +32,9 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
 ## Open work
 
 - **The frontier comparison on the 5 hardest puzzles** ran on 2026-10-26: 20 models on 100 boards, exploratory
-  and not a PUZ score ([FRONTIER5.md](FRONTIER5.md)). Open:
+  and not a PUZ score ([PUZZLE-COMPARISON.md](PUZZLE-COMPARISON.md)). Open:
   - Kimi K2.6 lost decisions on elf2 and hoofdrain to `HTTP 400` context-length refusals
-    ([FRONTIER5.md](FRONTIER5.md), "Decisions the harness lost"; owner: investigate). Every refused call was a
+    ([PUZZLE-COMPARISON.md](PUZZLE-COMPARISON.md), "Decisions the harness lost"; owner: investigate). Every refused call was a
     follow-up to a `set_plan`-only reply, carrying its reasoning back, sent with `max_tokens` 235929; the bridge
     retried it unchanged and the seat passed as bridge-down. To find out: whether dropping the echoed reasoning, a
     lower cap, or both clear it (an A/B on the 8 logged requests; size alone does not, since a 0.41 MB follow-up
