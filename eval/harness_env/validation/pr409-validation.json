@@ -1,7 +1,7 @@
 {
  "engine_head": "34a8662b7966a6ee757411feae2ae8ff38cce436",
  "gold_lines": 20,
- "grader_sha256": "5462b896c043c4e3c477eb31ebab391f0daf2f1daee0c6469c4cf7532e143cb7",
+ "grader_sha256": "5805bdebf5148b4b449fee2937c57cf1762b05cc6be3351a4cf4361ad9803369",
  "green": {
   "compile_ok": true,
   "failed_targets": [],
@@ -25,8 +25,8 @@
   "targets_total": 2
  },
  "red_kind": "tests",
- "repo_head": "51495d65aa0a3e13d751c0d8da8bf5253cbfd548",
+ "repo_head": "3ec9e162637bd64d873180556a8675733e32ff05",
  "task": "pr409",
- "validated_at": "2026-11-07T18:47:08Z",
+ "validated_at": "2026-11-10T06:19:50Z",
  "well_posed": true
 }
