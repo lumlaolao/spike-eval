@@ -44,6 +44,7 @@ class PlayVsLlmTest(unittest.TestCase):
         base = {k: v for k, v in os.environ.items()
                 if k not in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT", "FORGE_HOME")}
         base.update(env)
+        base["HOME"] = self._tmp.name   # a scratch HOME: no Forge build of this machine's is found
         return subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--dry-run", *args], capture_output=True,
                               text=True, env=base, cwd=tempfile.gettempdir())
 
@@ -89,6 +90,7 @@ class PlayVsLlmTest(unittest.TestCase):
         cp.write_text("stub")
         base["FORGE_CP_FILE"] = str(cp)
         base.update(env, FORGE_HOME=str(forge))
+        base["HOME"] = self._tmp.name   # a scratch HOME: no Forge build of this machine's is found
         # The zero-model greedy: seat needs no egress consent, and the stub game sends nothing anywhere.
         p = subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--model", "greedy:", *args],
                            capture_output=True, text=True, env=base, cwd=tempfile.gettempdir(), timeout=60)
@@ -108,6 +110,7 @@ class PlayVsLlmTest(unittest.TestCase):
         self.assertEqual(got["GAME_SEED"], "42", "a seed changes no condition")
         self.assertEqual(got["CLAUDE_BRIDGE_EFFORT"], "high", "the operator's claude-cli settings stay")
         self.assertEqual((got["CONTROLLER_A"], got["LOOKAHEAD"], got["RULES_TOOL"]), ("human", "1", "0"))
+        self.assertEqual(got["HOME"], self._tmp.name, "the launcher ran with this machine's HOME (STANDARDS section 5)")
 
     def test_an_openrouter_model_without_consent_is_refused_and_consent_is_never_set(self):
         p = self.run_script()

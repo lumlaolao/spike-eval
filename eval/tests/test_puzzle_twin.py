@@ -150,7 +150,7 @@ class ScriptTest(unittest.TestCase):
     def test_forges_rite_of_flame_names_itself_and_its_twin_does_not(self):
         forge = tw.forge_home()
         if forge is None:
-            self.skipTest("no readable Forge checkout (FORGE_HOME, ~/code/forge, /root/forge)")
+            self.skipTest("no readable Forge checkout (FORGE_HOME, ~/code/forge, /root/forge); runs in acceptance")
         index = tw.real_card_index(forge)
         self.assertIn("Rite of Flame", index)
         text = (forge / tw.CARDSFOLDER / index["Rite of Flame"]).read_text(encoding="utf-8")
@@ -921,6 +921,7 @@ class TwinSuiteTest(unittest.TestCase):
         (forge / "forge-gui-desktop").mkdir()
         full = {k: v for k, v in os.environ.items() if k not in ("TWIN_MANIFEST", "TWIN_MODE")}
         full.update(FORGE_HOME=str(forge), **env)
+        full["HOME"] = str(Path(tmp) / "home")   # install.sh falls back to $HOME/code/forge: never a real one
         return forge, subprocess.run(["bash", str(here / "install.sh")], capture_output=True, text=True, env=full)
 
     def test_install_sh_installs_the_twin_scripts_only_when_asked(self):

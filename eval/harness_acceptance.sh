@@ -383,7 +383,8 @@ fi
 
 # ---------------------------------------------------------------- pytests
 if has_stage pytests; then
-  ( cd "$REPO" && python3 -m unittest discover -s eval/tests -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
+  # FORGE_HOME: the tests that read a Forge checkout (test_rollout's held-out puzzle) read this run's, never a default.
+  ( cd "$REPO" && FORGE_HOME="$FORGE" python3 -m unittest discover -s eval/tests -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
   RAN="$(grep -o 'Ran [0-9]* tests' "$OUT/pytests.log" | tail -1)"
   if [ $RC -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK (script-style files included)"
   else fail pytests "unittest rc=$RC ($RAN)"; fi

@@ -230,6 +230,16 @@ most log questions).
   `python3 -m unittest discover -s eval/tests` passes on a fresh clone, as a user without root and without a Forge
   checkout (the CI runner: a lookup of a default checkout such as `/root/forge` treats a folder it cannot read as
   absent); acceptance fetches the text first, so there it runs.
+- A test that runs a root script (`setup.sh`, `install.sh`, `play-vs-llm.sh`) or a game launcher
+  (`forge-overlay/run-llm-*.sh`) gives it a scratch `HOME`, hands it no path of the host it runs on (a JDK
+  folder, `~/code/forge`) and writes only under its own temporary directory: the root scripts fall back to
+  `$HOME/code/forge` when `FORGE_HOME` is unset, and the launchers put `$HOME/.local/bin` on `PATH`. A test that
+  needs a Forge checkout reads `FORGE_HOME` first, and a default it falls back to is one it skips on when
+  unreadable (the rule above). (#463: a Homebrew JDK bypassed a stub `java`, and a test opened a real game window
+  on a machine with a build in `~/code/forge`; #465: `/root/forge`.) A call with no `env=`, in a function that
+  sets no `HOME` (assigned; `setdefault` on a copy of the environment keeps this machine's), or that sets only
+  this machine's `HOME` is script-checked (`eval/tests/test_script_tests_home.py`); an argv or a `HOME` built
+  another way, a host path handed to the script, and where the test writes are checked by review.
 - A test of the seat's play path reads `ctrl.playsNotMade()` or the game state (the card moved, the mana tapped), never the
   return value of `PlayerControllerLLM.playChosenSpellAbility`: it never returns false, so a play that was not made
   still passes (issue #380; `grep -rn 'assert.*playChosenSpellAbility\|= *ctrl.playChosenSpellAbility'
@@ -273,6 +283,9 @@ most log questions).
 - Every number is reproducible from a named command and run directory. Run directories are not in the repository
   (`runs/` is git-ignored): the doc names the one its author kept.
 - Say what was not determined.
+- A line saying a platform is supported, works or was checked cites the run or workflow that shows it and says
+  whether that check is started by hand. A platform nothing has run on is named as not run. (#466: "runs on
+  macOS, Linux and Windows" and "WSL2 also works" said more than the `setup` workflow showed.) Checked by review.
 - A doc does not record the acceptance run of its PR's final head: that belongs in the PR's `## Evidence`, or
   recording it would need a commit that invalidates it. A run on an earlier head of the same PR that changed
   something (a failure found, a canary moved, a new stage count) is recorded in `docs/harness/ACCEPTANCE.md`
