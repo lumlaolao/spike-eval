@@ -28,6 +28,12 @@ This version is built to show a model everything a human player sees and to stay
   seeing the opponent's hand or its own library. Puzzle runs turn the preview off. A rules lookup, off by default,
   lets it search the official rules.
 
+![A full game in Forge's match screen: Claude Haiku on Boros Aggro beats Forge's AI on UR Delver](docs/images/full-game.webp)
+
+A full game, sped up about 25 times: Claude Haiku in the harness's seat on Boros Aggro against Forge's AI on UR
+Delver, about eight minutes of play in twenty seconds. It was played through the Claude Code CLI lane, which is for
+local development and never part of a benchmark score.
+
 How each part is built, and why, is in [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md).
 
 ## The eval: puzzles
