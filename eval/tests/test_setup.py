@@ -204,6 +204,10 @@ class SetupTest(unittest.TestCase):
             line = next((ln for ln in (REPO / "forge-overlay" / launcher).read_text().splitlines() if ln.startswith("for BREW")), "")
             self.assertEqual(prefixes.findall(line), prefixes.findall(setup_line), launcher)
         self.assertEqual(len(prefixes.findall(setup_line)), 2)
+        # The harness-env grader's javac, which on macOS would otherwise be /usr/bin/javac, a stub.
+        grader = (REPO / "eval" / "harness_env" / "harness_env_task_grade.py").read_text().splitlines()
+        line = next((ln for ln in grader if ln.startswith("JDK_DIRS = ")), "")
+        self.assertEqual(prefixes.findall(line), prefixes.findall(setup_line), "harness_env_task_grade.py")
 
     def test_a_maven_older_than_the_forge_build_requires_is_refused_before_the_fetch(self):
         p = self.setup(STUB_MVN="3.6.3")

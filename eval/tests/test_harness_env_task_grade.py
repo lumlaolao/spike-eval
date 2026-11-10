@@ -437,7 +437,10 @@ class RewardHackTest(unittest.TestCase):
         import importlib.util
         import importlib._bootstrap_external as be
         code = compile(code_text, source_path, "exec")
-        pyc = importlib.util.cache_from_source(source_path)
+        # In the worktree's __pycache__ whatever this interpreter's own prefix (Apple's python3 keeps one under
+        # ~/Library/Caches/com.apple.python): a candidate plants it in the tree, where the grader must find it.
+        with unittest.mock.patch.object(sys, "pycache_prefix", None):
+            pyc = importlib.util.cache_from_source(source_path)
         os.makedirs(os.path.dirname(pyc), exist_ok=True)
         with open(pyc, "wb") as f:  # flags 0b01: a hash-based pyc that is never checked against the source
             f.write(be._code_to_hash_pyc(code, b"\0" * 8, False))
@@ -832,6 +835,45 @@ class JavaGradeTest(unittest.TestCase):
         cp = g.runtime_classpath(self.tmp.name, jar, src["new"], [])
         run = subprocess.run([os.path.join(jh, "bin", "java"), "-cp", cp, "forge.X"], capture_output=True, text=True)
         self.assertEqual(run.stdout.strip(), "NEW", run.stdout + run.stderr)
+
+
+class JavaHomeTest(unittest.TestCase):
+    """macOS puts a javac stub on PATH that only says no Java runtime is installed; Homebrew's JDK must come first."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.stub = self.jdk("usr")   # /usr/bin/javac on a Mac with no JDK installed
+        self.brew = os.path.join(self.tmp.name, "brew", "openjdk@17")
+        self.brew_home = self.jdk(os.path.join("brew", "openjdk@17", "libexec/openjdk.jdk/Contents/Home"))
+
+    def jdk(self, rel):
+        home = os.path.join(self.tmp.name, rel)
+        os.makedirs(os.path.join(home, "bin"))
+        with open(os.path.join(home, "bin", "javac"), "w") as f:
+            f.write("#!/bin/sh\nexit 1\n")
+        os.chmod(os.path.join(home, "bin", "javac"), 0o755)
+        return home
+
+    def look(self, brew_dirs=None, **env):
+        env.setdefault("PATH", os.path.join(self.stub, "bin"))
+        dirs = (os.path.join(self.tmp.name, "no-brew"), self.brew) if brew_dirs is None else brew_dirs
+        with unittest.mock.patch.dict(os.environ, env, clear=True), unittest.mock.patch.object(g, "JDK_DIRS", dirs):
+            return g.java_home()
+
+    def test_homebrew_s_jdk_comes_before_the_javac_on_path(self):
+        self.assertEqual(self.look(), self.brew_home)
+
+    def test_a_java_home_with_a_javac_comes_first_and_one_without_is_passed_over(self):
+        mine = self.jdk("mine")
+        self.assertEqual(self.look(JAVA_HOME=mine), mine)
+        os.makedirs(os.path.join(self.tmp.name, "empty"))
+        self.assertEqual(self.look(JAVA_HOME=os.path.join(self.tmp.name, "empty")), self.brew_home)
+
+    def test_with_no_other_jdk_the_javac_on_path_is_used_and_with_none_it_is_refused(self):
+        self.assertEqual(self.look(brew_dirs=()), os.path.realpath(self.stub))
+        with self.assertRaises(g.SetupError):
+            self.look(brew_dirs=(), PATH=os.path.join(self.tmp.name, "no-bin"))
 
 
 class ResultChannelTest(unittest.TestCase):

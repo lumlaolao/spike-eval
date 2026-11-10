@@ -61,6 +61,8 @@ import harness_env_tasks as het
 import engine_patches
 
 DEFAULT_FORGE = "/root/forge"
+# Homebrew's JDK prefixes, in setup.sh's order (eval/tests/test_setup.py keeps the lists equal).
+JDK_DIRS = ("/opt/homebrew/opt/openjdk@17", "/usr/local/opt/openjdk@17")
 OVERLAY_REL = "forge-overlay/forge-gui-desktop/src"
 ADDOPENS = ("java.desktop/java.beans java.desktop/javax.swing.border java.desktop/javax.swing.event "
             "java.desktop/sun.swing java.desktop/java.awt.image java.desktop/java.awt.color "
@@ -308,13 +310,16 @@ def find_rules(repo):
 
 
 def java_home():
-    jh = os.environ.get("JAVA_HOME", "")
-    if not (jh and os.access(os.path.join(jh, "bin", "javac"), os.X_OK)):
-        javac = shutil.which("javac")
-        if not javac:
-            raise SetupError("no javac on PATH and no JAVA_HOME")
-        jh = os.path.dirname(os.path.dirname(os.path.realpath(javac)))
-    return jh
+    """JAVA_HOME, then Homebrew's JDK, then the javac on PATH. On macOS /usr/bin/javac is a stub that only says no
+    Java runtime is installed, so a Mac with Homebrew's JDK and no JAVA_HOME must not reach it."""
+    homes = [os.environ.get("JAVA_HOME", "")] + [os.path.join(b, "libexec/openjdk.jdk/Contents/Home") for b in JDK_DIRS]
+    for jh in homes:
+        if jh and os.access(os.path.join(jh, "bin", "javac"), os.X_OK):
+            return jh
+    javac = shutil.which("javac")
+    if not javac:
+        raise SetupError("no javac on PATH and no JAVA_HOME")
+    return os.path.dirname(os.path.dirname(os.path.realpath(javac)))
 
 
 def java_sources(worktree, patched_engine):
