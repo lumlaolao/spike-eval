@@ -17,9 +17,11 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
 # Forge: $FORGE_HOME, else where setup.sh put it, else the default checkout.
 forge_from="the FORGE_HOME variable in your shell"
+recorded=""                                   # where setup.sh built Forge, when it wrote that down
+if [ -s "$REPO/.forge-home" ]; then recorded="$(head -1 "$REPO/.forge-home")"; fi
 if [ -z "${FORGE_HOME:-}" ]; then
-  if [ -s "$REPO/.forge-home" ]; then
-    FORGE_HOME="$(head -1 "$REPO/.forge-home")"; forge_from="setup.sh's record, .forge-home"
+  if [ -n "$recorded" ]; then
+    FORGE_HOME="$recorded"; forge_from="setup.sh's record, .forge-home"
   else
     FORGE_HOME="$HOME/code/forge"; forge_from="the default place"
   fi
@@ -113,11 +115,8 @@ if [ "$record" = 1 ]; then export RECORD=1 RECORD_OUT="$out/match.mp4"; fi
 # in the shell wins over setup.sh's record (it is the documented override), so the message says which one was used.
 if [ "$dry" != 1 ] && [ ! -x "$FORGE_HOME/run-llm-spike.sh" ]; then
   echo "play-vs-llm: no Forge build at $FORGE_HOME (from $forge_from); run 'bash setup.sh' first" >&2
-  if [ "$forge_from" = "the FORGE_HOME variable in your shell" ] && [ -s "$REPO/.forge-home" ]; then
-    built="$(head -1 "$REPO/.forge-home")"
-    if [ "$built" != "$FORGE_HOME" ] && [ -x "$built/run-llm-spike.sh" ]; then
-      echo "play-vs-llm: setup.sh built Forge at $built; to use it, run 'unset FORGE_HOME' and try again" >&2
-    fi
+  if [ -n "$recorded" ] && [ "$recorded" != "$FORGE_HOME" ] && [ -x "$recorded/run-llm-spike.sh" ]; then
+    echo "play-vs-llm: setup.sh built Forge at $recorded; to use it, run 'unset FORGE_HOME' and try again" >&2
   fi
   exit 4
 fi

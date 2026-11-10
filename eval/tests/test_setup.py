@@ -135,10 +135,12 @@ class SetupTest(unittest.TestCase):
         self.assertNotIn("sk-or-from-shell", self.secrets())
 
     def test_a_key_in_the_shell_is_not_saved_when_nobody_is_at_the_terminal(self):
-        p = self.setup(answers="", OPENROUTER_API_KEY="sk-or-from-shell")
+        # A piped "y" is not a person: the question is never asked, so the first line is read as the typed key.
+        p = self.setup(answers="y\ny\n", OPENROUTER_API_KEY="sk-or-from-shell")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertNotIn("sk-or-from-shell", self.secrets() + p.stdout + p.stderr)
-        self.assertIn("OPENROUTER_API_KEY=\n", self.secrets())
+        self.assertNotIn("is set in your shell. Use it", p.stdout)
+        self.assertIn("OPENROUTER_API_KEY=y\n", self.secrets())
         self.assertIn("was not saved", p.stderr)
 
     def test_an_existing_key_is_kept_and_not_asked_for_again(self):

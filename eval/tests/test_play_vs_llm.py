@@ -201,6 +201,8 @@ class PlayVsLlmTest(unittest.TestCase):
             self.assertEqual(p.returncode, 4, p.stderr)
             self.assertIn("(from setup.sh's record, .forge-home)", p.stderr)
             self.assertNotIn("unset FORGE_HOME", p.stderr)
+            (self.repo / ".forge-home").write_text("\n")        # a record with nothing in it is no record
+            self.assertIn("(from the default place)", self.real_run().stderr)
         finally:
             (self.repo / ".forge-home").unlink()
 
