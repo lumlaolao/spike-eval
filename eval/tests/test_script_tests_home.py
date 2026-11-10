@@ -33,15 +33,23 @@ def _scopes(tree):
         yield f, [c for c in ast.walk(f) if isinstance(c, ast.Call) and id(c) not in nested]
 
 
+def _own_nodes(scope):
+    """The scope's nodes without those of the functions defined inside it."""
+    todo = list(ast.iter_child_nodes(scope))
+    while todo:
+        n = todo.pop()
+        yield n
+        if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            todo.extend(ast.iter_child_nodes(n))
+
+
 def _home_values(scope):
-    """Every value the scope gives a HOME key: HOME=x, {"HOME": x}, d["HOME"] = x, d.setdefault("HOME", x)."""
+    """Every value the scope itself gives a HOME key: HOME=x, {"HOME": x}, d["HOME"] = x. Not d.setdefault("HOME", x):
+    on a copy of os.environ, which always holds HOME, it keeps this machine's."""
     out = []
-    for n in ast.walk(scope):
+    for n in _own_nodes(scope):
         if isinstance(n, ast.Call):
             out += [k.value for k in n.keywords if k.arg == "HOME"]
-            if (isinstance(n.func, ast.Attribute) and n.func.attr == "setdefault" and len(n.args) == 2
-                    and isinstance(n.args[0], ast.Constant) and n.args[0].value == "HOME"):
-                out.append(n.args[1])
         elif isinstance(n, ast.Dict):
             out += [v for k, v in zip(n.keys, n.values) if isinstance(k, ast.Constant) and k.value == "HOME"]
         elif isinstance(n, ast.Assign):
@@ -105,11 +113,15 @@ class ScratchHomeTest(unittest.TestCase):
                "    subprocess.run(['bash', 'play-vs-llm.sh'], env=dict(env, FORGE_HOME='x'))  # HOME in a comment\n\n"
                "def g():\n    cmd = ['/bin/bash', 'setup.sh']\n    subprocess.run(cmd, env=None)\n\n"
                "def h():\n    subprocess.run([str(P / 'run-llm-spike.sh')], env=dict(os.environ, HOME=os.environ['HOME']))\n\n"
+               "def k(tmp):\n    d = {n: v for n, v in os.environ.items()}\n    d.setdefault('HOME', tmp)\n"
+               "    subprocess.run(['bash', 'install.sh'], env=d)\n\n"
+               "def m(tmp):\n    def inner():\n        return {'HOME': tmp}\n"
+               "    subprocess.run(['bash', 'install.sh'], env=inner())\n\n"
                "subprocess.run(['bash', 'setup.sh'])\n")
         got = offenders(bad)
-        self.assertEqual(len(got), 5, got)
+        self.assertEqual(len(got), 7, got)
         self.assertEqual(sum("no env=" in g for g in got), 3, got)
-        self.assertEqual(sum("never sets HOME" in g for g in got), 1, got)
+        self.assertEqual(sum("never sets HOME" in g for g in got), 3, got)   # f, the setdefault (k), a nested def's (m)
         self.assertEqual(sum("own HOME" in g for g in got), 1, got)
 
     def test_a_call_with_a_scratch_home_and_a_syntax_check_pass(self):
@@ -117,7 +129,7 @@ class ScratchHomeTest(unittest.TestCase):
                 "def f(env, tmp):\n    env['HOME'] = tmp\n    subprocess.run(['bash', 'setup.sh'], env=env)\n"
                 "    subprocess.run(['bash', '-n', 'setup.sh'])\n\n"
                 "def g(tmp):\n    base = {'HOME': tmp}\n    subprocess.run(['bash', 'install.sh'], env=base)\n\n"
-                "def h(tmp, base):\n    base.setdefault('HOME', tmp)\n    subprocess.run(['bash', 'install.sh'], env=base)\n")
+                "def h(tmp, base):\n    base.update(HOME=tmp)\n    subprocess.run(['bash', 'install.sh'], env=base)\n")
         self.assertEqual(offenders(good), [])
 
 

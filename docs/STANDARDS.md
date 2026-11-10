@@ -233,12 +233,13 @@ most log questions).
 - A test that runs a root script (`setup.sh`, `install.sh`, `play-vs-llm.sh`) or a game launcher
   (`forge-overlay/run-llm-*.sh`) gives it a scratch `HOME`, hands it no path of the host it runs on (a JDK
   folder, `~/code/forge`) and writes only under its own temporary directory: the root scripts fall back to
-  `$HOME/code/forge` when `FORGE_HOME` is unset, and the launchers put `$HOME/.local/bin` on `PATH`. A test that needs a Forge checkout reads `FORGE_HOME` first, and a default
-  it falls back to is one it skips on when unreadable (the rule above). (#463: a Homebrew JDK bypassed a stub
-  `java`, and a test opened a real game window on a machine with a build in `~/code/forge`; #465: `/root/forge`.)
-  A call with no `env=`, in a function that sets no `HOME`, or that sets only this machine's `HOME` is
-  script-checked (`eval/tests/test_script_tests_home.py`); an argv or a `HOME` built another way, a host path
-  handed to the script, and where the test writes are checked by review.
+  `$HOME/code/forge` when `FORGE_HOME` is unset, and the launchers put `$HOME/.local/bin` on `PATH`. A test that
+  needs a Forge checkout reads `FORGE_HOME` first, and a default it falls back to is one it skips on when
+  unreadable (the rule above). (#463: a Homebrew JDK bypassed a stub `java`, and a test opened a real game window
+  on a machine with a build in `~/code/forge`; #465: `/root/forge`.) A call with no `env=`, in a function that
+  sets no `HOME` (assigned; `setdefault` on a copy of the environment keeps this machine's), or that sets only
+  this machine's `HOME` is script-checked (`eval/tests/test_script_tests_home.py`); an argv or a `HOME` built
+  another way, a host path handed to the script, and where the test writes are checked by review.
 - A test of the seat's play path reads `ctrl.playsNotMade()` or the game state (the card moved, the mana tapped), never the
   return value of `PlayerControllerLLM.playChosenSpellAbility`: it never returns false, so a play that was not made
   still passes (issue #380; `grep -rn 'assert.*playChosenSpellAbility\|= *ctrl.playChosenSpellAbility'
