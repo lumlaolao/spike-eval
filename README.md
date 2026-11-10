@@ -85,9 +85,9 @@ If you would rather have a coding agent such as Claude Code do the setup, give i
 
 ```
 Clone https://github.com/lumlaolao/spike-eval and run `bash setup.sh` in it. If it reports a missing tool
-(Java 17+, Maven 3.8.1+, git, Python 3), install it and run setup again. When it asks for my OpenRouter key,
-stop and tell me to run `bash setup.sh` myself in a terminal; never ask me to paste the key into this chat.
-Then run `bash play-vs-llm.sh --dry-run` and tell me whether everything is ready for a game.
+(Java 17+, Maven 3.8.1+, git, Python 3), install it and run setup again. Setup cannot take my OpenRouter key
+through you: once Forge is built, tell me to run `bash setup.sh` again myself in a terminal to enter the key.
+Never ask me to paste the key into this chat.
 ```
 
 `play-vs-llm.sh` opens Forge's window, so it needs a display. A game costs about $0.02 to $0.05 with the default
