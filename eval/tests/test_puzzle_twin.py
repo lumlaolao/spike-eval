@@ -921,6 +921,7 @@ class TwinSuiteTest(unittest.TestCase):
         (forge / "forge-gui-desktop").mkdir()
         full = {k: v for k, v in os.environ.items() if k not in ("TWIN_MANIFEST", "TWIN_MODE")}
         full.update(FORGE_HOME=str(forge), **env)
+        full.setdefault("HOME", str(Path(tmp) / "home"))   # install.sh falls back to $HOME/code/forge: never a real one
         return forge, subprocess.run(["bash", str(here / "install.sh")], capture_output=True, text=True, env=full)
 
     def test_install_sh_installs_the_twin_scripts_only_when_asked(self):

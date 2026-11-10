@@ -44,6 +44,7 @@ class PlayVsLlmTest(unittest.TestCase):
         base = {k: v for k, v in os.environ.items()
                 if k not in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT", "FORGE_HOME")}
         base.update(env)
+        base.setdefault("HOME", self._tmp.name)   # a scratch HOME: no Forge build of this machine's is found
         return subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--dry-run", *args], capture_output=True,
                               text=True, env=base, cwd=tempfile.gettempdir())
 
@@ -89,6 +90,7 @@ class PlayVsLlmTest(unittest.TestCase):
         cp.write_text("stub")
         base["FORGE_CP_FILE"] = str(cp)
         base.update(env, FORGE_HOME=str(forge))
+        base.setdefault("HOME", self._tmp.name)   # a scratch HOME: no Forge build of this machine's is found
         # The zero-model greedy: seat needs no egress consent, and the stub game sends nothing anywhere.
         p = subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--model", "greedy:", *args],
                            capture_output=True, text=True, env=base, cwd=tempfile.gettempdir(), timeout=60)
