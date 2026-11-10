@@ -72,10 +72,11 @@ full games against Forge's AI ([docs/eval/SCORING.md](docs/eval/SCORING.md)).
 
 ## Play against it
 
-You need Java 17+, Maven 3.8.1+, git and Python 3, and an [OpenRouter](https://openrouter.ai) key. The scripts run
-on macOS (Apple silicon and Intel) and Linux, and on Windows in WSL2. They are also written to run in Git Bash, the
-terminal that comes with [Git for Windows](https://git-scm.com/download/win), but that has not been run on a Windows
-machine yet (the `setup` workflow is the check). `setup.sh` names what to install when a tool is missing.
+You need Java 17+, Maven 3.8.1+, git and Python 3, and an [OpenRouter](https://openrouter.ai) key. `setup.sh` builds
+on macOS (Apple silicon), Linux, and Windows in Git Bash, the terminal that comes with
+[Git for Windows](https://git-scm.com/download/win): the [`setup`](.github/workflows/setup.yml) workflow, started by
+hand, runs `bash setup.sh` and one headless game with no model on each, and passed on all three on 2026-11-10. Intel
+Macs and WSL2 should work the same way but have not been run. `setup.sh` names what to install when a tool is missing.
 
 ```bash
 git clone https://github.com/lumlaolao/spike-eval.git && cd spike-eval
