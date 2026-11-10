@@ -98,7 +98,7 @@ they are overwritten by `install.sh`. Workflow for any harness change:
 ```bash
 # 1. edit forge-overlay/.../forge/spike/LlmSpikeGui.java
 FORGE_HOME=~/code/forge bash install.sh                # 2. copy the overlay into the checkout
-(cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)   # 3. build (install, not compile)
+(cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests -DskipLaunch4j)   # 3. build (install, not compile)
 ```
 
 ### What must never be committed

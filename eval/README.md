@@ -309,7 +309,7 @@ cat runs/improve/20260721-120000/summary.txt
 
 # 4. Rebuild with no game running (.claude/rules/forge-overlay.md):
 # FORGE_HOME=/root/forge bash install.sh, then
-# (cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests).
+# (cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests -DskipLaunch4j).
 
 # 5. Rerun the same iteration and diff the two summary.txt files — a real
 # fix drives the flagged count (or the whole hard-invariant gate) to zero;

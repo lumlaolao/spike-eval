@@ -10,9 +10,10 @@
 # top (install.sh); builds it (the first build downloads Forge's libraries, about 10 minutes); and asks for your
 # OpenRouter key and whether games may be sent to openrouter.ai, writing secrets.env (git-ignored, readable only by
 # you). Run it again after pulling: it moves its own Forge checkout to a new pin and rebuilds. A Forge checkout it did
-# not make is never moved.
+# not make is never moved. macOS, Linux, and Windows in Git Bash (scripts/platform.sh holds the differences).
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
+. "$REPO/scripts/platform.sh"
 FORGE_URL=https://github.com/Card-Forge/forge.git
 PIN="$(tr -d '[:space:]' < "$REPO/FORGE_COMMIT")"
 forge="$HOME/code/forge"
@@ -39,12 +40,19 @@ for jdk in ${SETUP_JDK_DIRS:-/opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk
     break
   fi
 done
-case "$(uname -s)" in
-  Darwin) hint="brew install openjdk@17 maven git python" ;;
-  *) hint="sudo apt-get install openjdk-17-jdk maven git python3   (or your system's package manager)" ;;
-esac
+if [ "$ON_WINDOWS" = 1 ]; then
+  hint="winget install EclipseAdoptium.Temurin.17.JDK Python.Python.3.12   and Maven from
+    https://maven.apache.org/download.cgi (unzip it and put its bin folder on PATH); then open a new Git Bash"
+else
+  case "$(uname -s)" in
+    Darwin) hint="brew install openjdk@17 maven git python" ;;
+    *) hint="sudo apt-get install openjdk-17-jdk maven git python3   (or your system's package manager)" ;;
+  esac
+fi
 missing=""
-for t in git java mvn python3; do command -v "$t" >/dev/null 2>&1 || missing="$missing $t"; done
+for t in git java mvn; do command -v "$t" >/dev/null 2>&1 || missing="$missing $t"; done
+# Run, not looked up: Windows has a python3 that only says how to install it.
+python3 -c "" >/dev/null 2>&1 || missing="$missing python3"
 if [ -n "$missing" ]; then
   echo "setup: missing:$missing. Install them with:" >&2; echo "    $hint" >&2; exit 3
 fi
@@ -81,6 +89,10 @@ marker="$forge/.git/llm-agent-setup"
 if [ ! -e "$forge" ]; then
   git init -q "$forge"
   : > "$marker"
+  # Forge's files as they are at the pin. Its .gitattributes says text=auto, so on Windows git would check them
+  # out with CRLF whatever core.autocrlf says; core.eol lf is the setting that stops it.
+  git -C "$forge" config core.autocrlf false
+  git -C "$forge" config core.eol lf
   git -C "$forge" remote add origin "$FORGE_URL"
 elif [ ! -d "$forge/.git" ]; then
   echo "setup: $forge exists and is not a git checkout; pick another --forge-dir" >&2; exit 4
@@ -107,9 +119,11 @@ python3 "$REPO/eval/fetch_comp_rules.py" || echo "WARNING: no rules text: the RU
 step "laying this repository's changes on Forge"
 FORGE_HOME="$forge" bash "$REPO/install.sh" > /dev/null
 step "building (the first build downloads Forge's libraries; later ones take a minute or two)"
-(cd "$forge" && mvn -q -pl forge-gui-desktop -am install -DskipTests)
+# -DskipLaunch4j: Forge's package phase wraps a Windows .exe that no game uses, with a bundled x86 tool that does
+# not run on an Apple silicon Mac without Rosetta or on arm64 Linux, and the build stopped there.
+(cd "$forge" && mvn -q -pl forge-gui-desktop -am install -DskipTests -DskipLaunch4j)
 (cd "$forge" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath \
-    -Dmdep.outputFile="${FORGE_CP_FILE:-/tmp/forge_cp.txt}")
+    -Dmdep.outputFile="$(native_path "${FORGE_CP_FILE:-/tmp/forge_cp.txt}")")
 echo "$forge" > "$REPO/.forge-home"           # where play-vs-llm.sh finds Forge
 
 # ---- 4. the OpenRouter key and the consent ----------------------------------------------------------------------

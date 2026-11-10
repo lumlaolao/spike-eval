@@ -35,9 +35,10 @@ It merges exactly the commit it checked, with a merge commit. Never squash: the 
 record of what was reviewed. Merging your own PR is fine once the gate passes.
 
 The gate is a record, not a proof. Verdict and acceptance lines are written by the author's
-session, and GitHub does not enforce the script (no branch protection); CI (`.github/workflows/tests.yml`)
-runs only the Python suite, as a check that is not required. It is paused (owner, 2026-11-06: the month's Actions
-minutes are spent) and runs only when started by hand; the local acceptance run is the evidence. Writing a verdict
+session, and GitHub does not enforce the script (no branch protection); CI is two workflows, neither required:
+`tests.yml` runs the Python suite, and `setup.yml` runs `bash setup.sh` and one no-model game on Linux, macOS and
+Windows (about 15 minutes a job). Both run only when started by hand (`tests.yml` paused by the owner, 2026-11-06:
+the month's Actions minutes are spent); the local acceptance run is the evidence. Writing a verdict
 no skill produced, or merging any other way, is a violation the next `standards` review reports.
 Because a verdict is for one head, finish the fixes first, then run acceptance and the three
 skills on the final commit; a re-review after fixes checks the fixes and the delta.
@@ -99,7 +100,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | `eval/tests/` | every Python test: `test_<name>.py` for the script `<name>.py` in any eval folder, or for what is not a script there: a launcher (`test_setup.py`), a data set (`test_modern_puzzles.py`) or a repository rule (`test_doc_paths.py`, `test_untested_list.py`, `test_gate_parses.py`, `test_launchers.py`, `test_research_index.py`, `test_evidence_scripts.py`) | `python3 -m unittest discover -s eval/tests` passes on a fresh clone (section 5); a test imports the scripts after `import evalpath` |
 | `docs/eval/` | how the benchmark is designed and scored (`EVAL-DESIGN.md`, `SCORING.md`, `PUZZLES.md`, `BENCHMARK-V1.md`, ...) | as `docs/harness/`: a claim cites a file, a test or a run |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/tests/test_pr_format.py`; `mutate_scorers.py` (a research tool run by hand, never by acceptance) from `eval/tests/test_mutate_scorers.py`; the shell scripts are thin wrappers |
-| `*.sh` (root) | entry points run from the clone (`install.sh`, `setup.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) |
+| `*.sh` (root) | entry points run from the clone (`install.sh`, `setup.sh`, `play-vs-llm.sh`) | bash 3.2; parsed by `eval/tests/test_gate_parses.py`; each is in `pr_format.CODE_PATHS` (checked by `eval/tests/test_pr_format.py`), so a change needs an acceptance run (section 1) `scripts/platform.sh` is sourced by all three for what differs on Windows (the python3 name, the path Maven is given) and is tested from `eval/tests/test_setup.py`; `.gitattributes` keeps every file's bytes (`* -text`), and that test refuses a tracked `*.sh` or `*.py` holding a carriage return. |
 | `docs/harness/` | what the harness does and what was measured | a claim cites a file, a test or a run |
 | `docs/harness/evidence/<date>-<topic>/` | the saved data behind a note or a PR (compact rows, input hashes), and the script that produced it when one did | a README names the command, the build and the input hash; raw run folders are not kept; a script here is a record, not a tool, so it has no `eval/tests/test_<name>.py`; `eval/tests/test_evidence_scripts.py` checks that it parses, has a module docstring, has no relative import, imports only the standard library and the repository's own modules (that part runs on Python 3.10 and later, skipped on the 3.9 floor), and names no absolute path under `/home`, `/root`, `/Users`, `/tmp`, `/var`, `/mnt`, `/opt`, `/private`, `/Volumes` or `C:\Users`; review checks that the docstring says what it does and what it cannot, and that a script used twice moves to `eval/` with a test |
 | `.claude/skills/` | the skills every agent must use; Claude Code and OpenCode both discover them here, so they are not copied elsewhere | tracked; local settings and worktrees are not |

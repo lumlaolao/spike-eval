@@ -1,0 +1,43 @@
+# A fresh machine of each kind runs the README's own first command, `bash setup.sh`, and then plays one game with no
+# model to its end (the seed-42 floor mirror; the step checks that a game finished, not who won), so "setup works on
+# macOS, Linux and Windows" is something a run shows.
+# Started by hand only (Actions > setup > Run workflow): each job fetches and builds Forge, about 15 minutes.
+name: setup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-machine:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]   # macos-14 is Apple silicon; windows runs Git Bash. Each image has Maven.
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78  # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: setup.sh, nobody at the terminal
+        run: |
+          bash setup.sh --forge-dir "$HOME/forge" < /dev/null
+          ls "$HOME"/forge/forge-gui-desktop/target/classes/forge/spike/LlmSpikeHeadless.class
+      - name: one game with no model (seed-42 floor mirror)
+        run: |
+          run=""; if [ "$RUNNER_OS" = Linux ]; then run="xvfb-run -a"; fi
+          cd "$HOME/forge"
+          GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor GAME_CAP_MS=900000 EVAL_OUT="$RUNNER_TEMP/smoke" \
+            DECK_A="$GITHUB_WORKSPACE/eval/decks/grixis-reanimator.txt" \
+            DECK_B="$GITHUB_WORKSPACE/eval/decks/mardu-energy.txt" \
+            $run bash run-llm-headless.sh > "$RUNNER_TEMP/smoke.log" 2>&1 || { tail -40 "$RUNNER_TEMP/smoke.log"; exit 1; }
+          grep -a GAME_OUTCOME "$RUNNER_TEMP/smoke.log"
+          grep -aq "has won" "$RUNNER_TEMP/smoke.log"

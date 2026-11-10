@@ -1,0 +1,3 @@
+# Every file keeps its bytes on every system. Windows git (core.autocrlf) would otherwise check the bash scripts out
+# with CRLF, which bash cannot run, and rewrite the decklists, whose hashes the panels pin.
+* -text

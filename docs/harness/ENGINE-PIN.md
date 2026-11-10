@@ -57,7 +57,7 @@ Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the ne
    validate before moving the checkout the harness uses. A checkout `setup.sh` made is shallow: move it with
    `git -C $FORGE_HOME fetch --depth 1 origin <sha> && git -C $FORGE_HOME checkout FETCH_HEAD`, or rerun
    `bash setup.sh` after `FORGE_COMMIT` moves.
-2. Build the engine: `cd $FORGE_HOME && mvn -pl forge-gui-desktop -am install -DskipTests`, then
+2. Build the engine: `cd $FORGE_HOME && mvn -pl forge-gui-desktop -am install -DskipTests -DskipLaunch4j`, then
    `FORGE_HOME=$FORGE_HOME bash install.sh` to refresh the installed overlay.
 3. Compile the overlay against it **before** trusting anything:
    `FORGE_HOME=$FORGE_HOME STAGES="classpath compile" bash eval/harness_acceptance.sh`.
