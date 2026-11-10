@@ -1,4 +1,5 @@
-"""docs/STANDARDS.md section 5: a test that runs a root script or a game launcher gives it a scratch HOME.
+"""docs/STANDARDS.md section 5: a test that runs a root script or a game launcher gives it a scratch HOME, and
+acceptance hands the Python tests its own FORGE_HOME.
 
 Every one of them falls back to a place under $HOME when a variable is unset (install.sh and play-vs-llm.sh to
 $HOME/code/forge), so a test that passes the real HOME can overwrite or launch the owner's own Forge build: #463's
@@ -15,6 +16,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402
 
+# "launcher": test_setup.py runs forge-overlay/run-llm-*.sh through a variable of that name.
 SCRIPTS = ("setup.sh", "play-vs-llm.sh", "install.sh", "run-llm-headless.sh", "run-llm-spike.sh", "launcher")
 CALLS = ("run", "Popen", "call", "check_call", "check_output")
 REAL_HOME = ("environ", "expanduser", "Path.home", "getenv")   # a HOME taken from this machine is not a scratch one

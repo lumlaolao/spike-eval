@@ -150,7 +150,7 @@ class ScriptTest(unittest.TestCase):
     def test_forges_rite_of_flame_names_itself_and_its_twin_does_not(self):
         forge = tw.forge_home()
         if forge is None:
-            self.skipTest("no readable Forge checkout (FORGE_HOME, ~/code/forge, /root/forge)")
+            self.skipTest("no readable Forge checkout (FORGE_HOME, ~/code/forge, /root/forge); runs in acceptance")
         index = tw.real_card_index(forge)
         self.assertIn("Rite of Flame", index)
         text = (forge / tw.CARDSFOLDER / index["Rite of Flame"]).read_text(encoding="utf-8")
