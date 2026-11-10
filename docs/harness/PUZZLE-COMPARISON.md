@@ -1,4 +1,6 @@
-# The frontier5 run (2026-10-26)
+# The 20-model puzzle comparison (2026-10-26)
+
+The run's directories and branches are named `frontier5`, the name this document used to carry.
 
 20 models, 5 boards each, 1 kept game per board: the gen2 hard suite's 5 hardest open boards
 (`eval/suites/puzzles-hard-gen2-v1.json`; the boards and the rule that picked them are in `notes/WRITEUP-NOTES.md`

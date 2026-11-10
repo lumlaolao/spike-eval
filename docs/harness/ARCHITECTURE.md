@@ -464,7 +464,7 @@ whose every `answer` call is illegal gets the reasons and one more round in the 
 such reply loses the decision. An illegal call before the answer is not merged into it: its fields are not used,
 and its result says so. A play decision on a tool ask reads nothing from the reply's text.
 - *Why the first valid call:* in the frontier5 run a model's analysis call before its legal move cost it a decision
-  and a winnable board ([FRONTIER5.md](FRONTIER5.md), "Decisions the harness lost").
+  and a winnable board ([PUZZLE-COMPARISON.md](PUZZLE-COMPARISON.md), "Decisions the harness lost").
 
 A tool ask's decision text comes from the question builders the text lane and the ai-teacher seat share.
 `AnswerTool.rephrase` removes their text answer line ("Reason briefly, then end with EXACTLY: ..."), and the
@@ -1227,7 +1227,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     its thinking budget) are recorded the same way. A resume under another value is refused, and the scorer refuses to
     pool them (`docs/eval/PUZZLES.md`).
     *Why:* frontier games of two models reached the win after 30 minutes, and the owner raised the cap
-    (`docs/harness/FRONTIER5.md`, "How it ran", names the rows). Replaying only cut-off games would bias the score
+    (`docs/harness/PUZZLE-COMPARISON.md`, "How it ran", names the rows). Replaying only cut-off games would bias the score
     toward fast games.
   - **Twin puzzles** (`eval/puzzles/puzzle_twin.py`): the same board with every card renamed to an invented name and
     the same rules text, so a solve rate on the twin against the original separates recalling a card from reading it.

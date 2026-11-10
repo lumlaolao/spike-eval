@@ -65,10 +65,17 @@ Each score is reported with its confidence interval and the trivial baseline it 
 
 ## Results so far
 
-No headline score is published yet. The one cross-model run so far is an exploratory comparison, not a benchmark
-score: 20 models on the five hardest boards of a generated puzzle suite, one game each. Five models solved all five
-boards and three solved none (GPT-6 Luna, the default model here, among them); 58 of the 100 games were solved. The
-table, its conditions and its caveats are in [docs/harness/FRONTIER5.md](docs/harness/FRONTIER5.md).
+Twenty models on the five hardest boards of a generated puzzle suite, one game each. Each cell shows whether the
+model solved the board, how long the game took and what it cost.
+
+<img src="docs/images/puzzle-comparison.svg" alt="Twenty models on five hard puzzles: solved or failed, time and cost per game" width="720">
+
+Five models solved all five boards and three solved none (GPT-6 Luna, the default model here, among them); 58 of the
+100 games were solved. This is an exploratory comparison, not a benchmark score: one game a board cannot separate
+models that differ by a board or two, and the games ran under several time and token limits. No headline score is
+published yet. The conditions and caveats are in
+[docs/harness/PUZZLE-COMPARISON.md](docs/harness/PUZZLE-COMPARISON.md); the chart is from
+[the write-up](https://folds.ink/posts/mtg-benchmark).
 
 ## How it works
 
@@ -117,7 +124,7 @@ part of this repository; `runs/` is where your own runs land.
 ## Contributing
 
 Changes land through pull requests; [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/STANDARDS.md](docs/STANDARDS.md)
-say how. To report a security problem, see [SECURITY.md](SECURITY.md).
+say how. To report a security problem, see [SECURITY.md](.github/SECURITY.md).
 
 ## License
 
