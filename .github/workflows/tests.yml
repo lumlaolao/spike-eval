@@ -1,7 +1,6 @@
 # The Python suite on the Python floor (3.9, macOS's own python3; docs/STANDARDS.md section 4) and a current one:
 # no Forge build, no API key, a read-only token. The full gate is acceptance (section 1).
-# On every PR and push to main again since the repository went public (2026-11-09; it was paused on 2026-11-06 when
-# the private account's Actions minutes ran out).
+# On every PR and push to main.
 name: tests
 
 on:
