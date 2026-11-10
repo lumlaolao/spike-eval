@@ -231,13 +231,14 @@ most log questions).
   checkout (the CI runner: a lookup of a default checkout such as `/root/forge` treats a folder it cannot read as
   absent); acceptance fetches the text first, so there it runs.
 - A test that runs a root script or a game launcher (`setup.sh`, `install.sh`, `play-vs-llm.sh`,
-  `run-llm-*.sh`) gives it a scratch `HOME`, names no path of the host it runs on (a JDK folder, `~/code/forge`,
-  `/root`, `/tmp`) and writes only under its own temporary directory: each script falls back to a place under
-  `$HOME` when a variable is unset. A test that needs a Forge checkout reads `FORGE_HOME`, skips with
-  `os.path.exists` when there is none, and says where it still runs. (#463: a Homebrew JDK bypassed a stub `java`,
-  a test opened a real game window on the owner's Mac, and `/tmp/x` was left behind; #465: `/root/forge`.) A call
-  that passes no `env=`, or sits in a function that never sets `HOME`, is script-checked
-  (`eval/tests/test_script_tests_home.py`); whether that `HOME` is a scratch one is checked by review.
+  `run-llm-*.sh`) gives it a scratch `HOME`, hands it no path of the host it runs on (a JDK folder,
+  `~/code/forge`) and writes only under its own temporary directory: each script falls back to a place under
+  `$HOME` when a variable is unset. A test that needs a Forge checkout reads `FORGE_HOME` first, and a default
+  it falls back to is one it skips on when unreadable (the rule above). (#463: a Homebrew JDK bypassed a stub
+  `java`, and a test opened a real game window on a machine with a build in `~/code/forge`; #465: `/root/forge`.)
+  A call with no `env=`, in a function that sets no `HOME`, or that sets only this machine's `HOME` is
+  script-checked (`eval/tests/test_script_tests_home.py`); an argv or a `HOME` built another way is checked by
+  review.
 - A test of the seat's play path reads `ctrl.playsNotMade()` or the game state (the card moved, the mana tapped), never the
   return value of `PlayerControllerLLM.playChosenSpellAbility`: it never returns false, so a play that was not made
   still passes (issue #380; `grep -rn 'assert.*playChosenSpellAbility\|= *ctrl.playChosenSpellAbility'
