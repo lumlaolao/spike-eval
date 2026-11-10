@@ -293,6 +293,9 @@ class SetupTest(unittest.TestCase):
 
     def test_no_working_python_is_a_missing_tool(self):
         (self.stubs / "python3").unlink()
+        for name in ("python", "py"):       # a Linux image may have /usr/bin/python, which setup would rightly use
+            if os.path.lexists(self.sysbin / name):
+                (self.sysbin / name).unlink()
         p = self.setup()
         self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
         self.assertIn("python3", p.stderr)

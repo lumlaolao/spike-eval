@@ -1,7 +1,7 @@
 # A fresh machine of each kind runs the README's own first command, `bash setup.sh`, and then plays one game with no
 # model to its end (the seed-42 floor mirror; the step checks that a game finished, not who won), so "setup works on
 # macOS, Linux and Windows" is something a run shows.
-# Started by hand only (Actions > setup > Run workflow): each job fetches and builds Forge, about 15 minutes.
+# Started by hand only (Actions > setup > Run workflow): each job fetches and builds Forge, about 5 minutes.
 name: setup
 
 on:
@@ -17,7 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14, windows-2022]   # macos-14 is Apple silicon; windows runs Git Bash. Each image has Maven.
+        # macos-latest is Apple silicon (macos-14 is no longer offered: "configuration not supported", run
+        # 42760235324) and moves with GitHub's image, which a by-hand check can live with; windows runs Git Bash.
+        # Each image has Maven.
+        os: [ubuntu-24.04, macos-latest, windows-2022]
     defaults:
       run:
         shell: bash

@@ -10,6 +10,7 @@ import io
 import json
 import shutil
 import statistics
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -252,7 +253,8 @@ class RunEpisodeTest(Base):
         self.assertNotEqual(b[0]["episode_id"], a[0]["episode_id"])
 
 
-FORGE_PZL = "/root/forge/forge-gui/res/puzzle/MTGP_08.pzl"   # listed in the builtin suite as forge:MTGP_08.pzl, heldout
+# Listed in the builtin suite as forge:MTGP_08.pzl, heldout. In the checkout acceptance was given, not a fixed one.
+FORGE_PZL = os.environ.get("FORGE_HOME", "/root/forge") + "/forge-gui/res/puzzle/MTGP_08.pzl"
 
 
 class MainTest(Base):
@@ -305,6 +307,10 @@ class MainTest(Base):
         rc, _, err = self.main("--game-seed", "499", "--group-size", "3", "--out", str(path))   # 499, 500, 501
         self.assertEqual(rc, 2)
         self.assertIn("frozen-legacy", err)
+        # os.path.exists, not Path.exists: a CI runner may not look inside /root, and Path raises PermissionError there
+        # (run 42761653112) where os.path answers no.
+        if not os.path.exists(FORGE_PZL):   # no Forge checkout in CI
+            self.skipTest("the held-out puzzle check reads %s" % FORGE_PZL)
         rc, _, err = self.main("--puzzle", FORGE_PZL, "--out", str(path))    # heldout in the builtin suite
         self.assertEqual((rc, "heldout puzzle" in err), (2, True))
         self.assertFalse(path.exists())
