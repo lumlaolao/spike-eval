@@ -5,6 +5,7 @@ import contextlib
 import io
 import os
 import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -25,12 +26,16 @@ def mutants(src):
 
 
 def alive(pid):
-    """Running, not a zombie: where PID 1 does not reap, a killed child stays in the table in state Z."""
-    try:
-        with open("/proc/%d/stat" % pid) as f:
-            return f.read().rsplit(")", 1)[1].split()[0] != "Z"
-    except (FileNotFoundError, ProcessLookupError):
-        return False
+    """Running, not a zombie: where PID 1 does not reap, a killed child stays in the table in state Z. Linux reads
+    /proc; macOS has none and asks ps (absent from some Linux images, hence /proc first)."""
+    if os.path.isdir("/proc/self"):
+        try:
+            with open("/proc/%d/stat" % pid) as f:
+                return f.read().rsplit(")", 1)[1].split()[0] != "Z"
+        except (FileNotFoundError, ProcessLookupError):
+            return False
+    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+    return bool(state) and not state.startswith("Z")
 
 
 class MutantGenerationTest(unittest.TestCase):
@@ -183,7 +188,7 @@ class AliveHelperTest(unittest.TestCase):
             while time.time() < deadline and alive(child.pid):
                 time.sleep(0.05)
             self.assertFalse(alive(child.pid), "an exited child still reads as alive")
-            self.assertTrue(os.path.exists("/proc/%d" % child.pid), "the child was reaped: no zombie was tested")
+            os.kill(child.pid, 0)   # raises if the child was reaped: then no zombie was tested
         finally:
             child.wait()
         self.assertFalse(alive(child.pid))

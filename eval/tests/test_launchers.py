@@ -42,8 +42,9 @@ LAUNCHERS = {
 
 
 def naming_files():
+    # No \b: git grep -E uses the system's POSIX regex, and macOS's reads \b as a plain b, which matched no file.
     out = subprocess.run(["git", "grep", "-lE",
-                          r"forge\.spike\.LlmSpike(Headless|Gui)\b|run-llm-(headless|spike)\.sh", "--",
+                          r"forge\.spike\.LlmSpike(Headless|Gui)([^A-Za-z0-9_]|$)|run-llm-(headless|spike)\.sh", "--",
                           "*.py", "*.sh", ":!eval/tests/*"], cwd=str(evalpath.REPO), stdout=subprocess.PIPE,
                          universal_newlines=True)
     return sorted(out.stdout.split())

@@ -44,7 +44,7 @@ def response(seq, game=GAME, status=200):
 
 
 def make_run(finished=True):
-    root = Path(tempfile.mkdtemp()) / "frontier-1"
+    root = Path(tempfile.mkdtemp()).resolve() / "frontier-1"   # pack() resolves; macOS's /var is /private/var
     d = root / "hard-equip-1"
     t = d / "transcripts"
     t.mkdir(parents=True)
