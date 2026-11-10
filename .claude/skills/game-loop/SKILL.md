@@ -120,7 +120,7 @@ One defect at a time, smallest first:
    stage. The loop gets faster every time the sheet catches what you had to read for.
 4. With no game running (`$FORGE_HOME` is the Forge checkout: `/root/forge` in the cloud, `~/code/forge` on
    the Mac): `FORGE_HOME=$FORGE_HOME bash install.sh`, then
-   `cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o -DskipTests` (check its exit
+   `cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o -DskipTests -DskipLaunch4j` (check its exit
    code), then `bash eval/harness_acceptance.sh`. A canary that moved because an automatic path
    changed on purpose is re-pinned with a dated reason; never to make a run pass.
 5. Commit with `pr-format`. Land the batch of fixes through a PR and the gate when a natural stop

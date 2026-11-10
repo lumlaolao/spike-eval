@@ -12,7 +12,7 @@ Never edit the checkout by hand. Build and check:
 
 ```bash
 FORGE_HOME=/root/forge bash install.sh
-(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests)   # check the exit code: checkstyle runs here
+(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests -DskipLaunch4j)   # check the exit code: checkstyle runs here
 FORGE_HOME=/root/forge bash eval/harness_acceptance.sh                         # isolated build, never touches the checkout
 ```
 

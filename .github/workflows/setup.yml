@@ -1,5 +1,6 @@
 # A fresh machine of each kind runs the README's own first command, `bash setup.sh`, and then plays one game with no
-# model (the seed-42 floor mirror), so "setup works on macOS, Linux and Windows" is something a run shows.
+# model to its end (the seed-42 floor mirror; the step checks that a game finished, not who won), so "setup works on
+# macOS, Linux and Windows" is something a run shows.
 # Started by hand only (Actions > setup > Run workflow): each job fetches and builds Forge, about 15 minutes.
 name: setup
 

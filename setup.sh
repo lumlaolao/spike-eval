@@ -40,15 +40,19 @@ for jdk in ${SETUP_JDK_DIRS:-/opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk
     break
   fi
 done
-case "$(uname -s)" in
-  Darwin) hint="brew install openjdk@17 maven git python" ;;
-  MINGW*|MSYS*|CYGWIN*) hint="winget install EclipseAdoptium.Temurin.17.JDK Python.Python.3.12   and Maven from
-    https://maven.apache.org/download.cgi (unzip it and put its bin folder on PATH); then open a new Git Bash" ;;
-  *) hint="sudo apt-get install openjdk-17-jdk maven git python3   (or your system's package manager)" ;;
-esac
+if [ "$ON_WINDOWS" = 1 ]; then
+  hint="winget install EclipseAdoptium.Temurin.17.JDK Python.Python.3.12   and Maven from
+    https://maven.apache.org/download.cgi (unzip it and put its bin folder on PATH); then open a new Git Bash"
+else
+  case "$(uname -s)" in
+    Darwin) hint="brew install openjdk@17 maven git python" ;;
+    *) hint="sudo apt-get install openjdk-17-jdk maven git python3   (or your system's package manager)" ;;
+  esac
+fi
 missing=""
 for t in git java mvn; do command -v "$t" >/dev/null 2>&1 || missing="$missing $t"; done
-have_python3 || missing="$missing python3"      # run, not looked up: Windows has a python3 that only says install me
+# Run, not looked up: Windows has a python3 that only says how to install it.
+python3 -c "" >/dev/null 2>&1 || missing="$missing python3"
 if [ -n "$missing" ]; then
   echo "setup: missing:$missing. Install them with:" >&2; echo "    $hint" >&2; exit 3
 fi
@@ -85,8 +89,10 @@ marker="$forge/.git/llm-agent-setup"
 if [ ! -e "$forge" ]; then
   git init -q "$forge"
   : > "$marker"
-  # Forge's files as they are at the pin: Windows git would otherwise rewrite their line endings on checkout.
+  # Forge's files as they are at the pin. Its .gitattributes says text=auto, so on Windows git would check them
+  # out with CRLF whatever core.autocrlf says; core.eol lf is the setting that stops it.
   git -C "$forge" config core.autocrlf false
+  git -C "$forge" config core.eol lf
   git -C "$forge" remote add origin "$FORGE_URL"
 elif [ ! -d "$forge/.git" ]; then
   echo "setup: $forge exists and is not a git checkout; pick another --forge-dir" >&2; exit 4
@@ -116,10 +122,8 @@ step "building (the first build downloads Forge's libraries; later ones take a m
 # -DskipLaunch4j: Forge's package phase wraps a Windows .exe that no game uses, with a bundled x86 tool that does
 # not run on an Apple silicon Mac without Rosetta or on arm64 Linux, and the build stopped there.
 (cd "$forge" && mvn -q -pl forge-gui-desktop -am install -DskipTests -DskipLaunch4j)
-cp_file="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"
-mkdir -p "$(dirname "$cp_file")"
 (cd "$forge" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath \
-    -Dmdep.outputFile="$(native_path "$cp_file")")
+    -Dmdep.outputFile="$(native_path "${FORGE_CP_FILE:-/tmp/forge_cp.txt}")")
 echo "$forge" > "$REPO/.forge-home"           # where play-vs-llm.sh finds Forge
 
 # ---- 4. the OpenRouter key and the consent ----------------------------------------------------------------------

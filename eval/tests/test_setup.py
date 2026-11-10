@@ -100,11 +100,10 @@ class SetupTest(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         calls = self.calls()
         self.assertIn("fetch --depth 1 origin %s" % PIN, calls)
-        # -DskipLaunch4j: Forge's package phase wraps a Windows .exe with launch4j, whose bundled x86 windres does not
-        # run on an Apple silicon Mac without Rosetta or on arm64 Linux ("Bad CPU type in executable", a real setup
-        # on an M-series Mac, 2026-11-09). No game uses the .exe.
+        # -DskipLaunch4j: why is at the mvn line in setup.sh.
         self.assertIn("mvn -q -pl forge-gui-desktop -am install -DskipTests -DskipLaunch4j (in %s)" % self.forge, calls)
-        self.assertIn("config core.autocrlf false", calls, "Forge's files keep the pin's line endings on Windows")
+        # core.eol, not core.autocrlf alone: Forge's own .gitattributes (text=auto) checks out CRLF on Windows.
+        self.assertIn("config core.eol lf", calls, "Forge's files keep the pin's line endings on Windows")
         # With -am, as run-llm-spike.sh's own hint has it: without it Maven resolves the sibling modules from the
         # repository, whose installed poms name an unresolvable ${revision} parent (a real fresh setup, 2026-10-25).
         self.assertIn("mvn -q -pl forge-gui-desktop -am dependency:build-classpath", calls)
@@ -269,13 +268,15 @@ class SetupTest(unittest.TestCase):
         # Maven's JVM is a native program: /tmp/forge_cp.txt means nothing to it (or C:\tmp), while bash reads the
         # file by its own name for it.
         self.windows()
-        p = self.setup(FORGE_CP_FILE="/tmp/x/forge_cp.txt")
+        cp = "%s/forge_cp.txt" % self._tmp.name
+        p = self.setup(FORGE_CP_FILE=cp)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("-Dmdep.outputFile=C:/msys64/tmp/x/forge_cp.txt", self.calls())
+        self.assertIn("-Dmdep.outputFile=C:/msys64%s " % cp, self.calls())
 
     def test_off_windows_the_classpath_file_path_is_passed_as_it_is(self):
-        self.assertEqual(self.setup(FORGE_CP_FILE="/tmp/x/forge_cp.txt").returncode, 0)
-        self.assertIn("-Dmdep.outputFile=/tmp/x/forge_cp.txt", self.calls())
+        cp = "%s/forge_cp.txt" % self._tmp.name
+        self.assertEqual(self.setup(FORGE_CP_FILE=cp).returncode, 0)
+        self.assertIn("-Dmdep.outputFile=%s " % cp, self.calls())
 
     def test_a_python_3_named_python_is_used_when_there_is_no_python3(self):
         # python.org's Windows installer names it python; Windows's own python3 is a stub that opens the Store.
@@ -328,9 +329,12 @@ class SetupTest(unittest.TestCase):
                     self.assertEqual(self.calls().strip(), "cp=" + want)
 
     def test_a_clone_keeps_every_file_s_bytes_on_every_system(self):
-        # Windows git (core.autocrlf) would otherwise check the scripts out with CRLF, which bash cannot run, and
-        # rewrite the decklists, whose hashes the panels pin.
-        self.assertIn("* -text", (REPO / ".gitattributes").read_text().splitlines())
+        self.assertIn("* -text", (REPO / ".gitattributes").read_text().splitlines())   # why: see .gitattributes
+        # With git's conversion off, a script saved with CRLF by a Windows editor would be committed as it is.
+        tracked = subprocess.run(["git", "ls-files", "-z", "--", "*.sh", "*.py"], cwd=str(REPO), capture_output=True,
+                                 check=True).stdout.decode().split("\0")
+        self.assertGreater(len(tracked), 100)
+        self.assertEqual([f for f in tracked if f and b"\r" in (REPO / f).read_bytes()], [])
 
 
 if __name__ == "__main__":
