@@ -1076,7 +1076,9 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
   with evidence.
 
 **Playing the seat yourself.** `setup.sh` takes a fresh clone to a built Forge at the pin (a shallow checkout,
-recorded in `.forge-home`) and writes `secrets.env`. `play-vs-llm.sh` seats a person (`CONTROLLER_A=human`) against
+recorded in `.forge-home`) and writes `secrets.env`; a key already set in the shell is used only on an explicit yes,
+and never with nobody at the terminal. `play-vs-llm.sh` checks for the build before it announces anything, names
+where its Forge path came from when there is none, and seats a person (`CONTROLLER_A=human`) against
 the model's seat on Forge's match screen. The seat plays the panels' `pilot_condition`, every other key a batch
 scrubs (`run_batch.build_env`) is unset so the caller's shell changes nothing the seat is asked or shown, and
 `TRANSCRIPTS=1` keeps every request; the game goes to `runs/human/<time>/` (git-ignored).

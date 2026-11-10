@@ -11730,9 +11730,15 @@ public final class LlmSpikeGui {
                 : seatFor(ctlB, nameB, planB, smartB, fastB, profileB));
         boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
-        System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
-                + ")" + (swap ? " [SWAPPED]" : ""));
+        System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + seatModel(ctlA, smartA) + ") B=" + nameB + "(" + ctlB
+                + "," + seatModel(ctlB, smartB) + ")" + (swap ? " [SWAPPED]" : ""));
         return players;
+    }
+
+    /** The model the [SEATS] line names for a seat: none ("-") for a person or Forge's AI, which use no model (the
+     *  line once printed the default model beside a human seat). */
+    static String seatModel(String ctl, String smartModel) {
+        return HUMAN.equals(ctl) || "ai".equals(ctl) || "ai-log".equals(ctl) ? "-" : smartModel;
     }
 
     /**

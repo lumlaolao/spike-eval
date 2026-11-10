@@ -101,6 +101,14 @@ public class HumanSeatTest {
     }
 
     @Test
+    public void theSeatsLineNamesNoModelForAPersonOrForgesAi() {
+        Assert.assertEquals(LlmSpikeGui.seatModel("human", "some-model"), "-");
+        Assert.assertEquals(LlmSpikeGui.seatModel("ai", "some-model"), "-");
+        Assert.assertEquals(LlmSpikeGui.seatModel("ai-log", "some-model"), "-");
+        Assert.assertEquals(LlmSpikeGui.seatModel("llm", "some-model"), "some-model");
+    }
+
+    @Test
     public void aMatchWithNoPersonHasNoHumanSeat() {
         Assert.assertNull(LlmSpikeGui.humanSeat(build(env("floor", "random"), true)));
     }

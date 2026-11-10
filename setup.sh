@@ -123,7 +123,20 @@ if [ -f "$secrets" ] && grep -Eq '^[[:space:]]*OPENROUTER_API_KEY[[:space:]]*=[[
   step "secrets.env already holds a key and $allow; left as it is. Not yours? Delete it and run setup again."
 else
   step "your OpenRouter key (https://openrouter.ai/keys); it is stored in secrets.env, readable only by you"
-  key="${OPENROUTER_API_KEY:-}"
+  # A key already in the shell is used only when the person says so: the default is no, and with nobody at the
+  # terminal (an agent's or a CI shell) it is never written to the file. SETUP_ASSUME_TTY=1 is a test seam.
+  key=""
+  if [ -n "${OPENROUTER_API_KEY:-}" ]; then
+    if [ -t 0 ] || [ "${SETUP_ASSUME_TTY:-}" = 1 ]; then
+      printf "An OpenRouter key (OPENROUTER_API_KEY) is set in your shell. Use it and save it to secrets.env? [y/N] "
+      read -r use || use=""
+      use="${use%$'\r'}"
+      case "$use" in y|Y|yes|YES) key="$OPENROUTER_API_KEY" ;; esac
+    else
+      echo "setup: a key is set in your shell (OPENROUTER_API_KEY) and was not saved, because nobody is at the" \
+        "terminal to ask. play-vs-llm.sh still uses the key from your shell while it is set." >&2
+    fi
+  fi
   if [ -z "$key" ]; then
     printf "OpenRouter key (input hidden): "
     if [ -t 0 ]; then read -r -s key || true; echo; else read -r key || true; fi

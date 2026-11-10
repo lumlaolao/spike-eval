@@ -175,6 +175,35 @@ class PlayVsLlmTest(unittest.TestCase):
         finally:
             (self.repo / ".forge-home").unlink()
 
+    def real_run(self, **env):
+        """Without --dry-run: the start that the build check guards."""
+        base = {k: v for k, v in os.environ.items()
+                if k not in ("OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT", "FORGE_HOME")}
+        base.update(env, OPENROUTER_ALLOW_EGRESS="1")
+        return subprocess.run(["bash", str(self.repo / "play-vs-llm.sh")], capture_output=True, text=True, env=base,
+                              cwd=tempfile.gettempdir())
+
+    def test_a_start_with_no_build_prints_only_why_and_where_the_path_came_from(self):
+        built = Path(self._tmp.name) / "built-by-setup"
+        built.mkdir(exist_ok=True)
+        (built / "run-llm-spike.sh").write_text("#!/bin/sh\nexit 0\n")
+        (built / "run-llm-spike.sh").chmod(0o755)
+        (self.repo / ".forge-home").write_text("%s\n" % built)
+        try:
+            p = self.real_run(FORGE_HOME="/nowhere/forge")
+            self.assertEqual(p.returncode, 4, p.stderr)
+            self.assertIn("no Forge build at /nowhere/forge (from the FORGE_HOME variable in your shell)", p.stderr)
+            self.assertIn("setup.sh built Forge at %s" % built, p.stderr)
+            self.assertIn("unset FORGE_HOME", p.stderr)
+            self.assertEqual(p.stdout, "", "nothing is announced for a game that cannot start")
+            (self.repo / ".forge-home").write_text("/nowhere/from-setup\n")
+            p = self.real_run()
+            self.assertEqual(p.returncode, 4, p.stderr)
+            self.assertIn("(from setup.sh's record, .forge-home)", p.stderr)
+            self.assertNotIn("unset FORGE_HOME", p.stderr)
+        finally:
+            (self.repo / ".forge-home").unlink()
+
     def test_a_classpath_list_lost_to_a_reboot_is_rebuilt_once_with_the_modules(self):
         bin_dir = self.repo / "stub-bin"
         bin_dir.mkdir(exist_ok=True)

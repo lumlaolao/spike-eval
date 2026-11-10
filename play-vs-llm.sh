@@ -16,8 +16,14 @@
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
 # Forge: $FORGE_HOME, else where setup.sh put it, else the default checkout.
-if [ -z "${FORGE_HOME:-}" ] && [ -s "$REPO/.forge-home" ]; then FORGE_HOME="$(head -1 "$REPO/.forge-home")"; fi
-FORGE_HOME="${FORGE_HOME:-$HOME/code/forge}"
+forge_from="the FORGE_HOME variable in your shell"
+if [ -z "${FORGE_HOME:-}" ]; then
+  if [ -s "$REPO/.forge-home" ]; then
+    FORGE_HOME="$(head -1 "$REPO/.forge-home")"; forge_from="setup.sh's record, .forge-home"
+  else
+    FORGE_HOME="$HOME/code/forge"; forge_from="the default place"
+  fi
+fi
 
 deck=burn; vs=mardu-energy; model=openrouter:openai/gpt-6-luna; games=1; record=0; dry=0; commentary=0; why=0
 usage() {
@@ -103,6 +109,19 @@ export SMART_MODEL_B="$model" FAST_MODEL_B="$model"
 export MATCH_GAMES="$games" EVAL_OUT="$out" TRANSCRIPTS=1
 if [ "$record" = 1 ]; then export RECORD=1 RECORD_OUT="$out/match.mp4"; fi
 
+# The build is checked before anything is announced, so a start that cannot happen prints only why. A FORGE_HOME left
+# in the shell wins over setup.sh's record (it is the documented override), so the message says which one was used.
+if [ "$dry" != 1 ] && [ ! -x "$FORGE_HOME/run-llm-spike.sh" ]; then
+  echo "play-vs-llm: no Forge build at $FORGE_HOME (from $forge_from); run 'bash setup.sh' first" >&2
+  if [ "$forge_from" = "the FORGE_HOME variable in your shell" ] && [ -s "$REPO/.forge-home" ]; then
+    built="$(head -1 "$REPO/.forge-home")"
+    if [ "$built" != "$FORGE_HOME" ] && [ -x "$built/run-llm-spike.sh" ]; then
+      echo "play-vs-llm: setup.sh built Forge at $built; to use it, run 'unset FORGE_HOME' and try again" >&2
+    fi
+  fi
+  exit 4
+fi
+
 echo "play-vs-llm: you on $(basename "$deck_a" .txt), $model on $(basename "$deck_b" .txt), $games game(s)"
 echo "play-vs-llm: the model's decisions and replies -> $out"
 echo "play-vs-llm: a model may think up to a few minutes on one decision; the screen waits for it"
@@ -115,8 +134,6 @@ if [ "$dry" = 1 ]; then
   echo "would run: $FORGE_HOME/run-llm-spike.sh"
   exit 0
 fi
-[ -x "$FORGE_HOME/run-llm-spike.sh" ] || { echo "play-vs-llm: no Forge build at $FORGE_HOME; run 'bash setup.sh'" \
-    "first (or set FORGE_HOME to your checkout)" >&2; exit 4; }
 # The launcher's classpath file lives in /tmp, which a reboot clears; one person's game can rebuild it (no batch races
 # it here, the reason run-llm-spike.sh only refuses).
 export FORGE_CP_FILE="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"
