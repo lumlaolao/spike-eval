@@ -6,7 +6,8 @@ set -e
 REPO="$(cd "$(dirname "$0")" && pwd)"
 # The Homebrew JDK on a Mac; anywhere else (Linux, CI) the java already on PATH is used.
 # Apple silicon and Intel prefixes, in setup.sh's order (eval/tests/test_setup.py keeps the lists equal).
-for BREW in ${LAUNCH_JDK_DIRS-/opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17}; do   # LAUNCH_JDK_DIRS="" is no Homebrew JDK (a test seam); unset, these
+# LAUNCH_JDK_DIRS="" means no Homebrew JDK (a test seam); unset, the two prefixes below.
+for BREW in ${LAUNCH_JDK_DIRS-/opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17}; do
   BREW_JDK="$BREW/libexec/openjdk.jdk/Contents/Home"
   if [ -d "$BREW_JDK" ]; then export JAVA_HOME="$BREW_JDK"; break; fi
 done
