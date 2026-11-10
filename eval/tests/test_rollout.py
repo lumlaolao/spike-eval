@@ -307,7 +307,9 @@ class MainTest(Base):
         rc, _, err = self.main("--game-seed", "499", "--group-size", "3", "--out", str(path))   # 499, 500, 501
         self.assertEqual(rc, 2)
         self.assertIn("frozen-legacy", err)
-        if not Path(FORGE_PZL).exists():   # no Forge checkout in CI
+        # os.path.exists, not Path.exists: a CI runner may not look inside /root, and Path raises PermissionError there
+        # (run 42761653112) where os.path answers no.
+        if not os.path.exists(FORGE_PZL):   # no Forge checkout in CI
             self.skipTest("the held-out puzzle check reads %s" % FORGE_PZL)
         rc, _, err = self.main("--puzzle", FORGE_PZL, "--out", str(path))    # heldout in the builtin suite
         self.assertEqual((rc, "heldout puzzle" in err), (2, True))
