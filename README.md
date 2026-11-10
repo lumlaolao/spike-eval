@@ -79,7 +79,8 @@ bash play-vs-llm.sh --commentary --why                # shows its decisions and 
 
 `setup.sh` clones Forge at the pinned commit into `~/code/forge` (about 1 GB; `--forge-dir` for elsewhere), adds the
 harness and builds it. The first run takes about 10 minutes. It then asks for your key and whether games may be sent
-to openrouter.ai, and writes both to `secrets.env`, which git ignores. Run it again after a `git pull`.
+to openrouter.ai, and writes both to `secrets.env`, which git ignores. If a key is already set in your shell, setup
+asks before using it, and the answer defaults to no. Run it again after a `git pull`.
 
 If you would rather have a coding agent such as Claude Code do the setup, give it this:
 
@@ -90,7 +91,9 @@ through you: once Forge is built, tell me to run `bash setup.sh` again myself in
 Never ask me to paste the key into this chat.
 ```
 
-`play-vs-llm.sh` opens Forge's window, so it needs a display. A game costs about $0.02 to $0.05 with the default
+`play-vs-llm.sh` opens Forge's window, so it needs a display. On start Forge prints a page of warnings in the
+terminal (cards "not assigned to any set", a missing skins directory); they are harmless. Forge fetches each card's
+picture from the internet the first time the card is shown. A game costs about $0.02 to $0.05 with the default
 model, GPT-6 Luna, and the model may think for minutes on a hard decision. Games against a person are never scored.
 
 ### Decks

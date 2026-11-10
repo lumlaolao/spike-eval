@@ -11542,7 +11542,7 @@ public final class LlmSpikeGui {
     static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel,
                                String aiProfile) {
         if (HUMAN.equals(ctl)) throw new IllegalStateException(NO_WINDOW);
-        boolean forgeAi = "ai".equals(ctl) || "ai-log".equals(ctl);
+        boolean forgeAi = isForgeAi(ctl);
         String profile = aiProfile(aiProfile);
         if (!profile.isEmpty()) {
             if (!forgeAi) throw new IllegalStateException("AI_PROFILE names '" + profile + "' for the seat " + name
@@ -11730,9 +11730,21 @@ public final class LlmSpikeGui {
                 : seatFor(ctlB, nameB, planB, smartB, fastB, profileB));
         boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
-        System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
-                + ")" + (swap ? " [SWAPPED]" : ""));
+        System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + seatModel(ctlA, smartA) + ") B=" + nameB + "(" + ctlB
+                + "," + seatModel(ctlB, smartB) + ")" + (swap ? " [SWAPPED]" : ""));
         return players;
+    }
+
+    /** The controllers that seat Forge's own AI. */
+    static boolean isForgeAi(String ctl) {
+        return "ai".equals(ctl) || "ai-log".equals(ctl);
+    }
+
+    /** The model the [SEATS] line names for a seat: none ("-") for a person or Forge's AI, which use no model (the
+     *  line once printed the default model beside a human seat). The harness's own zero-model arms (floor, random
+     *  and the rest) keep the name: they are built as model seats and are told apart by the controller beside it. */
+    static String seatModel(String ctl, String smartModel) {
+        return HUMAN.equals(ctl) || isForgeAi(ctl) ? "-" : smartModel;
     }
 
     /**

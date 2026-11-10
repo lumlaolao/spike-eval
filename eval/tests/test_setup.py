@@ -121,6 +121,28 @@ class SetupTest(unittest.TestCase):
         self.assertNotIn("\nOPENROUTER_ALLOW_EGRESS=1", self.secrets())
         self.assertIn("# OPENROUTER_ALLOW_EGRESS=1", self.secrets())
 
+    def test_a_key_in_the_shell_is_saved_only_on_a_yes(self):
+        p = self.setup(answers="y\ny\n", OPENROUTER_API_KEY="sk-or-from-shell", SETUP_ASSUME_TTY="1")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("is set in your shell", p.stdout)
+        self.assertIn("OPENROUTER_API_KEY=sk-or-from-shell\n", self.secrets())
+        self.assertNotIn("sk-or-from-shell", p.stdout + p.stderr, "the key is never echoed")
+
+    def test_enter_at_the_shell_key_question_means_no_and_the_typed_key_is_saved(self):
+        p = self.setup(answers="\nsk-or-typed\ny\n", OPENROUTER_API_KEY="sk-or-from-shell", SETUP_ASSUME_TTY="1")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("OPENROUTER_API_KEY=sk-or-typed\n", self.secrets())
+        self.assertNotIn("sk-or-from-shell", self.secrets())
+
+    def test_a_key_in_the_shell_is_not_saved_when_nobody_is_at_the_terminal(self):
+        # A piped "y" is not a person: the question is never asked, so the first line is read as the typed key.
+        p = self.setup(answers="y\ny\n", OPENROUTER_API_KEY="sk-or-from-shell")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertNotIn("sk-or-from-shell", self.secrets() + p.stdout + p.stderr)
+        self.assertNotIn("is set in your shell. Use it", p.stdout)
+        self.assertIn("OPENROUTER_API_KEY=y\n", self.secrets())
+        self.assertIn("was not saved", p.stderr)
+
     def test_an_existing_key_is_kept_and_not_asked_for_again(self):
         (self.repo / "secrets.env").write_text("OPENROUTER_API_KEY=old\nOPENROUTER_ALLOW_EGRESS=1\n")
         p = self.setup(answers="")
