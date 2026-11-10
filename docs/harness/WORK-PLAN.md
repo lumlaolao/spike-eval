@@ -100,7 +100,8 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
     egress opt-in?
 - **`run_batch.py` games do not set `TRANSCRIPTS`**, so a batch game has no HTTP record.
 - **Playing the seat yourself** (#325, #326): no paid-model game has been played through `play-vs-llm.sh` yet (the
-  smokes used `greedy:`); `setup.sh` is untested on a Mac and on WSL2, and the cold first build is untimed. Three of
+  smokes used `greedy:`); `setup.sh` is untested on an Intel Mac and on WSL2 (the `setup` workflow runs it on
+  Apple silicon, Linux and Windows in Git Bash: #463, #465). Three of
   #326's five pr-review LOWs remain: the ^C window between the marker and the remote add, the kept-secrets consent
   check being looser than `play-vs-llm.sh`'s, and a Maven on Java 8 reported as "Java 1".
 - **The README and the front-facing text** (condensed to a front page in #333) await the owner's review.
