@@ -15,6 +15,7 @@
 # Games against a person are never part of a benchmark score.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
+. "$REPO/scripts/platform.sh"
 # Forge: $FORGE_HOME, else where setup.sh put it, else the default checkout.
 forge_from="the FORGE_HOME variable in your shell"
 recorded=""                                   # where setup.sh built Forge, when it wrote that down
@@ -139,7 +140,7 @@ export FORGE_CP_FILE="${FORGE_CP_FILE:-/tmp/forge_cp.txt}"
 if [ ! -s "$FORGE_CP_FILE" ] && [ -f "$FORGE_HOME/pom.xml" ]; then
   echo "play-vs-llm: rebuilding Forge's classpath list ($FORGE_CP_FILE), once after a reboot"
   (cd "$FORGE_HOME" && mvn -q -o -pl forge-gui-desktop -am dependency:build-classpath \
-      -Dmdep.outputFile="$FORGE_CP_FILE")
+      -Dmdep.outputFile="$(native_path "$FORGE_CP_FILE")")
 fi
 mkdir -p "$out"
 if [ "$commentary" = 1 ]; then

@@ -915,6 +915,8 @@ class TwinSuiteTest(unittest.TestCase):
             shutil.copy(str(evalpath.EVAL / "puzzles" / f), str(here / "eval/puzzles" / f))
         shutil.copy(str(evalpath.EVAL / "evalpath.py"), str(here / "eval/evalpath.py"))
         shutil.copy(str(evalpath.REPO / "install.sh"), str(here / "install.sh"))
+        (here / "scripts").mkdir()
+        shutil.copy(str(evalpath.REPO / "scripts/platform.sh"), str(here / "scripts/platform.sh"))
         forge = fake_forge(Path(tmp) / "forge", FAKE_SCRIPTS)
         (forge / "forge-gui-desktop").mkdir()
         full = {k: v for k, v in os.environ.items() if k not in ("TWIN_MANIFEST", "TWIN_MODE")}

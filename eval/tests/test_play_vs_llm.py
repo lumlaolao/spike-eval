@@ -25,6 +25,8 @@ class PlayVsLlmTest(unittest.TestCase):
         cls._tmp = tempfile.TemporaryDirectory()
         cls.repo = Path(cls._tmp.name)
         shutil.copy(SCRIPT, cls.repo)
+        (cls.repo / "scripts").mkdir()
+        shutil.copy(REPO / "scripts" / "platform.sh", cls.repo / "scripts" / "platform.sh")
         shutil.copytree(REPO / "eval", cls.repo / "eval",
                         ignore=lambda d, names: [n for n in names if n in ("__pycache__", "tooluse")
                                                  or (Path(d, n).is_dir() and not (
@@ -179,7 +181,9 @@ class PlayVsLlmTest(unittest.TestCase):
         """Without --dry-run: the start that the build check guards."""
         base = {k: v for k, v in os.environ.items()
                 if k not in ("OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT", "FORGE_HOME")}
-        base.update(env, OPENROUTER_ALLOW_EGRESS="1")
+        # HOME: "the default place" is $HOME/code/forge, and on a machine that has a Forge build there this test
+        # opened a real game window (the owner's Mac, 2026-11-09).
+        base.update(env, OPENROUTER_ALLOW_EGRESS="1", HOME=self._tmp.name)
         return subprocess.run(["bash", str(self.repo / "play-vs-llm.sh")], capture_output=True, text=True, env=base,
                               cwd=tempfile.gettempdir())
 

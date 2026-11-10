@@ -55,6 +55,8 @@ class SetupTest(unittest.TestCase):
             shutil.copy(REPO / f, self.repo / f)
         shutil.copytree(REPO / "forge-overlay", self.repo / "forge-overlay")
         shutil.copytree(REPO / "engine-patches", self.repo / "engine-patches")
+        (self.repo / "scripts").mkdir()
+        shutil.copy(REPO / "scripts" / "platform.sh", self.repo / "scripts" / "platform.sh")
         (self.repo / "eval").mkdir()
         shutil.copy(REPO / "eval" / "engine_patches.py", self.repo / "eval" / "engine_patches.py")
         self.stubs = root / "stubs"
@@ -80,8 +82,9 @@ class SetupTest(unittest.TestCase):
         self._tmp.cleanup()
 
     def setup(self, answers="sk-or-test-key\ny\n", java="21.0.2", **env):
+        # SETUP_JDK_DIRS: no Homebrew JDK unless a test names one (a Mac that has one would use it, not the stub).
         base = {"PATH": "%s:%s" % (self.stubs, self.sysbin), "HOME": self._tmp.name, "STUB_LOG": str(self.log),
-                "STUB_PIN": PIN, "STUB_JAVA": java}
+                "STUB_PIN": PIN, "STUB_JAVA": java, "SETUP_JDK_DIRS": str(Path(self._tmp.name) / "no-jdk")}
         base.update(env)
         return subprocess.run(["bash", str(self.repo / "setup.sh"), "--forge-dir", str(self.forge)], input=answers,
                               capture_output=True, text=True, env=base, cwd=self._tmp.name, timeout=120)
@@ -97,7 +100,11 @@ class SetupTest(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         calls = self.calls()
         self.assertIn("fetch --depth 1 origin %s" % PIN, calls)
-        self.assertIn("mvn -q -pl forge-gui-desktop -am install -DskipTests (in %s)" % self.forge, calls)
+        # -DskipLaunch4j: Forge's package phase wraps a Windows .exe with launch4j, whose bundled x86 windres does not
+        # run on an Apple silicon Mac without Rosetta or on arm64 Linux ("Bad CPU type in executable", a real setup
+        # on an M-series Mac, 2026-11-09). No game uses the .exe.
+        self.assertIn("mvn -q -pl forge-gui-desktop -am install -DskipTests -DskipLaunch4j (in %s)" % self.forge, calls)
+        self.assertIn("config core.autocrlf false", calls, "Forge's files keep the pin's line endings on Windows")
         # With -am, as run-llm-spike.sh's own hint has it: without it Maven resolves the sibling modules from the
         # repository, whose installed poms name an unresolvable ${revision} parent (a real fresh setup, 2026-10-25).
         self.assertIn("mvn -q -pl forge-gui-desktop -am dependency:build-classpath", calls)
@@ -249,6 +256,81 @@ class SetupTest(unittest.TestCase):
         self.assertEqual(self.setup(answers="").returncode, 0)
         self.assertNotIn("fetch", self.calls())
         self.assertIn("install -DskipTests", self.calls())
+
+    # ---- Windows (Git Bash): uname and cygpath are stubbed, so these run on any system ----
+
+    def windows(self):
+        for name, body in (("uname", '#!/bin/bash\necho MINGW64_NT-10.0-22631\n'),
+                           ("cygpath", '#!/bin/bash\necho "C:/msys64${@: -1}"\n')):
+            (self.stubs / name).write_text(body)
+            (self.stubs / name).chmod(0o755)
+
+    def test_on_windows_maven_is_given_a_windows_path_for_the_classpath_file(self):
+        # Maven's JVM is a native program: /tmp/forge_cp.txt means nothing to it (or C:\tmp), while bash reads the
+        # file by its own name for it.
+        self.windows()
+        p = self.setup(FORGE_CP_FILE="/tmp/x/forge_cp.txt")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("-Dmdep.outputFile=C:/msys64/tmp/x/forge_cp.txt", self.calls())
+
+    def test_off_windows_the_classpath_file_path_is_passed_as_it_is(self):
+        self.assertEqual(self.setup(FORGE_CP_FILE="/tmp/x/forge_cp.txt").returncode, 0)
+        self.assertIn("-Dmdep.outputFile=/tmp/x/forge_cp.txt", self.calls())
+
+    def test_a_python_3_named_python_is_used_when_there_is_no_python3(self):
+        # python.org's Windows installer names it python; Windows's own python3 is a stub that opens the Store.
+        (self.stubs / "python3").unlink()
+        (self.stubs / "python3").write_text("#!/bin/bash\necho 'Python was not found; run without arguments to install' >&2\nexit 9\n")
+        (self.stubs / "python3").chmod(0o755)
+        # A wrapper, not a symlink: macOS's /usr/bin/python3 picks its tool by the name it was run under.
+        (self.stubs / "python").write_text('#!/bin/bash\nexec "%s" "$@"\n' % sys.executable)
+        (self.stubs / "python").chmod(0o755)
+        p = self.setup()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        player = "forge-game/src/main/java/forge/game/player/Player.java"
+        self.assertTrue((self.forge / player).exists(), "install.sh's python3 calls ran on it too")
+
+    def test_no_working_python_is_a_missing_tool(self):
+        (self.stubs / "python3").unlink()
+        p = self.setup()
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertIn("python3", p.stderr)
+
+    def test_on_windows_a_missing_tool_names_the_windows_install(self):
+        self.windows()
+        (self.stubs / "mvn").unlink()
+        p = self.setup()
+        self.assertEqual(p.returncode, 3)
+        self.assertIn("winget", p.stderr)
+        self.assertNotIn("apt-get", p.stderr)
+
+    def test_the_game_launchers_join_the_classpath_as_maven_wrote_it(self):
+        # Maven's classpath file uses the system's separator (; on Windows, : elsewhere) and java wants the same
+        # one. A launcher that always wrote : gave a Windows java one unusable entry.
+        java = self.stubs / "java"
+        java.write_text('#!/bin/bash\nprev=""; for a in "$@"; do [ "$prev" = -cp ] && echo "cp=$a" >> "$STUB_LOG"; prev="$a"; done\n')
+        for launcher in ("run-llm-spike.sh", "run-llm-headless.sh"):
+            for written, want in (("C:\\m2\\a.jar;C:\\m2\\b.jar", "target/classes;C:\\m2\\a.jar;C:\\m2\\b.jar"),
+                                  ("/m2/a.jar:/m2/b.jar", "target/classes:/m2/a.jar:/m2/b.jar")):
+                with self.subTest(launcher=launcher, written=written):
+                    forge = Path(self._tmp.name) / "launch"
+                    shutil.rmtree(forge, ignore_errors=True)
+                    (forge / "forge-gui-desktop").mkdir(parents=True)
+                    shutil.copy(REPO / "forge-overlay" / launcher, forge / launcher)
+                    (forge / "cp.txt").write_text(written)
+                    if self.log.exists():
+                        self.log.unlink()
+                    env = {"PATH": "%s:%s" % (self.stubs, self.sysbin), "HOME": self._tmp.name,
+                           "STUB_LOG": str(self.log), "FORGE_CP_FILE": str(forge / "cp.txt"), "LAUNCH_JDK_DIRS": ""}
+                    p = subprocess.run(["bash", str(forge / launcher)], capture_output=True, text=True, env=env,
+                                       timeout=60)
+                    self.assertEqual(p.returncode, 0, p.stderr)
+                    self.assertEqual(self.calls().strip(), "cp=" + want)
+
+    def test_a_clone_keeps_every_file_s_bytes_on_every_system(self):
+        # Windows git (core.autocrlf) would otherwise check the scripts out with CRLF, which bash cannot run, and
+        # rewrite the decklists, whose hashes the panels pin.
+        self.assertIn("* -text", (REPO / ".gitattributes").read_text().splitlines())
 
 
 if __name__ == "__main__":

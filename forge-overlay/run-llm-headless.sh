@@ -6,7 +6,7 @@ set -e
 REPO="$(cd "$(dirname "$0")" && pwd)"
 # The Homebrew JDK on a Mac; anywhere else (Linux, CI) the java already on PATH is used.
 # Apple silicon and Intel prefixes, in setup.sh's order (eval/tests/test_setup.py keeps the lists equal).
-for BREW in /opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17; do
+for BREW in ${LAUNCH_JDK_DIRS-/opt/homebrew/opt/openjdk@17 /usr/local/opt/openjdk@17}; do   # LAUNCH_JDK_DIRS: a test seam
   BREW_JDK="$BREW/libexec/openjdk.jdk/Contents/Home"
   if [ -d "$BREW_JDK" ]; then export JAVA_HOME="$BREW_JDK"; break; fi
 done
@@ -31,7 +31,9 @@ if [ ! -s "$CP_FILE" ]; then
   echo "        dependency:build-classpath -Dmdep.outputFile=$CP_FILE" >&2
   exit 3
 fi
-CP="target/classes:$(cat "$CP_FILE")"
+# Joined as Maven wrote the file: ; on Windows (where each entry is C:\...), : everywhere else.
+case "$(cat "$CP_FILE")" in *\;*) SEP=';' ;; *) SEP=: ;; esac
+CP="target/classes$SEP$(cat "$CP_FILE")"
 
 ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED \
 --add-opens java.desktop/javax.swing.border=ALL-UNNAMED \

@@ -72,8 +72,9 @@ full games against Forge's AI ([docs/eval/SCORING.md](docs/eval/SCORING.md)).
 
 ## Play against it
 
-You need Java 17+, Maven 3.8.1+, git and Python 3, on macOS or Linux (WSL2 on Windows), and an
-[OpenRouter](https://openrouter.ai) key.
+You need Java 17+, Maven 3.8.1+, git and Python 3, and an [OpenRouter](https://openrouter.ai) key. The scripts run
+on macOS (Apple silicon and Intel) and Linux, and on Windows in WSL2 or in Git Bash, the terminal that comes with
+[Git for Windows](https://git-scm.com/download/win); `setup.sh` names what to install when a tool is missing.
 
 ```bash
 git clone https://github.com/lumlaolao/spike-eval.git && cd spike-eval
@@ -143,7 +144,7 @@ in `runs/`; the run directories the documents cite for their numbers are not par
 export FORGE_HOME=~/code/forge
 git clone https://github.com/Card-Forge/forge.git "$FORGE_HOME" && git -C "$FORGE_HOME" checkout $(cat FORGE_COMMIT)
 bash install.sh                                       # copy the overlay in, apply engine-patches/
-(cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am install -DskipTests)    # checkstyle runs here; -o once built
+(cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am install -DskipTests -DskipLaunch4j)   # checkstyle runs here; -o once built
 (cd "$FORGE_HOME" && mvn -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile=${FORGE_CP_FILE:-/tmp/forge_cp.txt})
 bash eval/harness_acceptance.sh                       # compile, every test, canaries, fake-model games
 bash eval/keyword_gauntlet.sh                         # 29 free games over 564 cards

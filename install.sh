@@ -5,6 +5,7 @@ set -e
 
 FORGE_HOME="${FORGE_HOME:-$HOME/code/forge}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
+. "$HERE/scripts/platform.sh"                # python3 under that name on Windows too
 
 if [ ! -d "$FORGE_HOME/forge-gui-desktop" ]; then
   echo "ERROR: '$FORGE_HOME' does not look like a Forge checkout (no forge-gui-desktop/)." >&2
