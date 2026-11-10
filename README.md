@@ -81,6 +81,15 @@ bash play-vs-llm.sh --commentary --why                # shows its decisions and 
 harness and builds it. The first run takes about 10 minutes. It then asks for your key and whether games may be sent
 to openrouter.ai, and writes both to `secrets.env`, which git ignores. Run it again after a `git pull`.
 
+If you would rather have a coding agent such as Claude Code do the setup, give it this:
+
+```
+Clone https://github.com/lumlaolao/spike-eval and run `bash setup.sh` in it. If it reports a missing tool
+(Java 17+, Maven 3.8.1+, git, Python 3), install it and run setup again. When it asks for my OpenRouter key,
+stop and tell me to run `bash setup.sh` myself in a terminal; never ask me to paste the key into this chat.
+Then run `bash play-vs-llm.sh --dry-run` and tell me whether everything is ready for a game.
+```
+
 `play-vs-llm.sh` opens Forge's window, so it needs a display. A game costs about $0.02 to $0.05 with the default
 model, GPT-6 Luna, and the model may think for minutes on a hard decision. Games against a person are never scored.
 
