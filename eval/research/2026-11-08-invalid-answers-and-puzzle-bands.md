@@ -16,7 +16,7 @@ model call, no JVM, no `OPENROUTER_ALLOW_EGRESS`. Both are subcommands of `eval/
   `frontier5*`, `demo/luna-*` and `jev-router-pilot`, listed in the tally; the files are dated 2026-10-20 to
   2026-10-29, which does not place them against v12): 10 of 2,931, **2 lost** (0.02% to 0.25%). The 2 lost decisions
   are in one GLM 5.3 game, and **one of them is a harness defect fixed in PR #330** (the seat read only the first
-  `answer` call; `docs/harness/PUZZLE-COMPARISON.md`, `docs/harness/ACCEPTANCE.md`, 2026-10-26); the other was the model
+  `answer` call; `docs/harness/FRONTIER5.md`, `docs/harness/ACCEPTANCE.md`, 2026-10-26); the other was the model
   sending only `lines`, twice. **The epoch 70 and 72 denominators are decisions on hard puzzle boards (`runs/puzzles/`
   folders), not games against Forge's AI.** An all-epoch total (2 of 18,019) is printed by the tool as a pooled row
   for reference only; it is not a rate of any one condition and is not quoted as a headline.
@@ -159,10 +159,10 @@ Causes of the failed decisions, by population (menu pooled over the four epoch r
   (`runs/puzzles/frontier5-fill/z-ai_glm-5.3__hard-elf2-2753b3ca0d06/.../game-1-1793005709709.jsonl`), play
   decisions answered twice with only the note fields `lines` and `why` where `option` was required, in the epoch-unknown
   row. **The first is a harness defect, fixed in PR #330** (`answer-tool-v12`, epoch 73): the reply held two `answer`
-  calls, the analysis and then `option` 14, and the seat read only the first (`docs/harness/PUZZLE-COMPARISON.md`, "Decisions the
+  calls, the analysis and then `option` 14, and the seat read only the first (`docs/harness/FRONTIER5.md`, "Decisions the
   harness lost"; `docs/harness/ACCEPTANCE.md`, 2026-10-26). The second is the model's own miss (`lines` twice). So at
   most 1 of the 2 is a loss the current harness could still produce, and both are one game of one model: shape share
-  2 of 2, Wilson 34% to 100%. This tool cannot tell the two apart; the attribution is from PUZZLE-COMPARISON.md.
+  2 of 2, Wilson 34% to 100%. This tool cannot tell the two apart; the attribution is from FRONTIER5.md.
 - **Menu first-call failures are 79% shape** (77 of 98; 69% to 86%): 62 schema (mostly `option` where `options` is
   asked, on the multi-pick `sacrifice` decision), 13 count, 1 index, 1 type. The other 21 (21%; 14% to 31%) are
   replies that called nothing, all recovered by the reminder. No engine-refused answer occurred outside the propose arm.
