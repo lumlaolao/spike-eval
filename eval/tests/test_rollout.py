@@ -305,6 +305,8 @@ class MainTest(Base):
         rc, _, err = self.main("--game-seed", "499", "--group-size", "3", "--out", str(path))   # 499, 500, 501
         self.assertEqual(rc, 2)
         self.assertIn("frozen-legacy", err)
+        if not Path(FORGE_PZL).exists():   # CI has no Forge checkout; acceptance runs with one at /root/forge
+            self.skipTest("the held-out puzzle check reads %s" % FORGE_PZL)
         rc, _, err = self.main("--puzzle", FORGE_PZL, "--out", str(path))    # heldout in the builtin suite
         self.assertEqual((rc, "heldout puzzle" in err), (2, True))
         self.assertFalse(path.exists())

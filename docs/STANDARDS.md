@@ -35,10 +35,11 @@ It merges exactly the commit it checked, with a merge commit. Never squash: the 
 record of what was reviewed. Merging your own PR is fine once the gate passes.
 
 The gate is a record, not a proof. Verdict and acceptance lines are written by the author's
-session, and GitHub does not enforce the script (no branch protection); CI is two workflows, neither required:
-`tests.yml` runs the Python suite, and `setup.yml` runs `bash setup.sh` and one no-model game on Linux, macOS and
-Windows (about 15 minutes a job). Both run only when started by hand (`tests.yml` paused by the owner, 2026-11-06:
-the month's Actions minutes are spent); the local acceptance run is the evidence. Writing a verdict
+session, and GitHub does not enforce the script: branch protection on `main` (since 2026-11-09) requires a pull
+request and refuses force pushes and deletion, for admins too, but requires no check and no approval. CI is two
+workflows, neither required: `tests.yml` runs the Python suite on every PR and push to `main`, and `setup.yml`,
+started by hand, runs `bash setup.sh` and one no-model game on Linux, macOS and Windows (about 5 minutes a job);
+the local acceptance run is the evidence. Writing a verdict
 no skill produced, or merging any other way, is a violation the next `standards` review reports.
 Because a verdict is for one head, finish the fixes first, then run acceptance and the three
 skills on the final commit; a re-review after fixes checks the fixes and the delta.

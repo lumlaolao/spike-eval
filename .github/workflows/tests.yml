@@ -1,15 +1,13 @@
 # The Python suite on the Python floor (3.9, macOS's own python3; docs/STANDARDS.md section 4) and a current one:
 # no Forge build, no API key, a read-only token. The full gate is acceptance (section 1).
-#
-# PAUSED (owner, 2026-11-06): the account's Actions minutes for the month are spent, so the suite runs only when
-# started by hand (Actions > tests > Run workflow). To restore it on every PR and push to main, put back:
-#   on:
-#     pull_request:
-#     push:
-#       branches: [main]
+# On every PR and push to main again since the repository went public (2026-11-09; it was paused on 2026-11-06 when
+# the private account's Actions minutes ran out).
 name: tests
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -30,5 +28,11 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
+      # The grader tests compile with `javac --release 17`; ubuntu-22.04's own javac is 11 ("release version 17 not
+      # supported", run 42760238737).
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78  # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
       - name: unit tests
         run: python3 -m unittest discover -s eval/tests -p 'test_*.py'

@@ -17,7 +17,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14, windows-2022]   # macos-14 is Apple silicon; windows runs Git Bash. Each image has Maven.
+        # macos-latest is Apple silicon (macos-14 is no longer offered: "configuration not supported", run
+        # 42760235324); windows runs Git Bash. Each image has Maven.
+        os: [ubuntu-24.04, macos-latest, windows-2022]
     defaults:
       run:
         shell: bash
