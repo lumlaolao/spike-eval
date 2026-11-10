@@ -24,8 +24,9 @@ This version is built to show a model everything a human player sees and to stay
   zones. The recent events stay in context, and the model has tools to search and page through the whole log.
 - **No hidden fallback to Forge's AI.** If a model fails to make a choice, a default legal option is taken and it is
   marked in the log.
-- **Rules lookup and simulation.** The model can search the official rules, and it can preview what an action would
-  do before taking it. It never sees the opponent's hand or its own library.
+- **Simulation and rules lookup.** In a game the model can preview what an action would do before taking it, without
+  seeing the opponent's hand or its own library. Puzzle runs turn the preview off. A rules lookup, off by default,
+  lets it search the official rules.
 
 How each part is built, and why, is in [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md).
 
@@ -36,8 +37,8 @@ scissors, so a win rate says more about the draw and the decks than about the mo
 
 A puzzle takes the luck out. Like a chess puzzle, it gives a board and a goal, usually "win this turn", and the
 model either finds the line or it doesn't. The hard puzzles here are long, with many objects in play that may or may
-not matter, and a board is only kept if random play and other fixed players all fail it. It is a room with one
-door: the goal is clear, and how to get there is not given.
+not matter, and a board is in the suite below only if random play and other fixed players all fail it. It is a room
+with one door: the goal is clear, and how to get there is not given.
 
 ### Results
 
@@ -51,12 +52,12 @@ several time and token limits, and a few of the failures were games the harness 
 [docs/harness/PUZZLE-COMPARISON.md](docs/harness/PUZZLE-COMPARISON.md) has the conditions and those cases. The times
 and costs in the chart are from the write-up; the repository records only solved or failed.
 
-The puzzles are in `eval/puzzles/`, grouped into frozen suites in `eval/suites/`. To run a model on one and score it
-(the run stops when the budget is spent):
+The puzzles are in `eval/puzzles/`, grouped into frozen suites in `eval/suites/`. To run a model on one and score it,
+after `setup.sh` below (the run stops when the budget is spent, and it needs the same key and consent as a game):
 
 ```bash
 python3 eval/puzzles/puzzle_solve.py --suite eval/suites/puzzles-hard-gen2-v1.json --split open \
-  --model openrouter:openai/gpt-6-luna --budget-usd 1.00 --out runs/puzzles/luna-open
+  --model openrouter:openai/gpt-6-luna --memory-tools --budget-usd 1.00 --out runs/puzzles/luna-open
 python3 eval/puzzles/puzzle_score.py --suite eval/suites/puzzles-hard-gen2-v1.json --split open runs/puzzles/luna-open
 ```
 
@@ -81,7 +82,7 @@ harness and builds it. The first run takes about 10 minutes. It then asks for yo
 to openrouter.ai, and writes both to `secrets.env`, which git ignores. Run it again after a `git pull`.
 
 `play-vs-llm.sh` opens Forge's window, so it needs a display. A game costs about $0.02 to $0.05 with the default
-model, GPT-6 Luna, and the model may think for minutes on a hard decision.
+model, GPT-6 Luna, and the model may think for minutes on a hard decision. Games against a person are never scored.
 
 ### Decks
 
@@ -97,9 +98,9 @@ Sideboard
 2 Smash to Smithereens
 ```
 
-The folder has 52 lists from Standard, Pioneer, Modern, Legacy, Vintage and Pauper;
-[eval/decks/SOURCES.md](eval/decks/SOURCES.md) says where each came from. The `hook-*` files there are
-test decks. A name has to be spelled the way Forge spells it, accents included.
+Besides the `hook-*` test decks, the folder has 52 lists: 36 tournament lists from Standard, Pioneer, Modern, Legacy,
+Vintage and Pauper ([eval/decks/SOURCES.md](eval/decks/SOURCES.md) says where each came from) and 16 archetype
+decks such as `burn`, `elves` and `ur-delver`. A name has to be spelled the way Forge spells it, accents included.
 
 ## Model against Forge's AI
 
@@ -113,7 +114,8 @@ python3 eval/match_review.py runs/loop/g01        # what the harness decided, lo
 
 An `openrouter:` model sends the game state to openrouter.ai. Nothing is sent unless `OPENROUTER_API_KEY` and your
 own consent, `OPENROUTER_ALLOW_EGRESS=1`, are set. A game takes 20 to 90 minutes. `run_batch.py` stops at
-`--budget-usd`, and `eval/cost_report.py` prices any run. Every setting is in `docs/harness/SETTINGS.md`.
+`--budget-usd`, and `eval/cost_report.py` prices any run. Every setting is in `docs/harness/SETTINGS.md`. Your runs land
+in `runs/`; the run directories the documents cite for their numbers are not part of this repository.
 
 ## Build and test by hand
 
