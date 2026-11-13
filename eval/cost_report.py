@@ -19,9 +19,11 @@ list price and at the budget alike. A CLI process killed at its deadline reports
   python3 eval/cost_report.py --plan 16 runs/lines/ctl2/native     # what 16 more games like these would cost
 """
 import argparse
+import datetime
 import glob
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -129,6 +131,50 @@ def budget_prices(prices):
     states one. A report prices at the list rate; a budget must not be overrun when latency routing lands on a
     dearer endpoint, a priority tier or another provider (provider audit, 2026-10-24)."""
     return {m: dict(p, **(p.get("max") or {})) for m, p in prices.items()}
+
+
+# A price older than this is reported as stale: a provider's rise makes the budget guard under-count in silence.
+PRICE_MAX_AGE_DAYS = 30
+
+
+def stale_prices(prices, models, today=None):
+    """[(model, oldest date, age in days)] for each priced, non-free model of `models` whose list price (`checked`,
+    which must be a readable date) or budget bound (the date in `max_note`, when it has one) was last checked more
+    than PRICE_MAX_AGE_DAYS ago; a price with no readable `checked` counts as stale. Free means $0 at the list rate
+    and at the bound (`max`), which run_batch.py's budget reads (budget_prices)."""
+    today = today or datetime.date.today()
+    bounds = budget_prices(prices)
+    out = []
+
+    def age_of(text):
+        for d in re.findall(r"\d{4}-\d{2}-\d{2}", str(text or "")):
+            try:
+                return (today - datetime.date.fromisoformat(d)).days, d
+            except ValueError:
+                continue                            # not a calendar date: read as no date
+        return None
+
+    for m in sorted(set(models)):
+        p = prices.get(m)
+        if not p or not any(bounds[m].get(k) for k in ("prompt", "completion")):
+            continue                                # unpriced, or free at both rates (the loopback fake)
+        checked = age_of(p.get("checked"))
+        if checked is None:
+            out.append((m, "no date", None))
+            continue
+        age, oldest = max(x for x in (checked, age_of(p.get("max_note"))) if x is not None)
+        if age > PRICE_MAX_AGE_DAYS:
+            out.append((m, oldest, age))
+    return out
+
+
+def stale_warning(stale):
+    """One line naming each stale price, or None."""
+    if not stale:
+        return None
+    return ("WARNING: price older than %d days, re-check eval/pricing/prices.json before trusting a budget: %s"
+            % (PRICE_MAX_AGE_DAYS, ", ".join("%s (checked %s%s)" % (m, d, "" if a is None else ", %d days ago" % a)
+                                             for m, d, a in stale)))
 
 
 def model_id(spec):
@@ -256,7 +302,8 @@ def main(argv=None):
     prices = load_prices()
     rows = [report_dir(d, prices) for d in a.dirs]
     if a.json:
-        print(json.dumps([dict(r, unpriced=sorted(r["unpriced"]), models=sorted(r["models"]), checked=sorted(r["checked"]))
+        print(json.dumps([dict(r, unpriced=sorted(r["unpriced"]), models=sorted(r["models"]), checked=sorted(r["checked"]),
+                               stale=[m for m, _, _ in stale_prices(prices, r["models"])])
                           for r in rows], indent=1))
         return 0
     for r in rows:
@@ -269,6 +316,9 @@ def main(argv=None):
     checked = sorted(set(c for r in rows for c in r["checked"]))
     print("prices checked %s; cached prompt tokens priced at the cache rate where rows record them; "
           "calls with no row are not counted" % (", ".join(checked) or "n/a"))
+    warn = stale_warning(stale_prices(prices, [m for r in rows for m in r["models"]]))
+    if warn:
+        print(warn)
     return 0
 
 

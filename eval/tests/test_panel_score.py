@@ -7,7 +7,9 @@ Panel runs are written synthetically against the real eval/suites/panels-v1.json
 deck pins and seeds under test are the published ones.
 """
 
+import contextlib
 import hashlib
+import io
 import json
 import math
 import sys
@@ -41,6 +43,8 @@ def write_block(d, deck_sha, results, controller_a="llm", smart_a=PILOT, control
             f = d / ("game-%d-%d.jsonl" % (seed, 1000 + swap))
             if w == "crash":
                 f.write_text(json.dumps({"t": "decision", "seat": "Identity-A"}) + "\n")
+                # run_batch.py's log for the seat order names the game file, as a real crash's does.
+                (d / ("game-%d-%d.log" % (seed, swap))).write_text("[EVAL] jsonl %s\n" % f.name)
                 continue
             g = {"t": "game", "seed": seed, "swap": swap, "winner": w, "deck_a": "Identity-A",
                  "deck_b": "Identity-B", "controller_a": controller_a, "controller_b": controller_b,
@@ -195,6 +199,42 @@ class TestMirrorPanel(unittest.TestCase):
         self.assertEqual(r["pooled"]["n_cells"], 15)
         self.assertFalse(r["valid"])
 
+    def test_cells_stopped_at_different_seeds_are_incomplete_not_valid(self):
+        # A --budget-usd stop mid-panel: one cell holds one seed, the rest four. Each cell weighs the same in the
+        # pool, so the score is not the seed-paired panel's.
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("burn",))
+        write_block(self.root / "burn", DOC["deck_pool"][1]["sha12"], results(1, n_seeds=1))
+        r = self.score()
+        self.assertFalse(r["valid"])
+        self.assertEqual(r["status"], "INCOMPLETE")
+        self.assertIn("different seed sets", " ".join(r["incomplete"]))
+        self.assertEqual((r["games_played"], r["games_expected"]), (15 * 8 + 2, 16 * 100))
+
+    def test_a_seed_played_in_one_seat_order_is_incomplete_not_valid(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        (self.root / "burn" / "game-7803-1001.jsonl").unlink()   # 7803 swapped never played
+        r = self.score()
+        self.assertFalse(r["valid"])
+        self.assertEqual(r["status"], "INCOMPLETE")
+        self.assertIn("burn played 1 seed(s) in one seat order only: [7803]", r["incomplete"])
+
+    def test_a_cell_stopped_before_its_first_game_is_missing_not_a_refusal(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("burn",))
+        (self.root / "burn").mkdir()
+        (self.root / "burn" / "batch-manifest.json").write_text("{}")
+        r = self.score()
+        self.assertEqual((r["missing"], r["status"]), (["burn"], "INCOMPLETE"))
+
+    def test_a_complete_panel_with_no_random_arm_is_not_a_bare_valid(self):
+        # A score without its floor is not a score: STR_norm needs the random arm in every cell.
+        panel_run(self.root, "mirror")
+        r = self.score()
+        self.assertFalse(r["valid"])
+        self.assertEqual((r["status"], r["random_baseline_present"]), ("NO RANDOM BASELINE", False))
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        r = self.score()
+        self.assertEqual((r["status"], r["valid"], r["random_baseline_present"]), ("VALID", True, True))
+
     def test_a_cell_played_on_the_wrong_decks_is_refused(self):
         panel_run(self.root, "mirror")
         write_block(self.root / "lands", "f" * 12, {7804: ("A", "A")})
@@ -263,6 +303,17 @@ class TestMirrorPanel(unittest.TestCase):
             self.score()
         self.assertIn("dead model bridge", str(cm.exception))
 
+    def test_a_sanity_arms_crash_beside_its_replay_is_counted_as_a_file_with_no_game_line(self):
+        # The arm's count is every file with no game line (sanity_arms.outcomes'), not the started games charged.
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        panel, _, _ = ps.load_panel(PANELS, "mirror")
+        cid = panel["cells"][0]["id"]
+        d = sanity_arms.arm_dir(self.root / cid, "floor")
+        (d / "game-7800-500.jsonl").write_text(json.dumps({"t": "decision", "seat": "Identity-A"}) + "\n")
+        r = self.score()
+        self.assertEqual(r["cells"][cid]["sanity"]["arms"]["floor"]["crashed"], 1)
+        self.assertEqual(r["cells"][panel["cells"][1]["id"]]["sanity"]["arms"]["floor"]["crashed"], 0)
+
     def test_a_sanity_arm_that_beats_the_floor_invalidates_the_panel(self):
         arms = dict(ZERO_ARMS, garbage=lambda cid: results(1) if cid == "goblins" else results(0))
         panel_run(self.root, "mirror", sanity=arms)
@@ -319,6 +370,79 @@ class TestMirrorPanel(unittest.TestCase):
         r = self.score()
         self.assertTrue(any("different pilots" in p for p in r["problems"]))
 
+    # Started games and seat orders (docs/eval/SCORING.md, "Started games").
+
+    def test_a_crash_left_beside_its_replay_does_not_stand_in_for_the_other_seat_order(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        (self.root / "burn" / "game-7803-1001.jsonl").unlink()            # 7803 swapped never played
+        (self.root / "burn" / "game-7803-999.jsonl").write_text(json.dumps({"t": "decision"}) + "\n")
+        r = self.score()
+        self.assertFalse(r["valid"])
+        self.assertIn("burn played 1 seed(s) in one seat order only: [7803]", r["incomplete"])
+        self.assertEqual(r["cells"]["burn"]["started"], 7, "a crash beside a line of its seed is not a game")
+
+    def test_a_crash_its_log_names_fills_that_seat_order_and_counts_as_started(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        write_block(self.root / "burn", DOC["deck_pool"][1]["sha12"], {7800: ("B", "crash")})   # swapped crashed
+        r = self.score()
+        self.assertEqual(r["status"], "VALID", r["incomplete"])
+        self.assertEqual((r["cells"]["burn"]["started"], r["cells"]["burn"]["crashed"]), (8, 1))
+
+    def test_a_random_arm_off_the_pilots_seeds_is_no_baseline_and_an_arm_off_the_list_is_a_problem(self):
+        arms = dict(ZERO_ARMS, random=lambda cid: results(0, n_seeds=2) if cid == "burn" else results(0))
+        panel_run(self.root, "mirror", sanity=arms)
+        r = self.score()
+        self.assertEqual((r["status"], r["cells_without_random_baseline"]), ("NO RANDOM BASELINE", ["burn"]))
+        write_block(sanity_arms.arm_dir(self.root / "burn", "floor"), DOC["deck_pool"][1]["sha12"], {7900: ("B", "B")},
+                    controller_a="floor", smart_a=None)
+        r = self.score()
+        self.assertEqual(r["status"], "NOT VALID")
+        self.assertTrue(any("burn floor arm played seeds outside" in p for p in r["problems"]), r["problems"])
+
+    def test_a_played_cell_with_no_decisive_game_is_incomplete(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("burn",))
+        write_block(self.root / "burn", DOC["deck_pool"][1]["sha12"], {s: ("draw", "draw") for s in SEEDS})
+        r = self.score()
+        self.assertEqual(r["status"], "INCOMPLETE")
+        self.assertTrue(any("no score" in x and "burn" in x for x in r["incomplete"]), r["incomplete"])
+
+    def test_the_command_exits_1_and_says_why_for_an_incomplete_or_baseline_less_panel(self):
+        panel_run(self.root, "mirror")
+        (self.root / "burn" / "game-7803-1001.jsonl").unlink()            # one seat order: INCOMPLETE
+        for argv_status in ("INCOMPLETE", "NO RANDOM BASELINE"):
+            if argv_status == "NO RANDOM BASELINE":
+                panel_run(self.root, "mirror")                              # complete again, no random arm
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = ps.main([str(self.root), "--panel", "mirror", "--resamples", "20"])
+            self.assertEqual(rc, 1, argv_status)
+            self.assertIn("verdict: " + ps.VERDICT_TEXT[argv_status], out.getvalue())
+            self.assertIn({"INCOMPLETE": "  - incomplete: ", "NO RANDOM BASELINE": "no random baseline in: "}[
+                argv_status], out.getvalue())
+
+    def test_a_random_arm_missing_one_seat_order_or_with_no_decisive_game_is_no_baseline(self):
+        for name, arm in (("one order", lambda cid: {**results(0), 7803: ("B",)} if cid == "burn" else results(0)),
+                          ("all draws", lambda cid: {s: ("draw", "draw") for s in SEEDS} if cid == "burn"
+                           else results(0))):
+            with self.subTest(name), tempfile.TemporaryDirectory() as d:
+                panel_run(d, "mirror", sanity=dict(ZERO_ARMS, random=arm))
+                r = ps.score_panel(d, "mirror", PANELS, resamples=20)
+                self.assertEqual(r["status"], "NO RANDOM BASELINE", r["incomplete"] + r["problems"])
+
+    def test_a_panel_both_incomplete_and_faulty_is_not_valid(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("elves",))
+        write_block(sanity_arms.arm_dir(self.root / "burn", "floor"), DOC["deck_pool"][1]["sha12"], {7900: ("B", "B")},
+                    controller_a="floor", smart_a=None)
+        r = self.score()
+        self.assertTrue(r["missing"] and r["problems"])
+        self.assertEqual(r["status"], "NOT VALID")
+
+    def test_a_cell_whose_every_file_has_no_game_line_is_missing_not_a_refusal(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("burn",))
+        write_block(self.root / "burn", DOC["deck_pool"][1]["sha12"], {s: ("crash", "crash") for s in SEEDS})
+        r = self.score()
+        self.assertEqual((r["missing"], r["status"]), (["burn"], "INCOMPLETE"))
+
 
 class TestRecordedPanelSmoke(unittest.TestCase):
     """eval/testdata/scoring/panel-smoke: run_batch.py --panel mirror --panel-cells burn --seeds 7800
@@ -358,6 +482,30 @@ class TestCrossPanel(unittest.TestCase):
             r = ps.score_panel(tmp, "cross", PANELS, resamples=20)
             self.assertIn(cid + ps.CONTROL_SUFFIX, r["missing"])
             self.assertFalse(r["valid"])
+
+    def test_a_control_with_no_decisive_game_is_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            panel_run(tmp, "cross", sanity=ZERO_ARMS)
+            cid = DOC["panels"]["cross"]["cells"][0]["id"]
+            write_block(Path(tmp) / (cid + ps.CONTROL_SUFFIX), ps.cell_deck_sha(DOC["panels"]["cross"]["cells"][0],
+                                                                                ps.load_panel(PANELS, "cross")[1]),
+                        {s: ("draw", "draw") for s in SEEDS}, controller_a="ai")
+            r = ps.score_panel(tmp, "cross", PANELS, resamples=20)
+            self.assertEqual(r["status"], "INCOMPLETE")
+            self.assertTrue(any(cid + ps.CONTROL_SUFFIX in x for x in r["incomplete"]), r["incomplete"])
+
+    def test_controls_on_different_seeds_or_in_one_order_are_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            panel_run(tmp, "cross", sanity=ZERO_ARMS)
+            cid = DOC["panels"]["cross"]["cells"][0]["id"]
+            ctl = Path(tmp) / (cid + ps.CONTROL_SUFFIX)
+            (ctl / "game-7803-1001.jsonl").unlink()
+            r = ps.score_panel(tmp, "cross", PANELS, resamples=20)
+            self.assertIn("%s control played 1 seed(s) in one seat order only: [7803]" % cid, r["incomplete"])
+            (ctl / "game-7803-1000.jsonl").unlink()
+            r = ps.score_panel(tmp, "cross", PANELS, resamples=20)
+            self.assertEqual(r["status"], "INCOMPLETE")
+            self.assertIn("the controls played different seed sets: the margin is not seed-paired", r["incomplete"])
 
 
 class TestScorerArithmetic(unittest.TestCase):
