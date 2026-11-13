@@ -87,7 +87,8 @@ bash play-vs-llm.sh --commentary --why                # shows its decisions and 
 ```
 
 `setup.sh` clones Forge at the pinned commit into `~/code/forge` (about 1 GB; `--forge-dir` for elsewhere), adds the
-harness and builds it. The first run takes about 10 minutes. It then asks for your key and whether games may be sent
+harness and builds it. `play-vs-llm.sh` finds a Forge built elsewhere by itself; the other commands here look in
+`$FORGE_HOME`, then `~/code/forge`, so after `--forge-dir <dir>` run `export FORGE_HOME=<dir>` first. The first run takes about 10 minutes. It then asks for your key and whether games may be sent
 to openrouter.ai, and writes both to `secrets.env`, which git ignores. If a key is already set in your shell, setup
 asks before using it, and the answer defaults to no. Run it again after a `git pull`.
 
