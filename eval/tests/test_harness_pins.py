@@ -102,11 +102,11 @@ class JavatestsEnvironmentTest(unittest.TestCase):
         self.assertIn("KEEP_ME=1", out, "every other variable still reaches the JVM")
 
 
-def compile_stage():
-    """The script's compile stage, `if has_stage compile; then` through its closing `fi`."""
+def stage_text(name):
+    """The script's `name` stage, `if has_stage <name>; then` through its closing `fi`."""
     with open(SCRIPT, encoding="utf-8") as f:
         lines = f.read().splitlines()
-    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage compile; then"))
+    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage %s; then" % name))
     end = next(i for i in range(start + 1, len(lines)) if lines[i] == "fi")
     return "\n".join(lines[start:end + 1])
 
@@ -151,7 +151,7 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
             script = ('REPO="$1"; OUT="$2"; JAVAC="$3"; FORGE="$4"; CP_FILE="$2/cp.txt"; CLASSES="$2/classes"\n'
                       'OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"\n'
                       'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n'
-                      % compile_stage())
+                      % stage_text("compile"))
             res = subprocess.run(["bash", "-c", script, "x", repo, out, javac, os.path.join(d, "no-forge")], check=True,
                                  stdout=subprocess.PIPE, universal_newlines=True).stdout
             sha = os.path.join(out, "overlay-sha.txt")
@@ -182,15 +182,6 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
         self.assertIsNone(sha)
 
 
-def pytests_stage():
-    """The script's pytests stage, `if has_stage pytests; then` through its closing `fi`."""
-    with open(SCRIPT, encoding="utf-8") as f:
-        lines = f.read().splitlines()
-    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage pytests; then"))
-    end = next(i for i in range(start + 1, len(lines)) if lines[i] == "fi")
-    return "\n".join(lines[start:end + 1])
-
-
 class PytestsSkipAllowanceTest(unittest.TestCase):
     """The pytests stage counts skips like javatests: a test that lost its prerequisite under acceptance (a broken
     resolver, a moved rules file) fails the stage once the skips exceed pytests.skipped_max. The stage runs, as the
@@ -213,7 +204,7 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
                 f.write(expected_text)
             script = ('REPO="$1"; OUT="$1"; FORGE="$1"; EXPECTED="$2"; PLATFORM=linux\n'
                       'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n%s\n'
-                      % (functions(), pytests_stage()))
+                      % (functions(), stage_text("pytests")))
             env = dict(env if env is not None else os.environ, PYTEST_SHARDS=shards)
             return subprocess.run(["bash", "-c", script, "x", d, expected], check=True, stdout=subprocess.PIPE,
                                   universal_newlines=True, env=env).stdout
@@ -236,6 +227,31 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
         out = self.stage("pytests.skipped_max=1\n", suite=suite, env=env)
         self.assertIn("FAIL pytests", out)
         self.assertIn("2 skipped, more than the 1 allowed", out)
+
+    def test_a_tests_stdout_that_mimics_unittest_does_not_replace_its_count(self):
+        # Buffered, a test's own "Ran 1 tests in" / "OK" lands after unittest's summary and was read as the verdict.
+        suite = self.SUITE + "    def test_d(self):\n        print('Ran 1 tests in 0.1s\\n\\nOK')\n"
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONUNBUFFERED"}
+        out = self.stage("pytests.skipped_max=1\n", suite=suite, env=env)
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("Ran 4 tests, 2 skipped, more than the 1 allowed", out)
+
+    def test_a_shard_that_exits_before_unittest_reports_fails_the_stage(self):
+        files = {"test_one.py": self.SUITE,
+                 "test_two.py": "import os, unittest\nclass X(unittest.TestCase):\n"
+                                "    def test_x(self):\n        os._exit(0)\n"}
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("shard 2 (rc=0, no tests", out)
+
+    def test_a_suite_that_runs_nothing_fails(self):
+        empty = "import unittest\nclass E(unittest.TestCase):\n    pass\n"
+        out = self.stage("pytests.skipped_max=5\n", files={"test_one.py": empty}, shards="test_one.py|REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("no tests ran", out)
+        out = self.stage("pytests.skipped_max=5\n", files={"helper.py": empty}, shards="REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("no tests ran", out)
 
     def test_a_skip_reason_in_double_quotes_is_named_too(self):
         suite = self.SUITE.replace("'no rules text'", "\"the rules text isn't here\"")
@@ -271,7 +287,6 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
 
     def test_a_missing_allowance_fails_rather_than_allowing_any_number(self):
         self.assertIn("FAIL pytests", self.stage("floor.seed=42\n"))
-
 
 
 def cut(start_text, end_text, after=None):

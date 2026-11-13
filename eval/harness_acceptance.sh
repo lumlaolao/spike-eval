@@ -243,8 +243,8 @@ fi
 # Every stage after compile is independent: each writes only under its own directory, and each fake model server
 # takes a free port. So a full run spreads them over child runs of this script that share the compiled classes and
 # the classpath (timing: docs/harness/ACCEPTANCE.md). The groups are balanced by measured time: the Python suite
-# (pytests, itself in shards side by side) runs alone, so no game stage waits behind it. ACCEPTANCE_JOBS=1 runs every stage in this process, one
-# after another.
+# (pytests, itself in shards side by side) runs alone, so no game stage waits behind it. ACCEPTANCE_JOBS=1 runs every
+# stage in this process, one after another.
 ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
 # Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
 # not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
@@ -399,8 +399,8 @@ if has_stage pytests; then
   for spec in "$@"; do
     for f in $spec; do
       [ "$f" = REST ] && continue
-      NAMED="$NAMED
-$f"
+      NAMED="${NAMED:+$NAMED
+}$f"
       echo "$ALL_PY" | grep -qxF "$f" || SHARD_PROBLEMS="$SHARD_PROBLEMS $f(no such test file)"
     done
   done
@@ -416,8 +416,10 @@ $f"
     echo "$files" | tr ' ' '\n' > "$OUT/pytests-$i.files"
     mods="$(echo "$files" | sed 's/\.py//g')"
     # FORGE_HOME: the tests that read a Forge checkout (test_rollout's held-out puzzle) read this run's, never a default.
-    # -v writes each test's name and outcome to the log, so a skip is named there with its reason.
-    ( cd "$REPO" && FORGE_HOME="$FORGE" PYTHONPATH="$REPO/eval/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest -v $mods ) >"$OUT/pytests-$i.log" 2>&1 &
+    # -v writes each test's name and outcome to the log, so a skip is named there with its reason. PYTHONUNBUFFERED:
+    # a test's own stdout lands before unittest's summary, never after it where it could read as the verdict.
+    # PYTHONPATH (inherited by the processes the tests start) lets a shard import its modules by name.
+    ( cd "$REPO" && FORGE_HOME="$FORGE" PYTHONUNBUFFERED=1 PYTHONPATH="$REPO/eval/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest -v $mods ) >"$OUT/pytests-$i.log" 2>&1 &
     JOBS_PY="$JOBS_PY $!:$i"
   done
   for job in $JOBS_PY; do wait "${job%%:*}"; echo $? > "$OUT/pytests-${job#*:}.rc"; done
@@ -432,7 +434,7 @@ $f"
     # unittest's verdict is the first line after its last "Ran N tests in": a test's own stdout ("OK 3 rows read") can
     # be flushed after it when the output is buffered, so the last OK line is not the verdict.
     verdict="$(awk '/^Ran [0-9]+ tests? in /{r=NR; v=""; next} r && v=="" && NF {v=$0} END{print v}' "$log")"
-    if [ "$rc" != 0 ] || [ -z "$ran" ] || ! echo "$verdict" | grep -Eq '^(OK|FAILED)( \(.*\))?$'; then
+    if [ "$rc" != 0 ] || [ -z "$ran" ] || ! echo "$verdict" | grep -Eq '^OK( \(.*\))?$'; then
       BAD="$BAD shard $n (rc=$rc, ${ran:-no} tests, verdict '$verdict'; see pytests-$n.log)"
     fi
     N=$((N + ${ran:-0}))
@@ -443,6 +445,7 @@ $f"
   case "$SKIP_MAX" in
     ''|*[!0-9]*) fail pytests "pytests.skipped_max is missing, duplicated or not a number in $EXPECTED";;
     *) if [ -n "$SHARD_PROBLEMS" ]; then fail pytests "shards do not cover eval/tests:$SHARD_PROBLEMS"
+       elif [ "$SHARDS_N" = 0 ] || [ "$N" = 0 ]; then fail pytests "no tests ran ($SHARDS_N shards started)${BAD:+;$BAD}"
        elif [ -n "$BAD" ]; then fail pytests "$RAN, $SKIPPED skipped; failed:$BAD"
        elif [ "$SKIPPED" -gt "$SKIP_MAX" ]; then
          fail pytests "$RAN, $SKIPPED skipped, more than the $SKIP_MAX allowed: $(grep -oE "skipped ('[^']*'|\"[^\"]*\")" "$OUT/pytests.log" | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ' | cut -c1-500)"

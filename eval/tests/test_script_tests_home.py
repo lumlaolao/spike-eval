@@ -138,7 +138,7 @@ class AcceptanceForgeHomeTest(unittest.TestCase):
         """Without it a test that reads FORGE_HOME falls back to its own default and may skip (test_rollout)."""
         with open(os.path.join(str(evalpath.EVAL), "harness_acceptance.sh"), encoding="utf-8") as f:
             line = next(ln for ln in f if "python3 -m unittest" in ln and ">\"$OUT/pytests-$i.log\"" in ln)
-        self.assertIn('FORGE_HOME="$FORGE" PYTHONPATH=', line)
+        self.assertIn('FORGE_HOME="$FORGE" ', line)
 
 
 if __name__ == "__main__":
