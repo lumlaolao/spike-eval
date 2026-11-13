@@ -137,31 +137,37 @@ def budget_prices(prices):
 PRICE_MAX_AGE_DAYS = 30
 
 
-def stale_prices(prices, models, today=None, max_age_days=PRICE_MAX_AGE_DAYS):
+def stale_prices(prices, models, today=None):
     """[(model, oldest date, age in days)] for each priced, non-free model of `models` whose list price
-    (`checked`) or budget bound (the date in `max_note`) was last checked more than max_age_days ago; a price
-    with no date counts as stale. run_batch.py's budget reads the same table."""
+    (`checked`) or budget bound (the date in `max_note`) was last checked more than PRICE_MAX_AGE_DAYS ago; a price
+    with no readable date counts as stale. Free means $0 at the list rate and at the bound (`max`), which
+    run_batch.py's budget reads."""
     today = today or datetime.date.today()
     out = []
     for m in sorted(set(models)):
         p = prices.get(m)
-        if not p or not (p.get("prompt") or p.get("completion")):
-            continue                                # unpriced, or free (the loopback fake): nothing can rise
-        dates = re.findall(r"\d{4}-\d{2}-\d{2}", "%s %s" % (p.get("checked", ""), p.get("max_note", "")))
-        oldest = min(dates) if dates else None
-        age = (today - datetime.date.fromisoformat(oldest)).days if oldest else None
-        if age is None or age > max_age_days:
+        bound = dict(p or {}, **((p or {}).get("max") or {}))
+        if not p or not any(bound.get(k) for k in ("prompt", "completion")):
+            continue                                # unpriced, or free at both rates (the loopback fake)
+        ages = []
+        for d in re.findall(r"\d{4}-\d{2}-\d{2}", "%s %s" % (p.get("checked", ""), p.get("max_note", ""))):
+            try:
+                ages.append(((today - datetime.date.fromisoformat(d)).days, d))
+            except ValueError:
+                continue                            # not a calendar date: read as no date
+        age, oldest = max(ages) if ages else (None, None)
+        if age is None or age > PRICE_MAX_AGE_DAYS:
             out.append((m, oldest or "no date", age))
     return out
 
 
-def stale_warning(stale, max_age_days=PRICE_MAX_AGE_DAYS):
+def stale_warning(stale):
     """One line naming each stale price, or None."""
     if not stale:
         return None
     return ("WARNING: price older than %d days, re-check eval/pricing/prices.json before trusting a budget: %s"
-            % (max_age_days, ", ".join("%s (checked %s%s)" % (m, d, "" if a is None else ", %d days ago" % a)
-                                       for m, d, a in stale)))
+            % (PRICE_MAX_AGE_DAYS, ", ".join("%s (checked %s%s)" % (m, d, "" if a is None else ", %d days ago" % a)
+                                             for m, d, a in stale)))
 
 
 def model_id(spec):
@@ -289,7 +295,8 @@ def main(argv=None):
     prices = load_prices()
     rows = [report_dir(d, prices) for d in a.dirs]
     if a.json:
-        print(json.dumps([dict(r, unpriced=sorted(r["unpriced"]), models=sorted(r["models"]), checked=sorted(r["checked"]))
+        print(json.dumps([dict(r, unpriced=sorted(r["unpriced"]), models=sorted(r["models"]), checked=sorted(r["checked"]),
+                               stale=[m for m, _, _ in stale_prices(prices, r["models"])])
                           for r in rows], indent=1))
         return 0
     for r in rows:

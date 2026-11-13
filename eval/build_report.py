@@ -24,8 +24,8 @@ Exit 0 = PASS, 1 = FAIL (a gate failed), 2 = usage error, 3 = INCOMPLETE
 the holdout audit did not run, so no verdict is earned).
 
 The gates are read from aggregate.py's JSON, not its exit code, which names
-only the first gate that failed (2 fallback, 3 model identity, 4 harness-
-decided); each of those exits is a judged arm, never an error.
+only the first gate that failed (AGGREGATE_GATE_EXITS); each of those exits is
+a judged arm, never an error.
 """
 import argparse
 import datetime
@@ -40,8 +40,8 @@ sys.path.insert(0, str(EVAL))
 from run_suite import parse_seed_range  # noqa: E402
 
 PY = sys.executable or "python3"
-# aggregate.py exits: 0 clean, 2 fallback gate, 3 model-identity gate, 4 harness-decided gate. Anything else
-# (1 a usage or read error) means no judged summary.
+# aggregate.py exits: 0 clean, 2 fallback gate, 3 model-identity gate, 4 harness-decided gate (the first that failed).
+# Anything else (1, a usage or read error) means no judged summary.
 AGGREGATE_GATE_EXITS = (0, 2, 3, 4)
 
 
@@ -197,15 +197,15 @@ def main():
 
         g = entry["gates"]
         fg = agg.get("fallback_gate") or {}
+        fb_ok, hd_ok = not fg.get("failed"), not fg.get("harness_failed")
         g["fallback_rate"] = {
             "limit": mfr,
-            "pass": not fg.get("failed"),
-            "detail": ("within limit" if not fg.get("failed")
-                       else "FAILED FALLBACK GATE (aggregate.py exit 2)"),
+            "pass": fb_ok,
+            "detail": "within limit" if fb_ok else "FAILED FALLBACK GATE",
         }
         g["harness_decided"] = {
-            "pass": not fg.get("harness_failed"),
-            "detail": ("within limit" if not fg.get("harness_failed")
+            "pass": hd_ok,
+            "detail": ("within limit" if hd_ok
                        else "FAILED HARNESS-DECIDED GATE: the harness made %s of the llm choices"
                             % pct(fg.get("harness_decided_rate"))),
         }
@@ -274,8 +274,9 @@ def main():
         # a gate whose own detail says it cannot be evaluated.
         entry["status"] = ("pass" if all(x["pass"] is not False for x in g.values())
                            else "fail")
-        # An arm that played fewer games than its seeds name (a budget stop, a crash loop) earns no verdict.
-        played = entry["result"]["games_total"] or 0
+        # An arm that played fewer games than its seeds name (a budget stop, a crash loop) earns no verdict. A file
+        # with no game line is not a played game.
+        played = (entry["result"]["games_total"] or 0) - ((agg.get("games") or {}).get("no_game_line") or 0)
         if entry["expected_games"] and played < entry["expected_games"] and entry["status"] == "pass":
             entry["status"] = "short"
             entry["error"] = "%d of %d games" % (played, entry["expected_games"])
@@ -310,6 +311,8 @@ def main():
     (out / "report.md").write_text(render_md(report, mfr))
 
     print(f"verdict: {verdict}")
+    if report["holdout_audit_error"]:
+        print(f"  holdout audit did not run: {report['holdout_audit_error']}")
     for a in arms:
         line = f"  [{a['status']:9s}] {a['arm']}"
         r = a.get("result")
@@ -318,6 +321,8 @@ def main():
             line += (f"  win {pct(r['student_win_rate'])} "
                      f"CI[{pct(lo)}, {pct(hi)}] "
                      f"({r['games_decisive']}/{a['expected_games']} games)")
+            if a.get("error"):
+                line += f"  ({a['error']})"
         elif a["status"] == "missing":
             line += f"  (no dir: {a['dir']})"
         elif a.get("error"):
@@ -335,8 +340,11 @@ def render_md(report, mfr):
     L.append("")
     L.append(f"- generated (UTC): {report['generated_utc']}")
     L.append(f"- student (identity A): `{report['student']}`")
-    L.append(f"- gates: fallback_rate <= {mfr}, defect invariants, "
-             f"cited discipline, unmixed provenance, single experiment per arm dir")
+    L.append(f"- gates: fallback_rate <= {mfr}, harness-decided rate, model identity, defect invariants "
+             f"(defect_analyzer exit 0), cited discipline, unmixed provenance, single experiment per arm dir; "
+             f"an arm must also play the games its seeds name")
+    if report.get("holdout_audit_error"):
+        L.append(f"- holdout audit did not run: {report['holdout_audit_error']}")
     L.append("")
     L.append("| arm | role | deck | win rate | Wilson 95% CI | paired Δ CI | "
              "games | gates |")
@@ -372,6 +380,7 @@ def render_md(report, mfr):
             continue
         p = {k: (v[0] if isinstance(v, list) and len(v) == 1 else v)
              for k, v in r["provenance"].items()}
+        L.append(f"- status: **{a['status']}**" + (f" ({a['error']})" if a.get("error") else ""))
         L.append(f"- games: {r['games_decisive']} decisive of "
                  f"{r['games_total']} (expected {a['expected_games']})")
         L.append(f"- provenance: discipline={p.get('discipline')} "
@@ -408,8 +417,9 @@ def render_md(report, mfr):
         for slug, ds in report["holdout_violations"]:
             L.append(f"- held-out deck `{slug}` found in dataset `{ds}`")
         L.append("")
-    L.append("Citable only if verdict is PASS. INCOMPLETE means at least one "
-             "arm has no usable data; FAIL means a gate broke. Numbers from "
+    L.append("Citable only if verdict is PASS. INCOMPLETE means an arm has no "
+             "usable data or fewer games than its seeds name, or the holdout "
+             "audit did not run; FAIL means a gate broke. Numbers from "
              "this report may not be quoted alongside arms added after the "
              "fact — rerun the whole suite per checkpoint.")
     L.append("")
