@@ -579,6 +579,24 @@ def test_strict_score_counts_every_started_game():
     check("strict score is (1 + 0.5) / 4", approx(a["strict_score"], 0.375), str(a))
 
 
+def test_a_file_with_no_game_line_scores_zero_in_the_strict_score():
+    """A crash, kill or backstop timeout writes no game line. It named no controller, so it fell into an arm
+    called "unknown" that is never printed and the strict score dropped it: 4 decisive games (3 won) and 3 such
+    files read 3/4, not 3/7 (docs/eval/SCORING.md: a crashed game counts 0 in the strict score)."""
+    with tempfile.TemporaryDirectory() as d:
+        for i, w in enumerate("AAAB"):
+            write_jsonl(d, "game-%d-1000.jsonl" % i, [decision_line("smart", 900), game_line(i, False, w, ctrl_b="ai")])
+        for i in range(4, 7):
+            write_jsonl(d, "game-%d-1000.jsonl" % i, [decision_line("smart", 900)])
+        s = aggregate.build_summary(Path(d), resamples=50, bootstrap_seed=1)
+        a = s["arms"][aggregate.arm_label(game_line(0, False, "A"), "a")]
+        check("no game line: decisive win rate is 3/4", approx(a["win_rate"], 0.75), str(a))
+        check("no game line: strict score is 3/7", approx(a["strict_score"], 3 / 7), str(a))
+        check("no game line: started 7, crashed 3", (a["started"], a["crashed"]) == (7, 3), str(a))
+        e = next(iter(s["experiments"]["by_id"].values()))["arms"][aggregate.arm_label(game_line(0, False, "A"), "a")]
+        check("no game line: the lone experiment agrees", approx(e["strict_score"], 3 / 7), str(e))
+
+
 def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
     """Issue #369: a provider answering 402 to every call left the seat passing; the game was scored
     decisive. The game line's bridge_down_decisions_a/_b make it invalid; a line from before the field
@@ -834,6 +852,7 @@ def main():
     test_fallback_gate()
     test_harness_decided_gate()
     test_strict_score_counts_every_started_game()
+    test_a_file_with_no_game_line_scores_zero_in_the_strict_score()
     test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
     test_a_game_whose_log_failed_to_write_is_invalid()
     test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out()

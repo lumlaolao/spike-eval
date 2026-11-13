@@ -766,9 +766,16 @@ def summarize_arms(games):
     """Unpaired per-arm win rates over decisive games only.
 
     Identity-keyed: winner "A" is identity A's win and controller_a/smart_a
-    are identity A's config, so attribution never flips on swap."""
-    arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0})
+    are identity A's config, so attribution never flips on swap.
+
+    A file with no game line (a crash, a kill, a backstop timeout) names no controller. It is charged to the arms
+    of the games beside it: callers pass one experiment's games (build_summary only when the directory holds one
+    condition), so those are the arms that played it. It scores 0 in their strict score (docs/eval/SCORING.md)."""
+    arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0, "crashed": 0})
+    no_line = sum(1 for g in games if g.get("_no_game_line"))
     for g in games:
+        if g.get("_no_game_line"):
+            continue                        # charged below, to every arm that played here
         if unscorable(g):
             continue                        # not fully played by the model: in no count, the strict score's too
         w = g.get("winner")
@@ -786,6 +793,9 @@ def summarize_arms(games):
         arms[la]["games"] += 1
         arms[lb]["games"] += 1
         arms[la if w == "A" else lb]["wins"] += 1
+    for d in arms.values():
+        d["started"] += no_line
+        d["crashed"] += no_line
     out = {}
     for label, d in sorted(arms.items()):
         if not d["games"]:
@@ -794,7 +804,7 @@ def summarize_arms(games):
         out[label] = {"wins": d["wins"], "games": d["games"],
                       "win_rate": d["wins"] / d["games"] if d["games"] else None,
                       "wilson95": [lo, hi],
-                      "started": d["started"], "draws": d["draws"],
+                      "started": d["started"], "draws": d["draws"], "crashed": d["crashed"],
                       # Strict score: wins + half the draws over every started game (an unfinished
                       # game scores 0). Equal to win_rate when every game finished decisively.
                       "strict_score": (d["wins"] + 0.5 * d["draws"]) / d["started"] if d["started"] else None}
@@ -1404,6 +1414,8 @@ def _experiment_decisions(exp, decisions):
 
 def summarize_experiment(exp, label, parsed, resamples, bootstrap_seed, max_fallback_rate):
     games = exp["games"]
+    # A file with no game line belongs to this experiment only when the directory holds no other condition.
+    crashed = parsed["crashed"] if len(parsed["experiments"]) == 1 else []
     decisions = _experiment_decisions(exp, parsed["decisions"])
     prov = summarize_provenance(games)
     return {
@@ -1419,7 +1431,7 @@ def summarize_experiment(exp, label, parsed, resamples, bootstrap_seed, max_fall
         "duplicates": exp["duplicates"],
         "n_duplicates_conflicting": sum(1 for d in exp["duplicates"] if d["conflicting"]),
         "games": summarize_games(games),
-        "arms": summarize_arms(games),
+        "arms": summarize_arms(games + crashed),
         "paired": summarize_paired(games, resamples, bootstrap_seed),
         "decisions": summarize_decisions(decisions),
         "model_identity": summarize_model_identity(games, prov),
