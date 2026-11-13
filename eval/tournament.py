@@ -421,8 +421,7 @@ def _launch_and_read(env, jdir, seed, swap, args):
             pass
     backstop = args.cap_minutes * 60 * 2 + 300
     with open(log_path, "w", encoding="utf-8") as lf:
-        # Its own process group, so a backstop stops this match's launcher and JVM, never another game on the machine
-        # (a pkill by class name also hit a person's play-vs-llm.sh game or another tournament).
+        # Its own process group, so a backstop stops this match's launcher and JVM, never another game on the machine.
         proc = subprocess.Popen(["bash", "run-llm-spike.sh"], cwd=str(args.forge_home), env=env, stdout=lf,
                                 stderr=subprocess.STDOUT, start_new_session=True)
         try:
@@ -436,6 +435,16 @@ def _launch_and_read(env, jdir, seed, swap, args):
             if proc.poll() is None:
                 stop_group(proc)
     return _read_winner(jdir, seed, swap)
+
+
+def exit_on_hangup():
+    """SIGTERM and SIGHUP (a kill, a closed terminal) raise SystemExit, so _launch_and_read's finally stops the match's
+    own process group: its new session takes it out of the terminal's group, and a default handler would end this
+    process without unwinding, leaving the launcher and JVM playing."""
+    def _exit(signum, frame):
+        raise SystemExit(128 + signum)
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, _exit)
 
 
 def stop_group(proc, grace_s=30):
@@ -621,6 +630,7 @@ def write_report(state, picks, out_dir, args):
 
 
 def main():
+    exit_on_hangup()
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--models", nargs="+",
