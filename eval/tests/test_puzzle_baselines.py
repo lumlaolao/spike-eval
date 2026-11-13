@@ -459,6 +459,12 @@ class BuildFreshnessTest(unittest.TestCase):
                 os.utime(d / pb.BUILD_SHA_FILE, (mtime, mtime))
         return d
 
+    def test_a_forge_home_written_with_a_variable_is_expanded(self):
+        # One environment sets FORGE_HOME to the literal "$HOME/forge"; unexpanded, Build said no checkout there.
+        with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/forge", "HOME": str(self.tmp)}):
+            b = pb.Build(self.make("bv", "aaaaaaaaaaaa"))
+        self.assertEqual(b.forge, self.forge)
+
     def test_a_build_of_this_checkout_is_accepted(self):
         d = self.make("b1", "aaaaaaaaaaaa")
         b = pb.Build(d, self.forge)

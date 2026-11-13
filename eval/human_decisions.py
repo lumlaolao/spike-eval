@@ -78,6 +78,7 @@ def ledger():
 
 
 def audit(forge_home):
+    forge_home = os.path.expanduser(os.path.expandvars(forge_home))   # FORGE_HOME may hold "$HOME/forge"
     with open(os.path.join(forge_home, HUMAN), errors="replace") as f:
         src = f.read()
     asks, led = prompting(src), ledger()
