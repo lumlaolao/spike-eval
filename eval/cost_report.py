@@ -138,26 +138,33 @@ PRICE_MAX_AGE_DAYS = 30
 
 
 def stale_prices(prices, models, today=None):
-    """[(model, oldest date, age in days)] for each priced, non-free model of `models` whose list price
-    (`checked`) or budget bound (the date in `max_note`) was last checked more than PRICE_MAX_AGE_DAYS ago; a price
-    with no readable date counts as stale. Free means $0 at the list rate and at the bound (`max`), which
-    run_batch.py's budget reads."""
+    """[(model, oldest date, age in days)] for each priced, non-free model of `models` whose list price (`checked`,
+    which must be a readable date) or budget bound (the date in `max_note`, when it has one) was last checked more
+    than PRICE_MAX_AGE_DAYS ago; a price with no readable `checked` counts as stale. Free means $0 at the list rate
+    and at the bound (`max`), which run_batch.py's budget reads (budget_prices)."""
     today = today or datetime.date.today()
+    bounds = budget_prices(prices)
     out = []
-    for m in sorted(set(models)):
-        p = prices.get(m)
-        bound = dict(p or {}, **((p or {}).get("max") or {}))
-        if not p or not any(bound.get(k) for k in ("prompt", "completion")):
-            continue                                # unpriced, or free at both rates (the loopback fake)
-        ages = []
-        for d in re.findall(r"\d{4}-\d{2}-\d{2}", "%s %s" % (p.get("checked", ""), p.get("max_note", ""))):
+
+    def age_of(text):
+        for d in re.findall(r"\d{4}-\d{2}-\d{2}", str(text or "")):
             try:
-                ages.append(((today - datetime.date.fromisoformat(d)).days, d))
+                return (today - datetime.date.fromisoformat(d)).days, d
             except ValueError:
                 continue                            # not a calendar date: read as no date
-        age, oldest = max(ages) if ages else (None, None)
-        if age is None or age > PRICE_MAX_AGE_DAYS:
-            out.append((m, oldest or "no date", age))
+        return None
+
+    for m in sorted(set(models)):
+        p = prices.get(m)
+        if not p or not any(bounds[m].get(k) for k in ("prompt", "completion")):
+            continue                                # unpriced, or free at both rates (the loopback fake)
+        checked = age_of(p.get("checked"))
+        if checked is None:
+            out.append((m, "no date", None))
+            continue
+        age, oldest = max(x for x in (checked, age_of(p.get("max_note"))) if x is not None)
+        if age > PRICE_MAX_AGE_DAYS:
+            out.append((m, oldest, age))
     return out
 
 

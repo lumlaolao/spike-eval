@@ -91,11 +91,14 @@ class CostReportTest(unittest.TestCase):
                   "fake/free": {"prompt": 0, "completion": 0, "checked": "2020-01-01"},
                   "a/free-list-dear-bound": {"prompt": 0, "completion": 0, "checked": "2026-09-01",
                                              "max": {"prompt": 1e-6, "completion": 1e-6}},
-                  "a/bad-date": {"prompt": 1e-6, "completion": 1e-6, "checked": "2026-13-45"}}
+                  "a/bad-date": {"prompt": 1e-6, "completion": 1e-6, "checked": "2026-13-45"},
+                  "a/bound-dated-only": {"prompt": 1e-6, "completion": 1e-6, "max_note": "dearest, 2026-11-12"}}
         stale = cr.stale_prices(prices, ["a/old", "a/new", "a/undated", "fake/free", "a/unpriced",
-                                         "a/free-list-dear-bound", "a/bad-date"], today=datetime.date(2026, 11, 13))
-        self.assertEqual(stale, [("a/bad-date", "no date", None), ("a/free-list-dear-bound", "2026-09-01", 73),
-                                 ("a/old", "2026-10-10", 34), ("a/undated", "no date", None)])
+                                         "a/free-list-dear-bound", "a/bad-date", "a/bound-dated-only"],
+                                today=datetime.date(2026, 11, 13))
+        self.assertEqual(stale, [("a/bad-date", "no date", None), ("a/bound-dated-only", "no date", None),
+                                 ("a/free-list-dear-bound", "2026-09-01", 73), ("a/old", "2026-10-10", 34),
+                                 ("a/undated", "no date", None)])
         self.assertIn("a/old (checked 2026-10-10, 34 days ago)", cr.stale_warning(stale))
         self.assertIsNone(cr.stale_warning([]))
 
