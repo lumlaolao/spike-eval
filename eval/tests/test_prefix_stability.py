@@ -74,5 +74,33 @@ class PrefixStabilityTest(unittest.TestCase):
                 self.assertEqual(ps.main([tmp]), 1)
 
 
+class WholeRequestTest(unittest.TestCase):
+    def test_the_whole_request_is_measured_per_bridge_and_a_cache_reads_its_shared_prefix(self):
+        system = {"role": "system", "content": "S" * 100}
+        bodies = [{"tools": [{"n": 1}], "messages": [system, {"role": "user", "content": u}]}
+                  for u in ("rec1|state a", "rec1|state b", "rec1rec2|state c")]
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "transcripts"))
+            with open(os.path.join(tmp, "transcripts", "http-1-1.jsonl"), "w") as f:
+                for i, b in enumerate(bodies):
+                    f.write(json.dumps({"t": "http", "phase": "sent", "seq": i + 1, "label": "Seat/smart",
+                                        "request_body": json.dumps(b)}) + "\n")
+                    f.write(json.dumps({"t": "http", "phase": "response", "seq": i + 1, "label": "Seat/smart"}) + "\n")
+                f.write(json.dumps({"t": "http", "phase": "sent", "seq": 9, "label": "Other/smart",
+                                    "request_body": json.dumps(bodies[0])}) + "\n")
+            (w, other) = sorted(ps.measure_requests(tmp), key=lambda x: x["label"], reverse=True)
+        texts = [ps.request_text(b) for b in bodies]
+        shared = [ps.common_prefix(texts[0], texts[1]), ps.common_prefix(texts[1], texts[2])]
+        self.assertEqual((w["label"], w["requests"], other["requests"]), ("Seat/smart", 3, 1))
+        self.assertEqual(w["read_chars"], sum(shared))
+        self.assertEqual(w["written_chars"], len(texts[0]) + sum(len(t) for t in texts[1:]) - sum(shared))
+        self.assertTrue(texts[0].startswith('[{"n": 1}]'), "the tools come first, as the provider reads them")
+
+    def test_thirds_are_the_medians_of_the_start_middle_and_end(self):
+        self.assertEqual(ps.thirds([0.1, 0.2, 0.3, 0.5, 0.6, 0.7]), [0.15, 0.4, 0.65])
+        self.assertEqual(ps.thirds([0.5]), [0.5, 0.5, 0.5])
+        self.assertEqual(ps.thirds([]), [None, None, None])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

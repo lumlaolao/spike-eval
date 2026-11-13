@@ -10,6 +10,10 @@ append-only record and every place where the record was not a prefix of the next
 
   python3 eval/prefix_stability.py <game dir> [--json] [--min-record-share 0.3]
 
+With TRANSCRIPTS=1 rows in <game dir>/transcripts it also measures the whole request as the provider reads it (the
+tools, then the messages in order): for each request, the share that is a prefix of the previous request, and the
+characters a prefix cache would read against those it would write over the game.
+
 Exit 1 when the record of a message is not a prefix of the next one, when a cache-ordered message prints a REVEALS
 TO YOU block, or when the median record share is under --min-record-share (only checked when given).
 """
@@ -41,6 +45,71 @@ def common_prefix(a, b):
     while i < n and a[i] == b[i]:
         i += 1
     return i
+
+
+def thirds(values):
+    """Medians of the first, middle and last third of a sequence (start, middle, end of the game)."""
+    n = len(values)
+    if n < 3:
+        return [round(statistics.median(values), 3)] * 3 if values else [None] * 3
+    cut = [values[:n // 3], values[n // 3:2 * n // 3], values[2 * n // 3:]]
+    return [round(statistics.median(c), 3) for c in cut]
+
+
+def request_text(body):
+    """A request as the provider's prefix cache reads it: the tools, then each message's role and content (and calls)."""
+    parts = [json.dumps(body.get("tools") or [], sort_keys=True)]
+    for m in body.get("messages") or []:
+        content = m.get("content")
+        if not isinstance(content, str):
+            content = json.dumps(content, sort_keys=True)
+        parts.append("<%s>%s%s" % (m.get("role"), content, json.dumps(m.get("tool_calls"), sort_keys=True)
+                                   if m.get("tool_calls") else ""))
+    return "\n".join(parts)
+
+
+def requests(game_dir):
+    """{bridge label (seat/tier): [request_text]} of the model requests TRANSCRIPTS=1 recorded, in the order sent."""
+    rows = []
+    for path in sorted(glob.glob(os.path.join(game_dir, "transcripts", "http-*.jsonl"))):
+        with open(path, errors="replace") as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                if r.get("t") == "http" and r.get("phase") == "sent":
+                    try:
+                        body = json.loads(r.get("request_body") or "")
+                    except ValueError:
+                        continue
+                    rows.append((r.get("label"), path, r.get("seq") or 0, request_text(body)))
+    rows.sort(key=lambda x: (str(x[0]), x[1], x[2]))
+    out = {}
+    for label, _, _, text in rows:
+        out.setdefault(label, []).append(text)
+    return out
+
+
+def measure_requests(game_dir):
+    """Per bridge (seat/tier): the whole-request prefix shares and a prefix cache's reads and writes (in characters)
+    over the game, each request against the one before it from the same bridge."""
+    return [dict(measure_request_list(reqs), label=label) for label, reqs in sorted(requests(game_dir).items(),
+                                                                                       key=lambda x: str(x[0]))]
+
+
+def measure_request_list(reqs):
+    shares, read, written = [], 0, len(reqs[0])
+    for prev, cur in zip(reqs, reqs[1:]):
+        n = common_prefix(prev, cur)
+        shares.append(n / max(1, len(cur)))
+        read += n
+        written += len(cur) - n
+    return {"requests": len(reqs), "median_request_chars": int(statistics.median(len(r) for r in reqs)),
+            "mean_request_chars": int(statistics.mean(len(r) for r in reqs)),
+            "median_shared_share": round(statistics.median(shares), 3) if shares else None,
+            "shared_share_by_third": thirds(shares), "read_chars": read, "written_chars": written,
+            "read_share": round(read / max(1, read + written), 3)}
 
 
 def seat_messages(game_dir):
@@ -82,6 +151,8 @@ def measure(game_dir):
                                "now": cur[max(0, at - 60):at + 60]})
         seats.append({
             "file": key[0], "seat": key[1], "decisions": len(prompts),
+            "mean_message_chars": int(statistics.mean(len(p) for p in prompts)) if prompts else 0,
+            "shared_share_by_third": thirds(shared),
             "rounds_per_decision": round(calls.get(key, 0) / max(1, len(prompts)), 3),
             "median_message_chars": int(statistics.median(len(p) for p in prompts)) if prompts else 0,
             "median_shared_prefix_share": round(statistics.median(shared), 3) if shared else None,
@@ -115,19 +186,24 @@ def main(argv=None):
     ap.add_argument("--min-record-share", type=float, default=None)
     a = ap.parse_args(argv)
     seats = measure(a.game_dir)
+    whole = measure_requests(a.game_dir)
     if not seats:
         print("prefix_stability: no first-round context_call rows in %s" % a.game_dir, file=sys.stderr)
         return 1
     bad = problems(seats, a.min_record_share)
     if a.json:
-        print(json.dumps({"seats": seats, "problems": bad}, indent=1))
+        print(json.dumps({"seats": seats, "requests": whole, "problems": bad}, indent=1))
     else:
         for s in seats:
-            print("%s %s: decisions=%d rounds/decision=%.2f median message %d chars, shared prefix %s, record %s, "
-                  "record breaks %d, REVEALS blocks %d"
+            print("%s %s: decisions=%d rounds/decision=%.2f message chars median %d mean %d, shared prefix %s (by third "
+                  "%s), record %s, record breaks %d, REVEALS blocks %d"
                   % (s["file"], s["seat"], s["decisions"], s["rounds_per_decision"], s["median_message_chars"],
-                     s["median_shared_prefix_share"], s["median_record_share"], len(s["record_breaks"]),
-                     s["reveals_blocks"]))
+                     s["mean_message_chars"], s["median_shared_prefix_share"], s["shared_share_by_third"],
+                     s["median_record_share"], len(s["record_breaks"]), s["reveals_blocks"]))
+        for w in whole:
+            print("%(label)s whole requests: %(requests)d, chars median %(median_request_chars)d mean "
+                  "%(mean_request_chars)d, shared prefix %(median_shared_share)s (by third %(shared_share_by_third)s), a "
+                  "prefix cache reads %(read_share)s of the characters" % w)
         for p in bad:
             print("PROBLEM " + p)
     return 1 if bad else 0
