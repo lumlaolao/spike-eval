@@ -708,9 +708,7 @@ def test_a_crash_beside_a_seed_played_in_every_order_is_skipped_silently():
         check("every order (unpaired): unplaced 0", s["games"]["unplaced_no_game_line"] == 0, str(s["games"]))
         check("every order (unpaired): no warning", not any("upper bound" in w for w in s["warnings"]), str(s["warnings"]))
     with tempfile.TemporaryDirectory() as d:
-        for i in range(3):
-            for swap, n in ((False, 100), (True, 200)):
-                write_jsonl(d, "game-%d-%d.jsonl" % (i, n), [decision_line("smart", 900), game_line(i, swap, "A", ctrl_b="ai")])
+        _paired_lines(d, range(3))
         write_jsonl(d, "game-1-50.jsonl", [decision_line("smart", 900)])
         s, a = _arm_a(d)
         check("every order (paired): started 6", (a["started"], a["crashed"]) == (6, 0), str(a))
@@ -718,16 +716,75 @@ def test_a_crash_beside_a_seed_played_in_every_order_is_skipped_silently():
         check("every order (paired): no warning", not any("upper bound" in w for w in s["warnings"]), str(s["warnings"]))
 
 
+def _paired_lines(d, seeds):
+    for i in seeds:
+        for swap, n in ((False, 100), (True, 200)):
+            write_jsonl(d, "game-%d-%d.jsonl" % (i, n), [decision_line("smart", 900), game_line(i, swap, "A", ctrl_b="ai")])
+
+
+def _line(d, seed):
+    write_jsonl(d, "game-%d-100.jsonl" % seed, [decision_line("smart", 900), game_line(seed, False, "A", ctrl_b="ai")])
+
+
+def _no_line(d, name):
+    write_jsonl(d, name, [decision_line("smart", 900)])
+
+
+def _log(d, seed, swap, names):
+    Path(d, "game-%d-%d.log" % (seed, 1 if swap else 0)).write_text("[EVAL] jsonl %s\n" % names)
+
+
+# One case per row of the placement table (docs/eval/SCORING.md, "Started games"): the directory, then the expected
+# (started, crashed, unplaced) of arm A. A warning is given exactly when something is unplaced.
+PLACEMENT_ROWS = [
+    ("named, its slot has a line: skipped", lambda d: (_line(d, 0), _no_line(d, "game-0-50.jsonl"),
+                                                      _log(d, 0, False, "game-0-50.jsonl")), (1, 0, 0)),
+    ("named, its slot has no line: charged", lambda d: (_line(d, 0), _no_line(d, "game-1-50.jsonl"),
+                                                       _log(d, 1, True, "game-1-50.jsonl")), (2, 1, 0)),
+    ("unnamed, every order played, paired: skipped", lambda d: (_paired_lines(d, [0]), _no_line(d, "game-0-50.jsonl")),
+     (2, 0, 0)),
+    ("unnamed, unpaired, a log names the line: skipped", lambda d: (_line(d, 0), _log(d, 0, False, "game-0-100.jsonl"),
+                                                                    _no_line(d, "game-0-50.jsonl")), (1, 0, 0)),
+    ("unnamed, unpaired, no log names the line: unplaced", lambda d: (_line(d, 0), _no_line(d, "game-0-50.jsonl")),
+     (1, 0, 1)),
+    ("unnamed, a seed missing an order: unplaced", lambda d: (_paired_lines(d, [0]), _line(d, 1),
+                                                              _no_line(d, "game-1-50.jsonl")), (3, 0, 1)),
+    ("unnamed, the missing order charged to a named file: skipped",
+     lambda d: (_line(d, 1), _no_line(d, "game-1-60.jsonl"), _log(d, 1, True, "game-1-60.jsonl"),
+                _no_line(d, "game-1-50.jsonl")), (2, 1, 0)),
+    ("unnamed, no line on the seed: charged per order", lambda d: (_paired_lines(d, [0]), _no_line(d, "game-7-1.jsonl"),
+                                                                   _no_line(d, "game-7-2.jsonl")), (4, 2, 0)),
+    ("unnamed, past both charged orders: skipped",
+     lambda d: (_paired_lines(d, [0]), [_no_line(d, "game-7-%d.jsonl" % k) for k in (1, 2, 3)]), (4, 2, 0)),
+    ("unnamed, past the one order of an unpaired experiment: unplaced",
+     lambda d: (_line(d, 0), _log(d, 0, False, "game-0-100.jsonl"), _no_line(d, "game-7-1.jsonl"),
+                _no_line(d, "game-7-2.jsonl")), (2, 1, 1)),
+    ("no seed in the name: not a slot", lambda d: (_line(d, 0), _no_line(d, "game-x-1.jsonl")), (1, 0, 0)),
+]
+
+
+def test_the_placement_table_one_case_per_row():
+    for row, build, want in PLACEMENT_ROWS:
+        with tempfile.TemporaryDirectory() as d:
+            build(d)
+            s, a = _arm_a(d)
+            got = (a["started"], a["crashed"], s["games"]["unplaced_no_game_line"])
+            check("table: " + row, got == want, "%s != %s %s" % (got, want, s["games"]))
+            warned = any("may be an upper bound" in w for w in s["warnings"])
+            check("table: " + row + " (warned only when unplaced)", warned == (want[2] > 0), str(s["warnings"]))
+
+
 def test_a_swapped_line_makes_two_seat_orders_per_unplayed_seed():
     """Paired lines on seeds 0-2 and no logs: two files with no line on seed 7 are both started games."""
     with tempfile.TemporaryDirectory() as d:
-        for i in range(3):
-            for swap, n in ((False, 100), (True, 200)):
-                write_jsonl(d, "game-%d-%d.jsonl" % (i, n), [decision_line("smart", 900), game_line(i, swap, "A", ctrl_b="ai")])
+        _paired_lines(d, range(3))
         write_jsonl(d, "game-7-1.jsonl", [decision_line("smart", 900)])
         write_jsonl(d, "game-7-2.jsonl", [decision_line("smart", 900)])
-        _, a = _arm_a(d)
+        write_jsonl(d, "game-7-3.jsonl", [decision_line("smart", 900)])
+        s, a = _arm_a(d)
         check("swapped line: started 6 + 2", (a["started"], a["crashed"]) == (8, 2), str(a))
+        check("swapped line: a third file past both charged orders is not unplaced",
+              s["games"]["unplaced_no_game_line"] == 0, str(s["games"]))
 
 
 def test_a_crash_counts_once_per_identity_when_both_share_a_label():
@@ -1006,6 +1063,7 @@ def main():
     test_an_unpaired_directory_charges_one_crash_per_seed()
     test_a_crash_beside_a_seed_played_in_every_order_is_skipped_silently()
     test_a_swapped_line_makes_two_seat_orders_per_unplayed_seed()
+    test_the_placement_table_one_case_per_row()
     test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
     test_a_game_whose_log_failed_to_write_is_invalid()
     test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out()
