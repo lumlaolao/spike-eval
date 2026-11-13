@@ -439,6 +439,30 @@ handle.
 - the state;
 - the decision with its numbered options, last.
 
+**The cache order (`CONTEXT_PROFILE=v5-cache`, opt-in; observation `observation-faithful-v46+cache-v1`).**
+v4-faithful's knobs and blocks, in another order, so the provider's prompt cache can read most of each decision's
+message instead of writing it again (audit G: cache writes were two thirds of a game's bill, and 72% of the message
+was text that only grows, written again on every decision because the first bytes changed).
+- The message opens with THE GAME SO FAR, a record that is only appended to (`SeatObservation.renderCacheOrdered`):
+  each finished turn's digest line, added once the turn has ended and the seat was shown all of it
+  (`GameHistory.renderSplit`), and the printed text of each card not in the seat's deck, added when first seen (the
+  lines OPPONENT CARDS YOU HAVE SEEN and YOUR CARDS SINCE THE START held). No count, turn stamp or age is in it.
+- Then the `<archive>` lines (ContextMemory puts them after the record, `setStablePrefix`), then the state as
+  v4-faithful prints it, with GAME HISTORY, CONTINUED (the part of a turn not ended at the last decision) and SINCE
+  YOUR LAST DECISION in place of GAME HISTORY, then the decision.
+- Each reveal is printed once, as the `[private reveal to you]` line of the history: every REVEALS TO YOU line was
+  also a history line (71,809 of 71,809 in 1,355 recorded prompts, runs/loop g20-g33 and pair-4201), so the block is
+  not printed. The REVEALS block's turn age ("3 turns ago") is not carried: the line's turn is.
+- The state guide says the same (`SeatObservation.guide(ctx)`, `CACHE_GUIDE`).
+- Tested: `GameHistoryTest` (the split shows exactly the TIERED lines, each finished turn handed back once),
+  `SeatObservationTest` (the record only grows and opens each state; nothing but the reveal copy is dropped; the
+  v4-faithful state, guide and context sha keep the bytes read from main), `ContextMemoryTest` (the archive after the
+  record), and acceptance stage `cacheorder` (a fake-model game whose every first-round message starts with the
+  previous one's record, `eval/prefix_stability.py`).
+- v4-faithful stays the default until a paired block under the owner's decision compares the two orders.
+- Anthropic models: `cache_control` is still top-level (automatic); an explicit breakpoint at the record's end is not
+  set yet.
+
 - *Why this order:* the prompt-cache prefix is exact. Tools, then the system prompt, then the history must
   not change between calls, so nothing per-decision goes early (`docs/harness/PROMPT-CRAFT.md` rules
   17–19). The question goes last because queries at the end of long inputs are answered better (rule 12).
