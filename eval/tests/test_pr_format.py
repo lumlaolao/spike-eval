@@ -123,6 +123,31 @@ class PrFormatTest(unittest.TestCase):
             self.assertIn("not a full pass", str(cm.exception.code))
         self.assertGreaterEqual(pf.full_stage_count(), 19)
 
+    def test_record_acceptance_ties_the_run_to_the_commit_it_names(self):
+        # summary.txt names no commit: any full pass could be recorded for any head. head.txt (written by acceptance)
+        # must name the recorded sha with no uncommitted change.
+        stages = pf.all_stages()
+        full = ["PASS %s: ok" % (st if st != "canary" else "canary-floor") for st in stages] + ["PASS canary-random: ok"]
+        n = str(len(full))
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "summary.txt").write_text("\n".join(full) + "\n")
+            (Path(d) / "head.txt").write_text("abc1234def\n0\n")
+            self.assertEqual(pf.summary_problems(d, n, n, "abc1234"), [])
+            p = pf.summary_problems(d, n, n, "fff0000")
+            self.assertTrue(any("tested abc1234de, not fff0000" in x for x in p), p)
+            (Path(d) / "head.txt").write_text("abc1234def\n3\n")
+            self.assertTrue(any("3 uncommitted change(s)" in x for x in pf.summary_problems(d, n, n, "abc1234")))
+            (Path(d) / "head.txt").unlink()
+            p = pf.summary_problems(d, n, n, "abc1234")
+            self.assertTrue(any("neither head.txt nor overlay-sha.txt" in x for x in p), p)
+            (Path(d) / "overlay-sha.txt").write_text("0123456789ab\n")
+            p = pf.summary_problems(d, n, n, "fff0000")      # this checkout is not at fff0000: cannot be checked
+            self.assertTrue(any("no head.txt" in x for x in p), p)
+
+    def test_acceptance_records_the_head_it_tested(self):
+        text = (Path(pf.__file__).resolve().parents[1] / "eval" / "harness_acceptance.sh").read_text()
+        self.assertRegex(text, r'git -C "\$REPO" rev-parse HEAD.*> "\$OUT/head\.txt"')
+
     def test_record_acceptance_reads_the_runs_own_summary(self):
         # The typed counts must match the run's own summary.txt: a PASS line per stage in ALL_STAGES, no FAIL line
         # (standards of #357).

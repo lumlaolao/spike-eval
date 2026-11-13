@@ -66,11 +66,47 @@ def full_pass(passed, total):
     return passed == total and int(total) >= full_stage_count()
 
 
-def summary_problems(outdir, passed, total):
-    """What keeps `<out>/summary.txt` from being a full pass matching the typed counts (standards of #357)."""
+def head_problems(outdir, sha):
+    """What keeps the run in `outdir` from being evidence for commit `sha`. The run's head.txt (harness_acceptance.sh:
+    the commit it tested, then its count of changed files) must name `sha` with no change. A run from before head.txt
+    is checked as far as it can be: its overlay-sha.txt against this checkout's overlay hash, when this checkout is at
+    `sha` with no change (benchmark_version, the hash run_batch.py stamps)."""
+    head = outdir / "head.txt"
+    if head.is_file():
+        words = head.read_text(encoding="utf-8", errors="replace").split()
+        if not words or not same_commit(words[0], sha):
+            return ["%s says the run tested %s, not %s" % (head, (words or ["nothing"])[0][:9], sha[:9])]
+        if len(words) > 1 and words[1] != "0":
+            return ["%s says the run's checkout had %s uncommitted change(s)" % (head, words[1])]
+        return []
+    built = outdir / "overlay-sha.txt"
+    if not built.is_file():
+        return ["%s has neither head.txt nor overlay-sha.txt: which code it tested cannot be checked" % outdir]
+    repo = Path(__file__).resolve().parents[1]
+    local = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    dirty = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True).stdout
+    if not same_commit(local, sha) or dirty.strip():
+        return ["%s has no head.txt; its overlay-sha.txt can be checked only from a clean checkout at %s (this one is "
+                "%s%s)" % (outdir, sha[:9], local[:9], ", with changes" if dirty.strip() else "")]
+    try:
+        sys.path.insert(0, str(repo / "eval"))
+        import benchmark_version
+        mine = benchmark_version.overlay_sha_of_checkout(repo)
+    except Exception as e:  # noqa: BLE001  a hash that cannot be made is a refusal, never a pass
+        return ["this checkout's overlay hash could not be made (%s)" % e]
+    recorded = built.read_text(encoding="utf-8", errors="replace").strip()
+    if recorded == mine:
+        return []
+    return ["%s records overlay %s, the overlay at %s is %s" % (built, recorded, sha[:9], mine)]
+
+
+def summary_problems(outdir, passed, total, sha=None):
+    """What keeps `<out>/summary.txt` from being a full pass matching the typed counts (standards of #357), and, given
+    the commit it is recorded for, from being that commit's run (head_problems)."""
     path = Path(outdir)
     if not path.is_absolute():
         path = Path(__file__).resolve().parents[1] / path      # a run's OUT is often repo-relative (runs/...)
+    heads = head_problems(path, sha) if sha is not None and path.is_dir() else []
     path = path / "summary.txt"
     if not path.is_file():
         return ["%s not found: record-acceptance reads the run's own summary" % path]
@@ -82,7 +118,7 @@ def summary_problems(outdir, passed, total):
     n = sum(l.startswith("PASS") for l in lines)
     if (passed, total) != (str(n), str(len(lines))):
         problems.append("%s/%s typed, but %s records %d/%d" % (passed, total, path, n, len(lines)))
-    return problems
+    return problems + heads
 
 
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
@@ -427,7 +463,7 @@ def main(argv):
         if not (args[3].isdigit() and args[4].isdigit()) or not full_pass(args[3], args[4]):
             sys.exit("record-acceptance: %s/%s is not a full pass of all %d stage lines; a STAGES subset is reported "
                      "as prose in Evidence, never as the gate's line" % (args[3], args[4], full_stage_count()))
-        problems = summary_problems(args[2], args[3], args[4])
+        problems = summary_problems(args[2], args[3], args[4], args[1])
         if problems:
             sys.exit("record-acceptance: " + "; ".join(problems))
         record_line(args[0], args[1], "Evidence", "- acceptance @",

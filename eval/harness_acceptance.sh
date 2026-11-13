@@ -97,6 +97,8 @@ mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd -P)"
 SUMMARY="$OUT/summary.txt"
 : > "$SUMMARY"
+# Which commit this run tested, and how many files differed from it (scripts/pr_format.py record-acceptance reads it).
+[ -n "${ACC_CHILD:-}" ] || { git -C "$REPO" rev-parse HEAD; git -C "$REPO" status --porcelain | wc -l | tr -d ' '; } > "$OUT/head.txt" 2>/dev/null
 FAILED=0
 
 say()  { echo "[$(date -u +%H:%M:%S)] $*"; }
