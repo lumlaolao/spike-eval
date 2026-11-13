@@ -65,20 +65,21 @@ class ReporterTest(unittest.TestCase):
 
 
 class NoteTest(unittest.TestCase):
-    """The research note quotes the number of tests of the grader's and the task builder's files: they must be true."""
+    """The research note gives a floor for the number of tests of the grader's and the task builder's files: a
+    reward-hack test deleted from either file fails here, while an added test needs no edit to a dated note."""
 
     def count(self, module):
-        suite = unittest.TestLoader().loadTestsFromModule(sys.modules[module])  # not the -k filtered default loader
-        return suite.countTestCases()
+        # The module objects themselves: run as a script this file is __main__, not its file name.
+        return unittest.TestLoader().loadTestsFromModule(module).countTestCases()  # not the -k filtered loader
 
-    def test_the_notes_test_counts_are_the_unittest_counts(self):
+    def test_the_notes_test_counts_are_floors_the_unittest_counts_meet(self):
         note = os.path.join(os.path.dirname(os.path.dirname(__file__)), "research", "2026-11-07-harness-env-tasks.md")
         with open(note, encoding="utf-8") as f:
             text = f.read()
-        m = re.search(r"(\d+) grader tests and (\d+) task tests", text)
-        self.assertIsNotNone(m, "the note must say 'N grader tests and N task tests'")
-        self.assertEqual((int(m.group(1)), int(m.group(2))),
-                         (self.count("test_harness_env_task_grade"), self.count("test_harness_env_tasks")))
+        m = re.search(r"at least (\d+) grader tests and (\d+) task tests", text)
+        self.assertIsNotNone(m, "the note must say 'at least N grader tests and N task tests'")
+        self.assertGreaterEqual(self.count(sys.modules[__name__]), int(m.group(1)), "a grader test was removed")
+        self.assertGreaterEqual(self.count(fx), int(m.group(2)), "a task test was removed")
 
 
 class ValidationStampTest(unittest.TestCase):
