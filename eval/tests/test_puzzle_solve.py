@@ -4,6 +4,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import unittest
@@ -14,6 +15,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_solve  # noqa: E402
 
+
+
+def setUpModule():
+    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
+    global _SAVED_TEMPDIR
+    _SAVED_TEMPDIR, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_solve-")
+
+
+def tearDownModule():
+    shutil.rmtree(tempfile.tempdir, ignore_errors=True)
+    tempfile.tempdir = _SAVED_TEMPDIR
+    shutil.rmtree(STUB_BUILD["return_value.classes"], ignore_errors=True)  # made at import, before setUpModule
 
 
 def classes_with_transcript():

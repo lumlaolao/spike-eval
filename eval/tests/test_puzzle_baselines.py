@@ -2,6 +2,7 @@
 condition, and the commands that write a record's difficulty and v2 tier (prove, retier, run --baselines-only)."""
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -12,6 +13,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_baselines as pb  # noqa: E402
 import run_batch  # noqa: E402
+
+
+def setUpModule():
+    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
+    global _SAVED_TEMPDIR
+    _SAVED_TEMPDIR, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_baselines-")
+
+
+def tearDownModule():
+    shutil.rmtree(tempfile.tempdir, ignore_errors=True)
+    tempfile.tempdir = _SAVED_TEMPDIR
 
 
 class WrittenLineTest(unittest.TestCase):

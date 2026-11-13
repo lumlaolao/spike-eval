@@ -1,6 +1,7 @@
 """puzzle_tool_use.py: lookups counted by name, decisions left out, conditions compared puzzle by puzzle."""
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -8,6 +9,17 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_tool_use as ptu  # noqa: E402
+
+
+def setUpModule():
+    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
+    global _SAVED_TEMPDIR
+    _SAVED_TEMPDIR, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_tool_use-")
+
+
+def tearDownModule():
+    shutil.rmtree(tempfile.tempdir, ignore_errors=True)
+    tempfile.tempdir = _SAVED_TEMPDIR
 
 
 def write(root, cond, pid, solves, tool_rows=()):
