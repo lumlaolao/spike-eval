@@ -190,6 +190,28 @@ class PlayVsLlmTest(unittest.TestCase):
         return subprocess.run(["bash", str(self.repo / "play-vs-llm.sh")], capture_output=True, text=True, env=base,
                               cwd=tempfile.gettempdir())
 
+    def test_only_an_openrouter_game_holds_the_openrouter_key(self):
+        # A claude-cli: game (and the build and commentary beside it) has no use for the key: it is never exported.
+        built = Path(self._tmp.name) / "key-probe"
+        built.mkdir(exist_ok=True)
+        seen = built / "seen.txt"
+        (built / "run-llm-spike.sh").write_text('#!/bin/sh\necho "key=${OPENROUTER_API_KEY-unset}" > "%s"\n' % seen)
+        (built / "run-llm-spike.sh").chmod(0o755)
+        cp = built / "cp.txt"
+        cp.write_text("/x.jar")
+        (self.repo / "secrets.env").write_text("OPENROUTER_API_KEY=from-secrets\n")
+        for model, extra, want in (("claude-cli:opus", {"CLAUDE_CLI_SEAT": "1", "OPENROUTER_API_KEY": "from-shell"},
+                                    "key=unset"),
+                                   ("openrouter:openai/gpt-6-luna", {}, "key=from-secrets")):
+            with self.subTest(model=model):
+                base = {k: v for k, v in os.environ.items() if k not in ("OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT")}
+                base.update(extra, OPENROUTER_ALLOW_EGRESS="1", HOME=self._tmp.name, FORGE_HOME=str(built),
+                            FORGE_CP_FILE=str(cp))
+                p = subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--model", model], capture_output=True,
+                                   text=True, env=base, cwd=tempfile.gettempdir())
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(seen.read_text().strip(), want)
+
     def test_a_start_with_no_build_prints_only_why_and_where_the_path_came_from(self):
         built = Path(self._tmp.name) / "built-by-setup"
         built.mkdir(exist_ok=True)

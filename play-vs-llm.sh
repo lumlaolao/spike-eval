@@ -59,8 +59,10 @@ deck_a="$(resolve "$deck")"; deck_b="$(resolve "$vs")"
 case "$games" in ''|*[!0-9]*|0) echo "play-vs-llm: --games takes a positive number" >&2; exit 2 ;; esac
 
 # The owner's own consent and key file, read as eval/puzzles/puzzle_solve.py reads it (KEY=VALUE, whitespace and a CR
-# trimmed, # comments skipped, the first occurrence kept); the environment wins.
-if [ -f "$REPO/secrets.env" ]; then
+# trimmed, # comments skipped, the first occurrence kept); the environment wins. Only an openrouter: model needs the
+# key: for any other the shell's is unset too, so the game, the build and the commentary never hold it.
+case "$model" in openrouter:*) ;; *) unset OPENROUTER_API_KEY ;; esac
+if [ -f "$REPO/secrets.env" ] && case "$model" in openrouter:*) true ;; *) false ;; esac; then
   while IFS= read -r ln || [ -n "$ln" ]; do
     ln="${ln%$'\r'}"; case "$ln" in *=*) ;; *) continue ;; esac
     k="${ln%%=*}"; v="${ln#*=}"
