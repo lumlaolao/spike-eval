@@ -1034,7 +1034,14 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
   (`ChatSessionBridge`) must pass the bill through, or the seat falls back to last-call usage.
   - *Why:* reading the last call's usage once an ask counted a failed ask's stale tokens again and lost a retry's
     first send (pr-review of #282).
-- `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget.
+- `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget. A block naming a
+  paid `openrouter:`/`jev:` model is refused without one in every mode; free seats (ai, random, floor, the loopback
+  fake model at $0) and a `claude-cli:` seat need none, and a block with no seat that can spend (a cross panel's
+  AI-vs-AI control) does not check it. The spend is read before every game over every directory of a panel; a
+  directory whose files did not change (path, size, mtime) is not parsed again.
+- A resume sets aside, under `crashed/` (`unfinished-`), the game file a combo's log names when it holds no game line
+  (the last failed attempt, a game cut by Ctrl-C) before playing the seed again, so it is not counted as a crash
+  beside the replay.
 - The owner rule is a small block first, with the expected cost stated before it starts.
 - *Why:* small per-game costs add up unseen; `eval/cost_report.py` prices any run, and `--plan N` the next N games.
 

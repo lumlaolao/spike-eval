@@ -23,7 +23,7 @@ Two modes:
     SKIP_HEURISTICS=0, no plans), refuses a seat on the Claude CLI (a development lane), and stamps full provenance
     (engine/overlay/deck shas + discipline). Refuses to run on any violation
     or on spike-file drift.
-  --exploratory — skips the mirror/heuristic/jobs guards for quick pokes.
+  --exploratory — skips the mirror/heuristic/held-out-seed guards for quick pokes.
     Still stamps provenance (discipline=exploratory) but prints a loud banner
     that the numbers are NOT citable.
 
@@ -130,6 +130,17 @@ RUN_DEFINING_KEYS = (
     # what the model can see and do); only their flags set them, never the
     # ambient environment or --env.
 ) + CONDITION_ENV_KEYS
+# Settings the JVM reads that change what a seat is given or how its calls go, and that no flag of this script sets:
+# the per-model config (token caps, timeouts, reasoning effort), the loop guards, the call deadlines, the endpoint,
+# provider routing and the prompt cache, and the run-mode switches that turn a batch game into something else.
+# Most are stamped on the game line (aggregate splits on them), but a cited batch must not inherit one from the shell
+# unseen: cited mode scrubs them and refuses them in --env. An exploratory batch keeps the shell's values, may set
+# them with --env, and records the ambient ones in the manifest (`ambient_env`), so a resume from a shell with other
+# values is refused instead of writing a second experiment into the directory.
+AMBIENT_CONDITION_KEYS = (
+    "OPENROUTER_MODEL_CFG", "SMART_BUDGET", "FAST_BUDGET", "OPENROUTER_TIMEOUT_MS", "CLAUDE_DEADLINE_MS",
+    "OPENROUTER_BASE_URL", "OPENROUTER_PROVIDER_SORT", "PROMPT_CACHE", "PUZZLE", "FORK_MODE", "REPLAY_HANDOVER",
+)
 # Per-knob context overrides (CTX_RECENT_EVENTS, ...) stamp a "+ovr" profile
 # name and a different context_sha on the game line. Cited mode refuses them;
 # exploratory mode allows them via --env and records them in the manifest.
@@ -150,7 +161,7 @@ CONDITION_KEYS = (
     "plan_execute", "tier_fast_types", "claude_cli_effort", "claude_cli_thinking_tokens", "propose_actions",
     "propose_audit", "propose_terse", "propose_notebook", "ai_profile_a", "ai_profile_b",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
-    "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
+    "cap_minutes", "shadow_ai", "env_overrides", "fake_policy", "ambient_env",
 )
 # --env values that must never be written to a manifest on disk.
 SECRET_KEY_HINTS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
@@ -283,6 +294,9 @@ def build_env(args, seed, swap, out_dir):
         env.pop(k, None)
     for k in [k for k in env if k.startswith(CTX_OVERRIDE_PREFIX)]:
         env.pop(k, None)
+    if not getattr(args, "exploratory", False):
+        for k in AMBIENT_CONDITION_KEYS:        # cited: no shell value reaches the seat (--env is refused for them)
+            env.pop(k, None)
     env["GAME_SEED"] = str(seed)
     # Context condition, PINNED EXPLICITLY. The play scripts (run-llm-headless.sh) default
     # CONTEXT_PROFILE/MEMORY_TOOLS/RULES_TOOL for a human's own games; a batch must never inherit
@@ -679,7 +693,16 @@ def batch_condition(args, cited):
         "fake_policy": getattr(args, "fake_policy", None),
         "env_overrides": {k: v for k, v in overrides.items()
                           if not k.startswith(CTX_OVERRIDE_PREFIX)},
+        # The shell's values of AMBIENT_CONDITION_KEYS an exploratory game inherits (cited mode scrubs them).
+        "ambient_env": {} if cited else ambient_condition_env(),
     }
+
+
+def ambient_condition_env():
+    """{name: value} of the AMBIENT_CONDITION_KEYS set in this process's environment, secret-looking names
+    redacted (the manifest never stores a credential)."""
+    return {k: ("<redacted>" if any(h in k.upper() for h in SECRET_KEY_HINTS) else os.environ[k])
+            for k in AMBIENT_CONDITION_KEYS if k in os.environ}
 
 
 def native_tools_requested(args):
@@ -781,8 +804,34 @@ def spent_usd(out_dir):
     crashed attempts set aside under crashed/ included: they were billed all the same."""
     prices = cost_report.budget_prices(cost_report.load_prices())
     crashed = Path(out_dir) / CRASHED_DIR
-    return (cost_report.report_dir(str(out_dir), prices)["usd"]
-            + (cost_report.report_dir(str(crashed), prices)["usd"] if crashed.is_dir() else 0.0))
+    return (_dir_usd(Path(out_dir), prices)
+            + (_dir_usd(crashed, prices) if crashed.is_dir() else 0.0))
+
+
+# The budget is checked before every game, over every directory of a panel: a directory none of whose files changed
+# (path, size, mtime) is not parsed again. A file that grew, a new file or a changed manifest re-reads its directory.
+_USD_CACHE = {}
+_USD_LOCK = threading.Lock()
+
+
+def _dir_usd(d, prices):
+    """cost_report.report_dir(d)["usd"], memoized on the directory's file signatures and the prices."""
+    sig = []
+    for p in sorted(d.glob("*.jsonl")) + [d / "batch-manifest.json"]:
+        try:
+            st = p.stat()
+        except OSError:
+            continue
+        sig.append((p.name, st.st_size, st.st_mtime_ns))
+    key = (tuple(sig), json.dumps(prices, sort_keys=True))
+    with _USD_LOCK:
+        hit = _USD_CACHE.get(str(d))
+        if hit and hit[0] == key:
+            return hit[1]
+    usd = cost_report.report_dir(str(d), prices)["usd"]
+    with _USD_LOCK:
+        _USD_CACHE[str(d)] = (key, usd)       # one entry per directory: its latest signature
+    return usd
 
 
 # A crashed attempt's files go here before its game is played again, so aggregate.py (which reads the
@@ -817,6 +866,20 @@ def set_aside(out_dir, seed, swap, attempt):
     name = log_game_file(log_path)
     tag = "attempt%d-swap%d-" % (attempt, 1 if swap else 0)
     return _move_to_crashed(out_dir, [(p, tag + p.name) for p in ([out_dir / name] if name else []) + [log_path]])
+
+
+def set_aside_unfinished(out_dir, seed, swap):
+    """Before (seed, swap) is played again: move the game file its log names, when that file holds no game line (the
+    last failed attempt of an earlier run, or a game cut by Ctrl-C), and the log, under crashed/ (unfinished-, named
+    after the game file). Left in place it would count as a crash beside the replay forever, and run_one would
+    overwrite its log. Returns the moved names."""
+    out_dir = Path(out_dir)
+    log_path = game_log(out_dir, seed, swap)
+    name = log_game_file(log_path)
+    if not name or not (out_dir / name).is_file() or any(True for _ in iter_game_lines_of(out_dir / name)):
+        return []
+    tag = "unfinished-swap%d-" % (1 if swap else 0)
+    return _move_to_crashed(out_dir, [(out_dir / name, tag + name), (log_path, tag + Path(name).stem + ".log")])
 
 
 def _move_to_crashed(out_dir, moves):
@@ -861,6 +924,8 @@ def condition_diff_norm(m, k):
         return normalize_tier_fast_types(m.get(k)) or normalize_tier_fast_types(env.get("TIER_FAST_TYPES"))
     if k == "env_overrides":
         return {e: v for e, v in env.items() if e not in PROMOTED_ENV_KEYS}
+    if k == "ambient_env":
+        return m.get(k) or {}         # a manifest from before the field recorded none
     return m.get(k)
 
 
@@ -1094,6 +1159,9 @@ def cited_pre_guards(args):
         if k in RUN_DEFINING_KEYS:
             _refuse("cited mode forbids --env %s — it defines the run; use the "
                     "dedicated flag instead so guards and provenance see it." % k)
+        if k in AMBIENT_CONDITION_KEYS:
+            _refuse("cited mode forbids --env %s: it changes what the seat is given or how its calls go, and a "
+                    "cited batch runs the defaults (the shell's value is scrubbed too)." % k)
         if k.startswith(CTX_OVERRIDE_PREFIX):
             _refuse("cited mode forbids per-knob context overrides (--env %s); a "
                     "cited condition is a named --context-profile, nothing else." % k)
@@ -1195,6 +1263,11 @@ def finalize_provenance_and_cap(args, cited):
     log("[condition] context_profile=%s memory_tools=%s"
         % (args.context_profile or "(unset: default " + DEFAULT_CONTEXT_PROFILE + ")",
            "1" if args.memory_tools else "off"))
+    ambient = ambient_condition_env()
+    if ambient:
+        log("[condition] %s from the shell: %s" % (
+            "scrubbed (cited)" if cited else "inherited and recorded in the manifest",
+            ", ".join("%s=%s" % kv for kv in sorted(ambient.items()))))
     if forced["CHECKPOINT_SHA"] == "unknown":
         log("[warn] no --checkpoint given: the game line will not say which weights "
             "played. The endpoint's served_* fields are then the only identity, and "
@@ -1268,7 +1341,10 @@ def warn_parallel_jobs(args):
 # aimed at a reserved block (deliberately) is not blocked, but a batch that
 # reserved seeds slipped into BY ACCIDENT (e.g. a copy-pasted --seeds range)
 # gets a loud reminder before the games it writes are later fed to
-# make_sft_data.py / mine_puzzles.py (both of which DO refuse).
+# make_sft_data.py (which refuses a reserved block and an eval-only registry
+# bank) or mine_puzzles.py (which tags each mined puzzle with its seed block
+# (seed_block) and does not refuse: whoever trains on mined puzzles must
+# filter on that tag).
 
 def warn_reserved_seeds(seeds):
     """Print a loud, non-fatal warning if any requested seed falls in a
@@ -1365,10 +1441,11 @@ def build_parser():
                     help="play each seed twice with SWAP_SEATS flipped (paired design)")
     ap.add_argument("--exploratory", action="store_true",
                     help="opt out of cited-mode guards (mirror deck, forced "
-                         "heuristics-off, jobs=1). Numbers become NON-citable.")
+                         "heuristics-off, held-out seeds, no Claude CLI seat). Numbers become NON-citable.")
     ap.add_argument("--jobs", type=int, default=1,
                     help="parallel game processes (each a separate JVM). "
-                         "cited mode requires 1. default 1")
+                         "Any mode may run several: the Claude CLI, the reason --jobs 1 was once forced, "
+                         "is refused in cited mode; warn_parallel_jobs advises a ceiling. default 1")
     ap.add_argument("--out",
                     help="output dir for JSONL + stdout logs. Optional: defaults "
                          "to runs/<UTC-timestamp>-<label> under the repo root.")
@@ -1430,7 +1507,8 @@ def build_parser():
     ap.add_argument("--budget-usd", type=float, default=None, metavar="USD",
                     help="stop starting games once this directory's estimated spend (eval/cost_report.py) "
                          "reaches USD. Games in flight finish, so the overshoot is at most --jobs games. "
-                         "Rerun with a larger value to resume. Refuses a model with no price on file.")
+                         "Rerun with a larger value to resume. Refuses a model with no price on file. Required "
+                         "whenever a seat names a paid openrouter:/jev: model (free seats and claude-cli: need none).")
     ap.add_argument("--retries", type=int, default=1, metavar="N",
                     help="play a game again up to N times when its JVM crashes, writes no game line or hangs "
                          "(default 1). The failed attempt's files move to <out>/crashed/ (still priced, never "
@@ -1598,6 +1676,13 @@ def run_block(args):
               "too). Pass the models, or --controller-x ai|random|floor." % ", ".join(missing),
               file=sys.stderr)
         sys.exit(2)
+    paid = paid_api_specs(args)
+    if paid and getattr(args, "budget_usd", None) is None:
+        # Every mode (CLAUDE.md: always pass --budget-usd). Free seats (ai, random, floor, the loopback fake model at
+        # $0) and a claude-cli: seat on the operator's own subscription need none.
+        print("run_batch: REFUSING: %s may spend money; pass --budget-usd X (games are not started past it)."
+              % ", ".join(paid), file=sys.stderr)
+        sys.exit(2)
     warn_reserved_seeds(args.seeds)
     if not getattr(args, "fake_policy", None):
         preflight_openrouter(args)
@@ -1642,7 +1727,7 @@ def run_block(args):
         bar = "=" * 72
         log(bar)
         log("  EXPLORATORY MODE — numbers from this run are NOT citable.")
-        log("  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.")
+        log("  Mirror-deck / forced-heuristics-off / held-out-seed guards are DISABLED.")
         log("  Re-run without --exploratory (and a mirror deck) for a citable batch.")
         log(bar)
         # Default identity names so exploratory still keys cleanly, if unset.
@@ -1707,6 +1792,10 @@ def run_block(args):
         if moved:
             log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; set aside %s and playing "
                 "it again" % (seed, swap, ", ".join(moved)))
+        moved = set_aside_unfinished(out_dir, seed, swap)
+        if moved:
+            log("[resume] seed=%d swap=%d: an earlier attempt wrote no game line; set aside %s and playing it again"
+                % (seed, swap, ", ".join(moved)))
     if not todo:
         log("Nothing to do.")
         return 0, out_dir
@@ -1714,7 +1803,7 @@ def run_block(args):
     log("Running %d games (jobs=%d, out=%s, forge_home=%s)"
         % (len(todo), args.jobs, out_dir, args.forge_home))
 
-    budget = getattr(args, "budget_usd", None)
+    budget = block_budget(args)
     # A panel's budget covers every cell under its root, not one cell's directory.
     budget_root = getattr(args, "budget_root", None)
     spent = (lambda: spent_usd_tree(budget_root)) if budget_root else (lambda: spent_usd(out_dir))
@@ -1786,18 +1875,49 @@ def sanity_arm_args(scored, arm, scored_out):
     # spend the budget; it still runs when the scored block used the budget up, which is exactly
     # when its check is needed. Identity B is the scored block's opponent, never a paid model in a
     # panel.
-    a.budget_usd = None if not paid_identity_b(a) else scored.budget_usd
+    a.budget_usd = None if not paid_identity(a, "b") else scored.budget_usd
     return a
 
 
-def paid_identity_b(a):
-    """True when identity B is a model seat with a paid price (a PvP block's sanity arms then still
-    spend on B, so they keep the budget)."""
-    if (a.controller_b or "llm") != "llm":
+def paid_identity(a, ident):
+    """True when identity `ident` ('a' or 'b') is a model seat that can spend: a priced spec above $0, an unpriced
+    API spec, or a non-API model (a claude-cli: seat reports its own cost). A PvP block's sanity arms still spend on
+    B, so they keep the budget."""
+    if (getattr(a, "controller_" + ident, None) or "llm") != "llm":
         return False
     prices = cost_report.load_prices()
     return any((cost_report.price_of(prices, s) or {}).get("prompt", 1) > 0 or not cost_report.model_id(s)
-               for s in (a.smart_b, a.fast_b))
+               for s in (getattr(a, "smart_" + ident, None), getattr(a, "fast_" + ident, None)))
+
+
+def block_budget(args):
+    """The budget this block checks before each game: --budget-usd, or None when no seat can spend (an AI-vs-AI
+    control, a floor or random block, the loopback fake model): such games are never stopped by the budget, as a free
+    sanity arm's are not, and they do not re-read a panel's spend before every game."""
+    budget = getattr(args, "budget_usd", None)
+    if budget is not None and not (paid_identity(args, "a") or paid_identity(args, "b")):
+        log("[budget] no paid seat in this block: the budget is not checked here")
+        return None
+    return budget
+
+
+def paid_api_specs(a):
+    """The openrouter:/jev: specs of this block's model seats that are not free (priced above $0, or not priced):
+    a block naming any needs --budget-usd. The loopback fake model is priced at $0; a claude-cli: seat is not an API
+    spec (the operator's own subscription, a development lane)."""
+    prices = cost_report.load_prices()
+    out = set()
+    for ident in ("a", "b"):
+        if (getattr(a, "controller_" + ident, None) or "llm") != "llm":
+            continue
+        for tier in ("smart", "fast"):
+            spec = getattr(a, "%s_%s" % (tier, ident), None)
+            if not cost_report.model_id(spec):
+                continue
+            p = cost_report.price_of(prices, spec)
+            if p is None or p.get("prompt", 0) > 0 or p.get("completion", 0) > 0:
+                out.add(spec)
+    return sorted(out)
 
 
 def run_sanity_arms(scored, scored_out):

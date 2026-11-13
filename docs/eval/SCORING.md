@@ -53,10 +53,11 @@ python3 eval/run_batch.py --panel mirror --seeds 7800..7802 --sanity-arms --budg
   not scored as valid). Identity A is the pilot you give; identity B is the panel's opponent, so
   `--deck*`, `--controller-b` and `--smart-b/--fast-b` are refused. `--seeds` defaults to the
   panel's published list and must be a subset of it.
-- `--budget-usd` is **required** with `--panel` and `--sanity-arms`, and with `--panel` it caps the
-  spend of every directory under the root, not one cell. A sanity arm against the Forge AI costs
-  nothing and still runs after the scored block used the budget up; one facing a paid identity B
-  keeps the budget.
+- `--budget-usd` is **required** with `--panel` and `--sanity-arms`, and for any block naming a paid
+  `openrouter:` or `jev:` model; with `--panel` it caps the spend of every directory under the root,
+  not one cell. A block no seat of which can spend (a sanity arm against the Forge AI, a cross
+  panel's AI-vs-AI control) does not check it and still runs after the pilot used the budget up; a
+  sanity arm facing a paid identity B keeps the budget.
 - The cross panel plays its control per cell on a prefix of the control seeds four times as long as
   the pilot's block (`--no-control` skips it). A cross cell is the one asymmetric matchup cited mode
   accepts: both decklists must still hash to the panel's pins. Its game lines carry

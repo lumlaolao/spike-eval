@@ -1305,9 +1305,6 @@ class TestSanityArmLaunch(unittest.TestCase):
             self.assertAlmostEqual(run_batch.spent_usd_tree(tmp), 3 * one)
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
 
 class TestCrashRerun(unittest.TestCase):
     """A game whose JVM crashes, writes no game line or hangs is played again; the failed attempt's files
@@ -1396,3 +1393,125 @@ class TestCrashRerun(unittest.TestCase):
             self.assertGreater(before, 0)
             self.assertAlmostEqual(run_batch.spent_usd_tree(self.out), before)
             self.assertEqual(run_batch.log_game_file(self.out / "crashed" / "attempt1-swap0-game-3-0.log"), "game-3-1.jsonl")
+
+
+LUNA = "openrouter:openai/gpt-6-luna"
+
+
+class TestBudgetRequired(unittest.TestCase):
+    """CLAUDE.md: always pass --budget-usd. A block naming a paid openrouter:/jev: model is refused without one, in
+    every mode; free seats (ai, random, floor, the loopback fake at $0) and a claude-cli: seat need none."""
+
+    def test_only_a_paid_api_spec_needs_a_budget(self):
+        fake = run_batch.sanity_arms.FAKE_SPEC
+        cli = "claude-cli:claude-opus-5-5"
+        for kw, paid in ((dict(smart_a=LUNA, fast_a=LUNA, controller_b="ai"), [LUNA]),
+                         (dict(smart_a=fake, fast_a=fake, controller_b="ai"), []),
+                         (dict(smart_a=cli, fast_a=cli, controller_b="ai"), []),
+                         (dict(controller_a="random", smart_a=None, fast_a=None, controller_b="ai"), []),
+                         (dict(controller_a="ai", smart_a=None, fast_a=None, controller_b="llm",
+                               smart_b="openrouter:acme/unpriced", fast_b=fake), ["openrouter:acme/unpriced"])):
+            with self.subTest(**kw):
+                self.assertEqual(run_batch.paid_api_specs(make_args(**kw)), paid)
+
+    def test_a_paid_block_without_a_budget_is_refused_before_anything_runs(self):
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "", "OPENROUTER_ALLOW_EGRESS": ""}), \
+                redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit) as cm, \
+                mock.patch.object(run_batch, "load_secrets"):
+            run_batch.main(["--seeds", "7100", "--exploratory", "--deck", "/tmp/deck.txt", "--smart-a", LUNA,
+                            "--fast-a", LUNA, "--controller-b", "ai", "--forge-home", "/nonexistent"])
+        self.assertEqual(cm.exception.code, 2)
+        self.assertIn("--budget-usd", err.getvalue())
+
+    def test_a_block_with_no_paid_seat_does_not_check_the_budget(self):
+        with mock.patch.object(run_batch, "log"):
+            self.assertIsNone(run_batch.block_budget(make_args(controller_a="ai", smart_a=None, fast_a=None,
+                                                               controller_b="ai", budget_usd=5.0)))
+            self.assertEqual(run_batch.block_budget(make_args(smart_a=LUNA, fast_a=LUNA, controller_b="ai",
+                                                              budget_usd=5.0)), 5.0)
+
+
+class TestSpendCache(unittest.TestCase):
+    """The budget is checked before every game over every directory of a panel: an unchanged directory is not parsed
+    again, and a file that grew is."""
+
+    def test_an_unchanged_tree_is_not_parsed_again_and_a_grown_file_is(self):
+        spec = "openrouter:deepseek/deepseek-v4.1-flash"
+        row = {"t": "decision", "seat": "Identity-A", "tier": "smart", "prompt_tokens": 1_000_000,
+               "completion_tokens": 0}
+        with tempfile.TemporaryDirectory() as tmp:
+            for sub in ("burn", "elves"):
+                (Path(tmp) / sub).mkdir()
+                write_game(Path(tmp) / sub, "game-1-1.jsonl", row, game_line(1, False, smart_a=spec, fast_a=spec))
+            with mock.patch.object(run_batch.cost_report, "game_usage",
+                                   wraps=run_batch.cost_report.game_usage) as usage:
+                first = run_batch.spent_usd_tree(tmp)
+                n = usage.call_count
+                self.assertEqual(run_batch.spent_usd_tree(tmp), first)
+                self.assertEqual(usage.call_count, n, "an unchanged tree is not parsed again")
+                with open(Path(tmp) / "burn" / "game-1-1.jsonl", "a") as f:
+                    f.write(json.dumps(row) + "\n")
+                grown = run_batch.spent_usd_tree(tmp)
+            self.assertGreater(grown, first, "spend in a file that grew is caught")
+            self.assertEqual(usage.call_count, n + 1, "only the directory that changed is read again")
+
+
+class TestUnfinishedSetAside(unittest.TestCase):
+    """The last failed attempt of a run (or a game cut by Ctrl-C) is left with no game line; a later resume plays the
+    seed again and must not keep the dead file beside the replay, where it counted as a crash forever."""
+
+    def test_the_unfinished_file_the_log_names_is_set_aside_before_the_replay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "game-3-0.log").write_text("boot\n[EVAL] jsonl game-3-111.jsonl\nkilled\n")
+            (out / "game-3-111.jsonl").write_text(json.dumps({"t": "context_call", "tier": "smart"}) + "\n")
+            write_game(out, "game-3-222.jsonl", game_line(3, True))          # the other seat order, finished
+            (out / "game-3-1.log").write_text("[EVAL] jsonl game-3-222.jsonl\n")
+            self.assertEqual(sorted(run_batch.set_aside_unfinished(out, 3, False)),
+                             ["unfinished-swap0-game-3-111.jsonl", "unfinished-swap0-game-3-111.log"])
+            self.assertEqual(run_batch.set_aside_unfinished(out, 3, True), [], "a finished game stays")
+            self.assertEqual(sorted(p.name for p in out.glob("game-3-*.jsonl")), ["game-3-222.jsonl"])
+            self.assertTrue((out / "crashed" / "unfinished-swap0-game-3-111.jsonl").is_file(), "still priced")
+
+
+class TestAmbientConditions(unittest.TestCase):
+    """Settings the JVM reads that change the seat or its calls and that no flag sets (the model config, loop guards,
+    deadlines, endpoint, routing, prompt cache, run-mode switches): a cited batch scrubs them and refuses them in
+    --env; an exploratory one keeps the shell's and records them in the manifest, so a resume from another shell is
+    refused."""
+
+    AMBIENT = {"OPENROUTER_MODEL_CFG": "x:1", "OPENROUTER_PROVIDER_SORT": "price", "PROMPT_CACHE": "0",
+               "PUZZLE": "p.pzl"}
+
+    def test_a_cited_batch_scrubs_them_and_an_exploratory_one_records_them(self):
+        with mock.patch.dict(os.environ, self.AMBIENT):
+            cited = run_batch.build_env(make_args(exploratory=False), 7100, False, "/tmp/o")
+            self.assertEqual(sorted(k for k in self.AMBIENT if k in cited), [])
+            explo = run_batch.build_env(make_args(), 7100, False, "/tmp/o")
+            self.assertEqual({k: explo[k] for k in self.AMBIENT}, self.AMBIENT)
+            self.assertEqual(run_batch.batch_condition(make_args(), cited=False)["ambient_env"], self.AMBIENT)
+            self.assertEqual(run_batch.batch_condition(make_args(exploratory=False), cited=True)["ambient_env"], {})
+
+    def test_a_resume_from_a_shell_with_other_values_is_a_different_condition(self):
+        old = run_batch.batch_condition(make_args(), cited=False)
+        old.pop("ambient_env")                                   # a manifest from before the field
+        with mock.patch.dict(os.environ, {"PROMPT_CACHE": "0"}):
+            new = run_batch.batch_condition(make_args(), cited=False)
+        self.assertEqual([d[0] for d in run_batch.condition_diff(old, new)], ["ambient_env"])
+        clean = {k: v for k, v in os.environ.items() if k not in run_batch.AMBIENT_CONDITION_KEYS}
+        with mock.patch.dict(os.environ, clean, clear=True):
+            self.assertEqual(run_batch.condition_diff(old, run_batch.batch_condition(make_args(), cited=False)), [])
+
+    def test_cited_mode_refuses_them_in_env(self):
+        with tempfile.TemporaryDirectory() as d:
+            deck = Path(d) / "mirror.txt"
+            deck.write_text("4 Lightning Bolt\n", encoding="utf-8")
+            for k in ("OPENROUTER_PROVIDER_SORT", "PROMPT_CACHE", "OPENROUTER_MODEL_CFG"):
+                args = make_args(deck_a=str(deck), deck_b=str(deck), env=[k + "=1"], exploratory=False)
+                with self.subTest(k=k), self.assertRaises(SystemExit) as cm, mock.patch("sys.stderr"):
+                    run_batch.cited_pre_guards(args)
+                self.assertEqual(cm.exception.code, 2)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
