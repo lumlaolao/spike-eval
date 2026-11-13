@@ -779,15 +779,16 @@ def place_crashes(games, crashed, log_dir=None):
     the replay's earlier attempt, not a second game. Its seat order is known when a log run_batch.py wrote for the
     seed (game_log, in log_dir) names the file; then it is charged for that (seed, order). A file whose order no log
     names is charged only when its seed has no game line in either order, at most as many per seed as the experiment
-    has seat orders (two when any game line or named crash is swapped, else one), counting the known ones; one whose
-    seed does have a line is unplaced (it may be the other order's crash: the strict score is then an upper bound). A
-    file with no seed is never charged. The caller passes only crashes whose condition is known: those of a directory
+    has seat orders (two when any game line or named crash is swapped, else one), counting the known ones. One past
+    that cap in an unpaired experiment, or one whose seed has a line in fewer seat orders than the experiment has, is
+    unplaced (it may be a missing order's crash: the strict score is then an upper bound); one whose seed has a line
+    in every order is an earlier attempt and is skipped. A file with no seed is never charged. The caller passes only crashes whose condition is known: those of a directory
     that holds one experiment.
 
     `games` are the condition's game lines (scorable or not); a charged record is a copy with `swap` set to its seat
     order, or None when no log names it."""
     lines = {(g.get("seed"), bool(g.get("swap", False))) for g in games}
-    seeds_with_line = {seed for seed, _ in lines}
+    orders_played = Counter(seed for seed, _ in lines)
     names = {}
     if log_dir is not None:
         for c in crashed:
@@ -806,10 +807,13 @@ def place_crashes(games, crashed, log_dir=None):
         if order is not None:
             if (seed, order) in lines:
                 continue                    # the slot's own replay holds a line: an earlier attempt
-        elif seed in seeds_with_line:
-            unplaced.append(c)
+        elif seed in orders_played:
+            if orders_played[seed] < orders:
+                unplaced.append(c)
             continue
         elif per_seed.get(seed, 0) >= orders:
+            if orders == 1:
+                unplaced.append(c)          # the cap guesses one order; the file may be the other's crash
             continue
         per_seed[seed] = per_seed.get(seed, 0) + 1
         charged.append(dict(c, swap=order))
@@ -1556,8 +1560,7 @@ def build_summary(path, resamples, bootstrap_seed,
         for s in exp_summaries}
 
     games_summary = summarize_games(games)
-    # A crash's condition is known only when the directory holds one experiment (--experiment on a mixed directory
-    # selects one, but the crashes are still nobody's); otherwise they are counted and named, charged to no arm.
+    # A crash's condition is known only in a directory of one experiment (--experiment does not change that).
     own = own_crashes(parsed)
     lines = [g for e in experiments for g in e["games"]]
     if crashed and not own:
@@ -1568,8 +1571,8 @@ def build_summary(path, resamples, bootstrap_seed,
     unplaced = place_crashes(lines, own, path)[1]
     games_summary["unplaced_no_game_line"] = len(unplaced)
     if unplaced:
-        warnings.append("%d file(s) with no game line that no log places, on a seed that has a game line: each may be "
-                        "the other seat order's crash, so the strict score is an upper bound (%s)"
+        warnings.append("%d file(s) with no game line that no log places, on a seed missing a seat order: each may be "
+                        "that order's crash, so the strict score is an upper bound (%s)"
                         % (len(unplaced), ", ".join(sorted(c.get("_file") or "?" for c in unplaced)[:5])))
     if single:
         arms = summarize_arms(lines, own, path)

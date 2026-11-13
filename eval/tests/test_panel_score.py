@@ -303,6 +303,17 @@ class TestMirrorPanel(unittest.TestCase):
             self.score()
         self.assertIn("dead model bridge", str(cm.exception))
 
+    def test_a_sanity_arms_crash_beside_its_replay_is_counted_as_a_file_with_no_game_line(self):
+        # The arm's count is every file with no game line (sanity_arms.outcomes'), not the started games charged.
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        panel, _, _ = ps.load_panel(PANELS, "mirror")
+        cid = panel["cells"][0]["id"]
+        d = sanity_arms.arm_dir(self.root / cid, "floor")
+        (d / "game-7800-500.jsonl").write_text(json.dumps({"t": "decision", "seat": "Identity-A"}) + "\n")
+        r = self.score()
+        self.assertEqual(r["cells"][cid]["sanity"]["arms"]["floor"]["crashed"], 1)
+        self.assertEqual(r["cells"][panel["cells"][1]["id"]]["sanity"]["arms"]["floor"]["crashed"], 0)
+
     def test_a_sanity_arm_that_beats_the_floor_invalidates_the_panel(self):
         arms = dict(ZERO_ARMS, garbage=lambda cid: results(1) if cid == "goblins" else results(0))
         panel_run(self.root, "mirror", sanity=arms)

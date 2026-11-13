@@ -115,9 +115,10 @@ crash, a kill, a backstop timeout) is one only when its slot holds no game line,
 not a second game. Its seat order is the one whose `run_batch.py` log (`game-<seed>-<0|1>.log`) names the file. A file
 no log names is charged only when its seed has no game line in either order, at most as many per seed as the experiment
 has seat orders (two when any game line or named crash is swapped, else one: an unpaired slot that crashed twice is one
-game), and fills no seat order; on a seed that does have a line it is not charged but counted
-(`games.unplaced_no_game_line`) with a warning, since it may be the other order's crash: the strict score is then an
-upper bound. A file is charged only where its condition is known: in a directory that holds one experiment. In a
+game), and fills no seat order. It is not charged but counted (`games.unplaced_no_game_line`) with a warning when it
+may be a missing order's crash: on a seed with a line in fewer seat orders than the experiment has, or past the one
+order of an unpaired experiment. The strict score is then an upper bound. On a seed with a line in every order it is an
+earlier attempt and is skipped. A file is charged only where its condition is known: in a directory that holds one experiment. In a
 directory of several conditions `aggregate.py` charges it to none, counts it (`games.uncharged_no_game_line`) and says
 so in a warning; `--experiment` does not change that. A file with no seed is never charged. A panel cell whose every
 file has no game line has no known condition and counts as missing. A cell holding a game whose pilot lost a decision to

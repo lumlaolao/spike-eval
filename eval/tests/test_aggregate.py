@@ -620,10 +620,13 @@ def test_a_crash_of_a_mixed_directory_is_charged_to_no_experiment():
     with tempfile.TemporaryDirectory() as d:
         write_jsonl(d, "game-1-1000.jsonl", [decision_line("smart", 900), game_line(1, False, "A", ctrl_b="ai")])
         write_jsonl(d, "game-2-1000.jsonl", [decision_line("smart", 900),
-                                             game_line(2, False, "A", ctrl_b="ai", smart_a="other")])
-        write_jsonl(d, "game-3-1000.jsonl", [decision_line("smart", 900)])
+                                             game_line(2, True, "A", ctrl_b="ai", smart_a="other")])
+        # On seed 1, played in one of two orders: placed among all the lines it would be unplaced; it is nobody's.
+        write_jsonl(d, "game-1-500.jsonl", [decision_line("smart", 900)])
         s = aggregate.build_summary(Path(d), resamples=50, bootstrap_seed=1)
         ids = s["experiments"]["order"]
+        check("mixed: a crash of unknown condition is not placed either", s["games"]["unplaced_no_game_line"] == 0,
+              str(s["games"]))
         check("mixed: two conditions", len(ids) == 2, str(ids))
         check("mixed: the crash is counted as uncharged", s["games"]["uncharged_no_game_line"] == 1, str(s["games"]))
         check("mixed: and named in a warning", any("charged to no experiment" in w for w in s["warnings"]),
@@ -657,7 +660,7 @@ def test_a_crash_no_log_places_on_a_seed_with_a_line_is_counted_and_warned():
 
 
 def test_the_crash_rule_s_guards():
-    """Each guard of aggregate.place_crashes, one case each (mutation testing found them untested)."""
+    """Each guard of aggregate.place_crashes, one case each."""
     with tempfile.TemporaryDirectory() as d:
         # A crash its log names for the unplayed order of a seed that has a line: a started game.
         write_jsonl(d, "game-4-100.jsonl", [decision_line("smart", 900), game_line(4, False, "A", ctrl_b="ai")])
@@ -685,8 +688,46 @@ def test_an_unpaired_directory_charges_one_crash_per_seed():
         write_jsonl(d, "game-1-100.jsonl", [decision_line("smart", 900), game_line(1, False, "A", ctrl_b="ai")])
         write_jsonl(d, "game-2-100.jsonl", [decision_line("smart", 900)])
         write_jsonl(d, "game-2-200.jsonl", [decision_line("smart", 900)])
-        _, a = _arm_a(d)
+        s, a = _arm_a(d)
         check("unpaired: started 1 + 1", (a["started"], a["crashed"]) == (2, 1), str(a))
+        check("unpaired: the file past the cap may be the other order's crash: unplaced",
+              s["games"]["unplaced_no_game_line"] == 1, str(s["games"]))
+
+
+def test_a_crash_beside_a_seed_played_in_every_order_is_skipped_silently():
+    """An earlier attempt on a seed whose every seat order has a line: the strict score is exact, nothing is unplaced
+    or warned. (a) unpaired, seeds 0-2, an old crash on seed 1 whose log names the replay; (b) paired, seed 1 played in
+    both orders beside an old crash."""
+    with tempfile.TemporaryDirectory() as d:
+        for i in range(3):
+            write_jsonl(d, "game-%d-100.jsonl" % i, [decision_line("smart", 900), game_line(i, False, "A", ctrl_b="ai")])
+        write_jsonl(d, "game-1-50.jsonl", [decision_line("smart", 900)])
+        Path(d, "game-1-0.log").write_text("[EVAL] jsonl game-1-100.jsonl\n")
+        s, a = _arm_a(d)
+        check("every order (unpaired): started 3", (a["started"], a["crashed"]) == (3, 0), str(a))
+        check("every order (unpaired): unplaced 0", s["games"]["unplaced_no_game_line"] == 0, str(s["games"]))
+        check("every order (unpaired): no warning", not any("upper bound" in w for w in s["warnings"]), str(s["warnings"]))
+    with tempfile.TemporaryDirectory() as d:
+        for i in range(3):
+            for swap, n in ((False, 100), (True, 200)):
+                write_jsonl(d, "game-%d-%d.jsonl" % (i, n), [decision_line("smart", 900), game_line(i, swap, "A", ctrl_b="ai")])
+        write_jsonl(d, "game-1-50.jsonl", [decision_line("smart", 900)])
+        s, a = _arm_a(d)
+        check("every order (paired): started 6", (a["started"], a["crashed"]) == (6, 0), str(a))
+        check("every order (paired): unplaced 0", s["games"]["unplaced_no_game_line"] == 0, str(s["games"]))
+        check("every order (paired): no warning", not any("upper bound" in w for w in s["warnings"]), str(s["warnings"]))
+
+
+def test_a_swapped_line_makes_two_seat_orders_per_unplayed_seed():
+    """Paired lines on seeds 0-2 and no logs: two files with no line on seed 7 are both started games."""
+    with tempfile.TemporaryDirectory() as d:
+        for i in range(3):
+            for swap, n in ((False, 100), (True, 200)):
+                write_jsonl(d, "game-%d-%d.jsonl" % (i, n), [decision_line("smart", 900), game_line(i, swap, "A", ctrl_b="ai")])
+        write_jsonl(d, "game-7-1.jsonl", [decision_line("smart", 900)])
+        write_jsonl(d, "game-7-2.jsonl", [decision_line("smart", 900)])
+        _, a = _arm_a(d)
+        check("swapped line: started 6 + 2", (a["started"], a["crashed"]) == (8, 2), str(a))
 
 
 def test_a_crash_counts_once_per_identity_when_both_share_a_label():
@@ -963,6 +1004,8 @@ def main():
     test_a_crash_no_log_places_on_a_seed_with_a_line_is_counted_and_warned()
     test_the_crash_rule_s_guards()
     test_an_unpaired_directory_charges_one_crash_per_seed()
+    test_a_crash_beside_a_seed_played_in_every_order_is_skipped_silently()
+    test_a_swapped_line_makes_two_seat_orders_per_unplayed_seed()
     test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
     test_a_game_whose_log_failed_to_write_is_invalid()
     test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out()
