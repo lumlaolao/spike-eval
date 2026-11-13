@@ -66,47 +66,25 @@ def full_pass(passed, total):
     return passed == total and int(total) >= full_stage_count()
 
 
-def overlay_sha_here(repo):
-    """(this checkout's overlay hash, None) as run_batch.py stamps it (eval/benchmark_version.py, asked in its own
-    interpreter the way harness_acceptance.sh asks it: scripts/ does not import eval/ modules), or (None, why)."""
-    p = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b; "
-                        "print(b.overlay_sha_of_checkout(b.Path(sys.argv[2])))", str(Path(repo) / "eval"), str(repo)],
-                       capture_output=True, text=True)
-    out = p.stdout.strip()
-    if p.returncode != 0 or not out:
-        return None, (p.stderr.strip().splitlines() or ["exit %d" % p.returncode])[-1]
-    return out, None
+HEAD_TXT = re.compile(r"\A([0-9a-f]{40})\s+(\d+)\s*\Z")
 
 
 def head_problems(outdir, sha):
-    """What keeps the run in `outdir` from being evidence for commit `sha`. The run's head.txt (harness_acceptance.sh:
-    the commit it tested, then its count of changed files) must name `sha` with no change. A run from before head.txt
-    is checked as far as it can be: its overlay-sha.txt against this checkout's overlay hash, when this checkout is at
-    `sha` with no change (benchmark_version, the hash run_batch.py stamps)."""
+    """What keeps the run in `outdir` from being evidence for commit `sha`: its head.txt (harness_acceptance.sh writes
+    the commit it tested and its count of uncommitted changes) must hold exactly a 40-hex sha naming `sha` and 0."""
     head = outdir / "head.txt"
-    if head.is_file():
-        words = head.read_text(encoding="utf-8", errors="replace").split()
-        if not words or not same_commit(words[0], sha):
-            return ["%s says the run tested %s, not %s" % (head, (words or ["nothing"])[0][:9], sha[:9])]
-        if len(words) > 1 and words[1] != "0":
-            return ["%s says the run's checkout had %s uncommitted change(s)" % (head, words[1])]
-        return []
-    built = outdir / "overlay-sha.txt"
-    if not built.is_file():
-        return ["%s has neither head.txt nor overlay-sha.txt: which code it tested cannot be checked" % outdir]
-    repo = Path(__file__).resolve().parents[1]
-    local = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    dirty = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True).stdout
-    if not same_commit(local, sha) or dirty.strip():
-        return ["%s has no head.txt; its overlay-sha.txt can be checked only from a clean checkout at %s (this one is "
-                "%s%s)" % (outdir, sha[:9], local[:9], ", with changes" if dirty.strip() else "")]
-    mine, err = overlay_sha_here(repo)
-    if mine is None:
-        return ["this checkout's overlay hash could not be made (%s)" % err]
-    recorded = built.read_text(encoding="utf-8", errors="replace").strip()
-    if recorded == mine:
-        return []
-    return ["%s records overlay %s, the overlay at %s is %s" % (built, recorded, sha[:9], mine)]
+    if not head.is_file():
+        return ["%s has no head.txt: which commit it tested cannot be checked" % outdir]
+    text = head.read_text(encoding="utf-8", errors="replace")
+    m = HEAD_TXT.match(text)
+    if not m:
+        return ["%s does not hold a 40-hex commit and a count of changes (%r): which commit the run tested cannot be "
+                "checked" % (head, text.strip()[:60])]
+    if not same_commit(m.group(1), sha):
+        return ["%s says the run tested %s, not %s" % (head, m.group(1)[:9], sha[:9])]
+    if m.group(2) != "0":
+        return ["%s says the run's checkout had %s uncommitted change(s)" % (head, m.group(2))]
+    return []
 
 
 def summary_problems(outdir, passed, total, sha=None):
