@@ -15,7 +15,9 @@ Read first: [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md) (open work), 
 Three headline scores, each with its confidence interval and the trivial baseline it beats (a score without its floor
 is not a score; `.claude/rules/eval.md`, "the 88% lesson"):
 1. **STR-AI**: win rate against Forge's AI on the frozen panels (`eval/suites/panels-v1.json`, `eval/panel_score.py`).
-2. **STR-HELDOUT**: the same on seeds blocked from every training corpus (`eval/seed_policy.py`).
+2. **STR-HELDOUT**: the same on seeds blocked from every training corpus (`eval/seed_policy.py`). Not built: no
+   held-out panel, launcher or scorer exists yet; `seed_policy.py` only reserves the seeds (ARCHITECTURE.md: it is to
+   become the private mined puzzle split).
 3. **PUZ**: the puzzle suite (`docs/eval/PUZZLES.md`, `eval/puzzles/puzzle_score.py`).
 
 ## The one rule that matters

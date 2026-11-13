@@ -134,10 +134,14 @@ python3 eval/run_batch.py \
     --deck eval/decks/mardu-energy.txt \
     --controller-a llm --controller-b llm \
     --smart-a openrouter:anthropic/claude-haiku-5.5 --smart-b openrouter:anthropic/claude-haiku-5.5 \
-    --fast-a openrouter:anthropic/claude-haiku-5.5 --fast-b openrouter:anthropic/claude-haiku-5.5
+    --fast-a openrouter:anthropic/claude-haiku-5.5 --fast-b openrouter:anthropic/claude-haiku-5.5 \
+    --budget-usd 5    # required for a paid model: games are not started past it (price first: cost_report.py --plan)
 
 # Interrupted? Re-run the same command with the same --out — completed
 # seed/swap combos are skipped (a combo is done once its JSONL has a game line).
+# A combo whose files were written in the last 10 minutes may be a game in flight: this batch
+# does not play it, lists it as "held (may be live)" in the summary and exits 1; re-run when
+# those games have ended (a finished one is then skipped, an unfinished one played again).
 
 python3 eval/aggregate.py runs/<the-printed-dir>            # human-readable
 python3 eval/aggregate.py runs/<the-printed-dir> --json     # machine-readable
@@ -159,7 +163,7 @@ Baseline / exploratory arm example (not citable — mismatched decks, plans):
 python3 eval/run_batch.py --seeds 1..30 --pairs --exploratory \
     --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt \
     --controller-a llm --smart-a openrouter:anthropic/claude-haiku-5.5 --fast-a openrouter:anthropic/claude-haiku-5.5 \
-    --controller-b random
+    --controller-b random --budget-usd 2
 ```
 
 ## The JSONL contract (identity-keyed, final)
@@ -256,6 +260,8 @@ are citable only when they come from a validated suite run.
 python3 eval/seed_registry.py check                     # seed contamination gate
 python3 eval/seed_registry.py audit                     # label past runs
 python3 eval/check_holdouts.py                          # corpus audit
+# A self-hosted student needs a row priced at $0 in eval/pricing/prices.json first
+# ({"prompt": 0, "completion": 0}): run_batch.py refuses a model with no price row.
 python3 eval/run_suite.py eval/suites/stage3-v1.json \
     --student openrouter:default_model                  # validate + plan
 # ... run the printed run_batch.py commands ...
@@ -322,7 +328,8 @@ python3 eval/improve_loop.py --games 2 --controller floor
 
 `--controller llm` runs real model calls (`--seat-a`/`--seat-b`, default
 `openrouter:google/gemini-3.5-flash` both — cheap) and refuses with a clear
-message if `OPENROUTER_API_KEY` is unset; `--dry-run` prints the exact
+message if `OPENROUTER_API_KEY` is unset or no `--budget-usd` is given (passed
+on to `run_batch.py`, which refuses a paid model without one); `--dry-run` prints the exact
 `run_batch.py`/`defect_analyzer.py` commands it would run without launching
 anything, useful for checking flags before spending API budget or JVM time.
 `defect_analyzer.py` is also runnable standalone against any existing batch

@@ -37,8 +37,10 @@ import json
 import os
 import random
 import re
+import signal
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -418,16 +420,58 @@ def _launch_and_read(env, jdir, seed, swap, args):
         except OSError:
             pass
     backstop = args.cap_minutes * 60 * 2 + 300
-    try:
-        with open(log_path, "w", encoding="utf-8") as lf:
-            subprocess.run(["bash", "run-llm-spike.sh"], cwd=str(args.forge_home),
-                           env=env, stdout=lf, stderr=subprocess.STDOUT,
-                           timeout=backstop)
-    except subprocess.TimeoutExpired:
-        log("[match] backstop timeout — killing any stray JVM")
-        subprocess.run(["pkill", "-INT", "-f", "LlmSpikeGui"], check=False)
-        return "timeout"
+    with open(log_path, "w", encoding="utf-8") as lf:
+        # Its own process group, so a backstop stops this match's launcher and JVM, never another game on the machine.
+        proc = subprocess.Popen(["bash", "run-llm-spike.sh"], cwd=str(args.forge_home), env=env, stdout=lf,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            proc.wait(timeout=backstop)
+        except subprocess.TimeoutExpired:
+            log("[match] backstop timeout — stopping this match's JVM")
+            return "timeout"
+        finally:
+            # A new session takes the match out of the terminal's process group, so a Ctrl-C (or any exception)
+            # reaches only this process: the launcher and its JVM, which may be calling a paid model, are stopped here.
+            if proc.poll() is None:
+                stop_group(proc)
     return _read_winner(jdir, seed, swap)
+
+
+def exit_on_hangup():
+    """SIGTERM and SIGHUP (a kill, a closed terminal) raise SystemExit, so _launch_and_read's finally stops the match's
+    own process group: its new session takes it out of the terminal's group, and a default handler would end this
+    process without unwinding, leaving the launcher and JVM playing."""
+    def _exit(signum, frame):
+        # A second signal during the stop's grace must not cut short its SIGKILL of what ignored the SIGINT.
+        for sig in (signal.SIGTERM, signal.SIGHUP):
+            signal.signal(sig, signal.SIG_IGN)
+        raise SystemExit(128 + signum)
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, _exit)
+
+
+def stop_group(proc, grace_s=30):
+    """SIGINT to the process group of `proc` (the launcher and the JVM it started); whatever of the group is still
+    alive after grace_s gets SIGKILL. Returns when the launcher has exited."""
+    try:
+        os.killpg(proc.pid, signal.SIGINT)
+    except ProcessLookupError:
+        proc.wait()
+        return
+    deadline = time.time() + grace_s
+    while time.time() < deadline:
+        proc.poll()                              # reap the launcher, so a finished group reads as gone
+        try:
+            os.killpg(proc.pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.2)
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    proc.wait()
 
 
 def _read_winner(jdir, seed, swap):
@@ -589,6 +633,7 @@ def write_report(state, picks, out_dir, args):
 
 
 def main():
+    exit_on_hangup()
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--models", nargs="+",
