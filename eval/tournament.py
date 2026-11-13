@@ -442,6 +442,9 @@ def exit_on_hangup():
     own process group: its new session takes it out of the terminal's group, and a default handler would end this
     process without unwinding, leaving the launcher and JVM playing."""
     def _exit(signum, frame):
+        # A second signal during the stop's grace must not cut short its SIGKILL of what ignored the SIGINT.
+        for sig in (signal.SIGTERM, signal.SIGHUP):
+            signal.signal(sig, signal.SIG_IGN)
         raise SystemExit(128 + signum)
     for sig in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, _exit)

@@ -873,16 +873,17 @@ def set_aside(out_dir, seed, swap, attempt):
 
 
 # A combo whose log or game file was written this recently may belong to a JVM still playing (a launcher killed while
-# its game ran on, a second run_batch on the same --out): a resume neither moves its files nor plays it now. A playing
-# JVM can be silent for one whole model call, up to the 300 s default deadline (ModelCfg), so twice that.
+# its game ran on, a second run_batch on the same --out): this batch neither moves its files nor plays it. A playing
+# JVM can be silent for one whole model call, up to the 300 s default deadline (ModelCfg), so twice that; it holds for
+# the default only (an exploratory shell may raise OPENROUTER_TIMEOUT_MS past it).
 LIVE_WRITE_S = 600
 # A file dated more than this far in the future (a clock that moved) is not read as live.
 FUTURE_SKEW_S = 5
 
 
 def recently_written(out_dir, seed, swap, now=None):
-    """Seconds since (seed, swap)'s log or the game file it names was last written, when under LIVE_WRITE_S; else
-    None (also for a file dated more than FUTURE_SKEW_S in the future)."""
+    """Seconds since (seed, swap)'s log or the game file it names was last written (the newer of the two decides),
+    when under LIVE_WRITE_S; else None. A file dated more than FUTURE_SKEW_S in the future is left out."""
     out_dir = Path(out_dir)
     log_path = game_log(out_dir, seed, swap)
     name = log_game_file(log_path)
@@ -892,26 +893,26 @@ def recently_written(out_dir, seed, swap, now=None):
             mtimes.append(p.stat().st_mtime)
         except OSError:
             continue
-    if not mtimes:
+    now = time.time() if now is None else now
+    ages = [now - m for m in mtimes if now - m >= -FUTURE_SKEW_S]
+    if not ages or min(ages) >= LIVE_WRITE_S:
         return None
-    age = (time.time() if now is None else now) - max(mtimes)
-    return int(max(age, 0)) if -FUTURE_SKEW_S <= age < LIVE_WRITE_S else None
+    return int(max(min(ages), 0))
 
 
 def hold_live(out_dir, todo):
-    """(todo without the combos recently_written finds live, [(seed, swap, age)] of those held), each held one named
-    in a [resume] line."""
+    """(todo without the combos recently_written finds live, the (seed, swap) of those held), each held one named in a
+    [resume] line. This batch never plays a held combo; the next resume decides it as usual (plan_combos)."""
     keep, held = [], []
     for seed, swap in todo:
         age = recently_written(out_dir, seed, swap)
         if age is None:
             keep.append((seed, swap))
             continue
-        held.append((seed, swap, age))
+        held.append((seed, swap))
         log("[resume] seed=%d swap=%d: its log or game file was written %d s ago, so a game may still be in flight "
-            "(a launcher killed while its JVM ran on, or another batch on this --out): not set aside and not played "
-            "now; checked again after this batch's other games (a file dated in the future is not read as in flight)"
-            % (seed, swap, age))
+            "(a launcher killed while its JVM ran on, or another batch on this --out): not set aside and not played by "
+            "this batch" % (seed, swap, age))
     return keep, held
 
 
@@ -1226,8 +1227,6 @@ def cited_pre_guards(args):
         k = kv.split("=", 1)[0]
         if k in CITED_FORCED_KEYS:
             _refuse("cited mode forces %s and forbids overriding it via --env." % k)
-        if env_refusal(k):
-            _refuse(env_refusal(k))
         if k in AMBIENT_CONDITION_KEYS:
             _refuse("cited mode forbids --env %s: it changes what the seat is given or how its calls go, and a "
                     "cited batch runs the defaults (the shell's value is scrubbed too)." % k)
@@ -1738,6 +1737,13 @@ def run_block(args):
               "too). Pass the models, or --controller-x ai|random|floor." % ", ".join(missing),
               file=sys.stderr)
         sys.exit(2)
+    unpriced = unpriced_api_specs(args)
+    if unpriced:
+        print("run_batch: REFUSING: %s has no row in eval/pricing/prices.json, so what it spends cannot be checked "
+              "(docs/STANDARDS.md section 6: a model with no price entry is not run). For a self-hosted model (a "
+              "checkpoint behind OPENROUTER_BASE_URL), add a row priced at $0: {\"prompt\": 0, \"completion\": 0}."
+              % ", ".join(unpriced), file=sys.stderr)
+        sys.exit(2)
     paid = paid_api_specs(args)
     if paid and getattr(args, "budget_usd", None) is None:
         print("run_batch: REFUSING: %s may spend money; pass --budget-usd X (games are not started past it)."
@@ -1848,34 +1854,28 @@ def run_block(args):
             "and will be replayed (aggregate.py keeps the two apart): %s"
             % (len(foreign), ", ".join("%d/swap%d" % (s, w) for s, w in foreign)))
     todo, held = hold_live(out_dir, todo)
-
-    def prepare(combos):
-        for seed, swap in combos:
-            moved = set_aside_dead_bridge(out_dir, seed, swap, resume_expectation(args))
-            if moved:
-                log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; set aside %s and playing "
-                    "it again" % (seed, swap, ", ".join(moved)))
-            moved = set_aside_unfinished(out_dir, seed, swap)
-            if moved:
-                log("[resume] seed=%d swap=%d: an earlier attempt wrote no game line; set aside %s and playing it "
-                    "again" % (seed, swap, ", ".join(moved)))
-    prepare(todo)
+    for seed, swap in todo:
+        moved = set_aside_dead_bridge(out_dir, seed, swap, resume_expectation(args))
+        if moved:
+            log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; set aside %s and playing "
+                "it again" % (seed, swap, ", ".join(moved)))
+        moved = set_aside_unfinished(out_dir, seed, swap)
+        if moved:
+            log("[resume] seed=%d swap=%d: an earlier attempt wrote no game line; set aside %s and playing it "
+                "again" % (seed, swap, ", ".join(moved)))
     if not todo and not held:
         log("Nothing to do.")
         return 0, out_dir
 
-    log("Running %d games (jobs=%d, out=%s, forge_home=%s)"
-        % (len(todo), args.jobs, out_dir, args.forge_home))
+    if todo:
+        log("Running %d games (jobs=%d, out=%s, forge_home=%s)"
+            % (len(todo), args.jobs, out_dir, args.forge_home))
 
     budget = block_budget(args)
     # A panel's budget covers every cell under its root, not one cell's directory.
     budget_root = getattr(args, "budget_root", None)
     spent = (lambda: spent_usd_tree(budget_root)) if budget_root else (lambda: spent_usd(out_dir))
     if budget is not None:
-        unpriced = [s for s in (args.smart_a, args.fast_a, args.smart_b, args.fast_b)
-                    if cost_report.model_id(s) and cost_report.price_of(cost_report.load_prices(), s) is None]
-        if unpriced:
-            _refuse("--budget-usd needs a price for %s in eval/pricing/prices.json" % ", ".join(sorted(set(unpriced))))
         log("[budget] %s may spend up to $%.2f (already $%.2f); a game is not started past that, "
             "so the overshoot is at most the %d games in flight"
             % ("this panel" if budget_root else "this directory", budget, spent(), args.jobs))
@@ -1891,19 +1891,12 @@ def run_block(args):
         return play_with_retries(lambda: run_one(args, seed, swap, out_dir), seed, swap, out_dir,
                                  max(0, getattr(args, "retries", 1)), lambda: over_budget(seed, swap))
 
-    def play(combos):
-        if args.jobs <= 1:
-            return [guarded(seed, swap) for seed, swap in combos]
+    if args.jobs <= 1:
+        results = [guarded(seed, swap) for seed, swap in todo]
+    else:
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            futs = [pool.submit(guarded, seed, swap) for seed, swap in combos]
-            return [fut.result() for fut in as_completed(futs)]
-
-    results = play(todo)
-    if held:
-        # Checked again once this batch's own games are done: the quiet ones are played now.
-        later, held = hold_live(out_dir, [(seed, swap) for seed, swap, _ in held])
-        prepare(later)
-        results += play(later)
+            futs = [pool.submit(guarded, seed, swap) for seed, swap in todo]
+            results = [fut.result() for fut in as_completed(futs)]
 
     ok = [r for r in results if r[2] == "ok"]
     unstarted = [r for r in results if r[2] == "budget"]
@@ -1917,8 +1910,8 @@ def run_block(args):
     if unstarted:
         log("not started (budget reached): %d; rerun with a larger --budget-usd to resume them" % len(unstarted))
     if held:
-        log("held (may be live): %d; rerun once their files have had no write for %d s: %s"
-            % (len(held), LIVE_WRITE_S, ", ".join("%d/swap%d" % (s_, w) for s_, w, _ in held)))
+        log("held (may be live): %d: %s; rerun when those games have ended"
+            % (len(held), " ".join("%d/swap%d" % (s_, w) for s_, w in held)))
     log("[cost] " + cost_report.fmt(cost_report.report_dir(str(out_dir), cost_report.load_prices())))
     crashed = out_dir / CRASHED_DIR
     if crashed.is_dir():
@@ -1965,7 +1958,7 @@ def paid_identity(a, ident):
     if (getattr(a, "controller_" + ident, None) or "llm") != "llm":
         return False
     prices = cost_report.load_prices()
-    return any(_spec_can_spend(prices, s) for s in (getattr(a, "smart_" + ident, None), getattr(a, "fast_" + ident, None)))
+    return any(_spec_can_spend(prices, getattr(a, "%s_%s" % (tier, ident), None)) for tier in ("smart", "fast"))
 
 
 def block_budget(args):
@@ -1977,6 +1970,14 @@ def block_budget(args):
         log("[budget] no paid seat in this block: the budget is not checked here")
         return None
     return budget
+
+
+def unpriced_api_specs(a):
+    """The openrouter:/jev: specs of this block's model seats that have no price row: refused in every mode."""
+    prices = cost_report.load_prices()
+    return sorted({spec for ident in ("a", "b") if (getattr(a, "controller_" + ident, None) or "llm") == "llm"
+                   for tier in ("smart", "fast") for spec in [getattr(a, "%s_%s" % (tier, ident), None)]
+                   if cost_report.model_id(spec) and cost_report.price_of(prices, spec) is None})
 
 
 def paid_api_specs(a):

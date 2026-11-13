@@ -139,9 +139,9 @@ python3 eval/run_batch.py \
 
 # Interrupted? Re-run the same command with the same --out — completed
 # seed/swap combos are skipped (a combo is done once its JSONL has a game line).
-# A combo whose files were written in the last 10 minutes may be a game in flight: it is
-# played after the others if it has gone quiet, else listed as "held (may be live)" in the
-# summary (exit 1); re-run once its files are quiet to play it.
+# A combo whose files were written in the last 10 minutes may be a game in flight: this batch
+# does not play it, lists it as "held (may be live)" in the summary and exits 1; re-run when
+# those games have ended (a finished one is then skipped, an unfinished one played again).
 
 python3 eval/aggregate.py runs/<the-printed-dir>            # human-readable
 python3 eval/aggregate.py runs/<the-printed-dir> --json     # machine-readable
@@ -257,6 +257,8 @@ are citable only when they come from a validated suite run.
 python3 eval/seed_registry.py check                     # seed contamination gate
 python3 eval/seed_registry.py audit                     # label past runs
 python3 eval/check_holdouts.py                          # corpus audit
+# A self-hosted student needs a row priced at $0 in eval/pricing/prices.json first
+# ({"prompt": 0, "completion": 0}): run_batch.py refuses a model with no price row.
 python3 eval/run_suite.py eval/suites/stage3-v1.json \
     --student openrouter:default_model                  # validate + plan
 # ... run the printed run_batch.py commands ...

@@ -49,7 +49,8 @@ class BudgetTest(unittest.TestCase):
 
     def test_a_student_with_no_price_on_file_is_named(self):
         rep = self.plan()                                       # the default student, openrouter:default_model
-        self.assertTrue(any("has no price" in w and "default_model" in w for w in rep["warnings"]), rep["warnings"])
+        self.assertTrue(any("has no price" in w and "default_model" in w and "add a row priced at $0" in w
+                            for w in rep["warnings"]), rep["warnings"])
         rep = self.plan("--student", "openrouter:openai/gpt-6-luna")
         self.assertFalse(any("has no price" in w for w in rep["warnings"]), rep["warnings"])
 

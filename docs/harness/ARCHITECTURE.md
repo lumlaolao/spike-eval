@@ -645,8 +645,8 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it; the tournament (`tournament.py`)
   strips the same list, so a bracket game runs at the JVM's defaults (`eval/tests/test_launchers.py` lists every
   launcher and how its games get their conditions). A tournament match runs in its own process group: a backstop
-  timeout, a Ctrl-C or any exception stops that group (launcher and JVM) and no other game on the machine
-  (`tournament.stop_group`).
+  timeout, a Ctrl-C, a SIGTERM or SIGHUP to the tournament (`tournament.exit_on_hangup`) or any exception stops that
+  group (launcher and JVM) and no other game on the machine (`tournament.stop_group`).
 - **Combat (epoch 78, answer-tool-v16):** the attack and the blocks are proposed too, so the candidate lists (which
   creatures can attack, which can block, and what) are not shown. `answer.declare_attackers` is a list of
   `{attacker, defender}` by handle (`defender` "opponent" by default, or a planeswalker's or battle's handle; the
@@ -1116,10 +1116,12 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     `v1-compat` (coaching, a reasoning cap, a 25-decision turn cap) runs only as a named arm;
   - it resumes; a combo whose log or game file was written in the last `LIVE_WRITE_S` (twice the default model-call
     deadline) may belong to a game in flight (a launcher killed while its JVM plays on, or a second batch on the
-    same `--out`, which nothing else prevents): it is neither set aside nor played at first, is checked again once
-    the batch's other games are done and played then if quiet; one still held is listed in the summary
-    (`held (may be live)`) and the batch exits 1, so a rerun once its files are quiet plays it. A file dated in the
-    future is not read as in flight;
+    same `--out`, which nothing else prevents): this batch neither sets it aside nor plays it, lists it in the summary
+    (`held (may be live): N: <seed/swap ...>; rerun when those games have ended`) and exits 1. The next resume
+    decides it as any other: a finished game is skipped, an unfinished quiet one is set aside and played again. The
+    newer of the log and the game file decides; a file dated in the future is left out;
+  - a model spec with no row in `eval/pricing/prices.json` is refused in every mode (a self-hosted model needs a row
+    priced at $0);
   - it plays a crashed game once more and sets the failed attempt aside (`--retries`);
   - it enforces the budget;
   - settings no flag sets that change what a seat is given (`AMBIENT_CONDITION_KEYS`: model config, loop guards,

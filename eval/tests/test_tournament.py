@@ -8,6 +8,7 @@ egress-safety property a verifier flagged as the tool's highest-risk contract.
 Run: python3 eval/tests/test_tournament.py   (must exit 0)
 """
 
+import io
 import signal
 import subprocess
 import sys
@@ -15,6 +16,7 @@ import tempfile
 import time
 import types
 import urllib.request
+from contextlib import redirect_stdout
 from unittest import mock
 from pathlib import Path
 
@@ -133,6 +135,31 @@ def test_a_match_past_its_backstop_is_stopped_and_reads_as_a_timeout():
     ok("a match past its backstop is stopped and reads as a timeout")
 
 
+def test_main_installs_the_hangup_handler_and_a_second_signal_is_ignored():
+    saved = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGHUP)}
+    try:
+        for sig in saved:
+            signal.signal(sig, signal.SIG_DFL)
+        with mock.patch.object(sys, "argv", ["tournament.py", "--help"]), redirect_stdout(io.StringIO()):
+            try:
+                T.main()
+            except SystemExit:
+                pass
+        handler = signal.getsignal(signal.SIGTERM)
+        assert callable(handler) and handler is signal.getsignal(signal.SIGHUP), "main() did not install the handler"
+        try:
+            handler(signal.SIGTERM, None)
+            raise AssertionError("the handler did not raise SystemExit")
+        except SystemExit as e:
+            assert e.code == 128 + signal.SIGTERM, e.code
+        assert signal.getsignal(signal.SIGTERM) == signal.SIG_IGN, "a second SIGTERM would interrupt the stop"
+        assert signal.getsignal(signal.SIGHUP) == signal.SIG_IGN, "a SIGHUP would interrupt the stop"
+    finally:
+        for sig, h in saved.items():
+            signal.signal(sig, h)
+    ok("main() installs the hangup handler, and the handler ignores a second signal while the match stops")
+
+
 def test_a_killed_tournament_stops_its_match():
     # SIGTERM or SIGHUP to the tournament: the match is in its own session and would play on unless the tournament
     # unwinds (exit_on_hangup, installed by main) and its finally stops the group.
@@ -153,6 +180,8 @@ def test_a_killed_tournament_stops_its_match():
             pgid = int(pgid_file.read_text())
             time.sleep(0.3)
             os.kill(child.pid, sig)
+            time.sleep(0.3)
+            os.kill(child.pid, sig)          # a second one during the stop's grace must not cut the SIGKILL short
             try:
                 code = child.wait(timeout=20)
             finally:
@@ -361,6 +390,7 @@ def main():
     test_an_interrupted_match_stops_its_own_launcher_and_jvm()
     test_a_match_past_its_backstop_is_stopped_and_reads_as_a_timeout()
     test_a_killed_tournament_stops_its_match()
+    test_main_installs_the_hangup_handler_and_a_second_signal_is_ignored()
     print("\nAll checks passed.")
     return 0
 

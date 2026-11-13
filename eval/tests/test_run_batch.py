@@ -1439,6 +1439,23 @@ class TestBudgetRequired(unittest.TestCase):
                                 "ai", "--budget-usd", "1", "--env", kv, "--forge-home", "/nonexistent"])
             self.assertIn("it defines the run", str(cm.exception.code))
 
+    def test_a_model_with_no_price_row_is_refused_with_one_message_saying_what_to_do(self):
+        spec = "openrouter:my-checkpoint"
+        for budget in (None, 5.0):
+            args = make_args(smart_a=spec, fast_a=spec, controller_b="ai", budget_usd=budget)
+            with self.subTest(budget=budget), self.assertRaises(SystemExit) as cm, \
+                    redirect_stderr(io.StringIO()) as err:
+                run_batch.run_block(args)
+            self.assertEqual(cm.exception.code, 2)
+            self.assertIn("openrouter:my-checkpoint has no row in eval/pricing/prices.json", err.getvalue())
+            self.assertIn("add a row priced at $0", err.getvalue())
+
+    def test_can_spend_is_read_at_the_budget_bound(self):
+        # A row at $0 list whose dearest endpoint costs something can spend: the budget is checked at that bound.
+        prices = {"acme/m": {"prompt": 0.0, "completion": 0.0, "max": {"prompt": 0.0, "completion": 1.0}}}
+        self.assertTrue(run_batch._spec_can_spend(prices, "openrouter:acme/m"))
+        self.assertFalse(run_batch._spec_can_spend({"acme/m": {"prompt": 0.0, "completion": 0.0}}, "openrouter:acme/m"))
+
     def test_a_seat_priced_only_for_its_output_needs_and_is_checked_against_a_budget(self):
         # One predicate (_spec_can_spend) for both: a row with prompt 0 and completion > 0 is paid.
         prices = dict(run_batch.cost_report.load_prices(), **{"acme/out-only": {"prompt": 0.0, "completion": 2.0}})
@@ -1501,7 +1518,7 @@ class TestUnfinishedSetAside(unittest.TestCase):
             (out / "game-3-0.log").write_text("[EVAL] jsonl game-3-111.jsonl\n")
             (out / "game-3-111.jsonl").write_text(json.dumps({"t": "context_call", "tier": "smart"}) + "\n")
             with mock.patch.object(run_batch, "log") as logged:
-                self.assertEqual(run_batch.hold_live(out, [(3, False), (4, False)]), ([(4, False)], [(3, False, 0)]))
+                self.assertEqual(run_batch.hold_live(out, [(3, False), (4, False)]), ([(4, False)], [(3, False)]))
             self.assertIn("in flight", str(logged.call_args_list))
             self.assertTrue((out / "game-3-111.jsonl").is_file())
             old = time.time() - run_batch.LIVE_WRITE_S - 60
@@ -1514,6 +1531,27 @@ class TestUnfinishedSetAside(unittest.TestCase):
                 os.utime(p, (ahead, ahead))
             with mock.patch.object(run_batch, "log"):
                 self.assertEqual(run_batch.hold_live(out, [(3, False)]), ([(3, False)], []), "a clock that moved")
+
+    def test_the_newer_file_decides_and_one_dated_in_the_future_is_left_out(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            log_path, game = out / "game-3-0.log", out / "game-3-111.jsonl"
+            log_path.write_text("[EVAL] jsonl game-3-111.jsonl\n")
+            game.write_text("{}\n")
+            now = time.time()
+            os.utime(log_path, (now - 30, now - 30))
+            os.utime(game, (now - run_batch.LIVE_WRITE_S - 60,) * 2)
+            self.assertEqual(run_batch.recently_written(out, 3, False, now=now), 30, "the newer of the two decides")
+            os.utime(game, (now + run_batch.FUTURE_SKEW_S + 60,) * 2)
+            self.assertEqual(run_batch.recently_written(out, 3, False, now=now), 30,
+                             "a file dated in the future is left out; the other still counts")
+            os.utime(log_path, (now - run_batch.LIVE_WRITE_S - 60,) * 2)
+            self.assertIsNone(run_batch.recently_written(out, 3, False, now=now), "quiet, and the future file ignored")
+
+    def test_the_live_window_is_twice_the_default_model_call_deadline(self):
+        src = (evalpath.REPO / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java").read_text()
+        deadline_ms = int(re.search(r"ModelCfg uniform = new ModelCfg\(\d+, (\d+),", src).group(1))
+        self.assertEqual(run_batch.LIVE_WRITE_S, 2 * deadline_ms // 1000)
 
     def _block(self, tmp, seeds, written):
         """run_block on a free exploratory block whose combos in `written` have a log written just now (by a game
@@ -1554,15 +1592,24 @@ class TestUnfinishedSetAside(unittest.TestCase):
             code, played, text = self._block(tmp, [7100], [(7100, False)])
         self.assertEqual((code, played), (1, []))
         self.assertNotIn("Nothing to do.", text)
-        self.assertIn("held (may be live): 1", text)
+        self.assertNotIn("Running 0 games", text)
+        self.assertIn("held (may be live): 1: 7100/swap0", text)
 
-    def test_a_held_combo_that_goes_quiet_while_the_others_play_is_played(self):
+    def test_a_held_combo_is_never_played_by_this_batch_even_when_it_finishes_or_goes_quiet(self):
+        # The other JVM may finish it (a paid game) while this batch plays the rest: replaying it would truncate it.
+        def other_games_play(args, seed, swap, out_dir):
+            out = Path(out_dir)
+            (out / "game-7100-999.jsonl").write_text(json.dumps(game_line(7100, False)) + "\n")
+            old = time.time() - run_batch.LIVE_WRITE_S - 60
+            for p in out.glob("game-7100-*"):
+                os.utime(p, (old, old))
+            return seed, swap, "ok", 0
         with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.object(run_batch, "recently_written", side_effect=[30, None, None]):
+                mock.patch.object(run_batch, "play_with_retries", side_effect=lambda play, seed, swap, *a: (
+                    other_games_play(None, seed, swap, Path(tmp) / "out"), play())[1]):
             code, played, text = self._block(tmp, [7100, 7101], [(7100, False)])
-        self.assertEqual((code, played), (0, [(7101, False), (7100, False)]))
-        self.assertNotIn("held (may be live)", text)
-
+        self.assertEqual((code, played), (1, [(7101, False)]))
+        self.assertIn("held (may be live): 1: 7100/swap0; rerun when those games have ended", text)
 
 class TestAmbientConditions(unittest.TestCase):
     """Settings the JVM reads that change the seat or its calls and that no flag sets (the model config, loop guards,
