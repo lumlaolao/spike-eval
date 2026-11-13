@@ -181,5 +181,51 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
         self.assertIsNone(sha)
 
 
+def pytests_stage():
+    """The script's pytests stage, `if has_stage pytests; then` through its closing `fi`."""
+    with open(SCRIPT, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage pytests; then"))
+    end = next(i for i in range(start + 1, len(lines)) if lines[i] == "fi")
+    return "\n".join(lines[start:end + 1])
+
+
+class PytestsSkipAllowanceTest(unittest.TestCase):
+    """The pytests stage counts skips like javatests: a test that lost its prerequisite under acceptance (a broken
+    resolver, a moved rules file) fails the stage once the skips exceed pytests.skipped_max. The stage runs on a
+    temporary eval/tests holding two skipping tests and one that passes; `want` is the script's own."""
+
+    def stage(self, expected_text):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "eval", "tests"))
+            with open(os.path.join(d, "eval", "tests", "test_one.py"), "w") as f:
+                f.write("import unittest\nclass T(unittest.TestCase):\n"
+                        "    def test_a(self):\n        self.skipTest('no rules text')\n"
+                        "    def test_b(self):\n        self.skipTest('no rules text')\n"
+                        "    def test_c(self):\n        pass\n")
+            expected = os.path.join(d, "x.expected")
+            with open(expected, "w") as f:
+                f.write(expected_text)
+            script = ('REPO="$1"; OUT="$1"; FORGE="$1"; EXPECTED="$2"; PLATFORM=linux\n'
+                      'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n%s\n'
+                      % (functions(), pytests_stage()))
+            return subprocess.run(["bash", "-c", script, "x", d, expected], check=True, stdout=subprocess.PIPE,
+                                  universal_newlines=True).stdout
+
+    def test_skips_over_the_allowance_fail_the_stage_and_name_the_reason(self):
+        out = self.stage("pytests.skipped_max=1\n")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("2 skipped, more than the 1 allowed", out)
+        self.assertIn("no rules text", out)
+
+    def test_skips_within_the_allowance_pass_and_are_counted_in_the_line(self):
+        out = self.stage("pytests.skipped_max=2\n")
+        self.assertIn("PASS pytests", out)
+        self.assertIn("Ran 3 tests OK, 2 skipped (at most 2 allowed", out)
+
+    def test_a_missing_allowance_fails_rather_than_allowing_any_number(self):
+        self.assertIn("FAIL pytests", self.stage("floor.seed=42\n"))
+
+
 if __name__ == "__main__":
     unittest.main()
