@@ -48,6 +48,7 @@ import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import harness_env_aicount
+import harness_env_task_grade as htg
 import surface_coverage
 
 VERSION = "surface-v0"
@@ -568,7 +569,11 @@ def main(argv):
         if grader:
             print("refused: declares a class in the grader's package forge.harnessenv: " + ", ".join(grader))
             return 1
-        javac = os.path.join(os.environ.get("JAVA_HOME", "/usr"), "bin", "javac")
+        try:
+            javac = os.path.join(htg.java_home(), "bin", "javac")
+        except htg.SetupError as e:  # a missing JDK is the grader's fault, never "javac rc=1" against the candidate
+            print("setup: %s" % e)
+            return 2
         rc, classes, counted, missing = build_classes(submission, cpfile, forge, out, javac)
         if missing:
             print("refused: counter incomplete: " + ", ".join(missing))
@@ -595,7 +600,11 @@ def main(argv):
         if any(os.path.exists(m) for m in busy):
             print("refusing a JVM run while a --busy marker exists")
             return 1
-        java = os.path.join(os.environ.get("JAVA_HOME", "/usr"), "bin", "java")
+        try:
+            java = os.path.join(htg.java_home(), "bin", "java")
+        except htg.SetupError as e:
+            print("setup: %s" % e)
+            return 2
         report = run_instances(java, classes, cpfile, forge, out, only, seats, set_file)
         rows = read_env_report(report)
         print(env_markdown(env_table(rows, by="hook"), ai_gated(rows)))

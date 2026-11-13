@@ -27,6 +27,7 @@ import harness_env_aicount as ac
 import harness_env_episode as ep
 import harness_env_generate as hgen
 import harness_env_grade as hg
+import harness_env_task_grade as htg
 
 REPO = str(evalpath.REPO)
 SPEC = os.path.join(REPO, "eval", "harness_env", "episode-v0.json")
@@ -253,6 +254,28 @@ class JvmGraderTest(unittest.TestCase):
     def grade(self, **kw):
         kw.setdefault("set_file", self.set)
         return ep.jvm_grader(self.cp, self.forge, "/jdk", **kw)(self.sub, os.path.join(self.tmp, "g"))
+
+    def brew_jdk(self):
+        home = os.path.join(self.tmp, "brew", "libexec/openjdk.jdk/Contents/Home")
+        os.chmod(write(home, "bin/javac", "#!/bin/sh\nexit 0\n"), 0o755)
+        return home
+
+    def test_with_no_java_home_the_grader_compiles_with_the_jdk_the_task_grader_finds_never_usr_bin(self):
+        home = self.brew_jdk()
+        env = {k: v for k, v in os.environ.items() if k != "JAVA_HOME"}
+        with mock.patch.dict(os.environ, env, clear=True), \
+                mock.patch.object(htg, "JDK_DIRS", (os.path.join(self.tmp, "brew"),)):
+            ep.jvm_grader(self.cp, self.forge, set_file=self.set)(self.sub, os.path.join(self.tmp, "g"))
+        self.assertEqual(self.calls[0][0][0], os.path.join(home, "bin", "javac"))
+        self.assertEqual(self.calls[0][1]["env"]["JAVA_HOME"], home)
+
+    def test_with_no_jdk_at_all_the_grader_is_refused_before_any_candidate_is_scored(self):
+        env = {k: v for k, v in os.environ.items() if k != "JAVA_HOME"}
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(htg, "JDK_DIRS", ()), \
+                mock.patch.object(htg.shutil, "which", return_value=None):
+            with self.assertRaises(htg.SetupError):
+                ep.jvm_grader(self.cp, self.forge, set_file=self.set)
+        self.assertEqual(self.calls, [])
 
     def test_an_unmarked_engine_patch_scores_zero_with_the_reason_and_builds_nothing(self):
         write(self.sub, "forge-game/src/main/java/forge/game/zone/MagicStack.java", "class MagicStack {}\n")
