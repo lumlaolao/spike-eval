@@ -13,6 +13,38 @@ if [ ! -d "$FORGE_HOME/forge-gui-desktop" ]; then
   exit 1
 fi
 
+# Reproducibility pin: eval results are only comparable against the same engine version. Checked before anything is
+# written: the engine patches are applied to the pin's originals, so on another commit they would build a mixed engine.
+PIN_FILE="$HERE/FORGE_COMMIT"
+CUR="$(git -C "$FORGE_HOME" rev-parse HEAD 2>/dev/null || echo unknown)"
+if [ -f "$PIN_FILE" ]; then
+  PINNED="$(cat "$PIN_FILE")"
+  if [ "$CUR" != "$PINNED" ]; then
+    echo "Forge checkout is at $CUR but the overlay was validated against $PINNED" >&2
+    if [ "${ALLOW_PIN_MISMATCH:-}" != 1 ]; then
+      echo "ERROR: check out the pin first (git -C $FORGE_HOME checkout $PINNED), or update FORGE_COMMIT deliberately" >&2
+      echo "       after re-validating; ALLOW_PIN_MISMATCH=1 installs anyway (a mixed engine, never a score)." >&2
+      exit 1
+    fi
+    echo "WARNING: ALLOW_PIN_MISMATCH=1: installing on another engine commit" >&2
+  fi
+else
+  echo "$CUR" > "$PIN_FILE"
+  echo "Recorded Forge engine pin: $CUR"
+fi
+
+# The seat's package (forge/spike) is ours alone: a file the overlay no longer has (renamed or deleted) would still be
+# compiled into the checkout build and loaded by a game, so it is removed before the copy.
+for kind in main test; do
+  for f in "$FORGE_HOME"/forge-gui-desktop/src/$kind/java/forge/spike/*.java; do
+    [ -f "$f" ] || continue
+    if [ ! -f "$HERE/forge-overlay/forge-gui-desktop/src/$kind/java/forge/spike/$(basename "$f")" ]; then
+      rm -f "$f"
+      echo "Removed $f: the overlay no longer has it"
+    fi
+  done
+done
+
 echo "Overlaying spike files into $FORGE_HOME ..."
 cp -Rv "$HERE/forge-overlay/." "$FORGE_HOME/"
 chmod +x "$FORGE_HOME/run-llm-spike.sh" "$FORGE_HOME/run-llm-headless.sh"
@@ -23,20 +55,6 @@ chmod +x "$FORGE_HOME/run-llm-spike.sh" "$FORGE_HOME/run-llm-headless.sh"
 if [ -f "$HERE/data/rules/MagicCompRules.txt" ]; then
   mkdir -p "$FORGE_HOME/data/rules"
   cp -v "$HERE/data/rules/MagicCompRules.txt" "$FORGE_HOME/data/rules/MagicCompRules.txt"
-fi
-
-# Reproducibility pin: eval results are only comparable against the same engine version.
-PIN_FILE="$HERE/FORGE_COMMIT"
-CUR="$(git -C "$FORGE_HOME" rev-parse HEAD 2>/dev/null || echo unknown)"
-if [ -f "$PIN_FILE" ]; then
-  PINNED="$(cat "$PIN_FILE")"
-  if [ "$CUR" != "$PINNED" ]; then
-    echo "WARNING: Forge checkout is at $CUR but the overlay was validated against $PINNED" >&2
-    echo "         (update FORGE_COMMIT deliberately after re-validating, or checkout the pin)" >&2
-  fi
-else
-  echo "$CUR" > "$PIN_FILE"
-  echo "Recorded Forge engine pin: $CUR"
 fi
 
 # Our changes to Forge's own files are diffs (engine-patches/, docs/harness/ENGINE-PATCHES.md), applied to each

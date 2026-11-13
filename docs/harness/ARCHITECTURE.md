@@ -41,7 +41,10 @@ them and refuses to pool what is not comparable.
   (`eval/benchmark_version.py`) includes the commit, and every game line records it.
 - *Why unmodified except for listed patches:* a forked rules engine could drift from the one it claims to
   be. Everything we add lives in `forge-overlay/` and is copied in by `install.sh`. The overlay is the source of truth; files in
-  the Forge checkout get overwritten.
+  the Forge checkout get overwritten. `install.sh` refuses a checkout that is not at the pin before writing, and
+  removes a seat file (`forge/spike`) the overlay no longer has. The game launchers refuse to start when an installed
+  seat source or `HARNESS PATCH` source is newer than the class or module jar the game would load
+  (`forge-overlay/harness-classes-check.sh`): `install.sh` writes sources, only `mvn install` builds them.
 - *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a unified diff against the upstream
   file at `FORGE_COMMIT`, in `engine-patches/<path>.patch` (Forge is GPL: the repository carries our changes,
   not Forge's files), every change marked `HARNESS PATCH`, the upstream original's sha256 recorded in
