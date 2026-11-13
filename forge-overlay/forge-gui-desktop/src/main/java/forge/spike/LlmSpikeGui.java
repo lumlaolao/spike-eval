@@ -769,19 +769,23 @@ public final class LlmSpikeGui {
          *  narration with private reveals, full permitted zones. This is a different measurement,
          *  so it is part of the profile identity below. */
         final boolean faithfulObservation;
+        /** The faithful state ordered for the provider's prompt cache ({@link SeatObservation#renderCacheOrdered}):
+         *  what never changes once written (each finished turn's history, the text of each card first seen) comes
+         *  first as one append-only record, and the rest of the state after it. Same information, other order. */
+        final boolean cacheOrdered;
 
         private ContextProfile(String name, int recentEvents, int recentEventsMax, int intelCap,
                                int yardCap, int exileCap, int castHistoryCap,
                                GameHistory.Mode historyMode, int digestTurns, int digestPerTurn,
                                int compactTurnsPerLine) {
             this(name, recentEvents, recentEventsMax, intelCap, yardCap, exileCap, castHistoryCap,
-                 historyMode, digestTurns, digestPerTurn, compactTurnsPerLine, false);
+                 historyMode, digestTurns, digestPerTurn, compactTurnsPerLine, false, false);
         }
 
         private ContextProfile(String name, int recentEvents, int recentEventsMax, int intelCap,
                                int yardCap, int exileCap, int castHistoryCap,
                                GameHistory.Mode historyMode, int digestTurns, int digestPerTurn,
-                               int compactTurnsPerLine, boolean faithfulObservation) {
+                               int compactTurnsPerLine, boolean faithfulObservation, boolean cacheOrdered) {
             this.name = name;
             this.recentEvents = recentEvents;
             this.recentEventsMax = recentEventsMax;
@@ -794,6 +798,7 @@ public final class LlmSpikeGui {
             this.digestPerTurn = digestPerTurn;
             this.compactTurnsPerLine = compactTurnsPerLine;
             this.faithfulObservation = faithfulObservation;
+            this.cacheOrdered = cacheOrdered;
         }
 
         /** The pre-profile harness, literal for literal. Do not change these numbers: they are the
@@ -833,7 +838,16 @@ public final class LlmSpikeGui {
          *  digest cut fired 1,431 times and turns older than three kept only high-signal events. */
         static final ContextProfile V4_FAITHFUL =
                 new ContextProfile("v4-faithful", EVENTS_SINCE_LAST_DECISION, 10000, 64, 10000, 10000, 10000,
-                                   GameHistory.Mode.TIERED, 10000, 10000, 5, true);
+                                   GameHistory.Mode.TIERED, 10000, 10000, 5, true, false);
+
+        /** v4-faithful's knobs and blocks in the order the provider's prompt cache rewards (2026-11-13, owner
+         *  approved; audit G R1-R2): the per-decision message opens with an append-only record (each finished turn's
+         *  digest line, each card's printed text when first seen), so a decision's message starts with the previous
+         *  one's, and every reveal is printed once, in the history (each REVEALS TO YOU line was also there: 71,809
+         *  of 71,809 in 1,355 prompts of runs/loop g20-g33 and pair-4201). v4-faithful keeps its bytes. */
+        static final ContextProfile V5_CACHE =
+                new ContextProfile("v5-cache", EVENTS_SINCE_LAST_DECISION, 10000, 64, 10000, 10000, 10000,
+                                   GameHistory.Mode.TIERED, 10000, 10000, 5, true, true);
 
         private static final Map<String, ContextProfile> REGISTRY;
         static {
@@ -842,6 +856,7 @@ public final class LlmSpikeGui {
             m.put(V2_MEMORY.name, V2_MEMORY);
             m.put(V3_COMPACT.name, V3_COMPACT);
             m.put(V4_FAITHFUL.name, V4_FAITHFUL);
+            m.put(V5_CACHE.name, V5_CACHE);
             REGISTRY = java.util.Collections.unmodifiableMap(m);
         }
 
@@ -901,7 +916,7 @@ public final class LlmSpikeGui {
                 return this;
             }
             return new ContextProfile(name + "+ovr", re, rem, ic, yc, ec, cc,
-                                      historyMode, dt, dp, ct, faithfulObservation);
+                                      historyMode, dt, dp, ct, faithfulObservation, cacheOrdered);
         }
 
         private static int envInt(String k, int def) {
@@ -935,7 +950,7 @@ public final class LlmSpikeGui {
                     + "|digest_per_turn=" + digestPerTurn
                     + "|compact_turns_per_line=" + compactTurnsPerLine;
             return faithfulObservation
-                    ? "context.v3|" + body + "|observation=" + SeatObservation.version()
+                    ? "context.v3|" + body + "|observation=" + SeatObservation.version(this)
                     : "context.v2|" + body;
         }
 
@@ -1475,7 +1490,9 @@ public final class LlmSpikeGui {
                 }
             }
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
-            if (observer != null) p("[OBSERVATION] " + SeatObservation.version() + " (profile " + ctx + ")");
+            if (observer != null) p("[OBSERVATION] " + SeatObservation.version(ctx) + " (profile " + ctx + ")");
+            // The archive line is volatile: under the cache order it follows the append-only record.
+            if (observer != null && ctx.cacheOrdered) contextMemory.setStablePrefix(observer::stableText);
         }
 
         /** Non-null under a faithful profile; tests use it to drive the live observer directly. */
@@ -2008,7 +2025,7 @@ public final class LlmSpikeGui {
                     + "newest message is current; earlier messages describe the past.\n"
                     + tools + answers
                     + "</how_this_works>\n\n"
-                    + "<reading_the_state>\n" + SeatObservation.guide() + "</reading_the_state>\n"
+                    + "<reading_the_state>\n" + SeatObservation.guide(profile()) + "</reading_the_state>\n"
                     // Terms and keywords, the same for every format and for a puzzle (2026-10-16 review: the Legacy-only
                     // reference also named the eval pool's archetypes, which no other format's seat was told).
                     + (coaching ? "\n<reference>\n" + TERMS_REFERENCE + "</reference>\n" : "");
@@ -2656,12 +2673,17 @@ public final class LlmSpikeGui {
                 // reveals interleaved), render history from THAT stream, then the viewer-aware state.
                 // Same watermark discipline as below: only the renderer may move it.
                 observer.capture();
-                GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
                 observer.setTrackOwnCards(tracksOwnCards(isPuzzleSolver(getLobbyPlayer())));
                 observer.setDeckLines(deckLines);
                 observer.setPlanWhen(planWhen);
+                if (ctx.cacheOrdered) {
+                    GameHistory.Rendered r = observer.renderCacheOrdered(seat, ctx, eventWatermark, turnPlan, planTurn);
+                    if (r.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = r.watermark;
+                    return r.text;
+                }
+                GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
                 if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
                 return s;
@@ -13302,7 +13324,7 @@ public final class LlmSpikeGui {
                 + ",\"context_profile\":\"" + jsonEscape(PlayerControllerLLM.CTX.name) + "\""
                 + ",\"context_sha\":\"" + jsonEscape(PlayerControllerLLM.CTX.sha()) + "\""
                 // The faithful state's own version (eval/versions.py lists every stamp; this one was only in the log).
-                + ",\"observation_version\":\"" + jsonEscape(SeatObservation.version()) + "\""
+                + ",\"observation_version\":\"" + jsonEscape(SeatObservation.version(PlayerControllerLLM.CTX)) + "\""
                 // Reasoning effort is part of the player's identity, like temperature: the same
                 // model at low and at max is two different players and must never pool.
                 + ",\"claude_effort_smart\":\"" + jsonEscape(ClaudeCliBridge.effortLabel(false)) + "\""

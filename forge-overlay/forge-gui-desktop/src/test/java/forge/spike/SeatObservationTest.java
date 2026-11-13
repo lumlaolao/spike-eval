@@ -1280,4 +1280,101 @@ public class SeatObservationTest {
                 SeatObservation.GUIDE);
     }
 
+    // ---- the cache order (v5-cache) and the legacy bytes it must not move ------------------------------------
+
+    static String sha12(String s) {
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-256").digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < 6; i++) b.append(String.format("%02x", d[i]));
+            return b.toString();
+        } catch (Exception e) { throw new IllegalStateException(e); }
+    }
+
+    /** One state with every block the cache order moves or drops: an opponent's card, a reveal, a history, a plan. */
+    static SeatObservation pinnedState() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        card("Orcish Bowmasters", g.getPlayers().get(1), ZoneType.Battlefield);
+        SeatObservation o = observerFor(g, 0);
+        o.recordReveal("saw their hand [Force of Will]");
+        return o;
+    }
+
+    static final String PINNED_HISTORY = "GAME HISTORY (Forge game log, compacted; E<n> are canonical event ids):\n  T1 [E1-E1]: x\n";
+
+    /** v4-faithful's state and guide keep their bytes (the values were read from origin/main at 26f8942, before the
+     *  cache order was added): recorded runs stay comparable with new ones under that profile. */
+    @Test
+    public void theLegacyFaithfulStateAndGuideKeepTheirBytes() {
+        String r = pinnedState().render("seat", ContextProfile.V4_FAITHFUL, PINNED_HISTORY, "hold up mana", 1);
+        Assert.assertEquals(sha12(r), "77ce3d34c686", r);
+        Assert.assertEquals(sha12(SeatObservation.guide()), "79f4023f6055", SeatObservation.guide());
+        Assert.assertEquals(SeatObservation.guide(ContextProfile.V4_FAITHFUL), SeatObservation.guide());
+        Assert.assertEquals(SeatObservation.version(ContextProfile.V4_FAITHFUL), SeatObservation.VERSION);
+        Assert.assertEquals(ContextProfile.V4_FAITHFUL.sha(), "6a7daaaaef43", "v4-faithful's context_sha moved");
+    }
+
+    /** The cache order opens the state with a record that only grows: a decision's state starts with the previous
+     *  decision's record, a turn's line enters it once the turn has ended and the seat was shown all of it, and an
+     *  opponent's card text enters it when first seen. The rest of the state follows it. */
+    @Test
+    public void theCacheOrderOpensWithARecordThatOnlyGrows() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me, 1);
+        SeatObservation o = observerFor(g, 0);
+        o.recordReveal("saw their hand [Force of Will]");
+        GameHistory.Rendered first = o.renderCacheOrdered("seat", ContextProfile.V5_CACHE, -1, null, 0);
+        String record1 = o.stableText();
+        Assert.assertTrue(first.text.startsWith(SeatObservation.RECORD_HEAD), first.text);
+        Assert.assertTrue(record1.contains("\n  opponent's card, Griselbrand: "), record1);
+        Assert.assertFalse(record1.contains("T1 ["), "turn 1 has not ended:\n" + record1);
+        Assert.assertTrue(first.text.startsWith(record1 + "== Turn 1 "), first.text);
+
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN1, rival, 2);
+        o.recordNotice("Rival chose red");
+        card("Orcish Bowmasters", rival, ZoneType.Battlefield);
+        GameHistory.Rendered second = o.renderCacheOrdered("seat", ContextProfile.V5_CACHE, first.watermark, null, 0);
+        String record2 = o.stableText();
+        Assert.assertTrue(second.text.startsWith(record1), "the first record is not a prefix of the next state:\n" + second.text);
+        Assert.assertTrue(second.text.startsWith(record2 + "== Turn 2 "), second.text);
+        String added = record2.substring(record1.length());
+        Assert.assertEquals(added, "  T1 [E1-E1]: [private reveal to you] saw their hand [Force of Will]\n"
+                + "  opponent's card, Orcish Bowmasters: " + added.substring(added.indexOf("Bowmasters: ") + 12), added);
+        Assert.assertTrue(second.text.contains("SINCE YOUR LAST DECISION (Forge game log, oldest->newest):\n  - [E2] [notice to you] Rival chose red\n"),
+                second.text);
+        Assert.assertEquals(second.watermark, 2);
+    }
+
+    /** Each reveal is printed once, in the history (every REVEALS TO YOU line was also a history line), and the
+     *  cache-ordered state holds every fact the v4-faithful one does: the reveal, the opponent's card texts and
+     *  every line of the state after them. */
+    @Test
+    public void theCacheOrderPrintsEachRevealOnceAndDropsNothingElse() {
+        String legacy = pinnedState().render("seat", ContextProfile.V4_FAITHFUL,
+                GameHistory.renderEvents(pinnedState().events(), ContextProfile.V4_FAITHFUL, -1).text, "hold up mana", 1);
+        String cached = pinnedState().renderCacheOrdered("seat", ContextProfile.V5_CACHE, -1, "hold up mana", 1).text;
+        Assert.assertTrue(legacy.contains("\nREVEALS TO YOU ("), legacy);
+        Assert.assertFalse(cached.contains("REVEALS TO YOU"), cached);
+        Assert.assertEquals(cached.split("saw their hand \\[Force of Will\\]", -1).length - 1, 1, cached);
+        Assert.assertFalse(cached.contains("OPPONENT CARDS YOU HAVE SEEN"), cached);
+        for (String line : legacy.split("\n")) {
+            if (line.startsWith("REVEALS TO YOU") || line.startsWith("  - [E1] T") || line.startsWith("OPPONENT CARDS YOU HAVE SEEN"))
+                continue;
+            // An opponent's card line "  Name: text" is "  opponent's card, Name: text" in the record.
+            String fact = line.startsWith("  ") ? line.substring(2) : line;
+            Assert.assertTrue(cached.contains(fact), "the cache order lost: " + line + "\n" + cached);
+        }
+    }
+
+    @Test
+    public void theCacheOrdersGuideDescribesItsOrderAndItsVersionIsItsOwn() {
+        String guide = SeatObservation.guide(ContextProfile.V5_CACHE);
+        Assert.assertTrue(guide.startsWith("Each message starts with THE GAME SO FAR, then the state of the game now, "), guide);
+        Assert.assertFalse(guide.contains("REVEALS TO YOU"), guide);
+        Assert.assertFalse(guide.contains("OPPONENT CARDS YOU HAVE SEEN"), guide);
+        Assert.assertTrue(guide.contains("GAME HISTORY, CONTINUED"), guide);
+        Assert.assertEquals(SeatObservation.version(ContextProfile.V5_CACHE),
+                SeatObservation.VERSION + "+" + SeatObservation.CACHE_VERSION);
+    }
 }

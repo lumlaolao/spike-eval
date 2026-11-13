@@ -28,7 +28,7 @@ BODY = """## What
 
 ## Evidence
 
-- acceptance @ abc123456: OUT=/tmp/acc-native-1 19/19 stages PASS, 278 Java, 141 Python
+- acceptance @ abc123456: OUT=/tmp/acc-native-1 20/20 stages PASS, 278 Java, 141 Python
 
 ## Provenance
 
@@ -117,7 +117,7 @@ class PrFormatTest(unittest.TestCase):
 
     def test_record_acceptance_refuses_a_subset(self):
         # Refused before it touches GitHub: a subset or a partial pass is never written as the gate's line.
-        for passed, total in (("4", "4"), ("18", "19")):
+        for passed, total in (("4", "4"), ("19", "20")):
             with self.assertRaises(SystemExit) as cm:
                 pf.main(["record-acceptance", "1", "abc1234", "/tmp/x", passed, total])
             self.assertIn("not a full pass", str(cm.exception.code))
@@ -133,7 +133,7 @@ class PrFormatTest(unittest.TestCase):
             summary = Path(d) / "summary.txt"
             summary.write_text("\n".join(full) + "\n")
             self.assertEqual(pf.summary_problems(d, str(len(full)), str(len(full))), [])
-            self.assertTrue(pf.summary_problems(d, "20", "20"))                    # typed counts that are not the run's
+            self.assertTrue(pf.summary_problems(d, "21", "21"))                    # typed counts that are not the run's
             summary.write_text("\n".join(full[:-3] + ["FAIL lines: x"]) + "\n")
             p = pf.summary_problems(d, str(len(full)), str(len(full)))
             self.assertTrue(any("FAIL" in x for x in p) and any("no PASS line" in x for x in p), p)
@@ -150,7 +150,7 @@ class PrFormatTest(unittest.TestCase):
             pf.all_stages.cache_clear()
 
     def test_code_changes_need_an_acceptance_run_in_evidence(self):
-        line = "- acceptance @ abc123456: OUT=/tmp/acc-native-1 19/19 stages PASS, 278 Java, 141 Python"
+        line = "- acceptance @ abc123456: OUT=/tmp/acc-native-1 20/20 stages PASS, 278 Java, 141 Python"
 
         def gate(evidence, files, head="abc123456789"):
             return pf.pr_problems("docs: x", BODY.replace(line, evidence), head, files, gate=True)
@@ -158,12 +158,12 @@ class PrFormatTest(unittest.TestCase):
         self.assertTrue(any("has no line" in p for p in gate("- no acceptance run was made", ["forge-overlay/a.java"])))
         # An engine patch is compiled into every game like the overlay is.
         self.assertTrue(any("has no line" in p for p in gate("- tried it", ["engine-patches/forge-ai/a.java.patch"])))
-        self.assertTrue(any("full pass" in p for p in gate(line.replace("19/19", "18/19"), ["eval/x.py"])))
+        self.assertTrue(any("full pass" in p for p in gate(line.replace("20/20", "19/20"), ["eval/x.py"])))
         # A subset run is not the full suite, however green (PR #357 recorded "4/4 stages PASS" for four stages).
-        self.assertTrue(any("full pass" in p for p in gate(line.replace("19/19", "4/4"), ["eval/x.py"])))
-        # pr-review of #358: 18 lines is a run that skipped a stage (canary writes two), so the bar is 19, not 18.
+        self.assertTrue(any("full pass" in p for p in gate(line.replace("20/20", "4/4"), ["eval/x.py"])))
+        # pr-review of #358: 19 lines is a run that skipped a stage (canary writes two), so the bar is 20, not 19.
         self.assertEqual(pf.full_stage_count(), len(pf.all_stages()) + 1)
-        self.assertTrue(any("full pass" in p for p in gate(line.replace("19/19", "18/18"), ["eval/x.py"])))
+        self.assertTrue(any("full pass" in p for p in gate(line.replace("20/20", "19/19"), ["eval/x.py"])))
         self.assertTrue(any("full pass" in p for p in gate(line.replace("abc123456", "fff000111"), ["scripts/pr_merge.sh"])))
         self.assertEqual(gate(line, ["install.sh"]), [])
         self.assertEqual(gate("- read it twice", ["docs/a.md"]), [])
@@ -272,10 +272,10 @@ class PrFormatTest(unittest.TestCase):
             self.assertTrue(any("`## %s` still holds a skeleton placeholder" % section in p for p in problems),
                             (section, problems))
         # Only the acceptance line left unfilled on a docs-only PR (the gate's acceptance check is skipped).
-        evidence_only = BODY.replace("- acceptance @ abc123456: OUT=/tmp/acc-native-1 19/19 stages PASS",
+        evidence_only = BODY.replace("- acceptance @ abc123456: OUT=/tmp/acc-native-1 20/20 stages PASS",
                                      "- acceptance @ abc123456: OUT=/tmp/<name> <N>/<N> stages PASS")
         self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", evidence_only)))
-        java_left = BODY.replace("19/19 stages PASS", "19/19 stages PASS, <J> Java")
+        java_left = BODY.replace("20/20 stages PASS", "20/20 stages PASS, <J> Java")
         self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", java_left)))
         # Prose, HTML and autolinks with angle brackets are not placeholders.
         for line in ("The <details> block stays; `List<String>` is fine.", "<details>", "</details>",

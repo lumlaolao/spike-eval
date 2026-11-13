@@ -110,12 +110,60 @@ final class SeatObservation {
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
     static String version() { return VERSION + (AnswerTool.proposeActions() ? "+propose" : ""); }
 
+    /** The cache order's own version ({@link #renderCacheOrdered}, its guide), stamped after {@link #VERSION}: the
+     *  blocks are VERSION's, so a change to either is a new observation.
+     *  cache-v1 (2026-11-13): an append-only record first (finished turns, card text when first seen), reveals once. */
+    static final String CACHE_VERSION = "cache-v1";
+
+    /** The version a game under {@code ctx} is stamped with. */
+    static String version(ContextProfile ctx) {
+        return ctx != null && ctx.cacheOrdered ? VERSION + "+" + CACHE_VERSION + (AnswerTool.proposeActions() ? "+propose" : "")
+                : version();
+    }
+
     /** The state guide the system prompt carries: {@link #GUIDE}, or under PROPOSE_ACTIONS the same guide without the
      *  hand's castable tags and the ACTIVATE options, which are part of the legal list that condition hides. */
     static String guide() {
         if (!AnswerTool.proposeActions()) return GUIDE;
         return GUIDE.replace(HAND_TAGS_GUIDE, HAND_NO_TAGS_GUIDE).replace(ACTIVATE_GUIDE, ABILITIES_GUIDE);
     }
+
+    /** {@link #guide()} for a game under {@code ctx}: under the cache order it describes that order. */
+    static String guide(ContextProfile ctx) {
+        if (ctx == null || !ctx.cacheOrdered) return guide();
+        String g = guide();
+        for (String[] r : CACHE_GUIDE) {
+            if (!g.contains(r[0])) throw new IllegalStateException("the state guide no longer holds: " + r[0]);
+            g = g.replace(r[0], r[1]);
+        }
+        return g;
+    }
+
+    /** The heading of the append-only record {@link #renderCacheOrdered} opens with; its lines are each finished
+     *  turn's digest and each card's printed text, and nothing in it is ever rewritten. */
+    static final String RECORD_HEAD = "THE GAME SO FAR (a record that only grows, oldest first: each finished turn's Forge game log, "
+            + "compacted, as \"T<n> [E<first>-E<last>]: ...\" with canonical event ids; and the printed rules text from the card "
+            + "database of each card you have seen that is not in your deck, as \"opponent's card, <name>: ...\" or \"your card, "
+            + "<name>: ...\", added when you first saw it):\n";
+
+    /** What the cache order changes in {@link #GUIDE}: {old, new}, each old text present exactly as written. */
+    static final String[][] CACHE_GUIDE = {
+        {"Each message starts with the state of the game, then the decision.\n",
+         "Each message starts with THE GAME SO FAR, then the state of the game now, then the decision.\n"
+            + "- THE GAME SO FAR only grows. A turn's line of the game log (T<n>, with the range of its [E<n>] event ids) is "
+            + "added once the turn has ended and you have been shown all of it; the printed rules text of a card you see that "
+            + "is not in your deck is added when you first see it.\n"},
+        {" OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n", "\n"},
+        {"- SINCE YOUR LAST DECISION is the engine's log",
+         "- GAME HISTORY, CONTINUED is the part of a turn that had not ended when you last chose. SINCE YOUR LAST DECISION "
+            + "is the engine's log"},
+        {" REVEALS TO YOU are hidden cards you were shown.\n",
+         " A hidden card you were shown is a [private reveal to you] line of these logs.\n"},
+        {"GAME HISTORY, SINCE YOUR LAST DECISION and REVEALS TO YOU are lines",
+         "The turn lines of THE GAME SO FAR, GAME HISTORY, CONTINUED and SINCE YOUR LAST DECISION are lines"},
+        {"OPPONENT CARDS YOU HAVE SEEN is printed card text from the card database.",
+         "The card lines of THE GAME SO FAR are printed card text from the card database."},
+    };
     static final String HAND_TAGS_GUIDE = "- Your hand lists each card with its mana cost and, for a spell, whether you can cast it now: \"(castable)\", "
             + "\"(castable by an alternative cost)\", \"(castable only with <optional cost>)\", \"(payable, not castable now)\" "
             + "(the mana is there but not the timing, such as a sorcery on the opponent's turn), what is missing, such as "
@@ -282,12 +330,17 @@ final class SeatObservation {
 
     private String ownNewCardText() {
         if (!trackOwnCards) return "";
+        noteOwnCards();
+        return textBlock("YOUR CARDS SINCE THE START (printed rules text from the card database of your cards first seen after"
+                + " the puzzle began; ", ownNewCardText);
+    }
+
+    private void noteOwnCards() {
+        if (!trackOwnCards) return;
         try {
             for (ZoneType z : OWN_SEEN_ZONES)
                 for (Card c : viewer.getCardsIn(z)) noteText(ownNewCardText, oppCardText, c);
         } catch (Exception ignore) { }
-        return textBlock("YOUR CARDS SINCE THE START (printed rules text from the card database of your cards first seen after"
-                + " the puzzle began; ", ownNewCardText);
     }
 
     /** Record {@code c}'s printed text in {@code into} the first time the viewer can identify it, unless {@code other}
@@ -1121,6 +1174,55 @@ final class SeatObservation {
     // ---- state rendering ----------------------------------------------------------------------
 
     String render(String seatLabel, ContextProfile ctx, String history, String turnPlan, int planTurn) {
+        return renderState(seatLabel, ctx, history, turnPlan, planTurn, false);
+    }
+
+    /** The append-only record {@link #renderCacheOrdered} opens every state with: it is only ever appended to. */
+    private final StringBuilder stableRecord = new StringBuilder();
+    /** The last turn whose digest line is in {@link #stableRecord}; -1 for none. */
+    private int recordedThrough = -1;
+    private int oppCardsRecorded = 0;
+    private int ownCardsRecorded = 0;
+
+    /** The record as it stands: the opening of every state rendered from now on (ContextMemory puts the archive
+     *  lines after it, not before). */
+    String stableText() { return stableRecord.toString(); }
+
+    /**
+     * The state under the cache order (a profile with {@code cacheOrdered}): {@link #stableRecord} first, then the state as
+     * {@link #render} prints it without the blocks the record holds (the card texts, the finished turns) and without
+     * REVEALS TO YOU, whose every line is a [private reveal to you] line of the history. A decision's message then
+     * starts with the previous decision's record, which the provider's prompt cache reads instead of writing again.
+     * Returns the text and the watermark the caller adopts (GameHistory.Rendered's rule).
+     */
+    GameHistory.Rendered renderCacheOrdered(String seatLabel, ContextProfile ctx, int watermark, String turnPlan, int planTurn) {
+        GameHistory.Split h = GameHistory.renderSplit(stream, ctx, watermark, recordedThrough);
+        for (String line : h.finished) appendRecord("  " + line + "\n");
+        recordedThrough = h.finishedThrough;
+        noteOwnCards();          // in render's order: one name is printed once, on the side that first had it
+        noteOpponentCards();
+        oppCardsRecorded = appendCards(oppCardText, oppCardsRecorded, "opponent's card");
+        ownCardsRecorded = appendCards(ownNewCardText, ownCardsRecorded, "your card");
+        return new GameHistory.Rendered(stableRecord + renderState(seatLabel, ctx, h.rest, turnPlan, planTurn, true), h.watermark);
+    }
+
+    private void appendRecord(String line) {
+        if (stableRecord.length() == 0) stableRecord.append(RECORD_HEAD);
+        stableRecord.append(line);
+    }
+
+    /** Appends the entries of {@code cards} after the first {@code recorded}; returns the new count. */
+    private int appendCards(java.util.Map<String, String> cards, int recorded, String whose) {
+        int i = 0;
+        for (java.util.Map.Entry<String, String> e : cards.entrySet()) {
+            if (i++ < recorded) continue;
+            appendRecord("  " + whose + ", " + e.getKey() + ": " + e.getValue() + "\n");
+        }
+        return cards.size();
+    }
+
+    private String renderState(String seatLabel, ContextProfile ctx, String history, String turnPlan, int planTurn,
+                               boolean cacheOrdered) {
         try {
             StringBuilder s = new StringBuilder();
             PhaseHandler ph = game.getPhaseHandler();
@@ -1171,14 +1273,16 @@ final class SeatObservation {
                 String landsPlayed = streamCastHistory(opp, true, ctx.castHistoryCap);
                 if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
             }
-            s.append(ownNewCardText());
-            s.append(opponentCardText());
+            if (!cacheOrdered) {
+                s.append(ownNewCardText());
+                s.append(opponentCardText());
+            }
 
             s.append(STACK_LINE).append(stack()).append('\n');
             s.append("COMBAT: ").append(combat()).append('\n');
             s.append("NOT VISIBLE: ").append(notVisible()).append('\n');
             s.append(history);
-            if (!reveals.isEmpty()) {
+            if (!cacheOrdered && !reveals.isEmpty()) {
                 s.append("REVEALS TO YOU (Forge game log and the engine's notices to you, seat-local; ").append(reveals.size())
                         .append(" total, oldest first):\n");
                 for (String r : reveals) s.append("  - ").append(staleLabel(r)).append('\n');

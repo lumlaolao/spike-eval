@@ -213,4 +213,26 @@ public class ContextMemoryTest {
         for (int i = 0; i < 9; i++) Assert.assertTrue(brief.contains("hypothesis number " + i), brief);
         Assert.assertTrue(brief.contains("YOUR NOTEBOOK (unverified hypotheses; 9 notes)"), brief);
     }
+
+    /** Under the cache order the archive lines (they change at every decision) follow the record the state opens
+     *  with, so the message starts with the previous message's record; without a record they open the message. */
+    @Test
+    public void theArchiveLinesFollowTheRecordUnderTheCacheOrder() {
+        String record = "THE GAME SO FAR (...):\n  T1 [E1-E3]: a\n";
+        String decision = record + "== Turn 2 ==\nDECISION: x\n";
+        ContextMemory memory = new ContextMemory();
+        memory.setStablePrefix(() -> record);
+        String user = memory.beginNative(decision);
+        Assert.assertTrue(user.startsWith(record + "<archive>\nThis decision is saved as archive entry M1."), user);
+        Assert.assertTrue(user.endsWith("</archive>\n\n== Turn 2 ==\nDECISION: x\n"), user);
+
+        ContextMemory legacy = new ContextMemory();
+        String plain = legacy.beginNative(decision);
+        Assert.assertTrue(plain.startsWith("<archive>\n"), plain);
+        Assert.assertTrue(plain.endsWith("</archive>\n\n" + decision), plain);
+        // A decision that does not start with the record (a render in between) keeps the archive first.
+        ContextMemory stale = new ContextMemory();
+        stale.setStablePrefix(() -> record + "  T2 [E4-E5]: b\n");
+        Assert.assertTrue(stale.beginNative(decision).startsWith("<archive>\n"));
+    }
 }

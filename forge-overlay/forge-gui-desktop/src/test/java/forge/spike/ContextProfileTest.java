@@ -54,7 +54,7 @@ public class ContextProfileTest {
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (ContextProfile p : new ContextProfile[] {
                 ContextProfile.V1_COMPAT, ContextProfile.V2_MEMORY, ContextProfile.V3_COMPACT,
-                ContextProfile.V4_FAITHFUL }) {
+                ContextProfile.V4_FAITHFUL, ContextProfile.V5_CACHE }) {
             Assert.assertTrue(seen.add(p.sha()), "sha collision on " + p.name);
         }
         Assert.assertEquals(seen.size(), ContextProfile.names().size(),
@@ -78,6 +78,22 @@ public class ContextProfileTest {
         }
         Assert.assertEquals(ContextProfile.V1_COMPAT.sha(), "73b94c6d03c7", "legacy sha moved: artifacts on disk no longer match");
         Assert.assertEquals(ContextProfile.resolve("v4-faithful").name, "v4-faithful");
+    }
+
+    /** v5-cache is v4-faithful's knobs in the cache order: its identity names the cache order's observation version,
+     *  and no other profile is cache-ordered (v4-faithful keeps its preimage and so its sha). */
+    @Test
+    public void theCacheOrderIsItsOwnProfileWithV4FaithfulsKnobs() {
+        ContextProfile v4 = ContextProfile.V4_FAITHFUL, v5 = ContextProfile.V5_CACHE;
+        Assert.assertTrue(v5.faithfulObservation && v5.cacheOrdered);
+        Assert.assertEquals(v5.canonical().replace("name=v5-cache", "name=v4-faithful")
+                        .replace("|observation=" + SeatObservation.version(v5), "|observation=" + SeatObservation.VERSION),
+                v4.canonical(), "the same knobs, another order");
+        Assert.assertTrue(v5.canonical().endsWith("|observation=" + SeatObservation.VERSION + "+" + SeatObservation.CACHE_VERSION));
+        for (ContextProfile p : new ContextProfile[] {
+                ContextProfile.V1_COMPAT, ContextProfile.V2_MEMORY, ContextProfile.V3_COMPACT, v4 })
+            Assert.assertFalse(p.cacheOrdered, p.name);
+        Assert.assertEquals(ContextProfile.resolve("v5-cache"), v5);
     }
 
     /** v3-compact is the ladder: it must select TIERED and configure all three tier knobs, or the

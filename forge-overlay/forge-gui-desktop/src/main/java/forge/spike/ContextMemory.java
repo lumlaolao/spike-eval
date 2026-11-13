@@ -257,8 +257,18 @@ final class ContextMemory {
         currentObservation = id;
         // The archive first and the decision last: the question is the last thing the model reads
         // (docs/harness/PROMPT-AUDIT.md E1), and the lines say what the model can do, not internal names (F1).
-        return "<archive>\n" + nativeBrief(id) + "</archive>\n\n" + decision + (decision.endsWith("\n") ? "" : "\n");
+        // Under the cache order the archive lines (which change at every decision) follow the record the decision
+        // opens with, so the message still starts with the previous one's record.
+        String stable = stablePrefix == null ? "" : stablePrefix.get();
+        String head = !stable.isEmpty() && decision.startsWith(stable) ? stable : "";
+        return head + "<archive>\n" + nativeBrief(id) + "</archive>\n\n" + decision.substring(head.length())
+                + (decision.endsWith("\n") ? "" : "\n");
     }
+
+    private java.util.function.Supplier<String> stablePrefix;
+
+    /** The record a cache-ordered state opens with (SeatObservation.stableText); null for every other profile. */
+    void setStablePrefix(java.util.function.Supplier<String> stablePrefix) { this.stablePrefix = stablePrefix; }
 
     /** The archive lines of a native ask: what is in it, how to reach it, what is left, the latest reveals
      *  and notes. */

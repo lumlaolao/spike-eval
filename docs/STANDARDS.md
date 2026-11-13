@@ -25,7 +25,7 @@ A PR is merged only with `bash scripts/pr_merge.sh <number>`, which refuses unle
    `pr_format.py record-acceptance`) for any PR that touches `forge-overlay/`, `engine-patches/`, `eval/`,
    `scripts/` or a root launcher (any `*.sh` at the root; `eval/tests/test_pr_format.py` fails when one is missing from
    `pr_format.CODE_PATHS`). The sha must be the PR's current head, and N covers every stage: one PASS line per stage
-   in `ALL_STAGES` (`eval/harness_acceptance.sh`), two for canary, 19 today. `record-acceptance` checks the counts
+   in `ALL_STAGES` (`eval/harness_acceptance.sh`), two for canary, 20 today. `record-acceptance` checks the counts
    against the run's own `<OUT>/summary.txt` and refuses a `STAGES` subset, which is prose in Evidence, never this line
    (PR #357);
 4. no `eval/` script the PR changes is still on `eval/UNTESTED.txt` as the PR head has it (#247): changing a listed
