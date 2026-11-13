@@ -770,8 +770,8 @@ public final class LlmSpikeGui {
          *  so it is part of the profile identity below. */
         final boolean faithfulObservation;
         /** The faithful state ordered for the provider's prompt cache ({@link SeatObservation#renderCacheOrdered}):
-         *  what never changes once written (each finished turn's history, the text of each card first seen) comes
-         *  first as one append-only record, and the rest of the state after it. Same information, other order. */
+         *  what never changes once written (each event shown at an earlier decision, the text of each card first seen)
+         *  comes first as one append-only record, the rest of the state after it, the archive lines last. */
         final boolean cacheOrdered;
 
         private ContextProfile(String name, int recentEvents, int recentEventsMax, int intelCap,
@@ -841,9 +841,9 @@ public final class LlmSpikeGui {
                                    GameHistory.Mode.TIERED, 10000, 10000, 5, true, false);
 
         /** v4-faithful's knobs and blocks in the order the provider's prompt cache rewards (2026-11-13, owner
-         *  approved; audit G R1-R2): the per-decision message opens with an append-only record (each finished turn's
-         *  digest line, each card's printed text when first seen), so a decision's message starts with the previous
-         *  one's, and every reveal is printed once, in the history (each REVEALS TO YOU line was also there: 71,809
+         *  approved; audit G R1-R2): the per-decision message opens with an append-only record (each event shown at
+         *  an earlier decision, verbatim; each card's printed text when first seen), so a decision's message starts with
+         *  the previous one's, and every reveal is printed once, in the history (each REVEALS TO YOU line was also there: 71,809
          *  of 71,809 in 1,355 prompts of runs/loop g20-g33 and pair-4201). v4-faithful keeps its bytes. */
         static final ContextProfile V5_CACHE =
                 new ContextProfile("v5-cache", EVENTS_SINCE_LAST_DECISION, 10000, 64, 10000, 10000, 10000,
@@ -1491,8 +1491,8 @@ public final class LlmSpikeGui {
             }
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
             if (observer != null) p("[OBSERVATION] " + SeatObservation.version(ctx) + " (profile " + ctx + ")");
-            // The archive line is volatile: under the cache order it follows the append-only record.
-            if (observer != null && ctx.cacheOrdered) contextMemory.setStablePrefix(observer::stableText);
+            // The archive lines change at every decision: under the cache order they follow the state.
+            if (observer != null && ctx.cacheOrdered) contextMemory.setArchiveAfter(observer::renderedState);
         }
 
         /** Non-null under a faithful profile; tests use it to drive the live observer directly. */

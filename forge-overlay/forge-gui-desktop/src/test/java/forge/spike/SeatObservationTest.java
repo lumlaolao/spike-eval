@@ -1328,8 +1328,9 @@ public class SeatObservationTest {
         String record1 = o.stableText();
         Assert.assertTrue(first.text.startsWith(SeatObservation.RECORD_HEAD), first.text);
         Assert.assertTrue(record1.contains("\n  opponent's card, Griselbrand: "), record1);
-        Assert.assertFalse(record1.contains("T1 ["), "turn 1 has not ended:\n" + record1);
+        Assert.assertFalse(record1.contains("[E1]"), "the reveal is shown at this decision, recorded at the next:\n" + record1);
         Assert.assertTrue(first.text.startsWith(record1 + "== Turn 1 "), first.text);
+        Assert.assertEquals(o.renderedState(), first.text, "the archive lines go after the whole state");
 
         g.getPhaseHandler().devModeSet(PhaseType.MAIN1, rival, 2);
         o.recordNotice("Rival chose red");
@@ -1339,7 +1340,7 @@ public class SeatObservationTest {
         Assert.assertTrue(second.text.startsWith(record1), "the first record is not a prefix of the next state:\n" + second.text);
         Assert.assertTrue(second.text.startsWith(record2 + "== Turn 2 "), second.text);
         String added = record2.substring(record1.length());
-        Assert.assertEquals(added, "  T1 [E1-E1]: [private reveal to you] saw their hand [Force of Will]\n"
+        Assert.assertEquals(added, "  - [E1] [private reveal to you] saw their hand [Force of Will]\n"
                 + "  opponent's card, Orcish Bowmasters: " + added.substring(added.indexOf("Bowmasters: ") + 12), added);
         Assert.assertTrue(second.text.contains("SINCE YOUR LAST DECISION (Forge game log, oldest->newest):\n  - [E2] [notice to you] Rival chose red\n"),
                 second.text);
@@ -1373,7 +1374,8 @@ public class SeatObservationTest {
         Assert.assertTrue(guide.startsWith("Each message starts with THE GAME SO FAR, then the state of the game now, "), guide);
         Assert.assertFalse(guide.contains("REVEALS TO YOU"), guide);
         Assert.assertFalse(guide.contains("OPPONENT CARDS YOU HAVE SEEN"), guide);
-        Assert.assertTrue(guide.contains("GAME HISTORY, CONTINUED"), guide);
+        Assert.assertTrue(guide.contains("Each event of the game log you were shown at a decision is added to it"), guide);
+        Assert.assertFalse(guide.contains("GAME HISTORY,"), guide);
         Assert.assertEquals(SeatObservation.version(ContextProfile.V5_CACHE),
                 SeatObservation.VERSION + "+" + SeatObservation.CACHE_VERSION);
     }

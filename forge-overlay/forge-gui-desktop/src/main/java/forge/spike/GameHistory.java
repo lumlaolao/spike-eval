@@ -276,66 +276,55 @@ final class GameHistory {
         return s.toString();
     }
 
-    // ---- the cache order: finished turns once, the rest as TIERED renders it ---------------------------------
+    // ---- the cache order: each event once, appended to a record, the new ones verbatim -----------------------
 
-    /** {@link #renderSplit}'s output: the digest line of each turn that is final now and was not before (oldest
-     *  first, for the caller's append-only record), the last turn so recorded, and the rest of the history. */
+    /** {@link #renderSplit}'s output: the lines of the events the seat had been shown and the caller's record does not
+     *  hold yet (oldest first, to append), the count of events the record now holds, and the events since the last
+     *  decision. */
     static final class Split {
-        final List<String> finished;
-        final int finishedThrough;
+        final List<String> recorded;
+        final int recordedEvents;
         final String rest;
         final int watermark;
-        Split(List<String> finished, int finishedThrough, String rest, int watermark) {
-            this.finished = finished; this.finishedThrough = finishedThrough; this.rest = rest; this.watermark = watermark;
+        Split(List<String> recorded, int recordedEvents, String rest, int watermark) {
+            this.recorded = recorded; this.recordedEvents = recordedEvents; this.rest = rest; this.watermark = watermark;
         }
     }
 
     /**
-     * The TIERED history in two parts, for a prompt whose opening must not change between decisions (the provider's
-     * prompt cache matches a prefix). A turn's digest line is final once the turn has ended and the seat was shown
-     * every event of it before: it goes to {@code finished} the first time that holds, and never again. Everything
-     * else (the open part of a turn, then the events since the last decision, verbatim) is {@code rest}, worded as
-     * TIERED words it. Together they show every event once, as TIERED does.
+     * The history for a prompt whose opening must not change between decisions (the provider's prompt cache matches a
+     * prefix). Every event the seat was shown at an earlier decision is one line of the caller's append-only record,
+     * "- [E<n>] <the log's words>", handed back once, in order; the events since the last decision follow as SINCE
+     * YOUR LAST DECISION, as TIERED words them. No line is digested: a digest of a turn changes while the turn goes on
+     * (its "xN" counts and its id range), and an unfinished turn's digest was a third of a message that could not be
+     * cached. Every event is shown, with its own id and in its order, which a digest merged.
      *
-     * @param finishedThrough the last turn the caller has recorded, -1 for none
+     * @param recordedEvents how many events (from the first) the caller's record holds
      */
-    static Split renderSplit(List<Ev> evs, ContextProfile ctx, int watermark, int finishedThrough) {
-        if (evs.isEmpty()) return new Split(new ArrayList<>(), finishedThrough, "", 0);
+    static Split renderSplit(List<Ev> evs, ContextProfile ctx, int watermark, int recordedEvents) {
+        if (evs.isEmpty()) return new Split(new ArrayList<>(), recordedEvents, "", 0);
         try {
             int seen = Math.max(0, watermark);
             int gap = Math.max(0, evs.size() - seen);
             int verbatim = Math.min(gap, ctx.recentEventsMax);
             int splitAt = evs.size() - verbatim;
-            List<String> finished = new ArrayList<>();
-            List<String> open = new ArrayList<>();
-            int through = finishedThrough;
-            for (int[] sp : turnSpans(evs, splitAt)) {
-                if (sp[0] <= finishedThrough) continue;
-                String line = digestLine(evs, sp[1], sp[2], "T" + sp[0], ctx.digestPerTurn, false);
-                // Ended (a later turn's event follows its last one), so all of it lies before the verbatim part.
-                boolean done = open.isEmpty() && sp[2] + 1 < evs.size() && evs.get(sp[2] + 1).turn > sp[0];
-                if (done) { finished.add(line); through = sp[0]; }
-                else open.add(line);
-            }
+            List<String> recorded = new ArrayList<>();
+            for (int i = Math.max(0, recordedEvents); i < splitAt; i++) recorded.add(line(evs.get(i)));
             StringBuilder s = new StringBuilder();
-            if (!open.isEmpty()) {
-                s.append("GAME HISTORY, CONTINUED (Forge game log, compacted; the part of a turn that had not ended when "
-                        + "you last decided):\n");
-                for (String ln : open) s.append("  ").append(ln).append('\n');
-            }
             if (verbatim > 0) {
                 s.append(gap > verbatim
-                        ? "SINCE YOUR LAST DECISION (Forge game log, oldest->newest; older ones are in the history above):\n"
+                        ? "SINCE YOUR LAST DECISION (Forge game log, oldest->newest; older ones are in THE GAME SO FAR):\n"
                         : "SINCE YOUR LAST DECISION (Forge game log, oldest->newest):\n");
-                for (int i = splitAt; i < evs.size(); i++) {
-                    s.append("  - [E").append(evs.get(i).id).append("] ").append(evs.get(i).msg).append('\n');
-                }
+                for (int i = splitAt; i < evs.size(); i++) s.append("  ").append(line(evs.get(i))).append('\n');
             }
-            return new Split(finished, through, s.toString(), evs.size());
+            return new Split(recorded, Math.max(recordedEvents, splitAt), s.toString(), evs.size());
         } catch (Exception e) {
-            return new Split(new ArrayList<>(), finishedThrough, "", Rendered.KEEP_WATERMARK);
+            return new Split(new ArrayList<>(), recordedEvents, "", Rendered.KEEP_WATERMARK);
         }
     }
+
+    /** One event as the verbatim history prints it: "- [E<n>] <message>". */
+    private static String line(Ev e) { return "- [E" + e.id + "] " + e.msg; }
 
     /** {turn, firstIdx, lastIdx} for each turn appearing in [0, end), oldest-first. */
     private static List<int[]> turnSpans(List<Ev> evs, int end) {

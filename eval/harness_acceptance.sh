@@ -924,7 +924,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("context_profile")!="v5-cache": problems.append("context_profile=%r"%game.get("context_profile"))
-    if game.get("observation_version")!="observation-faithful-v46+cache-v1":
+    if game.get("observation_version")!="observation-faithful-v46+cache-v2":
         problems.append("observation_version=%r (move this pin WITH SeatObservation.VERSION/CACHE_VERSION)"%game.get("observation_version"))
 model=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
 if len(model)<10: problems.append("only %d model decisions"%len(model))
@@ -940,8 +940,10 @@ for s in seats:
 asks=[r.get("prompt") or "" for r in rows if r.get("t")=="context_call" and r.get("round")==0]
 late=[p for p in asks if p.startswith("THE GAME SO FAR (") and "\n<archive>\n" not in p]
 if late: problems.append("%d messages with a record lack the archive lines after it"%len(late))
+early=[p for p in asks if "<archive>\n" in p and "== Turn " not in p.split("<archive>\n")[0]]
+if early: problems.append("%d messages put the archive lines before the state"%len(early))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v46+cache-v1 " not in log: problems.append("observer never announced the cache order in the log")
+if "[OBSERVATION] observation-faithful-v46+cache-v2 " not in log: problems.append("observer never announced the cache order in the log")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
 if "[TEXT-PARSE]" in log: problems.append("[TEXT-PARSE] in log")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)

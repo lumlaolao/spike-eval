@@ -112,8 +112,11 @@ final class SeatObservation {
 
     /** The cache order's own version ({@link #renderCacheOrdered}, its guide), stamped after {@link #VERSION}: the
      *  blocks are VERSION's, so a change to either is a new observation.
-     *  cache-v1 (2026-11-13): an append-only record first (finished turns, card text when first seen), reveals once. */
-    static final String CACHE_VERSION = "cache-v1";
+     *  cache-v1 (2026-11-13): an append-only record first (finished turns, card text when first seen), reveals once.
+     *  cache-v2 (2026-11-13): the archive lines after the state, not between the record and the state; the record holds
+     *  every event shown at an earlier decision, verbatim, not a digest line per finished turn (an unfinished turn's
+     *  digest was 35% of a message and changed at every decision, measure-1794598034). */
+    static final String CACHE_VERSION = "cache-v2";
 
     /** The version a game under {@code ctx} is stamped with. */
     static String version(ContextProfile ctx) {
@@ -139,28 +142,25 @@ final class SeatObservation {
         return g;
     }
 
-    /** The heading of the append-only record {@link #renderCacheOrdered} opens with; its lines are each finished
-     *  turn's digest and each card's printed text, and nothing in it is ever rewritten. */
-    static final String RECORD_HEAD = "THE GAME SO FAR (a record that only grows, oldest first: each finished turn's Forge game log, "
-            + "compacted, as \"T<n> [E<first>-E<last>]: ...\" with canonical event ids; and the printed rules text from the card "
-            + "database of each card you have seen that is not in your deck, as \"opponent's card, <name>: ...\" or \"your card, "
-            + "<name>: ...\", added when you first saw it):\n";
+    /** The heading of the append-only record {@link #renderCacheOrdered} opens with; its lines are each event shown
+     *  at an earlier decision and each card's printed text, and nothing in it is ever rewritten. */
+    static final String RECORD_HEAD = "THE GAME SO FAR (a record that only grows, oldest first: each event of the Forge game log you "
+            + "were shown at an earlier decision, as \"- [E<n>] ...\" with its canonical event id, a turn starting at its \"Turn <n>\" "
+            + "line; and the printed rules text from the card database of each card you have seen that is not in your deck, as "
+            + "\"opponent's card, <name>: ...\" or \"your card, <name>: ...\", added when you first saw it):\n";
 
     /** What the cache order changes in {@link #GUIDE}: {old, new}, each old text present exactly as written. */
     static final String[][] CACHE_GUIDE = {
         {"Each message starts with the state of the game, then the decision.\n",
          "Each message starts with THE GAME SO FAR, then the state of the game now, then the decision.\n"
-            + "- THE GAME SO FAR only grows. A turn's line of the game log (T<n>, with the range of its [E<n>] event ids) is "
-            + "added once the turn has ended and you have been shown all of it; the printed rules text of a card you see that "
-            + "is not in your deck is added when you first see it.\n"},
+            + "- THE GAME SO FAR only grows. Each event of the game log you were shown at a decision is added to it, with its [E<n>] "
+            + "id, at the next one; the printed rules text of a card you see that is not in your deck is added when you first "
+            + "see it.\n"},
         {" OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n", "\n"},
-        {"- SINCE YOUR LAST DECISION is the engine's log",
-         "- GAME HISTORY, CONTINUED is the part of a turn that had not ended when you last chose. SINCE YOUR LAST DECISION "
-            + "is the engine's log"},
         {" REVEALS TO YOU are hidden cards you were shown.\n",
          " A hidden card you were shown is a [private reveal to you] line of these logs.\n"},
         {"GAME HISTORY, SINCE YOUR LAST DECISION and REVEALS TO YOU are lines",
-         "The turn lines of THE GAME SO FAR, GAME HISTORY, CONTINUED and SINCE YOUR LAST DECISION are lines"},
+         "The event lines of THE GAME SO FAR and SINCE YOUR LAST DECISION are lines"},
         {"OPPONENT CARDS YOU HAVE SEEN is printed card text from the card database.",
          "The card lines of THE GAME SO FAR are printed card text from the card database."},
     };
@@ -1179,31 +1179,36 @@ final class SeatObservation {
 
     /** The append-only record {@link #renderCacheOrdered} opens every state with: it is only ever appended to. */
     private final StringBuilder stableRecord = new StringBuilder();
-    /** The last turn whose digest line is in {@link #stableRecord}; -1 for none. */
-    private int recordedThrough = -1;
+    /** How many events of the stream (from the first) {@link #stableRecord} holds. */
+    private int recordedEvents = 0;
     private int oppCardsRecorded = 0;
     private int ownCardsRecorded = 0;
 
-    /** The record as it stands: the opening of every state rendered from now on (ContextMemory puts the archive
-     *  lines after it, not before). */
+    /** The record as it stands: the opening of every state rendered from now on. */
     String stableText() { return stableRecord.toString(); }
+
+    /** The last state {@link #renderCacheOrdered} returned: ContextMemory puts the archive lines after it, just before
+     *  the decision, so they do not cut the record and the state's unchanged lines out of the cached prefix. */
+    private String renderedState = "";
+    String renderedState() { return renderedState; }
 
     /**
      * The state under the cache order (a profile with {@code cacheOrdered}): {@link #stableRecord} first, then the state as
-     * {@link #render} prints it without the blocks the record holds (the card texts, the finished turns) and without
+     * {@link #render} prints it without the blocks the record holds (the card texts, the events shown before) and without
      * REVEALS TO YOU, whose every line is a [private reveal to you] line of the history. A decision's message then
      * starts with the previous decision's record, which the provider's prompt cache reads instead of writing again.
      * Returns the text and the watermark the caller adopts (GameHistory.Rendered's rule).
      */
     GameHistory.Rendered renderCacheOrdered(String seatLabel, ContextProfile ctx, int watermark, String turnPlan, int planTurn) {
-        GameHistory.Split h = GameHistory.renderSplit(stream, ctx, watermark, recordedThrough);
-        for (String line : h.finished) appendRecord("  " + line + "\n");
-        recordedThrough = h.finishedThrough;
+        GameHistory.Split h = GameHistory.renderSplit(stream, ctx, watermark, recordedEvents);
+        for (String line : h.recorded) appendRecord("  " + line + "\n");
+        recordedEvents = h.recordedEvents;
         noteOwnCards();          // in render's order: one name is printed once, on the side that first had it
         noteOpponentCards();
         oppCardsRecorded = appendCards(oppCardText, oppCardsRecorded, "opponent's card");
         ownCardsRecorded = appendCards(ownNewCardText, ownCardsRecorded, "your card");
-        return new GameHistory.Rendered(stableRecord + renderState(seatLabel, ctx, h.rest, turnPlan, planTurn, true), h.watermark);
+        renderedState = stableRecord + renderState(seatLabel, ctx, h.rest, turnPlan, planTurn, true);
+        return new GameHistory.Rendered(renderedState, h.watermark);
     }
 
     private void appendRecord(String line) {

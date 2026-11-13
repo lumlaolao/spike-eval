@@ -211,57 +211,39 @@ public class GameHistoryTest {
         Assert.assertEquals(r.watermark, 4);
     }
 
-    // ---- the cache order (v5-cache): finished turns once, the rest as TIERED -------------------------------
+    // ---- the cache order (v5-cache): each event once, verbatim, in an append-only record ---------------------
 
-    private static List<String> digestLines(String text) {
-        List<String> out = new ArrayList<>();
-        for (String ln : text.split("\n", -1)) if (ln.startsWith("  T")) out.add(ln.substring(2));
-        return out;
-    }
-
-    private static String verbatimPart(String text) {
-        int at = text.indexOf("SINCE YOUR LAST DECISION");
-        return at < 0 ? "" : text.substring(at);
-    }
-
-    /** Decision over decision, the finished lines only grow (each turn's line handed back once, oldest first), and
-     *  finished + the rest show exactly what v4-faithful's TIERED render shows: the same digest lines and the same
-     *  verbatim events. A turn whose last events the seat has not been shown stays out of the record. */
+    /** Decision over decision, the record only grows by the events shown at the decision before, each once and in
+     *  order, with its own id; the rest is the events since the last decision as TIERED prints them. Together every
+     *  event of the log is shown exactly once. */
     @Test
-    public void theSplitHistoryIsTieredHistoryWithFinishedTurnsHandedBackOnce() {
-        List<Ev> all = log(50);                         // a TURN entry every 4 events: turns 1..13
+    public void everyEventIsShownOnceAndEntersTheRecordAtTheNextDecision() {
+        List<Ev> all = log(50);
         List<String> record = new ArrayList<>();
-        int through = -1, watermark = -1;
+        int held = 0, watermark = -1;
         for (int seen : new int[] {3, 6, 13, 14, 30, 31, 50, 50}) {
             List<Ev> evs = all.subList(0, seen);
             Rendered tiered = GameHistory.renderEvents(evs, ContextProfile.V4_FAITHFUL, watermark);
-            GameHistory.Split split = GameHistory.renderSplit(evs, ContextProfile.V5_CACHE, watermark, through);
+            GameHistory.Split split = GameHistory.renderSplit(evs, ContextProfile.V5_CACHE, watermark, held);
             Assert.assertEquals(split.watermark, tiered.watermark, "seen=" + seen);
-            for (String ln : split.finished) Assert.assertFalse(record.contains(ln), "a line handed back twice: " + ln);
-            record.addAll(split.finished);
-            through = split.finishedThrough;
-            List<String> shown = new ArrayList<>(record);
-            shown.addAll(digestLines(split.rest));
-            Assert.assertEquals(shown, digestLines(tiered.text), "seen=" + seen + "\n" + split.rest);
-            Assert.assertEquals(verbatimPart(split.rest), verbatimPart(tiered.text), "seen=" + seen);
-            int lastTurn = evs.get(evs.size() - 1).turn;
-            Assert.assertTrue(through < lastTurn, "the open turn is never final: seen=" + seen);
+            Assert.assertEquals(split.recordedEvents, Math.max(0, watermark), "the record holds what was shown before");
+            record.addAll(split.recorded);
+            held = split.recordedEvents;
+            int at = tiered.text.indexOf("SINCE YOUR LAST DECISION");
+            Assert.assertEquals(split.rest, at < 0 ? "" : tiered.text.substring(at), "seen=" + seen);
             watermark = split.watermark;
         }
-        Assert.assertEquals(record.size(), 12, "turns 1-12 are final once all 50 events were shown: " + record);
-        Assert.assertEquals(through, 12);
-        Assert.assertTrue(record.get(0).startsWith("T1 [E1-E4]: "), record.get(0));
+        Assert.assertEquals(record.size(), 50, record.toString());
+        for (int i = 0; i < 50; i++) Assert.assertEquals(record.get(i), "- [E" + (i + 1) + "] " + all.get(i).msg);
     }
 
     @Test
-    public void aTurnWhoseEndTheSeatHasNotSeenStaysOpen() {
-        // Shown through E6 (turn 2's first two events); E7-E9 (rest of turn 2) and E10 (turn 3) are new.
-        GameHistory.Split split = GameHistory.renderSplit(log(10), ContextProfile.V5_CACHE, 6, -1);
-        Assert.assertEquals(split.finished.size(), 1, split.finished.toString());
-        Assert.assertTrue(split.finished.get(0).startsWith("T1 [E1-E4]"), split.finished.get(0));
-        Assert.assertEquals(split.finishedThrough, 1);
-        Assert.assertTrue(split.rest.startsWith("GAME HISTORY, CONTINUED (Forge game log, compacted; "), split.rest);
-        Assert.assertTrue(split.rest.contains("\n  T2 [E5-E6]: event-6\n"), split.rest);
-        Assert.assertTrue(split.rest.contains("  - [E7] event-7\n"), split.rest);
+    public void aRecordThatAlreadyHoldsTheShownEventsGetsNothingNew() {
+        GameHistory.Split split = GameHistory.renderSplit(log(10), ContextProfile.V5_CACHE, 6, 6);
+        Assert.assertEquals(split.recorded.size(), 0, split.recorded.toString());
+        Assert.assertEquals(split.recordedEvents, 6);
+        Assert.assertTrue(split.rest.startsWith("SINCE YOUR LAST DECISION (Forge game log, oldest->newest):\n  - [E7] event-7\n"),
+                split.rest);
+        Assert.assertFalse(split.rest.contains("GAME HISTORY"), split.rest);
     }
 }

@@ -8,7 +8,7 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 |---|---|---|---|
 | `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-97` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
 | `SeatObservation.VERSION` | `observation-faithful-v46` | `observation_version` | the faithful state the seat reads: the blocks, their labels and their order. |
-| `SeatObservation.CACHE_VERSION` | `cache-v1` | (`observation_version` under `CONTEXT_PROFILE=v5-cache`: `VERSION+CACHE_VERSION`) | the cache order of that state: the append-only record it opens with (finished turns, card text when first seen), where the archive lines go, reveals printed once, and the guide's words for them. |
+| `SeatObservation.CACHE_VERSION` | `cache-v2` | (`observation_version` under `CONTEXT_PROFILE=v5-cache`: `VERSION+CACHE_VERSION`) | the cache order of that state: the append-only record it opens with (finished turns, card text when first seen), where the archive lines go, reveals printed once, and the guide's words for them. |
 | `AnswerTool.VERSION` | `answer-tool-v19` | `answer_tool_version` | the `answer` and `set_plan` functions and their validation. |
 | `NativeTools.VERSION` | `seat-tools-v11` | `native_tools_version` | the lookup tools' definitions (inspect, search, read, simulate). |
 | `ContextMemory.VERSION` | `evidence-tools-v4` | `memory_tools_version` | what the evidence lookups return. |
