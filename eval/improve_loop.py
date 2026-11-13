@@ -30,14 +30,17 @@ Config (flags, each overridable via the paired env var):
   --deck PATH           mirror decklist for both seats (default
                         eval/decks/mardu-energy.txt; IMPROVE_DECK)
   --out DIR             output dir (default runs/improve/<UTC-timestamp>/)
+  --budget-usd X        passed to run_batch.py --budget-usd (IMPROVE_BUDGET_USD); required
+                        in --controller llm with an openrouter: seat (run_batch.py refuses a
+                        paid model without one)
 
 Runs in run_batch.py's --exploratory mode (this loop is for fast harness
 iteration, not citable win-rate stats — see run_batch.py/eval/README.md for
-the cited-mode mirror/heuristic/jobs guards this deliberately skips).
+the cited-mode mirror/heuristic/seed guards this deliberately skips).
 
 Refuses to run (exit 2) in --controller llm when either seat spec uses the
-openrouter: backend and OPENROUTER_API_KEY is unset in the environment —
-floor mode never needs a key and always works.
+openrouter: backend and OPENROUTER_API_KEY is unset in the environment, or no
+--budget-usd is given — floor mode never needs a key or a budget and always works.
 """
 
 import argparse
@@ -88,6 +91,10 @@ def parse_args(argv=None):
     ap.add_argument("--cap-minutes", type=float, default=None,
                     help="passthrough to run_batch.py --cap-minutes "
                          "(default: derived by run_batch.py)")
+    ap.add_argument("--budget-usd", type=float,
+                    default=(float(os.environ["IMPROVE_BUDGET_USD"]) if os.environ.get("IMPROVE_BUDGET_USD")
+                             else None),
+                    help="passthrough to run_batch.py --budget-usd; required with an openrouter: seat")
     ap.add_argument("--skip-analysis", action="store_true",
                     help="don't run defect_analyzer.py after the batch")
     ap.add_argument("--dry-run", action="store_true",
@@ -117,6 +124,8 @@ def build_run_batch_cmd(args, out_dir):
                 "--fast-a", args.seat_a, "--fast-b", args.seat_b]
     if args.cap_minutes is not None:
         cmd += ["--cap-minutes", str(args.cap_minutes)]
+    if args.budget_usd is not None:
+        cmd += ["--budget-usd", str(args.budget_usd)]
     return cmd
 
 
@@ -137,6 +146,9 @@ def main(argv=None):
                 "gate for sending game state to a third-party API) before "
                 "running llm mode, or use --controller floor (free, "
                 "deterministic, no key needed)." % (args.seat_a, args.seat_b))
+        if needs_key and args.budget_usd is None:
+            refuse("--controller llm with an openrouter: seat spends money: pass --budget-usd X "
+                   "(run_batch.py stops starting games at it).")
     else:
         print("[improve_loop] controller=floor: no API key needed, no network calls.")
 

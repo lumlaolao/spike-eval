@@ -15,7 +15,9 @@ the fix loop picks it up from there.
 
 Usage:
     python3 eval/model_sweep.py [--out runs/improve/model-sweep] \
-        [--models spec,spec,...] [--seed 201] [--cap-minutes 20]
+        [--models spec,spec,...] [--seed 201] [--cap-minutes 20] --budget-usd X
+
+--budget-usd caps each model's one game (run_batch.py refuses a paid model without one).
 
 Requires OPENROUTER_API_KEY (+ OPENROUTER_ALLOW_EGRESS=1) in the
 environment or in <repo>/secrets.env (auto-loaded like tournament.py does).
@@ -110,6 +112,7 @@ def sweep_one(spec, args, seed):
         "--name-a", "UR Delver", "--name-b", "Burn",
         "--out", str(out_dir),
         "--cap-minutes", str(args.cap_minutes),
+        "--budget-usd", str(args.budget_usd),
         "--exploratory",
     ]
     print(f"[sweep] {name}: seed={seed} -> {out_dir}", flush=True)
@@ -134,6 +137,8 @@ def main():
     ap.add_argument("--models", default=",".join(DEFAULT_MODELS))
     ap.add_argument("--seed", type=int, default=201)
     ap.add_argument("--cap-minutes", type=float, default=20)
+    ap.add_argument("--budget-usd", type=float, required=True,
+                    help="passed to run_batch.py for each model's game (each model has its own directory)")
     args = ap.parse_args()
 
     load_secrets()

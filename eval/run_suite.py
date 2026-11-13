@@ -78,6 +78,10 @@ def build_parser():
                     help="passed through to run_batch.py --memory-tools for every "
                          "arm. Agent-plus-tools is a separate condition; its arms "
                          "are written to runs/<suite>-<arm>-memtools.")
+    ap.add_argument("--budget-usd", type=float, default=None, metavar="USD",
+                    help="passed to run_batch.py --budget-usd for every arm (each arm is its own directory, "
+                         "so this is a per-arm cap). Without it the printed commands carry the placeholder "
+                         "<USD>: run_batch.py refuses a paid model with no budget.")
     ap.add_argument("--json", action="store_true", help="machine-readable plan")
     return ap
 
@@ -241,11 +245,16 @@ def main():
             if ctrl_b == "llm":
                 cmd += ["--smart-b", sub(arm["smart_b"]),
                         "--fast-b", sub(arm["fast_b"])]
+            cmd += ["--budget-usd", "<USD>" if args.budget_usd is None else str(args.budget_usd)]
             entry["run"] = cmd
             entry["aggregate"] = ["python3", "eval/aggregate.py", out_dir,
                                   "--max-fallback-rate", str(mfr)]
             entry["defects"] = ["python3", "eval/defect_analyzer.py", out_dir]
         plan.append(entry)
+
+    if args.budget_usd is None and any(e["run"] for e in plan):
+        warnings.append("no --budget-usd: the run commands carry the placeholder <USD>; price an arm first "
+                        "(python3 eval/cost_report.py --plan N <a run>) and pass --budget-usd")
 
     if args.json:
         print(json.dumps({"suite": name, "valid": not errors,

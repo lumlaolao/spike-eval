@@ -1,7 +1,11 @@
 """run_suite: a suite's student and teacher specs are checked before the plan is printed."""
+import contextlib
+import io
+import json
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
@@ -23,6 +27,26 @@ class RetiredLaneTest(unittest.TestCase):
         args = run_suite.build_parser().parse_args([str(SUITE), "--teacher", "claude-cli:claude-opus-5-5"])
         self.assertEqual(run_suite.spec_errors(args), [])
 
+
+
+class BudgetTest(unittest.TestCase):
+    """run_batch.py refuses a paid model with no --budget-usd: the commands a suite prints carry one."""
+
+    def plan(self, *argv):
+        out = io.StringIO()
+        with mock.patch.object(sys, "argv", ["run_suite.py", str(SUITE), "--json", *argv]), \
+                contextlib.redirect_stdout(out):
+            run_suite.main()
+        return json.loads(out.getvalue())
+
+    def test_every_run_command_carries_the_budget_or_a_placeholder_and_a_warning(self):
+        for argv, want in (((), "<USD>"), (("--budget-usd", "12.5"), "12.5")):
+            rep = self.plan(*argv)
+            runs = [e["run"] for e in rep["plan"] if e.get("run")]
+            self.assertTrue(runs)
+            for cmd in runs:
+                self.assertEqual(cmd[cmd.index("--budget-usd") + 1], want, cmd)
+            self.assertEqual(any("--budget-usd" in w for w in rep["warnings"]), want == "<USD>")
 
 if __name__ == "__main__":
     unittest.main()
