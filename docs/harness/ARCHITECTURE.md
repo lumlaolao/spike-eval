@@ -1400,7 +1400,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      553; 1996 World Champion is left out, as the script says) and Forge's twelve Forecast cards (`kw28`: Forecast is
      an ability parameter, not a keyword, so the sweep never drew one) in 29 decks (`eval/gauntlet/`), each deck's
      LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
-     the next deck's Forge AI, in full games. Triggers, combat, upkeep and
+     the next deck's Forge AI, in full games, on the build of a passing acceptance compile whose overlay hash is the
+     checkout's (`GAUNTLET_BUILD`, else the newest; refused otherwise) and with the launchers' JVM flags
+     (`eval/tests/test_launchers.py` keeps the launchers, the canaries and the gauntlet on one set). Triggers, combat,
+     upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
      AI made, an unreadable answer, a play that failed to pay or to target, a crash or an unfinished game. The engine's
      "failed to target" line names a card, not a player, so it is set apart (listed, not counted) only when the card is
