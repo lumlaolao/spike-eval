@@ -252,6 +252,13 @@ def main():
             entry["defects"] = ["python3", "eval/defect_analyzer.py", out_dir]
         plan.append(entry)
 
+    # A budget needs a price on file: run_batch.py refuses an unpriced paid model with --budget-usd, so the printed
+    # commands of a suite naming one (the default student, openrouter:default_model, has none) cannot run.
+    prices = cost_report.load_prices()
+    for role, spec in (("student", args.student), ("teacher", args.teacher)):
+        if cost_report.model_id(spec) and cost_report.price_of(prices, spec) is None:
+            warnings.append(f"the {role} {spec} has no price in eval/pricing/prices.json: run_batch.py refuses "
+                            f"--budget-usd for it, so the run commands below cannot run as printed")
     if args.budget_usd is None and any(e["run"] for e in plan):
         warnings.append("no --budget-usd: the run commands carry the placeholder <USD>; price an arm first "
                         "(python3 eval/cost_report.py --plan N <a run>) and pass --budget-usd")

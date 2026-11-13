@@ -88,6 +88,16 @@ class TestFakeServerStart(unittest.TestCase):
             self.assertLess(time.time() - t0, 10)
             self.assertIn("did not report a port", str(cm.exception))
 
+    def test_a_server_that_exits_at_once_says_so_not_timeout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dead = Path(tmp) / "dead.py"
+            dead.write_text("import sys\nsys.exit(3)\n")
+            t0 = time.time()
+            with mock.patch.object(sanity_arms, "FAKE_SERVER", dead), self.assertRaises(RuntimeError) as cm:
+                sanity_arms.start_fake_server("empty", Path(tmp) / "req.jsonl", timeout_s=10.0)
+            self.assertLess(time.time() - t0, 5)
+            self.assertIn("exited (rc=3) without reporting a port", str(cm.exception))
+
 
 class TestCheck(unittest.TestCase):
     def arms(self, **over):

@@ -28,7 +28,6 @@ class RetiredLaneTest(unittest.TestCase):
         self.assertEqual(run_suite.spec_errors(args), [])
 
 
-
 class BudgetTest(unittest.TestCase):
     """run_batch.py refuses a paid model with no --budget-usd: the commands a suite prints carry one."""
 
@@ -46,7 +45,14 @@ class BudgetTest(unittest.TestCase):
             self.assertTrue(runs)
             for cmd in runs:
                 self.assertEqual(cmd[cmd.index("--budget-usd") + 1], want, cmd)
-            self.assertEqual(any("--budget-usd" in w for w in rep["warnings"]), want == "<USD>")
+            self.assertEqual(any(w.startswith("no --budget-usd") for w in rep["warnings"]), want == "<USD>")
+
+    def test_a_student_with_no_price_on_file_is_named(self):
+        rep = self.plan()                                       # the default student, openrouter:default_model
+        self.assertTrue(any("has no price" in w and "default_model" in w for w in rep["warnings"]), rep["warnings"])
+        rep = self.plan("--student", "openrouter:openai/gpt-6-luna")
+        self.assertFalse(any("has no price" in w for w in rep["warnings"]), rep["warnings"])
+
 
 if __name__ == "__main__":
     unittest.main()
