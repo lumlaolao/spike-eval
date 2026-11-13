@@ -12,6 +12,7 @@ import argparse
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -1306,7 +1307,6 @@ class TestSanityArmLaunch(unittest.TestCase):
             self.assertAlmostEqual(run_batch.spent_usd_tree(tmp), 3 * one)
 
 
-
 class TestCrashRerun(unittest.TestCase):
     """A game whose JVM crashes, writes no game line or hangs is played again; the failed attempt's files
     are set aside under crashed/, still priced, never aggregated."""
@@ -1527,6 +1527,16 @@ class TestAmbientConditions(unittest.TestCase):
         with mock.patch.dict(os.environ, clean, clear=True):
             self.assertEqual(run_batch.condition_diff(old, run_batch.batch_condition(make_args(), cited=False)), [])
 
+    def test_an_old_manifest_refuses_a_shell_with_these_names_and_says_why(self):
+        old = run_batch.batch_condition(make_args(), cited=False)
+        old.pop("ambient_env")                                   # a manifest from before the field
+        with tempfile.TemporaryDirectory() as d:
+            run_batch.write_manifest(d, old, seeds=[7100], pairs=True, jobs=1)
+            with mock.patch.dict(os.environ, {"PROMPT_CACHE": "0"}):
+                msg = run_batch.check_resume_condition(d, run_batch.batch_condition(make_args(), cited=False), False)
+        self.assertIn("predates ambient_env", msg)
+        self.assertIn("unset PROMPT_CACHE", msg)
+
     def test_a_cited_batch_refuses_an_endpoint_in_the_shell_instead_of_dropping_it(self):
         # Dropped, a batch aimed at a loopback or other endpoint would reach openrouter.ai with key and consent.
         url = {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/v1"}
@@ -1544,6 +1554,12 @@ class TestAmbientConditions(unittest.TestCase):
             arm = make_args(exploratory=False, loopback_env={"OPENROUTER_BASE_URL": "http://127.0.0.1:5/v1"})
             self.assertEqual(run_batch.build_env(arm, 1, False, d)["OPENROUTER_BASE_URL"], "http://127.0.0.1:5/v1",
                              "a sanity arm's loopback endpoint still wins")
+
+    def test_the_settings_page_lists_exactly_these_names(self):
+        row = next(ln for ln in (evalpath.REPO / "docs/harness/SETTINGS.md").read_text().splitlines()
+                   if ln.startswith("| `run_batch.AMBIENT_CONDITION_KEYS`"))
+        listed = re.findall(r"`([A-Z][A-Z_]+)`", row.split("|")[3].split(":")[0])
+        self.assertEqual(listed, list(run_batch.AMBIENT_CONDITION_KEYS))
 
     def test_cited_mode_refuses_them_in_env(self):
         with tempfile.TemporaryDirectory() as d:

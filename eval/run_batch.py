@@ -39,9 +39,9 @@ Examples:
   # cited mirror run (numbers citable)
   python3 eval/run_batch.py --seeds 1..20 --pairs --deck eval/decks/mardu-energy.txt \
       --controller-a llm --controller-b llm --smart-a openrouter:deepseek/deepseek-v4.1-flash \
-      --fast-a openrouter:deepseek/deepseek-v4.1-flash --smart-b ... --fast-b ...
-  # exploratory poke (not citable)
-  python3 eval/run_batch.py --seeds 3,7,42 --exploratory --jobs 2 \
+      --fast-a openrouter:deepseek/deepseek-v4.1-flash --smart-b ... --fast-b ... --budget-usd 5
+  # exploratory poke (not citable; free seats need no budget)
+  python3 eval/run_batch.py --seeds 3,7,42 --exploratory --jobs 2 --controller-a random --controller-b ai \
       --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt
   # the mirror panel, a 3-seed block per cell, with its sanity arms
   python3 eval/run_batch.py --panel mirror --seeds 7800..7802 --sanity-arms --budget-usd 6 \
@@ -703,10 +703,9 @@ def batch_condition(args, cited):
 
 
 def ambient_condition_env():
-    """{name: value} of the AMBIENT_CONDITION_KEYS set in this process's environment, secret-looking names
-    redacted (the manifest never stores a credential)."""
-    return {k: ("<redacted>" if any(h in k.upper() for h in SECRET_KEY_HINTS) else os.environ[k])
-            for k in AMBIENT_CONDITION_KEYS if k in os.environ}
+    """{name: value} of the AMBIENT_CONDITION_KEYS set in this process's environment (none of them is a
+    credential)."""
+    return {k: os.environ[k] for k in AMBIENT_CONDITION_KEYS if k in os.environ}
 
 
 def native_tools_requested(args):
@@ -814,6 +813,8 @@ def spent_usd(out_dir):
 
 # The budget is checked before every game, over every directory of a panel: a directory none of whose files changed
 # (path, size, mtime) is not parsed again. A file that grew, a new file or a changed manifest re-reads its directory.
+# This assumes game files are only appended to (the JVM's EvalLog) or moved away whole (set-aside); a rewrite that kept
+# a file's size and mtime would read stale, which nothing in the harness does.
 _USD_CACHE = {}
 _USD_LOCK = threading.Lock()
 
@@ -1073,10 +1074,14 @@ def check_resume_condition(out_dir, condition, cited):
         if la and not any(d[0] == "lookahead" for d in diff):
             diff.append(la)
         if diff:
+            old = ("ambient_env" not in recorded and any(d[0] == "ambient_env" for d in diff))
             return ("%s already holds games under a different condition; a batch "
                     "directory is one experiment. Differences:\n           - "
                     % out_dir
                     + "\n           - ".join("%s: recorded %r, requested %r" % d for d in diff)
+                    + ("\n           This manifest predates ambient_env, so the shell its games ran from is unknown; "
+                       "to resume it, unset %s in this shell." % ", ".join(sorted(condition.get("ambient_env") or {}))
+                       if old else "")
                     + "\n           Use a new --out for the new condition.")
         return None
     legacy = legacy_dir_condition(out_dir)
@@ -1488,9 +1493,8 @@ def build_parser():
                     help="opt out of cited-mode guards (mirror deck, forced "
                          "heuristics-off, held-out seeds, no Claude CLI seat). Numbers become NON-citable.")
     ap.add_argument("--jobs", type=int, default=1,
-                    help="parallel game processes (each a separate JVM). "
-                         "Any mode may run several: the Claude CLI, the reason --jobs 1 was once forced, "
-                         "is refused in cited mode; warn_parallel_jobs advises a ceiling. default 1")
+                    help="parallel game processes (each a separate JVM), in any mode; warn_parallel_jobs "
+                         "advises a ceiling. default 1")
     ap.add_argument("--out",
                     help="output dir for JSONL + stdout logs. Optional: defaults "
                          "to runs/<UTC-timestamp>-<label> under the repo root.")
@@ -1729,8 +1733,6 @@ def run_block(args):
         sys.exit(2)
     paid = paid_api_specs(args)
     if paid and getattr(args, "budget_usd", None) is None:
-        # Every mode (CLAUDE.md: always pass --budget-usd). Free seats (ai, random, floor, the loopback fake model at
-        # $0) and a claude-cli: seat on the operator's own subscription need none.
         print("run_batch: REFUSING: %s may spend money; pass --budget-usd X (games are not started past it)."
               % ", ".join(paid), file=sys.stderr)
         sys.exit(2)
