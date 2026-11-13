@@ -32,6 +32,13 @@ class CacheTest(unittest.TestCase):
         self.asked.append(name)
         return None if "Token" in name else b"\xff\xd8jpeg:" + name.encode()
 
+    def test_the_user_agent_names_a_generic_client_not_the_project(self):
+        # A request to an outside service carries no repository or owner name (the old private name was sent).
+        ua = dc.HEADERS["User-Agent"].lower()
+        for name in ("mtg-forge-llm-agent", "spike-eval"):
+            self.assertNotIn(name, ua)
+        self.assertRegex(ua, r"^[a-z-]+/\d")
+
     def test_a_card_is_fetched_once_then_read_from_disk(self):
         c = dc.Cache(self.dir, fetch=self.fetch)
         p = c.get("Black Lotus")
