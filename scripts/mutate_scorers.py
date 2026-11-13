@@ -35,7 +35,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_TARGETS = ("eval/aggregate.py", "eval/panel_score.py", "eval/puzzles/puzzle_score.py", "eval/sanity_arms.py",
-                   "eval/rating.py", "eval/sprt.py", "eval/seed_policy.py", "eval/rl/eval_only.py")
+                   "eval/rating.py", "eval/sprt.py", "eval/seed_policy.py", "eval/rl/eval_only.py",
+                   "eval/build_report.py")
 COPY_DIRS = ("eval", "docs", "scripts", "forge-overlay")   # forge-overlay is 3 MB: some tests read its Java as text
 KILLED, SURVIVED, ERROR = "killed", "survived", "error"
 

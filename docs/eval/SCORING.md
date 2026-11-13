@@ -97,9 +97,44 @@ A report is `valid` only when every cell (and control) exists and holds one expe
 is the Forge AI, every game line carries the cell's pinned `deck_sha`, only published seeds were
 played, one pilot with one set of settings played every cell, `aggregate.py`'s fallback and
 harness-decided gates pass in every cell, no sanity arm beats the floor, and every game belongs to
-one benchmark version. Exit 0 valid, 1 not valid (still printed), 2 refused. A cell holding a game whose pilot lost a
-decision to a dead model bridge is refused, and a resume plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game
-the model's bridge did not play is not scored").
+one benchmark version (a sanity arm too may play only published seeds), and only when it is complete and has its
+random baseline. The verdict is one `status` (additive in `--json`): `NOT VALID` for any of the faults above;
+`INCOMPLETE` when a cell or control is missing (a cell the budget stopped before its first game, a manifest and no
+game file, counts as missing), a played seed has one seat order only (`pairs`; a seat order is filled by a game line
+or by a crash its log names, see "Started games"), the played cells or the controls do not hold the same seeds (the
+equal-weight pool or the margin is then not seed-paired), or a played cell has no score (no decisive game); `NO
+RANDOM BASELINE` when the random sanity arm is not on the pilot's own seeds in both orders in every cell, so STR_norm
+has no baseline (a score without its floor is not a score; the `floor` arm is a sanity check, not this baseline);
+else `VALID`. Every played cell holding the same subset of the published seeds in both orders is `VALID`, and the
+verdict line says how many of the published seeds that is (`games_played`, `games_expected`, `seeds_per_cell` in
+`--json`). Exit 0 valid, 1 any other status (still printed), 2 refused.
+
+**Started games.** The strict score's denominator is the started games: one per (seed, seat order) launched, in
+`aggregate.py` and `panel_score.py` alike (`aggregate.place_crashes`). A game line is one. A file with no game line (a
+crash, a kill, a backstop timeout) is placed by the table below. Its seat order is known when a `run_batch.py` log of
+its seed (`game-<seed>-<0|1>.log`) names it. The experiment is paired (two seat orders) when a game line or a named file
+is swapped; otherwise it has one order, which is not proven: a paired run whose swapped games all crashed looks the
+same. A file is skipped silently only where the directory proves it an earlier attempt; every other file not charged
+is counted (`games.unplaced_no_game_line`) with a warning that the strict score may be an upper bound.
+
+| The file | Its seed | Outcome |
+| --- | --- | --- |
+| named by a log | its own order has a line | skipped: the replay's earlier attempt |
+| named by a log | its own order has no line | charged for that order |
+| named by no log | a line, or a named file, in every order, paired | skipped |
+| named by no log | a line, unpaired, and a log of the seed names that line | skipped |
+| named by no log | a line, unpaired, and no log names it | unplaced |
+| named by no log | a line, and an order with neither a line nor a named file | unplaced |
+| named by no log | no line | charged, once for each order not already charged to a named file |
+| named by no log | no line, every order already charged, paired | skipped |
+| named by no log | no line, the one order already charged, unpaired | unplaced |
+| no seed in its name | | not a slot of any seed: never charged |
+
+A file is charged only where its condition is known: in a directory that holds one experiment. In a directory of
+several conditions `aggregate.py` charges it to none, counts it (`games.uncharged_no_game_line`) and says so in a
+warning; `--experiment` does not change that. A panel cell whose every file has no game line has no known condition and
+counts as missing. A cell holding a game whose pilot lost a decision to a dead model bridge is refused, and a resume
+plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game the model's bridge did not play is not scored").
 
 **The pilot condition** (review E2, E9): the panels file's `pilot_condition` pins how an llm pilot plays:
 the faithful profile, one tier, answers by the `answer` call, the native lookup tools and the lookahead
