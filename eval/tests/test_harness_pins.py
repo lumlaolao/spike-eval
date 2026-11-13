@@ -221,10 +221,10 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
         self.assertIn("Ran 3 tests OK, 2 skipped (at most 2 allowed", out)
 
     def test_a_tests_own_ok_line_flushed_after_the_verdict_does_not_hide_the_skips(self):
-        # Buffered stdout lands after unittest's summary (stderr): the last line starting "OK" was a test's own.
-        suite = self.SUITE + "    def test_d(self):\n        print('OK 3 rows read')\n"
-        env = {k: v for k, v in os.environ.items() if k != "PYTHONUNBUFFERED"}
-        out = self.stage("pytests.skipped_max=1\n", suite=suite, env=env)
+        # Text written after unittest's summary (here at exit) makes the last line starting "OK" a test's own.
+        suite = self.SUITE + ("    def test_d(self):\n        import atexit\n"
+                              "        atexit.register(print, 'OK 3 rows read')\n")
+        out = self.stage("pytests.skipped_max=1\n", suite=suite)
         self.assertIn("FAIL pytests", out)
         self.assertIn("2 skipped, more than the 1 allowed", out)
 
@@ -235,6 +235,13 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
         out = self.stage("pytests.skipped_max=1\n", suite=suite, env=env)
         self.assertIn("FAIL pytests", out)
         self.assertIn("Ran 4 tests, 2 skipped, more than the 1 allowed", out)
+
+    def test_summary_shaped_text_written_after_the_summary_fails_the_shard(self):
+        suite = self.SUITE + ("    def test_d(self):\n        import atexit\n"
+                              "        atexit.register(print, 'Ran 1 tests in 0.1s\\n\\nOK')\n")
+        out = self.stage("pytests.skipped_max=1\n", suite=suite)
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("2 summary lines", out)
 
     def test_a_shard_that_exits_before_unittest_reports_fails_the_stage(self):
         files = {"test_one.py": self.SUITE,

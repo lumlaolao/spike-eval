@@ -417,7 +417,7 @@ if has_stage pytests; then
     mods="$(echo "$files" | sed 's/\.py//g')"
     # FORGE_HOME: the tests that read a Forge checkout (test_rollout's held-out puzzle) read this run's, never a default.
     # -v writes each test's name and outcome to the log, so a skip is named there with its reason. PYTHONUNBUFFERED:
-    # a test's own stdout lands before unittest's summary, never after it where it could read as the verdict.
+    # a test's print during the run lands before unittest's summary, not after it where it could read as the verdict.
     # PYTHONPATH (inherited by the processes the tests start) lets a shard import its modules by name.
     ( cd "$REPO" && FORGE_HOME="$FORGE" PYTHONUNBUFFERED=1 PYTHONPATH="$REPO/eval/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest -v $mods ) >"$OUT/pytests-$i.log" 2>&1 &
     JOBS_PY="$JOBS_PY $!:$i"
@@ -431,11 +431,12 @@ if has_stage pytests; then
     n="${job#*:}"; log="$OUT/pytests-$n.log"; rc="$(cat "$OUT/pytests-$n.rc")"
     { echo "===== pytests shard $n: $(tr '\n' ' ' < "$OUT/pytests-$n.files")"; cat "$log"; } >> "$OUT/pytests.log"
     ran="$(grep -oE '^Ran [0-9]+ tests? in ' "$log" | tail -1 | sed 's/[^0-9]//g')"
-    # unittest's verdict is the first line after its last "Ran N tests in": a test's own stdout ("OK 3 rows read") can
-    # be flushed after it when the output is buffered, so the last OK line is not the verdict.
+    # unittest's verdict is the first line after its "Ran N tests in": text written after the summary (an atexit
+    # handler, a child that outlives the run) can start with "OK", so the last OK line is not the verdict.
     verdict="$(awk '/^Ran [0-9]+ tests? in /{r=NR; v=""; next} r && v=="" && NF {v=$0} END{print v}' "$log")"
-    if [ "$rc" != 0 ] || [ -z "$ran" ] || ! echo "$verdict" | grep -Eq '^OK( \(.*\))?$'; then
-      BAD="$BAD shard $n (rc=$rc, ${ran:-no} tests, verdict '$verdict'; see pytests-$n.log)"
+    rans="$(grep -cE '^Ran [0-9]+ tests? in ' "$log")"   # two such lines: something wrote text shaped like the summary
+    if [ "$rc" != 0 ] || [ "$rans" != 1 ] || ! echo "$verdict" | grep -Eq '^OK( \(.*\))?$'; then
+      BAD="$BAD shard $n (rc=$rc, ${ran:-no} tests, $rans summary lines, verdict '$verdict'; see pytests-$n.log)"
     fi
     N=$((N + ${ran:-0}))
     k="$(echo "$verdict" | sed -n 's/.*skipped=\([0-9]*\).*/\1/p')"; SKIPPED=$((SKIPPED + ${k:-0}))
@@ -445,7 +446,7 @@ if has_stage pytests; then
   case "$SKIP_MAX" in
     ''|*[!0-9]*) fail pytests "pytests.skipped_max is missing, duplicated or not a number in $EXPECTED";;
     *) if [ -n "$SHARD_PROBLEMS" ]; then fail pytests "shards do not cover eval/tests:$SHARD_PROBLEMS"
-       elif [ "$SHARDS_N" = 0 ] || [ "$N" = 0 ]; then fail pytests "no tests ran ($SHARDS_N shards started)${BAD:+;$BAD}"
+       elif [ "$N" = 0 ]; then fail pytests "no tests ran ($SHARDS_N shards started)${BAD:+;$BAD}"
        elif [ -n "$BAD" ]; then fail pytests "$RAN, $SKIPPED skipped; failed:$BAD"
        elif [ "$SKIPPED" -gt "$SKIP_MAX" ]; then
          fail pytests "$RAN, $SKIPPED skipped, more than the $SKIP_MAX allowed: $(grep -oE "skipped ('[^']*'|\"[^\"]*\")" "$OUT/pytests.log" | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ' | cut -c1-500)"
