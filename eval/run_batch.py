@@ -140,8 +140,10 @@ RUN_DEFINING_KEYS = (
 # values is refused instead of writing a second experiment into the directory.
 AMBIENT_CONDITION_KEYS = (
     "OPENROUTER_MODEL_CFG", "SMART_BUDGET", "FAST_BUDGET", "OPENROUTER_TIMEOUT_MS", "CLAUDE_DEADLINE_MS",
-    "OPENROUTER_BASE_URL", "OPENROUTER_PROVIDER_SORT", "PROMPT_CACHE", "PUZZLE", "FORK_MODE", "REPLAY_HANDOVER",
+    "OPENROUTER_PROVIDER_SORT", "PROMPT_CACHE", "PUZZLE", "FORK_MODE", "REPLAY_HANDOVER",
 )
+# OPENROUTER_BASE_URL is not among them: the endpoint (a self-hosted checkpoint, a loopback model) reaches every batch
+# from the shell, is stamped on the game line (openrouter_base_url) and splits experiments in aggregate.py.
 # Per-knob context overrides (CTX_RECENT_EVENTS, ...) stamp a "+ovr" profile
 # name and a different context_sha on the game line. Cited mode refuses them;
 # exploratory mode allows them via --env and records them in the manifest.
@@ -296,11 +298,8 @@ def build_env(args, seed, swap, out_dir):
     for k in [k for k in env if k.startswith(CTX_OVERRIDE_PREFIX)]:
         env.pop(k, None)
     if not getattr(args, "exploratory", False):
-        # cited: no shell value reaches the seat (--env is refused for them). The endpoint is not scrubbed but refused
-        # (cited_pre_guards): scrubbed, a batch aimed at another endpoint would reach openrouter.ai with the key.
-        for k in AMBIENT_CONDITION_KEYS:
-            if k != "OPENROUTER_BASE_URL":
-                env.pop(k, None)
+        for k in AMBIENT_CONDITION_KEYS:        # cited: no shell value reaches the seat (--env is refused for them)
+            env.pop(k, None)
     env["GAME_SEED"] = str(seed)
     # Context condition, PINNED EXPLICITLY. The play scripts (run-llm-headless.sh) default
     # CONTEXT_PROFILE/MEMORY_TOOLS/RULES_TOOL for a human's own games; a batch must never inherit
@@ -874,39 +873,46 @@ def set_aside(out_dir, seed, swap, attempt):
 
 
 # A combo whose log or game file was written this recently may belong to a JVM still playing (a launcher killed while
-# its game ran on, a second run_batch on the same --out): a resume neither moves its files nor plays it again.
-LIVE_WRITE_S = 300
+# its game ran on, a second run_batch on the same --out): a resume neither moves its files nor plays it now. A playing
+# JVM can be silent for one whole model call, up to the 300 s default deadline (ModelCfg), so twice that.
+LIVE_WRITE_S = 600
+# A file dated more than this far in the future (a clock that moved) is not read as live.
+FUTURE_SKEW_S = 5
 
 
 def recently_written(out_dir, seed, swap, now=None):
     """Seconds since (seed, swap)'s log or the game file it names was last written, when under LIVE_WRITE_S; else
-    None."""
+    None (also for a file dated more than FUTURE_SKEW_S in the future)."""
     out_dir = Path(out_dir)
     log_path = game_log(out_dir, seed, swap)
     name = log_game_file(log_path)
-    now = time.time() if now is None else now
-    ages = []
+    mtimes = []
     for p in [log_path] + ([out_dir / name] if name else []):
         try:
-            ages.append(now - p.stat().st_mtime)
+            mtimes.append(p.stat().st_mtime)
         except OSError:
             continue
-    youngest = min(ages) if ages else None
-    return int(youngest) if youngest is not None and youngest < LIVE_WRITE_S else None
+    if not mtimes:
+        return None
+    age = (time.time() if now is None else now) - max(mtimes)
+    return int(max(age, 0)) if -FUTURE_SKEW_S <= age < LIVE_WRITE_S else None
 
 
 def hold_live(out_dir, todo):
-    """`todo` without the combos recently_written finds live, each named in a [resume] line."""
-    keep = []
+    """(todo without the combos recently_written finds live, [(seed, swap, age)] of those held), each held one named
+    in a [resume] line."""
+    keep, held = [], []
     for seed, swap in todo:
         age = recently_written(out_dir, seed, swap)
         if age is None:
             keep.append((seed, swap))
             continue
-        log("[resume] seed=%d swap=%d: its log or game file was written %d s ago, so a JVM may still be playing it "
-            "(a launcher killed while its game ran, or another run_batch on this --out): not set aside and not "
-            "played now; run again once it has stopped (%d s with no write)" % (seed, swap, age, LIVE_WRITE_S))
-    return keep
+        held.append((seed, swap, age))
+        log("[resume] seed=%d swap=%d: its log or game file was written %d s ago, so a game may still be in flight "
+            "(a launcher killed while its JVM ran on, or another batch on this --out): not set aside and not played "
+            "now; checked again after this batch's other games (a file dated in the future is not read as in flight)"
+            % (seed, swap, age))
+    return keep, held
 
 
 def set_aside_unfinished(out_dir, seed, swap):
@@ -1158,6 +1164,25 @@ def format_guard(args):
             sys.exit(2)
 
 
+def env_refusal(k):
+    """Why `--env k=...` is refused in every mode, or None."""
+    if k in CONDITION_ENV_KEYS:
+        return ("--env %s is not allowed in any mode; use --context-profile / --memory-tools / --rules-tool / "
+                "--text-tools / --text-answers / --answer-tool-strict / --lookahead / --one-tier / --two-tier / "
+                "--no-coaching / --one-chat / --turn-chat / --plan-execute / --tier-fast-types / --format / "
+                "--ai-profile-a / --ai-profile-b so the condition is recorded and guarded." % k)
+    if k in ("OPENROUTER_MAX_PRICE", "OPENROUTER_QUANTIZATIONS"):
+        return ("--env %s is not allowed: a batch sends no price ceiling or precision filter (a puzzle run has "
+                "puzzle_solve.py --max-price-at-list / --quantizations)" % k)
+    if k in RUN_DEFINING_KEYS:
+        # The seats, models, decks, seed and provenance have flags (or the runner sets them): an --env value would
+        # name a model the budget and key checks never see (they read the flags).
+        return ("--env %s is not allowed in any mode: it defines the run; use its flag (--controller-a/-b, "
+                "--smart-a/-b, --fast-a/-b, --deck/-a/-b, --name-a/-b, --seeds, --cap-minutes, --checkpoint) so the "
+                "guards and the manifest see it." % k)
+    return None
+
+
 def cited_pre_guards(args):
     """Guards 1-3 (spec C). Pure — no forge-home, no dir creation. Runs
     FIRST so a misconfigured cited run refuses before anything launches."""
@@ -1165,11 +1190,6 @@ def cited_pre_guards(args):
     if has_cli_seat(args):
         _refuse("a seat on the Claude CLI (%s) is a development lane on the operator's own Claude subscription and is "
                 "never part of a benchmark score; run it with --exploratory." % cost_report.CLI_PREFIX)
-    # --- guard 0b: the provider's own endpoint ---
-    if os.environ.get("OPENROUTER_BASE_URL"):
-        _refuse("OPENROUTER_BASE_URL is set (%s, from the shell or secrets.env). A cited batch plays on the provider's "
-                "own endpoint; dropping the value would send games meant for that endpoint to openrouter.ai with your "
-                "key. Unset it for a cited run." % os.environ["OPENROUTER_BASE_URL"])
     # --- guard 1: mirror deck ---
     da, db = args.deck_a, args.deck_b
     if not da or not db:
@@ -1206,9 +1226,8 @@ def cited_pre_guards(args):
         k = kv.split("=", 1)[0]
         if k in CITED_FORCED_KEYS:
             _refuse("cited mode forces %s and forbids overriding it via --env." % k)
-        if k in RUN_DEFINING_KEYS:
-            _refuse("cited mode forbids --env %s — it defines the run; use the "
-                    "dedicated flag instead so guards and provenance see it." % k)
+        if env_refusal(k):
+            _refuse(env_refusal(k))
         if k in AMBIENT_CONDITION_KEYS:
             _refuse("cited mode forbids --env %s: it changes what the seat is given or how its calls go, and a "
                     "cited batch runs the defaults (the shell's value is scrubbed too)." % k)
@@ -1689,21 +1708,9 @@ def main(argv=None):
     if refusal:
         raise SystemExit("run_batch: " + refusal)
     for kv in args.env or []:
-        k = kv.split("=", 1)[0]
-        if k in CONDITION_ENV_KEYS:
-            raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
-                             "--context-profile / --memory-tools / --rules-tool / --text-tools / --text-answers / --answer-tool-strict / "
-                             "--lookahead / --one-tier / --two-tier / --no-coaching / --one-chat / --turn-chat / --plan-execute / "
-                             "--tier-fast-types / --format / --ai-profile-a / --ai-profile-b so the condition is recorded and guarded." % k)
-        if k in ("OPENROUTER_MAX_PRICE", "OPENROUTER_QUANTIZATIONS"):
-            raise SystemExit("run_batch: --env %s is not allowed: a batch sends no price ceiling or precision filter "
-                             "(a puzzle run has puzzle_solve.py --max-price-at-list / --quantizations)" % k)
-        if k in RUN_DEFINING_KEYS:
-            # The seats, models, decks, seed and provenance have flags (or the runner sets them): an --env value would
-            # name a model the budget and key checks never see (they read the flags).
-            raise SystemExit("run_batch: --env %s is not allowed in any mode: it defines the run; use its flag "
-                             "(--controller-a/-b, --smart-a/-b, --fast-a/-b, --deck/-a/-b, --name-a/-b, --seeds, "
-                             "--cap-minutes, --checkpoint) so the guards and the manifest see it." % k)
+        refusal = env_refusal(kv.split("=", 1)[0])
+        if refusal:
+            raise SystemExit("run_batch: " + refusal)
     if args.seeds is None and not args.panel:
         ap.error("--seeds is required (except with --panel)")
     if (args.panel or args.sanity_arms) and args.budget_usd is None:
@@ -1840,17 +1847,20 @@ def run_block(args):
         log("[warn] %d combo(s) have a game line recorded under a DIFFERENT condition "
             "and will be replayed (aggregate.py keeps the two apart): %s"
             % (len(foreign), ", ".join("%d/swap%d" % (s, w) for s, w in foreign)))
-    todo = hold_live(out_dir, todo)
-    for seed, swap in todo:
-        moved = set_aside_dead_bridge(out_dir, seed, swap, resume_expectation(args))
-        if moved:
-            log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; set aside %s and playing "
-                "it again" % (seed, swap, ", ".join(moved)))
-        moved = set_aside_unfinished(out_dir, seed, swap)
-        if moved:
-            log("[resume] seed=%d swap=%d: an earlier attempt wrote no game line; set aside %s and playing it again"
-                % (seed, swap, ", ".join(moved)))
-    if not todo:
+    todo, held = hold_live(out_dir, todo)
+
+    def prepare(combos):
+        for seed, swap in combos:
+            moved = set_aside_dead_bridge(out_dir, seed, swap, resume_expectation(args))
+            if moved:
+                log("[bridge-down] seed=%d swap=%d lost decisions to a dead model bridge; set aside %s and playing "
+                    "it again" % (seed, swap, ", ".join(moved)))
+            moved = set_aside_unfinished(out_dir, seed, swap)
+            if moved:
+                log("[resume] seed=%d swap=%d: an earlier attempt wrote no game line; set aside %s and playing it "
+                    "again" % (seed, swap, ", ".join(moved)))
+    prepare(todo)
+    if not todo and not held:
         log("Nothing to do.")
         return 0, out_dir
 
@@ -1881,16 +1891,19 @@ def run_block(args):
         return play_with_retries(lambda: run_one(args, seed, swap, out_dir), seed, swap, out_dir,
                                  max(0, getattr(args, "retries", 1)), lambda: over_budget(seed, swap))
 
-    results = []
-    if args.jobs <= 1:
-        for seed, swap in todo:
-            results.append(guarded(seed, swap))
-    else:
+    def play(combos):
+        if args.jobs <= 1:
+            return [guarded(seed, swap) for seed, swap in combos]
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            futs = [pool.submit(guarded, seed, swap)
-                    for seed, swap in todo]
-            for fut in as_completed(futs):
-                results.append(fut.result())
+            futs = [pool.submit(guarded, seed, swap) for seed, swap in combos]
+            return [fut.result() for fut in as_completed(futs)]
+
+    results = play(todo)
+    if held:
+        # Checked again once this batch's own games are done: the quiet ones are played now.
+        later, held = hold_live(out_dir, [(seed, swap) for seed, swap, _ in held])
+        prepare(later)
+        results += play(later)
 
     ok = [r for r in results if r[2] == "ok"]
     unstarted = [r for r in results if r[2] == "budget"]
@@ -1903,6 +1916,9 @@ def run_block(args):
         log("  seed=%d swap=%d status=%s exit=%d" % (seed, swap, status, code))
     if unstarted:
         log("not started (budget reached): %d; rerun with a larger --budget-usd to resume them" % len(unstarted))
+    if held:
+        log("held (may be live): %d; rerun once their files have had no write for %d s: %s"
+            % (len(held), LIVE_WRITE_S, ", ".join("%d/swap%d" % (s_, w) for s_, w, _ in held)))
     log("[cost] " + cost_report.fmt(cost_report.report_dir(str(out_dir), cost_report.load_prices())))
     crashed = out_dir / CRASHED_DIR
     if crashed.is_dir():
@@ -1910,7 +1926,7 @@ def run_block(args):
             + cost_report.fmt(cost_report.report_dir(str(crashed), cost_report.load_prices())))
     log("Aggregate with: python3 %s %s"
         % (Path(__file__).with_name("aggregate.py"), out_dir))
-    return (1 if bad else 0), out_dir
+    return (1 if bad or held else 0), out_dir
 
 
 # ----------------------------------------------------------- sanity arms
@@ -1933,15 +1949,23 @@ def sanity_arm_args(scored, arm, scored_out):
     return a
 
 
+def _spec_can_spend(prices, spec):
+    """True when a model seat on `spec` can spend: an API spec priced above $0 at the bound a budget is checked at
+    (cost_report.budget_prices: list or dearest endpoint, prompt or completion) or not priced, or a non-API model (a
+    claude-cli: seat reports its own cost)."""
+    if not cost_report.model_id(spec):
+        return True
+    p = cost_report.price_of(cost_report.budget_prices(prices), spec)
+    return p is None or p.get("prompt", 0) > 0 or p.get("completion", 0) > 0
+
+
 def paid_identity(a, ident):
-    """True when identity `ident` ('a' or 'b') is a model seat that can spend: a priced spec above $0, an unpriced
-    API spec, or a non-API model (a claude-cli: seat reports its own cost). A PvP block's sanity arms still spend on
-    B, so they keep the budget."""
+    """True when identity `ident` ('a' or 'b') is a model seat that can spend (_spec_can_spend). A PvP block's
+    sanity arms still spend on B, so they keep the budget."""
     if (getattr(a, "controller_" + ident, None) or "llm") != "llm":
         return False
     prices = cost_report.load_prices()
-    return any((cost_report.price_of(prices, s) or {}).get("prompt", 1) > 0 or not cost_report.model_id(s)
-               for s in (getattr(a, "smart_" + ident, None), getattr(a, "fast_" + ident, None)))
+    return any(_spec_can_spend(prices, s) for s in (getattr(a, "smart_" + ident, None), getattr(a, "fast_" + ident, None)))
 
 
 def block_budget(args):
@@ -1956,22 +1980,13 @@ def block_budget(args):
 
 
 def paid_api_specs(a):
-    """The openrouter:/jev: specs of this block's model seats that are not free (priced above $0, or not priced):
-    a block naming any needs --budget-usd. The loopback fake model is priced at $0; a claude-cli: seat is not an API
-    spec (the operator's own subscription, a development lane)."""
+    """The openrouter:/jev: specs of this block's model seats that can spend (_spec_can_spend): a block naming any
+    needs --budget-usd. The loopback fake model is priced at $0; a claude-cli: seat is not an API spec (the
+    operator's own subscription, a development lane)."""
     prices = cost_report.load_prices()
-    out = set()
-    for ident in ("a", "b"):
-        if (getattr(a, "controller_" + ident, None) or "llm") != "llm":
-            continue
-        for tier in ("smart", "fast"):
-            spec = getattr(a, "%s_%s" % (tier, ident), None)
-            if not cost_report.model_id(spec):
-                continue
-            p = cost_report.price_of(prices, spec)
-            if p is None or p.get("prompt", 0) > 0 or p.get("completion", 0) > 0:
-                out.add(spec)
-    return sorted(out)
+    return sorted({spec for ident in ("a", "b") if (getattr(a, "controller_" + ident, None) or "llm") == "llm"
+                   for tier in ("smart", "fast") for spec in [getattr(a, "%s_%s" % (tier, ident), None)]
+                   if cost_report.model_id(spec) and _spec_can_spend(prices, spec)})
 
 
 def run_sanity_arms(scored, scored_out):

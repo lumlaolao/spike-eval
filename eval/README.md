@@ -139,6 +139,9 @@ python3 eval/run_batch.py \
 
 # Interrupted? Re-run the same command with the same --out — completed
 # seed/swap combos are skipped (a combo is done once its JSONL has a game line).
+# A combo whose files were written in the last 10 minutes may be a game in flight: it is
+# played after the others if it has gone quiet, else listed as "held (may be live)" in the
+# summary (exit 1); re-run once its files are quiet to play it.
 
 python3 eval/aggregate.py runs/<the-printed-dir>            # human-readable
 python3 eval/aggregate.py runs/<the-printed-dir> --json     # machine-readable

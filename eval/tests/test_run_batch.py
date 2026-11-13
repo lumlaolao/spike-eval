@@ -1431,14 +1431,26 @@ class TestBudgetRequired(unittest.TestCase):
             self.assertEqual(run_batch.block_budget(make_args(smart_a=LUNA, fast_a=LUNA, controller_b="ai",
                                                               budget_usd=5.0)), 5.0)
 
-
     def test_a_seat_or_model_named_through_env_is_refused_in_every_mode(self):
         # --env CONTROLLER_A=llm --env SMART_MODEL_A=<paid> would name a paid model the budget check never sees.
         for kv in ("CONTROLLER_A=llm", "SMART_MODEL_A=" + LUNA, "FAST_MODEL_B=" + LUNA, "DECK_A=/tmp/x.txt"):
             with self.subTest(kv=kv), self.assertRaises(SystemExit) as cm, mock.patch.object(run_batch, "load_secrets"):
                 run_batch.main(["--seeds", "7100", "--exploratory", "--controller-a", "random", "--controller-b",
                                 "ai", "--budget-usd", "1", "--env", kv, "--forge-home", "/nonexistent"])
-            self.assertIn("is not allowed in any mode", str(cm.exception.code))
+            self.assertIn("it defines the run", str(cm.exception.code))
+
+    def test_a_seat_priced_only_for_its_output_needs_and_is_checked_against_a_budget(self):
+        # One predicate (_spec_can_spend) for both: a row with prompt 0 and completion > 0 is paid.
+        prices = dict(run_batch.cost_report.load_prices(), **{"acme/out-only": {"prompt": 0.0, "completion": 2.0}})
+        spec = "openrouter:acme/out-only"
+        args = make_args(controller_a="ai", smart_a=None, fast_a=None, controller_b="llm", smart_b=spec, fast_b=spec,
+                         budget_usd=5.0)
+        with mock.patch.object(run_batch.cost_report, "load_prices", return_value=prices), \
+                mock.patch.object(run_batch, "log"):
+            self.assertEqual(run_batch.paid_api_specs(args), [spec])
+            self.assertTrue(run_batch.paid_identity(args, "b"))
+            self.assertEqual(run_batch.block_budget(args), 5.0)
+
 
 class TestSpendCache(unittest.TestCase):
     """The budget is checked before every game over every directory of a panel: an unchanged directory is not parsed
@@ -1482,7 +1494,6 @@ class TestUnfinishedSetAside(unittest.TestCase):
             self.assertEqual(sorted(p.name for p in out.glob("game-3-*.jsonl")), ["game-3-222.jsonl"])
             self.assertTrue((out / "crashed" / "unfinished-swap0-game-3-111.jsonl").is_file(), "still priced")
 
-
     def test_a_combo_a_jvm_may_still_be_writing_is_neither_moved_nor_replayed(self):
         # A launcher killed while its JVM plays on, or a second run_batch on the same --out: the file is live.
         with tempfile.TemporaryDirectory() as tmp:
@@ -1490,18 +1501,72 @@ class TestUnfinishedSetAside(unittest.TestCase):
             (out / "game-3-0.log").write_text("[EVAL] jsonl game-3-111.jsonl\n")
             (out / "game-3-111.jsonl").write_text(json.dumps({"t": "context_call", "tier": "smart"}) + "\n")
             with mock.patch.object(run_batch, "log") as logged:
-                self.assertEqual(run_batch.hold_live(out, [(3, False), (4, False)]), [(4, False)])
-            self.assertIn("may still be playing it", str(logged.call_args_list))
+                self.assertEqual(run_batch.hold_live(out, [(3, False), (4, False)]), ([(4, False)], [(3, False, 0)]))
+            self.assertIn("in flight", str(logged.call_args_list))
             self.assertTrue((out / "game-3-111.jsonl").is_file())
             old = time.time() - run_batch.LIVE_WRITE_S - 60
             for p in out.iterdir():
                 os.utime(p, (old, old))
             with mock.patch.object(run_batch, "log"):
-                self.assertEqual(run_batch.hold_live(out, [(3, False)]), [(3, False)], "quiet long enough")
+                self.assertEqual(run_batch.hold_live(out, [(3, False)]), ([(3, False)], []), "quiet long enough")
+            ahead = time.time() + run_batch.FUTURE_SKEW_S + 60
+            for p in out.iterdir():
+                os.utime(p, (ahead, ahead))
+            with mock.patch.object(run_batch, "log"):
+                self.assertEqual(run_batch.hold_live(out, [(3, False)]), ([(3, False)], []), "a clock that moved")
+
+    def _block(self, tmp, seeds, written):
+        """run_block on a free exploratory block whose combos in `written` have a log written just now (by a game
+        that may be in flight). Returns (exit code, combos played, log text)."""
+        tmp = Path(tmp)
+        (tmp / "forge").mkdir()
+        (tmp / "forge" / "run-llm-headless.sh").write_text("#!/bin/sh\n")
+        out = tmp / "out"
+        out.mkdir()
+        for seed, swap in written:
+            (out / ("game-%d-%d.log" % (seed, 1 if swap else 0))).write_text("boot\n")
+        argv = ["--seeds", ",".join(str(x) for x in seeds), "--exploratory", "--controller-a", "random",
+                "--controller-b", "ai", "--forge-home", str(tmp / "forge"), "--out", str(out)]
+        args = run_batch.build_parser().parse_args(argv)
+        played = []
+
+        def play(args, seed, swap, out_dir):
+            played.append((seed, swap))
+            return seed, swap, "ok", 0
+
+        def finalize(a, cited):
+            a.forced_env = make_args().forced_env
+        with mock.patch.object(run_batch, "finalize_provenance_and_cap", side_effect=finalize), \
+                mock.patch.object(run_batch, "run_one", side_effect=play), \
+                mock.patch.object(run_batch, "log") as logged:
+            code, _ = run_batch.run_block(args)
+        return code, played, "\n".join(str(c.args[0]) for c in logged.call_args_list if c.args)
+
+    def test_a_held_combo_is_listed_in_the_summary_and_fails_the_batch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code, played, text = self._block(tmp, [7100, 7101], [(7100, False)])
+        self.assertEqual((code, played), (1, [(7101, False)]))
+        self.assertIn("held (may be live): 1", text)
+        self.assertIn("7100/swap0", text.split("held (may be live)")[1])
+
+    def test_a_batch_whose_only_combo_is_held_is_not_nothing_to_do(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code, played, text = self._block(tmp, [7100], [(7100, False)])
+        self.assertEqual((code, played), (1, []))
+        self.assertNotIn("Nothing to do.", text)
+        self.assertIn("held (may be live): 1", text)
+
+    def test_a_held_combo_that_goes_quiet_while_the_others_play_is_played(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(run_batch, "recently_written", side_effect=[30, None, None]):
+            code, played, text = self._block(tmp, [7100, 7101], [(7100, False)])
+        self.assertEqual((code, played), (0, [(7101, False), (7100, False)]))
+        self.assertNotIn("held (may be live)", text)
+
 
 class TestAmbientConditions(unittest.TestCase):
     """Settings the JVM reads that change the seat or its calls and that no flag sets (the model config, loop guards,
-    deadlines, endpoint, routing, prompt cache, run-mode switches): a cited batch scrubs them and refuses them in
+    deadlines, routing, prompt cache, run-mode switches): a cited batch scrubs them and refuses them in
     --env; an exploratory one keeps the shell's and records them in the manifest, so a resume from another shell is
     refused."""
 
@@ -1537,20 +1602,18 @@ class TestAmbientConditions(unittest.TestCase):
         self.assertIn("predates ambient_env", msg)
         self.assertIn("unset PROMPT_CACHE", msg)
 
-    def test_a_cited_batch_refuses_an_endpoint_in_the_shell_instead_of_dropping_it(self):
-        # Dropped, a batch aimed at a loopback or other endpoint would reach openrouter.ai with key and consent.
+    def test_a_cited_batch_passes_the_shells_endpoint_through_unchanged(self):
+        # A self-hosted checkpoint or a loopback model is reached this way in every mode; the game line stamps it.
         url = {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/v1"}
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, url):
             deck = Path(d) / "mirror.txt"
             deck.write_text("4 Lightning Bolt\n", encoding="utf-8")
             args = make_args(deck_a=str(deck), deck_b=str(deck), exploratory=False, smart_a=LUNA, fast_a=LUNA)
-            with self.assertRaises(SystemExit) as cm, redirect_stderr(io.StringIO()) as err, \
-                    mock.patch.object(run_batch, "cited_seed_guard"):
+            with redirect_stderr(io.StringIO()) as err, mock.patch.object(run_batch, "cited_seed_guard"):
                 run_batch.cited_pre_guards(args)
-            self.assertEqual(cm.exception.code, 2)
-            self.assertIn("OPENROUTER_BASE_URL is set", err.getvalue())
+            self.assertEqual(err.getvalue(), "")
             self.assertEqual(run_batch.build_env(make_args(exploratory=False), 1, False, d)["OPENROUTER_BASE_URL"],
-                             url["OPENROUTER_BASE_URL"], "not silently dropped")
+                             url["OPENROUTER_BASE_URL"])
             arm = make_args(exploratory=False, loopback_env={"OPENROUTER_BASE_URL": "http://127.0.0.1:5/v1"})
             self.assertEqual(run_batch.build_env(arm, 1, False, d)["OPENROUTER_BASE_URL"], "http://127.0.0.1:5/v1",
                              "a sanity arm's loopback endpoint still wins")
@@ -1566,10 +1629,13 @@ class TestAmbientConditions(unittest.TestCase):
             deck = Path(d) / "mirror.txt"
             deck.write_text("4 Lightning Bolt\n", encoding="utf-8")
             for k in ("OPENROUTER_PROVIDER_SORT", "PROMPT_CACHE", "OPENROUTER_MODEL_CFG"):
-                args = make_args(deck_a=str(deck), deck_b=str(deck), env=[k + "=1"], exploratory=False)
-                with self.subTest(k=k), self.assertRaises(SystemExit) as cm, mock.patch("sys.stderr"):
+                args = make_args(deck_a=str(deck), deck_b=str(deck), env=[k + "=1"], exploratory=False,
+                                 smart_a=LUNA, fast_a=LUNA)
+                with self.subTest(k=k), self.assertRaises(SystemExit) as cm, \
+                        redirect_stderr(io.StringIO()) as err, mock.patch.object(run_batch, "cited_seed_guard"):
                     run_batch.cited_pre_guards(args)
                 self.assertEqual(cm.exception.code, 2)
+                self.assertIn("cited mode forbids --env %s: it changes what the seat is given" % k, err.getvalue())
 
 
 if __name__ == "__main__":

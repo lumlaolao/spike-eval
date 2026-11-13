@@ -1114,15 +1114,21 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     `checkout_sources`; it covered two files until 2026-10-16, review H3);
   - unset `--context-profile` is the faithful seat (`v4-faithful`), as in the play scripts; the legacy
     `v1-compat` (coaching, a reasoning cap, a 25-decision turn cap) runs only as a named arm;
-  - it resumes; a combo whose log or game file was written in the last `LIVE_WRITE_S` is neither set aside nor
-    played again (a JVM may still be playing it);
+  - it resumes; a combo whose log or game file was written in the last `LIVE_WRITE_S` (twice the default model-call
+    deadline) may belong to a game in flight (a launcher killed while its JVM plays on, or a second batch on the
+    same `--out`, which nothing else prevents): it is neither set aside nor played at first, is checked again once
+    the batch's other games are done and played then if quiet; one still held is listed in the summary
+    (`held (may be live)`) and the batch exits 1, so a rerun once its files are quiet plays it. A file dated in the
+    future is not read as in flight;
   - it plays a crashed game once more and sets the failed attempt aside (`--retries`);
   - it enforces the budget;
   - settings no flag sets that change what a seat is given (`AMBIENT_CONDITION_KEYS`: model config, loop guards,
     deadlines, routing, prompt cache, run-mode switches): a cited batch scrubs the shell's values and refuses them
-    in `--env`, and refuses to start while `OPENROUTER_BASE_URL` is set (dropped, it would reach openrouter.ai);
-    an exploratory batch keeps the shell's and records them in the manifest (`ambient_env`), so a resume from a
-    shell with other values is refused. `--env` never sets a seat, model, deck or other run-defining name;
+    in `--env`; an exploratory batch keeps the shell's, may set them with `--env`, and records them in the manifest
+    (`ambient_env`), so a resume from a shell with other values is refused; the `[condition]` line names any it
+    found. The endpoint (`OPENROUTER_BASE_URL`) is not among them: it reaches every batch from the shell, is
+    stamped (`openrouter_base_url`) and splits experiments in `aggregate.py`. `--env` never sets a seat, model,
+    deck or other run-defining name;
   - it refuses an llm seat that does not name both of its models, in every mode: a seat with no controller
     is an llm seat, and an unset model fell through to the harness default (Opus), so a Luna mirror
     launched with seat B unset played Luna against Opus 5.5 with every stamp healthy (issue #234);
