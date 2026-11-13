@@ -15,6 +15,7 @@ function.
 import ast
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 import os
@@ -54,8 +55,9 @@ class ScriptStyleSuites(unittest.TestCase):
     def test_every_script_style_file_exits_zero(self):
         for path in script_style_tests():
             with self.subTest(script=path.name):
-                proc = subprocess.run([sys.executable, str(path)], cwd=str(HERE.parent),
-                                      capture_output=True, text=True, timeout=600)
+                with tempfile.TemporaryDirectory() as tmp:  # what a script leaves in its temp dir goes with it
+                    proc = subprocess.run([sys.executable, str(path)], cwd=str(HERE.parent), capture_output=True,
+                                          text=True, timeout=600, env=dict(os.environ, TMPDIR=tmp))
                 self.assertEqual(proc.returncode, 0,
                                  "%s exited %d:\n%s%s" % (path.name, proc.returncode,
                                                           proc.stdout[-2000:], proc.stderr[-2000:]))

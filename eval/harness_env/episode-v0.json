@@ -33,6 +33,8 @@
   ],
   "forbidden_tokens": [
     "mtg-forge-llm-agent",
+    "spike-eval",
+    "lumlaolao",
     "PlayerControllerLLM",
     "LlmSpikeGui",
     "LlmSpikeHeadless",

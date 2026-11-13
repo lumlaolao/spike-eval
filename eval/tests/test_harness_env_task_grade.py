@@ -65,20 +65,33 @@ class ReporterTest(unittest.TestCase):
 
 
 class NoteTest(unittest.TestCase):
-    """The research note quotes the number of tests of the grader's and the task builder's files: they must be true."""
+    """The research note names, for each reward hack it closed, the test that attempts it, and the classes that hold
+    them: each must be in this file, so a hack test deleted or renamed fails here, whatever else is added."""
 
-    def count(self, module):
-        suite = unittest.TestLoader().loadTestsFromModule(sys.modules[module])  # not the -k filtered default loader
-        return suite.countTestCases()
-
-    def test_the_notes_test_counts_are_the_unittest_counts(self):
+    def test_every_test_and_class_the_note_names_is_in_this_file(self):
         note = os.path.join(os.path.dirname(os.path.dirname(__file__)), "research", "2026-11-07-harness-env-tasks.md")
         with open(note, encoding="utf-8") as f:
             text = f.read()
-        m = re.search(r"(\d+) grader tests and (\d+) task tests", text)
-        self.assertIsNotNone(m, "the note must say 'N grader tests and N task tests'")
-        self.assertEqual((int(m.group(1)), int(m.group(2))),
-                         (self.count("test_harness_env_task_grade"), self.count("test_harness_env_tasks")))
+        table = text[text.index("| Hole | Closed by | Test |"):]
+        rows = [ln for ln in table[:table.index("\n\n")].splitlines()[2:]]
+        named = [m for ln in rows for m in re.findall(r"`(test_[a-z0-9_]+)(\.\.\.)?`", ln.rsplit(" | ", 1)[-1])]
+        self.assertGreater(len(named), 30, "the note's table was not read")
+        # The module objects themselves: run as a script this file is __main__, not its file name.
+        suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+        tests = {t.id().rsplit(".", 1)[-1] for t in self._flat(suite)}
+        missing = [n + dots for n, dots in named
+                   if not (any(t.startswith(n) for t in tests) if dots else n in tests)]
+        self.assertEqual(missing, [], "tests the note names that this file no longer has")
+        sentence = text[text.index("Each closed hole has a test"):text.index("| Hole |")]
+        for cls in re.findall(r"`([A-Z][A-Za-z]+Test)`", sentence):
+            self.assertTrue(isinstance(getattr(sys.modules[__name__], cls, None), type), cls)
+
+    def _flat(self, suite):
+        for t in suite:
+            if isinstance(t, unittest.TestSuite):
+                yield from self._flat(t)
+            else:
+                yield t
 
 
 class ValidationStampTest(unittest.TestCase):
