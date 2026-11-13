@@ -1,9 +1,13 @@
-"""model_sweep.py: a game completes only when the model fully played it (#430)."""
+"""model_sweep.py: a game completes only when the model fully played it (#430), and each game carries a budget."""
+import argparse
+import contextlib
+import io
 import json
 import os
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
@@ -30,6 +34,27 @@ class PlumbingChecksTest(unittest.TestCase):
             c = ms.plumbing_checks(out_dir(extra))
             self.assertFalse(c["game_completed"], extra)
             self.assertEqual(c["decisions"], 1, "the counts still read the rows")
+
+
+class BudgetTest(unittest.TestCase):
+    """Each model's game is paid: run_batch.py refuses it without --budget-usd, so the sweep requires one and passes
+    it on."""
+
+    def test_the_sweep_requires_a_budget(self):
+        with mock.patch.object(sys, "argv", ["model_sweep.py"]), contextlib.redirect_stderr(io.StringIO()) as err, \
+                self.assertRaises(SystemExit) as cm:
+            ms.main()
+        self.assertEqual(cm.exception.code, 2)
+        self.assertIn("--budget-usd", err.getvalue())
+
+    def test_each_models_game_carries_the_budget(self):
+        args = argparse.Namespace(out=tempfile.mkdtemp(), cap_minutes=20, budget_usd=0.25)
+        done = mock.Mock(returncode=0, stdout="", stderr="")
+        with mock.patch.object(ms.subprocess, "run", return_value=done) as run, \
+                mock.patch.object(ms, "analyze", return_value=({}, True)), contextlib.redirect_stdout(io.StringIO()):
+            ms.sweep_one("openrouter:x/y", args, 201)
+        cmd = run.call_args.args[0]
+        self.assertEqual(cmd[cmd.index("--budget-usd") + 1], "0.25")
 
 
 if __name__ == "__main__":

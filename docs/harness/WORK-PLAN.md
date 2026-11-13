@@ -87,7 +87,7 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   probe is ported; see below).
 - **Owner decisions from a hygiene audit (2026-10-25)** (tracked `runs/` is gone since #332):
   - four eval scripts nothing current calls: `latency_report.py`, `line_compare.py`, `coverage_audit.py` and
-    `model_sweep.py`, whose default list includes an Opus model and which takes no budget;
+    `model_sweep.py`, whose default list includes an Opus model (it requires `--budget-usd`, per model's game);
   - six `secrets.env` loaders with no parity test: `play-vs-llm.sh`, `run_batch.py`, `tournament.py`,
     `tool_use_suite.py`, `model_sweep.py` and `puzzle_solve.py`;
   - zero-model games still stamp `smart_a` "opus" and `fast_a` "haiku" on the game line (the Java defaults of

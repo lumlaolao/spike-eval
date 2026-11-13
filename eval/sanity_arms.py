@@ -36,6 +36,7 @@ import json
 import re
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -77,16 +78,29 @@ def start_fake_server(policy, log_path, timeout_s=10.0):
         proc = subprocess.Popen([sys.executable, str(FAKE_SERVER), "--port", "0", "--policy", policy,
                                  "--log", str(log_path)],
                                 stdout=subprocess.PIPE, stderr=err, text=True)
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        line = proc.stdout.readline()
-        m = re.match(r"LISTENING (\d+)", line or "")
-        if m:
-            return proc, int(m.group(1))
-        if proc.poll() is not None:
-            break
+    # readline blocks: a server that starts but never prints its port would hang the launch past any deadline. A
+    # timer kills it at the deadline, which ends the read.
+    timed_out = threading.Event()
+
+    def expire():
+        timed_out.set()
+        proc.kill()
+
+    timer = threading.Timer(timeout_s, expire)
+    timer.start()
+    try:
+        for line in iter(proc.stdout.readline, ""):
+            m = re.match(r"LISTENING (\d+)", line)
+            if m:
+                return proc, int(m.group(1))
+    finally:
+        timer.cancel()
     proc.kill()
-    raise RuntimeError("fake model server (policy %s) did not report a port" % policy)
+    rc = proc.wait()
+    if timed_out.is_set():
+        raise RuntimeError("fake model server (policy %s) did not report a port within %g s" % (policy, timeout_s))
+    raise RuntimeError("fake model server (policy %s) exited (rc=%s) without reporting a port; see %s.err"
+                       % (policy, rc, log_path))
 
 
 def stop_fake_server(proc):
