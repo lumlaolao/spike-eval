@@ -569,7 +569,8 @@ not pretend otherwise.
 
 Enforcement (implemented with this lock): `eval/seed_policy.py` is the single
 source of truth for the reserved ranges. `make_sft_data.py` refuses (exit 2)
-any SFT source containing a game whose seed falls in a reserved block —
+any SFT source containing a game whose seed falls in a reserved block, or in an
+eval-only bank of `eval/seed_registry.json` (the STR-AI panels' 7800-7999) —
 override only via `--allow-reserved-seeds`, which prints a loud banner and is
 recorded in the dataset provenance. `run_batch.py` prints a prominent
 eval-reserved warning when requested seeds intersect a reserved block (games

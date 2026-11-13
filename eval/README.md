@@ -134,7 +134,8 @@ python3 eval/run_batch.py \
     --deck eval/decks/mardu-energy.txt \
     --controller-a llm --controller-b llm \
     --smart-a openrouter:anthropic/claude-haiku-5.5 --smart-b openrouter:anthropic/claude-haiku-5.5 \
-    --fast-a openrouter:anthropic/claude-haiku-5.5 --fast-b openrouter:anthropic/claude-haiku-5.5
+    --fast-a openrouter:anthropic/claude-haiku-5.5 --fast-b openrouter:anthropic/claude-haiku-5.5 \
+    --budget-usd 5    # required for a paid model: games are not started past it (price first: cost_report.py --plan)
 
 # Interrupted? Re-run the same command with the same --out — completed
 # seed/swap combos are skipped (a combo is done once its JSONL has a game line).
@@ -159,7 +160,7 @@ Baseline / exploratory arm example (not citable — mismatched decks, plans):
 python3 eval/run_batch.py --seeds 1..30 --pairs --exploratory \
     --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt \
     --controller-a llm --smart-a openrouter:anthropic/claude-haiku-5.5 --fast-a openrouter:anthropic/claude-haiku-5.5 \
-    --controller-b random
+    --controller-b random --budget-usd 2
 ```
 
 ## The JSONL contract (identity-keyed, final)
@@ -319,7 +320,8 @@ python3 eval/improve_loop.py --games 2 --controller floor
 
 `--controller llm` runs real model calls (`--seat-a`/`--seat-b`, default
 `openrouter:google/gemini-3.5-flash` both — cheap) and refuses with a clear
-message if `OPENROUTER_API_KEY` is unset; `--dry-run` prints the exact
+message if `OPENROUTER_API_KEY` is unset or no `--budget-usd` is given (passed
+on to `run_batch.py`, which refuses a paid model without one); `--dry-run` prints the exact
 `run_batch.py`/`defect_analyzer.py` commands it would run without launching
 anything, useful for checking flags before spending API budget or JVM time.
 `defect_analyzer.py` is also runnable standalone against any existing batch
