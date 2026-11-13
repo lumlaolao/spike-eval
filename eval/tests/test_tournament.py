@@ -69,6 +69,52 @@ def test_a_backstop_stops_its_own_match_and_nothing_else():
     ok("a backstop stops its own match's process group and nothing else")
 
 
+def test_an_interrupted_match_stops_its_own_launcher_and_jvm():
+    # The match runs in its own session, so a Ctrl-C reaches only this process: the launcher and JVM (which may be
+    # calling a paid model) must be stopped on the way out, not left playing.
+    import subprocess
+    real = subprocess.Popen
+    started = []
+
+    def popen(*a, **kw):
+        p = real(*a, **kw)
+        started.append(p)
+        waits = iter([KeyboardInterrupt()])
+
+        def wait(timeout=None):
+            exc = next(waits, None)
+            if exc:
+                raise exc
+            return real.wait(p, timeout=timeout)
+        p.wait = wait
+        return p
+
+    with tempfile.TemporaryDirectory() as fh, tempfile.TemporaryDirectory() as jd:
+        Path(fh, "run-llm-spike.sh").write_text("sleep 60 & sleep 60\n")
+        args = argparse.Namespace(cap_minutes=1, forge_home=fh)
+        interrupted = False
+        stop = T.stop_group
+        with mock.patch.object(T.subprocess, "Popen", popen), \
+                mock.patch.object(T, "stop_group", lambda p: stop(p, grace_s=1)):
+            try:
+                T._launch_and_read(dict(os.environ), Path(jd), 1, False, args)
+            except KeyboardInterrupt:
+                interrupted = True
+        assert interrupted, "the interrupt is not swallowed"
+        pid = started[0].pid
+        gone, deadline = False, time.time() + 10
+        while not gone and time.time() < deadline:
+            try:
+                os.killpg(pid, 0)
+                time.sleep(0.1)
+            except ProcessLookupError:
+                gone = True
+        if not gone:
+            os.killpg(pid, 9)
+        assert gone, "the match's launcher and JVM are still running after the interrupt"
+    ok("an interrupted match stops its own launcher and JVM")
+
+
 def test_snake_single_round():
     order = [0, 1, 2, 3]
     assert T._snake(order, rounds=1) == [0, 1, 2, 3]
@@ -263,6 +309,7 @@ def main():
     test_dry_run_makes_no_network_or_game_calls()
     test_a_tournament_game_never_inherits_a_condition_from_the_shell()
     test_a_backstop_stops_its_own_match_and_nothing_else()
+    test_an_interrupted_match_stops_its_own_launcher_and_jvm()
     print("\nAll checks passed.")
     return 0
 

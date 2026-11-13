@@ -429,8 +429,12 @@ def _launch_and_read(env, jdir, seed, swap, args):
             proc.wait(timeout=backstop)
         except subprocess.TimeoutExpired:
             log("[match] backstop timeout — stopping this match's JVM")
-            stop_group(proc)
             return "timeout"
+        finally:
+            # A new session takes the match out of the terminal's process group, so a Ctrl-C (or any exception)
+            # reaches only this process: the launcher and its JVM, which may be calling a paid model, are stopped here.
+            if proc.poll() is None:
+                stop_group(proc)
     return _read_winner(jdir, seed, swap)
 
 
