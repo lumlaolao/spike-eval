@@ -193,25 +193,28 @@ def pytests_stage():
 
 class PytestsSkipAllowanceTest(unittest.TestCase):
     """The pytests stage counts skips like javatests: a test that lost its prerequisite under acceptance (a broken
-    resolver, a moved rules file) fails the stage once the skips exceed pytests.skipped_max. The stage runs on a
-    temporary eval/tests holding two skipping tests and one that passes; `want` is the script's own."""
+    resolver, a moved rules file) fails the stage once the skips exceed pytests.skipped_max. The stage runs, as the
+    script has it, on a temporary eval/tests holding two skipping tests and one that passes; `want` is the script's
+    own. PYTEST_SHARDS names the shards here, as the stage allows."""
 
     SUITE = ("import unittest\nclass T(unittest.TestCase):\n"
              "    def test_a(self):\n        self.skipTest('no rules text')\n"
              "    def test_b(self):\n        self.skipTest('no rules text')\n"
              "    def test_c(self):\n        pass\n")
 
-    def stage(self, expected_text, suite=SUITE, env=None):
+    def stage(self, expected_text, suite=SUITE, env=None, files=None, shards="test_one.py|REST"):
         with tempfile.TemporaryDirectory() as d:
             os.makedirs(os.path.join(d, "eval", "tests"))
-            with open(os.path.join(d, "eval", "tests", "test_one.py"), "w") as f:
-                f.write(suite)
+            for name, text in (files or {"test_one.py": suite}).items():
+                with open(os.path.join(d, "eval", "tests", name), "w") as f:
+                    f.write(text)
             expected = os.path.join(d, "x.expected")
             with open(expected, "w") as f:
                 f.write(expected_text)
             script = ('REPO="$1"; OUT="$1"; FORGE="$1"; EXPECTED="$2"; PLATFORM=linux\n'
                       'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n%s\n'
                       % (functions(), pytests_stage()))
+            env = dict(env if env is not None else os.environ, PYTEST_SHARDS=shards)
             return subprocess.run(["bash", "-c", script, "x", d, expected], check=True, stdout=subprocess.PIPE,
                                   universal_newlines=True, env=env).stdout
 
@@ -238,6 +241,33 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
         suite = self.SUITE.replace("'no rules text'", "\"the rules text isn't here\"")
         out = self.stage("pytests.skipped_max=1\n", suite=suite)
         self.assertIn("the rules text isn't here", out)
+
+    ONE_SKIP = "import unittest\nclass U(unittest.TestCase):\n    def test_x(self):\n        self.skipTest('no jar')\n"
+    PASSES = "import unittest\nclass V(unittest.TestCase):\n    def test_y(self):\n        pass\n"
+    FAILS = "import unittest\nclass W(unittest.TestCase):\n    def test_z(self):\n        self.fail('broken')\n"
+
+    def test_the_shards_tests_and_skips_are_summed_into_one_line(self):
+        files = {"test_one.py": self.SUITE, "test_two.py": self.ONE_SKIP, "test_three.py": self.PASSES}
+        out = self.stage("pytests.skipped_max=3\n", files=files, shards="test_one.py|test_two.py|REST")
+        self.assertIn("PASS pytests Ran 5 tests OK, 3 skipped (at most 3 allowed; 3 shards;", out)
+        out = self.stage("pytests.skipped_max=2\n", files=files, shards="test_one.py|test_two.py|REST")
+        self.assertIn("3 skipped, more than the 2 allowed", out)
+
+    def test_a_failing_shard_fails_the_stage(self):
+        files = {"test_one.py": self.SUITE, "test_two.py": self.FAILS}
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("shard 2 (rc=1", out)
+
+    def test_a_test_file_in_no_shard_or_a_named_file_that_is_gone_fails_the_stage(self):
+        files = {"test_one.py": self.SUITE, "test_two.py": self.PASSES}
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("> test_two.py", out)
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|test_gone.py|REST")
+        self.assertIn("test_gone.py(no such test file)", out)
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|test_one.py test_two.py")
+        self.assertIn("< test_one.py", out, "a file in two shards")
 
     def test_a_missing_allowance_fails_rather_than_allowing_any_number(self):
         self.assertIn("FAIL pytests", self.stage("floor.seed=42\n"))
