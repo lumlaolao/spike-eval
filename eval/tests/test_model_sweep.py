@@ -36,7 +36,6 @@ class PlumbingChecksTest(unittest.TestCase):
             self.assertEqual(c["decisions"], 1, "the counts still read the rows")
 
 
-
 class BudgetTest(unittest.TestCase):
     """Each model's game is paid: run_batch.py refuses it without --budget-usd, so the sweep requires one and passes
     it on."""
@@ -56,6 +55,7 @@ class BudgetTest(unittest.TestCase):
             ms.sweep_one("openrouter:x/y", args, 201)
         cmd = run.call_args.args[0]
         self.assertEqual(cmd[cmd.index("--budget-usd") + 1], "0.25")
+
 
 if __name__ == "__main__":
     unittest.main()

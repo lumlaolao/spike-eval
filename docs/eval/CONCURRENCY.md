@@ -81,8 +81,8 @@ concurrency; CPU is the binding constraint for floor-vs-floor concurrency
   is a development lane, owner 2026-10-24; a bare Claude name is refused everywhere since 2026-10-25; the text
   below on bare specs and `--jobs 1` is historical);
   all-`openrouter:` runs may be parallel since 2026-10-17. There is no `--jobs`
-  guard in any mode (2026-11-13): the Claude CLI it protected is refused in cited
-  mode, and `warn_parallel_jobs` only warns (a CLI seat above `--jobs 1`, more
+  guard in any mode: cited mode refuses a Claude CLI seat, and `warn_parallel_jobs`
+  only warns (a CLI seat above `--jobs 1`, more
   than 8 no-model JVMs, more than 10 model JVMs).
 - **Isolation that's already fine:** `run_one()` (`run_batch.py:196-231`)
   writes `game-<seed>-<swap>.log`/`.jsonl` under `out_dir`, keyed purely by
@@ -155,7 +155,7 @@ concurrency; CPU is the binding constraint for floor-vs-floor concurrency
    networking beyond the LLM bridges — no socket bind observed in the 74
    lines of that file. Treat as low risk; this was a static read, not a
    runtime trace with two concurrent JVMs.
-6. **The `claude` CLI — the reason cited mode once pinned `--jobs 1` (it now refuses the CLI),
+6. **The `claude` CLI — why cited mode refuses a Claude CLI seat,
    confirmed by code.** `LlmSpikeGui.java:2463-2498`: any model spec **not**
    prefixed `openrouter:` is run via
    `new ProcessBuilder(BIN, "-p", "--model", model, "--strict-mcp-config", ...)`
@@ -170,9 +170,8 @@ concurrency; CPU is the binding constraint for floor-vs-floor concurrency
    `openrouter:anthropic/claude-fable-5`), so *this particular sweep* does
    not contend with the user's interactive Claude Code sessions at all. The
    hazard is real only when a run uses **bare** specs like `haiku`/`opus`
-   (as `eval/README.md:115-116`'s example did) — the scenario the old cited
-   `--jobs 1` guard protected against; cited mode now refuses a Claude CLI seat
-   outright, and `warn_parallel_jobs` warns on one above `--jobs 1`.
+   (as `eval/README.md:115-116`'s example did); cited mode refuses a Claude CLI
+   seat outright, and `warn_parallel_jobs` warns on one above `--jobs 1`.
 7. **macOS App Nap / headless AWT — not applicable.** `LlmSpikeHeadless`
    never creates a window (`GuiDesktop` headless interface, no `JFrame`
    shown), so it isn't a foreground/occluded GUI app and isn't a candidate
@@ -216,7 +215,7 @@ not wanting to starve the user's interactive `claude` CLI sessions.
 | Floor-vs-floor (both controllers `floor`) | **4–6** | CPU-bound, ~25s bursts. 6 P-cores + 12 E-cores comfortably absorb 4–6 concurrent ~25s AI-search bursts alongside existing desktop load; RAM is a non-issue (~1 GB/JVM × 6 ≈ 6 GB of 24 GB). |
 | Cheap-LLM (e.g. both seats `openrouter:google/gemini-3.5-flash`) | **4–6** | Latency-bound, ~0.2–0.6% CPU/JVM, ~900 MB RSS/JVM measured. CPU is a non-issue; RAM for 6 JVMs (~5–6 GB) leaves comfortable headroom. Paid-tier OpenRouter has no hard RPM wall, so the limiter is just "don't be rude to one provider's queue" — 4–6 concurrent requests to a fast, cheap model is unremarkable. |
 | Mixed sweep (one seat floor, one seat LLM) — today's `model_sweep.py` pattern | **3–4** for `run_batch.py`; **2–3 different models at once** if `model_sweep.py` grows a `--jobs` flag | Same low per-JVM footprint; the floor seat adds brief CPU bursts. Because every model in the roster is `openrouter:`-prefixed, there's no `claude`-CLI contention to worry about — the constraint is just RAM/CPU headroom, which supports more than the current strictly-sequential 1. |
-| (2026-07-21; bare specs are refused now) Expensive reasoners / **any bare (non-`openrouter:`) model spec** (e.g. plain `haiku`, `opus`, `fable-5`) | **1** (2 only with caution) | These route through the local `claude` CLI (`LlmSpikeGui.java:2463-2498`) and directly compete with the user's own interactive Claude Code sessions for the same CLI/account. This was the reason for the old cited-mode `--jobs 1` guard; cited mode now refuses a CLI seat, and `warn_parallel_jobs` warns on one above `--jobs 1`. Don't raise this one without first moving those model tiers to `openrouter:`-routed equivalents. |
+| (2026-07-21; bare specs are refused now) Expensive reasoners / **any bare (non-`openrouter:`) model spec** (e.g. plain `haiku`, `opus`, `fable-5`) | **1** (2 only with caution) | These route through the local `claude` CLI (`LlmSpikeGui.java:2463-2498`) and directly compete with the user's own interactive Claude Code sessions for the same CLI/account. Cited mode refuses a CLI seat, and `warn_parallel_jobs` warns on one above `--jobs 1`. Don't raise this one without first moving those model tiers to `openrouter:`-routed equivalents. |
 
 ### Hazards to fix before raising concurrency
 
@@ -233,7 +232,7 @@ not wanting to starve the user's interactive `claude` CLI sessions.
 3. **Bare (non-`openrouter:`) model specs under `--jobs > 1`** — not a
    filesystem race, but a real resource-contention hazard against the
    user's own Claude Code sessions. Cited mode refuses a Claude CLI seat
-   (2026-10-24; a bare spec is refused everywhere); exploratory mode only
+   (a bare spec is refused everywhere); exploratory mode only
    warns on one above `--jobs 1` (`warn_parallel_jobs`).
 4. Everything else investigated (output-file keying, `SWAP_SEATS` leakage,
    port binding, App Nap) checked out as **not** a real hazard for this
