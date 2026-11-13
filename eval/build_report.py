@@ -37,12 +37,14 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 EVAL = Path(__file__).resolve().parent
 sys.path.insert(0, str(EVAL))
+import aggregate  # noqa: E402  its exit codes (the summary itself comes from its --json run)
 from run_suite import parse_seed_range  # noqa: E402
 
 PY = sys.executable or "python3"
-# aggregate.py exits: 0 clean, 2 fallback gate, 3 model-identity gate, 4 harness-decided gate (the first that failed).
-# Anything else (1, a usage or read error) means no judged summary.
-AGGREGATE_GATE_EXITS = (0, 2, 3, 4)
+# aggregate.py's exits that still carry a judged summary: clean, or the first gate that failed. Anything else (1, a
+# usage or read error) means no judged summary.
+AGGREGATE_GATE_EXITS = (0, aggregate.EXIT_FALLBACK_GATE, aggregate.EXIT_MODEL_IDENTITY_GATE,
+                        aggregate.EXIT_HARNESS_DECIDED_GATE)
 
 
 def run_json(cmd):

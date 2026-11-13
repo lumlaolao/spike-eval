@@ -54,6 +54,13 @@ from pathlib import Path
 DEFAULT_RESAMPLES = 10_000
 DEFAULT_BOOTSTRAP_SEED = 20260715  # fixed for reproducible CIs
 DEFAULT_MAX_FALLBACK_RATE = 0.10
+# The command's exit codes, one per failed gate (the first that failed; build_report.py reads them). 0 is clean, 1 a
+# usage or read error.
+EXIT_FALLBACK_GATE = 2
+EXIT_MODEL_IDENTITY_GATE = 3
+EXIT_HARNESS_DECIDED_GATE = 4
+EXIT_SANITY_VIOLATION = 5
+EXIT_SANITY_MISSING = 6
 # The harness-decided share: decisions the harness made when the model could have (match_review's
 # TAKEN and LOST, and any Forge-AI row), over the llm identities' decisions. Forced picks (one legal
 # option) are not counted; the fallback rate above counts them, which hides this number.
@@ -763,19 +770,22 @@ def summarize_games(games):
     return dict(counts)
 
 
-def charged_crashes(games, crashed, log_dir=None):
-    """The started games that files with no game line add, by one rule (docs/eval/SCORING.md, "Started games").
+def place_crashes(games, crashed, log_dir=None):
+    """(charged, unplaced): the files with no game line that are started games, by one rule (docs/eval/SCORING.md,
+    "Started games"), and those that could not be placed.
 
     A started game is one launch of a (seed, seat order). A file with no game line (a crash, a kill, a backstop
     timeout) is charged as one only when the slot it belongs to holds no game line: a crash beside its own replay is
     the replay's earlier attempt, not a second game. Its seat order is known when a log run_batch.py wrote for the
-    seed (game_log, in log_dir) names the file; then it is charged once for that (seed, order). A file whose order no
-    log names is charged only when its seed has no game line in either order, at most twice per seed (the two seat
-    orders) counting the known ones. A file with no seed is never charged. The caller passes only crashes whose
-    condition is known: those of a directory that holds one experiment.
+    seed (game_log, in log_dir) names the file; then it is charged for that (seed, order). A file whose order no log
+    names is charged only when its seed has no game line in either order, at most as many per seed as the experiment
+    has seat orders (two when any game line or named crash is swapped, else one), counting the known ones; one whose
+    seed does have a line is unplaced (it may be the other order's crash: the strict score is then an upper bound). A
+    file with no seed is never charged. The caller passes only crashes whose condition is known: those of a directory
+    that holds one experiment.
 
-    `games` are the condition's game lines (scorable or not); returns the charged crash records, each a copy with
-    `swap` set to its seat order or None when no log names it."""
+    `games` are the condition's game lines (scorable or not); a charged record is a copy with `swap` set to its seat
+    order, or None when no log names it."""
     lines = {(g.get("seed"), bool(g.get("swap", False))) for g in games}
     seeds_with_line = {seed for seed, _ in lines}
     names = {}
@@ -786,21 +796,35 @@ def charged_crashes(games, crashed, log_dir=None):
                 name = log_game_file(game_log(log_dir, seed, swap)) if seed is not None else None
                 if name and name == c.get("_file"):
                     names[c.get("_file")] = swap
-    out, slots, per_seed = [], set(), {}
+    orders = 2 if any(swap for _, swap in lines) or any(names.values()) else 1
+    charged, unplaced, per_seed = [], [], {}
     for c in sorted(crashed, key=lambda c: c.get("_file") in names, reverse=True):   # known orders first
         seed = c.get("seed")
         if seed is None:
             continue
         order = names.get(c.get("_file"))
         if order is not None:
-            if (seed, order) in lines or (seed, order) in slots:
-                continue
-            slots.add((seed, order))
-        elif seed in seeds_with_line or per_seed.get(seed, 0) >= 2:
+            if (seed, order) in lines:
+                continue                    # the slot's own replay holds a line: an earlier attempt
+        elif seed in seeds_with_line:
+            unplaced.append(c)
+            continue
+        elif per_seed.get(seed, 0) >= orders:
             continue
         per_seed[seed] = per_seed.get(seed, 0) + 1
-        out.append(dict(c, swap=order))
-    return out
+        charged.append(dict(c, swap=order))
+    return charged, unplaced
+
+
+def charged_crashes(games, crashed, log_dir=None):
+    """The started games that files with no game line add (place_crashes)."""
+    return place_crashes(games, crashed, log_dir)[0]
+
+
+def own_crashes(parsed):
+    """The directory's files with no game line whose condition is known: all of them when it holds one experiment,
+    none otherwise."""
+    return parsed["crashed"] if len(parsed["experiments"]) == 1 else []
 
 
 def summarize_arms(games, crashed=(), log_dir=None):
@@ -813,9 +837,8 @@ def summarize_arms(games, crashed=(), log_dir=None):
     one experiment). Those charged_crashes keeps are started games that score 0 in the strict score of the arms that
     played here, once per identity as a played game is (docs/eval/SCORING.md, "Started games")."""
     arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0, "crashed": 0})
-    real = [g for g in games if not g.get("_no_game_line")]
     pairs = set()
-    for g in real:
+    for g in games:
         if unscorable(g):
             continue                        # not fully played by the model: in no count, the strict score's too
         w = g.get("winner")
@@ -834,7 +857,7 @@ def summarize_arms(games, crashed=(), log_dir=None):
         arms[la]["games"] += 1
         arms[lb]["games"] += 1
         arms[la if w == "A" else lb]["wins"] += 1
-    charged = charged_crashes(real, list(crashed) + [g for g in games if g.get("_no_game_line")], log_dir)
+    charged = charged_crashes(games, crashed, log_dir)
     if len(pairs) == 1 and charged:
         (la, lb), = pairs
         for label in (la, lb):              # once per identity: both when the two share a label, as a played game
@@ -1458,8 +1481,7 @@ def _experiment_decisions(exp, decisions):
 
 def summarize_experiment(exp, label, parsed, resamples, bootstrap_seed, max_fallback_rate):
     games = exp["games"]
-    # A file with no game line belongs to this experiment only when the directory holds no other condition.
-    crashed = parsed["crashed"] if len(parsed["experiments"]) == 1 else []
+    crashed = own_crashes(parsed)
     log_dir = parsed.get("dir")
     decisions = _experiment_decisions(exp, parsed["decisions"])
     prov = summarize_provenance(games)
@@ -1536,15 +1558,21 @@ def build_summary(path, resamples, bootstrap_seed,
     games_summary = summarize_games(games)
     # A crash's condition is known only when the directory holds one experiment (--experiment on a mixed directory
     # selects one, but the crashes are still nobody's); otherwise they are counted and named, charged to no arm.
-    own = crashed if len(parsed["experiments"]) == 1 else []
+    own = own_crashes(parsed)
+    lines = [g for e in experiments for g in e["games"]]
     if crashed and not own:
         warnings.append("%d file(s) with no game line in a directory of %d conditions: their condition is unknown, "
                         "so they are charged to no experiment's strict score"
                         % (len(crashed), len(parsed["experiments"])))
     games_summary["uncharged_no_game_line"] = len(crashed) - len(own)
+    unplaced = place_crashes(lines, own, path)[1]
+    games_summary["unplaced_no_game_line"] = len(unplaced)
+    if unplaced:
+        warnings.append("%d file(s) with no game line that no log places, on a seed that has a game line: each may be "
+                        "the other seat order's crash, so the strict score is an upper bound (%s)"
+                        % (len(unplaced), ", ".join(sorted(c.get("_file") or "?" for c in unplaced)[:5])))
     if single:
-        real = [g for e in experiments for g in e["games"]]
-        arms = summarize_arms(real, own, path)
+        arms = summarize_arms(lines, own, path)
         paired = summarize_paired(games, resamples, bootstrap_seed)
     else:
         # Counts may pool (they are totals); rates and deltas may not.
@@ -1917,15 +1945,15 @@ def main():
               % (fmt_pct(fg["harness_decided_rate"]), fmt_pct(fg["max_harness_decided_rate"])), file=sys.stderr)
         print("!" * 60, file=sys.stderr)
     if fg["failed"]:
-        sys.exit(2)
+        sys.exit(EXIT_FALLBACK_GATE)
     if mi["failed"]:
-        sys.exit(3)
+        sys.exit(EXIT_MODEL_IDENTITY_GATE)
     if fg.get("harness_failed"):
-        sys.exit(4)
+        sys.exit(EXIT_HARNESS_DECIDED_GATE)
     if sanity is not None and sanity["violations"]:
-        sys.exit(5)
+        sys.exit(EXIT_SANITY_VIOLATION)
     if sanity is not None and sanity["missing"]:
-        sys.exit(6)
+        sys.exit(EXIT_SANITY_MISSING)
 
 
 if __name__ == "__main__":

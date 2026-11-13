@@ -142,8 +142,10 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
         return None
     parsed = aggregate.parse_dir_full(p)
     exps = parsed["experiments"]
-    if not exps and not parsed["crashed"]:
-        return None  # a cell the budget stopped before its first game: a manifest and no game file is not played
+    if not exps:
+        # Not played: a cell the budget stopped before its first game (a manifest, no game file), or one whose every
+        # file has no game line, so its condition is unknown. The panel reads it as missing (INCOMPLETE).
+        return None
     if len(exps) != 1:
         raise PanelError("%s holds %d experiment conditions; a panel cell is one" % (p, len(exps)))
     exp = exps[0]
@@ -192,6 +194,7 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
         "games": games,
         "wins": wins, "decisive": decisive, "draws": draws, "started": started,
         "crashed": len(charged),
+        # Every file with no game line, charged or not: the count sanity_arms.outcomes prints for an arm directory.
         "no_game_line_files": len(parsed["crashed"]),
         "win_rate": wins / decisive if decisive else None,
         "wilson95": [lo, hi],
@@ -349,7 +352,7 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
             sanity = sanity_arms.check(root / cid, random_margin, arms={
                 a: (None if b is None else {"games": {(g["seed"], bool(g.get("swap", False))): g.get("winner")
                                                       for g in b["games"] if g.get("seed") is not None},
-                                            "crashed": b["crashed"]})
+                                            "crashed": b["no_game_line_files"]})
                 for a, b in arm_blocks.items()})
         row = {"deck_a": c["deck_a"], "deck_b": c["deck_b"], "deck_sha": dsha, "sanity": sanity}
         if block is not None:
@@ -462,6 +465,8 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
     if len(set(control_played.values())) > 1:
         incomplete.append("the controls played different seed sets: the margin is not seed-paired")
     unscored = sorted(cid for cid in played_seeds if out_cells[cid].get("score") is None)
+    unscored += sorted(cid + CONTROL_SUFFIX for cid in control_played
+                       if (out_cells[cid].get("control") or {}).get("score") is None)
     if unscored:
         incomplete.append("played cell(s) with no score (no %s game): %s"
                           % ("decisive" if score == "decisive" else "started", ", ".join(unscored)))

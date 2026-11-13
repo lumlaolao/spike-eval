@@ -90,8 +90,8 @@ class VerdictTest(unittest.TestCase):
                 self.assertIn("status: **fail**", self.md)
 
     def test_the_fallback_gate_reads_the_json_whatever_gate_the_exit_code_names(self):
-        # aggregate.py names only the first gate that failed; exit 3 can hide a failed fallback gate.
-        rc, rep = self.run_report(agg_json(fallback_failed=True, identity_failed=True), 3)
+        # aggregate.py exits with the first gate that failed: exit 2 (fallback) hides a failed model-identity gate.
+        rc, rep = self.run_report(agg_json(fallback_failed=True, identity_failed=True), 2)
         gates = rep["arms"][0]["gates"]
         self.assertEqual((gates["fallback_rate"]["pass"], gates["model_identity"]["pass"]), (False, False))
         self.assertEqual(rc, 1)

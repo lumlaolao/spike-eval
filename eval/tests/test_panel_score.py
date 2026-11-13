@@ -359,7 +359,7 @@ class TestMirrorPanel(unittest.TestCase):
         r = self.score()
         self.assertTrue(any("different pilots" in p for p in r["problems"]))
 
-    # Started games and seat orders (docs/eval/SCORING.md, "Started games"), round 1 of the review of #470.
+    # Started games and seat orders (docs/eval/SCORING.md, "Started games").
 
     def test_a_crash_left_beside_its_replay_does_not_stand_in_for_the_other_seat_order(self):
         panel_run(self.root, "mirror", sanity=ZERO_ARMS)
@@ -396,15 +396,41 @@ class TestMirrorPanel(unittest.TestCase):
         self.assertTrue(any("no score" in x and "burn" in x for x in r["incomplete"]), r["incomplete"])
 
     def test_the_command_exits_1_and_says_why_for_an_incomplete_or_baseline_less_panel(self):
-        panel_run(self.root, "mirror", skip=("burn",))
+        panel_run(self.root, "mirror")
+        (self.root / "burn" / "game-7803-1001.jsonl").unlink()            # one seat order: INCOMPLETE
         for argv_status in ("INCOMPLETE", "NO RANDOM BASELINE"):
             if argv_status == "NO RANDOM BASELINE":
-                panel_run(self.root, "mirror")
+                panel_run(self.root, "mirror")                              # complete again, no random arm
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 rc = ps.main([str(self.root), "--panel", "mirror", "--resamples", "20"])
             self.assertEqual(rc, 1, argv_status)
             self.assertIn("verdict: " + ps.VERDICT_TEXT[argv_status], out.getvalue())
+            self.assertIn({"INCOMPLETE": "  - incomplete: ", "NO RANDOM BASELINE": "no random baseline in: "}[
+                argv_status], out.getvalue())
+
+    def test_a_random_arm_missing_one_seat_order_or_with_no_decisive_game_is_no_baseline(self):
+        for name, arm in (("one order", lambda cid: {**results(0), 7803: ("B",)} if cid == "burn" else results(0)),
+                          ("all draws", lambda cid: {s: ("draw", "draw") for s in SEEDS} if cid == "burn"
+                           else results(0))):
+            with self.subTest(name), tempfile.TemporaryDirectory() as d:
+                panel_run(d, "mirror", sanity=dict(ZERO_ARMS, random=arm))
+                r = ps.score_panel(d, "mirror", PANELS, resamples=20)
+                self.assertEqual(r["status"], "NO RANDOM BASELINE", r["incomplete"] + r["problems"])
+
+    def test_a_panel_both_incomplete_and_faulty_is_not_valid(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("elves",))
+        write_block(sanity_arms.arm_dir(self.root / "burn", "floor"), DOC["deck_pool"][1]["sha12"], {7900: ("B", "B")},
+                    controller_a="floor", smart_a=None)
+        r = self.score()
+        self.assertTrue(r["missing"] and r["problems"])
+        self.assertEqual(r["status"], "NOT VALID")
+
+    def test_a_cell_whose_every_file_has_no_game_line_is_missing_not_a_refusal(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("burn",))
+        write_block(self.root / "burn", DOC["deck_pool"][1]["sha12"], {s: ("crash", "crash") for s in SEEDS})
+        r = self.score()
+        self.assertEqual((r["missing"], r["status"]), (["burn"], "INCOMPLETE"))
 
 
 class TestRecordedPanelSmoke(unittest.TestCase):
@@ -445,6 +471,17 @@ class TestCrossPanel(unittest.TestCase):
             r = ps.score_panel(tmp, "cross", PANELS, resamples=20)
             self.assertIn(cid + ps.CONTROL_SUFFIX, r["missing"])
             self.assertFalse(r["valid"])
+
+    def test_a_control_with_no_decisive_game_is_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            panel_run(tmp, "cross", sanity=ZERO_ARMS)
+            cid = DOC["panels"]["cross"]["cells"][0]["id"]
+            write_block(Path(tmp) / (cid + ps.CONTROL_SUFFIX), ps.cell_deck_sha(DOC["panels"]["cross"]["cells"][0],
+                                                                                ps.load_panel(PANELS, "cross")[1]),
+                        {s: ("draw", "draw") for s in SEEDS}, controller_a="ai")
+            r = ps.score_panel(tmp, "cross", PANELS, resamples=20)
+            self.assertEqual(r["status"], "INCOMPLETE")
+            self.assertTrue(any(cid + ps.CONTROL_SUFFIX in x for x in r["incomplete"]), r["incomplete"])
 
     def test_controls_on_different_seeds_or_in_one_order_are_incomplete(self):
         with tempfile.TemporaryDirectory() as tmp:

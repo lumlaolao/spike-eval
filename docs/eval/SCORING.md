@@ -110,15 +110,19 @@ verdict line says how many of the published seeds that is (`games_played`, `game
 `--json`). Exit 0 valid, 1 any other status (still printed), 2 refused.
 
 **Started games.** The strict score's denominator is the started games: one per (seed, seat order) launched, in
-`aggregate.py` and `panel_score.py` alike (`aggregate.charged_crashes`). A game line is one. A file with no game line
-(a crash, a kill, a backstop timeout) is one only when its slot holds no game line, so a crash left beside its replay
-is not a second game. Its seat order is the one whose `run_batch.py` log (`game-<seed>-<0|1>.log`) names the file; a
-file no log names is charged only when its seed has no game line in either order (at most two per seed), and fills
-no seat order. A file is charged only where its condition is known: in a directory that holds one experiment. In a
-directory of several conditions `aggregate.py` charges it to none, counts it (`games.uncharged_no_game_line`) and
-says so in a warning; `--experiment` does not change that. A file with no seed is never charged. A cell holding a game whose pilot lost a
-decision to a dead model bridge is refused, and a resume plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game
-the model's bridge did not play is not scored").
+`aggregate.py` and `panel_score.py` alike (`aggregate.place_crashes`). A game line is one. A file with no game line (a
+crash, a kill, a backstop timeout) is one only when its slot holds no game line, so a crash left beside its replay is
+not a second game. Its seat order is the one whose `run_batch.py` log (`game-<seed>-<0|1>.log`) names the file. A file
+no log names is charged only when its seed has no game line in either order, at most as many per seed as the experiment
+has seat orders (two when any game line or named crash is swapped, else one: an unpaired slot that crashed twice is one
+game), and fills no seat order; on a seed that does have a line it is not charged but counted
+(`games.unplaced_no_game_line`) with a warning, since it may be the other order's crash: the strict score is then an
+upper bound. A file is charged only where its condition is known: in a directory that holds one experiment. In a
+directory of several conditions `aggregate.py` charges it to none, counts it (`games.uncharged_no_game_line`) and says
+so in a warning; `--experiment` does not change that. A file with no seed is never charged. A panel cell whose every
+file has no game line has no known condition and counts as missing. A cell holding a game whose pilot lost a decision to
+a dead model bridge is refused, and a resume plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game the model's
+bridge did not play is not scored").
 
 **The pilot condition** (review E2, E9): the panels file's `pilot_condition` pins how an llm pilot plays:
 the faithful profile, one tier, answers by the `answer` call, the native lookup tools and the lookahead
