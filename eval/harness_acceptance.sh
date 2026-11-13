@@ -24,7 +24,8 @@
 #              play a card (AlternativeCost, OptionalCost) was played by a test; eval/surface_gaps.txt and
 #              eval/play_gaps.txt may only shrink
 #   pytests    python3 -m unittest discover -s eval/tests; eval/tests/test_script_suites.py runs the script-style files
-#              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
+#              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it; fails on
+#              any failure, on no unittest verdict line, and on more skips than pytests.skipped_max (.expected)
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and every
 #              eval/defect_analyzer.py hard invariant (docs/STANDARDS.md section 4)
@@ -241,8 +242,8 @@ fi
 # Every stage after compile is independent: each writes only under its own directory, and each fake model server
 # takes a free port. So a full run spreads them over child runs of this script that share the compiled classes and
 # the classpath (timing: docs/harness/ACCEPTANCE.md). The groups are balanced by measured time: the Python suite
-# (pytests, about 6 min, serial) is the longest and runs alone, so no game stage waits behind it; the other three
-# take about 4 min each. ACCEPTANCE_JOBS=1 runs every stage in this process, one after another.
+# (pytests) runs alone, so no game stage waits behind it. ACCEPTANCE_JOBS=1 runs every stage in this process, one
+# after another.
 ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
 # Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
 # not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
@@ -392,13 +393,18 @@ if has_stage pytests; then
   RAN="$(grep -o 'Ran [0-9]* tests' "$OUT/pytests.log" | tail -1)"
   # Skips are counted like the javatests stage's: acceptance has the Forge checkout, the rules text and ~/.m2, so a
   # test that skips here lost its prerequisite (a broken resolver, a moved file). Only the pinned allowance may skip.
-  SKIPPED="$(grep -E '^(OK|FAILED)( |$)' "$OUT/pytests.log" | tail -1 | sed -n 's/.*skipped=\([0-9]*\).*/\1/p')"
+  # unittest's verdict is the first line after its last "Ran N tests in": a test's own stdout ("OK 3 rows read") can be
+  # flushed after it when the output is buffered, so the last OK line is not the verdict. No verdict line fails.
+  VERDICT_LINE="$(awk '/^Ran [0-9]+ tests? in /{r=NR; v=""; next} r && v=="" && NF {v=$0} END{print v}' "$OUT/pytests.log")"
+  SKIPPED="$(echo "$VERDICT_LINE" | sed -n 's/.*skipped=\([0-9]*\).*/\1/p')"
   SKIPPED="${SKIPPED:-0}"; SKIP_MAX="$(want pytests.skipped_max)"
   case "$SKIP_MAX" in
     ''|*[!0-9]*) fail pytests "pytests.skipped_max is missing, duplicated or not a number in $EXPECTED";;
     *) if [ $RC -ne 0 ] || [ -z "$RAN" ]; then fail pytests "unittest rc=$RC ($RAN, $SKIPPED skipped)"
+       elif ! echo "$VERDICT_LINE" | grep -Eq '^(OK|FAILED)( \(.*\))?$'; then
+         fail pytests "$RAN, but no unittest verdict line after it (read: '$VERDICT_LINE')"
        elif [ "$SKIPPED" -gt "$SKIP_MAX" ]; then
-         fail pytests "$RAN, $SKIPPED skipped, more than the $SKIP_MAX allowed: $(grep -o "skipped '[^']*'" "$OUT/pytests.log" | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ' | cut -c1-500)"
+         fail pytests "$RAN, $SKIPPED skipped, more than the $SKIP_MAX allowed: $(grep -oE "skipped ('[^']*'|\"[^\"]*\")" "$OUT/pytests.log" | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ' | cut -c1-500)"
        else pass pytests "$RAN OK, $SKIPPED skipped (at most $SKIP_MAX allowed; script-style files included)"; fi;;
   esac
 fi

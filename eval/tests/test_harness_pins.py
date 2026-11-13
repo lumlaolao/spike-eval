@@ -7,6 +7,7 @@ expectations file, so this checks the shipped functions, not a copy. It cannot s
 stage uses the label; that is one `case` line beside the seed check. The javatests stage's `testng`
 function is run the same way, with a stub in place of java that prints its environment.
 """
+import json
 import os
 import shutil
 import subprocess
@@ -195,14 +196,16 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
     resolver, a moved rules file) fails the stage once the skips exceed pytests.skipped_max. The stage runs on a
     temporary eval/tests holding two skipping tests and one that passes; `want` is the script's own."""
 
-    def stage(self, expected_text):
+    SUITE = ("import unittest\nclass T(unittest.TestCase):\n"
+             "    def test_a(self):\n        self.skipTest('no rules text')\n"
+             "    def test_b(self):\n        self.skipTest('no rules text')\n"
+             "    def test_c(self):\n        pass\n")
+
+    def stage(self, expected_text, suite=SUITE, env=None):
         with tempfile.TemporaryDirectory() as d:
             os.makedirs(os.path.join(d, "eval", "tests"))
             with open(os.path.join(d, "eval", "tests", "test_one.py"), "w") as f:
-                f.write("import unittest\nclass T(unittest.TestCase):\n"
-                        "    def test_a(self):\n        self.skipTest('no rules text')\n"
-                        "    def test_b(self):\n        self.skipTest('no rules text')\n"
-                        "    def test_c(self):\n        pass\n")
+                f.write(suite)
             expected = os.path.join(d, "x.expected")
             with open(expected, "w") as f:
                 f.write(expected_text)
@@ -210,7 +213,7 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
                       'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n%s\n'
                       % (functions(), pytests_stage()))
             return subprocess.run(["bash", "-c", script, "x", d, expected], check=True, stdout=subprocess.PIPE,
-                                  universal_newlines=True).stdout
+                                  universal_newlines=True, env=env).stdout
 
     def test_skips_over_the_allowance_fail_the_stage_and_name_the_reason(self):
         out = self.stage("pytests.skipped_max=1\n")
@@ -223,9 +226,79 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
         self.assertIn("PASS pytests", out)
         self.assertIn("Ran 3 tests OK, 2 skipped (at most 2 allowed", out)
 
+    def test_a_tests_own_ok_line_flushed_after_the_verdict_does_not_hide_the_skips(self):
+        # Buffered stdout lands after unittest's summary (stderr): the last line starting "OK" was a test's own.
+        suite = self.SUITE + "    def test_d(self):\n        print('OK 3 rows read')\n"
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONUNBUFFERED"}
+        out = self.stage("pytests.skipped_max=1\n", suite=suite, env=env)
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("2 skipped, more than the 1 allowed", out)
+
+    def test_a_skip_reason_in_double_quotes_is_named_too(self):
+        suite = self.SUITE.replace("'no rules text'", "\"the rules text isn't here\"")
+        out = self.stage("pytests.skipped_max=1\n", suite=suite)
+        self.assertIn("the rules text isn't here", out)
+
     def test_a_missing_allowance_fails_rather_than_allowing_any_number(self):
         self.assertIn("FAIL pytests", self.stage("floor.seed=42\n"))
 
+
+
+def cut(start_text, end_text, after=None):
+    """The script's lines from the first starting with start_text (after the line holding `after`, if given) through
+    the next line holding end_text."""
+    with open(SCRIPT, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    first = next(i for i, l in enumerate(lines) if after in l) if after else 0
+    start = next(i for i in range(first, len(lines)) if lines[i].strip().startswith(start_text))
+    end = next(i for i in range(start, len(lines)) if end_text in lines[i])
+    return "\n".join(lines[start:end + 1])
+
+
+class GateBranchTest(unittest.TestCase):
+    """Two gates added to stages that need a JVM: each branch is cut out of the script and run on a stub."""
+
+    def run_cut(self, body, d, *args):
+        script = 'pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n' % body
+        return subprocess.run(["bash", "-c", script, "x", d, *args], check=True, stdout=subprocess.PIPE,
+                              universal_newlines=True).stdout
+
+    def test_a_missing_ownership_pin_fails_javatests_instead_of_turning_the_check_off(self):
+        body = cut('OWN="$(grep', "else pass javatests")
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "javatests.log"), "w") as f:
+                f.write("[OWNERSHIP] silent strategic: 0\n] decisions-bridge-v3 ONE -> answer\n"
+                        "] claude-cli-bridge-v2 -> TOOL CALL answer\n[TRANSCRIPT] transcript-v1 byte-equal\n")
+            pre = 'OUT="$1"; EXPECTED="$2"; T=5; F=0; S=0; DECLARED=5; RES=r\n'
+            outs = {}
+            for name, text in (("absent", "floor.seed=42\n"), ("pinned", "ownership.silent_ai_strategic_max=0\n")):
+                exp = os.path.join(d, name + ".expected")
+                with open(exp, "w") as f:
+                    f.write(text)
+                outs[name] = self.run_cut(pre + body, d, exp)
+        self.assertIn("FAIL javatests", outs["absent"])
+        self.assertIn("no ownership.silent_ai_strategic_max pin", outs["absent"])
+        self.assertIn("PASS javatests", outs["pinned"])
+
+    def test_turnchat_fails_when_the_defect_analyzer_fails(self):
+        body = cut('VERDICT="$(python3 -', "pass turnchat", after="if has_stage turnchat")
+        with tempfile.TemporaryDirectory() as d:
+            sdir = os.path.join(d, "server")
+            os.makedirs(sdir)
+            rows = [{"t": "decision", "tier": "smart", "answer_via": "tool"}] * 10 + [
+                {"t": "game", "turn_chat": True, "turn_chat_version": "turn-chat-v1", "one_chat_version": "one-chat-v3"}]
+            with open(os.path.join(d, "game-42-1.jsonl"), "w") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in rows))
+            with open(os.path.join(sdir, "fake_requests.jsonl"), "w") as f:
+                f.write(json.dumps({"earlier_turn_note": True, "assistant_messages": 2}) + "\n")
+            with open(os.path.join(d, "game.log"), "w") as f:
+                f.write("a clean game\n")
+            pre = 'dir="$1"; sdir="$2"; ARC="$3"\n'
+            clean = self.run_cut(pre + body, d, sdir, "0")
+            failed = self.run_cut(pre + body, d, sdir, "1")
+        self.assertIn("PASS turnchat", clean)
+        self.assertIn("FAIL turnchat", failed)
+        self.assertIn("defect_analyzer rc=1", failed)
 
 if __name__ == "__main__":
     unittest.main()
