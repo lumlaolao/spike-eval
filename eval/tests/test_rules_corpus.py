@@ -1,6 +1,6 @@
 """Provenance + integrity guard for the downloaded Comprehensive Rules text.
 
-Runs as part of the acceptance `pytests` stage (unittest discovery over eval/). The corpus is the
+Runs as part of the acceptance `pytests` stage (every eval/tests/test_*.py, in shards). The corpus is the
 exact official Wizards .txt at data/rules/MagicCompRules.txt, which the repository does not carry:
 eval/fetch_comp_rules.py downloads it (setup.sh and the acceptance preflight run it). It is read directly by the Java
 RulesTool (no derived index), so this file is the only gate that the text is the one we pinned.

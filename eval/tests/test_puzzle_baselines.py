@@ -2,6 +2,7 @@
 condition, and the commands that write a record's difficulty and v2 tier (prove, retier, run --baselines-only)."""
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -12,6 +13,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import puzzle_baselines as pb  # noqa: E402
 import run_batch  # noqa: E402
+
+
+def setUpModule():
+    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
+    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_baselines-")
+    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
+    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
 
 
 class WrittenLineTest(unittest.TestCase):
@@ -458,6 +466,12 @@ class BuildFreshnessTest(unittest.TestCase):
             if mtime is not None:
                 os.utime(d / pb.BUILD_SHA_FILE, (mtime, mtime))
         return d
+
+    def test_a_forge_home_written_with_a_variable_is_expanded(self):
+        # One environment sets FORGE_HOME to the literal "$HOME/forge"; unexpanded, Build said no checkout there.
+        with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/forge", "HOME": str(self.tmp)}):
+            b = pb.Build(self.make("bv", "aaaaaaaaaaaa"))
+        self.assertEqual(b.forge, self.forge)
 
     def test_a_build_of_this_checkout_is_accepted(self):
         d = self.make("b1", "aaaaaaaaaaaa")

@@ -1362,7 +1362,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
    - an isolated compile, which records the overlay hash it compiled in `overlay-sha.txt`; the puzzle launchers
      (`puzzle_baselines.Build`) run only a build whose hash is the checkout's, unless `--allow-stale-build`, which
      the run's provenance records (`docs/eval/PUZZLES.md`);
-   - every Java and Python test, with a declared-vs-run count;
+   - every Java and Python test, with a declared-vs-run count; no Java test may skip, and Python skips may not
+     exceed the pinned `pytests.skipped_max` (the optional live-model class); the Python files run in shards side
+     by side, each file in exactly one;
    - the pinned canaries, with a class-load proof that the new build ran;
    - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules and the turn chat,
      and a written puzzle line played by a script seat (`ScriptBridge`; the stage table is in
