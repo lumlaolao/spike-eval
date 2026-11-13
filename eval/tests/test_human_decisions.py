@@ -1,6 +1,10 @@
 """Tests for human_decisions.py: the human controller defines what a decision is."""
+import contextlib
+import io
 import os
+import tempfile
 import unittest
+from unittest import mock
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
@@ -34,8 +38,20 @@ class HumanDecisions(unittest.TestCase):
         self.assertIn("chooseNumber", asks)          # through pickNumber
         self.assertNotIn("resetAtEndOfTurn", asks)
 
+    def test_a_forge_home_written_with_a_variable_is_expanded(self):
+        # One environment sets FORGE_HOME to the literal "$HOME/forge"; read unexpanded, the audit found no file.
+        with tempfile.TemporaryDirectory() as d:
+            human = os.path.join(d, "forge", hd.HUMAN)
+            os.makedirs(os.path.dirname(human))
+            with open(human, "w") as f:
+                f.write("public class PlayerControllerHuman {\n}\n")
+            with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/forge", "HOME": d}), \
+                    contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(hd.main([]), 0)
+        self.assertIn("0 the seat's", out.getvalue())
+
     def test_the_pinned_engine_has_no_core_decision_the_seat_does_not_own(self):
-        home = os.environ.get("FORGE_HOME", os.path.expanduser("~/code/forge"))
+        home = os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "~/code/forge")))
         if not os.path.isfile(os.path.join(home, hd.HUMAN)):
             self.skipTest("no Forge checkout at %s" % home)
         res = hd.audit(home)

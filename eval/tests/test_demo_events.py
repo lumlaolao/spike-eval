@@ -1,5 +1,6 @@
 """demo_events: every model call, tool request and reasoning lands on the decision it produced, for one llm seat
-(runs/loop/g33) and for two (a loopback mirror), and a live tail parses only complete lines."""
+(rows of runs/loop/g33 in eval/testdata/demo) and for two (a loopback mirror), and a live tail parses only complete
+lines."""
 import json
 import os
 import sys
@@ -322,20 +323,8 @@ class ReaderTest(unittest.TestCase):
 
     def test_a_run_that_is_not_in_this_clone_is_no_game_not_an_error(self):
         # runs/ is git-ignored, so a fresh clone has no runs/loop at all.
-        missing = os.path.join(tempfile.mkdtemp(), "runs", "loop", "g33")
-        self.assertEqual(de.find_game(missing), (None, None))
-
-    def test_the_whole_g33_game_joins_every_call_to_a_decision(self):
-        g33 = os.path.join(EVAL, "..", "runs", "loop", "g33")
-        jsonl, log = de.find_game(g33)
-        if not jsonl:
-            self.skipTest("runs/loop/g33 is not in this clone")
-        r = de.load(jsonl)
-        d = [e for e in r.events if e["kind"] == "decision"]
-        self.assertEqual(len(d), 148)
-        self.assertEqual(sum(len(e["calls"]) for e in d), 183)
-        self.assertEqual(r.builder.pending, {})
-        self.assertEqual(de.tally(log)["Seat"]["ai"], "0")
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(de.find_game(os.path.join(d, "runs", "loop", "g33")), (None, None))
 
 
 if __name__ == "__main__":

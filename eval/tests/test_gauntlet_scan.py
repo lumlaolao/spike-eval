@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -12,6 +13,13 @@ import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import gauntlet_scan as gs
 
 CLEAN = "[kw00] [TALLY] smart=28 fast=0 auto=9 ai=0 textParses=0\n"
+
+
+def setUpModule():
+    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
+    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_gauntlet_scan-")
+    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
+    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
 
 
 def run_dir(games):

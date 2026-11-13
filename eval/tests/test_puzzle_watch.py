@@ -5,6 +5,7 @@ of the call (jev-test-1: 15 rows, $0.002322)."""
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -22,6 +23,13 @@ import puzzle_watch  # noqa: E402
 JEV = ("[JEV Solver/smart] decisions-bridge-v1 ONE -> answer {\"option\":%d} (state_bytes=11622, input_tokens=3995, "
        "cost so far $%.6f)")
 TALLY = "[Solver] [TALLY] smart=%d fast=0 auto=0 ai=%d textParses=%d"
+
+
+def setUpModule():
+    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
+    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_watch-")
+    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
+    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
 
 
 def no_second_look(seconds):
