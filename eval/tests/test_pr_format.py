@@ -1,5 +1,5 @@
 """scripts/pr_format.py: the accepted examples are real subjects from this repository's history.
-Lives in eval/tests/ so the acceptance suite (`unittest discover -s eval/tests`) runs it."""
+Lives in eval/tests/ so the acceptance pytests stage (every eval/tests/test_*.py) runs it."""
 import importlib.util
 import io
 import json

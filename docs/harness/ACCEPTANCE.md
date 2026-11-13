@@ -11,9 +11,12 @@ A full run compiles once, then runs the later stages as four child runs side by 
 summaries merged into `OUT/summary.txt`), each JVM held to one core's worth of GC and compiler threads, with the
 keyword sweep split over `SWEEP_SHARDS` (2) JVMs: about 8 minutes on an idle 4-core machine, against 11 one stage
 after another, and up to 15 when other game JVMs share the cores (timings with their run directories: PR #301).
-The Python suite (pytests) runs alone in its group, itself in shards side by side; the canaries run after javatests and nativetool after lines, so no
-game waits behind it. <!-- TIMING: measured group times and the run directory go here after the next full run --> `ACCEPTANCE_JOBS=1` runs every stage in one process
-with the sweep in one JVM.
+The Python suite (pytests) runs alone in its group, itself in three shards side by side; the canaries run after
+javatests and nativetool after lines, so no game waits behind it. Measured on 98f26fb (`/tmp/acc-b1-98f26fb`,
+container-local; 4 cores, other work running beside it): the shards took 349, 223 and 157 s, and from the end of compile
+the groups ended at 6 min 39 s (javatests), 5 min 50 s (pytests), 5 min 23 s and 6 min 07 s. The serial stage on 7057bee
+(`/tmp/acc-b1-7057bee`) ran 1755 tests in 455 s, and that run ended at 7 min 37 s. `ACCEPTANCE_JOBS=1` runs every stage
+in one process with the sweep in one JVM.
 
 The parent reads each child's exit status and requires a PASS or FAIL line for every stage it handed the child,
 so a child that dies part way fails the run instead of leaving only the PASS lines it wrote before it died.
@@ -74,6 +77,7 @@ that OS, reproduced, with the same note a re-pin needs.
 
 | Date | Result | Notes |
 | --- | --- | --- |
+| 2026-11-13 | PR #469 on 98f26fb (`/tmp/acc-b1-98f26fb`, container-local): all 19 stages PASS, pytests `Ran 1762 tests OK, 4 skipped` in 3 shards (349 s, 223 s, 157 s) | The pytests stage in shards. From the end of compile the groups ended at 6 min 39 s (javatests), 5 min 50 s (pytests), 5 min 23 s and 6 min 07 s, on 4 cores with other work beside it; the serial stage on 7057bee (`/tmp/acc-b1-7057bee`) ran 1755 tests in 455 s and that run ended at 7 min 37 s. The final head's run is in the PR's Evidence. |
 | 2026-11-09 | PR #441 on 755d492 (container-local): `compile` FAILED, `cannot find symbol Step` in `PuzzleSearch.parseLine` (the class is `PuzzleArms.Step`, not imported there); the stages after it did not run | The misreading probe (`PZL_PROBE`). d4a267b imports `PuzzleArms.Step`; the later commits tighten the probe (draw cap, line not consumed, one grammar in Java and Python). The final head's run is in the PR's Evidence. |
 | 2026-11-08 | PR #334 on 1f307bd (container-local): all 19 stages PASS, javatests 1227, pytests 1488, canary pins unmoved (floor A in 108, random A in 55) | Epoch 96, lookahead-preview-v17: a harness seat, and a preview's copy of the seat, may spend Black Lotus on any spell (ComputerUtilMana patch). `GoldenChecksTest.blackLotusPaysForACheapSpellForTheSeat` and `LookaheadProbeTest.blackLotusPaysForACheapSpellOnTheCopy` added. No canary reaches Black Lotus, so no canary pin moved. The later review commit adds `LookaheadProbeTest.aSourceWhoseTapDamageIsLethalPaysOnTheCopy` and comment changes only; the final head's run is in the PR's Evidence. |
 | 2026-11-06 | PR #406 on cf4cd9b (`$SCRATCH/vp-out`, container-local): 18 of 19 stages PASS (`turnchat` passed with the new `one-chat-v3` pin); `pytests` FAILED 1174 run, 1 failure: `test_gate_parses` found an unpaired quote (an apostrophe in the new comment) in the `turnchat` heredoc inside a command substitution | Issue #372: every stamp pinned by value. The comment loses its apostrophe; its pin check was a substring match, so a comment could pin a stamp; the final head matches whole tokens in code with comments removed (`test_a_comment_does_not_pin_a_stamp`). The final head's run is in the PR's Evidence. |
