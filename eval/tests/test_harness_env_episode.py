@@ -255,16 +255,18 @@ class JvmGraderTest(unittest.TestCase):
         kw.setdefault("set_file", self.set)
         return ep.jvm_grader(self.cp, self.forge, "/jdk", **kw)(self.sub, os.path.join(self.tmp, "g"))
 
+    @contextlib.contextmanager
     def brew_jdk(self):
+        """No JAVA_HOME, and Homebrew's JDK (a javac that exits 0) where the task grader looks; yields its home."""
         home = os.path.join(self.tmp, "brew", "libexec/openjdk.jdk/Contents/Home")
         os.chmod(write(home, "bin/javac", "#!/bin/sh\nexit 0\n"), 0o755)
-        return home
-
-    def test_with_no_java_home_the_grader_compiles_with_the_jdk_the_task_grader_finds_never_usr_bin(self):
-        home = self.brew_jdk()
         env = {k: v for k, v in os.environ.items() if k != "JAVA_HOME"}
         with mock.patch.dict(os.environ, env, clear=True), \
                 mock.patch.object(htg, "JDK_DIRS", (os.path.join(self.tmp, "brew"),)):
+            yield home
+
+    def test_with_no_java_home_the_grader_compiles_with_the_jdk_the_task_grader_finds_never_usr_bin(self):
+        with self.brew_jdk() as home:
             ep.jvm_grader(self.cp, self.forge, set_file=self.set)(self.sub, os.path.join(self.tmp, "g"))
         self.assertEqual(self.calls[0][0][0], os.path.join(home, "bin", "javac"))
         self.assertEqual(self.calls[0][1]["env"]["JAVA_HOME"], home)

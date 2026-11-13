@@ -17,13 +17,9 @@ import run_batch  # noqa: E402
 
 def setUpModule():
     """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
-    global _SAVED_TEMPDIR
-    _SAVED_TEMPDIR, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_baselines-")
-
-
-def tearDownModule():
-    shutil.rmtree(tempfile.tempdir, ignore_errors=True)
-    tempfile.tempdir = _SAVED_TEMPDIR
+    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_baselines-")
+    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
+    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
 
 
 class WrittenLineTest(unittest.TestCase):

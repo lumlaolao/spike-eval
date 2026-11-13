@@ -27,13 +27,9 @@ TALLY = "[Solver] [TALLY] smart=%d fast=0 auto=0 ai=%d textParses=%d"
 
 def setUpModule():
     """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
-    global _SAVED_TEMPDIR
-    _SAVED_TEMPDIR, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_watch-")
-
-
-def tearDownModule():
-    shutil.rmtree(tempfile.tempdir, ignore_errors=True)
-    tempfile.tempdir = _SAVED_TEMPDIR
+    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_watch-")
+    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
+    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
 
 
 def no_second_look(seconds):

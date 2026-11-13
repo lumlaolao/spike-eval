@@ -19,14 +19,10 @@ import puzzle_solve  # noqa: E402
 
 def setUpModule():
     """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
-    global _SAVED_TEMPDIR
-    _SAVED_TEMPDIR, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_solve-")
-
-
-def tearDownModule():
-    shutil.rmtree(tempfile.tempdir, ignore_errors=True)
-    tempfile.tempdir = _SAVED_TEMPDIR
-    shutil.rmtree(STUB_BUILD["return_value.classes"], ignore_errors=True)  # made at import, before setUpModule
+    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_solve-")
+    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
+    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
+    unittest.addModuleCleanup(shutil.rmtree, STUB_BUILD["return_value.classes"], True)  # made at import
 
 
 def classes_with_transcript():

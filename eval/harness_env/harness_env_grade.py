@@ -553,6 +553,16 @@ def grade(submission, grader_repo, out, forge=None, run_jvm=False, busy_markers=
     return verdict
 
 
+def jdk_tool(name):
+    """The JDK's bin/<name> as the task grader finds the JDK, or None after printing why (a missing JDK is the grader's
+    fault, never "javac rc=1" against the candidate)."""
+    try:
+        return os.path.join(htg.java_home(), "bin", name)
+    except htg.SetupError as e:
+        print("setup: %s" % e)
+        return None
+
+
 def main(argv):
     args = argv[1:]
     if len(args) == 2 and args[0] == "intake":
@@ -569,10 +579,8 @@ def main(argv):
         if grader:
             print("refused: declares a class in the grader's package forge.harnessenv: " + ", ".join(grader))
             return 1
-        try:
-            javac = os.path.join(htg.java_home(), "bin", "javac")
-        except htg.SetupError as e:  # a missing JDK is the grader's fault, never "javac rc=1" against the candidate
-            print("setup: %s" % e)
+        javac = jdk_tool("javac")
+        if not javac:
             return 2
         rc, classes, counted, missing = build_classes(submission, cpfile, forge, out, javac)
         if missing:
@@ -600,10 +608,8 @@ def main(argv):
         if any(os.path.exists(m) for m in busy):
             print("refusing a JVM run while a --busy marker exists")
             return 1
-        try:
-            java = os.path.join(htg.java_home(), "bin", "java")
-        except htg.SetupError as e:
-            print("setup: %s" % e)
+        java = jdk_tool("java")
+        if not java:
             return 2
         report = run_instances(java, classes, cpfile, forge, out, only, seats, set_file)
         rows = read_env_report(report)
