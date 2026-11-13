@@ -20,7 +20,12 @@ Usage:
 
 Arm dirs default to runs/<suite>-<arm> (what run_suite.py prints).
 Exit 0 = PASS, 1 = FAIL (a gate failed), 2 = usage error, 3 = INCOMPLETE
-(at least one arm has no usable data, so no verdict is earned).
+(at least one arm has no usable data or fewer games than its seeds name, or
+the holdout audit did not run, so no verdict is earned).
+
+The gates are read from aggregate.py's JSON, not its exit code, which names
+only the first gate that failed (2 fallback, 3 model identity, 4 harness-
+decided); each of those exits is a judged arm, never an error.
 """
 import argparse
 import datetime
@@ -35,6 +40,9 @@ sys.path.insert(0, str(EVAL))
 from run_suite import parse_seed_range  # noqa: E402
 
 PY = sys.executable or "python3"
+# aggregate.py exits: 0 clean, 2 fallback gate, 3 model-identity gate, 4 harness-decided gate. Anything else
+# (1 a usage or read error) means no judged summary.
+AGGREGATE_GATE_EXITS = (0, 2, 3, 4)
 
 
 def run_json(cmd):
@@ -114,7 +122,7 @@ def main():
         agg, agg_rc, agg_err = run_json(
             [PY, "eval/aggregate.py", str(run_dir), "--json",
              "--max-fallback-rate", str(mfr)])
-        if agg is None or agg_rc not in (0, 2):
+        if agg is None or agg_rc not in AGGREGATE_GATE_EXITS:
             entry["status"] = "error"
             entry["error"] = f"aggregate.py rc={agg_rc}: {agg_err}"
             arms.append(entry)
@@ -188,11 +196,18 @@ def main():
         }
 
         g = entry["gates"]
+        fg = agg.get("fallback_gate") or {}
         g["fallback_rate"] = {
             "limit": mfr,
-            "pass": agg_rc == 0,
-            "detail": ("within limit" if agg_rc == 0
+            "pass": not fg.get("failed"),
+            "detail": ("within limit" if not fg.get("failed")
                        else "FAILED FALLBACK GATE (aggregate.py exit 2)"),
+        }
+        g["harness_decided"] = {
+            "pass": not fg.get("harness_failed"),
+            "detail": ("within limit" if not fg.get("harness_failed")
+                       else "FAILED HARNESS-DECIDED GATE: the harness made %s of the llm choices"
+                            % pct(fg.get("harness_decided_rate"))),
         }
         if def_rc is not None:
             g["defect_invariants"] = {
@@ -259,16 +274,20 @@ def main():
         # a gate whose own detail says it cannot be evaluated.
         entry["status"] = ("pass" if all(x["pass"] is not False for x in g.values())
                            else "fail")
+        # An arm that played fewer games than its seeds name (a budget stop, a crash loop) earns no verdict.
+        played = entry["result"]["games_total"] or 0
+        if entry["expected_games"] and played < entry["expected_games"] and entry["status"] == "pass":
+            entry["status"] = "short"
+            entry["error"] = "%d of %d games" % (played, entry["expected_games"])
         arms.append(entry)
 
     statuses = [a["status"] for a in arms]
-    if any(s in ("missing", "error") for s in statuses):
+    # check_holdouts.py: exit 0 clean, 1 a violation; anything else (or no JSON) is an audit that did not run.
+    holdout_ran = holdouts is not None and ho_rc in (0, 1)
+    if any(s in ("missing", "error", "short") for s in statuses) or not holdout_ran:
         verdict = "INCOMPLETE"
         rc = 3
-    elif any(s == "fail" for s in statuses):
-        verdict = "FAIL"
-        rc = 1
-    elif holdouts is not None and holdouts.get("violations"):
+    elif any(s == "fail" for s in statuses) or holdouts.get("violations"):
         verdict = "FAIL"
         rc = 1
     else:
@@ -282,7 +301,7 @@ def main():
         "student": args.student,
         "verdict": verdict,
         "holdout_violations": (holdouts or {}).get("violations"),
-        "holdout_audit_error": ho_err if holdouts is None else None,
+        "holdout_audit_error": None if holdout_ran else (ho_err or "check_holdouts.py exit %s" % ho_rc),
         "arms": arms,
     }
 

@@ -245,8 +245,10 @@ are citable only when they come from a validated suite run.
   writes a frozen report folder: `suite.json` copy, `report.json`,
   `report.md`, and per-arm defect evidence. Verdicts: **PASS** (every arm
   present, all gates green) / **FAIL** (a gate broke — exit 1) /
-  **INCOMPLETE** (an arm has no usable data — exit 3). Per-arm gates:
-  fallback rate, defect invariants, `discipline=cited`, unmixed provenance.
+  **INCOMPLETE** (an arm has no usable data or fewer games than its seeds
+  name, or the holdout audit did not run — exit 3). Per-arm gates, read from
+  `aggregate.py --json`: fallback rate, harness-decided rate, model identity,
+  defect invariants, `discipline=cited`, unmixed provenance.
   One report per checkpoint; never quote arms added after the fact.
 
 ```bash
