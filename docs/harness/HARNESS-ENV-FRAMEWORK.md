@@ -51,7 +51,8 @@ golden-check inventory, the acceptance stages and pins), the history (716 commit
 1. every file is in the manifest with the same bytes, and the agent's directories start empty;
 2. no file has the bytes of any withheld repository file (a withheld file under another name);
 3. no file holds a forbidden token: our class names (`PlayerControllerLLM`, `SeatObservation`, `AnswerTool`, ...),
-   our markers, the repository's name (`mtg-forge-llm-agent`, which would point an agent with tools at the answer);
+   our markers, the repository's names and owner (`mtg-forge-llm-agent`, `spike-eval`, `lumlaolao`, which would point
+   an agent with tools at the answer);
 4. no path holds a forbidden fragment (`forge/spike`, the gap files) and nothing is a symlink;
 5. a `.git`, if present, has one commit, no remote, no stash and no unreachable objects (a history squashed but not
    pruned still answers `git cat-file`).
