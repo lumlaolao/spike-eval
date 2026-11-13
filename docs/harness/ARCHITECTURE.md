@@ -1210,6 +1210,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
     --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
     settings under one name would be two benchmarks.
+    The panel's verdict is `VALID` only when every cell holds the same seeds in both seat orders and the random
+    sanity arm is in every cell; otherwise `INCOMPLETE` or `NO FLOOR`, never a bare VALID. *Why:* the pool weighs
+    cells equally, so cells a budget stopped at different lengths are not the seed-paired panel, and a score
+    without its floor is not a score.
   - **STR-HELDOUT:** the same on a held-out seed band; to become the private mined puzzle split
     (`docs/eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
   - **PUZ:** the puzzle suite (`docs/eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged

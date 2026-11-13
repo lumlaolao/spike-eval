@@ -97,7 +97,14 @@ A report is `valid` only when every cell (and control) exists and holds one expe
 is the Forge AI, every game line carries the cell's pinned `deck_sha`, only published seeds were
 played, one pilot with one set of settings played every cell, `aggregate.py`'s fallback and
 harness-decided gates pass in every cell, no sanity arm beats the floor, and every game belongs to
-one benchmark version. Exit 0 valid, 1 not valid (still printed), 2 refused. A cell holding a game whose pilot lost a
+one benchmark version, and only when it is complete and has its floor. The verdict is one `status`
+(additive in `--json`): `NOT VALID` for any of the faults above; `INCOMPLETE` when a cell or control is missing (a
+cell the budget stopped before its first game, a manifest and no game file, counts as missing), a played seed has one
+seat order only (`pairs`), or the played cells do not hold the same seeds, so the equal-weight pool is not
+seed-paired; `NO FLOOR` when the random sanity arm is not in every cell, so STR_norm has no baseline (a score without
+its floor is not a score); else `VALID`. Every played cell holding the same prefix of the published seeds in both
+orders is `VALID`, and the verdict line says how many of the published seeds that is (`games_played`,
+`games_expected`, `seeds_per_cell` in `--json`). Exit 0 valid, 1 any other status (still printed), 2 refused. A cell holding a game whose pilot lost a
 decision to a dead model bridge is refused, and a resume plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game
 the model's bridge did not play is not scored").
 

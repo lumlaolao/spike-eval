@@ -195,6 +195,42 @@ class TestMirrorPanel(unittest.TestCase):
         self.assertEqual(r["pooled"]["n_cells"], 15)
         self.assertFalse(r["valid"])
 
+    def test_cells_stopped_at_different_seeds_are_incomplete_not_valid(self):
+        # A --budget-usd stop mid-panel: one cell holds one seed, the rest four. Each cell weighs the same in the
+        # pool, so the score is not the seed-paired panel's.
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("burn",))
+        write_block(self.root / "burn", DOC["deck_pool"][1]["sha12"], results(1, n_seeds=1))
+        r = self.score()
+        self.assertFalse(r["valid"])
+        self.assertEqual(r["status"], "INCOMPLETE")
+        self.assertIn("different seed sets", " ".join(r["incomplete"]))
+        self.assertEqual((r["games_played"], r["games_expected"]), (15 * 8 + 2, 16 * 100))
+
+    def test_a_seed_played_in_one_seat_order_is_incomplete_not_valid(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        (self.root / "burn" / "game-7803-1001.jsonl").unlink()   # 7803 swapped never played
+        r = self.score()
+        self.assertFalse(r["valid"])
+        self.assertEqual(r["status"], "INCOMPLETE")
+        self.assertIn("burn played 1 seed(s) in one seat order only: [7803]", r["incomplete"])
+
+    def test_a_cell_stopped_before_its_first_game_is_missing_not_a_refusal(self):
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS, skip=("burn",))
+        (self.root / "burn").mkdir()
+        (self.root / "burn" / "batch-manifest.json").write_text("{}")
+        r = self.score()
+        self.assertEqual((r["missing"], r["status"]), (["burn"], "INCOMPLETE"))
+
+    def test_a_complete_panel_with_no_random_arm_is_not_a_bare_valid(self):
+        # A score without its floor is not a score: STR_norm needs the random arm in every cell.
+        panel_run(self.root, "mirror")
+        r = self.score()
+        self.assertFalse(r["valid"])
+        self.assertEqual((r["status"], r["floor_present"]), ("NO FLOOR", False))
+        panel_run(self.root, "mirror", sanity=ZERO_ARMS)
+        r = self.score()
+        self.assertEqual((r["status"], r["valid"], r["floor_present"]), ("VALID", True, True))
+
     def test_a_cell_played_on_the_wrong_decks_is_refused(self):
         panel_run(self.root, "mirror")
         write_block(self.root / "lands", "f" * 12, {7804: ("A", "A")})
