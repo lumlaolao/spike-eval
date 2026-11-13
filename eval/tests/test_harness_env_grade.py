@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import fetch_comp_rules
 import harness_env_grade as hg
+import harness_env_task_grade as htg
 import surface_coverage
 
 REPO = str(evalpath.REPO)
@@ -628,10 +629,29 @@ class SubmissionAiControllerTest(unittest.TestCase):
         counted = collections.Counter(declareBlockers=2, chooseSpellAbilityToPlay=1)
         printed = io.StringIO()
         with mock.patch.object(hg, "build_classes", return_value=(0, "/c", counted, [])), \
-                contextlib.redirect_stdout(printed):
+                mock.patch.object(htg, "java_home", return_value="/jdk"), contextlib.redirect_stdout(printed):
             rc = hg.main(["grade", "build", self.sub, "/nope/cp.txt", self.forge, os.path.join(self.tmp, "out")])
         self.assertEqual(rc, 0)
         self.assertIn("Forge-AI counter in 2 hooks, 3 methods", printed.getvalue())
+
+    def test_the_build_command_takes_the_jdk_the_task_grader_finds_never_usr_bin(self):
+        home = os.path.join(self.tmp, "brew", "libexec/openjdk.jdk/Contents/Home")
+        os.chmod(write(home, "bin/javac", "#!/bin/sh\nexit 0\n"), 0o755)
+        argv = ["grade", "build", self.sub, "/nope/cp.txt", self.forge, os.path.join(self.tmp, "out")]
+        env = {k: v for k, v in os.environ.items() if k != "JAVA_HOME"}
+        with mock.patch.dict(os.environ, env, clear=True), \
+                mock.patch.object(htg, "JDK_DIRS", (os.path.join(self.tmp, "brew"),)), \
+                mock.patch.object(hg, "build_classes", return_value=(0, "/c", collections.Counter(), [])) as built, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(hg.main(argv), 0)
+        self.assertEqual(built.call_args.args[4], os.path.join(home, "bin", "javac"))
+        printed = io.StringIO()
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(htg, "JDK_DIRS", ()), \
+                mock.patch.object(htg.shutil, "which", return_value=None), \
+                mock.patch.object(hg, "build_classes") as built, contextlib.redirect_stdout(printed):
+            self.assertEqual(hg.main(argv), 2, "no JDK is a setup fault, not a failed build")
+        built.assert_not_called()
+        self.assertIn("no javac", printed.getvalue())
 
     def test_the_grader_environment_carries_no_secret_or_provider_variable(self):
         with mock.patch.dict(os.environ, HARNESS_ENV_SEED="s3cret", OPENROUTER_API_KEY="k",

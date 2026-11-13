@@ -147,3 +147,10 @@ linux.random.turns=55
 # legal option each are now recorded (forced-only-legal): A/45/376, the same game otherwise (diffed per
 # type).
 linux.random.decisions=365
+# Python tests the pytests stage allows to skip (it fails above this; javatests allows none).
+# 2026-11-13: 4, the LiveAnswerTool class of test_live_answer_tool.py: four tests that call a paid model,
+# optional (LIVE_MODEL_TESTS=1 and the owner's egress consent), so never run by acceptance. Every other
+# skip in eval/tests waits for a Forge checkout, the rules text, ~/.m2 or a git history, which acceptance
+# has. Before this pin the stage passed with OK (skipped=5); the fifth, a whole-game check on the
+# git-ignored runs/loop/g33, is deleted. Raise this only with a named, explained skip.
+pytests.skipped_max=4

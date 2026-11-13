@@ -23,8 +23,10 @@
 #              the model (the javatests JVM records each decision row's hooks), and every way the engine lists to
 #              play a card (AlternativeCost, OptionalCost) was played by a test; eval/surface_gaps.txt and
 #              eval/play_gaps.txt may only shrink
-#   pytests    python3 -m unittest discover -s eval/tests; eval/tests/test_script_suites.py runs the script-style files
-#              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
+#   pytests    every eval/tests/test_*.py through python3 -m unittest, in shards run side by side (PYTEST_SHARDS:
+#              each file in exactly one, or the stage fails); eval/tests/test_script_suites.py runs the script-style
+#              files (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it; fails
+#              on any failing shard, on no unittest verdict line, and on more skips (summed) than pytests.skipped_max
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and every
 #              eval/defect_analyzer.py hard invariant (docs/STANDARDS.md section 4)
@@ -242,8 +244,9 @@ fi
 # ---------------------------------------------------------------- parallel
 # Every stage after compile is independent: each writes only under its own directory, and each fake model server
 # takes a free port. So a full run spreads them over child runs of this script that share the compiled classes and
-# the classpath (timing: docs/harness/ACCEPTANCE.md). The groups are balanced by measured time, javatests the
-# longest. ACCEPTANCE_JOBS=1 runs every stage in this process, one after another.
+# the classpath (timing: docs/harness/ACCEPTANCE.md). The groups are balanced by measured time: the Python suite
+# (pytests, itself in shards side by side) runs alone, so no game stage waits behind it. ACCEPTANCE_JOBS=1 runs every
+# stage in this process, one after another.
 ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
 # Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
 # not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
@@ -252,7 +255,7 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/for
    && [ -f "$CP_FILE" ]; then
   rm -rf "$OUT"/part[0-9]*
   JOBS=""; i=0
-  PARALLEL_GROUPS='javatests surfaces lookahead answertool|pytests canary nativetool|faketool nativerefuse faithful lines|rules turnchat scoring gaming'
+  PARALLEL_GROUPS='javatests surfaces lookahead answertool canary|pytests|faketool nativerefuse faithful lines nativetool|rules turnchat scoring gaming'
   OLDIFS="$IFS"; IFS='|'; set -- $PARALLEL_GROUPS; IFS="$OLDIFS"
   for group in "$@"; do
     picked=""; for s in $group; do has_stage "$s" && picked="$picked $s"; done
@@ -355,7 +358,9 @@ EOF
     if [ -z "$T" ]; then fail javatests "$RES"
     elif [ "$F" != 0 ] || [ "$S" != 0 ]; then fail javatests "$RES"
     elif [ "$T" != "$DECLARED" ]; then fail javatests "ran $T tests but $DECLARED @Test methods are declared (discovery gap)"
-    elif [ -n "$OWN_EXP" ] && [ "$OWN_N" != "$OWN_EXP" ]; then
+    elif [ -z "$OWN_EXP" ]; then
+      fail javatests "no ownership.silent_ai_strategic_max pin in $EXPECTED (a deleted pin must not turn the check off)"
+    elif [ "$OWN_N" != "$OWN_EXP" ]; then
       fail javatests "ownership count $OWN_N != pinned $OWN_EXP (update harness_acceptance.expected AND ControllerOwnershipTest deliberately)"
     # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
     elif ! grep -qF "] decisions-bridge-v3 ONE -> answer" "$OUT/javatests.log"; then
@@ -384,12 +389,71 @@ if has_stage surfaces; then
 fi
 
 # ---------------------------------------------------------------- pytests
+# The suite runs as shards side by side, one python3 per shard, each over its own test files: the heaviest file alone,
+# a few heavy ones together, and REST, every other file. The shards are derived from the file list, and the stage
+# fails unless every eval/tests/test_*.py is in exactly one of them, so a new file is never left unrun.
+# PYTEST_SHARDS ('|' between shards, REST for the rest) may be set in the environment; the tests of this stage do.
 if has_stage pytests; then
-  # FORGE_HOME: the tests that read a Forge checkout (test_rollout's held-out puzzle) read this run's, never a default.
-  ( cd "$REPO" && FORGE_HOME="$FORGE" python3 -m unittest discover -s eval/tests -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
-  RAN="$(grep -o 'Ran [0-9]* tests' "$OUT/pytests.log" | tail -1)"
-  if [ $RC -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK (script-style files included)"
-  else fail pytests "unittest rc=$RC ($RAN)"; fi
+  PYTEST_SHARDS="${PYTEST_SHARDS:-test_puzzle_gen.py|test_harness_env_task_grade.py test_harness_env_episode.py test_mtg_env.py test_play_vs_llm.py test_setup.py|REST}"
+  ALL_PY="$(cd "$REPO/eval/tests" && ls test_*.py 2>/dev/null | sort)"
+  OLDIFS="$IFS"; IFS='|'; set -- $PYTEST_SHARDS; IFS="$OLDIFS"
+  NAMED=""; SHARD_PROBLEMS=""
+  for spec in "$@"; do
+    for f in $spec; do
+      [ "$f" = REST ] && continue
+      NAMED="${NAMED:+$NAMED
+}$f"
+      echo "$ALL_PY" | grep -qxF "$f" || SHARD_PROBLEMS="$SHARD_PROBLEMS $f(no such test file)"
+    done
+  done
+  REST_PY="$(echo "$ALL_PY" | grep -vxF -e "$NAMED" | grep . )"
+  i=0; JOBS_PY=""; COVERED=""
+  rm -f "$OUT"/pytests-*.log "$OUT"/pytests-*.files "$OUT"/pytests-*.rc
+  for spec in "$@"; do
+    i=$((i + 1))
+    files=""; for f in $spec; do if [ "$f" = REST ]; then files="$files $REST_PY"; else files="$files $f"; fi; done
+    files="$(echo $files)"
+    [ -n "$files" ] || continue
+    COVERED="$COVERED $files"
+    echo "$files" | tr ' ' '\n' > "$OUT/pytests-$i.files"
+    mods="$(echo "$files" | sed 's/\.py//g')"
+    # FORGE_HOME: the tests that read a Forge checkout (test_rollout's held-out puzzle) read this run's, never a default.
+    # -v writes each test's name and outcome to the log, so a skip is named there with its reason. PYTHONUNBUFFERED:
+    # a test's print during the run lands before unittest's summary, not after it where it could read as the verdict.
+    # PYTHONPATH (inherited by the processes the tests start) lets a shard import its modules by name.
+    ( cd "$REPO" && FORGE_HOME="$FORGE" PYTHONUNBUFFERED=1 PYTHONPATH="$REPO/eval/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest -v $mods ) >"$OUT/pytests-$i.log" 2>&1 &
+    JOBS_PY="$JOBS_PY $!:$i"
+  done
+  for job in $JOBS_PY; do wait "${job%%:*}"; echo $? > "$OUT/pytests-${job#*:}.rc"; done
+  # Every test file in exactly one shard.
+  DIFF="$(diff <(echo $COVERED | tr ' ' '\n' | grep . | sort) <(echo "$ALL_PY" | grep .) | grep '^[<>]' | tr '\n' ' ')"
+  [ -n "$DIFF" ] && SHARD_PROBLEMS="$SHARD_PROBLEMS not in exactly one shard (< twice, > never): $DIFF"
+  N=0; SKIPPED=0; BAD=""; : > "$OUT/pytests.log"
+  for job in $JOBS_PY; do
+    n="${job#*:}"; log="$OUT/pytests-$n.log"; rc="$(cat "$OUT/pytests-$n.rc")"
+    { echo "===== pytests shard $n: $(tr '\n' ' ' < "$OUT/pytests-$n.files")"; cat "$log"; } >> "$OUT/pytests.log"
+    ran="$(grep -oE '^Ran [0-9]+ tests? in ' "$log" | tail -1 | sed 's/[^0-9]//g')"
+    # unittest's verdict is the first line after its "Ran N tests in": text written after the summary (an atexit
+    # handler, a child that outlives the run) can start with "OK", so the last OK line is not the verdict.
+    verdict="$(awk '/^Ran [0-9]+ tests? in /{r=NR; v=""; next} r && v=="" && NF {v=$0} END{print v}' "$log")"
+    rans="$(grep -cE '^Ran [0-9]+ tests? in ' "$log")"   # two such lines: something wrote text shaped like the summary
+    if [ "$rc" != 0 ] || [ "$rans" != 1 ] || ! echo "$verdict" | grep -Eq '^OK( \(.*\))?$'; then
+      BAD="$BAD shard $n (rc=$rc, ${ran:-no} tests, $rans summary lines, verdict '$verdict'; see pytests-$n.log)"
+    fi
+    N=$((N + ${ran:-0}))
+    k="$(echo "$verdict" | sed -n 's/.*skipped=\([0-9]*\).*/\1/p')"; SKIPPED=$((SKIPPED + ${k:-0}))
+  done
+  RAN="Ran $N tests"; SHARDS_N="$(echo $JOBS_PY | wc -w | tr -d ' ')"
+  SKIP_MAX="$(want pytests.skipped_max)"
+  case "$SKIP_MAX" in
+    ''|*[!0-9]*) fail pytests "pytests.skipped_max is missing, duplicated or not a number in $EXPECTED";;
+    *) if [ -n "$SHARD_PROBLEMS" ]; then fail pytests "shards do not cover eval/tests:$SHARD_PROBLEMS"
+       elif [ "$N" = 0 ]; then fail pytests "no tests ran ($SHARDS_N shards started)${BAD:+;$BAD}"
+       elif [ -n "$BAD" ]; then fail pytests "$RAN, $SKIPPED skipped; failed:$BAD"
+       elif [ "$SKIPPED" -gt "$SKIP_MAX" ]; then
+         fail pytests "$RAN, $SKIPPED skipped, more than the $SKIP_MAX allowed: $(grep -oE "skipped ('[^']*'|\"[^\"]*\")" "$OUT/pytests.log" | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ' | cut -c1-500)"
+       else pass pytests "$RAN OK, $SKIPPED skipped (at most $SKIP_MAX allowed; $SHARDS_N shards; script-style files included)"; fi;;
+  esac
 fi
 
 # ---------------------------------------------------------------- game runner
@@ -1063,9 +1127,10 @@ if has_stage turnchat; then
           SMART_BUDGET=150 FAST_BUDGET=150 GAME_CAP_MS=180000
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail turnchat "JVM did not load LlmSpikeGui from $CLASSES"; else
-        VERDICT="$(python3 - "$dir" "$sdir" <<'EOF'
+        ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+        VERDICT="$(python3 - "$dir" "$sdir" "$ARC" <<'EOF'
 import collections,glob,json,sys
-d,sdir=sys.argv[1],sys.argv[2]; problems=[]
+d,sdir,arc=sys.argv[1],sys.argv[2],int(sys.argv[3]); problems=[]
 rows=[]
 for f in glob.glob(d+"/game-*.jsonl"):
     for line in open(f):
@@ -1093,6 +1158,7 @@ if text: problems.append("%d earlier answers came back as text, not as their cal
 log=open(d+"/game.log",errors="replace").read()
 for bad in ("[FALLBACK->AI]","[TEXT-PARSE]","[TEXT-FORMAT-LEAK]"):
     if bad in log: problems.append(bad+" in the log")
+if arc!=0: problems.append("defect_analyzer rc=%d (see defects.txt)"%arc)
 facts="requests=%d carried_turn_history=%d max_assistant_msgs=%d decisions=%d"%(len(reqs),len(carried),max([r.get("assistant_messages",0) for r in reqs] or [0]),len(model))
 print(("FAIL " if problems else "PASS ")+"; ".join(problems+[facts]))
 EOF

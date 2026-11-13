@@ -254,7 +254,8 @@ class RunEpisodeTest(Base):
 
 
 # Listed in the builtin suite as forge:MTGP_08.pzl, heldout. In the checkout acceptance was given, not a fixed one.
-FORGE_PZL = os.environ.get("FORGE_HOME", "/root/forge") + "/forge-gui/res/puzzle/MTGP_08.pzl"
+FORGE_PZL = (os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "/root/forge")))
+             + "/forge-gui/res/puzzle/MTGP_08.pzl")
 
 
 class MainTest(Base):
