@@ -59,6 +59,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -295,8 +296,11 @@ def build_env(args, seed, swap, out_dir):
     for k in [k for k in env if k.startswith(CTX_OVERRIDE_PREFIX)]:
         env.pop(k, None)
     if not getattr(args, "exploratory", False):
-        for k in AMBIENT_CONDITION_KEYS:        # cited: no shell value reaches the seat (--env is refused for them)
-            env.pop(k, None)
+        # cited: no shell value reaches the seat (--env is refused for them). The endpoint is not scrubbed but refused
+        # (cited_pre_guards): scrubbed, a batch aimed at another endpoint would reach openrouter.ai with the key.
+        for k in AMBIENT_CONDITION_KEYS:
+            if k != "OPENROUTER_BASE_URL":
+                env.pop(k, None)
     env["GAME_SEED"] = str(seed)
     # Context condition, PINNED EXPLICITLY. The play scripts (run-llm-headless.sh) default
     # CONTEXT_PROFILE/MEMORY_TOOLS/RULES_TOOL for a human's own games; a batch must never inherit
@@ -868,6 +872,42 @@ def set_aside(out_dir, seed, swap, attempt):
     return _move_to_crashed(out_dir, [(p, tag + p.name) for p in ([out_dir / name] if name else []) + [log_path]])
 
 
+# A combo whose log or game file was written this recently may belong to a JVM still playing (a launcher killed while
+# its game ran on, a second run_batch on the same --out): a resume neither moves its files nor plays it again.
+LIVE_WRITE_S = 300
+
+
+def recently_written(out_dir, seed, swap, now=None):
+    """Seconds since (seed, swap)'s log or the game file it names was last written, when under LIVE_WRITE_S; else
+    None."""
+    out_dir = Path(out_dir)
+    log_path = game_log(out_dir, seed, swap)
+    name = log_game_file(log_path)
+    now = time.time() if now is None else now
+    ages = []
+    for p in [log_path] + ([out_dir / name] if name else []):
+        try:
+            ages.append(now - p.stat().st_mtime)
+        except OSError:
+            continue
+    youngest = min(ages) if ages else None
+    return int(youngest) if youngest is not None and youngest < LIVE_WRITE_S else None
+
+
+def hold_live(out_dir, todo):
+    """`todo` without the combos recently_written finds live, each named in a [resume] line."""
+    keep = []
+    for seed, swap in todo:
+        age = recently_written(out_dir, seed, swap)
+        if age is None:
+            keep.append((seed, swap))
+            continue
+        log("[resume] seed=%d swap=%d: its log or game file was written %d s ago, so a JVM may still be playing it "
+            "(a launcher killed while its game ran, or another run_batch on this --out): not set aside and not "
+            "played now; run again once it has stopped (%d s with no write)" % (seed, swap, age, LIVE_WRITE_S))
+    return keep
+
+
 def set_aside_unfinished(out_dir, seed, swap):
     """Before (seed, swap) is played again: move the game file its log names, when that file holds no game line (the
     last failed attempt of an earlier run, or a game cut by Ctrl-C), and the log, under crashed/ (unfinished-, named
@@ -1120,6 +1160,11 @@ def cited_pre_guards(args):
     if has_cli_seat(args):
         _refuse("a seat on the Claude CLI (%s) is a development lane on the operator's own Claude subscription and is "
                 "never part of a benchmark score; run it with --exploratory." % cost_report.CLI_PREFIX)
+    # --- guard 0b: the provider's own endpoint ---
+    if os.environ.get("OPENROUTER_BASE_URL"):
+        _refuse("OPENROUTER_BASE_URL is set (%s, from the shell or secrets.env). A cited batch plays on the provider's "
+                "own endpoint; dropping the value would send games meant for that endpoint to openrouter.ai with your "
+                "key. Unset it for a cited run." % os.environ["OPENROUTER_BASE_URL"])
     # --- guard 1: mirror deck ---
     da, db = args.deck_a, args.deck_b
     if not da or not db:
@@ -1649,6 +1694,12 @@ def main(argv=None):
         if k in ("OPENROUTER_MAX_PRICE", "OPENROUTER_QUANTIZATIONS"):
             raise SystemExit("run_batch: --env %s is not allowed: a batch sends no price ceiling or precision filter "
                              "(a puzzle run has puzzle_solve.py --max-price-at-list / --quantizations)" % k)
+        if k in RUN_DEFINING_KEYS:
+            # The seats, models, decks, seed and provenance have flags (or the runner sets them): an --env value would
+            # name a model the budget and key checks never see (they read the flags).
+            raise SystemExit("run_batch: --env %s is not allowed in any mode: it defines the run; use its flag "
+                             "(--controller-a/-b, --smart-a/-b, --fast-a/-b, --deck/-a/-b, --name-a/-b, --seeds, "
+                             "--cap-minutes, --checkpoint) so the guards and the manifest see it." % k)
     if args.seeds is None and not args.panel:
         ap.error("--seeds is required (except with --panel)")
     if (args.panel or args.sanity_arms) and args.budget_usd is None:
@@ -1787,6 +1838,7 @@ def run_block(args):
         log("[warn] %d combo(s) have a game line recorded under a DIFFERENT condition "
             "and will be replayed (aggregate.py keeps the two apart): %s"
             % (len(foreign), ", ".join("%d/swap%d" % (s, w) for s, w in foreign)))
+    todo = hold_live(out_dir, todo)
     for seed, swap in todo:
         moved = set_aside_dead_bridge(out_dir, seed, swap, resume_expectation(args))
         if moved:

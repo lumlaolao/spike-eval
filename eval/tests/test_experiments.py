@@ -496,7 +496,8 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "CLAUDE_DEADLINE_MS": "development lane only (a claude-cli: seat, never a score); stamped claude_deadline_ms; "
                               "puzzle_solve.py sets and records it per puzzle; the puzzle runner strips the "
                               "shell's",
-        "OPENROUTER_BASE_URL": "the endpoint the operator's secrets.env names; stamped, and aggregate splits on it",
+        "OPENROUTER_BASE_URL": "the endpoint the operator's secrets.env names; stamped, and aggregate splits on it; "
+                               "a cited run_batch.py refuses to start while it is set, an exploratory one records it",
         "OPENROUTER_MODEL_CFG": "the per-model config override puzzle_solve.py sets; stamped model_cfg_sha",
         "OPENROUTER_PROVIDER_SORT": "routing; stamped openrouter_provider_sort (provenance, not a condition)",
         "OPENROUTER_TIMEOUT_MS": "stamped openrouter_timeout_ms, a condition field; the sanity arms, acceptance and "

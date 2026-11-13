@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
@@ -1431,6 +1432,14 @@ class TestBudgetRequired(unittest.TestCase):
                                                               budget_usd=5.0)), 5.0)
 
 
+    def test_a_seat_or_model_named_through_env_is_refused_in_every_mode(self):
+        # --env CONTROLLER_A=llm --env SMART_MODEL_A=<paid> would name a paid model the budget check never sees.
+        for kv in ("CONTROLLER_A=llm", "SMART_MODEL_A=" + LUNA, "FAST_MODEL_B=" + LUNA, "DECK_A=/tmp/x.txt"):
+            with self.subTest(kv=kv), self.assertRaises(SystemExit) as cm, mock.patch.object(run_batch, "load_secrets"):
+                run_batch.main(["--seeds", "7100", "--exploratory", "--controller-a", "random", "--controller-b",
+                                "ai", "--budget-usd", "1", "--env", kv, "--forge-home", "/nonexistent"])
+            self.assertIn("is not allowed in any mode", str(cm.exception.code))
+
 class TestSpendCache(unittest.TestCase):
     """The budget is checked before every game over every directory of a panel: an unchanged directory is not parsed
     again, and a file that grew is."""
@@ -1474,6 +1483,22 @@ class TestUnfinishedSetAside(unittest.TestCase):
             self.assertTrue((out / "crashed" / "unfinished-swap0-game-3-111.jsonl").is_file(), "still priced")
 
 
+    def test_a_combo_a_jvm_may_still_be_writing_is_neither_moved_nor_replayed(self):
+        # A launcher killed while its JVM plays on, or a second run_batch on the same --out: the file is live.
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "game-3-0.log").write_text("[EVAL] jsonl game-3-111.jsonl\n")
+            (out / "game-3-111.jsonl").write_text(json.dumps({"t": "context_call", "tier": "smart"}) + "\n")
+            with mock.patch.object(run_batch, "log") as logged:
+                self.assertEqual(run_batch.hold_live(out, [(3, False), (4, False)]), [(4, False)])
+            self.assertIn("may still be playing it", str(logged.call_args_list))
+            self.assertTrue((out / "game-3-111.jsonl").is_file())
+            old = time.time() - run_batch.LIVE_WRITE_S - 60
+            for p in out.iterdir():
+                os.utime(p, (old, old))
+            with mock.patch.object(run_batch, "log"):
+                self.assertEqual(run_batch.hold_live(out, [(3, False)]), [(3, False)], "quiet long enough")
+
 class TestAmbientConditions(unittest.TestCase):
     """Settings the JVM reads that change the seat or its calls and that no flag sets (the model config, loop guards,
     deadlines, endpoint, routing, prompt cache, run-mode switches): a cited batch scrubs them and refuses them in
@@ -1501,6 +1526,24 @@ class TestAmbientConditions(unittest.TestCase):
         clean = {k: v for k, v in os.environ.items() if k not in run_batch.AMBIENT_CONDITION_KEYS}
         with mock.patch.dict(os.environ, clean, clear=True):
             self.assertEqual(run_batch.condition_diff(old, run_batch.batch_condition(make_args(), cited=False)), [])
+
+    def test_a_cited_batch_refuses_an_endpoint_in_the_shell_instead_of_dropping_it(self):
+        # Dropped, a batch aimed at a loopback or other endpoint would reach openrouter.ai with key and consent.
+        url = {"OPENROUTER_BASE_URL": "http://127.0.0.1:9/v1"}
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, url):
+            deck = Path(d) / "mirror.txt"
+            deck.write_text("4 Lightning Bolt\n", encoding="utf-8")
+            args = make_args(deck_a=str(deck), deck_b=str(deck), exploratory=False, smart_a=LUNA, fast_a=LUNA)
+            with self.assertRaises(SystemExit) as cm, redirect_stderr(io.StringIO()) as err, \
+                    mock.patch.object(run_batch, "cited_seed_guard"):
+                run_batch.cited_pre_guards(args)
+            self.assertEqual(cm.exception.code, 2)
+            self.assertIn("OPENROUTER_BASE_URL is set", err.getvalue())
+            self.assertEqual(run_batch.build_env(make_args(exploratory=False), 1, False, d)["OPENROUTER_BASE_URL"],
+                             url["OPENROUTER_BASE_URL"], "not silently dropped")
+            arm = make_args(exploratory=False, loopback_env={"OPENROUTER_BASE_URL": "http://127.0.0.1:5/v1"})
+            self.assertEqual(run_batch.build_env(arm, 1, False, d)["OPENROUTER_BASE_URL"], "http://127.0.0.1:5/v1",
+                             "a sanity arm's loopback endpoint still wins")
 
     def test_cited_mode_refuses_them_in_env(self):
         with tempfile.TemporaryDirectory() as d:
