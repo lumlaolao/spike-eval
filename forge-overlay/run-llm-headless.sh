@@ -66,12 +66,12 @@ ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED \
 # steals focus from whatever you are typing in. Matters most for batches, where
 # every game is a fresh JVM (a 12-wide batch stole focus 12 times a minute).
 #
-# Do NOT "improve" this to -Djava.awt.headless=true. Forge's desktop code
-# initializes AWT/Swing during model load even on the headless path, so
-# headless=true dies with ExceptionInInitializerError / HeadlessException before
-# the first turn (verified 2026-07-26). This flag suppresses the app's UI
-# presence while leaving AWT working; the seed-42 floor canary is unchanged
-# (identity A wins in 108 turns) with it set.
+# -Djava.awt.headless is not set: the batch games, the acceptance canaries and the keyword gauntlet all run with
+# these same flags (eval/tests/test_launchers.py keeps the sets equal), so a scored game runs the JVM the free checks
+# ran. (A 2026-07-26 note said headless=true failed at model load; the gauntlet and acceptance's scoring stand-in ran
+# with it until 2026-11-13 and finished, so that is no longer the reason.) Java turns headless on by itself on a
+# machine with no display. This flag suppresses the app's UI presence while leaving AWT working; the seed-42 floor
+# canary is unchanged (identity A wins in 108 turns) with it set.
 # ---- ALWAYS-ON MATCH MODEL (2026-10-13) -------------------------------------------------------
 # Real play runs with the viewer-aware observation and the state blocks that close the known
 # play-quality gaps: KNOWN IN HIDDEN ZONES (unsummon -> Thoughtseize), SPENT THIS TURN (legality
