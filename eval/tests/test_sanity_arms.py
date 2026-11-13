@@ -9,7 +9,9 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from unittest import mock
 import urllib.request
 from pathlib import Path
 import os
@@ -72,6 +74,19 @@ class TestArms(unittest.TestCase):
                 self.assertEqual(reply["choices"][0]["message"]["content"], "")
             finally:
                 sanity_arms.stop_fake_server(proc)
+
+
+class TestFakeServerStart(unittest.TestCase):
+    def test_a_server_that_never_reports_its_port_fails_at_the_deadline_not_never(self):
+        # readline blocked: a server that started but printed nothing hung the launch past the deadline.
+        with tempfile.TemporaryDirectory() as tmp:
+            mute = Path(tmp) / "mute.py"
+            mute.write_text("import time\ntime.sleep(30)\n")
+            t0 = time.time()
+            with mock.patch.object(sanity_arms, "FAKE_SERVER", mute), self.assertRaises(RuntimeError) as cm:
+                sanity_arms.start_fake_server("empty", Path(tmp) / "req.jsonl", timeout_s=1.0)
+            self.assertLess(time.time() - t0, 10)
+            self.assertIn("did not report a port", str(cm.exception))
 
 
 class TestCheck(unittest.TestCase):

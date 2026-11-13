@@ -37,8 +37,10 @@ import json
 import os
 import random
 import re
+import signal
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -418,16 +420,42 @@ def _launch_and_read(env, jdir, seed, swap, args):
         except OSError:
             pass
     backstop = args.cap_minutes * 60 * 2 + 300
-    try:
-        with open(log_path, "w", encoding="utf-8") as lf:
-            subprocess.run(["bash", "run-llm-spike.sh"], cwd=str(args.forge_home),
-                           env=env, stdout=lf, stderr=subprocess.STDOUT,
-                           timeout=backstop)
-    except subprocess.TimeoutExpired:
-        log("[match] backstop timeout — killing any stray JVM")
-        subprocess.run(["pkill", "-INT", "-f", "LlmSpikeGui"], check=False)
-        return "timeout"
+    with open(log_path, "w", encoding="utf-8") as lf:
+        # Its own process group, so a backstop stops this match's launcher and JVM, never another game on the machine
+        # (a pkill by class name also hit a person's play-vs-llm.sh game or another tournament).
+        proc = subprocess.Popen(["bash", "run-llm-spike.sh"], cwd=str(args.forge_home), env=env, stdout=lf,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            proc.wait(timeout=backstop)
+        except subprocess.TimeoutExpired:
+            log("[match] backstop timeout — stopping this match's JVM")
+            stop_group(proc)
+            return "timeout"
     return _read_winner(jdir, seed, swap)
+
+
+def stop_group(proc, grace_s=30):
+    """SIGINT to the process group of `proc` (the launcher and the JVM it started); whatever of the group is still
+    alive after grace_s gets SIGKILL. Returns when the launcher has exited."""
+    try:
+        os.killpg(proc.pid, signal.SIGINT)
+    except ProcessLookupError:
+        proc.wait()
+        return
+    deadline = time.time() + grace_s
+    while time.time() < deadline:
+        proc.poll()                              # reap the launcher, so a finished group reads as gone
+        try:
+            os.killpg(proc.pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.2)
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    proc.wait()
 
 
 def _read_winner(jdir, seed, swap):

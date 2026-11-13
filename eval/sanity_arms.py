@@ -33,9 +33,11 @@ Usage:
 
 import argparse
 import json
+import queue
 import re
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -77,16 +79,35 @@ def start_fake_server(policy, log_path, timeout_s=10.0):
         proc = subprocess.Popen([sys.executable, str(FAKE_SERVER), "--port", "0", "--policy", policy,
                                  "--log", str(log_path)],
                                 stdout=subprocess.PIPE, stderr=err, text=True)
+    # readline blocks: a server that starts but never prints its port would hang the launch past any deadline. A
+    # reader thread hands the lines over, up to the LISTENING line or the end of the pipe, and the wait is bounded.
+    lines = queue.Queue()
+
+    def read():
+        for line in iter(proc.stdout.readline, ""):
+            lines.put(line)
+            if line.startswith("LISTENING"):
+                return
+        lines.put(None)
+
+    threading.Thread(target=read, daemon=True).start()
     deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        line = proc.stdout.readline()
-        m = re.match(r"LISTENING (\d+)", line or "")
+    while True:
+        left = deadline - time.time()
+        if left <= 0:
+            break
+        try:
+            line = lines.get(timeout=left)
+        except queue.Empty:
+            break
+        if line is None:
+            break
+        m = re.match(r"LISTENING (\d+)", line)
         if m:
             return proc, int(m.group(1))
-        if proc.poll() is not None:
-            break
     proc.kill()
-    raise RuntimeError("fake model server (policy %s) did not report a port" % policy)
+    proc.wait()
+    raise RuntimeError("fake model server (policy %s) did not report a port within %g s" % (policy, timeout_s))
 
 
 def stop_fake_server(proc):

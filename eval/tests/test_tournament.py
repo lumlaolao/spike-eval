@@ -10,6 +10,7 @@ Run: python3 eval/tests/test_tournament.py   (must exit 0)
 
 import sys
 import tempfile
+import time
 import types
 import urllib.request
 from unittest import mock
@@ -42,6 +43,30 @@ def test_a_tournament_game_never_inherits_a_condition_from_the_shell():
     assert [n for n in names if n in env] == [], [n for n in names if n in env]
     assert env["CONTROLLER_A"] == "llm" and env["GAME_SEED"] == "7"
     ok("a tournament game drops the shell's conditions")
+
+
+def test_a_backstop_stops_its_own_match_and_nothing_else():
+    # pkill -f LlmSpikeGui signalled every game on the machine. stop_group signals the launcher's own group only, and
+    # kills what ignores SIGINT (a background job of a non-interactive bash does) after the grace.
+    import subprocess
+    outsider = subprocess.Popen(["sleep", "60"])
+    proc = subprocess.Popen(["bash", "-c", "sleep 60 & sleep 60"], start_new_session=True)
+    try:
+        time.sleep(0.3)
+        T.stop_group(proc, grace_s=1)
+        gone, deadline = False, time.time() + 10      # a killed orphan is reaped by init, not at once
+        while not gone and time.time() < deadline:
+            try:
+                os.killpg(proc.pid, 0)
+                time.sleep(0.1)
+            except ProcessLookupError:
+                gone = True
+        assert gone, "the match's process group is still alive"
+        assert outsider.poll() is None, "a process outside the match was signalled"
+    finally:
+        outsider.kill()
+        outsider.wait()
+    ok("a backstop stops its own match's process group and nothing else")
 
 
 def test_snake_single_round():
@@ -237,6 +262,7 @@ def main():
     test_run_bracket_one_at_a_time()
     test_dry_run_makes_no_network_or_game_calls()
     test_a_tournament_game_never_inherits_a_condition_from_the_shell()
+    test_a_backstop_stops_its_own_match_and_nothing_else()
     print("\nAll checks passed.")
     return 0
 
