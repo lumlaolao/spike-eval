@@ -99,7 +99,9 @@ class GauntletBuildTest(unittest.TestCase):
         open(os.path.join(build, "overlay-sha.txt"), "w").write(recorded + "\n")
         forge = os.path.join(tmp, "forge")
         os.makedirs(os.path.join(forge, "forge-gui-desktop"), exist_ok=True)
-        full = dict(os.environ, HOME=tmp, FORGE_HOME=forge, **env)
+        full = {k: v for k, v in os.environ.items() if not k.startswith("GAUNTLET_")
+                and k not in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY")}
+        full.update(HOME=tmp, FORGE_HOME=forge, **env)
         return subprocess.run(["bash", os.path.join(repo, "eval", "keyword_gauntlet.sh"), os.path.join(tmp, "out")],
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=full,
                               timeout=60)
@@ -120,6 +122,23 @@ class GauntletBuildTest(unittest.TestCase):
             self.assertEqual(p.returncode, 2, p.stdout)
             self.assertIn("no passing acceptance build at %s" % os.path.join(tmp, "nowhere"), p.stdout)
 
+    def test_an_unknown_overlay_hash_never_matches_an_unknown_one(self):
+        # The copied repository has no overlay, so this checkout's hash cannot be made: a build recorded "unknown"
+        # must not pass for it.
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.gauntlet(tmp, "20261101T000000Z", "unknown")
+            self.assertEqual(p.returncode, 2, p.stdout)
+            self.assertIn("this checkout's is unreadable", p.stdout)
+
+    def test_shadow_canary_builds_with_install(self):
+        # A game loads an engine patch from its module jar in ~/.m2: only `mvn install` writes it, and the launchers
+        # refuse a game whose jar is older than the patched source.
+        text = (evalpath.EVAL / "shadow_canary.sh").read_text()
+        build = text[text.index("build() {"):text.index("\n}\n", text.index("build() {"))]
+        self.assertRegex(build, r"mvn [^\n]* install >")
+        self.assertNotRegex(build, r"mvn [^\n]* compile ")
+
+
 def jvm_flags(text):
     """The --add-opens and -D flags a text passes, comments left out."""
     code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
@@ -128,8 +147,7 @@ def jvm_flags(text):
 
 class JvmFlagsTest(unittest.TestCase):
     """A scored game runs through the launchers; the free checks (the acceptance canaries, the keyword gauntlet) must
-    run the same JVM, or a green check is about another configuration (the gauntlet ran with headless=true and six
-    --add-opens)."""
+    run the same JVM, or a green check is about another configuration."""
 
     def test_the_launchers_the_canaries_and_the_gauntlet_pass_one_flag_set(self):
         read = lambda f: (evalpath.REPO / f).read_text(encoding="utf-8")
@@ -138,8 +156,7 @@ class JvmFlagsTest(unittest.TestCase):
         addopens = re.search(r'^ADDOPENS="(.*?)"$', acc, re.M | re.S).group(1)
         gauntlet = read("eval/keyword_gauntlet.sh")
         game = gauntlet[gauntlet.index("game() {"):gauntlet.index("\n}\n", gauntlet.index("game() {"))]
-        if "$JVM_FLAGS" in game:
-            game += gauntlet[gauntlet.index('JVM_FLAGS="'):gauntlet.index('"\n', gauntlet.index('JVM_FLAGS="') + 11)]
+        game += gauntlet[gauntlet.index('JVM_FLAGS="'):gauntlet.index('"\n', gauntlet.index('JVM_FLAGS="') + 11)]
         launcher = lambda f: (lambda t: t[:t.index("CP_FILE=")] + t[t.index("ADDOPENS="):])(read(f))  # not the mvn hint
         # The GUI game (run-llm-spike.sh) is a window a person plays in: it alone keeps its Dock icon.
         spike = [f for f in jvm_flags(launcher("forge-overlay/run-llm-spike.sh"))] + ["-Dapple.awt.UIElement=true"]
@@ -152,6 +169,12 @@ class JvmFlagsTest(unittest.TestCase):
         self.assertNotIn("-Djava.awt.headless=true", ref)
         for name, flags in sets.items():
             self.assertEqual(flags, ref, name)
+        # Outside the pinned set, still with headless=true: acceptance's scoring stand-in (the run-llm-headless.sh the
+        # `scoring` stage writes for its zero-model panel games, which check the scoring, not the JVM) and
+        # eval/demo/demo_compare.py (a demo replay, never a score).
+        self.assertIn("-Djava.awt.headless=true", read("eval/harness_acceptance.sh")[acc.index("\nplay() {") + 1:])
+        self.assertIn("-Djava.awt.headless=true", read("eval/demo/demo_compare.py"))
+
 
 if __name__ == "__main__":
     unittest.main()

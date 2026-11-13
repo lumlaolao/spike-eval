@@ -41,9 +41,9 @@ CP_FILE="$RUN/classpath.txt"
 # Each game runs from the checkout: without it every game exits 1 and the run says so only at the end.
 [ -d "$FORGE/forge-gui-desktop" ] || { echo "no Forge checkout at $FORGE: set FORGE_HOME"; exit 2; }
 BUILT="$(head -1 "$RUN/overlay-sha.txt")"
-HERE_SHA="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b
-print(b.overlay_sha_of_checkout(forge=sys.argv[2]))' "$REPO/eval" "$FORGE" 2>/dev/null)"
-[ -n "$HERE_SHA" ] && [ "$BUILT" = "$HERE_SHA" ] || {
+# The command prints nothing and exits 1 for an "unknown" hash, so unknown never equals unknown.
+HERE_SHA="$(python3 "$REPO/eval/benchmark_version.py" --overlay-sha --forge "$FORGE" 2>/dev/null)"
+[ -n "$HERE_SHA" ] && [ "$BUILT" != unknown ] && [ "$BUILT" = "$HERE_SHA" ] || {
   echo "build $RUN was compiled from overlay $BUILT, this checkout's is ${HERE_SHA:-unreadable}: compile first: $BUILD_HOW"
   exit 2; }
 JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
