@@ -19,8 +19,13 @@ PIN_FILE="$HERE/FORGE_COMMIT"
 CUR="$(git -C "$FORGE_HOME" rev-parse HEAD 2>/dev/null || echo unknown)"
 if [ -f "$PIN_FILE" ]; then
   PINNED="$(cat "$PIN_FILE")"
-  if [ "$CUR" != "$PINNED" ]; then
+  if [ "$CUR" = unknown ]; then
+    echo "git could not read the commit of '$FORGE_HOME' (not a git checkout, or git failed), so it cannot be" >&2
+    echo "checked against the pin $PINNED" >&2
+  elif [ "$CUR" != "$PINNED" ]; then
     echo "Forge checkout is at $CUR but the overlay was validated against $PINNED" >&2
+  fi
+  if [ "$CUR" != "$PINNED" ]; then
     if [ "${ALLOW_PIN_MISMATCH:-}" != 1 ]; then
       echo "ERROR: check out the pin first (git -C $FORGE_HOME checkout $PINNED), or update FORGE_COMMIT deliberately" >&2
       echo "       after re-validating; ALLOW_PIN_MISMATCH=1 installs anyway (a mixed engine, never a score)." >&2
@@ -36,17 +41,35 @@ fi
 # The seat's package (forge/spike) is ours alone: a file the overlay no longer has (renamed or deleted) would still be
 # compiled into the checkout build and loaded by a game, so it is removed before the copy.
 for kind in main test; do
+  if [ ! -d "$HERE/forge-overlay/forge-gui-desktop/src/$kind/java/forge/spike" ]; then
+    echo "ERROR: $HERE/forge-overlay has no forge-gui-desktop/src/$kind/java/forge/spike: not removing anything" >&2
+    exit 1
+  fi
+done
+for kind in main test; do
   for f in "$FORGE_HOME"/forge-gui-desktop/src/$kind/java/forge/spike/*.java; do
     [ -f "$f" ] || continue
     if [ ! -f "$HERE/forge-overlay/forge-gui-desktop/src/$kind/java/forge/spike/$(basename "$f")" ]; then
       rm -f "$f"
-      echo "Removed $f: the overlay no longer has it"
+      echo "Removed $f: the overlay no longer has it" >&2
     fi
   done
 done
 
+# A file is written only when its bytes differ, so its time moves only with its content: the launchers refuse a game
+# whose classes are older than their sources (harness-classes-check.sh), and an install that changed nothing must not
+# stop the games of a batch in flight.
+copy_changed() { # $1 source file, $2 destination file
+  if ! cmp -s "$1" "$2"; then
+    mkdir -p "$(dirname "$2")"
+    cp "$1" "$2"
+    echo "Installed $2"
+  fi
+}
 echo "Overlaying spike files into $FORGE_HOME ..."
-cp -Rv "$HERE/forge-overlay/." "$FORGE_HOME/"
+(cd "$HERE/forge-overlay" && find . -type f) | while IFS= read -r f; do
+  copy_changed "$HERE/forge-overlay/${f#./}" "$FORGE_HOME/${f#./}"
+done
 chmod +x "$FORGE_HOME/run-llm-spike.sh" "$FORGE_HOME/run-llm-headless.sh"
 
 # The Comprehensive Rules text the RULES tool reads. The play scripts resolve it relative to their
@@ -54,7 +77,7 @@ chmod +x "$FORGE_HOME/run-llm-spike.sh" "$FORGE_HOME/run-llm-headless.sh"
 # RULES_TOOL=1 logs "rules text did not load" and silently leaves the seat without the tool.
 if [ -f "$HERE/data/rules/MagicCompRules.txt" ]; then
   mkdir -p "$FORGE_HOME/data/rules"
-  cp -v "$HERE/data/rules/MagicCompRules.txt" "$FORGE_HOME/data/rules/MagicCompRules.txt"
+  copy_changed "$HERE/data/rules/MagicCompRules.txt" "$FORGE_HOME/data/rules/MagicCompRules.txt"
 fi
 
 # Our changes to Forge's own files are diffs (engine-patches/, docs/harness/ENGINE-PATCHES.md), applied to each

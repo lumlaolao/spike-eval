@@ -21,8 +21,9 @@ not apply, or whose original is not at the pin, stops it with exit 1 and the fil
   `forge-gui-desktop/target/classes` before the Maven classpath), which `mvn install` writes: the launcher refuses
   a game when a `HARNESS PATCH` source in the checkout is newer than that jar, or a seat source newer than its
   class (`forge-overlay/harness-classes-check.sh`), so a game never plays an older build under the installed
-  sources' `overlay_sha`. A jar another checkout's `mvn install` replaced is newer and passes: one checkout per
-  user's `~/.m2`;
+  sources' `overlay_sha`. The `~/.m2` jar must also be this checkout's own build: the size of
+  `<module>/target/<module>-*.jar` and not older than it, so a jar another checkout's `mvn install` wrote is refused
+  (one of the same size is not caught); a checkout with no jar of its own is refused with the build command;
 - the isolated acceptance build (`eval/harness_acceptance.sh`, stage `compile`) writes them to
   `$OUT/patched-engine/` and compiles them with the overlay, its classes before the checkout's, so the patched
   class wins there too; a patch that does not apply fails the stage;

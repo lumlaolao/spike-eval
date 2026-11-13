@@ -357,7 +357,63 @@ class SetupTest(unittest.TestCase):
         p = self.install(PIN)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertFalse((spike / "Renamed.java").exists(), "a file the overlay no longer has is removed")
+        self.assertIn("Removed %s" % (spike / "Renamed.java"), p.stderr, "a removal is said where it is seen")
         self.assertNotEqual((spike / kept[0]).read_text(), "old", "the overlay's own file is installed")
+
+    def test_an_install_over_an_identical_tree_writes_nothing_and_the_build_still_passes_the_launcher_check(self):
+        # Every source rewritten made every file "newer" than its classes, and the launchers refused every game of a
+        # batch in flight until a full build, after any install (a twin manifest alone included).
+        self.assertEqual(self.install(PIN).returncode, 0)
+        files = [f for f in self.forge.rglob("*") if f.is_file() and ".git" not in f.parts]
+        self.assertGreater(len(files), 20)
+        sources, built = time.time() - 7200, time.time() - 3600
+        for f in files:
+            os.utime(f, (sources, sources))
+        cp = []
+        for src in self.forge.rglob("*.java"):          # a build after the install: every class newer than its source
+            rel = src.relative_to(self.forge)
+            mod, inner = rel.parts[0], Path(*rel.parts[4:]) if rel.parts[1:4] == ("src", "main", "java") else None
+            if inner is None:
+                continue
+            cls = self.forge / mod / "target/classes" / inner.with_suffix(".class")
+            cls.parent.mkdir(parents=True, exist_ok=True)
+            cls.write_text("x")
+            os.utime(cls, (built, built))
+            cp.append(str(self.forge / mod / "target/classes"))
+        check = ['bash', '-c', '. "$1"; harness_classes_check "$2" "$3" :', "-",
+                 str(self.forge / "harness-classes-check.sh"), str(self.forge), ":".join(sorted(set(cp)))]
+        env = {"PATH": "%s:%s" % (self.stubs, self.sysbin), "HOME": self._tmp.name}
+        self.assertEqual(subprocess.run(check, capture_output=True, text=True, env=env).returncode, 0)
+        p = self.install(PIN)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual([f for f in files if f.stat().st_mtime != sources], [], "an identical file was rewritten")
+        r = subprocess.run(check, capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        changed = self.repo / "forge-overlay" / "run-llm-headless.sh"
+        changed.write_text(changed.read_text() + "# changed\n")
+        self.assertEqual(self.install(PIN).returncode, 0)
+        self.assertTrue((self.forge / "run-llm-headless.sh").read_text().endswith("# changed\n"), "a changed file is copied")
+        self.assertGreater((self.forge / "run-llm-headless.sh").stat().st_mtime, sources)
+
+    def test_install_says_so_when_git_cannot_read_the_checkout_s_commit(self):
+        self.install(PIN)
+        (self.forge / ".git/HEAD_SHA").unlink()
+        p = subprocess.run(["bash", str(self.repo / "install.sh")], capture_output=True, text=True, timeout=120,
+                           env={"PATH": "%s:%s" % (self.stubs, self.sysbin), "HOME": self._tmp.name,
+                                "STUB_LOG": str(self.log), "FORGE_HOME": str(self.forge)})
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("git could not read the commit of", p.stderr)
+        self.assertNotIn("Forge checkout is at unknown", p.stderr)
+
+    def test_install_removes_nothing_when_the_overlay_has_no_seat_folder(self):
+        spike = self.forge / "forge-gui-desktop/src/main/java/forge/spike"
+        spike.mkdir(parents=True)
+        (spike / "Seat.java").write_text("class Seat {}")
+        shutil.rmtree(self.repo / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike")
+        p = self.install(PIN)
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("not removing anything", p.stderr)
+        self.assertTrue((spike / "Seat.java").exists())
 
     def test_install_on_another_engine_commit_writes_nothing_unless_allowed(self):
         p = self.install("f" * 40)
@@ -382,7 +438,9 @@ class SetupTest(unittest.TestCase):
             seat_cls = forge / "forge-gui-desktop/target/classes/forge/spike/Seat.class"
             patch_src = forge / "forge-ai/src/main/java/forge/ai/Mana.java"
             jar = forge / "m2/forge/forge-ai/2.0/forge-ai-2.0.jar"
-            for f, text in ((seat_src, "class Seat {}"), (seat_cls, "x"), (patch_src, "// HARNESS PATCH\n"), (jar, "j")):
+            own = forge / "forge-ai/target/forge-ai-2.0.jar"           # the checkout's build, which mvn install copied
+            for f, text in ((seat_src, "class Seat {}"), (seat_cls, "x"), (patch_src, "// HARNESS PATCH\n"), (jar, "j"),
+                            (own, "j")):
                 f.parent.mkdir(parents=True, exist_ok=True)
                 f.write_text(text)
             for src in (REPO / "forge-overlay" / launcher, REPO / "forge-overlay" / "harness-classes-check.sh"):
@@ -398,7 +456,7 @@ class SetupTest(unittest.TestCase):
             for built, stale in (((seat_cls, jar), []), ((jar,), ["forge-gui-desktop/src/main/java/forge/spike/Seat.java"]),
                                  ((seat_cls,), ["forge-ai/src/main/java/forge/ai/Mana.java"])):
                 with self.subTest(launcher=launcher, stale=stale):
-                    for f in (seat_src, patch_src, seat_cls, jar):
+                    for f in (seat_src, patch_src, seat_cls, jar, own):
                         os.utime(f, (old, old))
                     for f in (seat_src, patch_src):
                         os.utime(f, (old + 60, old + 60))
@@ -413,6 +471,39 @@ class SetupTest(unittest.TestCase):
                         for rel in stale:
                             self.assertIn(rel, p.stderr)
                         self.assertIn("mvn -q -pl forge-gui-desktop -am install", p.stderr)
+            # The ~/.m2 jar is newer than the patched source but not this checkout's own build: another size, older
+            # than the checkout's jar, or no jar in the checkout at all.
+            for case in ("size", "older", "none"):
+                with self.subTest(launcher=launcher, jar=case):
+                    own.write_text("jj" if case == "size" else "j")
+                    for f in (seat_src, patch_src):
+                        os.utime(f, (old, old))
+                    for f in (seat_cls, jar, own):
+                        os.utime(f, (old + 60, old + 60))
+                    if case == "older":
+                        os.utime(own, (new, new))
+                    if case == "none":
+                        own.unlink()
+                    p = launch()
+                    self.assertEqual(p.returncode, 4, p.stderr)
+                    self.assertIn("the ~/.m2 jar of forge-ai is not this checkout's own build", p.stderr)
+                    self.assertFalse(self.log.exists(), "no JVM started")
+            own.write_text("j")
+            # A patched module no classpath entry names is said to be unchecked, not judged.
+            (forge / "cp.txt").write_text("/m2/other.jar")
+            p = launch()
+            self.assertIn("[launcher] not checked: forge-ai", p.stderr)
+            (forge / "cp.txt").write_text("%s:/m2/other.jar" % jar)
+
+    def test_the_launcher_check_knows_every_patched_module_and_every_seat_source_names_its_type(self):
+        text = (REPO / "forge-overlay" / "harness-classes-check.sh").read_text()
+        modules = re.search(r'^HARNESS_PATCH_MODULES="([^"]+)"', text, re.M).group(1).split()
+        self.assertEqual([d.name for d in (REPO / "engine-patches").iterdir() if d.is_dir() and d.name not in modules], [])
+        spike = REPO / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+        # The check pairs Name.java with Name.class: a source whose type is named otherwise would never be judged.
+        bad = [f.name for f in spike.glob("*.java") if f.name != "package-info.java"
+               and not re.search(r"\b(?:class|interface|enum|record)\s+%s\b" % re.escape(f.stem), f.read_text())]
+        self.assertEqual(bad, [])
 
     def test_a_clone_keeps_every_file_s_bytes_on_every_system(self):
         self.assertIn("* -text", (REPO / ".gitattributes").read_text().splitlines())   # why: see .gitattributes
