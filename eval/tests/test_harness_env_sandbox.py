@@ -95,11 +95,12 @@ class SandboxTest(unittest.TestCase):
     def test_the_public_repository_name_in_a_released_document_is_caught(self):
         # The old name is forbidden because it points an agent with tools at the reference seat; the public name and
         # its owner point at the same repository.
-        for text in ("See github.com/lumlaolao/spike-eval.\n", "Clone spike-eval first.\n"):
+        for text, token in (("Clone spike-eval first.\n", "spike-eval"),
+                            ("Ask the account lumlaolao on GitHub for the seat.\n", "lumlaolao")):
             write(self.repo, "eval/harness_env/TASK.md", text)
             shutil.rmtree(self.box, ignore_errors=True)
             found = sb.leak_problems(self.spec, self.repo, self.box, self.build())
-            self.assertTrue(any("TASK.md" in p and "spike-eval" in p for p in found), (text, found))
+            self.assertTrue(any("TASK.md" in p and token in p for p in found), (text, found))
 
     def test_a_file_the_manifest_does_not_list_is_caught(self):
         manifest = self.build()

@@ -119,9 +119,9 @@ could not have forged it. What is closed and what is not, exactly:
 ## Reward hacks closed (four reviews of PR 422)
 
 Each closed hole has a test that attempts it, in `eval/tests/test_harness_env_task_grade.py` (`RewardHackTest`,
-`PrebuiltClassTest`, `JavaGradeTest`, `ResultChannelTest`, `ValidationStampTest`). There are at least 69 grader tests and 12 task tests,
-counted by the unittest loader (`NoteTest` fails if either file falls below its figure, so no hack test is deleted
-unnoticed; an added test needs no edit here). "Red first" means the test fails on the grader before the fix.
+`PrebuiltClassTest`, `JavaGradeTest`, `ResultChannelTest`, `ValidationStampTest`). `NoteTest` fails if a test the
+table names (a name ending in `...` is a prefix) or a class named here is not in that file. "Red first" means the test
+fails on the grader before the fix.
 
 | Hole | Closed by | Test |
 |---|---|---|
