@@ -764,6 +764,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     budget (its copy of the table is pinned to the Java map by its test); its budgets are its own.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
+    Each price carries the date it was checked; `cost_report.py` warns when a priced model's list or `max` date is
+    older than 30 days (`cost_report.stale_prices`), since a provider's rise makes the budget under-count in silence.
     `puzzle_solve.py --max-price-at-list` rules that out: it sets `OPENROUTER_MAX_PRICE` to the list price, and the
     bridge adds it to its one `provider` object as `max_price`, its fields strings as OpenRouter's schema types them
     (`OpenRouterBridge.maxPriceField`). It is a condition, not mere routing: at list an open-weight model may find only
