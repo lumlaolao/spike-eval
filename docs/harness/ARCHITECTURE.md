@@ -1117,7 +1117,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     2026-10-24); `openrouter:` games wait on the network and may run in parallel (review E3);
   - *Why pinned:* a baseline arm that silently inherited a setting would be pooled with a different
     measurement.
-- **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
+- **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition. A file with no game line
+  is a started game (0 in the strict score) only for a (seed, seat order) that holds no game line, and only in a
+  directory of one condition; in a mixed one it is counted and charged to none (`docs/eval/SCORING.md`, "Started
+  games"). **`build_report.py`** gives a suite PASS only when the holdout audit ran and every arm played its seeds'
+  games and passed every gate; an audit that did not run or a short arm is INCOMPLETE, a failed gate FAIL.
   **`defect_analyzer.py`** is the run oracle: its four hard invariants (`docs/STANDARDS.md` section 4) hold, or the
   run fails. Its crash check gives every log of the
   directory exactly one owner: the game file its `[EVAL] jsonl` line names when that file is in the directory, else
@@ -1212,8 +1216,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
     --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
     settings under one name would be two benchmarks.
-    The panel's verdict is `VALID` only when every cell holds the same seeds in both seat orders and the random
-    sanity arm is in every cell; otherwise `INCOMPLETE` or `NO FLOOR`, never a bare VALID. *Why:* the pool weighs
+    The panel's verdict is `VALID` only when it is complete, seed-paired and has its random baseline
+    (`docs/eval/SCORING.md` has the rule); otherwise `INCOMPLETE` or `NO RANDOM BASELINE`. *Why:* the pool weighs
     cells equally, so cells a budget stopped at different lengths are not the seed-paired panel, and a score
     without its floor is not a score.
   - **STR-HELDOUT:** the same on a held-out seed band; to become the private mined puzzle split

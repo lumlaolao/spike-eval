@@ -580,9 +580,9 @@ def test_strict_score_counts_every_started_game():
 
 
 def test_a_file_with_no_game_line_scores_zero_in_the_strict_score():
-    """A crash, kill or backstop timeout writes no game line. It named no controller, so it fell into an arm
-    called "unknown" that is never printed and the strict score dropped it: 4 decisive games (3 won) and 3 such
-    files read 3/4, not 3/7 (docs/eval/SCORING.md: a crashed game counts 0 in the strict score)."""
+    """A crash, kill or backstop timeout writes no game line and names no controller. Where the directory holds one
+    condition and the seed holds no game line, the file is a started game that scores 0 in the strict score of both
+    arms (docs/eval/SCORING.md, "Started games"): 4 decisive games (3 won) and 3 such files read 3/7."""
     with tempfile.TemporaryDirectory() as d:
         for i, w in enumerate("AAAB"):
             write_jsonl(d, "game-%d-1000.jsonl" % i, [decision_line("smart", 900), game_line(i, False, w, ctrl_b="ai")])
@@ -595,6 +595,55 @@ def test_a_file_with_no_game_line_scores_zero_in_the_strict_score():
         check("no game line: started 7, crashed 3", (a["started"], a["crashed"]) == (7, 3), str(a))
         e = next(iter(s["experiments"]["by_id"].values()))["arms"][aggregate.arm_label(game_line(0, False, "A"), "a")]
         check("no game line: the lone experiment agrees", approx(e["strict_score"], 3 / 7), str(e))
+        b = s["arms"]["ai"]
+        check("no game line: identity B's arm is charged too", (b["started"], b["crashed"]) == (7, 3), str(b))
+
+
+def test_a_crash_beside_its_replay_is_not_a_second_game():
+    """Seeds 0-3 AAAB; seed 4 crashed (its log names the file), was left in place and replayed and won: 5 started
+    games, strict 4/5. A file whose order no log names is not charged when its seed holds a game line either."""
+    with tempfile.TemporaryDirectory() as d:
+        for i, w in enumerate("AAAB"):
+            write_jsonl(d, "game-%d-1000.jsonl" % i, [decision_line("smart", 900), game_line(i, False, w, ctrl_b="ai")])
+        write_jsonl(d, "game-4-1000.jsonl", [decision_line("smart", 900)])
+        Path(d, "game-4-0.log").write_text("[EVAL] jsonl game-4-1000.jsonl\n")
+        write_jsonl(d, "game-4-2000.jsonl", [decision_line("smart", 900), game_line(4, False, "A", ctrl_b="ai")])
+        write_jsonl(d, "game-3-999.jsonl", [decision_line("smart", 900)])      # no log names it; seed 3 has a line
+        a = aggregate.build_summary(Path(d), resamples=50, bootstrap_seed=1)["arms"][
+            aggregate.arm_label(game_line(0, False, "A"), "a")]
+        check("crash + replay: strict 4/5", approx(a["strict_score"], 4 / 5), str(a))
+        check("crash + replay: nothing charged", a["crashed"] == 0, str(a))
+
+
+def test_a_crash_of_a_mixed_directory_is_charged_to_no_experiment():
+    """--experiment selects one condition of a mixed directory; the crash's condition is still unknown."""
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl", [decision_line("smart", 900), game_line(1, False, "A", ctrl_b="ai")])
+        write_jsonl(d, "game-2-1000.jsonl", [decision_line("smart", 900),
+                                             game_line(2, False, "A", ctrl_b="ai", smart_a="other")])
+        write_jsonl(d, "game-3-1000.jsonl", [decision_line("smart", 900)])
+        s = aggregate.build_summary(Path(d), resamples=50, bootstrap_seed=1)
+        ids = s["experiments"]["order"]
+        check("mixed: two conditions", len(ids) == 2, str(ids))
+        check("mixed: the crash is counted as uncharged", s["games"]["uncharged_no_game_line"] == 1, str(s["games"]))
+        check("mixed: and named in a warning", any("charged to no experiment" in w for w in s["warnings"]),
+              str(s["warnings"]))
+        for eid in ids:
+            sel = aggregate.build_summary(Path(d), resamples=50, bootstrap_seed=1, experiment=eid)
+            charged = sum(a["crashed"] for a in sel["arms"].values())
+            check("mixed: --experiment %s charges no crash" % eid[:6], charged == 0, str(sel["arms"]))
+
+
+def test_a_crash_counts_once_per_identity_when_both_share_a_label():
+    """A mirror of one model: a played game adds 2 to the shared arm's started, and so does a charged crash."""
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl", [decision_line("smart", 900),
+                                             game_line(1, False, "A", ctrl_b="llm", smart_b="haiku")])
+        write_jsonl(d, "game-2-1000.jsonl", [decision_line("smart", 900)])
+        arms = aggregate.build_summary(Path(d), resamples=50, bootstrap_seed=1)["arms"]
+        check("shared label: one arm", len(arms) == 1, str(arms))
+        a = next(iter(arms.values()))
+        check("shared label: started 2 + 2", (a["started"], a["crashed"]) == (4, 2), str(a))
 
 
 def test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid():
@@ -853,6 +902,9 @@ def main():
     test_harness_decided_gate()
     test_strict_score_counts_every_started_game()
     test_a_file_with_no_game_line_scores_zero_in_the_strict_score()
+    test_a_crash_beside_its_replay_is_not_a_second_game()
+    test_a_crash_of_a_mixed_directory_is_charged_to_no_experiment()
+    test_a_crash_counts_once_per_identity_when_both_share_a_label()
     test_a_game_that_lost_decisions_to_a_dead_bridge_is_invalid()
     test_a_game_whose_log_failed_to_write_is_invalid()
     test_a_dead_bridge_on_either_identity_or_either_swap_twin_is_left_out()

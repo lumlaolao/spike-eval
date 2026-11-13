@@ -97,14 +97,26 @@ A report is `valid` only when every cell (and control) exists and holds one expe
 is the Forge AI, every game line carries the cell's pinned `deck_sha`, only published seeds were
 played, one pilot with one set of settings played every cell, `aggregate.py`'s fallback and
 harness-decided gates pass in every cell, no sanity arm beats the floor, and every game belongs to
-one benchmark version, and only when it is complete and has its floor. The verdict is one `status`
-(additive in `--json`): `NOT VALID` for any of the faults above; `INCOMPLETE` when a cell or control is missing (a
-cell the budget stopped before its first game, a manifest and no game file, counts as missing), a played seed has one
-seat order only (`pairs`), or the played cells do not hold the same seeds, so the equal-weight pool is not
-seed-paired; `NO FLOOR` when the random sanity arm is not in every cell, so STR_norm has no baseline (a score without
-its floor is not a score); else `VALID`. Every played cell holding the same prefix of the published seeds in both
-orders is `VALID`, and the verdict line says how many of the published seeds that is (`games_played`,
-`games_expected`, `seeds_per_cell` in `--json`). Exit 0 valid, 1 any other status (still printed), 2 refused. A cell holding a game whose pilot lost a
+one benchmark version (a sanity arm too may play only published seeds), and only when it is complete and has its
+random baseline. The verdict is one `status` (additive in `--json`): `NOT VALID` for any of the faults above;
+`INCOMPLETE` when a cell or control is missing (a cell the budget stopped before its first game, a manifest and no
+game file, counts as missing), a played seed has one seat order only (`pairs`; a seat order is filled by a game line
+or by a crash its log names, see "Started games"), the played cells or the controls do not hold the same seeds (the
+equal-weight pool or the margin is then not seed-paired), or a played cell has no score (no decisive game); `NO
+RANDOM BASELINE` when the random sanity arm is not on the pilot's own seeds in both orders in every cell, so STR_norm
+has no baseline (a score without its floor is not a score; the `floor` arm is a sanity check, not this baseline);
+else `VALID`. Every played cell holding the same subset of the published seeds in both orders is `VALID`, and the
+verdict line says how many of the published seeds that is (`games_played`, `games_expected`, `seeds_per_cell` in
+`--json`). Exit 0 valid, 1 any other status (still printed), 2 refused.
+
+**Started games.** The strict score's denominator is the started games: one per (seed, seat order) launched, in
+`aggregate.py` and `panel_score.py` alike (`aggregate.charged_crashes`). A game line is one. A file with no game line
+(a crash, a kill, a backstop timeout) is one only when its slot holds no game line, so a crash left beside its replay
+is not a second game. Its seat order is the one whose `run_batch.py` log (`game-<seed>-<0|1>.log`) names the file; a
+file no log names is charged only when its seed has no game line in either order (at most two per seed), and fills
+no seat order. A file is charged only where its condition is known: in a directory that holds one experiment. In a
+directory of several conditions `aggregate.py` charges it to none, counts it (`games.uncharged_no_game_line`) and
+says so in a warning; `--experiment` does not change that. A file with no seed is never charged. A cell holding a game whose pilot lost a
 decision to a dead model bridge is refused, and a resume plays its seed again (`docs/harness/ARCHITECTURE.md`, "A game
 the model's bridge did not play is not scored").
 

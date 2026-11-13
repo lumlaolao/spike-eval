@@ -37,8 +37,9 @@ settings in every cell (rating.check_conditions); aggregate.py's fallback and ha
 must pass per cell; the sanity arms (sanity_arms.py) must not beat the floor in any cell; and every
 game read must belong to one benchmark version (benchmark_version.py), which the report carries. The verdict
 (`status`) is NOT VALID for any of these; else INCOMPLETE when a cell is missing, a played seed has one seat order, or
-the played cells hold different seeds (the pool is then not seed-paired); else NO FLOOR when the random sanity arm is
-not in every cell (no baseline for STR_norm); else VALID. A cell with a
+the played cells hold different seeds (the pool is then not seed-paired), or a played cell has no score; else NO
+RANDOM BASELINE when the random sanity arm is not on the pilot's seeds in both orders in every cell (no baseline for
+STR_norm); else VALID. A cell with a
 game whose pilot lost a decision to a dead model bridge is refused (rating.bridge_down_problems): a panel seed is
 replayed, never dropped.
 
@@ -132,8 +133,10 @@ def cell_deck_sha(cell, pool):
 # ------------------------------------------------------------- one cell
 
 def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None):
-    """One block directory as a dict, or None when it does not exist. PanelError when it is not one
-    experiment, or identity B / the deck pair is not what the panel says."""
+    """One block directory as a dict, or None when it does not exist or holds no game file (a cell the budget
+    stopped before its first game: a manifest alone). PanelError when it is not one experiment, or identity B / the
+    deck pair is not what the panel says. Started games follow aggregate.charged_crashes (docs/eval/SCORING.md,
+    "Started games"): a file with no game line counts only for a (seed, seat order) that holds no game line."""
     p = Path(run_dir)
     if not p.is_dir():
         return None
@@ -166,17 +169,21 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
     if problems:
         raise PanelError("%s: %s" % (p, "; ".join(sorted(set(problems)))))
     decisions = aggregate._experiment_decisions(exp, parsed["decisions"])
+    charged = aggregate.charged_crashes(games, parsed["crashed"], p)
     by_seed, orders = {}, {}
-    for g in games + parsed["crashed"]:
+    for g in games + charged:
         by_seed.setdefault(g.get("seed"), []).append(g.get("winner"))
-        # A crashed game has no game line and so no swap: it fills one seat order of its seed, whichever it was.
-        orders.setdefault(g.get("seed"), []).append(None if g.get("_no_game_line") else bool(g.get("swap", False)))
-    one_order = sorted(s for s, os_ in orders.items() if s is not None
-                       and len({o for o in os_ if o is not None}) + sum(1 for o in os_ if o is None) < 2)
+        # A seat order is filled by a game line, or by a crash a log names for that order; a crash no log names
+        # fills no order, so its seed reads as played in one order at most.
+        order = g.get("swap") if g.get("_no_game_line") else bool(g.get("swap", False))
+        orders.setdefault(g.get("seed"), set())
+        if order is not None:
+            orders[g.get("seed")].add(order)
+    one_order = sorted(seed for seed, os_ in orders.items() if seed is not None and len(os_) < 2)
     wins = sum(1 for g in games if g.get("winner") == "A")
     decisive = sum(1 for g in games if g.get("winner") in ("A", "B"))
     draws = sum(1 for g in games if g.get("winner") == "draw")
-    started = len(games) + len(parsed["crashed"])
+    started = len(games) + len(charged)
     summ = aggregate.summarize_games(games)
     lo, hi = aggregate.wilson_ci(wins, decisive)
     return {
@@ -184,7 +191,8 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
         "pilot": rating.player(games[0], "a") if games else None,
         "games": games,
         "wins": wins, "decisive": decisive, "draws": draws, "started": started,
-        "crashed": len(parsed["crashed"]),
+        "crashed": len(charged),
+        "no_game_line_files": len(parsed["crashed"]),
         "win_rate": wins / decisive if decisive else None,
         "wilson95": [lo, hi],
         "strict_score": (wins + 0.5 * draws) / started if started else None,
@@ -288,7 +296,7 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
     pairs = bool(panel.get("pairs", True))
 
     cells, out_cells, missing, problems, all_games = {}, {}, [], [], []
-    incomplete, played_seeds = [], {}
+    incomplete, played_seeds, control_played, random_ok = [], {}, {}, {}
     pilot_games = []
     for c in panel["cells"]:
         cid = c["id"]
@@ -320,13 +328,21 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
                 if pairs and ctl["one_seat_order"]:
                     incomplete.append("%s control played %d seed(s) in one seat order only: %s"
                                       % (cid, len(ctl["one_seat_order"]), ctl["one_seat_order"][:8]))
+                control_played[cid] = tuple(ctl["seeds"])
         arm_blocks = {}
         for arm in sanity_arms.ARMS:
             b = read_block(sanity_arms.arm_dir(root / cid, arm), dsha, expected_b=opponent)
             arm_blocks[arm] = b
             if b is not None:
                 all_games += b["games"]
-        roles["random"] = arm_blocks["random"]
+                stray = sorted(set(b["seeds"]) - panel_seeds) if panel_seeds else []
+                if stray:
+                    problems.append("%s %s arm played seeds outside the panel's list: %s" % (cid, arm, stray[:8]))
+        rb = arm_blocks["random"]
+        # The random arm is this cell's baseline only on the pilot's own seeds, each in both seat orders.
+        random_ok[cid] = (rb is not None and block is not None and tuple(rb["seeds"]) == tuple(block["seeds"])
+                          and not (pairs and rb["one_seat_order"]))
+        roles["random"] = rb
         cells[cid] = roles
         sanity = None
         if any(b is not None for b in arm_blocks.values()):
@@ -438,21 +454,29 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
                                        ("harness-decided gate", r["fallback_gate"]["harness_failed"])) if bad]
     # Seed-paired cells (the panels file's promise): every played cell holds the same seeds, each in both seat
     # orders. A budget stop mid-panel leaves cells of different lengths; their equal-weight pool is not the panel's.
-    if len(set(played_seeds.values())) > 1:
-        sizes = sorted({len(v) for v in played_seeds.values()})
+    seed_sets = set(played_seeds.values())
+    if len(seed_sets) > 1:
+        sizes = sorted({len(v) for v in seed_sets})
         incomplete.append("cells played different seed sets (%s seeds per cell): the pool is not seed-paired"
                           % "/".join(str(n) for n in sizes))
+    if len(set(control_played.values())) > 1:
+        incomplete.append("the controls played different seed sets: the margin is not seed-paired")
+    unscored = sorted(cid for cid in played_seeds if out_cells[cid].get("score") is None)
+    if unscored:
+        incomplete.append("played cell(s) with no score (no %s game): %s"
+                          % ("decisive" if score == "decisive" else "started", ", ".join(unscored)))
     per_cell = len(panel_seeds) * (2 if pairs else 1) if panel_seeds else None
     played = sum(r.get("started", 0) for r in out_cells.values())
     complete = not missing and not incomplete
-    # A score without its floor is not a score (CLAUDE.md): the random arm in every cell is the floor of STR_norm.
-    floor_present = wr_random is not None
+    # A score without its floor is not a score (CLAUDE.md): the random arm, on the pilot's seeds in both orders, in
+    # every cell is the baseline of STR_norm. The floor arm is a sanity check (sanity_arms), not this baseline.
+    random_baseline = wr_random is not None and all(random_ok.values())
     if problems or sanity_violations or gate_failures or mixing:
         status = "NOT VALID"
     elif not complete:
         status = "INCOMPLETE"
-    elif not floor_present:
-        status = "NO FLOOR"
+    elif not random_baseline:
+        status = "NO RANDOM BASELINE"
     else:
         status = "VALID"
     return {
@@ -477,15 +501,25 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
         "incomplete": incomplete,
         "games_played": played,
         "games_expected": per_cell * len(out_cells) if per_cell else None,
-        "seeds_per_cell": {"played": len(next(iter(played_seeds.values()))) if len(set(played_seeds.values())) == 1
-                           else None, "published": len(panel_seeds) if panel_seeds else None},
-        "floor_present": floor_present,
+        "seeds_per_cell": {"played": len(next(iter(seed_sets))) if len(seed_sets) == 1 else None,
+                           "published": len(panel_seeds) if panel_seeds else None},
+        "random_baseline_present": random_baseline,
+        "cells_without_random_baseline": sorted(cid for cid, ok in random_ok.items() if not ok),
         "complete": complete,
         "status": status,
         "valid": status == "VALID",
         "bootstrap": {"resamples": resamples, "seed": bootstrap_seed,
                       "unit": "seed (both seat orders) within each cell and role"},
     }
+
+
+VERDICT_TEXT = {
+    "VALID": "VALID",
+    "INCOMPLETE": "INCOMPLETE: a cell is missing or unscored, or the cells are not seed-paired in both seat orders",
+    "NO RANDOM BASELINE": "NO RANDOM BASELINE: the random sanity arm is not on the pilot's seeds in every cell, so "
+                          "STR_norm has no baseline; not a headline score",
+    "NOT VALID": "NOT VALID (see above)",
+}
 
 
 def _pc(x):
@@ -549,11 +583,9 @@ def print_human(r):
     played = "%d of %s games" % (r["games_played"], r["games_expected"] or "?")
     if sp["played"] is not None:
         played += "; %d of %s published seeds in every played cell" % (sp["played"], sp["published"] or "?")
-    print("verdict: %s (%s)" % ({"VALID": "VALID", "INCOMPLETE": "INCOMPLETE: a cell is missing, or the cells are not "
-                                 "seed-paired in both seat orders",
-                                 "NO FLOOR": "NO FLOOR: no random sanity arm in every cell, so no baseline; not "
-                                 "a headline score",
-                                 "NOT VALID": "NOT VALID (see above)"}[r["status"]], played))
+    if r["status"] == "NO RANDOM BASELINE":
+        print("no random baseline in: %s" % ", ".join(r["cells_without_random_baseline"]))
+    print("verdict: %s (%s)" % (VERDICT_TEXT[r["status"]], played))
 
 
 def main(argv=None):
