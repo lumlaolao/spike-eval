@@ -1,9 +1,13 @@
 """cost_report: token counts priced from the price file; the figures are ones recomputed by hand."""
+import contextlib
+import datetime
+import io
 import json
 import os
 import re
 import tempfile
 import unittest
+import unittest.mock
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
@@ -76,6 +80,43 @@ class CostReportTest(unittest.TestCase):
         self.assertEqual(r["unpriced"], {"acme/unknown"})
         self.assertIn("NOT PRICED: acme/unknown", cr.fmt(dict(r, dir=d)))
         self.assertIsNone(cr.model_id("haiku"))
+
+    def test_a_price_older_than_thirty_days_is_named_with_its_age(self):
+        # The budget guard trusts the table; a rise since the last check under-counts in silence. Free is $0 at the
+        # list rate and at the bound; an impossible date is no date.
+        prices = {"a/old": {"prompt": 1e-6, "completion": 1e-6, "checked": "2026-10-24",
+                            "max_note": "the dearest of 3 endpoints, 2026-10-10"},
+                  "a/new": {"prompt": 1e-6, "completion": 1e-6, "checked": "2026-11-01"},
+                  "a/undated": {"prompt": 1e-6, "completion": 1e-6},
+                  "fake/free": {"prompt": 0, "completion": 0, "checked": "2020-01-01"},
+                  "a/free-list-dear-bound": {"prompt": 0, "completion": 0, "checked": "2026-09-01",
+                                             "max": {"prompt": 1e-6, "completion": 1e-6}},
+                  "a/bad-date": {"prompt": 1e-6, "completion": 1e-6, "checked": "2026-13-45"},
+                  "a/bound-dated-only": {"prompt": 1e-6, "completion": 1e-6, "max_note": "dearest, 2026-11-12"}}
+        stale = cr.stale_prices(prices, ["a/old", "a/new", "a/undated", "fake/free", "a/unpriced",
+                                         "a/free-list-dear-bound", "a/bad-date", "a/bound-dated-only"],
+                                today=datetime.date(2026, 11, 13))
+        self.assertEqual(stale, [("a/bad-date", "no date", None), ("a/bound-dated-only", "no date", None),
+                                 ("a/free-list-dear-bound", "2026-09-01", 73), ("a/old", "2026-10-10", 34),
+                                 ("a/undated", "no date", None)])
+        self.assertIn("a/old (checked 2026-10-10, 34 days ago)", cr.stale_warning(stale))
+        self.assertIsNone(cr.stale_warning([]))
+
+    def test_the_report_prints_the_stale_price_warning(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [{"t": "context_call", "tier": "smart", "prompt_tokens": 10, "completion_tokens": 10},
+                                      {"t": "game", "smart_a": OR, "fast_a": OR}])
+            out = io.StringIO()
+            with unittest.mock.patch.object(cr, "load_prices", return_value=PRICES), contextlib.redirect_stdout(out):
+                cr.main([d])
+        self.assertIn("WARNING: price older than 30 days", out.getvalue())   # PRICES was checked 2026-10-13
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [{"t": "context_call", "tier": "smart", "prompt_tokens": 10, "completion_tokens": 10},
+                                      {"t": "game", "smart_a": OR, "fast_a": OR}])
+            out = io.StringIO()
+            with unittest.mock.patch.object(cr, "load_prices", return_value=PRICES), contextlib.redirect_stdout(out):
+                cr.main([d, "--json"])
+        self.assertEqual(json.loads(out.getvalue())[0]["stale"], ["deepseek/deepseek-v4.1-flash"])
 
     def test_each_seat_is_priced_by_its_own_model(self):
         # Each call is priced by its own seat's model: two different models first, then a killed game

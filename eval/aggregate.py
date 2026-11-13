@@ -54,6 +54,13 @@ from pathlib import Path
 DEFAULT_RESAMPLES = 10_000
 DEFAULT_BOOTSTRAP_SEED = 20260715  # fixed for reproducible CIs
 DEFAULT_MAX_FALLBACK_RATE = 0.10
+# The command's exit codes, one per failed gate (the first that failed; build_report.py reads them). 0 is clean, 1 a
+# usage or read error.
+EXIT_FALLBACK_GATE = 2
+EXIT_MODEL_IDENTITY_GATE = 3
+EXIT_HARNESS_DECIDED_GATE = 4
+EXIT_SANITY_VIOLATION = 5
+EXIT_SANITY_MISSING = 6
 # The harness-decided share: decisions the harness made when the model could have (match_review's
 # TAKEN and LOST, and any Forge-AI row), over the llm identities' decisions. Forced picks (one legal
 # option) are not counted; the fallback rate above counts them, which hides this number.
@@ -650,6 +657,7 @@ def parse_dir_full(path):
         "experiments": experiments,
         "crashed": crashed,
         "warnings": warnings,
+        "dir": str(path),
     }
 
 
@@ -762,17 +770,86 @@ def summarize_games(games):
     return dict(counts)
 
 
-def summarize_arms(games):
+def place_crashes(games, crashed, log_dir=None):
+    """(charged, unplaced): the files with no game line that are started games, and those that may be, by the decision
+    table in docs/eval/SCORING.md, "Started games". A file is skipped silently only where the directory proves it an
+    earlier attempt; every other file not charged is unplaced (the strict score may then be an upper bound).
+
+    A started game is one launch of a (seed, seat order). A file's order is known when a run_batch.py log of its seed
+    (game_log, in log_dir) names it. The experiment has two orders when a game line or a named file is swapped, else
+    one, which is then not proven. The caller passes only crashes whose condition is known (a directory of one
+    experiment). `games` are the condition's game lines; a charged record is a copy with `swap` set to its order, or
+    None when no log names it."""
+    played = {}
+    line_files = set()
+    for g in games:
+        played.setdefault(g.get("seed"), set()).add(bool(g.get("swap", False)))
+        line_files.add(g.get("_file"))
+    names, logged = {}, set()                   # file -> the order whose log names it; seeds a log names a line of
+    if log_dir is not None:
+        for seed in {c.get("seed") for c in crashed} - {None}:
+            for swap in (False, True):
+                name = log_game_file(game_log(log_dir, seed, swap))
+                if name in line_files:
+                    logged.add(seed)
+                elif name:
+                    names[name] = swap
+    orders = 2 if any(True in o for o in played.values()) or any(names.get(c.get("_file")) for c in crashed) else 1
+
+    charged, unplaced, named, unnamed = [], [], {}, {}
+    for c in sorted(crashed, key=lambda c: c.get("_file") in names, reverse=True):   # named files first
+        seed = c.get("seed")
+        if seed is None:
+            continue                                # not a slot of any seed
+        order = names.get(c.get("_file"))
+        lines = played.get(seed, set())
+        if order is not None:
+            if order in lines:
+                continue                            # its slot's replay holds the line: an earlier attempt
+            named.setdefault(seed, set()).add(order)
+        else:
+            known = named.get(seed, set())
+            if lines:
+                if len(lines | known) < orders or (orders == 1 and seed not in logged):
+                    unplaced.append(c)              # it may be the crash of an order nothing shows
+                continue                            # else every order is accounted for, and proven so
+            if len(known) + unnamed.get(seed, 0) >= orders:
+                if orders == 1:
+                    unplaced.append(c)              # the one order is a guess; it may be the other's crash
+                continue                            # both orders already charged
+            unnamed[seed] = unnamed.get(seed, 0) + 1
+        charged.append(dict(c, swap=order))
+    return charged, unplaced
+
+
+def charged_crashes(games, crashed, log_dir=None):
+    """The started games that files with no game line add (place_crashes)."""
+    return place_crashes(games, crashed, log_dir)[0]
+
+
+def own_crashes(parsed):
+    """The directory's files with no game line whose condition is known: all of them when it holds one experiment,
+    none otherwise."""
+    return parsed["crashed"] if len(parsed["experiments"]) == 1 else []
+
+
+def summarize_arms(games, crashed=(), log_dir=None):
     """Unpaired per-arm win rates over decisive games only.
 
     Identity-keyed: winner "A" is identity A's win and controller_a/smart_a
-    are identity A's config, so attribution never flips on swap."""
-    arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0})
+    are identity A's config, so attribution never flips on swap.
+
+    `crashed`: files with no game line whose condition is this one (callers pass them only for a directory that holds
+    one experiment). Those charged_crashes keeps are started games that score 0 in the strict score of the arms that
+    played here, once per identity as a played game is (docs/eval/SCORING.md, "Started games")."""
+    arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0, "crashed": 0})
+    pairs = set()
     for g in games:
         if unscorable(g):
             continue                        # not fully played by the model: in no count, the strict score's too
         w = g.get("winner")
         la, lb = arm_label(g, "a"), arm_label(g, "b")
+        pairs.add((la, lb))
         # Every started game, for the strict score: a game that ended in a draw or never finished (the
         # wall-clock cap, a crash) is not dropped there, so stalling a lost game into the cap cannot
         # erase the loss.
@@ -786,6 +863,12 @@ def summarize_arms(games):
         arms[la]["games"] += 1
         arms[lb]["games"] += 1
         arms[la if w == "A" else lb]["wins"] += 1
+    charged = charged_crashes(games, crashed, log_dir)
+    if len(pairs) == 1 and charged:
+        (la, lb), = pairs
+        for label in (la, lb):              # once per identity: both when the two share a label, as a played game
+            arms[label]["started"] += len(charged)
+            arms[label]["crashed"] += len(charged)
     out = {}
     for label, d in sorted(arms.items()):
         if not d["games"]:
@@ -794,7 +877,7 @@ def summarize_arms(games):
         out[label] = {"wins": d["wins"], "games": d["games"],
                       "win_rate": d["wins"] / d["games"] if d["games"] else None,
                       "wilson95": [lo, hi],
-                      "started": d["started"], "draws": d["draws"],
+                      "started": d["started"], "draws": d["draws"], "crashed": d["crashed"],
                       # Strict score: wins + half the draws over every started game (an unfinished
                       # game scores 0). Equal to win_rate when every game finished decisively.
                       "strict_score": (d["wins"] + 0.5 * d["draws"]) / d["started"] if d["started"] else None}
@@ -1404,6 +1487,8 @@ def _experiment_decisions(exp, decisions):
 
 def summarize_experiment(exp, label, parsed, resamples, bootstrap_seed, max_fallback_rate):
     games = exp["games"]
+    crashed = own_crashes(parsed)
+    log_dir = parsed.get("dir")
     decisions = _experiment_decisions(exp, parsed["decisions"])
     prov = summarize_provenance(games)
     return {
@@ -1419,7 +1504,7 @@ def summarize_experiment(exp, label, parsed, resamples, bootstrap_seed, max_fall
         "duplicates": exp["duplicates"],
         "n_duplicates_conflicting": sum(1 for d in exp["duplicates"] if d["conflicting"]),
         "games": summarize_games(games),
-        "arms": summarize_arms(games),
+        "arms": summarize_arms(games, crashed, log_dir),
         "paired": summarize_paired(games, resamples, bootstrap_seed),
         "decisions": summarize_decisions(decisions),
         "model_identity": summarize_model_identity(games, prov),
@@ -1477,8 +1562,23 @@ def build_summary(path, resamples, bootstrap_seed,
         for s in exp_summaries}
 
     games_summary = summarize_games(games)
+    # A crash's condition is known only in a directory of one experiment (--experiment does not change that).
+    own = own_crashes(parsed)
+    lines = [g for e in experiments for g in e["games"]]
+    if crashed and not own:
+        warnings.append("%d file(s) with no game line in a directory of %d conditions: their condition is unknown, "
+                        "so they are charged to no experiment's strict score"
+                        % (len(crashed), len(parsed["experiments"])))
+    games_summary["uncharged_no_game_line"] = len(crashed) - len(own)
+    unplaced = place_crashes(lines, own, path)[1]
+    games_summary["unplaced_no_game_line"] = len(unplaced)
+    if unplaced:
+        warnings.append("%d file(s) with no game line that no log places, on a seed missing a seat order or past the one "
+                        "order of an unpaired experiment: each may be a game that was not counted, so the strict score "
+                        "may be an upper bound (%s)"
+                        % (len(unplaced), ", ".join(sorted(c.get("_file") or "?" for c in unplaced)[:5])))
     if single:
-        arms = summarize_arms(games)
+        arms = summarize_arms(lines, own, path)
         paired = summarize_paired(games, resamples, bootstrap_seed)
     else:
         # Counts may pool (they are totals); rates and deltas may not.
@@ -1851,15 +1951,15 @@ def main():
               % (fmt_pct(fg["harness_decided_rate"]), fmt_pct(fg["max_harness_decided_rate"])), file=sys.stderr)
         print("!" * 60, file=sys.stderr)
     if fg["failed"]:
-        sys.exit(2)
+        sys.exit(EXIT_FALLBACK_GATE)
     if mi["failed"]:
-        sys.exit(3)
+        sys.exit(EXIT_MODEL_IDENTITY_GATE)
     if fg.get("harness_failed"):
-        sys.exit(4)
+        sys.exit(EXIT_HARNESS_DECIDED_GATE)
     if sanity is not None and sanity["violations"]:
-        sys.exit(5)
+        sys.exit(EXIT_SANITY_VIOLATION)
     if sanity is not None and sanity["missing"]:
-        sys.exit(6)
+        sys.exit(EXIT_SANITY_MISSING)
 
 
 if __name__ == "__main__":
