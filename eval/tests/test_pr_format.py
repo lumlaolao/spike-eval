@@ -148,6 +148,16 @@ class PrFormatTest(unittest.TestCase):
         text = (Path(pf.__file__).resolve().parents[1] / "eval" / "harness_acceptance.sh").read_text()
         self.assertRegex(text, r'git -C "\$REPO" rev-parse HEAD.*> "\$OUT/head\.txt"')
 
+    def test_the_overlay_hash_is_the_one_run_batch_stamps(self):
+        # scripts/ reaches eval/benchmark_version.py in its own interpreter; the hash must be the one it makes.
+        import benchmark_version
+        mine, err = pf.overlay_sha_here(evalpath.REPO)
+        self.assertEqual((mine, err), (benchmark_version.overlay_sha_of_checkout(evalpath.REPO), None))
+        with tempfile.TemporaryDirectory() as d:
+            none, why = pf.overlay_sha_here(d)
+            self.assertIsNone(none)
+            self.assertTrue(why)
+
     def test_record_acceptance_reads_the_runs_own_summary(self):
         # The typed counts must match the run's own summary.txt: a PASS line per stage in ALL_STAGES, no FAIL line
         # (standards of #357).

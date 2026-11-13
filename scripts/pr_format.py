@@ -66,6 +66,18 @@ def full_pass(passed, total):
     return passed == total and int(total) >= full_stage_count()
 
 
+def overlay_sha_here(repo):
+    """(this checkout's overlay hash, None) as run_batch.py stamps it (eval/benchmark_version.py, asked in its own
+    interpreter the way harness_acceptance.sh asks it: scripts/ does not import eval/ modules), or (None, why)."""
+    p = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b; "
+                        "print(b.overlay_sha_of_checkout(b.Path(sys.argv[2])))", str(Path(repo) / "eval"), str(repo)],
+                       capture_output=True, text=True)
+    out = p.stdout.strip()
+    if p.returncode != 0 or not out:
+        return None, (p.stderr.strip().splitlines() or ["exit %d" % p.returncode])[-1]
+    return out, None
+
+
 def head_problems(outdir, sha):
     """What keeps the run in `outdir` from being evidence for commit `sha`. The run's head.txt (harness_acceptance.sh:
     the commit it tested, then its count of changed files) must name `sha` with no change. A run from before head.txt
@@ -88,12 +100,9 @@ def head_problems(outdir, sha):
     if not same_commit(local, sha) or dirty.strip():
         return ["%s has no head.txt; its overlay-sha.txt can be checked only from a clean checkout at %s (this one is "
                 "%s%s)" % (outdir, sha[:9], local[:9], ", with changes" if dirty.strip() else "")]
-    try:
-        sys.path.insert(0, str(repo / "eval"))
-        import benchmark_version
-        mine = benchmark_version.overlay_sha_of_checkout(repo)
-    except Exception as e:  # noqa: BLE001  a hash that cannot be made is a refusal, never a pass
-        return ["this checkout's overlay hash could not be made (%s)" % e]
+    mine, err = overlay_sha_here(repo)
+    if mine is None:
+        return ["this checkout's overlay hash could not be made (%s)" % err]
     recorded = built.read_text(encoding="utf-8", errors="replace").strip()
     if recorded == mine:
         return []
