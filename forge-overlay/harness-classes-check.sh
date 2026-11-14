@@ -3,13 +3,13 @@
 # loads: the seat (forge/spike) from forge-gui-desktop/target/classes, each engine patch ("HARNESS PATCH") from the
 # module jar the Maven classpath names (~/.m2), which the launcher's classpath puts first for those modules. A source
 # newer than what will load means the game would play another harness than the one its overlay_sha names.
-# A module jar in ~/.m2 must also be this checkout's own build: the size of <module>/target/<module>-*.jar and not
-# older than it (wc -c and find -newer, so it runs on macOS's bash 3.2 without stat).
+# A module jar in ~/.m2 must also be this checkout's own build: the same bytes as <module>/target/<module>-*.jar
+# (cmp). Their times are not compared: mvn install writes the copy's time to the millisecond, so the checkout's jar
+# is always a fraction of a second "newer" than its own copy.
 # Usage: harness_classes_check <forge home> <classpath> <separator>; returns 0, or prints why and returns 4.
 # What it cannot see:
 #   - an engine patch removed from engine-patches/ whose patched file stays in the checkout (it is still built);
 #   - a seat class whose source install.sh removed (the stale .class stays in target/classes);
-#   - a jar another checkout built to the same size;
 #   - a module named by an entry it cannot read (a Windows C:\ path): it prints "[launcher] not checked: <module>".
 HARNESS_PATCH_MODULES="forge-ai forge-game forge-core forge-gui"
 
@@ -52,8 +52,7 @@ harness_classes_check() {
           case "$_j" in *-sources.jar|*-javadoc.jar|*-tests.jar) continue ;; esac
           [ -f "$_j" ] && { _own="$_j"; break; }
         done
-        if [ -z "$_own" ] || [ "$(wc -c < "$_own" | tr -d ' ')" != "$(wc -c < "$_art" | tr -d ' ')" ] \
-           || [ -n "$(find "$_own" -newer "$_art" 2>/dev/null)" ]; then
+        if [ -z "$_own" ] || ! cmp -s "$_own" "$_art"; then
           _stale="$_stale
     $_rel (the ~/.m2 jar of $_mod is not this checkout's own build)"
         fi ;;
