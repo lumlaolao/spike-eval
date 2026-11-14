@@ -443,8 +443,25 @@ public final class LlmSpikeGui {
      *  Epoch 99 (2026-11-14, audit B3/B5/B9): a search lists reveals and notes before archived states
      *  (evidence-tools-v6); a tool ask cut off by max_tokens is always retried; a refused key or no credits is not
      *  retried, and a 429 is asked again after its Retry-After within the call's deadline.
+     *  Epoch 100 (2026-11-14, audit B4): once the game is over or capped no new model request starts (a further
+     *  round, a nudge, a correction, a retry, a rate-limit resend or a truncation retry); the decision takes its fixed
+     *  legal option and its row names the stop (`game-capped`, `game-over`) in place of `bridge-down`.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-99";
+    static final String HARNESS_EPOCH = "harness-epoch-100";
+
+    /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
+     *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
+    private static final java.util.Set<Game> CAPPED_GAMES =
+            java.util.Collections.synchronizedSet(java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>()));
+    static void markCapped(Game g) { if (g != null) CAPPED_GAMES.add(g); }
+    static boolean isCapped(Game g) { return g != null && CAPPED_GAMES.contains(g); }
+    /** The asking seat's stop check while one of its asks runs (askModel sets it on the game thread): a bridge reads it
+     *  before a request of its own making, a rate-limit resend or a truncation retry (audit B4). */
+    static final ThreadLocal<java.util.function.BooleanSupplier> ASK_STOP = new ThreadLocal<>();
+    static boolean askStopped() {
+        java.util.function.BooleanSupplier s = ASK_STOP.get();
+        return s != null && s.getAsBoolean();
+    }
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -8716,7 +8733,40 @@ public final class LlmSpikeGui {
 
         /** `call` is the round-trip itself, so a native tool turn gets the same retry, timing and
          *  health bookkeeping as a plain ask. `prompt` is what the decision row records. */
+        /** "game-capped" or "game-over" once this seat's game has ended, or null: no new model request starts then. */
+        String askStop() {
+            Game g;
+            try { g = getGame(); } catch (RuntimeException e) { return null; }
+            if (g == null) return null;
+            if (isCapped(g)) return "game-capped";
+            return g.isGameOver() ? "game-over" : null;
+        }
+        /** The stop that refused this seat's last ask: named on the fallback rows in place of "bridge-down". */
+        private String stoppedBy;
+
         private String askModel(LLMBridge b, String prompt, java.util.function.Supplier<String> call) {
+            // At the cap the runner sets the game over and waits one decision's grace before the JVM exits; a
+            // tool-answer decision is up to MAX_ROUNDS requests, each with its own deadline, so it could outlast the
+            // grace and lose its row. Once the game has ended no request starts: the one in flight is the last, and
+            // the decision takes its fixed legal option (audit B4).
+            String stop = askStop();
+            if (stop != null) {
+                if (!stop.equals(stoppedBy))
+                    p("[BRIDGE " + b.getLabel() + "] " + stop + ": no new model request; the decision takes its fixed legal option");
+                stoppedBy = stop;
+                lastPrompt = prompt;
+                return null;
+            }
+            java.util.function.BooleanSupplier was = ASK_STOP.get();
+            ASK_STOP.set(() -> askStop() != null);
+            try {
+                return askModelUnstopped(b, prompt, call);
+            } finally {
+                if (was == null) ASK_STOP.remove(); else ASK_STOP.set(was);
+            }
+        }
+
+        private String askModelUnstopped(LLMBridge b, String prompt, java.util.function.Supplier<String> call) {
             long tAsk = System.currentTimeMillis();
             Integer routing0 = b.getRoutingRefusals();
             long billedPrompt0 = b.getBilledPromptTokens(), billedCompletion0 = b.getBilledCompletionTokens();
@@ -8738,6 +8788,12 @@ public final class LlmSpikeGui {
             for (int attempt = 0; reply == null && attempt < BRIDGE_RETRY_BACKOFF_MS.length; attempt++) {
                 // A refused key or no credits does not pass in two seconds: asking again only spends the wait
                 // (audit B9). The decision takes its fixed legal option below, counted as lost to the bridge.
+                String stop = askStop();
+                if (stop != null) {
+                    p("[BRIDGE " + b.getLabel() + "] " + stop + ": not retried; the decision takes its fixed legal option");
+                    stoppedBy = stop;
+                    break;
+                }
                 if (b.lastFailureIsFinal()) {
                     p("[BRIDGE " + b.getLabel() + "] the provider refused the call for good (HTTP " + b.lastFailureStatus()
                             + ": a refused key or no credits): not retried; the decision takes its fixed legal option");
@@ -8954,6 +9010,9 @@ public final class LlmSpikeGui {
             // set, but its row means "deterministic/Forge-AI decision" and must not inherit the
             // wasted model round-trip's latency (it would pollute the ai/auto latency stats).
             if (ms <= 0 && lastPrompt != null && ("smart".equals(tier) || "fast".equals(tier))) ms = lastSuccessMs;
+            // An ask refused because the game had ended is named so: the bridge was not down (audit B4).
+            if (stoppedBy != null && fallback != null && fallback.contains("(bridge-down)"))
+                fallback = fallback.replace("(bridge-down)", "(" + stoppedBy + ")");
             emitDecisionRow(getPlayer(), seat, type, nOptions, choice, tier, ms, fallback, options,
                     lastPrompt, lastReply, lastRetryMs, lastAttempts, lastFinishReason, lastFirstFailedReply,
                     lastPromptTokens, lastCompletionTokens, lastShadowChoice, lastPicks, answerVia, answerInvalid, lastCachedTokens, lastCacheWriteTokens);
@@ -12565,7 +12624,7 @@ public final class LlmSpikeGui {
                 OrResult r = send(messages, toolsJson, allowCalls, maxTokens, reasoningEffort, temperature, deadline);
                 // A rate limit that names when to ask again is asked again then, when that fits in this call's own
                 // deadline (audit B9: the seat's retries landed inside the same window and lost the decision).
-                for (int waits = 0; r == null && lastStatus == 429 && lastRetryAfterMs >= 0 && waits < 3
+                for (int waits = 0; r == null && lastStatus == 429 && lastRetryAfterMs >= 0 && waits < 3 && !askStopped()
                         && System.currentTimeMillis() + lastRetryAfterMs < deadline; waits++) {
                     System.out.println("[OPENROUTER " + label + "] HTTP 429: waiting the " + lastRetryAfterMs
                             + " ms its Retry-After names, within the call's deadline, then sending again");
@@ -12588,7 +12647,7 @@ public final class LlmSpikeGui {
                 // the tag already made it out) do we fall through to the non-answer/bridge-down check.
                 // On a tool ask text is never the answer, so a decision tag in the prose does not mean the answer
                 // made it out (audit B5: "my choice is 2 lands" skipped the retry and cost the decision a nudge).
-                if ("length".equals(r.finishReason) && !r.hasCalls()
+                if ("length".equals(r.finishReason) && !r.hasCalls() && !askStopped()
                         && (toolsJson != null || !looksLikeDecisionTag(r.content))) {
                     // A REASONER that burns the whole budget on hidden reasoning and emits no answer
                     // token (measured 2026-10-13: a 16000-token smart completion, retried at 32000,

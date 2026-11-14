@@ -456,7 +456,7 @@ class GateBranchTest(unittest.TestCase):
             sdir = os.path.join(d, "server")
             os.makedirs(sdir)
             rows = [{"t": "decision", "tier": "smart", "answer_via": "tool"}] * 10 + [
-                {"t": "game", "turn_chat": True, "turn_chat_version": "turn-chat-v1", "one_chat_version": "one-chat-v3"}]
+                {"t": "game", "turn_chat": True, "turn_chat_version": "turn-chat-v2", "one_chat_version": "one-chat-v4"}]
             with open(os.path.join(d, "game-42-1.jsonl"), "w") as f:
                 f.write("".join(json.dumps(r) + "\n" for r in rows))
             with open(os.path.join(sdir, "fake_requests.jsonl"), "w") as f:

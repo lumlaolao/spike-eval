@@ -40,6 +40,7 @@ import forge.model.FModel;
 import forge.util.ITriggerEvent;
 
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -1003,6 +1004,62 @@ public class LlmSpikeTest {
         Assert.assertFalse(talks.prompts.isEmpty(), "the live seat was asked");
         Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(alive), 0);
         Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(alive), 0);
+    }
+
+    /** A model that looks something up on every round and never answers; the first round runs {@code atFirst}. */
+    static final class AlwaysSearches implements LLMBridge {
+        private final String label;
+        private final Runnable atFirst;
+        int chats = 0;
+        AlwaysSearches(String label, Runnable atFirst) { this.label = label; this.atFirst = atFirst; }
+        @Override public boolean supportsNativeTools() { return true; }
+        @Override public String ask(String prompt) { return null; }
+        @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+            if (chats++ == 0) atFirst.run();
+            return NativeTools.Turn.ofCalls(List.of(new NativeTools.Call("s" + chats, "memory_search", "{\"query\":\"Bolt\"}")));
+        }
+        @Override public String getLabel() { return label; }
+        @Override public String getModel() { return "always-searches"; }
+        @Override public long getTotalMs() { return 0; }
+        @Override public int getCalls() { return chats; }
+    }
+
+    /** Audit B4: at the cap the runner sets the game over and waits one decision's grace before the JVM exits, but a
+     *  tool-answer decision went on asking, round after round (up to 19), and could be killed before its row was
+     *  written. Once the game is over, or capped, no new model request starts: the round in flight is the last, the
+     *  decision takes its fixed legal option, and its row names why. Never Forge's AI. */
+    @Test(timeOut = 90000)
+    public void noModelRoundStartsOnceTheGameIsOverOrCapped() throws Exception {
+        if (!LlmSpikeGui.PlayerControllerLLM.MEMORY_TOOLS) throw new SkipException("needs MEMORY_TOOLS=1 (acceptance sets it)");
+        for (boolean capped : new boolean[] {false, true}) {
+            Game game = buildBareGame();
+            String seat = capped ? "seat-capped-b4" : "seat-over-b4";
+            AlwaysSearches model = new AlwaysSearches(seat + "/smart", () -> {
+                if (capped) LlmSpikeGui.markCapped(game);
+                game.setGameOver(GameEndReason.Draw);
+            });
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                    game, game.getPlayers().get(0), new LobbyPlayerAi(seat, null), seat, "", model, model, "llm");
+            java.nio.file.Path dir = TestTmp.dir("cap-b4");
+            LlmSpikeGui.EvalLog.closeForTest();
+            LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+            java.io.File file = LlmSpikeGui.EvalLog.currentFile();
+            boolean answer;
+            try {
+                answer = ctrl.confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?",
+                        null, null, null);
+            } finally {
+                LlmSpikeGui.EvalLog.closeForTest();
+            }
+            Assert.assertEquals(model.chats, 1, "the round in flight was the last: no round 2 (" + seat + ")");
+            Assert.assertFalse(answer, "the fixed legal option");
+            Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "never Forge's AI");
+            String why = capped ? "(game-capped)" : "(game-over)";
+            String row = java.nio.file.Files.readAllLines(file.toPath()).stream()
+                    .filter(l -> l.contains("\"t\":\"decision\"")).findFirst().orElse("");
+            Assert.assertTrue(row.contains("\"fallback\":\"confirm" + why + "->NO\""), row.length() > 400 ? row.substring(0, 400) : row);
+            Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(seat), 0, "not a dead bridge: the game had ended");
+        }
     }
 
     /** Audit B6: a later round's context_call row carried the first user message twice, as `prompt` and as the first of

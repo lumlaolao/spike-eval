@@ -55,6 +55,37 @@ public class ChatSessionTest {
         Assert.assertEquals(c.getBilledCompletionTokens(), 45L);
     }
 
+    /** Audit B2: the seat's bridge retry calls restart() after a failed call (a 429, a stall, an empty completion), and
+     *  restart() cleared the stored decisions, so the retry and the rest of the game ran without the conversation the
+     *  game line said it had. The history stays; the ask that failed was never stored, so the retry sends it once. */
+    @Test
+    public void aFailedCallAndItsRestartKeepTheConversation() {
+        Messages flaky = new Messages("CHOICE: 1") {
+            int n = 0;
+            @Override public String askMessages(String messages) { sent.add(messages); return n++ == 0 ? null : reply; }
+        };
+        ChatSessionBridge c = new ChatSessionBridge(flaky, false);
+        c.remember("DECISION: first question", "CHOICE: 1");
+        c.remember("DECISION: second question", "CHOICE: 2");
+        Assert.assertNull(c.ask("DECISION: third question"));
+        c.restart();
+        Assert.assertEquals(c.size(), 2, "the conversation outlives a failed call");
+        Assert.assertEquals(c.ask("DECISION: third question"), "CHOICE: 1");
+        String retry = flaky.sent.get(1);
+        Assert.assertEquals(retry, flaky.sent.get(0), "the retry sends what the failed call sent");
+        Assert.assertTrue(retry.contains("DECISION: first question") && retry.contains("DECISION: second question"), retry);
+        Assert.assertEquals(retry.split("DECISION: third question", -1).length - 1, 1, "the retried ask once: " + retry);
+
+        // TURN_CHAT still starts over at a new game turn, and only there.
+        ChatSessionBridge t = new ChatSessionBridge(new Messages("CHOICE: 1"), true);
+        t.atTurn(4);
+        t.remember("DECISION: this turn", "CHOICE: 1");
+        t.restart();
+        Assert.assertEquals(t.size(), 1);
+        t.atTurn(5);
+        Assert.assertEquals(t.size(), 0);
+    }
+
     @Test
     public void anEarlierQuestionKeepsItsDecisionAndDropsItsState() {
         String p = "== Turn 3 MAIN1 (active: Seat) ==\nYOU [Seat] life 20\nBATTLEFIELD: Mountain\nDECISION: Choose X for CAST Fireball\n  1) 0\n  2) 1";

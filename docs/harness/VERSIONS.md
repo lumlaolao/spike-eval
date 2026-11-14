@@ -6,7 +6,7 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 
 | stamp | value | game line | a change means |
 |---|---|---|---|
-| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-99` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
+| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-100` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
 | `SeatObservation.VERSION` | `observation-faithful-v46` | `observation_version` | the faithful state the seat reads: the blocks, their labels and their order. |
 | `SeatObservation.CACHE_VERSION` | `cache-v2` | (`observation_version` under `CONTEXT_PROFILE=v5-cache`: `VERSION+CACHE_VERSION`) | the cache order of that state: the append-only record it opens with (finished turns, card text when first seen), where the archive lines go, reveals printed once, and the guide's words for them. |
 | `AnswerTool.VERSION` | `answer-tool-v20` | `answer_tool_version` | the `answer` and `set_plan` functions and their validation. |
@@ -14,8 +14,8 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 | `ContextMemory.VERSION` | `evidence-tools-v6` | `memory_tools_version` | what the evidence lookups return. |
 | `PlayerLookahead.VERSION` | `lookahead-preview-v18` | `lookahead_version` | the `simulate` preview and the attack outlook. |
 | `RulesTool.VERSION` | `rules-tool-v2` | `rules_tool_version` | the comprehensive-rules lookup. |
-| `ChatSessionBridge.VERSION` | `one-chat-v3` | `one_chat_version` | the one-conversation-per-seat arm (ONE_CHAT). |
-| `ChatSessionBridge.TURN_VERSION` | `turn-chat-v1` | `turn_chat_version` | the conversation bounded by the turn (TURN_CHAT). |
+| `ChatSessionBridge.VERSION` | `one-chat-v4` | `one_chat_version` | the one-conversation-per-seat arm (ONE_CHAT). |
+| `ChatSessionBridge.TURN_VERSION` | `turn-chat-v2` | `turn_chat_version` | the conversation bounded by the turn (TURN_CHAT). |
 | `DecisionsBridge.VERSION` | `decisions-bridge-v3` | (`decisions_bridge_version_a` / `_b`; puzzle row `decisions_bridge_version`) | the typed questions a `jev:` decision-model seat is asked and how its answers become `answer` calls (on a game line or puzzle row only where a `jev:` seat plays). |
 | `ClaudeCliBridge.VERSION` | `claude-cli-bridge-v2` | (`claude_cli_bridge_version_a` / `_b`; puzzle row `claude_cli_bridge_version`) | how a `claude-cli:` seat runs the Claude Code CLI (argv, isolation, the answer schema, one process per turn) and how its structured output becomes `answer` and `set_plan` calls (only where such a seat plays). |
 | `ReplayBridge.VERSION` | `replay-bridge-v3` | (puzzle row `replay_version`) | how a `replay:` seat serves a recorded attempt's model turns back and what it calls a drift (tooling only: the seat is sent nothing new, so it is not a condition and does not move HARNESS_EPOCH; a replay row is never scored), and its handover to the search arm after K rows (REPLAY_HANDOVER, step regret; `step-search.jsonl` rows). |

@@ -794,6 +794,7 @@ public final class LlmSpikePuzzle {
             boolean capped = worker.isAlive();
             if (capped) {
                 System.out.println("[PZL] wall-clock cap reached; this puzzle is INVALID, not a failure");
+                LlmSpikeGui.markCapped(game);
                 game.setGameOver(GameEndReason.Draw);
                 // maxDecisionMs(), not maxConfiguredTimeoutMs(): a null reply sends the router into
                 // its retry loop, where each further attempt gets a FULL fresh timeout. Budgeting
