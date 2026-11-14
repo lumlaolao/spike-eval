@@ -1430,7 +1430,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      the run's provenance records (`docs/eval/PUZZLES.md`);
    - every Java and Python test, with a declared-vs-run count; no Java test may skip, and Python skips may not
      exceed the pinned `pytests.skipped_max` (the optional live-model class); the Python files run in shards side
-     by side, each file in exactly one;
+     by side, each file in exactly one; each suite's temp directory is the run's own, and a file the tests leave in
+     it fails the stage (`eval/tests/module_tmp.py`, `forge/spike/TestTmp.java`);
    - the pinned canaries, with a class-load proof that the new build ran;
    - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules and the turn chat,
      and a written puzzle line played by a script seat (`ScriptBridge`; the stage table is in

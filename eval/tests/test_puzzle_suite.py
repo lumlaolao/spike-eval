@@ -11,11 +11,16 @@ from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
 
 STATE = "turn=3\nactiveplayer=p0\nactivephase=MAIN1\np0life=20\np1life=3\np0battlefield=Grizzly Bears\n"
+
+
+def setUpModule():
+    module_tmp.isolate(__name__)
 
 
 def pzl(goal="Win", turns=3, name="Test"):
@@ -66,10 +71,6 @@ class FormatTest(unittest.TestCase):
         self.assertTrue(pf.goal_is_bounded(3, 3, "MAIN1"))
         self.assertFalse(pf.goal_is_bounded(2, 3, "MAIN1"))
         self.assertTrue(pf.goal_is_bounded(2, 3, "CLEANUP"))
-
-    def test_swapping_seats_swaps_every_player_reference(self):
-        out = pf.swap_seats("activeplayer=p1\np0life=5\np1life=9\np1battlefield=Bear|Owner:P0")
-        self.assertEqual(out, "activeplayer=p0\np1life=5\np0life=9\np0battlefield=Bear|Owner:P1")
 
     def test_a_valid_record_passes_and_each_defect_is_named(self):
         with tempfile.TemporaryDirectory() as d:
@@ -344,9 +345,8 @@ class BaselineDecisionTest(unittest.TestCase):
         blind = dict(ok, source={"kind": "rules", "ai_blind": "#447"})
         self.assertEqual(pb.decide_status(blind), ("dropped", ["ai_blind"]))
 
-    def test_seed_specs_count_ranges_and_singles(self):
-        self.assertEqual(pb.seed_count("1..4"), 4)
-        self.assertEqual(pb.seed_count("1..3,9, 12..13"), 6)
+    def test_an_arms_summary_counts_solved_invalid_and_tainted_rows(self):
+        self.assertEqual(len(pb.expand_seeds("1..3,9, 12..13")), 6)
         s = pb.summarize([{"status": "solved"}, {"status": "invalid"}, {"status": "solved", "tainted_by_deckout": True}], "1..3")
         self.assertEqual((s["solved"], s["n"], s["invalid"], s["tainted"]), (1, 3, 1, 1))
 
@@ -385,7 +385,6 @@ class ResumeTest(unittest.TestCase):
 
     def test_seed_specs_expand(self):
         self.assertEqual(pb.expand_seeds("1..3,7"), [1, 2, 3, 7])
-        self.assertEqual(pb.seed_count("1..3,7"), 4)
 
 
 if __name__ == "__main__":

@@ -394,8 +394,7 @@ public class ScriptBridgeTest {
 
     @Test
     public void theFactoryReadsTheSolutionSectionOfAPuzzle() throws Exception {
-        File pzl = File.createTempFile("script", ".pzl");
-        pzl.deleteOnExit();
+        File pzl = TestTmp.file("script", ".pzl").toFile();
         Files.write(pzl.toPath(), ("[metadata]\nName:x\n[state]\nturn=1\n[solution]\n# the line\ncast Divination\n\n"
                 + "  cast Snakeform  \nThing in the Ice\n[acceptance]\nlife p1 <= 0\n").getBytes(StandardCharsets.UTF_8));
         LLMBridge b = LlmSpikeGui.LLMBridgeFactory.create("Solver/smart", "script:" + pzl.getPath(), "");
